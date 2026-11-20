@@ -16,8 +16,16 @@ use ew_api::output::{TableEnd, page_layer};
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::{Device, Function, Representation};
-use ew_derive::ew_units::{Nm, Orient2, Pt2};
+use ew_derive::ew_units::{Grid, Nm, Orient2, Pt2};
 use ew_derive::{PageOrder, cp_point};
+
+/// A symbol's CP drawn at `pos` plus its turned offset `at` on a page of `grid`: the grid's own number where the sum
+/// lies within 1 nm of a grid position (docs/design/06a-drafting.md §2.1).
+fn drawn_at(grid: (i64, i64), pos: (i64, i64), at: (i64, i64)) -> (i64, i64) {
+    let g = Grid::new(grid.0.unsigned_abs(), grid.1.unsigned_abs()).expect("a grid");
+    let p = g.settle_point(Pt2::new(Nm(pos.0 + at.0), Nm(pos.1 + at.1)));
+    (p.x.0, p.y.0)
+}
 
 fn fresh() -> Session {
     let options = SessionOptions {
@@ -271,7 +279,7 @@ fn symbol_shapes_give_the_drawn_cp_positions_under_every_orientation() {
             };
             let at = orient_point(rep.orient, cp.at);
             let drawn = cp_point(&q, function, idx, page).unwrap();
-            assert_eq!((rep.pos.0 + at.0, rep.pos.1 + at.1), (drawn.x.0, drawn.y.0));
+            assert_eq!(drawn_at(tables.grid, rep.pos, at), (drawn.x.0, drawn.y.0));
             // Under all eight orientations, `Orient2`'s mapping (the scene's `lower` places CPs by it).
             for (o, v) in Orient2::ALL.iter().enumerate() {
                 let p = v.apply(Pt2::new(Nm(cp.at.0), Nm(cp.at.1)));
@@ -353,8 +361,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
             if rep.black_box.is_none() && rep.rep_type != "strip_segment" {
                 let shape = s.symbol_shape(rep.symbol).unwrap();
                 let hit = shape.cps.iter().any(|sc| {
-                    let o = orient_point(rep.orient, sc.at);
-                    (rep.pos.0 + o.0, rep.pos.1 + o.1) == cp.at
+                    drawn_at(t.grid, rep.pos, orient_point(rep.orient, sc.at)) == cp.at
                 });
                 assert!(hit, "{}", cp.label);
             }

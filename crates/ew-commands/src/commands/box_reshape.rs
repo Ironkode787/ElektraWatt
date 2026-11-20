@@ -254,6 +254,9 @@ impl Command for ReshapeBox {
             }
             add(rep.pos, rep.orient.apply(v))
         };
+        // A pin's or a corner's point as the page draws it: on the grid's own number where it lies within 1 nm of a
+        // grid position (`Grid::settle_point`, docs/design/06a-drafting.md §2.1).
+        let drawn = |v: Pt2| abs(v).map(|p| grid.settle_point(p));
         let inverse = rep.orient.inverse();
         let rel = |p: Pt2| -> Result<Pt2, OutOfRange> { sub(p, rep.pos).map(|d| inverse.apply(d)) };
         let mut new_abs: Vec<Pt2> = Vec::with_capacity(self.outline.len());
@@ -300,11 +303,8 @@ impl Command for ReshapeBox {
                         ));
                     }
                     // Two pins never stand on one point (rc.5: a dragged pin landed on its neighbour's).
-                    let twice = cps[..i].iter().any(|o| {
-                        abs(o.pos).is_ok_and(|q| {
-                            crate::geometry::settled(grid, q) == crate::geometry::settled(grid, p)
-                        })
-                    });
+                    let at = grid.settle_point(p);
+                    let twice = cps[..i].iter().any(|o| drawn(o.pos) == Ok(at));
                     if twice {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
@@ -312,10 +312,8 @@ impl Command for ReshapeBox {
                             text!("refusal-box-reshape-cp-shared"),
                         ));
                     }
-                    // A pin never stands on a corner (read settled: a corner and a pin 1 nm apart are one point);
-                    // one stored there stays until it is moved (rc.5).
-                    let at = crate::geometry::settled(grid, p);
-                    if !kept && new_abs.iter().any(|v| crate::geometry::settled(grid, *v) == at) {
+                    // A pin never stands on a corner; one stored there stays until it is moved (rc.5).
+                    if !kept && self.outline.iter().any(|v| drawn(*v) == Ok(at)) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/cps/{i}/pos"),
@@ -457,12 +455,12 @@ impl Command for ReshapeBox {
         let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
         if let Some(f) = function {
             for cp in &old.cps {
-                let Ok(before) = abs(cp.pos) else {
+                let Ok(before) = drawn(cp.pos) else {
                     return out_of_range(tx);
                 };
                 match cps.iter().find(|c| c.idx == cp.idx) {
                     Some(c) => {
-                        let Ok(after) = abs(c.pos) else {
+                        let Ok(after) = drawn(c.pos) else {
                             return out_of_range(tx);
                         };
                         let Ok(d) = sub(after, before) else {

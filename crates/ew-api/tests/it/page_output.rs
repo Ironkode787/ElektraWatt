@@ -417,20 +417,20 @@ fn the_display_list_of_folio_101_is_stable() {
             symbols instance de795e26 sym=9a687b31 variant=A translate=(203729167,95250000)
             symbols instance ec75639e sym=f8b44164 variant=A translate=(87312500,79375000)
             symbols instance f4fdc202 sym=4f6bee27 variant=E translate=(18520833,132291667)
-            wires path 09ed5beb els=4 first=(42333333,76729167) last=(42333334,44979167) stroke=264583 fill=-
+            wires path 09ed5beb els=3 first=(42333333,76729167) last=(42333333,44979167) stroke=264583 fill=-
             wires path 13c75a2c els=3 first=(18520833,142875000) last=(42333333,82020833) stroke=264583 fill=-
-            wires path 17b31bbc els=4 first=(42333334,37041667) last=(145520833,31750000) stroke=264583 fill=-
+            wires path 17b31bbc els=4 first=(42333333,37041667) last=(145520833,31750000) stroke=264583 fill=-
             wires path 2b9b8f17 els=4 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
             wires path 2be33590 els=6 first=(203729167,66145833) last=(203729167,105833333) stroke=264583 fill=-
             wires path 301459db els=6 first=(145520833,31750000) last=(209020833,31750000) stroke=264583 fill=-
-            wires path 35faab6c els=4 first=(206375000,100541667) last=(248708334,142875000) stroke=264583 fill=-
+            wires path 35faab6c els=4 first=(206375000,100541667) last=(248708333,142875000) stroke=264583 fill=-
             wires path 48f5a362 els=2 first=(235479167,87312500) last=(235479167,100541667) stroke=264583 fill=-
-            wires path 522a3985 els=3 first=(145520833,42333333) last=(264583334,158750000) stroke=264583 fill=-
+            wires path 522a3985 els=3 first=(145520833,42333333) last=(264583333,158750000) stroke=264583 fill=-
             wires path 5945bf6c els=3 first=(18520833,153458333) last=(50270833,82020833) stroke=264583 fill=-
             wires path 5e9d92b4 els=3 first=(219604167,58208333) last=(235479167,79375000) stroke=264583 fill=-
             wires path 628881aa els=2 first=(37041667,76729167) last=(37041667,44979167) stroke=264583 fill=-
             wires path 6d50c972 els=3 first=(18520833,132291667) last=(37041667,82020833) stroke=264583 fill=-
-            wires path 8d27ba7c els=3 first=(137583333,42333333) last=(264583334,169333333) stroke=264583 fill=-
+            wires path 8d27ba7c els=3 first=(137583333,42333333) last=(264583333,169333333) stroke=264583 fill=-
             wires path a697efb2 els=4 first=(209020833,42333333) last=(219604167,58208333) stroke=264583 fill=-
             wires path aba94b57 els=4 first=(50270833,76729167) last=(87312500,79375000) stroke=264583 fill=-
             wires path b5382424 els=5 first=(187854167,58208333) last=(203729167,95250000) stroke=264583 fill=-

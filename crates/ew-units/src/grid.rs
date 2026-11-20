@@ -9,7 +9,7 @@ use serde::de::{self, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::json::{MAX_SAFE_INTEGER, SafeInt};
-use crate::{Nm, UnitsError, arith};
+use crate::{Nm, Pt2, UnitsError, arith};
 
 /// A rational grid step of `num / den` nanometres (ADR-0005).
 ///
@@ -210,9 +210,9 @@ impl Grid {
     ///
     /// On a grid whose step is not a whole number of nm (the QET grid's `7_937_500 / 3`) a coordinate added up from
     /// two rounded parts (a symbol's place and a pin's offset in it) can lie 1 nm beside the number [`at`](Grid::at)
-    /// gives the same grid position. `settle` makes the two one number, so that geometry which compares coordinates
-    /// (a router, a layout measure) reads one grid line as one line. A coordinate between the grid's positions is
-    /// unchanged, and so is every coordinate on a grid of whole nm, where nothing is rounded.
+    /// gives the same grid position. `settle` makes the two one number ([`settle_point`](Grid::settle_point)). A
+    /// coordinate between the grid's positions is unchanged, and so is every coordinate on a grid of whole nm, where
+    /// nothing is rounded.
     ///
     /// ```
     /// use ew_units::{Grid, Nm};
@@ -231,6 +231,13 @@ impl Grid {
             Some(g) if g.0.abs_diff(x.0) <= 1 => g,
             _ => x,
         }
+    }
+
+    /// [`settle`](Grid::settle) of each coordinate of `p`: the grid's own number of a point that names a grid position
+    /// up to rounding. The functions that give a connection point's page point return it (docs/design/06a-drafting.md
+    /// §2.1), so one grid position has one number on the page.
+    pub fn settle_point(self, p: Pt2) -> Pt2 {
+        Pt2::new(self.settle(p.x), self.settle(p.y))
     }
 
     /// The coordinate `x` in ticks of `1 / per_step` of a step (`per_step` even), and whether it names a half-grid

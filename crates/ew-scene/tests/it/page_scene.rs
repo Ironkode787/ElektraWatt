@@ -95,8 +95,9 @@ fn view() -> PageView {
         .unwrap(),
     );
     let junction = json!({ "junction": uuid(0x31) });
-    // The terminals' CPs: idx 0 one grid step below the origin, idx 1 one above.
-    let (below, above) = (|x, y| (g(x), g(y) + 2_645_833), |x, y| (g(x), g(y) - 2_645_833));
+    // The terminals' CPs: idx 0 one grid step below the origin, idx 1 one above, where the routes end on them.
+    let xy = |p: Pt2| (p.x.0, p.y.0);
+    let (below, above) = (|x: i64, y: i64| xy(pin(x, y + 1)), |x: i64, y: i64| xy(pin(x, y - 1)));
     PageView {
         frame: Some(FrameView {
             form: form(FRAME),
@@ -170,7 +171,7 @@ fn view() -> PageView {
                     0x22,
                     junction,
                     cp(0xF2, 1),
-                    &[(g(40), g(20)), (g(50), g(20)), above(50, 50)],
+                    &[(g(40), g(20)), (above(50, 50).0, g(20)), above(50, 50)],
                 ),
                 marker: None,
                 number: None,
@@ -213,6 +214,13 @@ fn p(x: i64, y: i64) -> Pt2 {
     Pt2::new(Nm(g(x)), Nm(g(y)))
 }
 
+/// A connection point drawn at grid position `(x, y)`: the grid's own number for it (`Grid::at`), where [`g`]
+/// truncates (docs/design/06a-drafting.md §2.1).
+fn pin(x: i64, y: i64) -> Pt2 {
+    let at = |k: i64| ew_units::Grid::QET_10PX.at(k).expect("in range");
+    Pt2::new(at(x), at(y))
+}
+
 #[test]
 fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
     let v = view();
@@ -221,9 +229,9 @@ fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
     // Sorted by connection ID; 0x24 is unresolved (function 0xF9 is not on the page).
     let ids: Vec<u128> = lines.iter().map(|(u, _)| u.as_u128()).collect();
     assert_eq!(ids, [0x21, 0x22, 0x23]);
-    // Terminal CPs: idx 0 one grid step below the origin ((0, 2 645 833) = 1 grid step), idx 1 above.
-    let below = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) + 2_645_833));
-    let above = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) - 2_645_833));
+    // Terminal CPs: idx 0 one grid step below the origin, idx 1 above.
+    let below = |x: i64, y: i64| pin(x, y + 1);
+    let above = |x: i64, y: i64| pin(x, y - 1);
     // F1 top (the CP at y = 20 - 1 step) → junction, along their stored routes.
     assert_eq!(lines[0].1.first(), Some(&above(10, 20)));
     assert_eq!(lines[0].1.last(), Some(&p(40, 20)));
@@ -247,6 +255,65 @@ fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
             connection: Id::from_uuid(Uuid::from_u128(0x24))
         }]
     );
+}
+
+/// A page stored by an older build (docs/design/06a-drafting.md §2.1, §9.3 row 8): its terminals stand 1 nm beside
+/// their grid positions and its wire's route ends on the pins' place plus offset, 1 nm beside the grid's own numbers
+/// that the pins' points now are. The page draws the wire along its stored route, joined to each pin by a step of
+/// 1 nm, and the layout reads it as the Z it is: no fault, two bends, no turn-back. Nothing is rewritten.
+#[test]
+fn a_page_stored_by_an_older_build_draws_the_same_and_measures_without_a_fault() {
+    let t = symbol(TERMINAL);
+    // The terminals' pins as the older build added them up: idx 0 one step below F1, idx 1 one step above F2.
+    let (from, to) = ((g(10), g(20) + 2_645_833), (g(50), g(50) - 2_645_833));
+    let route = [from, (from.0, g(30)), (to.0, g(30)), to];
+    let stored = routed(0x61, cp(0xF1, 0), cp(0xF2, 1), &route);
+    let v = PageView {
+        reps: [(0x11, 0xF1, 10, 20), (0x12, 0xF2, 50, 50)]
+            .into_iter()
+            .map(|(r, f, x, y)| RepView {
+                rep: rep(r, f, t.id, x, y, "r0"),
+                symbol: Some(t.def.clone()),
+                slots: Vec::new(),
+                terminals: Vec::new(),
+                pins: Vec::new(),
+            })
+            .collect(),
+        connections: vec![ConnectionView {
+            connection: Arc::clone(&stored),
+            marker: None,
+            number: None,
+        }],
+        ..blank_page(PAGE)
+    };
+    // The pins' points are the grid's own numbers, 1 nm beside the route's ends.
+    let pins = ew_scene::page::cp_points(&v);
+    let (a, b) = (
+        pins[&(Uuid::from_u128(0xF1), 0)],
+        pins[&(Uuid::from_u128(0xF2), 1)],
+    );
+    assert_eq!((a, b), (pin(10, 21), pin(50, 49)));
+    assert!(a != Pt2::new(Nm(from.0), Nm(from.1)) && b != Pt2::new(Nm(to.0), Nm(to.1)));
+    // Drawn: the stored route between the two pins, every vertex within 1 nm of a stored one.
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
+    let lines = polylines(&wires.list);
+    let [(_, drawn)] = lines.as_slice() else {
+        panic!("one wire: {lines:?}")
+    };
+    assert_eq!((drawn.first(), drawn.last()), (Some(&a), Some(&b)));
+    let near = |p: &Pt2| {
+        stored
+            .route
+            .iter()
+            .any(|q| (p.x.0 - q.x.0).abs() <= 1 && (p.y.0 - q.y.0).abs() <= 1)
+    };
+    assert!(drawn.iter().all(near), "{drawn:?}");
+    // Measured: one Z, without a fault.
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
+    let q = ew_drafting::measure(labels.draft.as_deref().expect("the page as the layout sees it"));
+    assert_eq!(q.faults, 0, "{:?}", q.findings);
+    assert_eq!((q.counts.bends, q.counts.turn_backs), (2, 0), "{:?}", q.counts);
+    assert_eq!(v.connections[0].connection.route, stored.route, "nothing is rewritten");
 }
 
 #[test]
@@ -755,7 +822,7 @@ fn an_unrouted_connection_is_a_dashed_right_angled_line_in_the_thinnest_pen() {
             ew_dl::Stroke::pen(ew_dl::Pen::P013).dashed(ew_dl::DashPattern::Dash42)
         )]
     );
-    let below = |x, y| Pt2::new(Nm(g(x)), Nm(g(y) + 2_645_833));
+    let below = |x: i64, y: i64| pin(x, y + 1);
     let line = polylines(&wires.list)
         .into_iter()
         .find(|(u, _)| *u == id)
@@ -810,13 +877,13 @@ fn a_black_box_draws_its_box_cps() {
     let v = bare(reps(boxed.clone()), conns.clone());
     let lines = polylines(&page_display_list(&v, Layer::Wires, bundled(), builtin()).list);
     assert_eq!(lines.len(), 2);
-    assert_eq!(lines[0].1.first(), Some(&p(11, 10)));
-    assert_eq!(lines[1].1.first(), Some(&p(13, 16)));
+    assert_eq!(lines[0].1.first(), Some(&pin(11, 10)));
+    assert_eq!(lines[1].1.first(), Some(&pin(13, 16)));
     // The box CPs turn with the representation: R90 maps (x, y) to (-y, x).
     boxed.orient = ew_units::Orient2::R90;
     let v = bare(reps(boxed.clone()), conns.clone());
     let lines = polylines(&page_display_list(&v, Layer::Wires, bundled(), builtin()).list);
-    assert_eq!(lines[0].1.first(), Some(&p(10, 11)));
+    assert_eq!(lines[0].1.first(), Some(&pin(10, 11)));
     // Without a box nothing is drawn: both connections have an unresolved end.
     boxed.box_ = None;
     let v = bare(reps(boxed), conns);

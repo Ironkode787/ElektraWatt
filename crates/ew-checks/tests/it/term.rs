@@ -524,10 +524,10 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     );
 }
 
-/// On a grid of thirds of a nm (the QET grid) a pin's point is its symbol's place plus the pin's offset, each
-/// rounded, and can lie 1 nm beside the number of the line a wire is drawn along: the terminal lies on that wire to a
-/// reader, and the rule reads it so (ADR-0033 amendment 4). On a grid of whole nm nothing is rounded, and 1 nm beside
-/// a wire is beside it.
+/// On a grid of thirds of a nm (the QET grid) a symbol's place plus a pin's offset, each rounded, can add up to 1 nm
+/// beside the number of the line a wire is drawn along: the pin's point is the grid's own number
+/// (docs/design/06a-drafting.md §2.1), so the terminal lies on that wire. On a grid of whole nm nothing is rounded, and
+/// 1 nm beside a wire is beside it.
 #[test]
 fn term006_reads_a_terminal_one_nm_beside_the_wires_number_as_on_the_wire() {
     let (k1, k2) = (Ep::Cp(TERM_K1, 1), Ep::Cp(TERM_K2, 0));

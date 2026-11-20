@@ -952,7 +952,8 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             _ => sym_cps,
         };
         for (idx, local) in &drawn {
-            let Some(point) = pos.checked_add(*local) else {
+            // On the grid's own number where it lies within 1 nm of a grid position, as the page draws it.
+            let Some(point) = pos.checked_add(*local).map(|p| page_info.grid.settle_point(p)) else {
                 continue;
             };
             let slot = cx

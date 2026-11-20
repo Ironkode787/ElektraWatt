@@ -3,10 +3,12 @@
 
 //! A black box's pins are connection points as a symbol's pins are:
 //!
-//! - a black box dragged by grid steps, mirrored or turned still takes a wire on every pin, although its pins (stored
-//!   as nm offsets from `pos`, `BoxCp.pos`) land up to 1 nm off the rational QET grid: the CP-exact rule of
-//!   `geometry::require_route` covers them, as it covers a symbol's pins;
-//! - a project saved with a pin 1 nm off the grid still wires (nothing rewrites stored coordinates);
+//! - a black box dragged by grid steps, mirrored or turned still takes a wire on every pin: its pins (stored as nm
+//!   offsets from `pos`, `BoxCp.pos`) add up to 1 nm beside a position of the rational QET grid, and a pin's point is
+//!   then the grid's own number for it (docs/design/06a-drafting.md §2.1), which the CP-exact rule of
+//!   `geometry::require_route` holds a wire's end to, as it does for a symbol's pins;
+//! - a project saved with a pin 1 nm off the grid still wires, to the pin's grid number (nothing rewrites stored
+//!   coordinates);
 //! - a route to a pin follows the box on a drag;
 //! - a black box mirrors and turns within its own bounding box (a 90° turn about its centre, snapped to the grid),
 //!   while a symbol keeps its insertion-point pivot;
@@ -165,9 +167,13 @@ fn heading(orient: Orient2, dir: &Dir4) -> Heading {
 fn pins(e: &Engine, rep: Id<Representation>) -> Vec<(u16, Pt2, Heading)> {
     let r = row(e, rep);
     let b = r.box_.as_ref().expect("a black box");
+    let q = ew_derive::Q::new(e.model());
     b.cps
         .iter()
-        .map(|c| (c.idx, r.pos + r.orient.apply(c.pos), heading(r.orient, &c.dir)))
+        .map(|c| {
+            let at = ew_derive::cp_point(&q, r.functions[0], c.idx, r.page).expect("a drawn pin");
+            (c.idx, at, heading(r.orient, &c.dir))
+        })
         .collect()
 }
 
@@ -333,9 +339,11 @@ fn a_black_box_dragged_by_grid_steps_wires_to_every_pin() {
         let (pos, spec) = play_box();
         let (rep, f) = place_box(&mut e, pos, spec);
         e.execute(&steps(rep, s)).expect("rep.move by steps");
+        // The play-test's case: a pin's place and offset add up to 1 nm beside its grid position; its point is the
+        // grid's own number.
         assert!(
-            pins(&e, rep).iter().any(|(_, p, _)| !on_grid(*p)),
-            "steps {s:?}: the move leaves some pin off the grid (the case of the play-test)"
+            pins(&e, rep).iter().all(|(_, p, _)| on_grid(*p)),
+            "steps {s:?}: every pin's point is a grid position"
         );
         let wires = wire_every_pin(&mut e, rep, f);
         assert_eq!(wires.len(), pins(&e, rep).len(), "steps {s:?}");
@@ -355,7 +363,6 @@ fn a_mirrored_or_turned_black_box_wires_to_every_pin() {
         vec![(2, false)],
         vec![(3, false)],
     ];
-    let mut off = 0;
     for case in cases {
         let mut e = engine(golden_model());
         let (pos, spec) = play_box();
@@ -364,14 +371,14 @@ fn a_mirrored_or_turned_black_box_wires_to_every_pin() {
             e.execute(&transform(rep, *rotate, *mirror))
                 .expect("rep.transform");
         }
-        off += pins(&e, rep).iter().filter(|(_, p, _)| !on_grid(*p)).count();
+        // The play-test's case: a pin's place and offset add up to 1 nm beside its grid position.
+        assert!(
+            pins(&e, rep).iter().all(|(_, p, _)| on_grid(*p)),
+            "{case:?}: every pin's point is a grid position"
+        );
         let wires = wire_every_pin(&mut e, rep, f);
         assert_eq!(wires.len(), pins(&e, rep).len(), "{case:?}");
     }
-    assert!(
-        off > 0,
-        "some transform leaves a pin off the grid (the case of the play-test)"
-    );
 }
 
 #[test]
@@ -380,8 +387,10 @@ fn a_black_box_saved_with_a_pin_one_nm_off_the_grid_still_wires() {
         (id(0x7001), id(0x7101), id(0x7201));
     let (pos, mut spec) = play_box();
     spec.cps[1].pos.x = Nm(spec.cps[1].pos.x.0 + 1);
-    let pin = pos + spec.cps[1].pos;
-    assert!(!on_grid(pin));
+    let stored = pos + spec.cps[1].pos;
+    assert!(!on_grid(stored));
+    let pin = grid().settle_point(stored);
+    assert!(on_grid(pin) && pin != stored);
     let (p, mut records, _) = mini_golden_parts();
     records.push(Record::Device(device(dev, "A", 7)));
     let mut func = function(f, dev, fndef_two(), FnRole::Main);
@@ -397,7 +406,7 @@ fn a_black_box_saved_with_a_pin_one_nm_off_the_grid_still_wires() {
     let wires = wire_every_pin(&mut e, r, f);
     assert_eq!(wires.len(), spec.cps.len());
     let w = row(&e, wires[1]);
-    assert_eq!(w.route.first(), Some(&pin), "the wire ends on the stored pin");
+    assert_eq!(w.route.first(), Some(&pin), "the wire ends on the pin's grid number");
     assert_eq!(row(&e, r), before, "nothing rewrites the stored box");
 }
 

@@ -19,6 +19,10 @@
 //!   symbol grid) below it; the steps turn with the orientation. The terminal's main function (else its first)
 //!   draws the CPs of its sides; CPs without a side are not drawn.
 //!
+//! A point within 1 nm of a position of the page's grid is the grid's own number for it (`Grid::at`, by
+//! [`Grid::settle_point`]): on a grid whose step is not a whole number of nm the sum of a rounded place and a rounded offset
+//! can lie 1 nm beside it, and one grid position has one number (docs/design/06a-drafting.md §2.1).
+//!
 //! A wire leaves a CP in the direction the page draws it with ([`cp_end`]): a symbol CP's or a box CP's `dir` turned
 //! by the representation's orientation, and for a strip segment up from a side-1 point and down from a side-2 point,
 //! turned by the segment's orientation.
@@ -40,6 +44,7 @@ pub fn cp_point(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Opti
 /// [`cp_point`] with the direction a wire leaves the CP in on `page` (see the module documentation); the direction is
 /// `None` when it is unknown (a value of a newer format). The end of a connection as the page draws it.
 pub fn cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<(Pt2, Option<Dir4>)> {
+    let grid = q.pages().get(page).map_or(Grid::MM4, |p| p.grid);
     let mut reps: Vec<Id<Representation>> = q
         .idx()
         .reps_of_function(function)
@@ -49,9 +54,9 @@ pub fn cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Option
     reps.into_iter()
         .find_map(|rid| {
             let rep = q.reps().get(rid)?;
-            rep_cp_end(rep, &q.symbols().get(rep.symbol)?.item, function, idx)
+            rep_cp_end(rep, &q.symbols().get(rep.symbol)?.item, grid, function, idx)
         })
-        .or_else(|| segment_cp_end(q, function, idx, page))
+        .or_else(|| segment_cp_end(q, function, idx, page).map(|(p, dir)| (grid.settle_point(p), dir)))
 }
 
 /// The frame cell of function CP `(function, idx)` as drawn on `page` (the cell of [`cp_point`]); `None`
@@ -61,19 +66,20 @@ pub fn cp_cell(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Optio
     q.get::<CellOf>((page, point)).as_ref().clone()
 }
 
-/// The point at which `rep`, drawn with `symbol` (its symbol copy's item), draws `(function, idx)` by the symbol's CPs
-/// or its black box, and the direction a wire leaves it in (see the module documentation); `None` when `rep` does not
-/// draw it or the point would overflow. The part of [`cp_end`] that reads no index: a caller that holds the records
-/// another way (a transaction of `ew-commands`) places a CP by the same rule.
+/// The point at which `rep`, drawn with `symbol` (its symbol copy's item) on a page of `grid`, draws `(function, idx)`
+/// by the symbol's CPs or its black box, and the direction a wire leaves it in (see the module documentation); `None`
+/// when `rep` does not draw it or the point would overflow. The part of [`cp_end`] that reads no index: a caller that
+/// holds the records another way (a transaction of `ew-commands`) places a CP by the same rule.
 pub fn rep_cp_end(
     rep: &Representation,
     symbol: &SymbolDef,
+    grid: Grid,
     function: Id<Function>,
     idx: u16,
 ) -> Option<(Pt2, Option<Dir4>)> {
     let placed = |local: Pt2, dir: &Dir4| {
         let point = rep.pos.checked_add(rep.orient.checked_apply(local)?)?;
-        Some((point, oriented_dir(dir, rep.orient)))
+        Some((grid.settle_point(point), oriented_dir(dir, rep.orient)))
     };
     let by_symbol = symbol.cps.as_slice().iter().find_map(|cp| {
         let (f, i) = match rep.pin_map.as_slice().iter().find(|p| p.symbol_cp == cp.idx) {

@@ -87,10 +87,10 @@ pub fn sub(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
 /// `rep.pos + rep.orient(cp.pos)`, each mapped to a function CP by the stored `pin_map` entry or, by
 /// default, to `(functions[0], cp.fn_cp)` (doc 07 §5: the pin map is derived unless it deviates). A black box
 /// (a symbol without CPs and a `box`) draws its box CPs instead, in stored order, each at
-/// `rep.pos + rep.orient(cp.pos)` and mapped to `(functions[0], cp.idx)`, with `symbol_cp` = `cp.idx`: the rule of
+/// `rep.pos + rep.orient(cp.pos)` and mapped to `(functions[0], cp.idx)`, with `symbol_cp` = `cp.idx`. A point within
+/// 1 nm of a position of the page's grid is the grid's own number for it ([`Grid::settle_point`]). The rule of
 /// `ew_derive`'s `cp_point`, the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers
-/// a black box's pins as it covers a symbol's (both can sit up to 1 nm off a rational grid after a move or a
-/// transform). A symbol copy that is not embedded yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is
+/// a black box's pins as it covers a symbol's. A symbol copy that is not embedded yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is
 /// not drawn (the commands that place or move a representation refuse that with [`rep_cps_checked`]).
 pub fn rep_cps(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<RepCp> {
     cps_of(tx, rep).into_iter().filter_map(Result::ok).collect()
@@ -121,11 +121,15 @@ pub(crate) fn fitted_pos(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -
 
 /// The point by which `rep` keeps to `grid` (rc.5): its position when that is a grid point, else its first connection
 /// point ([`rep_cps`]' order) when that is one (a symbol fitted to a grid its own pin spacing does not fit, whose
-/// position lies between grid points); `None` for neither. A move by grid steps steps this point, so a fitted symbol
+/// position lies between grid points); `None` for neither, and for a position 1 nm beside a grid point, which is off
+/// the grid although its pins' points are the grid's numbers. A move by grid steps steps this point, so a fitted symbol
 /// moves, turns and pastes as any other and keeps its first pin on the grid.
 pub(crate) fn grid_anchor(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -> Option<Pt2> {
     if point_on_grid(grid, rep.pos) {
         return Some(rep.pos);
+    }
+    if grid.settle_point(rep.pos) != rep.pos {
+        return None;
     }
     rep_cps(tx, rep)
         .first()
@@ -152,9 +156,12 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
     let Some(symbol): Option<Arc<LibCopy<SymbolDef>>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
         return Vec::new();
     };
+    // A point within 1 nm of a grid position is the grid's own number for it (`Grid::settle_point`, doc 06a §2.1).
+    let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
     let placed = |local: Pt2| {
         if point_in_range(local) {
             add(rep.pos, rep.orient.apply(local))
+                .map(|p| Some(grid.settle_point(p)).filter(|s| point_in_range(*s)).unwrap_or(p))
         } else {
             Err(OutOfRange)
         }
@@ -233,18 +240,8 @@ pub fn end_point(tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>) -> Option<Pt2
     }
 }
 
-/// `p` read with a grid position as one number (ADR-0033 amendment 4): each coordinate within 1 nm of a position of
-/// `grid` is the grid's own number for it ([`Grid::settle`]). On a grid of thirds of a nm a pin's point, its symbol's
-/// place plus the pin's offset, each rounded, can lie 1 nm beside the number of its grid position; two points on one
-/// grid line are on one line to a reader, and a comparison of page points reads them settled.
-pub fn settled(grid: Grid, p: Pt2) -> Pt2 {
-    Pt2::new(grid.settle(p.x), grid.settle(p.y))
-}
-
 /// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (a proposal is a
-/// straight, clear run): both ends' points when they lie on one line; empty, so unrouted, otherwise. Two ends on
-/// one grid line whose numbers differ by 1 nm ([`settled`]) are on one line: the run steps over at the grid
-/// coordinate nearest its middle, as the router's straight route does.
+/// straight, clear run): both ends' points when they lie on one line; empty, so unrouted, otherwise.
 pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>) -> Vec<Pt2> {
     let (Some(p), Some(q)) = (end_point(tx, a, page), end_point(tx, b, page)) else {
         return Vec::new();
@@ -255,25 +252,7 @@ pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>
     if p.x == q.x || p.y == q.y {
         return vec![p, q];
     }
-    let Some(grid) = tx.get::<Page>(page).map(|p| p.grid) else {
-        return Vec::new();
-    };
-    let (sp, sq) = (settled(grid, p), settled(grid, q));
-    let mut route = if sp.x == sq.x {
-        match mid_on_grid(grid, p.y, q.y) {
-            Ok(ym) => vec![p, Pt2::new(p.x, ym), Pt2::new(q.x, ym), q],
-            Err(OutOfRange) => Vec::new(),
-        }
-    } else if sp.y == sq.y {
-        match mid_on_grid(grid, p.x, q.x) {
-            Ok(xm) => vec![p, Pt2::new(xm, p.y), Pt2::new(xm, q.y), q],
-            Err(OutOfRange) => Vec::new(),
-        }
-    } else {
-        Vec::new()
-    };
-    route.dedup();
-    route
+    Vec::new()
 }
 
 /// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the

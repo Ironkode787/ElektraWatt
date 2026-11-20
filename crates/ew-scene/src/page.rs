@@ -38,7 +38,8 @@
 //! - **Order.** Representations, connections and junctions are sorted by ID, whatever order the caller
 //!   gives them in, so a record shuffle never changes a display list (AC-14).
 //! - **CP positions** follow `ew-commands`' `rep_cps`: symbol CP `c` of a representation sits at
-//!   `pos + orient(c.pos)` and draws the function CP of its `pin_map` entry, else `(functions[0], c.fn_cp)`;
+//!   `pos + orient(c.pos)`, on the grid's own number where that lies within 1 nm of a position of the page's grid
+//!   (`Grid::settle_point`; this holds for every CP below), and draws the function CP of its `pin_map` entry, else `(functions[0], c.fn_cp)`;
 //!   when several representations on the page draw the same function CP, the smallest representation ID
 //!   wins.
 //! - **Black boxes.** A representation whose symbol has no CPs and that carries `Representation.box` draws
@@ -855,7 +856,7 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
         let Some(def) = &rv.symbol else { continue };
         let rep = &rv.rep;
         let mut put = |function: Id<Function>, idx: u16, offset: Pt2, dir: &Dir4| {
-            let pos = rep.pos + rep.orient.apply(offset);
+            let pos = view.grid.settle_point(rep.pos + rep.orient.apply(offset));
             let dir = symbol::transform_dir(dir, rep.orient);
             map.entry((function.as_uuid(), idx))
                 .or_insert((pos, dir, rep.id.as_uuid()));
@@ -897,7 +898,7 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
                 {
                     let dir = symbol::transform_dir(&dir, rep.orient);
                     map.entry((t.function.as_uuid(), idx))
-                        .or_insert((at, dir, rep.id.as_uuid()));
+                        .or_insert((view.grid.settle_point(at), dir, rep.id.as_uuid()));
                 }
             }
         }

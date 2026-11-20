@@ -177,17 +177,20 @@ pub fn next_in_series(name: &str) -> String {
     format!("{name}-1")
 }
 
-/// The point `p` of the page of `tables` with every coordinate within 1 nm of a grid position on the grid's own number
-/// (`Grid::settle`), on a grid whose step is not a whole number of nm; else `p`.
-pub(super) fn settled(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
-    use ew_api::output::ew_dl::ew_units::{Grid, Nm};
+/// A ghost's pin at the page point `p` of the page of `tables`, as the page will draw it: on the grid's own number
+/// where it lies within 1 nm of a grid position (`Grid::settle_point`, docs/design/06a-drafting.md §2.1), so that it
+/// meets the page's pins and wires by equal numbers.
+pub(super) fn pin_point(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
+    use ew_api::output::ew_dl::ew_units::{Grid, Nm, Pt2};
     let grid = u64::try_from(tables.grid.0)
         .ok()
         .zip(u64::try_from(tables.grid.1).ok())
-        .and_then(|(n, d)| Grid::new(n, d).ok())
-        .filter(|g| g.den() > 1);
+        .and_then(|(n, d)| Grid::new(n, d).ok());
     match grid {
-        Some(g) => (g.settle(Nm(p.0)).0, g.settle(Nm(p.1)).0),
+        Some(g) => {
+            let q = g.settle_point(Pt2::new(Nm(p.0), Nm(p.1)));
+            (q.x.0, q.y.0)
+        }
         None => p,
     }
 }
@@ -195,18 +198,11 @@ pub(super) fn settled(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
 /// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
 /// segments, a bend included, but at neither of its ends. As the Wire tool's `resolve_target` looks, after
 /// the connection points: the junctions, then the segments.
-///
-/// Every point is read through `settle`, the page's settled reading ([`settled`], ADR-0033 amendment 4):
-/// a point 1 nm beside the number of a wire's line lies on that wire.
-fn on_wire(tables: &PageTables, c: (i64, i64), settle: &dyn Fn((i64, i64)) -> (i64, i64)) -> bool {
-    let c = settle(c);
-    if tables.junctions.iter().any(|j| settle(j.at) == c) {
+fn on_wire(tables: &PageTables, c: (i64, i64)) -> bool {
+    if tables.junctions.iter().any(|j| j.at == c) {
         return true;
     }
-    tables.connections.iter().any(|w| {
-        let line: Vec<(i64, i64)> = w.polyline.iter().map(|p| settle(*p)).collect();
-        inside_polyline(&line, c)
-    })
+    tables.connections.iter().any(|w| inside_polyline(&w.polyline, c))
 }
 
 /// Whether `c` lies on the polyline `line` but at neither of its ends: on a segment or at a bend.
@@ -656,12 +652,12 @@ impl IpTool {
         self.shape = shape;
     }
 
-    /// The ghost CP's page point at the insertion point `pos`.
-    fn cp_at(&self, pos: (i64, i64)) -> Option<(i64, i64)> {
+    /// The ghost CP's page point at the insertion point `pos` on the page of `tables` ([`pin_point`]).
+    fn cp_at(&self, pos: (i64, i64), tables: &PageTables) -> Option<(i64, i64)> {
         let (shape, _, orient) = self.drawn(self.shown_dir);
         let cp = shape.cps.first()?;
         let o = orient_point(orient, cp.at);
-        Some((pos.0 + o.0, pos.1 + o.1))
+        Some(pin_point(tables, (pos.0 + o.0, pos.1 + o.1)))
     }
 
     /// The direction at the insertion point `pos` before the project's sources are considered, and whether it is
@@ -684,21 +680,14 @@ impl IpTool {
         (found, false)
     }
 
-    /// The CPs of the page that lie under the ghost's CP at the insertion point `pos`, with a grid position read as one
-    /// number: a pin whose point lies 1 nm beside the grid's number of its position (its place plus its offset, each
-    /// rounded) is under a point dropped there.
+    /// The CPs of the page that lie under the ghost's CP at the insertion point `pos`.
     fn pins_under<'a>(
         &self,
         cx: &'a ToolCx<'_>,
         pos: (i64, i64),
     ) -> impl Iterator<Item = &'a TableCp> + use<'a> {
-        let c = self.cp_at(pos);
-        let settle = move |p: (i64, i64)| settled(&cx.page.tables, p);
-        cx.page
-            .tables
-            .cps
-            .iter()
-            .filter(move |x| c.is_some_and(|c| settle(x.at) == settle(c)))
+        let c = self.cp_at(pos, &cx.page.tables);
+        cx.page.tables.cps.iter().filter(move |x| c == Some(x.at))
     }
 
     /// The insertion point (sheet nm, page nm) for the pointer at the sheet point `at`: the grid point under it,
@@ -739,8 +728,8 @@ impl IpTool {
     /// The pin without a wire nearest the ghost's CP at `pos`, within [`MARK_BESIDE_PIN_NM`] of it and not under it
     /// joined: the pin a point placed free stands beside, said when it is placed (rc.5); in words.
     fn beside(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> Option<String> {
-        let c = self.cp_at(pos)?;
         let tables = &cx.page.tables;
+        let c = self.cp_at(pos, tables)?;
         let ip_reps: BTreeSet<Uuid> = tables
             .reps
             .iter()
@@ -801,7 +790,7 @@ impl IpTool {
             "IP".to_owned()
         } else {
             let potential = pos
-                .and_then(|p| self.cp_at(p))
+                .and_then(|p| self.cp_at(p, tables))
                 .and_then(|c| potential_at(tables, c));
             proposal_base(potential, self.memory.last_name.as_deref())
         };
@@ -835,11 +824,10 @@ impl IpTool {
     /// wired) it connects unless Alt is held, an external connection point too; elsewhere it places
     /// the point free.
     fn drop_on(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> DropOn {
-        let Some(c) = self.cp_at(pos) else {
+        let Some(c) = self.cp_at(pos, &cx.page.tables) else {
             return DropOn::Free;
         };
         let tables = &cx.page.tables;
-        let settle = |p: (i64, i64)| settled(&cx.page.tables, p);
         let under: Vec<&TableCp> = self.pins_under(cx, pos).collect();
         // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
         // the new point's CP and the pin coincide).
@@ -865,7 +853,7 @@ impl IpTool {
         }
         // Without a pin, a point on a junction or strictly inside a wire would sit on it without joining it, so it is
         // refused. A wire's bare end is no wire's inside: the point places free.
-        if on_wire(tables, c, &settle) {
+        if on_wire(tables, c) {
             return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
         }
         // Room for the texts: a point prints its name above its arrow and its reference below, so a point placed in
@@ -947,23 +935,12 @@ impl IpTool {
                 if let Some(e) = &self.external {
                     ip["external"] = Value::from(e.id.clone());
                 }
-                // The pin and the point's CP are one point and need no route; where the pin's number lies 1 nm beside
-                // the point's (one grid position, two numbers) the route is that step, else the connection would
-                // count as unrouted.
-                let route: Vec<Value> = match self.cp_at(pos) {
-                    Some(c) if c != pin.at => {
-                        let mut step = vec![pin.at, (c.0, pin.at.1), c];
-                        step.dedup();
-                        step.into_iter().map(|p| json!([p.0, p.1])).collect()
-                    }
-                    _ => Vec::new(),
-                };
                 (
                     "connection.draw_to_ip",
                     json!({
                         "a": {"cp": {"function": pin.function.to_string(), "idx": pin.idx}},
                         "page": page,
-                        "route": route,
+                        "route": [],
                         "ip": ip,
                     }),
                 )
@@ -1020,7 +997,7 @@ impl IpTool {
             paths: Arc::clone(outline),
             transform: (orient, pos),
         }];
-        if let Some(c) = self.cp_at(pos) {
+        if let Some(c) = self.cp_at(pos, &cx.page.tables) {
             items.push(OverlayItem::Marker {
                 at: cx.snapper.page_to_sheet(c),
                 kind: MarkerKind::Cp,

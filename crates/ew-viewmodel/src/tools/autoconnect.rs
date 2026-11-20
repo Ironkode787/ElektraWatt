@@ -576,7 +576,7 @@ pub fn proposals(
 }
 
 /// The ghost CPs of the representations `reps` of the page moved by the page displacements `delta(rep)`: their table
-/// CPs at the moved points, the designation the label prints after its colon, and the strip tag of a moved terminal
+/// CPs at the moved points (as the page will draw them, `ip::pin_point`), the designation the label prints after its colon, and the strip tag of a moved terminal
 /// (see `moved_strip_tag`).
 pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, i64)>) -> Vec<GhostCp> {
     let mut out = Vec::new();
@@ -592,7 +592,7 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
         out.push(GhostCp {
             symbol_cp: u16::try_from(k).unwrap_or(u16::MAX),
             designation,
-            at: (cp.at.0 + d.0, cp.at.1 + d.1),
+            at: super::ip::pin_point(tables, (cp.at.0 + d.0, cp.at.1 + d.1)),
             dir,
             connected: !cp.connections.is_empty(),
             strip_tag: moved_strip_tag(tables, cp.rep),

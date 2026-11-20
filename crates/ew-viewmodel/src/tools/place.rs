@@ -38,7 +38,7 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::{orient_dir, orient_point, orient_then, variant_letter};
-use ew_api::output::SymbolShape;
+use ew_api::output::{PageTables, SymbolShape};
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Value, json};
 
@@ -320,8 +320,9 @@ impl PlaceTool {
         &self.proposals
     }
 
-    /// The ghost's CPs at the insertion point `pos` (page nm).
-    fn ghost_cps(&self, pos: (i64, i64)) -> Vec<GhostCp> {
+    /// The ghost's CPs at the insertion point `pos` (page nm) on the page of `tables`, each at its point as the page will
+    /// draw it (`ip::pin_point`).
+    fn ghost_cps(&self, pos: (i64, i64), tables: &PageTables) -> Vec<GhostCp> {
         // A terminal's CPs never connect to a terminal of its own strip.
         let strip_tag = match &self.target {
             PlaceTarget::Terminal { strip_tag, .. } => Some(strip_tag.clone()),
@@ -335,7 +336,7 @@ impl PlaceTool {
                 GhostCp {
                     symbol_cp: cp.symbol_cp,
                     designation: cp.designation.clone(),
-                    at: (pos.0 + o.0, pos.1 + o.1),
+                    at: super::ip::pin_point(tables, (pos.0 + o.0, pos.1 + o.1)),
                     dir: orient_dir(self.orient, cp.dir),
                     connected: false,
                     strip_tag: strip_tag.clone(),
@@ -353,7 +354,7 @@ impl PlaceTool {
         let moved = self.landing.is_some_and(|(_, steps)| steps != 0);
         self.proposals = match self.at {
             Some((_, pos)) if self.autoconnect && !self.suppressed && !moved => proposals(
-                &self.ghost_cps(pos),
+                &self.ghost_cps(pos, &cx.page.tables),
                 &cx.page.tables,
                 &[],
                 super::wire::drawing_area(cx),
@@ -668,7 +669,7 @@ impl PlaceTool {
                 }),
                 ProposalTarget::Split { other, .. } => {
                     items.push(stub(p.cp.at, p.cp.dir));
-                    if let Some(o) = self.ghost_cps(pos).iter().find(|c| c.symbol_cp == other.0) {
+                    if let Some(o) = self.ghost_cps(pos, &cx.page.tables).iter().find(|c| c.symbol_cp == other.0) {
                         items.push(stub(o.at, o.dir));
                     }
                 }
@@ -771,7 +772,7 @@ impl PlaceTool {
     /// along the sheet's edge.
     fn on_off_sheet(&self, cx: &ToolCx<'_>) -> bool {
         self.at.is_some_and(|(_, at)| {
-            on_off_sheet_segment(&self.ghost_cps(self.stacked_pos(cx, at)), &cx.page.tables)
+            on_off_sheet_segment(&self.ghost_cps(self.stacked_pos(cx, at), &cx.page.tables), &cx.page.tables)
         })
     }
 

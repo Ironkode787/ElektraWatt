@@ -2482,6 +2482,11 @@ type DrawnCps = BTreeMap<(Id<Function>, u16), (Pt2, Dir, Id<Representation>)>;
 
 /// The drawn CPs of a page (see [`DrawnCps`]), from the page's memoised representation views (`page_reps`).
 fn drawn_cps(q: &Q, page: Id<Page>) -> DrawnCps {
+    // A point within 1 nm of a grid position is the grid's own number for it (the scene's rule).
+    let grid = q
+        .pages()
+        .get(page)
+        .map_or(ew_derive::ew_units::Grid::MM4, |p| p.grid);
     let mut map = DrawnCps::new();
     let views = q.get::<PageRepsOf>(page);
     let mut views: Vec<&ew_scene::page::RepView> = views.iter().collect();
@@ -2493,7 +2498,7 @@ fn drawn_cps(q: &Q, page: Id<Page>) -> DrawnCps {
         let o = orient_index(rep.orient);
         let mut put = |function: Id<Function>, idx: u16, at: Option<Pt2>, dir: Dir| {
             let Some(at) = at else { return };
-            map.entry((function, idx)).or_insert((at, dir, rid));
+            map.entry((function, idx)).or_insert((grid.settle_point(at), dir, rid));
         };
         let placed = |offset: Pt2| rep.pos.checked_add(rep.orient.checked_apply(offset)?);
         for cp in def.cps.iter() {

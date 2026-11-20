@@ -64,6 +64,13 @@ fn rep_delta(cx: &ToolCx<'_>, pos: (i64, i64), steps: (i64, i64)) -> (i64, i64) 
     (axis(pos.0, steps.0), axis(pos.1, steps.1))
 }
 
+/// The displacement of a CP at `at` whose representation moves by `d`: to its new point as the page will draw it
+/// (`ip::pin_point`), which can differ from `d` by 1 nm on a grid of thirds of a nm.
+fn cp_shift(tables: &ew_api::output::PageTables, at: (i64, i64), d: (i64, i64)) -> (i64, i64) {
+    let to = super::ip::pin_point(tables, (at.0 + d.0, at.1 + d.1));
+    (to.0 - at.0, to.1 - at.1)
+}
+
 /// The movable entities of a drag that starts on `pressed` (§7.3): the selection's representations, page items and
 /// structure boxes when the pressed entity is selected, else the pressed entity alone; in selection order.
 pub fn moved_set(cx: &ToolCx<'_>, pressed: EntityRef) -> Vec<EntityRef> {
@@ -110,7 +117,7 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
             return None;
         }
         let rep = tables.reps.iter().find(|r| r.id == cp.rep)?;
-        Some(rep_delta(cx, rep.pos, steps))
+        Some(cp_shift(tables, cp.at, rep_delta(cx, rep.pos, steps)))
     };
     for c in &tables.connections {
         let (da, db) = (end_delta(&c.a), end_delta(&c.b));
@@ -329,7 +336,7 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
             .iter()
             .find(|c| c.function == function && c.idx == idx)?;
         let d = delta_of(cp.rep)?;
-        Some((cp.at.0 + d.0, cp.at.1 + d.1))
+        Some(super::ip::pin_point(tables, (cp.at.0 + d.0, cp.at.1 + d.1)))
     };
     let end_point = |e: &ew_api::output::TableEnd| -> Option<(i64, i64)> {
         match e {
@@ -351,7 +358,7 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
                 .cps
                 .iter()
                 .find(|c| c.function == *function && c.idx == *idx)?;
-            delta_of(cp.rep)
+            delta_of(cp.rep).map(|d| cp_shift(tables, cp.at, d))
         }
         ew_api::output::TableEnd::Junction { .. } => None,
     };

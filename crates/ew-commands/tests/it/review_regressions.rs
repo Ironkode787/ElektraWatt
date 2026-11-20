@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Regressions of the independent re-review of `ew-commands`: a split point on a wire at a CP-exact
-//! coordinate that is 1 nm off a rational grid (N1), and the origin of a re-run foreign preview (N3).
+//! coordinate that is off a rational grid (N1), and the origin of a re-run foreign preview (N3).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -33,8 +33,8 @@ use serde::{Deserialize, Serialize};
 // N1: a split point on a wire at a CP-exact coordinate that is off the rational grid
 
 /// One QET grid step is 7_937_500 / 3 nm, so two steps are 5_291_666.67 nm: the grid point is 5_291_667,
-/// and a CP drawn at 5_291_666 is 1 nm off it.
-const Y_CP: i64 = 5_291_666;
+/// and a CP drawn at 5_291_660 is off it (7 nm: a CP within 1 nm of a grid point is drawn on the grid's number).
+const Y_CP: i64 = 5_291_660;
 const Y_GRID: i64 = 5_291_667;
 
 /// Two placed devices whose second CP (10 mm below the insertion point) is drawn at `y = Y_CP`, at x = 0

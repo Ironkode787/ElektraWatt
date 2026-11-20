@@ -392,15 +392,12 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             };
             // Where another wire crosses this one, a junction would sit on both and read as a joint of the four
             // arms: a crossing is no place to join.
-            // (Read with a grid position as one number: a wire whose line's number lies 1 nm beside this point's
-            // crosses here all the same.)
-            let settle = |q: (i64, i64)| super::ip::settled(tables, q);
             let crossed = tables.connections.iter().any(|o| {
                 o.id != c.id
                     && o.stored_route
                     && super::autoconnect::dedup(&o.polyline)
                         .windows(2)
-                        .any(|s| segment_dist2(settle(p), settle(s[0]), settle(s[1])) == 0)
+                        .any(|s| segment_dist2(p, s[0], s[1]) == 0)
             });
             if crossed {
                 continue;
@@ -1390,7 +1387,7 @@ impl WireTool {
             grid.coord(grid.index(end.0 - off.0)),
             grid.coord(grid.index(end.1 - off.1)),
         );
-        let cp_at = (pos.0 + off.0, pos.1 + off.1);
+        let cp_at = super::ip::pin_point(&cx.page.tables, (pos.0 + off.0, pos.1 + off.1));
         let target = WireTarget::Cp {
             function: EntityRef(cx.page.tables.page),
             idx: cp.fn_cp,

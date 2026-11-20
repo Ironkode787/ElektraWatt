@@ -708,41 +708,35 @@ fn a_wires_bare_end_places_the_point_free() {
     assert!(conns.is_empty(), "free: no connection");
 }
 
-/// A pin whose point lies 1 nm beside the grid's number of its position (on Golden A's grid of thirds of a nm a
-/// pin's point is its symbol's place plus the pin's offset, each rounded). A point dropped there stands on the grid's
-/// number and is on the pin to a reader: the tool connects it, with the step of 1 nm as the wire's route (an empty
-/// route between two numbers would count as a wire without a route).
+/// On Golden A's grid of thirds of a nm a point's place plus its pin's offset, each rounded, can add up to 1 nm beside
+/// the grid's number of the pin's position; the page draws a pin, and the tool's ghost its point's pin, on that number
+/// (docs/design/06a-drafting.md §2.1). So a point dropped on any pin of a routed folio is on it: the ghost connects to
+/// it, and the point's pin and the wire's one point are the pin's own number.
 #[test]
-fn a_point_dropped_on_a_pin_one_nm_beside_the_grid_connects_to_it() {
-    let tmp = Tmp::new("ip-pin-one-nm");
+fn a_point_dropped_on_a_pin_connects_to_it_on_the_pin_s_own_number() {
+    let tmp = Tmp::new("ip-pin-one-number");
     let mut s = shell(&tmp, "102");
-    let beside = |s: &ShellModel, v: i64| {
-        let sn = &s.canvas().unwrap().page().snapper;
-        (sn.page_of_index(sn.grid_index_of(v)) - v).abs() == 1
-    };
-    // The first such pin of the routed folios, no interruption point's own.
-    let pin = ["101", "102", "103", "106"]
-        .into_iter()
-        .find_map(|folio| {
-            done(&mut s, "page.goto", json!({ "folio": folio }));
-            done(&mut s, "view.zoom_actual", json!({}));
-            let t = tables(&s);
-            t.cps
-                .iter()
-                .find(|c| {
-                    (beside(&s, c.at.0) || beside(&s, c.at.1))
-                        && t.reps.iter().any(|r| r.id == c.rep && r.ip.is_none())
-                        && t.cps.iter().filter(|o| o.at == c.at).count() == 1
-                })
-                .cloned()
+    done(&mut s, "view.zoom_actual", json!({}));
+    let t = tables(&s);
+    let pins: Vec<TableCp> = t
+        .cps
+        .iter()
+        .filter(|c| {
+            // (A pin whose designation repeats is named otherwise by the ghost.)
+            !c.label.contains('#')
+                && t.reps.iter().any(|r| r.id == c.rep && r.ip.is_none())
+                && t.cps.iter().filter(|o| o.at == c.at).count() == 1
         })
-        .expect("a pin 1 nm beside the grid");
+        .cloned()
+        .collect();
+    assert!(!pins.is_empty(), "pins to drop a point on");
+    for pin in &pins {
+        arm_on(&mut s, "T1", pin.at);
+        assert_eq!(ghost(&s)["connects"], pin.label.as_str(), "the pin under the point");
+        done(&mut s, "tool.select", json!({}));
+    }
+    let pin = &pins[0];
     arm_on(&mut s, "T1", pin.at);
-    assert_eq!(
-        ghost(&s)["connects"],
-        pin.label.as_str(),
-        "the pin under the point"
-    );
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
     let (reps, conns) = added(&before, &s);
@@ -753,15 +747,5 @@ fn a_point_dropped_on_a_pin_one_nm_beside_the_grid_connects_to_it() {
         .find(|c| c.rep == reps[0].id)
         .unwrap()
         .clone();
-    assert!(
-        (ip_cp.at.0 - pin.at.0).abs() <= 1 && (ip_cp.at.1 - pin.at.1).abs() <= 1 && ip_cp.at != pin.at,
-        "the point's CP on the grid's number beside the pin's: {:?} {:?}",
-        ip_cp.at,
-        pin.at
-    );
-    assert!(conns[0].stored_route, "a route: the step between the two numbers");
-    assert_eq!(
-        (conns[0].polyline.first(), conns[0].polyline.last()),
-        (Some(&pin.at), Some(&ip_cp.at))
-    );
+    assert_eq!(ip_cp.at, pin.at, "the point's pin on the pin's own number");
 }

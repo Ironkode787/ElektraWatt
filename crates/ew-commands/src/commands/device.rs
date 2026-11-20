@@ -893,18 +893,9 @@ impl MoveReps {
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         let mut reps: Vec<Arc<Representation>> = Vec::new();
         let mut moved: Vec<Representation> = Vec::new();
-        // The displacement of every moved representation, by ID.
-        let mut shift: BTreeMap<Id<Representation>, Pt2> = BTreeMap::new();
         for id in &ids {
             let rep = tx.require::<Representation>(*id)?;
             let next = stepped(tx, &rep, steps)?;
-            let Ok(d) = sub(next.pos, rep.pos) else {
-                return tx.reject(text!(
-                    "refusal-rep-move-steps-out-of-range",
-                    crate::words::symbol(tx, *id)
-                ));
-            };
-            shift.insert(*id, d);
             reps.push(rep);
             moved.push(next);
         }
@@ -914,17 +905,22 @@ impl MoveReps {
                 connections.extend(tx.connections_of_function(f));
             }
         }
-        // The moved representation drawing an endpoint CP on `page`, with its displacement and the CP's old point.
+        // The moved representation drawing an endpoint CP on `page`: the CP's own displacement and its old point (a
+        // CP's point is its grid position's own number, so it can move by 1 nm more or less than its representation).
         let end_of = |tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>| -> Option<(Pt2, Pt2)> {
             let Endpoint::Cp(f, idx) = e else { return None };
             reps.iter()
-                .filter(|r| r.page == page && drawn_functions(r).contains(f))
-                .find_map(|r| {
-                    let at = crate::geometry::rep_cps(tx, r)
-                        .into_iter()
-                        .find(|c| c.function == *f && c.idx == *idx)?
-                        .pos;
-                    Some((shift[&r.id], at))
+                .zip(&moved)
+                .filter(|(r, _)| r.page == page && drawn_functions(r).contains(f))
+                .find_map(|(r, next)| {
+                    let point = |r: &Representation| {
+                        crate::geometry::rep_cps(tx, r)
+                            .into_iter()
+                            .find(|c| c.function == *f && c.idx == *idx)
+                            .map(|c| c.pos)
+                    };
+                    let (at, to) = (point(r)?, point(next)?);
+                    Some((sub(to, at).ok()?, at))
                 })
         };
         let mut changed: Vec<Connection> = Vec::new();

@@ -31,7 +31,7 @@ use ew_schema::{
     LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
     TextAlign, TextSlot,
 };
-use ew_units::{Angle2, Nm, Orient2, Pt2};
+use ew_units::{Angle2, Grid, Nm, Orient2, Pt2};
 use serde_json::Value;
 
 use super::Def;
@@ -192,7 +192,8 @@ impl Elem<'_> {
                     .0
                     .checked_add(rotated.x.0)
                     .zip(self.pos.y.0.checked_add(rotated.y.0))
-                    .map(|(x, y)| Pt2::new(Nm(x), Nm(y)));
+                    // As the page draws it: on the grid's own number within 1 nm of a position of a QET page's grid.
+                    .map(|(x, y)| Grid::QET_10PX.settle_point(Pt2::new(Nm(x), Nm(y))));
                 PlacedTerminal {
                     uuid: cp
                         .extra
