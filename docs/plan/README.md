@@ -1,8 +1,8 @@
 # The plan
 
-**Running:** M3.5, hygiene, since 2026-11-20 ([m3.5.md](m3.5.md)): no features, release 0.3.5; and M3, automation
-breadth, since 2026-11-13 ([m3.md](m3.md)), whose sixth candidate of 0.3.0 waits for its release. **Done:**
-M2.5-Fix, a properly working program, closed with the release of 0.2.0 on 2026-11-13 ([m2.5-fix.md](m2.5-fix.md));
+**Running:** M3.5, hygiene and then a fix round, since 2026-11-20 ([m3.5.md](m3.5.md)): release 0.3.5. **Done:**
+M3, automation breadth, closed with the release of 0.3.0 on 2026-11-20 ([m3.md](m3.md)); M2.5-Fix, a properly
+working program, closed with the release of 0.2.0 on 2026-11-13 ([m2.5-fix.md](m2.5-fix.md));
 M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)).
 
 | File | What it is |

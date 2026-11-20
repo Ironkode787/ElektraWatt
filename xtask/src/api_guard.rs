@@ -22,7 +22,7 @@
 //! value or branch of a node the base holds passes only when `docs/release-notes/unreleased.md` gains `- format-variant:
 //! <kind> <path> <value>` (the reviewer checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1); this line check
 //! compares with the **newest** final tag whose tree holds the format, among those whose version is not above the
-//! working tree's `[workspace.package].version`, since the promote empties the notes. A new optional property and a
+//! working tree's `[workspace.package].version`, since a release's cut empties the notes. A new optional property and a
 //! new kind's schema are additive.
 
 use std::collections::{BTreeMap, BTreeSet};
