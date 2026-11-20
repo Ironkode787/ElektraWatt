@@ -167,8 +167,8 @@ on empty points to place bends and the wire follows them ("Bend placed: click a 
 a click inside a symbol places no bend and says so ("A bend cannot sit inside a symbol; click one of its connection
 points, or a free point outside it"). Where no clean way leads on from your last bend, the wire is routed from its
 start as if drawn anew, without your bends, or stays unrouted: a wire never runs through a pin or along another wire.
-The hint says what a click at the pointer does: on another wire it joins that wire with a tee (Alt+Click places a bend
-there instead), on the start point it does nothing. A junction
+The hint says what a click at the pointer does: on another wire it joins that wire with a tee, drawn with a bevel
+(Alt+Click places a bend there instead), on the start point it does nothing. A junction
 that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire
 to make a new junction." The point where two wires cross is not an end either (a junction there would join all
 four arms): end on the wire a step beside the crossing.
@@ -176,6 +176,17 @@ four arms): end on the wire a step beside the crossing.
 An unrouted wire, from an import or a placement, is drawn as a dashed line between its ends, straight or with
 one corner and never diagonal, on the page and in the PDF. The line takes no notice of what lies under it: it is
 no route yet. Route draws it.
+
+A route the tool finds between your two clicks counts as the program's: Route may draw it again later. A route with a
+bend you placed is yours, and so is one you change by hand; Route leaves it alone unless you select the wire.
+
+## Dot at the joint
+
+A wire that ends on another wire joins it with a bevel: the wires then run from terminal to terminal, and the bevel
+shows which terminal carries two of them. Press `.` while you draw the wire, before you click on the other wire, to
+join it with a dot instead: then every wire of the joint starts from the terminal the potential comes from. Press `.`
+again for the bevel. A joint you made keeps its form; change it later in the junction's editor (select the junction and
+press Enter).
 
 ## Tube
 

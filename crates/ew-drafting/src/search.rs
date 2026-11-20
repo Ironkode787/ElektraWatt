@@ -19,7 +19,9 @@
 //!
 //! **Not taken:** a node strictly inside a body grown by a step (half a step on the half grid), but along an end's
 //! escape corridor out of its own part (the nodes from a pin along its side while inside its own grown body, and the
-//! first one outside) and inside an outline that holds the other end; a node that a pin, a pin's stub or a junction
+//! first one outside) and inside a body that holds a first end that is a bend reached over one of its pins a step behind
+//! it (the person led the wire through the part); a node that a
+//! pin, a pin's stub or a junction
 //! reserves that is not the route's (a stub of a pin no wire ends at is free to an end whose own stub lies there); a
 //! node of another wire's vertex; a move along another wire; a turn back; on the half grid, a move along a line
 //! between the grid's lines but strictly between the two ends, inside their box.
@@ -171,8 +173,9 @@ struct Space<'a> {
     t: Node,
     /// The corridors' nodes of the occupancy, per end.
     corridors: [Vec<Node>; 2],
-    /// The outlines that hold an end of another part: never obstacles.
-    excused: Vec<Rect>,
+    /// The bodies that hold a first end that is a bend reached over one of their pins a step behind it (the person led the
+    /// wire through the part): the route may leave them.
+    held: Vec<Rect>,
     /// The two ends' stub nodes of the occupancy.
     stubs: [Option<Node>; 2],
 }
@@ -234,7 +237,7 @@ impl<'a> Space<'a> {
         if !ask.relax.bodies {
             let mut bodies = i32::from(ask.occ.bodies_at(n, self.half()));
             if bodies > 0 {
-                for r in &self.excused {
+                for r in &self.held {
                     if self.inside(n, *r) {
                         bodies -= 1;
                     }
@@ -525,26 +528,31 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
         s,
         t,
         corridors: [Vec::new(), Vec::new()],
-        excused: Vec::new(),
+        held: ask
+            .occ
+            .bodies
+            .iter()
+            .filter(|(_, r, pins)| {
+                let t = &ask.from;
+                let inside = r.x0 < t.at.x && t.at.x < r.x1 && r.y0 < t.at.y && t.at.y < r.y1;
+                // Reached over one of its pins, a step behind the bend: the person led the wire through the part.
+                let over_pin = ask.arrive.is_some_and(|h| {
+                    let u = h.unit();
+                    pins.iter().any(|p| {
+                        (1..=STUB).any(|d| t.at.minus(Pt::new(u.x * d, u.y * d)) == *p)
+                    })
+                });
+                t.owner == Owner::Free && inside && over_pin
+            })
+            .map(|(_, r, _)| *r)
+            .collect(),
         stubs: [None, None],
     };
-    // Outlines that hold an end of another part.
-    for (id, r) in &ask.occ.bodies {
-        let foreign = [&ask.from, &ask.to].iter().any(|tip| {
-            tip.part.is_none_or(|(own, _)| own != id.0)
-                && r.x0 < tip.at.x
-                && tip.at.x < r.x1
-                && r.y0 < tip.at.y
-                && tip.at.y < r.y1
-        });
-        if foreign {
-            sp.excused.push(*r);
-        }
-    }
     for (k, tip) in [&ask.from, &ask.to].into_iter().enumerate() {
         let Some(side) = tip.side else { continue };
         let u = side.unit();
-        let mut n = node_of(tip.at);
+        // From the end's node of the lattice searched: an end off the grid takes the lattice's nearest line.
+        let mut n = sp.occ(if k == 0 { sp.s } else { sp.t });
         let mut out = vec![n];
         sp.stubs[k] = Some(node_of(tip.at.plus(Pt::new(u.x * STUB, u.y * STUB))));
         for _ in 0..64 {
@@ -773,7 +781,8 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
             return None;
         }
     };
-    pts.push(crate::occupancy::point_of(sp.occ(node)));
+    // The tail: the second end itself (in place of its node on the lattice), or the shared run from where the walk
+    // ended to it.
     pts.extend(tail);
     if pts.last() != Some(&to.at) {
         pts.push(to.at);

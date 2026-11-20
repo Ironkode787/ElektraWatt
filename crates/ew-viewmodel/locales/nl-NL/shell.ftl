@@ -429,7 +429,7 @@ action-canvas-activate-alt = Klikken met Alt op de rastercursor
 action-tool-next-proposal = Volgend voorstel voor automatisch verbinden
 action-tool-connect-on-move = Verbinden tijdens verplaatsen
 action-layout-route = Routeren
-tooltip-layout-route = Routeer de draden van de selectie, of van het blad. De delen blijven waar ze staan.
+tooltip-layout-route = Routeer de draden van de selectie, of van de pagina. De symbolen blijven waar ze staan.
 action-tool-wire-dot = Punt op de aftakking
 action-route-handle = Volgende greep van de geselecteerde draad
 action-route-handle-move = Greep van de draad verplaatsen
@@ -1511,11 +1511,11 @@ refusal-connection-draw-many-too-many = { $p0 } verbindingen zijn meer dan de { 
 # layout.apply.
 refusal-layout-apply-nothing = het plan verandert niets; geef ten minste één route, aftakking of adermarkering
 refusal-layout-apply-too-many = { $p0 } regels zijn meer dan de { $p1 } die één opdracht neemt
-refusal-layout-apply-other-page = { $p0 } staat niet op { $p1 }; een plan verandert één blad
-refusal-layout-apply-junction-other-page = de aftakking staat niet op { $p0 }; een plan verandert één blad
+refusal-layout-apply-other-page = { $p0 } staat niet op { $p1 }; een plan verandert één pagina
+refusal-layout-apply-junction-other-page = de aftakking staat niet op { $p0 }; een plan verandert één pagina
 refusal-layout-apply-junction-route = de aftakking verschuift zonder de route van { $p0 }; geef elke gerouteerde draad van een verschoven aftakking zijn route
 refusal-layout-apply-not-a-marker = alleen een adermarkering verschuift met zijn draden
-refusal-layout-apply-marker-other-page = de adermarkering staat niet op { $p0 }; een plan verandert één blad
+refusal-layout-apply-marker-other-page = de adermarkering staat niet op { $p0 }; een plan verandert één pagina
 # junction.edit.
 refusal-junction-sequence = `sequence` is geen permutatie van de verbindingen die bij de aftakking eindigen; noem elk ervan precies één keer
 # ip.place, ip.continue and the star of an interruption point.
@@ -2088,7 +2088,7 @@ refusal-terminal-move-unchanged = de klemmen staan daar al
 # The normalisers: a split connection, a dissolving junction and a valve's functions.
 refusal-split-not-on-route = het splitspunt ligt niet op het verloop van { $p0 }; kies een punt op de draad
 refusal-split-second-not-on-route = het tweede splitspunt ligt niet op het verloop van { $p0 } na het eerste
-refusal-split-shared-run = hier lopen twee draden; plaats het deel waar ze uit elkaar gaan
+refusal-split-shared-run = hier lopen twee draden; plaats het symbool waar ze uit elkaar gaan
 refusal-junction-merge-numbers = { $p0 } zou een draad { $p1 } en een draad { $p2 } samenvoegen, die verschillende nummers dragen; wis een van de nummers of verwijder de draden afzonderlijk
 refusal-junction-numbered = met nummer "{ $p0 }"
 refusal-junction-numbered-assigned = met nummer "{ $p0 }" en toegewezen nummer { $p1 }
@@ -6253,6 +6253,7 @@ field-help-connection-overrides-length = Een lengte voor deze draad, met de hand
 field-help-connection-overrides-show-marker = Of de draad zijn markering op de pagina afdrukt: zijn nummer, doorsnede en kleur naast de draad.
 field-help-connection-a = Waar de draad begint: een aansluitpunt van een apparaat of een knooppunt.
 field-help-connection-b = Waar de draad eindigt: een aansluitpunt van een apparaat of een knooppunt.
+field-help-connection-computed = Of het programma de route van deze draad vond (het draadgereedschap tussen twee klikken, of Routeren): Routeren mag hem opnieuw leggen; een route die u met de hand vormt is van u en Routeren laat hem staan.
 field-help-word-route = De hoeken van het pad van de draad op de pagina, als rastervakken. Sleep de grepen van de geselecteerde draad op de pagina om ze te wijzigen.
 field-help-potential-def-name = De naam van de potentiaal (L1, 24VDC). Draden en punten op de potentiaal worden ermee aangeduid.
 field-help-potential-def-ptype = Het soort signaal dat de potentiaal voert: een fase, nul, PE, DC plus of min, of een signaal. Het kleurprofiel kiest de aderkleur ermee.

@@ -182,18 +182,25 @@ fn a_press_beside_a_rail_ends_grid_point_joins_the_rail_with_a_junction() {
     assert_eq!(t.connections.len(), 3, "the rail's two halves and the new wire");
 }
 
+/// A T join the Wire tool makes is a bevel, whose wires are a chain; with `.` pressed while the wire is drawn, a dot,
+/// whose wires are a star (docs/design/06a-drafting.md §7.6).
 #[test]
-fn a_t_join_the_wire_tool_makes_has_its_junction_dot() {
-    let tmp = Tmp::new("ft1096-dot");
-    let (mut s, end, start) = rail(&tmp);
-    let (_, joined) = beside_the_end(&s, end);
-    let mid = (joined.0, s.canvas().unwrap().page().snapper.page_of_index(30));
-    click(&mut s, start.at);
-    click(&mut s, mid);
-    let t = tables(&s);
-    assert_eq!(t.junctions.len(), 1, "{:?}", t.junctions);
-    let j = &t.junctions[0];
-    assert_eq!((j.at, j.style.as_str()), (mid, "dot"));
-    let list = std::sync::Arc::clone(&s.canvas().unwrap().page().list);
-    assert!(draws(&list.items, EntityRef(j.id)), "the junction's dot is drawn");
+fn a_t_join_the_wire_tool_makes_is_a_bevel_and_with_the_dot_key_a_dot() {
+    for (dot, style, wiring) in [(false, "bevel", "chain"), (true, "dot", "star")] {
+        let tmp = Tmp::new(if dot { "ft1096-dot" } else { "ft1096-bevel" });
+        let (mut s, end, start) = rail(&tmp);
+        let (_, joined) = beside_the_end(&s, end);
+        let mid = (joined.0, s.canvas().unwrap().page().snapper.page_of_index(30));
+        click(&mut s, start.at);
+        if dot {
+            done(&mut s, "tool.wire_dot", json!({}));
+        }
+        click(&mut s, mid);
+        let t = tables(&s);
+        assert_eq!(t.junctions.len(), 1, "{:?}", t.junctions);
+        let j = &t.junctions[0];
+        assert_eq!((j.at, j.style.as_str(), j.wiring.as_str()), (mid, style, wiring));
+        let list = std::sync::Arc::clone(&s.canvas().unwrap().page().list);
+        assert!(draws(&list.items, EntityRef(j.id)), "the junction is drawn");
+    }
 }

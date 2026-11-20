@@ -1593,7 +1593,7 @@ fn an_unrouted_wire_says_why_it_is_dashed() {
     assert_eq!(
         s.canvas().unwrap().hovered_line_tip().as_deref(),
         Some(
-            "This wire has no route, so it is drawn as a thin dashed line: move what is in its way and choose Reroute."
+            "This wire has no route, so it is drawn as a thin dashed line: move what is in its way and choose Route."
         )
     );
 }

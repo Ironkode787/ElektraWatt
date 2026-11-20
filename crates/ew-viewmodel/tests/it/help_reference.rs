@@ -92,10 +92,10 @@ fn f1_opens_the_section_of_the_thing_under_the_pointer() {
     );
     // What the window names under the pointer wins over the page; a dialog's own topic over the page behind it.
     shell.set_help_under(Some(HelpUnder {
-        topic: "route-reroute".to_owned(),
-        subject: "Reroute".to_owned(),
+        topic: "layout-route".to_owned(),
+        subject: "Route".to_owned(),
     }));
-    assert_eq!(f1(&mut shell), "reference/window/tools.html#reroute");
+    assert_eq!(f1(&mut shell), "reference/window/tools.html#route");
     shell.set_help_under(None);
     done(&mut shell, "nav.goto", json!({}));
     assert_eq!(help::pointer_topic(&shell), None);

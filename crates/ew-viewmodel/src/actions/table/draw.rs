@@ -834,7 +834,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "tool.wire_dot",
         Command,
         Menu::Draw,
-        &["Period"],
+        &["."],
         editable_page,
         None,
         |s, _| s.act_wire_dot(),

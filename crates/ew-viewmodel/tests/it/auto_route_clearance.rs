@@ -377,7 +377,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     );
     hover(&mut p.s, p.l.at);
     let unrouted = "No clear route: the wire stays a dashed line without a route. Click free points to lead it, or \
-                    route it later with Reroute.";
+                    route it later with Route.";
     assert_eq!(p.s.tool_hint(), unrouted);
     let (from, to) = (p.bottom[0].at, p.l.at);
     let ghost = p.s.wire_ghost_route().expect("the unrouted line");
@@ -535,14 +535,15 @@ fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableC
 #[track_caller]
 fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) {
     let page = s.canvas().unwrap().page();
-    let m = ew_viewmodel::ew_api::routing::measure(&page.geometry);
-    assert_eq!(m.hard(), 0, "{m:?}");
+    let m = ew_viewmodel::ew_api::routing::measure(&page.draft);
+    assert_eq!(m.faults, 0, "{:?}", m.findings);
     let crossings: Vec<_> = m
+        .findings
         .crossings
         .iter()
-        .filter(|c| wires.contains(&c.connections[0]) && wires.contains(&c.connections[1]))
+        .filter(|(c, _)| wires.contains(&c[0].0) && wires.contains(&c[1].0))
         .collect();
-    assert_eq!(crossings.len(), 1, "{:?}", m.crossings);
+    assert_eq!(crossings.len(), 1, "{:?}", m.findings.crossings);
     let line = |id| {
         let c = page
             .tables
@@ -591,7 +592,7 @@ fn through_pins_or_along(s: &mut ShellModel) -> Vec<String> {
 }
 
 /// rc.3 (the owner's case): the two breakers wired cross-over with two clicks per wire, as freshly drawn, cross once
-/// and run straight otherwise; Reroute on the page gives the same.
+/// and run straight otherwise; Route on the page gives the same.
 #[test]
 fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
     let tmp = Tmp::new("rc3-cross-drawn");
@@ -601,13 +602,13 @@ fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
     done(&mut s, "tool.select", json!({}));
     crossed_once(&s, [first.id, second.id]);
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "drawn");
-    done(&mut s, "route.reroute", json!({}));
+    done(&mut s, "layout.route", json!({}));
     crossed_once(&s, [first.id, second.id]);
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "rerouted");
 }
 
 /// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
-/// keeps every hard rule; Reroute on both, in at most one undo step, leaves them crossing once and running straight
+/// keeps every hard rule; Route on both, in at most one undo step, leaves them crossing once and running straight
 /// otherwise, with no more bends than drawn (rc.5: a reroute starts from the drawing and keeps it where routing the
 /// two from nothing gives more corners, as it did here).
 #[test]
@@ -615,13 +616,14 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     let tmp = Tmp::new("rc3-cross-over");
     let (mut s, bottom, top) = breakers_over_one_another(&tmp);
     let clean = |s: &ShellModel| {
-        let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry);
+        let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft);
+        let f = &m.findings;
         assert!(
-            m.touches.is_empty() && m.overlaps.is_empty() && m.through_bodies.is_empty(),
+            f.through_points.is_empty() && f.on_wires.is_empty() && f.through_parts.is_empty(),
             "{:?} {:?} {:?}",
-            m.touches,
-            m.overlaps,
-            m.through_bodies
+            f.through_points,
+            f.on_wires,
+            f.through_parts
         );
     };
     // The first wire, upper right pin to lower left pin.
@@ -645,7 +647,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         .clone();
     clean(&s);
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "drawn");
-    // Reroute both: at most one undo step, then one crossing.
+    // Route both: at most one undo step, then one crossing.
     done(
         &mut s,
         "select.set",
@@ -653,10 +655,10 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     );
     let rev = s.revision();
     let bends = |s: &ShellModel| {
-        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry).bend_total()
+        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft).counts.bends
     };
     let drawn = bends(&s);
-    done(&mut s, "route.reroute", json!({}));
+    done(&mut s, "layout.route", json!({}));
     assert!(s.revision() <= rev.map(|r| r + 1), "at most one step");
     assert!(bends(&s) <= drawn, "no more bends than drawn");
     crossed_once(&s, [first.id, second.id]);

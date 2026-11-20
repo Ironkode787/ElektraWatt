@@ -544,14 +544,15 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
     assert_eq!(wire(&s, "-103K1:A1").polyline, moved);
     // The lower wire: routed again, through no symbol, and the page breaks no hard rule.
     let lower = wire(&s, "-103K1:A2");
-    let geometry = s.canvas().unwrap().page().geometry.clone();
-    let m = measure(&geometry);
+    let draft = s.canvas().unwrap().page().draft.clone();
+    let m = measure(&draft);
+    let f = &m.findings;
     assert_eq!(
         (
-            m.touches.len(),
-            m.overlaps.len(),
-            m.through_bodies.len(),
-            m.through_texts.len()
+            f.through_points.len(),
+            f.on_wires.len(),
+            f.through_parts.len(),
+            f.across_texts.len()
         ),
         (0, 0, 0, 0),
         "{:?}",
@@ -735,12 +736,11 @@ fn card_line(s: &ShellModel) -> String {
     describe_line(s, "card ").expect("a card")
 }
 
-/// On folio 103 with two unrouted wires, one between two free coils and one from a CP whose
-/// stub ends in another coil, Route page previews the plan, its lead and its unrouted row in en-GB and nl-NL; Apply
-/// commits one `connection.route_many` (one undo step) and the toast says what it routed; a second Route page has
-/// nothing to do.
+/// On folio 103 with two unrouted wires, one between two free coils and one from a CP whose stub ends in another coil,
+/// Route routes what it can at once in one undo step, names the wire it routed with Undo and says what is in the
+/// other's way, in en-GB and nl-NL; a second Route has nothing better to do and says so.
 #[test]
-fn route_page_previews_the_plan_and_applies_it_in_one_step() {
+fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     let tmp = Tmp::new("rw1");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
@@ -748,32 +748,16 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
         &[(55, 20), (55, 29), (70, 20), (70, 25)],
         &[("-103K1:A2", "-103K2:A1", &[]), ("-103K3:A2", "-103K2:A2", &[])],
     );
-    done(&mut s, "route.page", json!({}));
-    assert_eq!(
-        card_line(&s),
-        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 2 wires on folio 103: 1 \
-         routed, 1 not routed.\" \"No route keeps clear of symbols: -103K3:A2 → -103K2:A2.\""
-    );
-    // The card's title names the button.
-    let title = |s: &ShellModel| s.properties().card().expect("the card").command().to_owned();
-    assert_eq!(title(&s), "Route page");
-    done(&mut s, "view.language", json!({"value": "nl"}));
-    done(&mut s, "preview.cancel", json!({}));
-    done(&mut s, "route.page", json!({}));
-    assert_eq!(title(&s), "Pagina routeren");
-    assert_eq!(
-        card_line(&s),
-        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"2 draden op folio 103 \
-         routeren: 1 gerouteerd, 1 niet gerouteerd.\" \"Geen route blijft vrij van symbolen: -103K3:A2 → \
-         -103K2:A2.\""
-    );
-    done(&mut s, "view.language", json!({"value": "en"}));
+    done(&mut s, "ui.dismiss", json!({}));
     let rev = s.revision();
-    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "layout.route", json!({}));
+    assert_eq!(describe_line(&s, "card "), None, "no card: Route acts at once");
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
-    assert_eq!(
-        s.toast().map(|t| t.text.as_str()),
-        Some("Routed 1 wire on folio 103.")
+    let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(said.starts_with("Routed 1 wire: "), "{said}");
+    assert!(
+        said.ends_with("No way for -103K3:A2 → -103K2:A2: symbols are in its way."),
+        "{said}"
     );
     let t = tables(&s);
     let routed: Vec<bool> = t
@@ -783,52 +767,21 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
-    // The unroutable wire stays; only it is left, so Route page routes none, opens no card, and says why, as the
-    // card did.
-    assert_eq!(
-        done_outcome(&mut s, "route.page"),
-        "Route 1 wire on folio 103: 0 routed, 1 not routed. No route keeps clear of symbols: -103K3:A2 → -103K2:A2."
-    );
-}
-
-/// Reroute whose plan keeps the routes drawn commits nothing and says so, in en-GB and nl-NL.
-#[test]
-fn reroute_with_a_plan_that_changes_nothing_says_so() {
-    let tmp = Tmp::new("f2");
-    let mut s = actual_size(&tmp, "103");
-    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
-    done(&mut s, "route.page", json!({}));
-    done(&mut s, "preview.apply", json!({}));
-    let t = tables(&s);
-    let wire = t
-        .connections
-        .iter()
-        .find(|c| end_label(&t, &c.a) == "-103K1:A2")
-        .expect("the wire")
-        .clone();
-    assert!(wire.stored_route, "Route page routed it");
-    let mid = sheet(
-        &s,
-        (
-            (wire.polyline[0].0 + wire.polyline[1].0) / 2,
-            (wire.polyline[0].1 + wire.polyline[1].1) / 2,
-        ),
-    );
-    done(&mut s, "canvas.press", at(mid, json!({})));
-    done(&mut s, "canvas.release", at(mid, json!({})));
+    // Nothing better: nothing changes, and it says so, in both languages.
     let rev = s.revision();
-    done(&mut s, "route.reroute", json!({}));
-    assert_eq!(describe_line(&s, "card "), None, "no card");
+    done(&mut s, "layout.route", json!({}));
     assert_eq!(s.revision(), rev, "nothing committed");
-    assert_eq!(
-        s.toast().map(|t| t.text.as_str()),
-        Some("No better route found: the wires already run as well as the program can route them.")
+    let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        said.starts_with("Nothing to route: every wire runs as well as the rules allow."),
+        "{said}"
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
-    done(&mut s, "route.reroute", json!({}));
-    assert_eq!(
-        s.toast().map(|t| t.text.as_str()),
-        Some("Geen betere route gevonden: de draden lopen al zo goed als het programma ze kan routeren.")
+    done(&mut s, "layout.route", json!({}));
+    let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        said.starts_with("Niets te routeren: elke draad loopt zo goed als de regels toelaten."),
+        "{said}"
     );
 }
 
@@ -837,18 +790,10 @@ fn cp_label_at(t: &PageTables, c: &TableConnection) -> String {
     end_label(t, &c.a)
 }
 
-/// The failure message of `action` (a solve that routes nothing fails with its lead).
-fn done_outcome(s: &mut ShellModel, action: &str) -> String {
-    match s.dispatch(action, &json!({})) {
-        ew_viewmodel::shell::Outcome::Failed { message } => message,
-        other => panic!("{action}: {other:?}"),
-    }
-}
-
-/// Reroute with one routed wire selected routes it again as if freshly drawn, at once and in one undo step, and
-/// says so; the page's other wires keep their routes.
+/// Route with one wire the person drew selected routes it again, at once and in one undo step, and names it; the
+/// page's other wires keep their routes. With nothing selected, a page-wide Route leaves his route alone.
 #[test]
-fn reroute_routes_a_selected_wire_again_and_nothing_else() {
+fn route_routes_a_selected_wire_again_and_leaves_his_route_alone_otherwise() {
     let tmp = Tmp::new("rw2");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
@@ -867,18 +812,22 @@ fn reroute_routes_a_selected_wire_again_and_nothing_else() {
         .find(|c| end_label(&before, &c.a) == "-103K1:A2")
         .expect("the wire")
         .clone();
+    // Nothing selected: his route is no job.
+    done(&mut s, "ui.dismiss", json!({}));
+    let rev = s.revision();
+    done(&mut s, "layout.route", json!({}));
+    assert_eq!(s.revision(), rev, "his route is left alone");
     let mid = sheet(
         &s,
         (wire.polyline[1].0, (wire.polyline[1].1 + wire.polyline[2].1) / 2),
     );
     done(&mut s, "canvas.press", at(mid, json!({})));
     done(&mut s, "canvas.release", at(mid, json!({})));
-    let rev = s.revision();
-    done(&mut s, "route.reroute", json!({}));
+    done(&mut s, "layout.route", json!({}));
     assert_eq!(describe_line(&s, "card "), None, "no card");
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert!(said.starts_with("1 wire rerouted: "), "{said}");
+    assert!(said.starts_with("Routed 1 wire: "), "{said}");
     let after = tables(&s);
     let now = after
         .connections
@@ -1078,9 +1027,9 @@ fn tab_starts_at_the_wires_left_end_and_an_arrow_that_cannot_move_says_so() {
     assert_eq!(hot(&s), [sheet(&s, p[n - 2])]);
 }
 
-/// Reroute with nothing selected routes the page's wires, the unrouted one included.
+/// Route with nothing selected routes the page's wires, the unrouted one included.
 #[test]
-fn reroute_with_nothing_selected_takes_the_page() {
+fn route_with_nothing_selected_takes_the_page() {
     let tmp = Tmp::new("rt6");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
@@ -1095,7 +1044,7 @@ fn reroute_with_nothing_selected_takes_the_page() {
             .stored_route
     };
     assert!(!routed(&s));
-    done(&mut s, "route.reroute", json!({}));
+    done(&mut s, "layout.route", json!({}));
     assert!(routed(&s), "routed");
 }
 

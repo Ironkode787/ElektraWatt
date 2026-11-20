@@ -918,7 +918,7 @@ pub fn is_more_key(key: &str) -> bool {
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
 /// with its key and lineage, the tag counter, the form's UUID and the members of a page's connection
-/// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice, and a connection's route, drawn on the canvas.
+/// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice, a connection's route, drawn on the canvas, and its mark that the program routed it.
 const ADVANCED: &[&str] = &[
     "$v",
     "id",
@@ -928,6 +928,7 @@ const ADVANCED: &[&str] = &[
     "grid.num",
     "grid.den",
     "route",
+    "computed",
 ];
 
 /// Whether `rest` is `base` or one of its members (`parts[0].qty` of `parts`).

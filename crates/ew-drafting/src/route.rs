@@ -1312,7 +1312,7 @@ pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, arrive: Option<S
 }
 
 /// Whether `route` from `from` to `to` is one the Wire tool's search could take on `page` with the parts `through` left
-/// out (their bodies, texts and pins): the direct route through a free terminal in line.
+/// out (their bodies, texts and pins), clear of every other text: the direct route through a free terminal in line.
 pub fn wire_clear(
     page: &DraftPage,
     (from, to): (WireEnd, WireEnd),
@@ -1335,7 +1335,13 @@ pub fn wire_clear(
         full: &[],
         relax: Relax::default(),
     };
-    search::clear(&ask, route)
+    // The direct route keeps clear of every text: a text in its way sends the wire to the search.
+    let across = r.occ.texts.iter().any(|t| {
+        geom::segments(route)
+            .iter()
+            .any(|s| geom::stretch_inside(*s, t.rect.grown(-1)).is_some())
+    });
+    !across && search::clear(&ask, route)
 }
 
 /// The line of a wire without a route between its two ends `a` and `b` (in any one unit): right-angled, never
