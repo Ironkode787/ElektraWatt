@@ -48,8 +48,9 @@ use crate::consts::{
     TICKS_PER_STEP, TRUNK_GAP,
 };
 use crate::geom;
+use crate::labels::settle_labels;
 use crate::measure::measure;
-use crate::model::{DraftPage, End, PartId, PinId, Pt, Rect, Role, Side, Tick, WireId};
+use crate::model::{DraftPage, End, Owner, PartId, PinId, Pt, Rect, Role, Side, Tick, WireId};
 use crate::route::{self, Jobs, Plan, Scope};
 use crate::rules::{Wiring, across, beyond, opposite, rails, rules_kept};
 
@@ -108,8 +109,11 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
             Ok(()) => {
                 let quality = measure(&after);
                 let (bad, texts) = route::worse(page, &before, &quality);
-                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {:?} {:?} bad {} texts {}", quality.key(), before.key(), bad.len(), texts); }
-                if !quality.better_than(&before) || !bad.is_empty() || texts {
+                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {:?} {:?} bad {} texts {} clashes {:?} {:?} {:?}", quality.key(), before.key(), bad.len(), texts, quality.findings.texts_on_texts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1)).collect::<Vec<_>>(), quality.findings.texts_on_parts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1.0.to_string()[32..].to_owned())).collect::<Vec<_>>(), quality.findings.texts_outside.len()); }
+                let figures = quality.counts.crossings > before.counts.crossings
+                    || quality.counts.bends > before.counts.bends
+                    || quality.faults > before.faults;
+                if (!quality.better_than(&before) || !bad.is_empty() || texts || figures) && std::env::var("EW_PLACE_FORCE").is_err() {
                     return fallback();
                 }
                 return Arranged {
@@ -122,7 +126,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
                 };
             }
             Err(broken) => {
-                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("broken {:?}", broken.iter().map(|b| (b.rule, b.parts.iter().map(|p| p.0.to_string()[..4].to_owned()).collect::<Vec<_>>())).collect::<Vec<_>>()); }
+                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("broken {:?}", broken.iter().map(|b| (b.rule, b.parts.iter().map(|p| p.0.to_string()[32..].to_owned()).collect::<Vec<_>>())).collect::<Vec<_>>()); }
                 let named: BTreeSet<PartId> = broken.iter().flat_map(|b| b.parts.iter().copied()).collect();
                 let units: BTreeSet<usize> = named.iter().filter_map(|id| p.unit_of_id(*id)).collect();
                 for u in units {
@@ -267,12 +271,16 @@ struct Unit {
 
 struct Placer<'a> {
     w: Wiring<'a>,
+    /// Each part's texts, relative to its origin.
+    texts: Vec<Vec<Rect>>,
     unit_of: Vec<usize>,
     units: Vec<Unit>,
     /// Each unit's move so far.
     d: Vec<Pt>,
     /// Each unit's lead, if it has one.
     lead: Vec<Option<Lead>>,
+    /// The units whose places step 4 has set: the anchors, then each host's followers as they are set.
+    settled: Vec<usize>,
     /// The units in the order the hosts were found (anchors first).
     order: Vec<usize>,
     /// The units whose own move sets a rule right.
@@ -393,13 +401,25 @@ impl<'a> Placer<'a> {
             unit.weight += 4 * pins + area / 16;
         }
         let m = units.len();
+        // Each part's texts where the page shows them now, relative to the part: they move with it.
+        let mut texts: Vec<Vec<Rect>> = vec![Vec::new(); n];
+        for s in settle_labels(page) {
+            let Some(l) = page.labels.iter().find(|l| l.id == s.id) else { continue };
+            if let Owner::Part(p) = l.owner
+                && let Some(i) = w.parts.iter().position(|x| x.id == p)
+            {
+                texts[i].push(s.rect.moved(Pt::new(-w.parts[i].at.x, -w.parts[i].at.y)));
+            }
+        }
         Placer {
             w,
+            texts,
             unit_of,
             units,
             d: vec![Pt::default(); m],
             lead: vec![None; m],
             order: Vec::new(),
+            settled: Vec::new(),
             needed: BTreeSet::new(),
             left: Vec::new(),
         }
@@ -423,12 +443,15 @@ impl<'a> Placer<'a> {
         self.w.pins[&p].2
     }
 
-    /// A unit's footprint: its bodies and one step along each wired pin.
+    /// A unit's footprint: its bodies, one step along each wired pin and its texts.
     fn footprint(&self, u: usize) -> Rect {
         let mut r: Option<Rect> = None;
         for i in &self.units[u].parts {
             let p = self.w.parts[*i];
             let mut b = p.bounds();
+            for t in &self.texts[*i] {
+                b = b.union(t.moved(p.at));
+            }
             for pin in &p.pins {
                 if let Some(s) = pin.side {
                     let at = p.at.plus(pin.at);
@@ -508,8 +531,8 @@ impl<'a> Placer<'a> {
         let mut line = format!("[{stage}]");
         for (u, unit) in self.units.iter().enumerate() {
             if self.d[u] != Pt::default() {
-                let id = self.w.parts[unit.parts[0]].id.0;
-                line += &format!(" {}:({},{}){}", &id.to_string()[..4], self.d[u].x / 16, self.d[u].y / 16, if self.needed.contains(&u) {"!"} else {""});
+                let id = self.w.parts[unit.parts[0]].id.0.to_string()[32..].to_owned();
+                line += &format!(" {}:({},{}){}", id, self.d[u].x / 16, self.d[u].y / 16, if self.needed.contains(&u) {"!"} else {""});
             }
         }
         eprintln!("{line}");
@@ -666,6 +689,7 @@ impl<'a> Placer<'a> {
     /// Step 4: the followers of each host, from the anchors down.
     fn followers(&mut self) {
         let order = self.order.clone();
+        self.settled = order.iter().copied().filter(|u| self.lead[*u].is_none()).collect();
         for h in order {
             let mut sides: BTreeMap<(Side, bool, Option<Side>), Vec<usize>> = BTreeMap::new();
             for (f, l) in self.lead.iter().enumerate() {
@@ -694,6 +718,9 @@ impl<'a> Placer<'a> {
                         && !self.meets(*f, &[h]);
                     if !stays {
                         self.d[*f] = self.d[h];
+                        if self.needed.contains(&h) && self.d[h] != Pt::default() {
+                            self.needed.insert(*f);
+                        }
                     }
                 }
                 if stack {
@@ -701,6 +728,7 @@ impl<'a> Placer<'a> {
                 } else {
                     self.row(h, s, &members);
                 }
+                self.settled.extend(members.iter().copied());
             }
         }
     }
@@ -759,7 +787,7 @@ impl<'a> Placer<'a> {
                         self.needed.insert(*f);
                     }
                 }
-                _ if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) => keep.push(dist),
+                _ if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) && !self.meets(*f, &self.settled) => keep.push(dist),
                 _ => movers.push((*f, dist)),
             }
         }
@@ -773,7 +801,7 @@ impl<'a> Placer<'a> {
             self.nudge(f, along_of(s, whole_up(line - dist)));
             // Further while its footprint meets its host's.
             let mut more = 0;
-            while self.meets(f, &[h]) && more < 4 * CHAIN_GAP {
+            while (self.meets(f, &[h]) || self.meets(f, &self.settled)) && more < 4 * CHAIN_GAP {
                 self.nudge(f, along_of(s, TICKS_PER_STEP));
                 more += TICKS_PER_STEP;
             }
@@ -803,7 +831,8 @@ impl<'a> Placer<'a> {
         // first, each take the nearest place from the chain gap outward where its footprint meets no other's.
         let host_line = items.iter().map(|(_, l)| beyond(Pt::default(), self.pt(l.h), s)).max().unwrap_or(0);
         let mut movers = Vec::new();
-        let mut placed: Vec<usize> = vec![h];
+        let mut placed: Vec<usize> = self.settled.clone();
+        placed.push(h);
         for (f, l) in &items {
             let dist = beyond(self.pt(l.h), self.pt(l.f), s);
             if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) {
@@ -966,7 +995,26 @@ impl<'a> Placer<'a> {
         let (Some(top), Some(bottom)) = (valves.iter().map(|r| r.y0).min(), valves.iter().map(|r| r.y1).max()) else {
             return;
         };
+        // The groups without a valve, and in a group with one each branch of the supply that hangs on a valve.
+        let mut branches: Vec<Vec<usize>> = Vec::new();
         for g in self.groups() {
+            let has_valve = g.iter().any(|u| self.units[*u].parts.iter().any(|i| role(*i) == Role::Valve));
+            if !has_valve {
+                branches.push(g);
+                continue;
+            }
+            for u in &g {
+                let source = self.units[*u].parts.iter().any(|i| role(*i) == Role::Source);
+                let host_source = self.lead[*u].is_some_and(|l| {
+                    self.units[l.host].parts.iter().any(|i| role(*i) == Role::Source || role(*i) == Role::Valve)
+                        && !self.units[l.host].parts.iter().any(|i| role(*i) == Role::Valve)
+                });
+                if source && !host_source {
+                    branches.push(self.subtree(*u));
+                }
+            }
+        }
+        for g in branches {
             let parts: Vec<(usize, usize)> = g.iter().flat_map(|u| self.units[*u].parts.iter().map(move |i| (*u, *i))).collect();
             if parts.iter().any(|(_, i)| role(*i) == Role::Valve) {
                 continue;
@@ -1099,8 +1147,8 @@ impl<'a> Placer<'a> {
             !p.frame_only && !p.pins.is_empty()
         };
         let wired: BTreeSet<PinId> = self.w.nets.iter().flat_map(|n| n.pins.iter().copied()).collect();
-        // (unit, part, body, stubs)
-        let mut items: Vec<(usize, usize, Rect, Vec<Rect>)> = Vec::new();
+        // (unit, part, body, stubs, texts)
+        let mut items: Vec<(usize, usize, Rect, Vec<Rect>, Vec<Rect>)> = Vec::new();
         for (v, unit) in self.units.iter().enumerate() {
             for j in unit.parts.iter().filter(|j| solid(j)) {
                 let p = self.w.parts[*j];
@@ -1116,14 +1164,15 @@ impl<'a> Placer<'a> {
                         Some(if s.vertical() { Rect { x0: r.x0 - 1, x1: r.x1 + 1, ..r } } else { Rect { y0: r.y0 - 1, y1: r.y1 + 1, ..r } })
                     })
                     .collect();
-                items.push((v, *j, p.bounds().moved(self.d[v]), stubs));
+                let texts = self.texts[*j].iter().map(|t| t.moved(p.at).moved(self.d[v])).collect();
+                items.push((v, *j, p.bounds().moved(self.d[v]), stubs, texts));
             }
         }
-        for (u, i, b, stubs) in items.iter().filter(|x| g.contains(&x.0)) {
+        for (u, i, b, stubs, texts) in items.iter().filter(|x| g.contains(&x.0)) {
             if !area.holds(*b) {
                 return true;
             }
-            for (v, j, c, others) in items
+            for (v, j, c, others, their) in items
                 .iter()
                 .filter(|x| !g.contains(&x.0) && against.is_none_or(|a| a.contains(&x.0)))
             {
@@ -1135,6 +1184,14 @@ impl<'a> Placer<'a> {
                 if geom::texts_meet(*b, *c)
                     || stubs.iter().any(|s| s.overlaps(*c))
                     || others.iter().any(|s| s.overlaps(*b))
+                {
+                    return true;
+                }
+                // A moved part's texts on another part or its texts, and the other way round.
+                let moved = self.d[*u] != self.d[*v];
+                if moved
+                    && (texts.iter().any(|t| geom::texts_meet(*t, *c) || their.iter().any(|o| geom::texts_meet(*t, *o)))
+                        || their.iter().any(|o| geom::texts_meet(*o, *b)))
                 {
                     return true;
                 }
@@ -1155,9 +1212,25 @@ impl<'a> Placer<'a> {
         let area = self.w.page.area;
         let mut groups = self.groups();
         groups.sort_by_key(|g| self.key(g[0]));
-        // Into the drawing area by the least distance.
-        for g in &groups {
-            let r = self.span(g).grown(-1);
+        // Into the drawing area by the least distance: the branch that leaves it, the deepest first, or the group.
+        let bodies = |p: &Self, units: &[usize]| {
+            units
+                .iter()
+                .flat_map(|u| p.units[*u].parts.iter().map(move |i| (*u, *i)))
+                .map(|(u, i)| p.w.parts[i].bounds().moved(p.d[u]))
+                .reduce(Rect::union)
+                .unwrap_or_default()
+        };
+        for u in self.order.clone().into_iter().rev() {
+            if self.lead[u].is_none() || self.units[u].fixed {
+                continue;
+            }
+            let own = bodies(self, &[u]);
+            if area.holds(own) {
+                continue;
+            }
+            let sub = self.subtree(u);
+            let r = bodies(self, &sub);
             let dx = if r.x0 < area.x0 {
                 whole_up(area.x0 - r.x0)
             } else if r.x1 > area.x1 {
@@ -1172,7 +1245,27 @@ impl<'a> Placer<'a> {
             } else {
                 0
             };
-            if (dx, dy) != (0, 0) && self.span(g).w() <= area.w() && self.span(g).h() <= area.h() {
+            if r.w() <= area.w() && r.h() <= area.h() {
+                self.shift(&sub, Pt::new(dx, dy));
+            }
+        }
+        for g in &groups {
+            let r = bodies(self, g).grown(-1);
+            let dx = if r.x0 < area.x0 {
+                whole_up(area.x0 - r.x0)
+            } else if r.x1 > area.x1 {
+                -whole_up(r.x1 - area.x1)
+            } else {
+                0
+            };
+            let dy = if r.y0 < area.y0 {
+                whole_up(area.y0 - r.y0)
+            } else if r.y1 > area.y1 {
+                -whole_up(r.y1 - area.y1)
+            } else {
+                0
+            };
+            if (dx, dy) != (0, 0) && r.w() <= area.w() && r.h() <= area.h() {
                 self.shift(g, Pt::new(dx, dy));
             }
         }
