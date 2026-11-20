@@ -377,7 +377,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 
 ## ew-dl
 
-`crates/ew-dl` · MIT OR Apache-2.0 · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`
+`crates/ew-dl` · MIT OR Apache-2.0 · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-print`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`
 
 Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, and entity tags.
 
@@ -722,7 +722,7 @@ PLC addresses, PLC address profiles as data, the part-data map language and bit 
 
 ## ew-print
 
-`crates/ew-print` · GPL-3.0-or-later · depends on `ew-export`, `ew-render-cpu` · used by `elektrawatt`, `ew` · in tests by none
+`crates/ew-print` · GPL-3.0-or-later · depends on `ew-dl`, `ew-export`, `ew-render-cpu` · used by `elektrawatt`, `ew` · in tests by none
 
 OS print adapters with per-OS features (ADR-0015 amendment 1).
 

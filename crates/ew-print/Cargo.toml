@@ -28,6 +28,8 @@ mem_forget = "warn"
 [dependencies]
 ew-export = { path = "../ew-export" }
 ew-render-cpu = { path = "../ew-render-cpu" }
+# The display list it prints, named by its own crate (a foundation edge, ARCH §3 rule 6).
+ew-dl = { path = "../ew-dl" }
 ew-hack = { version = "0.3.0", path = "../ew-hack" }
 
 # WP-S3.07 D11: the xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring

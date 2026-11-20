@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use ::windows::Win32::Foundation::ERROR_INVALID_PRINTER_NAME;
 use ::windows::Win32::Graphics::Gdi::{DEVMODE_FIELD_FLAGS, DEVMODEW_0_0};
-use ew_render_cpu::ew_dl::ew_units::{Nm, Pt2, Rect};
-use ew_render_cpu::ew_dl::{Brush, Destination, DisplayList, Item, Path as DlPath, Pen, Stroke};
+use ew_dl::ew_units::{Nm, Pt2, Rect};
+use ew_dl::{Brush, Destination, DisplayList, Item, Path as DlPath, Pen, Stroke};
 
 use super::*;
 

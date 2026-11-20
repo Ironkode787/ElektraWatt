@@ -1719,6 +1719,7 @@ name = "ew-print"
 version = "0.3.0"
 dependencies = [
  "ashpd",
+ "ew-dl",
  "ew-export",
  "ew-hack",
  "ew-render-cpu",
