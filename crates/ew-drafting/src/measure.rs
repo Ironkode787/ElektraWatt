@@ -17,9 +17,8 @@
 //!
 //! - **F2** (a wire, a point): a pin or junction the wire does not end at lies on it, and the point is not where one
 //!   of its own ends stands (the clamps of a terminal drawn at one point).
-//! - **F3** (a pair of wires): they share a stretch of positive length on one line, but within the [`STUB`] of a pin
-//!   both end at, along the pin's side (the common beginning of two wires of one pin; the shared run of §3.4 comes with
-//!   the router).
+//! - **F3** (a pair of wires): they share a stretch of positive length on one line, but along their common beginning
+//!   at a pin both end at (the shared run of §3.4: walked from the pin together until they part).
 //! - **F4** (a wire, a part with pins or a drawn box): a stretch of the wire runs through the part's body, but on the
 //!   ray out of a pin the wire ends at, along the pin's side, through that pin's part or a part with a pin on the same
 //!   point. An outline drawn round other parts is no body.
@@ -44,12 +43,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, STEP, STUB, TEXT_CROSSED, TEXT_STEP,
+    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, STEP, TEXT_CROSSED, TEXT_STEP,
     TICKS_PER_STEP,
 };
 use crate::geom::{self, Seg};
 use crate::labels::{Settled, settle_labels};
-use crate::model::{DraftPage, End, JunctionId, LabelId, LabelKind, PartId, PinId, Pt, Rect, Side, WireId};
+use crate::model::{DraftPage, End, JunctionId, LabelId, LabelKind, PartId, PinId, Pt, Rect, Side, Tick, WireId};
 
 /// What a wire runs through without ending there (F2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -507,17 +506,53 @@ fn pair(
             f.crossings.push(([a.id, b.id], p));
         }
     }
-    // The common beginning of two wires of one pin, within its stub.
-    shared.retain(|s| {
-        !pins.iter().any(|(id, (q, side, _))| {
-            let Some(side) = side else { return false };
-            let both = a.ends.contains(&End::Pin(*id)) && b.ends.contains(&End::Pin(*id));
-            let u = side.unit();
-            let stub = (*q, q.plus(Pt::new(u.x * STUB, u.y * STUB)));
-            both && geom::on(s.0, stub) && geom::on(s.1, stub)
-        })
-    });
+    // The shared run of two wires of one pin: their common beginning from the pin to where they part (§3.4).
+    let common: Vec<Seg> = pins
+        .iter()
+        .filter(|(id, _)| a.ends.contains(&End::Pin(**id)) && b.ends.contains(&End::Pin(**id)))
+        .flat_map(|(_, (q, _, _))| common_beginning(&a.pts, &b.pts, *q))
+        .collect();
+    shared.retain(|s| !common.iter().any(|c| geom::on(s.0, *c) && geom::on(s.1, *c)));
     if !shared.is_empty() {
         f.on_wires.push(([a.id, b.id], shared));
     }
+}
+
+/// The stretches two routes share from their common end `q` until they part: walked from `q` together while they
+/// run the same way.
+pub(crate) fn common_beginning(a: &[Pt], b: &[Pt], q: Pt) -> Vec<Seg> {
+    let from_q = |r: &[Pt]| -> Option<Vec<Pt>> {
+        if r.first() == Some(&q) {
+            Some(r.to_vec())
+        } else if r.last() == Some(&q) {
+            Some(r.iter().rev().copied().collect())
+        } else {
+            None
+        }
+    };
+    let (Some(ra), Some(rb)) = (from_q(a), from_q(b)) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let (mut ia, mut ib, mut cur) = (1usize, 1usize, q);
+    while ia < ra.len() && ib < rb.len() {
+        let (ta, tb) = (ra[ia], rb[ib]);
+        let h = crate::search::heading(cur, ta);
+        if h.is_none() || h != crate::search::heading(cur, tb) {
+            break;
+        }
+        let (la, lb) = (geom::length((cur, ta)), geom::length((cur, tb)));
+        let l = Tick::try_from(la.min(lb)).unwrap_or(0);
+        let u = h.map_or(Pt::default(), Side::unit);
+        let next = cur.plus(Pt::new(u.x * l, u.y * l));
+        out.push((cur, next));
+        cur = next;
+        if cur == ta {
+            ia += 1;
+        }
+        if cur == tb {
+            ib += 1;
+        }
+    }
+    out
 }

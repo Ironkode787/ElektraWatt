@@ -51,20 +51,20 @@ fn f2_a_wire_through_a_pin_it_does_not_end_at() {
 }
 
 #[test]
-fn f3_a_wire_on_another_wire_but_not_in_the_stub_of_their_common_pin() {
+fn f3_a_wire_on_another_wire_but_along_their_shared_run_from_a_common_pin() {
+    // Both leave K1's lower pin, run together and part: their shared run, no fault.
     let mut b = Page::new(60, 40);
     b.device("K1", p(10, 10));
     let (j1, j2) = (b.junction("j1", p(20, 20)), b.junction("j2", p(4, 20)));
-    // Both leave K1's lower pin and share its stub, then part: no fault.
-    b.run("a", b.pin("K1", "2"), j1, &[p(10, 15), p(20, 15)]);
-    b.run("b", b.pin("K1", "2"), j2, &[p(10, 15), p(4, 15)]);
+    b.run("a", b.pin("K1", "2"), j1, &[p(10, 17), p(20, 17)]);
+    b.run("b", b.pin("K1", "2"), j2, &[p(10, 17), p(4, 17)]);
     assert_eq!(faults(&measure(&b.page)), [0; 6]);
-    // Sharing more than the stub is a fault.
+    // One runs on along the other after they part: a fault.
     let mut c = Page::new(60, 40);
     c.device("K1", p(10, 10));
-    let (j1, j2) = (c.junction("j1", p(20, 20)), c.junction("j2", p(4, 20)));
+    let (j1, j2) = (c.junction("j1", p(20, 20)), c.junction("j2", p(24, 20)));
     c.run("a", c.pin("K1", "2"), j1, &[p(10, 17), p(20, 17)]);
-    c.run("b", c.pin("K1", "2"), j2, &[p(10, 17), p(4, 17)]);
+    c.run("b", c.pin("K1", "2"), j2, &[p(10, 15), p(14, 15), p(14, 17), p(24, 17)]);
     assert_eq!(faults(&measure(&c.page)), [0, 1, 0, 0, 0, 0]);
 }
 

@@ -696,3 +696,71 @@ fn distribution() -> Fixture {
         hand: b.page,
     }
 }
+
+impl Page {
+    /// The ID of pin `pin` of part `part`.
+    pub fn pin_id(&self, part: &str, pin: &str) -> PinId {
+        PinId(id(&format!("{part}:{pin}")))
+    }
+}
+
+/// The full sheet of §9.1: twelve feeders under three rails and forty control paths between two pairs of rails on one
+/// A3 page, every wire unrouted, every junction on its rail.
+pub fn full_sheet() -> DraftPage {
+    let mut b = Page::new(102, 64);
+    let rails = ["L1", "L2", "L3"];
+    for (r, name) in rails.iter().enumerate() {
+        let y = 4 + 2 * r as Tick;
+        b.mark_in(&format!("in-{name}"), p(3, y));
+        b.mark_out(&format!("out-{name}"), p(99, y));
+    }
+    let feeders: Vec<Tick> = (0..12).map(|k| 8 + 7 * k).collect();
+    for (f, &x) in feeders.iter().enumerate() {
+        b.three_pole(&format!("Q{f}"), p(x, 12), 4);
+        b.three_pole(&format!("K{f}"), p(x, 19), 4);
+        for (a, c) in [("2", "1"), ("4", "3"), ("6", "5")] {
+            b.wire(
+                &format!("Q{f}-K{f}:{a}"),
+                b.pin(&format!("Q{f}"), a),
+                b.pin(&format!("K{f}"), c),
+                &[],
+            );
+        }
+    }
+    for (r, name) in rails.iter().enumerate() {
+        let y = 4 + 2 * r as Tick;
+        let mut from = b.pin(&format!("in-{name}"), "1");
+        for (f, &x) in feeders.iter().enumerate() {
+            let j = b.junction(&format!("J{name}{f}"), p(x + 2 * r as Tick, y));
+            b.wire(&format!("{name}-{f}"), from, j, &[]);
+            b.wire(
+                &format!("{name}-drop{f}"),
+                j,
+                b.pin(&format!("Q{f}"), ["1", "3", "5"][r]),
+                &[],
+            );
+            from = j;
+        }
+        b.wire(&format!("{name}-end"), from, b.pin(&format!("out-{name}"), "1"), &[]);
+    }
+    for (row, (top, bottom)) in [(30, 42), (46, 58)].into_iter().enumerate() {
+        b.mark_in(&format!("in-L+{row}"), p(3, top));
+        b.mark_in(&format!("in-M{row}"), p(3, bottom));
+        let (mut t, mut m) = (b.pin(&format!("in-L+{row}"), "1"), b.pin(&format!("in-M{row}"), "1"));
+        for k in 0..20 {
+            let x = 8 + 4 * k;
+            let (s_name, k_name) = (format!("S{row}-{k}"), format!("K{row}-{k}"));
+            b.device(&s_name, p(x, top + 2));
+            b.device(&k_name, p(x, top + 7));
+            b.wire(&format!("{s_name}-{k_name}"), b.pin(&s_name, "2"), b.pin(&k_name, "1"), &[]);
+            let jt = b.junction(&format!("JT{row}-{k}"), p(x, top));
+            let jb = b.junction(&format!("JB{row}-{k}"), p(x, bottom));
+            b.wire(&format!("L+{row}-{k}"), t, jt, &[]);
+            b.wire(&format!("M{row}-{k}"), m, jb, &[]);
+            b.wire(&format!("L+{row}-drop{k}"), jt, b.pin(&s_name, "1"), &[]);
+            b.wire(&format!("M{row}-drop{k}"), b.pin(&k_name, "2"), jb, &[]);
+            (t, m) = (jt, jb);
+        }
+    }
+    b.page
+}
