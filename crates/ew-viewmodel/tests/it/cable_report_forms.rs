@@ -9,8 +9,8 @@
 use crate::common;
 
 use common::{Tmp, done, form, state};
-use ew_viewmodel::actions::{Menu, MenuEntry, menu_model};
 use ew_api::output::{NavRole, Uuid};
+use ew_viewmodel::actions::{Menu, MenuEntry, menu_model};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;

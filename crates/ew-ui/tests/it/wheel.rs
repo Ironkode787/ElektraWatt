@@ -11,8 +11,8 @@ use egui::{Modifiers, MouseWheelSource, MouseWheelUnit, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::App;
-use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 

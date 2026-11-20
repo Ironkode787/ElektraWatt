@@ -9,8 +9,8 @@ use crate::own_parts::{cursor_k, new_project};
 use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
-use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::Driver;
+use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::json;
 
 /// One terminal of strip `strip` (`new` for a new one) placed at grid point `k` of the page shown.

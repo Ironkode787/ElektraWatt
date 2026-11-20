@@ -13,16 +13,14 @@ use crate::support;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use ew_dl::{Brush, Color, DisplayList, FontKey, Item, ItemKind, Path, Transform};
 use ew_render_cpu::{
     FontBytes, ItemBounds, RegionOptions, RenderOptions, RgbaImage, SheetSize, pixel_size, render,
     render_region,
 };
 use ew_render2d::gpu::{GpuView, HeadlessDevice, MeshCache, prepare};
-use ew_viewmodel::canvas::CanvasPage;
 use ew_units::{Nm, Pt2, Rect};
-use ew_dl::{
-    Brush, Color, DisplayList, FontKey, Item, ItemKind, Path, Transform,
-};
+use ew_viewmodel::canvas::CanvasPage;
 use ew_viewmodel::ew_api::output::font_bytes;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;

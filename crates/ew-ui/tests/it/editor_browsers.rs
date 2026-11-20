@@ -7,9 +7,9 @@
 use crate::support;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Input, parse_chord};
 use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::tools::PickerRow;
-use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::json;
 use support::Tmp;
 

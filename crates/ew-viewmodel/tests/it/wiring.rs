@@ -1036,10 +1036,7 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     // Esc gives the focus back to the wire, which stays selected; the arrows move the grid cursor again.
     done(&mut s, "ui.dismiss", json!({}));
     assert!(hot(&s).is_empty());
-    assert!(
-        s.selection()
-            .contains(ew_dl::EntityRef(wire.id))
-    );
+    assert!(s.selection().contains(ew_dl::EntityRef(wire.id)));
     assert_eq!(s.shortcut_action("cursor.right").0, "cursor.right");
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(
@@ -1164,8 +1161,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let drawn = line(&w13);
     // W13's printed number before the insert.
     let number_before = {
-        let (golden, _) =
-            ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+        let (golden, _) = ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
         golden
             .property_sheet(&[w13.id.to_string().parse().unwrap()])
             .header
@@ -1235,8 +1231,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     // unassigned. (Golden A prints connection-oriented numbers derived for every wire, so the new half prints the
     // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
     done(&mut s, "file.save", json!({}));
-    let (session, _) =
-        ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
     let q = session.query();
     let rec = |id: &str| {
         let (_, c) = q

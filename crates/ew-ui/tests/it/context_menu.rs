@@ -12,12 +12,12 @@ use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::canvas::{pick, rect_centre};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::ew_api::output::TableRep;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Dialog, Outcome};
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 

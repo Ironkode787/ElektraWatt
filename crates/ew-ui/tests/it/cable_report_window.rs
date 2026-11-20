@@ -31,8 +31,7 @@ fn wait_until(
 
 /// The text of the toast on show.
 fn toast(shell: &ShellModel) -> String {
-    let state: serde_json::Value =
-        serde_json::from_str(&ew_viewmodel::script::state_json(shell)).unwrap();
+    let state: serde_json::Value = serde_json::from_str(&ew_viewmodel::script::state_json(shell)).unwrap();
     state["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 

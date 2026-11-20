@@ -48,8 +48,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
     // reads no clock and sleeps nowhere.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
-    let Some(ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
-        h.state().shell().tool_ghost()
+    let Some(ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) = h.state().shell().tool_ghost()
     else {
         panic!("no predicted tag after the rest");
     };

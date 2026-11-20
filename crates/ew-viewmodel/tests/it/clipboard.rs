@@ -11,9 +11,9 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
-use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
 use ew_api::window::parse_fragment;
 use ew_api::{AnyCommand, CmdError, Origin, Session, Submit};
+use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -333,13 +333,8 @@ fn click_at(shell: &mut ShellModel, p: (i64, i64)) {
 fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     let grid = ew_units::Grid::new(g.0 as u64, g.1 as u64).unwrap();
     let on = |p: (i64, i64)| {
-        grid.snap_point(ew_units::Nm(p.0))
-            .map(|n| n.0)
-            == Some(p.0)
-            && grid
-                .snap_point(ew_units::Nm(p.1))
-                .map(|n| n.0)
-                == Some(p.1)
+        grid.snap_point(ew_units::Nm(p.0)).map(|n| n.0) == Some(p.0)
+            && grid.snap_point(ew_units::Nm(p.1)).map(|n| n.0) == Some(p.1)
     };
     let tables = |shell: &ShellModel| shell.canvas().unwrap().page().tables.clone();
     let pins = |shell: &ShellModel, id| -> Vec<(i64, i64)> {
@@ -1161,10 +1156,7 @@ fn complete_page_item_cut_still_undoes_and_redoes_once() {
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     assert_eq!(s.recorded_commands().len(), recorded + 1);
     let clipped = s.clipboard().text().unwrap().to_owned();
-    let records = ew_api::window::parse_fragment(&clipped)
-        .unwrap()
-        .params["records"]
-        .clone();
+    let records = ew_api::window::parse_fragment(&clipped).unwrap().params["records"].clone();
     for id in [&marker, &text] {
         assert!(records.as_array().unwrap().iter().any(|r| r["id"] == id.as_str()));
     }

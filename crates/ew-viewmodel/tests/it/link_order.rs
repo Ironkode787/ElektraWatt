@@ -5,10 +5,10 @@
 //! reading key go by what is printed, the label of their target in natural order, before the destination and the
 //! paint order, which follow random IDs.
 
-use ew_viewmodel::canvas::{PageLink, sort_links};
 use ew_api::output::LinkTarget;
 use ew_dl::Destination;
 use ew_units::{Nm, Pt2, Rect};
+use ew_viewmodel::canvas::{PageLink, sort_links};
 
 /// The links on one spot (so one reading key), the target folios given in the order of the (random) IDs: the first
 /// gets the smallest destination and the first paint index, or the largest with `reversed`.

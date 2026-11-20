@@ -8,9 +8,9 @@ use crate::support::{Scripted, Tmp, bar_button, dispatch, harness, hud_value, se
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Geometry, Input};
 use ew_viewmodel::script::state_json;
 use ew_viewmodel::shell::Outcome;
-use ew_ui::visual::{Driver, Geometry, Input};
 use serde_json::{Value, json};
 
 fn click(at: (i64, i64)) -> Input {

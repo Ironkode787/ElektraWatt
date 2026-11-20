@@ -8,9 +8,9 @@
 use crate::relays_paste_and_ip_wires::{click, key, typed};
 use crate::support::Tmp;
 
+use ew_ui::visual::Driver;
 use ew_viewmodel::ew_api::library::LibraryTiers;
 use ew_viewmodel::shell::{Dialog, Outcome};
-use ew_ui::visual::Driver;
 use serde_json::{Value, json};
 
 /// A driver over a new project from the built-in template, with the person's own libraries under the test's folder

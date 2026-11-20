@@ -9,9 +9,9 @@
 use crate::relays_paste_and_ip_wires::{click, cp_at, key, new_project, page_pixel, pixel_map, state, typed};
 use crate::support::Tmp;
 
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::Outcome;
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 /// (name, direction, cross-reference) of every interruption point of the page on show, sorted.

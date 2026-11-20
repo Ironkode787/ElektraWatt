@@ -9,9 +9,9 @@ use crate::relays_paste_and_ip_wires::typed;
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::tools::{Node, PickerRow};
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 fn click(at: (i64, i64)) -> Input {

@@ -11,8 +11,8 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_dl::{EntityRef, Item, ItemKind};
 use ew_api::output::{TableCp, TableRep};
+use ew_dl::{EntityRef, Item, ItemKind};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 

@@ -91,8 +91,7 @@ fn a_rows_tooltip_explains_it() {
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
     settle(&mut h);
-    let help =
-        ew_viewmodel::strings::field_help("device", "derived.tag").expect("the Tag row's explanation");
+    let help = ew_viewmodel::strings::field_help("device", "derived.tag").expect("the Tag row's explanation");
     let label = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Tag"))

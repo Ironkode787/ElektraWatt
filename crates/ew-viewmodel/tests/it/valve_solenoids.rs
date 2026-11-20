@@ -8,8 +8,8 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_api::output::{TableRep, Uuid};
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
@@ -158,8 +158,7 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
     assert_eq!(s.dispatch(go.1, &go.2), Outcome::Done);
     assert_eq!(s.current_folio(), Some("102"));
     assert!(
-        s.selection()
-            .contains(ew_dl::EntityRef(valve.id)),
+        s.selection().contains(ew_dl::EntityRef(valve.id)),
         "the valve's symbol is marked"
     );
     let words = format!("{tag}, solenoid 14");

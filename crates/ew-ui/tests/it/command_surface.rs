@@ -13,10 +13,10 @@ use egui::{Key, Modifiers, Rect, Vec2, ViewportId};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::App;
+use ew_ui::icons::IconId;
 use ew_viewmodel::actions::ACTIONS;
 use ew_viewmodel::command_bar::{ButtonKind, CommandSize, Tab, command_bar, command_bar_of};
 use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
-use ew_ui::icons::IconId;
 use serde_json::json;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 

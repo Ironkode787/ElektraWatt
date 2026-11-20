@@ -697,9 +697,7 @@ fn the_data_grid(k: usize, of: usize) {
             }
             // The derived Potential column right after Terminal.
             let order: Vec<String> = {
-                let nav = shell
-                    .nav(ew_viewmodel::navigators::NavKind::Strips)
-                    .unwrap();
+                let nav = shell.nav(ew_viewmodel::navigators::NavKind::Strips).unwrap();
                 let table = nav.table().unwrap();
                 let movable: Vec<&ew_viewmodel::ew_api::output::NavColumn> = nav
                     .table_mode()
@@ -1325,9 +1323,7 @@ fn the_chip_line_in_light() {
             .and_then(|t| {
                 t.nodes
                     .iter()
-                    .find(|n| {
-                        n.role == ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3"
-                    })
+                    .find(|n| n.role == ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3")
                     .map(|n| n.key.clone())
             })
             .expect("the -201U3 row");

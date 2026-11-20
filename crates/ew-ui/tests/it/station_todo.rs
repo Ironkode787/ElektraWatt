@@ -9,10 +9,10 @@
 use crate::relays_paste_and_ip_wires::{click, key, new_project};
 use crate::support::Tmp;
 
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::shell::station::TodoFix;
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 /// A click at `at` after the pointer rested there, so that a tool's ghost follows it first.
@@ -356,9 +356,7 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
     assert_eq!(d.shell_mut().dispatch("plc.rack_select", &select), Outcome::Done);
     let tools = ew_viewmodel::actions::station_tools(d.shell_mut());
     let entry = tools.iter().find_map(|(_, e)| match e {
-        ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => {
-            Some(i.label.clone())
-        }
+        ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => Some(i.label.clone()),
         _ => None,
     });
     assert_eq!(entry.as_deref(), Some("Place here"));

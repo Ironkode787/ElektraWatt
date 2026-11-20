@@ -591,8 +591,7 @@ fn a_greyed_commands_toast_title_stands_whole() {
     const TITLE: &str = "A panel layout page takes no symbols or wires";
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
-    let shell =
-        ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
+    let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
     let mut h = Harness::builder()
         .with_size(egui::Vec2::new(1920.0, 1080.0))

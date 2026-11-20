@@ -1818,9 +1818,7 @@ fn vector_logos(pages: &ew_api::output::ExportPages) -> usize {
 }
 
 /// The images of a page output, by content hash and format, in display-list order.
-fn page_images(
-    pages: &ew_api::output::ExportPages,
-) -> Vec<([u8; 32], ew_dl::ImageFormat)> {
+fn page_images(pages: &ew_api::output::ExportPages) -> Vec<([u8; 32], ew_dl::ImageFormat)> {
     use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<([u8; 32], ew_dl::ImageFormat)>) {
         for item in items {

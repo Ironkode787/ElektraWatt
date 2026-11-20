@@ -6,10 +6,10 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Input, parse_chord};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::script::state_json;
 use ew_viewmodel::shell::Outcome;
-use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
 pub(crate) fn click(at: (i64, i64)) -> Input {

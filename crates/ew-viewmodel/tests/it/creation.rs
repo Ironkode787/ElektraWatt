@@ -9,9 +9,9 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused};
+use ew_api::Session;
 use ew_viewmodel::actions::{MenuEntry, menu_model};
 use ew_viewmodel::describe::describe;
-use ew_api::Session;
 use ew_viewmodel::navigator::RowKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PreviewStatus;

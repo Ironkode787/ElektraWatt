@@ -8,12 +8,12 @@ use crate::relays_paste_and_ip_wires::{click, key, new_project, starting_with, t
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_units::Pt2;
 use ew_dl::{Item, ItemKind};
+use ew_ui::visual::{Driver, Input};
+use ew_units::Pt2;
 use ew_viewmodel::ew_api::output::{NavNode, Uuid};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::Outcome;
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 fn right_click(at: (i64, i64)) -> Input {
@@ -230,12 +230,9 @@ fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     // Greyed with its reason while no valve terminal is selected.
-    let reason =
-        ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
+    let reason = ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
     assert_eq!(
-        reason
-            .and_then(Result::err)
-            .map(ew_viewmodel::strings::text),
+        reason.and_then(Result::err).map(ew_viewmodel::strings::text),
         Some("Select a valve terminal first: on its page or in the Fluid panel")
     );
     place_terminal(&mut d, (760, 300));
@@ -2520,9 +2517,7 @@ fn a_terminals_menu_lists_its_positions_from_the_body() {
         .rows
         .iter()
         .filter_map(|r| match r {
-            ew_viewmodel::tools::PickerRow::Part(p) => {
-                Some(picker.catalogue.parts[*p].part_number.as_str())
-            }
+            ew_viewmodel::tools::PickerRow::Part(p) => Some(picker.catalogue.parts[*p].part_number.as_str()),
             _ => None,
         })
         .collect();

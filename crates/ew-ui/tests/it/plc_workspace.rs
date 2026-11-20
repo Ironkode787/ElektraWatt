@@ -1705,10 +1705,7 @@ fn black_box(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, part: &str, a: 
 }
 
 /// The PLC panel's row of station `tag`.
-fn station_row(
-    h: &egui_kittest::Harness<'_, ew_ui::app::App>,
-    tag: &str,
-) -> ew_viewmodel::shell::ShownRow {
+fn station_row(h: &egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str) -> ew_viewmodel::shell::ShownRow {
     h.state()
         .shell()
         .shown_rows(NavKind::Plc)

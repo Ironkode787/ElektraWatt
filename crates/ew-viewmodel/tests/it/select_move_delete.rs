@@ -10,8 +10,8 @@
 use crate::common;
 
 use common::{Tmp, actual_size, at, canvas, done, grid_point, select_ids, sheet, tables};
-use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_api::output::{PageTables, TableEnd, TableItem, TableRep, TableStructureBox};
+use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
@@ -154,11 +154,7 @@ fn end_label(t: &PageTables, e: &TableEnd) -> String {
 }
 
 /// The connection whose two end labels are `a` and `b` (either order).
-fn connection_between<'a>(
-    t: &'a PageTables,
-    a: &str,
-    b: &str,
-) -> &'a ew_api::output::TableConnection {
+fn connection_between<'a>(t: &'a PageTables, a: &str, b: &str) -> &'a ew_api::output::TableConnection {
     t.connections
         .iter()
         .find(|c| {
@@ -402,8 +398,7 @@ fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
     // The device has the part's two functions: read from the saved copy.
     done(&mut s, "file.save", json!({}));
     let dir = tmp.golden_copy();
-    let (session, _) =
-        ew_api::Session::open_read_only(&dir, "test").expect("the saved copy opens");
+    let (session, _) = ew_api::Session::open_read_only(&dir, "test").expect("the saved copy opens");
     let n = {
         let q = session.query();
         q.functions()
@@ -431,9 +426,8 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
         serde_json::from_str(&std::fs::read_to_string(TWO_STARTER_FNDEF_PART).expect("the fixture"))
             .expect("JSON");
     {
-        let (golden, _) =
-            ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
-                .expect("Golden A opens read-only");
+        let (golden, _) = ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+            .expect("Golden A opens read-only");
         let q = golden.query();
         for entry in fixture["function_template"].as_array().expect("a template") {
             let library = entry["fndef"]["library"].as_str().expect("a library");

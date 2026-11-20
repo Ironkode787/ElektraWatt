@@ -62,8 +62,5 @@ fn page_describe_makes_exactly_one_page_tables_call_per_revision_and_folio() {
     assert!(memo_after_first.1 >= memo_before.1);
 
     // Neither step changed the interface's state.
-    assert_eq!(
-        ew_viewmodel::script::state_json(h.state().shell()),
-        state_before
-    );
+    assert_eq!(ew_viewmodel::script::state_json(h.state().shell()), state_before);
 }

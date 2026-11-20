@@ -11,9 +11,9 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
-use ew_viewmodel::command_bar::{Tab, command_bar_of};
 use ew_api::library::{LibManifest, LibraryTiers, STARTER_PARTS_KEY, starter_parts_library};
 use ew_api::output::{PanelCarrier, PanelTables, Uuid};
+use ew_viewmodel::command_bar::{Tab, command_bar_of};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
@@ -444,23 +444,14 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
     // On the frame a new project's page prints on, the numbered view takes its legend beside the layout, in the
     // view's undo step (it was a step of its own after it): one undo takes the legend, the view and the scale
     // back, one redo brings them again.
-    assert_eq!(
-        s.legend_offer(),
-        ew_api::output::LegendOffer::Exists
-    );
+    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::Exists);
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");
-    assert_eq!(
-        s.legend_offer(),
-        ew_api::output::LegendOffer::NoLayout
-    );
+    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::NoLayout);
     assert_ne!(s.revision(), rev);
     done(&mut s, "edit.redo", json!({}));
-    assert_eq!(
-        s.legend_offer(),
-        ew_api::output::LegendOffer::Exists
-    );
+    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::Exists);
     // A scale chosen by hand is kept by the next Surface edit.
     done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:20"}));
     done(

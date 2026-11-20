@@ -7,8 +7,8 @@
 use crate::common;
 
 use common::{Tmp, at, describe_line, done, failed, refused};
-use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_api::output::TableRep;
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::properties::{
     PropertySheet, RowGroup, RowValue, chip_text, find_row, groups, visible_rows, what_words,
 };

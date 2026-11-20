@@ -10,8 +10,8 @@
 use crate::common;
 
 use common::{Tmp, at, done, failed, refused, state, tables};
-use ew_viewmodel::command_bar::hud;
 use ew_api::output::TableRep;
+use ew_viewmodel::command_bar::hud;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::ChooserValue;
 use serde_json::{Value, json};

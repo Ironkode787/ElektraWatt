@@ -68,10 +68,7 @@ fn ips(t: &PageTables) -> Vec<(String, String, (i64, i64))> {
 }
 
 /// Every connection of `t` at a CP of function `f`: (connection ID, the CP's index, the route's end at it).
-fn ends_at(
-    t: &PageTables,
-    f: ew_dl::EntityRef,
-) -> Vec<(String, u16, (i64, i64))> {
+fn ends_at(t: &PageTables, f: ew_dl::EntityRef) -> Vec<(String, u16, (i64, i64))> {
     let mut out = Vec::new();
     for c in &t.connections {
         for (e, end) in [(&c.a, c.polyline.first()), (&c.b, c.polyline.last())] {
@@ -1321,8 +1318,7 @@ fn the_tools_read_nothing_while_moving() {
 /// A location node of Golden A, read from its external references (the copy keeps every ID).
 fn external_location() -> String {
     let (session, _) =
-        ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
-            .unwrap();
+        ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
     let q = session.query();
     let id = q
         .external_refs()

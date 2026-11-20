@@ -12,9 +12,9 @@ use crate::relays_paste_and_ip_wires::{key, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::Outcome;
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 /// A new project with a bus-topology page shown.

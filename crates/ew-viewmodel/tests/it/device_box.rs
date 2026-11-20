@@ -335,11 +335,7 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
         assert_eq!(t.grid, grid);
         let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
         let g = ew_api::symbols::units::Grid::new(grid.0 as u64, grid.1 as u64).unwrap();
-        let on_grid = |v: i64| {
-            g.snap_point(ew_api::symbols::units::Nm(v))
-                .map(|n| n.0)
-                == Some(v)
-        };
+        let on_grid = |v: i64| g.snap_point(ew_api::symbols::units::Nm(v)).map(|n| n.0) == Some(v);
         for (idx, p, _) in &b.cps {
             assert!(
                 on_grid(p.0) && on_grid(p.1),

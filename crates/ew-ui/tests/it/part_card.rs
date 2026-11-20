@@ -8,8 +8,8 @@ use crate::own_parts::new_project;
 use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
-use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::Input;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
 /// The owner's wish: quickly see a part's specifications in the device browser. The starter contactor under the cursor

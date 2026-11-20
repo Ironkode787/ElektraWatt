@@ -615,22 +615,17 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
     // The last editable row on show, in the order the pane draws them (Main first, the closed More not at all).
     let shell = h.state().shell();
     let collapsed = shell.properties_collapsed();
-    let last = ew_viewmodel::properties::visible_rows(
-        shell.properties().sheet().unwrap(),
-        &collapsed,
-        false,
-        "",
-    )
-    .into_iter()
-    .map(|v| v.row)
-    .rev()
-    .find(|r| {
-        r.actions
-            .contains(&ew_viewmodel::ew_api::output::RowAction::Edit)
-            && !matches!(r.ty.inner(), ew_viewmodel::properties::FieldType::Bool)
-    })
-    .map(|r| r.key.clone())
-    .expect("an editable row");
+    let last =
+        ew_viewmodel::properties::visible_rows(shell.properties().sheet().unwrap(), &collapsed, false, "")
+            .into_iter()
+            .map(|v| v.row)
+            .rev()
+            .find(|r| {
+                r.actions.contains(&ew_viewmodel::ew_api::output::RowAction::Edit)
+                    && !matches!(r.ty.inner(), ew_viewmodel::properties::FieldType::Bool)
+            })
+            .map(|r| r.key.clone())
+            .expect("an editable row");
     let row_name = {
         let sheet = h.state().shell().properties().sheet().unwrap();
         let (section, row) = ew_viewmodel::properties::find_row(sheet, &last).unwrap();

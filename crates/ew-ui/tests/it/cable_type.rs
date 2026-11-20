@@ -6,8 +6,8 @@
 use crate::support::Tmp;
 use crate::wires_and_cables::{click, key, new_project, select_both, two_named_wires, two_wires};
 
-use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
+use ew_viewmodel::shell::{Dialog, Outcome};
 
 /// Clicks the field named `label`, selects its text and types `text`.
 fn fill(d: &mut Driver, label: &str, text: &str) {

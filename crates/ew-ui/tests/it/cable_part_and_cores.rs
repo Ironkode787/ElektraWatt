@@ -11,10 +11,10 @@ use crate::wires_and_cables::{
     two_wires, typed,
 };
 
+use ew_ui::visual::{Driver, Input};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::{find_row, what_words};
 use ew_viewmodel::shell::{Dialog, Outcome};
-use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 /// Cable… on the selected wires, the form's proposal applied.

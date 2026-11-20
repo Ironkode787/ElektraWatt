@@ -97,10 +97,7 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
         .unwrap()
         .1
         .clone();
-    assert_eq!(
-        scratch.library_id.as_uuid(),
-        ew_api::symbols::DRAFT_LIBRARY
-    );
+    assert_eq!(scratch.library_id.as_uuid(), ew_api::symbols::DRAFT_LIBRARY);
     assert!(q.symbols().iter().any(|(_, s)| {
         s.item
             .meta
@@ -247,8 +244,7 @@ fn authored_qet_symbol_without_key_suffix_keeps_grid_and_shape_after_insertion()
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) =
-        ew_api::Session::open_read_only(&tmp.0.join("project"), "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("project"), "ElektraWatt test").unwrap();
     assert!(
         session
             .place_catalogue("2")
@@ -835,8 +831,7 @@ fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
     shell.shutdown();
     // A library of the user tier opens from it: it is not remembered as a company library.
     let data = tmp.0.join("data");
-    let tiers =
-        ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
+    let tiers = ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
     let user = tmp.0.join("user-config");
     let mut shell = ShellModel::new(
         Mode::Headless,

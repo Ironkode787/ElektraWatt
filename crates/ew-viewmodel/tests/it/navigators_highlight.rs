@@ -19,12 +19,7 @@ use ew_viewmodel::tools::OverlayItem;
 use serde_json::json;
 
 /// The records of every table row of navigator `kind` whose cell `col` is `text`.
-fn records_where(
-    shell: &ShellModel,
-    kind: NavKind,
-    col: usize,
-    text: &str,
-) -> Vec<ew_api::output::Uuid> {
+fn records_where(shell: &ShellModel, kind: NavKind, col: usize, text: &str) -> Vec<ew_api::output::Uuid> {
     let t = shell.nav(kind).and_then(|n| n.table()).unwrap();
     let mut v: Vec<_> = t
         .nodes

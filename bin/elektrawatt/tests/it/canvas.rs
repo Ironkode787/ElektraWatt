@@ -13,9 +13,9 @@ use std::path::Path;
 use std::process::{Output, Stdio};
 
 use crate::support::{self, Tmp, bin_exe};
+use ew_units::Rect;
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
 use ew_viewmodel::ew_api::Session;
-use ew_units::Rect;
 use ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};

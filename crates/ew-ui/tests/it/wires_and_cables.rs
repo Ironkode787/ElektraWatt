@@ -7,10 +7,10 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::visual::{Driver, Input, parse_chord};
 use ew_viewmodel::script::state_json;
 use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::tools::Ghost;
-use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
 pub(crate) fn click(at: (i64, i64)) -> Input {
@@ -481,9 +481,7 @@ pub(crate) fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i
 /// The core cell of the Cable form's row `i`.
 fn core_cell(d: &mut Driver, i: usize) -> String {
     match d.shell_mut().dialog() {
-        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
-            f.table.as_ref().unwrap().rows[i].cells[0].clone()
-        }
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f.table.as_ref().unwrap().rows[i].cells[0].clone(),
         other => panic!("not the Cable form: {other:?}"),
     }
 }

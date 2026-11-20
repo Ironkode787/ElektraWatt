@@ -12,9 +12,9 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
+use ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::actions::ActionItem;
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu, hud};
-use ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};

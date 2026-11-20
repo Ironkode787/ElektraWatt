@@ -7,8 +7,8 @@
 use std::collections::BTreeSet;
 
 use crate::common::{Tmp, done};
-use ew_viewmodel::actions;
 use ew_api::checks::RuleKind;
+use ew_viewmodel::actions;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::navigators::messages::FindingDetail;
 use ew_viewmodel::palette::{FormPlan, PaletteField, form_plan};
@@ -303,8 +303,7 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
-        ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test")
-            .unwrap();
+        ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test").unwrap();
     let mut wanted = BTreeSet::new();
     let mut wrong = Vec::new();
     for kind in NavKind::ALL {

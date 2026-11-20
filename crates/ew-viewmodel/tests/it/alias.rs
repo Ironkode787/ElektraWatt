@@ -354,8 +354,7 @@ fn a_typed_link_value_and_references_take_the_id_form() {
     let (mut shell, dir) = shell(&tmp);
     // A part copy of the project, read from the copy itself.
     let copy = {
-        let (s, _) =
-            ew_api::Session::open_read_only(std::path::Path::new(&dir), "test").unwrap();
+        let (s, _) = ew_api::Session::open_read_only(std::path::Path::new(&dir), "test").unwrap();
         let q = s.query();
         let id = q.parts().iter().last().map(|(id, _)| id.to_string()).unwrap();
         drop(q);

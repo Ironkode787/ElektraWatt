@@ -9,8 +9,8 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
 use crate::wires_and_cables::{click, key, new_project, page_pixel, tables, two_wires};

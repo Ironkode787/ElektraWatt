@@ -12,10 +12,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::{GOLDEN_A, Tmp, copy_dir, done};
-use ew_viewmodel::describe::describe;
 use ew_api::{
     AnyCommand, FormatStep, MigrationError, Migrations, Recovery, Session, SessionOptions, StoreOptions,
 };
+use ew_viewmodel::describe::describe;
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::status::{StatusKind, bar};
 use serde_json::{Value, json};
@@ -583,8 +583,7 @@ fn merged_duplicate(dir: &Path) {
     std::fs::write(&shard, text.replace(line, &one)).unwrap();
     let path = dir.join("manifest.json");
     let limits = ew_api::Limits::default();
-    let mut manifest =
-        ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
+    let mut manifest = ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
     manifest.merged = true;
     std::fs::write(&path, manifest.to_text()).unwrap();
 }

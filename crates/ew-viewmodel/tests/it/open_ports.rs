@@ -8,8 +8,8 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::command_bar::{MenuSpot, Tab, canvas_menu, command_bar_of};
 use ew_api::output::Uuid;
+use ew_viewmodel::command_bar::{MenuSpot, Tab, canvas_menu, command_bar_of};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;

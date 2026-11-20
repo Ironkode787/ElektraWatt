@@ -11,7 +11,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_dl::{Item, ItemKind, Layer};
 use ew_api::output::{
     PageDigest, Parallelism, changed_now, changed_pages, last_changed_in, page_digest, page_digests,
     page_layer, page_uuid,
@@ -21,6 +20,7 @@ use ew_derive::Query as _;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Digest128, LibDocument, Page, Record, ReleaseRecord, Revision};
 use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
+use ew_dl::{Item, ItemKind, Layer};
 use ew_store::StoreOptions;
 use serde_json::json;
 

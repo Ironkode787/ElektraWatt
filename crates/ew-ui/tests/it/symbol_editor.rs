@@ -8,8 +8,8 @@
 use crate::support;
 
 use egui::{Modifiers, PointerButton};
-use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input, parse_chord};
+use ew_viewmodel::shell::Outcome;
 use serde_json::{Value, json};
 use support::Tmp;
 
@@ -467,12 +467,7 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
             .expect("the device box");
         b.pin_table()
             .into_iter()
-            .map(|l| {
-                (
-                    l.name,
-                    ew_viewmodel::shell::symbol_editor::side_word(&l.side),
-                )
-            })
+            .map(|l| (l.name, ew_viewmodel::shell::symbol_editor::side_word(&l.side)))
             .collect()
     };
     assert_eq!(

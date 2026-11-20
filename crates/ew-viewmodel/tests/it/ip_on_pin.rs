@@ -11,9 +11,7 @@ use crate::common;
 use common::{Tmp, at, done, refused, state, tables, toast};
 use ew_api::Session;
 use ew_api::checks;
-use ew_api::output::{
-    PageTables, TableConnection, TableCp, TableEnd, TablePotential, TableRep,
-};
+use ew_api::output::{PageTables, TableConnection, TableCp, TableEnd, TablePotential, TableRep};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::{IpDir, MarkerKind, OverlayItem};
 use serde_json::{Value, json};

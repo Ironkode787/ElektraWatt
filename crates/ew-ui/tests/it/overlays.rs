@@ -17,15 +17,15 @@ use std::sync::Arc;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
+use ew_dl::EntityRef;
 use ew_render_cpu::{RgbaImage, SheetSize};
 use ew_render2d::overlay::{self, OverlayInput};
 use ew_render2d::view::{PxRect, View};
 use ew_ui::app::App;
 use ew_ui::canvas_chips::ChipKind;
+use ew_units::{Nm, Rect as SheetRect};
 use ew_viewmodel::canvas::HOVER_SLOP_PT;
 use ew_viewmodel::canvas::chip::CHIP_OFFSET;
-use ew_dl::EntityRef;
-use ew_units::{Nm, Rect as SheetRect};
 use ew_viewmodel::highlight::SLOT_COLOURS;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, ShellModel};

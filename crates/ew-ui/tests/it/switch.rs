@@ -11,9 +11,9 @@ use std::sync::atomic::AtomicU32;
 
 use egui_kittest::Harness;
 use ew_ui::app::App;
+use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::Outcome;
-use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 

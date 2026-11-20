@@ -230,8 +230,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
             .map(|(e, r)| (*e, ew_viewmodel::canvas::rect_centre(*r)))
             .find(|(e, p)| {
                 c.link_at(*p).is_none()
-                    && ew_viewmodel::canvas::pick(&page.entities, Some(*p), slop).map(|x| x.0)
-                        == Some(*e)
+                    && ew_viewmodel::canvas::pick(&page.entities, Some(*p), slop).map(|x| x.0) == Some(*e)
                     && {
                         let stack = ew_viewmodel::tools::pick_stack(page, &page.snapper, *p, slop);
                         stack.first() == Some(e)
@@ -1106,11 +1105,7 @@ impl ew_ui::app::Platform for ThreadedImage {
         panic!("a threaded platform is asked through start_pick");
     }
 
-    fn start_pick(
-        &mut self,
-        _: ew_viewmodel::shell::Prompt,
-        ctx: &egui::Context,
-    ) -> ew_ui::app::PickReply {
+    fn start_pick(&mut self, _: ew_viewmodel::shell::Prompt, ctx: &egui::Context) -> ew_ui::app::PickReply {
         let path = self.0.clone();
         ew_ui::app::PickReply::Later(
             ew_ui::app::spawn_pick(ctx, move || ew_ui::app::Pick::Path(path)).unwrap(),
@@ -1125,8 +1120,7 @@ fn the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
     let file = a_png(&tmp);
     let dir = tmp.golden("g.ew");
-    let shell =
-        ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
+    let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir));
     let mut h = Harness::builder()
         .with_size(egui::Vec2::new(1000.0, 700.0))

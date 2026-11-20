@@ -10,8 +10,8 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::visual::{Driver, Input};
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
 
 use crate::wires_and_cables::{click, key, new_project, pixel_map, starting_with, tables, two_wires};
@@ -509,10 +509,7 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     d.input(&click(d.find("Supply").expect("Supply on the Draw tab")));
     d.settle();
     assert!(
-        matches!(
-            d.shell_mut().dialog(),
-            Some(ew_viewmodel::shell::Dialog::Form(_))
-        ),
+        matches!(d.shell_mut().dialog(), Some(ew_viewmodel::shell::Dialog::Form(_))),
         "its form"
     );
     d.shell_mut().set_form_field("system", "supply_3p");

@@ -561,10 +561,7 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     assert!(h.query_by_label_contains("lists every data flow").is_some());
     h.get_by_label("Privacy (PRIVACY.md)").click();
     settle(&mut h);
-    assert_eq!(
-        *platform.opened.borrow(),
-        [ew_viewmodel::about::PRIVACY_URL]
-    );
+    assert_eq!(*platform.opened.borrow(), [ew_viewmodel::about::PRIVACY_URL]);
     assert!(ew_viewmodel::about::PRIVACY_URL.ends_with("/blob/main/PRIVACY.md"));
     h.get_by_label("Third-party notices").click();
     settle(&mut h);
@@ -657,8 +654,5 @@ fn the_first_run_privacy_step_links_privacy_md() {
     assert!(h.query_by_label_contains("3 / 5: Privacy").is_some());
     h.get_by_label("Privacy (PRIVACY.md)").click();
     settle(&mut h);
-    assert_eq!(
-        *platform.opened.borrow(),
-        [ew_viewmodel::about::PRIVACY_URL]
-    );
+    assert_eq!(*platform.opened.borrow(), [ew_viewmodel::about::PRIVACY_URL]);
 }

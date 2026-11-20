@@ -133,8 +133,7 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
         .into_iter()
         .find(|r| matches!(r.kind, ew_viewmodel::navigator::RowKind::Page(3)))
         .unwrap();
-    let name =
-        ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
+    let name = ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
     // A click marks the row and moves the cursor; (doc 16a §6.6) it also opens
     // the page.
     h.get_by_label(&name).click();

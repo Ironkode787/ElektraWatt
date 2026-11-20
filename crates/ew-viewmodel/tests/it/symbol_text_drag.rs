@@ -9,8 +9,8 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_api::output::SlotTextBox;
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 

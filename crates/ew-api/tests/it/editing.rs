@@ -11,13 +11,13 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use ew_api::geometry::{orient_dir, orient_point};
-use ew_dl::{ItemKind, Layer, PathEl};
 use ew_api::output::{TableEnd, page_layer};
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::{Device, Function, Representation};
 use ew_derive::ew_units::{Grid, Nm, Orient2, Pt2};
 use ew_derive::{PageOrder, cp_point};
+use ew_dl::{ItemKind, Layer, PathEl};
 
 /// A symbol's CP drawn at `pos` plus its turned offset `at` on a page of `grid`: the grid's own number where the sum
 /// lies within 1 nm of a grid position (docs/design/06a-drafting.md §2.1).

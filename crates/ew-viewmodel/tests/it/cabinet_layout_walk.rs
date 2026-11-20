@@ -10,8 +10,8 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_api::output::PanelTables;
+use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
