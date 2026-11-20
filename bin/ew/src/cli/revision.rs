@@ -817,7 +817,7 @@ mod tests {
     #[test]
     fn approve_release_and_withdraw_on_the_typed_label() {
         let dir = golden_copy("approve");
-        let root = dir.with_extension("archives");
+        let root = ew_testdir::Tmp(dir.with_extension("archives"));
         let _ = std::fs::remove_dir_all(&root);
         waive_the_gate(&dir);
         let before = files(&dir);
@@ -903,7 +903,6 @@ mod tests {
         assert_eq!(code, 0, "{shown}");
         let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
         assert!(revisions.contains("the terminal plan was wrong"), "{revisions}");
-        let _ = std::fs::remove_dir_all(&root);
     }
 
     /// RA-3 through the CLI: an archive of the open revision's label that no record names (what a crashed release
@@ -919,20 +918,20 @@ mod tests {
         assert_eq!(code, 0, "{shown}");
         let b = ew_testdir::Tmp::new("ew-cli-revision-incomplete-b");
         copy_dir(&a, &b);
-        let root_a = a.with_extension("archives");
-        let root_b = b.with_extension("archives");
-        let state = a.with_extension("state");
+        let root_a = ew_testdir::Tmp(a.with_extension("archives"));
+        let root_b = ew_testdir::Tmp(b.with_extension("archives"));
+        let state = ew_testdir::Tmp(a.with_extension("state"));
         for r in [&root_a, &root_b, &state] {
             let _ = std::fs::remove_dir_all(r);
         }
-        let (code, shown) = run_in(&a, release_into("V2.0", &root_a), true, "V2.0\n", Some(&state));
+        let (code, shown) = run_in(&a, release_into("V2.0", &root_a), true, "V2.0\n", Some(state.dir()));
         assert_eq!(code, 0, "{shown}");
 
         // B, a copy of A, on A's archive folder with the same state directory: `discard` is not offered, and typed it
         // removes nothing.
         let archived = std::fs::read(root_a.join("V2.0.ewarchive")).unwrap();
         let before_b = files(&b);
-        let (code, shown) = run_in(&b, release_into("V2.0", &root_a), true, "discard\n", Some(&state));
+        let (code, shown) = run_in(&b, release_into("V2.0", &root_a), true, "discard\n", Some(state.dir()));
         assert_eq!(code, 1, "{shown}");
         assert!(
             shown.contains(
@@ -963,7 +962,7 @@ mod tests {
         // With a run record of B's folder for the archive (what B's own crashed run leaves), `discard` is offered and
         // removes the archive and the record.
         let record = run_record_of(&b, &root_b, &state);
-        let (code, shown) = run_in(&b, release_into("V2.0", &root_b), true, "discard\n", Some(&state));
+        let (code, shown) = run_in(&b, release_into("V2.0", &root_b), true, "discard\n", Some(state.dir()));
         assert_eq!(code, 0, "{shown}");
         assert!(shown.contains(", `discard` to remove it"), "{shown}");
         assert!(
@@ -988,7 +987,7 @@ mod tests {
         // A damaged archive names no project: neither completed nor discarded, but kept, and nothing is offered.
         let c = ew_testdir::Tmp::new("ew-cli-revision-incomplete-c");
         copy_dir(&golden(), &c);
-        let root_c = c.with_extension("archives");
+        let root_c = ew_testdir::Tmp(c.with_extension("archives"));
         let _ = std::fs::remove_dir_all(&root_c);
         std::fs::create_dir_all(&root_c).unwrap();
         std::fs::write(root_c.join("V2.0.ewarchive"), b"not an archive").unwrap();
@@ -1001,9 +1000,6 @@ mod tests {
                 b"not an archive",
                 "{answer}: the damaged archive is kept"
             );
-        }
-        for d in [&root_a, &root_b, &root_c, &state] {
-            let _ = std::fs::remove_dir_all(d);
         }
     }
 
