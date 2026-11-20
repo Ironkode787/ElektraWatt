@@ -273,27 +273,17 @@ fn composite_wire_colours(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
 ) {
     use ew_viewmodel::wire_colours::{CASING_PX, CASING_RGB, STROKE_PT};
-    let (w, h) = (i64::from(image.width), i64::from(image.height));
     let half = STROKE_PT * ppp / 2.0;
     let band =
         |image: &mut ew_render_cpu::RgbaImage, a: (f64, f64), b: (f64, f64), half: f64, rgb: (u8, u8, u8)| {
-            let (a, b) = (t.to_screen(a), t.to_screen(b));
-            let x0 = ((a.0.min(b.0) - half).floor() as i64).max(0);
-            let x1 = ((a.0.max(b.0) + half).ceil() as i64).min(w);
-            let y0 = ((a.1.min(b.1) - half).floor() as i64).max(0);
-            let y1 = ((a.1.max(b.1) + half).ceil() as i64).min(h);
             let c = Color {
                 r: rgb.0,
                 g: rgb.1,
                 b: rgb.2,
                 a: u8::MAX,
             };
-            for y in y0..y1 {
-                for x in x0..x1 {
-                    if segment_distance((x as f64 + 0.5, y as f64 + 0.5), a, b) <= half {
-                        overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), c);
-                    }
-                }
+            for (x, y) in band_pixels((image.width, image.height), t.to_screen(a), t.to_screen(b), half) {
+                overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), c);
             }
         };
     for s in strokes {
@@ -335,7 +325,6 @@ fn composite_conflicts(
     lines: &[Vec<(i64, i64)>],
     colour: crate::theme::Rgba,
 ) {
-    let (w, h) = (i64::from(image.width), i64::from(image.height));
     let half = CONFLICT_PT * ppp / 2.0;
     let mut paint: std::collections::BTreeSet<(i64, i64)> = std::collections::BTreeSet::new();
     for line in lines {
@@ -344,18 +333,7 @@ fn composite_conflicts(
             .map(|p| t.to_screen((p.0 as f64, p.1 as f64)))
             .collect();
         for s in pts.windows(2) {
-            let (a, b) = (s[0], s[1]);
-            let x0 = ((a.0.min(b.0) - half).floor() as i64).max(0);
-            let x1 = ((a.0.max(b.0) + half).ceil() as i64).min(w);
-            let y0 = ((a.1.min(b.1) - half).floor() as i64).max(0);
-            let y1 = ((a.1.max(b.1) + half).ceil() as i64).min(h);
-            for y in y0..y1 {
-                for x in x0..x1 {
-                    if segment_distance((x as f64 + 0.5, y as f64 + 0.5), a, b) <= half {
-                        paint.insert((x, y));
-                    }
-                }
-            }
+            paint.extend(band_pixels((image.width, image.height), s[0], s[1], half));
         }
     }
     let c = Color {
@@ -367,6 +345,24 @@ fn composite_conflicts(
     for (x, y) in paint {
         overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), c);
     }
+}
+
+/// The pixels of an image of `(width, height)` whose centres lie within `half` of the segment `a`–`b` (pixels of the
+/// pane), row by row: the band the snapshot paints a line of the wire-colour view or the conflict overlay in.
+fn band_pixels(
+    (width, height): (u32, u32),
+    a: (f64, f64),
+    b: (f64, f64),
+    half: f64,
+) -> impl Iterator<Item = (i64, i64)> {
+    let (w, h) = (i64::from(width), i64::from(height));
+    let x0 = ((a.0.min(b.0) - half).floor() as i64).max(0);
+    let x1 = ((a.0.max(b.0) + half).ceil() as i64).min(w);
+    let y0 = ((a.1.min(b.1) - half).floor() as i64).max(0);
+    let y1 = ((a.1.max(b.1) + half).ceil() as i64).min(h);
+    (y0..y1)
+        .flat_map(move |y| (x0..x1).map(move |x| (x, y)))
+        .filter(move |&(x, y)| segment_distance((x as f64 + 0.5, y as f64 + 0.5), a, b) <= half)
 }
 
 /// The distance of `p` from the segment `a`–`b`.
