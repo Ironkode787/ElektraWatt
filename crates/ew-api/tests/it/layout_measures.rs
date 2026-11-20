@@ -481,6 +481,60 @@ fn ew_core_070_quotes_the_crossed_line() {
     );
 }
 
+/// docs/design/06a-drafting.md §9.3 row 7: marks of the starter library stacked two grid steps apart, incoming and
+/// outgoing, each with its name and its cross-reference, stand at their first places without their texts meeting.
+#[test]
+fn starter_marks_stack_two_steps_apart_without_their_texts_meeting() {
+    let (mut s, page, _) = rk1_page(&[]);
+    for key in ["ew.gen.ip@qet10", "ew.gen.ip-target@qet10"] {
+        if let Some(embed) = s.starter_embed(key) {
+            run(&mut s, "library.embed", embed);
+        }
+    }
+    let (source, target) = (
+        s.starter_symbol_copy("ew.gen.ip@qet10").unwrap().to_string(),
+        s.starter_symbol_copy("ew.gen.ip-target@qet10").unwrap().to_string(),
+    );
+    for (i, row) in [20, 22, 24].into_iter().enumerate() {
+        for (symbol, x, direction) in [(&target, 52, "target"), (&source, 72, "source")] {
+            run(
+                &mut s,
+                "ip.place",
+                serde_json::json!({"page": page, "symbol": symbol, "pos": grid(x, row),
+                    "name": format!("24V-{i}"), "direction": direction}),
+            );
+        }
+    }
+    use ew_api::drafting::LabelKind::{MarkName, MarkXref};
+    let ours: Vec<_> = s
+        .page_tables("103")
+        .unwrap()
+        .reps
+        .iter()
+        .filter(|r| r.ip.as_ref().is_some_and(|ip| ip.name.starts_with("24V-")))
+        .map(|r| r.id)
+        .collect();
+    let page = s.page_draft("103").unwrap();
+    let settled = ew_api::drafting::settle_labels(&page);
+    let marks: Vec<_> = page
+        .labels
+        .iter()
+        .filter(|l| matches!(l.kind, MarkName | MarkXref) && ours.contains(&l.id.owner))
+        .filter_map(|l| settled.iter().find(|x| x.id == l.id))
+        .collect();
+    assert_eq!(marks.len(), 12, "six marks, a name and a cross-reference each");
+    // Each name in line with its wire, where its symbol puts it.
+    assert!(
+        marks.iter().filter(|m| m.id.n == 0).all(|m| m.rank == 0),
+        "the names at their first places: {marks:?}"
+    );
+    for (i, a) in marks.iter().enumerate() {
+        for b in &marks[i + 1..] {
+            assert!(!a.rect.overlaps(b.rect), "{a:?} meets {b:?}");
+        }
+    }
+}
+
 /// A wire through an interruption point names the point in each language's words, never
 /// "interruption point" in a Dutch message: EW-CORE-069 on a page, and EW-CORE-070's wording of a point's text.
 #[test]

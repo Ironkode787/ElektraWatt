@@ -25,7 +25,7 @@
 //! | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
 //! | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
 //! | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
-//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow; centred under the arrow, then over it |
+//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
 //! | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
 //! | strip designation | left of the terminal at its middle; centred above it; above it, ending at its left edge |
 //! | wire number | along the wire ([`along_wire`]) |
@@ -459,6 +459,8 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(b.x0 - g - w, q.y - g - h, unit.size),
                 bx(c.x - half(w), b.y1 + g, unit.size),
                 bx(c.x - half(w), b.y0 - g - h, unit.size),
+                bx(b.x0 - g - w, q.y + half(h) + g, unit.size),
+                bx(b.x0 - g - w, q.y - half(h) - g - h, unit.size),
             ],
             Some((q, Some(Side::Left))) => vec![
                 bx(q.x - g - w, q.y + g, unit.size),
@@ -467,6 +469,9 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(b.x1 + g, q.y - g - h, unit.size),
                 bx(c.x - half(w), b.y1 + g, unit.size),
                 bx(c.x - half(w), b.y0 - g - h, unit.size),
+                // Beyond the arrow under and over a name in line with the wire there.
+                bx(b.x1 + g, q.y + half(h) + g, unit.size),
+                bx(b.x1 + g, q.y - half(h) - g - h, unit.size),
             ],
             Some((q, Some(Side::Up))) => vec![
                 bx(q.x + g, q.y - g - h, unit.size),
