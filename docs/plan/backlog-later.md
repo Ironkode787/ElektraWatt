@@ -63,6 +63,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 
 ## Importers
 
+- FT-1906 `ew-import-*, ew-library`: GSD and GSDML files read into a PLC or bus part of the person's own (its interfaces, modules and channels). 1.x in the plan; until then such a part is made in the part editor.
 - FT-684 `ew-import-tables`: **Medium.** The tables importer's `template` column cannot pick a later entry of the same FnDef (it takes the first entry naming the FnDef; writing `template_entry` from the column would lift it once the builder …
 - FT-1419 `ew-import-tables`: The `route` column of `connections.csv` accepts only connection-point ends a symbol draws, no junction, black-box or strip-segment end (FT51e).
 - FT-1484 `ew-import-tables, ew-derive`: A `route` end at a terminal-strip segment (FT-1419's rest): its position comes from ew-derive's segment layout and ew-import-tables has no edge to ew-derive; design how the importer resolves it (an …
