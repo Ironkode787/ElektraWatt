@@ -106,10 +106,6 @@ pub use editing::{
     SlotCell, SupplyPoint, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableItem,
     TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map, page_type_takes,
 };
-/// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
-/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
-/// (architecture §3 rule 7).
-pub use ew_dl;
 /// The style a text without one prints with (`text.normal`): a free text's Style row names it.
 pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.

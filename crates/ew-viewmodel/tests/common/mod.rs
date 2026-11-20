@@ -223,7 +223,7 @@ pub fn click(shell: &mut ShellModel, p: (i64, i64), mods: Value) {
 }
 
 /// The centres of the entity rectangles that are no link and whose pick is that entity, in paint order.
-pub fn entity_points(c: &CanvasModel) -> Vec<(ew_viewmodel::ew_api::output::ew_dl::EntityRef, (i64, i64))> {
+pub fn entity_points(c: &CanvasModel) -> Vec<(ew_dl::EntityRef, (i64, i64))> {
     let slop = HOVER_SLOP_PT / c.points_per_nm();
     let mut out = Vec::new();
     for (e, r) in &c.page().entities {

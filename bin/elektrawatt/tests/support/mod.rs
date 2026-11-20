@@ -29,7 +29,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Session};
+use ew_viewmodel::ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
 
 pub use ew_testdir::{CONTENT, GOLDEN_A, copy_dir};
@@ -210,8 +210,8 @@ pub struct SheetMap {
 }
 
 impl SheetMap {
-    /// The map of a page's [`PageGrid`](ew_ui::ew_viewmodel::ew_api::output::PageGrid) (`Session::page_grid`).
-    pub fn of_grid(grid: &ew_ui::ew_viewmodel::ew_api::output::PageGrid) -> SheetMap {
+    /// The map of a page's [`PageGrid`](ew_viewmodel::ew_api::output::PageGrid) (`Session::page_grid`).
+    pub fn of_grid(grid: &ew_viewmodel::ew_api::output::PageGrid) -> SheetMap {
         SheetMap {
             scale_ppb: i128::from(grid.sheet_scale_ppb),
             offset: (
@@ -396,8 +396,8 @@ fn black_box_steps(
     b: &Value,
     device: &Value,
 ) -> Vec<(String, Value)> {
-    use ew_ui::ew_viewmodel::tools::black_box::layout;
-    use ew_ui::ew_viewmodel::tools::wire::PageGridMap;
+    use ew_viewmodel::tools::black_box::layout;
+    use ew_viewmodel::tools::wire::PageGridMap;
     let pt = |v: &Value| (v[0].as_i64().unwrap(), v[1].as_i64().unwrap());
     let outline: Vec<(i64, i64)> = b["outline"].as_array().unwrap().iter().map(pt).collect();
     assert_eq!(outline.len(), 4, "a rectangle");
@@ -491,7 +491,7 @@ fn grid_maps(grid: (i64, i64)) -> (impl Fn(i64) -> i64, impl Fn(i64) -> i64) {
 /// terminals, whose golden tag is frozen, `command.run` `fields.set` `tag.frozen` with the golden value on the device
 /// that prints the placed tag (a `tag:` reference, so no ID is minted into the script). Returns the steps.
 pub fn typed_tag_steps(folio: u32, placed: &Path) -> Vec<(String, Value)> {
-    use ew_ui::ew_viewmodel::ew_api::Session;
+    use ew_viewmodel::ew_api::Session;
     let all = records();
     let keys = symbol_keys();
     let page = all
@@ -559,8 +559,8 @@ pub fn typed_tag_steps(folio: u32, placed: &Path) -> Vec<(String, Value)> {
 }
 
 /// The golden tables of folio `folio`.
-fn golden_tables(folio: u32) -> ew_ui::ew_viewmodel::ew_api::output::PageTables {
-    let (s, _) = ew_ui::ew_viewmodel::ew_api::Session::open_read_only(Path::new(GOLDEN_A), "test").unwrap();
+fn golden_tables(folio: u32) -> ew_viewmodel::ew_api::output::PageTables {
+    let (s, _) = ew_viewmodel::ew_api::Session::open_read_only(Path::new(GOLDEN_A), "test").unwrap();
     s.page_tables(&folio.to_string()).unwrap()
 }
 
@@ -591,15 +591,15 @@ pub fn wiring_steps_with(
     map: SheetMap,
     cp_at: Option<&dyn Fn(&str) -> Option<(i64, i64)>>,
 ) -> (Vec<(String, Value)>, usize, Vec<(i64, i64)>) {
-    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
-    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+    use ew_viewmodel::ew_api::geometry::Dir;
+    use ew_viewmodel::ew_api::output::TableEnd;
     let t = golden_tables(folio);
     let (index, coord) = grid_maps(t.grid);
     let cp_of = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => t.cps.iter().find(|c| c.function == *function && c.idx == *idx),
         TableEnd::Junction { .. } => None,
     };
-    let at = |cp: &ew_ui::ew_viewmodel::ew_api::output::TableCp| -> (i64, i64) {
+    let at = |cp: &ew_viewmodel::ew_api::output::TableCp| -> (i64, i64) {
         match cp_at {
             Some(f) => f(&cp.label).unwrap_or_else(|| panic!("no end point for the CP {}", cp.label)),
             None => cp.at,
@@ -713,8 +713,8 @@ pub struct WiringOracle {
 }
 
 /// The oracle values of `tables`.
-pub fn wiring_oracle(t: &ew_ui::ew_viewmodel::ew_api::output::PageTables) -> WiringOracle {
-    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+pub fn wiring_oracle(t: &ew_viewmodel::ew_api::output::PageTables) -> WiringOracle {
+    use ew_viewmodel::ew_api::output::TableEnd;
     let label = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => t
             .cps
@@ -986,17 +986,17 @@ pub fn start(exe: &Path, tmp: &Tmp) -> PathBuf {
     // The structure node +J-E-206 and Golden A's external references, created in
     // the session (the node's minted ID is read back here, so no script names it); the folio scripts name the
     // references by their printed text.
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state-start"));
     let (mut s, _) = Session::open(
         &job,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     let run_cmd = |s: &mut Session, name: &str, params: Value| {
-        let cmd = ew_ui::ew_viewmodel::ew_api::AnyCommand {
+        let cmd = ew_viewmodel::ew_api::AnyCommand {
             name: name.into(),
             params,
         };
@@ -1258,13 +1258,13 @@ fn gpp_start_common(exe: &Path, tmp: &Tmp, demo: bool) -> GppStart {
     script.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
     all_done(&run(exe, tmp, "gpp-start.jsonl", &script, None));
 
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state-gpp"));
     let (mut s, _) = Session::open(
         &job,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     let execute = |s: &mut Session, name: &str, params: Value| -> Value {
@@ -1608,13 +1608,13 @@ pub fn demo_103_strips(exe: &Path, tmp: &Tmp, job: &Path, strip_1x1: &str) -> De
             ]),
             None,
         ));
-        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
         store.state_dir = Some(tmp.path(&format!("state-gpp-demo-strip-{name}")));
         let (mut s, _) = Session::open(
             job,
             store,
-            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+            ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_viewmodel::ew_api::Recovery::Keep,
         )
         .unwrap();
         let new: Vec<String> = {
@@ -1784,7 +1784,7 @@ pub fn demo_103_wiring(job: &Path, map: SheetMap) -> (Vec<(String, Value)>, usiz
 
 /// The CPs of a terminal representation that a drawn page connection ends at, as (label, potential).
 fn demo_terminal_cps(
-    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    tables: &ew_viewmodel::ew_api::output::PageTables,
     rep: &str,
 ) -> Vec<(String, Option<String>)> {
     tables
@@ -1813,7 +1813,7 @@ pub struct DemoPi10 {
 /// B5 (PI10): read the four terminals' drawn CP potentials, bridge -X1031:1 to :4 by three `strip.bridge` steps,
 /// check the three page-less `connection.draw` records and read the potentials again.
 pub fn demo_103_pi10(exe: &Path, tmp: &Tmp, job: &Path, x1031: &str) -> DemoPi10 {
-    use ew_ui::ew_viewmodel::ew_api::CmdLog;
+    use ew_viewmodel::ew_api::CmdLog;
     let (s, _) = Session::open_read_only(job, "test").unwrap();
     let tables = s.page_tables("103").expect("the demo page 103");
     let reps: Vec<(String, String)> = {
@@ -1890,15 +1890,15 @@ pub fn demo_103_pi10(exe: &Path, tmp: &Tmp, job: &Path, x1031: &str) -> DemoPi10
         assert_eq!(cmd.params["kind"]["bridge"]["shaft"], 1);
         assert_eq!(cmd.params["kind"]["bridge"]["group"], 1);
     }
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state-gpp-demo-pi10-replay"));
     // The model revision is per session, so each step's "+1" is checked by replaying the recorded commands on the
     // copy taken before the script.
     let (mut replay, _) = Session::open(
         &before_copy,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     let rev_before = replay.world().rev.0;
@@ -1952,13 +1952,13 @@ pub struct DemoBridges {
 /// plug-in bridge part uses with the quantity of their distinct bridge groups.
 pub fn demo_103_bridges(tmp: &Tmp, job: &Path, strips: &DemoStrips) -> DemoBridges {
     let all = records();
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state-gpp-demo-other-bridges"));
     let (mut s, _) = Session::open(
         job,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     let q = s.query();
@@ -2216,10 +2216,10 @@ pub fn part_steps(folio: u32, placed: &Path) -> Vec<(String, AnyCommand)> {
 
 /// The far ends of a junction's sequence, by their printed labels (as the oracle names a junction).
 fn junction_end_labels(
-    t: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
-    j: &ew_ui::ew_viewmodel::ew_api::output::TableJunction,
+    t: &ew_viewmodel::ew_api::output::PageTables,
+    j: &ew_viewmodel::ew_api::output::TableJunction,
 ) -> Vec<String> {
-    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+    use ew_viewmodel::ew_api::output::TableEnd;
     let label = |e: TableEnd| match e {
         TableEnd::Cp { function, idx } => t
             .cps
@@ -2244,7 +2244,7 @@ fn junction_end_labels(
 /// index in its `functions`); a junction end names the placed junction with the same far-end labels. A definition
 /// on one of the folios whose end does not map is an assertion failure naming it.
 pub fn potential_steps(folios: &[u32], placed: &Path) -> Vec<(String, AnyCommand)> {
-    use ew_ui::ew_viewmodel::ew_api::output::PageTables;
+    use ew_viewmodel::ew_api::output::PageTables;
     let all = records();
     let keys = symbol_keys();
     let folio_of_page: BTreeMap<String, u32> = all
@@ -2499,11 +2499,11 @@ fn golden_end_matches(label: &str, golden: &str) -> bool {
 /// The crossing segment that lists exactly `ids` in that order, horizontal rows first (ascending), then vertical
 /// columns, each in both directions.
 fn crossing_segment(
-    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    tables: &ew_viewmodel::ew_api::output::PageTables,
     lines: &[Vec<(i64, i64)>],
     ids: &[String],
 ) -> Option<((i64, i64), (i64, i64))> {
-    use ew_ui::ew_viewmodel::tools::crossed_connections;
+    use ew_viewmodel::tools::crossed_connections;
     let (index, coord) = grid_maps(tables.grid);
     let xs: Vec<i64> = lines.iter().flatten().map(|p| p.0).collect();
     let ys: Vec<i64> = lines.iter().flatten().map(|p| p.1).collect();
@@ -2547,10 +2547,10 @@ fn crossing_segment(
 /// The rehearsal connection of the golden connection `wire`, matched by its printed end labels as the marker
 /// generator matches a group's members (a junction end matches `@`). Panics naming the wire when none matches.
 fn connection_for_wire<'a>(
-    tables: &'a ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    tables: &'a ew_viewmodel::ew_api::output::PageTables,
     wire: &str,
-) -> &'a ew_ui::ew_viewmodel::ew_api::output::TableConnection {
-    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+) -> &'a ew_viewmodel::ew_api::output::TableConnection {
+    use ew_viewmodel::ew_api::output::TableEnd;
     let (ga, gb) = golden_wire_ends(wire);
     let label = |e: TableEnd| -> Option<String> {
         match e {
@@ -2578,10 +2578,7 @@ fn connection_for_wire<'a>(
 
 /// The ID text of the rehearsal connection of the golden connection `wire`, found as [`marker_steps`] finds a
 /// group's members.
-pub fn rehearsal_connection_id(
-    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
-    wire: &str,
-) -> String {
+pub fn rehearsal_connection_id(tables: &ew_viewmodel::ew_api::output::PageTables, wire: &str) -> String {
     connection_for_wire(tables, wire).id.to_string()
 }
 
@@ -2591,7 +2588,7 @@ pub fn rehearsal_connection_id(
 /// crosses becomes a [`MarkerFallback`].
 pub fn marker_steps(
     folio: u32,
-    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    tables: &ew_viewmodel::ew_api::output::PageTables,
     map: SheetMap,
 ) -> (Vec<(String, Value)>, Vec<MarkerFallback>) {
     let groups: Vec<(Vec<&str>, &str)> = match folio {
@@ -2636,8 +2633,8 @@ pub fn marker_steps(
 /// (text, target cell) pairs, sorted: the representation's xref slots (`PageSlotsOf`) and the target's cell
 /// (`Session::link_targets`).
 pub fn xref_texts(s: &Session, folios: &[&str]) -> Vec<(String, String)> {
-    use ew_ui::ew_viewmodel::ew_api::output::PageSlotsOf;
-    use ew_ui::ew_viewmodel::ew_api::output::ew_dl::Destination;
+    use ew_dl::Destination;
+    use ew_viewmodel::ew_api::output::PageSlotsOf;
     let q = s.query();
     let mut pages = Vec::new();
     let mut page_folio = BTreeMap::new();

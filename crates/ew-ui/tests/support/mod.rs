@@ -18,8 +18,8 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
+use ew_viewmodel::{key, strings};
 
 /// The temporary directory of a test ([`ew_testdir::Tmp`], reached through `Deref`: `dir()`, `path()`, `golden()` and
 /// the public path `.0`), with the shell configurations of the tests.
@@ -262,7 +262,7 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
 pub fn surface_name(harness: &Harness<'_, App>) -> String {
     let shell = harness.state().shell();
     if let Some(dialog) = shell.dialog() {
-        ew_ui::ew_viewmodel::dialogs::spec(dialog, shell).title
+        ew_viewmodel::dialogs::spec(dialog, shell).title
     } else if shell.first_run().is_some() {
         strings::text(key!("firstrun-title")).to_owned()
     } else {
@@ -347,7 +347,7 @@ pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec
 /// unavailable is shown disabled, not enabled (§5 U1).
 pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<String> {
     use egui::accesskit::Role;
-    use ew_ui::ew_viewmodel::{actions, command_bar};
+    use ew_viewmodel::{actions, command_bar};
     let shell = harness.state().shell();
     let bar = command_bar::command_bar(shell);
     let mut problems = Vec::new();
@@ -421,7 +421,7 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
 
 /// The accessible name of a menu entry: its label, then its shortcut as the entry shows it (egui joins a button's
 /// texts with a space).
-pub fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
+pub fn menu_label(item: &ew_viewmodel::actions::ActionItem) -> String {
     if item.shortcut.is_empty() {
         item.label.clone()
     } else {
@@ -435,7 +435,7 @@ pub fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
 pub fn menu_entry_problems(
     harness: &Harness<'_, App>,
     surface: &str,
-    items: &[ew_ui::ew_viewmodel::actions::ActionItem],
+    items: &[ew_viewmodel::actions::ActionItem],
 ) -> Vec<String> {
     use egui::accesskit::Role;
     let menu_button = strings::text(key!("commandbar-menu"));
@@ -599,11 +599,11 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
 /// button not shown there is reported "not shown". Empty without a dialog or a first run.
 pub fn footer_problems(harness: &Harness<'_, App>) -> Vec<String> {
     use egui::accesskit::Role;
-    use ew_ui::ew_viewmodel::first_run::FirstRunStep;
+    use ew_viewmodel::first_run::FirstRunStep;
     const SLACK: f64 = 1.0;
     let shell = harness.state().shell();
     let (title, labels): (String, Vec<String>) = if let Some(dialog) = shell.dialog() {
-        let spec = ew_ui::ew_viewmodel::dialogs::spec(dialog, shell);
+        let spec = ew_viewmodel::dialogs::spec(dialog, shell);
         let labels = spec.buttons().iter().map(|b| b.label.clone()).collect();
         (spec.title, labels)
     } else if let Some(run) = shell.first_run() {

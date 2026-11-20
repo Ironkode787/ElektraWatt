@@ -14,8 +14,6 @@
 
 #![forbid(unsafe_code)]
 
-pub use ew_viewmodel;
-
 mod about;
 // The dialog contents of the automation workspaces (WP-S2.13).
 mod automation;
