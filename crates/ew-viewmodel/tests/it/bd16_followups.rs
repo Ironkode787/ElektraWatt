@@ -278,6 +278,55 @@ fn how_many_places_that_many_once_and_undo_takes_the_row_whole() {
     s.shutdown();
 }
 
+/// A Terminal… row is one Undo step only until the next commit, a property edit as much as a tool's: after the row is
+/// undone and several properties set, each Undo takes back one of them, never several together.
+#[test]
+fn after_a_terminal_row_each_undo_takes_back_one_property_edit() {
+    let tmp = Tmp::new("terminal-row-then-props");
+    let mut s = common::new_project(&tmp);
+    let function_text = |s: &ShellModel| {
+        let sheet = s.properties().sheet().expect("a sheet");
+        match &ew_viewmodel::properties::find_row(sheet, "device/function_text")
+            .expect("a function text row")
+            .1
+            .value
+        {
+            ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
+            _ => String::new(),
+        }
+    };
+    done(
+        &mut s,
+        "tool.place_terminal",
+        json!({"strip": "new", "tag": "-X7", "count": 3}),
+    );
+    done(&mut s, "nav.goto", json!({ "text": "101-D2" }));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "edit.undo", json!({}));
+    // The strip stays (it was made before the row); its function text is set eight times.
+    done(&mut s, "select.set", json!({"refs": ["tag:-X7"]}));
+    let texts: Vec<String> = (1..=8).map(|n| format!("text {n}")).collect();
+    let first = function_text(&s);
+    for t in &texts {
+        done(
+            &mut s,
+            "props.set",
+            json!({"row": "device/function_text", "value": t}),
+        );
+    }
+    for k in (0..texts.len()).rev() {
+        done(&mut s, "edit.undo", json!({}));
+        let before = if k == 0 { &first } else { &texts[k - 1] };
+        assert_eq!(
+            &function_text(&s),
+            before,
+            "Undo {} takes back one edit",
+            texts.len() - k
+        );
+    }
+    s.shutdown();
+}
+
 /// rc.3: Terminal…'s Spacing lays the row that many grid steps apart; Spacing… on placed terminals of a row spaces
 /// them from the leftmost in one undo step, refuses a spacing out of range in words, and the project's next row takes
 /// the spacing.

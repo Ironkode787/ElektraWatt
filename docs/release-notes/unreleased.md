@@ -934,3 +934,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   rule)
 - behaviour-change: a table import of a CSV whose header follows title lines takes the decimal comma of `excel-nl`
   when the header is separated by semicolons, as the reader reads its cells (the first line decided before)
+- behaviour-change: a Terminal… row is one Undo step only until the next commit, a property, table or card edit as
+  much as a drawing tool's; after an undone row and as many property edits as the row had terminals, one Undo took
+  those edits back together
