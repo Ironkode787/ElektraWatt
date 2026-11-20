@@ -521,11 +521,7 @@ impl PageWriter<'_> {
                 Join::Round => self.out.push_str(" stroke-linejoin=\"round\""),
                 Join::Bevel => self.out.push_str(" stroke-linejoin=\"bevel\""),
             }
-            if let Some(dash) = s
-                .dash
-                .as_ref()
-                .filter(|d| !d.segments.is_empty() && d.segments.iter().any(|x| *x > Nm::ZERO))
-            {
+            if let Some(dash) = s.drawn_dash() {
                 let array: Vec<String> = dash.segments.iter().map(|x| mm(*x)).collect();
                 let _ = write!(self.out, " stroke-dasharray=\"{}\"", array.join(" "));
                 if dash.offset != Nm::ZERO {

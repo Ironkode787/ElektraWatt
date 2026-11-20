@@ -926,3 +926,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: Route sets a junction that has several drops over the nearest of them, tries a tap on a line
   across between a pin and the pins that face it, and sends a wire of a trunk that would lie along another wire of
   that trunk to the search: a net no longer stays unrouted for it (06a §3.4)
+- behaviour-change: a dash pattern with a zero entry (as an SVG asset may give one) is dashed on the screen as it is
+  in the PDF, the SVG and the DXF; one with a negative entry or no positive one is solid everywhere (the PDF and SVG
+  rule)

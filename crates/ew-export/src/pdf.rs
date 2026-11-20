@@ -993,14 +993,10 @@ fn stroke_of(s: &Stroke) -> krilla::paint::Stroke {
             Join::Bevel => LineJoin::Bevel,
         },
         opacity,
-        dash: s
-            .dash
-            .as_ref()
-            .filter(|d| !d.segments.is_empty() && d.segments.iter().any(|x| *x > Nm::ZERO))
-            .map(|d| StrokeDash {
-                array: d.segments.iter().map(|x| pt(*x)).collect(),
-                offset: pt(d.offset),
-            }),
+        dash: s.drawn_dash().map(|d| StrokeDash {
+            array: d.segments.iter().map(|x| pt(*x)).collect(),
+            offset: pt(d.offset),
+        }),
     }
 }
 
@@ -1093,5 +1089,79 @@ mod tests {
                 .map_or("", |i| &text[i..(i + 120).min(text.len())])
         );
         assert!(text.contains("/Subtype/Image/Filter/FlateDecode/Width 2/Height 1"));
+    }
+
+    /// A dash pattern with a zero entry (2 mm on, 1 mm off, 0 on, 1 mm off: 2 mm dashes, 2 mm gaps with butt caps)
+    /// is dashed on the screen, in the PDF and in the SVG alike; the screen drew it solid while paper dashed it.
+    #[test]
+    fn a_dash_with_a_zero_entry_dashes_on_screen_and_on_paper() {
+        let mut stroke = Stroke::solid(Nm::from_mm(1));
+        stroke.dash = Some(ew_dl::Dash {
+            segments: vec![Nm::from_mm(2), Nm::from_mm(1), Nm::ZERO, Nm::from_mm(1)],
+            offset: Nm::ZERO,
+        });
+        let at = |x: i64, y: i64| Pt2::new(Nm::from_mm(x), Nm::from_mm(y));
+        let content = DisplayList {
+            items: vec![Item::path(
+                ew_dl::Path::line(at(0, 5), at(40, 5)),
+                Some(stroke),
+                None,
+            )],
+        };
+        let page = PdfPage {
+            destination: Destination::Page(uuid::Uuid::from_u128(1)),
+            label: "1".to_owned(),
+            title: "1".to_owned(),
+            section: None,
+            width: Nm::from_mm(40),
+            height: Nm::from_mm(10),
+            content: content.clone(),
+            placement: None,
+        };
+
+        // The screen: at 600 dpi a 2 mm dash and a 2 mm gap are 47.24 px each.
+        let options = ew_render_cpu::RenderOptions {
+            dpi: 600,
+            ..ew_render_cpu::RenderOptions::default()
+        };
+        let sheet = ew_render_cpu::SheetSize {
+            width: page.width,
+            height: page.height,
+        };
+        let fonts: BTreeMap<FontKey, ew_render_cpu::FontBytes> = BTreeMap::new();
+        let (img, _) = ew_render_cpu::render(&content, sheet, &options, &fonts, None).unwrap();
+        let y = 118; // 5 mm = 118.1 px
+        let mut runs: Vec<(bool, u32)> = Vec::new();
+        for x in 0..img.width {
+            let i = ((y * img.width + x) * 4) as usize;
+            let dark = img.pixels[i] < 128;
+            match runs.last_mut() {
+                Some((d, n)) if *d == dark => *n += 1,
+                _ => runs.push((dark, 1)),
+            }
+        }
+        assert!(runs.len() >= 8, "{runs:?}");
+        for &(_, n) in &runs[1..runs.len() - 1] {
+            assert!((f64::from(n) - 47.24).abs() <= 1.0, "{runs:?}");
+        }
+
+        // The PDF and the SVG write the pattern as it is.
+        let mut pdf_options = PdfOptions::new(PdfDate::ymd(2026, 1, 1));
+        pdf_options.conformance = Conformance::None;
+        let out = write(std::slice::from_ref(&page), &pdf_options, &fonts, None, false).unwrap();
+        let text = String::from_utf8_lossy(&out.bytes);
+        assert!(text.contains("[5.669 2.835 0 2.835]0 d"), "{text}");
+        let svg = crate::svg(
+            &[page],
+            &crate::SvgOptions::default(),
+            None,
+            crate::Parallelism::Serial,
+        )
+        .unwrap();
+        assert!(
+            svg.files[0].text.contains("stroke-dasharray=\"2 1 0 1\""),
+            "{}",
+            svg.files[0].text
+        );
     }
 }

@@ -759,12 +759,7 @@ fn kurbo_stroke(s: &Stroke) -> kurbo::Stroke {
         .with_caps(cap)
         .with_join(join)
         .with_miter_limit(MITER_LIMIT);
-    // A dash array that is empty, has a non-positive entry or sums to zero would not advance along
-    // the path; such a stroke is drawn solid.
-    if let Some(d) = &s.dash
-        && !d.segments.is_empty()
-        && d.segments.iter().all(|n| n.0 > 0)
-    {
+    if let Some(d) = s.drawn_dash() {
         k = k.with_dashes(d.offset.0 as f64, d.segments.iter().map(|n| n.0 as f64));
     }
     k

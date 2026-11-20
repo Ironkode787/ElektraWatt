@@ -16,7 +16,7 @@
 //!
 //! **Rules.** Fills use lyon's fill tessellator with the non-zero rule; strokes lyon's stroke tessellator with the
 //! display list's width, caps, joins and its miter limit (`ew_dl::MITER_LIMIT`), dashes split first with
-//! `kurbo::dash` as the CPU renderer does (a dash array that is empty or has a non-positive entry draws solid).
+//! `kurbo::dash` as the CPU renderer does (a stroke whose dash `Stroke::drawn_dash` refuses draws solid).
 //! A primitive lyon cannot tessellate is skipped and counted, never a panic.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -254,15 +254,15 @@ impl MeshBuilder {
     }
 }
 
-/// The elements a stroke draws: `path` itself, or its dashes split with `kurbo::dash` when the stroke has a valid
-/// dash array (non-empty, every entry positive), as the CPU renderer draws them.
+/// The elements a stroke draws: `path` itself, or its dashes split with `kurbo::dash` when the stroke draws a dash
+/// ([`Stroke::drawn_dash`]), as the CPU renderer draws them.
 pub fn stroke_elements(path: &kurbo::BezPath, stroke: &Stroke) -> Vec<kurbo::PathEl> {
-    match &stroke.dash {
-        Some(d) if !d.segments.is_empty() && d.segments.iter().all(|n| n.0 > 0) => {
+    match stroke.drawn_dash() {
+        Some(d) => {
             let dashes: Vec<f64> = d.segments.iter().map(|n| n.0 as f64).collect();
             kurbo::dash(path.elements().iter().copied(), d.offset.0 as f64, &dashes).collect()
         }
-        _ => path.elements().to_vec(),
+        None => path.elements().to_vec(),
     }
 }
 
@@ -351,7 +351,7 @@ mod tests {
         };
         assert_eq!(moves(&stroke_elements(&path, &s)), 5);
         s.dash = Some(Dash {
-            segments: vec![Nm(10), Nm(0)],
+            segments: vec![Nm(0), Nm(0)],
             offset: Nm(0),
         });
         assert_eq!(moves(&stroke_elements(&path, &s)), 1);

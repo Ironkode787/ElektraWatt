@@ -241,6 +241,30 @@ impl Stroke {
         }
     }
 
+    /// The dash pattern this stroke draws; `None` draws it solid. Every renderer and writer asks this, so that
+    /// screen and paper dash alike. A pattern draws when no entry is negative and one is positive: the rule of
+    /// PDF (ISO 32000-1 §8.4.3.6) and of SVG's `stroke-dasharray`. A zero entry is a dash or a gap of no length
+    /// (with round caps a zero dash is a dot).
+    ///
+    /// ```
+    /// use ew_dl::{Dash, Stroke};
+    /// use ew_units::Nm;
+    ///
+    /// let with = |segments: Vec<Nm>| Stroke {
+    ///     dash: Some(Dash { segments, offset: Nm::ZERO }),
+    ///     ..Stroke::solid(Nm(100))
+    /// };
+    /// assert!(with(vec![Nm(0), Nm(200)]).drawn_dash().is_some());
+    /// assert!(with(vec![Nm(0), Nm(0)]).drawn_dash().is_none());
+    /// assert!(with(vec![Nm(300), Nm(-100)]).drawn_dash().is_none());
+    /// assert!(with(vec![]).drawn_dash().is_none());
+    /// ```
+    pub fn drawn_dash(&self) -> Option<&Dash> {
+        self.dash
+            .as_ref()
+            .filter(|d| d.segments.iter().all(|n| n.0 >= 0) && d.segments.iter().any(|n| n.0 > 0))
+    }
+
     /// This stroke painted with `brush`.
     ///
     /// ```

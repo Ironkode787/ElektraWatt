@@ -439,12 +439,10 @@ impl Writer<'_> {
                         }
                         if let Some(stroke) = &p.stroke {
                             let mut body = String::new();
-                            if let Some(d) = &stroke.dash {
+                            if let Some(d) = stroke.drawn_dash() {
                                 let segs: Vec<i64> = d.segments.iter().map(|n| n.0).collect();
-                                if !segs.is_empty() {
-                                    let name = self.dash(&segs);
-                                    let _ = write!(body, "  6\n{name}\n");
-                                }
+                                let name = self.dash(&segs);
+                                let _ = write!(body, "  6\n{name}\n");
                             }
                             let _ = write!(body, "370\n{}\n", lineweight(stroke.width));
                             let Brush::Solid(c) = stroke.brush;
