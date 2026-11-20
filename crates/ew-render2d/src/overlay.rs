@@ -160,13 +160,15 @@ impl Theme {
     }
 }
 
-/// Whether a tool line is solid or dashed ([`TOOL_DASH_PX`] on, as many off).
+/// Whether a tool line is solid, dashed ([`TOOL_DASH_PX`] on, as many off) or dotted (`s` pixels on, `2s` off).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Dash {
     /// Solid.
     Solid,
     /// Dashed.
     Dashed,
+    /// Dotted.
+    Dotted,
 }
 
 /// The shape of a snap marker: a `6s + 1`-pixel cross on a grid point, an `8s + 1`-pixel ring on a connection point,
@@ -875,7 +877,7 @@ fn div_round(num: i64, den: i64) -> i64 {
 
 /// The pixels of the line from the screen point `a` to `b` (physical pixels, unrounded): from the pixel of `a` to
 /// the pixel of `b`, one square of `width` pixels per step along the major axis, the dash (`4s` steps on, as many
-/// off) counted from `a`, only the part within the pane walked and the result clipped to it.
+/// off) or the dots (`s` on, `2s` off) counted from `a`, only the part within the pane walked and the result clipped to it.
 fn line_px(
     a: (f64, f64),
     b: (f64, f64),
@@ -913,7 +915,7 @@ fn line_px(
     let (dx, dy) = (fx1 as i64 - x0, fy1 as i64 - y0);
     let mut run = Vec::new();
     for i in first..=last {
-        if dash == Dash::Dashed && (i / (TOOL_DASH_PX * s)) % 2 == 1 {
+        if (dash == Dash::Dashed && (i / (TOOL_DASH_PX * s)) % 2 == 1) || (dash == Dash::Dotted && (i / s) % 3 != 0) {
             continue;
         }
         let (x, y) = if n == 0 {

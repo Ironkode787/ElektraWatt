@@ -9,15 +9,18 @@
 //! - [`measure`]: the one measure (§1.2): the faults F2 to F7, the unrouted wires, the cost C1 to C7 and the figures
 //!   a reader compares. The checks and `ew layout` read it.
 //! - [`labels`]: the one text placer (§5): [`settle_labels`].
+//! - [`guides`]: the guides and the light nudge of a part placed by hand (§6): [`guides()`].
 //!
 //! The crate reads no project record and knows no nanometre: two numbers for one grid position cannot meet in it.
 
 pub mod consts;
 pub mod geom;
+pub mod guides;
 pub mod labels;
 pub mod measure;
 pub mod model;
 
+pub use guides::{Guide, GuideKind, Guided, guides};
 pub use labels::{Settled, settle_labels};
 pub use measure::{Counts, Findings, Passed, Quality, TextRef, measure};
 pub use model::*;

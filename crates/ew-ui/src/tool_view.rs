@@ -26,6 +26,7 @@ fn dash(d: tools::Dash) -> Dash {
     match d {
         tools::Dash::Solid => Dash::Solid,
         tools::Dash::Dashed => Dash::Dashed,
+        tools::Dash::Dotted => Dash::Dotted,
     }
 }
 

@@ -52,16 +52,18 @@ pub enum Token {
     RubberBand,
 }
 
-/// Solid, or dashed 4 pixels on and 4 off.
+/// Solid, dashed 4 pixels on and 4 off, or dotted 1 pixel on and 2 off.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Dash {
     /// Solid.
     Solid,
     /// Dashed.
     Dashed,
+    /// Dotted: a guide while a symbol is placed by hand (docs/design/06a-drafting.md §6).
+    Dotted,
 }
 
-/// How a line is drawn: 1 pixel wide (2 at `ppp ≥ 2`), solid or dashed, in a token.
+/// How a line is drawn: 1 pixel wide (2 at `ppp ≥ 2`), solid, dashed or dotted, in a token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Style {
     /// Solid or dashed.
@@ -83,6 +85,14 @@ impl Style {
     pub const fn dashed(token: Token) -> Style {
         Style {
             dash: Dash::Dashed,
+            token,
+        }
+    }
+
+    /// A dotted line in `token`.
+    pub const fn dotted(token: Token) -> Style {
+        Style {
+            dash: Dash::Dotted,
             token,
         }
     }

@@ -58,6 +58,8 @@ mod chooser;
 pub mod duct_draw;
 mod exchange;
 pub mod graphic;
+// The guides of a symbol placed by hand (docs/design/06a-drafting.md §6).
+mod guides;
 mod host;
 pub mod image;
 pub mod ip;

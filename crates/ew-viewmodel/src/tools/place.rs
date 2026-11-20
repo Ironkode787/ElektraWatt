@@ -6,7 +6,7 @@
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
-//! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the shape's outline (`Paths`) at the grid point nearest to p, a `cp` marker per shape CP, a label with the variant letter, the target and a fresh preview's predicted tag |
+//! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the shape's outline (`Paths`) at the grid point nearest to p (or its neighbour across a guide: see below), a `cp` marker per shape CP, a label with the variant letter, the target and a fresh preview's predicted tag, the guides |
 //! | floating | `Key(RotateCw, RotateCcw, MirrorX, MirrorY)` | floating | orientation `orient_then(o, 1, false)`, `(3, false)`, `(0, true)`, `(2, true)`; `Transient` |
 //! | floating | `Key(NextVariant)` | floating | orientation A→B→…→H→A; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview(device.place …)` |
@@ -29,6 +29,10 @@
 //! ([`ToolKey::NextProposal`]) cycles each ray to its next hit. They become the `connect` hints of the committed
 //! `device.place` (a split of a routed wire sends none: normaliser 7 splits it); a press with Alt held, or a move with
 //! Alt held, sends and shows none (FR-CON-003).
+//!
+//! **Guides** (docs/design/06a-drafting.md §6, [`super::guides`]): a pin of the floating symbol near the line of a pin it
+//! faces shows a guide, and within three quarters of a step of that line the symbol takes it; a move with Alt held
+//! shows and takes none.
 
 use std::sync::Arc;
 
@@ -128,8 +132,12 @@ pub struct PlaceTool {
     cycle: usize,
     /// The proposals at the current point.
     proposals: Proposals,
-    /// Whether Alt was held at the last move (no proposal is shown or sent).
+    /// Whether Alt was held at the last move (no proposal is shown or sent, no guide is shown or taken).
     suppressed: bool,
+    /// The sheet point the last move gave, before the snap.
+    pointer: Option<(i64, i64)>,
+    /// The guides at the current point (docs/design/06a-drafting.md §6), drawn with the overlay.
+    guides: Vec<OverlayItem>,
     /// Whether the symbol's FnDef can be an auxiliary function, so that J offers the Join chooser.
     joinable: bool,
     /// The target before the Join chooser set a [`PlaceTarget::Join`]: what its "New device" row restores.
@@ -216,6 +224,8 @@ impl PlaceTool {
             cycle: 0,
             proposals: Proposals::default(),
             suppressed: false,
+            pointer: None,
+            guides: Vec::new(),
             joinable: false,
             base: None,
             copies: Vec::new(),
@@ -380,6 +390,7 @@ impl PlaceTool {
         self.outline = shape.outline.clone().into();
         self.shape = shape;
         self.tag = None;
+        self.hang(cx);
         self.transient(cx)
     }
 
@@ -632,6 +643,7 @@ impl PlaceTool {
             text: self.label(cx, pos),
             anchor: Anchor::Above,
         });
+        items.extend(self.guides.iter().cloned());
         // The proposals: a dashed stub from the ghost CP to its target; a split's two stubs one grid step long.
         let step = super::wire::PageGridMap::new(cx.page.tables.grid).step();
         let stub = |at: (i64, i64), dir: ew_api::geometry::Dir| {
@@ -681,21 +693,56 @@ impl PlaceTool {
     }
 
     fn moved(&mut self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ToolOutput {
-        let s = cx.snapper.snap_grid(at);
-        let next = Some((s.at_nm, s.page_nm));
-        if next != self.at {
+        let before = self.at;
+        self.pointer = Some(at);
+        self.suppressed = alt;
+        self.hang(cx);
+        if self.at != before {
             self.tag = None;
             self.cycle = 0;
         }
-        self.suppressed = alt;
-        self.at = next;
         self.transient(cx)
+    }
+
+    /// Sets the insertion point from the last move: the grid point nearest to the pointer, or with a guide its
+    /// neighbour (docs/design/06a-drafting.md §6), and the guides there; without guides while Alt is held.
+    fn hang(&mut self, cx: &ToolCx<'_>) {
+        let Some(at) = self.pointer else { return };
+        let s = cx.snapper.snap_grid(at);
+        let part = (!self.suppressed)
+            .then(|| {
+                let b = self.shape.body;
+                let (p, q) = (
+                    orient_point(self.orient, (b[0], b[1])),
+                    orient_point(self.orient, (b[2], b[3])),
+                );
+                let body = [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)];
+                let pins = self
+                    .shape
+                    .cps
+                    .iter()
+                    .map(|cp| (orient_point(self.orient, cp.at), orient_dir(self.orient, cp.dir)));
+                super::guides::hanging(cx, s.grid_index, body, pins)
+            })
+            .flatten();
+        let (nudge, guides) = match part {
+            Some(part) => super::guides::guide(cx, &part, cx.snapper.sheet_to_page(at)),
+            None => ((0, 0), Vec::new()),
+        };
+        let k = (s.grid_index.0 + nudge.0, s.grid_index.1 + nudge.1);
+        let sn = cx.snapper;
+        self.at = Some((
+            (sn.sheet_of_index(k.0, 0), sn.sheet_of_index(k.1, 1)),
+            (sn.page_of_index(k.0), sn.page_of_index(k.1)),
+        ));
+        self.guides = guides;
     }
 
     fn turn(&mut self, rotate: u8, mirror: bool, cx: &ToolCx<'_>) -> ToolOutput {
         self.orient = orient_then(self.orient, rotate, mirror);
         self.tag = None;
         self.cycle = 0;
+        self.hang(cx);
         self.transient(cx)
     }
 
@@ -800,6 +847,7 @@ impl Tool for PlaceTool {
                 self.orient = (self.orient + 1) % 8;
                 self.tag = None;
                 self.cycle = 0;
+                self.hang(cx);
                 self.transient(cx)
             }
             CanvasEvent::Key(ToolKey::NextProposal) => {

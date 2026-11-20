@@ -393,6 +393,9 @@ pub struct CanvasPage {
     /// The page as the schematic router reads it (`Session::page_geometry`), fetched with the tables:
     /// the Wire tool routes its ghost against it. Empty for a page that is not drawn.
     pub geometry: Arc<ew_api::routing::PageGeometry>,
+    /// The page as the layout sees it (`Session::page_draft`, docs/design/06a-drafting.md §2.2), fetched with the
+    /// tables: the guides of a symbol placed by hand are found on it (§6). Empty for a page that is not drawn.
+    pub draft: Arc<ew_api::drafting::DraftPage>,
     /// The symbols' texts where the page prints them (`Session::page_slot_texts`), fetched with the tables: what a
     /// drag of a selected symbol's text grabs. Empty for a page that is not drawn.
     pub texts: Arc<Vec<ew_api::output::SlotTextBox>>,
@@ -441,6 +444,7 @@ impl CanvasPage {
             tables: Arc::new(empty_tables(folio)),
             panel: None,
             geometry: Arc::default(),
+            draft: Arc::default(),
             texts: Arc::default(),
         }
     }
@@ -1291,6 +1295,7 @@ mod tests {
             tables: Arc::new(empty_tables("103")),
             panel: None,
             geometry: Arc::default(),
+            draft: Arc::default(),
             texts: Arc::default(),
         })
     }

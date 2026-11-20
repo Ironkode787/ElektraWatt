@@ -22,7 +22,7 @@
 //! | pressed (other) | move beyond 3 points | rubber-band | `Transient` |
 //! | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed left (touches) |
 //! | rubber-band | release | idle | `Select`: left to right the entities inside the band, right to left those that touch it; Shift adds |
-//! | dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis |
+//! | dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis; one symbol moved shows its guides and takes a guide's line within three quarters of a step of it, unless Alt is held (docs/design/06a-drafting.md §6) |
 //! | dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move {reps, items, steps})` when the steps are not zero |
 //! | dragging | release | idle | `Commit(rep.move {reps, items, steps})` when the steps are not zero, else `Select` (as a click) |
 //! | dragging or moving | `Escape` | idle | `Cancel` |
@@ -181,6 +181,34 @@ fn cp_near(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<(i64, i64)> {
         .filter(|(d, _)| *d <= reach * reach)
         .min_by_key(|(d, p)| (*d, *p))
         .map(|(_, p)| p)
+}
+
+/// The grid steps of a drag of `moved` from the sheet point `from` to `at`: the pointer's displacement in whole steps,
+/// and with one symbol moved and Alt not held its guides (docs/design/06a-drafting.md §6), which may nudge it one
+/// step more onto a guide's line; with their overlay.
+fn drag_steps(
+    cx: &ToolCx<'_>,
+    moved: &[EntityRef],
+    from: (i64, i64),
+    at: (i64, i64),
+    alt: bool,
+) -> ((i64, i64), Vec<OverlayItem>) {
+    let steps = steps_between(cx, from, at);
+    let mut reps = cx.page.tables.reps.iter().filter(|r| moved.contains(&EntityRef(r.id)));
+    let (Some(rep), None, false) = (reps.next(), reps.next(), alt) else {
+        return (steps, Vec::new());
+    };
+    let Some(mut part) = cx.page.draft.parts.iter().find(|p| p.id.0 == rep.id).cloned() else {
+        return (steps, Vec::new());
+    };
+    part.at = part.at.plus(super::guides::steps(steps));
+    let (a, b) = (cx.snapper.sheet_to_page(from), cx.snapper.sheet_to_page(at));
+    let pointer = (
+        rep.pos.0.saturating_add(b.0.saturating_sub(a.0)),
+        rep.pos.1.saturating_add(b.1.saturating_sub(a.1)),
+    );
+    let (nudge, items) = super::guides::guide(cx, &part, pointer);
+    ((steps.0 + nudge.0, steps.1 + nudge.1), items)
 }
 
 /// A press on a text of the one selected symbol (doc 06 §2.5): a drag moves the text alone, snapped to the fine grid
@@ -1003,10 +1031,18 @@ impl SelectTool {
 
     /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost, with whether
     /// the move connects them.
-    fn move_out(&mut self, cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> ToolOutput {
+    fn move_out(
+        &mut self,
+        cx: &ToolCx<'_>,
+        moved: &[EntityRef],
+        steps: (i64, i64),
+        guides: Vec<OverlayItem>,
+    ) -> ToolOutput {
         self.proposals = super::move_keys::move_proposals(cx, moved, steps).lines();
         self.connect = cx.connect_on_move;
-        ToolOutput::Transient(move_overlay(cx, moved, steps))
+        let mut overlay = move_overlay(cx, moved, steps);
+        overlay.items.extend(guides);
+        ToolOutput::Transient(overlay)
     }
 
     /// The band overlay from `from` to `to`.
@@ -1076,7 +1112,7 @@ impl SelectTool {
         if moved.is_empty() {
             return None;
         }
-        let out = self.move_out(cx, &moved, (0, 0));
+        let out = self.move_out(cx, &moved, (0, 0), Vec::new());
         self.origin = (cx.selection.generation, cx.page.rev);
         self.state = State::Moving {
             moved,
@@ -1310,7 +1346,7 @@ impl SelectTool {
                 from,
                 ..
             } => {
-                let steps = steps_between(cx, from, at);
+                let (steps, _) = drag_steps(cx, &moved, from, at, mods.alt);
                 if steps == (0, 0) {
                     self.click(last, pressed, from, held, cx)
                 } else {
@@ -1347,7 +1383,7 @@ impl SelectTool {
         }
     }
 
-    fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+    fn moved(&mut self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ToolOutput {
         match self.state.clone() {
             State::Idle => {
                 // A connection point within reach shows its ring, so a wire can be started at the zoom the page
@@ -1404,8 +1440,8 @@ impl SelectTool {
                 }
                 if let Some(dragged) = drag {
                     let moved = moved_set(cx, dragged);
-                    let steps = steps_between(cx, from, at);
-                    let out = self.move_out(cx, &moved, steps);
+                    let (steps, guides) = drag_steps(cx, &moved, from, at, alt);
+                    let out = self.move_out(cx, &moved, steps, guides);
                     self.origin = (cx.selection.generation, cx.page.rev);
                     self.state = State::Dragging {
                         pressed: entity,
@@ -1431,8 +1467,8 @@ impl SelectTool {
                 from,
                 ..
             } => {
-                let steps = steps_between(cx, from, at);
-                let out = self.move_out(cx, &moved, steps);
+                let (steps, guides) = drag_steps(cx, &moved, from, at, alt);
+                let out = self.move_out(cx, &moved, steps, guides);
                 self.state = State::Dragging {
                     pressed,
                     mods,
@@ -1528,12 +1564,12 @@ impl Tool for SelectTool {
                 mods,
             } => self.release(*at, *mods, cx),
             CanvasEvent::Press { .. } | CanvasEvent::Release { .. } => ToolOutput::None,
-            CanvasEvent::PointerMove { at, .. } => self.moved(*at, cx),
+            CanvasEvent::PointerMove { at, mods } => self.moved(*at, mods.alt, cx),
             CanvasEvent::CursorMove { at } => {
                 self.cursor = Some(*at);
                 if let State::Moving { moved, from, .. } = self.state.clone() {
                     let steps = steps_between(cx, from, *at);
-                    let out = self.move_out(cx, &moved, steps);
+                    let out = self.move_out(cx, &moved, steps, Vec::new());
                     self.state = State::Moving {
                         moved,
                         from,
