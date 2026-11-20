@@ -121,7 +121,7 @@ fn destructive(spec: &DialogSpec, answer: &DialogAnswer) -> bool {
 }
 
 #[test]
-fn cp1_every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark() {
+fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark() {
     let tmp = Tmp::new("part4-cp1");
     let (mut shell, dialogs) = every_dialog(&tmp);
     for d in &dialogs {
@@ -257,7 +257,7 @@ fn ui_strings() -> Vec<String> {
 }
 
 #[test]
-fn cp3_the_wording_lint() {
+fn the_wording_lint() {
     let tmp = Tmp::new("part4-cp3");
     let (mut shell, dialogs) = every_dialog(&tmp);
     let mut texts: Vec<(String, String)> = Vec::new();
@@ -305,7 +305,7 @@ fn cp3_the_wording_lint() {
 }
 
 #[test]
-fn cp4_the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
+fn the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
     let tmp = Tmp::new("part4-cp4");
     let mut shell = tmp.shell_in(Mode::Gui, true, "101");
     done(&mut shell, "tools.palette", json!({}));

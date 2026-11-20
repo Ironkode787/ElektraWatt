@@ -173,7 +173,7 @@ fn ghost_label(s: &ShellModel) -> String {
 /// steps on from source (target, source, target, with the star still off, no notice); the star turned on from
 /// another direction walks the point to source, and turned off gives back the direction it had before.
 #[test]
-fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
+fn a_starred_point_is_named_the_star_source_alone_in_every_direction() {
     let tmp = Tmp::new("w42b-star");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);
@@ -322,7 +322,7 @@ fn card_before_cpu(tmp: &Tmp) -> ShellModel {
 }
 
 #[test]
-fn ft823_a_card_drawn_before_the_cpu_is_addressed_when_the_cpu_arrives() {
+fn a_card_drawn_before_the_cpu_is_addressed_when_the_cpu_arrives() {
     let tmp = Tmp::new("g40-card");
     let s = card_before_cpu(&tmp);
     let t = std::sync::Arc::clone(&s.canvas().unwrap().page().tables);
@@ -338,7 +338,7 @@ fn ft823_a_card_drawn_before_the_cpu_is_addressed_when_the_cpu_arrives() {
 }
 
 #[test]
-fn ft823_the_page_description_lists_the_addresses_the_canvas_prints() {
+fn the_page_description_lists_the_addresses_the_canvas_prints() {
     let tmp = Tmp::new("g40-describe");
     let mut s = card_before_cpu(&tmp);
     done(&mut s, "page.describe", json!({}));
@@ -358,7 +358,7 @@ fn ft823_the_page_description_lists_the_addresses_the_canvas_prints() {
 }
 
 #[test]
-fn ft823_deleting_the_cards_symbol_leaves_no_device_behind() {
+fn deleting_the_cards_symbol_leaves_no_device_behind() {
     let tmp = Tmp::new("g40-orphan");
     let mut s = card_before_cpu(&tmp);
     done(&mut s, "select.set", json!({"refs": ["tag:-102A1"]}));

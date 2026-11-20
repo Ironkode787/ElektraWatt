@@ -139,7 +139,7 @@ fn a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
 /// A second export of the same file says "again", so the toast that replaces the
 /// first visibly changes; an export of another file does not. The log keeps the texts in order, newest first.
 #[test]
-fn p2_a_second_export_of_the_same_file_says_again() {
+fn a_second_export_of_the_same_file_says_again() {
     let tmp = Tmp::new("p2-again");
     let mut s = small(&tmp, Mode::Headless);
     let target = tmp.0.join("out.pdf");

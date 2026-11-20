@@ -28,7 +28,7 @@ fn checked(shell: &ShellModel, id: &str) -> bool {
 }
 
 #[test]
-fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
+fn the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     for id in [
         "view.zoom_in",
         "view.zoom_out",
@@ -134,7 +134,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 }
 
 #[test]
-fn a1_zoom_pan_fit_and_resize_through_the_shell() {
+fn zoom_pan_fit_and_resize_through_the_shell() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
     // The page's first view is the whole sheet in this pane (a fit to the width would gain little); Fit page is
@@ -208,7 +208,7 @@ fn a1_zoom_pan_fit_and_resize_through_the_shell() {
 }
 
 #[test]
-fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it() {
+fn a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
     done(&mut shell, "view.zoom_to", json!({"percent": 400}));
@@ -249,7 +249,7 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
 }
 
 #[test]
-fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
+fn the_transcript_and_the_describe_text_carry_the_canvas() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
     done(&mut shell, "view.fit_page", json!({}));
@@ -393,7 +393,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
 }
 
 #[test]
-fn a8_the_canvas_steps_run_from_a_script_and_carry_no_time() {
+fn the_canvas_steps_run_from_a_script_and_carry_no_time() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
     let text = [
@@ -553,7 +553,7 @@ fn the_canvas_view_actions_leave_the_banner_standing() {
 }
 
 #[test]
-fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
+fn view_steps_fetch_no_page_and_re_execute_no_query() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
     let calls = shell.page_content_calls();

@@ -81,7 +81,7 @@ fn duplicate(s: &mut ShellModel, rep: Uuid) -> Vec<String> {
 /// A terminal of -X1031 duplicated: the copy's strip comes with it and is numbered (-X1033), so the terminal prints
 /// its strip and its designation whole.
 #[test]
-fn ft924_a_duplicated_terminal_prints_its_strip_and_designation() {
+fn a_duplicated_terminal_prints_its_strip_and_designation() {
     let tmp = Tmp::new("ft924-terminal");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
@@ -102,7 +102,7 @@ fn ft924_a_duplicated_terminal_prints_its_strip_and_designation() {
 
 /// -102F1 with the frozen tag F51 duplicated: the copy loses the frozen tag and takes the page's free counter.
 #[test]
-fn ft924_a_duplicated_device_with_a_frozen_tag_is_numbered() {
+fn a_duplicated_device_with_a_frozen_tag_is_numbered() {
     let tmp = Tmp::new("ft924-frozen");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     let (rep, dev) = select(&mut s, "-102F1");

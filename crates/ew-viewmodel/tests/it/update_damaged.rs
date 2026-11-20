@@ -98,7 +98,7 @@ fn tree(dir: &Path) -> Vec<(PathBuf, Vec<u8>)> {
 /// library's copy over the damaged file, byte for byte as the assignment's save wrote it, and the project opens for
 /// editing with no banner; the toast names the copy with the version written. Both languages.
 #[test]
-fn ft1499_update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
+fn update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
     let tmp = Tmp::new("ft1499-round-trip");
     let (dir, file, original) = starter_project(&tmp);
     for (locale, banner, toast) in [
@@ -182,7 +182,7 @@ fn manifest_entry(dir: &Path, path: &str) -> Value {
 /// which no library holds, so it says so and offers nothing, though a library holds the starter part's damaged copy
 /// too; nothing is written. Both languages.
 #[test]
-fn ft1499_the_banner_offers_the_update_only_for_the_copy_it_names() {
+fn the_banner_offers_the_update_only_for_the_copy_it_names() {
     let tmp = Tmp::new("ft1499-named");
     let (dir, file, _) = starter_project(&tmp);
     damage(&golden_part_copy(&dir));
@@ -221,7 +221,7 @@ fn ft1499_the_banner_offers_the_update_only_for_the_copy_it_names() {
 /// manifest entry and is named in the toast; the project opens read-only again with that copy's banner, which offers
 /// nothing. Both languages.
 #[test]
-fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
+fn several_copies_update_every_one_a_library_holds_and_name_the_rest() {
     let tmp = Tmp::new("ft1499-several");
     let (dir, file, original) = starter_project(&tmp);
     let gone = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
@@ -279,7 +279,7 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
 /// Two damaged copies a library holds, the starter part's and its manufacturer's:
 /// both are written and the toast names each with the version written. Both languages.
 #[test]
-fn ft1499_every_copy_written_is_named_with_its_version() {
+fn every_copy_written_is_named_with_its_version() {
     let tmp = Tmp::new("ft1499-two");
     let (dir, file, original) = starter_project(&tmp);
     let maker = dir.join("lib/manufacturers/7ae048b6-63ea-5c01-83b2-e1a83b5b4414.json");
@@ -313,7 +313,7 @@ fn ft1499_every_copy_written_is_named_with_its_version() {
 /// Another file of the project changed outside ElektraWatt (a page file, EW-CORE-002) beside the damaged copy: the
 /// update is refused in words, whole in both languages, and nothing is written.
 #[test]
-fn ft1499_other_integrity_findings_refuse_the_update() {
+fn other_integrity_findings_refuse_the_update() {
     let tmp = Tmp::new("ft1499-findings");
     let (dir, file, _) = starter_project(&tmp);
     damage(&file);
@@ -350,7 +350,7 @@ fn ft1499_other_integrity_findings_refuse_the_update() {
 /// The save fails (the manifest changed on disk after the open): the update is refused in words, whole in both
 /// languages, the save's reason included and no file name in it (FT-1570), and nothing more is written.
 #[test]
-fn ft1499_a_save_that_fails_refuses_the_update() {
+fn a_save_that_fails_refuses_the_update() {
     let tmp = Tmp::new("ft1499-save");
     let (dir, file, _) = starter_project(&tmp);
     let manifest = dir.join("manifest.json");
@@ -386,7 +386,7 @@ fn ft1499_a_save_that_fails_refuses_the_update() {
 /// update and refuses the action with its reason; the session's own refusal is the read-only one. Each text whole in
 /// both languages; nothing is written.
 #[test]
-fn ft1499_a_project_opened_read_only_on_request_offers_no_update() {
+fn a_project_opened_read_only_on_request_offers_no_update() {
     let tmp = Tmp::new("ft1499-requested");
     let (dir, file, _) = starter_project(&tmp);
     damage(&file);
@@ -443,7 +443,7 @@ fn ft1499_a_project_opened_read_only_on_request_offers_no_update() {
 /// library's version makes them fluid ports, which no wire may end at (EW-INV-024). The update is refused with the
 /// misfit's words, whole in both languages, and nothing is written.
 #[test]
-fn ft1499_a_library_version_that_breaks_the_project_refuses_the_update() {
+fn a_library_version_that_breaks_the_project_refuses_the_update() {
     let tmp = Tmp::new("ft1499-misfit");
     let dir = tmp.golden_copy();
     copy_dir(Path::new(common::GOLDEN_A), &dir);
@@ -499,7 +499,7 @@ fn tiers(root: &Path) -> LibraryTiers {
 /// The library's copy cannot be read when the action runs (its file in the user library "Mine" cut short after the
 /// banner offered it): the action is refused in words, whole in both languages, and nothing of the project is written.
 #[test]
-fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
+fn nothing_is_written_when_the_library_copy_cannot_be_read() {
     let tmp = Tmp::new("ft1499-unreadable");
     let (dir, file, _) = starter_project(&tmp);
     // The starter part as the project holds it, as a part of the user library "Mine" with its own number.
@@ -560,7 +560,7 @@ fn ft1499_nothing_is_written_when_the_library_copy_cannot_be_read() {
 /// Another session holds the project when the action runs (its lock taken after the read-only open gave it back): the
 /// action is refused in words, whole in both languages, and nothing is written.
 #[test]
-fn ft1499_update_is_refused_while_another_session_holds_the_project() {
+fn update_is_refused_while_another_session_holds_the_project() {
     let tmp = Tmp::new("ft1499-locked");
     let (dir, file, _) = starter_project(&tmp);
     damage(&file);

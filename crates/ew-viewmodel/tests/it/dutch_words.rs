@@ -1185,7 +1185,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
 /// generic rule ("NC thermostat 5-3"), a library's tier, access and index state, a report block's kind; in en-GB they read as
 /// the CLI prints them, but a block's kind, which reads by its words in both.
 #[test]
-fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
+fn kinds_tiers_and_block_kinds_read_in_dutch() {
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new("ft1483");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
@@ -1268,7 +1268,7 @@ fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
 /// FT-1554: the live description of a selected device and the Libraries kind column read in Dutch: a function's kind by
 /// the generic rule, a library copy's kind by its record kind's words.
 #[test]
-fn ft1554_the_live_description_and_the_library_kinds_read_in_dutch() {
+fn the_live_description_and_the_library_kinds_read_in_dutch() {
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new("ft1554");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
@@ -1316,7 +1316,7 @@ fn ft1554_the_live_description_and_the_library_kinds_read_in_dutch() {
 
 /// FT-1554: a function placed from a part's template shows its Part function row in the window's language.
 #[test]
-fn ft1554_the_part_function_row_reads_in_dutch() {
+fn the_part_function_row_reads_in_dutch() {
     let tmp = Tmp::new("ft1554-part");
     let mut s = crate::common::new_project(&tmp);
     let before = crate::common::tables(&s).reps.clone();

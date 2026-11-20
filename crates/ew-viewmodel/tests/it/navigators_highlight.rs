@@ -355,7 +355,7 @@ fn new_structure_node_prefills_the_marked_parent() {
 /// R30 F9: opening a paged report-block row goes to its first folio's page and selects the block; an embedded block
 /// (no generated pages) has no open target and leaves the page unchanged.
 #[test]
-fn r30_opening_a_paged_report_block_goes_to_its_first_folio() {
+fn opening_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new("nav2-blocks-open");
     let mut shell = tmp.shell_in(Mode::Headless, false, "102");
     done(&mut shell, "navigator.show", json!({"kind": "blocks"}));

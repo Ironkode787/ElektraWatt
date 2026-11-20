@@ -61,7 +61,7 @@ fn link_to(shell: &ShellModel, cell: &str) -> (i64, i64) {
 }
 
 #[test]
-fn v2_the_canvas_area_keeps_its_invariants_under_every_tab_action() {
+fn the_canvas_area_keeps_its_invariants_under_every_tab_action() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     let a = shell.area().unwrap();
@@ -145,7 +145,7 @@ fn v2_the_canvas_area_keeps_its_invariants_under_every_tab_action() {
 }
 
 #[test]
-fn v2_a_tab_keeps_its_page_by_identity_across_a_renumber() {
+fn a_tab_keeps_its_page_by_identity_across_a_renumber() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(true);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
@@ -165,7 +165,7 @@ fn v2_a_tab_keeps_its_page_by_identity_across_a_renumber() {
 }
 
 #[test]
-fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
+fn walks_jumps_back_and_forward_with_the_exact_view() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(true);
     // Walks record nothing.
@@ -267,7 +267,7 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
 }
 
 #[test]
-fn v4_the_navigator_on_golden_a() {
+fn the_navigator_on_golden_a() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     let rows = shell.page_rows().to_vec();
@@ -407,7 +407,7 @@ fn v4_the_navigator_on_golden_a() {
 }
 
 #[test]
-fn v4_navigator_keys_are_stable_across_a_revision() {
+fn navigator_keys_are_stable_across_a_revision() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(true);
     done(&mut shell, "pages.mode", json!({"mode": "structure"}));
@@ -421,7 +421,7 @@ fn v4_navigator_keys_are_stable_across_a_revision() {
 }
 
 #[test]
-fn v5_the_grid_cursor() {
+fn the_grid_cursor() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
@@ -537,7 +537,7 @@ fn v5_the_grid_cursor() {
 }
 
 #[test]
-fn v6_follow_back_forward_and_links_at_the_model() {
+fn follow_back_forward_and_links_at_the_model() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
@@ -625,7 +625,7 @@ fn v6_follow_back_forward_and_links_at_the_model() {
 }
 
 #[test]
-fn v7_go_to_and_its_errors_at_the_model() {
+fn go_to_and_its_errors_at_the_model() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     let fail = |shell: &mut ShellModel, text: &str| match shell.dispatch("nav.goto", &json!({"text": text})) {
@@ -650,7 +650,7 @@ fn v7_go_to_and_its_errors_at_the_model() {
 }
 
 #[test]
-fn v9_the_transcript_members_and_describe_lines() {
+fn the_transcript_members_and_describe_lines() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     let text = script::state_json(&shell);
@@ -738,7 +738,7 @@ fn v9_the_transcript_members_and_describe_lines() {
 }
 
 #[test]
-fn v10_exact_counts_and_the_page_content_cache() {
+fn exact_counts_and_the_page_content_cache() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(false);
     // Two tabs (102, 103) in group 1, 104 in group 2; every page shown once.
@@ -861,7 +861,7 @@ fn v10_exact_counts_and_the_page_content_cache() {
 }
 
 #[test]
-fn v10_a_revision_change_empties_the_cache() {
+fn a_revision_change_empties_the_cache() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open(true);
     done(&mut shell, "page.goto", json!({"folio": "102"}));

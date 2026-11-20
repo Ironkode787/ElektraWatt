@@ -88,7 +88,7 @@ fn reps_on_show(shell: &ShellModel) -> usize {
 /// UI-1: the Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
 /// library, its thumbnail drawn from the scene and its three devices.
 #[test]
-fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
+fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     let tmp = Tmp::new("macros-ui1");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -146,7 +146,7 @@ fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
 /// with no conflicts; Apply is one undo step. The whole block with its interruption points lists the pairings of
 /// L-1 and N-1 and is refused by EW-CORE-052 (Apply fails with the rule's text and the card stays).
 #[test]
-fn ui2_insert_the_psu_macro_on_folio_105_from_the_navigator() {
+fn insert_the_psu_macro_on_folio_105_from_the_navigator() {
     let tmp = Tmp::new("macros-ui2");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -242,7 +242,7 @@ fn ui2_insert_the_psu_macro_on_folio_105_from_the_navigator() {
 /// refuses; headless the action refuses (a library write is a front-end operation); without a name the window opens
 /// the dialog, whose OK is the confirmation.
 #[test]
-fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
+fn save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     let tmp = Tmp::new("macros-ui3");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -405,7 +405,7 @@ fn make_variable_binds_a_property_row() {
 /// UI-4 (Update…): with the frames' and title block's copies without a source, Update… of every copy refuses (no
 /// update); the libraries stand in words, the badge of a copy without a source is "Only in this project".
 #[test]
-fn ui4_update_refuses_without_an_update_and_badges_are_words() {
+fn update_refuses_without_an_update_and_badges_are_words() {
     let tmp = Tmp::new("macros-ui4");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");

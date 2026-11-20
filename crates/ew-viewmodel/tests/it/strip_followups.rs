@@ -165,7 +165,7 @@ fn add_accessory_before_the_first_terminal_in_table_mode() {
 /// main function on the page shown, and a click places it, so the badge goes. Terminals drawn by a strip segment
 /// (-X1031) are not unplaced.
 #[test]
-fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
+fn enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     let tmp = Tmp::new("s207p2-68");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));

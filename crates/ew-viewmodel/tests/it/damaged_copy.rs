@@ -54,7 +54,7 @@ fn damaged_golden(tmp: &Tmp) -> (std::path::PathBuf, String) {
 }
 
 #[test]
-fn ft1383_a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
+fn a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     let tmp = Tmp::new("ft1383");
     let (dir, _) = damaged_golden(&tmp);
     let mut s = ShellModel::new(
@@ -85,7 +85,7 @@ fn ft1383_a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
 /// is refused in those words before it asks for a folder: a copy without the damaged file would not open. Nothing is
 /// written. Both languages.
 #[test]
-fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
+fn save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     let tmp = Tmp::new("ft1383-save-as");
     let (dir, _) = damaged_golden(&tmp);
     let target = tmp.0.join("save-as");

@@ -459,7 +459,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
 /// the lower wire through -103K3: the release re-solves it in the same undo step, and the upper wire, clean where it
 /// follows, keeps its vertices translated.
 #[test]
-fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
+fn a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
     use ew_api::routing::measure;
     let tmp = Tmp::new("rm1");
     let mut s = actual_size(&tmp, "103");

@@ -244,7 +244,7 @@ fn select_a_representation(shell: &mut ShellModel) -> (i64, i64) {
 }
 
 #[test]
-fn t1_every_output_of_the_host() {
+fn every_output_of_the_host() {
     let tmp = Tmp::new("probe-t1");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let h = scripted(&mut shell);
@@ -327,7 +327,7 @@ fn t1_every_output_of_the_host() {
 }
 
 #[test]
-fn t1_activation_focus_and_the_escape_chain() {
+fn activation_focus_and_the_escape_chain() {
     let tmp = Tmp::new("probe-t1b");
     let mut shell = tmp.shell("101");
     // Activating a tool cancels the busy one.
@@ -392,7 +392,7 @@ fn t1_activation_focus_and_the_escape_chain() {
 }
 
 #[test]
-fn t2_the_preview_protocol_headless() {
+fn the_preview_protocol_headless() {
     let tmp = Tmp::new("probe-t2");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);
@@ -461,7 +461,7 @@ fn t2_the_preview_protocol_headless() {
 }
 
 #[test]
-fn t2_the_window_commits_the_fresh_preview() {
+fn the_window_commits_the_fresh_preview() {
     let tmp = Tmp::new("probe-t2w");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
     let p = select_a_representation(&mut shell);
@@ -509,7 +509,7 @@ fn t2_the_window_commits_the_fresh_preview() {
 }
 
 #[test]
-fn t2_a_human_only_command_is_refused_headless() {
+fn a_human_only_command_is_refused_headless() {
     let tmp = Tmp::new("probe-t2h");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let h = scripted(&mut shell);
@@ -538,7 +538,7 @@ fn t2_a_human_only_command_is_refused_headless() {
 }
 
 #[test]
-fn t3_escape_after_a_drag_changes_nothing() {
+fn escape_after_a_drag_changes_nothing() {
     let tmp = Tmp::new("probe-t3");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);
@@ -563,7 +563,7 @@ fn t3_escape_after_a_drag_changes_nothing() {
 }
 
 #[test]
-fn t9_the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
+fn the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
     let tmp = Tmp::new("probe-t9");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);

@@ -81,7 +81,7 @@ fn link_off_101(shell: &ShellModel) -> ew_viewmodel::canvas::PageLink {
 }
 
 #[test]
-fn t4_select_clicks_shift_and_ctrl() {
+fn select_clicks_shift_and_ctrl() {
     let tmp = Tmp::new("tools-t4");
     let mut shell = tmp.shell("103");
     assert_eq!(shell.tool().name(), "select");
@@ -129,7 +129,7 @@ fn t4_select_clicks_shift_and_ctrl() {
 }
 
 #[test]
-fn t4_bands_left_to_right_enclose_and_right_to_left_touch() {
+fn bands_left_to_right_enclose_and_right_to_left_touch() {
     let tmp = Tmp::new("tools-t4b");
     let mut shell = tmp.shell("103");
     let empty = empty_point(shell.canvas().unwrap());
@@ -201,7 +201,7 @@ fn a_band_leaves_no_overlay_on_release_or_page_change() {
 }
 
 #[test]
-fn t4_a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
+fn a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
     let tmp = Tmp::new("tools-t4c");
     let mut shell = tmp.shell("101");
     let points = entity_points(shell.canvas().unwrap());
@@ -245,7 +245,7 @@ fn t4_a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
 }
 
 #[test]
-fn t5_snapping_on_the_qet_grid_of_folio_102() {
+fn snapping_on_the_qet_grid_of_folio_102() {
     let tmp = Tmp::new("tools-t5");
     let shell = tmp.shell("102");
     let c = shell.canvas().unwrap();
@@ -297,7 +297,7 @@ fn t5_snapping_on_the_qet_grid_of_folio_102() {
 }
 
 #[test]
-fn t6_connection_points_by_keyboard_in_reading_order() {
+fn connection_points_by_keyboard_in_reading_order() {
     let tmp = Tmp::new("tools-t6");
     let mut shell = tmp.shell("102");
     let cps = shell.canvas().unwrap().page().cps.clone();
@@ -348,7 +348,7 @@ fn t6_connection_points_by_keyboard_in_reading_order() {
 }
 
 #[test]
-fn t6_enter_selects_and_measure_from_the_keyboard_alone() {
+fn enter_selects_and_measure_from_the_keyboard_alone() {
     let tmp = Tmp::new("tools-t6b");
     let mut shell = tmp.shell("102");
     // Enter without a cursor is refused; on an entity it selects it.
@@ -429,7 +429,7 @@ fn t6_enter_selects_and_measure_from_the_keyboard_alone() {
 /// The link-preview flag of the registry entry decides: an action marked `keeps_link_preview` (ui.describe) leaves the
 /// preview standing, an action without it (view.grid) clears it.
 #[test]
-fn t8_the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
+fn the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
     use ew_viewmodel::actions::find;
     assert!(find("ui.describe").unwrap().keeps_link_preview);
     assert!(!find("view.grid").unwrap().keeps_link_preview);
@@ -448,7 +448,7 @@ fn t8_the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
 }
 
 #[test]
-fn t8_the_link_hover_preview() {
+fn the_link_hover_preview() {
     let tmp = Tmp::new("tools-t8");
     let mut shell = tmp.shell("101");
     let link = link_off_101(&shell);
@@ -509,7 +509,7 @@ fn t8_the_link_hover_preview() {
 }
 
 #[test]
-fn t9_escape_cancels_every_shipped_tool_in_every_state() {
+fn escape_cancels_every_shipped_tool_in_every_state() {
     let tmp = Tmp::new("tools-t9");
     let mut shell = tmp.shell("103");
     let rev = shell.revision();
@@ -550,7 +550,7 @@ fn t9_escape_cancels_every_shipped_tool_in_every_state() {
 }
 
 #[test]
-fn t10_the_transcript_and_describe_members_of_the_tools() {
+fn the_transcript_and_describe_members_of_the_tools() {
     let tmp = Tmp::new("tools-t10");
     let mut shell = tmp.shell("102");
     let s = state(&shell);
@@ -659,7 +659,7 @@ fn t10_the_transcript_and_describe_members_of_the_tools() {
 }
 
 #[test]
-fn t11_tool_events_on_a_cached_page_make_no_session_call() {
+fn tool_events_on_a_cached_page_make_no_session_call() {
     let tmp = Tmp::new("tools-t11");
     let mut shell = tmp.shell("103");
     // The property grid fetches a sheet per selection change (its own exact counts in

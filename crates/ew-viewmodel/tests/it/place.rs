@@ -1310,7 +1310,7 @@ fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
 /// FT-900: after a placement the representation it made is the selection, replacing what was selected; the
 /// Place tool stays armed and floats the next one.
 #[test]
-fn ft900_a_placement_selects_what_it_placed_and_the_tool_stays_armed() {
+fn a_placement_selects_what_it_placed_and_the_tool_stays_armed() {
     let tmp = Tmp::new("ft900-place");
     let mut s = shell(&tmp, "101");
     let first = tables(&s).reps[0].clone();

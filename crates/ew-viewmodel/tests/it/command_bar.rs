@@ -187,7 +187,7 @@ fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_on
 /// One name per thing (doc 16a P7): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
 /// registry label, which the menus and the palette carry too, and the key from the keymap).
 #[test]
-fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
+fn the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
     let tmp = Tmp::new("w42b-wire");
     let s = shell(&tmp);
     let bar = command_bar_of(&s, Tab::Draw);
