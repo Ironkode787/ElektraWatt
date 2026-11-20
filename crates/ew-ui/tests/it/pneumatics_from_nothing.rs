@@ -1472,7 +1472,7 @@ fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
 /// The prelude's project (the wizard's company standard, then a new project, as the play-test made it) with the fluid
 /// page 201 shown, fitted, and the Fluid panel in the left column.
 fn prelude_fluid_page(tmp: &Tmp) -> Driver {
-    let mut d = crate::persona_pages::prelude(tmp, ew_ui::visual::Geometry::DEFAULT);
+    let mut d = crate::pages_ip_tool_and_title_block::prelude(tmp, ew_ui::visual::Geometry::DEFAULT);
     let page = json!({"folio": "201", "type": "fluid", "title": "Clamp pneumatics"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
