@@ -2417,15 +2417,14 @@ fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
             .find(|e| e.id == id)
             .unwrap_or_else(|| panic!("{id} is offered for {query:?}"));
         assert_eq!(entry.enabled, enabled, "{id}: {:?}", entry.reason);
-        let refused = matches!(
-            shell.dispatch(id, &json!({})),
-            Outcome::Refused { .. }
-        );
+        let refused = matches!(shell.dispatch(id, &json!({})), Outcome::Refused { .. });
         assert_eq!(refused, !enabled, "{id} runs as the search offers it");
         if !enabled {
             assert_eq!(
                 entry.reason.as_deref(),
-                Some(ew_viewmodel::strings::text(ew_viewmodel::key!("symbol-editor-active")))
+                Some(ew_viewmodel::strings::text(ew_viewmodel::key!(
+                    "symbol-editor-active"
+                )))
             );
         }
         if shell.palette().is_none() {
