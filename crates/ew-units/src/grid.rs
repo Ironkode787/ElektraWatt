@@ -233,6 +233,54 @@ impl Grid {
         }
     }
 
+    /// The coordinate `x` in ticks of `1 / per_step` of a step (`per_step` even), and whether it names a half-grid
+    /// position: a coordinate within 1 nm of a half-grid position's number takes that position's tick exactly (a
+    /// multiple of `per_step / 2`), any other its nearest tick (ties toward zero), flagged off the half grid. The one
+    /// conversion of the layout's model (docs/design/06a-drafting.md §2.1); it saturates at the `i64` limits.
+    ///
+    /// ```
+    /// use ew_units::{Grid, Nm};
+    ///
+    /// let g = Grid::QET_10PX;
+    /// assert_eq!(g.tick_of(Nm(66_145_834), 16), (400, true)); // 25 steps, 1 nm beside `at(25)`
+    /// assert_eq!(g.tick_of(g.at(3).unwrap() + Nm(1_322_916), 16), (56, true)); // 3.5 steps
+    /// assert_eq!(g.tick_of(Nm(1_000_000), 16), (6, false));
+    /// ```
+    pub fn tick_of(self, x: Nm, per_step: u32) -> (i64, bool) {
+        let (num, den, per) = (i128::from(self.num), i128::from(self.den), i128::from(per_step));
+        let half = arith::div_round(i128::from(x.0) * 2 * den, num);
+        let number = arith::div_round(half * num, 2 * den);
+        let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
+        if (number - i128::from(x.0)).abs() <= 1 && per % 2 == 0 {
+            (sat(half * (per / 2)), true)
+        } else {
+            (sat(arith::div_round(i128::from(x.0) * den * per, num)), false)
+        }
+    }
+
+    /// The span `lo..hi` in ticks of `1 / per_step` of a step, rounded outward: the box of a text (§2.1 of
+    /// docs/design/06a-drafting.md). Saturates at the `i64` limits.
+    pub fn tick_span(self, lo: Nm, hi: Nm, per_step: u32) -> (i64, i64) {
+        let (num, den, per) = (i128::from(self.num), i128::from(self.den), i128::from(per_step));
+        let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
+        let floor = (i128::from(lo.0) * den * per).div_euclid(num);
+        let ceil = -(-(i128::from(hi.0) * den * per)).div_euclid(num);
+        (sat(floor), sat(ceil))
+    }
+
+    /// The coordinate of tick `t` of `1 / per_step` of a step: `round(t × num / (den × per_step))`, ties toward zero,
+    /// so a whole step's tick is [`at`](Grid::at) of its index; `None` if it overflows `i64` or `per_step` is 0.
+    pub fn nm_of_tick(self, t: i64, per_step: u32) -> Option<Nm> {
+        if per_step == 0 {
+            return None;
+        }
+        let v = arith::div_round(
+            i128::from(t) * i128::from(self.num),
+            i128::from(self.den) * i128::from(per_step),
+        );
+        i64::try_from(v).ok().map(Nm)
+    }
+
     /// The grid index of a position given in whole **grid half-steps** (`half_steps / 2`, an index or the middle
     /// of two): exact when `half_steps` is even, else the tie between its two neighbours goes up (toward +∞) when
     /// `tie_up`, down (toward −∞) otherwise. Unlike [`snap`](Grid::snap) the tie
@@ -290,6 +338,20 @@ impl Grid {
 mod tests {
     use super::*;
     use proptest::prelude::*;
+
+    #[test]
+    fn ticks_round_a_span_outward_and_a_whole_step_back_to_the_grids_number() {
+        let g = Grid::QET_10PX;
+        // 0.165 mm to a tick: a box from 1 mm to 2 mm reaches from tick 6 to tick 13.
+        assert_eq!(g.tick_span(Nm(1_000_000), Nm(2_000_000), 16), (6, 13));
+        assert_eq!(g.tick_span(Nm(-1_000_000), Nm(0), 16), (-7, 0));
+        for k in [-7, 0, 1, 25, 159] {
+            assert_eq!(g.nm_of_tick(16 * k, 16), g.at(k));
+            assert_eq!(g.tick_of(g.at(k).unwrap(), 16), (16 * k, true));
+        }
+        assert_eq!(Grid::MM4.nm_of_tick(8, 16), Some(Nm(2_000_000)));
+        assert_eq!(Grid::MM4.nm_of_tick(8, 0), None);
+    }
 
     #[test]
     fn constants_are_reduced_and_exact() {
