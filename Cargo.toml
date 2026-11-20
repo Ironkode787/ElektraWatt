@@ -58,15 +58,13 @@ mem_forget = "warn"
 [profile.dev]
 opt-level = 1
 
-# The three crates where most edits happen stay at opt-level 0, which compiles fastest; their own code is not where
-# the tests spend their time.
+# Two crates where most edits happen stay at opt-level 0, which compiles fastest; measured, their tests gain 5 to
+# 10 % at opt-level 1. The window () is at opt-level 1 with the rest: its tests are the largest share of the
+# suite and ran in about 0.6 of the time, for about 3.5 s more on an edit of the crate (measured by hand in M3.5).
 [profile.dev.package.ew-api]
 opt-level = 0
 
 [profile.dev.package.ew-viewmodel]
-opt-level = 0
-
-[profile.dev.package.ew-ui]
 opt-level = 0
 
 # Dependencies build at opt-level 1 too, and without debug info: every test binary's PDB had carried the line tables
