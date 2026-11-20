@@ -328,11 +328,11 @@ fn arrange_card(
         strings::format(
             key!("arrange-figures"),
             &[
-                &q.counts.crossings.to_string(),
-                &q.counts.bends.to_string(),
-                &q.counts.straight.to_string(),
-                &q.counts.across_texts.to_string(),
-                &q.faults.to_string(),
+                &strings::format_count(count_key!("arrange-crossings"), q.counts.crossings),
+                &strings::format_count(count_key!("arrange-bends"), q.counts.bends),
+                &strings::format_count(count_key!("arrange-straight"), q.counts.straight),
+                &strings::format_count(count_key!("arrange-through"), q.counts.across_texts),
+                &strings::format_count(count_key!("arrange-faults"), q.faults),
             ],
         )
     };

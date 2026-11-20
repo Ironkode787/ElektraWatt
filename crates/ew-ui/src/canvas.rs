@@ -1795,6 +1795,12 @@ impl CanvasHost {
         if let Some(lp) = shell.link_preview() {
             keep.insert(key_of(lp.canvas.page()));
         }
+        // The page an open Arrange and route card would leave, on the groups that show it.
+        for group in 0..self.views.len() {
+            if let Some(page) = shell.arrange_page(group) {
+                keep.insert(key_of(&page));
+            }
+        }
         self.scenes.retain(|k, _| keep.contains(k));
         if self.popup.scene.as_ref().is_some_and(|s| !keep.contains(&s.key)) {
             self.popup.scene = None;
