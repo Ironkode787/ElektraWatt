@@ -929,3 +929,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a dash pattern with a zero entry (as an SVG asset may give one) is dashed on the screen as it is
   in the PDF, the SVG and the DXF; one with a negative entry or no positive one is solid everywhere (the PDF and SVG
   rule)
+- behaviour-change: a table import of a CSV whose header follows title lines takes the decimal comma of `excel-nl`
+  when the header is separated by semicolons, as the reader reads its cells (the first line decided before)

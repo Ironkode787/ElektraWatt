@@ -30,7 +30,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::Device;
 use ew_import_catalog::SourceFormat;
 use ew_import_catalog::ew_interop_api::ImportError;
-use ew_import_catalog::sheet::{read_rows, read_sheet, sheet_names};
+use ew_import_catalog::sheet::{csv_separator, read_rows, read_sheet, sheet_names};
 use ew_reports::csv::Preset;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 use ew_reports::xlsx::{BASE_DIGEST_ROW, BASE_SHEET, EW_FORMAT, EW_SHEET, rows_text};
@@ -622,11 +622,7 @@ impl Session {
         let preset = match (format, options.preset) {
             (SourceFormat::Xlsx, _) => None,
             (SourceFormat::Csv, Some(p)) => Some(p),
-            (SourceFormat::Csv, None) => Some(if semicolons(bytes) {
-                Preset::ExcelNl
-            } else {
-                Preset::ExcelEn
-            }),
+            (SourceFormat::Csv, None) => Some(csv_preset(bytes)),
         };
         let merge = Merge {
             session: self,
@@ -690,19 +686,13 @@ impl Session {
     }
 }
 
-/// Whether the header line of a CSV has more semicolons than commas outside quotes (the reader's separator rule).
-fn semicolons(bytes: &[u8]) -> bool {
-    let (mut commas, mut semis, mut quoted) = (0usize, 0usize, false);
-    for &b in bytes {
-        match b {
-            b'"' => quoted = !quoted,
-            b',' if !quoted => commas += 1,
-            b';' if !quoted => semis += 1,
-            b'\n' | b'\r' if !quoted => break,
-            _ => {}
-        }
+/// The preset of a CSV read without one: `excel-nl` when the reader separates its cells by `;`
+/// ([`csv_separator`]), else `excel-en`. Text that is not UTF-8 the reader refuses, whatever the preset.
+fn csv_preset(bytes: &[u8]) -> Preset {
+    match std::str::from_utf8(bytes).map(csv_separator) {
+        Ok(';') => Preset::ExcelNl,
+        _ => Preset::ExcelEn,
     }
-    semis > commas
 }
 
 /// The base of an `_ew_base` sheet read whole: its header's column keys, and per row ID the cells under them; `None`
@@ -1176,8 +1166,19 @@ mod tests {
         assert!(!is_lossy("1.2", "1.10"));
         assert!(!is_lossy("x", "1.10"));
         assert!(!is_lossy("1.1", "1.1"));
-        assert!(semicolons(b"id;a,b;c\n"));
-        assert!(!semicolons(b"id,\"a;b;c\"\n"));
+        assert_eq!(csv_preset(b"id;a,b;c\n"), Preset::ExcelNl);
+        assert_eq!(csv_preset(b"id,\"a;b;c\"\n"), Preset::ExcelEn);
+    }
+
+    /// A CSV whose header follows title lines (as an EPLAN export starts) takes the preset of the separator the reader
+    /// finds in the header, not of the first line.
+    #[test]
+    fn the_preset_of_a_csv_with_title_lines_is_its_headers() {
+        assert_eq!(
+            csv_preset(b"Terminal list\r\n\r\nid;label\r\ne:1;1,5\r\n"),
+            Preset::ExcelNl
+        );
+        assert_eq!(csv_preset(b"Terminal list\nid,label\ne:1;x\n"), Preset::ExcelEn);
     }
 
     /// D5: an `_ew_base` sheet whose digest matches its rows is intact, an edited one is not.

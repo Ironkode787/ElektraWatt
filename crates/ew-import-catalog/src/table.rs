@@ -156,7 +156,7 @@ fn sheet_of(records: Vec<(u32, Vec<Cell>)>, limits: &Limits) -> Result<Sheet, Im
 
 /// The separator of the header line: `;` when it has more semicolons than commas outside quotes, else `,`. A line
 /// without either (the title an EPLAN export starts with) is passed over, up to the first twenty lines.
-fn separator(text: &str) -> char {
+pub fn csv_separator(text: &str) -> char {
     let (mut commas, mut semicolons, mut quoted, mut lines) = (0usize, 0usize, false, 0usize);
     for c in text.chars() {
         match c {
@@ -188,7 +188,7 @@ fn csv_records(bytes: &[u8], limits: &Limits) -> Result<Vec<(u32, Vec<Cell>)>, I
         malformed("the table is not UTF-8 text", u32::try_from(line).ok())
     })?;
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
-    let sep = separator(text);
+    let sep = csv_separator(text);
     let mut records: Vec<(u32, Vec<Cell>)> = Vec::new();
     let mut line: u32 = 1;
     let mut record_line = 1;
@@ -486,10 +486,10 @@ mod tests {
     /// A title line without a separator is passed over: the delimiter is the header line's (FT-1742).
     #[test]
     fn the_separator_skips_a_title_line() {
-        assert_eq!(separator("Title\nA;B;C\n1;2;3\n"), ';');
-        assert_eq!(separator("Title\nA,B,C\n"), ',');
+        assert_eq!(csv_separator("Title\nA;B;C\n1;2;3\n"), ';');
+        assert_eq!(csv_separator("Title\nA,B,C\n"), ',');
         assert_eq!(
-            separator("A;B\n1,2,3,4\n"),
+            csv_separator("A;B\n1,2,3,4\n"),
             ';',
             "the first line with a separator decides"
         );
