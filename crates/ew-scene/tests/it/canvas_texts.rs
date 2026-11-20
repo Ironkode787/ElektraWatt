@@ -362,7 +362,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     assert!(upright(run(&r, 0x33, "-101M1")));
 }
 
-/// The rc.3 rack run: a tag that had to move took a place on a symbol (a valve's tag on its own valve, a turned
+/// A rack run: a tag that had to move took a place on a symbol (a valve's tag on its own valve, a turned
 /// cylinder's tag on its neighbour's rod). The valve's tag that the wire would run through moves, but not onto its own
 /// valve; where a symbol turned by a half turn and another symbol's tag or body meet, the tag moves off the body.
 #[test]

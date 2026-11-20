@@ -213,7 +213,7 @@ fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
     );
 }
 
-/// rc.3 (G5): a cable mark's tag stands after its line (docs/design/06a-drafting.md §5.2: the type before the row of
+/// A cable mark's tag stands after its line (docs/design/06a-drafting.md §5.2: the type before the row of
 /// ticks, the tag after it) unless it would lie on another text there; then before the line, whatever order the items
 /// come in.
 #[test]
