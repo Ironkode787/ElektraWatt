@@ -218,8 +218,14 @@ fn a_block_of_two_lines_stays_within_one_line_of_its_part() {
     });
     let r = find(&settle_labels(&b.page), tag).rect;
     let body = Rect::new(p(9, 10), p(11, 14));
-    let gap = (body.x0 - r.x1).max(r.x0 - body.x1).max(body.y0 - r.y1).max(r.y0 - body.y1);
-    assert!(gap <= 2 * LABEL_CLEAR + TAG.1, "{r:?} is {gap} ticks from its part");
+    let gap = (body.x0 - r.x1)
+        .max(r.x0 - body.x1)
+        .max(body.y0 - r.y1)
+        .max(r.y0 - body.y1);
+    assert!(
+        gap <= 2 * LABEL_CLEAR + TAG.1,
+        "{r:?} is {gap} ticks from its part"
+    );
 }
 
 /// The two-rows rule: tags of a row wider than its pitch stand in two rows, every second one a line lower.

@@ -328,7 +328,12 @@ fn a_tube_goes_round_a_valve_terminal_and_one_across_it_is_f4() {
         part.frame_only = true;
     }
     b.part("V0", p(22, 30), (p(0, 0), p(6, 10)), &[("2", p(2, 0), Side::Up)]);
-    b.part("FRL", p(28, 50), (p(0, 0), p(4, 4)), &[("out", p(2, 0), Side::Up)]);
+    b.part(
+        "FRL",
+        p(28, 50),
+        (p(0, 0), p(4, 4)),
+        &[("out", p(2, 0), Side::Up)],
+    );
     b.part("C", p(28, 16), (p(0, 0), p(4, 6)), &[("a", p(2, 6), Side::Down)]);
     b.part("C2", p(22, 16), (p(0, 0), p(4, 6)), &[("a", p(2, 6), Side::Down)]);
     let tube = b.wire("t", b.pin("FRL", "out"), b.pin("C", "a"), &[]);
@@ -343,7 +348,9 @@ fn a_tube_goes_round_a_valve_terminal_and_one_across_it_is_f4() {
     across.wires.iter_mut().find(|w| w.id == tube).unwrap().route = vec![p(30, 50), p(30, 22)];
     let f = measure(&across).findings;
     assert!(
-        f.through_parts.iter().any(|(w, part, _)| *w == tube && *part == frame),
+        f.through_parts
+            .iter()
+            .any(|(w, part, _)| *w == tube && *part == frame),
         "{f:?}"
     );
     assert_eq!(
