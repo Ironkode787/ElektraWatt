@@ -99,6 +99,9 @@ pub struct Occupancy {
     holders: BTreeMap<usize, Vec<Holder>>,
     /// The parts with a body (pins and not an outline drawn round others), with their bounds on the page, by ID.
     pub bodies: Vec<(PartId, Rect, Vec<Pt>)>,
+    /// The outlines drawn round other parts (a valve terminal round its valves), on the page: a body too, which a wire
+    /// leaves straight out of a pin inside it.
+    pub frames: Vec<Rect>,
 }
 
 impl Occupancy {
@@ -157,12 +160,18 @@ impl Occupancy {
             texts: Vec::new(),
             holders: BTreeMap::new(),
             bodies: Vec::new(),
+            frames: Vec::new(),
         };
         for p in parts {
-            if !p.frame_only && !p.pins.is_empty() {
+            if p.frame_only {
+                occ.frames.push(p.bounds());
+            }
+            if p.frame_only || !p.pins.is_empty() {
                 let b = p.bounds();
-                occ.bodies
-                    .push((p.id, b, p.pins.iter().map(|q| p.at.plus(q.at)).collect()));
+                if !p.frame_only {
+                    occ.bodies
+                        .push((p.id, b, p.pins.iter().map(|q| p.at.plus(q.at)).collect()));
+                }
                 for (k, grow) in [(0, BODY_GAP), (1, HALF)] {
                     occ.each_inside(b.grown(grow), |occ, n| {
                         occ.body[k][n] = occ.body[k][n].saturating_add(1);

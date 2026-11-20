@@ -316,3 +316,39 @@ fn a_wire_leaves_a_pin_that_shares_its_point_with_a_free_connection_point() {
     assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
     assert_eq!(corners(&done.wires.iter().find(|x| x.id == w).unwrap().route), 1);
 }
+
+/// A small fluid page: a valve terminal's outline round a valve, a service unit below it and a cylinder above, in line.
+/// The tube between them goes round the terminal, not across it; a tube stored straight across it is F4, the valve's
+/// own tube straight out of its port is not.
+#[test]
+fn a_tube_goes_round_a_valve_terminal_and_one_across_it_is_f4() {
+    let mut b = Page::new(60, 60);
+    let frame = b.part("VT", p(20, 30), (p(0, 0), p(20, 10)), &[]);
+    if let Some(part) = b.page.parts.iter_mut().find(|x| x.id == frame) {
+        part.frame_only = true;
+    }
+    b.part("V0", p(22, 30), (p(0, 0), p(6, 10)), &[("2", p(2, 0), Side::Up)]);
+    b.part("FRL", p(28, 50), (p(0, 0), p(4, 4)), &[("out", p(2, 0), Side::Up)]);
+    b.part("C", p(28, 16), (p(0, 0), p(4, 6)), &[("a", p(2, 6), Side::Down)]);
+    b.part("C2", p(22, 16), (p(0, 0), p(4, 6)), &[("a", p(2, 6), Side::Down)]);
+    let tube = b.wire("t", b.pin("FRL", "out"), b.pin("C", "a"), &[]);
+    b.run("v", b.pin("V0", "2"), b.pin("C2", "a"), &[]);
+    // Routed, and with no fault: round the terminal, as F4 holds its outline.
+    let done = routed(&b.page);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    let line = &done.wires.iter().find(|w| w.id == tube).unwrap().route;
+    assert!(line.len() > 2, "not the straight line across it: {line:?}");
+    let mut across = b.page.clone();
+    across.wires.iter_mut().find(|w| w.id == tube).unwrap().route = vec![p(30, 50), p(30, 22)];
+    let f = measure(&across).findings;
+    assert!(
+        f.through_parts.iter().any(|(w, part, _)| *w == tube && *part == frame),
+        "{f:?}"
+    );
+    assert_eq!(
+        f.through_parts.len(),
+        1,
+        "the valve's own tube leaves straight out of its port: {f:?}"
+    );
+}

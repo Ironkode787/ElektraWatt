@@ -173,6 +173,8 @@ struct Space<'a> {
     t: Node,
     /// The corridors' nodes of the occupancy, per end.
     corridors: [Vec<Node>; 2],
+    /// The outlines drawn round other parts that hold an end's point, per end: its corridor leaves them.
+    frames: [Vec<Rect>; 2],
     /// The bodies that hold a first end that is a bend reached over one of their pins a step behind it (the person led the
     /// wire through the part): the route may leave them.
     held: Vec<Rect>,
@@ -246,6 +248,11 @@ impl<'a> Space<'a> {
                         && self.inside(n, r)
                     {
                         bodies -= 1;
+                    }
+                    for r in &self.frames[k] {
+                        if self.corridors[k].contains(&n) && self.inside(n, *r) {
+                            bodies -= 1;
+                        }
                     }
                 }
                 if bodies > 0 {
@@ -539,6 +546,14 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
         s,
         t,
         corridors: [Vec::new(), Vec::new()],
+        frames: [&ask.from, &ask.to].map(|tip| {
+            ask.occ
+                .frames
+                .iter()
+                .filter(|r| r.x0 <= tip.at.x && tip.at.x <= r.x1 && r.y0 <= tip.at.y && tip.at.y <= r.y1)
+                .copied()
+                .collect()
+        }),
         held: ask
             .occ
             .bodies
@@ -566,7 +581,8 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
         for _ in 0..64 {
             n = (n.0 + u.x, n.1 + u.y);
             out.push(n);
-            let inside = tip.part.is_some_and(|(_, r)| sp.inside(n, r));
+            let inside = tip.part.is_some_and(|(_, r)| sp.inside(n, r))
+                || sp.frames[k].iter().any(|r| sp.inside(n, *r));
             let stub = crate::occupancy::point_of(n);
             let within = (stub.x - tip.at.x).abs() + (stub.y - tip.at.y).abs() < STUB;
             if !inside && !within {

@@ -282,8 +282,17 @@ pub fn measure(page: &DraftPage) -> Quality {
                 End::Junction(_) => None,
             })
             .collect();
-        for p in parts.iter().filter(|p| !p.frame_only && !p.pins.is_empty()) {
+        for p in parts.iter().filter(|p| p.frame_only || !p.pins.is_empty()) {
             let body = p.bounds();
+            // An outline drawn round other parts: a wire between two points inside it is its own wiring, and a wire
+            // leaves it straight out of any pin inside it.
+            let held = |q: Pt| body.x0 <= q.x && q.x <= body.x1 && body.y0 <= q.y && q.y <= body.y1;
+            if p.frame_only
+                && l.pts.first().is_some_and(|q| held(*q))
+                && l.pts.last().is_some_and(|q| held(*q))
+            {
+                continue;
+            }
             let mut inside: Vec<Seg> = Vec::new();
             for s in &l.segs {
                 if s.0 == s.1 {
@@ -292,7 +301,7 @@ pub fn measure(page: &DraftPage) -> Quality {
                 let mut span = geom::inside(*s, body);
                 for &(own, q, v) in &rays {
                     let shares = p.pins.iter().any(|pin| p.at.plus(pin.at) == q);
-                    if own == p.id || shares {
+                    if own == p.id || shares || (p.frame_only && held(q)) {
                         span = span.and_then(|sp| geom::minus_ray(*s, sp, q, v));
                     }
                 }

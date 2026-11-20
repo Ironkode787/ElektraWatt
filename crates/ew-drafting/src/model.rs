@@ -257,7 +257,8 @@ pub struct Part {
     pub at: Pt,
     /// Relative to `at`: the bounds of its graphics, a drawn box's outline.
     pub body: Rect,
-    /// An outline drawn round other parts (a valve terminal round its valves).
+    /// An outline drawn round other parts (a valve terminal round its valves): a body to F4 and the router, which a wire
+    /// leaves straight out of any pin inside it; a wire with both ends inside it is its own wiring.
     pub frame_only: bool,
     /// Its pins.
     pub pins: Vec<Pin>,
