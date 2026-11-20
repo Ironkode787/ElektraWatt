@@ -1,25 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over Golden A: the open-items list (`open_items`). The golden CSV
-//! `golden/J-E-2416/expected/csv/open_items.csv` is one of the kind CSVs that `report_kinds.rs` checks.
+//! Over the sample project: the open-items list (`open_items`). The sample has no open item of its own; the tests
+//! make four with commands (a TBD station address, a device without a part, an unplaced device, a cable without a
+//! length).
 //!
 //! What these tests rely on, quoted:
 //! - "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
 //!   `open_item_of` some row".
 //! - The release scheme that `project.checks.set` writes is the one the list runs in (so the settings member
 //!   of the check layer and of the command layer agree).
-//! - OI-3 "asserts, on Golden A with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
+//! - OI-3 "asserts, with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
 //!   EW-CORE-083 finding whose subject names a table rule in the same snapshot's release run".
 //! - "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
-//! - On the golden file: "Bless `open_items.csv` with the 24 rows Golden A derives as checked in ... OI-1's
-//!   test asserts the 24 rows whole, in that order, and that EW-PLC-012 and EW-POT-013 are absent. OI-2's
-//!   waiver case uses a fixture copy with W-1 recorded and asserts that exactly the -XPE row leaves." Since rc.3
-//!   -XPE, an earth connection, is asked no part: its row is gone, and the waiver case waives -203Q1's row.
 
 use std::collections::BTreeSet;
 
-use crate::{common, golden_common};
+use crate::common;
 
 use ew_api::checks::{self, CheckMode, FindingState, PRE_DELIVERY};
 use ew_api::output::{RowExport, page_layer, row_export};
@@ -120,116 +117,111 @@ fn unplaced(tag: &str) -> Vec<String> {
     row([
         "Unplaced device",
         tag,
-        &format!(
-            "{tag} is not placed in the layout of +J-E-2416; place it on a rail or on the mounting plate"
-        ),
+        &format!("{tag} is not placed in the layout of +CAB; place it on a rail or on the mounting plate"),
         "EW-LAY-001",
         "error",
         "",
     ])
 }
 
-fn placeholder(what: &str, users: &str) -> Vec<String> {
-    row([
-        "TBD value",
-        &format!("TBD {what}"),
-        &format!(
-            "placeholder part \"{what}\" (part number TBD) is used by {users}; choose the part before release"
-        ),
-        "EW-CORE-043",
-        "error",
-        "",
-    ])
+/// The device printed as `tag`.
+fn device(s: &Session, tag: &str) -> String {
+    s.resolve_reference(tag).expect(tag).to_string()
 }
 
-/// The rows Golden A derives as checked in, whole and in order. -XPE, an earth connection, is asked no part;
-/// the eight FIELD-203Q valves have no part until FT-209 (FT-638).
+/// The sample with four open items made by commands: the valve terminal's station address TBD, the lamp -102E1
+/// without its part, the breaker -102F1 taken off its rail, the supply cable -101W1 without its length.
+fn with_open_items() -> Session {
+    let mut s = common::sample();
+    let station = {
+        let q = s.query();
+        let vtm = ew_derive::ew_ids::Id::from_uuid(s.resolve_reference("-201K1").unwrap());
+        q.idx()
+            .functions_of_device(vtm)
+            .find(|f| q.functions().get(*f).is_some_and(|f| f.bus_port.is_some()))
+            .expect("the valve terminal's port")
+            .to_string()
+    };
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "function", "targets": [station], "path": "bus_port.address", "value": "tbd"}),
+    );
+    let lamp = device(&s, "-102E1");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [lamp], "path": "parts", "value": []}),
+    );
+    let placement = {
+        let q = s.query();
+        let f1 = s.resolve_reference("-102F1").unwrap();
+        q.table::<ew_schema::Placement>()
+            .iter()
+            .find(|(_, p)| p.device.as_uuid() == f1)
+            .map(|(id, _)| id.to_string())
+            .expect("-102F1's placement")
+    };
+    run(&mut s, "layout.remove", json!({"placement": placement}));
+    let cable = device(&s, "-101W1");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [cable], "path": "cable.length", "value": null}),
+    );
+    s
+}
+
+/// The four rows, whole and in order: by category, then by item.
 #[test]
-fn golden_a_lists_its_open_items() {
-    let s = common::golden_session();
+fn the_sample_lists_its_open_items() {
+    let s = with_open_items();
     let q = s.query();
     let set = kind_rows(&q);
-    let unconnected = |cp: &str| {
-        row([
-            "Unconnected connection point",
-            cp,
-            &format!("{cp} has no wire. Draw one to it, or right-click it and choose Mark not used."),
-            "EW-POT-009",
-            "warning",
-            "102",
-        ])
-    };
-    let mut want = vec![
+    let want = vec![
         row([
             "TBD value",
-            "=P01+J-E-2416-201U1:DP",
-            "=P01+J-E-2416-201U1:DP: the station address is TBD; enter it before release",
+            "+CAB-201K1:DP",
+            "+CAB-201K1:DP: the station address is TBD; enter it before release",
             "EW-BUS-001",
             "error",
             "",
         ]),
-        placeholder("DIN rail TS 35", "=P01+J-E-2416-UC1"),
-        placeholder(
-            "End bracket",
-            "=P01+J-E-2416-1X1, =P01+J-E-2416-X1031, =P01+J-E-2416-X1032",
-        ),
-        placeholder("Plug-in bridge", "=P01+J-E-2416-X1031, =P01+J-E-2416-X1032"),
-        placeholder("Wiring duct 40\u{d7}60", "=P01+J-E-2416-UC1"),
+        no_part("+CAB-102E1"),
+        unplaced("+CAB-102F1"),
+        row([
+            "Missing length",
+            "-101W1",
+            "-101W1 has no length yet: type it in its Properties, or route the cable in the layout",
+            "EW-CORE-033",
+            "error",
+            "",
+        ]),
     ];
-    for n in 1..=8 {
-        want.push(no_part(&format!("=P01+FIELD-203Q{n}")));
-    }
-    for t in ["E56", "S56"] {
-        want.push(no_part(&format!("=P01+J-E-2416-{t}")));
-    }
-    for t in ["201U9", "E55", "E56", "F55", "S56"] {
-        want.push(unplaced(&format!("=P01+J-E-2416-{t}")));
-    }
-    want.push(unconnected("-102F2:13"));
-    want.push(unconnected("-102F2:14"));
-    want.push(row([
-        "Missing length",
-        "=P01+J-E-2416-3W1",
-        "=P01+J-E-2416-3W1 has no length yet: type it in its Properties, or route the cable in the layout",
-        "EW-CORE-033",
-        "error",
-        "",
-    ]));
     assert_eq!(texts(&q, &set), want);
     assert_eq!(
         set.columns.iter().map(|c| c.key.as_str()).collect::<Vec<_>>(),
         ["category", "item", "description", "rule", "severity", "page"]
     );
-    // EW-PLC-012's 28 and EW-POT-013's 2 are open in the release run and not open items.
-    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    for rule in ["EW-PLC-012", "EW-POT-013"] {
-        assert!(
-            report
-                .findings
-                .iter()
-                .any(|f| f.rule == rule && f.state == FindingState::Open),
-            "{rule} is open in the release run"
-        );
-        assert!(set.rows.iter().all(|r| !format!("{}", r.id).contains(rule)));
-    }
     assert_eq!(row_keys(&set), checked_keys(&s));
+    // The unchanged sample has none.
+    assert_eq!(kind_rows(&common::sample().query()).rows.len(), 0);
 }
 
 /// OI-2: a TBD channel address is listed once, by EW-PLC-015, and EW-CORE-044's finding for it is superseded.
 #[test]
 fn a_tbd_channel_address_is_listed_once() {
-    let batch = golden_common::batch();
+    let (project, mut records, lib) = common::sample_records();
     let mut done = false;
-    let s = golden_common::session_with(&batch, |_, records| {
-        for r in records.iter_mut() {
-            if let Record::Channel(c) = r
-                && !done
-            {
-                c.address = ew_schema::AddrSpec::Tbd;
-                done = true;
-            }
+    for r in records.iter_mut() {
+        if let Record::Channel(c) = r
+            && !done
+        {
+            c.address = ew_schema::AddrSpec::Tbd;
+            done = true;
         }
-    });
+    }
+    let s = common::session_of(project, records, lib);
     let set = kind_rows(&s.query());
     let rules: Vec<String> = row_keys(&set).into_iter().map(|(r, _)| r).collect();
     assert_eq!(rules.iter().filter(|r| *r == "EW-PLC-015").count(), 1);
@@ -237,30 +229,30 @@ fn a_tbd_channel_address_is_listed_once() {
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
 
-/// With a waiver recorded on -203Q1's EW-CORE-041 finding exactly the -203Q1 row leaves.
+/// With a waiver recorded on -102E1's EW-CORE-041 finding exactly the -102E1 row leaves.
 #[test]
 fn the_waived_row_leaves() {
-    let mut s = common::golden_session();
+    let mut s = with_open_items();
     let before = {
         let q = s.query();
         texts(&q, &kind_rows(&q))
     };
-    let valve = s
+    let lamp = s
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .into_iter()
-        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+FIELD-203Q1")
-        .expect("-203Q1's open finding");
+        .find(|f| f.rule == "EW-CORE-041" && f.subject == "+CAB-102E1")
+        .expect("-102E1's open finding");
     gui(
         &mut s,
         "check.waive",
-        json!({"rule": "EW-CORE-041", "fingerprint": valve.fingerprint.to_string(),
-               "reason": {"en-GB": "Supplied with the process plant"}, "author": "engineer", "date": "2025-04-14"}),
+        json!({"rule": "EW-CORE-041", "fingerprint": lamp.fingerprint.to_string(),
+               "reason": {"en-GB": "Supplied with the machine"}, "author": "engineer", "date": "2025-04-14"}),
     );
     let q = s.query();
     let set = kind_rows(&q);
     let mut want = before;
-    want.retain(|r| r[1] != "=P01+FIELD-203Q1");
+    want.retain(|r| r[1] != "+CAB-102E1");
     assert_eq!(texts(&q, &set), want);
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
@@ -268,7 +260,7 @@ fn the_waived_row_leaves() {
 /// With the release scheme `drafting` set by `project.checks.set` the list runs in that scheme.
 #[test]
 fn the_projects_release_scheme_applies() {
-    let mut s = common::golden_session();
+    let mut s = with_open_items();
     gui(
         &mut s,
         "project.checks.set",
@@ -287,7 +279,7 @@ fn form_of_910(s: &Session) -> (Value, Value) {
     let q = s.query();
     let b = q
         .report_blocks()
-        .get(golden_common::block(&golden_common::batch(), "910"))
+        .get(block_at(&q, 910))
         .expect("folio 910's block")
         .clone();
     (json!(b.form), json!(b.section))
@@ -323,19 +315,9 @@ fn cycle_notes(s: &Session) -> Vec<DeriveNote> {
         .collect()
 }
 
-/// The two descriptions of Golden A that no column split of the house table holds at the 1.8 mm floor (probed: 184.95
-/// and 164.31 mm with the cell padding; the other five columns need 102.78 mm at the floor, the table is 260.96 mm):
-/// the only overflowing cells, shrunk to the floor, cut with an ellipsis and reported (`Truncated`).
-const TOO_LONG: [&str; 2] = [
-    "placeholder part \"End bracket\" (part number TBD) is used by =P01+J-E-2416-1X1, =P01+J-E-2416-X1031, \
-     =P01+J-E-2416-X1032; choose the part before release",
-    "placeholder part \"Plug-in bridge\" (part number TBD) is used by =P01+J-E-2416-X1031, =P01+J-E-2416-X1032; \
-     choose the part before release",
-];
-
 /// Ruling 5 for one snapshot: no cycle note, the block's rows derived and paginated without a placeholder page, no
-/// overflow but the description cells of [`TOO_LONG`] (each cut at the floor, `Truncated`), and no EW-CORE-083 finding
-/// naming a table rule in the release run.
+/// overflow (the sample's descriptions fit the house table), and no EW-CORE-083 finding naming a table rule in the
+/// release run.
 fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
     assert_eq!(cycle_notes(s), Vec::<DeriveNote>::new());
     let q = s.query();
@@ -359,11 +341,7 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
             _ => None,
         }));
     }
-    let want: Vec<(usize, String, OverflowKind)> = TOO_LONG
-        .iter()
-        .map(|t| (2, (*t).to_owned(), OverflowKind::Truncated))
-        .collect();
-    assert_eq!(overflows, want, "only the descriptions too long for the table");
+    assert_eq!(overflows, Vec::<(usize, String, OverflowKind)>::new(), "no overflow");
     let caught: Vec<String> = s
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
@@ -375,14 +353,16 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
     texts(&q, &rows)
 }
 
-/// A TBD placeholder part copy of Golden A's (a part numbered `TBD`) as a new copy described `what`.
+/// A TBD placeholder part copy (a part numbered `TBD`), made from the sample's power supply part, as a new copy
+/// described `what`.
 fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
     let (_, held) = q
         .table::<ew_schema::LibCopy<ew_schema::Part>>()
         .iter()
-        .find(|(_, c)| c.item.part_number.as_str() == "TBD")
-        .expect("a placeholder part copy");
+        .find(|(_, c)| c.item.part_number.as_str() == "EW-GEN-PSU-1")
+        .expect("the power supply's part copy");
     let mut copy = ew_schema::LibCopy::clone(held);
+    copy.item.part_number = "TBD".parse().expect("a part number");
     let item = ew_derive::ew_ids::Uuid::from_u128(0x5306_0002_0000_4000_8000_0000_0000_0001);
     copy.item_id = Id::from_uuid(item);
     // A test library of its own: `part.assign` embeds copies of other libraries only.
@@ -399,11 +379,11 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
 }
 
 /// An `open_items` block at folio 914 paginates inside the page order with no
-/// cycle; a change of the page order (a new block before it, a drawn page reorder) leaves its rows as they are; -102G1
+/// cycle; a change of the page order (a new block before it, a drawn page reorder) leaves its rows as they are; -101G1
 /// given a TBD part adds one "TBD value" row and the block's pages follow in the same snapshot.
 #[test]
 fn the_open_items_block_paginates_inside_the_page_order() {
-    let mut s = common::golden_session();
+    let mut s = with_open_items();
     let (form, section) = form_of_910(&s);
     run(
         &mut s,
@@ -450,7 +430,7 @@ fn the_open_items_block_paginates_inside_the_page_order() {
                 other => panic!("folio {f}: {other:?}"),
             }
         };
-        (drawn("205"), drawn("204"))
+        (drawn("103"), drawn("102"))
     };
     run(
         &mut s,
@@ -461,14 +441,10 @@ fn the_open_items_block_paginates_inside_the_page_order() {
     assert_eq!(row_keys(&kind_rows(&s.query())), keys_before);
     assert_eq!(row_keys(&kind_rows(&s.query())), checked_keys(&s));
 
-    // -102G1 given a new placeholder part: one more "TBD value" row, the block's pages follow.
+    // -101G1 given a new placeholder part: one more "TBD value" row, the block's pages follow.
     let rows_before = assert_paginates(&s, "914");
     let copy = new_placeholder(&s.query(), "Power supply 24 V");
-    let g1 = *golden_common::tags(&s)
-        .iter()
-        .find(|(_, t)| t.ends_with("-102G1"))
-        .expect("-102G1")
-        .0;
+    let g1 = s.resolve_reference("-101G1").expect("the power supply");
     run(
         &mut s,
         "part.assign",
@@ -482,18 +458,18 @@ fn the_open_items_block_paginates_inside_the_page_order() {
         [&row([
             "TBD value",
             "TBD Power supply 24 V",
-            "placeholder part \"Power supply 24 V\" (part number TBD) is used by =P01+J-E-2416-102G1; choose the \
-             part before release",
+            "placeholder part \"Power supply 24 V\" (part number TBD) is used by +CAB-101G1; choose the part before \
+             release",
             "EW-CORE-043",
             "error",
             "",
         ])]
     );
-    // Ruling 8's order: in its category, by the natural order of the item ("TBD Plug-in bridge" < "TBD Power supply
-    // 24 V" < "TBD Wiring duct 40×60"); every other row stays as it was.
-    assert_eq!(rows_after[4][1], "TBD Power supply 24 V");
+    // Ruling 8's order: in its category, by the natural order of the item ("+CAB-201K1:DP" < "TBD Power supply
+    // 24 V"); every other row stays as it was.
+    assert_eq!(rows_after[1][1], "TBD Power supply 24 V");
     let mut rest = rows_after.clone();
-    rest.remove(4);
+    rest.remove(1);
     assert_eq!(rest, rows_before);
 }
 
@@ -512,7 +488,8 @@ fn no_open_items_print_the_empty_page() {
         assert_eq!(kind_rows(&q).rows.len(), 0, "no open items");
     }
     let parse = |text: &str| serde_json::from_str::<Value>(text).expect("a shipped form parses");
-    let repo = golden_common::repo();
+    let repo = common::repo();
+
     let nogrid = parse(
         &std::fs::read_to_string(repo.join("content/forms/ew.frame.qet-a4-landscape-nogrid.json")).unwrap(),
     );
