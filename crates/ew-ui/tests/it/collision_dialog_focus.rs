@@ -103,7 +103,7 @@ fn enter_applies_mine(h: &mut Harness<'_, App>, path: &str) {
 }
 
 #[test]
-fn f1_every_opening_of_the_collision_dialog_focuses_apply() {
+fn every_opening_of_the_collision_dialog_focuses_apply() {
     // A poll opens it.
     let tmp = Tmp::new();
     let mut h = collided(&tmp);
@@ -136,7 +136,7 @@ fn f1_every_opening_of_the_collision_dialog_focuses_apply() {
 /// A collision dialog rebuilt by a second change is opened again: the focus the user moved to All theirs
 /// does not stay, the rebuilt dialog's first focus is Apply, and Enter applies mine.
 #[test]
-fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {
+fn a_rebuilt_collision_dialog_takes_its_first_focus_again() {
     let tmp = Tmp::new();
     let mut h = collided(&tmp);
     dispatch(&mut h, "project.check_disk", json!({}));

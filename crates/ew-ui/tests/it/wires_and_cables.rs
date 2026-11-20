@@ -243,7 +243,7 @@ fn drag_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i6
 /// nothing after a drag, and one colour for two wires was refused.) A colour the project does not know is refused
 /// in words that name the codes it knows, and the lower-case code is taken.
 #[test]
-fn ft1684_the_marker_tool_marks_two_wires_with_a_typed_colour() {
+fn the_marker_tool_marks_two_wires_with_a_typed_colour() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let pixel = two_wires(&mut d);
@@ -434,7 +434,7 @@ pub(crate) fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64),
 /// FT-1688: a wire whose potential is given the type L1, and nothing else, takes a phase's colour and cross-section
 /// (1.5 mm², the mains class), not the control circuit's 0.75 mm²: its marker says so.
 #[test]
-fn ft1688_a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
+fn a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let pixel = two_wires(&mut d);
@@ -493,7 +493,7 @@ fn core_cell(d: &mut Driver, i: usize) -> String {
 /// said, in one undo step, and the cable's mark over the wires at once: its tag, its type and each core's name.
 /// Cable on a selection that holds a cable's wire opens the same form on that cable.
 #[test]
-fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
+fn cable_makes_the_selected_wires_a_cable_in_one_step() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let pixel = two_wires(&mut d);
@@ -765,7 +765,7 @@ pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
 /// of the page's two wires on the page of a new project (`1.1`, `1.2`: the page's folio and the counter); ticked off,
 /// the numbers are gone.
 #[test]
-fn ft1692_print_wire_numbers_puts_each_wires_number_on_the_page() {
+fn print_wire_numbers_puts_each_wires_number_on_the_page() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let _ = two_wires(&mut d);

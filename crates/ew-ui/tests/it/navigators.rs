@@ -293,7 +293,7 @@ fn an_unplaced_function_is_dragged_onto_the_canvas() {
 /// 8 in the window: in the strip editor (table mode) a terminal inserted into 1X1 (no strip segment, so
 /// unplaced) is a drag source; dragging its row onto the canvas of folio 101 arms the Place tool with its function.
 #[test]
-fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
+fn an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -574,7 +574,7 @@ fn a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
 
 /// R30 F9 in the window: a double click on the paged Wire List row of the Report blocks navigator goes to folio 907.
 #[test]
-fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
+fn double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // The command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px

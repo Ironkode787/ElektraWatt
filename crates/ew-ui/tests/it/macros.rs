@@ -122,7 +122,7 @@ fn reps(h: &Harness<'_, App>) -> usize {
 
 /// UI-1 and UI-2 in the window, each settle followed by the accessible-name walker (UI-6).
 #[test]
-fn ui1_ui2_insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
+fn insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
     let tmp = Tmp::new();
     let (t, core, block) = fixture(&tmp);
     let shell = shell_on(&tmp, "g.ew", Mode::Gui, &t);
@@ -203,7 +203,7 @@ fn ui1_ui2_insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
 /// UI-2's `ew.uiscript/1` twin, headless: the same steps as script lines; the block's Apply fails with the rule's
 /// text, the core macro's Apply is one command-log line and one undo step.
 #[test]
-fn ui2_the_uiscript_twin() {
+fn the_uiscript_twin() {
     let tmp = Tmp::new();
     let (t, core, block) = fixture(&tmp);
     let mut shell = shell_on(&tmp, "g.ew", Mode::Headless, &t);

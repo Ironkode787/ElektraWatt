@@ -59,7 +59,7 @@ fn canvas_rect(h: &Harness<'_, App>) -> egui::Rect {
 }
 
 #[test]
-fn a10_ctrl_plus_zooms_the_canvas_and_leaves_the_ui_scale() {
+fn ctrl_plus_zooms_the_canvas_and_leaves_the_ui_scale() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let fit = zoom(&h);
@@ -89,7 +89,7 @@ fn a10_ctrl_plus_zooms_the_canvas_and_leaves_the_ui_scale() {
 }
 
 #[test]
-fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
+fn home_fits_and_ctrl_arrow_right_moves_the_view() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     // The first view is fit-width here; Home is Fit page.
@@ -114,7 +114,7 @@ fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
 }
 
 #[test]
-fn a10_a_line_unit_wheel_event_zooms_about_the_pointer() {
+fn a_line_unit_wheel_event_zooms_about_the_pointer() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let at = canvas_rect(&h).center() + Vec2::new(120.0, -60.0);
@@ -165,7 +165,7 @@ fn a10_a_line_unit_wheel_event_zooms_about_the_pointer() {
 }
 
 #[test]
-fn a10_a_middle_button_drag_pans() {
+fn a_middle_button_drag_pans() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Num0);
@@ -201,7 +201,7 @@ fn a10_a_middle_button_drag_pans() {
 }
 
 #[test]
-fn a10_view_grid_and_the_cursor_field() {
+fn view_grid_and_the_cursor_field() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     assert!(status(&h).contains(&"QET 10 px".to_owned()), "{:?}", status(&h));
@@ -243,7 +243,7 @@ fn a10_view_grid_and_the_cursor_field() {
 }
 
 #[test]
-fn a10_the_canvas_is_one_named_canvas_node() {
+fn the_canvas_is_one_named_canvas_node() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let node = h.get_by_role(egui::Role::Canvas);
@@ -271,7 +271,7 @@ fn a10_the_canvas_is_one_named_canvas_node() {
 }
 
 #[test]
-fn a11_the_statistics_hold_one_sample_per_canvas_frame() {
+fn the_statistics_hold_one_sample_per_canvas_frame() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let before = h.state().canvas_stats().len();
@@ -300,7 +300,7 @@ fn a11_the_statistics_hold_one_sample_per_canvas_frame() {
 }
 
 #[test]
-fn a9_after_the_first_frame_view_steps_query_nothing_and_request_no_cached_tile() {
+fn after_the_first_frame_view_steps_query_nothing_and_request_no_cached_tile() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let shell = h.state().shell();

@@ -380,7 +380,7 @@ fn history_rows_actions_marker_and_show_changes() {
 /// CP5 (doc 16a §6.17): on a new project, History, Messages, Find and a navigator without rows show their empty
 /// states as named groups; a filter without hits says so with Clear filter, which clears it.
 #[test]
-fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
+fn the_empty_states_of_messages_find_history_and_the_navigators() {
     let tmp = Tmp::new();
     let dir = tmp.0.join("blank.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());

@@ -41,7 +41,7 @@ fn inside_x(outer: Rect, inner: Rect) -> bool {
 /// Item 1: on Golden A at 1920 × 1080 every row and every chip of the Pages tree lies inside the pane; the expanders
 /// are named chevron buttons, not "-" and "+".
 #[test]
-fn x32b_pages_rows_keep_to_the_pane() {
+fn pages_rows_keep_to_the_pane() {
     let tmp = Tmp::new();
     let h = on_golden(&tmp);
     let tree = h.get_by_label("Page navigator");
@@ -83,7 +83,7 @@ fn x32b_pages_rows_keep_to_the_pane() {
 /// Item 2: at 1920 × 1080 on folio 101 the value cell of Title spans to within `space.4` of the Properties pane's
 /// right edge, and the title is shown whole when it fits the cell.
 #[test]
-fn x32b_the_property_value_cell_takes_the_rest_of_the_row() {
+fn the_property_value_cell_takes_the_rest_of_the_row() {
     let tmp = Tmp::new();
     let h = on_golden(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -116,7 +116,7 @@ fn x32b_the_property_value_cell_takes_the_rest_of_the_row() {
 /// Item 3 and 6: the Devices pane in table mode at the default left column has its tool line on one row inside the
 /// pane's `space.4` gutters: the Table toggle, the filter field and the Columns menu share one centre line.
 #[test]
-fn x32b_the_table_tool_line_is_one_row() {
+fn the_table_tool_line_is_one_row() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
@@ -153,7 +153,7 @@ fn x32b_the_table_tool_line_is_one_row() {
 
 /// Item 8: the renderer field names what it means in its tooltip (amber is doc 16a §5.8's CPU fallback warning).
 #[test]
-fn x32b_the_renderer_field_says_why_in_its_tooltip() {
+fn the_renderer_field_says_why_in_its_tooltip() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     h.get_by_label("CPU").hover();

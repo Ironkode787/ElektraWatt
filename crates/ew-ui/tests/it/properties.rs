@@ -205,7 +205,7 @@ fn ac28_w29_colour_through_the_editor_and_undo() {
 }
 
 #[test]
-fn d06_the_description_override_from_the_keyboard() {
+fn the_description_override_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     // An empty selection shows the page on show.
@@ -469,7 +469,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
 /// typed number filters it, a click on `533356 (Eaton)` commits one part use of quantity 1 in one command, and the
 /// row reads `533356 × 1`.
 #[test]
-fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
+fn the_parts_row_chooses_a_part_copy_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -512,7 +512,7 @@ fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
 /// ("Main", not "MAIN"), the inherited Description shows its one-word chip ("inherited", no glyph) in its row, and
 /// no painted text carries the old glyph chips ("^ inherited", "= authored", "f derived").
 #[test]
-fn j32_property_rows_are_left_aligned_with_one_word_chips() {
+fn property_rows_are_left_aligned_with_one_word_chips() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -1007,7 +1007,7 @@ fn the_properties_filter_for_more_than_twelve_rows() {
 /// M33 (G-PP row 6, FR-NUM-029): the refused tag-letter edit of -102G1 to F shows "Use -102F3" under the field; a
 /// click commits it in one step and -102F3 is the device's tag.
 #[test]
-fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
+fn a_refused_letter_edit_offers_use_tag_as_a_button() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -1048,7 +1048,7 @@ fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
 /// The Tag field opened on its value starts with the whole text selected, so typing replaces
 /// it instead of appending ("-101K2-101K1"); a field opened by typing keeps what was typed and appends to it.
 #[test]
-fn c37_typing_into_an_opened_field_replaces_its_text() {
+fn typing_into_an_opened_field_replaces_its_text() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -1099,7 +1099,7 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
 /// not the icon alone) beside the title, and the chip stands inside the pane's gutter (its right edge with the
 /// filter field's), never clipped by the pane's edge. Folio 102, whose findings are warnings only (one chip).
 #[test]
-fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
+fn the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));

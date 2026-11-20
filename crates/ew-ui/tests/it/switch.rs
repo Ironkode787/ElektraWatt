@@ -50,7 +50,7 @@ fn banner(h: &Harness<'_, App>) -> Option<String> {
 }
 
 #[test]
-fn b9_kittest_draws_on_the_cpu_canvas() {
+fn kittest_draws_on_the_cpu_canvas() {
     let tmp = Tmp::new();
     let h = on_103(&tmp);
     assert_eq!(backend(&h), "CPU");
@@ -60,7 +60,7 @@ fn b9_kittest_draws_on_the_cpu_canvas() {
 }
 
 #[test]
-fn b5_an_injected_initialisation_failure_is_the_cpu_canvas_with_one_banner() {
+fn an_injected_initialisation_failure_is_the_cpu_canvas_with_one_banner() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     h.state_mut()
@@ -84,7 +84,7 @@ fn b5_an_injected_initialisation_failure_is_the_cpu_canvas_with_one_banner() {
 }
 
 #[test]
-fn b5_an_injected_device_loss_moves_the_canvas_to_the_cpu_for_the_session() {
+fn an_injected_device_loss_moves_the_canvas_to_the_cpu_for_the_session() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     h.state_mut().gpu_host_mut().simulate(vulkan(), Ok(()));
@@ -125,7 +125,7 @@ fn b5_an_injected_device_loss_moves_the_canvas_to_the_cpu_for_the_session() {
 }
 
 #[test]
-fn b5_warp_is_labelled_warp_and_other_software_adapters_draw_on_the_cpu() {
+fn warp_is_labelled_warp_and_other_software_adapters_draw_on_the_cpu() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     let warp = AdapterSummary {

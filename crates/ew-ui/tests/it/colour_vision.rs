@@ -111,7 +111,7 @@ fn colours() -> Vec<(String, [u8; 3])> {
 }
 
 #[test]
-fn d15_every_two_of_the_slots_and_the_selection_stay_apart_under_each_simulation() {
+fn every_two_of_the_slots_and_the_selection_stay_apart_under_each_simulation() {
     let colours = colours();
     let mut table = Vec::new();
     let mut under = Vec::new();
@@ -202,7 +202,7 @@ fn bless() -> bool {
 }
 
 #[test]
-fn d15_the_highlight_renders_under_each_simulation_are_written_for_review() {
+fn the_highlight_renders_under_each_simulation_are_written_for_review() {
     let dir = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/canvas/cvd"));
     for (folio, names) in [
         ("103", &["24VDC-1", "0V", "PE", "24VDC-2"][..]),

@@ -38,7 +38,7 @@ fn has_text(h: &Harness<'_, App>, text: &str) -> bool {
 }
 
 #[test]
-fn cp1_escape_closes_every_dialog_without_its_action() {
+fn escape_closes_every_dialog_without_its_action() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -73,7 +73,7 @@ fn cp1_escape_closes_every_dialog_without_its_action() {
 }
 
 #[test]
-fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
+fn the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -178,7 +178,7 @@ fn the_insert_symbol_picker_stands_above_the_toasts() {
 }
 
 #[test]
-fn cp4_the_palette_rows_carry_breadcrumbs_and_key_chips() {
+fn the_palette_rows_carry_breadcrumbs_and_key_chips() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -204,7 +204,7 @@ fn cp4_the_palette_rows_carry_breadcrumbs_and_key_chips() {
 }
 
 #[test]
-fn cp5_ft510_empty_states_and_the_jobs_outcome_badge() {
+fn empty_states_and_the_jobs_outcome_badge() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -237,7 +237,7 @@ fn cp5_ft510_empty_states_and_the_jobs_outcome_badge() {
 }
 
 #[test]
-fn cp8_a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
+fn a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

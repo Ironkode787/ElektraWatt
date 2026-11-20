@@ -158,7 +158,7 @@ pub(crate) fn cp_at(d: &mut Driver, label: &str) -> (i64, i64) {
 /// The persona picked a contact of -102K1 from the device browser's "In this project" and got a second relay. The
 /// part's contact row names the relay it fills, and placing it fills that relay's free contact: one device.
 #[test]
-fn ft1658_a_contact_picked_in_the_browser_fills_the_relay_of_the_project() {
+fn a_contact_picked_in_the_browser_fills_the_relay_of_the_project() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (900, 450));
@@ -200,7 +200,7 @@ fn ft1658_a_contact_picked_in_the_browser_fills_the_relay_of_the_project() {
 /// Join on a placed contact was refused as "not a contact": J (and the page's right-click menu) on one placed
 /// symbol opens the Join chooser, and its row joins the contact to the relay.
 #[test]
-fn ft1658_j_on_a_placed_contact_joins_it_to_the_relay() {
+fn j_on_a_placed_contact_joins_it_to_the_relay() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (900, 450));
@@ -250,7 +250,7 @@ fn ft1658_j_on_a_placed_contact_joins_it_to_the_relay() {
 
 /// Deleting the one placed symbol of a relay left "-?K1" with its four unplaced contacts: the relay goes with it.
 #[test]
-fn ft1658_deleting_a_relays_one_symbol_leaves_no_empty_relay() {
+fn deleting_a_relays_one_symbol_leaves_no_empty_relay() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (900, 450));
@@ -266,7 +266,7 @@ fn ft1658_deleting_a_relays_one_symbol_leaves_no_empty_relay() {
 /// The Fix badge of the duplicate-designation error did nothing, and its fix renumbered nothing when the keeper's
 /// tag was frozen: the badge opens the fix, and Apply gives the other relay a free tag.
 #[test]
-fn ft1658_the_fix_badge_of_a_duplicate_tag_renumbers_the_other_device() {
+fn the_fix_badge_of_a_duplicate_tag_renumbers_the_other_device() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (900, 450));
@@ -324,7 +324,7 @@ fn rep_of(d: &mut Driver, label: &str) -> (String, (i64, i64)) {
 /// A drag from the lamp's centre just after the click that selected it did nothing: the drag's press was taken as
 /// the double click's second press. It moves the lamp now.
 #[test]
-fn ft1659_a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
+fn a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
     let tmp = Tmp::new();
     let mut d = golden_101(&tmp);
     let pixel = pixel_map(&mut d);
@@ -348,7 +348,7 @@ fn ft1659_a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
 /// A paste landed below and right of the click (the fragment hung from its top-left corner): its middle is at the
 /// click now, within a grid step.
 #[test]
-fn ft1659_a_paste_lands_with_its_middle_at_the_click() {
+fn a_paste_lands_with_its_middle_at_the_click() {
     let tmp = Tmp::new();
     let mut d = golden_101(&tmp);
     let pixel = pixel_map(&mut d);
@@ -394,7 +394,7 @@ fn ft1659_a_paste_lands_with_its_middle_at_the_click() {
 /// The findings chip of two selected lamps opened Messages filtered on "2 devices", which matches nothing: with
 /// several records selected it opens Messages without a filter.
 #[test]
-fn ft1659_the_findings_chip_of_two_symbols_opens_messages_unfiltered() {
+fn the_findings_chip_of_two_symbols_opens_messages_unfiltered() {
     let tmp = Tmp::new();
     let mut d = golden_101(&tmp);
     let pixel = pixel_map(&mut d);
@@ -429,7 +429,7 @@ fn ft1659_the_findings_chip_of_two_symbols_opens_messages_unfiltered() {
 /// After a wire ended on a wire, the pointer rests on the junction it made, and the bar read "This junction already
 /// joins three wires" as if the wire were refused. The hint is the Wire tool's own until the next wire starts.
 #[test]
-fn ft1660_a_wire_ended_on_a_wire_leaves_no_refusal_in_the_bar() {
+fn a_wire_ended_on_a_wire_leaves_no_refusal_in_the_bar() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     for at in [(800, 400), (1000, 400), (900, 550)] {
@@ -481,7 +481,7 @@ fn ft1660_a_wire_ended_on_a_wire_leaves_no_refusal_in_the_bar() {
 /// A click on an outgoing interruption point's arrow snapped to the grid beside it (its connection point is a grid
 /// step behind the tip), so no wire reached it: the arrow ends the wire on its connection point.
 #[test]
-fn ft1660_a_click_on_an_interruption_points_arrow_ends_the_wire_on_it() {
+fn a_click_on_an_interruption_points_arrow_ends_the_wire_on_it() {
     wire_to_the_arrow(0);
 }
 

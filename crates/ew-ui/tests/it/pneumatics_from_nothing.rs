@@ -226,7 +226,7 @@ fn tubes(d: &mut Driver) -> usize {
 /// browser is a valve terminal (the Fluid panel lists it); Add valve at position 1 and 2 on its row/// on its row's menu each make a valve child whose symbol follows the pointer to its place; a cylinder, the air supply
 /// and three tubes join them; Generate overview…, greyed in words before, draws the overview page.
 #[test]
-fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
+fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     // Greyed with its reason while no valve terminal is selected.
@@ -383,7 +383,7 @@ fn one_tube_selected(d: &mut Driver) {
 /// P2-C: no tube part existed, and a tube's Tube part offered the valves. It offers the starter tubes, and only
 /// tubes; choosing one, a library part the project does not hold yet, embeds it and gives the tube its size.
 #[test]
-fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
+fn the_tube_part_offers_tubes_and_takes_one_from_the_library() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -503,7 +503,7 @@ fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
 /// P2-F: a click on a dashed (unrouted) tube selected nothing, and a right-click there opened the page's menu. A click
 /// on the line an unrouted tube is drawn with selects it, on the persona's page.
 #[test]
-fn p2f_a_click_on_an_unrouted_tube_selects_it() {
+fn a_click_on_an_unrouted_tube_selects_it() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let (line, _) = unrouted_tube(&mut d);
@@ -583,7 +583,7 @@ fn findings(d: &mut Driver, rule: &str) -> Vec<String> {
 /// table showed as 6×4, and Apply said nothing. The rule asks a material as well; now Apply's toast says the default
 /// tube reaches the tubes drawn and lacks a material, the finding names the material, and a material clears it.
 #[test]
-fn p2d_the_default_tube_and_ew_fl_007_agree() {
+fn the_default_tube_and_ew_fl_007_agree() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -685,7 +685,7 @@ fn prop_row(d: &mut Driver, key: &str) -> (String, String) {
 /// settings… and New medium… were found only through the command search. The Fluid panel offers both; a tube's
 /// Properties show its medium with where it is defined, set it by a choice, and show its effective tube with its source.
 #[test]
-fn p2e_a_tubes_properties_show_and_set_its_medium_and_its_tube() {
+fn a_tubes_properties_show_and_set_its_medium_and_its_tube() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -724,7 +724,7 @@ fn p2e_a_tubes_properties_show_and_set_its_medium_and_its_tube() {
 /// and "fluid line" read as three things. The panel's table lists the tubes drawn, its empty state and a tube's
 /// Properties say "tube".
 #[test]
-fn p2g_the_fluid_panels_table_lists_the_tubes_and_says_tube() {
+fn the_fluid_panels_table_lists_the_tubes_and_says_tube() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let table = json!({"kind": "fluid", "on": true});
@@ -785,7 +785,7 @@ fn seat(d: &mut Driver, valve: Uuid) -> (String, bool) {
 /// toast that names it; its Valve position row stands in Main and moves it; a loose valve dragged into a cell joins it
 /// too.
 #[test]
-fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
+fn a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_terminal(&mut d, (760, 300));
@@ -932,7 +932,7 @@ fn tube_cell(d: &mut Driver, line: Uuid, column: &str) -> String {
 /// Set on the two working tubes, which lie in different nets, both carry it, the Media list counts them, and the
 /// selection reads the medium with both places it is defined at.
 #[test]
-fn r2g_a_medium_set_on_two_tubes_at_once_holds_on_both() {
+fn a_medium_set_on_two_tubes_at_once_holds_on_both() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let (_, lines) = valve_and_three_tubes(&mut d);
@@ -989,7 +989,7 @@ fn choice_texts(d: &mut Driver) -> Vec<String> {
 /// last entry); the medium the form makes is the tube's; the air supply shows the medium it supplies, and sets it there
 /// too.
 #[test]
-fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
+fn new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1037,7 +1037,7 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
 /// the part was found only under Draw ▸ Device. Air supply opens the device browser at the air supply's parts, and the
 /// supply placed from it has its part, with no "no part" finding.
 #[test]
-fn rc2_the_fluid_tabs_air_supply_places_the_part() {
+fn the_fluid_tabs_air_supply_places_the_part() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     assert_eq!(
@@ -1072,7 +1072,7 @@ fn rc2_the_fluid_tabs_air_supply_places_the_part() {
 /// Edit, then a list with New medium… alone. The row's "…" opens its list at once; the list and the tube's menu offer
 /// the usual media, and choosing one makes it and sets it in one undo step; New medium… stays last.
 #[test]
-fn rc2_a_usual_medium_is_chosen_from_the_medium_list() {
+fn a_usual_medium_is_chosen_from_the_medium_list() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1136,7 +1136,7 @@ fn rc2_a_usual_medium_is_chosen_from_the_medium_list() {
 /// working ports 2 and 4 by autoconnect, because the ports faced each other. A working port never takes another valve's
 /// exhaust port (EW-FL-012's conflict): the stacked valve is placed without tubes.
 #[test]
-fn r2b_autoconnect_never_joins_an_exhaust_to_a_working_port() {
+fn autoconnect_never_joins_an_exhaust_to_a_working_port() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 650));
@@ -1175,7 +1175,7 @@ fn chip_findings(d: &mut Driver) -> Vec<String> {
 /// (Working)", and nothing matched. The chip filters by the tube's name, so Messages lists its findings and no other;
 /// a device's chip (another kind) lists the device's.
 #[test]
-fn r2d_a_tubes_finding_chip_lists_its_findings() {
+fn a_tubes_finding_chip_lists_its_findings() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1198,7 +1198,7 @@ fn r2d_a_tubes_finding_chip_lists_its_findings() {
 /// Output ▸ Report stood in the page tree as bare folios ("912"). The length reads "350 mm"; a report block made without
 /// a title of its own is titled by its report's name.
 #[test]
-fn r2h_a_tube_length_shows_its_unit_and_a_report_page_its_name() {
+fn a_tube_length_shows_its_unit_and_a_report_page_its_name() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1223,7 +1223,7 @@ fn r2h_a_tube_length_shows_its_unit_and_a_report_page_its_name() {
 /// Placed into the valve terminal's box it draws its ports 1, 3 and 5 and joins the terminal as its supply plate, so a
 /// supply line to its port 1 feeds the valve beside it through gallery 1 (no "port 1 has no supply").
 #[test]
-fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
+fn the_supply_plate_has_its_ports_and_feeds_the_valves() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_terminal(&mut d, (760, 300));
@@ -1276,7 +1276,7 @@ fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
 /// R2-J of the re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter part.
 /// The starter parts EW-GEN-CYL-1 and EW-GEN-AIR-1 answer them.
 #[test]
-fn r2j_the_starter_parts_answer_the_cylinder_and_the_air_supply() {
+fn the_starter_parts_answer_the_cylinder_and_the_air_supply() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1352,7 +1352,7 @@ fn stacked_valves(d: &mut Driver) -> (Uuid, Uuid) {
 /// clear route: the wire stays unrouted" and stayed a line through the valve; Route page refused ("no route keeps clear
 /// of texts / other connection points"). The tube takes a route.
 #[test]
-fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
+fn a_tube_from_a_port_facing_another_valve_takes_a_route() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let (valve, cylinder) = stacked_valves(&mut d);
@@ -1389,7 +1389,7 @@ fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
 /// since the lower valve's tag stands by its own valve (rc.3), the route keeps clear of the texts and the toast names
 /// no text crossed.
 #[test]
-fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
+fn route_page_routes_the_tube_across_a_text_and_says_so() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let (valve, cylinder) = stacked_valves(&mut d);
@@ -1425,7 +1425,7 @@ fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
 /// part tube) and beside the start port (nothing), and nothing said so. The hint line says what a click at the point
 /// does: a tee on a line, nothing on the start, else a bend.
 #[test]
-fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
+fn the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
@@ -1841,7 +1841,7 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
 /// tags overprinted and nothing was said. Armed, the hint says a click places it; one click places one terminal, the
 /// tool ends and the toast says what was placed; a terminal clicked onto another is refused in words.
 #[test]
-fn rc2_one_click_places_one_terminal_and_says_so() {
+fn one_click_places_one_terminal_and_says_so() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     d.input(&click(d.find("Device").unwrap()));
@@ -1890,7 +1890,7 @@ fn rc2_one_click_places_one_terminal_and_says_so() {
 /// cell; the cell's menu has Replace, Empty and Blanking plate; a stand-alone valve placed in a cell stays a valve of its
 /// own and the toast says so.
 #[test]
-fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
+fn a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_terminal(&mut d, (760, 300));
@@ -1957,7 +1957,7 @@ fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
 /// Draw the plug…, which arms the box of its pins; placed, the plug says beside its pins what each carries (the valve and
 /// its solenoid, an empty position's number, the common).
 #[test]
-fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
+fn the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     d.input(&click(d.find("Device").unwrap()));
@@ -2062,7 +2062,7 @@ fn place_multipin(d: &mut Driver, a: (i64, i64)) -> String {
 /// the fluid page the terminal's menu, its Properties row and the Fluid tab draw it as a valve's solenoid is drawn: the
 /// electrical page shows with the plug's box on the pointer; placed, the menu and the row say where it is.
 #[test]
-fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
+fn the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let reason = |d: &mut Driver| {
@@ -2141,7 +2141,7 @@ fn cells_of(d: &mut Driver, terminal: Uuid) -> Vec<ew_viewmodel::ew_api::output:
 /// then A new terminal…); a new one placed meanwhile says that the other is still undrawn; the rack dialog's Draw on a
 /// fluid page… puts its box of positions on the pointer, its valve in its cell.
 #[test]
-fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
+fn a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
@@ -2266,7 +2266,7 @@ fn asks_for_fluid_page(d: &mut Driver) -> bool {
 /// nothing (its bus port had become its main function). Create puts its box on the pointer; a click draws it with its
 /// valves in their cells, and its To do no longer asks for it.
 #[test]
-fn rc3_a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
+fn a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let station = profinet_terminal(&mut d, 2);
@@ -2305,7 +2305,7 @@ fn rc3_a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
 /// nothing. Draw on a new fluid page makes one there and then, says so, and puts the terminal's box on the pointer
 /// there.
 #[test]
-fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
+fn draw_on_a_fluid_page_makes_one_when_there_is_none() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let station = profinet_terminal(&mut d, 1);
@@ -2329,7 +2329,7 @@ fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
 /// rc.3: with several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
 /// the one chosen (rc.5: from a view opened on another page than a fluid one).
 #[test]
-fn rc3_draw_on_a_fluid_page_asks_which_of_several() {
+fn draw_on_a_fluid_page_asks_which_of_several() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let page = json!({"folio": "202", "type": "fluid", "title": "Eject"});
@@ -2357,7 +2357,7 @@ fn rc3_draw_on_a_fluid_page_asks_which_of_several() {
 /// as its symbol, its working ports 2 and 4 on the cell's top edge, and the terminal's own supply ports 1, 3 and 5 in
 /// its left end; a tube joins port 4 of a valve to a cylinder, and the view's positions name the page.
 #[test]
-fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
+fn valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
@@ -2448,7 +2448,7 @@ fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
 /// The owner's order (rc.2): the valve terminal made as a station and drawn on the schematic page first, then on the
 /// fluid page from its rack dialog: there too it is drawn as its positions, another drawing of the same terminal.
 #[test]
-fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
+fn a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
@@ -2485,7 +2485,7 @@ fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
 /// too. On the body the menu lists every position under a heading, the same for both kinds; the kind's line is a
 /// heading; the cell's browser lists the valves made for a terminal, the first of them chosen.
 #[test]
-fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
+fn a_terminals_menu_lists_its_positions_from_the_body() {
     use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
@@ -2619,7 +2619,7 @@ fn supply_ends(d: &mut Driver) -> Vec<(i64, i64)> {
 /// terminal's Properties header, its menu's heading and its row's hover in the Devices list say its kind in the same
 /// words.
 #[test]
-fn rc2_each_valve_terminal_says_its_kind() {
+fn each_valve_terminal_says_its_kind() {
     use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
@@ -2670,7 +2670,7 @@ fn rc2_each_valve_terminal_says_its_kind() {
 /// terminal was taken (its plug's pin 1 named it), but the toast said the terminal had no free position and the valve
 /// stayed one of its own. The toast says where it sits, as on the bus-node terminal.
 #[test]
-fn rc2_a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
+fn a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let terminal = place_multipin(&mut d, (760, 300));
@@ -2701,7 +2701,7 @@ fn rc2_a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
 /// page… while an electrical page is in front (on an electrical page… from the fluid page) and Go to the valve; drawn
 /// and selected, Follow reference goes to the valve.
 #[test]
-fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
+fn the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     d.input(&click(d.find("Device").unwrap()));
@@ -2798,7 +2798,7 @@ fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
 /// stays chosen) and blanks the position; EW-FL-013 says where it is (a right click on the position) and offers it as
 /// its fix; Fix all blanks every empty position in one step, and one undo brings them back.
 #[test]
-fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
+fn a_blanking_plate_is_found_from_the_cell_and_the_check() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
@@ -2867,7 +2867,7 @@ fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
 /// and could not be pointed at the control page. From a fluid page it asks on which electrical page (the one after this
 /// page chosen, New page… offered) and draws there; with an electrical page in front it draws there, asking nothing.
 #[test]
-fn rc2_draw_plug_draws_where_the_person_is() {
+fn draw_plug_draws_where_the_person_is() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
@@ -2927,7 +2927,7 @@ fn rc2_draw_plug_draws_where_the_person_is() {
 /// The rc.2 re-test (friction 10): the 8-position multipin terminal placed near the frame's right edge ran past it,
 /// positions 4 and up cut off, without a word. Placed there, it stands inside the drawing area, moved left.
 #[test]
-fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
+fn a_terminal_placed_at_the_frames_edge_stands_inside_it() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let area = {
@@ -2955,7 +2955,7 @@ fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
 /// air", marked derived, and the Tube button's mode read "Wire". The row shows the medium as the list offered it, as the
 /// supply's own; the mode reads Tube.
 #[test]
-fn rc2_the_medium_row_and_the_tube_mode_say_what_was_chosen() {
+fn the_medium_row_and_the_tube_mode_say_what_was_chosen() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_symbol(&mut d, "ew.iso.air-supply@qet10", (1300, 800));
@@ -2993,7 +2993,7 @@ fn rc2_the_medium_row_and_the_tube_mode_say_what_was_chosen() {
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its
 /// size is set.
 #[test]
-fn rc2_the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
+fn the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 600));

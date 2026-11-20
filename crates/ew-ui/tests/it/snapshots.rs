@@ -837,7 +837,7 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 /// CP6: every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
 /// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
 /// and the three dialogs that need a fixture (the recovery dialog, the question of discarding its journal and the
-/// purge question), gated by [`cp6_the_fixture_dialogs_in_light`]. Two shards that run
+/// purge question), gated by [`the_fixture_dialogs_in_light`]. Two shards that run
 /// side by side, each in a window of its own.
 fn cp6_every_dialog(k: usize, of: usize) {
     let dev = device();
@@ -980,7 +980,7 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
 /// (Discard… of the recovery dialog) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
 /// re-opened).
 #[test]
-fn cp6_the_fixture_dialogs_in_light() {
+fn the_fixture_dialogs_in_light() {
     use ew_viewmodel::shell::Dialog;
     let dev = device();
     let mut failures = Vec::new();
@@ -1114,7 +1114,7 @@ fn buttons(h: &Harness<'_, App>, labels: &[&str]) -> Vec<egui::Rect> {
 /// card) and the table card in the Terminal strips pane (a paste onto a read-only cell, cropped to the grid with the
 /// card), light Comfortable, gated.
 #[test]
-fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
+fn the_quick_fix_card_and_the_table_card_in_light() {
     let dev = device();
     let mut failures = Vec::new();
     {
@@ -1631,7 +1631,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
-        // Two contacts one above the other without wires (as `gpp_m34`'s test places them).
+        // Two contacts one above the other without wires (as `designations_and_ip_renames`'s test places them).
         for k in [(60, 38), (60, 52)] {
             act(&mut h, "place.pick", pick.clone());
             place_at(&mut h, k);

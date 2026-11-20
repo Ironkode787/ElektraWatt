@@ -66,7 +66,7 @@ fn canvas_description(h: &Harness<'_, App>) -> String {
 }
 
 #[test]
-fn v12_the_viewer_without_a_pointer() {
+fn the_viewer_without_a_pointer() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // Ctrl+G, "103-A1", Enter: folio 103, the status field reads the cell.
@@ -223,7 +223,7 @@ fn v12_the_viewer_without_a_pointer() {
 }
 
 #[test]
-fn v10_exact_counts_of_the_multi_canvas_host() {
+fn exact_counts_of_the_multi_canvas_host() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // Every page a cross-reference of section 1 leads to is shown once, so a follow stays in the cache.
@@ -323,7 +323,7 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
 }
 
 #[test]
-fn v11_hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
+fn hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -462,7 +462,7 @@ fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
 /// Doc 16a §6.6, for the canvas tabs: no canvas tab's label carries a bracketed word; the
 /// badges are the page rows' caption chips painted inside the tab, and the accessible name reads them after a comma.
 #[test]
-fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
+fn canvas_tab_badges_are_chips_not_bracketed_words() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));

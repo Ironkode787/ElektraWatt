@@ -227,7 +227,7 @@ fn assert_parity(label: &str, gpu: &RgbaImage, cpu: &RgbaImage, mean_bound: f64)
 }
 
 #[test]
-fn b2_folio_103_at_150_dpi_matches_the_cpu_raster() {
+fn folio_103_at_150_dpi_matches_the_cpu_raster() {
     let devices = devices();
     if devices.is_empty() {
         return;
@@ -251,11 +251,11 @@ fn b2_folio_103_at_150_dpi_matches_the_cpu_raster() {
 }
 
 /// The stress variant of the parity on the dense A3 page: in the deep nightly (`deep-nightly.yml`, job
-/// `gpu-parity`), not per pull request; `b2_folio_103_at_150_dpi_matches_the_cpu_raster` asserts the same parity on
+/// `gpu-parity`), not per pull request; `folio_103_at_150_dpi_matches_the_cpu_raster` asserts the same parity on
 /// the real page per gate.
 #[test]
 #[ignore = "deep run: the GPU parity on the dense A3 page"]
-fn b2_the_dense_a3_page_matches_the_cpu_raster() {
+fn the_dense_a3_page_matches_the_cpu_raster() {
     let devices = devices();
     if devices.is_empty() {
         return;
@@ -280,7 +280,7 @@ fn b2_the_dense_a3_page_matches_the_cpu_raster() {
 }
 
 #[test]
-fn b2_a_filled_0072b2_rectangle_reads_back_its_bytes() {
+fn a_filled_0072b2_rectangle_reads_back_its_bytes() {
     for d in devices() {
         rectangle_on(&d);
     }
@@ -333,7 +333,7 @@ fn first_ink(image: &RgbaImage, x: u32, y: u32) -> (Option<u32>, Option<u32>) {
 }
 
 #[test]
-fn b2_the_edges_of_a_rectangle_land_on_the_cpu_rasters_pixels() {
+fn the_edges_of_a_rectangle_land_on_the_cpu_rasters_pixels() {
     // A filled black rectangle whose left and top edges lie inside pixels at 150 dpi (60.2 and 40.3 pixels), so
     // that both renderers cover the edge pixel by more than half and the pixel before it not at all.
     let px = |v: f64| (v * 25_400_000.0 / 150.0).round() as i64;
@@ -366,7 +366,7 @@ fn b2_the_edges_of_a_rectangle_land_on_the_cpu_rasters_pixels() {
 }
 
 #[test]
-fn b3_a_second_preparation_of_folio_103_tessellates_nothing_and_glyphs_are_one_mesh_each() {
+fn a_second_preparation_of_folio_103_tessellates_nothing_and_glyphs_are_one_mesh_each() {
     let tmp = Tmp::new();
     let page = folio_103(&tmp);
     let mut cache = MeshCache::default();
@@ -410,7 +410,7 @@ fn collect_glyphs(items: &[Item], out: &mut BTreeSet<(FontKey, u32)>) {
 }
 
 #[test]
-fn b4_at_10_per_cent_the_bars_are_the_runs_below_2_pixels() {
+fn at_10_per_cent_the_bars_are_the_runs_below_2_pixels() {
     let tmp = Tmp::new();
     let page = folio_103(&tmp);
     let mut cache = MeshCache::default();

@@ -204,7 +204,7 @@ fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
 /// In Dutch the pane's rows fit at 1920 × 1080, and in a pane too narrow for "Onderbrekingspunt" at the term
 /// column's share the column is as wide as the word needs, so the term wraps between words, never inside one.
 #[test]
-fn f8_the_dutch_term_keeps_its_longest_word_whole() {
+fn the_dutch_term_keeps_its_longest_word_whole() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -242,7 +242,7 @@ fn f8_the_dutch_term_keeps_its_longest_word_whole() {
 
 /// A WH and a GNYE wire on one path are drawn side by side, both colours on show; each code on its own.
 #[test]
-fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
+fn two_wires_on_one_path_are_drawn_side_by_side() {
     use ew_viewmodel::wire_colours::{LANE_PT, WireStroke, assign_lanes};
     let nil = ew_viewmodel::ew_api::output::Uuid::nil();
     let path = vec![(10_000_000, 10_000_000), (50_000_000, 10_000_000)];

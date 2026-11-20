@@ -76,7 +76,7 @@ fn tap(h: &mut Harness<'_, App>, pos: Pos2) {
 }
 
 #[test]
-fn t6_t10_select_and_measure_from_the_keyboard_alone() {
+fn select_and_measure_from_the_keyboard_alone() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
     // The Tools menu's Measure through the palette, keyboard only.
@@ -157,7 +157,7 @@ fn t6_t10_select_and_measure_from_the_keyboard_alone() {
 }
 
 #[test]
-fn t10_the_primary_button_is_the_tools_input() {
+fn the_primary_button_is_the_tools_input() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     let canvas = h
@@ -482,7 +482,7 @@ fn the_physical_bracket_key_steps_the_connection_points() {
 }
 
 #[test]
-fn t8_the_window_reports_the_rest_and_shows_the_popup() {
+fn the_window_reports_the_rest_and_shows_the_popup() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     let link = h
@@ -539,7 +539,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
 }
 
 #[test]
-fn t11_exact_counts_of_tool_events_in_the_window() {
+fn exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     // The property grid fetches a sheet per selection change (its counts in `tests/it/properties.rs`): closed
@@ -1069,7 +1069,7 @@ fn a_png(tmp: &Tmp) -> std::path::PathBuf {
 /// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
 /// without a pointer event over the canvas.
 #[test]
-fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
+fn the_image_hint_follows_the_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
     let file = a_png(&tmp);
     let scripted = Scripted::default();
@@ -1121,7 +1121,7 @@ impl ew_ui::app::Platform for ThreadedImage {
 /// R30 F3 through the dialog's thread: the frames that follow the answer show the armed hint in the status bar
 /// without any pointer event.
 #[test]
-fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
+fn the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
     let file = a_png(&tmp);
     let dir = tmp.golden("g.ew");
