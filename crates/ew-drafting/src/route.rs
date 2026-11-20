@@ -804,7 +804,8 @@ impl Router {
     }
 
     /// Phase 5: the search for the jobs without a route, then the passes; the wires searched in order, and those with
-    /// no way.
+    /// no way. A job without a way keeps its stored route at once, so the jobs after it keep clear of it (§3.8); each pass
+    /// tries it again first.
     fn searches(&mut self) -> (Vec<WireId>, BTreeSet<WireId>) {
         let mut rest: Vec<WireId> = self
             .jobs
@@ -819,22 +820,38 @@ impl Router {
             if self.points_meet(w) {
                 continue;
             }
-            if self.fourth_arm(w) {
-                failed.insert(w);
-                continue;
-            }
-            match self.search(w, &[], Relax::default()) {
+            let found = if self.fourth_arm(w) {
+                None
+            } else {
+                self.search(w, &[], Relax::default())
+            };
+            match found {
                 Some(f) => {
                     self.lay(w, f.route);
                     searched.push(w);
                 }
                 None => {
+                    self.keep_stored(w);
                     failed.insert(w);
                 }
             }
         }
         for _ in 0..PASSES {
             let mut changed = false;
+            for w in failed.clone() {
+                let old = self.route_of(w).to_vec();
+                self.lift(w);
+                match self.search(w, &[], Relax::default()).filter(|_| !self.fourth_arm(w)) {
+                    Some(f) => {
+                        self.lay(w, f.route);
+                        failed.remove(&w);
+                        searched.push(w);
+                        changed = true;
+                    }
+                    None if old.is_empty() => {}
+                    None => self.lay(w, old),
+                }
+            }
             for w in searched.clone() {
                 let old = self.route_of(w).to_vec();
                 self.lift(w);
@@ -852,6 +869,13 @@ impl Router {
             }
         }
         (searched, failed)
+    }
+
+    /// Job `w` on its stored route, where it has one (a job without a way, §3.8).
+    fn keep_stored(&mut self, w: WireId) {
+        if let Some(s) = self.stored.get(&w).filter(|s| !s.is_empty()).cloned() {
+            self.lay(w, s);
+        }
     }
 
     fn points_meet(&self, w: WireId) -> bool {
@@ -1029,8 +1053,8 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     };
     wanted.retain(|w| !r.points_meet(*w));
     let movable = |j: JunctionId| {
-        !jobs.keep_junctions &&
-            page.wires
+        !jobs.keep_junctions
+            && page.wires
             .iter()
             .filter(|w| w.ends.contains(&End::Junction(j)))
             .all(|w| wanted.contains(&w.id))
@@ -1042,20 +1066,23 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let (_, failed) = r.searches();
     r.text_rounds();
     r.weigh(&nets);
-    // A job without a way keeps its stored route.
-    for w in &failed {
-        if let Some(s) = r.stored.get(w).filter(|s| !s.is_empty())
-            && let Some(i) = r.wire_index(*w)
-        {
-            r.page.wires[i].route.clone_from(s);
-        }
-    }
+    // Never worse: a net that gives a wire a fault it did not have, or a wire routed before a finding, goes back to its
+    // stored drawing (a wire without one to none), until none does.
+    let faulty_before = wires_with_faults(&before);
     let mut after = measure(&r.page);
-    // Never worse: a net that gives a wire a finding goes back to its stored drawing once.
-    let (bad, _) = worse(page, &before, &after);
-    if !bad.is_empty() {
-        for net in nets.iter().filter(|n| n.wires.iter().any(|w| bad.contains(w))) {
-            r.page = r.stored_page(net);
+    for _ in 0..=nets.len() {
+        let (mut culprits, _) = worse(page, &before, &after);
+        culprits.extend(wires_with_faults(&after).difference(&faulty_before));
+        let mut reverted = false;
+        for net in nets.iter().filter(|n| n.wires.iter().any(|w| culprits.contains(w))) {
+            let stored = r.stored_page(net);
+            if stored != r.page {
+                r.page = stored;
+                reverted = true;
+            }
+        }
+        if !reverted {
+            break;
         }
         after = measure(&r.page);
     }
