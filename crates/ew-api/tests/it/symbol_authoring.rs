@@ -319,7 +319,7 @@ fn preview_uses_the_page_text_style_in_every_variant() {
             .items
             .iter()
             .filter_map(|i| match &i.kind {
-                symbols::drawing::ItemKind::Glyphs(run) => Some(run),
+                ew_dl::ItemKind::Glyphs(run) => Some(run),
                 _ => None,
             })
             .collect();

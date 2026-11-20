@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::{Item, ItemKind, Layer};
+use ew_dl::{Item, ItemKind, Layer};
 use ew_api::output::{
     PageDigest, Parallelism, changed_now, changed_pages, last_changed_in, page_digest, page_digests,
     page_layer, page_uuid,

@@ -9,7 +9,6 @@ use std::io::Read;
 use std::path::Path;
 
 use ew_derive::ew_ids::{Id, Uuid, v5};
-pub use ew_dl as drawing;
 pub use ew_mltext::{MlText, MlTextView};
 pub use ew_scene::symbol::{SymbolGeometry, TextSource, lower};
 pub use ew_schema as schema;
@@ -345,7 +344,7 @@ pub fn preview_display_list(
     geometry: &SymbolGeometry,
     styles: &TextStyleTable,
     slot_placeholder: &dyn Fn(&schema::SlotKind) -> String,
-) -> drawing::DisplayList {
+) -> ew_dl::DisplayList {
     let mut list = geometry.graphics.clone();
     for text in &geometry.texts {
         let content = match &text.source {

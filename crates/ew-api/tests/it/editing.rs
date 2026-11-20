@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use ew_api::geometry::{orient_dir, orient_point};
-use ew_api::output::ew_dl::{ItemKind, Layer, PathEl};
+use ew_dl::{ItemKind, Layer, PathEl};
 use ew_api::output::{TableEnd, page_layer};
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
 use ew_derive::ew_ids::{Id, Uuid};

@@ -8,7 +8,7 @@
 //! picker's command (`box.black` from the part), with an auxiliary coil of its device elsewhere on the page, so it
 //! prints a cross-reference.
 
-use ew_api::output::ew_dl::{EntityRef, Item, ItemKind, Layer, Transform};
+use ew_dl::{EntityRef, Item, ItemKind, Layer, Transform};
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
 use ew_derive::{DisplayedTag, PageOrder, PageRef, XrefTextOf};
 use ew_ids::{Id, Uuid};

@@ -58,7 +58,7 @@ pub struct PageLayer {
     pub tags: BTreeMap<Uuid, Pt2>,
     /// The labels layer's box of each placement's label on a panel-layout page, by placement ID
     /// (`ew_scene::page::LayerList::panel_labels`).
-    pub panel_labels: BTreeMap<Uuid, ew_dl::ew_units::Rect>,
+    pub panel_labels: BTreeMap<Uuid, ew_units::Rect>,
     /// The labels layer's slot texts where they print (`ew_scene::page::LayerList::slot_texts`).
     pub slot_texts: Vec<ew_scene::page::SlotTextBox>,
     /// The labels layer's page as the layout sees it (`ew_scene::page::LayerList::draft`).

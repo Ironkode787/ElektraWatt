@@ -26,10 +26,10 @@ use std::fmt;
 use std::sync::Arc;
 
 use ew_derive::Q;
-use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{DisplayList, Item};
 use ew_export::{Parallelism, PdfPage, PdfReport};
 use ew_text::TextStyle;
+use ew_units::{Nm, Pt2};
 
 pub use ew_export::PagePlacement;
 
@@ -519,7 +519,7 @@ mod tests {
     fn an_a3_page_on_a4_is_scaled_to_71_percent_or_clipped_with_a_notice() {
         let mm = |x: i64, y: i64| Pt2::new(Nm::from_mm(x), Nm::from_mm(y));
         let frame = Item::path(
-            ew_dl::Path::rect(ew_dl::ew_units::Rect::from_points(mm(10, 10), mm(410, 287))),
+            ew_dl::Path::rect(ew_units::Rect::from_points(mm(10, 10), mm(410, 287))),
             Some(ew_dl::Stroke::pen(ew_dl::Pen::P026)),
             None,
         );

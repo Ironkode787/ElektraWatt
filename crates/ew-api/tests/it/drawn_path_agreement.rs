@@ -11,7 +11,7 @@
 
 use crate::golden_common::read_only as golden;
 
-use ew_api::output::ew_dl::{ItemKind, Layer, PathEl};
+use ew_dl::{ItemKind, Layer, PathEl};
 use ew_api::output::{NavKind, NavRole, PageLayer, TableCp, page_layer};
 use ew_api::{AnyCommand, Session};
 use ew_derive::ew_ids::{Id, Uuid};

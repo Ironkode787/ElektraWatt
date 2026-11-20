@@ -5,7 +5,7 @@
 //! it is, a valve dragged onto another cell moves there or swaps, a device that is no valve for a terminal stays its own,
 //! and a terminal drawn before as a free box is redrawn as its positions with its valves and their tubes.
 
-use ew_api::output::ew_dl::ew_units::{Grid, Nm};
+use ew_units::{Grid, Nm};
 use ew_api::output::{PageTables, SlotCell};
 use ew_api::{AnyCommand, Session};
 use ew_ids::{Id, Uuid};

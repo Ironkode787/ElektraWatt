@@ -4004,7 +4004,7 @@ fn subset_draws(subset: &[u8], face: &[u8], family: &str, chars: &BTreeSet<char>
     let text: String = chars.iter().collect();
     let shaped = set.shape(
         &text,
-        &ew_text::TextStyle::regular(ew_dl::ew_units::Nm::from_mm(3)),
+        &ew_text::TextStyle::regular(ew_units::Nm::from_mm(3)),
         None,
     );
     if !shaped.missing.is_empty() {

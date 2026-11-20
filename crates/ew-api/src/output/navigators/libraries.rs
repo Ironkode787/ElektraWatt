@@ -28,7 +28,6 @@ use ew_schema::{
 use super::columns::column;
 use super::{Builder, NavColumn, NavRole, kind_text};
 use crate::library::{IndexState, LibraryInfo, Tier};
-use crate::output::ew_dl;
 use crate::{CopyState, Session};
 use ew_derive::short_tag;
 

@@ -9,7 +9,7 @@ use std::path::Path;
 
 use ew_api::StoreOptions;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
-use ew_api::output::ew_dl::{Item, ItemKind};
+use ew_dl::{Item, ItemKind};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Recovery, Session, SessionOptions,
 };
@@ -247,7 +247,7 @@ fn a_basic_project_is_copied_as_it_is() {
     );
 }
 
-fn run_fonts(items: &[Item], out: &mut Vec<ew_api::output::ew_dl::FontKey>) {
+fn run_fonts(items: &[Item], out: &mut Vec<ew_dl::FontKey>) {
     for item in items {
         match &item.kind {
             ItemKind::Glyphs(run) => out.push(run.font),
