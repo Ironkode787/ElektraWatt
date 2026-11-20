@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `edit.paste` (spec §8.4; D12): pastes a project fragment (`#ew-fragment v1`, the
+//! `edit.paste`: pastes a project fragment (`#ew-fragment v1`, the
 //! project-fragment format of architecture §5.5) onto a page in one transaction.
 //!
 //! The fragment arrives as the command's parameter, so a command log replays a paste exactly without a
@@ -32,10 +32,10 @@ use crate::proxy::{Pt2S, UuidS};
 use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
-/// The most records one fragment (and so one paste) may hold (spec §8.3, §8.4).
+/// The most records one fragment (and so one paste) may hold.
 pub const PASTE_MAX_RECORDS: usize = 10_000;
 
-/// The record kinds a fragment may carry (spec §8.3).
+/// The record kinds a fragment may carry.
 pub const PASTE_KINDS: [Kind; 8] = [
     Kind::Device,
     Kind::Function,
@@ -47,7 +47,7 @@ pub const PASTE_KINDS: [Kind; 8] = [
     Kind::StructureBox,
 ];
 
-/// One structure node a fragment's records name (spec §8.1 item 5): its source ID, aspect, the codes of its
+/// One structure node a fragment's records name: its source ID, aspect, the codes of its
 /// path from the root down and its aliases.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -64,7 +64,7 @@ pub struct FragmentNode {
     pub aliases: Vec<String>,
 }
 
-/// A project fragment as one JSON object (spec §8.1): the `$fragment` header's known members, the records,
+/// A project fragment as one JSON object: the `$fragment` header's known members, the records,
 /// the library copies and the structure nodes. The ghost rectangles of the text form are not part of it.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -273,7 +273,7 @@ fn reads(v: &Value) -> bool {
     Record::from_value(v.clone()).is_ok()
 }
 
-/// Clears the reference at `path` of record `v` (spec §8.4 effect 4): the list element it is (`name[]`), else the
+/// Clears the reference at `path` of record `v`: the list element it is (`name[]`), else the
 /// member holding it (a CP endpoint's `cp` for `name[n]`), else the object member directly around that member
 /// when that object is not the record itself (`overrides.wire_part` for `overrides.wire_part.copy`); the first
 /// removal after which the record still reads. `None`: the reference is mandatory.
@@ -508,7 +508,7 @@ fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
     }
 }
 
-/// How one reference of a fragment record resolves (spec §8.4 effects 1 to 3).
+/// How one reference of a fragment record resolves.
 enum Resolved {
     /// It names this ID now.
     To(Uuid),
