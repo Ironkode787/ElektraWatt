@@ -666,7 +666,8 @@ and one main function of the chosen symbol's function definition.
   section and then diverge, the scene draws a 45° bevel at the divergence: the reference's notation on the 101 top
   bus, as presentation only (D-20).
 - **Junctions.** Ending a wire on the interior of another connection's segment creates a `Junction` and splits that
-  connection. Style defaults to Dot; wiring defaults to Star for Dot and Chain for Bevel ([03](03-domain-model.md)
+  connection. Style defaults to Bevel; the Wire tool's dot key (`.`) asks for a Dot (owner, drafting step 2,
+  [06a](06a-drafting.md) §7.4). Wiring defaults to Star for Dot and Chain for Bevel ([03](03-domain-model.md)
   OQ7). `sequence` stores connection IDs; the editor shows each member by its far endpoint, e.g. (+#1, -102F1:1,
   +#2) for J3. The initial sequence lists the two parts of the split connection ordered by flow distance from the
   potential's source ([08](08-connections-terminals-cables.md) §3.2, §3.6), with reading order (row, then column of

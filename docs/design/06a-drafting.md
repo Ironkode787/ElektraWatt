@@ -119,8 +119,8 @@ sees and make a page comparable before and after: the wires drawn **straight** a
 the **detour** (the summed length against the summed city-block distance of the ends, in percent); and the
 **labels moved** off their first place. Their causes are already in the cost.
 
-*As built (step 1).* F3 excepts only the common beginning of two wires of one pin, within `STUB` along the pin's
-side; the shared run of §3.4 comes with the router (step 2). F6 is a corner on another wire's corner: a corner or
+*As built (steps 1 and 2).* F3 excepts the common beginning of two wires of one pin: their routes walked from the
+pin together while they run the same way (the shared run of §3.4). F6 is a corner on another wire's corner: a corner or
 an end on another wire's end, a junction on a crossing and a wire's end on a wire are F2 by their geometry. F7
 leaves out an outline drawn round other parts, a part without pins and two parts on one pin's point (an
 interruption point on a pin). Two texts meet when they overlap by more than a tick (a text's box is rounded outward
@@ -497,6 +497,17 @@ pole's trunk first, so it takes the nearest track and the others lie outward, ea
 of the poles before it: §1.3). Among other trunks the order is the supply ranks (L1 first, signals last), then
 more taps first, then the first tap's place, then the ID.
 
+*As built (step 2).* `ew_drafting::nets` and `route` (module documentation there). A trunk is offered to a net whose
+taps form a chain and to a pin's fan; a net whose taps branch keeps its taps and its wires go to the search one by
+one (a side branch is not yet a net of its own on the spine). Each end of a trunk net has its foot on the line; a
+wire runs end, foot, foot, end, so the wires of a pin tap share the drop and part on the trunk. A trunk is valid only
+when every wire between two taps is free in the occupancy and at least two wires are; a wire whose drop is not
+straight or not free goes to the search with its tap where the trunk put it, priced in the choice as its ends'
+distance and two bends. The order of trunks is the supply rank, then the first tapped pin's place (left first),
+then more taps first, then the ID. The shared run is part of the search (§3.6): a wire of a pin starts, or ends, on
+each node of the run of a wire already laid from that pin, with that run's price, so it can only share a common
+beginning. The note of an order that runs against the places names the net's first wire, not its potential.
+
 ### 3.5 Tracks
 
 A **stepping wire** is a job between two ends that cannot be one segment and whose shape is known: a **Z**
@@ -589,6 +600,19 @@ is not redrawn, and the message can say honestly that nothing better was found. 
 A cable mark or wire marker sits across the wires it names. When one of those wires is routed anew, the mark is
 set on the stretch nearest to its old place where its wires run side by side within two steps of each other,
 across them; with no such stretch, on its first wire alone. Its tag is a label.
+
+*As built (step 2), §3.6 to §3.10.* The search prices a label at `LABEL_RANK` (it is taken to step aside) and a fixed
+text in full; the second text round prices in full the texts a wire still crosses. A route found on the grid ends on
+its end's own point, and the corner next to it takes that point's coordinate (a pin off the grid). A bend the person
+led into a part over one of its pins may leave that part (the router of ADR-0033 allowed it); a pin inside another
+part's body has no way out. A job without a way keeps its stored route in the occupancy at once, so the jobs after
+it keep clear of it, and each pass tries it again first. Never worse: a net that gives a wire a fault it did not
+have, or a wire routed before a finding it did not have, goes back to its stored drawing (a wire without one to no
+route), until none does; the text part of the rule (a label newly on a text or a part) holds where the plan routes no
+wire that had no route, since routing a dashed wire is the larger gain. A page whose Route gains only a tie is
+offered nothing. A mark moves along its line only (its line reaches across to its wires wherever it stands), by
+`layout.apply`'s `markers`, which this step adds with `junctions` and `routes`; `parts` come with step 4. The plan's
+`his` rows are listed in Route's preview card (§7.2); ticking them comes with the preview of §7.3.
 
 ---
 
@@ -946,6 +970,16 @@ parts moved, 9 wires routed" with Undo.
 - **`ew route`** on the command line runs Route for a page or a selection (`--arrange` runs Arrange and route);
   `--dry-run` prints the plan.
 
+*As built (step 2).* Route is `layout.route` in the Connect group where Reroute stood, and in the menu of a wire and
+of a symbol; its toast lists the wires without a way and the nets whose order runs against their places. The Wire
+tool's dot key is `.` (`tool.wire_dot`, with a hint while the end is on a wire); the junction editor (Enter on a
+selected junction) gives the dot to a junction that exists. A move's re-solve keeps every junction where it stands
+(its command moves none). Paste and the grid fit route their wires on the same core and store one `layout.apply`.
+`ew route` stores Route's plan; its JSON keeps the reason key `symbols` for parts. The scene draws the parting of a
+shared run (§3.4): of two wires that turn away from each other there, the one turning right or down takes the bevel;
+of one going on and one turning, the turning one; a run or a way on shorter than a step keeps its corner. A
+symbol dropped on a shared run is refused ("two wires run here; place the symbol where they have parted").
+
 ### 7.5 Cards drawn from the station view
 
 The router and the placer work with a card as it is drawn, whatever its form. "Draw on a page" draws a card
@@ -1035,6 +1069,10 @@ a part" (C5, hygiene warnings). EW-TERM-006 is unchanged.
 *As built (step 1).* Four are added, F7 among them as §1.2 asks: EW-CORE-074 "Wires meet without joining",
 -075 "Text on a text", -076 "Text on a symbol" and -077 "Symbol on a symbol" (a conflict warning), with the rows of
 [15](15-checks-revisions-collaboration.md) §4.2. Until step 2, -068 allows the common beginning of §1.2's note only.
+
+*As built (step 2).* The rows of this table marked 2 are gone. A shared run is that common beginning (a run from
+the pin of both wires while both go the same way), so -068 needs nothing more. `ew route` keeps its name and now
+stores `layout.apply`.
 
 ### 8.1 What is left out
 
