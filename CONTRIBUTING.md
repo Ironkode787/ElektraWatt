@@ -73,6 +73,10 @@ know every action, form or tool walks the registry or the source, it does not ke
 - Open work is a row of [`docs/plan/backlog.md`](docs/plan/backlog.md). A finished row is deleted.
 - A decision that changes how something works is written into the document that describes it (a design document
   under `docs/design/` or an ADR under `docs/adr/`), so that the document states what is true now.
+- A change that a user, a script or a reader of the format can see gets one line in
+  [`docs/release-notes/unreleased.md`](docs/release-notes/unreleased.md), in the commit that makes it, of a kind
+  that file's head names; it is written nowhere else. When a release branch is cut, the release's notes are written
+  from those lines and the file is emptied; a fix to a candidate then writes its line in the release's notes.
 - The commit message says what changed and why. No trailer is required.
 
 ## Branches, commits and pull requests

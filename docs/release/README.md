@@ -56,7 +56,9 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
    the notices of the AppImage's runtime (NFR-LIC-04's amendment), on the release branch. Before section 1 they have
    a summary, `## In short`: at most 30 bullets for a draughtsman who decides whether to install, each one line of
    about 120 characters, starting with its subject in bold, the most important first, and a last line that says the
-   sections below are the full notes.
+   sections below are the full notes. They are written from the lines of `docs/release-notes/unreleased.md`, which
+   then go from that file on the release branch and the working branch; a fix to a candidate writes its line in
+   `<X.Y.Z>.md`.
 3. The settings of §2 hold.
 
 The workflow's `verify` job refuses the candidate when 1 or 2 does not hold, with one of these texts: "the tag v<t>
