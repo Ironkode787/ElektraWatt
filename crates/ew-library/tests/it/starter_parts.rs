@@ -46,19 +46,19 @@ const VERSION: &str = "0.1.0";
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
 /// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
 /// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
-/// pneumatic parts were added (rc.2, F10 and F11) and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
+/// pneumatic parts were added and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
 /// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
-/// that it has a bus node (rc.2, F15), 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
-/// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (the rc.2 persona run: Put it on a bus page did nothing for
+/// that it has a bus node, 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
+/// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (Put it on a bus page did nothing for
 /// a terminal whose part had no bus interface), 0.13.0 since the signal lamps in red, green and yellow EW-GEN-LMP-2 to
-/// -4 were added (the rc.2 persona run: a cabinet door's basics), 0.14.0 since the generic cables of the common sizes
-/// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen), 0.15.0 since the
-/// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (rc.3: a position is as wide as its valve needs), 0.16.0
-/// since a valve with two solenoids prints each solenoid's address at its own solenoid (rc.3: the 5/3 valve's two
+/// -4 were added (a cabinet door's basics), 0.14.0 since the generic cables of the common sizes
+/// EW-GEN-CBL-4 to -25 were added (a cable part that matches the wires could not be chosen), 0.15.0 since the
+/// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (a position is as wide as its valve needs), 0.16.0
+/// since a valve with two solenoids prints each solenoid's address at its own solenoid (the 5/3 valve's two
 /// addresses touched its square), 0.17.0 since the parts a panel builder reaches for first were added: the two-pole
 /// breaker EW-GEN-MCB-4, the main switches with two and three poles EW-GEN-SW-2 and -3, the residual-current device
-/// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1 (rc.3), 0.18.0 since every bus the
-/// program knows has a generic cable and plug (rc.5: the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
+/// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1, 0.18.0 since every bus the
+/// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
 /// plugs EW-GEN-PLG-6 to -10 were added).
 const LIBRARY_VERSION: &str = "0.18.0";
@@ -603,7 +603,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // The parts a panel builder reaches for first (rc.3: a two-pole switch and breaker had a symbol and no part,
+        // The parts a panel builder reaches for first (a two-pole switch and breaker had a symbol and no part,
         // so "Device without part" could not be mended; the stop button and the emergency stop were missing since the
         // second candidate).
         Def {
@@ -710,11 +710,11 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // The signal lamps of a cabinet door, by colour (rc.2 persona run, entry 16).
+        // The signal lamps of a cabinet door, by colour.
         lamp("EW-GEN-LMP-2", "Signal lamp, red", "RD"),
         lamp("EW-GEN-LMP-3", "Signal lamp, green", "GN"),
         lamp("EW-GEN-LMP-4", "Signal lamp, yellow", "YE"),
-        // The generic cables a panel builder reaches for (rc.3), beside EW-GEN-CBL-1 (3G1.5).
+        // The generic cables a panel builder reaches for, beside EW-GEN-CBL-1 (3G1.5).
         cable(
             "EW-GEN-CBL-4",
             "Cable 2X0.75 mm², cores brown and blue",
@@ -914,7 +914,7 @@ fn defs() -> Vec<Def> {
             description: "Solenoid valve 5/2, spring return",
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5"]),
             // The valve is the main function, so the device takes the valve's letter Q and the device browser draws
-            // the valve first; its coil is the second (rc.2, F11).
+            // the valve first; its coil is the second.
             template: vec![
                 ("ew.fn.valve-5-2-sol-spring", true, range(2, 7)),
                 ("ew.fn.valve-coil", false, vec![0, 1]),

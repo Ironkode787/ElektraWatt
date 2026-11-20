@@ -641,7 +641,7 @@ impl Registry {
     }
 
     /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes. The file
-    /// is read and checked every time, but a file parsed once is kept by its hash (rc.5: every Cable form and part list
+    /// is read and checked every time, but a file parsed once is kept by its hash (every Cable form and part list
     /// parsed every library file again, several times per opening): the same checked bytes give the same records.
     fn load_file(&self, lib: &Lib, path: &str) -> Result<Parsed, String> {
         if lib.manifest.is_none() {
