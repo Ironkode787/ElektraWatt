@@ -18,8 +18,8 @@ use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -36,8 +36,8 @@ fn field<'a, 'h>(h: &'h Harness<'a, App>, name: &str) -> egui_kittest::Node<'h> 
 #[test]
 fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:F55"]}));
+    let mut h = on_sample(&tmp);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     dispatch(&mut h, "part.choose", json!({"use": 0}));
     settle(&mut h);
     settle(&mut h);
@@ -54,7 +54,7 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     assert!(
         first
             .label()
-            .is_some_and(|l| l.starts_with("EW-GEN-MCB-2 (Generic)")),
+            .is_some_and(|l| l.starts_with("EW-GEN-MCB-4 (Generic)")),
         "{:?}",
         first.label()
     );
@@ -103,8 +103,8 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
 #[test]
 fn the_empty_search_says_it_once_and_chooses_nothing() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:F55"]}));
+    let mut h = on_sample(&tmp);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     dispatch(&mut h, "part.choose", json!({"use": 0}));
     dispatch(&mut h, "part.search", json!({"text": "zz-no-such-part"}));
     settle(&mut h);
@@ -121,8 +121,8 @@ fn the_empty_search_says_it_once_and_chooses_nothing() {
 #[test]
 fn the_part_editor_by_keyboard() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:F55"]}));
+    let mut h = on_sample(&tmp);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     dispatch(&mut h, "part.edit", json!({}));
     settle(&mut h);
     settle(&mut h);
@@ -160,7 +160,7 @@ fn the_part_editor_by_keyboard() {
     let Some(Dialog::PartEdit(e)) = h.state().shell().dialog() else {
         panic!("the part editor")
     };
-    assert_eq!(e.draft.text("description"), "Miniature circuit breaker 1P+N C4");
+    assert_eq!(e.draft.text("description"), "Miniature circuit breaker, 2 poles C4");
     h.key_press(Key::Enter);
     settle(&mut h);
     settle(&mut h);

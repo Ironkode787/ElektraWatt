@@ -257,6 +257,24 @@ pub fn unplace(harness: &mut Harness<'_, App>, tag: &str) {
     settle(harness);
 }
 
+/// The ID of the wire of the page on show between the connection points labelled `a` and `b`.
+pub fn wire_between(h: &Harness<'_, App>, a: &str, b: &str) -> String {
+    let tables = &h.state().shell().canvas().expect("a page").page().tables;
+    let at = |label: &str| {
+        tables
+            .cps
+            .iter()
+            .find(|p| p.label == label)
+            .unwrap_or_else(|| panic!("no connection point {label}"))
+    };
+    let (a, b) = (at(a), at(b));
+    a.connections
+        .iter()
+        .find(|c| b.connections.contains(c))
+        .expect("a wire between the two")
+        .to_string()
+}
+
 /// The window position (points) of the sheet point `p` on the focused canvas.
 pub fn screen(harness: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
     let bounds = harness

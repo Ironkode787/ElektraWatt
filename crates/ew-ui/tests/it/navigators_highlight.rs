@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The further navigators and highlighting in the window (acceptance checks NP3 and NP4): the
-//! highlight of 24VDC-1 composited into `canvas.snapshot` with the slot colour at each drawn segment's midpoint and the
-//! hatch lines at 45°, Ctrl+Shift+H in the Potentials pane, and a selection made on the canvas marking the W29 rows of
-//! the Connections and Potentials panes with the focus left on the canvas; the accessible-name walker after every step
-//! (`settle`).
+//! highlight of 24V composited into `canvas.snapshot` with the slot colour at each drawn segment's midpoint and the
+//! hatch lines at 45°, Ctrl+Shift+H in the Potentials pane, and a selection made on the canvas marking the rows of
+//! wire 101.15 in the Connections and Potentials panes with the focus left on the canvas; the accessible-name walker
+//! after every step (`settle`).
 
 use crate::support;
 
@@ -42,14 +42,14 @@ fn px(img: &ew_render_cpu::RgbaImage, x: i64, y: i64) -> [u8; 4] {
     img.pixels[i..i + 4].try_into().unwrap()
 }
 
-/// NP3 (FR-UI-018, D14), the snapshot half: with 24VDC-1 highlighted from the Potentials navigator (slot 0),
-/// `canvas.snapshot` of folios 102 and 103 shows the slot colour at every drawn member segment's midpoint (the band, or
+/// NP3 (FR-UI-018, D14), the snapshot half: with 24V highlighted from the Potentials navigator (slot 0),
+/// `canvas.snapshot` of folios 101 and 104 shows the slot colour at every drawn member segment's midpoint (the band, or
 /// a hatch line in the full colour within 3 pixels), the hatch lines run at 45° (a full-colour pixel continues
 /// up-right, not down-right), and without the highlight the same pixels are as before.
 #[test]
 fn the_highlight_is_composited_into_the_snapshot() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     done(
         &mut shell,
@@ -57,10 +57,10 @@ fn the_highlight_is_composited_into_the_snapshot() {
         json!({"dir": dir.to_string_lossy(), "read_only": true}),
     );
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24V");
     let (r, g, b) = SLOT_COLOURS[0];
     let full = [r, g, b, 255];
-    for folio in ["102", "103"] {
+    for folio in ["101", "104"] {
         done(&mut shell, "page.goto", json!({"folio": folio}));
         let (before, _) = ew_ui::canvas::snapshot_image(&shell, 0).unwrap();
         done(
@@ -137,21 +137,21 @@ fn the_highlight_is_composited_into_the_snapshot() {
     shell.shutdown();
 }
 
-/// NP3 and NP4 in the window: Ctrl+Shift+H in the Potentials pane highlights the cursor row (24VDC-1) and again removes
-/// it; with Connections and Potentials open, a selection made on the canvas (W29 on 103) marks its row in both panes
+/// NP3 and NP4 in the window: Ctrl+Shift+H in the Potentials pane highlights the cursor row (24V) and again removes
+/// it; with Connections and Potentials open, a selection made on the canvas (101.15 on 102) marks its row in both panes
 /// as selected tree items, with the focus left on the canvas.
 #[test]
 fn the_panes_highlight_and_follow_the_canvas() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     let shell = h.state_mut().shell_mut();
-    done(shell, "page.goto", json!({"folio": "103"}));
+    done(shell, "page.goto", json!({"folio": "102"}));
     done(shell, "navigator.show", json!({"kind": "connections"}));
     done(shell, "navigator.show", json!({"kind": "potentials"}));
-    let key = row_key(shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let key = row_key(shell, NavKind::Potentials, NavRole::Potential, "24V");
     done(shell, "navigator.row", json!({"kind": "potentials", "key": key}));
     settle(&mut h);
     assert_eq!(h.state().shell().focused_navigator(), Some(NavKind::Potentials));
@@ -159,23 +159,23 @@ fn the_panes_highlight_and_follow_the_canvas() {
     settle(&mut h);
     let items = h.state().shell().highlights().items().to_vec();
     assert_eq!(items.len(), 1, "Ctrl+Shift+H highlights the cursor row");
-    assert_eq!((items[0].slot, items[0].name.as_str()), (0, "24VDC-1"));
+    assert_eq!((items[0].slot, items[0].name.as_str()), (0, "24V"));
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::H);
     settle(&mut h);
     assert!(h.state().shell().highlights().is_empty(), "and again removes it");
 
-    // The canvas selects W29 (the selection a click produces): both panes mark its row.
+    // The canvas selects 101.15 where it ends on 102 (the selection a click produces): both panes mark its row.
     let shell = h.state_mut().shell_mut();
-    let row = row_key(shell, NavKind::Connections, NavRole::Connection, "102.10");
+    let row = row_key(shell, NavKind::Connections, NavRole::Connection, "101.15");
     let (_, node) = shell.nav(NavKind::Connections).unwrap().node_of(&row).unwrap();
-    let w29 = node
+    let wire = node
         .drawables
         .iter()
-        .find(|d| d.folio == "103")
+        .find(|d| d.folio == "102")
         .map(|d| d.record)
         .unwrap();
     done(shell, "ui.focus", json!({"area": "canvas"}));
-    done(shell, "select.set", json!({"ids": [w29.to_string()]}));
+    done(shell, "select.set", json!({"ids": [wire.to_string()]}));
     settle(&mut h);
     let shell = h.state().shell();
     assert!(shell.nav(NavKind::Connections).unwrap().marked().contains(&row));
@@ -187,7 +187,7 @@ fn the_panes_highlight_and_follow_the_canvas() {
         .cloned()
         .collect();
     assert_eq!(marked.len(), 1);
-    assert!(marked[0].starts_with(&key), "under 24VDC-1");
+    assert!(marked[0].starts_with(&key), "under 24V");
     assert!(matches!(shell.focus(), Some(Focus::Canvas(_))));
     let selected: Vec<String> = h
         .get_all_by_role(egui::Role::TreeItem)
@@ -197,7 +197,7 @@ fn the_panes_highlight_and_follow_the_canvas() {
     assert!(
         selected
             .iter()
-            .filter(|l| l.starts_with("102.10, connection"))
+            .filter(|l| l.starts_with("101.15, connection"))
             .count()
             >= 1,
         "{selected:?}"

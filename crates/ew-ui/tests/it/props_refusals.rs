@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties refusals (kittest, no rendering), on a writable copy of Golden A: a Properties refusal shows
+//! Properties refusals (kittest, no rendering), on a writable copy of the sample: a Properties refusal shows
 //! under its row only, never again as a banner, and the next refusal names its own point (F1); a banner the window
 //! raised for a failure gives way to the next failure, a banner of the shell's own does not; a new row error scrolls
 //! into view at 1920 × 1080 (F2); Escape in an editor holding an error cancels the edit (i3).
@@ -27,10 +27,10 @@ const EXTERNAL: &str =
 /// The refusal of a star on the target point "W464", as the pane shows it.
 const TARGET: &str = "Interruption point W464: a star source is a source point; set the direction to source, or clear the star";
 
-/// Golden A on 102 at 1920 × 1080 with Properties shown, an external interruption point and a
+/// The sample on 102 at 1920 × 1080 with Properties shown, an external interruption point (of the supply -Q0) and a
 /// target point W464 placed.
 fn with_two_points(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
@@ -39,13 +39,13 @@ fn with_two_points(tmp: &Tmp) -> Harness<'static, App> {
     dispatch(&mut h, "view.zoom_actual", json!({}));
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "tool.ip", json!({}));
-    dispatch(&mut h, "ip.external", json!({"external": "JE-N1000-03:N"}));
-    dispatch(&mut h, "cursor.set", json!({"x_mm": 185.208, "y_mm": 101.124}));
+    dispatch(&mut h, "ip.external", json!({"external": "-Q0"}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 184.627, "y_mm": 101.124}));
     dispatch(&mut h, "canvas.activate", json!({}));
     dispatch(&mut h, "ip.external", json!({"external": ""}));
     dispatch(&mut h, "ip.name", json!({"text": "W464"}));
     dispatch(&mut h, "tool.ip_direction", json!({"direction": "target"}));
-    dispatch(&mut h, "cursor.set", json!({"x_mm": 60.0, "y_mm": 160.0}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 200.284, "y_mm": 161.143}));
     dispatch(&mut h, "canvas.activate", json!({}));
     dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(&mut h, "tool.select", json!({}));
@@ -86,7 +86,7 @@ fn row_error(h: &Harness<'_, App>) -> Option<(String, String)> {
 fn two_refusals_on_two_points_show_under_the_row_and_raise_no_banner() {
     let tmp = Tmp::new();
     let mut h = with_two_points(&tmp);
-    star_with_keys(&mut h, 185.208, 99.124);
+    star_with_keys(&mut h, 184.627, 101.124);
     assert_eq!(row_error(&h), Some((STAR.to_owned(), EXTERNAL.to_owned())));
     assert_eq!(
         h.state().shell().banner(),
@@ -94,7 +94,7 @@ fn two_refusals_on_two_points_show_under_the_row_and_raise_no_banner() {
         "no banner beside the row's error"
     );
     dispatch(&mut h, "props.cancel", json!({}));
-    star_with_keys(&mut h, 59.371, 161.143);
+    star_with_keys(&mut h, 200.284, 161.143);
     assert_eq!(row_error(&h), Some((STAR.to_owned(), TARGET.to_owned())));
     assert_eq!(
         h.state().shell().banner(),
@@ -163,7 +163,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, egui::Rect)> 
 fn at_the_floor_the_refused_rows_error_scrolls_into_view() {
     let tmp = Tmp::new();
     let mut h = with_two_points(&tmp);
-    star_with_keys(&mut h, 59.371, 161.143);
+    star_with_keys(&mut h, 200.284, 161.143);
     settle(&mut h);
     let texts = painted_texts(&h);
     // The pane's visible rectangle: the clip of its rows' labels.
@@ -188,7 +188,7 @@ fn at_the_floor_the_refused_rows_error_scrolls_into_view() {
 fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
     let tmp = Tmp::new();
     let mut h = with_two_points(&tmp);
-    star_with_keys(&mut h, 59.371, 161.143);
+    star_with_keys(&mut h, 200.284, 161.143);
     assert_eq!(row_error(&h), Some((STAR.to_owned(), TARGET.to_owned())));
     let rev = h.state().shell().revision();
     let sent = h.state().dispatched().len();
@@ -219,7 +219,7 @@ fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
 fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
@@ -228,7 +228,7 @@ fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     dispatch(&mut h, "tool.ip", json!({}));
     let name = format!("W464{}", "0".repeat(120));
     dispatch(&mut h, "ip.name", json!({"text": name}));
-    dispatch(&mut h, "cursor.set", json!({"x_mm": 60.0, "y_mm": 160.0}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 200.284, "y_mm": 161.143}));
     dispatch(&mut h, "canvas.activate", json!({}));
     dispatch(&mut h, "ip.name", json!({"text": "W465"}));
     assert_eq!(
@@ -287,7 +287,9 @@ fn a_toasts_line_is_drawn_with_a_capital() {
     let mut h = with_two_points(&tmp);
     dispatch(&mut h, "tool.ip", json!({}));
     dispatch(&mut h, "ip.name", json!({"text": "W465"}));
-    dispatch(&mut h, "cursor.set", json!({"x_mm": 60.0, "y_mm": 160.0}));
+    // A target as W464, so it stands on that very point (a source would stand a step beside it: "too close").
+    dispatch(&mut h, "tool.ip_direction", json!({"direction": "target"}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 200.284, "y_mm": 161.143}));
     assert_eq!(
         h.state_mut().shell_mut().dispatch("canvas.activate", &json!({})),
         Outcome::Refused {
@@ -320,7 +322,7 @@ fn a_toasts_line_is_drawn_with_a_capital() {
 fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);

@@ -16,9 +16,9 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
-/// A copy of Golden A in the window at 1920 × 1080, on folio 101.
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+/// A copy of the sample in the window at 1920 × 1080, on folio 101.
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(
         shell.dispatch("file.open", &json!({"dir": dir.to_string_lossy()})),
@@ -38,12 +38,12 @@ fn inside_x(outer: Rect, inner: Rect) -> bool {
     inner.left() >= outer.left() - 0.5 && inner.right() <= outer.right() + 0.5
 }
 
-/// Item 1: on Golden A at 1920 × 1080 every row and every chip of the Pages tree lies inside the pane; the expanders
+/// Item 1: on the sample at 1920 × 1080 every row and every chip of the Pages tree lies inside the pane; the expanders
 /// are named chevron buttons, not "-" and "+".
 #[test]
 fn pages_rows_keep_to_the_pane() {
     let tmp = Tmp::new();
-    let h = on_golden(&tmp);
+    let h = on_sample(&tmp);
     let tree = h.get_by_label("Page navigator");
     let pane = tree.rect();
     let rows: Vec<(String, Rect)> = tree
@@ -85,7 +85,7 @@ fn pages_rows_keep_to_the_pane() {
 #[test]
 fn the_property_value_cell_takes_the_rest_of_the_row() {
     let tmp = Tmp::new();
-    let h = on_golden(&tmp);
+    let h = on_sample(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
     let pane = h
         .get_all_by_role(egui::Role::Group)
@@ -97,7 +97,7 @@ fn the_property_value_cell_takes_the_rest_of_the_row() {
         .find(|n| n.accesskit_node().label().as_deref() == Some("Title"))
         .expect("the Title row");
     let cell = row
-        .get_all_by_label("Power Supply 1 - Main Current")
+        .get_all_by_label("Supply 400 V AC")
         .next()
         .expect("the value cell named by the whole value")
         .rect();
@@ -118,7 +118,7 @@ fn the_property_value_cell_takes_the_rest_of_the_row() {
 #[test]
 fn the_table_tool_line_is_one_row() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
     dispatch(&mut h, "navigator.table", json!({"kind": "devices"}));
     settle(&mut h);
@@ -155,7 +155,7 @@ fn the_table_tool_line_is_one_row() {
 #[test]
 fn the_renderer_field_says_why_in_its_tooltip() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     h.get_by_label("CPU").hover();
     settle(&mut h);
     settle(&mut h);

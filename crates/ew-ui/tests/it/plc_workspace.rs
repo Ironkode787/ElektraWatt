@@ -12,7 +12,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
-use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
+use support::{Scripted, Tmp, dispatch, harness, on_sample, settle, wait_for_page};
 
 /// The channel rows the PLC grid shows.
 fn grid_rows(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> usize {
@@ -40,7 +40,7 @@ fn grid_filter(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, text: &str) {
 #[test]
 fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     h.get_by_role_and_label(egui::Role::Tab, "View").click();
     settle(&mut h);
     support::bar_button(&h, "Workspaces").click();
@@ -70,7 +70,8 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     // The workspace's grid makes the canvas shorter: the page fits it again, whole.
     let canvas = h.state().shell().canvas().expect("the canvas");
     assert!(canvas.is_fitted() && !canvas.is_first_view(), "Fit page");
-    assert_eq!(grid_rows(&h), 56);
+    // The sample's 24 channels: the CPU's input and output cards, eight each, and the valve terminal's eight outputs.
+    assert_eq!(grid_rows(&h), 24);
     // FT-776: the Address header grows by its sort icon when sorted, so its word is not cut.
     let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| {
         h.get_by_label_contains(label).rect().width()
@@ -81,9 +82,9 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     assert!(width(&h, "Sort by Address, sorted") > before);
     // FT-738: the grid's filter takes the net of the station's bus port and the safety flag.
     grid_filter(&mut h, "bus:profibus-dp");
-    assert_eq!(grid_rows(&h), 56, "every channel of -201U1");
+    assert_eq!(grid_rows(&h), 24, "every channel of the PROFIBUS DP stations");
     grid_filter(&mut h, "safety");
-    assert_eq!(grid_rows(&h), 0, "Golden A has no safety data");
+    assert_eq!(grid_rows(&h), 0, "the sample has no safety data");
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -92,7 +93,7 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
 #[test]
 fn the_plc_grids_symbol_column_grows_to_a_long_name() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
     settle(&mut h);
     let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
@@ -120,7 +121,7 @@ fn the_plc_grids_symbol_column_grows_to_a_long_name() {
 #[test]
 fn the_plc_grids_close_button_closes_the_dock() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
     settle(&mut h);
     let grid = PaneKind::Navigator(NavKind::PlcGrid);
@@ -310,7 +311,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
 fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     support::open_menu(&mut h, &["Output"]);
     settle(&mut h);
     h.get_by_label("Report block…").click();
@@ -599,12 +600,13 @@ fn a_long_station_stays_usable_and_a_taken_slot_is_refused() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FR-PLC-028 on Golden A: the valve terminal's editor lists its seven modules in manifold order, each with its valve
-/// positions, beside the stored order codes, and no EW-PLC-011 finding.
+/// FR-PLC-028 on the sample: the valve terminal's Rack… opens its view, which lists the four valve positions its head
+/// holds (EW-GEN-VTM-1 has no modules), and no EW-PLC-011 finding. A modular terminal's modules beside its stored
+/// order codes are `ew-api`'s `rack_editor` tests.
 #[test]
-fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
+fn the_valve_terminal_shows_its_positions() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "201");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let station = h
@@ -612,28 +614,26 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
         .shell()
         .shown_rows(NavKind::Plc)
         .into_iter()
-        .find(|r| r.role == NavRole::Station.word())
-        .expect("-201U1's row");
+        .find(|r| r.role == NavRole::Station.word() && r.label == "-201K1")
+        .expect("-201K1's row");
+    // Below the CPU's channels: the row selected is scrolled into view.
+    dispatch(
+        &mut h,
+        "navigator.select",
+        json!({"kind": "plc", "keys": [station.key]}),
+    );
+    settle(&mut h);
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
-    h.get_by_label("-201U1 · rack");
-    let code = format!("Order Code 1: {}", "51E-F13GCQP-D+H2GG");
-    assert!(
-        h.query_all_by_label_contains(&code).count() >= 1,
-        "the stored order code"
-    );
-    // Each module stands in the rack as a card and as a row, by its slot and its tag.
-    for tag in ["-201U3", "-201U8", "-202U2"] {
-        let places = h
-            .query_all_by_label_contains(&format!(", {tag}"))
-            .filter(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with("Slot ")))
-            .count();
-        assert_eq!(places, 2, "{tag}: a card and a row");
+    h.get_by_label("-201K1 · rack");
+    for position in 1..=4 {
+        assert!(
+            h.query_all_by_label_contains(&format!("Position {position}")).count() >= 1,
+            "position {position}"
+        );
     }
-    // Each sub-base lists its valve positions as rows.
-    assert!(h.query_all_by_label_contains("Position 1").count() >= 7);
     let shown = h.state().shell().station_shown().expect("the view");
     assert!(
         shown.todo.iter().all(|t| !t.error),
@@ -735,7 +735,7 @@ fn freeze_addresses_is_in_the_plc_panels_addresses_menu_and_marks_what_it_froze(
 #[test]
 fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let module = h
@@ -746,10 +746,10 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
         .and_then(|t| {
             t.nodes
                 .iter()
-                .find(|n| n.role == NavRole::Module && n.label == "-201U5")
+                .find(|n| n.role == NavRole::Module && n.label == "-104A1-A2")
                 .map(|n| n.records[0])
         })
-        .expect("-201U5");
+        .expect("-104A1-A2");
     dispatch(
         &mut h,
         "command.run",
@@ -763,15 +763,15 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
         .expect("the navigator's filter")
         .click();
     h.run_ok();
-    h.event(egui::Event::Text("201U5".to_owned()));
+    h.event(egui::Event::Text("104A1-A2".to_owned()));
     settle(&mut h);
     let row = h
         .state()
         .shell()
         .shown_rows(NavKind::Plc)
         .into_iter()
-        .find(|r| r.role == NavRole::Module.word() && r.label == "-201U5")
-        .expect("-201U5's row");
+        .find(|r| r.role == NavRole::Module.word() && r.label == "-104A1-A2")
+        .expect("-104A1-A2's row");
     h.get_by_label(&row.name).click_secondary();
     settle(&mut h);
     support::menu_node(&h, "Re-address…").click();
@@ -780,10 +780,10 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     assert!(
         notices
             .iter()
-            .any(|n| n.starts_with("channel 0 of -201U5: Q10.0 → ")),
+            .any(|n| n.starts_with("channel 0 of -104A1-A2: Q10.0 → ")),
         "{notices:?}"
     );
-    h.get_by_label_contains("channel 0 of -201U5: Q10.0");
+    h.get_by_label_contains("channel 0 of -104A1-A2: Q10.0");
     support::off_chrome(&h, "Apply")
         .expect("the card's Apply")
         .click();
@@ -798,7 +798,7 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     let address = t
         .nodes
         .iter()
-        .find(|n| n.role == NavRole::Channel && n.cells.get(5).is_some_and(|m| m == "-201U5"))
+        .find(|n| n.role == NavRole::Channel && n.cells.get(5).is_some_and(|m| m == "-104A1-A2"))
         .map(|n| n.cells[0].clone())
         .unwrap_or_default();
     assert!(!address.starts_with("Q10"), "{address}");
@@ -806,8 +806,9 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
 }
 
 /// The PLC exchange from the PLC menu (doc 10 §4, §6): Export… asks the format in its form and the file, writes
-/// Golden A's configuration as AML and says what it holds; Import… of that file previews it by tab, with nothing in
-/// conflict or parked, and Apply records the import (the merge's cases are WP-S3.16's tests).
+/// the sample's configuration as AML and says what it holds (the CPU with its two cards of eight channels and the valve
+/// terminal with its eight outputs); Import… of that file previews it by tab, with nothing in conflict or parked, and
+/// Apply records the import (the merge's cases are WP-S3.16's tests).
 #[test]
 fn the_plc_exchange_exports_and_previews_an_import() {
     use ew_ui::app::Pick;
@@ -817,7 +818,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
     platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, platform, Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -838,7 +839,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         .map(|t| t.text.clone())
         .unwrap_or_default();
     assert!(
-        toast.starts_with("Exported plc.aml: 1 station, 7 modules, 56 channels"),
+        toast.starts_with("Exported plc.aml: 2 stations, 3 modules, 24 channels"),
         "{toast}"
     );
     // The project's own file read back: nothing differs from the exchange just recorded.
@@ -884,7 +885,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
     let asked = platform.asked.clone();
-    let mut h = harness(&tmp, platform, Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, platform, Some(tmp.sample("s.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
     support::open_menu(&mut h, &["PLC"]);
@@ -910,7 +911,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 10 §4.4: Apply does what the preview of a complete file showed. The station of Golden A's exchange is renamed in
+/// Doc 10 §4.4: Apply does what the preview of a complete file showed. The CPU station of the sample's exchange is renamed in
 /// the file (another ID, another designation), so the file holds a station the project lacks and lacks the one it
 /// has: imported as complete, the Removed tab lists the project's station, and Apply takes it out of the last exchange,
 /// so the same file previewed again removes nothing.
@@ -918,7 +919,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
 fn a_complete_imports_apply_removes_what_its_preview_listed() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let station = h
@@ -932,7 +933,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
                 .find(|n| n.role == NavRole::Station)
                 .map(|n| n.records[0])
         })
-        .expect("-201U1");
+        .expect("-104A1");
     let exported = tmp.0.join("plc.aml");
     dispatch(
         &mut h,
@@ -952,7 +953,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     ));
     let foreign = text
         .replace(&station.to_string(), "tia-station")
-        .replace("<Value>-201U1</Value>", "<Value>-209U1</Value>");
+        .replace("<Value>-104A1</Value>", "<Value>-109A1</Value>");
     let file = tmp.0.join("renamed.aml");
     std::fs::write(&file, foreign).expect("the file");
     let import = json!({"path": file.to_string_lossy(), "complete": true});
@@ -963,7 +964,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     dispatch(&mut h, "plc.import", import.clone());
     settle(&mut h);
     let listed = removed(&h);
-    assert!(listed.iter().any(|r| r == "station -201U1"), "{listed:?}");
+    assert!(listed.iter().any(|r| r == "station -104A1"), "{listed:?}");
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
     assert!(
@@ -988,7 +989,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
 fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let record = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, role: NavRole, cell: &str| {
@@ -1004,7 +1005,15 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
             })
             .expect("the row")
     };
-    // Symbols from the process tags, so that the file has tags with their comments.
+    // The position switch on I0.1 with a process tag (the sample's devices have none), then symbols from the process
+    // tags, so that the file has tags with their comments.
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-104B1"}],
+            "path": "process_tag", "value": "TA05-V-15"}}),
+    );
+    settle(&mut h);
     let config = record(&h, NavRole::ConfigProject, "");
     let channel = record(&h, NavRole::Channel, "TA05-V-15");
     for (kind, target, path, value) in [
@@ -1060,14 +1069,14 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The PLC import's preview tries Apply: a file that gives -201U4 the start of -201U3 shows Apply's refusal (EW-PLC-001)
-/// above the tabs and on the start's row, before Apply is pressed; "The file is complete" makes the preview again with
-/// the file complete.
+/// The PLC import's preview tries Apply: a file that gives the output card -104A1-A2 (Q1) the start of the valve
+/// terminal -201K1's outputs (Q0) shows Apply's refusal (EW-PLC-001) above the tabs and on the start's row, before Apply
+/// is pressed; "The file is complete" makes the preview again with the file complete.
 #[test]
 fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let exported = tmp.0.join("plc.aml");
@@ -1077,10 +1086,10 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
         json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()}),
     );
     let text = std::fs::read_to_string(&exported).expect("the export");
-    let at = text.find("Name=\"-201U4\"").expect("-201U4 in the file");
+    let at = text.find("Name=\"-104A1-A2\"").expect("-104A1-A2 in the file");
     let start =
         "<Attribute Name=\"StartAddress\" AttributeDataType=\"xs:int\">\n                <Value>1</Value>";
-    let offset = text[at..].find(start).expect("-201U4's start") + at;
+    let offset = text[at..].find(start).expect("-104A1-A2's start") + at;
     let overlapping = format!(
         "{}{}{}",
         &text[..offset],
@@ -1123,7 +1132,7 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
 #[test]
 fn a_settings_value_left_out_keeps_the_stored_one() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
@@ -1209,7 +1218,7 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
 #[test]
 fn a_channel_row_selects_the_channel_alone() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     let row = h
@@ -1217,8 +1226,8 @@ fn a_channel_row_selects_the_channel_alone() {
         .shell()
         .shown_rows(NavKind::Plc)
         .into_iter()
-        .find(|r| r.role == NavRole::Channel.word() && r.label == "Q0.1")
-        .expect("Q0.1's row");
+        .find(|r| r.role == NavRole::Channel.word() && r.label == "I0.1")
+        .expect("I0.1's row");
     h.get_by_label(&row.name).click();
     settle(&mut h);
     let selected: Vec<String> = h
@@ -1237,7 +1246,7 @@ fn a_channel_row_selects_the_channel_alone() {
         .and_then(|t| {
             t.nodes
                 .iter()
-                .find(|n| n.role == NavRole::Channel && n.label == "Q0.1")
+                .find(|n| n.role == NavRole::Channel && n.label == "I0.1")
                 .map(|n| n.records[0])
         })
         .expect("the channel");
@@ -1255,7 +1264,7 @@ fn a_channel_row_selects_the_channel_alone() {
 fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
@@ -1303,7 +1312,7 @@ fn type_into(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str, te
 #[test]
 fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "104");
     support::open_menu(&mut h, &["PLC", "Addresses"]);
     settle(&mut h);
     support::menu_node(&h, "Process-tag scheme…").click();
@@ -1367,12 +1376,12 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     let csv = tmp.0.join("instruments.csv");
     let mut list = String::from("Tag;Description;Signal type;Range;Field location;Preferred station\n");
     for n in 40..44 {
-        list.push_str(&format!("TA05-V-{n};Valve {n};DO;;Hall 1;-201U1\n"));
+        list.push_str(&format!("TA05-V-{n};Valve {n};DO;;Hall 1;-201K1\n"));
     }
     std::fs::write(&csv, list).expect("the list");
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(csv.clone()));
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, platform, Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

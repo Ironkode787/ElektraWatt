@@ -17,10 +17,21 @@ use ew_viewmodel::shell::Focus;
 use serde_json::json;
 use support::{Tmp, dispatch, settle};
 
-/// -101F1's symbol on folio 101.
-const F1_SYMBOL: &str = "7b76f7a3-8966-50ed-a194-36d38ac1c0a1";
-/// W29 on folio 103 (`connections|W29`).
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
+/// The representation of folio 101 that draws the symbol `symbol` (-101F1's is `ew.iec.mcb-2p@qet10`).
+fn symbol_on_101(h: &Harness<'_, App>, symbol: &str) -> String {
+    h.state()
+        .shell()
+        .canvas()
+        .expect("folio 101")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == symbol)
+        .unwrap_or_else(|| panic!("no {symbol} on 101"))
+        .id
+        .to_string()
+}
 
 /// FT-1650: a selected symbol shows its device's, its function's and its representation's sections. A click on the
 /// representation's Placement header folds that category (its rows go, its chevron turns), a second click unfolds it,
@@ -28,10 +39,11 @@ const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 #[test]
 fn a_click_on_a_category_header_folds_it() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
-    dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
+    let f1 = symbol_on_101(&h, "ew.iec.mcb-2p@qet10");
+    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
     settle(&mut h);
     let collapsed = |h: &Harness<'_, App>| {
         h.state()
@@ -73,7 +85,7 @@ fn a_click_on_a_category_header_folds_it() {
     settle(&mut h);
     // Another selection and back: the fold stays.
     dispatch(&mut h, "select.set", json!({"ids": []}));
-    dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
+    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
     settle(&mut h);
     assert_eq!(collapsed(&h), ["representation/placement"]);
     assert!(!drawn(&h, "Orientation"));
@@ -85,11 +97,12 @@ fn a_click_on_a_category_header_folds_it() {
 #[test]
 fn a_rows_tooltip_explains_it() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
     dispatch(&mut h, "props.show", json!({"on": true}));
-    dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
+    let f1 = symbol_on_101(&h, "ew.iec.mcb-2p@qet10");
+    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
     settle(&mut h);
     let help = ew_viewmodel::strings::field_help("device", "derived.tag").expect("the Tag row's explanation");
     let label = h
@@ -116,10 +129,11 @@ fn a_rows_tooltip_explains_it() {
 #[test]
 fn a_connection_point_is_marked_not_used_from_its_row() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
-    dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
+    let f1 = symbol_on_101(&h, "ew.iec.mcb-2p@qet10");
+    dispatch(&mut h, "select.set", json!({"ids": [f1]}));
     settle(&mut h);
     let key = "device/derived.cp[0]";
     let point = |h: &Harness<'_, App>| match find_row(h.state().shell().properties().sheet().unwrap(), key)
@@ -147,12 +161,23 @@ fn a_connection_point_is_marked_not_used_from_its_row() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1649 on the page: a right-click on -102F2's unconnected connection point 13 offers to mark that point not used;
+/// FT-1649 on the page: a right-click on the unconnected connection point X1 of a second lamp -102E2, placed right of
+/// the drawing without joining anything (the sample wires every pin it draws), offers to mark that point not used;
 /// its click marks it, and its unconnected-point finding drops to an info.
 #[test]
 fn a_connection_point_is_marked_not_used_from_the_page() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
+    for (action, params) in [
+        ("cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0})),
+        ("tool.place", json!({})),
+        ("place.pick", json!({"part": "EW-GEN-LMP-1"})),
+        ("canvas.activate", json!({"alt": true})),
+        ("ui.dismiss", json!({})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    settle(&mut h);
     let cp = h
         .state()
         .shell()
@@ -162,9 +187,9 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
         .tables
         .cps
         .iter()
-        .find(|c| c.label == "-102F2:13")
+        .find(|c| c.label == "-102E2:X1")
         .cloned()
-        .expect("-102F2:13 on folio 102");
+        .expect("-102E2:X1 on folio 102");
     let sheet = h
         .state()
         .shell()
@@ -190,8 +215,8 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
     });
     settle(&mut h);
     h.get_all_by_role(egui::Role::Button)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Mark -102F2:13 not used"))
-        .expect("Mark -102F2:13 not used in the page's menu")
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Mark -102E2:X1 not used"))
+        .expect("Mark -102E2:X1 not used in the page's menu")
         .click();
     settle(&mut h);
     assert!(h.state().shell().cp_unused(cp.function, cp.idx));
@@ -218,16 +243,18 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1651: W29's sheet shows its potential's definition, with its type and voltage; the voltage is typed from the
+/// FT-1651: the sheet of the wire 101.1 (from the incoming terminal -X1011:L1 to the main switch, on L1) shows its
+/// potential's definition, with its type and voltage; the voltage is typed from the
 /// wire's sheet and set in one undo step. Its colour's chip names the colour profile, and Go to source shows the
 /// project's colour profile row.
 #[test]
 fn a_wire_shows_and_sets_its_potential_and_the_source_of_its_colour() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
-    dispatch(&mut h, "select.set", json!({"ids": [W29]}));
+    let wire = support::wire_between(&h, "-X1011:L1/a", "-101Q1:1");
+    dispatch(&mut h, "select.set", json!({"ids": [wire]}));
     settle(&mut h);
     let sheet = h.state().shell().properties().sheet().unwrap().clone();
     assert!(
@@ -303,11 +330,23 @@ fn a_wire_shows_and_sets_its_potential_and_the_source_of_its_colour() {
 #[test]
 fn an_interruption_point_without_a_definition_offers_define_potential() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
-    // The interruption point J-E-206-L on folio 101; its potential is defined at 1X1:1/b, which goes.
-    let ip = "f4fdc202-6465-54c2-9ef8-dacbf90449f4";
+    // The interruption point 24V on folio 101; its potential is defined at the power supply's +, which goes.
+    let ip = h
+        .state()
+        .shell()
+        .canvas()
+        .expect("folio 101")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.ip.as_ref().is_some_and(|ip| ip.name == "24V"))
+        .expect("the interruption point 24V")
+        .id
+        .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [ip] }));
     settle(&mut h);
     let def = h

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window: Renumber devices… opens its dialog, OK opens the `bulk` card in the Preview
-//! tab with Golden B1's tag changes and Apply commits it; the property grid's card is a one-line chip while the
-//! tab shows it; the history panel lists the steps with Undo to here and Show changes; each followed by the
-//! accessible-name walker.
+//! In the window: Renumber devices… opens its dialog, OK opens the `bulk` card in the Preview tab with the tag changes
+//! of two breakers set out of order and Apply commits it; the property grid's card is a one-line chip while the tab
+//! shows it; the history panel lists the steps with Undo to here and Show changes; each followed by the accessible-name
+//! walker.
 
 use crate::support;
 
@@ -28,6 +28,27 @@ fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
         .any(|n| n.accesskit_node().label().as_deref() == Some(name))
 }
 
+/// The page-based numbering with the breakers -101F1 and -103F1 counted 9: the sample's tags are numbered as that
+/// scheme numbers them, so Renumber devices… that closes the gaps has these two to give back their 1.
+fn two_breakers_out_of_order(h: &mut Harness<'_, App>) {
+    support::page_based_numbering(h);
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device",
+            "targets": [{"ref": "tag:-101F1"}, {"ref": "tag:-103F1"}], "path": "tag.counter", "value": 9}}),
+    );
+    settle(h);
+}
+
+/// The name of the Preview tab's list header that starts with `lead` ("Xrefs ("): its count is what the change gives.
+fn list_header(h: &Harness<'_, App>, lead: &str) -> String {
+    h.query_all_by_label_contains(lead)
+        .filter_map(|n| n.accesskit_node().label())
+        .find(|l| l.starts_with(lead))
+        .unwrap_or_else(|| panic!("the list {lead}…"))
+}
+
 /// The Preview tab's Apply (the Pages pane's strip has one too).
 fn preview_apply<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
     let pane = h
@@ -43,10 +64,10 @@ fn preview_apply<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
 #[test]
 fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    support::page_based_numbering(&mut h);
+    two_breakers_out_of_order(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     // The dialog's title (the command bar's Arrange group shows a button of that name too).
@@ -55,6 +76,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
         "the dialog's title"
     );
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
+    h.state_mut().shell_mut().set_form_field("only_nonconforming", "false");
     settle(&mut h);
     support::off_chrome(&h, "Renumber")
         .expect("the dialog's Renumber")
@@ -62,16 +84,18 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert!(group_named(&h, "Preview"), "the Preview tab");
-    assert!(has_text(&h, "Preview: Renumber · as of rev 1"), "the header");
+    assert!(has_text(&h, "Preview: Renumber · as of rev 2"), "the header");
+    // The two breakers, and the push buttons of 102, which the sample's script placed the lower one first: in position
+    // order (column first) -102S2 stands above -102S1, so closing the gaps swaps them. Three pages.
     assert!(has_text(
         &h,
-        "8 items · 11 tags · 0 cross-reference texts · 1 page"
+        "4 items · 4 tags · 0 cross-reference texts · 3 pages"
     ));
     assert!(
-        has_text(&h, "-XPE → -101X2"),
+        has_text(&h, "-101F9 → -101F1"),
         "the first tag change, virtualised rows"
     );
-    assert!(h.query_by_label("Tags (11)").is_some());
+    assert!(h.query_by_label("Tags (4)").is_some());
     let before = h.state().shell().can_undo();
     preview_apply(&h).click();
     settle(&mut h);
@@ -87,7 +111,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
 #[test]
 fn the_grids_card_is_a_chip_while_the_tab_shows_it() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -121,7 +145,7 @@ fn the_grids_card_is_a_chip_while_the_tab_shows_it() {
 #[test]
 fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     for text in ["one", "two"] {
@@ -158,7 +182,7 @@ fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
 #[test]
 fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     support::set_function_text(&mut h, "one");
@@ -214,14 +238,15 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
 #[test]
 fn w31_2_the_first_tag_change_is_on_show() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    support::page_based_numbering(&mut h);
+    two_breakers_out_of_order(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
+    h.state_mut().shell_mut().set_form_field("only_nonconforming", "false");
     settle(&mut h);
     support::off_chrome(&h, "Renumber")
         .expect("the dialog's Renumber")
@@ -233,14 +258,14 @@ fn w31_2_the_first_tag_change_is_on_show() {
         .find(|n| n.accesskit_node().label().as_deref() == Some("Preview"))
         .expect("the Preview tab")
         .rect();
-    let first = h.get_by_label("-XPE → -101X2").rect();
+    let first = h.get_by_label("-101F9 → -101F1").rect();
     assert!(
         pane.expand(1.0).contains_rect(first) && first.bottom() <= 1080.0,
         "the first tag change {first:?} inside the tab {pane:?}"
     );
     let apply = preview_apply(&h).rect();
     assert!(apply.bottom() <= first.top(), "Apply {apply:?} above the lists");
-    assert!(h.query_by_label("Tags (11)").is_some());
+    assert!(h.query_by_label("Tags (4)").is_some());
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -249,7 +274,7 @@ fn w31_2_the_first_tag_change_is_on_show() {
 #[test]
 fn w31_7_an_undone_entry_offers_redo_to_here() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     for text in ["one", "two", "three"] {
@@ -285,7 +310,7 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
 #[test]
 fn a_changed_records_line_reads_in_dutch() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
@@ -319,37 +344,45 @@ fn a_changed_records_line_reads_in_dutch() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1920 × 1080 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
+/// At 1920 × 1080 the renumber of 201 to 202 previews its Pages list as "201 → 202"; a click on a list's
 /// header opens it in place, so the headers below stay where they were (R1's second click hit the header the grown dock
 /// had moved under it), and a second click closes it again.
 #[test]
 fn the_preview_lists_open_in_place_and_name_the_new_folio() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "106"}));
-    dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 101}));
+    // Section 2 from 202: its one page, 201, one up, with its tags and the cross-references that print its folio.
+    dispatch(&mut h, "pages.renumber", json!({"section": "2", "start": 202}));
     settle(&mut h);
     settle(&mut h);
     let header = |h: &Harness<'_, App>, name: &str| h.get_by_label(name).rect();
-    let (pages, xrefs) = (header(&h, "Pages (1)"), header(&h, "Xrefs (14)"));
+    // The Tags list opens first and takes the tab's height (the page's ten page-based tags): closed, the lists below
+    // it come into view.
+    let tags = list_header(&h, "Tags (");
+    h.get_by_label(&tags).click();
+    settle(&mut h);
+    settle(&mut h);
+    // The cross-reference texts of the renumbered page, as many as it prints.
+    let xrefs_list = list_header(&h, "Xrefs (");
+    let (pages, xrefs) = (header(&h, "Pages (1)"), header(&h, &xrefs_list));
     h.get_by_label("Pages (1)").click();
     settle(&mut h);
     settle(&mut h);
-    assert!(h.query_by_label("106 → 104").is_some(), "the page by both folios");
+    assert!(h.query_by_label("201 → 202").is_some(), "the page by both folios");
     assert_eq!(header(&h, "Pages (1)"), pages, "Pages stays");
-    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays");
+    assert_eq!(header(&h, &xrefs_list), xrefs, "Xrefs stays");
     h.get_by_label("Pages (1)").click();
     settle(&mut h);
     settle(&mut h);
-    assert!(h.query_by_label("106 → 104").is_none(), "Pages closes again");
-    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays when Pages closes");
-    h.get_by_label("Xrefs (14)").click();
+    assert!(h.query_by_label("201 → 202").is_none(), "Pages closes again");
+    assert_eq!(header(&h, &xrefs_list), xrefs, "Xrefs stays when Pages closes");
+    h.get_by_label(&xrefs_list).click();
     settle(&mut h);
     settle(&mut h);
-    assert_eq!(header(&h, "Xrefs (14)"), xrefs, "Xrefs stays when it opens");
+    assert_eq!(header(&h, &xrefs_list), xrefs, "Xrefs stays when it opens");
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -358,17 +391,16 @@ fn the_preview_lists_open_in_place_and_name_the_new_folio() {
 #[test]
 fn the_scrolled_preview_lists_have_an_edge_under_the_summary_line() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "106"}));
-    dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 101}));
+    // Section 1 from 102: its five pages each one up, and with them every page-based tag of theirs, the first list,
+    // open, longer than the tab.
+    dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 102}));
     settle(&mut h);
     settle(&mut h);
-    h.get_by_label("Xrefs (14)").click();
-    settle(&mut h);
-    settle(&mut h);
+    let tags = list_header(&h, "Tags (");
     let summary = h.state().shell().preview_summary().expect("the summary line");
     let line = h
         .root()
@@ -405,7 +437,7 @@ fn the_scrolled_preview_lists_have_an_edge_under_the_summary_line() {
             .count()
     };
     assert_eq!(edges(&h), 0, "at rest: no edge");
-    h.hover_at(h.get_by_label("Xrefs (14)").rect().center());
+    h.hover_at(h.get_by_label(&tags).rect().center());
     h.event(egui::Event::MouseWheel {
         unit: egui::MouseWheelUnit::Point,
         delta: egui::Vec2::new(0.0, -120.0),

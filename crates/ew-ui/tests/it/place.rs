@@ -13,8 +13,8 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_viewmodel::shell::Outcome;
-use serde_json::{Value, json};
-use support::{Scripted, Tmp, dispatch, on_golden, screen, settle, wait_for_page};
+use serde_json::json;
+use support::{Scripted, Tmp, dispatch, on_sample, screen, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -28,7 +28,7 @@ fn reps(h: &Harness<'_, App>) -> usize {
 #[test]
 fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwell() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     let before = reps(&h);
     // The terminal symbol armed for strip -X1031 (the picker's headless twin; the window's popup lists the same rows).
     dispatch(
@@ -83,7 +83,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
 #[test]
 fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     // I opens the picker on the canvas; the filter field has the focus.
     press(&mut h, Key::I);
     assert!(h.state().shell().picker().is_some(), "I opens the picker");
@@ -116,7 +116,7 @@ fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
 fn the_picker_filter_keeps_the_first_typed_character() {
     for navigator_focused in [false, true] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, "101");
+        let mut h = on_sample(&tmp, "101");
         if navigator_focused {
             dispatch(&mut h, "navigator.show", json!({"kind": "connections"}));
             settle(&mut h);
@@ -150,7 +150,7 @@ fn the_picker_filter_keeps_the_first_typed_character() {
 #[test]
 fn exact_counts_of_place_move_and_the_picker_in_the_window() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let calls = h.state().shell().session_calls();
@@ -254,7 +254,7 @@ fn double_click(h: &mut Harness<'_, App>, pos: Pos2) {
 #[test]
 fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let before = reps(&h);
@@ -305,7 +305,7 @@ fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin()
 #[test]
 fn a_double_click_with_the_wire_tool_is_its_finish() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "tool.wire", json!({}));
     settle(&mut h);
     assert!(h.state().shell().tool().finishes_on_double_click());
@@ -397,7 +397,7 @@ fn chord_of(h: &Harness<'_, App>, id: &str) -> (Key, Modifiers) {
 #[test]
 fn the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let (key, mods) = chord_of(&h, "tool.place_part");
     h.key_press_modifiers(mods, key);
     settle(&mut h);
@@ -421,23 +421,18 @@ fn the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol
     h.state_mut().shell_mut().shutdown();
 }
 
-/// On GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
-/// from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy, which has no function
-/// template; choosing it asks for its symbol, and the MCB symbol places -102F1 with its part, in one undo step.
+/// On the sample with the test tables' A9F78116 imported (a project copy that has no function template), folio 102,
+/// Draw ▸ Place ▸ Device from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy;
+/// choosing it asks for its symbol, and the MCB symbol places -102F2 (beside the sample's -102F1) with its part, in one
+/// undo step.
 #[test]
-fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
+fn device_from_part_places_an_imported_a9f78116_as_102f2() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     // The place cursor starts at the middle of Fit page's view (the first view is fit-width).
     dispatch(&mut h, "view.fit_page", json!({}));
     settle(&mut h);
-    let gp_ut = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/variants/gp-ut.ewcmd"),
-    )
-    .expect("the GP-UT log");
-    let line: Value = serde_json::from_str(gp_ut.lines().nth(1).expect("its command")).unwrap();
-    dispatch(&mut h, "command.run", line);
-    settle(&mut h);
+    support::import_parts(&mut h, &tmp, &[support::table_part("A9F78116")]);
     let (key, mods) = chord_of(&h, "tool.place_part");
     h.key_press_modifiers(mods, key);
     settle(&mut h);
@@ -486,7 +481,7 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     assert_eq!(reps(&h), before + 1);
     assert_eq!(
         h.state().shell().toast().map(|t| t.text.clone()).as_deref(),
-        Some("Placed -102F1 at 102-E8.")
+        Some("Placed -102F2 at 102-E8.")
     );
     // The placed device is selected; its Properties name the part.
     let describe = h.state().shell().describe();
@@ -505,20 +500,14 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// On GP-UT, A9F78116's row (a part without a symbol), clicked, and its Choose a symbol… open its symbol chooser with
-/// a line under the title that says why it asks, its filter with the keyboard focus (the click had moved it to the row), and
-/// a press on the page does nothing while it is open, as with the strip chooser.
+/// With the test tables' A9F78116 imported, its row (a part without a symbol), clicked, and its Choose a symbol… open
+/// its symbol chooser with a line under the title that says why it asks, its filter with the keyboard focus (the click
+/// had moved it to the row), and a press on the page does nothing while it is open, as with the strip chooser.
 #[test]
 fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
-    let gp_ut = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/variants/gp-ut.ewcmd"),
-    )
-    .expect("the GP-UT log");
-    let line: Value = serde_json::from_str(gp_ut.lines().nth(1).expect("its command")).unwrap();
-    dispatch(&mut h, "command.run", line);
-    settle(&mut h);
+    let mut h = on_sample(&tmp, "102");
+    support::import_parts(&mut h, &tmp, &[support::table_part("A9F78116")]);
     let (key, mods) = chord_of(&h, "tool.place_part");
     h.key_press_modifiers(mods, key);
     settle(&mut h);

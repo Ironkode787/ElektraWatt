@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The property grid in the window without rendering (acceptance checks PG5, PG9 and the window half
-//! of PG11): AC-28's W29 step (W29 chosen through `select.set`, the chips, the colour through the editor, undo), D-06's property-grid
+//! of PG11): a wire chosen through `select.set`, its chips, its colour through the editor, undo; the property-grid
 //! entry from the keyboard alone (override the description of folio 101, see the finding, reset, undo), the exact
 //! counts of the window host, and the accessible-name walker after every step.
 
@@ -17,8 +17,18 @@ use ew_viewmodel::shell::{Focus, Outcome};
 use serde_json::json;
 use support::{Tmp, dispatch, settle};
 
-/// W29 on folio 103 (`connections|W29`).
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
+/// The device `tag` lettered K: EW-RDS-003 warns of K for a breaker or a contactor (the sample letters its contactor Q
+/// for that), the warning the tests of the header's chips read (the sample is clean but for infos on its tubes and its
+/// enclosure).
+fn lettered_k(h: &mut Harness<'_, App>, tag: &str) {
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": format!("tag:{tag}")}],
+            "path": "tag.letter", "value": "K"}}),
+    );
+    settle(h);
+}
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -66,8 +76,9 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
 #[test]
 fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
-    dispatch(&mut h, "select.set", json!({"ids": [W29]}));
+    let mut h = support::on_sample(&tmp, "102");
+    let w = support::wire_between(&h, "-102F1:2", "-X1021:1/a");
+    dispatch(&mut h, "select.set", json!({"ids": [w]}));
     dispatch(&mut h, "props.show", json!({"on": true}));
     settle(&mut h);
     let key = "connection/overrides.show_marker";
@@ -113,13 +124,16 @@ fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The wire 102.1 of the sample's 24 V circuit (from the breaker -102F1 to the strip -X1021) chosen through `select.set`, its derived chips, its colour through the
+/// editor, and undo.
 #[test]
-fn ac28_w29_colour_through_the_editor_and_undo() {
+fn a_wires_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
-    // W29 through `select.set` (the canvas picks by geometry, and the centre of a wire's
+    let mut h = support::on_sample(&tmp, "102");
+    // The wire through `select.set` (the canvas picks by geometry, and the centre of a wire's
     // rectangle need not lie on the wire).
-    dispatch(&mut h, "select.set", json!({"ids": [W29]}));
+    let w = support::wire_between(&h, "-102F1:2", "-X1021:1/a");
+    dispatch(&mut h, "select.set", json!({"ids": [w]}));
     settle(&mut h);
     let selected: Vec<String> = h
         .state()
@@ -129,14 +143,14 @@ fn ac28_w29_colour_through_the_editor_and_undo() {
         .iter()
         .map(|e| e.0.to_string())
         .collect();
-    assert_eq!(selected, [W29]);
+    assert_eq!(selected, [w]);
     // The chips of PG2.
     assert_eq!(
         row(&h, "connection/derived.csa"),
         (
             "0.75 mm²".to_owned(),
             Provenance::Derived {
-                via: "potential 24VDC-1 · size profile '0.75/1.5' · class control".into()
+                via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
             }
         )
     );
@@ -145,7 +159,7 @@ fn ac28_w29_colour_through_the_editor_and_undo() {
         (
             "DBU".to_owned(),
             Provenance::Derived {
-                via: "potential 24VDC-1 · colour profile 'DBU/WH 24 V'".into()
+                via: "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
             }
         )
     );
@@ -207,14 +221,14 @@ fn ac28_w29_colour_through_the_editor_and_undo() {
 #[test]
 fn the_description_override_from_the_keyboard() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     // An empty selection shows the page on show.
     let sheet = h.state().shell().properties().sheet().expect("a sheet");
     assert_eq!(sheet.sections[0].kind, "page");
     assert_eq!(
         row(&h, "page/derived.description"),
         (
-            "Expansion Control Cabinets".to_owned(),
+            "Conveyor drive with a pneumatic clamp".to_owned(),
             Provenance::Inherited {
                 from: "project description".into()
             }
@@ -233,7 +247,7 @@ fn the_description_override_from_the_keyboard() {
         (
             "Control Cabinet Expansion".to_owned(),
             Provenance::Overridden {
-                note: "override · project description is 'Expansion Control Cabinets'".into()
+                note: "override · project description is 'Conveyor drive with a pneumatic clamp'".into()
             }
         )
     );
@@ -270,7 +284,7 @@ fn the_description_override_from_the_keyboard() {
     }
     press(&mut h, Key::Enter);
     let (text, prov) = row(&h, "page/derived.description");
-    assert_eq!(text, "Expansion Control Cabinets");
+    assert_eq!(text, "Conveyor drive with a pneumatic clamp");
     assert!(matches!(prov, Provenance::Inherited { .. }), "{prov:?}");
     assert!(
         !h.state()
@@ -291,14 +305,14 @@ fn the_description_override_from_the_keyboard() {
     settle(&mut h);
     assert_eq!(
         row(&h, "page/derived.description").0,
-        "Expansion Control Cabinets"
+        "Conveyor drive with a pneumatic clamp"
     );
 }
 
 #[test]
 fn the_window_fetches_a_sheet_once_per_key() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     let calls = |h: &Harness<'_, App>| h.state().shell().session_calls();
     let n = calls(&h).property_sheet;
     // Frames without a change: no sheet.
@@ -353,8 +367,8 @@ fn the_window_fetches_a_sheet_once_per_key() {
 #[test]
 fn a_boolean_row_is_a_checkbox() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-X1031:1"]}));
+    let mut h = support::on_sample(&tmp, "102");
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-X1021:1"]}));
     settle(&mut h);
     assert!(
         h.get_all_by_role(egui::Role::CheckBox)
@@ -379,12 +393,13 @@ fn a_boolean_row_is_a_checkbox() {
 #[test]
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "102");
     // At 1920 by 1080 Properties is the lower half of the left column and the colour row sits in its
     // lower half, so the option list opens over the row, inside the window and above the status bar.
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "select.set", json!({ "ids": [W29] }));
+    let w = support::wire_between(&h, "-102F1:2", "-X1021:1/a");
+    dispatch(&mut h, "select.set", json!({ "ids": [w] }));
     settle(&mut h);
     dispatch(&mut h, "props.focus", json!({}));
     settle(&mut h);
@@ -465,16 +480,16 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
     out
 }
 
-/// The minimal part chooser (G-PP run, finding 1): S51's Parts row opens a list of the project's part copies, the
-/// typed number filters it, a click on `533356 (Eaton)` commits one part use of quantity 1 in one command, and the
-/// row reads `533356 × 1`.
+/// The minimal part chooser (G-PP run, finding 1): the main switch -101Q1's Parts row, emptied, opens a list of the
+/// project's part copies, the typed number filters it, a click on `EW-GEN-SW-3 (Generic)` commits one part use of
+/// quantity 1 in one command, and the row reads `EW-GEN-SW-3 × 1`.
 #[test]
 fn the_parts_row_chooses_a_part_copy_with_the_mouse() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:S51"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-101Q1"]}));
     dispatch(&mut h, "props.set", json!({"row": "device/parts", "value": ""}));
     settle(&mut h);
     dispatch(&mut h, "props.focus", json!({}));
@@ -485,16 +500,16 @@ fn the_parts_row_chooses_a_part_copy_with_the_mouse() {
         h.get_all_by_role(egui::Role::ListBoxOption).count() >= 10,
         "the project's part copies are offered"
     );
-    type_into_field(&mut h, "Parts", "533356");
+    type_into_field(&mut h, "Parts", "EW-GEN-SW-3");
     let options: Vec<String> = h
         .get_all_by_role(egui::Role::ListBoxOption)
         .filter_map(|n| n.accesskit_node().label())
         .collect();
-    assert_eq!(options, ["533356 (Eaton)"]);
+    assert_eq!(options, ["EW-GEN-SW-3 (Generic)"]);
     let before = h.state().shell().recorded_commands().len();
     h.get_all_by_role(egui::Role::ListBoxOption)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("533356 (Eaton)"))
-        .expect("the option 533356")
+        .find(|n| n.accesskit_node().label().as_deref() == Some("EW-GEN-SW-3 (Generic)"))
+        .expect("the option EW-GEN-SW-3")
         .click();
     settle(&mut h);
     settle(&mut h);
@@ -504,7 +519,7 @@ fn the_parts_row_chooses_a_part_copy_with_the_mouse() {
         "one commit: {:?}",
         h.state().shell().properties().error()
     );
-    assert_eq!(row(&h, "device/parts").0, "533356 × 1");
+    assert_eq!(row(&h, "device/parts").0, "EW-GEN-SW-3 × 1");
 }
 
 /// J32 (doc 16a §6.8, the mockup's `.prow` and `.psec`): on folio 101's page sheet at 1920 by 1080 every property
@@ -514,7 +529,7 @@ fn the_parts_row_chooses_a_part_copy_with_the_mouse() {
 #[test]
 fn property_rows_are_left_aligned_with_one_word_chips() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let tokens = ew_ui::theme::current(&h.ctx);
@@ -626,9 +641,10 @@ fn property_rows_are_left_aligned_with_one_word_chips() {
 fn a_finding_chip_opens_messages_filtered_to_the_record() {
     use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
+    // The breaker -101F1 lettered K, one representation: F8 selects it alone.
+    lettered_k(&mut h, "-101F1");
     dispatch(&mut h, "messages.next", json!({}));
     settle(&mut h);
     // Close the pane F8 opened, so the click must open it.
@@ -711,9 +727,10 @@ fn severity_word(severity: &str) -> &'static str {
 #[test]
 fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
+    // The breaker -101F1 lettered K, one representation: F8 selects it alone.
+    lettered_k(&mut h, "-101F1");
     // F8: the first finding, its object selected, so the grid shows its sheet with the finding in the header.
     dispatch(&mut h, "messages.next", json!({}));
     settle(&mut h);
@@ -898,7 +915,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
 fn the_properties_filter_for_more_than_twelve_rows() {
     use ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let open_rows = |h: &Harness<'_, App>| {
@@ -1004,15 +1021,15 @@ fn the_properties_filter_for_more_than_twelve_rows() {
     assert_eq!(row_names(&h), all, "every row again");
 }
 
-/// M33 (G-PP row 6, FR-NUM-029): the refused tag-letter edit of -102G1 to F shows "Use -102F3" under the field; a
-/// click commits it in one step and -102F3 is the device's tag.
+/// M33 (G-PP row 6, FR-NUM-029): the refused tag-letter edit of the lamp -102E1 to F (102 has -102F1) shows "Use
+/// -102F2" under the field; a click commits it in one step and -102F2 is the device's tag.
 #[test]
 fn a_refused_letter_edit_offers_use_tag_as_a_button() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102E1"]}));
     dispatch(&mut h, "props.show_advanced", json!({"on": true}));
     let out = h
         .state_mut()
@@ -1021,9 +1038,9 @@ fn a_refused_letter_edit_offers_use_tag_as_a_button() {
     assert!(matches!(out, Outcome::Failed { .. }), "{out:?}");
     settle(&mut h);
     let before = h.state().shell().recorded_commands().len();
-    h.get_by_label("Use -102F3").scroll_to_me();
+    h.get_by_label("Use -102F2").scroll_to_me();
     settle(&mut h);
-    h.get_by_label("Use -102F3").click();
+    h.get_by_label("Use -102F2").click();
     settle(&mut h);
     settle(&mut h);
     assert_eq!(
@@ -1040,7 +1057,7 @@ fn a_refused_letter_edit_offers_use_tag_as_a_button() {
     assert_eq!(
         h.state_mut()
             .shell_mut()
-            .dispatch("select.set", &json!({"refs": ["tag:-102F3"]})),
+            .dispatch("select.set", &json!({"refs": ["tag:-102F2"]})),
         Outcome::Done
     );
 }
@@ -1050,10 +1067,10 @@ fn a_refused_letter_edit_offers_use_tag_as_a_button() {
 #[test]
 fn typing_into_an_opened_field_replaces_its_text() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102Q1"]}));
     settle(&mut h);
     dispatch(&mut h, "props.edit", json!({"row": "device/derived.tag"}));
     settle(&mut h);
@@ -1064,7 +1081,7 @@ fn typing_into_an_opened_field_replaces_its_text() {
         .get_all_by_role(egui::Role::TextInput)
         .find(|n| n.is_focused())
         .expect("the focused field");
-    field.type_text("-102G7");
+    field.type_text("-102Q7");
     settle(&mut h);
     let edit = h
         .state()
@@ -1073,7 +1090,7 @@ fn typing_into_an_opened_field_replaces_its_text() {
         .edit()
         .expect("still editing")
         .clone();
-    assert_eq!(edit.buffer, "-102G7", "typing replaced {:?}", opened.buffer);
+    assert_eq!(edit.buffer, "-102Q7", "typing replaced {:?}", opened.buffer);
     // Opened by typing (the first character starts the editor): the next characters follow it.
     dispatch(&mut h, "props.cancel", json!({}));
     settle(&mut h);
@@ -1083,7 +1100,7 @@ fn typing_into_an_opened_field_replaces_its_text() {
         .get_all_by_role(egui::Role::TextInput)
         .find(|n| n.is_focused())
         .expect("the focused field");
-    field.type_text("102G8");
+    field.type_text("102Q8");
     settle(&mut h);
     let edit = h
         .state()
@@ -1092,18 +1109,19 @@ fn typing_into_an_opened_field_replaces_its_text() {
         .edit()
         .expect("still editing")
         .clone();
-    assert_eq!(edit.buffer, "-102G8");
+    assert_eq!(edit.buffer, "-102Q8");
 }
 
-/// At 1920 by 1080 the page's warning chip keeps its count and word ("2 Warnings",
+/// At 1920 by 1080 the page's warning chip keeps its count and word ("1 Warning",
 /// not the icon alone) beside the title, and the chip stands inside the pane's gutter (its right edge with the
-/// filter field's), never clipped by the pane's edge. Folio 102, whose findings are warnings only (one chip).
+/// filter field's), never clipped by the pane's edge. Folio 102 with its contactor lettered K, whose findings are then
+/// a warning only (one chip): the sample letters it Q, as EW-RDS-003 warns of K.
 #[test]
 fn the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
+    lettered_k(&mut h, "-102Q1");
     settle(&mut h);
     // The page's chip counts the warnings of what it draws, as Messages filtered to the page lists them (FT-1587).
     let (chip, words) = h
@@ -1149,7 +1167,7 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
         (egui::Vec2::new(1920.0, 1080.0), false),
     ] {
         let tmp = Tmp::new();
-        let mut h = support::on_golden(&tmp, "101");
+        let mut h = support::on_sample(&tmp, "101");
         h.set_size(size);
         dispatch(&mut h, "view.language", json!({ "value": "nl" }));
         settle(&mut h);
@@ -1210,7 +1228,15 @@ fn a_prose_value_wraps_and_is_never_cut() {
         (egui::Vec2::new(1920.0, 1080.0), false),
     ] {
         let tmp = Tmp::new();
-        let mut h = support::on_golden(&tmp, "101");
+        let mut h = support::on_sample(&tmp, "101");
+        // A description of a few words (the sample's own runs past the three lines a prose value takes, the rest cut).
+        dispatch(&mut h, "props.project", json!({}));
+        dispatch(
+            &mut h,
+            "props.set",
+            json!({"row": "project/master.description", "value": "Conveyor drive with a clamp"}),
+        );
+        dispatch(&mut h, "select.set", json!({"refs": ["folio:101"]}));
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -1282,7 +1308,7 @@ fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
 #[test]
 fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     settle(&mut h);
@@ -1334,7 +1360,7 @@ fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
         texts_in_row(&h, "Kenmerkletter").contains(&("Kenmerkletter".to_owned(), true)),
         "cut with an ellipsis"
     );
-    dispatch(&mut h, "select.set", json!({"refs": ["-102F1", "-102F2"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["-102S1", "-102S2"]}));
     settle(&mut h);
     settle(&mut h);
     assert_eq!(
@@ -1348,11 +1374,12 @@ fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
 }
 
 /// At 1920 × 1080 in Dutch the position row of -102F1's representation is whole: its grid
-/// cell and its millimetres with one decimal ("102-C7 · x 116.4 y 60.9 mm").
+/// cell and its millimetres with one decimal ("102-B1 · x 29.1 y 26.5 mm": where the sample's script places it, 38.5 and
+/// 36.1 mm on the sheet, in the coordinates of the page's drawing area).
 #[test]
 fn the_position_row_is_whole() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     settle(&mut h);
@@ -1374,7 +1401,7 @@ fn the_position_row_is_whole() {
     settle(&mut h);
     let rows = texts_in_row(&h, "Positie");
     assert!(
-        rows.contains(&("102-C7 · x 116.4 y 60.9 mm".to_owned(), false)),
+        rows.contains(&("102-B1 · x 29.1 y 26.5 mm".to_owned(), false)),
         "{rows:?}"
     );
 }
@@ -1384,7 +1411,7 @@ fn the_position_row_is_whole() {
 #[test]
 fn a_one_word_prose_value_takes_nothing_from_the_labels() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     support::set_function_text(&mut h, "Hoofdschakelaarkast");

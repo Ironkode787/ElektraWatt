@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The navigators in the window without rendering (acceptance checks NV4, NV5, NV7, NV9 and NV11):
-//! the Devices pane with its AccessKit tree and the chip line, a drag of 106 before 103 that opens the reorder card and
+//! the Devices pane with its AccessKit tree and the chip line, a drag of 104 before 103 that opens the reorder card and
 //! Apply, a drag of an unplaced function onto the canvas that arms the Place tool, the virtualised painting and the
 //! exact counts while scrolling; the accessible-name walker after every step (`settle`).
 
@@ -19,8 +19,8 @@ use ew_viewmodel::shell::Focus;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -82,13 +82,14 @@ pub(crate) fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
 }
 
 /// NV5 in the window (FR-UI-007, D16; §6.5, §6.8): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
-/// are tree items named `<label>, <role>[, <badges>]`; a click on -201U3 with 102 shown keeps 102, selects the device
-/// and shows the chips as buttons named `Go to page 201, E4` and `Go to page 203, B4`; Enter opens 201; a selection
-/// made on the canvas marks the representation's row while the focus stays on the canvas.
+/// are tree items named `<label>, <role>[, <badges>]`; a click on the valve terminal -201K1 with 102 shown keeps 102,
+/// selects the device and shows the chips of its representations as buttons: `Go to page 201, E2` (its box, placed at
+/// E2, the main one first), `Go to page 105, C9` (its bus port, drawn there from C9) and its supply ports under the box;
+/// Enter opens 201; a selection made on the canvas marks the representation's row while the focus stays on the canvas.
 #[test]
 fn the_devices_pane_and_the_chip_line() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     support::open_menu(&mut h, &["View", "Panels"]);
@@ -107,12 +108,12 @@ fn the_devices_pane_and_the_chip_line() {
         h.query_by_label("Devices navigator").is_some(),
         "the Tree is named"
     );
-    // -201U3 is under -201U1: reveal it by its row, then click it.
-    let key = row_key(&h, NavKind::Devices, NavRole::Device, "-201U3");
+    // -201K1 is placed on 105 and 201, not on the page shown: reveal it by its row, then click it.
+    let key = row_key(&h, NavKind::Devices, NavRole::Device, "-201K1");
     dispatch(&mut h, "navigator.row", json!({"kind": "devices", "key": key}));
     settle(&mut h);
     settle(&mut h);
-    let at = item_centre(&h, "-201U3, device");
+    let at = item_centre(&h, "-201K1, device");
     h.input_mut().events.push(egui::Event::PointerMoved(at));
     h.run_ok();
     for pressed in [true, false] {
@@ -129,12 +130,12 @@ fn the_devices_pane_and_the_chip_line() {
     assert_eq!(shell.current_folio(), Some("102"));
     assert_eq!(shell.selection().items.len(), 1);
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
-    assert_eq!(chips, ["201-E4", "203-B4"]);
-    assert!(h.query_by_label("Go to page 201, E4").is_some());
-    assert!(h.query_by_label("Go to page 203, B4").is_some());
+    assert_eq!(chips, ["201-E2", "105-C9", "201-F2"]);
+    assert!(h.query_by_label("Go to page 201, E2").is_some());
+    assert!(h.query_by_label("Go to page 105, C9").is_some());
     // The chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
     let chip = h
-        .get_by_role_and_label(egui::Role::Button, "Go to page 201, E4")
+        .get_by_role_and_label(egui::Role::Button, "Go to page 201, E2")
         .rect();
     assert!((chip.height() - 20.0).abs() < 0.5, "jump chip {chip:?}");
     let item = h
@@ -142,7 +143,7 @@ fn the_devices_pane_and_the_chip_line() {
         .find(|n| {
             n.accesskit_node()
                 .label()
-                .is_some_and(|l| l.starts_with("-201U3, device"))
+                .is_some_and(|l| l.starts_with("-201K1, device"))
         })
         .unwrap();
     assert_eq!(item.accesskit_node().is_selected(), Some(true));
@@ -158,10 +159,10 @@ fn the_devices_pane_and_the_chip_line() {
         json!({"kind": "devices", "keys": [key]}),
     );
     settle(&mut h);
-    h.get_by_label("Go to page 203, B4").click();
+    h.get_by_label("Go to page 105, C9").click();
     settle(&mut h);
-    assert_eq!(h.state().shell().current_folio(), Some("203"));
-    let rep = row_key(&h, NavKind::Devices, NavRole::Representation, "203-B4");
+    assert_eq!(h.state().shell().current_folio(), Some("105"));
+    let rep = row_key(&h, NavKind::Devices, NavRole::Representation, "105-C9");
     // The canvas origin: the representation's row is marked, the focus stays on the canvas.
     dispatch(&mut h, "ui.focus", json!({"area": "canvas"}));
     let id = h.state().shell().selection().items[0].0.to_string();
@@ -173,26 +174,26 @@ fn the_devices_pane_and_the_chip_line() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// NV7 in the window (D8): dragging 106 onto 103 in the Pages navigator opens the reorder card with "106 →
-/// 103, 103 → 106"; Apply commits one `page.reorder`; one undo restores the folios.
+/// NV7 in the window (D8): dragging 104 onto 103 in the Pages navigator opens the reorder card with "104 →
+/// 103, 103 → 104"; Apply commits one `page.reorder`; one undo restores the folios.
 #[test]
-fn dragging_106_before_103_opens_the_card_and_apply_commits() {
+fn dragging_104_before_103_opens_the_card_and_apply_commits() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     // Properties sits under Pages, so the page list has half the column; a taller window
-    // keeps folio 106 laid out.
+    // keeps folio 104 laid out.
     h.set_size(egui::Vec2::new(1000.0, 1000.0));
     settle(&mut h);
     let rows = h.state().shell().page_rows().to_vec();
     let title = |f: &str| rows.iter().find(|r| r.folio == f).unwrap().title.clone();
-    let (t103, t106) = (title("103"), title("106"));
-    let from = item_centre(&h, &format!("106 {t106}, page"));
+    let (t103, t104) = (title("103"), title("104"));
+    let from = item_centre(&h, &format!("104 {t104}, page"));
     let to = item_centre(&h, &format!("103 {t103}, page"));
     drag(&mut h, from, to);
     let card = h.state().shell().properties().card().map(|c| c.origin.word());
     assert_eq!(card, Some("reorder"));
     assert!(
-        h.query_by_label_contains("Reorder pages · 106 → 103, 103 → 106 · ")
+        h.query_by_label_contains("Reorder pages · 104 → 103, 103 → 104 · ")
             .is_some(),
         "the card's line"
     );
@@ -202,15 +203,15 @@ fn dragging_106_before_103_opens_the_card_and_apply_commits() {
     let rows = h.state().shell().page_rows().to_vec();
     let title = |f: &str| rows.iter().find(|r| r.folio == f).unwrap().title.clone();
     assert_eq!(
-        (title("103"), title("106")),
-        (t106.clone(), t103.clone()),
+        (title("103"), title("104")),
+        (t104.clone(), t103.clone()),
         "the keys swapped"
     );
     assert!(h.state().shell().can_undo());
     dispatch(&mut h, "edit.undo", json!({}));
     let rows = h.state().shell().page_rows().to_vec();
     let title = |f: &str| rows.iter().find(|r| r.folio == f).unwrap().title.clone();
-    assert_eq!((title("103"), title("106")), (t103, t106));
+    assert_eq!((title("103"), title("104")), (t103, t104));
     assert!(!h.state().shell().can_undo(), "one undo step");
     h.state_mut().shell_mut().shutdown();
 }
@@ -221,7 +222,7 @@ fn dragging_106_before_103_opens_the_card_and_apply_commits() {
 #[test]
 fn an_unplaced_function_is_dragged_onto_the_canvas() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let def = {
         let s = ew_viewmodel::ew_api::Session::open_read_only(&dir, "test")
             .expect("the copy opens")
@@ -290,19 +291,19 @@ fn an_unplaced_function_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// 8 in the window: in the strip editor (table mode) a terminal inserted into 1X1 (no strip segment, so
+/// 8 in the window: in the strip editor (table mode) a terminal inserted into -X1011 (no strip segment, so
 /// unplaced) is a drag source; dragging its row onto the canvas of folio 101 arms the Place tool with its function.
 #[test]
 fn an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     // Tall enough that the strip editor's rows stand clear of the dock's splitter.
     h.set_size(egui::Vec2::new(1400.0, 1100.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    dispatch(&mut h, "strip.edit", json!({"strip": "1X1"}));
+    dispatch(&mut h, "strip.edit", json!({"strip": "-X1011"}));
     dispatch(&mut h, "strip.insert", json!({"designation": "9"}));
     settle(&mut h);
     settle(&mut h);
@@ -336,10 +337,10 @@ fn an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
 #[test]
 fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102Q1"]}));
     settle(&mut h);
     dispatch(&mut h, "navigator.rename", json!({"kind": "devices"}));
     settle(&mut h);
@@ -360,11 +361,11 @@ fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
 #[test]
 fn f2_renames_a_potential_and_delete_opens_the_card() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
     settle(&mut h);
     settle(&mut h);
-    let key = row_key(&h, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let key = row_key(&h, NavKind::Potentials, NavRole::Potential, "24V");
     dispatch(&mut h, "navigator.row", json!({"kind": "potentials", "key": key}));
     dispatch(
         &mut h,
@@ -375,10 +376,10 @@ fn f2_renames_a_potential_and_delete_opens_the_card() {
     h.key_press(egui::Key::F2);
     settle(&mut h);
     let r = h.state().shell().nav_rename().expect("the editor").clone();
-    assert_eq!(r.text, "24VDC-1");
-    let field = h.get_by_role_and_label(egui::Role::TextInput, "Rename 24VDC-1, potential");
+    assert_eq!(r.text, "24V");
+    let field = h.get_by_role_and_label(egui::Role::TextInput, "Rename 24V, potential");
     assert!(field.accesskit_node().is_focused(), "the editor has the focus");
-    h.get_by_role_and_label(egui::Role::TextInput, "Rename 24VDC-1, potential")
+    h.get_by_role_and_label(egui::Role::TextInput, "Rename 24V, potential")
         .type_text("9");
     h.run_ok();
     h.key_press(egui::Key::Enter);
@@ -391,7 +392,7 @@ fn f2_renames_a_potential_and_delete_opens_the_card() {
         Some("fields.set")
     );
     let value = shell.recorded_commands().last().unwrap().params["value"].clone();
-    assert_eq!(value, "24VDC-19");
+    assert_eq!(value, "24V9");
     // Delete on the focused row: the card, nothing committed.
     let n = h.state().shell().recorded_commands().len();
     dispatch(
@@ -413,7 +414,7 @@ fn f2_renames_a_potential_and_delete_opens_the_card() {
 #[test]
 fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let calls = h.state().shell().session_calls().navigator_table;
     dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
     settle(&mut h);
@@ -444,7 +445,7 @@ fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// On Golden A's Pages navigator a double click on the row of folio 100 shows 100, and then one on
+/// On the sample's Pages navigator a double click on the row of folio 100 shows 100, and then one on
 /// the row of 101 shows 101 (and so on), the rows themselves are right. Each double click is the visual driver's (a
 /// press and a release per frame, four frames of 1/60 s) or egui's four events in one frame, after a person's pause.
 /// Without the pause, a double click a few frames after another one is a triple click to egui (its click count looks
@@ -453,7 +454,7 @@ fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
 #[test]
 fn double_clicking_the_rows_of_100_and_101_shows_each_folio() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     // The driver's clock: 1/60 s per frame (the harness steps 1/4 s, past egui's double-click interval), `pause` more.
@@ -548,7 +549,7 @@ fn marked_folios(h: &Harness<'_, App>) -> Vec<String> {
 #[test]
 fn a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     click_row(&mut h, "101", Modifiers::NONE);
@@ -576,7 +577,7 @@ fn a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
 #[test]
 fn double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     // The command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
     // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high; the default workspace
     // gives the navigator half the column (Properties under it), so 1200 px.
@@ -630,7 +631,7 @@ fn double_clicking_a_paged_report_block_goes_to_its_first_folio() {
 #[test]
 fn the_filter_field_clear_button_empties_the_filter_and_keeps_the_focus() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     assert!(
         h.query_by_label("Clear the filter").is_none(),
         "an empty field has no clear button"
@@ -785,7 +786,7 @@ fn a_channel_row_dragged_onto_a_connection_point_binds_it() {
 #[test]
 fn the_pages_table_shows_changed_in_at_the_default_width() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "navigator.table", json!({"kind": "pages"}));
     for _ in 0..3 {
         settle(&mut h);
