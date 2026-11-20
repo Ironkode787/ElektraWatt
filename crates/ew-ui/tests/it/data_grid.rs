@@ -1067,7 +1067,6 @@ fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
         let order: Vec<&String> = labels.iter().rev().chain(labels.iter()).collect();
         for label in order {
             show_column(&mut h, label);
-            settle(&mut h);
             let grid = h.get_by_label("Terminal strips table").rect();
             let key = cell(&h, "Strip", 1);
             // An empty cell is named "<column>, row 1 of <n>".

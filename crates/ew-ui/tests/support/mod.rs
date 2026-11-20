@@ -353,12 +353,16 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     let mut problems = Vec::new();
     let menu_button = strings::text(key!("commandbar-menu"));
     // The names on show, read in one walk (a label's text is its value, as the query reads it): a name no node bears
-    // has no node to check, and the query walks the whole tree once per name, which cost about 50 ms per settle.
+    // has no node to check, and the query walks the whole tree once per name, which cost about 50 ms per settle. The
+    // same walk sees whether a menu is open: without one no menu entry is shown, and the menu model, about 8 ms of a
+    // 20 ms settle, is not built.
+    let mut menu_open = false;
     let shown: std::collections::BTreeSet<String> = harness
         .root()
         .children_recursive()
         .filter_map(|n| {
             let n = n.accesskit_node();
+            menu_open |= n.role() == Role::Menu;
             if n.role() == Role::Label {
                 n.value()
             } else {
@@ -399,6 +403,9 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     }
     // A menu's own button bears the menu's name, which an entry elsewhere may share (the PLC menu and View ▸
     // Navigators ▸ PLC): the button that opens a menu is no entry of it.
+    if !menu_open {
+        return problems;
+    }
     let menus = actions::menu_model(shell);
     let menu_names: Vec<&str> = menus.iter().map(|m| m.label.as_str()).collect();
     for menu in &menus {

@@ -127,16 +127,20 @@ fn check_plain_forms(h: &mut Harness<'_, App>, listed: &BTreeSet<String>, checke
             continue;
         }
         let _ = h.state_mut().shell_mut().dispatch(action, &json!({}));
-        settle(h);
         let opened =
             matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == action.as_str());
+        // A form that opened is drawn and walked once, by `check_form`; what another action shows is walked here.
+        if !opened {
+            settle(h);
+        }
         let shell = h.state_mut().shell_mut();
         for _ in 0..3 {
             let _ = shell.dispatch("ui.dismiss", &Value::Null);
         }
-        settle(h);
         if opened {
             checked.insert(check_form(h, action, json!({})));
+        } else {
+            settle(h);
         }
     }
 }
