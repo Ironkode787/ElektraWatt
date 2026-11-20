@@ -532,6 +532,19 @@ This is the left-edge method of channel routing with its order constraints. It g
 devices with different pole pitches, the fan of a row of sensors into a narrower row of pins, and stacks of marks
 whose wires do not cross, without a search and without depending on any order of the wires.
 
+*As built (step 3).* `ew_drafting::tracks`, run by `route` after the trunks. A stepping wire is the one wire of its
+net: the wires of one pin stay with the trunks and the search, which share their runs, so wires of one pin never
+share a track here. A Z leaves its upper (or left) pin; a U leaves its row outward and its tracks reach to a step
+inside the drawing area. A leg orders another wire only where it reaches the depths that wire's middle may take
+(a leg runs from its pin to its track), so a U that rises past a channel from far below does not push its wires
+out. The first track stays two steps from the row at the narrow pitch too, beyond the stubs of the pins. A track is
+passed over, as blocked, where its route pays more for crossings and texts than the way the search would find for
+the wire; the length and bends of the pitch are the track's to spend. A channel is too narrow when its assignment
+at `TRACK_PITCH` leaves a wire without a track, counting room only. The placer's count of §4.5 is
+`tracks_needed(&[(Tick, Tick)]) -> usize`: per stepping wire the coordinates along the rows of the pin it leaves and
+the pin it reaches, counted by the same order and assignment at `TRACK_PITCH` with the rows as far apart as need
+be. No mate or bundle price was left in the search to delete.
+
 ### 3.6 The search
 
 The exact search of today's router is kept and moved: a backward Dijkstra over (node, arriving heading) and a
