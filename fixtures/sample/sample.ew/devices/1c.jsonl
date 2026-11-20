@@ -1,0 +1,3 @@
+{"$k":"device","id":"019b76da-a81c-7000-8000-00000000001c","tag":{"letter":"X","counter":3},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a815-7000-8000-000000000015","seq":3,"designation":"L3"}}
+{"$k":"function","id":"019b76da-a81d-7000-8000-00000000001d","device":"019b76da-a81c-7000-8000-00000000001c","def":"4a2f9ef1-5675-5510-9b47-ca86a6a84cce"}
+{"$k":"potential_def","id":"019b76da-a859-7000-8000-000000000059","at":{"cp":["019b76da-a81d-7000-8000-00000000001d",1]},"name":"L3","ptype":"l3","voltage":"400","env":{"ac_dc":"ac"}}

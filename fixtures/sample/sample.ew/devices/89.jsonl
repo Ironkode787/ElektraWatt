@@ -1,3 +1,3 @@
-{"$k":"device","id":"019b76da-a889-7000-8000-000000000089","tag":{"letter":"X","counter":6},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a879-7000-8000-000000000079","seq":6,"designation":"6"}}
+{"$k":"device","id":"019b76da-a889-7000-8000-000000000089","tag":{"letter":"X","counter":7},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a876-7000-8000-000000000076","seq":7,"designation":"7"}}
 {"$k":"function","id":"019b76da-a88a-7000-8000-00000000008a","device":"019b76da-a889-7000-8000-000000000089","def":"4a2f9ef1-5675-5510-9b47-ca86a6a84cce"}
-{"$k":"connection","id":"019b76da-a8b3-7000-8000-0000000000b3","a":{"cp":["019b76da-a88a-7000-8000-00000000008a",0]},"b":{"cp":["019b76da-a88d-7000-8000-00000000008d",0]},"kind":{"bridge":{"kind":"plug_in","group":2,"shaft":1}}}
+{"$k":"connection","id":"019b76da-a8b5-7000-8000-0000000000b5","a":{"cp":["019b76da-a88a-7000-8000-00000000008a",0]},"b":{"cp":["019b76da-a88d-7000-8000-00000000008d",0]},"kind":{"bridge":{"kind":"plug_in","group":2,"shaft":1}}}

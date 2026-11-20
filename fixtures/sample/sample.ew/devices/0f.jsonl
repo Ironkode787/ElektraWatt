@@ -1,2 +1,2 @@
-{"$k":"device","id":"019b76da-a90f-7000-8000-00000000010f","tag":{"letter":"X","counter":2},"parts":[{"part":{"copy":"e8c31b46-da24-51ad-a80b-ad8ccb9057c2"},"qty":"1"}]}
-{"$k":"function","id":"019b76da-a910-7000-8000-000000000110","device":"019b76da-a90f-7000-8000-00000000010f","def":"7619790a-bb07-5e68-84f8-d2f8b6696b47","template_entry":0}
+{"$k":"device","id":"019b76da-a90f-7000-8000-00000000010f","tag":{"letter":"X","counter":1},"parts":[{"part":{"copy":"206622f8-b689-5f80-a044-cb83221d176a"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a910-7000-8000-000000000110","device":"019b76da-a90f-7000-8000-00000000010f","def":"af2220a3-35a1-544e-9c97-fae733ddd9f8","template_entry":0}

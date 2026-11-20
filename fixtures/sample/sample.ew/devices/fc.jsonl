@@ -1,4 +1,12 @@
-{"$k":"device","id":"019b76da-a8fc-7000-8000-0000000000fc","tag":{"letter":"Q","counter":1,"scheme":"child"},"parent":"019b76da-a8f9-7000-8000-0000000000f9","position":1,"parts":[{"part":{"copy":"6aa2035d-ea1d-5cd5-9222-36621f8760fb"},"qty":"1"}]}
-{"$k":"function","id":"2c689c22-b3e2-50a1-8cb0-cf3dcaf00c41","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"6390be2f-2232-5be9-a867-eb4be56aa823","role":"aux","template_entry":1}
-{"$k":"function","id":"abe75512-538e-5a23-a183-c849c0bf798c","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"ab4c7813-e809-503b-a0cb-8978f1c4ac3a","template_entry":0}
-{"$k":"device_link","id":"e0b663c1-1a01-5df0-861f-491b869de36b","from":"019b76da-a8fc-7000-8000-0000000000fc","to":"019b76da-a906-7000-8000-000000000106","kind":"drives"}
+{"$k":"device","id":"019b76da-a8fc-7000-8000-0000000000fc","tag":{"letter":"K","counter":1},"parts":[{"part":{"copy":"cce7adcc-587e-5c5e-940f-3e56ec33cc93"},"qty":"1"}],"plc_station":{"config_project":"e13b1bba-e4ba-5414-b75a-b9c86cad85dd","role":"valve_terminal"},"plc_module":{"integrated":true}}
+{"$k":"function","id":"019b76da-a8fd-7000-8000-0000000000fd","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"8df554db-f5b8-5993-9d31-ae3be38b0c7a","kind":"black_box","template_entry":0}
+{"$k":"function","id":"019b76da-a901-7000-8000-000000000101","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"0df12c76-eb33-5484-a9e4-53143ef24319","role":"aux"}
+{"$k":"function","id":"019b76da-a954-7000-8000-000000000154","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"904ea105-dd27-5122-a22d-2222fbc9a530","role":"aux","bus_port":{"interface":"DP","bus":"profibus_dp","role":"slave","address":{"value":{"profibus":3}},"termination":"on","logical_net":"019b76da-a957-7000-8000-000000000157"}}
+{"$k":"channel","id":"d63e930a-2a60-515a-80ff-0a548e10adb9","module":"019b76da-a8fc-7000-8000-0000000000fc","number":0,"kind":"do","binding":{"cp":["867b08ab-1381-5aac-9c33-c5ea43762ba7",0]}}
+{"$k":"channel","id":"27f83149-f512-5044-88cf-48081047f8c4","module":"019b76da-a8fc-7000-8000-0000000000fc","number":4,"kind":"do","binding":{"cp":["aff21358-7ba0-5a1e-820b-6be5e03ed33e",0]}}
+{"$k":"channel","id":"1ecf598e-ba40-5c48-a434-3e7c1a34ada5","module":"019b76da-a8fc-7000-8000-0000000000fc","number":3,"kind":"do"}
+{"$k":"channel","id":"4ef8214e-f8d2-51f0-aa86-03bd1f7e08a0","module":"019b76da-a8fc-7000-8000-0000000000fc","number":6,"kind":"do","binding":{"cp":["3555297e-e323-5ad3-bd50-52171ed55a24",0]}}
+{"$k":"channel","id":"4b69b8fa-2e9a-5046-ad78-ce37523c6350","module":"019b76da-a8fc-7000-8000-0000000000fc","number":7,"kind":"do"}
+{"$k":"channel","id":"196addfa-b3b5-5e9a-b19b-ff74b7edaa48","module":"019b76da-a8fc-7000-8000-0000000000fc","number":5,"kind":"do"}
+{"$k":"channel","id":"b4541d9d-45e3-5713-b1bb-b5ca38a372e4","module":"019b76da-a8fc-7000-8000-0000000000fc","number":1,"kind":"do"}
+{"$k":"channel","id":"2a58a3d1-2378-57b2-b94c-c365989a71b4","module":"019b76da-a8fc-7000-8000-0000000000fc","number":2,"kind":"do","binding":{"cp":["ef13ec06-6c06-5f36-b475-7105ddacb47a",0]}}

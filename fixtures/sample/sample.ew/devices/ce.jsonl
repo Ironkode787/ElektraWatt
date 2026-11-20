@@ -1,2 +1,0 @@
-{"$k":"device","id":"019b76da-a8ce-7000-8000-0000000000ce","tag":{"letter":"X","counter":3},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a8c7-7000-8000-0000000000c7","seq":3,"designation":"W"}}
-{"$k":"function","id":"019b76da-a8cf-7000-8000-0000000000cf","device":"019b76da-a8ce-7000-8000-0000000000ce","def":"4a2f9ef1-5675-5510-9b47-ca86a6a84cce"}

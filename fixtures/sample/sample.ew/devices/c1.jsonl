@@ -1,2 +1,0 @@
-{"$k":"device","id":"019b76da-a8c1-7000-8000-0000000000c1","tag":{"letter":"F","counter":1},"parts":[{"part":{"copy":"eca2de9a-502c-52be-991d-f93fb4d320f2"},"qty":"1"}]}
-{"$k":"function","id":"019b76da-a8c2-7000-8000-0000000000c2","device":"019b76da-a8c1-7000-8000-0000000000c1","def":"6f5b5053-3cf9-5895-a949-e104d1341eac","template_entry":0}

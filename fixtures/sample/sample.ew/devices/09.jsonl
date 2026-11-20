@@ -1,2 +1,2 @@
-{"$k":"device","id":"019b76da-a909-7000-8000-000000000109","tag":{"letter":"M","counter":2},"structure":{"location":"019b76da-a805-7000-8000-000000000005"},"parts":[{"part":{"copy":"cf10eb91-a628-55fd-b856-7306ad5b1f1b"},"qty":"1"}]}
+{"$k":"device","id":"019b76da-a909-7000-8000-000000000109","tag":{"letter":"M","counter":1},"structure":{"location":"019b76da-a805-7000-8000-000000000005"},"parts":[{"part":{"copy":"cf10eb91-a628-55fd-b856-7306ad5b1f1b"},"qty":"1"}]}
 {"$k":"function","id":"019b76da-a90a-7000-8000-00000000010a","device":"019b76da-a909-7000-8000-000000000109","def":"7b85e9bb-116f-5c3c-a7b6-d5260aa1c219","template_entry":0}

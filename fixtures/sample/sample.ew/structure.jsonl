@@ -5,8 +5,4 @@
 {"$k":"section","id":"b7f7ae7d-6967-5fbd-810b-8fa74fd854a0","number":1,"folio_range":[100,199],"title":"Wiring Definition","divider":true}
 {"$k":"section","id":"f760061e-e67c-5dbd-8743-6af4ea6ef9a5","number":2,"folio_range":[200,299],"title":"Pneumatics","divider":true}
 {"$k":"section","id":"3fe22b07-a984-5440-9502-a377f5109346","number":9,"folio_range":[900,999],"title":"Nomenclature","divider":true}
-{"$k":"external_ref","id":"019b76da-a809-7000-8000-000000000009","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0","connection":"L1"}
-{"$k":"external_ref","id":"019b76da-a80b-7000-8000-00000000000b","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0","connection":"L2"}
-{"$k":"external_ref","id":"019b76da-a80d-7000-8000-00000000000d","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0","connection":"L3"}
-{"$k":"external_ref","id":"019b76da-a80f-7000-8000-00000000000f","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0","connection":"N"}
-{"$k":"external_ref","id":"019b76da-a811-7000-8000-000000000011","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0","connection":"PE"}
+{"$k":"external_ref","id":"019b76da-a814-7000-8000-000000000014","location":"019b76da-a803-7000-8000-000000000003","device":"-Q0"}

@@ -1,3 +1,3 @@
-{"$k":"device","id":"019b76da-a81f-7000-8000-00000000001f","tag":{"letter":"X","counter":1},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a81e-7000-8000-00000000001e","seq":1,"designation":"L1"}}
+{"$k":"device","id":"019b76da-a81f-7000-8000-00000000001f","tag":{"letter":"X","counter":4},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a815-7000-8000-000000000015","seq":4,"designation":"N"}}
 {"$k":"function","id":"019b76da-a820-7000-8000-000000000020","device":"019b76da-a81f-7000-8000-00000000001f","def":"4a2f9ef1-5675-5510-9b47-ca86a6a84cce"}
-{"$k":"potential_def","id":"019b76da-a85a-7000-8000-00000000005a","at":{"cp":["019b76da-a820-7000-8000-000000000020",1]},"name":"L1","ptype":"l1","voltage":"400","env":{"ac_dc":"ac"}}
+{"$k":"potential_def","id":"019b76da-a85a-7000-8000-00000000005a","at":{"cp":["019b76da-a820-7000-8000-000000000020",1]},"name":"N","ptype":"n"}

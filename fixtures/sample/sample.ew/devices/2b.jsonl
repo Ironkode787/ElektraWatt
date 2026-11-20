@@ -1,5 +1,4 @@
-{"$k":"device","id":"019b76da-a82b-7000-8000-00000000002b","tag":{"letter":"X","counter":5},"kind":"terminal","parts":[{"part":{"copy":"2127affc-a740-51af-816f-115339af2b43"},"qty":"1"}],"terminal":{"strip":"019b76da-a81e-7000-8000-00000000001e","seq":5,"designation":"PE"}}
-{"$k":"device","id":"019b76da-a92b-7000-8000-00000000012b","tag":{"letter":"B","counter":1},"structure":{"location":"019b76da-a805-7000-8000-000000000005"},"parts":[{"part":{"copy":"e537631b-9c30-5c31-b84d-2d6a6ed62ba0"},"qty":"1"}]}
-{"$k":"function","id":"019b76da-a82c-7000-8000-00000000002c","device":"019b76da-a82b-7000-8000-00000000002b","def":"b6fcabd7-1796-5aab-82de-23ab3d0d6cd2"}
-{"$k":"function","id":"019b76da-a92c-7000-8000-00000000012c","device":"019b76da-a92b-7000-8000-00000000012b","def":"d9fa054e-2d79-58ae-bf1a-fcc5c0e03e99","template_entry":0}
-{"$k":"potential_def","id":"019b76da-a85e-7000-8000-00000000005e","at":{"cp":["019b76da-a82c-7000-8000-00000000002c",1]},"name":"PE","ptype":"pe"}
+{"$k":"device","id":"019b76da-a82b-7000-8000-00000000002b","tag":{"letter":"G","counter":1},"parts":[{"part":{"copy":"e427be05-825e-56c5-bfc0-ee9ce5d9122f"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a82c-7000-8000-00000000002c","device":"019b76da-a82b-7000-8000-00000000002b","def":"a5722bff-01d3-5a05-b24f-ec54f7252a45","kind":"black_box","template_entry":0}
+{"$k":"potential_def","id":"019b76da-a85c-7000-8000-00000000005c","at":{"cp":["019b76da-a82c-7000-8000-00000000002c",3]},"name":"24V","ptype":"l_plus","voltage":"24","env":{"ac_dc":"dc"}}
+{"$k":"potential_def","id":"019b76da-a85d-7000-8000-00000000005d","at":{"cp":["019b76da-a82c-7000-8000-00000000002c",5]},"name":"0V","ptype":"m"}

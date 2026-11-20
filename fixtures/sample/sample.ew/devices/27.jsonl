@@ -1,0 +1,10 @@
+{"$k":"device","id":"019b76da-a927-7000-8000-000000000127","tag":{"letter":"A","counter":2,"scheme":"child"},"parent":"019b76da-a925-7000-8000-000000000125","position":2,"parts":[{"part":{"copy":"acd7031d-3da4-5a99-94d0-c980d673631c"},"qty":"1"}],"plc_module":{}}
+{"$k":"function","id":"019b76da-a92c-7000-8000-00000000012c","device":"019b76da-a927-7000-8000-000000000127","def":"3d012b01-31ef-5047-a43d-2b74f9049911","kind":"black_box","template_entry":0}
+{"$k":"channel","id":"43156f08-4abc-57f0-86c6-2db2d657ae25","module":"019b76da-a927-7000-8000-000000000127","number":4,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",4]}}
+{"$k":"channel","id":"ef3c5566-833c-5e27-8fb6-b382e65b6a45","module":"019b76da-a927-7000-8000-000000000127","number":6,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",6]}}
+{"$k":"channel","id":"fce755ce-7a38-5614-9bec-35f0ab5cdfff","module":"019b76da-a927-7000-8000-000000000127","number":7,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",7]}}
+{"$k":"channel","id":"0a298df5-0ed5-5c36-a084-5a911c3adfe7","module":"019b76da-a927-7000-8000-000000000127","number":1,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",1]}}
+{"$k":"channel","id":"bb55657b-d1f0-5443-a2d6-a6a2f8772645","module":"019b76da-a927-7000-8000-000000000127","number":0,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",0]}}
+{"$k":"channel","id":"e39ef048-4e38-5e03-a541-3583f1725cf3","module":"019b76da-a927-7000-8000-000000000127","number":5,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",5]}}
+{"$k":"channel","id":"acf662d1-b22b-5d23-a5c6-fa18e2d7d45d","module":"019b76da-a927-7000-8000-000000000127","number":3,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",3]}}
+{"$k":"channel","id":"bc0fc408-3bc6-5681-ad7b-1a7442d01ea6","module":"019b76da-a927-7000-8000-000000000127","number":2,"kind":"do","binding":{"cp":["019b76da-a92c-7000-8000-00000000012c",2]}}

@@ -1,3 +1,6 @@
-{"$k":"device","id":"019b76da-a88f-7000-8000-00000000008f","tag":{"letter":"X","counter":8},"kind":"terminal","parts":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"1"}],"terminal":{"strip":"019b76da-a879-7000-8000-000000000079","seq":8,"designation":"8"}}
-{"$k":"function","id":"019b76da-a890-7000-8000-000000000090","device":"019b76da-a88f-7000-8000-00000000008f","def":"4a2f9ef1-5675-5510-9b47-ca86a6a84cce"}
-{"$k":"bond","id":"019b76da-a8b6-7000-8000-0000000000b6","a":{"cp":["019b76da-a890-7000-8000-000000000090",0]},"b":{"cp":["019b76da-a874-7000-8000-000000000074",0]},"kind":"pelv_0v_pe","via":"019b76da-a8ae-7000-8000-0000000000ae"}
+{"$k":"device","id":"019b76da-a88f-7000-8000-00000000008f","tag":{"letter":"Q","counter":1},"parts":[{"part":{"copy":"65d6e6e5-c630-5d1c-b1a4-01215f77836b"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a890-7000-8000-000000000090","device":"019b76da-a88f-7000-8000-00000000008f","def":"5d1ab4de-706a-5b85-b463-8b15311c4f39","template_entry":0}
+{"$k":"function","id":"019b76da-a891-7000-8000-000000000091","device":"019b76da-a88f-7000-8000-00000000008f","def":"47f43d7c-1db4-5ef7-b9d8-ec25d11c1180","role":"aux","template_entry":1}
+{"$k":"function","id":"019b76da-a892-7000-8000-000000000092","device":"019b76da-a88f-7000-8000-00000000008f","def":"47f43d7c-1db4-5ef7-b9d8-ec25d11c1180","role":"aux","template_entry":2}
+{"$k":"function","id":"019b76da-a893-7000-8000-000000000093","device":"019b76da-a88f-7000-8000-00000000008f","def":"47f43d7c-1db4-5ef7-b9d8-ec25d11c1180","role":"aux","template_entry":3}
+{"$k":"function","id":"019b76da-a894-7000-8000-000000000094","device":"019b76da-a88f-7000-8000-00000000008f","def":"47f43d7c-1db4-5ef7-b9d8-ec25d11c1180","role":"aux","template_entry":4}
