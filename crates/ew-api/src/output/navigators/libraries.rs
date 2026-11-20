@@ -25,7 +25,8 @@ use ew_schema::{
     Device, FormKind, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation, Sha256,
 };
 
-use super::{Builder, NavColumn, NavRole, column, kind_text, short_tag};
+use super::columns::column;
+use super::{Builder, NavColumn, NavRole, kind_text, short_tag};
 use crate::library::{IndexState, LibraryInfo, Tier};
 use crate::output::ew_dl;
 use crate::{CopyState, Session};
