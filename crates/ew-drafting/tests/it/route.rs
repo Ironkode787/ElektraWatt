@@ -317,6 +317,27 @@ fn a_wire_leaves_a_pin_that_shares_its_point_with_a_free_connection_point() {
     assert_eq!(corners(&done.wires.iter().find(|x| x.id == w).unwrap().route), 1);
 }
 
+/// A potential's mark set on a pin of a box, its arrow along the box's edge (a supply mark on a controller's supply
+/// pin): the mark does not wall the pin in. The wire from that pin to a pin on the side of a second box leaves the
+/// pin on the side the pin faces and has a way.
+#[test]
+fn a_wire_leaves_a_pin_that_a_mark_is_set_on() {
+    let mut b = Page::new(60, 40);
+    b.part("A", p(6, 10), (p(0, 0), p(14, 12)), &[("L", p(7, 0), Side::Up)]);
+    b.mark_in("24V", p(13, 10));
+    b.part("B", p(24, 10), (p(0, 0), p(20, 6)), &[("L", p(0, 2), Side::Left)]);
+    let w = b.wire("w", b.pin("B", "L"), b.pin("A", "L"), &[]);
+    let done = routed(&b.page);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    let route = &done.wires.iter().find(|x| x.id == w).unwrap().route;
+    let before = route[route.len() - 2];
+    assert!(
+        before.x == s(13) && before.y < s(10),
+        "it leaves the pin upward: {route:?}"
+    );
+}
+
 /// A small fluid page: a valve terminal's outline round a valve, a service unit below it and a cylinder above, in line.
 /// The tube between them goes round the terminal, not across it; a tube stored straight across it is F4, the valve's
 /// own tube straight out of its port is not.

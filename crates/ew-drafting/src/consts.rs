@@ -79,9 +79,10 @@ pub const GUIDE_SHOW: Tick = 2 * TICKS_PER_STEP;
 pub const GUIDE_CATCH: Tick = 3 * TICKS_PER_STEP / 4;
 /// Guides: the catch never reaches more than this many screen points beyond the ordinary half step.
 pub const GUIDE_CATCH_PT: u32 = 8;
-/// Cards drawn from the station view: their channel pins this far apart.
-pub const CARD_PIN_PITCH: Tick = 5 * TICKS_PER_STEP;
+/// Cards drawn from the station view: their channel pins this far apart (a field device with its tag and address
+/// fits over each pin, and a card of eight channels beside the controller at the head of an A3 sheet).
+pub const CARD_PIN_PITCH: Tick = 8 * TICKS_PER_STEP;
 /// Cards drawn from the station view: their height.
 pub const CARD_HEIGHT: Tick = 6 * TICKS_PER_STEP;
 /// Cards drawn from the station view: the most channel pins of one box of a card wider than the drawing area.
-pub const CARD_PINS_MOST: usize = 16;
+pub const CARD_PINS_MOST: usize = 8;

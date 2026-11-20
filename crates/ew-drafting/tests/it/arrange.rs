@@ -846,3 +846,102 @@ fn the_same_page_in_any_order_of_its_lists_gives_the_same_arrangement() {
         assert_eq!(plan.plan.junctions, again.plan.junctions, "{}", f.name);
     }
 }
+
+/// A strip the person set down in one row between a card of outputs at the head and a card of inputs at the foot, its
+/// devices on the wrong side of it (rule E4, §4.4): each terminal stands in the column of the channel it is wired to,
+/// whichever card that is, with its device beyond it. A terminal of the strip without a wire between them does not
+/// join the two cards into one tree: both cards keep their places.
+#[test]
+fn a_strip_between_two_cards_stands_by_the_channels_of_both_and_the_cards_stay() {
+    let mut b = Page::new(100, 62);
+    let out = b.card("A2", p(40, 6), (26, 6), &[5, 13, 21], false);
+    b.role(out, Role::Card);
+    let inputs = b.card("A1", p(10, 50), (26, 6), &[5, 13, 21], true);
+    b.role(inputs, Role::Card);
+    for k in 0..5 {
+        b.terminal(&format!("X{k}"), p(60 + 2 * k, 30));
+    }
+    // Three inputs: a sensor under each terminal where it belongs over it; then a spare terminal; then an output
+    // with its lamp.
+    for k in 0..3 {
+        let sensor = format!("B{k}");
+        b.device(&sensor, p(60 + 9 * k, 36));
+        b.wire(
+            &format!("s{k}"),
+            b.pin(&sensor, "2"),
+            b.pin(&format!("X{k}"), "1"),
+            &[],
+        );
+        b.wire(
+            &format!("c{k}"),
+            b.pin(&format!("X{k}"), "2"),
+            b.pin("A1", &format!("{k}")),
+            &[],
+        );
+    }
+    b.device("E", p(72, 42));
+    b.wire("q", b.pin("A2", "0"), b.pin("X4", "1"), &[]);
+    b.wire("e", b.pin("X4", "2"), b.pin("E", "1"), &[]);
+    let (a, done) = run(&b.page, &[]);
+    assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
+    assert!(
+        !a.moves.iter().any(|(x, _)| *x == id("A1") || *x == id("A2")),
+        "{:?}",
+        a.moves
+    );
+    for k in 0..3 {
+        let (x, t, d) = (
+            s(15 + 8 * k),
+            at(&done, &format!("X{k}")),
+            at(&done, &format!("B{k}")),
+        );
+        assert_eq!((t.x, d.x), (x, x), "channel {k} in its column");
+        assert!(d.y < t.y, "sensor {k} above its terminal");
+        assert_eq!(
+            corners(&done, &format!("c{k}")) + corners(&done, &format!("s{k}")),
+            0
+        );
+    }
+    assert_eq!(
+        (at(&done, "X4").x, at(&done, "E").x),
+        (s(45), s(45)),
+        "the output's column"
+    );
+    assert_eq!(corners(&done, "q") + corners(&done, "e"), 0);
+}
+
+/// A row that has no room at the chain gap stands nearer (§4.4): the sensors of a card's channels belong above their
+/// terminals, where a box stands at the head. They take, as one row, the furthest line under the box that keeps them
+/// clear of it, each in its channel's column.
+#[test]
+fn a_row_under_a_box_stands_nearer_than_the_chain_gap_and_clear_of_it() {
+    let mut b = Page::new(100, 62);
+    b.part("K", p(8, 4), (p(0, 0), p(30, 14)), &[("1", p(4, 0), Side::Up)]);
+    let card = b.card("A1", p(10, 50), (26, 6), &[5, 13, 21], true);
+    b.role(card, Role::Card);
+    for k in 0..3 {
+        let (terminal, sensor) = (format!("X{k}"), format!("B{k}"));
+        b.terminal(&terminal, p(15 + 8 * k, 27));
+        b.device(&sensor, p(50 + 9 * k, 34));
+        b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(&terminal, "1"), &[]);
+        b.wire(
+            &format!("c{k}"),
+            b.pin(&terminal, "2"),
+            b.pin("A1", &format!("{k}")),
+            &[],
+        );
+    }
+    let (_, done) = run(&b.page, &[]);
+    assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
+    let foot = at(&done, "K").y + s(14);
+    for k in 0..3 {
+        let d = at(&done, &format!("B{k}"));
+        assert_eq!(d.x, s(15 + 8 * k), "sensor {k} in its column");
+        assert!(d.y >= foot + s(1), "clear of the box: {d:?}");
+        assert_eq!(d.y, at(&done, "B0").y, "one row");
+        assert!(
+            at(&done, &format!("X{k}")).y - (d.y + s(4)) >= s(2),
+            "no nearer than the least gap"
+        );
+    }
+}

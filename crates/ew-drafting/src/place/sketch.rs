@@ -24,7 +24,13 @@
 //! 5. **mate**: no wire. Two units of one shape (the body of their largest part) that stand level side by side or in
 //!    line under one another, a step off at most, the nearest within twice [`ROW_PULL`]: a strip's terminals, cards
 //!    side by side, like devices in a row;
-//! 6. **overruled**: a level pair of a unit more of whose mates face that host than are wired to it out and back.
+//! 6. **overruled**: a level pair of a unit more of whose mates face that host than are wired to it out and back; and
+//!    a facing pair or a tap of two units of one row that runs across the wire, where one of them would have to leave
+//!    the row for it (two cards side by side, wired from the upper edge of one to the lower edge of the other).
+//!
+//! A mark set on a pin of another part asks for nothing where its arrow lies along that part's body (a potential's
+//! mark on a controller's supply pin: it has no way out on its own side), and a pin with a mark set on it asks for no
+//! corner: the potential arrives there, and neither part steps for the wire from it.
 //!
 //! # The trees
 //!
@@ -32,7 +38,8 @@
 //! units that no stronger relation joined yet: a spanning forest, with every fixed unit as ground. Then the mates join
 //! those trees, the relation nearest the heaviest unit of the heavier tree first, and only where one of the two is the
 //! heaviest of its tree or fixed (a terminal with its device joins its strip, not the row of devices; two marks of
-//! two strips are not joined); then the overruled pairs.
+//! two strips are not joined; a unit that hangs on its mate is the top of no tree any more, so a spare terminal
+//! between the terminals of two cards does not join the cards); then the overruled pairs.
 //!
 //! A tree hangs from its fixed units. A tree without one hangs from its **anchor**: of its heaviest units (4 per wired
 //! pin and the bodies' area in square steps over 16; those of at least three quarters of the heaviest's weight,
@@ -48,6 +55,10 @@
 //!
 //! # Setting the places
 //!
+//! The trees are set one after another, the heaviest first, each as if the units of the trees after it will step
+//! aside. A unit that then kept its place where a moved unit came to stand is in the way from the start, and the
+//! trees are set again ([`PASSES`] times at most).
+//!
 //! A tree is set from its root where it stands. Where a unit of it then has no room (it would leave the drawing area
 //! or stand on a unit that is set) the root steps by whole steps, the least first and [`REACH`] at most each way, until
 //! the whole tree has room; the roots of its shape that stood level with it take the same step, so that a row of cards
@@ -61,12 +72,17 @@
 //!   nearest wait until what hangs on the near ones is set: a device wired straight to a card does not take the place
 //!   of the row over the terminals.
 //!   - *Across*, a member wants its pin on its host pin's line. It takes the line where the straight way between the
-//!     two pins is free of other parts, and where that does not carry it past a member that stays.
+//!     two pins is free of other parts, and where that does not carry it past a member that stays, nor past a unit
+//!     of its row that has no line of its own to take or further from such a unit than it stood by more than
+//!     [`ROW_PULL`]. A unit of the row with a line of its own binds nobody: the terminals of one strip that are wired
+//!     to two cards each stand at their own card's pin.
 //!   - *Along*, a member keeps its place when it stands at least [`CHAIN_GAP_MIN`] beyond its host pin and clear of its
 //!     host (one its host left more than a row's pull behind keeps the distance it had; a keeper one step off the
 //!     distance most keepers of its shape keep takes that). Else it takes the row's line: [`CHAIN_GAP`], a step more
 //!     than the tracks its stepping wires need, or the line the keepers stand on within [`ROW_PULL`] of that. A member
-//!     a rail taps takes the rail's row where its lead leaves it the room.
+//!     a rail taps takes the rail's row where its lead leaves it the room. Where a member that takes the row's line
+//!     would stand on a unit that is set, those members step back together to the first line that is clear, no
+//!     nearer than [`CHAIN_GAP_MIN`] and their tracks (sensors under a box at the head).
 //!   - *Packed*: the members whose extents meet along the side stand in the order of their host pins with [`ROW_GAP`]
 //!     between: by their bodies where the text placer then sets every text of the row clear and within a step of
 //!     its part (a strip's terminals two steps apart), else by their footprints (bodies and texts at their first
@@ -80,7 +96,8 @@
 //!     (two parts wider than their pins' pitch stand staggered, both in line); else it stands where it stood across,
 //!     and steps further out from there.
 //! - **A stack** (corner leads on one side of a rank that turn one way): each member is set first with what hangs on
-//!   it, as one block. The blocks are taken in nesting order (the drop nearest the side they stand on turns first) and
+//!   it, as one block. A block heavier than the unit it hangs on keeps its place (a card with its channels does not
+//!   step for the corner of one supply wire). The blocks are taken in nesting order (the drop nearest the side they stand on turns first) and
 //!   each keeps its place when every one of its wires has its corner (the drop at least [`CHAIN_GAP_MIN`] long, its own
 //!   pin at least [`MARK_LEAD`] before the drop), it lies beyond the blocks before it and stands clear; else it takes
 //!   the nearest such place: in the column most single marks of the stack stand in, or in the column a mark's lead
@@ -104,7 +121,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::consts::{
-    ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, REACH, ROW_GAP,
+    ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, PASSES, REACH, ROW_GAP,
     ROW_PULL, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW, TRUNK_GAP,
 };
 use crate::labels::first_places;
@@ -219,6 +236,9 @@ pub(super) struct Sketch<'a> {
     edges: Vec<Vec<Rel>>,
     /// What the rails ask of their taps and marks ([`Sketch::rail_steps`]).
     steps: BTreeMap<usize, (Pt, bool)>,
+    /// The rows the person made, by unit: the units joined through mates that stand side by side have one number in
+    /// the first list, those that stand one under another one number in the second.
+    strips: [Vec<usize>; 2],
 }
 
 /// Rounds `v` ticks up (away from zero) to a whole step.
@@ -436,6 +456,7 @@ impl<'a> Sketch<'a> {
             wired,
             edges: Vec::new(),
             steps: BTreeMap::new(),
+            strips: [Vec::new(), Vec::new()],
         };
         sketch.tree();
         sketch
@@ -580,6 +601,38 @@ impl<'a> Sketch<'a> {
 
     /// The relations of the page (module documentation), in a fixed order.
     fn relations(&self) -> Vec<Rel> {
+        // A mark set on a pin of another part: the parts of its unit that have a pin on its own.
+        let under = |p: &PinId| -> Vec<&crate::model::Part> {
+            let (i, at, _) = self.w.pins[p];
+            self.units[self.unit_of[i]]
+                .parts
+                .iter()
+                .filter(|j| **j != i && self.w.parts[i].pins.len() == 1)
+                .map(|j| self.w.parts[*j])
+                .filter(|part| !part.frame_only && part.pins.iter().any(|q| part.at.plus(q.at) == at))
+                .collect()
+        };
+        // Such a mark whose pin faces along the part's body (the body reaches a step or more beyond it on that side)
+        // has no way out there: it asks for no row and no line.
+        let shut = |p: &PinId| {
+            self.side(*p).is_some_and(|s| {
+                let at = self.pt0(*p);
+                under(p).iter().any(|part| {
+                    let b = part.bounds();
+                    let (lo, hi) = span_across(b, s);
+                    (lo..=hi).contains(&across(at, s)) && span_along(b, s).1 >= out(at, s) + TICKS_PER_STEP
+                })
+            })
+        };
+        // A pin with a mark set on it is where its potential arrives: neither part steps for a corner of the wire
+        // from there (the controller's box and the card beside it keep their places).
+        let ridden = |p: &PinId| {
+            let (i, at, _) = self.w.pins[p];
+            self.units[self.unit_of[i]].parts.iter().any(|j| {
+                let part = self.w.parts[*j];
+                *j != i && part.pins.len() == 1 && part.at.plus(part.pins[0].at) == at
+            })
+        };
         let mut out: Vec<Rel> = Vec::new();
         for net in &self.w.nets {
             let mut pins: Vec<PinId> = net.pins.clone();
@@ -588,7 +641,10 @@ impl<'a> Sketch<'a> {
             if let [a, b] = pins[..] {
                 let (ua, ub) = (self.unit_of_pin(a), self.unit_of_pin(b));
                 if ua != ub
+                    && !shut(&a)
+                    && !shut(&b)
                     && let Some(kind) = kind_of(self.side(a), self.side(b))
+                    && !(kind == Kind::Corner && (ridden(&a) || ridden(&b)))
                 {
                     // An earth symbol stands beside the pin it earths, on a short hook (§1.3): it has no line to take.
                     // So does every other end symbol of one pin that is no mark (the adapter tells an earth symbol
@@ -624,6 +680,9 @@ impl<'a> Sketch<'a> {
                     _ => continue,
                 };
                 let Some(s) = self.side(one) else { continue };
+                if shut(&one) {
+                    continue;
+                }
                 let hub = self.unit_of_pin(one);
                 let at = self.pt0(one);
                 // On a fluid page the supply and the work are told by their roles (rule F1): the relation holds
@@ -702,6 +761,21 @@ impl<'a> Sketch<'a> {
                 }
             }
         }
+        // A wire between two units of one row that runs across it asks nothing where one of them would have to leave
+        // the row for it (two cards side by side, a pin on the upper edge of one wired to a pin on the lower edge of
+        // the other): the row stays, and the wire is the router's.
+        let lines = self.lines(&mates);
+        for r in &mut out {
+            if matches!(r.kind, Kind::Facing | Kind::Tap)
+                && self.side(r.pa).is_some_and(|s| {
+                    let line = &lines[usize::from(!s.vertical())];
+                    line[r.a] == line[r.b] && beyond(self.pt0(r.pa), self.pt0(r.pb), s) < CHAIN_GAP_MIN
+                })
+            {
+                r.kind = Kind::Overruled;
+                r.inline = false;
+            }
+        }
         let wired = |out: &[Rel], group: usize, host: usize, kind: Kind| {
             out.iter()
                 .filter(|r| r.kind == kind)
@@ -765,6 +839,7 @@ impl<'a> Sketch<'a> {
         let (wired, rest): (Vec<Rel>, Vec<Rel>) = rels.into_iter().partition(|r| r.kind < Kind::Mate);
         let (mut mates, overruled): (Vec<Rel>, Vec<Rel>) =
             rest.into_iter().partition(|r| r.kind == Kind::Mate);
+        let pairs: Vec<(usize, usize)> = mates.iter().map(|r| (r.a, r.b)).collect();
         // The trees the wires make.
         for r in wired {
             let (a, b) = (root(&mut up, r.a), root(&mut up, r.b));
@@ -789,7 +864,7 @@ impl<'a> Sketch<'a> {
             let old = heaviest.entry(c).or_insert(key);
             *old = (*old).min(key);
         }
-        let top: Vec<bool> = (0..m)
+        let mut top: Vec<bool> = (0..m)
             .map(|u| {
                 self.units[u].fixed
                     || heaviest
@@ -834,11 +909,22 @@ impl<'a> Sketch<'a> {
             if r.kind == Kind::Mate && !(top[r.a] || top[r.b]) {
                 continue;
             }
+            // (A unit that hangs on its mate is the top of no tree any more: a lone terminal between two strips of
+            // two cards does not join the cards.)
+            let (ka, kb) = (heaviest.get(&a).copied(), heaviest.get(&b).copied());
+            for u in [r.a, r.b] {
+                let (own, other) = if root(&mut up, u) == a { (ka, kb) } else { (kb, ka) };
+                if !self.units[u].fixed && own > other {
+                    top[u] = false;
+                }
+            }
+            heaviest.insert(a.min(b), ka.min(kb).unwrap_or_else(|| self.key(r.a)));
             up[a.max(b)] = a.min(b);
             edges[r.a].push(r);
             edges[r.b].push(r);
         }
         self.edges = edges;
+        self.strips = self.lines(&pairs);
         // From the fixed units, then from the heaviest unit of each tree left (the anchor is chosen when the tree is
         // set: `anchor`).
         let mut starts: Vec<usize> = (0..m).collect();
@@ -854,6 +940,25 @@ impl<'a> Sketch<'a> {
                 self.roots.push(u);
             }
         }
+    }
+
+    /// The rows the person made, from the pairs of mates: the units joined through mates that stand side by side have
+    /// one number in the first list, those that stand one under another one number in the second.
+    fn lines(&self, pairs: &[(usize, usize)]) -> [Vec<usize>; 2] {
+        [true, false].map(|down| {
+            let mut of: Vec<usize> = (0..self.units.len()).collect();
+            for (a, b) in pairs {
+                if self.mates(*a, *b, down) {
+                    let (x, y) = (of[*a], of[*b]);
+                    for o in &mut of {
+                        if *o == x.max(y) {
+                            *o = x.min(y);
+                        }
+                    }
+                }
+            }
+            of
+        })
     }
 
     /// Hangs the trees of `roots` from them, breadth first: each unit reached takes its relation towards the root as
@@ -976,10 +1081,35 @@ impl<'a> Sketch<'a> {
     pub fn lay(&mut self) {
         let m = self.units.len();
         self.steps = self.rail_steps();
-        // What never moves is in the way from the start: the fixed units and the units without a relation.
-        for u in 0..m {
-            self.placed[u] = self.units[u].fixed || self.edges[u].is_empty();
+        // A tree is set as if the units of the trees after it will step aside. One that then kept its place where a
+        // moved unit came to stand was counted on in vain: it is in the way from the start, and the trees are set
+        // again ([`PASSES`] times at most).
+        let mut stay: BTreeSet<usize> = BTreeSet::new();
+        for _ in 0..=PASSES {
+            self.d.fill(Pt::default());
+            self.settled.clear();
+            // What never moves is in the way from the start: the fixed units and the units without a relation.
+            for u in 0..m {
+                self.placed[u] = self.units[u].fixed || self.edges[u].is_empty() || stay.contains(&u);
+            }
+            self.lay_trees();
+            let hit: Vec<usize> = (0..m)
+                .filter(|o| {
+                    self.d[*o] == Pt::default()
+                        && !stay.contains(o)
+                        && (0..m).any(|u| self.d[u] != Pt::default() && self.bodies_meet(u, *o))
+                })
+                .collect();
+            if hit.is_empty() {
+                break;
+            }
+            stay.extend(hit);
         }
+        self.legal();
+    }
+
+    /// Sets the trees one after another, the heaviest first.
+    fn lay_trees(&mut self) {
         let mut wish: BTreeMap<usize, Pt> = BTreeMap::new();
         for k in 0..self.roots.len() {
             let mut root = self.roots[k];
@@ -1011,7 +1141,6 @@ impl<'a> Sketch<'a> {
                 }
             }
         }
-        self.legal();
     }
 
     /// A root nothing hangs on steps by `by` with its row, where it then stands clear inside the drawing area; the step
@@ -1051,16 +1180,12 @@ impl<'a> Sketch<'a> {
     /// every step a rail demands taken and the least weight moved (a part out of place moves, not the circuit round
     /// it); then one a rail taps, then the heaviest. The tree is left hanging from it.
     fn anchor(&mut self, root: usize, wish: &BTreeMap<usize, Pt>) -> usize {
-        let mut units = self.subtree(root);
-        if units.len() < 2 {
+        let units = self.anchors(root);
+        if self.subtree(root).len() < 2 {
             return root;
         }
-        units.sort_by_key(|u| self.key(*u));
-        // Only a unit about as heavy as the heaviest: a strip does not hang on one of its marks.
-        let most = units.iter().map(|u| self.units[*u].weight).max().unwrap_or(0);
-        units.retain(|u| 4 * self.units[*u].weight >= 3 * most);
         let mut best: Option<((bool, usize, i64, bool), usize)> = None;
-        for c in units.iter().copied().take(ANCHORS) {
+        for c in units {
             self.hang(&[c]);
             let tree = self.subtree(c);
             let first = self.first_step(c, wish);
@@ -1089,6 +1214,17 @@ impl<'a> Sketch<'a> {
         let anchor = best.map_or(root, |(_, c)| c);
         self.hang(&[anchor]);
         anchor
+    }
+
+    /// The units of the tree that hangs from `root` that may be its anchor: about as heavy as the heaviest (a strip
+    /// does not hang on one of its marks), the heaviest first, [`ANCHORS`] at most.
+    fn anchors(&self, root: usize) -> Vec<usize> {
+        let mut units = self.subtree(root);
+        units.sort_by_key(|u| self.key(*u));
+        let most = units.iter().map(|u| self.units[*u].weight).max().unwrap_or(0);
+        units.retain(|u| 4 * self.units[*u].weight >= 3 * most);
+        units.truncate(ANCHORS);
+        units
     }
 
     /// The tree of `root` set for good ([`Sketch::room`]); the root's step.
@@ -1300,7 +1436,18 @@ impl<'a> Sketch<'a> {
             }
             for ((s, sf), members) in stacks {
                 self.blocks(&members);
-                self.stack(&hosts, s, sf, &members);
+                // A block heavier than the unit it hangs on keeps its place: a card with its channels does not step
+                // for the corner of one supply wire.
+                let block =
+                    |sk: &Self, m: usize| sk.subtree(m).iter().map(|u| sk.units[*u].weight).sum::<i64>();
+                let (heavy, light): (Vec<usize>, Vec<usize>) = members.iter().partition(|m| {
+                    self.lead[**m].is_some_and(|l| block(self, **m) > self.units[l.host].weight)
+                });
+                self.stack(&hosts, s, sf, &light);
+                let kept: Vec<usize> = heavy.into_iter().flat_map(|m| self.subtree(m)).collect();
+                for u in kept {
+                    self.placed[u] = true;
+                }
             }
             for (s, members) in besides {
                 self.blocks(&members);
@@ -1378,11 +1525,26 @@ impl<'a> Sketch<'a> {
                 offset.push(offset[k - 1] + need);
             }
             let want: Vec<Tick> = offset.iter().map(|o| -o).collect();
-            let middle: Vec<Tick> = rising(&want)
+            let mut middle: Vec<Tick> = rising(&want)
                 .into_iter()
                 .enumerate()
                 .map(|(k, v)| v + offset[k])
                 .collect();
+            // (Stepped back into the drawing area as one where an end of it leaves it.)
+            let (first, last) = span_across(self.w.page.area.grown(-TICKS_PER_STEP / 2), s);
+            let under = (0..of.len())
+                .map(|k| first - (edges[k].0 + middle[k]))
+                .max()
+                .unwrap_or(0);
+            let over = (0..of.len())
+                .map(|k| edges[k].1 + middle[k] - last)
+                .max()
+                .unwrap_or(0);
+            if under > 0 && over + whole_up(under) <= 0 {
+                middle.iter_mut().for_each(|by| *by += whole_up(under));
+            } else if over > 0 && under + whole_up(over) <= 0 {
+                middle.iter_mut().for_each(|by| *by -= whole_up(over));
+            }
             // Members that keep their places and their distances stay: none steps aside for a wire.
             if middle.iter().all(|by| *by == 0) && of.iter().all(|k| wished[*k] == 0) {
                 continue;
@@ -1436,7 +1598,6 @@ impl<'a> Sketch<'a> {
                     .sum()
             };
             // (A way that sets a member outside the drawing area comes last.)
-            let (first, last) = span_across(self.w.page.area.grown(-TICKS_PER_STEP / 2), s);
             let outside = |by: &[Tick]| -> usize {
                 (0..of.len())
                     .filter(|k| edges[*k].0 + by[*k] < first || edges[*k].1 + by[*k] > last)
@@ -1530,25 +1691,53 @@ impl<'a> Sketch<'a> {
             // (The row's other members are packed clear of it afterwards.)
             let mut own = self.subtree(*m);
             own.push(l.host);
-            own.extend(items.iter().map(|(o, _)| *o));
+            own.extend(items.iter().flat_map(|(o, _)| self.subtree(*o)));
             if wished[k] != 0 && !self.line_free(self.pt(l.h), far, &own) {
                 self.d[*m] = self.d[*m].plus(across_vec(s, -wished[k]));
                 wished[k] = 0;
             }
         }
         // A member whose line would carry it past one that stays, where the two stood in the order of their pins, stays
-        // too: it is not drawn up against the one that could not go.
+        // too: it is not drawn up against the one that could not go. Nor does a member take a line that carries it
+        // past a unit of its row that has no line of its own to take (it is fixed, or hangs beside its host), or
+        // further from it than it stood by more than the row's pull: such a row is not torn. A unit of the row with a
+        // line of its own (a strip's terminal that faces another card) binds nobody: each stands in its channel's
+        // column (rule E4).
+        let strip = &self.strips[usize::from(!s.vertical())];
+        let here: BTreeSet<usize> = items.iter().map(|(m, _)| *m).collect();
+        let elsewhere = |sk: &Self, m: usize| -> Vec<usize> {
+            (0..sk.units.len())
+                .filter(|u| {
+                    *u != m
+                        && strip[*u] == strip[m]
+                        && !here.contains(u)
+                        && sk.lead[*u]
+                            .is_none_or(|l| !matches!(l.kind, Kind::Mate | Kind::Facing | Kind::Tap))
+                })
+                .collect()
+        };
+        let place = |sk: &Self, u: usize, moved: bool| {
+            let at = sk.shape(u).map_or(0, |r| span_across(r, s).0);
+            if moved { at + across(sk.d[u], s) } else { at }
+        };
         loop {
             let at = |sk: &Self, k: usize| across(sk.pt(items[k].1.f), s);
             let was = |sk: &Self, k: usize| across(sk.pt0(items[k].1.f), s);
             let past = (0..items.len()).find(|k| {
+                let m = items[*k].0;
                 wished[*k] != 0
-                    && (0..items.len()).any(|j| {
+                    && ((0..items.len()).any(|j| {
                         wished[j] == 0
                             && (*k < j) == (was(self, *k) < was(self, j))
                             && was(self, *k) != was(self, j)
                             && (*k < j) != (at(self, *k) < at(self, j))
-                    })
+                    }) || elsewhere(self, m).into_iter().any(|u| {
+                        let (then, now) = (
+                            place(self, m, false) - place(self, u, false),
+                            place(self, m, true) - place(self, u, true),
+                        );
+                        then.signum() != now.signum() || now.abs() > then.abs() + ROW_PULL
+                    }))
             });
             let Some(k) = past else { break };
             self.d[items[k].0] = self.d[items[k].0].plus(across_vec(s, -wished[k]));
@@ -1613,9 +1802,15 @@ impl<'a> Sketch<'a> {
                 all.sort_unstable();
                 all.dedup();
                 let wires: Vec<(PinId, PinId)> = items.iter().map(|(_, l)| (l.h, l.f)).collect();
-                let (now, was) = (self.text_clashes(&all, &wires), self.clashes_before(&all));
-                // (No text more on a text, and none more away from its part, than before.)
-                let t = now.0 <= was.0 && now.1 <= was.1;
+                // No text more on a text, and none more away from its part, than each unit has by itself (a mark set
+                // on a pin has its texts on that pin's part): texts that lay on a neighbour's as the row stood do not
+                // count for it, a row whose texts clash is spread.
+                let now = self.text_clashes(&all, &wires);
+                let own = all.iter().fold((0, 0), |(a, b), u| {
+                    let (c, d) = self.text_clashes(&[*u], &[]);
+                    (a + c, b + d)
+                });
+                let t = { now.0 <= own.0 && now.1 <= own.1 };
                 self.tight.insert(key, t);
                 t
             }
@@ -1654,7 +1849,14 @@ impl<'a> Sketch<'a> {
             .unwrap_or(room);
         for (k, (m, l)) in items.iter().enumerate() {
             if movers[k] {
-                let by = whole_up(line - dist(self, l));
+                // (A chain opens by a row's pull at most, rule A5: its tracks then take the narrow pitch.)
+                let was = beyond(self.pt0(l.h), self.pt0(l.f), s);
+                let most = if was >= CHAIN_GAP_MIN {
+                    was.max(CHAIN_GAP) + ROW_PULL
+                } else {
+                    line
+                };
+                let by = whole_up(line.min(most) - dist(self, l));
                 self.d[*m] = self.d[*m].plus(along_vec(s, by));
             }
         }
@@ -1689,6 +1891,28 @@ impl<'a> Sketch<'a> {
                 sk.blocked(m, &[])
             }
         };
+        // A row whose line is taken stands nearer: the members that take the row's line step back together, a step at a
+        // time and no nearer than their tracks leave them, to the first line on which none of them stands on a unit
+        // that is set (a row of sensors under a box at the head).
+        let taking: Vec<usize> = (0..items.len()).filter(|k| movers[*k]).collect();
+        if taking.iter().any(|k| on(self, items[*k].0)) {
+            let start = self.d.clone();
+            let nearer = loop {
+                for k in &taking {
+                    let m = items[*k].0;
+                    self.d[m] = self.d[m].plus(along_vec(s, -TICKS_PER_STEP));
+                }
+                if taking.iter().any(|k| dist(self, &items[*k].1) < narrow) {
+                    break false;
+                }
+                if !taking.iter().any(|k| on(self, items[*k].0)) {
+                    break true;
+                }
+            };
+            if !nearer {
+                self.d = start;
+            }
+        }
         for (k, (m, l)) in items.iter().enumerate() {
             if wished[k] != 0 && on(self, *m) {
                 // Further out on its line where the line is free that far (two flow controls wider than their ports'
@@ -2315,7 +2539,9 @@ impl<'a> Sketch<'a> {
         };
         // Level, or a step off it: a row set down a step crooked is a row.
         let off = if down { x.y0 - y.y0 } else { x.x0 - y.x0 };
-        x.size() == y.size() && off.abs() <= TICKS_PER_STEP
+        // (One size up to the rounding of a body that does not lie on the ticks.)
+        let like = (x.w() - y.w()).abs() <= LABEL_CLEAR && (x.h() - y.h()).abs() <= LABEL_CLEAR;
+        like && off.abs() <= TICKS_PER_STEP
     }
 
     /// The body of a unit's largest part on the page as it is: its shape.

@@ -1817,8 +1817,9 @@ fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
         let mut s = coils_out_of_line(&tmp);
         done(&mut s, "view.language", json!({"value": language}));
         done(&mut s, "layout.arrange", json!({}));
-        // Each untick plans again; the first ticked row goes until the card does.
-        for _ in 0..8 {
+        // Each untick plans again; the first ticked row goes until the card does (a bound far above the rows of
+        // this page, so that the loop ends).
+        for _ in 0..64 {
             let Some(card) = describe_line(&s, "card ") else {
                 break;
             };

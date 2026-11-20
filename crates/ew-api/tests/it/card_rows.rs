@@ -111,14 +111,19 @@ fn a_card_drawn_one_box_at_a_time_is_finished_by_its_further_box() {
 }
 
 /// How many channel pins one box of a card takes: all of them where the box fits the drawing area, else as many as
-/// fit, sixteen at most.
+/// fit, `CARD_PINS_MOST` at most.
 #[test]
-fn a_row_wider_than_the_drawing_area_is_split_into_boxes_of_at_most_sixteen_pins() {
+fn a_row_wider_than_the_drawing_area_is_split_into_boxes_of_the_most_pins_one_takes() {
     use ew_api::drafting::consts::{CARD_PIN_PITCH, CARD_PINS_MOST, TICKS_PER_STEP};
     use ew_api::part_box::card_share;
     let pitch = i64::from(CARD_PIN_PITCH / TICKS_PER_STEP);
     let room = |pins: i64| pins * pitch + 2;
     assert_eq!(card_share(20, room(20)), 20, "a row that fits is one box");
     assert_eq!(card_share(40, room(40) - 1), CARD_PINS_MOST);
-    assert_eq!(card_share(16, room(10)), 10, "a narrow sheet takes fewer");
+    let few = CARD_PINS_MOST - 2;
+    assert_eq!(
+        card_share(16, room(i64::try_from(few).unwrap())),
+        few,
+        "a narrow sheet takes fewer"
+    );
 }

@@ -547,9 +547,16 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
         t,
         corridors: [Vec::new(), Vec::new()],
         frames: [&ask.from, &ask.to].map(|tip| {
+            // (And a part of one pin set on the end's own point, a mark on a connection point: it does not wall the
+            // pin in.)
+            let rides =
+                ask.occ.bodies.iter().filter(|(id, _, pins)| {
+                    pins[..] == [tip.at] && tip.part.is_some_and(|(own, _)| own != id.0)
+                });
             ask.occ
                 .frames
                 .iter()
+                .chain(rides.map(|(_, r, _)| r))
                 .filter(|r| r.x0 <= tip.at.x && tip.at.x <= r.x1 && r.y0 <= tip.at.y && tip.at.y <= r.y1)
                 .copied()
                 .collect()
