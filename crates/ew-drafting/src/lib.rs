@@ -38,8 +38,8 @@ pub use labels::{Settled, settle_labels};
 pub use measure::{Counts, Findings, Passed, Quality, TextRef, measure};
 pub use model::*;
 pub use place::{Arranged, arrange};
-pub use rules::{Broken, Rule, rules_kept};
 pub use route::{
     Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, route, route_wire, unrouted_line, wire_clear,
 };
+pub use rules::{Broken, Rule, rules_kept};
 pub use tracks::tracks_needed;

@@ -212,7 +212,13 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
     let (routed, unrouted, kept) = (page.routed.len(), page.unrouted.len(), plan.kept.len());
     let moved = page.moved.len();
     let verb = if dry_run { "Would route" } else { "Routed" };
-    let wires = |n: usize| if n == 1 { "1 wire".to_owned() } else { format!("{n} wires") };
+    let wires = |n: usize| {
+        if n == 1 {
+            "1 wire".to_owned()
+        } else {
+            format!("{n} wires")
+        }
+    };
     let mut out = match (moved, routed, unrouted, kept) {
         (0, 0, 0, 0) => format!(
             "Nothing to route on folio {}: no wire would run better.\n",
@@ -221,9 +227,21 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
         (0, 0, 0, _) => format!("Nothing changed on folio {}.\n", page.folio),
         (0, n, _, _) => format!("{verb} {} on folio {}.\n", wires(n), page.folio),
         (m, n, _, _) => {
-            let symbols = if m == 1 { "1 symbol".to_owned() } else { format!("{m} symbols") };
-            let (move_verb, route_verb) = if dry_run { ("Would move", "route") } else { ("Moved", "routed") };
-            format!("{move_verb} {symbols} and {route_verb} {} on folio {}.\n", wires(n), page.folio)
+            let symbols = if m == 1 {
+                "1 symbol".to_owned()
+            } else {
+                format!("{m} symbols")
+            };
+            let (move_verb, route_verb) = if dry_run {
+                ("Would move", "route")
+            } else {
+                ("Moved", "routed")
+            };
+            format!(
+                "{move_verb} {symbols} and {route_verb} {} on folio {}.\n",
+                wires(n),
+                page.folio
+            )
         }
     };
     for symbol in &page.left {

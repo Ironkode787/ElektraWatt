@@ -1712,3 +1712,43 @@ fn a_two_pole_breaker_under_a_narrower_two_pole_switch_gets_both_poles_wired() {
         );
     }
 }
+
+/// Arrange and route (docs/design/06a-drafting.md §7.3) on folio 103: a preview card with a ticked row per symbol that
+/// moves, and nothing changes; the canvas shows the page as it would become with the moves; unticking the first row
+/// plans again with that symbol where it stands; Apply stores the plan in one step and one Undo takes it back.
+#[test]
+fn arrange_previews_its_moves_plans_again_on_an_untick_and_applies_in_one_step() {
+    let tmp = Tmp::new("ar1");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (56, 30)],
+        &[("-103K1:A2", "-103K2:A1", &[(55, 24), (55, 27), (56, 27), (56, 30)])],
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    let rev = s.revision();
+    let places = |s: &ShellModel| -> Vec<(i64, i64)> { tables(s).reps.iter().map(|r| r.pos).collect() };
+    let before = places(&s);
+    done(&mut s, "layout.arrange", json!({}));
+    assert_eq!(s.revision(), rev, "nothing changed yet");
+    let card = card_line(&s);
+    assert!(card.contains(" arrange "), "{card}");
+    assert!(card.contains("[x] \""), "a ticked row names a symbol that moves: {card}");
+    let group = s.area().unwrap().focused;
+    assert!(!s.arrange_moves(group).is_empty(), "the canvas marks the move");
+    assert!(s.arrange_page(group).is_some(), "the canvas shows the page as it would become");
+    // Unticked, the coil stays: it is listed unticked, or nothing is left to arrange.
+    done(&mut s, "layout.arrange_tick", json!({"row": 0}));
+    assert_eq!(s.revision(), rev);
+    if let Some(card) = describe_line(&s, "card ") {
+        assert!(card.contains("[ ] \""), "{card}");
+        done(&mut s, "preview.cancel", json!({}));
+    }
+    done(&mut s, "layout.arrange", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    assert_ne!(places(&s), before, "a coil moved");
+    assert!(s.arrange_page(group).is_none(), "the preview goes with the card");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(places(&s), before, "one Undo restores every place");
+}

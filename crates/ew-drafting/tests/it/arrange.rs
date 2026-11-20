@@ -66,15 +66,6 @@ fn point(page: &DraftPage, e: End) -> Pt {
     }
 }
 
-fn set_role(b: &mut Page, name: &str, role: Role) {
-    b.page
-        .parts
-        .iter_mut()
-        .find(|x| x.id == PartId(crate::kit::id(name)))
-        .expect("a part")
-        .role = role;
-}
-
 /// The fixture's page as wired by hand, its wires routed anew: what the router gives with every part in place.
 fn routed_by_hand(hand: &DraftPage) -> DraftPage {
     let mut bare = hand.clone();

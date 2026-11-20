@@ -7,8 +7,8 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, Endpoint, Junction, JunctionStyle, Kind, LibCopy, Page, PageItem, PageItemKind, Representation,
-    SymbolDef,
+    Connection, Endpoint, Junction, JunctionStyle, Kind, LibCopy, Page, PageItem, PageItemKind,
+    Representation, SymbolDef,
 };
 use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
@@ -130,7 +130,10 @@ impl ApplyLayout {
                 ));
             }
             if rep.locked {
-                return tx.reject(text!("refusal-layout-apply-kept", crate::words::symbol(tx, m.rep)));
+                return tx.reject(text!(
+                    "refusal-layout-apply-kept",
+                    crate::words::symbol(tx, m.rep)
+                ));
             }
             let next = crate::commands::device::stepped(tx, &rep, m.steps)?;
             moved.push(((*rep).clone(), next));
@@ -157,7 +160,10 @@ impl ApplyLayout {
                     tx.get::<LibCopy<SymbolDef>>(next.symbol)
                         .and_then(|s| ew_derive::anchor_point_of(&s.item, next)),
                 );
-                if points.iter().any(|p| ew_derive::cell_in_grid(grid, page.grid, *p).is_none()) {
+                if points
+                    .iter()
+                    .any(|p| ew_derive::cell_in_grid(grid, page.grid, *p).is_none())
+                {
                     return tx.reject(text!(
                         "refusal-layout-apply-outside",
                         crate::words::symbol(tx, next.id),
@@ -167,12 +173,16 @@ impl ApplyLayout {
             }
             // Its body not onto another's by a grid step or more each way, where they did not overlap so before.
             let step = crate::commands::device::steps_nm(page.grid, 1);
-            let (Some(a), Some(a0)) = (body(tx, next), body(tx, old)) else { continue };
+            let (Some(a), Some(a0)) = (body(tx, next), body(tx, old)) else {
+                continue;
+            };
             for (other, b0) in &bodies_before {
                 if *other == next.id {
                     continue;
                 }
-                let Some(r) = tx.get::<Representation>(*other) else { continue };
+                let Some(r) = tx.get::<Representation>(*other) else {
+                    continue;
+                };
                 let Some(b) = body(tx, &r) else { continue };
                 let deep = |a: [i64; 4], b: [i64; 4]| {
                     a[2].min(b[2]) - a[0].max(b[0]) >= step && a[3].min(b[3]) - a[1].max(b[1]) >= step
@@ -196,7 +206,9 @@ impl ApplyLayout {
             wires.sort();
             wires.dedup();
             for c in wires {
-                let Some(w) = tx.get::<Connection>(c) else { continue };
+                let Some(w) = tx.get::<Connection>(c) else {
+                    continue;
+                };
                 if w.page == Some(self.page)
                     && !w.route.is_empty()
                     && !self.routes.iter().any(|r| r.connection == c)
@@ -245,7 +257,11 @@ impl Command for ApplyLayout {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         tx.require::<Page>(self.page)?;
-        if self.parts.is_empty() && self.junctions.is_empty() && self.routes.is_empty() && self.markers.is_empty() {
+        if self.parts.is_empty()
+            && self.junctions.is_empty()
+            && self.routes.is_empty()
+            && self.markers.is_empty()
+        {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/routes",

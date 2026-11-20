@@ -967,7 +967,12 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     }
                     // The Arrange and route card names its origin, its lead, its figures and its rows.
                     if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
-                        line.push_str(&format!(" arrange \"{}\" \"{}\" \"{}\"", user(&a.lead), user(&a.now), user(&a.then)));
+                        line.push_str(&format!(
+                            " arrange \"{}\" \"{}\" \"{}\"",
+                            user(&a.lead),
+                            user(&a.now),
+                            user(&a.then)
+                        ));
                         for r in a.parts.iter().chain(&a.wires) {
                             let tick = if r.ticked { "[x]" } else { "[ ]" };
                             line.push_str(&format!(" {tick} \"{}\" \"{}\"", user(&r.name), user(&r.words)));

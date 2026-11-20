@@ -115,7 +115,6 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
         let Err(broken) = rules_kept(page, &moved(page, &moves).0) else {
             break;
         };
-        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("broken {:?}", broken.iter().map(|b| (b.rule, b.parts.iter().map(|p| p.0.to_string()[32..].to_owned()).collect::<Vec<_>>())).collect::<Vec<_>>()); }
         let named: BTreeSet<PartId> = broken.iter().flat_map(|b| b.parts.iter().copied()).collect();
         let units: BTreeSet<usize> = named.iter().filter_map(|id| p.unit_of_id(*id)).collect();
         for u in units {
@@ -186,7 +185,6 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
             || quality.unrouted >= before.unrouted
                 && (quality.counts.crossings > before.counts.crossings
                     || quality.counts.bends > before.counts.bends);
-        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {k} {:?} {:?} bad {} texts {} figures {} x {}->{} b {}->{}", quality.key(), before.key(), bad.len(), texts, figures, before.counts.crossings, quality.counts.crossings, before.counts.bends, quality.counts.bends); }
         // A move pays its price (§4.7) and shows: some figure a reader compares is better.
         let (b, q) = (&before.counts, &quality.counts);
         let shows = quality.faults < before.faults
@@ -202,7 +200,10 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
             continue;
         }
         let cost = quality.cost;
-        if best.as_ref().is_none_or(|b| (quality.key(), cost) < (b.4.key(), b.0)) {
+        if best
+            .as_ref()
+            .is_none_or(|b| (quality.key(), cost) < (b.4.key(), b.0))
+        {
             best = Some((cost, moves, moved, plan, quality));
         }
     }
@@ -240,7 +241,10 @@ fn moved(page: &DraftPage, moves: &[(PartId, Pt)]) -> (DraftPage, Vec<WireId>) {
     }
     let mut touched: Vec<WireId> = Vec::new();
     for w in &mut moved.wires {
-        if w.ends.iter().any(|e| matches!(e, End::Pin(p) if pins.contains(p))) {
+        if w.ends
+            .iter()
+            .any(|e| matches!(e, End::Pin(p) if pins.contains(p)))
+        {
             w.route.clear();
             touched.push(w.id);
         }
@@ -398,7 +402,11 @@ fn along_of(s: Side, t: Tick) -> Pt {
 }
 
 fn across_vec(s: Side, t: Tick) -> Pt {
-    if s.vertical() { Pt::new(t, 0) } else { Pt::new(0, t) }
+    if s.vertical() {
+        Pt::new(t, 0)
+    } else {
+        Pt::new(0, t)
+    }
 }
 
 impl<'a> Placer<'a> {
@@ -490,7 +498,9 @@ impl<'a> Placer<'a> {
         // Each part's texts that stand at their first places now, relative to the part: they move with it.
         let mut texts: Vec<Vec<Rect>> = vec![Vec::new(); n];
         for s in settle_labels(page).into_iter().filter(|s| s.rank == 0) {
-            let Some(l) = page.labels.iter().find(|l| l.id == s.id) else { continue };
+            let Some(l) = page.labels.iter().find(|l| l.id == s.id) else {
+                continue;
+            };
             if let Owner::Part(p) = l.owner
                 && let Some(i) = w.parts.iter().position(|x| x.id == p)
             {
@@ -512,7 +522,11 @@ impl<'a> Placer<'a> {
     }
 
     fn unit_of_id(&self, id: PartId) -> Option<usize> {
-        self.w.parts.iter().position(|p| p.id == id).map(|i| self.unit_of[i])
+        self.w
+            .parts
+            .iter()
+            .position(|p| p.id == id)
+            .map(|i| self.unit_of[i])
     }
 
     fn unit_of_pin(&self, p: PinId) -> usize {
@@ -552,7 +566,12 @@ impl<'a> Placer<'a> {
     fn key(&self, u: usize) -> (i64, Tick, Tick, PartId) {
         let b = self.footprint(u);
         let id = self.units[u].parts.iter().map(|i| self.w.parts[*i].id).min();
-        (-self.units[u].weight, b.y0, b.x0, id.unwrap_or(PartId(ew_ids::Uuid::nil())))
+        (
+            -self.units[u].weight,
+            b.y0,
+            b.x0,
+            id.unwrap_or(PartId(ew_ids::Uuid::nil())),
+        )
     }
 
     /// The pairs between two units, each as (pin of the first, pin of the second, kind).
@@ -597,31 +616,12 @@ impl<'a> Placer<'a> {
     /// The whole run of the placer (module documentation, steps 3 to 7).
     fn place(&mut self) {
         self.hosts();
-        self.dbg("hosts");
         self.followers();
-        self.dbg("followers");
         self.trunk_marks();
-        self.dbg("trunk_marks");
         self.bands();
-        self.dbg("bands");
         self.priced();
-        self.dbg("priced");
         self.swaps();
-        self.dbg("swaps");
         self.fit();
-        self.dbg("fit");
-    }
-
-    fn dbg(&self, stage: &str) {
-        if std::env::var("EW_PLACE_DEBUG").is_err() { return; }
-        let mut line = format!("[{stage}]");
-        for (u, unit) in self.units.iter().enumerate() {
-            if self.d[u] != Pt::default() {
-                let id = self.w.parts[unit.parts[0]].id.0.to_string()[32..].to_owned();
-                line += &format!(" {}:({},{}){}", id, self.d[u].x / 16, self.d[u].y / 16, if self.needed.contains(&u) {"!"} else {""});
-            }
-        }
-        eprintln!("{line}");
     }
 
     /// The units a rail taps.
@@ -694,7 +694,11 @@ impl<'a> Placer<'a> {
     }
 
     /// The tree of hosts from `roots`, breadth first (§4.2): the units in the order found, and each follower's lead.
-    fn tree(&self, rel: &[Vec<(usize, PinId, PinId, Option<Kind>)>], roots: &[usize]) -> (Vec<usize>, BTreeMap<usize, Lead>) {
+    fn tree(
+        &self,
+        rel: &[Vec<(usize, PinId, PinId, Option<Kind>)>],
+        roots: &[usize],
+    ) -> (Vec<usize>, BTreeMap<usize, Lead>) {
         let mut seen: BTreeSet<usize> = roots.iter().copied().collect();
         let mut frontier: Vec<usize> = roots.to_vec();
         frontier.sort_by_key(|u| self.key(*u));
@@ -752,9 +756,10 @@ impl<'a> Placer<'a> {
             let dh = d.get(&l.host).copied().unwrap_or_default();
             let h = self.pt(l.h).plus(dh);
             let p = self.pt(l.f);
-            let fluid = self.units[*u].parts.iter().any(|i| {
-                matches!(self.w.parts[*i].role, Role::Source | Role::Actuator | Role::Valve)
-            });
+            let fluid = self.units[*u]
+                .parts
+                .iter()
+                .any(|i| matches!(self.w.parts[*i].role, Role::Source | Role::Actuator | Role::Valve));
             let behind = |p: Pt| match l.kind {
                 Kind::Facing => beyond(h, p, s) < CHAIN_GAP_MIN,
                 Kind::Corner => beyond(h, p, s) <= 0 || beyond(p, h, t) <= 0,
@@ -775,7 +780,11 @@ impl<'a> Placer<'a> {
     /// Step 4: the followers of each host, from the anchors down.
     fn followers(&mut self) {
         let order = self.order.clone();
-        self.settled = order.iter().copied().filter(|u| self.lead[*u].is_none()).collect();
+        self.settled = order
+            .iter()
+            .copied()
+            .filter(|u| self.lead[*u].is_none())
+            .collect();
         for h in order {
             let mut sides: BTreeMap<(Side, bool, Option<Side>), Vec<usize>> = BTreeMap::new();
             for (f, l) in self.lead.iter().enumerate() {
@@ -822,7 +831,9 @@ impl<'a> Placer<'a> {
     /// Whether `u`'s footprint meets a footprint of `others`.
     fn meets(&self, u: usize, others: &[usize]) -> bool {
         let a = self.footprint(u);
-        others.iter().any(|o| *o != u && geom::texts_meet(a, self.footprint(*o)))
+        others
+            .iter()
+            .any(|o| *o != u && geom::texts_meet(a, self.footprint(*o)))
     }
 
     /// Moves unit `u` alone by `by` (its followers take it when their turn comes).
@@ -845,7 +856,11 @@ impl<'a> Placer<'a> {
         let mut low: Vec<Tick> = Vec::new();
         for (_, f, l) in &items {
             let fp = self.footprint(*f);
-            let (lo, hi) = if s.vertical() { (fp.x0, fp.x1) } else { (fp.y0, fp.y1) };
+            let (lo, hi) = if s.vertical() {
+                (fp.x0, fp.x1)
+            } else {
+                (fp.y0, fp.y1)
+            };
             let shift = match l.kind {
                 Kind::Facing => across(self.pt(l.h), s) - across(self.pt(l.f), s),
                 _ => 0,
@@ -907,7 +922,10 @@ impl<'a> Placer<'a> {
 
     /// A stack of corner followers on side `s` of host `h` (§4.4).
     fn stack(&mut self, h: usize, s: Side, members: &[usize]) {
-        let mut items: Vec<(usize, Lead)> = members.iter().filter_map(|f| self.lead[*f].map(|l| (*f, l))).collect();
+        let mut items: Vec<(usize, Lead)> = members
+            .iter()
+            .filter_map(|f| self.lead[*f].map(|l| (*f, l)))
+            .collect();
         let Some(sf) = items.first().and_then(|(_, l)| self.side(l.f)) else {
             return;
         };
@@ -925,7 +943,11 @@ impl<'a> Placer<'a> {
         }
         // Along: a follower beyond its drop by at least two steps and clear of its host stays; the others, innermost
         // first, each take the nearest place from the chain gap outward where its footprint meets no other's.
-        let host_line = items.iter().map(|(_, l)| beyond(Pt::default(), self.pt(l.h), s)).max().unwrap_or(0);
+        let host_line = items
+            .iter()
+            .map(|(_, l)| beyond(Pt::default(), self.pt(l.h), s))
+            .max()
+            .unwrap_or(0);
         let mut movers = Vec::new();
         let mut placed: Vec<usize> = self.settled.clone();
         placed.push(h);
@@ -992,9 +1014,14 @@ impl<'a> Placer<'a> {
             let mut shifts: BTreeMap<Tick, usize> = BTreeMap::new();
             for (p, j) in self.drops() {
                 let (i, _, side) = self.w.pins[&p];
-                let Some(s) = side.filter(|s| s.vertical()) else { continue };
+                let Some(s) = side.filter(|s| s.vertical()) else {
+                    continue;
+                };
                 let at = self.pt(p);
-                if self.unit_of[i] == root && beyond(at, j, s) > 0 && j.x != at.x && (j.x - at.x).abs() <= CHAIN_GAP_MIN
+                if self.unit_of[i] == root
+                    && beyond(at, j, s) > 0
+                    && j.x != at.x
+                    && (j.x - at.x).abs() <= CHAIN_GAP_MIN
                 {
                     *shifts.entry(whole(j.x - at.x)).or_default() += 1;
                 }
@@ -1050,7 +1077,10 @@ impl<'a> Placer<'a> {
             for u in &g {
                 for i in &self.units[*u].parts {
                     let part = self.w.parts[*i];
-                    if matches!(part.role, Role::MarkIn | Role::MarkOut) || part.frame_only || part.pins.is_empty() {
+                    if matches!(part.role, Role::MarkIn | Role::MarkOut)
+                        || part.frame_only
+                        || part.pins.is_empty()
+                    {
                         continue;
                     }
                     let b = part.bounds().moved(self.d[*u]);
@@ -1088,13 +1118,18 @@ impl<'a> Placer<'a> {
             .filter(|i| role(*i) == Role::Valve)
             .map(|i| self.w.parts[i].bounds().moved(self.d[self.unit_of[i]]))
             .collect();
-        let (Some(top), Some(bottom)) = (valves.iter().map(|r| r.y0).min(), valves.iter().map(|r| r.y1).max()) else {
+        let (Some(top), Some(bottom)) = (
+            valves.iter().map(|r| r.y0).min(),
+            valves.iter().map(|r| r.y1).max(),
+        ) else {
             return;
         };
         // The groups without a valve, and in a group with one each branch of the supply that hangs on a valve.
         let mut branches: Vec<Vec<usize>> = Vec::new();
         for g in self.groups() {
-            let has_valve = g.iter().any(|u| self.units[*u].parts.iter().any(|i| role(*i) == Role::Valve));
+            let has_valve = g
+                .iter()
+                .any(|u| self.units[*u].parts.iter().any(|i| role(*i) == Role::Valve));
             if !has_valve {
                 branches.push(g);
                 continue;
@@ -1102,7 +1137,10 @@ impl<'a> Placer<'a> {
             for u in &g {
                 let source = self.units[*u].parts.iter().any(|i| role(*i) == Role::Source);
                 let host_source = self.lead[*u].is_some_and(|l| {
-                    self.units[l.host].parts.iter().any(|i| role(*i) == Role::Source || role(*i) == Role::Valve)
+                    self.units[l.host]
+                        .parts
+                        .iter()
+                        .any(|i| role(*i) == Role::Source || role(*i) == Role::Valve)
                         && !self.units[l.host].parts.iter().any(|i| role(*i) == Role::Valve)
                 });
                 if source && !host_source {
@@ -1111,7 +1149,10 @@ impl<'a> Placer<'a> {
             }
         }
         for g in branches {
-            let parts: Vec<(usize, usize)> = g.iter().flat_map(|u| self.units[*u].parts.iter().map(move |i| (*u, *i))).collect();
+            let parts: Vec<(usize, usize)> = g
+                .iter()
+                .flat_map(|u| self.units[*u].parts.iter().map(move |i| (*u, *i)))
+                .collect();
             if parts.iter().any(|(_, i)| role(*i) == Role::Valve) {
                 continue;
             }
@@ -1125,7 +1166,11 @@ impl<'a> Placer<'a> {
                         for p in &self.w.parts[*i].pins {
                             let at = self.pt(p.id);
                             for n in self.w.nets.iter().filter(|n| n.pins.contains(&p.id)) {
-                                for j in n.junctions.iter().filter_map(|j| self.w.page.junctions.iter().find(|x| x.id == *j)) {
+                                for j in n
+                                    .junctions
+                                    .iter()
+                                    .filter_map(|j| self.w.page.junctions.iter().find(|x| x.id == *j))
+                                {
                                     if j.at.y >= bottom && p.side == Some(Side::Up) {
                                         by = by.max(j.at.y + TRUNK_GAP - at.y);
                                     }
@@ -1257,10 +1302,25 @@ impl<'a> Placer<'a> {
                         let s = x.side?;
                         let end = at.plus(along_of(s, TICKS_PER_STEP));
                         let r = Rect::new(at, end);
-                        Some(if s.vertical() { Rect { x0: r.x0 - 1, x1: r.x1 + 1, ..r } } else { Rect { y0: r.y0 - 1, y1: r.y1 + 1, ..r } })
+                        Some(if s.vertical() {
+                            Rect {
+                                x0: r.x0 - 1,
+                                x1: r.x1 + 1,
+                                ..r
+                            }
+                        } else {
+                            Rect {
+                                y0: r.y0 - 1,
+                                y1: r.y1 + 1,
+                                ..r
+                            }
+                        })
                     })
                     .collect();
-                let texts = self.texts[*j].iter().map(|t| t.moved(p.at).moved(self.d[v])).collect();
+                let texts = self.texts[*j]
+                    .iter()
+                    .map(|t| t.moved(p.at).moved(self.d[v]))
+                    .collect();
                 items.push((v, *j, p.bounds().moved(self.d[v]), stubs, texts));
             }
         }
@@ -1286,7 +1346,9 @@ impl<'a> Placer<'a> {
                 // A moved part's texts on another part or its texts, and the other way round.
                 let moved = self.d[*u] != self.d[*v];
                 if moved
-                    && (texts.iter().any(|t| geom::texts_meet(*t, *c) || their.iter().any(|o| geom::texts_meet(*t, *o)))
+                    && (texts
+                        .iter()
+                        .any(|t| geom::texts_meet(*t, *c) || their.iter().any(|o| geom::texts_meet(*t, *o)))
                         || their.iter().any(|o| geom::texts_meet(*o, *b)))
                 {
                     return true;
@@ -1298,9 +1360,11 @@ impl<'a> Placer<'a> {
 
     fn pin_on_pin(&self, i: usize, di: Pt, j: usize, dj: Pt) -> bool {
         let (p, o) = (self.w.parts[i], self.w.parts[j]);
-        p.pins
-            .iter()
-            .any(|a| o.pins.iter().any(|b| p.at.plus(a.at).plus(di) == o.at.plus(b.at).plus(dj)))
+        p.pins.iter().any(|a| {
+            o.pins
+                .iter()
+                .any(|b| p.at.plus(a.at).plus(di) == o.at.plus(b.at).plus(dj))
+        })
     }
 
     /// Step 7: fitting.
@@ -1428,7 +1492,8 @@ impl<'a> Placer<'a> {
         }
         // Whatever still meets a moved unit at its old place: the moved one goes back too.
         for _ in 0..self.units.len() {
-            let Some(u) = (0..self.units.len()).find(|u| self.d[*u] != Pt::default() && !self.free(*u)) else {
+            let Some(u) = (0..self.units.len()).find(|u| self.d[*u] != Pt::default() && !self.free(*u))
+            else {
                 break;
             };
             self.d[u] = Pt::default();
@@ -1455,8 +1520,12 @@ impl<'a> Placer<'a> {
                     }
                 }
                 pins if pins.len() >= 3 => {
-                    let pts: Vec<(Pt, Option<Side>)> = pins.iter().map(|p| (self.pt(*p), self.side(*p))).collect();
-                    let vertical: Vec<&(Pt, Option<Side>)> = pts.iter().filter(|(_, s)| s.is_some_and(Side::vertical)).collect();
+                    let pts: Vec<(Pt, Option<Side>)> =
+                        pins.iter().map(|p| (self.pt(*p), self.side(*p))).collect();
+                    let vertical: Vec<&(Pt, Option<Side>)> = pts
+                        .iter()
+                        .filter(|(_, s)| s.is_some_and(Side::vertical))
+                        .collect();
                     let line = match self.w.line(n) {
                         Some(y) => Some(y),
                         _ if vertical.iter().all(|(_, s)| *s == Some(Side::Up)) && !vertical.is_empty() => {
@@ -1469,7 +1538,9 @@ impl<'a> Placer<'a> {
                     };
                     match line {
                         Some(y) => {
-                            let (x0, x1) = pts.iter().fold((Tick::MAX, Tick::MIN), |(a, b), (p, _)| (a.min(p.x), b.max(p.x)));
+                            let (x0, x1) = pts
+                                .iter()
+                                .fold((Tick::MAX, Tick::MIN), |(a, b), (p, _)| (a.min(p.x), b.max(p.x)));
                             let trunk = (Pt::new(x0, y), Pt::new(x1, y));
                             cost += geom::length(trunk);
                             segs.push((k, trunk));
@@ -1485,7 +1556,9 @@ impl<'a> Placer<'a> {
                                     cost += 2 * bend;
                                 }
                                 // A drop wired to a junction on the line beside it: a bend and the step across.
-                                if let Some((_, j)) = drops.iter().find(|(q, j)| q == pin && j.y == y && j.x != p.x) {
+                                if let Some((_, j)) =
+                                    drops.iter().find(|(q, j)| q == pin && j.y == y && j.x != p.x)
+                                {
                                     cost += bend + i64::from((j.x - p.x).abs());
                                 }
                             }
@@ -1563,27 +1636,55 @@ fn plain(a: Pt, sa: Option<Side>, b: Pt, sb: Option<Side>) -> (Vec<Pt>, i64) {
             return (vec![a, b], 0);
         }
         if d > 0 {
-            let m = if s.vertical() { Pt::new(a.x, (a.y + b.y) / 2) } else { Pt::new((a.x + b.x) / 2, a.y) };
-            let n = if s.vertical() { Pt::new(b.x, m.y) } else { Pt::new(m.x, b.y) };
+            let m = if s.vertical() {
+                Pt::new(a.x, (a.y + b.y) / 2)
+            } else {
+                Pt::new((a.x + b.x) / 2, a.y)
+            };
+            let n = if s.vertical() {
+                Pt::new(b.x, m.y)
+            } else {
+                Pt::new(m.x, b.y)
+            };
             return (vec![a, m, n, b], 2);
         }
         let (p, q) = (out(a, s), out(b, t));
-        let m = if s.vertical() { Pt::new((a.x + b.x) / 2, p.y) } else { Pt::new(p.x, (a.y + b.y) / 2) };
-        let n = if s.vertical() { Pt::new(m.x, q.y) } else { Pt::new(q.x, m.y) };
+        let m = if s.vertical() {
+            Pt::new((a.x + b.x) / 2, p.y)
+        } else {
+            Pt::new(p.x, (a.y + b.y) / 2)
+        };
+        let n = if s.vertical() {
+            Pt::new(m.x, q.y)
+        } else {
+            Pt::new(q.x, m.y)
+        };
         return (vec![a, p, m, n, q, b], 4);
     }
     if s == t {
         let reach = beyond(a, b, s).max(0);
         let p = out(a, s).plus(along_of(s, reach));
-        let q = if s.vertical() { Pt::new(b.x, p.y) } else { Pt::new(p.x, b.y) };
+        let q = if s.vertical() {
+            Pt::new(b.x, p.y)
+        } else {
+            Pt::new(p.x, b.y)
+        };
         return (vec![a, p, q, b], 2);
     }
-    let c = if s.vertical() { Pt::new(a.x, b.y) } else { Pt::new(b.x, a.y) };
+    let c = if s.vertical() {
+        Pt::new(a.x, b.y)
+    } else {
+        Pt::new(b.x, a.y)
+    };
     if beyond(a, b, s) > 0 && beyond(b, a, t) > 0 {
         return (vec![a, c, b], 1);
     }
     let (p, q) = (out(a, s), out(b, t));
-    let m = if s.vertical() { Pt::new(q.x, p.y) } else { Pt::new(p.x, q.y) };
+    let m = if s.vertical() {
+        Pt::new(q.x, p.y)
+    } else {
+        Pt::new(p.x, q.y)
+    };
     (vec![a, p, m, q, b], 3)
 }
 

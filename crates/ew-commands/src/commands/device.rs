@@ -976,7 +976,11 @@ impl MoveReps {
 /// `rep` moved by `steps` grid steps (see [`MoveReps`]): the point the steps are counted from (its position, or a
 /// fitted symbol's first pin, rc.5) at its grid index plus the steps, exactly; refused when it has neither on the
 /// grid, or the move leaves the drawable range for it or a connection point.
-pub(crate) fn stepped(tx: &TxBuilder<'_>, rep: &Representation, steps: [i64; 2]) -> Result<Representation, CmdError> {
+pub(crate) fn stepped(
+    tx: &TxBuilder<'_>,
+    rep: &Representation,
+    steps: [i64; 2],
+) -> Result<Representation, CmdError> {
     let id = rep.id;
     let grid = tx.require::<Page>(rep.page)?.grid;
     let Some(anchor) = crate::geometry::grid_anchor(tx, rep, grid) else {

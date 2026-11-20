@@ -59,7 +59,12 @@ impl ShellModel {
             return Outcome::Done;
         };
         let card = arrange_card(session, &folio, scope, &plan, &unticked, &listed);
-        let out = self.preview_host_card_as("layout.apply", params, key!("reason-arrange"), CardOrigin::Arrange(Box::new(card)));
+        let out = self.preview_host_card_as(
+            "layout.apply",
+            params,
+            key!("reason-arrange"),
+            CardOrigin::Arrange(Box::new(card)),
+        );
         self.tools.arranged = self.forked_page(&folio);
         out
     }
@@ -131,7 +136,10 @@ impl ShellModel {
         }) else {
             return Outcome::refused(key!("reason-arrange-tick"));
         };
-        let row = p.get("row").and_then(Value::as_u64).map_or(usize::MAX, |r| usize::try_from(r).unwrap_or(usize::MAX));
+        let row = p
+            .get("row")
+            .and_then(Value::as_u64)
+            .map_or(usize::MAX, |r| usize::try_from(r).unwrap_or(usize::MAX));
         let rows: Vec<&ArrangeRow> = card.parts.iter().chain(&card.wires).collect();
         let Some(hit) = rows.get(row) else {
             return Outcome::refused(key!("reason-arrange-tick"));
@@ -208,7 +216,11 @@ fn arrange_card(
     unticked: &[Uuid],
     listed: &[ArrangeRow],
 ) -> ArrangeCard {
-    let name = |id: Uuid| session.symbol_name(id).unwrap_or_else(|| strings::text(key!("arrange-a-symbol")).to_owned());
+    let name = |id: Uuid| {
+        session
+            .symbol_name(id)
+            .unwrap_or_else(|| strings::text(key!("arrange-a-symbol")).to_owned())
+    };
     let wire = |id: Uuid| {
         session
             .connection_words(folio, id)
@@ -232,7 +244,11 @@ fn arrange_card(
             (!far(*d), row.name.clone(), row)
         })
         .collect();
-    parts.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| super::natural_cmp(&a.1, &b.1)).then_with(|| a.2.id.cmp(&b.2.id)));
+    parts.sort_by(|a, b| {
+        a.0.cmp(&b.0)
+            .then_with(|| super::natural_cmp(&a.1, &b.1))
+            .then_with(|| a.2.id.cmp(&b.2.id))
+    });
     let mut parts: Vec<ArrangeRow> = parts.into_iter().map(|(_, _, r)| r).collect();
     for r in listed.iter().filter(|r| unticked.contains(&r.id)) {
         parts.push(ArrangeRow {
@@ -256,7 +272,10 @@ fn arrange_card(
         .collect();
     let tables = session.page_tables(folio);
     for id in unticked {
-        if tables.as_ref().is_some_and(|t| t.connections.iter().any(|c| c.id == *id)) {
+        if tables
+            .as_ref()
+            .is_some_and(|t| t.connections.iter().any(|c| c.id == *id))
+        {
             wires.push(ArrangeRow {
                 id: *id,
                 name: wire(*id),
@@ -269,7 +288,11 @@ fn arrange_card(
     // Left as it is: the symbols kept in place, those without room, the wires without a way.
     let mut left: Vec<ArrangeRow> = Vec::new();
     if let Some(t) = &tables {
-        for r in t.reps.iter().filter(|r| r.locked && (scope.is_empty() || scope.contains(&r.id))) {
+        for r in t
+            .reps
+            .iter()
+            .filter(|r| r.locked && (scope.is_empty() || scope.contains(&r.id)))
+        {
             left.push(ArrangeRow {
                 id: r.id,
                 name: name(r.id),
@@ -322,7 +345,11 @@ fn arrange_card(
     let routed = plan.plan.routes.iter().filter(|(_, r)| !r.is_empty()).count();
     let lead = strings::format(
         key!("arrange-lead"),
-        &[&page, &symbols, &strings::format_count(count_key!("arrange-wires"), routed)],
+        &[
+            &page,
+            &symbols,
+            &strings::format_count(count_key!("arrange-wires"), routed),
+        ],
     );
     let figures = |q: &ew_api::routing::Quality| {
         strings::format(

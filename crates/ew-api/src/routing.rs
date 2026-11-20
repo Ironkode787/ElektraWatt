@@ -14,9 +14,11 @@
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::Grid;
-pub use ew_drafting::consts::TICKS_PER_STEP;
-pub use ew_drafting::{DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on};
 pub use ew_drafting::Pt;
+pub use ew_drafting::consts::TICKS_PER_STEP;
+pub use ew_drafting::{
+    DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on,
+};
 use ew_drafting::{JunctionId, PinId, WireEnd};
 use serde_json::{Value, json};
 
@@ -149,7 +151,10 @@ fn end_point(
             .iter()
             .find(|c| c.function == *function && c.idx == *idx)
             .map(|c| {
-                let d = shifted.iter().find(|(r, _)| *r == c.rep).map_or((0, 0), |(_, d)| *d);
+                let d = shifted
+                    .iter()
+                    .find(|(r, _)| *r == c.rep)
+                    .map_or((0, 0), |(_, d)| *d);
                 (c.at.0 + d.0, c.at.1 + d.1)
             }),
         TableEnd::Junction { id } => moved
@@ -188,7 +193,10 @@ fn part_moves(tables: &PageTables, moves: &[(PartId, Pt)]) -> Vec<(Uuid, [i64; 2
 /// `moves` moves where they go.
 pub fn plan_routes(tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> Vec<(Uuid, Vec<(i64, i64)>)> {
     let ticks = Ticks::new(tables.grid);
-    let shifted: Vec<(Uuid, (i64, i64))> = part_moves(tables, moves).into_iter().map(|(r, _, d)| (r, d)).collect();
+    let shifted: Vec<(Uuid, (i64, i64))> = part_moves(tables, moves)
+        .into_iter()
+        .map(|(r, _, d)| (r, d))
+        .collect();
     let moved: Vec<(Uuid, (i64, i64))> = plan
         .junctions
         .iter()
@@ -307,7 +315,9 @@ impl Session {
         );
         let arranged = match scope {
             RouteScope::Page => ew_drafting::arrange(&draft, ew_drafting::Scope::Page, &kept),
-            RouteScope::Selection(ids) => ew_drafting::arrange(&draft, ew_drafting::Scope::Selection(ids), &kept),
+            RouteScope::Selection(ids) => {
+                ew_drafting::arrange(&draft, ew_drafting::Scope::Selection(ids), &kept)
+            }
         };
         let params = self.plan_params(&tables, &arranged.plan, &arranged.moves);
         Some(RoutePlan {
@@ -324,7 +334,9 @@ impl Session {
     pub fn symbol_name(&self, id: Uuid) -> Option<String> {
         match self.selection_words(id)? {
             crate::output::SelectionWords::Device { tag, .. } => Some(tag).filter(|t| !t.is_empty()),
-            crate::output::SelectionWords::InterruptionPoint { name, .. } => Some(name).filter(|n| !n.is_empty()),
+            crate::output::SelectionWords::InterruptionPoint { name, .. } => {
+                Some(name).filter(|n| !n.is_empty())
+            }
             _ => None,
         }
     }

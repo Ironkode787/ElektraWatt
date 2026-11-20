@@ -154,7 +154,12 @@ impl<'a> Wiring<'a> {
         }
         let mut nets: Vec<Net> = by_root.into_values().collect();
         nets.sort_by_key(|n| n.wires.first().copied());
-        Wiring { page, parts, pins, nets }
+        Wiring {
+            page,
+            parts,
+            pins,
+            nets,
+        }
     }
 
     /// The nets of exactly two pins on two parts: (pin, pin) in ID order.
@@ -214,7 +219,13 @@ pub fn rules_kept(before: &DraftPage, after: &DraftPage) -> Result<(), Vec<Broke
     let moved: BTreeSet<PartId> = after
         .parts
         .iter()
-        .filter(|p| before.parts.iter().find(|b| b.id == p.id).is_none_or(|b| b.at != p.at))
+        .filter(|p| {
+            before
+                .parts
+                .iter()
+                .find(|b| b.id == p.id)
+                .is_none_or(|b| b.at != p.at)
+        })
         .map(|p| p.id)
         .collect();
     let (wb, wa) = (Wiring::new(before), Wiring::new(after));
@@ -263,7 +274,12 @@ fn states(w: &Wiring<'_>) -> BTreeSet<Broken> {
     out
 }
 
-fn changes(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTreeSet<PartId>) -> Vec<Broken> {
+fn changes(
+    b: &Wiring<'_>,
+    a: &Wiring<'_>,
+    moved: &BTreeSet<PartId>,
+    misplaced: &BTreeSet<PartId>,
+) -> Vec<Broken> {
     let mut out = Vec::new();
     for p in &b.parts {
         let Some(q) = a.parts.iter().find(|q| q.id == p.id) else {
@@ -284,11 +300,19 @@ fn changes(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: 
             }
         }
     }
-    out.extend(a4(a).into_iter().filter(|x| x.parts.iter().any(|p| moved.contains(p))));
+    out.extend(
+        a4(a)
+            .into_iter()
+            .filter(|x| x.parts.iter().any(|p| moved.contains(p))),
+    );
     out.extend(a5(b, a, moved, misplaced));
     match a.page.kind {
         PageKind::Fluid => out.extend(f2(b, a, moved)),
-        PageKind::Bus => out.extend(b1(a).into_iter().filter(|x| x.parts.iter().any(|p| moved.contains(p)))),
+        PageKind::Bus => out.extend(
+            b1(a)
+                .into_iter()
+                .filter(|x| x.parts.iter().any(|p| moved.contains(p))),
+        ),
         PageKind::Electrical => {}
     }
     out
@@ -301,7 +325,9 @@ fn a4(w: &Wiring<'_>) -> Vec<Broken> {
         for (h, f) in [(a, b), (b, a)] {
             let ((hp, ha, hs), (fp, fa, _)) = (w.pins[&h], w.pins[&f]);
             if let Some(s) = hs {
-                rows.entry((hp, s)).or_default().push((across(ha, s), across(fa, s), fp));
+                rows.entry((hp, s))
+                    .or_default()
+                    .push((across(ha, s), across(fa, s), fp));
             }
         }
     }
@@ -396,7 +422,8 @@ pub(crate) fn rails(w: &Wiring<'_>) -> Vec<(Tick, bool, BTreeSet<usize>, Vec<usi
             for (a, b) in &pairs {
                 let (pa, pb) = (w.pins[a].0, w.pins[b].0);
                 for (x, y) in [(pa, pb), (pb, pa)] {
-                    if x == i && !matches!(w.parts[y].role, Role::MarkIn | Role::MarkOut) && circuit.insert(y) {
+                    if x == i && !matches!(w.parts[y].role, Role::MarkIn | Role::MarkOut) && circuit.insert(y)
+                    {
                         todo.push(y);
                     }
                 }
@@ -440,10 +467,19 @@ fn e3(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
     for n in &w.nets {
         let xs: Vec<(Tick, PinId)> = n.pins.iter().map(|p| (w.pins[p].1.x, *p)).collect();
-        let js: Vec<Tick> = n.junctions.iter().filter_map(|j| w.junction(*j)).map(|p| p.x).collect();
+        let js: Vec<Tick> = n
+            .junctions
+            .iter()
+            .filter_map(|j| w.junction(*j))
+            .map(|p| p.x)
+            .collect();
         for (x, p) in &xs {
             let part = w.pins[p].0;
-            let others = xs.iter().filter(|(_, q)| q != p).map(|(x, _)| *x).chain(js.iter().copied());
+            let others = xs
+                .iter()
+                .filter(|(_, q)| q != p)
+                .map(|(x, _)| *x)
+                .chain(js.iter().copied());
             let bad = match w.parts[part].role {
                 Role::MarkIn => others.into_iter().any(|o| o < *x),
                 Role::MarkOut => others.into_iter().any(|o| o > *x),
@@ -470,7 +506,10 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
             if beyond(cp, fp, s) <= 0 {
                 out.push(broken_by(Rule::E4, vec![w.part_id(fi)]));
             }
-            edges.entry((ci, s)).or_default().push((across(cp, s), across(fp, s), fi));
+            edges
+                .entry((ci, s))
+                .or_default()
+                .push((across(cp, s), across(fp, s), fi));
         }
     }
     for (_, mut row) in edges {
@@ -478,7 +517,10 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
         for i in 0..row.len() {
             for j in i + 1..row.len() {
                 if row[i].0 < row[j].0 && row[i].1 > row[j].1 {
-                    out.push(broken_by(Rule::E4, vec![w.part_id(row[i].2), w.part_id(row[j].2)]));
+                    out.push(broken_by(
+                        Rule::E4,
+                        vec![w.part_id(row[i].2), w.part_id(row[j].2)],
+                    ));
                 }
             }
         }
@@ -514,7 +556,9 @@ fn e5(w: &Wiring<'_>) -> Vec<Broken> {
 
 /// The parts of each role.
 fn of_role(w: &Wiring<'_>, roles: &[Role]) -> Vec<usize> {
-    (0..w.parts.len()).filter(|i| roles.contains(&w.parts[*i].role)).collect()
+    (0..w.parts.len())
+        .filter(|i| roles.contains(&w.parts[*i].role))
+        .collect()
 }
 
 /// The actuators reached from valve `v` through tubes and parts that are neither valves nor sources.
@@ -611,7 +655,10 @@ fn b1(w: &Wiring<'_>) -> Vec<Broken> {
         }
         let mut chain = vec![s];
         seen.insert(s);
-        while let Some(n) = next[chain.last().unwrap_or(&s)].iter().find(|n| !seen.contains(n)) {
+        while let Some(n) = next[chain.last().unwrap_or(&s)]
+            .iter()
+            .find(|n| !seen.contains(n))
+        {
             seen.insert(*n);
             chain.push(*n);
         }

@@ -652,7 +652,12 @@ fn paint_arrange_moves(
         ] {
             painter.extend(egui::Shape::dashed_line(&side, faint, 4.0, 4.0));
         }
-        painter.extend(egui::Shape::dotted_line(&[was.center(), now.center()], faint.color, 6.0, 1.0));
+        painter.extend(egui::Shape::dotted_line(
+            &[was.center(), now.center()],
+            faint.color,
+            6.0,
+            1.0,
+        ));
     }
 }
 

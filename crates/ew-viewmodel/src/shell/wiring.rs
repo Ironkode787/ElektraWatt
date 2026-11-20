@@ -1034,7 +1034,11 @@ fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uui
 
 /// One sentence per wire a plan leaves without a way, with what is in it; per broken wire of the person's it replaces;
 /// per net whose wiring order runs against its parts' places; each naming the wire by its ends in words (FT-1600).
-pub(super) fn route_rows(session: &ew_api::Session, folio: &str, plan: &ew_api::routing::RoutePlan) -> Vec<String> {
+pub(super) fn route_rows(
+    session: &ew_api::Session,
+    folio: &str,
+    plan: &ew_api::routing::RoutePlan,
+) -> Vec<String> {
     use ew_api::routing::Reason;
     let words = |id: ew_api::output::Uuid| {
         session

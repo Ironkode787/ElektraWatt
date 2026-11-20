@@ -434,7 +434,8 @@ fn role(
             },
         };
     }
-    let functions: Vec<Id<ew_derive::ew_schema::Function>> = rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
+    let functions: Vec<Id<ew_derive::ew_schema::Function>> =
+        rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
     match kind {
         PageKind::Fluid => {
             let defs: Vec<_> = functions
@@ -442,14 +443,20 @@ fn role(
                 .filter_map(|f| q.functions().get(*f))
                 .filter_map(|f| q.fndefs().get(f.def))
                 .collect();
-            if defs.iter().any(|d| d.item.category.0.as_str() == "AirPreparation") {
+            if defs
+                .iter()
+                .any(|d| d.item.category.0.as_str() == "AirPreparation")
+            {
                 return Role::Source;
             }
             let ports: Vec<FluidPortRole> = defs
                 .iter()
                 .flat_map(|d| d.item.cps.iter().filter_map(|c| c.port_role.clone()))
                 .collect();
-            if ports.iter().any(|r| matches!(r, FluidPortRole::Working2 | FluidPortRole::Working4)) {
+            if ports
+                .iter()
+                .any(|r| matches!(r, FluidPortRole::Working2 | FluidPortRole::Working4))
+            {
                 return Role::Valve;
             }
             if ports.contains(&FluidPortRole::Consumer) {
@@ -469,7 +476,10 @@ fn role(
                         .collect()
                 })
                 .unwrap_or_default();
-            if roles.iter().any(|r| matches!(r, PortRole::Master | PortRole::Controller)) {
+            if roles
+                .iter()
+                .any(|r| matches!(r, PortRole::Master | PortRole::Controller))
+            {
                 return Role::Controller;
             }
             if !roles.is_empty() {
@@ -519,14 +529,23 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
         }
     }
     // PEN, PE and FE in the order of the supply ranks.
-    let earth = |rank: Option<u8>| rank.and_then(|r| SUPPLY_ORDER.get(usize::from(r))).is_some_and(|w| ["PEN", "PE", "FE"].contains(w));
+    let earth = |rank: Option<u8>| {
+        rank.and_then(|r| SUPPLY_ORDER.get(usize::from(r)))
+            .is_some_and(|w| ["PEN", "PE", "FE"].contains(w))
+    };
     let ticks = crate::routing::Ticks::new(tables.grid);
     let fences: Vec<ew_drafting::Rect> = tables
         .structure_boxes
         .iter()
         .filter_map(|b| {
-            let (x0, x1) = (b.outline.iter().map(|p| p.0).min()?, b.outline.iter().map(|p| p.0).max()?);
-            let (y0, y1) = (b.outline.iter().map(|p| p.1).min()?, b.outline.iter().map(|p| p.1).max()?);
+            let (x0, x1) = (
+                b.outline.iter().map(|p| p.0).min()?,
+                b.outline.iter().map(|p| p.0).max()?,
+            );
+            let (y0, y1) = (
+                b.outline.iter().map(|p| p.1).min()?,
+                b.outline.iter().map(|p| p.1).max()?,
+            );
             Some(ew_drafting::Rect::new(ticks.pt((x0, y0)), ticks.pt((x1, y1))))
         })
         .collect();
@@ -537,7 +556,10 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
             continue;
         };
         let earthed = part.pins.iter().all(|p| {
-            let at: Vec<_> = wires.iter().filter(|w| w.ends.contains(&ew_drafting::End::Pin(p.id))).collect();
+            let at: Vec<_> = wires
+                .iter()
+                .filter(|w| w.ends.contains(&ew_drafting::End::Pin(p.id)))
+                .collect();
             !at.is_empty() && at.iter().all(|w| earth(w.supply))
         });
         part.role = role(q, kind, rep, &part.pins, earthed);
