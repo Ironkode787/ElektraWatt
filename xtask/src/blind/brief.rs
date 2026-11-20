@@ -1075,7 +1075,7 @@ mod tests {
     /// K9: a start other than `gp-ut` or `golden-a` makes the brief not runnable; a task's hints are one to three and in
     /// the user's words.
     #[test]
-    fn k9_a_start_project_is_gp_ut_or_golden_a_and_the_hints_are_words() {
+    fn a_start_project_is_gp_ut_or_golden_a_and_the_hints_are_words() {
         let (tmp, dir) = copy_brief("brief-valve-switch");
         let t = std::fs::read_to_string(dir.join("task.toml")).unwrap();
         std::fs::write(dir.join("task.toml"), format!("{t}start = \"golden-b\"\n")).unwrap();
