@@ -11,27 +11,22 @@ use ew_api::drafting::consts::TICKS_PER_STEP;
 use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Rect, Side, Tick};
 use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
-use ew_api::output::ew_dl::ew_units::{Grid, Nm};
+use ew_api::output::ew_dl::ew_units::Grid;
+use ew_api::routing::Ticks;
 
 use super::{OverlayItem, Style, Token, ToolCx};
-
-/// Ticks to a grid step, as `ew-units` takes it.
-const PER: u32 = TICKS_PER_STEP.unsigned_abs();
 
 /// A tick of `i64` as the model's `i32`, saturating.
 fn tick(v: i64) -> Tick {
     Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
 }
 
-/// The page's grid, `None` for a grid the units refuse.
-fn grid(cx: &ToolCx<'_>) -> Option<Grid> {
+/// The page's conversion into ticks, `None` for a grid the units refuse.
+fn grid(cx: &ToolCx<'_>) -> Option<Ticks> {
     let (num, den) = cx.page.tables.grid;
-    Grid::new(u64::try_from(num).ok()?, u64::try_from(den).ok()?).ok()
-}
-
-/// The page coordinate `v` in ticks.
-fn ticks(g: Grid, v: i64) -> Tick {
-    tick(g.tick_of(Nm(v), PER).0)
+    Grid::new(u64::try_from(num).ok()?, u64::try_from(den).ok()?)
+        .ok()
+        .map(Ticks::of)
 }
 
 /// `k` grid steps in ticks.
@@ -58,15 +53,12 @@ pub(crate) fn hanging(
     Some(Part {
         id: PartId(Uuid::nil()),
         at: steps(index),
-        body: Rect::new(
-            Pt::new(ticks(g, body[0]), ticks(g, body[1])),
-            Pt::new(ticks(g, body[2]), ticks(g, body[3])),
-        ),
+        body: Rect::new(g.pt((body[0], body[1])), g.pt((body[2], body[3]))),
         frame_only: false,
         pins: pins
             .map(|(at, d)| Pin {
                 id: PinId(Uuid::nil()),
-                at: Pt::new(ticks(g, at.0), ticks(g, at.1)),
+                at: g.pt(at),
                 side: Some(side(d)),
                 off_grid: false,
             })
@@ -86,18 +78,10 @@ pub(crate) fn guide(cx: &ToolCx<'_>, part: &Part, pointer: (i64, i64)) -> ((i64,
     };
     let s = cx.snapper;
     let step = (s.sheet_of_index(1, 0) - s.sheet_of_index(0, 0)) as f64;
-    let guided = drafting::guides(
-        &cx.page.draft,
-        part,
-        Pt::new(ticks(g, pointer.0), ticks(g, pointer.1)),
-        cx.points_per_nm * step,
-    );
+    let guided = drafting::guides(&cx.page.draft, part, g.pt(pointer), cx.points_per_nm * step);
     let moved = |a: Tick, b: Tick| i64::from(a.saturating_sub(b) / TICKS_PER_STEP);
     let nudge = (moved(guided.at.x, part.at.x), moved(guided.at.y, part.at.y));
-    let sheet = |p: Pt| {
-        let nm = |t: Tick| g.nm_of_tick(i64::from(t), PER).map_or(0, |n| n.0);
-        s.page_to_sheet((nm(p.x), nm(p.y)))
-    };
+    let sheet = |p: Pt| s.page_to_sheet((g.nm(p.x), g.nm(p.y)));
     let mut items = Vec::new();
     for guide in &guided.guides {
         let style = match (guide.kind, guide.in_line) {

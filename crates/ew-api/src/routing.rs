@@ -20,6 +20,8 @@ pub use ew_drafting::{
     DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on,
 };
 use ew_drafting::{JunctionId, PinId, WireEnd};
+/// The conversion of a page between nm and the layout's ticks, which the window's tools use too.
+pub use ew_scene::ticks::Ticks;
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -59,82 +61,41 @@ impl RoutePlan {
     }
 }
 
-/// The conversion of one page between nm and the layout's ticks.
-#[derive(Clone, Copy, Debug)]
-pub struct Ticks(Grid);
-
-impl Ticks {
-    /// The conversion of a page with the grid `(num, den)` (a 4 mm step for numbers that make no grid).
-    pub fn new(grid: (i64, i64)) -> Ticks {
-        let g = u64::try_from(grid.0)
-            .ok()
-            .zip(u64::try_from(grid.1).ok())
-            .and_then(|(n, d)| Grid::new(n, d).ok())
-            .unwrap_or(Grid::MM4);
-        Ticks(g)
+/// A route in ticks as page nm between the ends' stored points `a` and `b` (module documentation).
+pub fn route_nm(ticks: Ticks, route: &[Pt], a: (i64, i64), b: (i64, i64)) -> Vec<(i64, i64)> {
+    let mut pts: Vec<(i64, i64)> = route.iter().map(|p| (ticks.nm(p.x), ticks.nm(p.y))).collect();
+    let n = pts.len();
+    if n == 0 {
+        return pts;
     }
-
-    /// A tick as page nm.
-    pub fn nm(self, t: i32) -> i64 {
-        self.0
-            .nm_of_tick(i64::from(t), TICKS_PER_STEP.unsigned_abs())
-            .map_or(0, |n| n.0)
+    let vertical = |p: Pt, q: Pt| p.x == q.x;
+    if n >= 3 {
+        if vertical(route[0], route[1]) {
+            pts[1].0 = a.0;
+        } else {
+            pts[1].1 = a.1;
+        }
+        if vertical(route[n - 2], route[n - 1]) {
+            pts[n - 2].0 = b.0;
+        } else {
+            pts[n - 2].1 = b.1;
+        }
     }
-
-    /// A move of `d` ticks in page nm.
-    pub fn move_nm(self, d: Pt) -> (i64, i64) {
-        (self.nm(d.x) - self.nm(0), self.nm(d.y) - self.nm(0))
-    }
-
-    /// A point in page nm as ticks (a point within 1 nm of a half-grid position takes its tick).
-    pub fn pt(self, p: (i64, i64)) -> Pt {
-        let one = |v: i64| {
-            let (t, _) = self
-                .0
-                .tick_of(ew_derive::ew_units::Nm(v), TICKS_PER_STEP.unsigned_abs());
-            i32::try_from(t).unwrap_or(if t < 0 { i32::MIN } else { i32::MAX })
+    pts[0] = a;
+    pts[n - 1] = b;
+    if n == 2 && a.0 != b.0 && a.1 != b.1 {
+        // A straight route between two numbers of one grid line: a jog at the grid line nearest its middle.
+        let mid = if vertical(route[0], route[1]) {
+            let y = ticks.nm(i32::try_from((i64::from(route[0].y) + i64::from(route[1].y)) / 2).unwrap_or(0));
+            vec![(a.0, y), (b.0, y)]
+        } else {
+            let x = ticks.nm(i32::try_from((i64::from(route[0].x) + i64::from(route[1].x)) / 2).unwrap_or(0));
+            vec![(x, a.1), (x, b.1)]
         };
-        Pt::new(one(p.0), one(p.1))
+        pts.splice(1..1, mid);
     }
-
-    /// A route in ticks as page nm between the ends' stored points `a` and `b` (module documentation).
-    pub fn route(self, route: &[Pt], a: (i64, i64), b: (i64, i64)) -> Vec<(i64, i64)> {
-        let mut pts: Vec<(i64, i64)> = route.iter().map(|p| (self.nm(p.x), self.nm(p.y))).collect();
-        let n = pts.len();
-        if n == 0 {
-            return pts;
-        }
-        let vertical = |p: Pt, q: Pt| p.x == q.x;
-        if n >= 3 {
-            if vertical(route[0], route[1]) {
-                pts[1].0 = a.0;
-            } else {
-                pts[1].1 = a.1;
-            }
-            if vertical(route[n - 2], route[n - 1]) {
-                pts[n - 2].0 = b.0;
-            } else {
-                pts[n - 2].1 = b.1;
-            }
-        }
-        pts[0] = a;
-        pts[n - 1] = b;
-        if n == 2 && a.0 != b.0 && a.1 != b.1 {
-            // A straight route between two numbers of one grid line: a jog at the grid line nearest its middle.
-            let mid = if vertical(route[0], route[1]) {
-                let y =
-                    self.nm(i32::try_from((i64::from(route[0].y) + i64::from(route[1].y)) / 2).unwrap_or(0));
-                vec![(a.0, y), (b.0, y)]
-            } else {
-                let x =
-                    self.nm(i32::try_from((i64::from(route[0].x) + i64::from(route[1].x)) / 2).unwrap_or(0));
-                vec![(x, a.1), (x, b.1)]
-            };
-            pts.splice(1..1, mid);
-        }
-        pts.dedup();
-        pts
-    }
+    pts.dedup();
+    pts
 }
 
 /// The stored point of a wire's end on the page of `tables`, with the junctions at `moved` places and the connection
@@ -152,7 +113,7 @@ fn end_point(
             .find(|c| c.function == *function && c.idx == *idx)
             .map(|c| match shifted.iter().find(|(r, _, _)| *r == c.rep) {
                 Some((_, steps, d)) => {
-                    let grid = Ticks::new(tables.grid).0;
+                    let grid = Ticks::new(tables.grid).grid();
                     (
                         moved_coordinate(grid, c.at.0, steps[0], d.0),
                         moved_coordinate(grid, c.at.1, steps[1], d.1),
@@ -194,7 +155,7 @@ fn shift_of(grid: Grid, pos: (i64, i64), steps: [i64; 2]) -> Option<(i64, i64)> 
 
 /// The representations of `tables` that `moves` moves, each with its grid steps and its move in page nm.
 fn part_moves(tables: &PageTables, moves: &[(PartId, Pt)]) -> Vec<(Uuid, [i64; 2], (i64, i64))> {
-    let grid = Ticks::new(tables.grid).0;
+    let grid = Ticks::new(tables.grid).grid();
     moves
         .iter()
         .filter_map(|(p, d)| {
@@ -223,7 +184,7 @@ pub fn plan_routes(tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> 
                 end_point(tables, &c.a, &moved, &shifted)?,
                 end_point(tables, &c.b, &moved, &shifted)?,
             );
-            Some((w.0, ticks.route(route, a, b)))
+            Some((w.0, route_nm(ticks, route, a, b)))
         })
         .collect()
 }
@@ -317,7 +278,7 @@ impl Session {
     pub fn arrange_plan(&self, folio: &str, scope: &RouteScope, fixed: &[Uuid]) -> Option<RoutePlan> {
         let draft = self.page_draft(folio)?;
         let tables = self.page_tables(folio)?;
-        let grid = Ticks::new(tables.grid).0;
+        let grid = Ticks::new(tables.grid).grid();
         let mut kept: Vec<Uuid> = fixed.to_vec();
         kept.extend(
             tables
@@ -428,7 +389,7 @@ pub fn route_wire(
         wire_end(ticks, to),
         arrive.map(side),
     )?;
-    Some((ticks.route(&found.route, a, b), found.over_text))
+    Some((route_nm(ticks, &found.route, a, b), found.over_text))
 }
 
 /// Whether `route` (page nm) from `from` to `to` is one the Wire tool's search could take on `draft` with the parts

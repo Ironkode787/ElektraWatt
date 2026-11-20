@@ -309,7 +309,7 @@ pub fn release_command(
 /// fixed and every junction where it stands; the others keep the followed route, and so does one the router finds no
 /// way for.
 pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> Vec<serde_json::Value> {
-    use ew_api::routing::{Jobs, Ticks, WireId, measure};
+    use ew_api::routing::{Jobs, Ticks, WireId, measure, route_nm};
     let tables = &cx.page.tables;
     let ticks = Ticks::new(tables.grid);
     let before = &*cx.page.draft;
@@ -426,8 +426,7 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
         .filter_map(|(w, route)| {
             let c = tables.connections.iter().find(|c| c.id == w.0)?;
             let (a, b) = (end_point(&c.a)?, end_point(&c.b)?);
-            let points: Vec<serde_json::Value> = ticks
-                .route(route, a, b)
+            let points: Vec<serde_json::Value> = route_nm(ticks, route, a, b)
                 .iter()
                 .map(|p| json!([p.0, p.1]))
                 .collect();

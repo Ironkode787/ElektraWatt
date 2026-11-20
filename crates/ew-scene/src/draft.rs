@@ -176,7 +176,7 @@ impl Builder<'_> {
             .into_iter()
             .map(|s| (s.id, s))
             .collect();
-        let ticks = Ticks(view.grid);
+        let ticks = Ticks::of(view.grid);
         for op in g.ops {
             match op {
                 Op::Path(item) => self.push(item),
@@ -195,7 +195,8 @@ impl Builder<'_> {
                             }
                             _ => p.reference,
                         };
-                        text.at = text.at + ticks.nm(s.rect.top_left().minus(reference.top_left()));
+                        let (dx, dy) = ticks.move_nm(s.rect.top_left().minus(reference.top_left()));
+                        text.at = text.at + Pt2::new(Nm(dx), Nm(dy));
                     }
                     self.print(text, slot);
                 }
@@ -249,7 +250,7 @@ impl Builder<'_> {
 
     /// The page in ticks and the layer's texts and lines (module documentation).
     fn gather(&self, view: &PageView) -> Gathered {
-        let ticks = Ticks(view.grid);
+        let ticks = Ticks::of(view.grid);
         let mut page = DraftPage {
             area: ticks.inward(drawing_area(view)),
             ..DraftPage::default()
@@ -266,7 +267,7 @@ impl Builder<'_> {
                 band(Pt2::new(d.max().x, d.min().y), Pt2::new(o.max().x, d.max().y)),
             ] {
                 if r.width() > Nm::ZERO && r.height() > Nm::ZERO {
-                    page.keep_out.push(ticks.rect(r));
+                    page.keep_out.push(ticks.outward(r));
                 }
             }
         }
@@ -276,7 +277,7 @@ impl Builder<'_> {
         for (unit, rv) in sorted_reps(view).into_iter().enumerate() {
             let Some(def) = &rv.symbol else { continue };
             let rep = &rv.rep;
-            let (at, on_grid) = ticks.pt(rep.pos);
+            let (at, on_grid) = ticks.point(rep.pos);
             let outline: Vec<Pt2> = rep
                 .box_
                 .as_ref()
@@ -291,7 +292,7 @@ impl Builder<'_> {
                     .map(|b| Rect::from_points(rep.pos + b.min(), rep.pos + b.max())),
             };
             let body = body.map_or(ew_drafting::Rect::default(), |r| {
-                let r = ticks.rect(r);
+                let r = ticks.outward(r);
                 r.moved(ew_drafting::Pt::new(-at.x, -at.y))
             });
             let pins = owners
@@ -299,7 +300,7 @@ impl Builder<'_> {
                 .map(|cps| {
                     cps.iter()
                         .map(|(function, idx, pos, dir)| {
-                            let (p, on) = ticks.pt(*pos);
+                            let (p, on) = ticks.point(*pos);
                             Pin {
                                 id: pin_id(*function, *idx),
                                 at: p.minus(at),
@@ -328,7 +329,7 @@ impl Builder<'_> {
         for jv in &view.junctions {
             page.junctions.push(Junction {
                 id: JunctionId(jv.junction.id.as_uuid()),
-                at: ticks.pt(jv.junction.at).0,
+                at: ticks.point(jv.junction.at).0,
             });
         }
         let end = |e: &Endpoint| match e {
@@ -350,7 +351,7 @@ impl Builder<'_> {
                 route: if c.route.is_empty() {
                     Vec::new()
                 } else {
-                    pts.iter().map(|p| ticks.pt(*p).0).collect()
+                    pts.iter().map(|p| ticks.point(*p).0).collect()
                 },
                 computed: c.computed,
                 class: match &c.kind {
@@ -386,7 +387,7 @@ impl Builder<'_> {
             // A note stands right beside the line its own pin's wire leaves along: its box is cut back to a quarter of
             // a step from that line, so the pin's own wire runs past its note, never across it.
             if let Some(b) = self.box_of(&t) {
-                let (mut r, line) = (ticks.rect(b), ticks.pt(n.at).0);
+                let (mut r, line) = (ticks.outward(b), ticks.point(n.at).0);
                 let clear = TICKS_PER_STEP / 4;
                 let cut = |lo: Tick, hi: Tick, line: Tick| {
                     if i64::from(lo) + i64::from(hi) <= 2 * i64::from(line) {
@@ -424,7 +425,7 @@ impl Builder<'_> {
         if let Some(b) = self.box_of(&text) {
             ctx.page.fixed_texts.push(FixedText {
                 owner: text.entity.0,
-                rect: ctx.ticks.rect(b),
+                rect: ctx.ticks.outward(b),
             });
         }
         ctx.ops.push(Op::Text {
@@ -455,12 +456,12 @@ impl Builder<'_> {
             });
             return;
         };
-        let reference = ctx.ticks.rect(b);
+        let reference = ctx.ticks.outward(b);
         let turned = along
             .then(|| {
                 let mut t = text.clone();
                 t.angle = Angle2(90_000);
-                self.box_of(&t).map(|b| ctx.ticks.rect(b))
+                self.box_of(&t).map(|b| ctx.ticks.outward(b))
             })
             .flatten();
         let owner_id = match owner {
@@ -735,7 +736,7 @@ impl Builder<'_> {
             .map_or(Rect::from_points(a, b), |t| t.union(Rect::from_points(a, b)));
         ctx.page.marks.push(Mark {
             id: MarkId(entity.0),
-            line: ctx.ticks.rect(line),
+            line: ctx.ticks.outward(line),
             horizontal,
             wires: wires.to_vec(),
         });
@@ -853,7 +854,7 @@ impl Builder<'_> {
             );
             ctx.page.marks.push(Mark {
                 id: mark_id,
-                line: ctx.ticks.rect(line),
+                line: ctx.ticks.outward(line),
                 horizontal,
                 wires: mark.cores.iter().map(|(id, _)| WireId(id.as_uuid())).collect(),
             });
@@ -861,7 +862,7 @@ impl Builder<'_> {
             self.fixed(ctx, kind, None);
             return;
         }
-        let line_ticks = ctx.ticks.rect(line);
+        let line_ticks = ctx.ticks.outward(line);
         ctx.page.marks.push(Mark {
             id: mark_id,
             line: line_ticks,

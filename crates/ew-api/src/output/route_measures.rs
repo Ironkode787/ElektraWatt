@@ -585,9 +585,7 @@ impl Reader<'_> {
 
     /// A tick in page nm.
     fn nm(&self, t: i32) -> i64 {
-        self.grid
-            .nm_of_tick(i64::from(t), TICKS_PER_STEP as u32)
-            .map_or(0, |n| n.0)
+        crate::routing::Ticks::of(self.grid).nm(t)
     }
 
     fn point(&self, p: ew_drafting::Pt) -> (i64, i64) {

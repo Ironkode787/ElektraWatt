@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The conversion of one page between nanometres and the layout's ticks (1/16 of the page's grid step,
-//! `ew_drafting::consts::TICKS_PER_STEP`), with its rounding rules named: a point (`Grid::tick_of`), a box rounded
-//! outward (`Grid::tick_span`) and an area rounded inward.
+//! `ew_drafting::consts::TICKS_PER_STEP`), with its rounding rules named: a point ([`Ticks::point`],
+//! `Grid::tick_of`), a box rounded outward ([`Ticks::outward`], `Grid::tick_span`) and an area rounded inward
+//! ([`Ticks::inward`]); back to nm by `Grid::nm_of_tick`. The labels layer builds the page's `DraftPage` with it,
+//! `ew-api` finishes that page and converts routes, the view model's tools convert the pointer and a floating part.
 //!
-//! Not here: the rules themselves on one coordinate (`ew_units::Grid`); the page model in ticks (`ew_drafting`); the
-//! page the labels layer builds with it (`draft.rs`).
+//! Not here: the rules themselves on one coordinate (`ew_units::Grid`); the page model in ticks (`ew_drafting`, which
+//! knows no nanometre); the page the labels layer builds with it (`draft.rs`).
 
-use ew_drafting::Tick;
 use ew_drafting::consts::TICKS_PER_STEP;
+use ew_drafting::{Pt, Tick};
 use ew_units::{Grid, Nm, Pt2, Rect};
 
 /// Ticks to a grid step, as `ew-units` takes it.
@@ -20,19 +22,47 @@ fn tick(v: i64) -> Tick {
     Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
 }
 
-/// The page's grid as the conversion between nm and ticks.
-#[derive(Clone, Copy)]
-pub(crate) struct Ticks(pub(crate) Grid);
+/// The conversion of one page between nm and the layout's ticks: the page's connection grid.
+#[derive(Clone, Copy, Debug)]
+pub struct Ticks(Grid);
 
 impl Ticks {
-    pub(crate) fn pt(self, p: Pt2) -> (ew_drafting::Pt, bool) {
-        let (x, xo) = self.0.tick_of(p.x, PER);
-        let (y, yo) = self.0.tick_of(p.y, PER);
-        (ew_drafting::Pt::new(tick(x), tick(y)), xo && yo)
+    /// The conversion of a page with the grid `grid`.
+    pub fn of(grid: Grid) -> Ticks {
+        Ticks(grid)
     }
 
-    /// A box rounded outward.
-    pub(crate) fn rect(self, r: Rect) -> ew_drafting::Rect {
+    /// The conversion of a page with the grid `(num, den)` as the page tables hold it (a 4 mm step for numbers that
+    /// make no grid).
+    pub fn new(grid: (i64, i64)) -> Ticks {
+        let g = u64::try_from(grid.0)
+            .ok()
+            .zip(u64::try_from(grid.1).ok())
+            .and_then(|(n, d)| Grid::new(n, d).ok())
+            .unwrap_or(Grid::MM4);
+        Ticks(g)
+    }
+
+    /// The page's grid.
+    pub fn grid(self) -> Grid {
+        self.0
+    }
+
+    /// **A point**: each coordinate by `Grid::tick_of` (a coordinate within 1 nm of a half-grid position takes that
+    /// position's tick); whether both lie on such a position.
+    pub fn point(self, p: Pt2) -> (Pt, bool) {
+        let (x, xo) = self.0.tick_of(p.x, PER);
+        let (y, yo) = self.0.tick_of(p.y, PER);
+        (Pt::new(tick(x), tick(y)), xo && yo)
+    }
+
+    /// [`Ticks::point`] of a point in page nm as the page tables hold it, without whether it lies on the grid.
+    pub fn pt(self, p: (i64, i64)) -> Pt {
+        self.point(Pt2::new(Nm(p.0), Nm(p.1))).0
+    }
+
+    /// **A box rounded outward** (a text's box, a symbol's body): `Grid::tick_span` on each axis.
+    pub fn outward(self, r: Rect) -> ew_drafting::Rect {
         let (x0, x1) = self.0.tick_span(r.min().x, r.max().x, PER);
         let (y0, y1) = self.0.tick_span(r.min().y, r.max().y, PER);
         ew_drafting::Rect {
@@ -43,8 +73,9 @@ impl Ticks {
         }
     }
 
-    /// An area rounded inward.
-    pub(crate) fn inward(self, r: Rect) -> ew_drafting::Rect {
+    /// **An area rounded inward** (the drawing area): its low ends rounded up, its high ends down, never below the
+    /// low ones.
+    pub fn inward(self, r: Rect) -> ew_drafting::Rect {
         // ceil(a) = −floor(−a); floor(b) is the low end of b's span.
         let ceil = |v: Nm| {
             tick(
@@ -64,9 +95,13 @@ impl Ticks {
         }
     }
 
-    /// A move in ticks as a move in nm.
-    pub(crate) fn nm(self, d: ew_drafting::Pt) -> Pt2 {
-        let one = |t: Tick| self.0.nm_of_tick(i64::from(t), PER).unwrap_or(Nm::ZERO);
-        Pt2::new(one(d.x), one(d.y))
+    /// A tick as page nm (`Grid::nm_of_tick`; 0 where it overflows).
+    pub fn nm(self, t: Tick) -> i64 {
+        self.0.nm_of_tick(i64::from(t), PER).map_or(0, |n| n.0)
+    }
+
+    /// A move of `d` ticks in page nm.
+    pub fn move_nm(self, d: Pt) -> (i64, i64) {
+        (self.nm(d.x) - self.nm(0), self.nm(d.y) - self.nm(0))
     }
 }
