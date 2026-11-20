@@ -11,9 +11,9 @@
 //!   a reader compares. The checks and `ew layout` read it.
 //! - [`labels`]: the one text placer (§5): [`settle_labels`].
 //! - [`guides`]: the guides and the light nudge of a part placed by hand (§6): [`guides()`].
-//! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4) and [`route`] (§3.2, §3.7 to §3.10): the router.
-//!   [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is the line of a wire
-//!   without a route.
+//! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4), [`tracks`] (§3.5) and [`route`] (§3.2, §3.7 to
+//!   §3.10): the router. [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is
+//!   the line of a wire without a route; [`tracks_needed`] counts the tracks of a row's stepping wires for the placer.
 //!
 //! The crate reads no project record and knows no nanometre: two numbers for one grid position cannot meet in it.
 
@@ -27,6 +27,7 @@ pub mod nets;
 pub mod occupancy;
 pub mod route;
 pub mod search;
+pub mod tracks;
 
 pub use guides::{Guide, GuideKind, Guided, guides};
 pub use labels::{Settled, settle_labels};
@@ -35,3 +36,4 @@ pub use model::*;
 pub use route::{
     Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, route, route_wire, unrouted_line, wire_clear,
 };
+pub use tracks::tracks_needed;

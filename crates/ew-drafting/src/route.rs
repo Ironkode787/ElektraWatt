@@ -13,22 +13,24 @@
 //! 2. **Straights.** A net of one wire whose ends face each other on one line is that segment, where it is free.
 //! 3. **Trunks** (`nets`): a net whose taps form a chain, or a pin's fan, gets the trunk of least price; in the order
 //!    of their supply ranks, then their first tapped pin's place (left first), then more taps first, then the ID.
-//! 4. **A single tap.** A junction that is a net's only tap stands where its wires cost least with three arms.
-//! 5. **The search** for the rest, by the city-block distance of their ends (shortest first), then the first end's
+//! 4. **Tracks** (`tracks`): a job still without a route between two pins in the shape of a Z or a U takes the track
+//!    its channel assigns it, where the route is clear; the others go on.
+//! 5. **A single tap.** A junction that is a net's only tap stands where its wires cost least with three arms.
+//! 6. **The search** for the rest, by the city-block distance of their ends (shortest first), then the first end's
 //!    place, then the ID; then at most [`PASSES`] passes in the same order, each wire lifted, searched again and its
 //!    new route kept where it costs less. A wire ending at a junction that the other wires leave in three directions
 //!    is not searched (its route would be a fourth arm).
-//! 6. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
+//! 7. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
 //!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
 //!    lower; at most [`PASSES`] rounds.
-//! 7. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
+//! 8. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
 //!    among the others keeps them; and from the stored drawing, a net takes its new routes where they cost less. The
 //!    cheaper of the two pages stands. The figures §1.2 only reports (length, labels moved, wires straight,
 //!    turn-backs) veto nothing.
-//! 8. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
+//! 9. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
 //!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
 //!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides.
-//! 9. **Marks follow** (§3.10) the wires they name.
+//! 10. **Marks follow** (§3.10) the wires they name.
 //!
 //! A job without a way keeps its stored route, or stays unrouted, and is named with the first thing in its way.
 
@@ -46,6 +48,7 @@ use crate::model::{
 use crate::nets::{self, Line, Net};
 use crate::occupancy::{HALF, Occupancy, Text, node_of};
 use crate::search::{self, Ask, Found, Owner, Relax, Tip, heading};
+use crate::tracks;
 
 /// What a Route runs on.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -775,7 +778,52 @@ impl Router {
         (laid, notes)
     }
 
-    /// Phase 4: a net whose only tap is a junction that may move: the junction where its wires cost least.
+    /// Phase 4: the stepping wires (`tracks`): the jobs still without a route between two pins in the shape of a Z or
+    /// a U, on the tracks of their channels where the route is clear; the wires laid.
+    fn tracks(&mut self) -> BTreeSet<WireId> {
+        let area = self.page.area;
+        let mut frames: BTreeMap<tracks::Frame, Vec<(WireId, tracks::Lane)>> = BTreeMap::new();
+        for w in self.jobs.clone() {
+            if !self.route_of(w).is_empty() {
+                continue;
+            }
+            let Some([End::Pin(a), End::Pin(b)]) = self.ends.get(&w).copied() else {
+                continue;
+            };
+            let (Some(pa), Some(pb)) = (self.pins.get(&a), self.pins.get(&b)) else {
+                continue;
+            };
+            let (Some(sa), Some(sb)) = (pa.side, pb.side) else {
+                continue;
+            };
+            if let Some((frame, lane)) = tracks::stepping((pa.at, sa, a), (pb.at, sb, b), area) {
+                frames.entry(frame).or_default().push((w, lane));
+            }
+        }
+        let mut laid = BTreeSet::new();
+        for (frame, wires) in frames {
+            let lanes: Vec<tracks::Lane> = wires.iter().map(|(_, l)| l.clone()).collect();
+            tracks::lay(&lanes, &mut |k, d| {
+                let w = wires[k].0;
+                let Some([a, b]) = self.ends.get(&w).copied() else {
+                    return false;
+                };
+                let (Some(pa), Some(pb)) = (self.point(a), self.point(b)) else {
+                    return false;
+                };
+                let route = search::clean_collinear(&frame.route(pa, pb, d));
+                if !self.clear(w, &route) {
+                    return false;
+                }
+                self.lay(w, route);
+                laid.insert(w);
+                true
+            });
+        }
+        laid
+    }
+
+    /// Phase 5: a net whose only tap is a junction that may move: the junction where its wires cost least.
     fn single_taps(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
         let mut laid = BTreeSet::new();
         for net in nets {
@@ -853,7 +901,7 @@ impl Router {
         laid
     }
 
-    /// Phase 5: the search for the jobs without a route, then the passes; the wires searched in order, and those with
+    /// Phase 6: the search for the jobs without a route, then the passes; the wires searched in order, and those with
     /// no way. A job without a way keeps its stored route at once, so the jobs after it keep clear of it (§3.8); each pass
     /// tries it again first.
     fn searches(&mut self) -> (Vec<WireId>, BTreeSet<WireId>) {
@@ -941,7 +989,7 @@ impl Router {
         }
     }
 
-    /// Phase 6: the text rounds (module documentation).
+    /// Phase 7: the text rounds (module documentation).
     fn text_rounds(&mut self) {
         for _ in 0..PASSES {
             let q = measure(&self.page);
@@ -1020,7 +1068,7 @@ impl Router {
         page
     }
 
-    /// Phase 7: the nets with a stored drawing weighed against it (module documentation). Back: from the new drawing, a
+    /// Phase 8: the nets with a stored drawing weighed against it (module documentation). Back: from the new drawing, a
     /// net whose stored routes cost no less and keep free of faults among the others keeps them. Forward: from the
     /// stored drawing, a net takes its new routes where they cost less and keep free of faults among the others. The
     /// cheaper page stands: one net's gain is not lost to another's loss that no single net's going back undoes.
@@ -1167,6 +1215,7 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let nets = nets::nets(&wanted, &r.ends, &movable);
     r.straights(&nets);
     let (_, notes) = r.trunks(&nets);
+    r.tracks();
     r.single_taps(&nets);
     let (_, failed) = r.searches();
     r.text_rounds();
