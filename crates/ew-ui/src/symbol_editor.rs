@@ -25,7 +25,6 @@ use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::symbol_editor::{SymbolEditor, TOOL_KEYS};
 use ew_viewmodel::strings;
-use fields::Expanded as _;
 use serde_json::{Value, json};
 
 /// The text of `key` in the window's language.
@@ -760,11 +759,12 @@ impl EditorView {
                                     "symbol-left",
                                 ];
                                 let caption = ui.label(label(key!("symbol-direction")));
-                                egui::ComboBox::from_id_salt("symbol-cp-direction")
-                                    .selected_text(label(strings::Key::run_time(
-                                        words[self.direction.min(4)],
-                                    )))
-                                    .show_ui(ui, |ui| {
+                                crate::components::choice(
+                                    ui,
+                                    egui::ComboBox::from_id_salt("symbol-cp-direction").selected_text(label(
+                                        strings::Key::run_time(words[self.direction.min(4)]),
+                                    )),
+                                    |ui| {
                                         for (i, k) in words.iter().enumerate() {
                                             ui.selectable_value(
                                                 &mut self.direction,
@@ -772,10 +772,10 @@ impl EditorView {
                                                 label(strings::Key::run_time(k)),
                                             );
                                         }
-                                    })
-                                    .response
-                                    .labelled_by(caption.id)
-                                    .expanded(ui);
+                                    },
+                                )
+                                .response
+                                .labelled_by(caption.id);
                             }
                             "slot" => {
                                 let kinds = editor.slot_kinds();
@@ -787,16 +787,17 @@ impl EditorView {
                                     .find(|(w, _)| *w == self.slot_kind)
                                     .map_or_else(String::new, |(_, text)| text.clone());
                                 let caption = ui.label(label(key!("symbol-slot-kind")));
-                                egui::ComboBox::from_id_salt("symbol-new-slot")
-                                    .selected_text(shown)
-                                    .show_ui(ui, |ui| {
+                                crate::components::choice(
+                                    ui,
+                                    egui::ComboBox::from_id_salt("symbol-new-slot").selected_text(shown),
+                                    |ui| {
                                         for (word, text) in kinds {
                                             ui.selectable_value(&mut self.slot_kind, word, text);
                                         }
-                                    })
-                                    .response
-                                    .labelled_by(caption.id)
-                                    .expanded(ui);
+                                    },
+                                )
+                                .response
+                                .labelled_by(caption.id);
                             }
                             "link" => field(ui, "symbol-name", &mut self.link_name, 5.0 * t.size_row),
                             _ => {}
@@ -1379,15 +1380,16 @@ fn grid_controls(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
             .color(t.text_secondary.color32()),
     );
     let mut step = editor.grid.min(GRID_STEPS.len() - 1);
-    let combo = egui::ComboBox::from_id_salt("symbol-snap-step")
-        .selected_text(words(GRID_STEPS[step]))
-        .show_ui(ui, |ui| {
+    let combo = crate::components::choice(
+        ui,
+        egui::ComboBox::from_id_salt("symbol-snap-step").selected_text(words(GRID_STEPS[step])),
+        |ui| {
             for (i, s) in GRID_STEPS.iter().enumerate() {
                 ui.selectable_value(&mut step, i, words(*s));
             }
-        })
-        .response
-        .expanded(ui);
+        },
+    )
+    .response;
     combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, caption));
     let _ = combo.tip(tip.clone());
     if step != editor.grid {

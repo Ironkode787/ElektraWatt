@@ -201,19 +201,20 @@ fn options(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
         label_width,
         strings::text(key!("print-paper")),
         |ui, label| {
-            let combo = egui::ComboBox::from_id_salt("print-paper")
-                .selected_text(PrintDialog::paper_text(d.paper))
-                .width(ui.available_width())
-                .icon(components::combo_chevron)
-                .show_ui(ui, |ui| {
+            let combo = crate::components::choice(
+                ui,
+                egui::ComboBox::from_id_salt("print-paper")
+                    .selected_text(PrintDialog::paper_text(d.paper))
+                    .width(ui.available_width()),
+                |ui| {
                     for paper in Paper::ALL {
                         let words = PrintDialog::paper_text(paper);
                         if ui.selectable_label(d.paper == paper, words).clicked() && d.paper != paper {
                             set(events, json!({ "paper": paper.name() }));
                         }
                     }
-                });
-            components::combo_expanded(ui, &combo.response);
+                },
+            );
             combo.response.labelled_by(label);
         },
     );

@@ -511,21 +511,22 @@ fn form_fields(
                     .iter()
                     .find(|(v, _)| *v == f.value)
                     .map_or_else(String::new, |(_, w)| w.clone());
-                let combo = egui::ComboBox::from_id_salt(("form-option", f.name))
-                    .selected_text(shown)
-                    .width(ui.available_width())
-                    .height(list_height(ui))
-                    .icon(crate::components::combo_chevron)
-                    .show_ui(ui, |ui| {
+                let combo = crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt(("form-option", f.name))
+                        .selected_text(shown)
+                        .width(ui.available_width())
+                        .height(list_height(ui)),
+                    |ui| {
                         menu_rows(ui, &t);
                         for (value, words) in &f.options {
                             if ui.selectable_label(f.value == *value, words).clicked() {
                                 events.push(Event::FormField(f.name, value.clone()));
                             }
                         }
-                    });
+                    },
+                );
                 let combo = combo.response.labelled_by(label.id);
-                crate::components::combo_expanded(ui, &combo);
                 if std::mem::take(&mut first_control) {
                     combo.request_focus();
                 }
@@ -549,12 +550,13 @@ fn form_fields(
                 }
                 submit |= edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             } else {
-                let combo = egui::ComboBox::from_id_salt(("form-choice", f.name))
-                    .selected_text(strings::choice_text(&f.value))
-                    .width(ui.available_width())
-                    .height(list_height(ui))
-                    .icon(crate::components::combo_chevron)
-                    .show_ui(ui, |ui| {
+                let combo = crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt(("form-choice", f.name))
+                        .selected_text(strings::choice_text(&f.value))
+                        .width(ui.available_width())
+                        .height(list_height(ui)),
+                    |ui| {
                         menu_rows(ui, &t);
                         for choice in f.choices {
                             let word = strings::choice_text(choice);
@@ -562,9 +564,9 @@ fn form_fields(
                                 events.push(Event::FormField(f.name, (*choice).to_owned()));
                             }
                         }
-                    });
+                    },
+                );
                 let combo = combo.response.labelled_by(label.id);
-                crate::components::combo_expanded(ui, &combo);
                 if std::mem::take(&mut first_control) {
                     combo.request_focus();
                 }

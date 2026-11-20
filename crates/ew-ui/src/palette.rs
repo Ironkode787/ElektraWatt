@@ -348,21 +348,22 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
                     "" => strings::text(key!("choice-none")).to_owned(),
                     c => strings::choice_text(c),
                 };
-                let combo = egui::ComboBox::from_id_salt(("palette-form-choice", i))
-                    .selected_text(words(&f.value))
-                    .width(ui.available_width() - t.space_3)
-                    // Every choice in view without a scroll (Define potential…'s Type has fourteen), up to half
-                    // the window.
-                    .height(ui.ctx().content_rect().height() / 2.0)
-                    .icon(crate::components::combo_chevron)
-                    .show_ui(ui, |ui| {
+                let combo = crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt(("palette-form-choice", i))
+                        .selected_text(words(&f.value))
+                        .width(ui.available_width() - t.space_3)
+                        // Every choice in view without a scroll (Define potential…'s Type has fourteen), up to half
+                        // the window.
+                        .height(ui.ctx().content_rect().height() / 2.0),
+                    |ui| {
                         for choice in &choices {
                             if ui.selectable_label(f.value == *choice, words(choice)).clicked() {
                                 events.push(Event::PaletteField(i, (*choice).to_owned()));
                             }
                         }
-                    });
-                crate::components::combo_expanded(ui, &combo.response);
+                    },
+                );
                 combo.response.labelled_by(label.id)
             };
             if first {

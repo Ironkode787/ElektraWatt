@@ -195,11 +195,12 @@ fn face_combo(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut V
         .iter()
         .find(|(f, _)| *f == row.face)
         .map_or("", |(_, w)| w.as_str());
-    let combo = egui::ComboBox::from_id_salt(("text-style-face", &row.key))
-        .selected_text(shown)
-        .width(t.size_dialog_label * 0.9)
-        .icon(components::combo_chevron)
-        .show_ui(ui, |ui| {
+    let combo = crate::components::choice(
+        ui,
+        egui::ComboBox::from_id_salt(("text-style-face", &row.key))
+            .selected_text(shown)
+            .width(t.size_dialog_label * 0.9),
+        |ui| {
             for (face, words) in &list {
                 if ui.selectable_label(*face == row.face, words.as_str()).clicked() && *face != row.face {
                     events.push(Event::Action(
@@ -208,9 +209,9 @@ fn face_combo(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut V
                     ));
                 }
             }
-        });
-    let combo = combo.response.tip(strings::text(key!("text-styles-typeface")));
-    components::combo_expanded(ui, &combo);
+        },
+    );
+    combo.response.tip(strings::text(key!("text-styles-typeface")));
 }
 
 /// The height of a row: a field a person types in (Enter or leaving it sets it), and the standard heights beside it.
@@ -239,11 +240,12 @@ fn height_field(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut
         }
     }
     ui.label(RichText::new(strings::text(key!("choice-mm"))).color(t.text_secondary.color32()));
-    let menu = egui::ComboBox::from_id_salt(("text-style-heights", &row.key))
-        .selected_text("")
-        .width(t.size_control)
-        .icon(components::combo_chevron)
-        .show_ui(ui, |ui| {
+    let menu = crate::components::choice(
+        ui,
+        egui::ComboBox::from_id_salt(("text-style-heights", &row.key))
+            .selected_text("")
+            .width(t.size_control),
+        |ui| {
             for h in STANDARD_HEIGHTS {
                 let words = format!("{} mm", strings::decimal(h));
                 let on = row.height == strings::decimal(h);
@@ -254,9 +256,8 @@ fn height_field(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut
                     ));
                 }
             }
-        });
-    let menu = menu
-        .response
+        },
+    );
+    menu.response
         .tip(strings::text(key!("text-styles-standard-heights")));
-    components::combo_expanded(ui, &menu);
 }

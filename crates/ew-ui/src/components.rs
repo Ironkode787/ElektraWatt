@@ -149,17 +149,24 @@ pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32
     })
 }
 
-/// A combo box's expanded state, which egui 0.37 does not give its node: open while its list
-/// shows. `combo` is the response `show_ui` returned (its ID is the combo button's).
-pub(crate) fn combo_expanded(ui: &Ui, combo: &Response) {
-    let open = egui::ComboBox::is_open(ui.ctx(), combo.id);
+/// A choice list (doc 16a §6.13): `combo` shown with the `chevron-down` as its icon, `list` its rows, and its node
+/// says whether the list shows (egui 0.37 does not). The caller names it (`labelled_by`) and rings its focus where
+/// its form does.
+pub(crate) fn choice<R>(
+    ui: &mut Ui,
+    combo: egui::ComboBox,
+    list: impl FnOnce(&mut Ui) -> R,
+) -> egui::InnerResponse<Option<R>> {
+    let shown = combo.icon(combo_chevron).show_ui(ui, list);
+    let open = egui::ComboBox::is_open(ui.ctx(), shown.response.id);
     ui.ctx()
-        .accesskit_node_builder(combo.id, |n| n.set_expanded(open));
+        .accesskit_node_builder(shown.response.id, |n| n.set_expanded(open));
+    shown
 }
 
 /// Paints doc 16a §6.13's `chevron-down` (16 px, `color.text.secondary`) as a combo box's icon, in place of egui's
 /// filled triangle. The signature is `egui::ComboBox::icon`'s.
-pub(crate) fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::WidgetVisuals, _open: bool) {
+fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::WidgetVisuals, _open: bool) {
     let t = tokens(ui);
     icons::paint(
         ui.painter(),

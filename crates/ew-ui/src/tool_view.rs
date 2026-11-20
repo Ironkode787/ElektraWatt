@@ -102,10 +102,11 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
 
 /// The Text tool's binding in the tool options (the tool strip): one choice per [`BINDABLE`] name and "-" for none.
 pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
-    let combo = egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
-        .icon(crate::components::combo_chevron)
-        .selected_text(current_bind.unwrap_or("-"))
-        .show_ui(ui, |ui| {
+    crate::components::choice(
+        ui,
+        egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
+            .selected_text(current_bind.unwrap_or("-")),
+        |ui| {
             if ui.selectable_label(current_bind.is_none(), "-").clicked() {
                 events.push(crate::app::Event::Action(
                     "text.bind",
@@ -120,8 +121,8 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
                     ));
                 }
             }
-        });
-    crate::components::combo_expanded(ui, &combo.response);
+        },
+    );
 }
 
 /// The Wire marker tool's fields in the tool strip: the cross-section and the colours, each sent as `marker.fields`
@@ -164,10 +165,10 @@ pub(crate) fn structure_box_fields(
     location: &mut String,
     events: &mut Vec<crate::app::Event>,
 ) {
-    let combo = egui::ComboBox::from_label(strings::text(key!("action-structure-box-style")))
-        .icon(crate::components::combo_chevron)
-        .selected_text("…")
-        .show_ui(ui, |ui| {
+    crate::components::choice(
+        ui,
+        egui::ComboBox::from_label(strings::text(key!("action-structure-box-style"))).selected_text("…"),
+        |ui| {
             for style in ["dotted", "dash_dot"] {
                 if ui
                     .selectable_label(
@@ -182,8 +183,8 @@ pub(crate) fn structure_box_fields(
                     ));
                 }
             }
-        });
-    crate::components::combo_expanded(ui, &combo.response);
+        },
+    );
     for (label_key, buffer, member, width) in [
         (
             key!("action-structure-box-caption"),
@@ -215,10 +216,10 @@ pub(crate) fn structure_box_fields(
         // The label before its field, as every other field of the card reads.
         let label = strings::text(key!("action-ip-external"));
         ui.label(label);
-        let combo = egui::ComboBox::from_id_salt("structure-box-external")
-            .icon(crate::components::combo_chevron)
-            .selected_text("…")
-            .show_ui(ui, |ui| {
+        let combo = crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt("structure-box-external").selected_text("…"),
+            |ui| {
                 if ui.selectable_label(false, "-").clicked() {
                     events.push(crate::app::Event::Action(
                         "structure_box.fields",
@@ -233,11 +234,11 @@ pub(crate) fn structure_box_fields(
                         ));
                     }
                 }
-            });
+            },
+        );
         combo
             .response
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
-        crate::components::combo_expanded(ui, &combo.response);
     }
 }
 
@@ -349,10 +350,10 @@ pub(crate) fn ip_fields(
         // The label before its field, and the field shows the reference on the ghost ("-" for none).
         let label = strings::text(key!("action-ip-external"));
         ui.label(label);
-        let combo = egui::ComboBox::from_id_salt("ip-external")
-            .icon(crate::components::combo_chevron)
-            .selected_text(external.unwrap_or("-"))
-            .show_ui(ui, |ui| {
+        let combo = crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt("ip-external").selected_text(external.unwrap_or("-")),
+            |ui| {
                 if ui.selectable_label(false, "-").clicked() {
                     events.push(crate::app::Event::Action(
                         "ip.external",
@@ -367,11 +368,11 @@ pub(crate) fn ip_fields(
                         ));
                     }
                 }
-            });
+            },
+        );
         combo
             .response
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
-        crate::components::combo_expanded(ui, &combo.response);
     }
 }
 
@@ -418,10 +419,11 @@ pub(crate) fn draw_fields(
 ) {
     let none = strings::text(key!("draw-options-no-part"));
     let label = ui.label(strings::text(key!("draw-options-part")));
-    let combo = egui::ComboBox::from_id_salt(("draw-part", card.kind))
-        .icon(crate::components::combo_chevron)
-        .selected_text(card.part.as_deref().unwrap_or(none))
-        .show_ui(ui, |ui| {
+    let combo = crate::components::choice(
+        ui,
+        egui::ComboBox::from_id_salt(("draw-part", card.kind))
+            .selected_text(card.part.as_deref().unwrap_or(none)),
+        |ui| {
             for number in &card.parts {
                 let chosen = card.part.as_deref() == Some(number.as_str());
                 if ui.selectable_label(chosen, number).clicked() && !chosen {
@@ -431,8 +433,8 @@ pub(crate) fn draw_fields(
                     ));
                 }
             }
-        });
-    crate::components::combo_expanded(ui, &combo.response);
+        },
+    );
     combo.response.labelled_by(label.id);
     let grids = [(5_u8, key!("layout-grid-5")), (1, key!("layout-grid-1"))];
     let labels: Vec<(&str, bool)> = grids

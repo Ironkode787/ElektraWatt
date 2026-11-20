@@ -5,7 +5,7 @@
 //! each row a click to the thing, and what is left to do), on the right Properties (the rows of the selection, or of
 //! the thing itself with nothing selected). Both paint what the view-model gives; a row's edit is one action.
 
-use super::fields::{Expanded as _, cancelled, committed_text, enter_pressed, new_line_key, number};
+use super::fields::{cancelled, committed_text, enter_pressed, new_line_key, number};
 use super::label;
 use crate::app::Event;
 use crate::components::{self, Kind, Tip as _};
@@ -310,18 +310,20 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
                     None => varies(),
                 };
                 let mut chosen = value.clone();
-                egui::ComboBox::from_id_salt(("sheet", r.key))
-                    .selected_text(shown)
-                    .width(width)
-                    .height(t.size_chooser_rows as f32 * 1.5 * t.size_row)
-                    .show_ui(ui, |ui| {
+                crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt(("sheet", r.key))
+                        .selected_text(shown)
+                        .width(width)
+                        .height(t.size_chooser_rows as f32 * 1.5 * t.size_row),
+                    |ui| {
                         for (word, text) in options {
                             ui.selectable_value(&mut chosen, Some(word.clone()), text);
                         }
-                    })
-                    .response
-                    .expanded(ui)
-                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, ui.is_enabled(), &name));
+                    },
+                )
+                .response
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, ui.is_enabled(), &name));
                 if chosen != *value
                     && let Some(word) = chosen
                 {

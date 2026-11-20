@@ -2322,10 +2322,12 @@ impl CanvasHost {
                                     .iter()
                                     .find(|(w, _)| *w == row.kind)
                                     .map_or(row.kind.as_str(), |(_, text)| text.as_str());
-                                egui::ComboBox::from_id_salt(("supply-kind", i))
-                                    .selected_text(shown)
-                                    .width(4.0 * t.size_control)
-                                    .show_ui(ui, |ui| {
+                                crate::components::choice(
+                                    ui,
+                                    egui::ComboBox::from_id_salt(("supply-kind", i))
+                                        .selected_text(shown)
+                                        .width(4.0 * t.size_control),
+                                    |ui| {
                                         for (word, text) in &kinds {
                                             if ui.selectable_label(*word == row.kind, text).clicked() {
                                                 events.push(Event::Action(
@@ -2334,7 +2336,8 @@ impl CanvasHost {
                                                 ));
                                             }
                                         }
-                                    });
+                                    },
+                                );
                                 let mut voltage = row.voltage.clone();
                                 let edit = egui::TextEdit::singleline(&mut voltage)
                                     .id_salt(("supply-voltage", i))

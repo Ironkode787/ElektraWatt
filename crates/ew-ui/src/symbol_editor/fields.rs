@@ -4,7 +4,6 @@
 //! The fields of the symbol editor's Properties: each commits on Enter, on losing the focus or at a drag's end, never
 //! per keystroke, and Escape cancels the entry.
 
-use crate::components;
 use egui::Ui;
 
 /// A text of the document that commits on Enter or focus loss, never per keystroke (M25-p3#4): the typing stays in
@@ -91,16 +90,6 @@ pub(super) fn number(
         *value = v;
     }
     commit
-}
-/// A combo box's node says whether its list shows.
-pub(super) trait Expanded {
-    fn expanded(self, ui: &Ui) -> Self;
-}
-impl Expanded for egui::Response {
-    fn expanded(self, ui: &Ui) -> Self {
-        components::combo_expanded(ui, &self);
-        self
-    }
 }
 /// The key that starts a new line in a text that may hold one; Enter alone commits.
 pub(super) fn new_line_key() -> egui::KeyboardShortcut {

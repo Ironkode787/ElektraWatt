@@ -311,19 +311,21 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
             .inner;
         ui.add_space(t.space_3);
         let mut picked = None;
-        let combo = egui::ComboBox::from_id_salt("part-edit-kind")
-            .selected_text(part_kind_word(value))
-            .width(ui.available_width())
-            .show_ui(ui, |ui| {
+        crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt("part-edit-kind")
+                .selected_text(part_kind_word(value))
+                .width(ui.available_width()),
+            |ui| {
                 for k in PART_KINDS {
                     if ui.selectable_label(k == value, part_kind_word(k)).clicked() {
                         picked = Some(k);
                     }
                 }
-            })
-            .response
-            .labelled_by(label.id);
-        crate::components::combo_expanded(ui, &combo);
+            },
+        )
+        .response
+        .labelled_by(label.id);
         if let Some(k) = picked.filter(|k| *k != value) {
             events.push(Event::Action(
                 "part.field",
@@ -559,19 +561,21 @@ fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Even
         let options: Vec<String> = std::iter::once(String::new())
             .chain(ew_viewmodel::ew_api::mount_words())
             .collect();
-        let combo = egui::ComboBox::from_id_salt("part-edit-mount")
-            .selected_text(words(value))
-            .width(ui.available_width())
-            .show_ui(ui, |ui| {
+        crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt("part-edit-mount")
+                .selected_text(words(value))
+                .width(ui.available_width()),
+            |ui| {
                 for w in &options {
                     if ui.selectable_label(w == value, words(w)).clicked() {
                         picked = Some(w.clone());
                     }
                 }
-            })
-            .response
-            .labelled_by(label.id);
-        crate::components::combo_expanded(ui, &combo);
+            },
+        )
+        .response
+        .labelled_by(label.id);
         if let Some(w) = picked.filter(|w| w != value) {
             events.push(Event::Action(
                 "part.field",
@@ -765,20 +769,22 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
                 }
                 ui.add_space(t.space_3);
                 let mut picked = None;
-                let combo = egui::ComboBox::from_id_salt("role")
-                    .selected_text(role_words(&pin.role))
-                    .width(t.size_control * 5.0)
-                    .show_ui(ui, |ui| {
+                let combo = crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt("role")
+                        .selected_text(role_words(&pin.role))
+                        .width(t.size_control * 5.0),
+                    |ui| {
                         for r in &roles {
                             if ui.selectable_label(*r == pin.role, role_words(r)).clicked() {
                                 picked = Some(r.clone());
                             }
                         }
-                    })
-                    .response;
+                    },
+                )
+                .response;
                 let label = strings::format(key!("part-pin-role"), &[&pin.name]);
                 combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &label));
-                crate::components::combo_expanded(ui, &combo);
                 if let Some(role) = picked.filter(|r| *r != pin.role) {
                     let role = if role.is_empty() { "none".to_owned() } else { role };
                     events.push(Event::Action("part.pin", json!({ "pin": pin.idx, "role": role })));
@@ -828,19 +834,21 @@ fn labelled_combo(
         );
         ui.add_space(t.space_3);
         let mut picked = None;
-        let combo = egui::ComboBox::from_id_salt(field)
-            .selected_text(word(value))
-            .width(ui.available_width())
-            .show_ui(ui, |ui| {
+        let combo = crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt(field)
+                .selected_text(word(value))
+                .width(ui.available_width()),
+            |ui| {
                 for c in choices {
                     if ui.selectable_label(c == value, word(c)).clicked() {
                         picked = Some(c.clone());
                     }
                 }
-            })
-            .response;
+            },
+        )
+        .response;
         combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label_text));
-        crate::components::combo_expanded(ui, &combo);
         if let Some(c) = picked.filter(|c| c != value) {
             events.push(Event::Action("part.field", json!({ "field": field, "value": c })));
         }
@@ -1271,20 +1279,22 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
                     match choices {
                         Some(choices) => {
                             let mut picked = None;
-                            let combo = egui::ComboBox::from_id_salt(&field)
-                                .selected_text(bus_choice(m, value))
-                                .width(cell)
-                                .show_ui(ui, |ui| {
+                            let combo = crate::components::choice(
+                                ui,
+                                egui::ComboBox::from_id_salt(&field)
+                                    .selected_text(bus_choice(m, value))
+                                    .width(cell),
+                                |ui| {
                                     for c in &choices {
                                         if ui.selectable_label(c == value, bus_choice(m, c)).clicked() {
                                             picked = Some(c.clone());
                                         }
                                     }
-                                })
-                                .response;
+                                },
+                            )
+                            .response;
                             combo
                                 .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
-                            crate::components::combo_expanded(ui, &combo);
                             if let Some(c) = picked.filter(|c| c != value) {
                                 events
                                     .push(Event::Action("part.field", json!({ "field": field, "value": c })));

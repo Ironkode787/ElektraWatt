@@ -112,11 +112,12 @@ fn report_row(ui: &mut egui::Ui, target: ReportTarget, events: &mut Vec<Event>) 
                 },
             )
             .inner;
-        let combo = egui::ComboBox::from_id_salt("parts-map-report")
-            .selected_text(words(target))
-            .width(t.size_dialog_label * 1.5)
-            .icon(crate::components::combo_chevron)
-            .show_ui(ui, |ui| {
+        let combo = crate::components::choice(
+            ui,
+            egui::ComboBox::from_id_salt("parts-map-report")
+                .selected_text(words(target))
+                .width(t.size_dialog_label * 1.5),
+            |ui| {
                 for (x, id) in [
                     (ReportTarget::Terminals, "terminals"),
                     (ReportTarget::Devices, "devices"),
@@ -126,9 +127,9 @@ fn report_row(ui: &mut egui::Ui, target: ReportTarget, events: &mut Vec<Event>) 
                         events.push(Event::Action("parts.map", json!({ "target": id })));
                     }
                 }
-            });
+            },
+        );
         combo.response.clone().labelled_by(label.id);
-        crate::components::combo_expanded(ui, &combo.response);
     });
 }
 
@@ -261,11 +262,12 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                             .member
                             .as_deref()
                             .map_or_else(|| none.to_owned(), |m| map.member_words(m, &c.header));
-                        let combo = egui::ComboBox::from_id_salt(("parts-map-member", i))
-                            .selected_text(shown)
-                            .width(combo)
-                            .icon(crate::components::combo_chevron)
-                            .show_ui(ui, |ui| {
+                        let combo = crate::components::choice(
+                            ui,
+                            egui::ComboBox::from_id_salt(("parts-map-member", i))
+                                .selected_text(shown)
+                                .width(combo),
+                            |ui| {
                                 if ui.selectable_label(c.member.is_none(), none).clicked() {
                                     events.push(Event::Action(
                                         "parts.map",
@@ -286,12 +288,12 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                         ));
                                     }
                                 }
-                            });
+                            },
+                        );
                         // Named "Imports as <header>" (every focusable node has a name, ADR-0014 amendment 2).
                         let name = format!("{} {}", strings::text(key!("parts-map-member")), c.header);
                         ui.ctx()
                             .accesskit_node_builder(combo.response.id, |n| n.set_label(name));
-                        crate::components::combo_expanded(ui, &combo.response);
                         ui.end_row();
                     }
                 });

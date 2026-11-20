@@ -354,10 +354,10 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
             );
             let defaults = strings::text(key!("macro-value-set-defaults"));
             let shown = m.value_set.as_deref().unwrap_or(defaults);
-            let combo = egui::ComboBox::from_id_salt("macro-value-set")
-                .selected_text(shown)
-                .icon(components::combo_chevron)
-                .show_ui(ui, |ui| {
+            let combo = crate::components::choice(
+                ui,
+                egui::ComboBox::from_id_salt("macro-value-set").selected_text(shown),
+                |ui| {
                     if ui.selectable_label(m.value_set.is_none(), defaults).clicked() {
                         events.push(Event::Action("macros.value_set", serde_json::json!({})));
                     }
@@ -369,8 +369,8 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
                             ));
                         }
                     }
-                });
-            components::combo_expanded(ui, &combo.response);
+                },
+            );
             combo.response.labelled_by(label.id);
         });
     }
