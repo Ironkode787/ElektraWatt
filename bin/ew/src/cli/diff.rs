@@ -14,23 +14,10 @@ use std::path::{Path, PathBuf};
 
 use ew_api::Session;
 
+use super::DiffArgs;
+
 /// The manifest's file name.
 const MANIFEST: &str = "manifest.json";
-
-/// The arguments of `ew diff`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct DiffArgs {
-    /// The first side.
-    pub from: Option<String>,
-    /// The second side.
-    pub to: Option<String>,
-    /// `--textconv <file>`: print one project file as text lines instead.
-    pub textconv: Option<PathBuf>,
-    /// `--json`.
-    pub json: bool,
-    /// `--exit-code`: exit 1 when the sides differ.
-    pub exit_code: bool,
-}
 
 /// `ew diff`: exit 0 when equal (or different without `--exit-code`), 1 when different with `--exit-code`, 2 on errors.
 pub(super) fn run_diff(a: &DiffArgs) -> i32 {

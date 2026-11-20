@@ -6,31 +6,11 @@
 //! ([`ew_api::Session::route_plan`], [`ew_api::Session::arrange_plan`]) is stored as one `layout.apply`, the command
 //! the window's buttons store, and the project is saved once; `--dry-run` prints the plan.
 
-use std::path::PathBuf;
-
 use ew_api::cli_results as results;
 use ew_api::routing::{Reason, RoutePlan, RouteScope};
 use ew_api::{AnyCommand, Session};
 
-use super::{project_dir, reader_dir};
-
-/// The arguments of `ew route`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct RouteArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The page by its folio label (`--page`); `None`: every drawn page but the panel-layout pages.
-    pub page: Option<String>,
-    /// The connections and representations to route (`--selection`, IDs joined by `,`); empty: the pages' wires that
-    /// are unrouted, broken or routed by the program.
-    pub selection: Vec<String>,
-    /// Arrange and route instead of Route (`--arrange`).
-    pub arrange: bool,
-    /// Route and print, but save nothing (`--dry-run`).
-    pub dry_run: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
+use super::{RouteArgs, project_dir, reader_dir};
 
 /// The reason's key in the JSON result and its sentence in the text.
 fn reason(why: Reason, wire: &str) -> (&'static str, String) {

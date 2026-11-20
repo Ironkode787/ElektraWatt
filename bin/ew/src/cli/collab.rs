@@ -10,16 +10,7 @@ use std::path::{Path, PathBuf};
 
 use ew_api::git::{self, ConfigScope, GitExe};
 
-/// The arguments of `ew git setup`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct GitSetupArgs {
-    /// Write the user's global configuration instead of the repository's.
-    pub global: bool,
-    /// Install the `post-merge` hook.
-    pub hooks: bool,
-    /// The consent, without the question on a terminal.
-    pub yes: bool,
-}
+use super::GitSetupArgs;
 
 /// The most folder levels below the worktree's root that `ew git setup` looks for project folders in.
 const PROJECT_DEPTH: usize = 4;

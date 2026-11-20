@@ -4,24 +4,10 @@
 //! `ew merge resolve <project> --take ours|theirs [--kind <k>] [--field <path>]`: the conflict records a merge left,
 //! resolved in one transaction of `merge.resolve` and saved.
 
-use std::path::PathBuf;
-
 use ew_api::{Conflict, ConflictBody};
 
-/// The arguments of `ew merge resolve`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct MergeResolveArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// Take theirs (`--take theirs`), else ours.
-    pub theirs: bool,
-    /// Only the conflicts of this kind: a record kind (`connection`) or `file`.
-    pub kind: Option<String>,
-    /// Only the record-level conflicts whose members include this dotted path (`overrides.colour`).
-    pub field: Option<String>,
-    /// Print the result as JSON (`ew.merge-resolve-result/1`).
-    pub json: bool,
-}
+use super::MergeResolveArgs;
+use super::tree::TakeArg;
 
 /// Whether `conflict` is one `a` selects: its `kind` (a target's kind, or `file`) is `--kind`, and one of its members
 /// is `--field`, or lies below it or above it (`overrides` and `overrides.colour` select each other).
@@ -68,7 +54,10 @@ pub(super) fn run_merge_resolve(a: &MergeResolveArgs) -> i32 {
         Ok(s) => s,
         Err(code) => return code,
     };
-    let take = if a.theirs { "theirs" } else { "ours" };
+    let take = match a.take {
+        TakeArg::Theirs => "theirs",
+        TakeArg::Ours => "ours",
+    };
     let choices: Vec<serde_json::Value> = session
         .query()
         .table::<Conflict>()

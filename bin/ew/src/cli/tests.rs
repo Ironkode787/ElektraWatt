@@ -444,7 +444,7 @@ fn the_grammar_of_values_repeats_and_the_option_end() {
     let Ok(Command::Fmt(f)) = p(&["fmt", "--", "--check"]) else {
         panic!("`--` ends the options");
     };
-    assert_eq!((f.project, f.check), (Some(PathBuf::from("--check")), false));
+    assert_eq!((f.project.0, f.check), (Some(PathBuf::from("--check")), false));
     let Ok(Command::Query(q)) = p(&["query", "device_tag", "-X1031:5", "--json"]) else {
         panic!("a key starting with `-`");
     };
@@ -1387,8 +1387,9 @@ fn render_and_png_forms() {
     assert_eq!(
         p(&["render", "proj", "--page", "103", "--png"]),
         Ok(Command::Render(RenderArgs {
-            project: Some(PathBuf::from("proj")),
+            project: ProjectArg(Some(PathBuf::from("proj"))),
             page: "103".to_owned(),
+            png: true,
             dpi: 150,
             out: None,
             json: false,
@@ -1491,14 +1492,14 @@ fn verify_derived_forms() {
     assert_eq!(
         p(&["verify-derived"]),
         Ok(Command::VerifyDerived(VerifyArgs {
-            project: None,
+            project: ProjectArg(None),
             json: false
         }))
     );
     assert_eq!(
         p(&["verify-derived", "proj"]),
         Ok(Command::VerifyDerived(VerifyArgs {
-            project: Some(PathBuf::from("proj")),
+            project: ProjectArg(Some(PathBuf::from("proj"))),
             json: false,
         }))
     );
@@ -1510,24 +1511,24 @@ fn verify_derived_forms() {
 fn layout_forms() {
     assert_eq!(
         p(&["layout"]),
-        Ok(Command::Layout(layout::LayoutArgs {
-            project: None,
+        Ok(Command::Layout(LayoutArgs {
+            project: ProjectArg(None),
             page: None,
             json: false,
         }))
     );
     assert_eq!(
         p(&["layout", "proj", "--page", "101", "--json"]),
-        Ok(Command::Layout(layout::LayoutArgs {
-            project: Some(PathBuf::from("proj")),
+        Ok(Command::Layout(LayoutArgs {
+            project: ProjectArg(Some(PathBuf::from("proj"))),
             page: Some("101".to_owned()),
             json: true,
         }))
     );
     assert_eq!(
         p(&["layout", "--project", "proj", "--page", "-1"]),
-        Ok(Command::Layout(layout::LayoutArgs {
-            project: Some(PathBuf::from("proj")),
+        Ok(Command::Layout(LayoutArgs {
+            project: ProjectArg(Some(PathBuf::from("proj"))),
             page: Some("-1".to_owned()),
             json: false,
         }))

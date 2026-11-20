@@ -134,14 +134,14 @@ mod tests {
         assert_eq!(
             parse(&["project", "assets", "purge"]),
             Ok(Command::AssetsPurge(AssetsPurgeArgs {
-                project: None,
+                project: crate::cli::ProjectArg(None),
                 preview: false,
             }))
         );
         assert_eq!(
             parse(&["project", "assets", "purge", "p.ew", "--preview"]),
             Ok(Command::AssetsPurge(AssetsPurgeArgs {
-                project: Some(PathBuf::from("p.ew")),
+                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 preview: true,
             }))
         );
@@ -190,7 +190,7 @@ mod tests {
     /// Runs the subcommand on `dir` with `terminal` and the typed `answer`; the exit code and what it printed.
     fn purge(dir: &Path, preview: bool, terminal: bool, answer: &str) -> (i32, String) {
         let args = AssetsPurgeArgs {
-            project: Some(dir.to_path_buf()),
+            project: crate::cli::ProjectArg(Some(dir.to_path_buf())),
             preview,
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());

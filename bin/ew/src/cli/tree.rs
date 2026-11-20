@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in
-//! its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs.
+//! its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs. A
+//! subcommand's `*Args` is what its command takes as parsed; a `*Cli` is lowered to the `*Args` of `cli.rs` where the
+//! line needs converting (a positional read by the count, `--json` as `--format json`, a platform default). Some
+//! `*Args` live beside their command (`dxf.rs`, `eplan.rs`, `symbol.rs`, the imports of `cli.rs`). The exit codes and
+//! results of each path are the CLI table, `catalogue.rs`.
 //!
 //! The grammar (doc 17 §3.1): a valued flag takes the next word as its value even when it starts with
 //! `-`; a second `--project` is an error, `--company` and `lib search --kind` accumulate, every other flag is
@@ -13,27 +17,20 @@
 use std::path::PathBuf;
 
 use clap::error::ErrorKind;
-use clap::{ArgGroup, Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Args, CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use ew_api::BomMode;
 use ew_api::checks::CheckMode;
 use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
-use super::collab::GitSetupArgs;
-use super::diff::DiffArgs;
-use super::layout::LayoutArgs;
 use super::merge_driver::MergeDriverArgs;
-use super::merge_resolve::MergeResolveArgs;
 use super::query::QueryArgs;
-use super::route::RouteArgs;
 use super::{
-    ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
-    ExportKind, ExportPagesArgs, ExportTableArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs,
-    ImportQetArgs, ImportTableArgs, InstrumentListArgs, LibAction, LibArgs, PageFormat, PlcExportArgs,
-    PlcImportArgs, PlcStatusArgs, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs,
-    RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, UpdateCopiesArgs,
-    UpgradeArgs, VerifyArgs, VerifyMigrationArgs, XLSX_NEEDS_OUT,
+    ApplyArgs, CheckArgs, CheckFormat, Command, ExportArgs, ExportEwzArgs, ExportKind, ExportPagesArgs,
+    ExportTableArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
+    PlcExportArgs, PlcImportArgs, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RevisionAction,
+    RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -95,7 +92,7 @@ enum Top {
     /// go into the sibling folder `<dir>.tmp-ewz` first, are synced and read back, and that folder is then renamed to
     /// `<dir>`, so `<dir>` never holds a part of a project and a failure leaves neither folder. Exit 0 when extracted, 2
     /// on everything else (usage, an unreadable or refused archive, an existing folder, write errors).
-    Extract(ExtractCli),
+    Extract(ExtractArgs),
     /// Print the pages through the OS, or write the print set as a PDF.
     ///
     /// Builds the print set of the pages (`--pages` folio labels and ranges, or `--sections` section numbers, a
@@ -115,7 +112,7 @@ enum Top {
     /// `render --page <folio> --png` renders one page to `--out` (default: `<folio>.png` in the current directory,
     /// never stdout) on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
     /// resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
-    Render(RenderCli),
+    Render(RenderArgs),
     /// Replay a command log on the project and save.
     ///
     /// Replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
@@ -150,7 +147,7 @@ enum Top {
     /// since the repair opened it), a backup name holding another file, a folder that cannot be written. Exit 0 when
     /// the project opens editable afterwards or there was nothing to repair, 2 otherwise. `--repair` and `--check`
     /// exclude each other.
-    Fmt(FmtCli),
+    Fmt(FmtArgs),
     /// Summarise, replay or discard the journal a crashed session left.
     ///
     /// Works on the journals that crashed sessions left (doc 05 section 8.3), one at a time, the latest change
@@ -176,7 +173,7 @@ enum Top {
     /// session holds, one that opens read-only and a crashed session's journal are refused (exit 2). Exit 0 when
     /// upgraded and saved, or nothing is to be upgraded; 1 when `--check` finds an upgrade needed, or it is not
     /// confirmed; 2 on usage, terminal, lock, open, backup and save errors.
-    Upgrade(UpgradeCli),
+    Upgrade(UpgradeArgs),
     /// Update the project's damaged library copies from their libraries.
     ///
     /// A project whose library copy (`lib/<kind>/<id>.json`) is damaged opens read-only. `update-copies` reads each
@@ -189,7 +186,7 @@ enum Top {
     /// integrity findings. Exit 0 when every damaged copy was updated and the
     /// project opens for editing, or it has no damaged copy; 1 when refused or a copy stays damaged; 2 on usage, open
     /// and save errors.
-    UpdateCopies(UpdateCopiesCli),
+    UpdateCopies(UpdateCopiesArgs),
     /// The project's check schemes and asset files (human-only).
     #[command(subcommand)]
     Project(ProjectCli),
@@ -206,7 +203,7 @@ enum Top {
     ///
     /// Opens a project with the memo oracle on, recomputes every derived value cold and compares it with the
     /// memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
-    VerifyDerived(ProjectJsonCli),
+    VerifyDerived(VerifyArgs),
     /// Compare an imported project with the PDF of the drawing it came from.
     ///
     /// Draws every page of the project at 150 dpi, reads the matching page of `--reference` and lists where they
@@ -216,7 +213,7 @@ enum Top {
     /// deltas the project is expected to have, an array of `{"kind", "page", "text", "cell"}` (the last three
     /// optional); the check expects exactly those. Exit 0 when only the expected deltas are found, 1 with other
     /// deviations or with an expected delta not found, 2 on usage, open and read errors.
-    VerifyMigration(VerifyMigrationCli),
+    VerifyMigration(VerifyMigrationArgs),
     /// Answer one public query of the project.
     ///
     /// `query <name> <key>` answers one public query of the project (`ew queries` lists them with their keys): the
@@ -243,7 +240,7 @@ enum Top {
     /// texts crossed by a wire or lying on a text or a symbol), each item named by its wires, symbols and texts. A wire
     /// without a route counts as unrouted only: its dashed line is no wire. `--json` prints `ew.layout-result/1`. Exit
     /// 0 when measured, 2 on usage, open errors and a folio that names no drawn page.
-    Layout(LayoutCli),
+    Layout(LayoutArgs),
     /// Route the wires of the pages.
     ///
     /// Runs the window's Route on the page `--page <folio>` names, else on every drawn page but the panel-layout
@@ -255,7 +252,7 @@ enum Top {
     /// side those pins face, within the rules of the page's kind, and then routed; symbols kept in place stay.
     /// `--dry-run` prints the plan and saves nothing. `--json` prints `ew.route-result/1`. Exit 0 when no wire is left
     /// without a way, 1 when one is, 2 on usage, open, an unknown folio, a refused command and save errors.
-    Route(RouteCli),
+    Route(RouteArgs),
     /// List, search, reindex, create and import into libraries.
     ///
     /// Works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
@@ -307,38 +304,38 @@ enum Top {
     /// configures. Exit 0 when the sides are equal, or differ without `--exit-code`; 1 when they differ with
     /// `--exit-code`; 2 on usage and open errors.
     #[command(override_usage = "ew diff [OPTIONS] <from> <to>\n       ew diff --textconv <file>")]
-    Diff(DiffCli),
+    Diff(DiffArgs),
     /// Git integration.
     #[command(subcommand)]
     Git(GitCli),
 }
 
 /// `ew diff`.
-#[derive(Args, Debug)]
-struct DiffCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct DiffArgs {
     /// The first side: a directory, an `.ewz`, an `.ewarchive`, `git:<rev>` or `rev:<label>`.
     #[arg(
         value_name = "from",
         required_unless_present = "textconv",
         conflicts_with = "textconv"
     )]
-    from: Option<String>,
+    pub from: Option<String>,
     /// The second side.
     #[arg(
         value_name = "to",
         required_unless_present = "textconv",
         conflicts_with = "textconv"
     )]
-    to: Option<String>,
+    pub to: Option<String>,
     /// Print one project file as text lines (git's textconv) instead.
     #[arg(long, value_name = "file", allow_hyphen_values = true)]
-    textconv: Option<PathBuf>,
+    pub textconv: Option<PathBuf>,
     /// Exit 1 when the sides differ.
     #[arg(long, overrides_with = "exit_code", conflicts_with = "textconv")]
-    exit_code: bool,
+    pub exit_code: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json", conflicts_with = "textconv")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew git`.
@@ -356,21 +353,21 @@ enum GitCli {
     /// it again after adding a project; it changes nothing that is up to date. Exit 0 when configured, 2 on everything
     /// else (no terminal and no `--yes`, a declined question, not in a git worktree, git missing or refusing, a foreign
     /// hook, write errors); nothing is written before the consent.
-    Setup(GitSetupCli),
+    Setup(GitSetupArgs),
 }
 
 /// `ew git setup`.
-#[derive(Args, Debug)]
-struct GitSetupCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct GitSetupArgs {
     /// Write the user's global git configuration instead of the repository's.
     #[arg(long, overrides_with = "global")]
-    global: bool,
+    pub global: bool,
     /// Install the `post-merge` hook that runs `ew check --integrity`.
     #[arg(long, overrides_with = "hooks")]
-    hooks: bool,
+    pub hooks: bool,
     /// Consent without the question.
     #[arg(long, overrides_with = "yes")]
-    yes: bool,
+    pub yes: bool,
 }
 
 /// `ew import`.
@@ -430,7 +427,7 @@ enum Import {
     /// (one undo step) and saves; without it nothing changes. `--preset` names a CSV's preset (`rfc4180` keeps a
     /// leading apostrophe). Exit 0 with the preview (and with `--apply` once saved), 2 on usage, open, read and save
     /// errors and a file of another project.
-    Table(ImportTableCli),
+    Table(ImportTableArgs),
     /// Import a DXF drawing as a graphic page, an underlay, symbol drafts or a part outline.
     ///
     /// Reads an ASCII or binary DXF (R12 to 2018). `--as page` (the default) adds the drawing as a new graphic page
@@ -487,7 +484,7 @@ enum Import {
     /// device with the tag as its process tag and the first spare channel of its kind, of the preferred station
     /// first; a row without one is an open item (EW-PRC-002). Prints every row's channel; `--apply` commits them as
     /// one undo step and saves. Exit 0 with the rows, 2 on usage, open, read and save errors.
-    InstrumentList(InstrumentListCli),
+    InstrumentList(InstrumentListArgs),
     /// Import the parts of an EPLAN EDZ.
     ///
     /// Reads an EDZ (7-Zip or ZIP, told by its content): the `*.part.xml` members into parts, with their
@@ -522,22 +519,14 @@ enum Import {
 }
 
 /// `ew import table`.
-#[derive(Args, Debug)]
-struct ImportTableCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct ImportTableArgs {
     /// The round-trip file: an XLSX workbook or a CSV.
     #[arg(value_name = "file", value_parser = path_word)]
-    file: PathBuf,
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    pub file: PathBuf,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The table's key (`nav:strips/<uuid>`, `kind:io_list`): needed for a CSV.
     #[arg(
         long,
@@ -545,35 +534,27 @@ struct ImportTableCli {
         allow_hyphen_values = true,
         overrides_with = "table"
     )]
-    table: Option<String>,
+    pub table: Option<String>,
     /// The CSV's preset: excel-nl, excel-en or rfc4180 (default: from its separator).
     #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = import_preset)]
-    preset: Option<Preset>,
+    pub preset: Option<Preset>,
     /// Take the file's value of a cell changed in both.
     #[arg(long, overrides_with = "take_file")]
-    take_file: bool,
+    pub take_file: bool,
     /// Commit the applied cells and save.
     #[arg(long, overrides_with = "apply")]
-    apply: bool,
+    pub apply: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew check`.
 #[derive(Args, Debug)]
 struct CheckCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The check scheme (default: the project's scheme for the mode, else `pre-delivery`).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "scheme", value_parser = scheme_name)]
     scheme: Option<String>,
@@ -817,17 +798,9 @@ enum ExportCli {
 /// `ew export plc-aml`, `plc-xlsx` and `plcopen`.
 #[derive(Args, Debug)]
 struct PlcExportCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
     config: Option<String>,
@@ -854,17 +827,9 @@ struct PlcImportCli {
     /// The exchange file: an AML file or a tag workbook.
     #[arg(value_name = "file", value_parser = path_word)]
     file: PathBuf,
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
     config: Option<String>,
@@ -892,28 +857,20 @@ struct PlcImportCli {
 }
 
 /// `ew import instrument-list`.
-#[derive(Args, Debug)]
-struct InstrumentListCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct InstrumentListArgs {
     /// The instrument list: a CSV or a workbook.
     #[arg(value_name = "file", value_parser = path_word)]
-    file: PathBuf,
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    pub file: PathBuf,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
-    config: Option<String>,
+    pub config: Option<String>,
     /// Commit the rows and save.
     #[arg(long, overrides_with = "apply")]
-    apply: bool,
+    pub apply: bool,
 }
 
 /// `ew plc`.
@@ -924,24 +881,24 @@ enum PlcCli {
     /// Prints the configuration project's last exchange (direction, format, date), every object of the project that
     /// differs from it (the drift EW-PLC-016 reports) and, with `<file>`, whether that file is the one last exchanged.
     /// The project opens as a reader. Exit 0 with the status, 2 on usage and open errors.
-    Status(PlcStatusCli),
+    Status(PlcStatusArgs),
 }
 
 /// `ew plc status`.
-#[derive(Args, Debug)]
-struct PlcStatusCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct PlcStatusArgs {
     /// An exchange file to compare with the last exchange.
     #[arg(value_name = "file", value_parser = path_word)]
-    file: Option<PathBuf>,
+    pub file: Option<PathBuf>,
     /// The project directory.
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    project: Option<PathBuf>,
+    pub project: Option<PathBuf>,
     /// The configuration project by name (default: the project's only one).
     #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
-    config: Option<String>,
+    pub config: Option<String>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// An `export plc-aml --apc`.
@@ -972,7 +929,7 @@ fn plc_export(word: &str, a: PlcExportCli) -> Result<Command, clap::Error> {
     };
     Ok(Command::PlcExport(PlcExportArgs {
         format,
-        project: project(a.project, a.project_dir),
+        project: a.project.0,
         config: a.config,
         stations: a.station,
         lang: a.lang,
@@ -985,7 +942,7 @@ fn plc_import(schema: &'static str, a: PlcImportCli) -> Command {
     Command::PlcImport(PlcImportArgs {
         schema,
         file: a.file,
-        project: project(a.project, a.project_dir),
+        project: a.project.0,
         config: a.config,
         lang: a.lang,
         complete: a.complete,
@@ -997,17 +954,9 @@ fn plc_import(schema: &'static str, a: PlcImportCli) -> Command {
 /// `ew export ewz`.
 #[derive(Args, Debug)]
 struct EwzCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The .ewz file to write (required).
     #[arg(
         long,
@@ -1022,33 +971,25 @@ struct EwzCli {
 }
 
 /// `ew extract`.
-#[derive(Args, Debug)]
-struct ExtractCli {
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct ExtractArgs {
     /// The .ewz file.
     #[arg(value_name = "file.ewz")]
-    file: PathBuf,
+    pub file: PathBuf,
     /// The new project folder (default: `<name>.ew` beside the archive); it must not exist.
     #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "into")]
-    into: Option<PathBuf>,
+    pub into: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew export cables|wires`.
 #[derive(Args, Debug)]
 struct RowsCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The report block, by its ID or its first folio.
     #[arg(
         long,
@@ -1074,17 +1015,9 @@ struct RowsCli {
 /// `ew export bom`.
 #[derive(Args, Debug)]
 struct BomCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The report block, by its ID or its first folio.
     #[arg(
         long,
@@ -1129,17 +1062,9 @@ enum BomArg {
 /// `ew export terminals`.
 #[derive(Args, Debug)]
 struct TerminalsCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The report block, by its ID or its first folio (default: every terminal diagram block).
     #[arg(
         long,
@@ -1175,17 +1100,9 @@ struct TerminalsCli {
 // The group allows both so that the lowering refuses the pair in its own words.
 #[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true).multiple(true)))]
 struct ReportCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The report block, by its ID or its first folio.
     #[arg(
         long,
@@ -1228,17 +1145,9 @@ struct TableCli {
     /// The navigator.
     #[arg(value_name = "navigator", value_parser = word)]
     navigator: String,
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// One strip of `export table strips`, by its tag (`-X1031`).
     #[arg(
         long,
@@ -1349,17 +1258,9 @@ struct DxfCli {
 /// `ew export pdf|svg`.
 #[derive(Args, Debug)]
 struct PagesCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The PDF file, or the directory of the SVG files.
     #[arg(long, value_name = "path", allow_hyphen_values = true, overrides_with = "out")]
     out: PathBuf,
@@ -1390,17 +1291,9 @@ struct PagesCli {
 /// `ew print`.
 #[derive(Args, Debug)]
 struct PrintCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
     #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
     pages: Option<PageSelection>,
@@ -1457,17 +1350,9 @@ enum ViaArg {
 /// `ew export png`.
 #[derive(Args, Debug)]
 struct PngCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The directory of the PNG files.
     #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
     out: PathBuf,
@@ -1499,19 +1384,11 @@ struct PngCli {
 }
 
 /// `ew render`.
-#[derive(Args, Debug)]
-struct RenderCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct RenderArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The page, by its folio label.
     #[arg(
         long,
@@ -1519,13 +1396,13 @@ struct RenderCli {
         allow_hyphen_values = true,
         overrides_with = "page"
     )]
-    page: String,
+    pub page: String,
     /// The page format (PNG is the only one).
     #[arg(long, overrides_with = "png", required = true)]
-    png: bool,
+    pub png: bool,
     /// The resolution (72 to 600).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
-    dpi: u32,
+    pub dpi: u32,
     /// The PNG file (default: `<folio>.png` in the current directory).
     #[arg(
         long,
@@ -1533,10 +1410,10 @@ struct RenderCli {
         allow_hyphen_values = true,
         overrides_with = "out"
     )]
-    out: Option<PathBuf>,
+    pub out: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew apply`.
@@ -1563,85 +1440,53 @@ struct ApplyCli {
 }
 
 /// `ew fmt`.
-#[derive(Args, Debug)]
-struct FmtCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct FmtArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// List the files a format would rewrite and write nothing.
     #[arg(long, overrides_with = "check")]
-    check: bool,
+    pub check: bool,
     /// Discard the lines that are not JSON or not UTF-8, after an `.ewz` backup beside the project folder.
     #[arg(long, overrides_with = "repair", conflicts_with = "check")]
-    repair: bool,
+    pub repair: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew upgrade`.
-#[derive(Args, Debug)]
-struct UpgradeCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct UpgradeArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// Say whether the project needs an upgrade and write nothing.
     #[arg(long, overrides_with = "check")]
-    check: bool,
+    pub check: bool,
     /// Confirm the upgrade without typing `upgrade` (the backup keeps the project as it was).
     #[arg(long, overrides_with = "yes", conflicts_with = "check")]
-    yes: bool,
+    pub yes: bool,
 }
 
 /// `ew update-copies`.
-#[derive(Args, Debug)]
-struct UpdateCopiesCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct UpdateCopiesArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// A company library: a library directory or a directory of `*.ewlib` libraries (repeatable).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
-    company: Vec<PathBuf>,
+    pub company: Vec<PathBuf>,
 }
 
 /// `ew recover`.
 #[derive(Args, Debug)]
 struct RecoverCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// Replay the journal's transactions on the saved project and save.
     #[arg(long, overrides_with = "replay", conflicts_with = "discard")]
     replay: bool,
@@ -1680,24 +1525,16 @@ enum ChecksCli {
     /// the release one) on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2
     /// (HumanOnly: needs an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for
     /// a scheme that does not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
-    Set(ChecksSetCli),
+    Set(ChecksSetArgs),
 }
 
 /// `ew project checks set`.
-#[derive(Args, Debug)]
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
 #[command(group(ArgGroup::new("schemes").args(["active", "release"]).required(true).multiple(true)))]
-struct ChecksSetCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+pub struct ChecksSetArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The online scheme.
     #[arg(
         long,
@@ -1705,7 +1542,7 @@ struct ChecksSetCli {
         allow_hyphen_values = true,
         overrides_with = "active"
     )]
-    active: Option<String>,
+    pub active: Option<String>,
     /// The scheme of the release gate and `ew check`.
     #[arg(
         long,
@@ -1713,7 +1550,7 @@ struct ChecksSetCli {
         allow_hyphen_values = true,
         overrides_with = "release"
     )]
-    release: Option<String>,
+    pub release: Option<String>,
 }
 
 /// `ew project assets`.
@@ -1730,26 +1567,18 @@ enum AssetsCli {
     /// changes of a crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when
     /// purged (or nothing to purge, or previewed), 1 when the purge is refused or not confirmed, 2 on usage,
     /// terminal, open and save errors.
-    Purge(AssetsPurgeCli),
+    Purge(AssetsPurgeArgs),
 }
 
 /// `ew project assets purge`.
-#[derive(Args, Debug)]
-struct AssetsPurgeCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct AssetsPurgeArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// List the files that would go and change nothing.
     #[arg(long, overrides_with = "preview")]
-    preview: bool,
+    pub preview: bool,
 }
 
 /// `ew revision`.
@@ -1786,17 +1615,9 @@ enum RevisionCli {
 /// `ew revision approve`.
 #[derive(Args, Debug)]
 struct ApproveCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The checker's party role.
     #[arg(
         long = "as",
@@ -1813,17 +1634,9 @@ struct ReleaseCli {
     /// The open revision's label.
     #[arg(value_name = "label")]
     label: String,
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The archive root (default: `<name>.ew-archive` beside the project directory).
     #[arg(
         long,
@@ -1862,19 +1675,11 @@ struct WithdrawCli {
 }
 
 /// `ew verify-migration`.
-#[derive(Args, Debug)]
-struct VerifyMigrationCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct VerifyMigrationArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The PDF of the drawing the project was imported from.
     #[arg(
         long,
@@ -1882,7 +1687,7 @@ struct VerifyMigrationCli {
         allow_hyphen_values = true,
         overrides_with = "reference"
     )]
-    reference: PathBuf,
+    pub reference: PathBuf,
     /// The JSON file of the deltas the project is expected to have.
     #[arg(
         long,
@@ -1890,29 +1695,21 @@ struct VerifyMigrationCli {
         allow_hyphen_values = true,
         overrides_with = "expected"
     )]
-    expected: Option<PathBuf>,
+    pub expected: Option<PathBuf>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
-/// A subcommand that takes a project and `--json` only.
-#[derive(Args, Debug)]
-struct ProjectJsonCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+/// `ew verify-derived`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct VerifyArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew query`.
@@ -1939,19 +1736,11 @@ struct QueryCli {
 }
 
 /// `ew layout`.
-#[derive(Args, Debug)]
-struct LayoutCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct LayoutArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The page, by its folio label (default: every drawn page but the panel-layout pages).
     #[arg(
         long,
@@ -1959,26 +1748,18 @@ struct LayoutCli {
         allow_hyphen_values = true,
         overrides_with = "page"
     )]
-    page: Option<String>,
+    pub page: Option<String>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew route`.
-#[derive(Args, Debug)]
-struct RouteCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct RouteArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The page, by its folio label (default: every drawn page but the panel-layout pages).
     #[arg(
         long,
@@ -1986,7 +1767,7 @@ struct RouteCli {
         allow_hyphen_values = true,
         overrides_with = "page"
     )]
-    page: Option<String>,
+    pub page: Option<String>,
     /// The connections and representations to route, by their IDs joined by `,`.
     #[arg(
         long,
@@ -1995,16 +1776,16 @@ struct RouteCli {
         overrides_with = "selection",
         value_delimiter = ','
     )]
-    selection: Vec<String>,
+    pub selection: Vec<String>,
     /// Arrange and route: line the symbols up, then route their wires.
     #[arg(long, overrides_with = "arrange")]
-    arrange: bool,
+    pub arrange: bool,
     /// Print the plan and save nothing.
     #[arg(long, overrides_with = "dry_run")]
-    dry_run: bool,
+    pub dry_run: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// A subcommand that takes `--json` only.
@@ -2037,40 +1818,32 @@ enum MergeCli {
     /// session, or one that opens read-only, is refused (exit 2). Exit 0 when resolved and saved, 1 when
     /// `merge.resolve` refuses (theirs does not make a valid record, a file's lines do not read), 2 on usage (no
     /// conflict record selected), open, lock and save errors.
-    Resolve(MergeResolveCli),
+    Resolve(MergeResolveArgs),
 }
 
 /// `ew merge resolve`.
-#[derive(Args, Debug)]
-struct MergeResolveCli {
-    /// The project directory.
-    #[arg(value_name = "project-dir")]
-    project_dir: Option<PathBuf>,
-    /// The project directory (instead of the positional one).
-    #[arg(
-        long,
-        value_name = "dir",
-        allow_hyphen_values = true,
-        conflicts_with = "project_dir"
-    )]
-    project: Option<PathBuf>,
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub struct MergeResolveArgs {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
     /// The side to take.
     #[arg(long, value_enum, value_name = "side")]
-    take: TakeArg,
+    pub take: TakeArg,
     /// Only the conflicts on records of this kind (`connection`), or `file`.
     #[arg(long, value_name = "kind")]
-    kind: Option<String>,
+    pub kind: Option<String>,
     /// Only the conflicts on this member (`overrides.colour`).
     #[arg(long, value_name = "path")]
-    field: Option<String>,
+    pub field: Option<String>,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
-    json: bool,
+    pub json: bool,
 }
 
 /// `ew merge resolve --take`.
 #[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
-enum TakeArg {
+pub enum TakeArg {
     /// Ours: the record as the merge left it.
     Ours,
     /// Theirs: the other side.
@@ -2255,6 +2028,57 @@ struct LibImportPartsCli {
     /// Take over a stale library lock.
     #[arg(long, overrides_with = "take_over")]
     take_over: bool,
+}
+
+/// The project of a subcommand: the positional directory or `--project <dir>` (the relations exclude both); `None`:
+/// the command finds it from the current directory. It reads as the `Option<PathBuf>` it holds.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ProjectArg(pub Option<PathBuf>);
+
+impl std::ops::Deref for ProjectArg {
+    type Target = Option<PathBuf>;
+
+    fn deref(&self) -> &Option<PathBuf> {
+        &self.0
+    }
+}
+
+/// The two ways to give a [`ProjectArg`], as the line declares them.
+#[derive(Args, Debug)]
+struct ProjectFlags {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+}
+
+impl FromArgMatches for ProjectArg {
+    fn from_arg_matches(matches: &clap::ArgMatches) -> Result<ProjectArg, clap::Error> {
+        let flags = ProjectFlags::from_arg_matches(matches)?;
+        Ok(ProjectArg(flags.project.or(flags.project_dir)))
+    }
+
+    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches) -> Result<(), clap::Error> {
+        *self = ProjectArg::from_arg_matches(matches)?;
+        Ok(())
+    }
+}
+
+impl Args for ProjectArg {
+    fn augment_args(cmd: clap::Command) -> clap::Command {
+        ProjectFlags::augment_args(cmd)
+    }
+
+    fn augment_args_for_update(cmd: clap::Command) -> clap::Command {
+        ProjectFlags::augment_args_for_update(cmd)
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2519,11 +2343,6 @@ fn not_built(path: &[&str], lang: bool, omit_personal_data: bool) -> Result<(), 
     }
 }
 
-/// The project of a line: `--project` or the positional directory (the relations exclude both).
-fn project(flag: Option<PathBuf>, positional: Option<PathBuf>) -> Option<PathBuf> {
-    flag.or(positional)
-}
-
 /// The project of a line whose positionals are resolved by their count (`apply`, `query`, `sql`, `sql dump`): the
 /// relations would name the positional by its other meaning, so both together is refused here, in the words clap
 /// uses for the other subcommands.
@@ -2541,8 +2360,8 @@ fn counted_project(
     }
 }
 
-// Every `*Cli` is destructured whole, with no `..`: a field the lowering forgets is E0027, and a binding it does not
-// use is `unused_variables`.
+// A subcommand whose command takes its `*Args` as parsed passes them on. Every `*Cli` is destructured whole, with no
+// `..`: a field the lowering forgets is E0027, and a binding it does not use is `unused_variables`.
 impl Cli {
     /// The command a parsed line names.
     ///
@@ -2568,27 +2387,9 @@ impl Cli {
             Top::Import(Import::Edz(a)) => Command::ImportEdz(a),
             Top::Import(Import::PartsXml(a)) => Command::ImportPartsXml(a),
             Top::Import(Import::EplanReport(a)) => Command::ImportEplanReport(a),
-            Top::Import(Import::Table(ImportTableCli {
-                file,
-                project_dir,
-                project: flag,
-                table,
-                preset,
-                take_file,
-                apply,
-                json,
-            })) => Command::ImportTable(ImportTableArgs {
-                file,
-                project: project(flag, project_dir),
-                table,
-                preset,
-                take_file,
-                apply,
-                json,
-            }),
+            Top::Import(Import::Table(a)) => Command::ImportTable(a),
             Top::Check(CheckCli {
-                project_dir,
-                project: flag,
+                project,
                 scheme,
                 mode,
                 format,
@@ -2605,7 +2406,7 @@ impl Cli {
                 });
                 json_alias(&["check"], json, format_name)?;
                 Command::Check(CheckArgs {
-                    project: project(flag, project_dir),
+                    project: project.0,
                     scheme,
                     mode: match mode {
                         ModeArg::Release => CheckMode::Release,
@@ -2624,26 +2425,13 @@ impl Cli {
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
-            Top::Plc(PlcCli::Status(a)) => Command::PlcStatus(PlcStatusArgs {
-                file: a.file,
-                project: a.project,
-                config: a.config,
-                json: a.json,
-            }),
+            Top::Plc(PlcCli::Status(a)) => Command::PlcStatus(a),
             Top::Import(Import::PlcAml(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_AML, a),
             Top::Import(Import::PlcXlsx(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_XLSX, a),
-            Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(InstrumentListArgs {
-                file: a.file,
-                project: project(a.project, a.project_dir),
-                config: a.config,
-                apply: a.apply,
-            }),
-            Top::Extract(ExtractCli { file, into, json }) => {
-                Command::Extract(ExtractArgs { file, into, json })
-            }
+            Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(a),
+            Top::Extract(a) => Command::Extract(a),
             Top::Print(PrintCli {
-                project_dir,
-                project: flag,
+                project,
                 pages,
                 sections,
                 paper,
@@ -2673,7 +2461,7 @@ impl Cli {
                     return Err(usage_error(&["print"], ew_print::PrintError::PrinterWithViewer));
                 }
                 Command::Print(PrintArgs {
-                    project: project(flag, project_dir),
+                    project: project.0,
                     pages,
                     paper: paper.unwrap_or_default(),
                     fit,
@@ -2684,22 +2472,7 @@ impl Cli {
                     json,
                 })
             }
-            Top::Render(RenderCli {
-                project_dir,
-                project: flag,
-                page,
-                // `--png` is required: PNG is the only page format.
-                png: _required,
-                dpi,
-                out,
-                json,
-            }) => Command::Render(RenderArgs {
-                project: project(flag, project_dir),
-                page,
-                dpi,
-                out,
-                json,
-            }),
+            Top::Render(a) => Command::Render(a),
             Top::Apply(ApplyCli {
                 first,
                 second,
@@ -2720,21 +2493,9 @@ impl Cli {
                     json,
                 })
             }
-            Top::Fmt(FmtCli {
-                project_dir,
-                project: flag,
-                check,
-                repair,
-                json,
-            }) => Command::Fmt(FmtArgs {
-                project: project(flag, project_dir),
-                check,
-                repair,
-                json,
-            }),
+            Top::Fmt(a) => Command::Fmt(a),
             Top::Recover(RecoverCli {
-                project_dir,
-                project: flag,
+                project,
                 replay,
                 discard,
                 json,
@@ -2752,93 +2513,37 @@ impl Cli {
                     ));
                 }
                 Command::Recover(RecoverArgs {
-                    project: project(flag, project_dir),
+                    project: project.0,
                     action,
                     json,
                     yes,
                 })
             }
-            Top::Upgrade(UpgradeCli {
-                project_dir,
-                project: flag,
-                check,
-                yes,
-            }) => Command::Upgrade(UpgradeArgs {
-                project: project(flag, project_dir),
-                check,
-                yes,
-            }),
-            Top::UpdateCopies(UpdateCopiesCli {
-                project_dir,
-                project: flag,
-                company,
-            }) => Command::UpdateCopies(UpdateCopiesArgs {
-                project: project(flag, project_dir),
-                company,
-            }),
-            Top::Project(ProjectCli::Checks(ChecksCli::Set(ChecksSetCli {
-                project_dir,
-                project: flag,
-                active,
-                release,
-            }))) => Command::ChecksSet(ChecksSetArgs {
-                project: project(flag, project_dir),
-                active,
-                release,
-            }),
-            Top::Project(ProjectCli::Assets(AssetsCli::Purge(AssetsPurgeCli {
-                project_dir,
-                project: flag,
-                preview,
-            }))) => Command::AssetsPurge(AssetsPurgeArgs {
-                project: project(flag, project_dir),
-                preview,
-            }),
+            Top::Upgrade(a) => Command::Upgrade(a),
+            Top::UpdateCopies(a) => Command::UpdateCopies(a),
+            Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => Command::ChecksSet(a),
+            Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => Command::AssetsPurge(a),
             Top::Revision(r) => {
-                let (action, dir, flag) = match r {
-                    RevisionCli::Approve(ApproveCli {
-                        project_dir,
-                        project: flag,
-                        role,
-                    }) => (RevisionAction::Approve { role }, project_dir, flag),
+                let (action, project) = match r {
+                    RevisionCli::Approve(ApproveCli { project, role }) => {
+                        (RevisionAction::Approve { role }, project.0)
+                    }
                     RevisionCli::Release(ReleaseCli {
                         label,
-                        project_dir,
-                        project: flag,
+                        project,
                         archive_dir,
-                    }) => (RevisionAction::Release { label, archive_dir }, project_dir, flag),
+                    }) => (RevisionAction::Release { label, archive_dir }, project.0),
                     RevisionCli::Withdraw(WithdrawCli {
                         label,
                         project_dir,
                         reason,
                         project: flag,
-                    }) => (RevisionAction::Withdraw { label, reason }, project_dir, flag),
+                    }) => (RevisionAction::Withdraw { label, reason }, flag.or(project_dir)),
                 };
-                Command::Revision(RevisionArgs {
-                    action,
-                    project: project(flag, dir),
-                })
+                Command::Revision(RevisionArgs { action, project })
             }
-            Top::VerifyDerived(ProjectJsonCli {
-                project_dir,
-                project: flag,
-                json,
-            }) => Command::VerifyDerived(VerifyArgs {
-                project: project(flag, project_dir),
-                json,
-            }),
-            Top::VerifyMigration(VerifyMigrationCli {
-                project_dir,
-                project: flag,
-                reference,
-                expected,
-                json,
-            }) => Command::VerifyMigration(VerifyMigrationArgs {
-                project: project(flag, project_dir),
-                reference,
-                expected,
-                json,
-            }),
+            Top::VerifyDerived(a) => Command::VerifyDerived(a),
+            Top::VerifyMigration(a) => Command::VerifyMigration(a),
             Top::Query(QueryCli {
                 first,
                 second,
@@ -2860,32 +2565,8 @@ impl Cli {
                 })
             }
             Top::Queries(JsonCli { json }) => Command::Queries { json },
-            Top::Route(RouteCli {
-                project_dir,
-                project: flag,
-                page,
-                selection,
-                arrange,
-                dry_run,
-                json,
-            }) => Command::Route(RouteArgs {
-                project: project(flag, project_dir),
-                page,
-                selection,
-                arrange,
-                dry_run,
-                json,
-            }),
-            Top::Layout(LayoutCli {
-                project_dir,
-                project: flag,
-                page,
-                json,
-            }) => Command::Layout(LayoutArgs {
-                project: project(flag, project_dir),
-                page,
-                json,
-            }),
+            Top::Route(a) => Command::Route(a),
+            Top::Layout(a) => Command::Layout(a),
             Top::Lib(LibCli {
                 action,
                 company,
@@ -2949,20 +2630,7 @@ impl Cli {
             Top::Commands(JsonCli { json }) => Command::Commands { json },
             Top::Symbol(args) => Command::Symbol(args),
             Top::Schema(SchemaCli { name }) => Command::Schema(name),
-            Top::Merge(MergeCli::Resolve(MergeResolveCli {
-                project_dir,
-                project: flag,
-                take,
-                kind,
-                field,
-                json,
-            })) => Command::MergeResolve(MergeResolveArgs {
-                project: project(flag, project_dir),
-                theirs: take == TakeArg::Theirs,
-                kind,
-                field,
-                json,
-            }),
+            Top::Merge(MergeCli::Resolve(a)) => Command::MergeResolve(a),
             Top::MergeDriver(MergeDriverCli {
                 base,
                 ours,
@@ -2976,22 +2644,8 @@ impl Cli {
                 // `%O %A %B %L %P`, or the older `%O %A %B %P`: `%L` is unused.
                 path: path.unwrap_or(fourth).to_string_lossy().into_owned(),
             }),
-            Top::Diff(DiffCli {
-                from,
-                to,
-                textconv,
-                exit_code,
-                json,
-            }) => Command::Diff(DiffArgs {
-                from,
-                to,
-                textconv,
-                json,
-                exit_code,
-            }),
-            Top::Git(GitCli::Setup(GitSetupCli { global, hooks, yes })) => {
-                Command::GitSetup(GitSetupArgs { global, hooks, yes })
-            }
+            Top::Diff(a) => Command::Diff(a),
+            Top::Git(GitCli::Setup(a)) => Command::GitSetup(a),
         })
     }
 }
@@ -3075,11 +2729,11 @@ pub(super) const EWZ_NEEDS_OUT: &str = "`ew export ewz` writes a file: give `--o
 
 /// `ew export` and its subjects.
 fn export(e: ExportCli) -> Result<Command, clap::Error> {
-    let rows = |kind, block, flag, dir, out, json, format| {
+    let rows = |kind, block, project: ProjectArg, out, json, format| {
         Command::Export(ExportArgs {
             kind,
             block,
-            project: project(flag, dir),
+            project: project.0,
             out,
             json,
             format,
@@ -3087,8 +2741,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
     };
     Ok(match e {
         ExportCli::Cables(RowsCli {
-            project_dir,
-            project: flag,
+            project,
             block,
             format,
             csv,
@@ -3097,11 +2750,10 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
         }) => {
             csv_only("cables", format)?;
             let format = rows_format(&["export", "cables"], format, csv, out.as_ref())?;
-            rows(ExportKind::Cables, block, flag, project_dir, out, json, format)
+            rows(ExportKind::Cables, block, project, out, json, format)
         }
         ExportCli::Wires(RowsCli {
-            project_dir,
-            project: flag,
+            project,
             block,
             format,
             csv,
@@ -3110,11 +2762,10 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
         }) => {
             csv_only("wires", format)?;
             let format = rows_format(&["export", "wires"], format, csv, out.as_ref())?;
-            rows(ExportKind::Wires, block, flag, project_dir, out, json, format)
+            rows(ExportKind::Wires, block, project, out, json, format)
         }
         ExportCli::Bom(BomCli {
-            project_dir,
-            project: flag,
+            project,
             block,
             mode,
             format,
@@ -3128,11 +2779,10 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 BomArg::Parts => BomMode::Component,
                 BomArg::Assembly => BomMode::Assembly,
             };
-            rows(ExportKind::Bom(mode), block, flag, project_dir, out, json, format)
+            rows(ExportKind::Bom(mode), block, project, out, json, format)
         }
         ExportCli::Terminals(TerminalsCli {
-            project_dir,
-            project: flag,
+            project,
             block,
             strip,
             format,
@@ -3142,19 +2792,10 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
         }) => {
             csv_only("terminals", format)?;
             let format = rows_format(&["export", "terminals"], format, csv, out.as_ref())?;
-            rows(
-                ExportKind::Terminals(strip),
-                block,
-                flag,
-                project_dir,
-                out,
-                json,
-                format,
-            )
+            rows(ExportKind::Terminals(strip), block, project, out, json, format)
         }
         ExportCli::Report(ReportCli {
-            project_dir,
-            project: flag,
+            project,
             block,
             kind,
             format,
@@ -3183,27 +2824,21 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 None => ExportKind::Report { pdf },
             };
             let format = rows_format(&["export", "report"], format, csv, out.as_ref())?;
-            rows(kind, block, flag, project_dir, out, json, format)
+            rows(kind, block, project, out, json, format)
         }
-        ExportCli::Ewz(EwzCli {
-            project_dir,
-            project: flag,
-            out,
-            json,
-        }) => {
+        ExportCli::Ewz(EwzCli { project, out, json }) => {
             let Some(out) = out else {
                 return Err(usage_error(&["export", "ewz"], EWZ_NEEDS_OUT));
             };
             Command::ExportEwz(ExportEwzArgs {
-                project: project(flag, project_dir),
+                project: project.0,
                 out,
                 json,
             })
         }
         ExportCli::Table(TableCli {
             navigator,
-            project_dir,
-            project: flag,
+            project,
             strip,
             format,
             csv,
@@ -3227,7 +2862,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 format: rows_format(path, format, csv, out.as_ref())?,
                 navigator,
                 strip,
-                project: project(flag, project_dir),
+                project: project.0,
                 out,
                 json,
             })
@@ -3235,8 +2870,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
         ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
         ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,
         ExportCli::Png(PngCli {
-            project_dir,
-            project: flag,
+            project,
             out,
             pages,
             sections,
@@ -3250,7 +2884,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             not_built(&["export", "png"], lang.is_some(), omit_personal_data)?;
             Command::ExportPages(ExportPagesArgs {
                 format: PageFormat::Png,
-                project: project(flag, project_dir),
+                project: project.0,
                 out,
                 pages: selection(&["export", "png"], pages, sections)?,
                 threads,
@@ -3289,8 +2923,7 @@ fn dxf_layer(s: &str) -> Result<(String, String), String> {
 /// `ew export pdf|svg`.
 fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error> {
     let PagesCli {
-        project_dir,
-        project: flag,
+        project,
         out,
         pages,
         sections,
@@ -3308,7 +2941,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
     not_built(path, lang.is_some(), omit_personal_data)?;
     Ok(Command::ExportPages(ExportPagesArgs {
         format,
-        project: project(flag, project_dir),
+        project: project.0,
         out,
         pages: selection(path, pages, sections)?,
         threads,

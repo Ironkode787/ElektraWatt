@@ -1128,7 +1128,7 @@ mod tests {
         assert_eq!(
             parse(&["fmt", "p.ew", "--check"]),
             Ok(Command::Fmt(FmtArgs {
-                project: Some(PathBuf::from("p.ew")),
+                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 check: true,
                 repair: false,
                 json: false,
@@ -1137,7 +1137,7 @@ mod tests {
         assert_eq!(
             parse(&["fmt", "p.ew", "--repair", "--json"]),
             Ok(Command::Fmt(FmtArgs {
-                project: Some(PathBuf::from("p.ew")),
+                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 check: false,
                 repair: true,
                 json: true,
@@ -1318,7 +1318,7 @@ mod tests {
         assert_eq!(before.len(), 1);
         let project = dir.join("p.ew");
         let args = crate::cli::AssetsPurgeArgs {
-            project: Some(project.clone()),
+            project: crate::cli::ProjectArg(Some(project.clone())),
             preview: false,
         };
         let mut input = std::io::Cursor::new(b"purge\n".to_vec());
@@ -1584,7 +1584,7 @@ mod tests {
         answer: &str,
     ) -> (i32, String, String) {
         let args = UpgradeArgs {
-            project: Some(project.to_path_buf()),
+            project: crate::cli::ProjectArg(Some(project.to_path_buf())),
             check: flags.0,
             yes: flags.1,
         };
@@ -1639,7 +1639,7 @@ mod tests {
         let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         let upgrade = |project: Option<&str>, check, yes| {
             Ok(Command::Upgrade(UpgradeArgs {
-                project: project.map(PathBuf::from),
+                project: crate::cli::ProjectArg(project.map(PathBuf::from)),
                 check,
                 yes,
             }))
@@ -1718,7 +1718,7 @@ mod tests {
         // stderr and stdout and the exit codes.
         let fmt = |check: bool, repair: bool, json: bool| {
             let args = FmtArgs {
-                project: Some(project.clone()),
+                project: crate::cli::ProjectArg(Some(project.clone())),
                 check,
                 repair,
                 json,
@@ -1906,7 +1906,7 @@ mod tests {
                 };
                 std::fs::write(&page, edited).unwrap();
                 let args = FmtArgs {
-                    project: Some(project.clone()),
+                    project: crate::cli::ProjectArg(Some(project.clone())),
                     check: false,
                     repair,
                     json: false,

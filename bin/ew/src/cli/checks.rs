@@ -405,7 +405,7 @@ mod tests {
 
     fn args(active: Option<&str>, release: Option<&str>) -> ChecksSetArgs {
         ChecksSetArgs {
-            project: None,
+            project: crate::cli::ProjectArg(None),
             active: active.map(str::to_owned),
             release: release.map(str::to_owned),
         }
@@ -459,7 +459,7 @@ mod tests {
         assert_eq!(
             parse(&["project", "checks", "set", "p.ew", "--active", "full"]),
             Ok(Command::ChecksSet(ChecksSetArgs {
-                project: Some(PathBuf::from("p.ew")),
+                project: crate::cli::ProjectArg(Some(PathBuf::from("p.ew"))),
                 active: Some("full".to_owned()),
                 release: None,
             }))

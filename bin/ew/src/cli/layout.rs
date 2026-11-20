@@ -5,23 +5,10 @@
 //! one page or of every schematic page, in text or as `ew.layout-result/1`: its faults, unrouted wires and cost, the
 //! figures a reader compares, and each item behind them.
 
-use std::path::PathBuf;
-
 use ew_api::cli_results as results;
 use ew_api::output::PageLayout;
 
-use super::reader_dir;
-
-/// The arguments of `ew layout`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct LayoutArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The page by its folio label (`--page`); `None`: every drawn page but the panel-layout pages.
-    pub page: Option<String>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
+use super::{LayoutArgs, reader_dir};
 
 /// `ew layout`: opens the project as a reader (no lock) and prints the layout measures. Exit 0 when measured, 2 on
 /// usage, open errors and a folio that names no drawn page.

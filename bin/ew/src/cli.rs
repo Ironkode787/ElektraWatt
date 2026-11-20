@@ -53,6 +53,13 @@ use plc::*;
 use print::*;
 use revision::*;
 use sql::*;
+#[cfg(test)]
+use tree::ProjectArg;
+use tree::{
+    AssetsPurgeArgs, ChecksSetArgs, DiffArgs, ExtractArgs, FmtArgs, GitSetupArgs, ImportTableArgs,
+    InstrumentListArgs, LayoutArgs, MergeResolveArgs, PlcStatusArgs, RenderArgs, RouteArgs, UpdateCopiesArgs,
+    UpgradeArgs, VerifyArgs, VerifyMigrationArgs,
+};
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -146,15 +153,15 @@ pub enum Command {
         json: bool,
     },
     /// `ew layout [--page <folio>] [--json]`: the layout measures.
-    Layout(layout::LayoutArgs),
+    Layout(LayoutArgs),
     /// `ew route [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page router.
-    Route(route::RouteArgs),
+    Route(RouteArgs),
     /// `ew merge resolve`: the conflict records a merge left, resolved.
-    MergeResolve(merge_resolve::MergeResolveArgs),
+    MergeResolve(MergeResolveArgs),
     /// `ew diff`.
-    Diff(diff::DiffArgs),
+    Diff(DiffArgs),
     /// `ew git setup`.
-    GitSetup(collab::GitSetupArgs),
+    GitSetup(GitSetupArgs),
     /// `ew merge-driver %O %A %B %L %P`: the merge driver for project files.
     MergeDriver(merge_driver::MergeDriverArgs),
 }
@@ -259,19 +266,6 @@ pub struct LibArgs {
     pub json: bool,
 }
 
-/// The arguments of `ew fmt`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct FmtArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// List the files a format would rewrite and write nothing (`--check`, a reader).
-    pub check: bool,
-    /// Discard the broken lines (EW-CORE-005 at line level) after an `.ewz` backup (`--repair`); never with `check`.
-    pub repair: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// What `ew recover` does with the journal of a crashed session.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RecoverAction {
@@ -294,26 +288,6 @@ pub struct RecoverArgs {
     pub json: bool,
     /// `--yes` (with `--replay`): confirm the upgrade of a project in an older format without the typed word.
     pub yes: bool,
-}
-
-/// The arguments of `ew upgrade`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct UpgradeArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// `--check`: say whether an upgrade is needed and write nothing.
-    pub check: bool,
-    /// `--yes`: confirm without the typed word.
-    pub yes: bool,
-}
-
-/// The arguments of `ew update-copies` (FT-1499).
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct UpdateCopiesArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The company libraries (`--company`).
-    pub company: Vec<PathBuf>,
 }
 
 /// The arguments of `ew import csv`.
@@ -344,26 +318,6 @@ pub struct ImportCsvArgs {
     pub json: bool,
 }
 
-/// The arguments of `ew project assets purge`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct AssetsPurgeArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// List what would go and change nothing.
-    pub preview: bool,
-}
-
-/// The arguments of `ew project checks set`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ChecksSetArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The online scheme (`--active`).
-    pub active: Option<String>,
-    /// The release scheme (`--release`).
-    pub release: Option<String>,
-}
-
 /// The page format of `ew export pdf|svg|png`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PageFormat {
@@ -377,21 +331,6 @@ pub enum PageFormat {
     Dxf,
 }
 
-/// The arguments of `ew render`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct RenderArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The folio label (`--page`).
-    pub page: String,
-    /// The resolution (`--dpi`, default 150).
-    pub dpi: u32,
-    /// The PNG file (`--out`); `None`: `<folio>.png` in the current directory.
-    pub out: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// The arguments of `ew export ewz`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportEwzArgs {
@@ -399,17 +338,6 @@ pub struct ExportEwzArgs {
     pub project: Option<PathBuf>,
     /// The `.ewz` file (`--out`).
     pub out: PathBuf,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
-/// The arguments of `ew extract`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ExtractArgs {
-    /// The `.ewz` file.
-    pub file: PathBuf,
-    /// The new project directory (`--into`); `None`: `<stem>.ew` beside the archive (doc 05 §12).
-    pub into: Option<PathBuf>,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }
@@ -525,32 +453,6 @@ pub struct PlcImportArgs {
     pub json: bool,
 }
 
-/// The arguments of `ew import instrument-list`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct InstrumentListArgs {
-    /// The instrument list.
-    pub file: PathBuf,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The configuration project by name (`--config`).
-    pub config: Option<String>,
-    /// `--apply`: commit and save.
-    pub apply: bool,
-}
-
-/// The arguments of `ew plc status`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PlcStatusArgs {
-    /// An exchange file to compare with the last exchange.
-    pub file: Option<PathBuf>,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The configuration project by name (`--config`).
-    pub config: Option<String>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// What `ew export` writes.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ExportKind {
@@ -605,25 +507,6 @@ pub struct ExportTableArgs {
     pub format: RowFormat,
 }
 
-/// The arguments of `ew import table`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ImportTableArgs {
-    /// The round-trip file.
-    pub file: PathBuf,
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The table's key (`--table`).
-    pub table: Option<String>,
-    /// The CSV's preset (`--preset`); `None`: from its separator.
-    pub preset: Option<Preset>,
-    /// `--take-file`.
-    pub take_file: bool,
-    /// `--apply`: commit and save.
-    pub apply: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
 /// How a row export writes its rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowFormat {
@@ -637,28 +520,6 @@ impl Default for RowFormat {
     fn default() -> RowFormat {
         RowFormat::Csv(CsvOptions::default())
     }
-}
-
-/// The arguments of `ew verify-derived`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct VerifyArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
-}
-
-/// The arguments of `ew verify-migration`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct VerifyMigrationArgs {
-    /// The project directory; `None`: found from the current directory.
-    pub project: Option<PathBuf>,
-    /// The reference PDF (`--reference`).
-    pub reference: PathBuf,
-    /// The JSON file of the project's expected deltas (`--expected`).
-    pub expected: Option<PathBuf>,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
 }
 
 /// The result format of `ew sql`.
