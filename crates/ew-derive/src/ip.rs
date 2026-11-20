@@ -335,7 +335,7 @@ fn pair(q: &Q) -> IpPairing {
                     });
                 }
                 // The source: the star, else the first source point, else the first undirected point. Two points
-                // of one direction are never tied to each other (rc.5: a second target of a name without a source
+                // of one direction are never tied to each other (a second target of a name without a source
                 // tied itself to the first target); a group of targets alone waits for its source.
                 let undirected = members
                     .iter()

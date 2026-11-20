@@ -330,7 +330,7 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         "page.function",
         &structure.render_aspect(Aspect::Function, &syntax),
     );
-    // A drawn page without a location of its own says the one its devices share once (rc.2), as its tags leave it
+    // A drawn page without a location of its own says the one its devices share once, as its tags leave it
     // out.
     let location = match page {
         PageRef::Drawn(p) => q

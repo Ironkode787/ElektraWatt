@@ -18,7 +18,7 @@
 //! | 1 | project default `ProjectSettings.extra["wire_default"]` | `ProjectDefault` |
 //! | 0 | the built-in defaults of the derivation profile, when the project has no profile | `BuiltIn` |
 //!
-//! [`pick`] is the precedence engine: the first level, from the top, that has a value. One exception (rc.3): a cable's
+//! [`pick`] is the precedence engine: the first level, from the top, that has a value. One exception: a cable's
 //! core takes the cross-section and colour its conductor states over an override on the wire, since a wire in a cable
 //! is that core; they are changed at the cable.
 

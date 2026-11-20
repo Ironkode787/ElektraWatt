@@ -77,7 +77,7 @@ pub fn module_part(q: &Q, module: Id<Device>) -> Option<(Arc<LibCopy<Part>>, Plc
     }
 }
 
-/// Whether `device` carries `plc_module` while nothing of it describes a PLC module (F17 of the rc.1 test: a bus node
+/// Whether `device` carries `plc_module` while nothing of it describes a PLC module (a bus node
 /// whose part has no PLC data, attached to a CPU, sat in its rack with channels no part gives): it has parts, no
 /// imported order number (`type_ident`), and its PLC part is none, or a station's part on a device that is no station
 /// (a copy of a station that kept the station's own module).
@@ -2247,7 +2247,7 @@ impl Query for PlcAddressText {
                 }
             }
         }
-        // A valve on a multipin valve terminal (rc.2): the outputs wired to its solenoids' plug pins; for its coil
+        // A valve on a multipin valve terminal: the outputs wired to its solenoids' plug pins; for its coil
         // function the output of that solenoid.
         if own.is_empty()
             && let Some(device) = function.device

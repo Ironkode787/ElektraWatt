@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A valve terminal drawn as its valve positions (doc 11 §3.2, rc.2): what each cell of a slotted box holds
+//! A valve terminal drawn as its valve positions (doc 11 §3.2): what each cell of a slotted box holds
 //! ([`terminal_cells`]), which device may take a cell ([`fits_terminal`]), and the geometry of the cells
 //! ([`SlotFrame`]).
 //!
@@ -86,7 +86,7 @@ pub fn fits_terminal<'a>(defs: impl IntoIterator<Item = &'a FnDef>) -> bool {
 }
 
 /// Whether a FnDef is a valve terminal's supply (the supply plate's, filed under `ValveTerminal`): its ports 1, 3 and 5
-/// feed the galleries, on a supply plate or on the terminal itself (rc.3).
+/// feed the galleries, on a supply plate or on the terminal itself.
 pub fn is_supply_def(def: &FnDef) -> bool {
     def.category.0.as_str() == "ValveTerminal"
 }
@@ -126,7 +126,7 @@ pub fn graphics_x_extent(symbol: &SymbolDef) -> Option<(Nm, Nm)> {
 }
 
 /// The geometry of a slotted box on its page: the grid, the grid indices of its top-left corner, the cell width in
-/// grid steps, and the width of each cell that needs more (rc.3: a 5/3 valve).
+/// grid steps, and the width of each cell that needs more (a 5/3 valve).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SlotFrame {
     grid: Grid,
@@ -151,7 +151,7 @@ impl SlotFrame {
         }
     }
 
-    /// The frame with each cell as wide as the valve drawn in it needs (rc.3): `extents[i]` is the graphics extent of
+    /// The frame with each cell as wide as the valve drawn in it needs: `extents[i]` is the graphics extent of
     /// the widest symbol in cell `i` ([`graphics_x_extent`]; `None`: nothing drawn there). A cell is the pitch wide,
     /// and a valve wider than that (a 5/3 valve, fifteen steps) takes its own width and a step to spare; the cells to
     /// its right move with it, and the box grows to the right.
@@ -303,7 +303,7 @@ pub fn box_frame(q: &Q, rep: &ew_schema::Representation) -> Option<SlotFrame> {
 
 /// The supply of a valve terminal drawn in its box's supply end: the lowest-ID function of the terminal, else of a
 /// child without a position, whose device's part taps a gallery and that has a fluid CP of the tap's designation (the
-/// supply plate's function), or, of the terminal, that is a supply ([`is_supply_def`]: its own supply ports, rc.3).
+/// supply plate's function), or, of the terminal, that is a supply ([`is_supply_def`]: its own supply ports).
 /// `None` when the terminal has neither.
 pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Function>> {
     let devices = q.devices();
@@ -344,7 +344,7 @@ pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Func
     })
 }
 
-/// Whether a device is a multipin valve terminal (doc 10 §2.3, rc.2): no PLC station, and a part whose fluid section
+/// Whether a device is a multipin valve terminal (doc 10 §2.3): no PLC station, and a part whose fluid section
 /// names its plug's pins (`fluid.pins`); its solenoids are wired through the plug to outputs of a PLC card elsewhere.
 pub fn is_multipin_terminal(q: &Q, device: Id<Device>) -> bool {
     let Some(dev) = q.devices().get(device) else {
@@ -366,7 +366,7 @@ pub fn is_fluid_terminal(q: &Q, device: Id<Device>) -> bool {
     crate::is_valve_terminal(q, device) || is_multipin_terminal(q, device)
 }
 
-/// The plug pin a solenoid of a valve on a multipin valve terminal is wired through (rc.2): the terminal and the pin's
+/// The plug pin a solenoid of a valve on a multipin valve terminal is wired through: the terminal and the pin's
 /// designation, the part's `fluid.pins` entry of `solenoid` at the valve's position index (position − 1); `None` for a
 /// valve on no multipin terminal or a solenoid its plug does not name.
 pub fn solenoid_pin(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<(Id<Device>, String)> {
@@ -403,7 +403,7 @@ pub enum PlugPin {
     Common,
 }
 
-/// The pins of a multipin valve terminal's plug by designation (rc.2): each pin a solenoid of a position takes (the
+/// The pins of a multipin valve terminal's plug by designation: each pin a solenoid of a position takes (the
 /// part's `fluid.pins` at every position index), with the valve that holds the position, and every other pin of the
 /// terminal's main function the common. Empty for any other device.
 pub fn plug_pins(q: &Q, terminal: Id<Device>) -> Vec<(String, PlugPin)> {
@@ -455,7 +455,7 @@ pub fn plug_pins(q: &Q, terminal: Id<Device>) -> Vec<(String, PlugPin)> {
     out
 }
 
-/// The output channel wired to the plug pin of solenoid `solenoid` of `valve` on a multipin valve terminal (rc.2): of
+/// The output channel wired to the plug pin of solenoid `solenoid` of `valve` on a multipin valve terminal: of
 /// the channels whose traced target is the terminal's main function, the lowest-ID one whose traced pin is that pin;
 /// `None` for a valve on no multipin terminal or a pin no output reaches.
 pub fn wired_solenoid_channel(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<Id<ew_schema::Channel>> {

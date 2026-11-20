@@ -21,7 +21,7 @@
 //! - **Wire numbers on the page** (FT-1692): `settings.extra.drawing.wire_numbers`; on, every connection prints the
 //!   number of the wire it belongs to ([`connection_number`]); a core prints none (its cable and core name it). A
 //!   fluid line prints its line tag (FR-FLU-011) whenever it has one, under the project's line-tag scheme or frozen,
-//!   as the Fluid settings promise (rc.5: the tubes of a project tagged by page and counter showed no tag on the
+//!   as the Fluid settings promise (the tubes of a project tagged by page and counter showed no tag on the
 //!   page).
 //! - **Group text** (FR-CON-039): the distinct effective cross-sections in list order joined by `/`, then one colour
 //!   code per connection in list order: `2.5 BK BU`, `1.5 DBU DBU WH WH`.
@@ -534,7 +534,7 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
     })
 }
 
-/// A wire marker every live connection of which is a core or a bus line of one cable: the cable's mark (rc.3), drawn as
+/// A wire marker every live connection of which is a core or a bus line of one cable: the cable's mark, drawn as
 /// panel builders draw it (`ew-scene`'s page documentation, "Cable marks").
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CableMark {
@@ -579,7 +579,7 @@ pub fn cable_size_text(q: &Q, cable: Id<Device>) -> String {
 }
 
 /// The cable mark of a wire-marker item: `None` for another item, a marker without live connections, or one that
-/// lists a connection which is neither a core nor a bus line of the same cable as the others. A bus line (rc.5) is
+/// lists a connection which is neither a core nor a bus line of the same cable as the others. A bus line is
 /// listed with no core name: the cable carries the whole line.
 pub fn cable_mark(q: &Q, item: &PageItem) -> Option<CableMark> {
     item.kind.wire_marker()?;

@@ -80,7 +80,7 @@ pub struct Cp {
 /// - A black box that is not template-origin takes the CPs of the first part use of its device (in
 ///   `Device.parts` order) whose part copy has a CP pattern; without one it falls back to its function
 ///   definition.
-/// - A black box that takes no CPs from a part (a box drawn without one, rc.5) adds the named pins of its boxes
+/// - A black box that takes no CPs from a part (a box drawn without one) adds the named pins of its boxes
 ///   (`BoxCp.name`, in representation ID order, the first of one index): a CP of that index printed with that name,
 ///   with the defaults of a black-box pattern CP. An index its FnDef has already is kept as the FnDef's.
 /// - `Function.cp_overrides` then replace designation, alias and description where given, copy the

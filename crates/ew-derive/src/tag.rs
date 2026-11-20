@@ -538,7 +538,7 @@ fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
 
 /// `displayed_tag(device, page)`: the device's tag as printed on a page (FR-NUM-002), against the page's
 /// [`PageDisplayStructure`](crate::structure::PageDisplayStructure) (its location left out where every device of the
-/// page shares it, rc.2); empty for a
+/// page shares it); empty for a
 /// missing device.
 #[derive(Debug)]
 pub struct DisplayedTag;

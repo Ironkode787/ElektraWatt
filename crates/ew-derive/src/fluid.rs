@@ -37,7 +37,7 @@ pub fn is_fluid(d: &Discipline) -> bool {
 /// Whether the FnDef `def` is an in-line fitting: it has two fluid ports, in and out, both generic ones, as a flow
 /// control, a check valve, a throttle, a coupling and a bulkhead have (a valve's, a cylinder's and an air-preparation
 /// unit's ports have their roles; an air supply, a silencer and a plug have one port). The window's autoconnect never
-/// joins two fittings: two set side by side are a row of branches, not one line (rc.5: four flow controls placed in a
+/// joins two fittings: two set side by side are a row of branches, not one line (four flow controls placed in a
 /// row were joined by tubes).
 pub fn is_fitting(def: &FnDef) -> bool {
     let ports: Vec<_> = def.cps.iter().filter(|c| is_fluid(&c.discipline)).collect();
@@ -195,7 +195,7 @@ impl Query for Galleries {
             return Arc::new(Vec::new());
         }
         // The terminal itself first: a terminal with a supply of its own (its part taps the galleries) feeds them from
-        // its supply end (rc.2).
+        // its supply end.
         let mut slots: Vec<Id<Device>> = vec![*key];
         for c in ordered_children(q, *key) {
             slots.push(c);

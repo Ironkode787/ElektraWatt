@@ -87,7 +87,7 @@ pub struct PartLine {
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
 /// device (`Device.parts` order; a cable with a length entered by hand counts its first part use, when that part is
-/// sold by the metre, by that length in metres exact to the millimetre (rc.5); for a strip placed on a rail, the part
+/// sold by the metre, by that length in metres exact to the millimetre; for a strip placed on a rail, the part
 /// use that declares its end brackets gives a
 /// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip; a
 /// strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of
@@ -105,7 +105,7 @@ pub struct PartLine {
 /// tube's from end, else of its to end; [`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in that
 /// order. Last the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line);
 /// a plug at an end without a device (an interruption point, a port of no device yet) is its line's cable's, else the
-/// device's at the other end, so that every plug is in the lists once (rc.5). A line whose part copy is missing is
+/// device's at the other end, so that every plug is in the lists once. A line whose part copy is missing is
 /// dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
@@ -138,7 +138,7 @@ impl Query for DevicePartLines {
             }
         };
         let brackets = strip_brackets(q, *key);
-        // A cable with a length entered counts its part sold by the metre by that length (rc.5: a bus cable of 12.5 m
+        // A cable with a length entered counts its part sold by the metre by that length (a bus cable of 12.5 m
         // was one metre in the parts list).
         let cable_metres = match dev.aspects.cable.as_ref().map(|c| &c.length) {
             Some(ew_schema::LengthSource::Manual(n)) => Some(metres_of_nm(i128::from(n.0))),
@@ -280,7 +280,7 @@ fn end_device(q: &Q, end: &ew_schema::Endpoint) -> Option<Id<Device>> {
     q.functions().get(end.function()?)?.device
 }
 
-/// The device whose part lines count the plug at end `end` of the bus line `conn` (rc.5: a plug at an end without a
+/// The device whose part lines count the plug at end `end` of the bus line `conn` (a plug at an end without a
 /// device was in no list): the device at that end, else the line's cable, else the device at the other end.
 fn plug_owner(q: &Q, conn: &ew_schema::Connection, end: &ew_schema::Endpoint) -> Option<Id<Device>> {
     let ew_schema::ConnectionKind::Bus(line) = &conn.kind else {
@@ -464,7 +464,7 @@ pub struct BomRow {
 ///    with a line other than an end-bracket line ([`LineSource::GroupAccessory`]) together with, for a line of a
 ///    layout object (the device of an enclosure or of a mounting surface, a carrier line, an end-bracket line), the
 ///    panel-layout pages whose surface view shows its surface, and for a plug at a bus line's end of no device, that
-///    line's page (rc.5) (-UC1's rows print folio 902;
+///    line's page (-UC1's rows print folio 902;
 ///    An end-bracket line prints the panel pages of its rails and none of its strip's representation
 ///    pages, so row 26 prints 902), in page order. That is the Folios cell only: the order below
 ///    reads the representations alone. The covers of a configured row are the union of its configs' covers.
@@ -620,7 +620,7 @@ struct Acc {
     covers: BTreeSet<Id<Device>>,
     /// The surfaces the row's layout-object lines show (their panel pages print in the Folios cell).
     surfaces: BTreeSet<Id<MountingSurface>>,
-    /// The pages of the bus lines whose plugs at an end of no device the row counts: their place (rc.5).
+    /// The pages of the bus lines whose plugs at an end of no device the row counts: their place.
     line_pages: BTreeSet<Id<Page>>,
 }
 

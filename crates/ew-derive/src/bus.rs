@@ -403,7 +403,7 @@ pub fn bus_end_label(q: &Q, f: Id<Function>) -> String {
     }
 }
 
-/// The ends of one core of a bus cable, over which no wire runs (rc.5: the bus line uses every core of its cable): at
+/// The ends of one core of a bus cable, over which no wire runs (the bus line uses every core of its cable): at
 /// each end of the cable's line the pin its port's signal map gives the core ([`bus_core_pins`]), else the end itself
 /// ([`bus_end_label`]); `None` at both for a cable that carries no line.
 pub fn bus_core_ends(q: &Q, cable: Id<Device>, core: &str, shield: bool) -> [Option<String>; 2] {

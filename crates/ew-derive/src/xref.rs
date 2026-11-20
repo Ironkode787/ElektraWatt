@@ -54,7 +54,7 @@
 //!   contents) but not the continuation pages the report engine generates ("2.1"), as QET numbers its folios.
 //! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"),
 //!   preceded by the other project's name and a space when it names one; no link. Points of one reference in one
-//!   group (`IpSpec::group`, rc.3) print it once, at the group's last point on the page (the lowest, then the
+//!   group (`IpSpec::group`) print it once, at the group's last point on the page (the lowest, then the
 //!   rightmost); the others print nothing.
 //!
 //! Every shown item is an [`XrefLink`]: its byte range in the text and the target representation, which
@@ -702,7 +702,7 @@ impl Query for XrefTextOf {
         let targets = &relation.targets;
         let (rendered, shown) = match &relation.kind {
             XrefKind::None | XrefKind::InOwnBox => (Rendered::default(), Vec::new()),
-            // A group of points prints where it comes from once, at its last point (rc.3).
+            // A group of points prints where it comes from once, at its last point.
             XrefKind::External(e) => (
                 Rendered {
                     text: if grouped_before_last(q, *key, *e) {
@@ -898,7 +898,7 @@ fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
 
 /// Whether the external point drawn by `rep` stands in a group (`IpSpec::group`) of points of the reference `e` on its
 /// page and another of them is drawn below it in its column (within 1 mm sideways): a column of points prints its
-/// place once, under its last point (rc.3). Points of a group that stand side by side each print their own (rc.5: in a
+/// place once, under its last point. Points of a group that stand side by side each print their own (in a
 /// row the place stood under the first and the last point only, and the middle one seemed to come from nowhere).
 fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bool {
     let group_of = |r: &Representation| {

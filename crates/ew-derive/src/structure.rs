@@ -213,8 +213,8 @@ impl Query for PageStructure {
 
 /// `page_display_structure(page)`: the structure a page's tags and its title block show against (FR-NUM-002): the
 /// page's own slots ([`PageStructure`]), and on a page without a location of its own the location it draws: the
-/// cabinet its surface view shows (a panel layout), else the one location the devices drawn on the page have (rc.2: a
-/// card's tag "+CAB1-102A1-A1" ran into the next one). A device without a location does not count (rc.5: once Give
+/// cabinet its surface view shows (a panel layout), else the one location the devices drawn on the page have (a
+/// card's tag "+CAB1-102A1-A1" ran into the next one). A device without a location does not count (once Give
 /// location gave the cabinet's devices theirs, the field devices beside them made every tag of the page print
 /// "+Supply-" in front); a page whose devices have no location, or two, takes none. The devices still take their
 /// structure from [`PageStructure`] (step 3 of [`StructureOf`]): this is display only.
@@ -262,7 +262,7 @@ impl Query for PageDisplayStructure {
 
 /// Whether giving `device` (a strip with its terminals) the location `location` makes its tags print that location on
 /// a page that draws them ([`PageDisplayStructure`]): a page whose own or shown location is another, or one that draws
-/// a device of another location. What Give location's preview says before Apply (rc.5).
+/// a device of another location. What Give location's preview says before Apply.
 pub fn would_print_location(q: &Q, device: Id<Device>, location: Id<StructureNode>) -> bool {
     let (reps, functions, idx) = (q.reps(), q.functions(), q.idx());
     let pages: std::collections::BTreeSet<Id<Page>> = std::iter::once(device)
