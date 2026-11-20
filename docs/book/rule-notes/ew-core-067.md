@@ -19,7 +19,7 @@ Route a wire straight across a page so that it runs over the lower pin of a coil
 
 ## How to fix
 
-Open the message: the wire is selected on its page. Press Reroute, or drag the wire's round handles so that it keeps
+Open the message: the wire is selected on its page. Press Route, or drag the wire's round handles so that it keeps
 clear of the point. There is no quick fix.
 
 ## Waiving

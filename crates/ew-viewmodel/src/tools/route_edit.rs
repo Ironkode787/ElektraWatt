@@ -9,8 +9,8 @@
 //! a press would take larger. A press on a segment of a *selected* connection drags it: a horizontal segment moves
 //! vertically and a vertical one horizontally. A press on a bend drags the corner, which moves its two segments. The
 //! readout shows the offset; the release commits (one undo step), Escape cancels. On a route-less connection the drag
-//! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Reroute
-//! (`route.reroute`) routes selected wires anew.
+//! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Route
+//! (`layout.route`) routes selected wires anew.
 //!
 //! **Keyboard** (rc.3): with one wire selected, Tab and Shift+Tab give a handle the focus along the wire from the end
 //! a person reads first ([`reads_backwards`]; `route.handle`, [`handle_parts`]); it shows as the one under the pointer

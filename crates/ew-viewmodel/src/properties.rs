@@ -276,7 +276,7 @@ pub enum CardOrigin {
     /// A table round trip's file read against a navigator's table (`navigator.import_table`): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
-    /// Route page (`route.page`): the card in the Preview tab with the plan's
+    /// Route (`layout.route`) over routes a person drew: the card in the Preview tab with the plan's
     /// lead line and one row per connection left unrouted; Apply commits the plan's `layout.apply`.
     Route {
         /// "Route 3 wires on folio 101: 2 routed, 1 not routed." (§12a).

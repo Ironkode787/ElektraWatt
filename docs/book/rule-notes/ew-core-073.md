@@ -19,7 +19,7 @@ was found.
 
 ## How to fix
 
-Use Route page, or select the wire and use Reroute; or select the wire and drag its handles. There is no quick fix.
+Select the wire and use Route, or select the wire and drag its handles. There is no quick fix.
 
 ## Waiving
 

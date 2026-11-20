@@ -19,8 +19,8 @@ point.
 
 ## How to fix
 
-Reroute one of the wires, or drag one of its bends a grid step away, so that the two corners stand apart. There is no
-quick fix.
+Select one of the wires and use Route, or drag one of its bends a grid step away, so that the two corners stand
+apart. There is no quick fix.
 
 ## Waiving
 

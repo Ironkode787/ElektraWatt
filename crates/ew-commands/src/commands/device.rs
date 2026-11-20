@@ -624,7 +624,7 @@ fn zero() -> Pt2 {
 ///
 /// **Re-solved routes and connect on move** (D15; both optional, so a script's move keeps the follow):
 /// after the follow, each entry of `routes` replaces a connection's route exactly as `connection.route` would (errors
-/// prefixed `/routes/<i>`, as `connection.route_many` prefixes them); then each hint of `connect` makes a wire from
+/// prefixed `/routes/<i>`); then each hint of `connect` makes a wire from
 /// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a
 /// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused). A
 /// hint onto a point of a connection is refused: a move never splits an existing wire (ADR-0007 decision 4).

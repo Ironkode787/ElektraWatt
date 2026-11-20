@@ -18,7 +18,7 @@ Draw two wires whose routes run along the same horizontal line for a few grid st
 
 ## How to fix
 
-Open the message: both wires are selected on their page. Press Reroute, or drag one wire's handles, so that each runs
+Open the message: both wires are selected on their page. Press Route, or drag one wire's handles, so that each runs
 on a line of its own. There is no quick fix.
 
 ## Waiving
