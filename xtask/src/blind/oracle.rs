@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `bless-oracle` and `check-task` (§5.7, D16).
+//! `bless-oracle` and `check-task`.
 //!
 //! `bless-oracle <task>` makes the expected rows of a task's oracle (`oracle/rows/*.csv`, `oracle/bom.csv`) from a
 //! **temporary copy** of Golden A: the copy is opened by the built `elektrawatt` (the `page.describe` texts: anchor
