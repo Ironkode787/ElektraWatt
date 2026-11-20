@@ -543,7 +543,9 @@ the wire; the length and bends of the pitch are the track's to spend. A channel 
 at `TRACK_PITCH` leaves a wire without a track, counting room only. The placer's count of §4.5 is
 `tracks_needed(&[(Tick, Tick)]) -> usize`: per stepping wire the coordinates along the rows of the pin it leaves and
 the pin it reaches, counted by the same order and assignment at `TRACK_PITCH` with the rows as far apart as need
-be. No mate or bundle price was left in the search to delete.
+be. No mate or bundle price was left in the search to delete. The search lets a wire leave its pin over the stub of
+a free connection point standing on the same point (a terminal's second point on one edge) on both nodes of that stub;
+it allowed the full step only, and such wires had no way.
 
 ### 3.6 The search
 
