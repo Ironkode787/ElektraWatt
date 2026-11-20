@@ -3,9 +3,9 @@
 
 //! The offscreen renderer (moved here): egui's shapes painted by an
 //! `egui_wgpu` renderer on the headless device of `ew-render2d` (the software adapter where there is one, DX12 WARP
-//! on Windows) into a texture that is read back as an RGBA image. The chrome snapshots replay a test harness's
-//! texture changes into a fresh renderer ([`render`]); the visual play-test driver keeps one renderer for the run
-//! ([`Offscreen`]) on the default adapter instead, the GPU where there is one, since no gate compares its frames.
+//! on Windows) into a texture that is read back as an RGBA image. The chrome snapshots keep one renderer
+//! ([`Offscreen`]) per test and apply a test harness's texture changes to it; the visual play-test driver keeps one
+//! for the run on the default adapter instead, the GPU where there is one, since no gate compares its frames.
 //! It uses only packages already in the graph.
 
 use std::sync::mpsc::channel;
@@ -213,18 +213,4 @@ impl Offscreen {
 pub fn size_in_pixels(ctx: &egui::Context) -> [u32; 2] {
     let size = ctx.content_rect().size() * ctx.pixels_per_point();
     [size.x.round() as u32, size.y.round() as u32]
-}
-
-/// Renders the last frame of `ctx` (`output`'s shapes) with every texture change in `ops` replayed into a fresh
-/// renderer, at the context's pixels per point.
-pub fn render(
-    dev: &HeadlessDevice,
-    ctx: &egui::Context,
-    output: &egui::FullOutput,
-    ops: &[TextureOp],
-) -> RgbaImage {
-    let mut offscreen = Offscreen::new(dev);
-    offscreen.apply(dev, ops);
-    let ppp = ctx.pixels_per_point();
-    offscreen.paint(dev, ctx, output.shapes.clone(), size_in_pixels(ctx), ppp)
 }

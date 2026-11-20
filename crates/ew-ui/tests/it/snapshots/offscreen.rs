@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! An offscreen renderer of a test harness's last frame: the harness hands every texture change to
-//! a [`Recorder`]; [`render`] replays them with `ew_ui::offscreen` (moved there), which paints
-//! the last frame's shapes on the headless device of `ew-render2d` and reads them back as an RGBA image.
+//! a [`Recorder`]; [`render`] applies the changes since the test's last image to the test's one renderer of
+//! `ew_ui::offscreen`, which paints the last frame's shapes on the headless device of `ew-render2d` and reads them
+//! back as an RGBA image.
 
 #![allow(missing_docs)]
 
@@ -15,26 +16,37 @@ use egui_kittest::TestRenderer;
 use ew_render_cpu::RgbaImage;
 use ew_render2d::gpu::HeadlessDevice;
 pub use ew_ui::offscreen::{TextureOp, device};
+use ew_ui::offscreen::{Offscreen, size_in_pixels};
 
-/// Collects the texture changes the harness reports, in order.
+/// Collects the texture changes the harness reports, in order, and holds the renderer of the test's images with the
+/// number of changes it has applied. On the software adapter a renderer's first image took about 0.4 s more than
+/// the next (pipelines and uploads, measured by hand), so a test's images share one renderer.
 #[derive(Clone, Default)]
-pub struct Recorder(pub Rc<RefCell<Vec<TextureOp>>>);
+pub struct Recorder {
+    ops: Rc<RefCell<Vec<TextureOp>>>,
+    renderer: Rc<RefCell<Option<(Offscreen, usize)>>>,
+}
 
 impl TestRenderer for Recorder {
     fn handle_delta(&mut self, delta: &mut TexturesDelta) {
-        TextureOp::drain(delta, &mut self.0.borrow_mut());
+        TextureOp::drain(delta, &mut self.ops.borrow_mut());
     }
 }
 
 /// Renders the last frame of `ctx` (`output`'s shapes) with every texture change `recorder` saw, at the context's
-/// pixels per point (the renderer core is `ew_ui::offscreen`).
+/// pixels per point: the changes since the test's last image go to its renderer (made on `dev` at the first image).
 pub fn render(
     dev: &HeadlessDevice,
     ctx: &egui::Context,
     output: &egui::FullOutput,
     recorder: &Recorder,
 ) -> RgbaImage {
-    ew_ui::offscreen::render(dev, ctx, output, &recorder.0.borrow())
+    let mut held = recorder.renderer.borrow_mut();
+    let (renderer, applied) = held.get_or_insert_with(|| (Offscreen::new(dev), 0));
+    let ops = recorder.ops.borrow();
+    renderer.apply(dev, &ops[*applied..]);
+    *applied = ops.len();
+    renderer.paint(dev, ctx, output.shapes.clone(), size_in_pixels(ctx), ctx.pixels_per_point())
 }
 
 /// Writes `image` as a PNG to `path` (directories created).
