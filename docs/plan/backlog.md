@@ -101,7 +101,6 @@ its pages left open (ADR-0034, `docs/design/06a-drafting.md`).
 - FT-1774 `xtask`: The compile cache shared between worktrees. Tried on 2026-11-16: no plain setting does it with sccache 0.19 (`SCCACHE_BASEDIRS` is read for C and C++ only, a remap in the flags enters the cache key, `trim-paths` is unstable). A small rustc wrapper behind sccache that remaps the build folder for crates with an `OUT_DIR` took the misses of a second worktree from 77 to 24 of 266 and about 35 s (16 %) off a lane's first build; it was not installed, because it sits in the machine's cargo settings for every project. Look again when sccache releases Rust base directories and its new proc-macro hashing. Also seen: a worktree inside the main checkout reads both `.cargo/config.toml` files and passes the linker flag twice, so the main checkout and the lanes never share cache entries.
 - FT-1775 `xtask, ew-ui`: One build flavour for window checks, so that the window tests, the pictures and the lint share one build of the heavy crates.
 - FT-1776 `xtask`: The linter as the test build's wrapper, so that one compile serves the lint and the tests.
-- FT-1777 `ew-viewmodel`: Split the view-model crate: it sets the edit cycle (10 to 15 seconds of its compile on every change to it).
 
 ## M4
 
