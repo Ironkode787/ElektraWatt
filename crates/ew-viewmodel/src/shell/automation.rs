@@ -163,7 +163,7 @@ pub struct StationShown {
     pub catalogue: Vec<StationPart>,
     /// The device under the cursor ([`ShellModel::station_device`]).
     pub device: Option<Uuid>,
-    /// The channels of the module under the cursor ([`ShellModel::station_channels`]).
+    /// The channels of the card under the cursor, in channel-number order (`Session::module_channels`).
     pub channels: Vec<ew_api::output::RackChannel>,
     /// What is left to do ([`ShellModel::station_todo`]).
     pub todo: Vec<StationTodo>,
@@ -569,13 +569,6 @@ impl ShellModel {
                     .holder
             }
         }
-    }
-
-    /// The channels of the card under the cursor, in channel-number order (`Session::module_channels`).
-    pub fn station_channels(&self) -> Vec<ew_api::output::RackChannel> {
-        self.station_shown()
-            .map(|s| s.channels.clone())
-            .unwrap_or_default()
     }
 
     /// What is left to do on the station on show, each in a sentence with its fix: the slot rule's findings, a card

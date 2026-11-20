@@ -191,7 +191,7 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `TEXT_CROSSED`, `TEXT_STEP` | 12, 1 | the cost |
 | `LABEL_CLASH`, `LABEL_RANK` | 24, 1 | the cost |
 | `HALF_STEP_EXTRA` | 1 | the cost |
-| `BODY_GAP`, `WIRE_GAP`, `STUB` | 1 step each | router: the least distances |
+| `BODY_GAP`, `STUB` | 1 step each | router: the least distances |
 | `TRACK_PITCH` | 2 steps (1 where a channel is too narrow) | tracks, parallel wires |
 | `CHAIN_GAP` | 5 steps (never less than 2) | placer: between facing pins of two parts in line |
 | `TRUNK_GAP`, `TRUNK_PITCH` | 2 steps each | router: a trunk from the pins it taps; trunks side by side |
@@ -445,7 +445,7 @@ every wire whose route it changes, an empty route for a wire of a moved symbol t
 
 ### 2.7 Where the code lives
 
-A new crate **`ew-drafting`** (GPL-3.0-or-later; it depends on `ew-units` and `ew-ids` only): the model, the
+A new crate **`ew-drafting`** (GPL-3.0-or-later; of the workspace it depends on `ew-ids` and the workspace-hack only, and `ci/dep-rules.toml` allows `ew-units` besides): the model, the
 measure, the text placer, the search, the net router, the tracks, the placer, the guides. It reads no project
 record, so it builds and tests in seconds, which the eight steps of the build use on every change. `ew-scene`
 calls its text placer; `ew-api` builds a `DraftPage` (it has the scene's text sizes) and offers `page_draft`,

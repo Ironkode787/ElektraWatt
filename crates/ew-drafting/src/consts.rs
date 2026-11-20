@@ -29,8 +29,6 @@ pub const HALF_STEP_EXTRA: i64 = 1;
 
 /// The router's least distance of a wire from a body it does not end at.
 pub const BODY_GAP: Tick = TICKS_PER_STEP;
-/// The router's least distance between two wires.
-pub const WIRE_GAP: Tick = TICKS_PER_STEP;
 /// The straight run of a wire out of its pin: the stretch two wires of one pin may share.
 pub const STUB: Tick = TICKS_PER_STEP;
 /// Parallel wires and tracks side by side.

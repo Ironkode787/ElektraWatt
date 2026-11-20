@@ -307,14 +307,3 @@ pub fn tap_points(present: Pt, ends: &[(Pt, Option<Side>)]) -> Vec<Pt> {
     }
     out
 }
-
-/// The pin ends of a net that are taps: a pin two or more of its wires end at.
-pub fn pin_taps(net: &Net) -> Vec<PinId> {
-    net.taps
-        .iter()
-        .filter_map(|t| match t {
-            End::Pin(p) => Some(*p),
-            End::Junction(_) => None,
-        })
-        .collect()
-}
