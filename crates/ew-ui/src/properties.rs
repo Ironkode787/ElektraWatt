@@ -77,7 +77,7 @@ pub struct PropertiesPane {
     /// Escape is then the field's (egui drops a field's focus on Escape before the frame starts).
     field_now: bool,
     field_last: bool,
-    /// A Tab (`false`) or Shift+Tab (`true`) pressed in the open editor (rc.5): its focus loss, in that frame or the
+    /// A Tab (`false`) or Shift+Tab (`true`) pressed in the open editor: its focus loss, in that frame or the
     /// next, commits and opens the next (the previous) row's field.
     tabbed: Option<bool>,
     /// The row error last brought into view, (row key, message): a new error scrolls its line into view once.
@@ -300,7 +300,7 @@ impl PropertiesPane {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    // Part details scrolls with the rows: a card open under the header left them no room (rc.3).
+                    // Part details scrolls with the rows: a card open under the header left them no room.
                     part_details(ui, shell, sheet, events);
                     // Rows of `size.row`, as the trees beside them have: no gap between rows (the grid stood at
                     // 32 points a row where the navigators stand at 28, FT-1656).
@@ -647,7 +647,7 @@ impl PropertiesPane {
                 .font(crate::theme::font(&t.type_small))
                 .color(t.text_secondary.color32())
         };
-        // What the device is (rc.2, F9: "Compressed-air supply point · pneumatic").
+        // What the device is ("Compressed-air supply point · pneumatic").
         if let Some(what) = &sheet.header.what {
             ui.label(small(&ew_viewmodel::properties::what_words(what)));
         }
@@ -1140,7 +1140,7 @@ impl PropertiesPane {
         let editable = !header && row.actions.contains(&RowAction::Edit);
         // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
         let link = !header && !editable && is_link(row);
-        // A wire's value its cable core gives takes a click, which says where it is changed (rc.3).
+        // A wire's value its cable core gives takes a click, which says where it is changed.
         let cable = !header && !editable && shell.cable_row(&row.key).is_some();
         // A click on a read-only value moves the row cursor there (no focus stop of its own): what is typed next goes to
         // that row and is refused with its reason, never into the row before (a persona run's text landed in the date
@@ -1165,7 +1165,7 @@ impl PropertiesPane {
         } else {
             middle(value)
         };
-        // A value chosen from a list says so (the owner's test of 0.3.0-rc.1): a combo box with a chevron at the
+        // A value chosen from a list says so: a combo box with a chevron at the
         // cell's right end, always; one chosen in the part picker shows "…" there while the row's actions button is
         // not on show.
         let chooser = (!header)
@@ -1427,7 +1427,7 @@ impl PropertiesPane {
                 }
             });
         }
-        // A wire's value its cable core gives: the button that goes to the cable (rc.3).
+        // A wire's value its cable core gives: the button that goes to the cable.
         if let Some(tag) = shell.cable_row(&row.key) {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4 + t.icon_sm);
@@ -1734,7 +1734,7 @@ impl PropertiesPane {
             } else if highlighted {
                 events.push(Event::Action("props.choose", json!({})));
             } else {
-                // Tab takes the value and opens the next row's field, Shift+Tab the one before (rc.5).
+                // Tab takes the value and opens the next row's field, Shift+Tab the one before.
                 let params = match self.tabbed.take() {
                     Some(false) => json!({"step": 1}),
                     Some(true) => json!({"step": -1}),

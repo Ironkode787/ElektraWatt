@@ -480,7 +480,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .wrap(),
     );
-    // Where the finding asks for a step the window can take the person to (Choose a cable type…, rc.3).
+    // Where the finding asks for a step the window can take the person to (Choose a cable type…).
     if let Some(offer) = shell
         .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
         .and_then(|k| shell.finding_offer(&k))
@@ -511,7 +511,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if button.clicked() {
                 events.push(Event::Action("messages.fix", Value::Null));
             }
-            // Every finding of its group with a fix of this kind: Fix all like this (n)… (rc.2 persona run).
+            // Every finding of its group with a fix of this kind: Fix all like this (n)….
             if let Some((group, n)) = shell
                 .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
                 .and_then(|k| shell.fix_all_offer(&k))

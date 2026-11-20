@@ -1356,7 +1356,7 @@ impl TableDelegate for Delegate<'_> {
             painter.rect_stroke(rect, theme::SQUARE, ring, StrokeKind::Inside);
         }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
-        // A library copy's State cell says what its state means (the owner's test of 0.3.0-rc.1).
+        // A library copy's State cell says what its state means.
         let state_tip =
             (self.kind == NavKind::Libraries && column.key == "state" && node.role == NavRole::LibCopy)
                 .then(|| node.facets.iter().rev().find(|(f, _)| f == "state"))

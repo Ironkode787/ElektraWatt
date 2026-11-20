@@ -69,7 +69,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
 
 /// The Libraries navigator's Update… button: "Update 3 items…" for the copies it would update (the marked rows, else
 /// the cursor's, else every copy with an update), its tooltip that the changes are shown first and made with Apply;
-/// disabled with its reason when those rows have no update (the owner's test of 0.3.0-rc.1).
+/// disabled with its reason when those rows have no update.
 fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     use components::Tip as _;
     let t = components::tokens(ui);
@@ -138,7 +138,7 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
             &t.type_small,
             t.text_secondary,
         );
-        // The state in words, and under it what it means (the owner's test of 0.3.0-rc.1).
+        // The state in words, and under it what it means.
         line(
             ui,
             &ew_viewmodel::shell::text_words(&d.state),

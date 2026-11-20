@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! New cable type… (rc.3): a cable part made where the cable is made, in a small form, by the window's own path.
+//! New cable type…: a cable part made where the cable is made, in a small form, by the window's own path.
 
 use crate::support::Tmp;
 use crate::wires_and_cables::{click, key, new_project, select_both, two_named_wires, two_wires};

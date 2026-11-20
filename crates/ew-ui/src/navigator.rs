@@ -275,7 +275,7 @@ impl NavigatorPane {
                     }
                     // The Fluid panel's Fluid settings… and New medium… (the persona round found them only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
-                    // The PLC panel's + is New station… (F18 of the rc.1 test: the rack comes first).
+                    // The PLC panel's + is New station… (the rack comes first).
                     let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] =
                         match self.kind {
                             NavKind::Plc => &[(
@@ -714,7 +714,7 @@ impl NavigatorPane {
             return;
         }
         // The PLC navigator with modules drawn but no station says that a module waits for one; empty or not, it
-        // offers New station… (F18 of the rc.1 test).
+        // offers New station….
         if self.kind.source() == NavKind::Plc {
             let (line, sentence) = shell.plc_empty().unwrap_or_else(|| {
                 let (_, line, sentence) = empty_texts(self.kind);
@@ -1252,13 +1252,13 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                             && let Some(tip) = ew_viewmodel::navigators::library_state_tip(code)
                         {
                             chip.tip(&tip);
-                        // A word a panel builder may read otherwise says what it means here (rc.5: `spare`, and a
+                        // A word a panel builder may read otherwise says what it means here (`spare`, and a
                         // channel no page draws).
                         } else if let Some(tip) = strings::lookup(&format!("nav-badge-{code}-tip")) {
                             chip.tip(tip);
                         }
                     } else if code == ew_viewmodel::ew_api::output::FIX_ALL {
-                        // A group whose findings' fixes are of one kind: Fix all (n)… on its row (rc.2 persona run).
+                        // A group whose findings' fixes are of one kind: Fix all (n)… on its row.
                         if let Some((group, n)) = shell.fix_all_offer(&row.key) {
                             let label = strings::format(key!("messages-fix-all"), &[&n.to_string()]);
                             let button = ui.add(egui::Button::new(
@@ -1322,8 +1322,8 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
-    // A device's row shows its part's card on hover (F22), read only when hovered; a valve terminal's says its kind first
-    // (rc.2, F15).
+    // A device's row shows its part's card on hover (F22), read only when hovered; a valve terminal's says its kind
+    // first.
     let response = if kind == NavKind::Devices {
         let device = tree
             .shell
@@ -1577,7 +1577,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
 
 /// The chip line "Not on this page" above the canvas (§6.5): the label in `type.small` `color.text.secondary`, then
 /// one jump chip (doc 16a §6.24) per chip, reading what it does ("Go to page 1, A0"), that opens the page and selects
-/// the drawable there; on a bus page that does not draw the device yet, Put it here beside them (rc.2).
+/// the drawable there; on a bus page that does not draw the device yet, Put it here beside them.
 pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let chips = shell.chips();
     if chips.is_empty() {

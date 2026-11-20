@@ -350,7 +350,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
                 );
             }
             // The station's tag changes in place: it looks like it (a pencil, an outline on hover), and a click on it
-            // or F2 on its head opens it (rc.5, H14).
+            // or F2 on its head opens it.
             match (tab.station, &tab.rename) {
                 (Some(station), Some((device, text))) if *device == station => {
                     let name = strings::format(key!("rack-rename-field"), &[&view.tag]);
@@ -396,7 +396,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
                         .truncate(),
                 );
             });
-            // The PLC's own name changes in place too: a click on it (rc.5, H14).
+            // The PLC's own name changes in place too: a click on it.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 match (view.plc_project, &tab.rename) {
                     (Some(id), Some((renamed, text))) if *renamed == id => {
@@ -488,7 +488,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             events.push(Event::Action("plc.rack_set", json!({ "config": "new" })));
         }
     });
-    // The tag it gets, typed before Create (rc.5); left empty, its page gives it one when it is drawn.
+    // The tag it gets, typed before Create; left empty, its page gives it one when it is drawn.
     ui.horizontal_wrapped(|ui| {
         ui.add(
             egui::Label::new(small(t, strings::text(key!("rack-draft-tag")), t.text_secondary))
@@ -532,7 +532,7 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
     }
 }
 
-/// A text that is changed in place (rc.5: the station's tag did not look changeable): the text with a pencil after
+/// A text that is changed in place (the station's tag did not look changeable): the text with a pencil after
 /// it, the outline of a field and the hover fill under the pointer, and a tooltip that a click changes it; named
 /// `name` for a screen reader. Its response.
 fn editable(
@@ -631,7 +631,7 @@ fn tag_field(
     });
 }
 
-/// The field a channel's cell (`column` `symbol` or `function_text`) is typed in, named `name` (rc.5): opened on
+/// The field a channel's cell (`column` `symbol` or `function_text`) is typed in, named `name`: opened on
 /// `text` with the focus; Enter takes it, Tab takes it and opens the next channel's cell (`plc.rack_channel {text,
 /// next}`), Escape or a click elsewhere leaves it. While a refusal stands under the rack, a click elsewhere keeps the
 /// field on the text as typed.
@@ -703,7 +703,7 @@ fn interact(
     if response.clicked() || response.secondary_clicked() {
         events.push(Event::Action("plc.rack_select", p.select()));
     }
-    // A tag of question marks (a module drawn on no page) says where its number comes from (the rc.3 rack run).
+    // A tag of question marks (a module drawn on no page) says where its number comes from.
     if p.device.is_some() && !p.drawn && p.tag.contains('?') {
         let _ = response
             .clone()
@@ -1121,7 +1121,7 @@ fn table(
                 t.text_tertiary,
             );
         } else {
-            // A tag changes in place: a click on the tag of the row under the cursor, or F2 (rc.5, H14); the station's
+            // A tag changes in place: a click on the tag of the row under the cursor, or F2; the station's
             // in the header.
             match (p.device.filter(|_| tab.draft.is_none()), &tab.rename) {
                 (Some(device), Some((renamed, typed)))
@@ -1353,7 +1353,7 @@ fn channels(
         };
         text(ui, number, c.number.to_string(), t.text_secondary);
         text(ui, address, c.address.clone(), t.text_primary);
-        // The symbol and the function text are typed in their cells (rc.5).
+        // The symbol and the function text are typed in their cells.
         for (cell, column, shown) in [
             (symbol, "symbol", &c.symbol),
             (function, "function_text", &c.function_text),

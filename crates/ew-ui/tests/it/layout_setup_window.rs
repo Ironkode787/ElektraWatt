@@ -189,7 +189,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
 
 /// FT-1719: Enclosure… on a schematic page toasts the new enclosure with its Undo, which takes the enclosure back: a
 /// second Create at the same location is not refused ("already has enclosure"). Off a panel layout page the dialog's
-/// Create only makes the enclosure without drawing it (rc.3).
+/// Create only makes the enclosure without drawing it.
 #[test]
 fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
     let tmp = Tmp::new();

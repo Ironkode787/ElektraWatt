@@ -76,7 +76,7 @@ fn row_of(d: &mut Driver, label: &str) -> (i64, i64) {
 }
 
 /// Places the starter valve terminal from the device browser, drawn as its positions with its top-left corner at `a`
-/// (one click, rc.2), then Escape.
+/// (one click), then Escape.
 fn place_terminal(d: &mut Driver, a: (i64, i64)) {
     d.input(&click(d.find("Device").unwrap()));
     d.settle();
@@ -251,7 +251,7 @@ fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
         .find(|n| n.role == NavRole::Device)
         .map(|n| n.label.clone())
         .expect("the terminal's row");
-    // The box's empty cell offers Fill position 1… (rc.2); Add valve at position 1 and 2 on the terminal's row in the
+    // The box's empty cell offers Fill position 1…; Add valve at position 1 and 2 on the terminal's row in the
     // Fluid panel: the valve's symbol follows the pointer, a click places it in its cell.
     let at = cell_px(&mut d, 0);
     let on_cell = menu_at(&mut d, at);
@@ -781,7 +781,7 @@ fn seat(d: &mut Driver, valve: Uuid) -> (String, bool) {
 
 /// R2-A of the re-test: the persona placed valve symbols into the valve terminal's box from the symbol browser, and the
 /// check said all four positions were empty; the Position row stood under Structure and typing into it did nothing.
-/// A valve placed inside the box is the terminal's valve at the position of the cell it is placed in (rc.2), with a
+/// A valve placed inside the box is the terminal's valve at the position of the cell it is placed in, with a
 /// toast that names it; its Valve position row stands in Main and moves it; a loose valve dragged into a cell joins it
 /// too.
 #[test]
@@ -835,7 +835,7 @@ fn a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
     );
     let _ = d.shell_mut().dispatch("tool.select", &json!({}));
     let to = cell_px(&mut d, 1);
-    // Grabbed by its body (its tag at the placing point would be dragged alone, rc.3).
+    // Grabbed by its body (its tag at the placing point would be dragged alone).
     let body = d
         .shell_mut()
         .canvas()
@@ -1026,7 +1026,7 @@ fn new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     let _ = d
         .shell_mut()
         .dispatch("select.set", &json!({ "ids": [supply.to_string()] }));
-    // As the list offers it, and its own (the rc.2 re-test: "derived" for the medium it was given).
+    // As the list offers it, and its own ("derived" for the medium it was given).
     let (text, chip) = prop_row(&mut d, "device/derived.medium");
     assert_eq!(text, "Compressed air, 6 bar");
     assert!(!chip.contains("derived"), "{chip}");
@@ -1377,7 +1377,7 @@ fn a_tube_from_a_port_facing_another_valve_takes_a_route() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed, [true], "the tube is routed; the hint said {hint}");
-    // Since the lower valve's tag stands by its own valve (rc.3), not under the upper one, the tube keeps clear of it.
+    // Since the lower valve's tag stands by its own valve, not under the upper one, the tube keeps clear of it.
     assert_ne!(
         hint,
         json!("The route crosses a text: keeping clear of it is a far longer way.")
@@ -1386,7 +1386,7 @@ fn a_tube_from_a_port_facing_another_valve_takes_a_route() {
 }
 
 /// R2-C, Route: the same tube stored without a route (as the Wire tool stored it before) is routed by Route at once;
-/// since the lower valve's tag stands by its own valve (rc.3), the route keeps clear of the texts and the toast names
+/// since the lower valve's tag stands by its own valve, the route keeps clear of the texts and the toast names
 /// no text crossed.
 #[test]
 fn route_page_routes_the_tube_across_a_text_and_says_so() {
@@ -1699,7 +1699,7 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
             d.input(&key("r"));
             d.settle();
         }
-        // The valve's port lies beyond the short run: Tab chooses it, so the placement joins it (rc.2).
+        // The valve's port lies beyond the short run: Tab chooses it, so the placement joins it.
         d.input(&key("tab"));
         d.settle();
         click_at(d, at);
@@ -1768,7 +1768,7 @@ fn round3_the_terminal_blanks_an_empty_position() {
         .find(|n| n.role == NavRole::Device)
         .map(|n| n.label)
         .expect("the terminal's row");
-    // Each empty cell offers its own Blanking plate (rc.2: the box drawn as its positions).
+    // Each empty cell offers its own Blanking plate (the box drawn as its positions).
     for n in 1..=4 {
         let at = cell_px(&mut d, n - 1);
         let on_cell = menu_at(&mut d, at);
@@ -1999,7 +1999,7 @@ fn the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
         "black_box",
         "the plug's box on the pointer"
     );
-    // One click places the plug, sized by its pins (rc.2, friction 12).
+    // One click places the plug, sized by its pins (friction 12).
     click_at(&mut d, (800, 400));
     assert_eq!(d.shell_mut().tool().name(), "select", "one click, one plug");
     let mut boxes = Vec::new();
@@ -2092,7 +2092,7 @@ fn the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     d.settle();
     d.input(&click(starting_with(&d, &draw)));
     d.settle();
-    // The page asked (the rc.2 re-test): the only electrical page chosen.
+    // The page asked: the only electrical page chosen.
     assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
     d.settle();
     assert_eq!(d.shell_mut().current_folio(), Some("1"), "the electrical page");
@@ -2327,7 +2327,7 @@ fn draw_on_a_fluid_page_makes_one_when_there_is_none() {
 }
 
 /// rc.3: with several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
-/// the one chosen (rc.5: from a view opened on another page than a fluid one).
+/// the one chosen (from a view opened on another page than a fluid one).
 #[test]
 fn draw_on_a_fluid_page_asks_which_of_several() {
     let tmp = Tmp::new();
@@ -2445,7 +2445,7 @@ fn valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's order (rc.2): the valve terminal made as a station and drawn on the schematic page first, then on the
+/// The owner's order: the valve terminal made as a station and drawn on the schematic page first, then on the
 /// fluid page from its rack dialog: there too it is drawn as its positions, another drawing of the same terminal.
 #[test]
 fn a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {

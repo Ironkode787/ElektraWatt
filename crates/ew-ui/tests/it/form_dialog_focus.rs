@@ -363,7 +363,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         let id = record(&h, role);
         checked.insert(check_form(&mut h, action, json!({ param: id })));
     }
-    // Fluid ▸ Valve terminal… on a fluid page while a terminal made as a station is drawn on none (rc.2).
+    // Fluid ▸ Valve terminal… on a fluid page while a terminal made as a station is drawn on none.
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-VTM-1"}));
     dispatch(&mut h, "plc.rack_create", json!({}));
@@ -371,7 +371,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     goto(&mut h, "203");
     checked.insert(check_form(&mut h, "fluid.valve_terminal", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
-    // Draw the plug… and Draw solenoid 14… from the fluid page: the page they are drawn on is asked (rc.2), for a
+    // Draw the plug… and Draw solenoid 14… from the fluid page: the page they are drawn on is asked, for a
     // multipin terminal and a stand-alone valve placed on a new fluid page, by their menus' entries.
     dispatch(
         &mut h,
@@ -412,7 +412,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!({}));
     }
     dispatch(&mut h, "select.set", json!({ "ids": [] }));
-    // Put a station on this page… on a bus page while a station with a bus interface is drawn on none (rc.2).
+    // Put a station on this page… on a bus page while a station with a bus interface is drawn on none.
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(
         &mut h,
@@ -443,7 +443,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
                 .map(|n| n.key.clone())
         })
         .expect("a device row");
-    // Give location… on a layout page offers the devices drawn without a location: a push-button on a new page (rc.5).
+    // Give location… on a layout page offers the devices drawn without a location: a push-button on a new page.
     dispatch(
         &mut h,
         "page.new",
@@ -469,7 +469,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     ] {
         checked.insert(check_form(&mut h, action, json!({})));
     }
-    // Location… on a marked Devices row (rc.2).
+    // Location… on a marked Devices row.
     dispatch(
         &mut h,
         "navigator.mark",

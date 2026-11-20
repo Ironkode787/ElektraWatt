@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor's screen through the window (rc.3): what a person learned on a page works on its drawing (a
+//! The symbol editor's screen through the window: what a person learned on a page works on its drawing (a
 //! selection rectangle, the arrow keys whatever was clicked last, Select all, Delete, the clipboard), its panels show
 //! the same selection, and a part's device box is laid out with the pointer.
 

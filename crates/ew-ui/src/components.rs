@@ -1166,7 +1166,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
 
 /// The "Preview open" strip of a bulk command's card ([`card_strip`]: Update… of the Libraries pane, Delete of a page)
 /// in the pane where such an action starts, inset `space.4` like the pane's tool line, so a person who never looks at
-/// the Preview tab can apply or cancel there (the owner's test of 0.3.0-rc.1). Nothing for another card or none.
+/// the Preview tab can apply or cancel there. Nothing for another card or none.
 pub(crate) fn bulk_strip(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(card) = shell
         .properties()

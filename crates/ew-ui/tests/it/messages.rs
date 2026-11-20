@@ -191,7 +191,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
         h.state().shell().nav_cursor(NavKind::Messages).as_deref(),
         order.last().map(String::as_str)
     );
-    // EF-08: a warning row (rc.3) named with its severity; the detail block names its rule; the Rule page link opens the
+    // EF-08: a warning row named with its severity; the detail block names its rule; the Rule page link opens the
     // rule's page of the installed user guide.
     let ef08 = finding(&h, "EW-CORE-033", "-3W1");
     dispatch(

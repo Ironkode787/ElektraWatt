@@ -418,7 +418,7 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
     d.shell_mut().shutdown();
 }
 
-/// The Potential panel stands at marks of the page it opened on, as the project stood (rc.5): an Undo closes it, so
+/// The Potential panel stands at marks of the page it opened on, as the project stood: an Undo closes it, so
 /// does a change of page; and an Enter after the marks were deleted defines nothing and says so in words, never "the
 /// device".
 #[test]

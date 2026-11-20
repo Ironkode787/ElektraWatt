@@ -5,10 +5,10 @@
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred in the band at the foot of the page view
 //! ([`strip_height`]): the active tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and
 //! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys) with the
-//! ways on it names as buttons at the pill's end (a layout page's Unplaced devices, rc.5). It
+//! ways on it names as buttons at the pill's end (a layout page's Unplaced devices). It
 //! never takes the keyboard focus and it stays where it is, so its buttons can be reached (moving away from the
 //! pointer put them out of reach, FT-1639). It floats over the canvas: its own rounded shape with a shadow and
-//! nothing behind it, the drawing visible to its edge (rc.3: the strip of its own that FT-1656 gave it, so that it
+//! nothing behind it, the drawing visible to its edge (the strip of its own that FT-1656 gave it, so that it
 //! did not cover the title block, cut the drawing off instead; the page pans under it). Its buttons show the
 //! hover and the press in a light overlay on the dark surface, and a quick tool that is the active tool shows it is
 //! on.
@@ -75,7 +75,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         + measure(&h.tool_label, theme::font(&small_strong(&t))).x
         + t.space_3;
     let prompt_size = measure(&h.prompt, theme::font(&t.type_small));
-    // The prompt's buttons (rc.5), at the pill's end: each its words with `space.3` at either side, `space.1` apart.
+    // The prompt's buttons, at the pill's end: each its words with `space.3` at either side, `space.1` apart.
     let button_widths: Vec<f32> = h
         .buttons
         .iter()

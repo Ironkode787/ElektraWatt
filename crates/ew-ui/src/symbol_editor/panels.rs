@@ -89,7 +89,7 @@ pub(super) fn list_row_sensing(
     components::focus_ring(ui, &response, t.radius_sm);
     let left = rect.left() + t.size_tree_indent + t.space_2;
     // The name is what the row is: it takes its width first (up to most of the row), the detail gives way to it
-    // (rc.3: a part's number was cut for its description).
+    // (a part's number was cut for its description).
     let width = rect.right() - t.space_3 - left;
     let mut job = egui::text::LayoutJob::simple_singleline(
         name.to_owned(),

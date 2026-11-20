@@ -271,7 +271,7 @@ fn filter(ui: &mut Ui, picker: &Picker, focus: bool, pane: Pane, events: &mut Ve
 
 /// The tree: All, In this project, then the library's heading with its categories and Other under it, each node with
 /// its count of hits; the chosen node selected. The library is a group of its own beside In this project, so that its
-/// categories do not read as the project's (rc.5).
+/// categories do not read as the project's.
 fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<Event>) {
     ScrollArea::vertical()
         .id_salt("picker-tree")
@@ -415,7 +415,7 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
             } else {
                 s.name.clone()
             };
-            // What the symbol is for, in the ratings column (rc.2, F9): "Pneumatic", "Electrical".
+            // What the symbol is for, in the ratings column: "Pneumatic", "Electrical".
             let rating = s
                 .discipline
                 .as_ref()
@@ -472,7 +472,7 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
                 library: String::new(),
             }
         }
-        // The position's blanking plate (rc.2): what it does, in the ratings column.
+        // The position's blanking plate: what it does, in the ratings column.
         PickerRow::Blank => RowTexts {
             name: strings::text(key!("picker-blank")).to_owned(),
             number: String::new(),

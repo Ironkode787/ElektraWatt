@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The station view's To do run to its end on every station kind (rc.5, H2), by the window's own path at 1920 × 1080:
+//! The station view's To do run to its end on every station kind, by the window's own path at 1920 × 1080:
 //! each line's button clicked, a page chosen where it asks, the box put down where it hangs on the pointer. Every
 //! side of a station (its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on a
 //! fluid page) lands on a page of its kind, and no step ends in a refusal.

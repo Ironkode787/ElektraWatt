@@ -261,7 +261,7 @@ fn properties_main_first_and_advanced_on_demand() {
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     assert!(h.query_all_by_label("edit").next().is_none(), "no edit buttons");
     let main = h.get_by_role_and_label(egui::Role::Button, "Main").rect();
-    // More (rc.2) is the last group.
+    // More is the last group.
     let more = h.get_by_role_and_label(egui::Role::Button, "More").rect();
     assert!(main.top() < more.top(), "Main first");
     let groups = |h: &Harness<'_, App>| h.get_all_by_role(egui::Role::Group).count();

@@ -254,7 +254,7 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
             ("FT1657".to_owned(), "target".to_owned())
         ]
     );
-    // The pair stands and the name stays in the field (rc.5): the next click is one more place its source feeds.
+    // The pair stands and the name stays in the field: the next click is one more place its source feeds.
     assert_eq!(h.state().shell().ip_typed_name(), Some("FT1657"));
     assert_eq!(name_field_text(&h).as_deref(), Some("FT1657"));
     assert_eq!(ghost_name(&h), "FT1657");

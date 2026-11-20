@@ -520,7 +520,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     wait_for_page(&mut h);
     assert_eq!(h.state().shell().current_folio(), Some("201"));
     // On the page its symbol, selected by Go to, offers the same entries (but Go to and Properties, which the page's
-    // general entries hold, and Location…, the Devices list's own for many devices at once, rc.2).
+    // general entries hold, and Location…, the Devices list's own for many devices at once).
     let page: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
         .into_iter()
         .map(|i| i.label)

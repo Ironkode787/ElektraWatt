@@ -331,7 +331,7 @@ pub struct App {
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (tests).
     focus_repaints: u64,
-    /// When the New project dialog's folders were last read again, on the window's clock (rc.5).
+    /// When the New project dialog's folders were last read again, on the window's clock.
     new_project_checked: f64,
     /// When the project on disk was last polled for an external change, on the window's clock, and the
     /// time to the next poll in seconds.
@@ -664,7 +664,7 @@ impl App {
     ///
     /// Any other refusal is said where the person looks ([`ShellModel::say_refusal`]: beside the open dialog's buttons,
     /// else in a toast and the status line), unless the step said it on screen itself (`said`: a banner, a toast, the
-    /// HUD's notice, the dialog's own line) or one of the places above shows it (rc.3: a button that is not greyed
+    /// HUD's notice, the dialog's own line) or one of the places above shows it (a button that is not greyed
     /// and was refused stayed silent).
     fn report(&mut self, outcome: Outcome, action: Option<&str>, said: bool) {
         if self.shell.nav_rename_error().is_some() {
@@ -941,7 +941,7 @@ impl App {
         self.shell.poll_jobs();
         let now = ctx.input(|i| i.time);
         // The New project dialog reads its folders again when the window regains the focus and once a second, so
-        // that a folder made outside meanwhile is seen (rc.5); not every frame.
+        // that a folder made outside meanwhile is seen; not every frame.
         if matches!(
             self.shell.dialog(),
             Some(ew_viewmodel::shell::Dialog::NewProject(_))
@@ -1064,7 +1064,7 @@ impl App {
                 command_bar.show(ui, shell, &mut events, &mut self.symbol_editor_view)
             });
         // An open template says so in a band across the window, under the command bar: it cannot be mistaken for a
-        // project (G1 of the rc.2 test). The band takes its own room, so it covers no drawing.
+        // project. The band takes its own room, so it covers no drawing.
         let template = (self.shell.first_run().is_none()
             && self.shell.wizard().is_none()
             && self.shell.symbol_editor().is_none())
@@ -1219,7 +1219,7 @@ impl App {
                     PaneKind::PageView => {
                         // The canvas takes the whole pane (doc 16a §5.5): the HUD, the zoom control and the tool
                         // options float over it, each its own rounded shape with a shadow and nothing behind it
-                        // (rc.3: a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
+                        // (a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
                         // the HUD, the zoom control and the tool options stay away from it (below).
                         let full = ui.max_rect();
                         let split = (full.bottom() - crate::hud::strip_height(&tokens)).max(full.top());
@@ -1576,7 +1576,7 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return;
         }
-        // So are Enter and Escape with a station view's tag field open: they take or leave the tag (rc.5, H14).
+        // So are Enter and Escape with a station view's tag field open: they take or leave the tag.
         if self.shell.station_tab().is_some_and(|t| t.rename.is_some())
             && ctx.input(|i| i.key_pressed(Key::Escape) || i.key_pressed(Key::Enter))
         {
@@ -1778,7 +1778,7 @@ impl App {
                 _ => {}
             }
         }
-        // Ctrl+V with the focus in a navigator's list (no table) pastes onto the page shown (rc.5: after a page was
+        // Ctrl+V with the focus in a navigator's list (no table) pastes onto the page shown (after a page was
         // opened from the page list, Ctrl+V did nothing and said nothing).
         if focused == Context::Navigator && !palette_open {
             let paste = ctx.input_mut(|i| {
@@ -1905,7 +1905,7 @@ impl App {
         // where the letters were lost and Enter placed a point at the grid cursor: the persona round before 0.2.0.)
         // Chosen by its key with the pointer on the sheet (or with no pointer in the window), the keys stay with the
         // tool, so D turns the direction.
-        // Noted every frame (rc.5: noted only while the tool ran, so the tool chosen a second time kept the keys
+        // Noted every frame (noted only while the tool ran, so the tool chosen a second time kept the keys
         // from the name).
         let was_shown = std::mem::replace(&mut self.ip_shown, ip);
         let ip_focus = ip && !was_shown && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));

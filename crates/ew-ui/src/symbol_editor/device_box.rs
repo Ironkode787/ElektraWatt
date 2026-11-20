@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box on the symbol editor's screen (rc.3, doc 07 §2.5): on the left the pin table (name, what the pin
+//! The device box on the symbol editor's screen (doc 07 §2.5): on the left the pin table (name, what the pin
 //! carries, its edge; a row dragged onto another takes its place; Add pin), in the middle the box as a device of the
 //! part is drawn, on the right Properties of the selected pins or of the part and its box. A pin is dragged along
 //! its edge or onto another one, any edge or corner of the box is dragged to size it; the page's keys act on the

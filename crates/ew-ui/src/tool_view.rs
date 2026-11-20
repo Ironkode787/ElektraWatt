@@ -305,7 +305,7 @@ pub(crate) fn ip_fields(
     let label = strings::text(key!("action-ip-name")).to_owned();
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
     // The tool was just chosen from the bar: the name takes the keys (`focus`, see the caller), selected, so that what
-    // is typed replaces a name standing from before (rc.5: "24V" typed after "0V" stood).
+    // is typed replaces a name standing from before ("24V" typed after "0V" stood).
     if focus {
         edit.request_focus();
         let mut state = egui::text_edit::TextEditState::load(ui.ctx(), id).unwrap_or_default();
@@ -329,7 +329,7 @@ pub(crate) fn ip_fields(
             serde_json::json!({ "text": name.trim() }),
         ));
     }
-    // Source | Target as two choices (rc.2 persona run: D alone was learnt from a toast); D still toggles.
+    // Source | Target as two choices (D alone was learnt from a toast); D still toggles.
     if let Some(direction) = direction {
         let choices = [
             ("source", key!("ip-choice-source")),
@@ -552,7 +552,7 @@ pub(crate) fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Op
             );
         }
         // A click on the shown choice says it too: the IP tool shows a proposed direction until one is chosen, and a
-        // click on Target that the tool already proposed must choose it (rc.5: the next point at a pin turned source).
+        // click on Target that the tool already proposed must choose it (the next point at a pin turned source).
         if response.clicked() {
             clicked = Some(i);
         }

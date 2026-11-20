@@ -311,7 +311,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     wait_for_preview(&mut h);
 
     // The review lists what goes into the template, the check level too, and where Create makes it; Choose another
-    // folder… puts it elsewhere, and Create writes it with no question after it (G2 of the rc.2 test).
+    // folder… puts it elsewhere, and Create writes it with no question after it.
     h.get_by_label("10. Review and create").click();
     settle(&mut h);
     assert!(h.query_all_by_label("in the template").count() > 0);

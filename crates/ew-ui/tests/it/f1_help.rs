@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 in the window opens the help for what is under the pointer (rc.3): a button of the command bar its command's
+//! F1 in the window opens the help for what is under the pointer: a button of the command bar its command's
 //! section, a wire on the page the wires', a row of Properties its row's place in the properties reference. While the
 //! pointer rests there the status bar says what F1 opens, and the button's tooltip ends with "F1: help".
 

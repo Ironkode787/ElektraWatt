@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor's drawing. What a person learned on a page works here (rc.3): a click selects, Shift adds and
+//! The symbol editor's drawing. What a person learned on a page works here: a click selects, Shift adds and
 //! Ctrl toggles; a drag from empty paper is a selection rectangle, to the right the things inside it, to the left
 //! those it touches (a shape that is not filled is touched and grabbed by its line, a filled one by its face); a drag
 //! on a thing moves the selection by the grid step, with a ghost of where it lands; a

@@ -49,11 +49,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
             // Named for assistive technology (and the tests), as the tool strip's fields are.
             let label = strings::text(key!("action-text-input")).to_owned();
             edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-            // A name the tool could not take keeps the field focused, to type on at once (rc.5).
+            // A name the tool could not take keeps the field focused, to type on at once.
             if first || (popup.error.is_some() && !edit.has_focus()) {
                 edit.request_focus();
             }
-            // Why the text cannot be taken, whole, under the field, which stays open to type on (rc.5).
+            // Why the text cannot be taken, whole, under the field, which stays open to type on.
             if let Some(why) = &popup.error {
                 ui.add(egui::Label::new(egui::RichText::new(why).color(ui.visuals().error_fg_color)).wrap());
             }
@@ -64,7 +64,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
             if finish {
                 events.push(Event::Action("tool.finish", json!({})));
             }
-            // A box's pins: Tab takes the name and asks for the next pin of the side (rc.5).
+            // A box's pins: Tab takes the name and asks for the next pin of the side.
             if popup.tab_next && edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Tab)) {
                 events.push(Event::Action("text.input", json!({ "text": text.clone() })));
                 events.push(Event::Action("tool.next_proposal", json!({})));

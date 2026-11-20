@@ -1001,7 +1001,7 @@ struct GroupView {
     menu_at: Option<Pos2>,
     /// The connection point the open context menu was opened over (its ID): the menu marks it not used or used.
     menu_cp: Option<ew_viewmodel::ew_api::output::Uuid>,
-    /// The sheet point a right-click opened the menu at: a valve terminal's cell there offers its entries (rc.2).
+    /// The sheet point a right-click opened the menu at: a valve terminal's cell there offers its entries.
     menu_point: Option<(i64, i64)>,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
@@ -1525,7 +1525,7 @@ impl CanvasHost {
         Self::supply_panel(&response, shell, canvas, group, events);
         Self::list_foot(&response, shell, canvas, group, events);
         // A text of the one selected symbol can be grabbed and dragged on its own (doc 06 §2.5).
-        // So can a layout label that drags alone (rc.2).
+        // So can a layout label that drags alone.
         if response.hovered()
             && shell.tool().name() == "select"
             && (shell.text_under_pointer().is_some() || shell.label_under_pointer())
@@ -1543,7 +1543,7 @@ impl CanvasHost {
                 GripMove::Free => egui::CursorIcon::Move,
             });
         }
-        // A grip of the selected box: the pointer says which way a drag resizes it, before the press (rc.5).
+        // A grip of the selected box: the pointer says which way a drag resizes it, before the press.
         if response.hovered()
             && let Some(way) = shell.box_grip_under_pointer()
         {
@@ -2171,7 +2171,7 @@ impl CanvasHost {
             });
     }
 
-    /// The row under the last row of a list that runs on (rc.5, `ShellModel::list_foot`: a persona read a parts list's
+    /// The row under the last row of a list that runs on (`ShellModel::list_foot`: a persona read a parts list's
     /// first page as the whole list): one row of the table as wide as it, its outline in `color.accent` on
     /// `color.accent.subtle`, "The list continues on page 901.1 ›" in the table's text size, a click on it goes there.
     /// The window's own (the printed page has its title block's Next); on the focused canvas.
@@ -2441,7 +2441,7 @@ impl CanvasHost {
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
-        // A station's or a bus device's row dropped on this canvas puts it on the bus page at the drop point (rc.2).
+        // A station's or a bus device's row dropped on this canvas puts it on the bus page at the drop point.
         if let Some(pos) = dropped
             && rect.contains(pos)
             && egui::DragAndDrop::has_payload_of_type::<crate::navigator::StationDrag>(ui.ctx())

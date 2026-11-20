@@ -283,7 +283,7 @@ fn the_new_station_view_offers_a_device_on_the_bus() {
 }
 
 /// The rc.2 persona run: in a project without a bus-topology page the station's bus side goes onto a new one, asking
-/// nothing, which is shown with the station's port on the pointer; with bus pages the button asks which (rc.5, H2: a
+/// nothing, which is shown with the station's port on the pointer; with bus pages the button asks which (a
 /// side lands on the page the person picks), and the one chosen is shown.
 #[test]
 fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
@@ -709,7 +709,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
         expected,
         "the modules in slot order from the foot, the station above them"
     );
-    // The boxes' captions (tags, part numbers) stand inside the frame's drawing area, off its column numbers (rc.3).
+    // The boxes' captions (tags, part numbers) stand inside the frame's drawing area, off its column numbers.
     {
         let shell = h.state().shell();
         let page = shell.canvas().expect("page 101").page();

@@ -159,7 +159,7 @@ pub(crate) fn chooser(
                             events.push(Event::Action("part.favourite", json!({ "index": i + 1 })));
                         }
                         let mut job = egui::text::LayoutJob::default();
-                        // A cable part that does not fit the cable is greyed, its reason among the badges (rc.3).
+                        // A cable part that does not fit the cable is greyed, its reason among the badges.
                         let misfit = c.misfits.get(i).cloned().flatten();
                         let (primary, secondary) = if misfit.is_some() {
                             (t.text_tertiary, t.text_tertiary)
@@ -387,7 +387,7 @@ fn labelled_field(
 }
 
 /// The identity fields and the technical data of a draft, each field's message under it; `true` when Enter was
-/// pressed in a field. A new cable type's small form (rc.3) shows its maker, its type and its part number only.
+/// pressed in a field. A new cable type's small form shows its maker, its type and its part number only.
 fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) -> bool {
     let d = &e.draft;
     let t = theme::current(ui.ctx());
@@ -402,7 +402,7 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
             ui.label(RichText::new(symbol).color(t.text_secondary.color32()));
         });
     }
-    // A new cable type, bus cable or plug (rc.3, rc.5) asks its maker, its type or name and its part number only.
+    // A new cable type, bus cable or plug asks its maker, its type or name and its part number only.
     let small_form = e.cable_type || e.bus_part.is_some();
     let small = ["manufacturer", "type_designation", "part_number"];
     let fields: Vec<&str> = if small_form {
@@ -604,14 +604,14 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         area = area.vertical_scroll_offset(0.0);
     }
     area.show(ui, |ui| {
-        // A cable part of one's own (New cable type…, rc.3): its identity, then the cable section; a cable has no
+        // A cable part of one's own (New cable type…): its identity, then the cable section; a cable has no
         // pins, PLC role, bus interface or size.
         if (d.new || d.own) && d.text("kind") == "cable" {
             save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
             save |= cable_section(ui, d, events);
         } else if let Some(plug) = e.bus_part.filter(|b| b.plug) {
-            // New plug… (rc.5): its identity, then its bus, its cable outlet, its socket and its resistor.
+            // New plug…: its identity, then its bus, its cable outlet, its socket and its resistor.
             save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
             plug_section(ui, d, plug, events);
@@ -705,7 +705,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     }
 }
 
-/// The part's pins (rc.3): each with its name and the potential it carries, added and removed here, and Pins and
+/// The part's pins: each with its name and the potential it carries, added and removed here, and Pins and
 /// box…, which opens the device box on the symbol editor's screen to say where they stand. A part whose pins come
 /// from its channels, its ports or its symbol lists them, with the sentence that says where they come from.
 fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) {
@@ -981,7 +981,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     save
 }
 
-/// The cable section of a cable part (rc.3, New cable type…): the number of cores, the cross-section, with or without
+/// The cable section of a cable part (New cable type…): the number of cores, the cross-section, with or without
 /// a protective conductor, how the cores are marked (with the own marking a row of core and colour per core), shielded
 /// or not and the outer diameter, each field's message under it, and the cable as it will read. `true` when Enter was
 /// pressed in a field.
@@ -1004,7 +1004,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
             json!({ "field": field, "value": value }),
         ));
     };
-    // The bus the cable is made for (rc.5): choosing one fills its cores as the bus has them.
+    // The bus the cable is made for: choosing one fills its cores as the bus has them.
     let buses: Vec<String> = std::iter::once(String::new())
         .chain(ew_viewmodel::ew_api::bus_words())
         .collect();
@@ -1126,7 +1126,7 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
     save
 }
 
-/// A new plug's own section (rc.5): the bus it is for, its cable outlet straight or angled, with or without a
+/// A new plug's own section: the bus it is for, its cable outlet straight or angled, with or without a
 /// programming socket, with or without a switchable terminating resistor. The description follows them.
 fn plug_section(
     ui: &mut Ui,

@@ -525,7 +525,7 @@ fn type_tag(h: &mut Window, field: &str, text: &str) {
 
 /// H14 of the rc.4 test: a station made in its view got a tag by itself, and it could not be changed there. A click
 /// on the tag in the header opens it in place; Enter takes the tag typed through the Tag row's own path, with the
-/// station's cards that follow its tag (rc.5: no Apply is left waiting, no line asks for one). F2 on a card opens the
+/// station's cards that follow its tag (no Apply is left waiting, no line asks for one). F2 on a card opens the
 /// card's tag in its row; a tag another device has is refused in a sentence under the rack, the field staying open on
 /// the text as typed; Escape leaves the tag as it was.
 #[test]

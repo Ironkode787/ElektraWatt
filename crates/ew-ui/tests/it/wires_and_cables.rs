@@ -501,8 +501,8 @@ fn cable_makes_the_selected_wires_a_cable_in_one_step() {
     let steps = d.shell_mut().recorded_commands().len();
     d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
     d.settle();
-    // The cable type comes first: the starter cables that fit two wires, a two-core one first and chosen
-    // (rc.3); typing a size instead makes a cable without a part.
+    // The cable type comes first: the starter cables that fit two wires, a two-core one first and chosen;
+    // typing a size instead makes a cable without a part.
     match d.shell_mut().dialog() {
         Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             let part = &f.fields[0];
@@ -587,7 +587,7 @@ fn cable_makes_the_selected_wires_a_cable_in_one_step() {
         };
         assert_eq!(text("connection/kind"), "-1W1 BN");
     }
-    // The cable's mark is on the page at once, nobody placed it (rc.3): one line over both wires, the cable's tag,
+    // The cable's mark is on the page at once, nobody placed it: one line over both wires, the cable's tag,
     // its type line under it, and each core's name beside its own wire.
     let t = tables(&mut d);
     let marks: Vec<_> = t.items.iter().filter(|i| i.kind == "wire_marker").collect();
@@ -845,7 +845,7 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
     d.settle();
     d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
     d.settle();
-    // The type: the cable part chosen for the wires (rc.3), else the size proposed; with a PE wire a G type.
+    // The type: the cable part chosen for the wires, else the size proposed; with a PE wire a G type.
     let type_text = |d: &mut Driver| match d.shell_mut().dialog() {
         Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             let part = f.fields.iter().find(|x| x.name == "part");

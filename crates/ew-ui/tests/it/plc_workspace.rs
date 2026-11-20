@@ -632,7 +632,7 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
             .count();
         assert_eq!(places, 2, "{tag}: a card and a row");
     }
-    // Each sub-base lists its valve positions as rows (rc.2).
+    // Each sub-base lists its valve positions as rows.
     assert!(h.query_all_by_label_contains("Position 1").count() >= 7);
     let shown = h.state().shell().station_shown().expect("the view");
     assert!(

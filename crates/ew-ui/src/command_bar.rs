@@ -888,7 +888,7 @@ impl CommandBarHost {
                     let r = Rect::from_min_size(pos2(x, row.top()), vec2(*w, t.size_tab_row));
                     x = r.right();
                     let active = *tab == model.tab;
-                    // Without a project a tab that needs one is greyed with its reason (rc.3).
+                    // Without a project a tab that needs one is greyed with its reason.
                     let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab)
                         .filter(|_| shell.symbol_editor().is_none());
                     let enabled = reason.is_none();

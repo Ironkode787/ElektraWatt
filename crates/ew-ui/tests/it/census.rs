@@ -1139,7 +1139,7 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
 
-/// The symbol editor's screen (rc.3): the start card and its lists; the outline, the drawing and Properties with
+/// The symbol editor's screen: the start card and its lists; the outline, the drawing and Properties with
 /// nothing selected (More open), with a shape, a connection point and a text field selected, and with several things;
 /// and a part's device box with a pin selected.
 #[test]

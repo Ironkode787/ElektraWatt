@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor's screen (rc.3, doc 07 §5): the main window's command bar with the drawing tools; on the left
+//! The symbol editor's screen (doc 07 §5): the main window's command bar with the drawing tools; on the left
 //! the outline of what is edited, in the middle the drawing, on the right Properties, as in the main window. With
 //! nothing in hand it shows a start card: the ways in. A part's device box is edited on the same screen
 //! ([`device_box`]). Every edit dispatches the shared headless actions.
@@ -92,7 +92,7 @@ pub(crate) struct EditorView {
     /// Properties (FT-1714).
     pub(crate) toast_corner: Option<Pos2>,
     /// The outline as made for the draft's generation and revision, the language and the discipline: a frame or a
-    /// pointer move draws it, a change of the draft makes it again (rc.5, H11).
+    /// pointer move draws it, a change of the draft makes it again.
     outline: Option<(
         OutlineKey,
         std::rc::Rc<ew_viewmodel::shell::symbol_editor::Outline>,
@@ -113,7 +113,7 @@ type StartRows = Vec<(usize, String, String)>;
 
 /// The rows of a start card's list as `key` names them: made by `make` when the list, the filter or the language
 /// changed since they were made, else those made then. A frame or a pointer move lays out the rows on show only, and
-/// does not word every symbol or part of the libraries again (rc.5, H11).
+/// does not word every symbol or part of the libraries again.
 fn start_rows(
     cache: &mut Option<(StartKey, std::rc::Rc<StartRows>)>,
     (list, generation, len, filter): (&'static str, u64, usize, String),
@@ -750,7 +750,7 @@ impl EditorView {
                         match editor.tool {
                             "cp" => {
                                 field(ui, "symbol-designation", &mut self.designation, 3.0 * t.size_row);
-                                // The first follows the lead the point ends (rc.3: a point always faced left).
+                                // The first follows the lead the point ends (a point always faced left).
                                 let words = [
                                     "symbol-direction-lead",
                                     "symbol-up",
@@ -1035,7 +1035,7 @@ impl EditorView {
         }
     }
 
-    /// The start card (rc.3): with nothing in hand the editor shows the ways in, not an empty drawing with thirteen
+    /// The start card: with nothing in hand the editor shows the ways in, not an empty drawing with thirteen
     /// tools.
     fn start_card(
         &mut self,
@@ -1046,7 +1046,7 @@ impl EditorView {
         events: &mut Vec<Event>,
     ) {
         let t = theme::current(ui.ctx());
-        // A third of a wide window: the lists of parts and symbols use the room of 2560 points (rc.3).
+        // A third of a wide window: the lists of parts and symbols use the room of 2560 points.
         let width = crate::dialog::grown(t.size_dialog_form, 1.0 / 3.0, full.width())
             .min(full.width() - 2.0 * t.space_6);
         let card = Rect::from_min_size(

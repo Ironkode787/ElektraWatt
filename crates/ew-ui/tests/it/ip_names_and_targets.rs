@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Interruption tool as a draughtsman carries a supply to several places (the persona round of 0.3.0-rc.5): the
+//! The Interruption tool as a draughtsman carries a supply to several places: the
 //! name in the field wins, one source feeds every target of its name, and the HUD says before the click which of the
 //! two the next click places. A mark dropped on a pin or beside it joins it, a mark left beside a pin is said, and
 //! the check offers to join the two.

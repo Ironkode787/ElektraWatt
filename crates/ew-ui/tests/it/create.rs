@@ -70,7 +70,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     // The navigator's button and the dialog's title.
     assert_eq!(h.query_all_by_label("New page").count(), 2);
     // The folio field holds the proposal for a multi-line page: the first free folio of the section that holds the
-    // multi-line pages, never one in the front matter that page 1 stands in (rc.5).
+    // multi-line pages, never one in the front matter that page 1 stands in.
     assert_eq!(form_values(&h)[0], ("folio".into(), "107".into()));
     // Folio 999 stands in no section: the section the proposal chose is cleared.
     h.state_mut().shell_mut().set_form_field("section", "");

@@ -220,7 +220,7 @@ fn browser_rows(d: &mut Driver) -> (Vec<String>, Vec<Node>) {
 
 /// The device browser's rows stay where they were once a part is used (the persona's second click hit the row that
 /// had moved into the used part's place): a placed relay keeps its row. The tree has In this project once the project
-/// holds a part, and not before (rc.5: the owner read the library's groups as part of it); the rest stays.
+/// holds a part, and not before (the owner read the library's groups as part of it); the rest stays.
 #[test]
 fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
     let tmp = Tmp::new();

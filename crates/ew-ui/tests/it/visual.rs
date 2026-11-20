@@ -1079,7 +1079,7 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
         project.contains("Example Panels") && project.contains("ew.en60204-1-machine"),
         "{project}"
     );
-    // The check level is in the template: Create in the window writes it (G2 of the rc.2 test).
+    // The check level is in the template: Create in the window writes it.
     assert!(project.contains("\"release_scheme\""), "{project}");
     d.shell_mut().shutdown();
 }

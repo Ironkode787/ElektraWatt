@@ -79,7 +79,7 @@ fn the_device_browser_shows_a_parts_data_and_a_placed_device_links_them() {
         .find(|(l, _)| l == "Part details")
         .expect("the device's Properties link Part details")
         .1;
-    // Opened, the card scrolls with the rows under it: the wheel over it brings up what stood below (rc.3: the
+    // Opened, the card scrolls with the rows under it: the wheel over it brings up what stood below (the
     // panel did not scroll and cut off its foot).
     d.input(&Input::Click {
         at: link,
