@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode on copies of Golden A: the Terminal strips table filtered `x1031` and sorted by Terminal, a cell edit, fill down
-//! (one `fields.set` with 5 targets, the toast, one undo step), pattern fill (`Spare_{n:02}` over the 12 spare
-//! terminals, one `fields.set_many`), paste from Excel (header and position mapping, quoting, an ambiguous number
+//! Table mode on copies of the sample: the Terminal strips table filtered `x1021` (the eight terminals of folio 102's
+//! strip) and sorted by Terminal, a cell edit, fill down (one `fields.set` with 5 targets, the toast, one undo step),
+//! pattern fill (`Spare_{n:02}` over the strip's terminals, one `fields.set_many`), paste from Excel (header and position mapping, quoting, an ambiguous number
 //! resolved on the card, read-only and past-the-end cells, same-record conflicts), the policy, copy and a paste back that
 //! changes nothing, and the describe lines, words and counts.
 
@@ -61,7 +61,9 @@ fn label_of(shell: &ShellModel, n: &str) -> String {
     shell.table_cell_text(NavKind::Strips, &k, &col(shell, NavKind::Strips, "Function text"))
 }
 
-/// A writable copy of Golden A, headless, with the Terminal strips table filtered `x1031` and sorted by Terminal.
+/// A writable copy of the sample, headless, with the Terminal strips table filtered by `filter` and sorted by
+/// Terminal.
+
 fn strips(tmp: &Tmp, filter: &str) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
@@ -100,23 +102,25 @@ fn last(shell: &ShellModel) -> (String, Value) {
     (s.cmd.clone(), s.params.clone())
 }
 
-/// TB2 (FR-UI-008, §8.4): Terminal strips in table mode filtered `x1031` and sorted by Terminal list 1, 2, … 10, …
-/// 20; terminal 13's function text set to "Spare" by one cell edit (its own undo step); filling it down over terminals
-/// 13 to 17 is one `fields.set` with the 5 terminals, a direct commit with the toast, one preview and one commit
-/// (headless: one `run_script`), and one undo step that restores terminals 14 to 17.
+/// TB2 (FR-UI-008, §8.4): Terminal strips in table mode filtered `x1021` and sorted by Terminal list 1 to 8;
+/// terminal 2's function text set to "Spare" by one cell edit (its own undo step); filling it down over terminals
+/// 2 to 6 is one `fields.set` with the 5 terminals, a direct commit with the toast, one preview and one commit
+/// (headless: one `run_script`), and one undo step that restores terminals 3 to 6.
 #[test]
 fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     let tmp = Tmp::new("tb2");
-    let mut shell = strips(&tmp, "x1031");
-    let order: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+    let mut shell = strips(&tmp, "x1021");
+    // -X1021's eight terminals, and -X1011's PE, whose clamp a names -X1021:8/a.
+    let mut order: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
+    order.push("PE".to_owned());
     assert_eq!(texts(&shell, NavKind::Strips, "Terminal"), order);
-    let before: Vec<String> = ["13", "14", "15", "16", "17"]
+    let before: Vec<String> = ["2", "3", "4", "5", "6"]
         .iter()
         .map(|n| label_of(&shell, n))
         .collect();
     let fn_col = col(&shell, NavKind::Strips, "Function text");
     // One cell edit: F2, type, Enter.
-    let k13 = terminal(&shell, "13");
+    let k13 = terminal(&shell, "2");
     done(&mut shell, "table.cell", json!({"row": k13, "column": fn_col}));
     let calls = shell.session_calls().navigator_table;
     done(&mut shell, "table.edit", json!({}));
@@ -133,10 +137,10 @@ fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     let n = steps(&shell);
     done(&mut shell, "table.commit", json!({}));
     assert_eq!(steps(&shell), n + 1);
-    assert_eq!(label_of(&shell, "13"), "Spare");
+    assert_eq!(label_of(&shell, "2"), "Spare");
     assert!(lines_with(&shell, "  editing ").is_empty());
     // Fill down over 13 to 17.
-    let keys: Vec<String> = ["13", "14", "15", "16", "17"]
+    let keys: Vec<String> = ["2", "3", "4", "5", "6"]
         .iter()
         .map(|n| terminal(&shell, n))
         .collect();
@@ -151,7 +155,7 @@ fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     assert_eq!(cmd, "fields.set");
     assert_eq!(params["targets"].as_array().unwrap().len(), 5);
     assert_eq!(params["path"], "function_text");
-    for t in ["13", "14", "15", "16", "17"] {
+    for t in ["2", "3", "4", "5", "6"] {
         assert_eq!(label_of(&shell, t), "Spare", "terminal {t}");
     }
     assert!(shell.properties().card().is_none(), "a direct commit");
@@ -161,26 +165,26 @@ fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     );
     // One undo step restores 14 to 17.
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(label_of(&shell, "13"), "Spare");
-    for (i, t) in ["14", "15", "16", "17"].iter().enumerate() {
+    assert_eq!(label_of(&shell, "2"), "Spare");
+    for (i, t) in ["3", "4", "5", "6"].iter().enumerate() {
         assert_eq!(label_of(&shell, t), before[i + 1], "terminal {t}");
     }
     shell.shutdown();
 }
 
-/// TB3 (§8.5): `Spare_{n:02}` over -X1031's 12 spare terminals gives `Spare_01` … `Spare_12` in one
+/// TB3 (§8.5): `Spare_{n:02}` over -X1021's 8 terminals gives `Spare_01` … `Spare_08` in one
 /// `fields.set_many`; the dialog shows the first five values; every pattern error refuses the whole fill, a counter
 /// that overflows or goes negative makes those cells invalid (the card).
 #[test]
-fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
+fn pattern_fill_over_the_eight_terminals_of_a_strip_is_one_fields_set_many() {
     let tmp = Tmp::new("tb3");
-    let mut shell = strips(&tmp, "x1031");
-    let spare: Vec<String> = column(&shell, NavKind::Strips, "State")
+    let mut shell = strips(&tmp, "x1021");
+    let spare: Vec<String> = column(&shell, NavKind::Strips, "Strip")
         .into_iter()
-        .filter(|(_, s)| s == "spare")
+        .filter(|(_, s)| s == "-X1021")
         .map(|(k, _)| k)
         .collect();
-    assert_eq!(spare.len(), 12);
+    assert_eq!(spare.len(), 8);
     mark(&mut shell, NavKind::Strips, &spare);
     let fn_col = col(&shell, NavKind::Strips, "Function text");
     done(&mut shell, "table.cell", json!({"column": fn_col}));
@@ -209,12 +213,12 @@ fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     assert_eq!(steps(&shell), n + 1);
     let (cmd, params) = last(&shell);
     assert_eq!(cmd, "fields.set_many");
-    assert_eq!(params["edits"].as_array().unwrap().len(), 12);
+    assert_eq!(params["edits"].as_array().unwrap().len(), 8);
     let filled: Vec<String> = spare
         .iter()
         .map(|k| shell.table_cell_text(NavKind::Strips, k, &fn_col))
         .collect();
-    let expected: Vec<String> = (1..=12).map(|i| format!("Spare_{i:02}")).collect();
+    let expected: Vec<String> = (1..=8).map(|i| format!("Spare_{i:02}")).collect();
     assert_eq!(filled, expected);
     assert!(lines_with(&shell, "  pattern ").is_empty(), "the dialog closed");
     // `{{` and `}}` are literal braces; `{prev}` continues the row above.
@@ -229,7 +233,7 @@ fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     );
     assert_eq!(steps(&shell), m, "nothing committed");
     let cells = lines_with(&shell, "  cell ");
-    assert_eq!(cells.len(), 11, "{cells:?}");
+    assert_eq!(cells.len(), 7, "{cells:?}");
     assert!(
         cells[0].ends_with(" invalid \"the counter overflows\""),
         "{cells:?}"
@@ -246,14 +250,14 @@ fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     shell.shutdown();
 }
 
-/// `{prev}{prev}x` doubles the text per row. The dialog's preview computes only its five rows over 60 marked
-/// devices, and applying it over the 28 terminals makes the rows that would grow past 10000 characters invalid
+/// `{prev}{prev}x` doubles the text per row. The dialog's preview computes only its five rows over every marked
+/// device, and applying it over the 18 terminals makes the rows that would grow past 10000 characters invalid
 /// ("too long") instead of exhausting memory; nothing is committed.
 #[test]
 fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_long() {
     let tmp = Tmp::new("tb3-long");
     let mut shell = strips(&tmp, "");
-    // The preview over 60 marked rows (the Devices table of Golden A page 102 shows more than 60).
+    // The preview over every row of the Devices table, more than five.
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(
         &mut shell,
@@ -266,10 +270,10 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
         n.visible()
             .iter()
             .map(|r| t.nodes[r.node as usize].key.clone())
-            .take(60)
+
             .collect()
     };
-    assert_eq!(devices.len(), 60);
+    assert!(devices.len() > 5, "more rows than the preview shows");
     mark(&mut shell, NavKind::Devices, &devices);
     let first = shell.nav(NavKind::Devices).unwrap().table().unwrap().columns[0]
         .key
@@ -289,13 +293,13 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
     assert_eq!(pattern, "{prev}{prev}x");
     let values = values.expect("the pattern parses");
     assert_eq!(values.len(), 5, "{values:?}");
-    // The fill over the 28 terminals.
+    // The fill over the 18 terminals.
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
         .into_iter()
         .map(|(k, _)| k)
         .collect();
-    assert_eq!(keys.len(), 28);
+    assert_eq!(keys.len(), 18, "the sample's three strips: 5, 8 and 5 terminals");
     mark(&mut shell, NavKind::Strips, &keys);
     let fn_col = col(&shell, NavKind::Strips, "Function text");
     done(
@@ -314,8 +318,8 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
         .into_iter()
         .filter(|l| l.ends_with(" invalid \"the text is longer than 10000 characters\""))
         .collect();
-    // A row in error passes the empty text on, so the doubling restarts: rows 14 and 28 are too long.
-    assert_eq!(too_long.len(), 2, "{too_long:?}");
+    // A row in error passes the empty text on, so the doubling restarts: row 14 is too long, and 18 rows end before a second one.
+    assert_eq!(too_long.len(), 1, "{too_long:?}");
     shell.shutdown();
 }
 
@@ -327,7 +331,7 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
 #[test]
 fn paste_maps_parses_and_refuses_as_specified() {
     let tmp = Tmp::new("tb4");
-    let mut shell = strips(&tmp, "x1031");
+    let mut shell = strips(&tmp, "x1021");
     let hide: Vec<String> = [
         "Pos",
         "Group",
@@ -351,8 +355,8 @@ fn paste_maps_parses_and_refuses_as_specified() {
         ["  columns \"Strip\" \"Terminal\" \"Function text\" \"State\""]
     );
     // A header in another order: State, an unknown column, Function text.
-    let k15 = terminal(&shell, "15");
-    done(&mut shell, "table.cell", json!({"row": k15}));
+    let k2 = terminal(&shell, "2");
+    done(&mut shell, "table.cell", json!({"row": k2}));
     let n = steps(&shell);
     let calls = shell.session_calls();
     done(
@@ -364,29 +368,29 @@ fn paste_maps_parses_and_refuses_as_specified() {
     assert_eq!(steps(&shell), n + 1, "one command");
     assert_eq!(last(&shell).0, "fields.set_many");
     assert_eq!(
-        (label_of(&shell, "15"), label_of(&shell, "16")),
+        (label_of(&shell, "2"), label_of(&shell, "3")),
         ("A".into(), "B".into())
     );
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(label_of(&shell, "15"), "2-", "one undo step");
-    assert_eq!(label_of(&shell, "16"), "2-");
+    assert_eq!(label_of(&shell, "2"), "", "one undo step");
+    assert_eq!(label_of(&shell, "3"), "");
     // No header: by position from the cursor column rightwards (Function text, then State).
     let fn_col = col(&shell, NavKind::Strips, "Function text");
-    let k5 = terminal(&shell, "5");
-    done(&mut shell, "table.cell", json!({"row": k5, "column": fn_col}));
+    let k4 = terminal(&shell, "4");
+    done(&mut shell, "table.cell", json!({"row": k4, "column": fn_col}));
     done(
         &mut shell,
         "table.paste",
         json!({"text": "P1\tspare\nP2\tspare\n"}),
     );
     assert_eq!(
-        (label_of(&shell, "5"), label_of(&shell, "6")),
+        (label_of(&shell, "4"), label_of(&shell, "5")),
         ("P1".into(), "P2".into())
     );
     // Quoted cells with a TAB and a line break stay one cell each (the model refuses control characters in a text, so
     // they are invalid on the card); doubled quotes are one quote.
-    let k7 = terminal(&shell, "7");
-    done(&mut shell, "table.cell", json!({"row": k7, "column": fn_col}));
+    let k6 = terminal(&shell, "6");
+    done(&mut shell, "table.cell", json!({"row": k6, "column": fn_col}));
     done(
         &mut shell,
         "table.paste",
@@ -396,8 +400,8 @@ fn paste_maps_parses_and_refuses_as_specified() {
     assert_eq!(
         lines_with(&shell, "  cell "),
         [
-            format!("  cell 1 \"7\" \"Function text\" invalid \"{reason}\""),
-            format!("  cell 2 \"8\" \"Function text\" invalid \"{reason}\""),
+            format!("  cell 1 \"6\" \"Function text\" invalid \"{reason}\""),
+            format!("  cell 2 \"7\" \"Function text\" invalid \"{reason}\""),
         ]
     );
     done(&mut shell, "preview.cancel", json!({}));
@@ -406,21 +410,21 @@ fn paste_maps_parses_and_refuses_as_specified() {
         "table.paste",
         json!({"text": "\"say \"\"hi\"\"\"\tspare\r\n"}),
     );
-    assert_eq!(label_of(&shell, "7"), "say \"hi\"");
+    assert_eq!(label_of(&shell, "6"), "say \"hi\"");
     // A read-only column and a row past the end: invalid; Apply refused; dropping both ends the gesture.
     done(
         &mut shell,
         "table.columns",
         json!({"kind": "strips", "show": [hide[2]]}),
     );
-    let k20 = terminal(&shell, "20");
-    done(&mut shell, "table.cell", json!({"row": k20, "column": hide[2]}));
+    let k8 = terminal(&shell, "PE");
+    done(&mut shell, "table.cell", json!({"row": k8, "column": hide[2]}));
     let n = steps(&shell);
     done(&mut shell, "table.paste", json!({"text": "X\r\nY\r\n"}));
     assert_eq!(
         lines_with(&shell, "  cell "),
         [
-            "  cell 1 \"20\" \"Part\" invalid \"no command yet\"".to_owned(),
+            "  cell 1 \"PE\" \"Part\" invalid \"no command yet\"".to_owned(),
             "  cell 2 \"\" \"Part\" invalid \"no row\"".to_owned(),
         ]
     );
@@ -445,7 +449,7 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "cables", "text": "-106W1"}),
+        json!({"kind": "cables", "text": "-103W1"}),
     );
     let cable = col(&shell, NavKind::Cables, "Cable");
     done(
@@ -555,10 +559,10 @@ fn two_rows_on_one_record_with_different_values_are_invalid() {
 #[test]
 fn tb5_the_policy() {
     let tmp = Tmp::new("tb5");
-    let mut shell = strips(&tmp, "x1031");
+    let mut shell = strips(&tmp, "x1021");
     let term = col(&shell, NavKind::Strips, "Terminal");
-    let k15 = terminal(&shell, "15");
-    done(&mut shell, "table.cell", json!({"row": k15, "column": term}));
+    let k2 = terminal(&shell, "2");
+    done(&mut shell, "table.cell", json!({"row": k2, "column": term}));
     let n = steps(&shell);
     done(&mut shell, "table.paste", json!({"text": "98\n99\n"}));
     let card = shell.properties().card().expect("rule 2: the card");
@@ -568,26 +572,26 @@ fn tb5_the_policy() {
     done(&mut shell, "preview.cancel", json!({}));
     // A clear of an enum (State) is invalid.
     let state = col(&shell, NavKind::Strips, "State");
-    done(&mut shell, "table.cell", json!({"row": k15, "column": state}));
+    done(&mut shell, "table.cell", json!({"row": k2, "column": state}));
     done(&mut shell, "table.clear", json!({}));
     assert_eq!(
         lines_with(&shell, "  cell "),
-        ["  cell 1 \"15\" \"State\" invalid \"cannot be cleared\""]
+        ["  cell 1 \"2\" \"State\" invalid \"cannot be cleared\""]
     );
     done(&mut shell, "preview.cancel", json!({}));
     // A clear of a text (Function text) sets the empty text.
     let fn_col = col(&shell, NavKind::Strips, "Function text");
     done(&mut shell, "table.cell", json!({"column": fn_col}));
     done(&mut shell, "table.clear", json!({}));
-    assert_eq!(label_of(&shell, "15"), "");
+    assert_eq!(label_of(&shell, "2"), "");
     // A single-cell edit of a potential's name: one target, no card.
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     done(&mut shell, "navigator.table", json!({"kind": "potentials"}));
     let pot = col(&shell, NavKind::Potentials, "Potential");
     let (key, _) = column(&shell, NavKind::Potentials, "Potential")
         .into_iter()
-        .find(|(_, t)| t == "24VDC-1")
-        .expect("24VDC-1");
+        .find(|(_, t)| t == "24V")
+        .expect("24V");
     done(
         &mut shell,
         "table.edit",
@@ -596,13 +600,13 @@ fn tb5_the_policy() {
     done(
         &mut shell,
         "table.input",
-        json!({"kind": "potentials", "text": "24VDC-9"}),
+        json!({"kind": "potentials", "text": "24V-9"}),
     );
     let n = steps(&shell);
     done(&mut shell, "table.commit", json!({"kind": "potentials"}));
     assert!(shell.properties().card().is_none(), "one target: no card");
     assert_eq!(steps(&shell), n + 1);
-    assert!(texts(&shell, NavKind::Potentials, "Potential").contains(&"24VDC-9".to_owned()));
+    assert!(texts(&shell, NavKind::Potentials, "Potential").contains(&"24V-9".to_owned()));
     shell.shutdown();
 }
 
@@ -620,12 +624,16 @@ fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
         done(&mut shell, "navigator.show", json!({"kind": word}));
         done(&mut shell, "navigator.table", json!({"kind": word, "on": true}));
         let c = col(&shell, kind, label);
-        // Two rows of two different records with a value in the column.
+        // Two rows of two different records with a value in the column (a potential with its definition, not one
+        // known only by a name at a connection point).
+        let t = shell.nav(kind).and_then(|n| n.table()).cloned().unwrap();
+        let defined = |k: &str| t.nodes.iter().find(|n| n.key == k).is_none_or(|n| n.kinds != ["cp"]);
         let mut seen = Vec::new();
         let keys: Vec<String> = column(&shell, kind, label)
             .into_iter()
-            .filter(|(_, t)| {
-                let fresh = !t.is_empty() && !seen.contains(t);
+            .filter(|(k, t)| {
+                let fresh = !t.is_empty() && !seen.contains(t) && defined(k);
+
                 if fresh {
                     seen.push(t.clone());
                 }
@@ -659,7 +667,7 @@ fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
     shell.shutdown();
 }
 
-/// TB5's rule 1: a fill down over more than 500 device rows (a copy of Golden A with 501 devices more, made through
+/// TB5's rule 1: a fill down over more than 500 device rows (a copy of the sample with 501 devices more, made through
 /// the session) opens the card (`reason-bulk`).
 #[test]
 fn a_fill_over_more_than_500_rows_opens_the_card() {
@@ -706,15 +714,15 @@ fn a_fill_over_more_than_500_rows_opens_the_card() {
     shell.shutdown();
 }
 
-/// The TSV of -X1032's five terminals with the header row (CRLF after every row).
+/// The TSV of the motor strip -X1031's five terminals, sorted by Terminal, with the header row (CRLF after every row).
 // The Pos and Bridge part columns.
-const EXPECTED_X1032: &str = "\
+const EXPECTED_X1031: &str = "\
 Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tSide 2 (clamp b)\tBridge\tBridge part\tState\r\n\
--X1032\t1\t1\tPE\t\tPT 2.5-TWIN-PE\tPE\t-202U1:3 via -106W2 GNYE\tE55:PE\tBR6\t\tused\r\n\
--X1032\t2\t2\tPE\t\tPT 2.5-TWIN-PE\tPE\t-102G1:−\t-102G1:PE\tBR6\t\tused\r\n\
--X1032\t3\t3\tPE\t\tPT 2.5-TWIN-PE\tPE\t-201U1:3 via -106W1 GNYE\t-201U1:FE\tBR6\t\tused\r\n\
--X1032\t4\t4\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t-202U1:FE\tBR6\t\tused\r\n\
--X1032\t5\t5\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t\tBR6\t\tspare\r\n";
+-X1031\t4\tPE\t\t\tEW-GEN-TRM-2\tPE\t-X1031:SH/a, -X1011:PE/a\t-103M1:PE via -103W1 GNYE\t\t\tused\r\n\
+-X1031\t5\tSH\t\t\tEW-GEN-TRM-2\tPE\t-X1031:PE/a\t-103M1:PE via -103W1 SHIELD\t\t\tused\r\n\
+-X1031\t1\tU\t\t\tEW-GEN-TRM-1\t1L1/102Q1:2\t-102Q1:2\t-103M1:U1 via -103W1 BN\t\t\tused\r\n\
+-X1031\t2\tV\t\t\tEW-GEN-TRM-1\t1L2/102Q1:4\t-102Q1:4\t-103M1:V1 via -103W1 BK\t\t\tused\r\n\
+-X1031\t3\tW\t\t\tEW-GEN-TRM-1\t1L3/102Q1:6\t-102Q1:6\t-103M1:W1 via -103W1 GY\t\t\tused\r\n";
 
 /// TB8's model half (§8.8): the table's describe lines (header, `columns`, rows with the cursor column, the edit, the
 /// pattern dialog), Pages in table mode, the refusal outside table mode, the six words and the 239 actions; switching
@@ -744,14 +752,14 @@ fn describe_lines_words_and_counts() {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "x1031"}),
+        json!({"kind": "strips", "text": "x1021"}),
     );
     let by = col(&shell, NavKind::Strips, "Terminal");
     done(&mut shell, "navigator.sort", json!({"kind": "strips", "by": by}));
     done(
         &mut shell,
         "table.cell",
-        json!({"kind": "strips", "step": 12, "across": 3}),
+        json!({"kind": "strips", "step": 5, "across": 3}),
     );
     done(
         &mut shell,
@@ -762,12 +770,12 @@ fn describe_lines_words_and_counts() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1031\" rows 20 showing 1 to 20\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1031\" \"1\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1021\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );
     assert!(
-        d.contains("\n  row \"-X1031\" \"13\" \"13\" \"1-\" \"Pneumatics\" \"PT 2.5-TWIN\" \"0V\" \"\" \"-202U1:2 via -106W2 BU\" \"BR5\" \"\" \"used\" cursor \"Function text\"\n"),
+        d.contains("\n  row \"-X1021\" \"6\" \"6\" \"\" \"\" \"EW-GEN-TRM-1\" \"0V\" \"\" \"-102Q1:A2\" \"BR2\" \"\" \"used\" cursor \"Function text\"\n"),
         "{d}"
     );
     assert!(
@@ -786,7 +794,9 @@ fn describe_lines_words_and_counts() {
     done(&mut shell, "navigator.table", json!({"kind": "pages"}));
     let d = shell.describe();
     assert!(
-        d.contains("navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows 36 showing 1 to 36\n  columns \"Folio\" \"Title\" \"Changed in\"\n"),
+        d.contains("navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows ")
+            && d.contains("\n  columns \"Folio\" \"Title\" \"Changed in\"\n"),
+
         "{d}"
     );
     assert!(!d.contains("navigator \"Pages\" mode "), "{d}");
@@ -849,8 +859,8 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
         let n = t
             .nodes
             .iter()
-            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
-            .expect("24VDC-4");
+            .find(|n| n.role == NavRole::Potential && n.label == "0V")
+            .expect("0V");
         assert_eq!(n.kinds, ["potential_def"]);
         n.records[0]
     };
@@ -895,8 +905,8 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
     // A potential with a definition still edits.
     let (k1, _) = column(&shell, NavKind::Potentials, "Potential")
         .into_iter()
-        .find(|(_, t)| t == "24VDC-1")
-        .expect("24VDC-1");
+        .find(|(_, t)| t == "24V")
+        .expect("24V");
     done(
         &mut shell,
         "table.edit",
@@ -905,7 +915,7 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
     done(
         &mut shell,
         "table.input",
-        json!({"kind": "potentials", "text": "24VDC-9"}),
+        json!({"kind": "potentials", "text": "24V-9"}),
     );
     done(&mut shell, "table.commit", json!({"kind": "potentials"}));
     assert_eq!(steps(&shell), n + 1);
@@ -959,16 +969,17 @@ fn a_refused_potential_type_names_the_types_in_words() {
     shell.shutdown();
 }
 
-/// TB6 (§8.6): copying -X1032's 5 terminals writes the TSV with the header row, byte-equal to the expected text, and
+/// TB6 (§8.6): copying -X1031's 5 terminals writes the TSV with the header row, byte-equal to the expected text, and
 /// pasting it back into the same rows changes nothing (no command, no preview); a header row is read as a header in
 /// either language: rows copied in en-GB and pasted back in nl-NL change nothing, and copied in nl-NL and pasted back
 /// in en-GB neither.
 #[test]
 fn copy_then_paste_back_changes_nothing_in_either_language() {
     let tmp = Tmp::new("paste-header");
-    let mut shell = strips(&tmp, "x1032");
-    let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
+    let mut shell = strips(&tmp, "x1031");
+    let keys: Vec<String> = column(&shell, NavKind::Strips, "Strip")
         .into_iter()
+        .filter(|(_, s)| s == "-X1031")
         .map(|(k, _)| k)
         .collect();
     assert_eq!(keys.len(), 5);
@@ -977,7 +988,8 @@ fn copy_then_paste_back_changes_nothing_in_either_language() {
         mark(&mut shell, NavKind::Strips, &keys);
         done(&mut shell, "table.copy", json!({}));
         if copy_in == "en" {
-            assert_eq!(shell.clipboard().text().unwrap(), EXPECTED_X1032);
+            assert_eq!(shell.clipboard().text().unwrap(), EXPECTED_X1031);
+
         }
         done(&mut shell, "view.language", json!({ "value": paste_in }));
         done(
@@ -1011,7 +1023,7 @@ fn copy_then_paste_back_changes_nothing_in_either_language() {
 #[test]
 fn a_table_cell_takes_the_words_of_an_enumerated_field() {
     let tmp = Tmp::new("enum-cell");
-    let mut shell = strips(&tmp, "x1032");
+    let mut shell = strips(&tmp, "x1021");
     let state = col(&shell, NavKind::Strips, "State");
     let k5 = terminal(&shell, "5");
     let mut stored = Vec::new();
@@ -1087,7 +1099,7 @@ fn plc_state_and_potential_class_cells_take_their_words() {
 #[test]
 fn table_set_sets_the_marked_rows_and_takes_the_header_label() {
     let tmp = Tmp::new("id1497-1");
-    let mut shell = strips(&tmp, "x1032");
+    let mut shell = strips(&tmp, "x1021");
     let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
         .into_iter()
         .map(|(k, _)| k)

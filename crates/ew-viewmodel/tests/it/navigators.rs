@@ -300,17 +300,17 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     shell.shutdown();
 }
 
-/// NV5 (FR-UI-007 as amended by D16; §6.5): with folio 102 shown, marking -103M1 in Devices selects nothing on 102 but
-/// the device's record (the property grid shows -103M1) and shows the chip 103-H3; Enter opens 103 with
-/// its representation selected (one back-history entry); a selection made elsewhere marks and reveals its row, the
-/// focus stays where it is, and no change is applied twice.
+/// NV5 (FR-UI-007 as amended by D16; §6.5): with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
+/// the device's record (the property grid shows -104A1) and shows the chips 104-B13, 105-C2 and 105-C4; Enter opens
+/// 104 with its representation selected (one back-history entry); a selection made elsewhere marks and reveals its
+/// row, the focus stays where it is, and no change is applied twice.
 #[test]
 fn devices_and_the_canvas_keep_the_selection_in_step() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
-    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-103M1");
+    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-104A1");
     done(
         &mut shell,
         "navigator.select",
@@ -327,20 +327,20 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     assert_eq!(
         shell.selection().items.iter().map(|e| e.0).collect::<Vec<_>>(),
         [device],
-        "nothing of -103M1 is drawn on 102: the selection is its record"
+        "nothing of -104A1 is drawn on 102: the selection is its record"
     );
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
-    assert_eq!(chips, ["103-H3"]);
+    assert_eq!(chips, ["104-B13", "105-C2", "105-C4"]);
     assert!(
-        shell.describe().contains("\n  elsewhere \"103-H3\"\n"),
+        shell.describe().contains("\n  elsewhere \"104-B13\" \"105-C2\" \"105-C4\"\n"),
         "the canvas section's chip line"
     );
-    assert_eq!(state(&shell)["properties"]["title"], "+FLD-103M1", "the motor stands in the field");
+    assert_eq!(state(&shell)["properties"]["title"], "-104A1");
     let generation = shell.selection().generation;
     // Enter opens 103 with the representation selected, as a jump.
     let back = state(&shell)["tabs"]["groups"][0][0]["back"].as_u64().unwrap();
     done(&mut shell, "navigator.open", json!({"kind": "devices", "key": k}));
-    assert_eq!(shell.current_folio(), Some("103"));
+    assert_eq!(shell.current_folio(), Some("104"));
     assert_eq!(
         state(&shell)["tabs"]["groups"][0][0]["back"].as_u64().unwrap(),
         back + 1
@@ -355,27 +355,33 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
         "navigator.toggle",
         json!({"kind": "devices", "key": k}),
     );
-    let rep203 = row_key(&shell, NavKind::Devices, NavRole::Representation, "203-B4");
-    let rep_id = shell
+    let port_row = row_key(&shell, NavKind::Devices, NavRole::Representation, "105-C2");
+    // The row's representation record (the PROFIBUS port's on folio 105), among the row's records.
+    let (mut session, _) = ew_api::Session::open_read_only(Path::new(common::SAMPLE), "test").unwrap();
+    let reps: Vec<_> = session.page_tables("105").unwrap().reps.iter().map(|r| r.id).collect();
+    let rep_id = *shell
         .nav(NavKind::Devices)
         .unwrap()
-        .node_of(&rep203)
+        .node_of(&port_row)
         .unwrap()
         .1
-        .records[0];
+        .records
+        .iter()
+        .find(|r| reps.contains(r))
+        .expect("the representation's record");
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
     done(&mut shell, "select.set", json!({"ids": [rep_id.to_string()]}));
     let nav = shell.nav(NavKind::Devices).unwrap();
     assert_eq!(
         nav.marked().iter().cloned().collect::<Vec<_>>(),
-        std::slice::from_ref(&rep203)
+        std::slice::from_ref(&port_row)
     );
     assert_eq!(
         shell.nav_cursor(NavKind::Devices).as_deref(),
-        Some(rep203.as_str())
+        Some(port_row.as_str())
     );
     assert!(
-        shell.shown_rows(NavKind::Devices).iter().any(|r| r.key == rep203),
+        shell.shown_rows(NavKind::Devices).iter().any(|r| r.key == port_row),
         "the collapsed device was expanded to reveal the row"
     );
     assert_eq!(state(&shell)["focus"], "canvas", "the focus stays on the canvas");
