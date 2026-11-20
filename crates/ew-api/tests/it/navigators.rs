@@ -1,24 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Session::navigator_table` on Golden A (acceptance check NV2): the Pages table in the derived page
-//! order, the Devices tree with one device row per non-terminal device, -201U3's representation rows (D16), keys
-//! stable across a revision that changes nothing they show, and the index from a representation to its rows.
+//! `Session::navigator_table` on the sample project (acceptance check NV2): the Pages table in the derived page
+//! order, the Devices tree with one device row per non-terminal device, the contactor -102Q1's representation rows
+//! (D16), keys stable across a revision that changes nothing they show, and the index from a representation to its
+//! rows.
+
+use crate::common;
 
 use std::collections::BTreeSet;
-use std::path::Path;
 
 use ew_api::output::{NavKind, NavRole, NavTable};
 use ew_api::{AnyCommand, Origin, Session};
 use serde_json::json;
-
-/// Golden A's fixture, read-only (no lock; commands run in memory).
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
 
 fn keys(t: &NavTable) -> Vec<String> {
     t.nodes.iter().map(|n| n.key.clone()).collect()
@@ -35,12 +29,14 @@ fn node<'t>(t: &'t NavTable, role: NavRole, label: &str) -> (u32, &'t ew_api::ou
 
 #[test]
 fn pages_lists_the_page_order_under_its_sections() {
-    let s = golden();
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Pages);
     let rows = s.page_rows();
-    assert_eq!(rows.len(), 36);
+    // The title page, two of contents, three section dividers, the seven drawn pages and the fourteen pages of the
+    // reports.
+    assert_eq!(rows.len(), 27);
     let pages: Vec<&ew_api::output::NavNode> = t.nodes.iter().filter(|n| n.table_row).collect();
-    assert_eq!(pages.len(), 36);
+    assert_eq!(pages.len(), 27);
     let folios: Vec<&str> = pages.iter().map(|n| n.label.as_str()).collect();
     let order: Vec<&str> = rows.iter().map(|r| r.folio.as_str()).collect();
     assert_eq!(folios, order, "the derived page order");
@@ -70,7 +66,7 @@ fn pages_lists_the_page_order_under_its_sections() {
 
 #[test]
 fn devices_lists_every_non_terminal_device_once() {
-    let s = golden();
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Devices);
     let devices: Vec<&ew_api::output::NavNode> =
         t.nodes.iter().filter(|n| n.role == NavRole::Device).collect();
@@ -116,18 +112,43 @@ fn ew_reports_count(s: &Session) -> usize {
         .count()
 }
 
-/// The Devices row of an earth connection (-XPE, drawn with the protective earth symbol and given no part) says what it
-/// is; a device with a part does not.
+/// The Devices row of an earth connection (a device drawn with the protective earth symbol and given no part, placed
+/// on the motor page 103 in the test) says what it is; a device with a part does not.
 #[test]
 fn an_earth_connection_s_row_says_so() {
-    let s = golden();
+    let mut s = common::sample();
+    let key = "ew.iec.pe@qet10";
+    if let Some(embed) = s.starter_embed(key) {
+        s.execute(&AnyCommand {
+            name: "library.embed".into(),
+            params: embed,
+        })
+        .expect("the symbol embeds");
+    }
+    let symbol = s.starter_symbol_copy(key).expect("the earth symbol").to_string();
+    let page = s.page_tables("103").expect("folio 103").page.to_string();
+    let placed = s
+        .execute(&AnyCommand {
+            name: "device.place".into(),
+            params: json!({"page": page, "symbol": symbol, "pos": [158_750_000_i64, (40 * 7_937_500 + 1) / 3],
+                "target": {"new_device": {"letter": "X"}}}),
+        })
+        .expect("the earth connection is placed");
+    let earth = placed
+        .created
+        .iter()
+        .find(|k| k.0 == ew_schema::Kind::Device)
+        .expect("a new device")
+        .1
+        .as_uuid();
     let t = s.navigator_table(NavKind::Devices);
+    let row = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Device && n.records.first() == Some(&earth))
+        .expect("the earth connection's row");
+    assert!(row.badges.iter().any(|b| b == ew_api::output::EARTH_CONNECTION));
     let badges = |tag: &str| node(&t, NavRole::Device, tag).1.badges.clone();
-    assert!(
-        badges("-XPE")
-            .iter()
-            .any(|b| b == ew_api::output::EARTH_CONNECTION)
-    );
     // Its function reads as what the device is called, not "Protective earth bar".
     let functions: Vec<&str> = t
         .nodes
@@ -140,17 +161,19 @@ fn an_earth_connection_s_row_says_so() {
         "{functions:?}"
     );
     assert!(
-        !badges("-201U3")
+        !badges("-201K1")
             .iter()
             .any(|b| b == ew_api::output::EARTH_CONNECTION)
     );
 }
 
+/// D16: the contactor -102Q1's row lists its five representations under its functions: the coil (102-E4), the three
+/// main contacts on 103 and the auxiliary contact 13-14 on 102; its drawables run main first, then in page order.
 #[test]
-fn the_201u3_row_has_its_two_representations_and_the_index_finds_them() {
-    let s = golden();
+fn the_102q1_row_has_its_representations_and_the_index_finds_them() {
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Devices);
-    let (di, dev) = node(&t, NavRole::Device, "-201U3");
+    let (di, dev) = node(&t, NavRole::Device, "-102Q1");
     let reps: Vec<&str> = t
         .nodes
         .iter()
@@ -162,31 +185,36 @@ fn the_201u3_row_has_its_two_representations_and_the_index_finds_them() {
         })
         .map(|n| n.label.as_str())
         .collect();
-    assert_eq!(reps, ["201-E4", "203-B4"], "D16");
     let cells: Vec<String> = dev
         .drawables
         .iter()
         .map(|d| format!("{}-{}", d.folio, d.cell))
         .collect();
-    assert_eq!(cells, ["201-E4", "203-B4"]);
-    assert!(dev.facets.contains(&("page".to_owned(), "201".to_owned())));
-    assert_eq!(dev.open.as_ref().map(|o| o.select.len()), Some(1));
+    assert_eq!(
+        reps,
+        ["102-E4", "103-D2", "103-D3", "103-D3", "102-D5"],
+        "D16"
+    );
+    assert_eq!(cells, ["102-E4", "102-D5", "103-D2", "103-D3", "103-D3"]);
+
+    assert!(dev.facets.contains(&("page".to_owned(), "102".to_owned())));
+    assert_eq!(dev.open.as_ref().map(|o| o.select.len()), Some(2), "its two representations on 102");
     // The index maps a representation to every node that carries it, the deepest last.
     let rep = dev.drawables[0].record;
     let carriers = &t.index[&rep];
     assert_eq!(carriers[0], di);
     let last = &t.nodes[*carriers.last().unwrap() as usize];
     assert_eq!(last.role, NavRole::Representation);
-    assert_eq!(last.label, "201-E4");
+    assert_eq!(last.label, cells[0]);
     assert_eq!(t.index[&dev.records[0]], [di]);
 }
 
 #[test]
 fn keys_are_stable_across_a_revision() {
-    let mut s = golden();
+    let mut s = common::sample();
     let before = s.navigator_table(NavKind::Devices);
     let pages_before = s.navigator_table(NavKind::Pages);
-    let (_, dev) = node(&before, NavRole::Device, "-201U3");
+    let (_, dev) = node(&before, NavRole::Device, "-201K1");
     let set = AnyCommand {
         name: "fields.set".into(),
         params: json!({"kind": "device", "targets": [dev.records[0].to_string()], "path": "function_text",
@@ -202,8 +230,9 @@ fn keys_are_stable_across_a_revision() {
     let c = s.navigator_table(NavKind::Connections);
     assert!(!c.nodes.is_empty());
     assert!(!c.columns.is_empty());
-    // Determinism: two builds of every kind are equal, and every kind has rows on Golden A, except Macros and Media:
-    // no installed library holds a macro, and Golden A holds no macro and defines no medium.
+    // Determinism: two builds of every kind are equal, and every kind has rows on the sample, except Macros and
+    // Media: no installed library holds a macro, and the sample holds no macro and defines no medium.
+
     for k in NavKind::ALL {
         let a = s.navigator_table(k);
         assert_eq!(a, s.navigator_table(k), "{k:?}");

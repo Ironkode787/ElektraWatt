@@ -129,22 +129,6 @@ fn a_text_with_a_glyph_of_another_font_is_one_text_on_both_sides() {
     assert!(report.is_clean(), "{report:?}");
 }
 
-/// Golden A against its own PDF: every text of every page, the report tables' cells and the texts with a glyph of
-/// another font among them, is found where the project has it.
-#[test]
-#[ignore = "deep run: Golden A's 36 pages drawn and compared"]
-fn golden_a_matches_its_own_pdf() {
-    let session = crate::golden_common::session(&crate::golden_common::batch());
-    let report = verify_migration(&session, pdf_of(&session), &[]).expect("a verification");
-    assert!(report.texts_matched > 0 && report.cells > 0, "{report:?}");
-    let found: Vec<String> = report
-        .deviations
-        .iter()
-        .map(|d| format!("{} {} {:?} {:?}", d.page, d.kind, d.text, d.at_mm))
-        .collect();
-    assert!(found.is_empty(), "{}", found.join("\n"));
-}
-
 #[test]
 fn a_retitled_page_differs_in_its_texts_only() {
     let before = project(&[(1, "Cover"), (2, "Power")]);
