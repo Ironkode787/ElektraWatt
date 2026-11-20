@@ -907,7 +907,7 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["folio"]),
         };
         let g = or_return!(self.group_param(p));
-        let Some(row) = self.page_rows().iter().find(|r| r.folio == folio) else {
+        let Some(row) = PageRow::by_folio(self.page_rows(), &folio) else {
             return failed(key!("error-no-folio"), &[&folio]);
         };
         let page = PageId::of(row);
@@ -1418,7 +1418,7 @@ impl ShellModel {
                 };
             }
         };
-        let Some(page) = self.page_rows().iter().find(|r| r.folio == folio).map(PageId::of) else {
+        let Some(page) = PageRow::by_folio(self.page_rows(), &folio).map(PageId::of) else {
             return failed(key!("error-no-folio"), &[&folio]);
         };
         self.dialog = None;

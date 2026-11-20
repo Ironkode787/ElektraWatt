@@ -75,6 +75,14 @@ pub struct PageRow {
     pub changed_in: Option<String>,
 }
 
+impl PageRow {
+    /// The row of `rows` whose printed folio label is `folio`; the first in page order (as
+    /// [`ew_derive::PageOrderV::by_folio`] finds the entry).
+    pub fn by_folio<'r>(rows: &'r [PageRow], folio: &str) -> Option<&'r PageRow> {
+        rows.iter().find(|r| r.folio == folio)
+    }
+}
+
 /// A cell of a page's frame grid: its printed labels and its 0-based position in the grid. Ordering uses the
 /// indices, never the labels (which order `10` before `2`, and custom labels arbitrarily).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -778,7 +786,7 @@ impl Session {
     pub fn page_list_table(&self, folio: &str) -> Option<PageListTable> {
         let q = self.query();
         let order = q.get::<PageOrder>(());
-        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let entry = order.by_folio(folio)?;
         let table = q.get::<PageTableOf>(entry.page);
         let t = table.as_ref().as_ref()?;
         // The house table's rows (`ew_scene::table`): the header, then the rows drawn, or the note's one row.
@@ -832,7 +840,7 @@ impl Session {
         }
         let q = self.query();
         let order = q.get::<PageOrder>(());
-        if let Some(e) = order.entries.iter().find(|e| e.folio == text) {
+        if let Some(e) = order.by_folio(text) {
             return Ok(GotoTarget {
                 page: page_uuid(e.page),
                 folio: e.folio.clone(),
@@ -945,7 +953,7 @@ impl Session {
     pub fn page_cps(&self, folio: &str) -> Vec<PageCp> {
         let q = self.query();
         let order = q.get::<PageOrder>(());
-        let Some(entry) = order.entries.iter().find(|e| e.folio == folio) else {
+        let Some(entry) = order.by_folio(folio) else {
             return Vec::new();
         };
         let PageRef::Drawn(page) = entry.page else {

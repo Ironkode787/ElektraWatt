@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Orient2, Pt2};
-use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, NavTable, Uuid};
+use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, NavTable, PageRow, Uuid};
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
 use serde_json::{Map, Value, json};
 
@@ -942,7 +942,7 @@ impl ShellModel {
                 let rows = self.page_rows();
                 folios
                     .iter()
-                    .map(|f| match rows.iter().find(|r| r.folio == *f) {
+                    .map(|f| match PageRow::by_folio(rows, f) {
                         Some(r) if !r.generated && r.kind != "section_divider" => Ok(r.id),
                         Some(_) => Err(failed(key!("error-generated-page-order"), &[])),
                         None => Err(failed(key!("error-no-folio"), &[f])),

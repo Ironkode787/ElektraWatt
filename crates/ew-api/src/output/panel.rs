@@ -1112,7 +1112,7 @@ impl crate::Session {
     pub fn page_slot_texts(&self, folio: &str) -> Vec<ew_scene::page::SlotTextBox> {
         let q = self.query();
         let order = q.get::<ew_derive::PageOrder>(());
-        let Some(entry) = order.entries.iter().find(|e| e.folio == folio) else {
+        let Some(entry) = order.by_folio(folio) else {
             return Vec::new();
         };
         super::layers::page_layer(&q, entry.page, ew_dl::Layer::Labels)
@@ -1132,7 +1132,7 @@ impl crate::Session {
     pub fn panel_tables(&self, folio: &str) -> Option<PanelTables> {
         let q = self.query();
         let order = q.get::<ew_derive::PageOrder>(());
-        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let entry = order.by_folio(folio)?;
         let ew_derive::PageRef::Drawn(page) = entry.page else {
             return None;
         };

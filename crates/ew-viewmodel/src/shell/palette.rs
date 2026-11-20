@@ -6,6 +6,7 @@
 //! action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a
 //! rule shows Messages filtered to it. The palette is transient widget state: nothing here is persisted.
 
+use ew_api::output::PageRow;
 use ew_api::window::{FindField, FindQuery};
 use serde_json::{Value, json};
 
@@ -333,10 +334,7 @@ impl ShellModel {
             return Vec::new();
         };
         // M39: the page's title after the folio ("102" then "Control"), not the folio twice.
-        let title = self
-            .page_rows()
-            .iter()
-            .find(|r| r.folio == target.folio)
+        let title = PageRow::by_folio(self.page_rows(), &target.folio)
             .map(|r| r.title.clone())
             .unwrap_or_default();
         let breadcrumb = match (query.trim() == target.folio, title.is_empty()) {

@@ -220,9 +220,7 @@ pub struct LayoutTexts {
 /// The page-order entry of `folio`.
 fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
     q.get::<PageOrder>(())
-        .entries
-        .iter()
-        .find(|e| e.folio == folio)
+        .by_folio(folio)
         .map(|e| e.page)
         .ok_or_else(|| LayoutError::NoFolio(folio.to_owned()))
 }

@@ -12,6 +12,7 @@
 
 use std::sync::Arc;
 
+use ew_api::output::PageRow;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::window::OffCardBind;
 use serde_json::{Map, Value, json};
@@ -719,7 +720,7 @@ impl ShellModel {
                 (true, n) => strings::format(key!("toast-route-kept"), &[&n.to_string()]),
             };
             let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
-            let page = self.page_rows().iter().find(|r| r.folio == folio).map(|r| r.id);
+            let page = PageRow::by_folio(self.page_rows(), &folio).map(|r| r.id);
             match page.filter(|_| gain) {
                 Some(page) => self.notify_route_his(text, page),
                 None => self.notify(text, false),

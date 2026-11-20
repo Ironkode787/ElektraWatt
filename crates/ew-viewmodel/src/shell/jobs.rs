@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "testkit")]
 use ew_api::ew_jobs::Gate;
 use ew_api::ew_jobs::{JobEnd, Waker};
-use ew_api::output::ExportOptions;
+use ew_api::output::{ExportOptions, PageRow};
 use ew_api::{Recovery, Session};
 use serde_json::{Map, Value};
 
@@ -465,7 +465,7 @@ impl ShellModel {
                 let page = entry.selects(action).first().copied();
                 let shown = self
                     .current_folio()
-                    .and_then(|f| self.page_rows().iter().find(|r| r.folio == f).map(|r| r.id));
+                    .and_then(|f| PageRow::by_folio(self.page_rows(), f).map(|r| r.id));
                 if page.is_none() || page != shown {
                     return Outcome::refused(key!("reason-action-expired"));
                 }

@@ -1654,7 +1654,7 @@ impl ShellModel {
 
     /// The page row of a printed folio that is a page record.
     fn record_row(&self, folio: &str) -> Result<PageRow, Outcome> {
-        match self.page_rows().iter().find(|r| r.folio == folio) {
+        match PageRow::by_folio(self.page_rows(), folio) {
             None => Err(failed(key!("error-no-folio"), &[folio])),
             Some(r) if !is_record(r) => Err(failed(key!("error-generated-page-order"), &[])),
             Some(r) => Ok(r.clone()),

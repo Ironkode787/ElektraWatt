@@ -1062,7 +1062,7 @@ impl Session {
     pub fn page_grid(&self, folio: &str) -> Option<PageGrid> {
         let q = self.query();
         let order = q.get::<PageOrder>(());
-        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let entry = order.by_folio(folio)?;
         let grid = *q.get::<PageGridOf>(entry.page);
         let frame = q.get::<PageFrameOf>(entry.page);
         let map = frame

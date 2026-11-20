@@ -342,6 +342,11 @@ impl PageOrderV {
         self.position(page).map(|i| &self.entries[i])
     }
 
+    /// The entry whose printed folio label is `folio`; the first in page order.
+    pub fn by_folio(&self, folio: &str) -> Option<&PageEntry> {
+        self.entries.iter().find(|e| e.folio == folio)
+    }
+
     /// The previous page; `None` on the first page (FR-PAG-013).
     pub fn prev(&self, page: PageRef) -> Option<&PageEntry> {
         let i = self.position(page)?;

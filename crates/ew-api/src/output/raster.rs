@@ -265,7 +265,7 @@ impl Session {
     /// [`OutputError::Selection`] when no page has the label; [`OutputError::Raster`] as [`page_png`].
     pub fn render_png(&self, folio: &str, dpi: u32) -> Result<PngExport, OutputError> {
         let q = self.query();
-        if !q.get::<PageOrder>(()).entries.iter().any(|e| e.folio == folio) {
+        if q.get::<PageOrder>(()).by_folio(folio).is_none() {
             return Err(OutputError::Selection(format!(
                 "the page order has no folio `{folio}`"
             )));

@@ -864,7 +864,7 @@ fn symbol_row(
 /// The drawn page labelled `folio`.
 pub(super) fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
     let order = q.get::<PageOrder>(());
-    let entry = order.entries.iter().find(|e| e.folio == folio)?;
+    let entry = order.by_folio(folio)?;
     match entry.page {
         PageRef::Drawn(p) => Some((entry.page, p)),
         _ => None,

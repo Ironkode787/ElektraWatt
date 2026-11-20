@@ -15,6 +15,7 @@
 //! in the focused tab as a jump (one back-history entry), sets its viewport (a fitted view fits again) and selects the
 //! items of its selection that still exist (`select.set`'s resolution).
 
+use ew_api::output::PageRow;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value};
 
@@ -363,7 +364,7 @@ impl ShellModel {
         let elsewhere = pages
             .first()
             .filter(|_| here.as_ref().is_none_or(|h| !pages.contains(h)))
-            .and_then(|f| self.page_rows().iter().find(|r| r.folio == *f).map(|r| r.id));
+            .and_then(|f| PageRow::by_folio(self.page_rows(), f).map(|r| r.id));
         match elsewhere {
             Some(page) => self.notify_go_to(text, page),
             None => self.notify_with(text, "edit", false),

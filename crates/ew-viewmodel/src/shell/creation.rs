@@ -1020,7 +1020,7 @@ impl ShellModel {
         let in_section = rows.iter().filter(|r| {
             section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section)
         });
-        if let Some(held) = rows.iter().find(|r| r.folio == typed) {
+        if let Some(held) = PageRow::by_folio(rows, typed) {
             return Some(strings::format(key!("form-page-new-held"), &[&words(held)]));
         }
         let before = page_before_in(in_section, number, typed);
