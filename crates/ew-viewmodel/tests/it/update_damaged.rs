@@ -47,9 +47,9 @@ fn assign_f55(s: &mut ShellModel, number: &str) -> String {
 /// A copy of Golden A in `tmp` whose F55 uses the compiled-in starter part EW-GEN-MCB-2: the folder, the part copy's
 /// file and its bytes as the save wrote them from the library.
 fn starter_project(tmp: &Tmp) -> (PathBuf, PathBuf, Vec<u8>) {
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let copy = assign_f55(&mut s, "EW-GEN-MCB-2");
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     let file = dir.join("lib/parts").join(format!("{copy}.json"));
     let bytes = std::fs::read(&file).unwrap();
     (dir, file, bytes)
@@ -445,8 +445,8 @@ fn a_project_opened_read_only_on_request_offers_no_update() {
 #[test]
 fn a_library_version_that_breaks_the_project_refuses_the_update() {
     let tmp = Tmp::new("ft1499-misfit");
-    let dir = tmp.golden_copy();
-    copy_dir(Path::new(common::GOLDEN_A), &dir);
+    let dir = tmp.sample_copy();
+    copy_dir(Path::new(common::SAMPLE), &dir);
     let page = dir.join("pages/ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08.jsonl");
     let cylinder = "eb6810a7-f538-5968-ac8c-cd35cc1c0725";
     let mut text = std::fs::read_to_string(&page).unwrap();
@@ -567,7 +567,7 @@ fn update_is_refused_while_another_session_holds_the_project() {
     let before = tree(&dir);
     // Another session's lock: a live session of another copy holds its own, which is copied in.
     let other = tmp.0.join("other.ew");
-    copy_dir(Path::new(common::GOLDEN_A), &other);
+    copy_dir(Path::new(common::SAMPLE), &other);
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = None;
     let (holder, _) = Session::open(&other, store, SessionOptions::default(), Recovery::Keep)

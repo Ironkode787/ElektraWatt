@@ -11,7 +11,7 @@ use crate::common;
 use std::path::Path;
 
 use common::{
-    GOLDEN_A, Tmp, actual_size, assert_failed, at, canvas, click_at, cursor, describe_line, done, grid_point,
+    SAMPLE, Tmp, actual_size, assert_failed, at, canvas, click_at, cursor, describe_line, done, grid_point,
     refused, sheet, tables,
 };
 use ew_api::output::{PageTables, TableConnection, TableEnd};
@@ -176,7 +176,7 @@ fn empty_marker_line(s: &ShellModel) -> ((i64, i64), (i64, i64)) {
 /// The UUID text of the structure node `J-E-206` of Golden A.
 fn location_node_uuid() -> String {
     let (session, _) =
-        ew_api::Session::open_read_only(Path::new(GOLDEN_A), "test").expect("Golden A opens read-only");
+        ew_api::Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
     let q = session.query();
     q.structure_nodes()
         .iter()

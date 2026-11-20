@@ -16,10 +16,26 @@ use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::{IpDir, MarkerKind, OverlayItem};
 use serde_json::{Value, json};
 
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
+/// A headless shell with a writable copy of the sample on `folio`, at actual size.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
+    let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
+    s
+}
+
+/// [`shell`] on folio 102 with a push button placed in its empty right half: -102S3, whose pins 13 and 14 no wire
+/// reaches, so that EW-POT-009 reports both (the sample has no free pin of a device).
+fn with_a_free_button(tmp: &Tmp) -> ShellModel {
+    let mut s = shell(tmp, "102");
+    done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
+    done(&mut s, "tool.place", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-PB-1", "letter": "S"}),
+    );
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "ui.dismiss", json!({}));
     s
 }
 
@@ -106,7 +122,7 @@ fn hud_head(s: &ShellModel, name: &str) -> String {
 /// The EW-POT-009 subjects of the saved project (the drafting scheme, online), as `(severity, subject)` sorted.
 fn pot009(tmp: &Tmp, s: &mut ShellModel) -> Vec<(String, String)> {
     done(s, "file.save", json!({}));
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let q = session.query();
     let mut out: Vec<(String, String)> = checks::run(&q, &checks::FULL, checks::CheckMode::Online)
         .findings
@@ -179,16 +195,16 @@ fn assert_connects(s: &ShellModel, before: &PageTables, pin: &TableCp, name: &st
     );
 }
 
-/// The play-test's drop: the "0V" point's CP on the free pin -102F2:14 (EF-09). The HUD says it
+/// The play-test's drop: the "5V" point's CP on the free pin -102S3:14 (EF-09). The HUD says it
 /// before the click, the dwell previews the connection, the click adds the point and one route-less connection in one
 /// undo step, the toast says it, and EW-POT-009 no longer reports the pin.
 #[test]
 fn a_point_dropped_on_a_free_pin_connects_to_it() {
     let tmp = Tmp::new("ip-pin-free");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:14");
-    arm_on(&mut s, "0V", pin.at);
-    assert_eq!(ghost(&s)["connects"], "-102F2:14");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    arm_on(&mut s, "5V", pin.at);
+    assert_eq!(ghost(&s)["connects"], "-102S3:14");
     // The describe line ends with the pin.
     let line = s
         .describe()
@@ -196,16 +212,16 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
         .find(|l| l.starts_with("canvas ghost ip "))
         .unwrap()
         .to_owned();
-    assert!(line.ends_with(" connects \"-102F2:14\""), "{line}");
+    assert!(line.ends_with(" connects \"-102S3:14\""), "{line}");
     assert_eq!(
         hud(&s),
-        format!("{} \u{b7} connects to -102F2:14", hud_head(&s, "0V"))
+        format!("{} \u{b7} connects to -102S3:14", hud_head(&s, "5V"))
     );
     done(&mut s, "canvas.dwell", json!({"ms": 100}));
     assert_eq!(state(&s)["canvas"]["preview"]["command"], "connection.draw_to_ip");
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
-    assert_connects(&s, &before, &pin, "0V");
+    assert_connects(&s, &before, &pin, "5V");
     let cell = {
         let (reps, _) = added(&before, &s);
         let page = s.canvas().unwrap().page();
@@ -214,31 +230,31 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
     assert_eq!(
         toast(&s),
         format!(
-            "Placed the interruption point 0V at {cell} and connected it to -102F2:14. Alt+Click or Ctrl+Enter places \
-             it without connecting. 0V at {cell} goes on nowhere yet: the next point you place is offered as where it \
+            "Placed the interruption point 5V at {cell} and connected it to -102S3:14. Alt+Click or Ctrl+Enter places \
+             it without connecting. 5V at {cell} goes on nowhere yet: the next point you place is offered as where it \
              goes on."
         )
     );
-    // The control pin stays reported; -102F2:14 is connected now.
-    assert_eq!(pot009(&tmp, &mut s), subjects(&[("warning", "-102F2:13")]));
+    // The control pin stays reported; -102S3:14 is connected now.
+    assert_eq!(pot009(&tmp, &mut s), subjects(&[("warning", "-102S3:13")]));
     // One undo step removes both.
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(*tables(&s), *before, "the page tables as before");
 }
 
 /// Alt places the point free (`ip.place`, no connection): Alt held on the hover shows no "connects to" and previews
-/// `ip.place` (feasibility read, item 3); `canvas.activate_alt` commits it; EW-POT-009 still reports -102F2:14.
+/// `ip.place` (feasibility read, item 3); `canvas.activate_alt` commits it; EW-POT-009 still reports -102S3:14.
 #[test]
 fn alt_places_the_point_without_connecting() {
     let tmp = Tmp::new("ip-pin-alt");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:14");
-    arm_on(&mut s, "0V", pin.at);
-    assert_eq!(ghost(&s)["connects"], "-102F2:14", "without Alt it connects");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    arm_on(&mut s, "5V", pin.at);
+    assert_eq!(ghost(&s)["connects"], "-102S3:14", "without Alt it connects");
     let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(ghost_pos(&s));
     done(&mut s, "canvas.pointer", at(sheet, json!({"alt": true})));
     assert_eq!(ghost(&s)["connects"], Value::Null);
-    assert_eq!(hud(&s), hud_head(&s, "0V"));
+    assert_eq!(hud(&s), hud_head(&s, "5V"));
     done(&mut s, "canvas.dwell", json!({"ms": 100}));
     assert_eq!(state(&s)["canvas"]["preview"]["command"], "ip.place");
     // `canvas.activate_alt` moves the grid cursor (which releases a hovered Alt) and presses with Alt.
@@ -246,11 +262,11 @@ fn alt_places_the_point_without_connecting() {
     done(&mut s, "canvas.activate_alt", json!({}));
     let (reps, conns) = added(&before, &s);
     assert_eq!(reps.len(), 1);
-    assert_eq!(reps[0].ip.as_ref().map(|ip| ip.name.as_str()), Some("0V"));
+    assert_eq!(reps[0].ip.as_ref().map(|ip| ip.name.as_str()), Some("5V"));
     assert!(conns.is_empty(), "no connection");
     assert_eq!(
         pot009(&tmp, &mut s),
-        subjects(&[("warning", "-102F2:13"), ("warning", "-102F2:14")])
+        subjects(&[("warning", "-102S3:13"), ("warning", "-102S3:14")])
     );
 }
 
@@ -281,14 +297,14 @@ fn a_point_on_a_wired_pin_joins_it() {
     assert_eq!(wire(&tables(&s)), wire(&before), "the existing wire is unchanged");
 }
 
-/// A second drop on the "0V" just placed (its CP and the pin's coincide): refused in words, nothing committed, the
+/// A second drop on the "5V" just placed (its CP and the pin's coincide): refused in words, nothing committed, the
 /// ghost kept.
 #[test]
 fn a_point_on_another_point_is_refused() {
     let tmp = Tmp::new("ip-pin-on-ip");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:14");
-    arm_on(&mut s, "0V", pin.at);
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    arm_on(&mut s, "5V", pin.at);
     done(&mut s, "canvas.activate", json!({}));
     // Without the typed name (it stays for a source's target, whose form has its CP elsewhere) the ghost is the next
     // point of the same form, on the point just placed.
@@ -309,7 +325,7 @@ fn a_point_on_another_point_is_refused() {
         "reason-ip-not-placed"
     );
     let words =
-        "Not placed: the interruption point 0V is already here; place it on a pin or a free grid point";
+        "Not placed: the interruption point 5V is already here; place it on a pin or a free grid point";
     assert_eq!(s.revision(), rev, "nothing committed");
     assert_eq!(*tables(&s), *before);
     assert_eq!(s.tool().name(), "ip");
@@ -433,7 +449,7 @@ fn a_point_inside_an_older_drawing_s_wire_is_on_it() {
         .expect("a wire with a free grid point inside on 102");
     drop(s);
     // Store that wire as an older build did: every vertex on its line's y 1 nm beside it.
-    let file = tmp.golden_copy().join("pages").join(format!("{}.jsonl", t.page));
+    let file = tmp.sample_copy().join("pages").join(format!("{}.jsonl", t.page));
     let text = std::fs::read_to_string(&file).expect("the page's file");
     let id = format!("\"id\":\"{wire}\"");
     let older: Vec<String> = text
@@ -471,13 +487,13 @@ fn a_point_inside_an_older_drawing_s_wire_is_on_it() {
 #[test]
 fn an_external_point_on_a_pin_connects_to_it() {
     let tmp = Tmp::new("ip-pin-external");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:13");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:13");
     done(&mut s, "tool.ip", json!({}));
-    done(&mut s, "ip.external", json!({"external": "JE-N1000-03:N"}));
+    done(&mut s, "ip.external", json!({"external": "-Q0"}));
     let pos = insertion_for(&mut s, pin.at);
     cursor(&mut s, pos);
-    assert_eq!(ghost(&s)["connects"], "-102F2:13");
+    assert_eq!(ghost(&s)["connects"], "-102S3:13");
     done(&mut s, "canvas.dwell", json!({"ms": 100}));
     assert_eq!(state(&s)["canvas"]["preview"]["command"], "connection.draw_to_ip");
     let before = tables(&s);
@@ -495,24 +511,24 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(
         toast(&s),
         format!(
-            "Placed the external point {name} at {cell} and connected it to -102F2:13. Alt+Click or Ctrl+Enter \
+            "Placed the external point {name} at {cell} and connected it to -102S3:13. Alt+Click or Ctrl+Enter \
              places it without connecting."
         )
     );
     let function = added(&before, &s).0[0].functions[0];
-    // The saved point is external, to JE-N1000-03:N.
+    // The saved point is external, to the upstream supply -Q0, the sample's external reference.
     done(&mut s, "file.save", json!({}));
     {
-        let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+        let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
         let q = session.query();
         let want = q
             .external_refs()
             .iter()
             .find(|(_, x)| {
-                x.device.as_str() == "JE-N1000-03" && x.connection.as_ref().map(|c| c.as_str()) == Some("N")
+                x.device.as_str().ends_with("Q0") && x.connection.is_none()
             })
             .map(|(id, _)| id.to_string())
-            .expect("JE-N1000-03:N");
+            .expect("-Q0");
         let f = q
             .functions()
             .iter()
@@ -538,22 +554,17 @@ fn an_external_point_on_a_pin_connects_to_it() {
 #[test]
 fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
     let tmp = Tmp::new("ip-pin-source");
-    let mut s = shell(&tmp, "102");
-    let source = tables(&s)
-        .reps
-        .iter()
-        .filter_map(|r| r.ip.as_ref())
-        .find(|ip| ip.direction == "source")
-        .map(|ip| ip.name.clone())
-        .expect("a source point on 102");
-    let pin = cp(&s, "-102F2:14");
+    let mut s = with_a_free_button(&tmp);
+    // 24V has its source, on 101.
+    let source = "24V".to_owned();
+    let pin = cp(&s, "-102S3:14");
     arm_on(&mut s, &source, pin.at);
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     // The name has its source, so the tool offered its target; the source's form has its CP at the tail: the ghost
     // goes where that CP lies on the pin.
     let pos = insertion_for(&mut s, pin.at);
     cursor(&mut s, pos);
-    assert_eq!(ghost(&s)["connects"], "-102F2:14");
+    assert_eq!(ghost(&s)["connects"], "-102S3:14");
     let before = tables(&s);
     let items = s.tool_overlay().items.len();
     assert_eq!(
@@ -561,7 +572,7 @@ fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
         "reason-ip-not-placed"
     );
     let words = format!(
-        "Not placed: {source} already has a source on page 102; press D for a target, or mark one source as the star"
+        "Not placed: {source} already has a source on page 101; press D for a target, or mark one source as the star"
     );
     assert_eq!(*tables(&s), *before, "nothing committed");
     assert_eq!(s.tool_overlay().items.len(), items, "the ghost stays");
@@ -574,14 +585,14 @@ fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
 #[test]
 fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
     let tmp = Tmp::new("ip-pin-probe");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:14");
-    arm_on(&mut s, "0V", pin.at);
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    arm_on(&mut s, "5V", pin.at);
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
     let (_, conns) = added(&before, &s);
     assert_eq!(conns.len(), 1);
-    assert_eq!(pot009(&tmp, &mut s), subjects(&[("warning", "-102F2:13")]));
+    assert_eq!(pot009(&tmp, &mut s), subjects(&[("warning", "-102S3:13")]));
     let snapshot = |dir: &std::path::Path| {
         let mut files = Vec::new();
         let mut stack = vec![dir.to_path_buf()];
@@ -602,13 +613,13 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
         files.sort();
         files
     };
-    let first = snapshot(&tmp.golden_copy());
+    let first = snapshot(&tmp.sample_copy());
     drop(s);
     let mut s2 = shell(&tmp, "102");
     assert!(tables(&s2).connections.iter().any(|c| c.id == conns[0].id));
     done(&mut s2, "file.save", json!({}));
     drop(s2);
-    let second = snapshot(&tmp.golden_copy());
+    let second = snapshot(&tmp.sample_copy());
     assert_eq!(
         first.iter().map(|f| &f.0).collect::<Vec<_>>(),
         second.iter().map(|f| &f.0).collect::<Vec<_>>()
@@ -618,15 +629,15 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
     }
 }
 
-/// The next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 names the pin's
+/// The next name after a connecting drop. A target "FT950" dropped on the free pin -102S3:14 names the pin's
 /// potential (doc 08 §3.5 step 2c); the ghost kept there proposes the target's partner, its source "FT950" (the
 /// typed name stays while no source feeds it). The Wire tool's P, from that pin,
 /// names its end the same way: the source of FT950.
 #[test]
 fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
     let tmp = Tmp::new("ip-pin-next-name");
-    let mut s = shell(&tmp, "102");
-    let pin = cp(&s, "-102F2:14");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
     arm_on(&mut s, "FT950", pin.at);
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     // The target's form has its CP at the tip: the ghost goes where that CP lies on the pin.
@@ -636,7 +647,7 @@ fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
     done(&mut s, "canvas.activate", json!({}));
     assert_connects(&s, &before, &pin, "FT950");
     // A target no source feeds names the potential it carries (doc 08 §3.5 step 2c).
-    let start = cp(&s, "-102F2:14");
+    let start = cp(&s, "-102S3:14");
     assert_eq!(
         start.potential,
         Some(TablePotential {
@@ -770,7 +781,7 @@ fn a_wires_bare_end_places_the_point_free() {
     assert!(conns.is_empty(), "free: no connection");
 }
 
-/// On Golden A's grid of thirds of a nm a point's place plus its pin's offset, each rounded, can add up to 1 nm beside
+/// On the sample's grid of thirds of a nm a point's place plus its pin's offset, each rounded, can add up to 1 nm beside
 /// the grid's number of the pin's position; the page draws a pin, and the tool's ghost its point's pin, on that number
 /// (docs/design/06a-drafting.md §2.1). So a point dropped on any pin of a routed folio is on it: the ghost connects to
 /// it, and the point's pin and the wire's one point are the pin's own number.

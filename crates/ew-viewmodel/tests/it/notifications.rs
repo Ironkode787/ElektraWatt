@@ -28,7 +28,7 @@ fn qty(shell: &ShellModel) -> String {
 #[test]
 fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     let tmp = Tmp::new("jb6-grid");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "select.set", json!({"refs": terminals()}));
     let before = qty(&s);
     done(
@@ -100,7 +100,7 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
 #[test]
 fn the_toasts_of_a_closed_project_leave_the_screen_and_their_undo_expires() {
     let tmp = Tmp::new("jb6-close");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "select.set", json!({"refs": terminals()}));
     done(
         &mut s,

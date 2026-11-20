@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the tool-framework tests: temporary copies of Golden A, the sample project (read-only in place
-//! or a copy), dispatch with checks, points of a page.
+//! Shared helpers of the tool-framework tests: the sample project (read-only in place or a copy), a new project,
+//! dispatch with checks, points of a page.
 
 use std::path::{Path, PathBuf};
 
@@ -11,7 +11,7 @@ use ew_viewmodel::script;
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-pub use ew_testdir::{GOLDEN_A, SAMPLE, copy_dir};
+pub use ew_testdir::{SAMPLE, copy_dir};
 
 pub use ew_testdir as fresh_dir;
 
@@ -28,45 +28,21 @@ impl Tmp {
         ShellModel::new(mode, ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test"))
     }
 
-    /// A headless shell with a copy of Golden A open (read-only unless `writable`), on the page it opens on.
-    pub fn open(&self, writable: bool) -> ShellModel {
-        self.open_in(Mode::Headless, writable)
-    }
-
-    fn open_in(&self, mode: Mode, writable: bool) -> ShellModel {
-        let dir = self.golden_copy();
-        if !dir.exists() {
-            copy_dir(Path::new(GOLDEN_A), &dir);
-        }
-        let mut shell = self.empty_shell(mode);
-        done(
-            &mut shell,
-            "file.open",
-            json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
-        );
-        shell
-    }
-
-    /// A shell in `mode` with a copy of Golden A open (read-only unless `writable`), showing `folio`.
-    pub fn shell_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
-        let mut shell = self.open_in(mode, writable);
-        done(&mut shell, "page.goto", json!({ "folio": folio }));
-        shell
-    }
-
-    /// The directory of the copy of Golden A that [`Tmp::shell_in`] opens (for a test that saves and reopens it).
-    pub fn golden_copy(&self) -> PathBuf {
-        self.0.join("J-E-2416.ew")
-    }
-
-    /// A headless shell with a read-only copy of Golden A on `folio`.
-    pub fn shell(&self, folio: &str) -> ShellModel {
-        self.shell_in(Mode::Headless, false, folio)
+    /// A headless shell with the sample open on the page it opens on: read-only in place in the source tree, or
+    /// (`writable`) a copy in this directory ([`Tmp::sample_copy`]).
+    pub fn open_sample(&self, writable: bool) -> ShellModel {
+        self.open_sample_in(Mode::Headless, writable)
     }
 
     /// A shell in `mode` with the sample open, showing `folio`: read-only in place in the source tree, as the window
     /// opens an installed sample, or (`writable`) a copy in this directory ([`Tmp::sample_copy`]).
     pub fn sample_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
+        let mut shell = self.open_sample_in(mode, writable);
+        done(&mut shell, "page.goto", json!({ "folio": folio }));
+        shell
+    }
+
+    fn open_sample_in(&self, mode: Mode, writable: bool) -> ShellModel {
         let dir = if writable {
             let dir = self.sample_copy();
             if !dir.exists() {
@@ -82,11 +58,11 @@ impl Tmp {
             "file.open",
             json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
         );
-        done(&mut shell, "page.goto", json!({ "folio": folio }));
         shell
     }
 
-    /// The directory of the copy of the sample that a writable [`Tmp::sample_in`] opens.
+    /// The directory of the copy of the sample that a writable [`Tmp::sample_in`] opens (for a test that saves and
+    /// reopens it).
     pub fn sample_copy(&self) -> PathBuf {
         self.0.join("sample.ew")
     }
@@ -159,9 +135,9 @@ pub fn tables(s: &ShellModel) -> std::sync::Arc<ew_viewmodel::ew_api::output::Pa
     std::sync::Arc::clone(&s.canvas().unwrap().page().tables)
 }
 
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
+/// A headless shell with a writable copy of the sample on `folio`, at actual size.
 pub fn actual_size(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
+    let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
     s
 }
@@ -284,14 +260,15 @@ pub fn empty_point(c: &CanvasModel) -> (i64, i64) {
     panic!("no empty point on {}", c.page().folio)
 }
 
-/// FT-500's overlap and its wire through a symbol on a writable Golden A shown at folio 101, which the routed folio no
-/// longer draws (Golden A's route tool): three wires given the routes the provisional path drew them along
-/// before, by `connection.route` (a command stores the route it is given). `-101F1:1 -> F55:1` and
-/// `S51:3 -> -101F1:N#1` then overlap on one line inside -101F1's rectangle, and `T55:3 -> E55:N` runs straight down
-/// through E55's body. Returns the sheet y of the overlap's line.
+/// FT-500's overlap and its wire through a symbol on a writable copy of the sample shown at folio 101, which the
+/// router never draws: three wires given routes by `connection.route` (a command stores the route it is given). The
+/// wires of -101F1:1 and -101F1:3 then run on one line, the breaker's top pin row, inside -101F1's rectangle (from
+/// -101F1:3 one grid step right, then up to their other ends), and the wire of the power supply's bottom pin
+/// -101G1:+#2 runs straight up into -101G1's body before it turns to its other end. Returns the sheet point in
+/// the middle of the overlap.
 #[allow(dead_code)]
-pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> i64 {
-    let (routes, y) = {
+pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> (i64, i64) {
+    let (routes, over) = {
         let page = shell.canvas().expect("a page").page();
         let t = &page.tables;
         let cp = |label: &str| {
@@ -301,25 +278,41 @@ pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> i64 {
                 .unwrap_or_else(|| panic!("{label}"))
                 .clone()
         };
-        let wire = |a: &str, b: &str| {
-            let (a, b) = (cp(a), cp(b));
-            let id = t
+        // The wire at `pin` given the route `path` from the pin to its other end, in the wire's own direction.
+        let route = |pin: &str, path: &dyn Fn((i64, i64), (i64, i64)) -> Vec<(i64, i64)>| {
+            let pin = cp(pin);
+            let c = t
                 .connections
                 .iter()
-                .find(|c| a.connections.contains(&c.id) && b.connections.contains(&c.id))
-                .unwrap_or_else(|| panic!("a wire from {} to {}", a.label, b.label))
-                .id;
-            (id, a.at, b.at)
+                .find(|c| pin.connections.contains(&c.id))
+                .unwrap_or_else(|| panic!("a wire at {}", pin.label));
+            let (first, last) = (c.polyline[0], *c.polyline.last().unwrap());
+            if first == pin.at {
+                (c.id, path(first, last))
+            } else {
+                let mut r = path(last, first);
+                r.reverse();
+                (c.id, r)
+            }
         };
-        let f1 = wire("-101F1:1", "F55:1");
-        let s51 = wire("S51:3", "-101F1:N#1");
-        let t55 = wire("T55:3", "E55:N");
+        let (pin1, pin3) = (cp("-101F1:1").at, cp("-101F1:3").at);
+        let step = pin3.0 - pin1.0;
+        let x = page.snapper.page_of_index(page.snapper.grid_index_of(pin3.0) + 1);
+        let beside = |pin: (i64, i64), other: (i64, i64)| vec![pin, (x, pin.1), (x, other.1), other];
+        // Up from the bottom pin into the body, out to the right one grid step past the body, down and back.
+        let psu = cp("-101G1:+#2");
+        let body = t.reps.iter().find(|r| r.id == psu.rep).expect("-101G1").body;
+        let right = page.snapper.page_of_index(page.snapper.grid_index_of(body[2]) + 1);
+        let up = |pin: (i64, i64), other: (i64, i64)| {
+            let y = pin.1 - step;
+            vec![pin, (pin.0, y), (right, y), (right, other.1), other]
+        };
         let routes = vec![
-            (f1.0, vec![f1.1, f1.2]),
-            (s51.0, vec![s51.1, (s51.1.0, s51.2.1), s51.2]),
-            (t55.0, vec![t55.1, t55.2]),
+            route("-101F1:1", &beside),
+            route("-101F1:3", &beside),
+            route("-101G1:+#2", &up),
         ];
-        (routes, page.snapper.page_to_sheet(f1.1).1)
+        (routes, page.snapper.page_to_sheet(((pin3.0 + x) / 2, pin1.1)))
     };
     for (id, route) in routes {
         let route: Vec<Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
@@ -329,7 +322,7 @@ pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> i64 {
             json!({"cmd": "connection.route", "params": {"connection": id.to_string(), "route": route}}),
         );
     }
-    y
+    over
 }
 
 /// The key of the row labelled `label` with role `role` in an open navigator.

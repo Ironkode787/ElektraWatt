@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On copies of Golden A, through the forms as the window shows them: Draw ▸ Connect ▸
+//! On copies of the sample, through the forms as the window shows them: Draw ▸ Connect ▸
 //! New cable… creates a cable from its part with the part's cores, Connect cores… makes the selected wires its cores
 //! by order (one undo step; too few free cores refused in words), and Output ▸ Report block… adds a report block
 //! whose pages join the page order.
@@ -83,12 +83,12 @@ fn menu_items(s: &ShellModel, menu: Menu) -> Vec<(String, String)> {
 }
 
 /// New cable… sits in Draw ▸ Connect; its form offers the cable parts and creates the cable with the part's
-/// five cores in one undo step; Connect cores… sits beside it and makes the two leftmost selected wires the cable's BK
-/// and BU cores in one undo step; four wires more than its three free cores are refused in words, nothing assigned.
+/// five cores in one undo step; Connect cores… sits beside it and makes the two leftmost selected wires the cable's BN
+/// and BK cores in one undo step; four wires more than its three free cores are refused in words, nothing assigned.
 #[test]
 fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let tmp = Tmp::new("ft1371");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
     let draw = menu_items(&s, Menu::Draw);
     for label in ["New cable…", "Connect cores…"] {
         assert!(
@@ -107,9 +107,9 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     let (part, _) = f.fields[0]
         .options
         .iter()
-        .find(|(_, w)| w.starts_with("NEBU-G78W5-K-2-N-LE5"))
+        .find(|(_, w)| w.starts_with("EW-GEN-CBL-17"))
         .cloned()
-        .expect("Golden A's cable part is offered");
+        .expect("the sample's 5-core cable part is offered");
     s.set_form_field("part", &part);
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none(), "the form closes");
@@ -122,16 +122,16 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
         .expect("the new cable");
     let mut sorted = cores.clone();
     sorted.sort();
-    assert_eq!(sorted, ["BK", "BN", "BU", "GNYE", "WH"], "the part's cores");
+    assert_eq!(sorted, ["BK", "BN", "BU", "GNYE", "GY"], "the part's cores");
     // A new cable without a definition line takes the project's counter, never `-?W?`.
     assert_eq!(tag, "-W1");
     assert_eq!(
         state(&s)["toast"]["text"],
         format!("Created cable {tag} with 5 cores.")
     );
-    // Connect cores…: the two leftmost wires of the page become BK and BU.
+    // Connect cores…: the two leftmost wires of the page become BN and BK.
     let w = wires(&s);
-    assert!(w.len() >= 6, "folio 103 has wires: {}", w.len());
+    assert!(w.len() >= 6, "folio 102 has wires: {}", w.len());
     done(
         &mut s,
         "select.set",
@@ -152,8 +152,8 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none());
     assert_eq!(kinds(&s, &w[..2]), ["core", "core"]);
-    // With its first core on folio 103 the cable takes that page, and the toast names it so.
-    let tag = "-103W1".to_owned();
+    // With its first core on folio 102 the cable takes that page, and the toast names it so.
+    let tag = "-102W1".to_owned();
     assert_eq!(
         state(&s)["toast"]["text"],
         format!("Wires connected to the cores of {tag}: 2.")
@@ -169,7 +169,7 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
             .map(|n| n.cells[col].clone())
             .unwrap()
     };
-    for core in ["BK", "BU"] {
+    for core in ["BN", "BK"] {
         assert!(!from(&mut s, core).is_empty(), "{core} is connected");
     }
     assert_eq!(from(&mut s, "GNYE"), "", "GNYE stays spare");
@@ -202,9 +202,9 @@ fn a_new_cable_takes_its_parts_cores_and_the_selected_wires_become_its_cores() {
 #[test]
 fn connect_cores_needs_selected_wires_and_new_cable_its_part() {
     let tmp = Tmp::new("ft1371b");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     assert_eq!(
-        common::refused(&mut s, "cable.connect_cores", json!({"cable": "-106W1"})),
+        common::refused(&mut s, "cable.connect_cores", json!({"cable": "-101W1"})),
         "reason-nothing-selected"
     );
     let Outcome::Failed { message } = s.dispatch("cable.new", &json!({})) else {
@@ -226,7 +226,7 @@ fn connect_cores_needs_selected_wires_and_new_cable_its_part() {
 #[test]
 fn a_report_block_from_its_form_adds_its_pages() {
     let tmp = Tmp::new("ft1372");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "103");
     let output = menu_items(&s, Menu::Output);
     assert!(
         output.iter().any(|(_, l)| l == "Report block…"),
@@ -289,7 +289,7 @@ fn a_report_block_from_its_form_adds_its_pages() {
 #[test]
 fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
     let tmp = Tmp::new("ft1372b");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "103");
     for (language, kind, folio) in [
         (
             "en",
@@ -329,12 +329,12 @@ fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
     s.shutdown();
 }
 
-/// Report block… refuses first folio 102, which a page of Golden A holds, under the fields,
+/// Report block… refuses first folio 102, which a page of the sample holds, under the fields,
 /// whole, in English and in Dutch, as New page… does; nothing is added.
 #[test]
 fn report_block_refuses_a_folio_a_page_holds_in_both_languages() {
     let tmp = Tmp::new("id1389e");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "103");
     let pages = s.page_labels().to_vec();
     for (language, refusal) in [
         (
@@ -418,10 +418,10 @@ fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
 #[test]
 fn connect_cores_tells_two_cables_with_one_tag_apart() {
     let tmp = Tmp::new("ft1371d");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
     let before = cables(&mut s);
     for _ in 0..2 {
-        done(&mut s, "cable.new", json!({"part": "NEBU-G78W5-K-2-N-LE5"}));
+        done(&mut s, "cable.new", json!({"part": "EW-GEN-CBL-17"}));
     }
     let new: Vec<String> = cables(&mut s)
         .into_iter()
@@ -454,8 +454,8 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     assert_eq!(
         words,
         [
-            "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (1)",
-            "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"
+            "-9W9 \u{b7} EW-GEN-CBL-17 (1)",
+            "-9W9 \u{b7} EW-GEN-CBL-17 (2)"
         ]
     );
     done(&mut s, "ui.dismiss", json!({}));
@@ -478,11 +478,11 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
     done(
         &mut s,
         "cable.connect_cores",
-        json!({"cable": "-9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2)"}),
+        json!({"cable": "-9W9 \u{b7} EW-GEN-CBL-17 (2)"}),
     );
     assert_eq!(
         state(&s)["toast"]["text"],
-        "Wires connected to the cores of -9W9 \u{b7} NEBU-G78W5-K-2-N-LE5 (2): 1."
+        "Wires connected to the cores of -9W9 \u{b7} EW-GEN-CBL-17 (2): 1."
     );
     s.shutdown();
 }
@@ -493,10 +493,10 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
 #[test]
 fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumbering() {
     let tmp = Tmp::new("ft1406-scope");
-    let mut s = tmp.shell_in(Mode::Gui, true, "103");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
     let before = cables(&mut s);
     for _ in 0..3 {
-        done(&mut s, "cable.new", json!({"part": "NEBU-G78W5-K-2-N-LE5"}));
+        done(&mut s, "cable.new", json!({"part": "EW-GEN-CBL-17"}));
     }
     let new = |s: &mut ShellModel| -> Vec<String> {
         let mut new: Vec<String> = cables(s)
@@ -532,7 +532,7 @@ fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumberi
         assert_eq!(s.revision(), rev, "{language}: nothing changed");
     }
     done(&mut s, "view.language", json!({ "value": "en" }));
-    // (b) -W2 off to 7 and -W3, placed through its first core on folio 103, off to 9: renumbering takes both back.
+    // (b) -W2 off to 7 and -W3, placed through its first core on folio 102, off to 9: renumbering takes both back.
     done(
         &mut s,
         "props.set",
@@ -542,18 +542,18 @@ fn cables_on_no_page_or_placed_by_a_core_keep_their_scope_in_edits_and_renumberi
     done(&mut s, "select.set", json!({"ids": [w[0].to_string()]}));
     done(&mut s, "cable.connect_cores", json!({"cable": "-W3"}));
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
-    done(&mut s, "navigator.select", json!({"keys": ["-103W1"]}));
+    done(&mut s, "navigator.select", json!({"keys": ["-102W1"]}));
     done(
         &mut s,
         "props.set",
         json!({"row": "device/tag.counter", "value": "9"}),
     );
-    assert_eq!(new(&mut s), ["-103W9", "-W1", "-W7"]);
+    assert_eq!(new(&mut s), ["-102W9", "-W1", "-W7"]);
     done(
         &mut s,
         "command.run",
         json!({"cmd": "numbering.renumber", "params": {"scope": "project"}}),
     );
-    assert_eq!(new(&mut s), ["-103W1", "-W1", "-W2"]);
+    assert_eq!(new(&mut s), ["-102W1", "-W1", "-W2"]);
     s.shutdown();
 }

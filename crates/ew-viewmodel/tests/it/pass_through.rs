@@ -241,7 +241,7 @@ fn a_double_click_on_the_pin_a_wire_just_ended_on_starts_the_next_wire_there() {
 
 /// A shell like [`circuit`] with a terminal of -X1031 at each of `terminals` (grid index, designation).
 fn circuit_with(tmp: &Tmp, terminals: &[((i64, i64), &str)], coil: (i64, i64)) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,
@@ -543,7 +543,7 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
 #[test]
 fn an_interruption_point_at_the_area_edge_still_routes() {
     let tmp = Tmp::new("c39-edge");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
     let feed = cp(&s, "J-E-206-L").rep.to_string();
     done(
@@ -635,7 +635,7 @@ fn split_at_terminal_71(s: &ShellModel) -> Vec<[String; 2]> {
 #[test]
 fn a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
     let tmp = Tmp::new("ft759-drop");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,
@@ -689,7 +689,7 @@ fn a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
 #[test]
 fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
     let tmp = Tmp::new("ft1020-drop");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,
@@ -742,7 +742,7 @@ fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
 #[test]
 fn a_far_pin_is_offered_not_wired() {
     let tmp = Tmp::new("rc2-far");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,

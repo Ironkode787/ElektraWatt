@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw ▸ Bond (`bond.draw`, G-PP triage row 7) on copies of Golden A with the bond B1 removed: drawn again on the
-//! 0 V–PE wire W27 it is previewed on a card, Apply commits one `bond.create` (one undo step), 0 V keeps its colour and
-//! PE stays PE, and EW-POT-001 and EW-POT-002 no longer report; the CP form `a`/`b`, the kinds, the refusals and the
-//! Bond submenu.
+//! Draw ▸ Bond (`bond.draw`, G-PP triage row 7) on copies of the sample with its one bond removed: drawn again on the
+//! 0 V–PE wire of folio 102 it is previewed on a card, Apply commits one `bond.create` (one undo step), 0 V keeps its
+//! colour and PE stays PE, and EW-POT-001 and EW-POT-002 no longer report; the CP form `a`/`b`, the kinds, the
+//! refusals and the Bond submenu.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -15,8 +15,8 @@ use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// The 0 V–PE wire W27 on folio 103, as the page text names it.
-const W27: &str = "wire:\"PE-0VDC\" -> \"-X1032:2/a\"";
+/// The 0 V–PE wire on folio 102 (from the strip -X1021 to the PE mark), as the page text names it.
+const PELV_WIRE: &str = "wire:-X1021:8/a -> PE";
 
 fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
     match shell.dispatch(action, &params) {
@@ -59,14 +59,15 @@ fn potentials(shell: &mut ShellModel) -> Vec<(String, String, String)> {
         .collect()
 }
 
-/// A writable copy of Golden A on folio 103 with the bond B1 deleted (one committed step).
-fn without_b1(tmp: &Tmp) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+/// A writable copy of the sample on folio 102 with its one bond, the 0 V–PE bond of -X1021, deleted (one committed
+/// step).
+fn without_the_bond(tmp: &Tmp) -> ShellModel {
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let bond = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
-        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        assert_eq!(rows.len(), 1, "the sample has one bond");
         rows[0].records[0]
     };
     done(
@@ -77,14 +78,14 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
     shell
 }
 
-/// D-22's situation: without B1 the wire W27 joins 0 V and PE into one potential, EW-POT-001 reports, and the merged
-/// potential takes the first of its two definitions in natural order of name, 0V;
-/// Draw ▸ Bond on W27 previews `bond.create` (pelv_0v_pe, via W27), Apply commits it in one step, EW-POT-001 and
-/// EW-POT-002 are gone, 0 V is WH and PE stays PE; Undo brings the merge back.
+/// D-22's situation: without the bond the 0 V–PE wire joins 0 V and PE into one potential, EW-POT-001 reports, and
+/// the merged potential takes the first of its two definitions in natural order of name, 0V; Draw ▸ Bond on that
+/// wire previews `bond.create` (pelv_0v_pe, via the wire), Apply commits it in one step, EW-POT-001 and EW-POT-002
+/// are gone, 0 V keeps its own colour and PE stays PE; Undo brings the merge back.
 #[test]
-fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
-    let tmp = Tmp::new("bond-w27");
-    let mut shell = without_b1(&tmp);
+fn a_bond_drawn_on_pelv_wire_keeps_0v_and_pe_apart() {
+    let tmp = Tmp::new("bond-pelv-wire");
+    let mut shell = without_the_bond(&tmp);
     assert!(findings(&mut shell, "EW-POT-001") >= 1, "the merge reports");
     let merged = potentials(&mut shell);
     assert!(
@@ -92,7 +93,7 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
         "0 V and PE are one potential, named 0V (D9): {merged:?}"
     );
 
-    done(&mut shell, "select.set", json!({"refs": [W27]}));
+    done(&mut shell, "select.set", json!({"refs": [PELV_WIRE]}));
     let rev = shell.revision();
     let steps = shell.recorded_commands().len();
     done(&mut shell, "bond.draw", json!({}));
@@ -118,7 +119,7 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
     assert_eq!(last.params["kind"], "pelv_0v_pe");
     assert!(
         last.params["via"].is_string(),
-        "W27 is the bond's via: {}",
+        "the wire is the bond's via: {}",
         last.params
     );
 
@@ -135,7 +136,7 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
             .unwrap_or_else(|| panic!("no potential {name}: {rows:?}"))
             .clone()
     };
-    assert_eq!(row("0V").2, "WH", "0 V keeps its colour");
+    assert!(!row("0V").2.contains("GN"), "0 V keeps its own colour: {:?}", row("0V"));
     assert_eq!(row("0V").1, "potential_def");
     assert!(row("PE").2.contains("GN"), "PE stays PE: {:?}", row("PE"));
     assert!(
@@ -159,22 +160,22 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
 #[test]
 fn the_cp_form_the_kinds_and_the_refusals() {
     let tmp = Tmp::new("bond-cps");
-    let mut shell = without_b1(&tmp);
+    let mut shell = without_the_bond(&tmp);
     assert_eq!(
         refused(&mut shell, "bond.draw", json!({})),
         "reason-bond-selection"
     );
-    let m = failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC", "b": "-X9:9"}));
+    let m = failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a", "b": "-X9:9"}));
     assert!(m.contains("-X9:9"), "{m}");
-    let m = failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC", "b": "PE-0VDC"}));
+    let m = failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a", "b": "-X1021:8/a"}));
     assert!(m.contains("two different"), "{m}");
-    failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC"}));
+    failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a"}));
     // Without a selection and without ends the action is disabled before its parameters are read.
     assert_eq!(
         refused(&mut shell, "bond.draw", json!({"kind": "copper"})),
         "reason-bond-selection"
     );
-    done(&mut shell, "select.set", json!({"refs": [W27]}));
+    done(&mut shell, "select.set", json!({"refs": [PELV_WIRE]}));
     failed(&mut shell, "bond.draw", json!({"kind": "copper"}));
     done(&mut shell, "ui.dismiss", json!({}));
     assert!(shell.properties().card().is_none());
@@ -182,7 +183,7 @@ fn the_cp_form_the_kinds_and_the_refusals() {
     done(
         &mut shell,
         "bond.draw",
-        json!({"a": "PE-0VDC", "b": "\"-X1032:2/a\"", "kind": "equipotential"}),
+        json!({"a": "-X1021:8/a", "b": "PE", "kind": "equipotential"}),
     );
     let card = shell.properties().card().expect("the card");
     assert_eq!(card.preview.command["kind"], "equipotential");
@@ -201,7 +202,7 @@ fn the_cp_form_the_kinds_and_the_refusals() {
 #[test]
 fn the_bond_submenu_lists_the_four_kinds() {
     let tmp = Tmp::new("bond-menu");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let bond_items = |shell: &ShellModel| {
         let draw = menu_model(shell)
             .into_iter()
@@ -217,7 +218,7 @@ fn the_bond_submenu_lists_the_four_kinds() {
             .all(|i| i.id == "bond.draw" && !i.enabled && i.reason.as_deref() == Some(reason)),
         "{items:?}"
     );
-    done(&mut shell, "select.set", json!({"refs": [W27]}));
+    done(&mut shell, "select.set", json!({"refs": [PELV_WIRE]}));
     let items = bond_items(&shell);
     assert!(items.iter().all(|i| i.id == "bond.draw" && i.enabled));
     let kinds: Vec<&str> = items.iter().map(|i| i.params["kind"].as_str().unwrap()).collect();

@@ -740,7 +740,7 @@ fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
 #[test]
 fn view_language_switches_the_menus_and_back() {
     let tmp = Tmp::new("lo2");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let english = ("English".to_owned(), json!({"value": "en"}), true);
     assert_eq!(
         language_items(&shell),
@@ -774,11 +774,18 @@ fn view_language_switches_the_menus_and_back() {
 }
 
 /// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of every rule that reports on the page
-/// (EW-POT-013 word for word); in English it is the finding's own message.
+/// (EW-CORE-033 word for word, for the supply cable -101W1 made to lack its length); in English it is the finding's
+/// own message.
 #[test]
 fn the_messages_detail_follows_the_ui_language() {
     let tmp = Tmp::new("lo4");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "101");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101W1"}],
+            "path": "cable.length", "value": "missing"}}),
+    );
     done(&mut shell, "messages.show", json!({"on": true}));
     let table = shell
         .nav(NavKind::Messages)
@@ -797,7 +804,11 @@ fn the_messages_detail_follows_the_ui_language() {
         done(shell, "navigator.row", json!({"kind": "messages", "key": key}));
         shell.messages_detail().unwrap().message
     };
-    let pot = first("EW-POT-013");
+    let pot = first("EW-CORE-033");
+    let cable = pot.cells[2]
+        .split_once(" has no length yet")
+        .map(|(tag, _)| tag.to_owned())
+        .expect("the cable's tag");
     // The first finding of every rule on the page: each reads in Dutch (FT-680).
     let mut rules = std::collections::BTreeSet::new();
     let others: Vec<_> = table
@@ -810,10 +821,10 @@ fn the_messages_detail_follows_the_ui_language() {
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         detail(&mut shell, &pot.key),
-        "S56 opent de nulleider N-55 → N-55S zonder de fase (belasting E56 blijft verbonden met L-55): wat erachter \
-         zit blijft onder spanning terwijl het uitgeschakeld lijkt. Zet het contact in de fase, of gebruik een apparaat \
-         dat fase en nulleider samen opent, zoals een tweepolige automaat."
+        format!("{cable} heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout")
     );
+    assert!(cable.ends_with("-101W1"), "{cable}");
+
     for other in &others {
         assert_ne!(
             detail(&mut shell, &other.key),
@@ -832,7 +843,7 @@ fn the_messages_detail_follows_the_ui_language() {
 #[test]
 fn the_quick_fix_label_follows_the_ui_language() {
     let tmp = Tmp::new("lo4fix");
-    let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "102");
     // As MS3: page 102's own description gives EW-CORE-023's finding, whose fix drops it.
     let page = shell
         .page_rows()

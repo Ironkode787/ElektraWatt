@@ -39,8 +39,9 @@ fn page_150(s: &mut ShellModel) {
     done(s, "view.zoom_actual", json!({}));
 }
 
-/// What the owner asked for: a library part that is drawn as a box (the sample circuit protector) opened from the
-/// project, given one more pin, its outputs put on the bottom edge and its contacts on the right, saved; the project
+/// What the owner asked for: a library part that is drawn as a box (the sample's power supply EW-GEN-PSU-1, its pins
+/// L, N and PE and two + and two -) opened from the project, given one more pin (a DC-OK contact), its inputs put on
+/// the top edge, its outputs on the bottom edge and the contact on the right, saved; the project
 /// then holds its own copy of the part with the pin and the layout, the boxes of it that are drawn are offered for
 /// redrawing with their count, and a click with the Device tool places the box as it was laid out.
 #[test]
@@ -48,16 +49,16 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     let tmp = Tmp::new("device-box-library-part");
     let mut s = actual_size(&tmp, "102");
     page_150(&mut s);
-    done(&mut s, "part.box", json!({"part": "MICO 4.10"}));
+    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
     // The box as it was always drawn: the first half of the pins on top, the rest below.
     let before = pins(&s);
-    assert_eq!(before.len(), 10);
-    assert_eq!(before.iter().filter(|p| p.1 == "top").count(), 5);
+    assert_eq!(before.len(), 7);
+    assert_eq!(before.iter().filter(|p| p.1 == "top").count(), 3);
     assert!(
         device_box(&s).pins_from().is_none(),
         "the pins are the person's to change"
     );
-    done(&mut s, "part.pin", json!({"add": true, "name": "Out5"}));
+    done(&mut s, "part.pin", json!({"add": true, "name": "OK"}));
     done(&mut s, "part.box_size", json!({"width": 28, "height": 16}));
     let table = device_box(&s).pin_table();
     let idx = |name: &str, nth: usize| {
@@ -68,32 +69,24 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             .unwrap_or_else(|| panic!("{name}: {table:?}"))
             .idx
     };
-    for (k, (name, nth)) in [("24VDC", 0), ("24VDC", 1), ("GND", 0), ("GND", 1)]
-        .into_iter()
-        .enumerate()
-    {
+    for (k, name) in ["L", "N", "PE"].into_iter().enumerate() {
         done(
             &mut s,
             "part.pin",
-            json!({"pin": idx(name, nth), "side": "top", "at": 4 * (k + 1)}),
+            json!({"pin": idx(name, 0), "side": "top", "at": 4 * (k + 1)}),
         );
     }
-    for (k, name) in ["Out1", "Out2", "Out3", "Out4", "Out5"].into_iter().enumerate() {
+    for (k, (name, nth)) in [("+", 0), ("+", 1), ("-", 0), ("-", 1)].into_iter().enumerate() {
         done(
             &mut s,
             "part.pin",
-            json!({"pin": idx(name, 0), "side": "bottom", "at": 4 * (k + 1)}),
+            json!({"pin": idx(name, nth), "side": "bottom", "at": 4 * (k + 1)}),
         );
     }
     done(
         &mut s,
         "part.pin",
-        json!({"pin": idx("13", 0), "side": "right", "at": 4}),
-    );
-    done(
-        &mut s,
-        "part.pin",
-        json!({"pin": idx("14", 0), "side": "right", "at": 8}),
+        json!({"pin": idx("OK", 0), "side": "right", "at": 4}),
     );
     let laid_out = pins(&s);
     assert_eq!(
@@ -102,7 +95,7 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             .filter(|p| p.1 == "bottom")
             .map(|p| (p.0.as_str(), p.2))
             .collect::<Vec<_>>(),
-        [("Out1", 4), ("Out2", 8), ("Out3", 12), ("Out4", 16), ("Out5", 20)]
+        [("+", 4), ("+", 8), ("-", 12), ("-", 16)]
     );
     assert_eq!(
         laid_out
@@ -110,7 +103,7 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             .filter(|p| p.1 == "right")
             .map(|p| p.0.as_str())
             .collect::<Vec<_>>(),
-        ["13", "14"]
+        ["OK"]
     );
     // One step back and forth in the box's own history.
     done(&mut s, "edit.undo", json!({}));
@@ -157,21 +150,21 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             (at.0, at.1 + 4 * step)
         ]
     );
-    assert_eq!(b.cps.len(), 11);
+    assert_eq!(b.cps.len(), 8);
     let bottom: Vec<i64> = b
         .cps
         .iter()
         .filter(|c| c.2 == Dir::Down)
         .map(|c| (c.1.0 - at.0) / step)
         .collect();
-    assert_eq!(bottom, [1, 2, 3, 4, 5], "the five outputs along the bottom edge");
+    assert_eq!(bottom, [1, 2, 3, 4], "the four outputs along the bottom edge");
     assert!(
         b.cps
             .iter()
             .filter(|c| c.2 == Dir::Down)
             .all(|c| c.1.1 == at.1 + 4 * step)
     );
-    assert_eq!(b.cps.iter().filter(|c| c.2 == Dir::Right).count(), 2);
+    assert_eq!(b.cps.iter().filter(|c| c.2 == Dir::Right).count(), 1);
     let labels: Vec<&str> = t
         .cps
         .iter()
@@ -179,7 +172,8 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         .filter_map(|c| c.label.split_once(':').map(|(_, d)| d))
         .collect();
     assert!(
-        labels.contains(&"Out5"),
+        labels.contains(&"OK"),
+
         "the new pin is a connection point of the device: {labels:?}"
     );
 }

@@ -11,9 +11,9 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
-/// A writable copy of Golden A with `folio` shown, headless.
-fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+/// A writable copy of the sample with `folio` shown, headless.
+fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// The first line of `ui.describe` that starts with `prefix`.
@@ -37,7 +37,7 @@ fn ghost(s: &ShellModel) -> Value {
 #[test]
 fn terminal_designation_names_the_terminal_and_the_old_name_still_works() {
     let tmp = Tmp::new("m34-543");
-    let mut s = golden(&tmp, "103");
+    let mut s = writable(&tmp, "103");
     let pick = |s: &mut ShellModel, params: Value| {
         done(s, "place.pick", params);
         let line = describe_line(s, "canvas ghost place");
@@ -94,7 +94,7 @@ fn a_designation_on_a_device_says_where_its_tag_is_set() {
 #[test]
 fn an_interruption_point_is_renamed_and_redirected_from_the_grid() {
     let tmp = Tmp::new("m34-399");
-    let mut s = golden(&tmp, "103");
+    let mut s = writable(&tmp, "103");
     let (rep, name) = {
         let t = &s.canvas().unwrap().page().tables;
         let r = t.reps.iter().find(|r| r.ip.is_some()).expect("an IP on 103");
@@ -169,7 +169,7 @@ fn enter_k(s: &mut ShellModel, k: (i64, i64)) {
 #[test]
 fn the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
     let tmp = Tmp::new("m34-547");
-    let mut s = golden(&tmp, "102");
+    let mut s = writable(&tmp, "102");
     done(&mut s, "view.zoom_actual", json!({}));
     let before = ips(&s);
     done(&mut s, "tool.ip", json!({}));
@@ -202,7 +202,7 @@ fn the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
 #[test]
 fn deleting_an_ip_with_its_wire_says_so_in_the_toast() {
     let tmp = Tmp::new("m34-547b");
-    let mut s = golden(&tmp, "103");
+    let mut s = writable(&tmp, "103");
     let (rep, name, wire) = {
         let t = &s.canvas().unwrap().page().tables;
         t.reps
@@ -269,7 +269,7 @@ fn every_place_commit_names_the_tag_and_the_cell() {
     }
     // A terminal on Golden A's strip names the terminal; Golden A's frames have no cells.
     let tmp = Tmp::new("m34-546b");
-    let mut s = golden(&tmp, "103");
+    let mut s = writable(&tmp, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     done(
         &mut s,
@@ -291,24 +291,25 @@ fn every_place_commit_names_the_tag_and_the_cell() {
 #[test]
 fn the_ghost_lists_the_wires_and_the_strip_says_how_to_place_without_them() {
     let tmp = Tmp::new("m34-545");
-    let mut s = golden(&tmp, "101");
+    let mut s = writable(&tmp, "101");
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
     );
-    // Two contacts one above the other (the second without wires), then the ghost between them faces both.
+    // Two contacts one above the other in the empty right half of folio 101 (the second without wires), then the
+    // ghost between them faces both.
     let span = 4;
-    let p = grid(&s, (60, 38));
+    let p = grid(&s, (75, 25));
     done(&mut s, "cursor.set", common::at(p, json!({})));
     assert_eq!(ghost(&s)["wires"], json!([]));
     let h = ew_viewmodel::command_bar::hud(&s);
     assert!(!h.prompt.contains("places without"), "{}", h.prompt);
     done(&mut s, "canvas.activate_alt", json!({}));
-    let p = grid(&s, (60, 38 + 3 * span + 2));
+    let p = grid(&s, (75, 25 + 3 * span + 2));
     done(&mut s, "cursor.set", common::at(p, json!({})));
     done(&mut s, "canvas.activate_alt", json!({}));
-    let p = grid(&s, (60, 38 + span + 1));
+    let p = grid(&s, (75, 25 + span + 1));
     done(&mut s, "cursor.set", common::at(p, json!({})));
     let g = ghost(&s);
     let wires: Vec<String> = g["wires"]

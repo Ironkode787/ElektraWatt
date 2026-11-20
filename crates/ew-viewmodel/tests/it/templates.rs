@@ -11,7 +11,7 @@ use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::json;
 
-use crate::common::{GOLDEN_A, Tmp, copy_dir, done};
+use crate::common::{SAMPLE, Tmp, copy_dir, done};
 
 fn path(p: &Path) -> String {
     p.to_string_lossy().into_owned()
@@ -49,7 +49,7 @@ fn new_project(shell: &mut ShellModel, folder: &Path, name: &str, start: usize, 
 fn a_template_with_pages_gives_a_project_without_them_unless_ticked() {
     let tmp = Tmp::new("templates-pages");
     let old = tmp.0.join("old.ew");
-    copy_dir(Path::new(GOLDEN_A), &old);
+    copy_dir(Path::new(SAMPLE), &old);
     let mut shell = tmp.empty_shell(Mode::Gui);
     done(&mut shell, "templates.add", json!({"dir": path(&old)}));
     done(&mut shell, "templates.use", json!({"index": 1}));

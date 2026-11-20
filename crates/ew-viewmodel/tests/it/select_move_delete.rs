@@ -397,7 +397,7 @@ fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
     let device = rep.device.expect("the box's device");
     // The device has the part's two functions: read from the saved copy.
     done(&mut s, "file.save", json!({}));
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     let (session, _) = ew_api::Session::open_read_only(&dir, "test").expect("the saved copy opens");
     let n = {
         let q = session.query();
@@ -426,7 +426,7 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
         serde_json::from_str(&std::fs::read_to_string(TWO_STARTER_FNDEF_PART).expect("the fixture"))
             .expect("JSON");
     {
-        let (golden, _) = ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+        let (golden, _) = ew_api::Session::open_read_only(std::path::Path::new(common::SAMPLE), "test")
             .expect("Golden A opens read-only");
         let q = golden.query();
         for entry in fixture["function_template"].as_array().expect("a template") {
@@ -639,7 +639,7 @@ fn tool_epoch_tracks_replacements_without_session_reads() {
     done(
         &mut s,
         "file.open",
-        json!({"dir":tmp.golden_copy().to_string_lossy()}),
+        json!({"dir":tmp.sample_copy().to_string_lossy()}),
     );
     // Opening first closes the empty host, then install_view creates the project host.
     assert_eq!(s.tool_epoch(), before_close.wrapping_add(3));

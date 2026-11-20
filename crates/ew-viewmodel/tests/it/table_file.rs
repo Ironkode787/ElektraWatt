@@ -22,7 +22,7 @@ use serde_json::json;
 
 /// A writable copy of Golden A, headless, with the Terminal strips table on show, filtered `-X1031`, in node order.
 fn strips(tmp: &Tmp) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     done(
         &mut shell,
@@ -206,7 +206,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let out = tmp.0.join("x.xlsx");
     done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
     let bytes = std::fs::read(&out).unwrap();
-    let cli = cli_workbook(&tmp.golden_copy());
+    let cli = cli_workbook(&tmp.sample_copy());
     assert_eq!(first_difference(&bytes, &cli), None);
     assert_eq!(
         bytes, cli,
@@ -415,7 +415,7 @@ fn the_export_is_a_job_on_its_snapshot() {
 #[test]
 fn the_refusals_in_words_and_a_csv() {
     let tmp = Tmp::new("tfr");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     let out = tmp.0.join("x.xlsx");
     assert_eq!(
@@ -641,7 +641,7 @@ fn a_panicking_table_read_fails_with_s2_and_changes_nothing() {
     done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
     let file = tmp.0.join("y.xlsx");
     std::fs::copy(&out, &file).unwrap();
-    let before = (steps(&shell), files_of(&tmp.golden_copy()));
+    let before = (steps(&shell), files_of(&tmp.sample_copy()));
     shell.set_job_panic_for_tests(Some("table-read"));
     assert_eq!(
         failed(&mut shell, "navigator.import_table", json!({"path": text(&file)})),
@@ -649,7 +649,7 @@ fn a_panicking_table_read_fails_with_s2_and_changes_nothing() {
     );
     assert!(shell.properties().card().is_none(), "no card");
     assert!(
-        (steps(&shell), files_of(&tmp.golden_copy())) == before,
+        (steps(&shell), files_of(&tmp.sample_copy())) == before,
         "the import changed the project"
     );
     shell.shutdown();
@@ -844,7 +844,7 @@ fn focus_brings_a_navigator_behind_another_tab_forward() {
 #[test]
 fn a_table_without_a_file_form_refuses_its_export() {
     let tmp = Tmp::new("tfm");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "macros"}));
     done(
         &mut shell,

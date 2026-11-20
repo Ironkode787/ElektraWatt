@@ -51,7 +51,7 @@ const KEY_ONLY: &[&str] = &[
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {
-    tmp.shell_in(Mode::Headless, false, "101")
+    tmp.sample_in(Mode::Headless, false, "101")
 }
 
 /// Every place an action takes in the app menu: the menu and the path of submenus and groups down to it.
@@ -314,7 +314,7 @@ fn the_command_tab_and_the_collapse_reach_the_describe_text() {
 #[test]
 fn page_new_shows_the_new_page_with_nothing_selected() {
     let tmp = Tmp::new("ft1116");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let empty = empty_point(s.canvas().unwrap());
     let (_, p) = common::entity_points(s.canvas().unwrap())[0];
     click(&mut s, empty, json!({}));
@@ -336,7 +336,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
     use ew_viewmodel::navigator::RowKind;
     use ew_viewmodel::status::{StatusKind, bar};
     let tmp = Tmp::new("id1497-8");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let key = s
         .navigator_rows()
         .into_iter()
@@ -383,7 +383,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
 #[test]
 fn the_hud_prompts_the_selection_and_the_pick_stack() {
     let tmp = Tmp::new("cb5");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let h = hud(&s);
     assert_eq!(h.tool, "tool.select");
     assert_eq!(h.quick, ["tool.wire", "tool.place", "tool.text"]);
@@ -398,8 +398,7 @@ fn the_hud_prompts_the_selection_and_the_pick_stack() {
     assert_eq!(hud(&s).prompt, "1 selected \u{b7} Del deletes \u{b7} R rotates");
     // At an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
     done(&mut s, "view.zoom_actual", json!({}));
-    let y = common::provisional_overlap_on_101(&mut s);
-    let over = (150_000_000, y);
+    let over = common::provisional_overlap_on_101(&mut s);
     done(&mut s, "canvas.pointer", at(over, json!({})));
     let c = s.canvas().unwrap();
     let n = ew_viewmodel::tools::pick_stack(
@@ -429,7 +428,7 @@ fn the_hud_prompts_the_selection_and_the_pick_stack() {
 #[test]
 fn arming_place_names_the_tool_the_target_and_its_keys() {
     let tmp = Tmp::new("cb5-place");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(
         &mut s,
         "place.pick",
@@ -460,7 +459,7 @@ fn the_draw_tab_names_renumber_devices_and_offers_route_beside_wire() {
         .collect();
     assert_eq!(ids[..2], ["tool.wire", "layout.route"]);
     let tmp = Tmp::new("id1497-10");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let renumber = command_bar::action_button(&s, "devices.renumber").unwrap();
     assert_eq!(renumber.bar_label, "Renumber devices");
     let route = command_bar::action_button(&s, "layout.route").unwrap();

@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use crate::common::{GOLDEN_A, Tmp, copy_dir, done};
+use crate::common::{SAMPLE, Tmp, copy_dir, done};
 use ew_viewmodel::shell::startup::{CRASH_DIR, ENDED_LINE, StartupOffer};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
@@ -23,7 +23,7 @@ fn crashes(tmp: &Tmp) -> PathBuf {
 /// A copy of Golden A with one unsaved page, left by a session that ended without its shutdown.
 fn crashed_project(tmp: &Tmp) -> PathBuf {
     let dir = tmp.0.join("g.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    copy_dir(Path::new(SAMPLE), &dir);
     let mut shell = ShellModel::new(Mode::Headless, config(tmp));
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     done(

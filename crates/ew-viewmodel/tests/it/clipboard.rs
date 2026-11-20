@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard through the shell on temporary copies of Golden A (acceptance checks CB4, CB7 and
-//! the shell half of CB8): FR-DEV-029's copy and paste of -102F1 on folio 102 (-102F3, part A9F78116, no wire); the
-//! paste tool (ghost, dwell preview with the predicted tags, commit with the pasted representation selected, Escape);
+//! The clipboard through the shell on temporary copies of the sample (acceptance checks CB4, CB7 and
+//! the shell half of CB8): FR-DEV-029's copy and paste of -102F1 on folio 102 (-102F2, part EW-GEN-MCB-1, no wire);
+//! the paste tool (ghost, dwell preview with the predicted tags, commit with the pasted representation selected, Escape);
 //! duplicate (the clipboard unchanged); cut (one undo step, the clipboard keeps the fragment); plain text refused; the
 //! transcript's `clipboard` and paste `ghost` members, the describe lines with the 6 words, and the exact counts.
 
@@ -18,9 +18,9 @@ use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// A headless shell with a writable copy of Golden A on `folio`.
+/// A headless shell with a writable copy of the sample on `folio`.
 fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// Doc 06 §3.6 item 5: a copy that dropped a wire says so in the ghost also when the window's Ctrl+V brings the same
@@ -118,7 +118,7 @@ fn the_paste_page_kinds_agree_with_the_paste_command() {
         pages.push(((*kind).to_owned(), folio));
     }
     done(&mut shell, "file.save", json!({}));
-    let (mut session, _) = Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "0.0.0-test").unwrap();
+    let (mut session, _) = Session::open_read_only(&tmp.0.join("sample.ew"), "0.0.0-test").unwrap();
     let rows = session.page_rows();
     let report = rows
         .iter()
@@ -177,7 +177,7 @@ fn a_device_selected_by_tag_is_copied_as_its_representation() {
     done(&mut shell, "edit.copy", json!({}));
     assert_eq!(
         state(&shell)["clipboard"],
-        json!({"kind": "fragment", "records": 4, "copies": 4})
+        json!({"kind": "fragment", "records": 3, "copies": 4})
     );
     let reps = shell.canvas().unwrap().page().tables.reps.len();
     done(&mut shell, "edit.cut", json!({}));
@@ -227,16 +227,16 @@ fn rep_pos(shell: &ShellModel, rep: &str) -> (i64, i64) {
 const STEP: i64 = 2_645_833;
 
 /// rc.5 (the owner: copy and paste between grids did not work, and a page's grid could not change once it held items):
-/// -102G1 and -102F2 with the wires between them, copied on folio 102 (the QET grid) and pasted on a new page of the
-/// 4 mm grid, are fitted to it and their wires routed anew, in one undo step, and a message says so. That page's grid
-/// changed back to the QET grid asks first, saying what will happen; Change and fit fits its items and routes its
-/// wires in one undo step, and says so.
+/// the push buttons -102S2 and -102S1 with the wire between them, copied on folio 102 (the QET grid) and pasted on a
+/// new page of the 4 mm grid, are fitted to it and their wires routed anew, in one undo step, and a message says so.
+/// That page's grid changed back to the QET grid asks first, saying what will happen; Change and fit fits its items
+/// and routes its wires in one undo step, and says so.
 #[test]
 fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     let tmp = Tmp::new("clip-fit");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    let g1 = select_rep(&mut shell, "-102G1");
-    let f2 = select_rep(&mut shell, "-102F2");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
+    let g1 = select_rep(&mut shell, "-102S2");
+    let f2 = select_rep(&mut shell, "-102S1");
     done(&mut shell, "select.set", json!({ "ids": [g1, f2] }));
     done(&mut shell, "edit.copy", json!({}));
     done(
@@ -447,10 +447,10 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
 #[test]
 fn fitted_symbols_move_turn_and_take_a_wire() {
     let tmp = Tmp::new("clip-fit-move");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    let g1 = select_rep(&mut shell, "-102G1");
-    let f1 = select_rep(&mut shell, "-102F1");
-    let f2 = select_rep(&mut shell, "-102F2");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
+    let g1 = select_rep(&mut shell, "-102S2");
+    let f1 = select_rep(&mut shell, "-102S1");
+    let f2 = select_rep(&mut shell, "-102F1");
     done(&mut shell, "select.set", json!({ "ids": [g1, f1, f2] }));
     done(&mut shell, "edit.copy", json!({}));
     done(
@@ -499,7 +499,7 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
 #[test]
 fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     let tmp = Tmp::new("clip-fit-text");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(
         &mut shell,
         "page.new",
@@ -536,7 +536,7 @@ fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
 #[test]
 fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     let tmp = Tmp::new("page-grid-tab");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let bar = ew_viewmodel::command_bar::command_bar_of(&shell, ew_viewmodel::command_bar::Tab::Page);
     let button = bar
         .groups
@@ -578,7 +578,7 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
 #[test]
 fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
     let tmp = Tmp::new("clip-ghost");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     select_rep(&mut shell, "-102F1");
     done(&mut shell, "edit.copy", json!({}));
     done(&mut shell, "select.set", json!({ "ids": [] }));
@@ -611,34 +611,35 @@ fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
     shell.shutdown();
 }
 
-/// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part
-/// A9F78116 and no connection (its wires had an end outside).
+/// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F2 with part
+/// EW-GEN-MCB-1 and no connection (its wires had an end outside). The fragment holds the breaker's three records
+/// (the device, its one function and its one representation).
 #[test]
-fn copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
+fn copy_and_paste_of_102f1_is_102f2_with_its_part_and_no_wire() {
     let tmp = Tmp::new("clip-cb4");
     let mut shell = writable(&tmp, "102");
     let rep = select_rep(&mut shell, "-102F1");
     done(&mut shell, "edit.copy", json!({}));
     assert_eq!(
         state(&shell)["clipboard"],
-        json!({"kind": "fragment", "records": 4, "copies": 4})
+        json!({"kind": "fragment", "records": 3, "copies": 4})
     );
     let wires = shell.canvas().unwrap().page().tables.connections.len();
     let reps = shell.canvas().unwrap().page().tables.reps.len();
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, rep_pos(&shell, &rep));
-    // Twelve grid steps right: an empty spot beside the original, on no wire. (Six steps down, the copy's pins would lie
-    // on -102F1's own wire to the junction below it, which normaliser 7 splits into the copy.)
+    // Thirty grid steps down: an empty spot below the original, left of the circuits, on no wire (beside it, the
+    // copy's pins would lie on the 24 V wire, which normaliser 7 splits into the copy).
     done(
         &mut shell,
         "canvas.pointer",
-        at((target.0 + 12 * STEP, target.1), json!({})),
+        at((target.0, target.1 + 30 * STEP), json!({})),
     );
     let rev = shell.revision();
     done(
         &mut shell,
         "canvas.press",
-        at((target.0 + 12 * STEP, target.1), json!({})),
+        at((target.0, target.1 + 30 * STEP), json!({})),
     );
     assert_eq!(shell.revision(), rev.map(|r| r + 1), "one commit");
     assert_eq!(shell.tool().name(), "select");
@@ -651,11 +652,11 @@ fn copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
     );
     done(&mut shell, "props.show", json!({"on": true}));
     let st = state(&shell);
-    assert_eq!(st["properties"]["title"], "-102F3");
+    assert_eq!(st["properties"]["title"], "-102F2");
     let sheet_ = shell.properties().sheet().unwrap();
     let part = find_row(sheet_, "device/parts[0].part").expect("the part row");
     match &part.1.value {
-        RowValue::One { text, .. } => assert!(text.starts_with("A9F78116"), "{text}"),
+        RowValue::One { text, .. } => assert!(text.starts_with("EW-GEN-MCB-1"), "{text}"),
         other => panic!("{other:?}"),
     }
     // One undo step removes the paste.
@@ -693,7 +694,7 @@ fn the_paste_tool_ghost_preview_and_escape() {
     let st = state(&shell);
     let ghost = &st["canvas"]["ghost"];
     assert_eq!(ghost["kind"], "paste");
-    assert_eq!(ghost["records"], 4);
+    assert_eq!(ghost["records"], 3);
     assert_eq!(ghost["dropped"], 0);
     assert!(ghost["at_nm"].is_array());
     assert_eq!(st["canvas"]["overlay"], 2, "the ghost rectangles and the label");
@@ -707,16 +708,16 @@ fn the_paste_tool_ghost_preview_and_escape() {
     assert_eq!(st["canvas"]["preview"]["state"], "ready");
     assert_eq!(st["canvas"]["preview"]["tags"], 1, "the new device's tag");
     assert!(
-        shell.tool_overlay().labels().any(|l| l.contains("-102F3")),
+        shell.tool_overlay().labels().any(|l| l.contains("-102F2")),
         "the ghost shows the resulting tag: {:?}",
         shell.tool_overlay().labels().collect::<Vec<_>>()
     );
     // The describe lines and their words.
     let d = shell.describe();
-    assert!(d.contains("clipboard fragment records 4 copies 4"), "{d}");
+    assert!(d.contains("clipboard fragment records 3 copies 4"), "{d}");
     let line = d
         .lines()
-        .find(|l| l.starts_with("canvas ghost paste records 4 at "))
+        .find(|l| l.starts_with("canvas ghost paste records 3 at "))
         .unwrap_or_else(|| panic!("{d}"));
     assert!(line.ends_with(" mm dropped 0"), "{line}");
     // Escape: the tool ends, nothing is committed.
@@ -734,10 +735,14 @@ fn the_paste_tool_ghost_preview_and_escape() {
 fn duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
     let tmp = Tmp::new("clip-dup");
     let mut shell = writable(&tmp, "102");
+    select_rep(&mut shell, "-102F1");
+    // The anchor of -102F1's fragment, from a copy, before the clipboard holds text.
+    done(&mut shell, "edit.copy", json!({}));
+    let anchor = parse_fragment(shell.clipboard().text().unwrap()).unwrap().params["anchor"].clone();
+    let anchor = (anchor[0].as_i64().unwrap(), anchor[1].as_i64().unwrap());
     done(&mut shell, "clipboard.text", json!({"text": "-101F1\n"}));
     let clip = state(&shell)["clipboard"].clone();
     assert_eq!(clip, json!({"kind": "text", "lines": 1}));
-    select_rep(&mut shell, "-102F1");
     done(&mut shell, "edit.duplicate", json!({}));
     assert_eq!(
         state(&shell)["clipboard"],
@@ -746,10 +751,14 @@ fn duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
     );
     assert_eq!(shell.tool().name(), "paste");
     let ghost = state(&shell)["canvas"]["ghost"].clone();
-    // -102F1's anchor is [113770833, 60854167] (the fragment of fragment_102F1.txt); two QET steps on.
-    assert_eq!(ghost["at_nm"], json!([119_062_500, 66_145_833]));
+    // Two QET steps (7 937 500 / 3 nm each) right and down of the anchor's grid point, to the nearest nanometre.
+    let two = |a: i64| {
+        let k = (3 * a + 3_968_750) / 7_937_500;
+        ((k + 2) * 7_937_500 + 1) / 3
+    };
+    assert_eq!(ghost["at_nm"], json!([two(anchor.0), two(anchor.1)]));
     let rev = shell.revision();
-    let p = sheet(&shell, (119_062_500, 66_145_833));
+    let p = sheet(&shell, (two(anchor.0), two(anchor.1)));
     done(&mut shell, "canvas.press", at(p, json!({})));
     assert_eq!(shell.revision(), rev.map(|r| r + 1));
     assert_eq!(shell.tool().name(), "select");
@@ -761,7 +770,7 @@ fn duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
 fn cut_is_one_undo_step_and_the_clipboard_keeps_the_fragment() {
     let tmp = Tmp::new("clip-cut");
     let mut shell = writable(&tmp, "102");
-    let rep = select_rep(&mut shell, "-102F2");
+    let rep = select_rep(&mut shell, "-102E1");
     let rev = shell.revision();
     let steps = shell.recorded_commands().len();
     done(&mut shell, "edit.cut", json!({}));
@@ -837,14 +846,14 @@ fn plain_text_is_refused_and_the_refusals() {
         refused(&mut shell, "edit.duplicate", json!({})),
         "reason-nothing-selected"
     );
-    // Copy tag list (FR-UI-040): -101F1, S51 and F55.
+    // Copy tag list (FR-UI-040): -101F1, -101G1 and -101Q1.
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:S51", "tag:-101F1", "tag:F55"]}),
+        json!({"refs": ["tag:-101Q1", "tag:-101F1", "tag:-101G1"]}),
     );
     done(&mut shell, "edit.copy_tags", json!({}));
-    assert_eq!(shell.clipboard().text(), Some("-101F1\nF55\nS51\n"));
+    assert_eq!(shell.clipboard().text(), Some("-101F1\n-101G1\n-101Q1\n"));
     assert_eq!(state(&shell)["clipboard"], json!({"kind": "text", "lines": 3}));
     shell.shutdown();
 }
@@ -1009,7 +1018,7 @@ fn cut_text_fixture(shell: &mut ShellModel) -> String {
 #[test]
 fn cut_marker_without_copied_wires_alone_and_with_text_is_refused_without_changes() {
     let tmp = Tmp::new("cut-empty-marker");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     let (marker, _) = cut_marker_fixture(&mut s, false);
     assert_incomplete_cut_unchanged(&mut s, std::slice::from_ref(&marker));
     let text = cut_text_fixture(&mut s);
@@ -1020,7 +1029,7 @@ fn cut_marker_without_copied_wires_alone_and_with_text_is_refused_without_change
 #[test]
 fn cut_partially_copied_marker_is_refused_without_changes() {
     let tmp = Tmp::new("cut-partial-marker");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     let (marker, mut selected) = cut_marker_fixture(&mut s, true);
     selected.push(marker);
     assert_incomplete_cut_unchanged(&mut s, &selected);
@@ -1059,10 +1068,10 @@ fn cut_unknown_page_item_alone_and_with_text_is_refused_without_changes() {
     // Load a forward-compatible variant through Session::from_records, then persist it in a temporary fixture.
     use ew_api::{Session, SessionOptions, StoreOptions};
     let tmp = Tmp::new("cut-unknown");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     let page = s.canvas().unwrap().page().tables.page.to_string();
     s.shutdown();
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     let (source, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let project = (**source.query().project()).clone();
     // Retain Golden A's records and libraries using the existing project's persisted JSONL fixture.
@@ -1120,7 +1129,7 @@ fn cut_unknown_page_item_alone_and_with_text_is_refused_without_changes() {
 #[test]
 fn complete_page_item_cut_still_undoes_and_redoes_once() {
     let tmp = Tmp::new("cut-complete-items");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     let (marker, _) = cut_marker_fixture(&mut s, true);
     let text = cut_text_fixture(&mut s);
     let page = s.canvas().unwrap().page().tables.page.to_string();

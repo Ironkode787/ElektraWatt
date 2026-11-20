@@ -29,7 +29,7 @@ fn x1031(shell: &ShellModel, n: &str) -> String {
 
 /// A headless writable copy of Golden A on 103 with the Terminal strips navigator open.
 fn strips(tmp: &Tmp, table: bool) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     if table {
         done(
@@ -102,7 +102,7 @@ fn navigator_select_takes_a_row_by_its_tag_and_a_strip_by_its_label() {
 #[test]
 fn place_pick_with_an_unknown_strip_lists_the_strips() {
     let tmp = Tmp::new("k33-strip-unknown");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "103");
     let message = failed(
         &mut shell,
         "place.pick",

@@ -130,7 +130,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
 #[test]
 fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
     let tmp = Tmp::new("plcnav-ft740");
-    let mut s = tmp.shell_in(Mode::Headless, true, "203");
+    let mut s = tmp.sample_in(Mode::Headless, true, "203");
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "navigator.show", json!({"kind": "plc"}));
     let (ch, _) = channel_rows(&s)
@@ -490,7 +490,7 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let part: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(format!(
             "{}/lib/parts/496e2ad0-fbe2-5733-bb7c-b950ab527a14.json",
-            common::GOLDEN_A
+            common::SAMPLE
         ))
         .unwrap(),
     )
@@ -724,7 +724,7 @@ fn the_address_profile_is_chosen_in_properties() {
     // Golden A's configuration project PLC1.
     const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";
     let tmp = Tmp::new("plcnav-ft1448");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "navigator.show", json!({"kind": "plc"}));
     done(
         &mut s,

@@ -44,7 +44,7 @@ fn place(s: &mut ShellModel, strip: &str, designation: &str, k: (i64, i64)) -> S
 #[test]
 fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
     let tmp = Tmp::new("ft622");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     let k = (110, 30);
     let p = grid_point(&s, k);

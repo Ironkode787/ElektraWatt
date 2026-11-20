@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 in every part of the window (DC-3) on a copy of Golden A: a focused navigator, the strip editor, a
+//! F1 in every part of the window (DC-3) on a copy of the sample: a focused navigator, the strip editor, a
 //! navigator in table mode, the property grid, the find pane, the history, the command bar, an active tool and the
 //! dialogs open the section of their page of the window reference.
 
@@ -18,7 +18,7 @@ fn f1(shell: &mut ShellModel) -> String {
 #[test]
 fn f1_opens_the_section_of_the_focused_pane() {
     let tmp = Tmp::new("f1-panes");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(
         &mut shell,
@@ -60,7 +60,7 @@ fn f1_opens_the_section_of_the_focused_pane() {
 #[test]
 fn f1_in_a_dialog_opens_its_section() {
     let tmp = Tmp::new("f1-dialogs");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(&mut shell, "ui.focus", json!({"area": "properties"}));
     done(&mut shell, "nav.goto", json!({}));
     assert_eq!(f1(&mut shell), "reference/window/dialogs.html#go-to-page-or-cell");
@@ -78,7 +78,7 @@ fn f1_in_a_dialog_opens_its_section() {
 #[test]
 fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
     let tmp = Tmp::new("f1-guides");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     for (kind, page) in [
         ("plc", "how-to/plc-workspace.html"),
         ("plc_grid", "how-to/plc-workspace.html"),
@@ -100,8 +100,8 @@ fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
     }
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
     for (folio, page) in [
-        ("3", "how-to/plc-workspace.html#bus-ports-and-nets"),
-        ("203", "how-to/fluid-workspace.html"),
+        ("105", "how-to/plc-workspace.html#bus-ports-and-nets"),
+        ("201", "how-to/fluid-workspace.html"),
     ] {
         done(&mut shell, "page.goto", json!({ "folio": folio }));
         assert_eq!(f1(&mut shell), page, "page {folio}");
@@ -113,7 +113,7 @@ fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
         done(&mut shell, action, json!({}));
         assert_eq!(shell.last_help(), Some(page), "{action}");
     }
-    done(&mut shell, "part.edit", json!({ "part": "5SY4204-7" }));
+    done(&mut shell, "part.edit", json!({ "part": "EW-GEN-MCB-1" }));
     assert_eq!(f1(&mut shell), "how-to/own-parts.html");
     shell.shutdown();
 }

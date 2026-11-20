@@ -8,7 +8,7 @@
 use crate::common;
 use ew_viewmodel::key;
 
-use common::{GOLDEN_A, Tmp, done, new_project, state, toast};
+use common::{SAMPLE, Tmp, done, new_project, state, toast};
 use ew_api::{Session, checks};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
@@ -22,7 +22,7 @@ fn the_first_black_box_from_a_part_has_its_connection_points() {
     // As the run's prelude: the part alone is embedded, its FnDef (ew.fn.blackbox) is not.
     let part: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(format!(
-            "{GOLDEN_A}/lib/parts/68075c2c-1eed-5753-8749-88e37b4496d5.json"
+            "{SAMPLE}/lib/parts/e427be05-825e-56c5-bfc0-ee9ce5d9122f.json"
         ))
         .unwrap(),
     )
@@ -32,10 +32,10 @@ fn the_first_black_box_from_a_part_has_its_connection_points() {
         "command.run",
         json!({"cmd": "library.embed", "params": {"copies": [part]}}),
     );
-    done(&mut s, "place.pick", json!({"part": "2904602"}));
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-PSU-1"}));
     let first = state(&s)["canvas"]["ghost"].clone();
     done(&mut s, "tool.select", json!({}));
-    done(&mut s, "place.pick", json!({"part": "2904602"}));
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-PSU-1"}));
     let again = state(&s)["canvas"]["ghost"].clone();
     assert_eq!(first["kind"], "box", "{first}");
     assert_eq!(first["cps"], again["cps"], "first {first} again {again}");
@@ -45,7 +45,7 @@ fn the_first_black_box_from_a_part_has_its_connection_points() {
 /// The EW-NUM-001 findings of the saved project.
 fn num001(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
     done(s, "file.save", json!({}));
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let q = session.query();
     checks::run(&q, &checks::FULL, checks::CheckMode::Online)
         .findings
@@ -61,38 +61,38 @@ fn num001(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
 #[test]
 fn a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
     let tmp = Tmp::new("m33-row6");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     let before = num001(&tmp, &mut s);
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     let message = match s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
     };
-    assert!(message.contains("use 3, the next free counter"), "{message}");
+    assert!(message.contains("use 2, the next free counter"), "{message}");
     assert!(
-        message.ends_with(". Use -102F3 to accept it: props.accept_tag_proposal takes it."),
+        message.ends_with(". Use -102F2 to accept it: props.accept_tag_proposal takes it."),
         "the script's failure names the action: {message}"
     );
     // The window's text under the field names the tag, never the action ID.
     let (_, shown) = s.properties().error().expect("the refusal under the field");
-    assert!(shown.ends_with(". Use -102F3 to accept it."), "{shown}");
+    assert!(shown.ends_with(". Use -102F2 to accept it."), "{shown}");
     assert!(!shown.contains("props."), "{shown}");
     let proposal = s.properties().tag_proposal().expect("a proposal").clone();
-    assert_eq!(proposal.tag, "-102F3");
+    assert_eq!(proposal.tag, "-102F2");
     let rev = s.revision();
     done(&mut s, "props.accept_tag_proposal", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     assert!(s.properties().tag_proposal().is_none());
     let t = toast(&s);
-    assert!(t.contains("-102F3") && t.contains("counter 3"), "{t}");
-    done(&mut s, "select.set", json!({"refs": ["tag:-102F3"]}));
+    assert!(t.contains("-102F2") && t.contains("counter 2"), "{t}");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102F2"]}));
     assert_eq!(
         num001(&tmp, &mut s),
         before,
         "no EW-NUM-001 notice: the tag is not frozen"
     );
     done(&mut s, "edit.undo", json!({}));
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     assert!(
         s.dispatch("props.accept_tag_proposal", &json!({})) != Outcome::Done,
         "nothing to accept any more"
@@ -101,12 +101,23 @@ fn a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
 
 /// The toast's counter is the device's `tag.counter` after the proposal, never the
 /// printed tag's trailing digits, which in the strip format `{letter}{page}{counter}` also hold the page
-/// (`-Y1031` is counter 1, not 1031). Strips -X1031 and -X1032 of folio 103: -X1031 becomes -Y1031 and then -Y1032
-/// (counter 2), so the letter edit of -X1032 to Y collides with it and is refused with a proposal.
+/// (`-Y1031` is counter 1, not 1031). Strip -X1031 of folio 103 and a second strip the test adds there, -X1032:
+/// -X1031 becomes -Y1031 and then -Y1032 (counter 2), so the letter edit of -X1032 to Y collides with it and is
+/// refused with a proposal.
 #[test]
 fn a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
     let tmp = Tmp::new("m33-row6-strip");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
+    done(&mut s, "tool.place", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"designation": "1", "strip": "-X??", "part": "EW-GEN-TRM-1"}),
+    );
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "ui.dismiss", json!({}));
     done(
         &mut s,
         "command.run",
@@ -140,13 +151,13 @@ fn a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
 }
 
 /// A proposal is accepted only while its refusal is on show on the same revision. A
-/// refused letter edit of -102G1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
+/// refused letter edit of -102S1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
 /// committed; a refused edit followed by any commit (the project changed) is refused too.
 #[test]
 fn a_stale_tag_proposal_is_refused() {
     let tmp = Tmp::new("m33-row6-stale");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     assert!(matches!(
         s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"})),
         Outcome::Failed { .. }
@@ -164,7 +175,7 @@ fn a_stale_tag_proposal_is_refused() {
     assert_eq!(s.revision(), rev, "nothing committed");
 
     // The proposal outlived by a commit elsewhere (the refusal still under the field).
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     assert!(matches!(
         s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"})),
         Outcome::Failed { .. }
@@ -173,7 +184,7 @@ fn a_stale_tag_proposal_is_refused() {
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102Q1"}],
             "path": "function_text", "value": "x"}}),
     );
     let rev = s.revision();

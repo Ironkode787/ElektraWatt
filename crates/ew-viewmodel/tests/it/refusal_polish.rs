@@ -113,7 +113,7 @@ fn refuse_ip_on_ip(s: &mut ShellModel) {
 /// A headless shell on a writable copy of Golden A, folio 101, with -101F1 selected and the IP tool's refusal in the
 /// canvas hint.
 fn refused(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
     refuse_ip_on_ip(&mut s);
     // An action that changes neither the project nor the selection leaves it.

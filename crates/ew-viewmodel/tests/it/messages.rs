@@ -124,7 +124,7 @@ fn arm_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
 #[test]
 fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     let tmp = Tmp::new("msg-ms1");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let calls = shell.session_calls().navigator_table;
     done(&mut shell, "messages.show", json!({"on": true}));
     assert!(shell.navigator_open(NavKind::Messages));
@@ -233,7 +233,7 @@ fn ef08_title() -> String {
 #[test]
 fn a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {
     let tmp = Tmp::new("msg-ms2");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
     let e0 = errors(&shell);
@@ -311,7 +311,7 @@ fn count_in(text: &str, one: &str, many: &str) -> usize {
 #[test]
 fn the_toast_the_status_bar_and_the_chip_agree() {
     let tmp = Tmp::new("msg-ft710");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
     let agree = |shell: &ShellModel, state: &str| {
@@ -394,7 +394,7 @@ fn the_toast_the_status_bar_and_the_chip_agree() {
 #[test]
 fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     let tmp = Tmp::new("msg-ms2b");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
@@ -505,7 +505,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
 #[test]
 fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     let tmp = Tmp::new("msg-ms3");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let page = common::page_id(&shell, "102");
     done(
         &mut shell,
@@ -581,12 +581,12 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
 #[test]
 fn a_stale_card_previews_again_and_a_read_only_project_refuses() {
     let tmp = Tmp::new("msg-ms3b");
-    let mut ro = tmp.shell("102");
+    let mut ro = tmp.sample_shell("102");
     done(&mut ro, "messages.show", json!({"on": true}));
     assert_eq!(refused(&mut ro, "messages.fix", json!({})), "reason-read-only");
     ro.shutdown();
     let tmp = Tmp::new("msg-ms3c");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let page = common::page_id(&shell, "102");
     let set = |v: &str| {
         json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
@@ -614,7 +614,7 @@ fn a_stale_card_previews_again_and_a_read_only_project_refuses() {
 #[test]
 fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     let tmp = Tmp::new("msg-ms4");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     assert!(!shell.navigator_open(NavKind::Messages));
     let next = ew_viewmodel::actions::ACTIONS
         .iter()
@@ -707,7 +707,7 @@ fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
 #[test]
 fn f8_with_no_findings_on_show_refuses() {
     let tmp = Tmp::new("msg-ms4b");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
     done(
         &mut shell,
@@ -726,7 +726,7 @@ fn f8_with_no_findings_on_show_refuses() {
 #[test]
 fn navigator_row_into_a_collapsed_group_expands_its_path() {
     let tmp = Tmp::new("msg-ft528");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
     let rows = shell.shown_rows(NavKind::Messages);
@@ -796,7 +796,7 @@ fn navigator_row_into_a_collapsed_group_expands_its_path() {
 #[test]
 fn check_reports_its_counts_with_the_pane_closed() {
     let tmp = Tmp::new("msg-ft549");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "messages.check", json!({}));
     let toast = shell.toast().expect("the check toast").text.clone();
     assert!(toast.starts_with("Check: "), "{toast}");
@@ -808,7 +808,7 @@ fn check_reports_its_counts_with_the_pane_closed() {
 #[test]
 fn a_finding_row_shows_its_subject_once() {
     let tmp = Tmp::new("msg-subject-once");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "messages.check", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
     let rows = findings(&shell, "EW-BUS-001", "-201U1:DP");
@@ -826,7 +826,7 @@ fn a_finding_row_shows_its_subject_once() {
 #[test]
 fn the_detail_message_starts_with_a_capital() {
     let tmp = Tmp::new("msg-ft1140");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-034", "1X1");
     assert_eq!(

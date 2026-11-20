@@ -66,7 +66,7 @@ fn wait_print_bounded(s: &mut ShellModel, step: &str) {
 #[test]
 fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     let tmp = Tmp::new("pw2");
-    let mut s = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "100");
+    let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "100");
     // Held after the writer: a hold stays across releases, so a hold at `page` would stop every page.
     let gate = Gate::new();
     gate.hold("written");
@@ -102,7 +102,7 @@ fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
 #[test]
 fn cancel_while_the_set_builds_closes_the_dialog_and_leaves_no_file() {
     let tmp = Tmp::new("pw2-cancel");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     let before = files(&tmp.0);
     let gate = Gate::new();
     gate.hold("page");
@@ -148,7 +148,7 @@ fn files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
 #[test]
 fn the_dialog_reads_its_options_and_the_empty_state() {
     let tmp = Tmp::new("print-empty");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     done(&mut s, "file.print", json!({"range": "sections"}));
     let lines = dialog_lines(&s);
     assert_eq!(lines[0], "field \"Range\": \"Sections\"");
@@ -187,7 +187,7 @@ fn the_dialog_reads_its_options_and_the_empty_state() {
 #[test]
 fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
     let tmp = Tmp::new("print-pages");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     done(
         &mut s,
         "file.print",
@@ -242,7 +242,7 @@ fn the_pages_field_shows_the_parsers_and_the_page_orders_refusal() {
 #[test]
 fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
     let tmp = Tmp::new("print-send");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     assert_eq!(refused(&mut s, "print.send", json!({})), "reason-no-print-dialog");
     done(&mut s, "file.print", json!({"range": "current", "mono": true}));
     assert_eq!(s.print_disabled_reason(), None);
@@ -306,7 +306,7 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
 fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
     use std::sync::atomic::Ordering::Relaxed;
     let tmp = Tmp::new("print-cancel");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     done(&mut s, "file.print", json!({"range": "current"}));
     done(&mut s, "print.send", json!({}));
     let request = s.take_print_request().expect("a request");
@@ -330,7 +330,7 @@ fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
 #[test]
 fn a_pdf_export_runs_beside_a_print_being_spooled() {
     let tmp = Tmp::new("print-beside-export");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     done(&mut s, "file.print", json!({"range": "current"}));
     done(&mut s, "print.send", json!({}));
     let _request = s.take_print_request().expect("a request");
@@ -355,7 +355,7 @@ fn a_pdf_export_runs_beside_a_print_being_spooled() {
 #[test]
 fn a_cancel_too_late_for_a_handed_over_print_says_where_it_went() {
     let tmp = Tmp::new("print-cancel-late");
-    let mut s = tmp.shell("100");
+    let mut s = tmp.sample_shell("100");
     let cases = [
         (
             "en",

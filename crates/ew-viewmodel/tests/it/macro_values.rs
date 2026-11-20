@@ -23,7 +23,7 @@ use serde_json::json;
 fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers, folio: &str) -> ShellModel {
     let dir = tmp.0.join(copy);
     if !dir.exists() {
-        common::copy_dir(Path::new(common::GOLDEN_A), &dir);
+        common::copy_dir(Path::new(common::SAMPLE), &dir);
     }
     let config = ShellConfig::in_dir(&tmp.0.join(format!("config-{copy}")), "0.0.0-test")
         .with_libraries(Some(t.clone()));
@@ -43,7 +43,7 @@ fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers, folio: &str) -> ShellMode
 /// writes it.
 fn seed_macro(tmp: &Tmp, t: &LibraryTiers, lib: Uuid) {
     let dir = tmp.0.join("seed");
-    common::copy_dir(Path::new(common::GOLDEN_A), &dir);
+    common::copy_dir(Path::new(common::SAMPLE), &dir);
     let options = SessionOptions {
         libraries: Some(t.clone()),
         ..SessionOptions::default()

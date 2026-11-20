@@ -40,7 +40,7 @@ fn slot(shell: &ShellModel, slot: u16) -> Option<SlotTextBox> {
 #[test]
 fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     let tmp = Tmp::new("symbol-text-drag");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     // A symbol of a device that prints texts, selected by a click on its body.
     let page = shell.canvas().unwrap().page().clone();
     let rep = page
@@ -118,7 +118,7 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
 #[test]
 fn a_tag_drags_alone_without_its_symbol_selected_and_its_menu_puts_it_back() {
     let tmp = Tmp::new("symbol-text-drag-unselected");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let page = shell.canvas().unwrap().page().clone();
     // A symbol's tag: the text at its tag's anchor.
     let is_tag = |r: &ew_api::output::TableRep, t: &SlotTextBox| {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 for what is under the hand on a copy of Golden A: a wire under the pointer opens the wires' section, the
+//! F1 for what is under the hand on a copy of the sample: a wire under the pointer opens the wires' section, the
 //! selected wire under it its route's, a terminal the terminals'; the status bar says what F1 opens; a row of Properties
 //! opens its anchor of the properties reference, whose page `cargo xtask docs-gen` writes from the reference this
 //! file's last test writes.
@@ -46,7 +46,7 @@ fn a_wire(shell: &ShellModel) -> ((i64, i64), String) {
 #[test]
 fn f1_opens_the_section_of_the_thing_under_the_pointer() {
     let tmp = Tmp::new("f1-things");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let (middle, wire) = a_wire(&shell);
     point_at(&mut shell, middle);
     let under = help::pointer_topic(&shell).expect("the wire under the pointer");
@@ -107,7 +107,7 @@ fn f1_opens_the_section_of_the_thing_under_the_pointer() {
 #[test]
 fn f1_on_the_frame_opens_the_frames_section() {
     let tmp = Tmp::new("f1-frame");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let (w, h) = shell.canvas().unwrap().page().sheet;
     // The title block's band at the sheet's foot, below the frame's cells.
     let title_block = (w / 2, h - 10_000_000);
@@ -128,7 +128,7 @@ fn f1_on_the_frame_opens_the_frames_section() {
 #[test]
 fn f1_without_a_pointer_opens_the_selection_then_the_tool() {
     let tmp = Tmp::new("f1-selection");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let (_, wire) = a_wire(&shell);
     done(&mut shell, "select.set", json!({ "ids": [wire] }));
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
@@ -143,8 +143,8 @@ fn f1_without_a_pointer_opens_the_selection_then_the_tool() {
 #[test]
 fn f1_on_a_row_of_properties_opens_its_anchor() {
     let tmp = Tmp::new("f1-props");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102S1"]}));
     done(&mut shell, "props.show", json!({"on": true}));
     done(&mut shell, "ui.focus", json!({"area": "properties"}));
     done(&mut shell, "props.row", json!({"to": "device/process_tag"}));

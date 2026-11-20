@@ -816,7 +816,7 @@ fn listed_count(list: &[String]) -> usize {
 #[test]
 fn ruling1_ruling4_golden_a_counts_its_blockers_in_words() {
     let tmp = Tmp::new("revision-golden");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "revision.approve", json!({}));
     let errors = listed_count(s.revision_list());
     assert!(errors >= 2, "several errors: {:?}", s.revision_list());
@@ -857,7 +857,7 @@ fn ruling1_ruling4_golden_a_counts_its_blockers_in_words() {
 #[test]
 fn the_revision_dialogs_list_the_findings_in_dutch() {
     let tmp = Tmp::new("revision-nl");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.language", json!({ "value": "nl" }));
     done(&mut s, "revision.approve", json!({}));
     let approve = s.revision_list().to_vec();

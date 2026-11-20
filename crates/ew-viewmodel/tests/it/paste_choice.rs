@@ -86,7 +86,7 @@ fn publish(t: &LibraryTiers, root: &Path, description: &str, bump: bool) {
 /// A headless shell with the tiers `t` and a writable copy of Golden A named `copy`, on folio 101.
 fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers) -> ShellModel {
     let dir = tmp.0.join(copy);
-    common::copy_dir(Path::new(common::GOLDEN_A), &dir);
+    common::copy_dir(Path::new(common::SAMPLE), &dir);
     let config = ShellConfig::in_dir(&tmp.0.join(format!("config-{copy}")), "0.0.0-test")
         .with_libraries(Some(t.clone()));
     let mut shell = ShellModel::new(Mode::Headless, config);

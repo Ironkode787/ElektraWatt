@@ -479,7 +479,7 @@ fn the_new_actions_are_refused_without_a_project_and_read_only() {
         );
     }
     let tmp = Tmp::new("create-ro");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     for (action, params) in [
         ("page.new", json!({"folio": "901"})),
         (
@@ -715,7 +715,7 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
 #[test]
 fn a_new_page_outside_every_section_stays_front_matter() {
     let tmp = Tmp::new("page-front");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     for folio in ["50", "1000"] {
         done(&mut shell, "page.new", json!({"folio": folio}));
         let row = shell
@@ -1008,7 +1008,7 @@ fn the_menu_entries_are_disabled_with_their_reason() {
 #[test]
 fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
     let tmp = Tmp::new("tool-keeps");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     done(
         &mut s,
         "place.pick",

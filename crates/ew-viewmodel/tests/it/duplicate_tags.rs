@@ -6,7 +6,7 @@
 //! no "?" for a counter or a page, for the kinds of device online numbering skips (`ew_commands::numbering::numbered`)
 //! that it reaches: a terminal (its strip copied and numbered with it) and a device with a frozen tag (the copy loses
 //! the frozen tag and is numbered). Each case asserts the duplicate's connection-point labels whole, on a temporary
-//! copy of Golden A.
+//! copy of the sample.
 
 use crate::common;
 
@@ -78,12 +78,12 @@ fn duplicate(s: &mut ShellModel, rep: Uuid) -> Vec<String> {
     labels(s, new[0])
 }
 
-/// A terminal of -X1031 duplicated: the copy's strip comes with it and is numbered (-X1033), so the terminal prints
-/// its strip and its designation whole.
+/// A terminal of -X1031 duplicated: the copy's strip comes with it and is numbered (-X1032, the next strip of folio
+/// 103), so the terminal prints its strip and its designation whole.
 #[test]
 fn a_duplicated_terminal_prints_its_strip_and_designation() {
     let tmp = Tmp::new("ft924-terminal");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     done(
         &mut s,
@@ -97,14 +97,14 @@ fn a_duplicated_terminal_prints_its_strip_and_designation() {
     done(&mut s, "tool.select", json!({}));
     let (rep, _) = select(&mut s, "-X1031:71");
     assert_eq!(labels(&s, rep), ["-X1031:71/a", "-X1031:71/b"]);
-    assert_eq!(duplicate(&mut s, rep), ["-X1033:71/a", "-X1033:71/b"]);
+    assert_eq!(duplicate(&mut s, rep), ["-X1032:71/a", "-X1032:71/b"]);
 }
 
 /// -102F1 with the frozen tag F51 duplicated: the copy loses the frozen tag and takes the page's free counter.
 #[test]
 fn a_duplicated_device_with_a_frozen_tag_is_numbered() {
     let tmp = Tmp::new("ft924-frozen");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     let (rep, dev) = select(&mut s, "-102F1");
     done(
         &mut s,

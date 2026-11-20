@@ -30,7 +30,7 @@ fn ids(entries: &[PaletteEntry]) -> Vec<&str> {
 #[test]
 fn renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
     let tmp = Tmp::new("pal-pl1");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let entries = query(&mut shell, "renum");
     assert_eq!(ids(&entries)[..2], ["devices.renumber", "pages.renumber"]);
     assert_eq!(entries[0].label, "Renumber devices…");
@@ -53,7 +53,7 @@ fn renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
 #[test]
 fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
     let tmp = Tmp::new("pal-pl2");
-    let mut shell = tmp.shell_in(Mode::Gui, false, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "103");
     for q in ["", "page", "re", "zoom", "save"] {
         let a = query(&mut shell, q);
         let b = query(&mut shell, q);
@@ -91,7 +91,7 @@ fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
 #[test]
 fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages() {
     let tmp = Tmp::new("pal-supply");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     for word in [
         "supply",
         "incoming",
@@ -133,7 +133,7 @@ fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages
 #[test]
 fn each_glossary_term_finds_its_action() {
     let tmp = Tmp::new("pal-pl3");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let rows: &[(&str, Option<&str>)] = &[
         ("folio report", Some("tool.ip")),
         ("interruption point", Some("tool.ip")),
@@ -179,7 +179,7 @@ fn each_glossary_term_finds_its_action() {
 #[test]
 fn an_empty_query_lists_the_recent_actions_first_and_a_shortcut_counts() {
     let tmp = Tmp::new("pal-pl4");
-    let mut shell = tmp.shell_in(Mode::Gui, false, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "103");
     let run = |shell: &mut ShellModel, q: &str, id: &str| {
         let entries = query(shell, q);
         let at = entries
@@ -234,7 +234,7 @@ fn an_empty_query_lists_the_recent_actions_first_and_a_shortcut_counts() {
 #[test]
 fn the_prefixes_find_pages_cells_objects_and_rules() {
     let tmp = Tmp::new("pal-pl5");
-    let mut shell = tmp.shell_in(Mode::Gui, false, "101");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "101");
     // `#103` lists folio 103 first; Enter opens it.
     let pages = query(&mut shell, "#103");
     assert_eq!(pages[0].run, PaletteRun::Page("103".into()));
@@ -291,7 +291,7 @@ fn the_prefixes_find_pages_cells_objects_and_rules() {
 #[test]
 fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
     let tmp = Tmp::new("pal-strips");
-    let mut shell = tmp.shell_in(Mode::Gui, false, "101");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "101");
     for (q, tag) in [("X1031", "-X1031"), ("-3W1", "-3W1"), ("-102F1", "-102F1")] {
         let entries = query(&mut shell, q);
         let labels: Vec<&str> = entries.iter().map(|e| e.label.as_str()).collect();
@@ -323,7 +323,7 @@ fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
 #[test]
 fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     let tmp = Tmp::new("pal-pl6");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     // devices.renumber: Enter opens its form pre-filled from the defaults; Enter (submit) runs it.
     let entries = query(&mut shell, "renumber devices");
     assert_eq!(entries[0].id, "devices.renumber");
@@ -418,7 +418,7 @@ fn the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
 fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
     use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};
     let tmp = Tmp::new("pal-ft1367");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let button = |shell: &ShellModel| {
         command_bar_of(shell, Tab::View)
             .groups
@@ -456,7 +456,7 @@ fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
 fn reimport_is_the_one_button_of_the_import_group() {
     use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};
     let tmp = Tmp::new("pal-ft1388");
-    let shell = tmp.shell_in(Mode::Gui, true, "103");
+    let shell = tmp.sample_in(Mode::Gui, true, "103");
     let ids: Vec<&str> = command_bar_of(&shell, Tab::Project)
         .groups
         .into_iter()

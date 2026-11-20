@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The glossary pane (GT-1, FR-UI-045), the one-time tips (GT-2, GT-3, FR-UI-048) and
-//! the wire-colour view (GT-4, FR-UI-047), on copies of Golden A. Every text a person reads is asserted whole.
+//! the wire-colour view (GT-4, FR-UI-047), on copies of the sample. Every text a person reads is asserted whole.
 
 use crate::common;
 
@@ -18,11 +18,8 @@ use ew_viewmodel::shell::{Focus, GlossaryRow, Mode, Outcome, ShellModel};
 use ew_viewmodel::wire_colours::{DASH_NM, iec_rgb};
 use serde_json::json;
 
-/// W29 on folio 103 (`connections|W29`): 0.75 mm² DBU from the colour profile.
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
-
-/// W27, the bonded wire between PE and 0 V (GNYE).
-const W27: &str = "wire:\"PE-0VDC\" -> \"-X1032:2/a\"";
+/// The bonded wire between 0 V and PE on folio 102 (GNYE), as the page text names it.
+const PELV_WIRE: &str = "wire:-X1021:8/a -> PE";
 
 /// The settings of a user who comes from QET, and of one who comes from EPLAN (TOML).
 const FROM_QET: &str = "version = 1\nfirst_run_done = true\ncomes_from = \"qet\"\n";
@@ -35,10 +32,10 @@ fn write_settings(tmp: &Tmp, settings: &str) {
     std::fs::write(config.join("settings.toml"), settings).unwrap();
 }
 
-/// A shell with a writable copy of Golden A on `folio`, its settings file written first with `settings` (TOML).
+/// A shell with a writable copy of the sample on `folio`, its settings file written first with `settings` (TOML).
 fn shell_with(tmp: &Tmp, settings: &str, folio: &str) -> ShellModel {
     write_settings(tmp, settings);
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// The settings file as the shell left it.
@@ -88,7 +85,7 @@ fn tips(s: &ShellModel) -> Vec<(String, Option<NoteAction>)> {
 #[test]
 fn folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_and_dutch_finds_it_too() {
     let tmp = Tmp::new("gt1-glossary");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     assert!(!s.glossary_shown());
     done(&mut s, "help.glossary", json!({}));
     assert!(s.glossary_shown());
@@ -196,7 +193,7 @@ fn with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_convert_u
     done(&mut s, "file.save", json!({}));
     s.shutdown();
     // Nor in the next session: the tip is remembered in the settings file.
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     line_onto_a_cp(&mut s);
     assert_eq!(tips(&s), []);
     s.shutdown();
@@ -238,7 +235,7 @@ fn view_show_tips_switches_the_tips_and_saves_the_setting() {
 
 /// Tip 2's refusal: the Tag row of two devices (one devices' tag is edited by freezing it).
 fn refuse_a_derived_tag(s: &mut ShellModel) {
-    done(s, "select.set", json!({"refs": ["tag:-102F1", "tag:-102F2"]}));
+    done(s, "select.set", json!({"refs": ["tag:-102F1", "tag:-102S1"]}));
     assert_eq!(
         s.dispatch(
             "props.action",
@@ -250,9 +247,9 @@ fn refuse_a_derived_tag(s: &mut ShellModel) {
     );
 }
 
-/// A read-only session over Golden A, for the model's own reads.
-fn golden() -> Session {
-    Session::open_read_only(Path::new(common::GOLDEN_A), "0.0.0-test")
+/// A read-only session over the sample, for the model's own reads.
+fn sample() -> Session {
+    Session::open_read_only(Path::new(common::SAMPLE), "0.0.0-test")
         .unwrap()
         .0
 }
@@ -263,9 +260,9 @@ fn generated_page(s: &ShellModel) -> (String, String) {
         .page_rows()
         .iter()
         .find(|r| r.generated)
-        .expect("Golden A has generated pages");
+        .expect("the sample has generated pages");
     let (page, folio) = (row.id, row.folio.clone());
-    let block = golden()
+    let block = sample()
         .property_sheet(&[page])
         .sections
         .iter()
@@ -348,7 +345,7 @@ fn tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_an
     // On, for a user from EPLAN; in the window, where Renumber devices… opens its dialog.
     let tmp = Tmp::new("gt3-on");
     write_settings(&tmp, FROM_EPLAN);
-    let mut s = tmp.shell_in(Mode::Gui, true, "102");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
     refuse_a_derived_tag(&mut s);
     refuse_a_derived_tag(&mut s);
     assert_eq!(
@@ -428,11 +425,11 @@ fn tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_an
 fn a_read_only_refusal_leaves_tips_2_and_3_unused() {
     let tmp = Tmp::new("gt3-read-only");
     write_settings(&tmp, FROM_EPLAN);
-    let mut s = tmp.shell_in(Mode::Headless, false, "102");
+    let mut s = tmp.sample_in(Mode::Headless, false, "102");
     done(
         &mut s,
         "select.set",
-        json!({"refs": ["tag:-102F1", "tag:-102F2"]}),
+        json!({"refs": ["tag:-102F1", "tag:-102S1"]}),
     );
     let read_only = Outcome::Refused {
         reason_key: ew_viewmodel::key!("reason-read-only"),
@@ -545,7 +542,7 @@ fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
     let mut s = shell_with(&tmp, FROM_QET, "102");
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
     done(&mut s, "navigator.table", json!({"kind": "devices", "on": true}));
-    let table = golden().navigator_table(NavKind::Devices);
+    let table = sample().navigator_table(NavKind::Devices);
     let row = table.nodes.iter().find(|n| n.table_row).unwrap().key.clone();
     let column = table.columns.iter().find(|c| c.key_column).unwrap().key.clone();
     let out = s.dispatch(
@@ -561,7 +558,7 @@ fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
         )]
     );
     done(&mut s, "navigator.table", json!({"kind": "pages", "on": true}));
-    let table = golden().navigator_table(NavKind::Pages);
+    let table = sample().navigator_table(NavKind::Pages);
     let row = table
         .nodes
         .iter()
@@ -589,41 +586,50 @@ fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
     s.shutdown();
 }
 
+/// With View ▸ Wire colours the 24 V wire into the breaker -102F1 is stroked DBU, as the colour profile gives a
+/// 24 V DC wire, and the bonded 0 V–PE wire in GNYE stripes; they are off by default.
 #[test]
-fn wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
+fn wire_colours_stroke_24v_in_dbu_and_stripe_the_bonded_wire_and_are_off_by_default() {
     let tmp = Tmp::new("gt4-view");
-    let mut s = tmp.shell("103");
+    let mut s = tmp.sample_shell("102");
     assert!(!s.wire_colours_on());
     assert_eq!(s.wire_colour_overlay(0), []);
     assert_eq!(lines(&s, "canvas wire "), Vec::<String>::new());
+    let into_f1 = tables(&s)
+        .cps
+        .iter()
+        .find(|c| c.label == "-102F1:1")
+        .and_then(|c| c.connections.first().copied())
+        .expect("the wire into -102F1");
     done(&mut s, "view.wire_colours", json!({}));
     assert!(s.wire_colours_on());
     let strokes = s.wire_colour_overlay(0);
-    let w29 = strokes
+    let dbu = strokes
         .iter()
-        .find(|x| x.id.to_string() == W29)
-        .expect("W29 is drawn on 103");
-    assert_eq!(w29.code, "DBU");
-    // Golden A's colour profile declares DBU as BU, dark: the colour comes from that, not the spelling.
-    assert_eq!(w29.colours, [Some((0x11, 0x34, 0x76))]);
-    assert!(!w29.cased);
+        .find(|x| x.id == into_f1)
+        .expect("the 24 V wire is drawn on 102");
+    assert_eq!(dbu.code, "DBU");
+    // The sample's colour profile declares DBU as BU, dark: the colour comes from that, not the spelling.
+    assert_eq!(dbu.colours, [Some((0x11, 0x34, 0x76))]);
+    assert!(!dbu.cased);
     assert_eq!(
         lines(&s, "canvas wire "),
         [format!("canvas wire colours {}", strokes.len())]
     );
-    // W27, on the page that draws it: green and yellow 2-mm dashes, alternating from green.
-    done(&mut s, "select.set", json!({"refs": [W27]}));
-    let w27 = s.selection().items[0].0;
+    // The bonded wire, on the page that draws it: green and yellow 2-mm dashes, alternating from green.
+    done(&mut s, "select.set", json!({"refs": [PELV_WIRE]}));
+    let bonded = s.selection().items[0].0;
     let folios: Vec<String> = s.page_rows().iter().map(|r| r.folio.clone()).collect();
     let folio = folios
         .into_iter()
         .find(|f| {
             done(&mut s, "page.goto", json!({ "folio": f }));
-            tables(&s).connections.iter().any(|c| c.id == w27)
+            tables(&s).connections.iter().any(|c| c.id == bonded)
         })
-        .expect("a page draws W27");
+        .expect("a page draws the bonded wire");
     let strokes = s.wire_colour_overlay(0);
-    let stripes = strokes.iter().find(|x| x.id == w27).expect("W27 is stroked");
+    let stripes = strokes.iter().find(|x| x.id == bonded).expect("the bonded wire is stroked");
+
     assert_eq!(stripes.code, "GNYE", "on folio {folio}");
     assert_eq!(stripes.colours, [iec_rgb("GN"), iec_rgb("YE")]);
     assert_eq!(stripes.colours.len(), 2);
@@ -645,7 +651,7 @@ fn wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
 #[test]
 fn a_huge_glossary_step_stops_at_the_last_row() {
     let tmp = Tmp::new("ft1347-glossary");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "help.glossary", json!({}));
     let n = s.glossary_rows().len();
     done(&mut s, "glossary.row", json!({"step": 2}));

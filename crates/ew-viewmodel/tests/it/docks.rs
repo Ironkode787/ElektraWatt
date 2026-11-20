@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the shell on copies of Golden A: the property grid's groups, the status bar's fields,
+//! Through the shell on copies of the sample: the property grid's groups, the status bar's fields,
 //! the default workspace and an older workspace file, the rail model and `rail.show`,
 //! `props.show_advanced`, and the History focus.
 
@@ -18,22 +18,19 @@ use ew_viewmodel::shell::{Focus, Mode, ShellModel};
 use ew_viewmodel::status::{StatusKind, Tone, bar};
 use serde_json::json;
 
-/// W29 on folio 103 (`connections|W29`).
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
-
 /// DK3: for a page, a device, a terminal and a connection, no two rows of a section share a label; Main is the first
 /// group; the Advanced rows stay out until `props.show_advanced {on: true}` (the window's half, no chip on an
 /// authored row and no edit button, is `ew-ui`'s `docks` test).
 #[test]
 fn the_groups_labels_and_advanced_rows() {
     let tmp = Tmp::new("docks-dk3");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let mut seen_advanced = 0;
     for (folio, select) in [
         ("101", json!({"refs": []})),
         ("101", json!({"refs": ["tag:-101F1"]})),
-        ("102", json!({"refs": ["tag:-X1031:1"]})),
-        ("103", json!({"ids": [W29]})),
+        ("102", json!({"refs": ["tag:-X1021:1"]})),
+        ("103", json!({"refs": ["wire:-X1031:SH/b -> -103M1:PE"]})),
     ] {
         done(&mut shell, "page.goto", json!({ "folio": folio }));
         done(&mut shell, "select.set", select.clone());
@@ -70,7 +67,7 @@ fn the_groups_labels_and_advanced_rows() {
             }
         }
     }
-    assert!(seen_advanced > 0, "Golden A has Advanced rows");
+    assert!(seen_advanced > 0, "the sample has Advanced rows");
     // The toggle is a setting and a menu check.
     assert!(!shell.properties_show_advanced());
     done(&mut shell, "props.show_advanced", json!({"on": true}));
@@ -84,7 +81,7 @@ fn the_groups_labels_and_advanced_rows() {
 #[test]
 fn the_status_bar_fields() {
     let tmp = Tmp::new("docks-dk4");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     // A selection drawn on the canvas (a selection that draws nothing there is not counted).
     let (_, p) = common::entity_points(shell.canvas().unwrap())[0];
     common::click(&mut shell, p, json!({}));
@@ -168,7 +165,7 @@ fn the_default_workspace_and_an_older_file() {
     let dir = tmp.0.join("config/workspaces");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("Schematic.json"), older.to_json("Schematic")).unwrap();
-    let shell = tmp.shell("101");
+    let shell = tmp.sample_shell("101");
     assert_eq!(shell.layout(), &older, "the older file keeps its panes in place");
 }
 
@@ -177,7 +174,7 @@ fn the_default_workspace_and_an_older_file() {
 #[test]
 fn the_rail_model_and_rail_show() {
     let tmp = Tmp::new("docks-dk1");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let model = rail(&shell);
     let words: Vec<&str> = model.left.iter().map(|b| b.word).collect();
     assert_eq!(words[..3], ["project", "strips", "cables"]);
@@ -240,7 +237,7 @@ fn the_rail_model_and_rail_show() {
 #[test]
 fn the_history_focus() {
     let tmp = Tmp::new("docks-ft519");
-    let mut shell: ShellModel = tmp.shell("101");
+    let mut shell: ShellModel = tmp.sample_shell("101");
     assert!(matches!(
         shell.dispatch("ui.focus", &json!({"area": "history"})),
         ew_viewmodel::shell::Outcome::Failed { .. }
@@ -265,7 +262,7 @@ fn the_history_focus() {
 fn props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
     use ew_viewmodel::properties::{FILTER_ROWS, groups, row_matches, visible_rows};
     let tmp = Tmp::new("docks-ft541");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
     let open = |shell: &ShellModel| {
         let sheet = shell.properties().sheet().unwrap();
@@ -337,7 +334,7 @@ fn messages_shown(shell: &ShellModel) -> bool {
 #[test]
 fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
     let tmp = Tmp::new("docks-ft916");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let messages = PaneKind::Navigator(NavKind::Messages);
     let in_front = |s: &ShellModel| s.layout().shown_in_place_of(messages) == Some(messages);
     done(&mut shell, "messages.show", json!({}));
@@ -370,7 +367,7 @@ fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
 #[test]
 fn the_messages_dock_closes_and_keeps_the_zoom() {
     let tmp = Tmp::new("docks-fx38d");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     // The host's first size of the pane fits the page to it.
     done(
         &mut shell,
@@ -454,7 +451,7 @@ fn the_messages_dock_closes_and_keeps_the_zoom() {
 #[test]
 fn the_findings_field_after_a_check_opens_messages() {
     let tmp = Tmp::new("docks-fx38d-badge");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let findings = |shell: &ShellModel| {
         bar(shell, false)
             .into_iter()

@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Find and replace through the shell on temporary copies of Golden A (acceptance checks FR3 to FR6
-//! and PG7's stale replace card): "Spare" on 204 to 206 is 20 results and 16 on 204 and 205; the replace previews 20
-//! changes in the card and commits one `fields.set_many` (one undo step); the regular expression `(Spare)` →
-//! `$1 (unused)`; an identifier technical value; a library part number found but not replaced; freeze on three devices
-//! of folio 102 through the card; a stale replace card that runs the search again; the transcript and describe
-//! members with the 14 words; the exact counts; the jump and the Escape chain.
+//! Find and replace through the shell on temporary copies of the sample (acceptance checks FR3 to FR6
+//! and PG7's stale replace card): "Spare" is the function text of the sample's two spare valves on folio 201, so it is
+//! 2 results there and none on 101; the replace previews 2 changes in the card and commits one `fields.set_many` (one
+//! undo step); the regular expression `(Spare)` → `$1 (unused)`; an identifier technical value; a library part number
+//! found but not replaced; freeze on three devices of folio 102 through the card; a stale replace card that runs the
+//! search again; the transcript and describe members with the 14 words; the exact counts; the jump and the Escape
+//! chain.
 
 use crate::common;
 use ew_viewmodel::{key, strings};
@@ -16,9 +17,9 @@ use ew_viewmodel::properties::{Provenance, RowValue, find_row};
 use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// A headless shell with a writable copy of Golden A on `folio`.
+/// A headless shell with a writable copy of the sample on `folio`.
 fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// Opens find and replace for "Spare" in the function texts of `folios` with `replacement`, and runs it.
@@ -31,10 +32,10 @@ fn spare(shell: &mut ShellModel, folios: &[&str], replacement: &str) {
     done(shell, "find.run", json!({}));
 }
 
-/// A writable copy on folio 204 with "Spare" on 204 to 206 searched for replacement by "Reserve".
-fn spare_all_of_204_to_206(tmp: &Tmp) -> ShellModel {
-    let mut shell = writable(tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "Reserve");
+/// A writable copy on folio 201 with "Spare" on 201 searched for replacement by "Reserve".
+fn spare_on_201(tmp: &Tmp) -> ShellModel {
+    let mut shell = writable(tmp, "201");
+    spare(&mut shell, &["201"], "Reserve");
     shell
 }
 
@@ -42,19 +43,15 @@ fn results(shell: &ShellModel) -> usize {
     shell.find_state().results().map_or(0, |r| r.hits.len())
 }
 
-/// FR3 (D16): 20 results on 204 to 206, 16 on 204 and 205; the replace previews 20 changes in the card, commits one
-/// `fields.set_many` (one undo step) and undo restores all 20.
+/// FR3 (D16): 2 results on 101 and 201, none on 101 alone; the replace previews 2 changes in the card, commits one
+/// `fields.set_many` (one undo step) and undo restores both.
 #[test]
-fn spare_is_twenty_results_and_one_previewed_replace() {
+fn spare_is_two_results_and_one_previewed_replace() {
     let tmp = Tmp::new("find-fr3");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205"], "Reserve");
-    assert_eq!(results(&shell), 16);
-    done(
-        &mut shell,
-        "find.folios",
-        json!({"folios": ["204", "205", "206"]}),
-    );
+    let mut shell = writable(&tmp, "201");
+    spare(&mut shell, &["101"], "Reserve");
+    assert_eq!(results(&shell), 0);
+    done(&mut shell, "find.folios", json!({"folios": ["101", "201"]}));
     let calls = shell.session_calls();
     done(&mut shell, "find.run", json!({}));
     assert_eq!(
@@ -62,12 +59,12 @@ fn spare_is_twenty_results_and_one_previewed_replace() {
         calls.find + 1,
         "find.run is one find call"
     );
-    assert_eq!(results(&shell), 20);
+    assert_eq!(results(&shell), 2);
     let st = state(&shell);
     assert_eq!(
         st["find"],
         json!({"text": "Spare", "replace": "Reserve", "regex": false, "match_case": false, "whole_word": false,
-            "in_selection": false, "fields": ["function_text"], "folios": ["204", "205", "206"], "results": 20,
+            "in_selection": false, "fields": ["function_text"], "folios": ["101", "201"], "results": 2,
             "truncated": false, "error": null, "row": 1, "stale": false, "note": null})
     );
     assert_eq!(st["focus"], "find");
@@ -83,8 +80,8 @@ fn spare_is_twenty_results_and_one_previewed_replace() {
     let card = &state(&shell)["card"];
     assert_eq!(card["command"], "fields.set_many");
     assert_eq!(card["state"], "ready");
-    assert_eq!(card["changes"], 20);
-    assert_eq!(card["targets"], 20);
+    assert_eq!(card["changes"], 2);
+    assert_eq!(card["targets"], 2);
     assert_eq!(card["origin"], "find");
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(
@@ -96,38 +93,38 @@ fn spare_is_twenty_results_and_one_previewed_replace() {
     assert_eq!(shell.recorded_commands().last().unwrap().cmd, "fields.set_many");
     let st = state(&shell);
     assert_eq!(st["card"], Value::Null);
-    assert_eq!(st["find"]["note"], "Replaced 20; run again to refresh");
+    assert_eq!(st["find"]["note"], "Replaced 2; run again to refresh");
     assert_eq!(st["find"]["stale"], true, "the results are not re-run");
-    assert_eq!(st["find"]["results"], 20);
+    assert_eq!(st["find"]["results"], 2);
     done(&mut shell, "find.run", json!({}));
     assert_eq!(results(&shell), 0);
     done(&mut shell, "find.text", json!({"text": "Reserve"}));
     done(&mut shell, "find.run", json!({}));
-    assert_eq!(results(&shell), 20);
+    assert_eq!(results(&shell), 2);
     done(&mut shell, "edit.undo", json!({}));
     done(&mut shell, "find.text", json!({"text": "Spare"}));
     done(&mut shell, "find.run", json!({}));
-    assert_eq!(results(&shell), 20, "undo restores all 20");
+    assert_eq!(results(&shell), 2, "undo restores both");
     shell.shutdown();
 }
 
-/// FR4: the regular expression `(Spare)` → `$1 (unused)` on the 20 devices, an identifier technical value of a device
-/// (added with `fields.set` first) replaced in its list, each one previewed transaction; "Murrelektronik" is found as
-/// the manufacturer of MICO 4.10 and not replaced.
+/// FR4: the regular expression `(Spare)` → `$1 (unused)` on the 2 spare valves, an identifier technical value of a
+/// device (added with `fields.set` first) replaced in its list, each one previewed transaction; "Generic" is found as
+/// the manufacturer of the starter part EW-GEN-PSU-1 and not replaced.
 #[test]
 fn regex_technical_value_and_library_copy() {
     let tmp = Tmp::new("find-fr4");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204", "205", "206"], "$1 (unused)");
+    let mut shell = writable(&tmp, "201");
+    spare(&mut shell, &["201"], "$1 (unused)");
     done(&mut shell, "find.text", json!({"text": "(Spare)"}));
     done(&mut shell, "find.option", json!({"option": "regex", "on": true}));
     done(&mut shell, "find.replace_all", json!({}));
-    assert_eq!(state(&shell)["card"]["changes"], 20);
+    assert_eq!(state(&shell)["card"]["changes"], 2);
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "find.option", json!({"option": "regex", "on": false}));
     done(&mut shell, "find.text", json!({"text": "Spare (unused)"}));
     done(&mut shell, "find.run", json!({}));
-    assert_eq!(results(&shell), 20);
+    assert_eq!(results(&shell), 2);
     assert!(
         shell
             .find_state()
@@ -187,21 +184,19 @@ fn regex_technical_value_and_library_copy() {
         json!({"option": "match_case", "on": false}),
     );
     done(&mut shell, "find.fields", json!({"fields": ["part_number"]}));
-    done(&mut shell, "find.text", json!({"text": "Murrelektronik"}));
+    done(&mut shell, "find.text", json!({"text": "Generic"}));
     done(&mut shell, "find.replacement", json!({"text": "Other"}));
     done(&mut shell, "find.run", json!({}));
     let r = shell.find_state().results().unwrap();
-    let mico = r
+    let psu = r
         .hits
         .iter()
-        .find(|h| h.before == "MICO 4.10 (Murrelektronik)")
-        .expect("MICO 4.10");
-    assert_eq!(mico.replaceable, Err("library copy: update from library".into()));
+        .find(|h| h.before == "EW-GEN-PSU-1 (Generic)")
+        .expect("EW-GEN-PSU-1");
+    assert_eq!(psu.replaceable, Err("library copy: update from library".into()));
     let d = shell.describe();
     assert!(
-        d.contains(
-            "\"Part number\" \"MICO 4.10 (Murrelektronik)\" read-only \"library copy: update from library\""
-        ),
+        d.contains("\"Part number\" \"EW-GEN-PSU-1 (Generic)\" read-only \"library copy: update from library\""),
         "{d}"
     );
     assert_eq!(
@@ -217,7 +212,7 @@ fn regex_technical_value_and_library_copy() {
 fn freeze_on_three_devices_is_one_set_many_through_the_card() {
     let tmp = Tmp::new("find-fr5");
     let mut shell = writable(&tmp, "102");
-    let refs = ["tag:-102F1", "tag:-102G1", "tag:-102F2"];
+    let refs = ["tag:-102F1", "tag:-102S1", "tag:-102S2"];
     // Each device's displayed tag before, from its own sheet.
     let mut before = Vec::new();
     for r in refs {
@@ -276,9 +271,9 @@ fn freeze_on_three_devices_is_one_set_many_through_the_card() {
 #[test]
 fn a_stale_replace_card_runs_the_search_again() {
     let tmp = Tmp::new("find-pg7");
-    let mut shell = spare_all_of_204_to_206(&tmp);
+    let mut shell = spare_on_201(&tmp);
     done(&mut shell, "find.replace_all", json!({}));
-    // Another commit in between: one of the 20 texts changes.
+    // Another commit in between: one of the 2 texts changes.
     let first = shell.find_state().results().unwrap().hits[0].record.to_string();
     done(
         &mut shell,
@@ -299,7 +294,7 @@ fn a_stale_replace_card_runs_the_search_again() {
     assert_eq!(shell.session_calls().preview_with, calls.preview_with + 1);
     let st = state(&shell);
     assert_eq!(st["card"]["state"], "ready");
-    assert_eq!(st["card"]["changes"], 19);
+    assert_eq!(st["card"]["changes"], 1);
     assert_eq!(st["find"]["note"], "Preview updated: 1 fewer result");
     done(&mut shell, "preview.apply", json!({}));
     assert_ne!(shell.revision(), rev);
@@ -312,7 +307,7 @@ fn a_stale_replace_card_runs_the_search_again() {
 #[test]
 fn exact_counts_the_jump_the_escape_chain_and_errors() {
     let tmp = Tmp::new("find-counts");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     assert!(!shell.find_shown());
     assert_eq!(state(&shell)["find"], Value::Null);
     done(&mut shell, "find.open", json!({}));
@@ -327,22 +322,22 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
         "find.fields",
         json!({"fields": ["function_text", "tag"]}),
     );
-    done(&mut shell, "find.folios", json!({"folios": ["204", " 205 ", ""]}));
+    done(&mut shell, "find.folios", json!({"folios": ["201", " 101 ", ""]}));
     assert_eq!(shell.session_calls(), calls, "typing makes no call");
-    assert_eq!(state(&shell)["find"]["folios"], json!(["204", "205"]));
+    assert_eq!(state(&shell)["find"]["folios"], json!(["201", "101"]));
     done(&mut shell, "find.run", json!({}));
     let after = shell.session_calls();
     assert_eq!(after.find, calls.find + 1);
     assert_eq!(after.property_sheet, calls.property_sheet);
-    assert_eq!(results(&shell), 16);
+    assert_eq!(results(&shell), 2);
     done(&mut shell, "find.row", json!({"step": 1}));
-    done(&mut shell, "find.row", json!({"to": 16}));
-    done(&mut shell, "find.row", json!({"step": 5}));
-    assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
-    // A step near `i64::MAX` past row 0 stops at the last row (no overflow).
     done(&mut shell, "find.row", json!({"to": 2}));
+    done(&mut shell, "find.row", json!({"step": 5}));
+    assert_eq!(state(&shell)["find"]["row"], 2, "clamped");
+    // A step near `i64::MAX` past row 0 stops at the last row (no overflow).
+    done(&mut shell, "find.row", json!({"to": 1}));
     done(&mut shell, "find.row", json!({"step": i64::MAX}));
-    assert_eq!(state(&shell)["find"]["row"], 16, "clamped");
+    assert_eq!(state(&shell)["find"]["row"], 2, "clamped");
     done(&mut shell, "find.row", json!({"to": 1}));
     assert_eq!(shell.session_calls().find, after.find, "moves make no call");
     // A read-only project: Replace all is refused.
@@ -422,11 +417,11 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
 #[test]
 fn fr6_describe_lines() {
     let tmp = Tmp::new("find-fr6");
-    let mut shell = spare_all_of_204_to_206(&tmp);
+    let mut shell = spare_on_201(&tmp);
     let d = shell.describe();
     assert!(
         d.contains(
-            "find \"Spare\" replace \"Reserve\" regex off case off word off scope function_text folios \"204\" \"205\" \"206\" results 20"
+            "find \"Spare\" replace \"Reserve\" regex off case off word off scope function_text folios \"201\" results 2"
         ),
         "{d}"
     );
@@ -442,7 +437,7 @@ fn fr6_describe_lines() {
     done(&mut shell, "find.replace_all", json!({}));
     let with_card = shell.describe();
     assert!(
-        with_card.contains("card ready \"fields.set_many\" targets 20 changes 20"),
+        with_card.contains("card ready \"fields.set_many\" targets 2 changes 2"),
         "{with_card}"
     );
     // A selection change keeps the replace card (it is the find pane's, not the grid's).
@@ -476,7 +471,7 @@ fn fr6_describe_lines() {
 fn closing_the_find_pane_or_resetting_the_workspace_drops_its_replace_card() {
     for action in ["find.close", "view.workspace_reset"] {
         let tmp = Tmp::new("find-close-card");
-        let mut shell = spare_all_of_204_to_206(&tmp);
+        let mut shell = spare_on_201(&tmp);
         done(&mut shell, "find.replace_all", json!({}));
         assert_eq!(state(&shell)["card"]["origin"], "find", "{action}");
         let rev = shell.revision();
@@ -490,13 +485,20 @@ fn closing_the_find_pane_or_resetting_the_workspace_drops_its_replace_card() {
     }
 }
 
-/// The card's `changes` counts the hits a replace changes, not every hit with a replacement: after 204's texts are
-/// "Reserve", the regular expression `^(Spare|Reserve)` finds those too, and the card counts only the Spare ones.
+/// The card's `changes` counts the hits a replace changes, not every hit with a replacement: the lamp -102E1 is given
+/// the function text "Spare" too, and after 102's text is "Reserve", the regular expression `^(Spare|Reserve)` finds
+/// it as well, and the card counts only the Spare ones of 201.
 #[test]
 fn the_card_counts_only_the_hits_that_change() {
     let tmp = Tmp::new("find-card-changes");
-    let mut shell = writable(&tmp, "204");
-    spare(&mut shell, &["204"], "Reserve");
+    let mut shell = writable(&tmp, "102");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102E1"}],
+            "path": "function_text", "value": "Spare"}}),
+    );
+    spare(&mut shell, &["102"], "Reserve");
     let first = results(&shell);
     assert!(first > 0);
     done(&mut shell, "find.replace_all", json!({}));
@@ -508,14 +510,11 @@ fn the_card_counts_only_the_hits_that_change() {
         json!({"option": "match_case", "on": true}),
     );
     done(&mut shell, "find.text", json!({"text": "^(Spare|Reserve)"}));
-    done(
-        &mut shell,
-        "find.folios",
-        json!({"folios": ["204", "205", "206"]}),
-    );
+    done(&mut shell, "find.folios", json!({"folios": ["102", "201"]}));
     done(&mut shell, "find.run", json!({}));
     let all = results(&shell);
-    assert!(all > first, "the Reserve texts of 204 are found as well: {all}");
+    assert!(all > first, "the Reserve text of 102 is found as well: {all}");
+
     done(&mut shell, "find.replace_all", json!({}));
     assert_eq!(state(&shell)["card"]["changes"], all - first);
     shell.shutdown();

@@ -14,7 +14,7 @@ use ew_viewmodel::key;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use common::{GOLDEN_A, Tmp, copy_dir, done, refused};
+use common::{SAMPLE, Tmp, copy_dir, done, refused};
 use ew_api::{CmdLog, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::shell::{AccessMode, ConfirmAnswer, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
@@ -312,8 +312,8 @@ fn a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens_rea
 
 /// A copy of Golden A, the original of a Save As.
 fn original(tmp: &Tmp) -> PathBuf {
-    let original = tmp.golden_copy();
-    copy_dir(Path::new(GOLDEN_A), &original);
+    let original = tmp.sample_copy();
+    copy_dir(Path::new(SAMPLE), &original);
     original
 }
 

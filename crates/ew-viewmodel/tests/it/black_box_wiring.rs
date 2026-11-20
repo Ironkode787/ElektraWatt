@@ -20,7 +20,7 @@ const TWO_FNDEF_PART: &str = concat!(
 );
 
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
+    let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
     s
 }

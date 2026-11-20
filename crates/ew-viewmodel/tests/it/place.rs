@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 
 /// A headless shell with a writable copy of Golden A on `folio`.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// The representation of the page drawing the symbol `key` (the first in ID order).

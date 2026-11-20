@@ -6,7 +6,7 @@
 //! undo step; continue on another page (FR-XRF-014) and arrange by name (FR-XRF-013); the black box tool with a part's
 //! connection points (FR-DEV-013) and the grips that reshape a box (FR-DEV-039); the picker's black-box rows; the
 //! transcript members and describe lines with their words; the exact `Session` counts of the IP and black box tools.
-//! Every test works on a writable temporary copy of Golden A.
+//! Every test works on a writable temporary copy of the sample.
 
 use crate::common;
 
@@ -94,18 +94,18 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     done(&mut s, "tool.ip", json!({}));
     assert_eq!(s.tool().name(), "ip");
     assert_eq!(s.tool().state(), "floating");
-    // A point in the left quarter of 103 proposes `target`; a typed name stays as typed even where the four 24VDC
-    // targets of 103 use it (a star's second target shares its name on purpose).
+    // A point in the left quarter of 103 proposes `target`; a typed name stays as typed (24V, whose source is on 101
+    // and whose targets are on 102 and 104).
     let left = grid_point(&s, (20, 40));
     cursor(&mut s, left);
-    done(&mut s, "ip.name", json!({"text": "24VDC-1"}));
+    done(&mut s, "ip.name", json!({"text": "24V"}));
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["kind"], "ip");
     assert_eq!(ghost["direction"], "target");
-    assert_eq!(ghost["name"], "24VDC-1", "{ghost}");
+    assert_eq!(ghost["name"], "24V", "{ghost}");
     assert_eq!(ghost["star"], false);
     assert_eq!(ghost["at_nm"], json!([left.0, left.1]));
-    // In the right quarter the quarters give a source, but 24VDC-1 has its source on another page and none on 103: the
+    // In the right quarter the quarters give a source, but 24V has its source on another page and none on 103: the
     // tool offers the target of that name (EW-CORE-052 is project-wide).
     let area = s.canvas().unwrap().page().sheet;
     let right = s
@@ -118,7 +118,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     cursor(&mut s, right);
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["direction"], "target");
-    assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
+    assert_eq!(ghost["name"], "24V", "typed: no series");
     // The direction is chosen in words too: undirected; the star toggles, and walks the point to source (a star
     // source is a source point).
     done(&mut s, "tool.ip_direction", json!({"direction": "undirected"}));
@@ -126,7 +126,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     done(&mut s, "tool.star_source", json!({}));
     let line = describe_line(&s, "canvas ghost ip ").expect("the ghost line");
     assert!(
-        line.starts_with("canvas ghost ip name \"24VDC-1\" direction source star on at "),
+        line.starts_with("canvas ghost ip name \"24V\" direction source star on at "),
         "{line}"
     );
     assert!(line.ends_with(" mm"), "{line}");
@@ -141,19 +141,20 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     assert_eq!(s.tool().name(), "ip");
     let after = ips(&tables(&s));
     assert_eq!(after.len(), before.len() + 1);
-    let placed = ip(&tables(&s), "24VDC-1", "source");
+    let placed = ip(&tables(&s), "24V", "source");
     assert_eq!(placed.pos, right);
     // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
     // star left it alone and is cleared. The typed name stays after its source (FT-1657); erased, the remembered
-    // name's series goes on to its first name that no point of the project has (24VDC-1 to 24VDC-4 stand in Golden A).
+    // name's series goes on to its first name that no point of the project has (no point of the sample is 24V-1).
+
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24V");
     done(&mut s, "ip.name", json!({"text": ""}));
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24V-1");
     cursor(&mut s, left);
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24V-1");
     // Esc ends the tool without a change.
     let rev = s.revision();
     done(&mut s, "ui.dismiss", json!({}));
@@ -205,8 +206,8 @@ fn ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     let start = before
         .cps
         .iter()
-        .find(|c| c.label == "-102F2:14")
-        .expect("-102F2:14")
+        .find(|c| c.label == "-X1021:2/b")
+        .expect("the free lower side of terminal -X1021:2")
         .clone();
     assert!(start.connections.is_empty());
     let rev = s.revision();
@@ -264,7 +265,7 @@ fn ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     let other = before
         .cps
         .iter()
-        .find(|c| c.label == "-102F2:14")
+        .find(|c| c.label == "-X1021:2/b")
         .unwrap()
         .clone();
     cursor(&mut s, other.at);
@@ -291,23 +292,23 @@ fn links_to(s: &ShellModel, folio: &str) -> usize {
 #[test]
 fn continue_on_page_103_places_the_paired_ip_at_the_default_position() {
     let tmp = Tmp::new("continue");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let paired = links_to(&s, "103");
-    // Delete 24VDC-2's partner on 103.
+    // Delete 1L1's partner on 103.
     done(&mut s, "page.goto", json!({"folio": "103"}));
-    let partner = ip(&tables(&s), "24VDC-2", "target");
+    let partner = ip(&tables(&s), "1L1", "target");
     select_ids(&mut s, &[partner.id.to_string()]);
     done(&mut s, "edit.delete_selection", json!({}));
     assert!(
         !tables(&s)
             .reps
             .iter()
-            .any(|r| r.ip.as_ref().is_some_and(|i| i.name == "24VDC-2"))
+            .any(|r| r.ip.as_ref().is_some_and(|i| i.name == "1L1"))
     );
-    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
     assert_eq!(links_to(&s, "103"), paired - 1, "the pairing is gone");
-    // Continue on page 103 from 24VDC-2 on 102.
-    let original = ip(&tables(&s), "24VDC-2", "source");
+    // Continue on page 103 from 1L1 on 101.
+    let original = ip(&tables(&s), "1L1", "source");
     assert_eq!(
         refused(&mut s, "ip.continue_on", json!({"folio": "103"})),
         "reason-select-one-ip"
@@ -316,12 +317,12 @@ fn continue_on_page_103_places_the_paired_ip_at_the_default_position() {
     let rev = s.revision();
     done(&mut s, "ip.continue_on", json!({"folio": "103"}));
     assert_eq!(s.revision(), rev.map(|r| r + 1));
-    // The pairing derives: 102 links to 103 as before the deletion.
+    // The pairing derives: 101 links to 103 as before the deletion.
     assert_eq!(links_to(&s, "103"), paired);
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let t = tables(&s);
-    let continued = ip(&t, "24VDC-2", "target");
-    // The default position: the same y; the original lies in the right half of 102, so x is the leftmost grid point
+    let continued = ip(&t, "1L1", "target");
+    // The default position: the same y; the original lies in the right half of 101, so x is the leftmost grid point
     // inside 103's drawing area.
     assert_eq!(continued.pos.1, original.pos.1);
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
@@ -365,50 +366,50 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
 }
 
 #[test]
-fn arrange_by_name_puts_l1_in_the_upper_slot() {
+fn arrange_by_name_puts_0v_in_the_upper_slot() {
     let tmp = Tmp::new("arrange");
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
-    let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
-    assert!(n1.pos.1 < l1.pos.1, "on Golden A N-1 is above L-1 (ID-1504)");
-    // N-1 moved into the next column, still above L-1, so that the two slots lie in different cells and the partners'
+    let (zero, v24) = (ip(&t, "0V", "target"), ip(&t, "24V", "target"));
+    assert!(v24.pos.1 < zero.pos.1, "on the sample 24V is above 0V");
+    // 24V moved ten grid steps down, still above 0V, so that the two slots lie in different cells and the partners'
     // cross-reference texts on 101 tell them apart.
     let rev = s.revision();
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, 0]}}),
+        json!({"cmd": "rep.move", "params": {"reps": [v24.id.to_string()], "steps": [0, 10]}}),
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     let t = tables(&s);
-    let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
-    assert!(n1.pos.1 < l1.pos.1);
-    let before = xref_of_partner(&mut s, "L-1");
-    let n_before = xref_of_partner(&mut s, "N-1");
+    let (zero, v24) = (ip(&t, "0V", "target"), ip(&t, "24V", "target"));
+    assert!(v24.pos.1 < zero.pos.1);
+    let before = xref_of_partner(&mut s, "0V");
+    let n_before = xref_of_partner(&mut s, "24V");
     assert!(before.starts_with("102-"), "{before}");
     assert_ne!(before, n_before, "two cells");
-    let l1_fn = ew_dl::EntityRef(l1.functions[0]);
+    let zero_fn = ew_dl::EntityRef(zero.functions[0]);
     // Fewer than two selected: refused.
-    select_ids(&mut s, &[l1.id.to_string()]);
+    select_ids(&mut s, &[zero.id.to_string()]);
     assert_eq!(
         refused(&mut s, "ip.arrange_selected", json!({"by": "name"})),
         "reason-select-ips"
     );
-    select_ids(&mut s, &[n1.id.to_string(), l1.id.to_string()]);
+    select_ids(&mut s, &[v24.id.to_string(), zero.id.to_string()]);
     done(&mut s, "ip.arrange_selected", json!({"by": "name"}));
     let t = tables(&s);
-    let (l1b, n1b) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
-    assert_eq!(l1b.pos, n1.pos, "L-1 takes the upper slot");
-    assert_eq!(n1b.pos, l1.pos);
-    // The connections at L-1's CP follow it: each route's end is the CP's new point.
-    let cp_at = t.cps.iter().find(|c| c.rep == l1b.id).unwrap().at;
-    for (_, _, end) in ends_at(&t, l1_fn) {
+    let (zero_b, v24_b) = (ip(&t, "0V", "target"), ip(&t, "24V", "target"));
+    assert_eq!(zero_b.pos, v24.pos, "0V takes the upper slot");
+    assert_eq!(v24_b.pos, zero.pos);
+    // The connections at 0V's CP follow it: each route's end is the CP's new point.
+    let cp_at = t.cps.iter().find(|c| c.rep == zero_b.id).unwrap().at;
+    for (_, _, end) in ends_at(&t, zero_fn) {
         assert_eq!(end, cp_at);
     }
-    // The partner L-1 on 101 prints the new place of L-1 on 102 (FR-XRF-013: the cross-reference follows).
-    let after = xref_of_partner(&mut s, "L-1");
+    // The partner 0V on 101 prints the new place of 0V on 102 (FR-XRF-013: the cross-reference follows).
+    let after = xref_of_partner(&mut s, "0V");
     assert_ne!(after, before, "the partner's cross-reference text changes");
-    assert_eq!(after, n_before, "L-1's partner now names N-1's former cell");
+    assert_eq!(after, n_before, "0V's partner now names 24V's former cell");
     // By potential with the chain order: one more commit.
     let rev = s.revision();
     done(
@@ -423,7 +424,7 @@ fn arrange_by_name_puts_l1_in_the_upper_slot() {
 // IB5, IB6: the black box tool and the grips
 
 #[test]
-fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() {
+fn the_black_box_tool_with_the_power_supply_part_gives_seven_cps_that_report_its_device() {
     let tmp = Tmp::new("box-tool");
     let mut s = actual_size(&tmp, "102");
     done(
@@ -441,7 +442,7 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
     assert_eq!(picker.mode.word(), "box");
     assert!(!picker.rows.is_empty());
     assert!(
-        describe_line(&s, "  row part \"MICO 4.10\"").is_some(),
+        describe_line(&s, "  row part \"EW-GEN-PSU-1\"").is_some(),
         "{}",
         s.describe()
     );
@@ -459,26 +460,26 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
     done(
         &mut s,
         "tool.black_box",
-        json!({"part": "MICO 4.10", "template": 0}),
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
     );
     assert_eq!(s.tool().name(), "black_box");
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(
         canvas(&s)["ghost"],
-        json!({"kind": "box", "outline": 0, "cps": 10})
+        json!({"kind": "box", "outline": 0, "cps": 7})
     );
     let rev = s.revision();
-    // A rectangle two grid steps wide grows until five CPs fit on top.
+    // A rectangle two grid steps wide grows until the four outputs fit on the bottom edge.
     enter_k(&mut s, (30, 30));
     assert_eq!(s.tool().state(), "outline");
     cursor_k(&mut s, (32, 36));
     assert_eq!(
         describe_line(&s, "canvas ghost box ").as_deref(),
-        Some("canvas ghost box outline 4 cps 10")
+        Some("canvas ghost box outline 4 cps 7")
     );
-    // The HUD says what the count counts, never a bare "· 10".
+    // The HUD says what the count counts, never a bare "· 7".
     let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
-    assert!(prompt.ends_with(" \u{b7} 10 connection points"), "{prompt}");
+    assert!(prompt.ends_with(" \u{b7} 7 connection points"), "{prompt}");
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(s.preview_state().unwrap().name, "box.black");
     assert!(s.preview_state().unwrap().result.is_ok());
@@ -494,14 +495,14 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
         .clone();
     let b = rep.black_box.as_ref().unwrap();
     assert_eq!(b.outline.len(), 4);
-    assert_eq!(index_of(&s, b.outline[1]).0 - index_of(&s, b.outline[0]).0, 6);
-    assert_eq!(b.cps.len(), 10);
+    assert_eq!(index_of(&s, b.outline[1]).0 - index_of(&s, b.outline[0]).0, 5);
+    assert_eq!(b.cps.len(), 7);
     let device = rep.device.expect("a device");
     let _ = device;
     let cps: Vec<_> = t.cps.iter().filter(|c| c.rep == rep.id).collect();
     assert_eq!(
         cps.len(),
-        10,
+        7,
         "every CP of the part reports the box in the page tables"
     );
     let tag = cps[0].label.split_once(':').unwrap().0.to_owned();
@@ -515,12 +516,7 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
         })
         .collect();
     designations.sort();
-    assert_eq!(
-        designations,
-        [
-            "13", "14", "24VDC", "24VDC", "GND", "GND", "Out1", "Out2", "Out3", "Out4"
-        ]
-    );
+    assert_eq!(designations, ["+", "+", "-", "-", "L", "N", "PE"]);
     for c in &b.cps {
         assert!(on_outline(&b.outline, c.1));
     }
@@ -537,7 +533,7 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     done(
         &mut s,
         "tool.black_box",
-        json!({"part": "MICO 4.10", "template": 0}),
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
     );
     assert_eq!(s.tool().name(), "black_box");
     // FT-896: the armed hint names both corners, and the HUD's prompt is that hint with the box's pin count.
@@ -547,7 +543,7 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     );
     assert_eq!(
         ew_viewmodel::command_bar::hud(&s).prompt,
-        "Click the box's first corner, then its opposite corner; Esc ends \u{b7} 10 connection points"
+        "Click the box's first corner, then its opposite corner; Esc ends \u{b7} 7 connection points"
     );
     cursor_k(&mut s, (30, 30));
     // A chip at the pointer says how the box is drawn, not only the bottom bar.
@@ -569,9 +565,10 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
         s.tool_hint(),
         "Click or Enter at the opposite corner; Esc starts again"
     );
-    // The pointer is the opposite corner: the rectangle (one outline, ten CPs, the label) and no corner marker.
+    // The pointer is the opposite corner: the rectangle (one outline, seven CPs, the label) and no corner marker.
     cursor_k(&mut s, (32, 36));
-    assert_eq!(canvas(&s)["overlay"], 12);
+    assert_eq!(canvas(&s)["overlay"], 9);
+
     assert_eq!(canvas(&s)["ghost"]["outline"], 4);
     // The first Escape drops the corner and keeps the tool.
     done(&mut s, "ui.dismiss", json!({}));
@@ -586,18 +583,18 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     assert_eq!(s.tool().name(), "select");
 }
 
-/// -102G1's table row.
+/// -101G1's table row.
 fn g1(t: &PageTables) -> TableRep {
     let f = t
         .cps
         .iter()
-        .find(|c| c.label.starts_with("-102G1:"))
-        .expect("-102G1")
+        .find(|c| c.label.starts_with("-101G1:"))
+        .expect("-101G1")
         .rep;
     t.reps.iter().find(|r| r.id == f).unwrap().clone()
 }
 
-/// Checks the widened -102G1 against its row before: two grid steps wider, 7 CPs on the outline, every connection at
+/// Checks the widened -101G1 against its row before: two grid steps wider, 7 CPs on the outline, every connection at
 /// its CPs still ending at them.
 fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     let t = tables(s);
@@ -650,13 +647,13 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
 #[test]
 fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     let tmp = Tmp::new("grips");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let t = tables(&s);
     let before = g1(&t);
     let f = ew_dl::EntityRef(before.functions[0]);
     let connected = ends_at(&t, f).len();
     assert_eq!(before.black_box.as_ref().unwrap().cps.len(), 7);
-    assert_eq!(connected, 7, "Golden A connects all seven CPs of -102G1");
+    assert_eq!(connected, 7, "the sample connects all seven CPs of -101G1");
     // The grips need exactly one black box selected.
     assert_eq!(
         refused(&mut s, "box.grip", json!({"grip": 5})),
@@ -700,8 +697,19 @@ fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
 #[test]
 fn centre_the_pins_from_a_boxs_right_click() {
     let tmp = Tmp::new("centre-pins");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
+    // The sample's box has its pins centred: its top side's last pin (2) is dragged towards the right corner first.
+    let drawn = g1(&tables(&s));
+    select_ids(&mut s, &[drawn.id.to_string()]);
+    let b = drawn.black_box.as_ref().unwrap();
+    let (k0, k1) = (index_of(&s, b.outline[0]), index_of(&s, b.outline[1]));
+    let pin = b.cps.iter().find(|c| c.0 == 2).unwrap().1;
+    let (sp, sq) = (sheet(&s, pin), sheet(&s, grid_point(&s, (k1.0 - 1, k0.1))));
+    done(&mut s, "canvas.press", at(sp, json!({})));
+    done(&mut s, "canvas.pointer", at(sq, json!({})));
+    done(&mut s, "canvas.release", at(sq, json!({})));
     let before = g1(&tables(&s));
+    assert_ne!(before.black_box, drawn.black_box, "the pin moved");
     select_ids(&mut s, &[before.id.to_string()]);
     let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
     let item = menu
@@ -748,7 +756,7 @@ fn centre_the_pins_from_a_boxs_right_click() {
 #[test]
 fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     let tmp = Tmp::new("grip-inside-out");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let grips = s.tool_overlay().clone();
@@ -798,7 +806,7 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
 #[test]
 fn add_pin_on_a_part_s_box_opens_its_device_box() {
     let tmp = Tmp::new("box-cp");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
     assert!(!before.black_box.as_ref().unwrap().own_pins, "a box of a part");
     select_ids(&mut s, &[before.id.to_string()]);
@@ -830,7 +838,7 @@ fn pin_names(s: &ShellModel, rep: ew_api::output::Uuid) -> Vec<String> {
 /// at a point puts a pin on the edge nearest it and asks its name; Tab takes it and asks for the next on the same side;
 /// a double click on a pin renames it; Remove pin takes it away while no wire holds it; a wire drawn to the box's edge
 /// where no pin is asks for a pin there and ends at it. Each is one undo step.
-/// A new page 150 on the QET grid of Golden A's copy with a box drawn without a part from grid (30, 30) to (42, 38),
+/// A new page 150 on the QET grid of the sample's copy with a box drawn without a part from grid (30, 30) to (42, 38),
 /// selected.
 fn plain_box(tmp: &Tmp) -> (ShellModel, TableRep) {
     let mut s = actual_size(tmp, "102");
@@ -1126,7 +1134,7 @@ fn g1_box(s: &ShellModel, rep: ew_api::output::Uuid) -> ew_api::output::TableBox
 #[test]
 fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     let tmp = Tmp::new("box-cp-corner");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
     let b = before.black_box.clone().unwrap();
     select_ids(&mut s, &[before.id.to_string()]);
@@ -1161,23 +1169,24 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     assert_eq!(unique.len(), pts.len(), "no two pins on one point: {pts:?}");
 }
 
-/// rc.5 (the height of a box collapsed through its pin texts): Golden A's -102F2 has pins on its top and bottom sides
-/// whose texts are turned a quarter and reach into the box; its bottom edge dragged up stops where the longest top
-/// text and the longest bottom text would meet, the status line says why, and the box is no lower than that.
+/// rc.5 (the height of a box collapsed through its pin texts): the sample's power supply -101G1 has pins on its top
+/// and bottom sides whose texts are turned a quarter and reach into the box; its bottom edge dragged up stops where
+/// the longest top text and the longest bottom text would meet, the status line says why, and the box is no lower
+/// than that.
 #[test]
 fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
     let tmp = Tmp::new("box-cp-names");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let t = tables(&s);
-    let f2 = t
+    let psu = t
         .reps
         .iter()
-        .find(|r| r.black_box.as_ref().is_some_and(|b| b.cps.len() == 10))
-        .expect("-102F2")
+        .find(|r| r.black_box.as_ref().is_some_and(|b| b.cps.len() == 7))
+        .expect("-101G1")
         .clone();
-    let b = f2.black_box.clone().unwrap();
+    let b = psu.black_box.clone().unwrap();
     assert!(b.depth > 0, "the turned texts need a height");
-    select_ids(&mut s, &[f2.id.to_string()]);
+    select_ids(&mut s, &[psu.id.to_string()]);
     // The lowest corner on the right, dragged up to one step below the top.
     let corner = *b.outline.iter().max_by_key(|p| (p.1, p.0)).unwrap();
     let top = b.outline.iter().map(|p| index_of(&s, *p).1).min().unwrap();
@@ -1195,7 +1204,7 @@ fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
     let after = tables(&s)
         .reps
         .iter()
-        .find(|r| r.id == f2.id)
+        .find(|r| r.id == psu.id)
         .unwrap()
         .black_box
         .clone()
@@ -1248,7 +1257,7 @@ fn the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
     done(
         &mut s,
         "tool.black_box",
-        json!({"part": "MICO 4.10", "template": 0}),
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
     );
     assert_armed_hint(&s);
 }
@@ -1303,7 +1312,7 @@ fn the_tools_read_nothing_while_moving() {
     done(
         &mut s,
         "tool.black_box",
-        json!({"part": "MICO 4.10", "template": 0}),
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
     );
     enter_k(&mut s, (40, 40));
     let calls = s.session_calls();
@@ -1315,17 +1324,17 @@ fn the_tools_read_nothing_while_moving() {
     assert_eq!(after.symbol_shape, calls.symbol_shape);
 }
 
-/// A location node of Golden A, read from its external references (the copy keeps every ID).
+/// A location node of the sample, read from its external references (the copy keeps every ID).
 fn external_location() -> String {
     let (session, _) =
-        ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+        ew_api::Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     let q = session.query();
     let id = q
         .external_refs()
         .iter()
         .next()
         .map(|(_, x)| x.location.to_string())
-        .expect("Golden A has external references");
+        .expect("the sample has external references");
     drop(q);
     id
 }
@@ -1379,12 +1388,12 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     );
     done(&mut s, "tool.ip", json!({}));
     cursor_k(&mut s, (60, 3));
-    done(&mut s, "ip.name", json!({"text": "PE-1.1"}));
+    done(&mut s, "ip.name", json!({"text": "PE"}));
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     done(&mut s, "canvas.activate", json!({}));
-    // Off the placed point (its CP now carries a potential), the name in the field: one more target of PE-1.1.
+    // Off the placed point (its CP now carries a potential), the name in the field: one more target of PE, whose source is on 101.
     cursor_k(&mut s, (60, 9));
-    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1", "the name in the field");
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE", "the name in the field");
     let id = s
         .external_choices()
         .into_iter()
@@ -1396,7 +1405,7 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     done(&mut s, "ip.external", json!({ "external": id }));
     let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
     assert!(
-        !name.starts_with("PE-1"),
+        name != "PE",
         "the external point's own proposal: {name}"
     );
     assert_eq!(name, "IP");
@@ -1407,13 +1416,13 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     done(&mut s, "ip.external", json!({"external": ""}));
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     cursor_k(&mut s, (60, 15));
-    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1");
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE");
 }
 
 #[test]
 fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
     let tmp = Tmp::new("grip-notice");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let grips = s.tool_overlay().clone();
@@ -1477,7 +1486,7 @@ fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
 #[test]
 fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
     let tmp = Tmp::new("grip-no-band");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
     select_ids(&mut s, &[before.id.to_string()]);
     let b = before.black_box.as_ref().unwrap();
@@ -1512,13 +1521,13 @@ fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
 #[test]
 fn a_pin_is_offered_define_potential_on_its_devices_right_click() {
     let tmp = Tmp::new("pin-potential");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = actual_size(&tmp, "101");
     let g = g1(&tables(&s));
     let cp = tables(&s)
         .cps
         .iter()
         .find(|c| c.rep == g.id && c.label.ends_with(":L"))
-        .expect("a pin of -102G1")
+        .expect("a pin of -101G1")
         .clone();
     select_ids(&mut s, &[g.id.to_string()]);
     let at = sheet(&s, cp.at);

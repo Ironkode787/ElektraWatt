@@ -229,7 +229,7 @@ fn without_a_project_the_parts_import_is_refused_with_its_reason() {
 #[test]
 fn a_read_only_project_refuses_the_import() {
     let tmp = Tmp::new("parts-read-only");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     assert_eq!(
         refused(
             &mut shell,

@@ -15,7 +15,7 @@ use serde_json::json;
 
 /// A headless shell with a writable copy of Golden A on `folio`, at actual size.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, folio);
+    let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
     s
 }
@@ -74,7 +74,7 @@ fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");

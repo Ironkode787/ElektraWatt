@@ -26,9 +26,9 @@ fn script_text(steps: &[(&str, Value)]) -> String {
 
 /// A headless shell whose settings live in `tmp`, and a copy of Golden A there.
 fn shell(tmp: &Tmp) -> (ShellModel, String) {
-    let dir = tmp.0.join("J-E-2416.ew");
+    let dir = tmp.0.join("sample.ew");
     if !dir.exists() {
-        common::copy_dir(std::path::Path::new(common::GOLDEN_A), &dir);
+        common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
     }
     let shell = ShellModel::new(
         Mode::Headless,

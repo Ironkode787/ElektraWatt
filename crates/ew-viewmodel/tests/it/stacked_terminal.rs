@@ -64,7 +64,7 @@ fn language(s: &mut ShellModel, value: &str) {
 #[test]
 fn a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_says_why() {
     let tmp = Tmp::new("ft1208");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     placed(&mut s, "70", (60, 28));
     assert_eq!(toast(&s), "Placed -X1031 terminal 70 at 103-D9.");

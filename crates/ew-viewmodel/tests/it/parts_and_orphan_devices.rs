@@ -18,13 +18,13 @@ use serde_json::json;
 
 /// A headless shell with a writable copy of Golden A on `folio`.
 fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// The component BOM of the saved project as CSV lines.
 fn bom(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
     done(s, "file.save", json!({}));
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let csv = session.export_csv(Export::Bom(BomMode::Component)).unwrap();
     csv.lines().map(str::to_owned).collect()
 }
@@ -178,7 +178,7 @@ fn reps_of(s: &ShellModel, d: Uuid) -> Vec<Uuid> {
 /// The EW-CORE-047 findings of the saved project.
 fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
     done(s, "file.save", json!({}));
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let q = session.query();
     checks::run(&q, &checks::FULL, checks::CheckMode::Online)
         .findings
@@ -258,7 +258,7 @@ fn unplaced_toast(s: &ShellModel) -> Option<String> {
 /// The potential definition names (sorted), the bond count and the device IDs of the saved project.
 fn connect_intent(tmp: &Tmp, s: &mut ShellModel) -> (Vec<String>, usize, Vec<Uuid>) {
     done(s, "file.save", json!({}));
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let q = session.query();
     let mut names: Vec<String> = q
         .potential_defs()

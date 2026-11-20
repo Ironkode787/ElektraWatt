@@ -442,7 +442,7 @@ fn a_device_is_refused_without_being_read() {
 #[test]
 fn the_window_asks_for_a_file_and_headless_does_not() {
     let tmp = Tmp::new("image-prompt");
-    let mut gui = tmp.shell_in(Mode::Gui, true, "101");
+    let mut gui = tmp.sample_in(Mode::Gui, true, "101");
     done(&mut gui, "tool.image", json!({}));
     assert_eq!(gui.tool().name(), "image");
     let prompt = gui.take_prompt().expect("a prompt for the window");

@@ -83,7 +83,7 @@ fn link_off_101(shell: &ShellModel) -> ew_viewmodel::canvas::PageLink {
 #[test]
 fn select_clicks_shift_and_ctrl() {
     let tmp = Tmp::new("tools-t4");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     assert_eq!(shell.tool().name(), "select");
     let points = entity_points(shell.canvas().unwrap());
     assert!(points.len() >= 3, "{}", points.len());
@@ -131,7 +131,7 @@ fn select_clicks_shift_and_ctrl() {
 #[test]
 fn bands_left_to_right_enclose_and_right_to_left_touch() {
     let tmp = Tmp::new("tools-t4b");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let empty = empty_point(shell.canvas().unwrap());
     let (w, h) = shell.canvas().unwrap().sheet();
     let far = (w * 3 / 5, h * 3 / 5);
@@ -179,7 +179,7 @@ fn bands_left_to_right_enclose_and_right_to_left_touch() {
 #[test]
 fn a_band_leaves_no_overlay_on_release_or_page_change() {
     let tmp = Tmp::new("tools-band-clear");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let empty = empty_point(shell.canvas().unwrap());
     let (w, h) = shell.canvas().unwrap().sheet();
     let far = (w * 3 / 5, h * 3 / 5);
@@ -203,7 +203,7 @@ fn a_band_leaves_no_overlay_on_release_or_page_change() {
 #[test]
 fn a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
     let tmp = Tmp::new("tools-t4c");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let points = entity_points(shell.canvas().unwrap());
     click(&mut shell, points[0].1, json!({}));
     let sel = selected(&shell);
@@ -247,7 +247,7 @@ fn a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
 #[test]
 fn snapping_on_the_qet_grid_of_folio_102() {
     let tmp = Tmp::new("tools-t5");
-    let shell = tmp.shell("102");
+    let shell = tmp.sample_shell("102");
     let c = shell.canvas().unwrap();
     let page = c.page();
     let f1 = page
@@ -299,7 +299,7 @@ fn snapping_on_the_qet_grid_of_folio_102() {
 #[test]
 fn connection_points_by_keyboard_in_reading_order() {
     let tmp = Tmp::new("tools-t6");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let cps = shell.canvas().unwrap().page().cps.clone();
     let n = cps.len();
     assert!(n >= 10);
@@ -350,7 +350,7 @@ fn connection_points_by_keyboard_in_reading_order() {
 #[test]
 fn enter_selects_and_measure_from_the_keyboard_alone() {
     let tmp = Tmp::new("tools-t6b");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     // Enter without a cursor is refused; on an entity it selects it.
     assert_eq!(
         refused(&mut shell, "canvas.activate", json!({})),
@@ -434,7 +434,7 @@ fn the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
     assert!(find("ui.describe").unwrap().keeps_link_preview);
     assert!(!find("view.grid").unwrap().keeps_link_preview);
     let tmp = Tmp::new("tools-t8-flag");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let link = link_off_101(&shell);
     let p = ew_viewmodel::canvas::rect_centre(link.rect);
     done(&mut shell, "canvas.pointer", at(p, json!({})));
@@ -450,7 +450,7 @@ fn the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
 #[test]
 fn the_link_hover_preview() {
     let tmp = Tmp::new("tools-t8");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let link = link_off_101(&shell);
     let target = link.target.clone().unwrap();
     assert!(!shell.cached_pages().contains(&target.folio), "not cached yet");
@@ -511,7 +511,7 @@ fn the_link_hover_preview() {
 #[test]
 fn escape_cancels_every_shipped_tool_in_every_state() {
     let tmp = Tmp::new("tools-t9");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let rev = shell.revision();
     let points = entity_points(shell.canvas().unwrap());
     let empty = empty_point(shell.canvas().unwrap());
@@ -552,7 +552,7 @@ fn escape_cancels_every_shipped_tool_in_every_state() {
 #[test]
 fn the_transcript_and_describe_members_of_the_tools() {
     let tmp = Tmp::new("tools-t10");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let s = state(&shell);
     let raw = ew_viewmodel::script::state_json(&shell);
     let canvas = &raw[raw.find("\"canvas\"").unwrap()..raw.find("\"tabs\"").unwrap()];
@@ -661,7 +661,7 @@ fn the_transcript_and_describe_members_of_the_tools() {
 #[test]
 fn tool_events_on_a_cached_page_make_no_session_call() {
     let tmp = Tmp::new("tools-t11");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     // The property grid fetches a sheet per selection change (its own exact counts in
     // `tests/properties.rs`): closed here, so that the tool events alone are counted.
     done(&mut shell, "props.show", json!({"on": false}));
@@ -771,7 +771,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
     use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     use ew_viewmodel::shell::Mode;
     let tmp = Tmp::new("ctx-menu");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "103");
     // The window selects the object under the pointer before it opens the menu (M39: Delete needs a selection).
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -824,7 +824,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
     assert_eq!(frame[0], ("Title block fields…".to_owned(), true));
     shell.shutdown();
     let tmp = Tmp::new("ctx-menu-ro");
-    let mut shell = tmp.shell_in(Mode::Headless, false, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, false, "103");
     for item in canvas_menu(&shell, MenuSpot::Object, None)
         .into_iter()
         .chain(canvas_menu(&shell, MenuSpot::Sheet, None))

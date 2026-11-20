@@ -35,7 +35,7 @@ fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
 #[test]
 fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("J-E-2416.ew");
+    let dir = tmp.golden("sample.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert!(!shell.has_project());
     assert_eq!(shell.title(), "ElektraWatt");
@@ -47,7 +47,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     assert_eq!(refused(&mut shell, "file.close", json!({})), "reason-no-project");
 
     assert_eq!(open(&mut shell, &dir), Outcome::Done);
-    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert_eq!(shell.project_name(), Some("sample.ew"));
     assert_eq!(shell.title(), "J-E-2416.ew - ElektraWatt");
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.is_dirty());
@@ -68,7 +68,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     assert_eq!(status[3], "QET 10 px");
     assert_eq!(status[4], "saved");
     // The opened project is the first recent one.
-    assert_eq!(shell.recent_names(), ["J-E-2416.ew"]);
+    assert_eq!(shell.recent_names(), ["sample.ew"]);
     shell.shutdown();
 }
 

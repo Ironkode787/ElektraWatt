@@ -38,7 +38,7 @@ fn pairs(list: &[(&str, &str)]) -> Vec<(String, String)> {
 #[test]
 fn props_follow_goes_from_a_placement_to_its_device_on_its_main_page() {
     let tmp = Tmp::new("props-follow");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     done(&mut s, "props.show", json!({"on": true}));
     let f1 = panel(&s)
         .placements
@@ -83,7 +83,7 @@ fn props_follow_goes_from_a_placement_to_its_device_on_its_main_page() {
 #[test]
 fn f_follows_in_the_properties_context() {
     let tmp = Tmp::new("props-follow-key");
-    let s = tmp.shell_in(Mode::Headless, false, "902");
+    let s = tmp.sample_in(Mode::Headless, false, "902");
     let keys: Vec<(String, String)> = s
         .bindings()
         .into_iter()
@@ -100,7 +100,7 @@ fn f_follows_in_the_properties_context() {
 #[test]
 fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let tmp = Tmp::new("ft1019");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     done(&mut s, "props.show", json!({"on": true}));
     done(&mut s, "select.set", json!({"ids": []}));
     let rows = shown(&s, false);
@@ -176,7 +176,7 @@ fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
 #[test]
 fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
     let tmp = Tmp::new("ft1357");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "props.show", json!({"on": true}));
     done(&mut s, "props.project", json!({}));
     let values = |s: &ShellModel| {

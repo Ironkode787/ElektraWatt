@@ -21,7 +21,7 @@ const NO: &str = "ew.iec.contact-no@qet10";
 const LAMP: &str = "ew.iec.lamp@qet10";
 
 fn shell(tmp: &Tmp) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, "101")
+    tmp.sample_in(Mode::Headless, true, "101")
 }
 
 /// The sheet point of grid index `k` of folio 101 (its lower right area is empty).

@@ -18,7 +18,7 @@ use serde_json::json;
 #[test]
 fn parts_list_opens_the_first_page_of_the_bom_block() {
     let tmp = Tmp::new("h40-parts");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let meta = actions::find("lists.parts").expect("registered");
     assert_eq!(strings::text(Key::run_time(&meta.label_key())), "Open parts list");
     assert_eq!(strings::text(key!("bar-lists-parts")), "Parts list");
@@ -73,7 +73,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
 #[test]
 fn parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
     let tmp = Tmp::new("h40-ft1028");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "view.zoom_in", json!({}));
     let path = tmp.0.join("set.pdf");
     done(

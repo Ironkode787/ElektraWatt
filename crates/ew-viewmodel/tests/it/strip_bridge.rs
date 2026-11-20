@@ -11,7 +11,7 @@ use crate::common;
 
 use std::path::Path;
 
-use common::{GOLDEN_A, Tmp, actual_size, cursor, done, refused, select_ids, tables};
+use common::{SAMPLE, Tmp, actual_size, cursor, done, refused, select_ids, tables};
 use ew_api::Session;
 use ew_api::output::TableRep;
 use ew_viewmodel::actions::{ActionItem, Menu, menu_model};
@@ -133,7 +133,7 @@ fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
 /// golden bridge. A difference here stops the test before its own assertions.
 fn assert_golden_endpoints() {
     let (session, _) =
-        Session::open_read_only(Path::new(GOLDEN_A), "test").expect("Golden A opens read-only");
+        Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
     let q = session.query();
     let terminal = |function: &str| {
         let (_, f) = q
@@ -264,7 +264,7 @@ fn three_bridges_join_four_terminals_in_one_group() {
     let reps = place_terminals(&mut s, &X1031);
     // The remaining -X1031 bridges (BR2 to BR5) are read from the saved modified copy, not from pristine Golden A.
     done(&mut s, "file.save", json!({}));
-    let remaining = largest_x1031_bridge_group(&tmp.golden_copy());
+    let remaining = largest_x1031_bridge_group(&tmp.sample_copy());
     let mut groups = Vec::new();
     for k in 0..3 {
         // The first step selects the higher sequence first; the rule still puts :1 in `a` and :2 in `b`.
@@ -772,7 +772,7 @@ fn terminals_without_a_shaft_or_a_side1_cp_refuse() {
     // A function definition of Golden A with connection points and none of them on side 1.
     let def = {
         let (session, _) =
-            Session::open_read_only(Path::new(GOLDEN_A), "test").expect("Golden A opens read-only");
+            Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
         let q = session.query();
         q.fndefs()
             .iter()

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1383: a copy of Golden A whose one library copy that a device names is damaged opens read-only in
+//! FT-1383: a copy of the sample whose one library copy that a device names is damaged opens read-only in
 //! the window, as a damaged copy no device names does, instead of being refused whole: every page shows and the
 //! checks run.
 
@@ -27,10 +27,10 @@ fn open_in(tmp: &Tmp, locale: &str, dir: &std::path::Path) -> ShellModel {
     s
 }
 
-/// A copy of Golden A in `tmp` whose first part copy a device names is cut short: the folder and the copy's ID.
-fn damaged_golden(tmp: &Tmp) -> (std::path::PathBuf, String) {
-    let dir = tmp.golden_copy();
-    copy_dir(std::path::Path::new(common::GOLDEN_A), &dir);
+/// A copy of the sample in `tmp` whose first part copy a device names is cut short: the folder and the copy's ID.
+fn damaged_sample(tmp: &Tmp) -> (std::path::PathBuf, String) {
+    let dir = tmp.sample_copy();
+    copy_dir(std::path::Path::new(common::SAMPLE), &dir);
     // The first part copy a device names, cut short.
     let mut shards: Vec<_> = std::fs::read_dir(dir.join("devices"))
         .unwrap()
@@ -56,7 +56,7 @@ fn damaged_golden(tmp: &Tmp) -> (std::path::PathBuf, String) {
 #[test]
 fn a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     let tmp = Tmp::new("ft1383");
-    let (dir, _) = damaged_golden(&tmp);
+    let (dir, _) = damaged_sample(&tmp);
     let mut s = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
@@ -87,25 +87,26 @@ fn a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
 #[test]
 fn save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     let tmp = Tmp::new("ft1383-save-as");
-    let (dir, _) = damaged_golden(&tmp);
+    let (dir, _) = damaged_sample(&tmp);
     let target = tmp.0.join("save-as");
     for (locale, banner, save_as) in [
         (
             "en",
-            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. No library on this computer holds it, so the copy cannot be updated from one. 1 integrity \
+            "This project is open read-only: the device -201K1-Q1 uses the library copy of part EW-GEN-VLV-3 from \
+             ElektraWatt starter parts, which is damaged. Update the copy from its library first. 1 integrity \
              finding was found when the project was opened.",
-            "Save as is refused: the device -201U8-Q1 uses the library copy of its part, which is damaged, and a copy \
-             of the project without it would not open. Update the copy from its library first.",
+            "Save as is refused: the device -201K1-Q1 uses the library copy of part EW-GEN-VLV-3 from ElektraWatt \
+             starter parts, which is damaged, and a copy of the project without it would not open. Update the copy \
+             from its library first.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
-             een bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "Opslaan als is geweigerd: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn artikel, die \
-             beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
-             bij vanuit de bibliotheek.",
+            "Dit project is alleen-lezen geopend: het apparaat -201K1-Q1 gebruikt de bibliotheekkopie van artikel \
+             EW-GEN-VLV-3 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
+             bibliotheek. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
+            "Opslaan als is geweigerd: het apparaat -201K1-Q1 gebruikt de bibliotheekkopie van artikel EW-GEN-VLV-3 \
+             uit ElektraWatt starter parts, die beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou \
+             niet openen. Werk de kopie eerst bij vanuit de bibliotheek.",
         ),
     ] {
         let mut s = open_in(&tmp, locale, &dir);
@@ -130,7 +131,7 @@ fn save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
 #[test]
 fn the_damaged_copy_banner_stays_while_its_state_holds() {
     let tmp = Tmp::new("id1427-damaged-banner");
-    let (dir, _) = damaged_golden(&tmp);
+    let (dir, _) = damaged_sample(&tmp);
     let mut s = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
@@ -144,8 +145,8 @@ fn the_damaged_copy_banner_stays_while_its_state_holds() {
     assert_eq!(
         s.banner(),
         Some(
-            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
-             damaged. No library on this computer holds it, so the copy cannot be updated from one."
+            "This project is open read-only: the device -201K1-Q1 uses the library copy of part EW-GEN-VLV-3 from \
+             ElektraWatt starter parts, which is damaged. Update the copy from its library first."
         )
     );
     assert!(!s.banner_dismissable());
@@ -153,9 +154,9 @@ fn the_damaged_copy_banner_stays_while_its_state_holds() {
     assert_eq!(
         s.banner(),
         Some(
-            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
-             artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
-             een bibliotheek worden bijgewerkt."
+            "Dit project is alleen-lezen geopend: het apparaat -201K1-Q1 gebruikt de bibliotheekkopie van artikel \
+             EW-GEN-VLV-3 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
+             bibliotheek."
         )
     );
     done(&mut s, "view.language", json!({"value": "en"}));
@@ -164,10 +165,10 @@ fn the_damaged_copy_banner_stays_while_its_state_holds() {
     assert!(strings::set_locale("en"));
 }
 
-/// A copy of Golden A in `tmp` whose library copy `file` (under `lib/`) is cut short: the folder.
-fn golden_with_damaged(tmp: &Tmp, file: &str) -> std::path::PathBuf {
-    let dir = tmp.golden_copy();
-    copy_dir(std::path::Path::new(common::GOLDEN_A), &dir);
+/// A copy of the sample in `tmp` whose library copy `file` (under `lib/`) is cut short: the folder.
+fn sample_with_damaged(tmp: &Tmp, file: &str) -> std::path::PathBuf {
+    let dir = tmp.sample_copy();
+    copy_dir(std::path::Path::new(common::SAMPLE), &dir);
     std::fs::write(dir.join("lib").join(file), "{\"$k\": \"form\",\n").unwrap();
     dir
 }
@@ -190,29 +191,30 @@ fn tree(dir: &std::path::Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     out
 }
 
-/// A damaged library copy that no device names, here the form a page names, is named in the banner
-/// and the Save As refusal by its kind and by the record that names it, in both languages; nothing is written.
+/// A damaged library copy that no device names, here the frame form the report blocks and the panel-layout page
+/// name, is named in the banner and the Save As refusal by its kind and by the first record that names it, a report
+/// block, in both languages; nothing is written.
 #[test]
-fn a_damaged_copy_a_page_names_is_named_with_its_page() {
+fn a_damaged_copy_a_record_names_is_named_with_that_record() {
     let tmp = Tmp::new("ft1500-form");
-    let dir = golden_with_damaged(&tmp, "forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json");
+    let dir = sample_with_damaged(&tmp, "forms/ec586fad-385b-599d-a76d-59c893506f00.json");
     let before = tree(&dir);
     let target = tmp.0.join("save-as");
     for (locale, banner, save_as) in [
         (
             "en",
-            "This project is open read-only: the library copy of a form named by page 1 is damaged. No library on \
+            "This project is open read-only: the library copy of a form named by a report block is damaged. No library on \
              this computer holds it, so the copy cannot be updated from one. 1 integrity finding was found when the \
              project was opened.",
-            "Save as is refused: the library copy of a form named by page 1 is damaged, and a copy of the project \
+            "Save as is refused: the library copy of a form named by a report block is damaged, and a copy of the project \
              without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een formulier waarnaar pagina 1 verwijst \
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een formulier waarnaar een rapportblok verwijst \
              is beschadigd. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een \
              bibliotheek worden bijgewerkt. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "Opslaan als is geweigerd: de bibliotheekkopie van een formulier waarnaar pagina 1 verwijst is \
+            "Opslaan als is geweigerd: de bibliotheekkopie van een formulier waarnaar een rapportblok verwijst is \
              beschadigd, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij \
              vanuit de bibliotheek.",
         ),
@@ -231,30 +233,30 @@ fn a_damaged_copy_a_page_names_is_named_with_its_page() {
     assert!(tree(&dir) == before, "nothing is written inside the project");
 }
 
-/// A damaged library copy that no record names (a manufacturer, which only part copies' library
-/// links name) leaves the project read-only with a banner that names it and the way out; Save As then makes a copy of
+/// A damaged library copy that no record names (the cover frame, which only the project's settings
+/// name) leaves the project read-only with a banner that names it and the way out; Save As then makes a copy of
 /// the project without it, which opens for editing, and its toast names the copy left out; the banner goes. The
 /// damaged project is never written.
 #[test]
 fn save_as_leaves_out_a_damaged_copy_no_record_names() {
     let tmp = Tmp::new("ft1500-left-out");
-    let file = "manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let dir = golden_with_damaged(&tmp, file);
+    let file = "forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json";
+    let dir = sample_with_damaged(&tmp, file);
     let before = tree(&dir);
     for (locale, banner, toast) in [
         (
             "en",
-            "This project is open read-only: the library copy of a manufacturer is damaged. No library on this \
+            "This project is open read-only: the library copy of a form is damaged. No library on this \
              computer holds it; use Save as for a copy of the project without it. 1 integrity finding was found when \
              the project was opened.",
-            "Saved as save-as-en without the library copy of a manufacturer, which is damaged.",
+            "Saved as save-as-en without the library copy of a form, which is damaged.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant is beschadigd. Geen \
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een formulier is beschadigd. Geen \
              bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze \
              bibliotheekkopie. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een fabrikant, die beschadigd is.",
+            "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een formulier, die beschadigd is.",
         ),
     ] {
         let target = tmp.0.join(format!("save-as-{locale}"));
@@ -287,29 +289,29 @@ fn save_as_leaves_out_a_damaged_copy_no_record_names() {
 #[test]
 fn every_damaged_copy_a_save_as_leaves_out_is_named() {
     let tmp = Tmp::new("left-out-two");
-    let dir = golden_with_damaged(&tmp, "manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json");
+    let dir = sample_with_damaged(&tmp, "forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json");
     std::fs::write(
-        dir.join("lib/manufacturers/35eacba5-ccf5-59f0-86c7-d0156b0a1889.json"),
+        dir.join("lib/forms/c80af135-34f8-574c-8f52-756bd24c7bd0.json"),
         "{\"$k\": \"form\",\n",
     )
     .unwrap();
     for (locale, banner, toast) in [
         (
             "en",
-            "This project is open read-only: the library copy of a manufacturer, the library copy of a manufacturer \
+            "This project is open read-only: the library copy of a form, the library copy of a form \
              are damaged. No library on this computer holds them; use Save as for a copy of the project without \
              them. 2 integrity findings were found when the project was opened.",
-            "Saved as save-as-en without the library copy of a manufacturer, the library copy of a manufacturer, \
+            "Saved as save-as-en without the library copy of a form, the library copy of a form, \
              which are damaged.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
-             fabrikant zijn beschadigd. Geen bibliotheek op deze computer bevat ze; maak met Opslaan als een \
+            "Dit project is alleen-lezen geopend: de bibliotheekkopie van een formulier, de bibliotheekkopie van een \
+             formulier zijn beschadigd. Geen bibliotheek op deze computer bevat ze; maak met Opslaan als een \
              projectkopie zonder deze bibliotheekkopieën. Bij het openen van het project zijn 2 \
              integriteitsbevindingen gevonden.",
-            "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een fabrikant, de bibliotheekkopie van een \
-             fabrikant, die beschadigd zijn.",
+            "Opgeslagen als save-as-nl zonder de bibliotheekkopie van een formulier, de bibliotheekkopie van een \
+             formulier, die beschadigd zijn.",
         ),
     ] {
         let target = tmp.0.join(format!("save-as-{locale}"));
@@ -322,31 +324,31 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
     assert!(strings::set_locale("en"));
 }
 
-/// FT-1383: a damaged definition copy whose functions end fluid lines (Golden A's pneumatic cylinders on
-/// folio 203, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
+/// FT-1383: a damaged definition copy whose functions end fluid lines (the sample's pneumatic cylinders on
+/// folio 201, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
 /// open was refused before; Save As is refused in its words as for any copy a record names, nothing being
 /// written. Both languages.
 #[test]
 fn a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
     let tmp = Tmp::new("id1484-fluid");
-    let dir = golden_with_damaged(&tmp, "fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json");
+    let dir = sample_with_damaged(&tmp, "fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json");
     let before = tree(&dir);
     let target = tmp.0.join("save-as");
     for (locale, banner, save_as) in [
         (
             "en",
-            "This project is open read-only: the device -203Q5 uses the library copy of its part, which is \
+            "This project is open read-only: the device -201M1 uses the library copy of its part, which is \
              damaged. Update the copy from its library first. 1 integrity finding was found when the project was \
              opened.",
-            "Save as is refused: the device -203Q5 uses the library copy of its part, which is damaged, and a copy \
+            "Save as is refused: the device -201M1 uses the library copy of its part, which is damaged, and a copy \
              of the project without it would not open. Update the copy from its library first.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn \
+            "Dit project is alleen-lezen geopend: het apparaat -201M1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek. Bij het openen van het \
              project is 1 integriteitsbevinding gevonden.",
-            "Opslaan als is geweigerd: het apparaat -203Q5 gebruikt de bibliotheekkopie van zijn artikel, die \
+            "Opslaan als is geweigerd: het apparaat -201M1 gebruikt de bibliotheekkopie van zijn artikel, die \
              beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst \
              bij vanuit de bibliotheek.",
         ),
@@ -366,13 +368,13 @@ fn a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
 }
 
 /// A damaged copy of a part an installed library holds (the compiled-in starter parts, assigned to
-/// F55 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
+/// -101F1 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
 /// languages.
 #[test]
 fn a_damaged_copy_of_an_installed_part_is_named_whole() {
     let tmp = Tmp::new("ft1525");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
-    done(&mut s, "select.set", json!({ "refs": ["tag:F55"] }));
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "select.set", json!({ "refs": ["tag:-101F1"] }));
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
     let params = s
@@ -392,7 +394,7 @@ fn a_damaged_copy_of_an_installed_part_is_named_whole() {
         .to_owned();
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     std::fs::write(
         dir.join("lib/parts").join(format!("{copy}.json")),
         "{\"$k\": \"part\",\n",
@@ -402,19 +404,19 @@ fn a_damaged_copy_of_an_installed_part_is_named_whole() {
     for (locale, banner, save_as) in [
         (
             "en",
-            "This project is open read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 from \
+            "This project is open read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 1 integrity \
              finding was found when the project was opened.",
-            "Save as is refused: the device F55 uses the library copy of part EW-GEN-MCB-2 from ElektraWatt \
+            "Save as is refused: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from ElektraWatt \
              starter parts, which is damaged, and a copy of the project without it would not open. Update the copy \
              from its library first.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat F55 gebruikt de bibliotheekkopie van artikel \
+            "Dit project is alleen-lezen geopend: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "Opslaan als is geweigerd: het apparaat F55 gebruikt de bibliotheekkopie van artikel EW-GEN-MCB-2 uit \
+            "Opslaan als is geweigerd: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel EW-GEN-MCB-2 uit \
              ElektraWatt starter parts, die beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou \
              niet openen. Werk de kopie eerst bij vanuit de bibliotheek.",
         ),

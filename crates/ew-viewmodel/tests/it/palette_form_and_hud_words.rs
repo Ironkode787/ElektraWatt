@@ -27,7 +27,7 @@ fn query(shell: &mut ShellModel, q: &str) -> Vec<PaletteEntry> {
 #[test]
 fn a_missing_folio_says_no_page_has_it() {
     let tmp = Tmp::new("m39-folio");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     assert!(query(&mut shell, ":999").is_empty());
     assert_eq!(shell.palette_empty_text(), "No page has the folio 999.");
     assert!(query(&mut shell, "zzzzqqqq").is_empty());
@@ -41,7 +41,7 @@ fn a_missing_folio_says_no_page_has_it() {
 #[test]
 fn a_folio_row_shows_the_page_title() {
     let tmp = Tmp::new("m39-title");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let title = shell
         .page_rows()
         .iter()
@@ -69,7 +69,7 @@ fn the_form_hint_says_enter_and_escape() {
 #[test]
 fn delete_is_disabled_with_nothing_selected() {
     let tmp = Tmp::new("m39-delete");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let meta = actions::find("edit.delete_selection").expect("the action");
     done(&mut shell, "select.set", json!({"refs": []}));
     assert_eq!((meta.enabled)(&shell), Err(key!("reason-nothing-selected")));
@@ -93,7 +93,7 @@ fn part_kinds_read_as_words() {
 #[test]
 fn the_place_hud_names_the_symbol() {
     let tmp = Tmp::new("m39-hud");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     done(&mut shell, "tool.place", json!({}));
     done(
         &mut shell,

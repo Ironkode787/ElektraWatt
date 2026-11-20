@@ -17,7 +17,7 @@ use serde_json::json;
 #[test]
 fn the_parts_list_says_which_devices_it_leaves_out() {
     let tmp = Tmp::new("parts-unlisted");
-    let mut s = tmp.shell("101");
+    let mut s = tmp.sample_shell("101");
     done(&mut s, "messages.show", json!({"on": true}));
     let named: BTreeSet<String> = s
         .nav(NavKind::Messages)

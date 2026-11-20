@@ -10,7 +10,7 @@ use crate::common;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use common::{GOLDEN_A, Tmp, done};
+use common::{SAMPLE, Tmp, done};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
@@ -179,7 +179,7 @@ fn new_project(tmp: &Tmp, choice: &str) -> PathBuf {
 #[test]
 fn golden_from_the_basic_project() {
     let tmp = Tmp::new("nfr-ux-08");
-    let golden = Path::new(GOLDEN_A);
+    let golden = Path::new(SAMPLE);
     let types: BTreeSet<String> = records(golden, &["pages"])
         .into_iter()
         .filter(|r| r["$k"] == "page")

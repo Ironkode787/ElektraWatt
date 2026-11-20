@@ -115,7 +115,7 @@ fn layout_group(shell: &ShellModel) -> Vec<(String, bool, Option<String>)> {
 #[test]
 fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let tmp = Tmp::new("ps7");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let on = |b: &str| (b.to_owned(), true, None);
     // The enclosure and the plate stand where the layout tools are (the persona found them by the search only).
     assert_eq!(
@@ -169,7 +169,7 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
 #[test]
 fn draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
     let tmp = Tmp::new("ps2");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let before = ids(&s);
     let number = part_number_of(&s, "rail", "Rail 1");
     done(&mut s, "tool.rail_draw", json!({}));
@@ -205,7 +205,7 @@ fn draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
 #[test]
 fn draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
     let tmp = Tmp::new("ps3");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let before = ids(&s);
     let number = part_number_of(&s, "duct", "Duct 1");
     done(&mut s, "tool.duct_draw", json!({}));
@@ -244,7 +244,7 @@ fn draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
 #[test]
 fn select_drags_a_rail_on_the_grid_with_its_placements() {
     let tmp = Tmp::new("drag-rail");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let t = panel(&s);
     let r3 = carrier(&t, "Rail 3").clone();
     let on_r3 = t.placements.iter().filter(|p| p.carrier == Some(r3.id)).count();
@@ -285,7 +285,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
 #[test]
 fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure() {
     let tmp = Tmp::new("ps1");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     // +J-E-2416 has -UC1: the refusal stays under the fields.
     done(&mut s, "layout.enclosure_new", json!({}));
     let Some(Dialog::Form(form)) = s.dialog().cloned() else {
@@ -550,7 +550,7 @@ fn unplaced_key(s: &ShellModel, label: &str) -> String {
 #[test]
 fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
     let tmp = Tmp::new("ps6");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     let t = panel(&s);
     let r1 = carrier(&t, "Rail 1").id;
     for p in t.placements.iter().filter(|p| p.carrier == Some(r1)) {
@@ -651,7 +651,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
 #[test]
 fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     let tmp = Tmp::new("fill-why");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
     assert!(!unplaced.is_empty());
     done(
@@ -702,7 +702,7 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
 #[test]
 fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
     let tmp = Tmp::new("devices-location");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
     done(
         &mut s,
@@ -767,7 +767,7 @@ fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
 #[test]
 fn rows_commit_from_the_properties_grid() {
     let tmp = Tmp::new("ps5");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let t = panel(&s);
     let fp = t.placements.iter().find(|p| p.tag == "-102F1").unwrap().footprint;
     let f1 = t.placements.iter().find(|p| p.tag == "-102F1").unwrap().id;
@@ -1025,7 +1025,7 @@ fn create_line(s: &ShellModel) -> String {
 #[test]
 fn far_points_of_the_draw_tools_are_refused_in_words() {
     let tmp = Tmp::new("far");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     done(
         &mut s,
         "command.run",
@@ -1091,7 +1091,7 @@ fn free_click_mm(shell: &mut ShellModel, u: f64, v: f64) -> Outcome {
 #[test]
 fn the_draw_tools_texts_read_whole() {
     let tmp = Tmp::new("draw-texts");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     assert_eq!(
         refused(&mut s, "layout.draw_options", json!({"part": "x"})),
         "reason-no-draw-tool"
@@ -1183,7 +1183,7 @@ const DUCT_CHIP: &str = "40 \u{d7} 60 mm";
 #[test]
 fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
     let tmp = Tmp::new("fill-one");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     let t = panel(&s);
     let p = t.placements.iter().find(|p| p.tag == "-101F1").unwrap().id;
     done(
@@ -1219,7 +1219,7 @@ fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
 #[test]
 fn the_draw_tools_part_offers_are_kept_between_frames() {
     let tmp = Tmp::new("offers");
-    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let calls = |s: &ShellModel| s.session_calls().layout_part_offers;
     let before = calls(&s);
     done(&mut s, "tool.rail_draw", json!({}));
@@ -1251,7 +1251,7 @@ fn the_draw_tools_part_offers_are_kept_between_frames() {
 #[test]
 fn the_surface_row_chooses_a_surface_by_its_id() {
     let tmp = Tmp::new("surface-choice");
-    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
     done(&mut s, "layout.enclosure_new", json!({}));
     let Some(Dialog::Form(form)) = s.dialog().cloned() else {
         panic!("{:?}", s.dialog())

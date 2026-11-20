@@ -16,7 +16,7 @@ use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 fn golden(tmp: &Tmp) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, "101")
+    tmp.sample_in(Mode::Headless, true, "101")
 }
 
 /// The describe lines of the open dialog that start with `prefix` (after the indent).
@@ -328,7 +328,7 @@ fn choosing_commits_one_command() {
 #[test]
 fn the_strip_editor_cells_choose_parts() {
     let tmp = Tmp::new("part-sel-4s");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "strip.edit", json!({ "strip": "-X1031" }));
     let nav = s.nav(NavKind::Strips).unwrap();
     let t = nav.table().unwrap();
@@ -447,7 +447,7 @@ fn the_part_editor_refuses_with_a_message() {
     drop(s);
     // A read-only project.
     let tmp = Tmp::new("part-sel-5r");
-    let mut s = tmp.shell("101");
+    let mut s = tmp.sample_shell("101");
     select(&mut s, "F55");
     assert!(
         !matches!(s.dispatch("part.edit", &json!({})), Outcome::Done),

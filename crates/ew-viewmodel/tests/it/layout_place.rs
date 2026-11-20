@@ -23,7 +23,7 @@ const MM: i64 = 1_000_000;
 
 /// A headless shell with a writable copy of Golden A on folio 902.
 fn writable(tmp: &Tmp) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, "902")
+    tmp.sample_in(Mode::Headless, true, "902")
 }
 
 fn panel(shell: &ShellModel) -> std::sync::Arc<PanelTables> {

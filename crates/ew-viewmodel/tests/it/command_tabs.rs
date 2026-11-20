@@ -169,7 +169,7 @@ fn the_rack_button_lists_the_stations() {
     );
     empty.shutdown();
     let tmp = Tmp::new("tabs-rack-golden");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let rack = button(&s, Tab::Plc, "plc.rack_editor");
     let ButtonKind::Menu(items) = rack.kind else {
         panic!("Rack is a menu button")

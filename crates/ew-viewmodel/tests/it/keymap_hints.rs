@@ -10,9 +10,9 @@ use common::{Tmp, at, done};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
-/// A headless shell with a writable copy of Golden A on 101, at actual size.
-fn golden(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+/// A headless shell with a writable copy of the sample on 101, at actual size.
+fn on_101(tmp: &Tmp) -> ShellModel {
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
     s
 }
@@ -53,13 +53,13 @@ fn cursor(s: &mut ShellModel, k: (i64, i64)) {
 #[test]
 fn a_rebound_key_shows_in_the_hints_and_the_hud() {
     let tmp = Tmp::new("ft964-rebind");
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     done(&mut s, "tool.measure", json!({}));
     assert_eq!(s.tool_hint(), "Click or Enter at the first point");
     done(&mut s, "ui.dismiss", json!({}));
     let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
     done(&mut s, "place.pick", pick.clone());
-    cursor(&mut s, (60, 38));
+    cursor(&mut s, (75, 25));
     assert_eq!(
         s.tool_hint(),
         "Click or Enter to place; R, X, Y and V turn it; Esc ends"
@@ -76,14 +76,14 @@ fn a_rebound_key_shows_in_the_hints_and_the_hud() {
         &tmp,
         "[[bind]]\nkeys = \"F10\"\naction = \"ui.dismiss\"\ncontext = \"global\"\n",
     );
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     assert_eq!(s.banner(), None, "the keymap file is taken");
     rebind(&mut s, "canvas.activate", "F9");
     done(&mut s, "tool.measure", json!({}));
     assert_eq!(s.tool_hint(), "Click or F9 at the first point");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "place.pick", pick);
-    cursor(&mut s, (60, 38));
+    cursor(&mut s, (75, 25));
     assert_eq!(
         s.tool_hint(),
         "Click or F9 to place; R, X, Y and V turn it; F10 ends"
@@ -124,7 +124,7 @@ fn the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
         (hint, toast)
     }
     let tmp = Tmp::new("ft949-default");
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     let (hint, toast) = place_three(&mut s);
     assert_eq!(
         hint,
@@ -141,7 +141,7 @@ fn the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
         &tmp,
         "[[bind]]\nkeys = \"Ctrl+F9\"\naction = \"canvas.activate_alt\"\ncontext = \"canvas\"\n",
     );
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     assert_eq!(s.banner(), None, "the keymap file is taken");
     let key = ew_viewmodel::keymap::display("Ctrl+F9");
     let (rebound_hint, rebound_toast) = place_three(&mut s);
@@ -153,7 +153,7 @@ fn the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
 #[test]
 fn a_keymap_file_that_is_not_toml_is_refused_in_words() {
     let tmp = Tmp::new("ft850-import");
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     let bad = tmp.0.join("not-toml.toml");
     std::fs::write(&bad, "[[bind]\nkeys = ").unwrap();
     done(&mut s, "help.shortcuts", json!({}));
@@ -197,7 +197,7 @@ fn the_link_previews_line_without_a_key_names_the_menu_path() {
 fn a_links_hint_takes_its_follow_key_from_the_keymap() {
     use ew_viewmodel::status::follow_hint;
     let tmp = Tmp::new("ft1042-hint");
-    let mut s = golden(&tmp);
+    let mut s = on_101(&tmp);
     assert_eq!(
         follow_hint(&s, "-201U7", "props.follow"),
         "Click or F: go to -201U7"

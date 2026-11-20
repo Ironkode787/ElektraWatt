@@ -1161,7 +1161,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let drawn = line(&w13);
     // W13's printed number before the insert.
     let number_before = {
-        let (golden, _) = ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+        let (golden, _) = ew_api::Session::open_read_only(&tmp.0.join("sample.ew"), "test").unwrap();
         golden
             .property_sheet(&[w13.id.to_string().parse().unwrap()])
             .header
@@ -1231,7 +1231,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     // unassigned. (Golden A prints connection-oriented numbers derived for every wire, so the new half prints the
     // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
     done(&mut s, "file.save", json!({}));
-    let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("sample.ew"), "test").unwrap();
     let q = session.query();
     let rec = |id: &str| {
         let (_, c) = q
@@ -1337,7 +1337,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let dragged = line(&moved);
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));
-    let dir = tmp.0.join("J-E-2416.ew");
+    let dir = tmp.0.join("sample.ew");
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     let reopened = tables(&s)

@@ -42,7 +42,7 @@ fn row(shell: &ShellModel, name: &str) -> String {
 #[test]
 fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
     let tmp = Tmp::new("text-styles-finding");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let found = findings(&mut shell, "EW-CORE-061");
     let (key, label) = found
         .iter()
@@ -97,7 +97,7 @@ fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
 #[test]
 fn a_typeface_and_bold_reach_the_open_page_and_reset_undoes_them() {
     let tmp = Tmp::new("text-styles-face");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let before = format!("{:?}", shell.page_content("101").unwrap().pages[0].content);
     done(&mut shell, "text_styles.open", json!({}));
     done(
@@ -119,7 +119,7 @@ fn a_typeface_and_bold_reach_the_open_page_and_reset_undoes_them() {
 #[test]
 fn the_technical_drawing_face_prints_a_bold_style_regular() {
     let tmp = Tmp::new("text-styles-technical");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let before = format!("{:?}", shell.page_content("101").unwrap().pages[0].content);
     done(&mut shell, "text_styles.open", json!({}));
     done(
@@ -145,7 +145,7 @@ fn the_technical_drawing_face_prints_a_bold_style_regular() {
 #[test]
 fn a_height_that_is_no_height_is_refused_in_words() {
     let tmp = Tmp::new("text-styles-typed");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "text_styles.open", json!({}));
     for typed in ["abc", "0", "99"] {
         let out = shell.dispatch("text_styles.set", &json!({"style": "marker", "height": typed}));

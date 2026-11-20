@@ -135,8 +135,8 @@ const B1_TAGS: [&str; 11] = [
 /// save after its undo equals the save before it, `generation` aside.
 fn golden_b(mode: Mode) {
     let tmp = Tmp::new("pv2");
-    let mut shell = tmp.shell_in(mode, true, "101");
-    let dir = tmp.golden_copy();
+    let mut shell = tmp.sample_in(mode, true, "101");
+    let dir = tmp.sample_copy();
     b1_settings(&mut shell);
     done(&mut shell, "file.save", json!({}));
     let before_b1 = snapshot(&dir);
@@ -307,7 +307,7 @@ fn golden_b_through_the_dialogs() {
 #[test]
 fn the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
     let tmp = Tmp::new("pv2-refuse");
-    let mut gui = tmp.shell_in(Mode::Gui, true, "101");
+    let mut gui = tmp.sample_in(Mode::Gui, true, "101");
     done(&mut gui, "pages.renumber", json!({}));
     gui.set_form_field("section", "99");
     let out = gui.submit_form();
@@ -326,7 +326,7 @@ fn the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
     assert!(gui.dialog().is_none());
     gui.shutdown();
     let tmp = Tmp::new("pv2-headless");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     // The missing scheme's refusal names the schemes it takes.
     for (action, text) in [
         ("pages.renumber", "Missing parameter `start`."),
@@ -356,7 +356,7 @@ fn the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
 #[test]
 fn every_origin_opens_the_tab_and_closing_it_cancels() {
     let tmp = Tmp::new("pv3");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     // Properties: a tag counter on two devices.
     done(
         &mut shell,
@@ -490,7 +490,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
 #[test]
 fn the_tab_a_card_opened_closes_with_the_card() {
     let tmp = Tmp::new("pv-close");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     // Selected once: the selection survives an Apply, whose tags change with the counter.
     done(
         &mut shell,
@@ -550,7 +550,7 @@ fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, text: &str) -> Vec<
 #[test]
 fn undo_and_redo_restore_the_page_view_and_selection() {
     let tmp = Tmp::new("pv5");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let s101 = edit_on(&mut shell, "101", json!(["tag:-101F1"]), "one");
     let s102 = edit_on(&mut shell, "102", json!(["tag:-102F1", "tag:-102F2"]), "two");
     done(&mut shell, "page.goto", json!({"folio": "103"}));

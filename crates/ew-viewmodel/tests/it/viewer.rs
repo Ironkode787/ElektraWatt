@@ -63,7 +63,7 @@ fn link_to(shell: &ShellModel, cell: &str) -> (i64, i64) {
 #[test]
 fn the_canvas_area_keeps_its_invariants_under_every_tab_action() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     let a = shell.area().unwrap();
     assert_eq!((a.groups.len(), a.tab_count(), a.current().id), (1, 1, 1));
     assert_eq!(shell.focus(), Some(Focus::Canvas(0)));
@@ -147,7 +147,7 @@ fn the_canvas_area_keeps_its_invariants_under_every_tab_action() {
 #[test]
 fn a_tab_keeps_its_page_by_identity_across_a_renumber() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(true);
+    let mut shell = tmp.open_sample(true);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     let page = shell.current_page().unwrap();
     let id = page.uuid_text();
@@ -167,7 +167,7 @@ fn a_tab_keeps_its_page_by_identity_across_a_renumber() {
 #[test]
 fn walks_jumps_back_and_forward_with_the_exact_view() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(true);
+    let mut shell = tmp.open_sample(true);
     // Walks record nothing.
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     assert_eq!(shell.area().unwrap().current().history.back_len(), 1);
@@ -269,7 +269,7 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
 #[test]
 fn the_navigator_on_golden_a() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     let rows = shell.page_rows().to_vec();
     assert_eq!(
         rows.len(),
@@ -409,7 +409,7 @@ fn the_navigator_on_golden_a() {
 #[test]
 fn navigator_keys_are_stable_across_a_revision() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(true);
+    let mut shell = tmp.open_sample(true);
     done(&mut shell, "pages.mode", json!({"mode": "structure"}));
     let before: Vec<String> = shell.navigator_rows().iter().map(|r| r.key.clone()).collect();
     let rev = shell.revision();
@@ -423,7 +423,7 @@ fn navigator_keys_are_stable_across_a_revision() {
 #[test]
 fn the_grid_cursor() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     let c = shell.canvas().unwrap();
     let centre = c.centre();
@@ -539,7 +539,7 @@ fn the_grid_cursor() {
 #[test]
 fn follow_back_forward_and_links_at_the_model() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "view.zoom_to", json!({"percent": 200}));
     done(&mut shell, "view.pan", json!({"dx": 40, "dy": -25}));
@@ -627,7 +627,7 @@ fn follow_back_forward_and_links_at_the_model() {
 #[test]
 fn go_to_and_its_errors_at_the_model() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     let fail = |shell: &mut ShellModel, text: &str| match shell.dispatch("nav.goto", &json!({"text": text})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
@@ -652,7 +652,7 @@ fn go_to_and_its_errors_at_the_model() {
 #[test]
 fn the_transcript_members_and_describe_lines() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     let text = script::state_json(&shell);
     let order = ["\"canvas\"", "\"tabs\"", "\"focus\"", "\"navigator\""];
     let at: Vec<usize> = order.iter().map(|k| text.find(k).unwrap()).collect();
@@ -740,7 +740,7 @@ fn the_transcript_members_and_describe_lines() {
 #[test]
 fn exact_counts_and_the_page_content_cache() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     // Two tabs (102, 103) in group 1, 104 in group 2; every page shown once.
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "tab.new", json!({}));
@@ -863,7 +863,7 @@ fn exact_counts_and_the_page_content_cache() {
 #[test]
 fn a_revision_change_empties_the_cache() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(true);
+    let mut shell = tmp.open_sample(true);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     assert!(shell.cached_pages().contains(&"102".to_owned()));
@@ -880,7 +880,7 @@ fn a_revision_change_empties_the_cache() {
 #[test]
 fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
     let tmp = Tmp::new("viewer");
-    let mut shell = tmp.open(false);
+    let mut shell = tmp.open_sample(false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(
         &mut shell,
@@ -925,11 +925,11 @@ fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let parent = Tmp::new("viewer");
     // The killed run: its copy of Golden A open for editing, then gone without a shutdown (the lock stays).
     let killed = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
-    Box::leak(Box::new(killed.open(true)));
-    assert!(killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file());
+    Box::leak(Box::new(killed.open_sample(true)));
+    assert!(killed.0.join("sample.ew").join(".~ew.lock").is_file());
     // Adopting the leftover (the old behaviour): the copy is read-only.
     assert!(
-        !killed.open(true).is_writable(),
+        !killed.open_sample(true).is_writable(),
         "a leftover lock makes the copy read-only"
     );
     // The next process starts its numbers again: the leftover's name is skipped, the new directory is empty and its
@@ -937,9 +937,9 @@ fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let fresh = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
     assert_ne!(fresh.0, killed.0);
     assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
-    assert!(fresh.open(true).is_writable());
+    assert!(fresh.open_sample(true).is_writable());
     assert!(
-        killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file(),
+        killed.0.join("sample.ew").join(".~ew.lock").is_file(),
         "the leftover is not touched"
     );
 }

@@ -9,7 +9,7 @@ use crate::common;
 
 use std::path::Path;
 
-use common::{GOLDEN_A, Tmp, copy_dir, done};
+use common::{SAMPLE, Tmp, copy_dir, done};
 use ew_api::library::{LibraryTiers, Registry};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
@@ -26,7 +26,7 @@ fn tiers(root: &Path) -> LibraryTiers {
 
 /// The ID of Golden A's configuration project.
 fn config_project() -> String {
-    let text = std::fs::read_to_string(Path::new(GOLDEN_A).join("project.jsonl")).unwrap();
+    let text = std::fs::read_to_string(Path::new(SAMPLE).join("project.jsonl")).unwrap();
     text.lines()
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
         .find(|v| v["$k"] == "plc_config_project")
@@ -38,7 +38,7 @@ fn config_project() -> String {
 
 /// A shell over a writable copy of Golden A in `dir`, with `libraries`.
 fn open(tmp: &Tmp, dir: &Path, libraries: Option<LibraryTiers>) -> ShellModel {
-    copy_dir(Path::new(GOLDEN_A), dir);
+    copy_dir(Path::new(SAMPLE), dir);
     let mut s = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(libraries),

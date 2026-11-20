@@ -72,7 +72,7 @@ fn pair(a: &str, b: &str) -> [String; 2] {
 /// A shell at actual size on folio 103 with a switch at (60, 20) and terminal 70 of -X1031 at (60, 28) placed under
 /// it with autoconnect, so that its upper CP is connected to the switch and its lower CP is free.
 fn feed(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,

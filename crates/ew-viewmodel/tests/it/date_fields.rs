@@ -56,7 +56,7 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
     shell.shutdown();
     // The Title block fields form takes the format too (with its parameters, as its Apply sends them), on a copy of
     // Golden A, whose title block prints the date and whose project prints dd-mm-yyyy.
-    let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "101");
     done(
         &mut shell,
         "page.title_block",

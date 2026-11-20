@@ -23,7 +23,7 @@ fn hover_line(s: &ShellModel) -> Option<String> {
 /// The channel records of the project copy (`devices/*.jsonl`).
 fn channels(tmp: &Tmp) -> Vec<Value> {
     let mut out = Vec::new();
-    let mut paths: Vec<_> = std::fs::read_dir(tmp.golden_copy().join("devices"))
+    let mut paths: Vec<_> = std::fs::read_dir(tmp.sample_copy().join("devices"))
         .unwrap()
         .map(|e| e.unwrap().path())
         .collect();
@@ -54,7 +54,7 @@ fn table_cp(s: &ShellModel, id: &str) -> TableCp {
 #[test]
 fn describe_reports_the_plc_address_of_the_hovered_cp() {
     let tmp = Tmp::new("plc-hover");
-    let mut s = tmp.shell_in(Mode::Headless, true, "203");
+    let mut s = tmp.sample_in(Mode::Headless, true, "203");
     done(&mut s, "view.zoom_actual", json!({}));
     // A drawn port of the valve -201U3-Q1 (its coil is a function of its own) and the spare channel 0 of
     // its module -201U3 (the row key of the golden tables names it).

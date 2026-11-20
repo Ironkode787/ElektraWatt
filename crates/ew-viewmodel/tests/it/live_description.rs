@@ -45,11 +45,11 @@ fn end_label(t: &PageTables, end: &TableEnd) -> Option<String> {
 #[test]
 fn selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
     let tmp = Tmp::new("ax1-device");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
     // The model's values: the kind of its main function in the Devices navigator, the folio of its main location in
     // the property sheet's header, its connection points and their connections in the page tables of folio 102.
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let (session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "0.0.0-test").unwrap();
     let devices = session.navigator_table(NavKind::Devices);
     let device = devices
         .nodes
@@ -90,9 +90,9 @@ fn selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
 #[test]
 fn a_wire_says_its_number_potential_and_ends() {
     let tmp = Tmp::new("ax1-wire");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let t = tables(&shell);
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let (session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "0.0.0-test").unwrap();
     // A wire between two connection points, with a number and a potential.
     let (conn, number, from, to, potential) = t
         .connections
@@ -120,8 +120,8 @@ fn a_wire_says_its_number_potential_and_ends() {
 #[test]
 fn a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     let tmp = Tmp::new("ax1-item");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    // Golden A has no page item: a free text placed on 102.
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    // The sample has no free text on 102: one placed there.
     let page = tables(&shell).page.to_string();
     done(
         &mut shell,
@@ -144,7 +144,7 @@ fn a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:-102F1", "tag:-102F2"]}),
+        json!({"refs": ["tag:-102F1", "tag:-102S1"]}),
     );
     assert_eq!(live(&shell), "2 selected");
     assert_eq!(live_line(&shell), Some("canvas live \"2 selected\"".to_owned()));
@@ -159,7 +159,7 @@ fn a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
 #[test]
 fn a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
     let tmp = Tmp::new("ax1-quote");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let page = tables(&shell).page.to_string();
     done(
         &mut shell,
@@ -193,13 +193,13 @@ fn language(shell: &mut ShellModel, tag: &str) {
 #[test]
 fn a_junction_an_interruption_point_and_a_structure_box_say_what_they_are() {
     let tmp = Tmp::new("ft1248");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let t = tables(&shell);
     let junction = t.junctions.first().expect("a junction on 102");
     let wires = junction.sequence.len();
     assert!(wires > 1);
     // An interruption point drawn on 102: its name is its group's label in the navigator.
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let (session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "0.0.0-test").unwrap();
     let ips = session.navigator_table(NavKind::Ips);
     let (name, rep) = ips
         .nodes
@@ -252,9 +252,9 @@ fn a_junction_an_interruption_point_and_a_structure_box_say_what_they_are() {
 #[test]
 fn a_wire_to_a_junction_names_that_end_a_junction() {
     let tmp = Tmp::new("ft1250");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     let t = tables(&shell);
-    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "0.0.0-test").unwrap();
+    let (session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "0.0.0-test").unwrap();
     let (conn, number, from, potential) = t
         .connections
         .iter()
@@ -292,8 +292,8 @@ fn a_wire_to_a_junction_names_that_end_a_junction() {
 fn an_unplaced_device_without_a_kind_says_device() {
     use ew_api::{AnyCommand, StoreOptions};
     let tmp = Tmp::new("ft1252-device");
-    // A copy of Golden A with one device more, made through the session.
-    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+    // The sample with one device more, made through the session.
+    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     let receipt = session
         .execute(&AnyCommand {
             name: "device.create".into(),
@@ -336,7 +336,7 @@ fn an_unplaced_device_without_a_kind_says_device() {
 #[test]
 fn a_rename_that_keeps_the_selection_words_the_live_region_again() {
     let tmp = Tmp::new("ft1251");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
     let before = live(&shell);
     assert!(before.starts_with("-102F1, "), "{before}");

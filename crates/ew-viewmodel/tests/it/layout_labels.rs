@@ -3,9 +3,9 @@
 
 //! A layout page that can be read (the owner's finding of the first 0.3.0 candidate: at 1:10 the tags ran into each
 //! other; he asked for numbers, a table beside the layout and labels that move), through the shell on temporary copies
-//! of Golden A: a balloon off its device drags alone and the device's menu puts it back; a new layout page at 1:10 shows
-//! item numbers, gets its legend (with the description) and prints its tags without the cabinet's location; Add legend is refused where the
-//! page holds one.
+//! of the sample: a balloon off its device drags alone and the device's menu puts it back; a new layout page at 1:10
+//! shows item numbers, gets its legend (with the description) and prints its tags without the cabinet's location; Add
+//! legend is refused where the page holds one.
 
 use crate::common;
 
@@ -27,14 +27,13 @@ fn sheet(shell: &ShellModel, p: (i64, i64)) -> (i64, i64) {
     shell.canvas().unwrap().page().snapper.page_to_sheet(p)
 }
 
-/// The placement of the device tagged `tag`.
-fn placed(shell: &ShellModel, tag: &str) -> Uuid {
-    panel(shell)
-        .placements
-        .iter()
-        .find(|p| p.tag == tag)
-        .unwrap_or_else(|| panic!("{tag} is not placed"))
-        .id
+/// Whether the page point `p` lies in the footprint `fp` of the page's panel tables `t`.
+fn in_footprint(t: &PanelTables, fp: Rect, p: (i64, i64)) -> bool {
+    let (a, b) = (
+        t.to_page((i128::from(fp.min().x.0), i128::from(fp.min().y.0))),
+        t.to_page((i128::from(fp.max().x.0), i128::from(fp.max().y.0))),
+    );
+    a.0.min(b.0) <= p.0 && p.0 <= a.0.max(b.0) && a.1.min(b.1) <= p.1 && p.1 <= a.1.max(b.1)
 }
 
 /// The texts the page on show prints.
@@ -57,15 +56,32 @@ fn texts(shell: &ShellModel) -> Vec<String> {
 #[test]
 fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     let tmp = Tmp::new("layout-label-drag");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    // At 1:20 the sample's devices are narrow on paper, so their balloons stand off them.
+    done(&mut shell, "select.set", json!({"ids": []}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/scale", "value": "1:20"}),
+    );
     done(
         &mut shell,
         "props.set",
         json!({"row": "page/derived.labels", "value": "Item numbers"}),
     );
-    // -101F1 is 1.8 mm wide on paper: its balloon stands above it with a leader.
-    let id = placed(&shell, "-101F1");
-    let row = panel(&shell).placement(id).unwrap().clone();
+    // A narrow placement whose balloon stands off it with a leader.
+    let t = panel(&shell);
+    let row = t
+        .placements
+        .iter()
+        .find(|p| {
+            p.label_box.is_some_and(|bx| {
+                !in_footprint(&t, p.footprint, ((bx.min().x.0 + bx.max().x.0) / 2, (bx.min().y.0 + bx.max().y.0) / 2))
+            })
+        })
+        .expect("a balloon off its device")
+        .clone();
+    let id = row.id;
     let bx = row.label_box.expect("902 prints the balloon");
     let grab = sheet(
         &shell,
@@ -115,7 +131,7 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
 #[test]
 fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back() {
     let tmp = Tmp::new("layout-label-inside");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     done(
         &mut shell,
         "props.set",
@@ -130,14 +146,7 @@ fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back
             let (Some(bx), fp) = (p.label_box, p.footprint) else {
                 return false;
             };
-            let (a, b) = (
-                t.to_page((i128::from(fp.min().x.0), i128::from(fp.min().y.0))),
-                t.to_page((i128::from(fp.max().x.0), i128::from(fp.max().y.0))),
-            );
-            a.0.min(b.0) <= bx.min().x.0
-                && bx.max().x.0 <= a.0.max(b.0)
-                && a.1.min(b.1) <= bx.min().y.0
-                && bx.max().y.0 <= a.1.max(b.1)
+            in_footprint(&t, fp, (bx.min().x.0, bx.min().y.0)) && in_footprint(&t, fp, (bx.max().x.0, bx.max().y.0))
         })
         .expect("a balloon inside its device")
         .clone();
@@ -219,7 +228,7 @@ fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
     out
 }
 
-/// Golden A's plate on a new layout page 980, which gets its legend with the view.
+/// The sample's plate on a new layout page 980, which gets its legend with the view.
 fn new_layout_page(shell: &mut ShellModel) {
     let surface = panel(shell).surface.to_string();
     done(
@@ -242,7 +251,7 @@ fn new_layout_page(shell: &mut ShellModel) {
 #[test]
 fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     let tmp = Tmp::new("layout-legend-table");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     new_layout_page(&mut shell);
     let t = panel(&shell);
     assert!(t.numbered);
@@ -310,12 +319,12 @@ fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
 }
 
 /// The persona round of the second 0.3.0 candidate: at 1:5 nine small devices printed their tags over each other. A
-/// new layout view looks at whether the tags of the placements fit their footprints, not only at the scale: Golden
-/// A's terminals are about a millimetre wide at 1:5, so the view starts with item numbers.
+/// new layout view looks at whether the tags of the placements fit their footprints, not only at the scale: the
+/// sample's terminals are about a millimetre wide at 1:5, so the view starts with item numbers.
 #[test]
 fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
     let tmp = Tmp::new("layout-numbers-fit");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     let surface = panel(&shell).surface.to_string();
     done(
         &mut shell,
@@ -341,9 +350,8 @@ fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
 #[test]
 fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
     let tmp = Tmp::new("layout-legend");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
-    // Golden A's 902 holds its legend, printed with the kind's columns.
-    assert!(!texts(&shell).iter().any(|t| t == "Description"));
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    // The sample's 902 holds its legend, which Enclosure… placed.
     assert_eq!(
         refused(&mut shell, "page.add_legend", json!({})),
         "reason-legend-exists"
@@ -367,7 +375,8 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
         "reason-legend-exists",
         "the new page got its legend with the view"
     );
-    // The legend a person gets prints the description too; Golden A's legend on 902 keeps its four columns.
+    // The legend a person gets prints the description too.
+
     assert!(
         texts(&shell).iter().any(|t| t == "Description"),
         "the new legend's Description"
@@ -387,7 +396,7 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
 #[test]
 fn the_pages_menu_chooses_the_labels_and_a_legend_beside_tags_offers_numbers() {
     let tmp = Tmp::new("layout-labels-menu");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     new_layout_page(&mut shell);
     let checked = |shell: &ShellModel| -> Vec<String> {
         canvas_menu(shell, MenuSpot::Sheet, None)

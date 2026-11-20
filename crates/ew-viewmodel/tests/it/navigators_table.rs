@@ -63,7 +63,7 @@ fn label_of(shell: &ShellModel, n: &str) -> String {
 
 /// A writable copy of Golden A, headless, with the Terminal strips table filtered `x1031` and sorted by Terminal.
 fn strips(tmp: &Tmp, filter: &str) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     done(
         &mut shell,
@@ -439,7 +439,7 @@ fn paste_maps_parses_and_refuses_as_specified() {
 #[test]
 fn an_ambiguous_number_is_resolved_on_the_card() {
     let tmp = Tmp::new("tb4-num");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "cables"}));
     done(&mut shell, "navigator.table", json!({"kind": "cables"}));
     done(
@@ -513,7 +513,7 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
 #[test]
 fn two_rows_on_one_record_with_different_values_are_invalid() {
     let tmp = Tmp::new("tb4-same");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(&mut shell, "navigator.table", json!({"kind": "connections"}));
     let n = shell.nav(NavKind::Connections).unwrap();
@@ -612,7 +612,7 @@ fn tb5_the_policy() {
 #[test]
 fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
     let tmp = Tmp::new("tb5-ident");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     for (kind, word, label, pattern) in [
         (NavKind::Potentials, "potentials", "Potential", "POT-{n}"),
         (NavKind::Structure, "structure", "Designation", "Z{n}"),
@@ -665,7 +665,7 @@ fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
 fn a_fill_over_more_than_500_rows_opens_the_card() {
     use ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("tb5-bulk");
-    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     for _ in 0..501 {
         session
             .execute(&AnyCommand {
@@ -733,7 +733,7 @@ fn describe_lines_words_and_counts() {
         assert_eq!(a.shortcut, keys, "{id}");
     }
     let tmp = Tmp::new("tb8");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     assert_eq!(
         refused(&mut shell, "table.fill_down", json!({"kind": "strips"})),
@@ -821,7 +821,7 @@ fn describe_lines_words_and_counts() {
 #[test]
 fn the_messages_pane_has_no_table_mode() {
     let tmp = Tmp::new("tb-messages");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let m = failed(
         &mut shell,
@@ -841,7 +841,7 @@ fn the_messages_pane_has_no_table_mode() {
 #[test]
 fn a_potential_without_a_definition_has_read_only_definition_cells() {
     let tmp = Tmp::new("ft515");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     done(&mut shell, "navigator.table", json!({"kind": "potentials"}));
     let def = {
@@ -918,7 +918,7 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
 #[test]
 fn a_refused_potential_type_names_the_types_in_words() {
     let tmp = Tmp::new("ft1240");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     done(
         &mut shell,
@@ -1043,7 +1043,7 @@ fn a_table_cell_takes_the_words_of_an_enumerated_field() {
 #[test]
 fn plc_state_and_potential_class_cells_take_their_words() {
     let tmp = Tmp::new("enum-cell-2");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let mut stored = Vec::new();
     for (kind, record, label, word) in [
         (NavKind::Plc, "channel", "State", "Spare"),
@@ -1131,7 +1131,7 @@ fn table_set_sets_the_marked_rows_and_takes_the_header_label() {
 #[test]
 fn table_set_refuses_a_header_label_of_two_columns() {
     let tmp = Tmp::new("c53-fx4");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(
         &mut shell,

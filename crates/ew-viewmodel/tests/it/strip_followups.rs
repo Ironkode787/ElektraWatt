@@ -89,7 +89,7 @@ fn page_text(s: &mut ShellModel, folio: &str) -> String {
 #[test]
 fn the_page_description_lists_a_strips_bridges() {
     let tmp = Tmp::new("s207p2-621");
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     let text = page_text(&mut s, "103");
     let bridges: Vec<&str> = text.lines().filter(|l| l.starts_with("  bridge ")).collect();
     assert!(
@@ -117,7 +117,7 @@ fn the_page_description_lists_a_strips_bridges() {
 
 /// A writable copy of Golden A, headless, with the strip editor open on `strip` (table mode, filtered).
 fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "strip.edit", json!({ "strip": strip }));
     s
 }
@@ -167,7 +167,7 @@ fn add_accessory_before_the_first_terminal_in_table_mode() {
 #[test]
 fn enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     let tmp = Tmp::new("s207p2-68");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "strip.edit", json!({"strip": "1X1"}));
     // A new terminal at the end of 1X1 (it has no strip segment): unplaced.

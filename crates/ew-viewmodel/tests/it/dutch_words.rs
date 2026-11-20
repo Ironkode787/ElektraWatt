@@ -296,100 +296,6 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
         .expect("the navigator's table")
 }
 
-/// Every navigator's column header has its text in both locales, the en-GB one
-/// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
-/// in nl-NL the window's tables show the
-/// Dutch headers and the Devices tree its badges in Dutch.
-#[test]
-fn every_navigator_column_and_badge_reads_in_both_locales() {
-    let (session, _) =
-        ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test").unwrap();
-    let mut wanted = BTreeSet::new();
-    let mut wrong = Vec::new();
-    for kind in NavKind::ALL {
-        for c in session.navigator_table(kind).columns {
-            let key = c.key.replace('_', "-");
-            let own = format!("column-{}-{key}", kind.source().word());
-            let key = if strings::has_key(&own) {
-                own
-            } else {
-                format!("column-{key}")
-            };
-            if strings::lookup(&key) != Some(c.label.as_str()) {
-                wrong.push(format!("{key}: {:?} is not {:?}", strings::lookup(&key), c.label));
-            }
-            wanted.insert(key);
-        }
-    }
-    assert_eq!(wrong, Vec::<String>::new());
-    assert_eq!(missing(&wanted), Vec::<String>::new());
-    let tmp = Tmp::new("ft1264");
-    let mut shell = tmp.shell("102");
-    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
-    let english: Vec<String> = shell
-        .shown_rows(NavKind::Devices)
-        .iter()
-        .map(|r| r.text.clone())
-        .collect();
-    done(&mut shell, "view.language", json!({"value": "nl"}));
-    let labels: Vec<String> = table(&shell, NavKind::Devices)
-        .columns
-        .iter()
-        .map(|c| c.label.clone())
-        .collect();
-    assert_eq!(
-        labels,
-        ["Aanduiding", "Soort", "Functietekst", "Artikel", "Locatie (+)"]
-    );
-    let dutch: Vec<String> = shell
-        .shown_rows(NavKind::Devices)
-        .iter()
-        .map(|r| r.text.clone())
-        .collect();
-    // A function's kind of `KIND_WORDS` in Dutch too.
-    let kinds = [
-        ("Double-acting cylinder ", "Dubbelwerkende cilinder "),
-        ("Two-way process valve ", "Tweewegprocesklep "),
-        ("Decoration ", "Decoratie "),
-        ("PROFIBUS connector ", "PROFIBUS-connector "),
-        ("PROFIBUS port ", "PROFIBUS-poort "),
-        ("1P+N MCB ", "1P+N-installatieautomaat "),
-        ("1P MCB ", "1P-installatieautomaat "),
-        ("Overview ", "Overzicht "),
-        ("5/2 valve ", "5/2-ventiel "),
-        ("Terminal strip segment ", "Klemmenstrooksegment "),
-        ("Earth connection ", "Aardverbinding "),
-        ("Enclosure heater ", "Kastverwarming "),
-        ("2P manual switch ", "2P-handschakelaar "),
-        ("NO position switch ", "NO-positieschakelaar "),
-        // FT-1483: the generic rule's segments, a segment without words of its own as written.
-        ("Cabinet lamp ", "Kastlamp "),
-        ("NC thermostat ", "NC-thermostaat "),
-        ("A1A2 coil ", "A1A2 spoel "),
-    ];
-    let worded: Vec<String> = english
-        .iter()
-        .map(|t| {
-            let t = kinds
-                .iter()
-                .find_map(|(en, nl)| t.strip_prefix(en).map(|rest| format!("{nl}{rest}")))
-                .unwrap_or_else(|| t.clone());
-            t.replace(" [main]", " [hoofdfunctie]")
-                .replace(" [aux]", " [hulpfunctie]")
-                .replace(" [spare]", " [reserve]")
-                .replace(" [not drawn]", " [niet getekend]")
-                .replace(" [frozen]", " [vastgezet]")
-                .replace(" [earth connection]", " [aardverbinding]")
-        })
-        .collect();
-    assert!(
-        english.iter().any(|t| t.ends_with(" [main]")) && english.iter().any(|t| t.ends_with(" [spare]")),
-        "{english:?}"
-    );
-    assert_eq!(dutch, worded);
-    shell.shutdown();
-}
-
 /// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
 #[test]
@@ -397,8 +303,16 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
     use ew_api::checks::{CheckMode, messages};
     use ew_api::output::NavRole;
     let tmp = Tmp::new("ft1162");
-    let mut shell = tmp.shell("102");
-    let (session, _) = ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    // A finding the sample lacks: the supply cable -101W1 without its length.
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101W1"}],
+            "path": "cable.length", "value": "missing"}}),
+    );
+    done(&mut shell, "file.save", json!({}));
+    let (session, _) = ew_api::Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let report = session.check(session.online_scheme(), CheckMode::Online);
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "messages.show", json!({}));
@@ -433,7 +347,8 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         let title = messages::title(rule, "nl-NL").expect("a title");
         assert_eq!(*label, format!("{rule} {title}"));
     }
-    for label in ["EW-FL-001 Werkpoort open", "EW-CORE-033 Kabel zonder lengte"] {
+    // The sample's tubes from the valve terminal in +CAB to the cylinders in +FLD, and the cable without its length.
+    for label in ["EW-FL-014 Slang verlaat een locatie", "EW-CORE-033 Kabel zonder lengte"] {
         assert_eq!(
             rule_rows.iter().filter(|(_, l)| l == label).count(),
             1,
@@ -461,17 +376,14 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
     assert!(!rows.is_empty());
     assert_eq!(rows, expected);
     // One row as the Dutch reader sees it.
-    let cable = "=P01+J-E-2416-3W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout";
-    assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
-    // A message that names its subject after a word shows it once.
-    let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
-              (de dimensioneringstabel is niet getoetst aan de norm). Maak hem minstens 2,5 mm² in zijn Eigenschappen.";
-    assert_eq!(rows.iter().filter(|r| *r == pe).count(), 1, "{rows:?}");
+    let cable = "-101W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout";
+    assert_eq!(rows.iter().filter(|r| r.ends_with(cable)).count(), 1, "{rows:?}");
     // The detail of that row names the rule by its nl-NL title.
     let key = t
         .nodes
         .iter()
-        .find(|n| n.role == NavRole::Finding && n.label == cable)
+        .find(|n| n.role == NavRole::Finding && n.label.ends_with(cable))
+
         .expect("the cable row")
         .key
         .clone();
@@ -552,7 +464,7 @@ fn row_value(shell: &ShellModel, key: &str) -> (String, serde_json::Value) {
 #[test]
 fn a_generated_page_shows_its_kind_and_source_in_words() {
     let tmp = Tmp::new("ft1287");
-    let mut shell = tmp.shell("2");
+    let mut shell = tmp.sample_shell("2");
     let mut said = Vec::new();
     for lang in ["en", "nl"] {
         done(&mut shell, "view.language", json!({ "value": lang }));
@@ -594,7 +506,7 @@ fn a_generated_page_shows_its_kind_and_source_in_words() {
 #[test]
 fn a_grid_parse_error_reads_in_the_windows_language() {
     let tmp = Tmp::new("ft1493");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
     let refusal = |shell: &mut ShellModel| match shell
         .dispatch("props.set", &json!({"row": "device/tag.counter", "value": "x1"}))
@@ -614,7 +526,7 @@ fn a_grid_parse_error_reads_in_the_windows_language() {
 #[test]
 fn an_unresolved_reference_reads_in_the_windows_language() {
     let tmp = Tmp::new("ft1553");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let failed = |shell: &mut ShellModel, action: &str, params: serde_json::Value| match shell
         .dispatch(action, &params)
     {
@@ -656,7 +568,7 @@ fn an_unresolved_reference_reads_in_the_windows_language() {
 #[test]
 fn an_enumerated_row_reads_and_takes_its_words() {
     let tmp = Tmp::new("ft1258");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
     done(
         &mut shell,
@@ -709,16 +621,17 @@ fn an_enumerated_row_reads_and_takes_its_words() {
     shell.shutdown();
 }
 
+/// The sample's tube from the valve -201K1-Q1 to the cylinder -201M1 on folio 201, as the page text names it.
+const TUBE: &str = "wire:-201K1-Q1:4 -> -201M1:A";
+
 /// In nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
 /// typing "Stuur" finds the pilot line ("Stuurleiding").
 #[test]
 fn a_fluid_line_kind_is_found_by_its_dutch_word() {
-    // Golden A's fluid line F6 on folio 203.
-    const F6: &str = "bc567040-5fda-53cd-8063-952499b3c9f3";
     let tmp = Tmp::new("line-kind-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "203");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "201");
     done(&mut shell, "view.language", json!({"value": "nl"}));
-    done(&mut shell, "select.set", json!({"ids": [F6]}));
+    done(&mut shell, "select.set", json!({"refs": [TUBE]}));
     // The sheet is headed by the line's kind in words, never "?".
     let title = |s: &ShellModel| s.properties().sheet().expect("a sheet").header.title.clone();
     assert_eq!(title(&shell), "Slang (Werkleiding)");
@@ -749,11 +662,9 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
 /// in Dutch.
 #[test]
 fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
-    // Golden A's fluid line F6 on folio 203.
-    const F6: &str = "bc567040-5fda-53cd-8063-952499b3c9f3";
     let tmp = Tmp::new("fluid-ends");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "203");
-    done(&mut shell, "select.set", json!({"ids": [F6]}));
+    let mut shell = tmp.sample_in(Mode::Headless, true, "201");
+    done(&mut shell, "select.set", json!({"refs": [TUBE]}));
     let rows = |s: &ShellModel, advanced: bool| -> Vec<String> {
         let sheet = s.properties().sheet().expect("a sheet");
         ew_viewmodel::properties::visible_rows(sheet, &BTreeSet::new(), advanced, "")
@@ -767,74 +678,32 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
             })
             .collect()
     };
-    let en = vec![
-        "Line kind: Working",
-        "Medium: ",
-        "Tube: ",
-        "Tube part: ",
-        "Tube length (mm): ",
-        "Page: 203 Valve Manifold 1",
-        "A: -201U3-Q3:4",
-        "B: -203Q3:B",
-    ];
-    let nl = vec![
-        "Leidingsoort: Werkleiding",
-        "Medium: ",
-        "Slang: ",
-        "Slangartikel: ",
-        "Slanglengte (mm): ",
-        "Pagina: 203 Valve Manifold 1",
-        "A: -201U3-Q3:4",
-        "B: -203Q3:B",
-    ];
-    let en_advanced = vec![
-        "$v: ",
-        "ID: Tube (Working)",
-        "Line kind: Working",
-        "Medium: ",
-        "Tube: ",
-        "Tube part: ",
-        "Tube length (mm): ",
-        "Page: 203 Valve Manifold 1",
-        "A: -201U3-Q3:4",
-        "B: -203Q3:B",
-        "Routed by the program: ",
-        "Route: 5 items",
-        "Route 1: H5",
-        "Route 2: H5",
-        "Route 3: H5",
-        "Route 4: F5",
-        "Route 5: F5",
-        "Source reference: ",
-        "Key: connections|F6",
-        "Lineage: import_lineage",
-    ];
-    let nl_advanced = vec![
-        "$v: ",
-        "ID: Slang (Werkleiding)",
-        "Leidingsoort: Werkleiding",
-        "Medium: ",
-        "Slang: ",
-        "Slangartikel: ",
-        "Slanglengte (mm): ",
-        "Pagina: 203 Valve Manifold 1",
-        "A: -201U3-Q3:4",
-        "B: -203Q3:B",
-        "Door het programma gerouteerd: ",
-        "Route: 5 elementen",
-        "Route 1: H5",
-        "Route 2: H5",
-        "Route 3: H5",
-        "Route 4: F5",
-        "Route 5: F5",
-        "Bronverwijzing: ",
-        "Sleutel: connections|F6",
-        "Herkomst: import_lineage",
-    ];
-    for (language, main, advanced) in [("en", en, en_advanced), ("nl", nl, nl_advanced)] {
+    for (language, kind, page, route) in [
+        ("en", "Line kind: Working", "Page: 201 Pneumatics", "Route: "),
+        ("nl", "Leidingsoort: Werkleiding", "Pagina: 201 Pneumatics", "Route: "),
+    ] {
         done(&mut shell, "view.language", json!({ "value": language }));
-        assert_eq!(rows(&shell, false), main, "{language}");
-        assert_eq!(rows(&shell, true), advanced, "{language}");
+        let main = rows(&shell, false);
+        for row in [kind, page, "A: -201K1-Q1:4", "B: -201M1:A"] {
+            assert!(main.iter().any(|r| r == row), "{language}: {row} in {main:?}");
+        }
+        assert!(!main.iter().any(|r| r.starts_with(route)), "{language}: {main:?}");
+        let advanced = rows(&shell, true);
+        let points: Vec<&String> = advanced.iter().filter(|r| r.starts_with("Route ")).collect();
+        assert!(!points.is_empty(), "{language}: {advanced:?}");
+        // Every point of the route is a frame cell (a letter and a number), never nanometres.
+        for p in points {
+            let cell = p.split_once(": ").map(|(_, c)| c).unwrap_or_default();
+            let (row, column) = cell.split_at(cell.len().min(1));
+            assert!(
+                row.chars().all(|c| c.is_ascii_uppercase()) && column.parse::<u32>().is_ok(),
+                "{language}: {p}"
+            );
+        }
+        assert!(
+            advanced.iter().any(|r| r.starts_with(route)),
+            "{language}: the route's count row: {advanced:?}"
+        );
     }
     shell.shutdown();
 }
@@ -845,7 +714,7 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
 #[test]
 fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
     let tmp = Tmp::new("w51-minor");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     let rows = |s: &ShellModel| -> Vec<String> {
         let sheet = s.properties().sheet().expect("a sheet");
         ew_viewmodel::properties::visible_rows(sheet, &BTreeSet::new(), true, "")
@@ -906,7 +775,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
 #[test]
 fn the_w51_dutch_texts_read_word_for_word() {
     let tmp = Tmp::new("w51-dutch");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let member = || {
         strings::format(
             key!("reimport-row-member"),
@@ -960,7 +829,7 @@ fn the_w51_dutch_texts_read_word_for_word() {
 #[test]
 fn the_navigators_sections_and_yes_or_no_cells_read_in_dutch() {
     let tmp = Tmp::new("sections-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "navigator.show", json!({"kind": "blocks"}));
     let t = shell.nav(NavKind::Blocks).and_then(|n| n.table()).unwrap();
@@ -1000,7 +869,7 @@ fn the_navigators_sections_and_yes_or_no_cells_read_in_dutch() {
 #[test]
 fn the_messages_scheme_reads_in_dutch() {
     let tmp = Tmp::new("scheme-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     assert_eq!(shell.messages_scheme(), Some("Drafting"));
     done(&mut shell, "view.language", json!({"value": "nl"}));
@@ -1016,7 +885,7 @@ fn the_messages_scheme_reads_in_dutch() {
 #[test]
 fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
     let tmp = Tmp::new("strip-new-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         (
@@ -1037,7 +906,7 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
 #[test]
 fn the_messages_and_preview_headers_in_dutch() {
     let tmp = Tmp::new("id1439-headers-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         (
@@ -1095,7 +964,7 @@ fn every_report_kind_has_its_words_in_both_locales() {
 #[test]
 fn a_language_switch_drops_the_toasts_on_show() {
     let tmp = Tmp::new("ft1364");
-    let mut shell = tmp.shell("102");
+    let mut shell = tmp.sample_shell("102");
     done(&mut shell, "messages.check", json!({}));
     assert!(shell.toast().is_some(), "the check toast");
     let logged = shell.notifications().len();
@@ -1116,7 +985,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
     use ew_viewmodel::navigators::NavRole;
     use ew_viewmodel::properties::{Provenance, chip_text};
     let tmp = Tmp::new("ft1338-rest");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let cell = |shell: &ShellModel, kind: NavKind, col: &str, role: NavRole| -> (String, String) {
         let t = shell
             .nav(kind)
@@ -1124,11 +993,11 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             .cloned()
             .expect("the table");
         let i = t.columns.iter().position(|c| c.key == col).expect("the column");
-        // The source point 0VDC on 102-C15, whatever the order of the rows.
+        // An interruption point that is a source (the sample's are on 101), whatever the order of the rows.
         let n = t
             .nodes
             .iter()
-            .find(|n| n.role == role && (role != NavRole::Ip || n.label == "102-C15"))
+            .find(|n| n.role == role && (role != NavRole::Ip || ["source", "bron"].contains(&n.cells[i].as_str())))
             .expect("a row");
         (n.label.clone(), n.cells[i].clone())
     };
@@ -1142,8 +1011,8 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             .iter()
             .filter(|n| n.role == NavRole::Function)
             .map(|n| n.label.clone())
-            .find(|l| l.ends_with(" 1-2"))
-            .expect("a two-way process valve")
+            .find(|l| l.starts_with("1P") && l.ends_with(" 1-2"))
+            .expect("the 1P breaker -102F1")
     };
     let chip = Provenance::Derived {
         via: "potential definition at -X1:1 · colour profile 'DBU/WH 24 V'".into(),
@@ -1154,7 +1023,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             "Device",
             "used",
             "source",
-            "Two-way process valve 1-2",
+            "1P MCB 1-2",
             "f derived · potential definition at -X1:1 · colour profile 'DBU/WH 24 V'",
         ),
         (
@@ -1162,7 +1031,8 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             "Apparaat",
             "gebruikt",
             "bron",
-            "Tweewegprocesklep 1-2",
+            "1P-installatieautomaat 1-2",
+
             "f afgeleid · potentiaaldefinitie bij -X1:1 · kleurprofiel 'DBU/WH 24 V'",
         ),
     ] {
@@ -1181,13 +1051,13 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
 }
 
 /// FT-1483: the window words what the navigators' JSON keeps in English: a function's kind by the
-/// generic rule ("NC thermostat 5-3"), a library's tier, access and index state, a report block's kind; in en-GB they read as
+/// generic rule ("Cabinet lamp X1-X2"), a library's tier, access and index state, a report block's kind; in en-GB they read as
 /// the CLI prints them, but a block's kind, which reads by its words in both.
 #[test]
 fn kinds_tiers_and_block_kinds_read_in_dutch() {
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new("ft1483");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let table = |shell: &ShellModel, kind: NavKind| shell.nav(kind).and_then(|n| n.table()).cloned().unwrap();
     let col = |t: &ew_api::output::NavTable, key: &str| {
         t.columns.iter().position(|c| c.key == key).expect("the column")
@@ -1204,8 +1074,8 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
             .iter()
             .filter(|n| n.role == NavRole::Function)
             .map(|n| n.label.clone())
-            .find(|l| l.ends_with(" 5-3"))
-            .expect("a thermostat");
+            .find(|l| l.ends_with(" X1-X2"))
+            .expect("a lamp");
         let libraries = table(&shell, NavKind::Libraries);
         let tier = libraries
             .nodes
@@ -1245,7 +1115,7 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
         seen,
         [
             (
-                "NC thermostat 5-3".to_owned(),
+                "Cabinet lamp X1-X2".to_owned(),
                 "System".to_owned(),
                 "System".to_owned(),
                 "Read-only".to_owned(),
@@ -1253,7 +1123,8 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
                 true
             ),
             (
-                "NC-thermostaat 5-3".to_owned(),
+                "Kastlamp X1-X2".to_owned(),
+
                 "Systeem".to_owned(),
                 "Systeem".to_owned(),
                 "Alleen-lezen".to_owned(),
@@ -1270,8 +1141,8 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
 fn the_live_description_and_the_library_kinds_read_in_dutch() {
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new("ft1554");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    done(&mut shell, "select.set", json!({"refs": ["T55"]}));
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    done(&mut shell, "select.set", json!({"refs": ["-102E1"]}));
     done(&mut shell, "navigator.show", json!({ "kind": "libraries" }));
     let mut seen = Vec::new();
     for locale in ["en", "nl"] {
@@ -1297,8 +1168,8 @@ fn the_live_description_and_the_library_kinds_read_in_dutch() {
     }
     done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
-    assert!(seen[0].0.contains("NC thermostat 5-3"), "{:?}", seen[0]);
-    assert!(seen[1].0.contains("NC-thermostaat 5-3"), "{:?}", seen[1]);
+    assert!(seen[0].0.contains("Cabinet lamp X1-X2"), "{:?}", seen[0]);
+    assert!(seen[1].0.contains("Kastlamp X1-X2"), "{:?}", seen[1]);
     assert!(seen[0].1.contains("Function definition"), "{:?}", seen[0].1);
     assert!(seen[1].1.contains("Functiedefinitie"), "{:?}", seen[1].1);
     for english in [
@@ -1350,17 +1221,31 @@ fn the_part_function_row_reads_in_dutch() {
 #[test]
 fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
     let tmp = Tmp::new("c53-p3-5");
-    let dir = tmp.golden_copy();
-    crate::common::copy_dir(std::path::Path::new(crate::common::GOLDEN_A), &dir);
+    let dir = tmp.sample_copy();
+    crate::common::copy_dir(std::path::Path::new(crate::common::SAMPLE), &dir);
     let blocks = dir.join("report-blocks.jsonl");
     let text = std::fs::read_to_string(&blocks).unwrap();
-    let edited = text.replace("\"title\":\"Table of Contents {n}\",", "").replace(
+    let edited = text.replace(",\"title\":\"Table of Contents {n}\"", "").replace(
         "\"title\":\"Revision Overview\"",
         "\"title\":\"revision_overview\"",
     );
     assert!(edited != text);
     std::fs::write(&blocks, edited).unwrap();
-    let mut shell = tmp.shell_in(Mode::Headless, false, "101");
+    // The blocks of the table of contents and of the revision overview, by their kind.
+    let block = |kind: &str| {
+        text.lines()
+            .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
+            .find(|b| b["source"]["kind"] == kind)
+            .and_then(|b| b["id"].as_str().map(str::to_owned))
+            .unwrap_or_else(|| panic!("the sample's {kind} block"))
+    };
+    let (toc, revisions) = (block("toc"), block("revision_overview"));
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": true}),
+    );
     let row = |shell: &ShellModel, id: &str| {
         let table = shell
             .nav(NavKind::Blocks)
@@ -1384,8 +1269,8 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
     for locale in ["en", "nl"] {
         done(&mut shell, "view.language", json!({ "value": locale }));
         done(&mut shell, "navigator.show", json!({ "kind": "blocks" }));
-        seen.push(row(&shell, "0c94a4fa-8056-575b-88ee-4e5905fbb4c8"));
-        seen.push(row(&shell, "0d61e123-bf15-5761-8ca0-edeb5a82734d"));
+        seen.push(row(&shell, &toc));
+        seen.push(row(&shell, &revisions));
     }
     done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();

@@ -33,7 +33,7 @@ fn page_text(shell: &mut ShellModel, folio: Option<&str>) -> String {
 #[test]
 fn the_texts_of_folios_101_to_103_equal_the_expected_files() {
     let tmp = Tmp::new("pagedesc");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     for (folio, header) in [
         ("101", "reps 17 connections 21 junctions 2"),
         ("102", "reps 12 connections 19 junctions 4"),
@@ -79,7 +79,7 @@ fn the_texts_of_folios_101_to_103_equal_the_expected_files() {
 #[test]
 fn no_record_id_reaches_the_text() {
     let tmp = Tmp::new("pagewords");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     for folio in ["101", "102", "103"] {
         let text = page_text(&mut shell, Some(folio));
         assert_eq!(ew_viewmodel::alias::find_uuid(&text), None, "{folio}");
@@ -90,7 +90,7 @@ fn no_record_id_reaches_the_text() {
 #[test]
 fn a_page_describe_step_carries_its_text_and_changes_no_state() {
     let tmp = Tmp::new("pagestep");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let before = ew_viewmodel::script::state_json(&shell);
     let step = ew_viewmodel::script::Step {
         line: 1,
@@ -132,7 +132,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
     );
     none.shutdown();
 
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     match shell.dispatch("page.describe", &json!({"folio": "999"})) {
         Outcome::Failed { message } => assert!(message.contains("999"), "{message}"),
         other => panic!("{other:?}"),
@@ -166,7 +166,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
 #[test]
 fn page_describe_reads_the_cached_page_tables() {
     let tmp = Tmp::new("pagecount");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let before = shell.session_calls();
     let _ = page_text(&mut shell, Some("102"));
     let first = shell.session_calls();
@@ -197,7 +197,7 @@ fn page_describe_reads_the_cached_page_tables() {
 #[test]
 fn a_generated_list_page_prints_its_rows() {
     let tmp = Tmp::new("pagelist");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     let parts = shell
         .page_rows()
         .iter()

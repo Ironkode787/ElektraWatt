@@ -22,7 +22,7 @@ fn refused(shell: &mut ShellModel, cmd: &str, params: Value) -> String {
 #[test]
 fn a_refused_command_shows_its_reason_in_the_window_language() {
     let tmp = Tmp::new("refusals-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let tables = shell.canvas().unwrap().page().tables.clone();
     let junction = tables.junctions.first().expect("a junction on folio 102").id;
     let at = json!({"junction": {"junction": junction.to_string()}});
@@ -77,7 +77,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
 #[test]
 fn the_api_s_own_refusals_show_in_the_window_language() {
     let tmp = Tmp::new("api-refusals-nl");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let tables = shell.canvas().unwrap().page().tables.clone();
     let junction = tables.junctions.first().expect("a junction on folio 102").id;
     done(
@@ -108,7 +108,7 @@ fn the_api_s_own_refusals_show_in_the_window_language() {
 #[test]
 fn a_route_off_its_junction_is_refused_with_the_aftakking() {
     let tmp = Tmp::new("junction-nl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let tables = shell.canvas().unwrap().page().tables.clone();
     let c = tables
         .connections

@@ -22,9 +22,9 @@ fn last(s: &ShellModel) -> (String, Value) {
     (c.cmd.clone(), c.params.clone())
 }
 
-/// A writable Golden A with the Cables navigator open and filtered to `-106W1`.
+/// A writable copy of the sample with the Cables navigator open.
 fn cables(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
     s
 }
@@ -58,30 +58,30 @@ fn mark(s: &mut ShellModel, kind: &str, keys: &[String]) {
 // ---------------------------------------------------------------------------------------------------------------
 // CT1
 
-/// Swapping WH and BN on -106W1 is one `fields.set_many` of the connections' `kind`, one undo step, and the cable
+/// Swapping BK and BN on -103W1 is one `fields.set_many` of the connections' `kind`, one undo step, and the cable
 /// diagram's rows follow: each core now runs where the other ran; the colours stay with the cores.
 #[test]
 fn swap_cores_moves_the_assignment_in_one_step() {
     let tmp = Tmp::new("s207p2-ct1");
     let mut s = cables(&tmp);
-    let (wh_from, wh_to) = (cell(&s, "-106W1", "WH", "from"), cell(&s, "-106W1", "WH", "to"));
-    let (bn_from, bn_to) = (cell(&s, "-106W1", "BN", "from"), cell(&s, "-106W1", "BN", "to"));
-    assert_eq!((wh_from.as_str(), bn_from.as_str()), ("-X1031:2/b", "-X1031:1/b"));
+    let (bk_from, bk_to) = (cell(&s, "-103W1", "BK", "from"), cell(&s, "-103W1", "BK", "to"));
+    let (bn_from, bn_to) = (cell(&s, "-103W1", "BN", "from"), cell(&s, "-103W1", "BN", "to"));
+    assert_eq!((bk_from.as_str(), bn_from.as_str()), ("-X1031:V/b", "-X1031:U/b"));
     // Not two marked cores: refused.
     assert_eq!(
         refused(&mut s, "cable.swap_cores", json!({})),
         "reason-swap-two-cores"
     );
-    let other = core_key(&s, "-106W2", "BN");
-    let wh = core_key(&s, "-106W1", "WH");
-    mark(&mut s, "cables", &[wh.clone(), other]);
+    let other = core_key(&s, "-101W1", "BN");
+    let bk = core_key(&s, "-103W1", "BK");
+    mark(&mut s, "cables", &[bk.clone(), other]);
     assert_eq!(
         refused(&mut s, "cable.swap_cores", json!({})),
         "reason-swap-two-cores",
         "two cables"
     );
-    let bn = core_key(&s, "-106W1", "BN");
-    mark(&mut s, "cables", &[wh, bn]);
+    let bn = core_key(&s, "-103W1", "BN");
+    mark(&mut s, "cables", &[bk, bn]);
     let n = steps(&s);
     done(&mut s, "cable.swap_cores", json!({}));
     assert_eq!(steps(&s), n + 1, "one step");
@@ -94,17 +94,17 @@ fn swap_cores_moves_the_assignment_in_one_step() {
             .iter()
             .all(|e| e["kind"] == "connection" && e["path"] == "kind")
     );
-    assert_eq!(state(&s)["toast"]["text"], "Swapped cores BN and WH of -106W1.");
+    assert_eq!(state(&s)["toast"]["text"], "Swapped cores BN and BK of -103W1.");
     // The cable diagram (block 906, the table's From and To) follows; the colour stays.
-    assert_eq!(cell(&s, "-106W1", "WH", "from"), bn_from);
-    assert_eq!(cell(&s, "-106W1", "WH", "to"), bn_to);
-    assert_eq!(cell(&s, "-106W1", "BN", "from"), wh_from);
-    assert_eq!(cell(&s, "-106W1", "BN", "to"), wh_to);
-    assert_eq!(cell(&s, "-106W1", "WH", "colour"), "WH");
+    assert_eq!(cell(&s, "-103W1", "BK", "from"), bn_from);
+    assert_eq!(cell(&s, "-103W1", "BK", "to"), bn_to);
+    assert_eq!(cell(&s, "-103W1", "BN", "from"), bk_from);
+    assert_eq!(cell(&s, "-103W1", "BN", "to"), bk_to);
+    assert_eq!(cell(&s, "-103W1", "BK", "colour"), "BK");
     // One undo restores both.
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(cell(&s, "-106W1", "WH", "from"), wh_from);
-    assert_eq!(cell(&s, "-106W1", "BN", "from"), bn_from);
+    assert_eq!(cell(&s, "-103W1", "BK", "from"), bk_from);
+    assert_eq!(cell(&s, "-103W1", "BN", "from"), bn_from);
     s.shutdown();
 }
 
@@ -129,9 +129,9 @@ fn core_shield_and_pair_are_edited_on_the_conductor() {
     assert_eq!(route("shield"), Some(("conductor".into(), "shield".into())));
     assert_eq!(route("pair"), Some(("conductor".into(), "pair".into())));
     assert!(t.columns.iter().find(|c| c.key == "potential").unwrap().derived);
-    assert_eq!(cell(&s, "-106W1", "BN", "potential"), "24VDC-1");
+    assert_eq!(cell(&s, "-101W1", "BN", "potential"), "L1");
     let edit = |s: &mut ShellModel, core: &str, column: &str, text: &str| {
-        let row = core_key(s, "-106W1", core);
+        let row = core_key(s, "-101W1", core);
         done(s, "table.cell", json!({"row": row, "column": column}));
         done(s, "table.input", json!({ "text": text }));
         done(s, "table.commit", json!({}));
@@ -141,12 +141,12 @@ fn core_shield_and_pair_are_edited_on_the_conductor() {
     let (name, params) = last(&s);
     assert_eq!((name.as_str(), &params["path"]), ("fields.set", &json!("pair")));
     assert_eq!(params["kind"], "conductor");
-    assert_eq!(cell(&s, "-106W1", "BN", "pair"), "1");
+    assert_eq!(cell(&s, "-101W1", "BN", "pair"), "1");
     edit(&mut s, "BN", "shield", "yes");
-    assert_eq!(cell(&s, "-106W1", "BN", "shield"), "yes");
+    assert_eq!(cell(&s, "-101W1", "BN", "shield"), "yes");
     edit(&mut s, "BN", "core", "BN2");
     assert_eq!(last(&s).1["path"], "core");
-    assert_eq!(cell(&s, "-106W1", "BN2", "core"), "BN2");
+    assert_eq!(cell(&s, "-101W1", "BN2", "core"), "BN2");
     assert_eq!(steps(&s), n + 3);
     s.shutdown();
 }
@@ -159,7 +159,7 @@ fn a_dutch_yes_or_no_cell_takes_ja_and_nee() {
     done(&mut s, "navigator.table", json!({"kind": "cables"}));
     done(&mut s, "view.language", json!({ "value": "nl" }));
     let edit = |s: &mut ShellModel, text: &str| {
-        let row = core_key(s, "-106W1", "BN");
+        let row = core_key(s, "-101W1", "BN");
         done(s, "table.cell", json!({"row": row, "column": "shield"}));
         done(s, "table.input", json!({ "text": text }));
         done(s, "table.commit", json!({}));
@@ -184,7 +184,7 @@ fn the_cable_length_is_typed_in_metres() {
     let cable = t
         .nodes
         .iter()
-        .find(|n| n.role == NavRole::Cable && n.label == "-106W1")
+        .find(|n| n.role == NavRole::Cable && n.label == "-103W1")
         .unwrap()
         .key
         .clone();
@@ -211,8 +211,8 @@ fn the_cable_length_is_typed_in_metres() {
 fn tree_delete_opens_the_card() {
     let tmp = Tmp::new("s207p2-ct4d");
     let mut s = cables(&tmp);
-    let wh = core_key(&s, "-106W1", "WH");
-    done(&mut s, "navigator.row", json!({"kind": "cables", "key": wh}));
+    let bk = core_key(&s, "-103W1", "BK");
+    done(&mut s, "navigator.row", json!({"kind": "cables", "key": bk}));
     let (n, rev) = (steps(&s), s.revision());
     done(&mut s, "navigator.delete", json!({"kind": "cables"}));
     let card = s.properties().card().expect("the card");
@@ -227,7 +227,7 @@ fn tree_delete_opens_the_card() {
             .unwrap()
             .nodes
             .iter()
-            .all(|n| n.key != wh),
+            .all(|n| n.key != bk),
         "the core is gone"
     );
     // A potential row without a definition stands for nothing deletable.
@@ -268,7 +268,7 @@ fn tree_delete_opens_the_card() {
 #[test]
 fn f2_renames_pages_and_potentials() {
     let tmp = Tmp::new("s207p2-ct4r");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let key = s
         .navigator_rows()
         .into_iter()
@@ -301,13 +301,13 @@ fn f2_renames_pages_and_potentials() {
     let pot = t
         .nodes
         .iter()
-        .find(|n| n.role == NavRole::Potential && n.label == "24VDC-1")
+        .find(|n| n.role == NavRole::Potential && n.label == "24V")
         .unwrap()
         .key
         .clone();
     done(&mut s, "navigator.row", json!({"kind": "potentials", "key": pot}));
     done(&mut s, "navigator.rename", json!({"kind": "potentials"}));
-    assert_eq!(s.nav_rename().unwrap().text, "24VDC-1");
+    assert_eq!(s.nav_rename().unwrap().text, "24V");
     done(
         &mut s,
         "navigator.rename",
@@ -317,7 +317,7 @@ fn f2_renames_pages_and_potentials() {
     done(
         &mut s,
         "navigator.rename",
-        json!({"kind": "potentials", "text": "24VDC-9"}),
+        json!({"kind": "potentials", "text": "24V-9"}),
     );
     let (name, params) = last(&s);
     assert_eq!(
@@ -331,12 +331,12 @@ fn f2_renames_pages_and_potentials() {
             .unwrap()
             .nodes
             .iter()
-            .any(|n| n.label == "24VDC-9")
+            .any(|n| n.label == "24V-9")
     );
     // A row without a name of its own (a core) has no rename route.
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
-    let wh = core_key(&s, "-106W1", "WH");
-    done(&mut s, "navigator.row", json!({"kind": "cables", "key": wh}));
+    let bk = core_key(&s, "-103W1", "BK");
+    done(&mut s, "navigator.row", json!({"kind": "cables", "key": bk}));
     assert_eq!(
         refused(&mut s, "navigator.rename", json!({"kind": "cables"})),
         "reason-nav-not-renamable"
@@ -382,20 +382,20 @@ fn device_key(s: &mut ShellModel, tag: &str) -> String {
 #[test]
 fn f2_renames_a_structure_node_code() {
     let tmp = Tmp::new("s207p2-ct4s");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "structure"}));
-    let key = nav_key(&s, NavKind::Structure, NavRole::StructureNode, "+J-E-2416");
+    let key = nav_key(&s, NavKind::Structure, NavRole::StructureNode, "+CAB");
     done(&mut s, "navigator.row", json!({"kind": "structure", "key": key}));
     done(&mut s, "navigator.rename", json!({"kind": "structure"}));
     let r = s.nav_rename().expect("the editor").clone();
     assert_eq!((r.key.as_str(), r.tag), (key.as_str(), false));
     let code = r.text.clone();
-    assert!(!code.is_empty() && "+J-E-2416".ends_with(&code), "{code}");
+    assert!(!code.is_empty() && "+CAB".ends_with(&code), "{code}");
     let (n, rev) = (steps(&s), s.revision());
     done(
         &mut s,
         "navigator.rename",
-        json!({"kind": "structure", "text": "J-E-2417"}),
+        json!({"kind": "structure", "text": "CAB2"}),
     );
     assert!(s.nav_rename().is_none());
     assert_eq!(
@@ -409,11 +409,11 @@ fn f2_renames_a_structure_node_code() {
         ("fields.set", &json!("structure_node"), &json!("code"))
     );
     let labels = nav_labels(&s, NavKind::Structure, NavRole::StructureNode);
-    assert!(labels.iter().any(|l| l == "+J-E-2417"), "{labels:?}");
-    assert!(!labels.iter().any(|l| l == "+J-E-2416"), "{labels:?}");
+    assert!(labels.iter().any(|l| l == "+CAB2"), "{labels:?}");
+    assert!(!labels.iter().any(|l| l == "+CAB"), "{labels:?}");
     done(&mut s, "edit.undo", json!({}));
     let labels = nav_labels(&s, NavKind::Structure, NavRole::StructureNode);
-    assert!(labels.iter().any(|l| l == "+J-E-2416"), "{labels:?}");
+    assert!(labels.iter().any(|l| l == "+CAB"), "{labels:?}");
     s.shutdown();
 }
 
@@ -422,25 +422,25 @@ fn f2_renames_a_structure_node_code() {
 #[test]
 fn f2_renames_a_device_tag() {
     let tmp = Tmp::new("s207p2-ct4t");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
-    let key = device_key(&mut s, "-102G1");
+    let key = device_key(&mut s, "-102S1");
     done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
     done(&mut s, "navigator.rename", json!({"kind": "devices"}));
     let r = s.nav_rename().expect("the editor").clone();
-    assert_eq!((r.text.as_str(), r.tag), ("-102G1", true));
+    assert_eq!((r.text.as_str(), r.tag), ("-102S1", true));
     let n = steps(&s);
     done(
         &mut s,
         "navigator.rename",
-        json!({"kind": "devices", "text": "-102G7"}),
+        json!({"kind": "devices", "text": "-102S7"}),
     );
     assert!(s.nav_rename().is_none());
     assert_eq!(steps(&s), n + 1, "one commit");
     let (name, params) = last(&s);
     assert_eq!(name, "fields.set", "{params}");
     // The device prints the new tag.
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G7"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S7"]}));
     s.shutdown();
 }
 
@@ -450,9 +450,9 @@ fn f2_renames_a_device_tag() {
 #[test]
 fn f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     let tmp = Tmp::new("s207p2-ct4x");
-    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
     // The Properties grid's message for the same edit.
-    done(&mut s, "select.set", json!({"refs": ["tag:-102F1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     let grid = match s.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "2"})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
@@ -461,18 +461,18 @@ fn f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     done(&mut s, "props.cancel", json!({}));
     done(&mut s, "select.set", json!({"ids": []}));
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
-    let key = device_key(&mut s, "-102F1");
+    let key = device_key(&mut s, "-102S1");
     done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
     done(&mut s, "navigator.rename", json!({"kind": "devices"}));
     let (n, rev) = (steps(&s), s.revision());
-    let message = match s.dispatch("navigator.rename", &json!({"kind": "devices", "text": "-102F2"})) {
+    let message = match s.dispatch("navigator.rename", &json!({"kind": "devices", "text": "-102S2"})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
     };
     assert_eq!(message, grid, "the Properties message");
     assert_eq!((steps(&s), s.revision()), (n, rev), "nothing committed");
     let r = s.nav_rename().expect("the field stays open").clone();
-    assert_eq!(r.text, "-102F2", "on the text as typed");
+    assert_eq!(r.text, "-102S2", "on the text as typed");
     let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
     // The line under the field starts with a capital; the command's message, the same words, is lowercase.
     assert_eq!(shown, ew_viewmodel::strings::sentence_start(&grid));
@@ -482,8 +482,8 @@ fn f2_refuses_a_taken_device_tag_like_the_properties_grid() {
         "navigator.rename",
         json!({"kind": "devices", "cancel": true}),
     );
-    // A letter edit: -102G1 to F collides with -102F1 and proposes the next free counter.
-    let key = device_key(&mut s, "-102G1");
+    // A letter edit: -102E1 to F collides with -102F1 and proposes the next free counter.
+    let key = device_key(&mut s, "-102E1");
     done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
     done(&mut s, "navigator.rename", json!({"kind": "devices"}));
     assert!(matches!(
@@ -491,9 +491,9 @@ fn f2_refuses_a_taken_device_tag_like_the_properties_grid() {
         Outcome::Failed { .. }
     ));
     let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
-    assert!(shown.ends_with(". Use -102F3 to accept it."), "{shown}");
+    assert!(shown.ends_with(". Use -102F2 to accept it."), "{shown}");
     let proposal = proposal.expect("the proposal").clone();
-    assert_eq!(proposal.button_text(), "Use -102F3");
+    assert_eq!(proposal.button_text(), "Use -102F2");
     let rev = s.revision();
     done(&mut s, "props.accept_tag_proposal", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");

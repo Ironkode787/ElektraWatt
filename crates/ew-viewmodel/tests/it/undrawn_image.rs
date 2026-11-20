@@ -84,7 +84,7 @@ fn place(s: &mut ShellModel, bytes: &[u8]) -> Outcome {
 #[test]
 fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
     let tmp = Tmp::new("ft1378-undrawn");
-    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
     // The gate: an image over the limit is refused, in words.
     let big = png(65536, 32768);
     assert_eq!(
@@ -100,7 +100,7 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
     assert_eq!(place(&mut s, &small), Outcome::Done);
     done(&mut s, "file.save", json!({}));
     s.shutdown();
-    swap_asset(&tmp.golden_copy(), &small, &big);
+    swap_asset(&tmp.sample_copy(), &small, &big);
 
     for (locale, words) in [
         (
@@ -117,7 +117,7 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
         let config = ShellConfig::in_dir(&tmp.0.join(format!("config-{locale}")), "0.0.0-test");
         let mut s = ShellModel::new(Mode::Gui, config);
         assert!(strings::set_locale(locale));
-        let dir = tmp.golden_copy();
+        let dir = tmp.sample_copy();
         done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
         let banner = s.banner().map(str::to_owned);
         let world = s.world_for_tests().expect("the project");
@@ -136,13 +136,13 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
 #[test]
 fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template_copy() {
     let tmp = Tmp::new("ft1523-held");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let (small, big) = (png(2, 1), png(65536, 32768));
     assert_eq!(place(&mut s, &small), Outcome::Done);
     done(&mut s, "file.save", json!({}));
     s.shutdown();
-    swap_asset(&tmp.golden_copy(), &small, &big);
-    let dir = tmp.golden_copy();
+    swap_asset(&tmp.sample_copy(), &small, &big);
+    let dir = tmp.sample_copy();
     let mut s = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),

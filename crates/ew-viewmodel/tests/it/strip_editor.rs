@@ -27,7 +27,7 @@ fn last(shell: &ShellModel) -> (String, Value) {
 
 /// A writable copy of Golden A, headless, with the strip editor open on `strip`.
 fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "strip.edit", json!({ "strip": strip }));
     shell
 }
@@ -49,7 +49,7 @@ const SEQ_1_TO_20: [&str; 20] = [
 #[test]
 fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let tmp = Tmp::new("se7");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     done(
         &mut shell,
@@ -391,7 +391,7 @@ fn insert_delete_and_move_rows() {
 #[test]
 fn gestures_need_the_strip_editor() {
     let tmp = Tmp::new("se9-context");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     for (action, params) in [
         ("strip.insert", json!({})),
         ("strip.delete_rows", json!({})),
@@ -510,7 +510,7 @@ fn se14_describe_lines() {
 #[test]
 fn an_untagged_strips_accessory_row_names_it_in_words() {
     let tmp = Tmp::new("strip-untagged-accessory");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "strip.new", json!({}));
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     let key = shell
@@ -550,7 +550,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
 #[test]
 fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     let tmp = Tmp::new("ft1289");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
     let labels: Vec<String> = shell

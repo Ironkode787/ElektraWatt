@@ -246,7 +246,7 @@ fn select_a_representation(shell: &mut ShellModel) -> (i64, i64) {
 #[test]
 fn every_output_of_the_host() {
     let tmp = Tmp::new("probe-t1");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let h = scripted(&mut shell);
     let p = (100_000_000, 100_000_000);
     let poke = |shell: &mut ShellModel| shell.dispatch("canvas.press", &at(p, json!({})));
@@ -329,7 +329,7 @@ fn every_output_of_the_host() {
 #[test]
 fn activation_focus_and_the_escape_chain() {
     let tmp = Tmp::new("probe-t1b");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     // Activating a tool cancels the busy one.
     let h = scripted(&mut shell);
     *h.busy.borrow_mut() = true;
@@ -394,7 +394,7 @@ fn activation_focus_and_the_escape_chain() {
 #[test]
 fn the_preview_protocol_headless() {
     let tmp = Tmp::new("probe-t2");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);
     let rev = shell.revision().unwrap();
     let calls = shell.session_calls();
@@ -463,7 +463,7 @@ fn the_preview_protocol_headless() {
 #[test]
 fn the_window_commits_the_fresh_preview() {
     let tmp = Tmp::new("probe-t2w");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     let p = select_a_representation(&mut shell);
     let calls = shell.session_calls();
     let rev = shell.revision().unwrap();
@@ -511,7 +511,7 @@ fn the_window_commits_the_fresh_preview() {
 #[test]
 fn a_human_only_command_is_refused_headless() {
     let tmp = Tmp::new("probe-t2h");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let h = scripted(&mut shell);
     let rev = shell.revision();
     h.outputs
@@ -540,7 +540,7 @@ fn a_human_only_command_is_refused_headless() {
 #[test]
 fn escape_after_a_drag_changes_nothing() {
     let tmp = Tmp::new("probe-t3");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);
     let (rev, undo, dirty) = (shell.revision(), shell.can_undo(), shell.is_dirty());
     done(&mut shell, "canvas.press", at(p, json!({})));
@@ -565,7 +565,7 @@ fn escape_after_a_drag_changes_nothing() {
 #[test]
 fn the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
     let tmp = Tmp::new("probe-t9");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     let p = select_a_representation(&mut shell);
     let rev = shell.revision();
     // idle: None (the host replaces it with Select); pressed: Cancel.

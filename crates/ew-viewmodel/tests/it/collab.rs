@@ -4,14 +4,14 @@
 //! The window's model of the external
 //! change's toast and collision dialog, the read-only reload, the cloud banner, Export and Open .ewz, the upgrade
 //! dialog and the merge driver's status. The external change is a colleague's save made by a session on a copy of the
-//! project, its changed files then copied into the live folder and `manifest.json` last. Golden A is only copied.
+//! project, its changed files then copied into the live folder and `manifest.json` last. The sample is only copied.
 
 use crate::common;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use common::{GOLDEN_A, Tmp, copy_dir, done};
+use common::{SAMPLE, Tmp, copy_dir, done};
 use ew_api::{
     AnyCommand, FormatStep, MigrationError, Migrations, Recovery, Session, SessionOptions, StoreOptions,
 };
@@ -35,13 +35,25 @@ fn open(s: &mut ShellModel, dir: &Path, read_only: bool) {
     );
 }
 
-/// A shell with a writable copy of Golden A open; the copy's folder.
+/// A shell with a writable copy of the sample open; the copy's folder.
 fn writable(tmp: &Tmp) -> (ShellModel, PathBuf) {
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let mut s = shell(tmp);
     open(&mut s, &dir, false);
     (s, dir)
+}
+
+/// The wire `wire` given a cross-section override of 1.5 and saved, so that its overrides are on disk before the
+/// edits of a collision (the edits of two override fields are then two fields).
+fn with_a_size_override(s: &mut ShellModel, wire: &str) {
+    done(
+        s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [wire], "path": "overrides.csa",
+            "value": "1.5"}}),
+    );
+    done(s, "file.save", json!({}));
 }
 
 /// This window's own edit: the colour override of the wire `wire` set to `colour`.
@@ -54,19 +66,25 @@ fn set_colour_here(s: &mut ShellModel, wire: &str, colour: &str) {
     );
 }
 
-/// A record's ID from Golden A by its source key.
-fn golden_id(key: &str) -> String {
-    let needle = format!("\"key\":\"{key}\"");
-    for dir in ["pages", "devices"] {
-        for e in std::fs::read_dir(Path::new(GOLDEN_A).join(dir)).unwrap() {
-            let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
-            if let Some(line) = text.lines().find(|l| l.contains(&needle)) {
-                let v: Value = serde_json::from_str(line).unwrap();
-                return v["id"].as_str().unwrap().to_owned();
-            }
-        }
-    }
-    panic!("{key}");
+/// The ID of the `n`-th plain wire of the sample (its page files in name order, each in line order).
+fn sample_wire(n: usize) -> String {
+    let mut files: Vec<PathBuf> = std::fs::read_dir(Path::new(SAMPLE).join("pages"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    files.sort();
+    files
+        .iter()
+        .flat_map(|f| {
+            let text = std::fs::read_to_string(f).unwrap();
+            text.lines()
+                .map(|l| serde_json::from_str::<Value>(l).unwrap())
+                .filter(|v| v["$k"] == "connection" && v["kind"].is_null())
+                .collect::<Vec<_>>()
+        })
+        .nth(n)
+        .map(|v| v["id"].as_str().unwrap().to_owned())
+        .unwrap_or_else(|| panic!("the sample has no wire {n}"))
 }
 
 fn colour(wire: &str, value: Value) -> AnyCommand {
@@ -114,20 +132,20 @@ fn toasts(s: &ShellModel) -> Vec<String> {
 #[test]
 fn the_external_change_toast_offers_undo_and_show_changes() {
     let tmp = Tmp::new("xw1");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     // The window's own shell: an external change is undone by a person (its step is `Internal`, as a `HumanOnly` one).
     let mut s = ShellModel::new(
         Mode::Gui,
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
     );
     open(&mut s, &dir, false);
-    let w20 = golden_id("connections|W20");
-    let written = colleague(&tmp, &dir, &[colour(&w20, json!(["RD"]))]);
+    let wire = sample_wire(0);
+    let written = colleague(&tmp, &dir, &[colour(&wire, json!(["RD"]))]);
     done(&mut s, "project.check_disk", json!({}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"]
+        ["toast \"External change applied: 1 change on folio 101.\" undo show_changes"]
     );
     assert!(!s.is_dirty(), "the window holds the generation on disk");
     let serial = s.notifications().newest_visible().expect("the toast").serial;
@@ -147,20 +165,21 @@ fn the_external_change_toast_offers_undo_and_show_changes() {
     for f in &written {
         assert_eq!(
             std::fs::read(dir.join(f)).unwrap(),
-            std::fs::read(Path::new(GOLDEN_A).join(f)).unwrap()
+            std::fs::read(Path::new(SAMPLE).join(f)).unwrap()
         );
     }
 }
 
-/// The collision dialog lists W20's colour with base, mine and theirs; "Decide later" leaves the banner and a
+/// The collision dialog lists the wire's colour with base, mine and theirs; "Decide later" leaves the banner and a
 /// held save; "All theirs" applies in one step.
 #[test]
 fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     let tmp = Tmp::new("xw2");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
-    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    let wire = sample_wire(0);
+    with_a_size_override(&mut s, &wire);
+    set_colour_here(&mut s, &wire, "BU");
+    colleague(&tmp, &dir, &[colour(&wire, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     let text = describe(&s);
     let dialog: Vec<&str> = text
@@ -173,13 +192,13 @@ fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
         &"  label \"Changed here and on disk: 1 field. Choose yours or theirs; saving waits until you do.\""
     ));
     assert!(dialog.contains(
-        &"  row 1 \"Connection 102.2 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
+        &"  row 1 \"Connection 101.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen mine"
     ));
     // The next poll keeps the dialog and the choice made in it.
     done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
     done(&mut s, "project.check_disk", json!({}));
     assert!(describe(&s).contains(
-        "  row 1 \"Connection 102.2 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen theirs\n"
+        "  row 1 \"Connection 101.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"WH\" chosen theirs\n"
     ));
     // Decide later: the banner says why, and saves wait; the next poll does not bring the dialog back.
     done(&mut s, "ui.dismiss", json!({}));
@@ -203,7 +222,7 @@ fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": "overrides.csa",
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [wire], "path": "overrides.csa",
             "value": "2.5"}}),
     );
     done(&mut s, "project.check_disk", json!({}));
@@ -212,28 +231,29 @@ fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"],
+        ["toast \"External change applied: 1 change on folio 101.\" undo show_changes"],
         "one step, with its Undo"
     );
     assert_eq!(s.banner(), None);
     assert!(s.is_dirty(), "the edit since the hold is not on disk yet");
     done(&mut s, "file.save", json!({}));
     assert_eq!(
-        w20_overrides(&dir),
-        json!({"csa": "2.5", "colour": ["WH"], "show_marker": true})
+        wire_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["WH"]})
     );
 }
 
-/// W20's overrides as the project folder `dir` holds them.
-fn w20_overrides(dir: &Path) -> Value {
+/// The overrides of the sample's first plain wire as the project folder `dir` holds them.
+fn wire_overrides(dir: &Path) -> Value {
+    let needle = format!("\"id\":\"{}\"", sample_wire(0));
     for e in std::fs::read_dir(dir.join("pages")).unwrap() {
         let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
-        if let Some(line) = text.lines().find(|l| l.contains("\"key\":\"connections|W20\"")) {
+        if let Some(line) = text.lines().find(|l| l.contains(&needle)) {
             let v: Value = serde_json::from_str(line).unwrap();
             return v["overrides"].clone();
         }
     }
-    panic!("W20 is on no page");
+    panic!("the wire is on no page");
 }
 
 /// A record the colleague deleted while this window changed it is one row for the whole record, each side
@@ -242,16 +262,16 @@ fn w20_overrides(dir: &Path) -> Value {
 fn a_deleted_record_shows_each_side_in_words() {
     let tmp = Tmp::new("xw2b");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
+    let wire = sample_wire(0);
+    set_colour_here(&mut s, &wire, "BU");
     let delete = AnyCommand {
         name: "edit.delete".into(),
-        params: json!({"targets": [{"kind": "connection", "id": w20}]}),
+        params: json!({"targets": [{"kind": "connection", "id": wire}]}),
     };
     colleague(&tmp, &dir, &[delete]);
     done(&mut s, "project.check_disk", json!({}));
     assert!(describe(&s).contains(
-        "  row 1 \"Connection 102.2 · The whole record\" base \"present\" mine \"changed\" theirs \"deleted\" chosen \
+        "  row 1 \"Connection 101.1 · The whole record\" base \"present\" mine \"changed\" theirs \"deleted\" chosen \
          mine\n"
     ));
 }
@@ -260,8 +280,8 @@ fn a_deleted_record_shows_each_side_in_words() {
 #[test]
 fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     let tmp = Tmp::new("xw3");
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = None;
     let (mut holder, _) = Session::open(&dir, store, SessionOptions::default(), Recovery::Keep).unwrap();
@@ -275,7 +295,7 @@ fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     done(&mut s, "view.zoom_in", json!({}));
     let zoom = s.canvas().expect("a canvas").zoom();
     holder
-        .execute(&colour(&golden_id("connections|W20"), json!(["RD"])))
+        .execute(&colour(&sample_wire(0), json!(["RD"])))
         .unwrap();
     holder.save().unwrap();
     done(&mut s, "project.check_disk", json!({}));
@@ -289,10 +309,10 @@ fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
 fn a_cloud_synced_folder_shows_its_banner() {
     let tmp = Tmp::new("xw4");
     let cloud = tmp.0.join("OneDrive");
-    let inside = cloud.join("J-E-2416.ew");
-    let outside = tmp.0.join("local").join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &inside);
-    copy_dir(Path::new(GOLDEN_A), &outside);
+    let inside = cloud.join("sample.ew");
+    let outside = tmp.0.join("local").join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &inside);
+    copy_dir(Path::new(SAMPLE), &outside);
     let mut s = shell(&tmp);
     s.set_cloud_env_for_tests(Some(vec![("OneDrive".to_owned(), cloud.into_os_string())]));
     open(&mut s, &inside, true);
@@ -316,9 +336,9 @@ fn a_cloud_synced_folder_shows_its_banner() {
 fn the_held_banner_stays_until_the_choice() {
     let tmp = Tmp::new("xw2e");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
-    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    let wire = sample_wire(0);
+    set_colour_here(&mut s, &wire, "BU");
+    colleague(&tmp, &dir, &[colour(&wire, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     let held = "The project changed on disk, and the change collides with your edits. Saving waits until you choose \
@@ -357,11 +377,11 @@ static CHAIN: Migrations = Migrations {
 fn export_and_open_ewz_and_the_upgrade_dialog() {
     let tmp = Tmp::new("xw6");
     let (mut s, dir) = writable(&tmp);
-    let ewz = tmp.0.join("J-E-2416.ewz");
+    let ewz = tmp.0.join("sample.ewz");
     done(&mut s, "file.export_ewz", json!({"path": ewz.to_string_lossy()}));
     assert_eq!(
         toasts(&s).last().map(String::as_str),
-        Some("toast \"Exported J-E-2416.ewz.\"")
+        Some("toast \"Exported sample.ewz.\"")
     );
     let (reader, _) = Session::open_read_only(&ewz, "ElektraWatt test").expect("the .ewz opens");
     let (direct, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
@@ -378,7 +398,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
         json!({"path": ewz.to_string_lossy(), "how": "read_only"}),
     );
     assert!(matches!(s.access(), Some(AccessMode::ReadOnly { .. })));
-    // `J-E-2416.ew` beside it exists: the extract is refused before anything is written.
+    // `sample.ew` beside it exists: the extract is refused before anything is written.
     let refused = s.dispatch(
         "file.open_ewz",
         &json!({"path": ewz.to_string_lossy(), "how": "extract"}),
@@ -388,7 +408,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
     };
     assert_eq!(
         message,
-        "J-E-2416.ewz could not be extracted: the folder J-E-2416.ew exists beside it, and an .ewz is extracted into a new \
+        "sample.ewz could not be extracted: the folder sample.ew exists beside it, and an .ewz is extracted into a new \
          folder only; nothing was written."
     );
 
@@ -411,7 +431,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
     done(&mut s, "file.upgrade", json!({}));
     assert!(s.dialog().is_none());
     assert!(
-        tmp.0.join("J-E-2416.ew.pre-0.0.ewz").is_file(),
+        tmp.0.join("sample.ew.pre-0.0.ewz").is_file(),
         "the backup beside the folder"
     );
     assert!(
@@ -432,8 +452,8 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
     let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
     for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
         let tmp = Tmp::new("ft1154");
-        let dir = tmp.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &dir);
+        let dir = tmp.0.join("sample.ew");
+        copy_dir(Path::new(SAMPLE), &dir);
         let mut s = shell(&tmp);
         s.set_released_for_tests(Some(released));
         open(&mut s, &dir, false);
@@ -461,11 +481,11 @@ fn every_window_writer_of_an_unreleased_format_says_so() {
     let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
     for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
         let tmp = Tmp::new("ft1489");
-        let golden = tmp.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &golden);
+        let sample = tmp.0.join("sample.ew");
+        copy_dir(Path::new(SAMPLE), &sample);
         let mut s = shell(&tmp);
         s.set_released_for_tests(Some(released));
-        open(&mut s, &golden, false);
+        open(&mut s, &sample, false);
         let writes = [
             ("file.save_as", tmp.0.join("copy.ew")),
             ("file.new", tmp.0.join("new.ew")),
@@ -530,8 +550,8 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
         eprintln!("XW-7 skipped: the user's git configuration names the driver already");
         return;
     }
-    let dir = repo.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = repo.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let mut s = shell(&tmp);
     open(&mut s, &dir, false);
     let badge = |s: &ShellModel| {
@@ -546,7 +566,7 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
     assert_eq!(
         s.dialog(),
         Some(&Dialog::ConfirmGitSetup {
-            folder: "J-E-2416.ew".to_owned()
+            folder: "sample.ew".to_owned()
         })
     );
     // From an AppImage, git runs the AppImage with `ew` first, never the program's path in its mount.
@@ -566,26 +586,25 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
     assert!(dir.join(".gitattributes").is_file() && dir.join(".gitignore").is_file());
 }
 
-/// The project folder `dir` as a merge of two branches leaves it: -102F2 numbered -102F1 too, and the manifest marked
-/// merged (its hashes not authoritative).
-fn merged_duplicate(dir: &Path) {
-    let shard = dir.join("devices").join("ba.jsonl");
+/// The project folder `dir` as a merge of two branches leaves it: the stop button -102S2 numbered -102S1 too, and the
+/// manifest marked merged (its hashes not authoritative). The device shard it changed.
+fn merged_duplicate(dir: &Path) -> PathBuf {
+    let two = "\"tag\":{\"letter\":\"S\",\"counter\":2}";
+    let shard = std::fs::read_dir(dir.join("devices"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| std::fs::read_to_string(p).unwrap().contains(two))
+        .expect("-102S2's shard");
     let text = std::fs::read_to_string(&shard).unwrap();
-    let line = text
-        .lines()
-        .find(|l| l.contains("\"key\":\"devices|-102F2\""))
-        .expect("-102F2's line");
-    let one = line.replace(
-        "\"tag\":{\"letter\":\"F\",\"counter\":2}",
-        "\"tag\":{\"letter\":\"F\",\"counter\":1}",
-    );
-    assert_ne!(one, line);
+    let line = text.lines().find(|l| l.contains(two)).unwrap();
+    let one = line.replace(two, "\"tag\":{\"letter\":\"S\",\"counter\":1}");
     std::fs::write(&shard, text.replace(line, &one)).unwrap();
     let path = dir.join("manifest.json");
     let limits = ew_api::Limits::default();
     let mut manifest = ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
     manifest.merged = true;
     std::fs::write(&path, manifest.to_text()).unwrap();
+    shard.strip_prefix(dir).unwrap().to_path_buf()
 }
 
 /// The labels of the Messages pane's findings of `rule`.
@@ -609,26 +628,26 @@ fn messages_of(s: &mut ShellModel, rule: &str) -> Vec<String> {
 #[test]
 fn the_messages_pane_lists_ew_core_013_after_a_merge() {
     let expected = vec![
-        "=P01+J-E-2416-102F1: `=P01+J-E-2416-102F1` is printed by 2 devices after a merge; the oldest record keeps it, \
+        "+CAB-102S1: `+CAB-102S1` is printed by 2 devices after a merge; the oldest record keeps it, \
          and the other must change"
             .to_owned(),
     ];
     let tmp = Tmp::new("xw8");
     let merged = tmp.0.join("merged.ew");
-    copy_dir(Path::new(GOLDEN_A), &merged);
-    merged_duplicate(&merged);
+    copy_dir(Path::new(SAMPLE), &merged);
+    let shard = merged_duplicate(&merged);
     let mut s = shell(&tmp);
     open(&mut s, &merged, false);
     assert_eq!(messages_of(&mut s, "EW-CORE-013"), expected, "on open");
     done(&mut s, "file.close", json!({}));
 
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     open(&mut s, &dir, false);
     assert_eq!(messages_of(&mut s, "EW-CORE-013"), Vec::<String>::new());
     // The pull: the merged files land, the manifest last.
-    let shard = std::fs::read(merged.join("devices").join("ba.jsonl")).unwrap();
-    std::fs::write(dir.join("devices").join("ba.jsonl"), shard).unwrap();
+    let bytes = std::fs::read(merged.join(&shard)).unwrap();
+    std::fs::write(dir.join(&shard), bytes).unwrap();
     std::fs::copy(merged.join("manifest.json"), dir.join("manifest.json")).unwrap();
     done(&mut s, "project.check_disk", json!({}));
     assert_eq!(messages_of(&mut s, "EW-CORE-013"), expected, "after the pull");
@@ -639,8 +658,8 @@ fn the_messages_pane_lists_ew_core_013_after_a_merge() {
 fn the_collision_dialog_closes_when_the_disk_returns() {
     let tmp = Tmp::new("xw2c");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
+    let wire = sample_wire(0);
+    set_colour_here(&mut s, &wire, "BU");
     let page = std::fs::read_dir(dir.join("pages"))
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -653,7 +672,7 @@ fn the_collision_dialog_closes_when_the_disk_returns() {
             (p, bytes)
         })
         .collect();
-    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    colleague(&tmp, &dir, &[colour(&wire, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     assert!(matches!(s.dialog(), Some(Dialog::ExternalChange { .. })));
     for (p, bytes) in &before {
@@ -670,7 +689,8 @@ fn the_collision_dialog_closes_when_the_disk_returns() {
 fn a_second_change_while_held_rebuilds_the_dialog() {
     let tmp = Tmp::new("xw2d");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
+    let wire = sample_wire(0);
+    with_a_size_override(&mut s, &wire);
     for (path, value) in [
         ("overrides.colour", json!(["BU"])),
         ("overrides.csa", json!("2.5")),
@@ -678,14 +698,14 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
         done(
             &mut s,
             "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20], "path": path,
+            json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [wire], "path": path,
                 "value": value}}),
         );
     }
-    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    colleague(&tmp, &dir, &[colour(&wire, json!(["WH"]))]);
     done(&mut s, "project.check_disk", json!({}));
     done(&mut s, "external.choose", json!({"row": 1, "take": "theirs"}));
-    colleague(&tmp, &dir, &[colour(&w20, json!(["RD"]))]);
+    colleague(&tmp, &dir, &[colour(&wire, json!(["RD"]))]);
     done(&mut s, "project.check_disk", json!({}));
     let rows: Vec<String> = describe(&s)
         .lines()
@@ -695,14 +715,14 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
     assert_eq!(
         rows,
         [
-            "  row 1 \"Connection 102.2 · Colour override\" base \"(none)\" mine \"BU\" theirs \"RD\" chosen mine"
+            "  row 1 \"Connection 101.1 · Colour override\" base \"(none)\" mine \"BU\" theirs \"RD\" chosen mine"
         ]
     );
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     done(&mut s, "file.save", json!({}));
     assert_eq!(
-        w20_overrides(&dir),
-        json!({"csa": "2.5", "colour": ["RD"], "show_marker": true})
+        wire_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["RD"]})
     );
 }
 
@@ -712,9 +732,9 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
 fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     let tmp = Tmp::new("xw2f");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
-    colleague(&tmp, &dir, &[colour(&w20, json!(["WH"]))]);
+    let wire = sample_wire(0);
+    set_colour_here(&mut s, &wire, "BU");
+    colleague(&tmp, &dir, &[colour(&wire, json!(["WH"]))]);
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "project.check_disk", json!({}));
     let lines = |s: &ShellModel, start: &str| -> Vec<String> {
@@ -727,7 +747,7 @@ fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     assert_eq!(
         lines(&s, "  row "),
         [
-            "  row 1 \"Verbinding 102.2 · Aderkleur overschreven\" base \"(geen)\" mine \"BU\" theirs \"WH\" chosen mine"
+            "  row 1 \"Verbinding 101.1 · Aderkleur overschreven\" base \"(geen)\" mine \"BU\" theirs \"WH\" chosen mine"
         ]
     );
     done(&mut s, "view.language", json!({"value": "en"}));
@@ -737,7 +757,7 @@ fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     // A record deleted on disk is counted as a record.
     let delete = AnyCommand {
         name: "edit.delete".into(),
-        params: json!({"targets": [{"kind": "connection", "id": w20}]}),
+        params: json!({"targets": [{"kind": "connection", "id": wire}]}),
     };
     colleague(&tmp, &dir, &[delete]);
     done(&mut s, "project.check_disk", json!({}));
@@ -756,14 +776,14 @@ fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
 fn a_mixed_choice_counts_what_came_from_disk() {
     let tmp = Tmp::new("xw2g");
     let (mut s, dir) = writable(&tmp);
-    let (w20, w21) = (golden_id("connections|W20"), golden_id("connections|W21"));
-    for w in [&w20, &w21] {
+    let (wire, other) = (sample_wire(0), sample_wire(1));
+    for w in [&wire, &other] {
         set_colour_here(&mut s, w, "BU");
     }
     colleague(
         &tmp,
         &dir,
-        &[colour(&w20, json!(["RD"])), colour(&w21, json!(["RD"]))],
+        &[colour(&wire, json!(["RD"])), colour(&other, json!(["RD"]))],
     );
     done(&mut s, "project.check_disk", json!({}));
     // Not over another dialog.
@@ -802,7 +822,7 @@ fn a_mixed_choice_counts_what_came_from_disk() {
     done(&mut s, "external.apply", json!({}));
     assert_eq!(
         toasts(&s),
-        ["toast \"External change applied: 1 change on folio 102.\" undo show_changes"]
+        ["toast \"External change applied: 1 change on folio 101.\" undo show_changes"]
     );
 }
 
@@ -812,9 +832,9 @@ fn a_mixed_choice_counts_what_came_from_disk() {
 fn the_same_edit_on_both_sides_takes_nothing() {
     let tmp = Tmp::new("xw2h");
     let (mut s, dir) = writable(&tmp);
-    let w20 = golden_id("connections|W20");
-    set_colour_here(&mut s, &w20, "BU");
-    colleague(&tmp, &dir, &[colour(&w20, json!(["BU"]))]);
+    let wire = sample_wire(0);
+    set_colour_here(&mut s, &wire, "BU");
+    colleague(&tmp, &dir, &[colour(&wire, json!(["BU"]))]);
     // The toast in Dutch.
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "project.check_disk", json!({}));

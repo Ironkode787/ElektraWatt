@@ -62,7 +62,7 @@ fn coil_wire(t: &PageTables) -> TableConnection {
 /// edge by a command: the wire's stored route follows the coil and the scene draws its off-sheet part along the edge
 /// (also a wire's bare end). (A wire without a route is unrouted and has no wire geometry.)
 pub(crate) fn fixture(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
     for (pick, k, activate) in [
         (

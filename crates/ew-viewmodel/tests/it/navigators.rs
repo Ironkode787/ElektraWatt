@@ -19,9 +19,9 @@ const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
 /// A headless shell with a copy of Golden A open (read-only unless `writable`).
 fn open(tmp: &Tmp, writable: bool) -> ShellModel {
-    let dir = tmp.golden_copy();
+    let dir = tmp.sample_copy();
     if !dir.exists() {
-        common::copy_dir(Path::new(common::GOLDEN_A), &dir);
+        common::copy_dir(Path::new(common::SAMPLE), &dir);
     }
     let mut shell = ShellModel::new(
         Mode::Headless,

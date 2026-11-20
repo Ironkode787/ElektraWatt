@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 
 /// Every dialog of the shell: the constructible ones directly, the forms through their actions on Golden A.
 fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
-    let mut shell = tmp.shell_in(Mode::Gui, true, "101");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
     let mut dialogs = vec![
         Dialog::About,
         Dialog::Shortcuts,
@@ -157,7 +157,7 @@ fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark(
     }
     // The quit prompt and the recovery dialog read as specified (§8 item 1).
     let quit = spec(&dialogs[3], &shell);
-    assert_eq!(quit.title, "Save changes to J-E-2416.ew before closing?");
+    assert_eq!(quit.title, "Save changes to sample.ew before closing?");
     let labels: Vec<&str> = quit.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Save", "Cancel", "Don't save"]);
     let recovery = spec(&dialogs[8], &shell);
@@ -307,7 +307,7 @@ fn the_wording_lint() {
 #[test]
 fn the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
     let tmp = Tmp::new("part4-cp4");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "101");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
     done(&mut shell, "tools.palette", json!({}));
     let entries = shell.palette_entries();
     assert!(!entries.is_empty());

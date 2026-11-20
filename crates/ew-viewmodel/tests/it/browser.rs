@@ -15,7 +15,7 @@ use serde_json::json;
 #[test]
 fn the_browsers_tree_lists_each_trade_and_category_with_its_count() {
     let tmp = Tmp::new("browser-tree");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "tool.place_part", json!({}));
     let closed = s.picker().expect("the browser").nodes.clone();
     assert_eq!(closed[0].0, Node::All, "{closed:?}");
@@ -102,7 +102,7 @@ fn every_named_category_has_its_trade() {
 #[test]
 fn a_filter_shows_under_which_trade_and_group_the_hits_sit() {
     let tmp = Tmp::new("browser-filter");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "relay"}));
     let nodes = s.picker().expect("the browser").nodes.clone();
@@ -119,7 +119,7 @@ fn a_filter_shows_under_which_trade_and_group_the_hits_sit() {
 #[test]
 fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() {
     let tmp = Tmp::new("browser-part");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "EW-GEN-CON-1"}));
     let p = s.picker().expect("the browser");
@@ -156,7 +156,7 @@ fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() 
 #[test]
 fn a_starter_symbol_is_named_in_the_windows_language() {
     let tmp = Tmp::new("browser-dutch");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     assert!(ew_viewmodel::strings::set_locale("nl"));
     done(&mut s, "tool.place", json!({}));
     let p = s.picker().expect("the browser");
@@ -175,7 +175,7 @@ fn a_starter_symbol_is_named_in_the_windows_language() {
 #[test]
 fn the_starter_contactor_is_under_contactors_with_the_letter_q() {
     let tmp = Tmp::new("browser-contactor");
-    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.category", json!({"to": "SwitchingPower"}));
     let p = s.picker().expect("the browser");

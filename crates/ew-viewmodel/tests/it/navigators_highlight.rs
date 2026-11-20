@@ -55,7 +55,7 @@ fn drawn(shell: &ShellModel, members: &[ew_api::output::Uuid]) -> Vec<Vec<(i64, 
 #[test]
 fn highlighting_24vdc_1_from_the_potentials_navigator() {
     let tmp = Tmp::new("nav2-hl");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
@@ -222,7 +222,7 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
 #[test]
 fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");
-    let mut shell = tmp.shell_in(Mode::Headless, false, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, false, "103");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let row = row_key(&shell, NavKind::Connections, NavRole::Connection, "102.10");
@@ -327,7 +327,7 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
 #[test]
 fn new_structure_node_prefills_the_marked_parent() {
     let tmp = Tmp::new("nav2-struct");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "structure"}));
     let k = row_key(&shell, NavKind::Structure, NavRole::StructureNode, "+J-E-2416");
     done(
@@ -352,7 +352,7 @@ fn new_structure_node_prefills_the_marked_parent() {
 #[test]
 fn opening_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new("nav2-blocks-open");
-    let mut shell = tmp.shell_in(Mode::Headless, false, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, false, "102");
     done(&mut shell, "navigator.show", json!({"kind": "blocks"}));
     let t = shell.nav(NavKind::Blocks).and_then(|n| n.table()).unwrap();
     let wire = t

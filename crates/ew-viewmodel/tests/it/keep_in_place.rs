@@ -34,7 +34,7 @@ fn entry(shell: &ShellModel) -> (bool, bool) {
 #[test]
 fn keep_in_place_keeps_the_selected_symbols_in_one_step_and_lets_them_go() {
     let tmp = Tmp::new("keep-in-place");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     // Two symbols of two devices that are no terminals, with their tags as their connection points print them.
     let page = shell.canvas().unwrap().page().clone();
     let mut reps = Vec::new();
@@ -89,7 +89,7 @@ fn keep_in_place_keeps_the_selected_symbols_in_one_step_and_lets_them_go() {
 #[test]
 fn keep_in_place_without_a_symbol_is_refused() {
     let tmp = Tmp::new("keep-in-place-none");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     assert_eq!(
         shell.dispatch("rep.keep_in_place", &json!({})),
         Outcome::Refused {

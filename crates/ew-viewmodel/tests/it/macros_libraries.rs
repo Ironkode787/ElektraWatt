@@ -27,7 +27,7 @@ use serde_json::json;
 fn shell_with(tmp: &Tmp, copy: &str, mode: Mode, t: &LibraryTiers, folio: &str) -> ShellModel {
     let dir = tmp.0.join(copy);
     if !dir.exists() {
-        common::copy_dir(Path::new(common::GOLDEN_A), &dir);
+        common::copy_dir(Path::new(common::SAMPLE), &dir);
     }
     let config = ShellConfig::in_dir(&tmp.0.join(format!("config-{copy}")), "0.0.0-test")
         .with_libraries(Some(t.clone()));
@@ -483,7 +483,7 @@ fn a_copy_only_in_the_project_says_so_in_both_languages() {
 #[test]
 fn navigator_show_shows_the_pane_asked_for() {
     let tmp = Tmp::new("macros-ft720b");
-    let mut shell = tmp.shell_in(Mode::Gui, false, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "102");
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     assert_eq!(

@@ -15,7 +15,7 @@
 
 use std::path::Path;
 
-use crate::common::{GOLDEN_A, Tmp, copy_dir};
+use crate::common::{SAMPLE, Tmp, copy_dir};
 use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::alias;
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
@@ -122,11 +122,11 @@ fn empty(s: &ShellModel, p: (i64, i64)) -> bool {
 
 fn points(tmp: &Tmp) -> Points {
     let part = {
-        let (s, _) = Session::open_read_only(Path::new(GOLDEN_A), "test").unwrap();
+        let (s, _) = Session::open_read_only(Path::new(SAMPLE), "test").unwrap();
         let q = s.query();
         q.parts().iter().next().map(|(id, _)| id.to_string()).unwrap()
     };
-    let mut s = tmp.shell("101");
+    let mut s = tmp.sample_shell("101");
     let sn = |s: &ShellModel, k: (i64, i64)| {
         let sn = &s.canvas().unwrap().page().snapper;
         sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)))
@@ -274,8 +274,8 @@ fn run(
     p: &Points,
 ) -> (String, Vec<String>, (String, String)) {
     let tmp = Tmp::new(tag);
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let dir = dir.to_string_lossy().into_owned();
     let mut shell = ShellModel::new(
         Mode::Headless,
@@ -426,8 +426,8 @@ fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
 /// One run of the coincident script under `ids` on a fresh copy of Golden A: the transcript, the directory replaced.
 fn run_coincident(tag: &str, ids: Ids) -> String {
     let tmp = Tmp::new(tag);
-    let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.0.join("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let dir = dir.to_string_lossy().into_owned();
     let mut shell = ShellModel::new(
         Mode::Headless,

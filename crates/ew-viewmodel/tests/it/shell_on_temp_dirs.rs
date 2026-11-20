@@ -5,7 +5,7 @@
 //! QElectroTech import and the tutorials copy, the journal discard, first run, the
 //! company-standard wizard with its preview, workspaces, F1 and the quick switches.
 
-use ew_testdir::{CONTENT, GOLDEN_A, Tmp};
+use ew_testdir::{CONTENT, SAMPLE, Tmp};
 use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
@@ -21,7 +21,7 @@ const STEM: &str = "ew-vm2-test";
 
 fn resources() -> Resources {
     Resources {
-        sample_dir: Some(PathBuf::from(GOLDEN_A)),
+        sample_dir: Some(PathBuf::from(SAMPLE)),
         content_dir: Some(PathBuf::from(CONTENT)),
         docs_dir: None,
         notices_file: None,
@@ -183,7 +183,7 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();
     done(&mut shell, "file.open_sample", json!({}));
-    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert_eq!(shell.project_name(), Some("sample.ew"));
     assert!(matches!(
         shell.access(),
         Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-sample")
@@ -197,7 +197,7 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
         }
     );
     assert!(
-        !Path::new(GOLDEN_A).join(".~ew.lock").exists(),
+        !Path::new(SAMPLE).join(".~ew.lock").exists(),
         "no lock in the installation"
     );
     let copy = tmp.0.join("mine.ew");
@@ -230,7 +230,7 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
     done(&mut shell, "help.tutorials", json!({ "dir": path(&dir) }));
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert_eq!(shell.project_name(), Some("tutorial.ew"));
-    let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
+    let (sample, _) = Session::open_read_only(Path::new(SAMPLE), VERSION).unwrap();
     assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
     assert_eq!(shell.last_help(), Some("tutorials/index.html"));
     // Without an installed guide no page is asked for, so no banner covers the copy; the status
@@ -326,7 +326,7 @@ fn each_tutorial_has_its_own_start() {
     );
     assert_eq!(shell.project_name(), Some("first.ew"), "the open project stays");
     assert_eq!(shell.window_request(), Some(reports.as_path()));
-    let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
+    let (sample, _) = Session::open_read_only(Path::new(SAMPLE), VERSION).unwrap();
     let (copy, _) = Session::open_read_only(&reports, VERSION).unwrap();
     assert_eq!(copy.page_labels(), sample.page_labels());
     assert_eq!(shell.last_help(), Some("tutorials/reports-and-pdf.html"));
@@ -1103,7 +1103,7 @@ fn crash_with_an_edit(tmp: &Tmp, dir: &Path) {
 }
 
 fn copy_golden(to: &Path) {
-    ew_testdir::copy_dir(Path::new(GOLDEN_A), to);
+    ew_testdir::copy_dir(Path::new(SAMPLE), to);
 }
 
 #[test]
@@ -1287,7 +1287,7 @@ fn bad_first_run_answers_are_refused_and_the_flow_ends_where_it_is_told() {
     ));
     // Finishing with a start choice runs that action: the sample opens.
     done(&mut shell, "first_run.finish", json!({"start": "sample"}));
-    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert_eq!(shell.project_name(), Some("sample.ew"));
     assert!(shell.settings().first_run_done);
     shell.shutdown();
 }

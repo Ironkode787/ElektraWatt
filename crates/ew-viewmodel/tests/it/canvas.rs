@@ -77,7 +77,7 @@ fn the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     }
     // View holds the pan submenu, and the grid and statistics items are checked while on.
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let view = actions::menu_model(&shell)
         .into_iter()
         .find(|m| m.menu == Menu::View)
@@ -136,7 +136,7 @@ fn the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 #[test]
 fn zoom_pan_fit_and_resize_through_the_shell() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     // The page's first view is the whole sheet in this pane (a fit to the width would gain little); Fit page is
     // one key away.
     let first = shell.canvas().expect("folio 103 is on the canvas");
@@ -210,7 +210,7 @@ fn zoom_pan_fit_and_resize_through_the_shell() {
 #[test]
 fn a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     done(&mut shell, "view.zoom_to", json!({"percent": 400}));
     let entities = shell.canvas().unwrap().page().entities.clone();
     assert!(entities.len() > 20, "folio 103 has entities: {}", entities.len());
@@ -249,7 +249,7 @@ fn a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it()
 #[test]
 fn the_transcript_and_the_describe_text_carry_the_canvas() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     done(&mut shell, "view.fit_page", json!({}));
     done(&mut shell, "view.zoom_to", json!({"percent": 156.25}));
     let s = state(&shell);
@@ -393,7 +393,7 @@ fn the_transcript_and_the_describe_text_carry_the_canvas() {
 #[test]
 fn the_canvas_steps_run_from_a_script_and_carry_no_time() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let text = [
         r#"{"$schema":"ew.uiscript/1","label":"canvas"}"#,
         r#"{"action":"view.canvas_resize","params":{"width":1200,"height":800,"ppp":1.0}}"#,
@@ -436,7 +436,7 @@ fn the_canvas_steps_run_from_a_script_and_carry_no_time() {
 fn a_pane_beyond_the_bounds_is_refused_and_the_view_stays() {
     use ew_viewmodel::canvas::{MAX_PANE_PIXELS, MAX_PANE_POINTS, MAX_PPP, bounded_pane};
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     done(
         &mut shell,
         "view.canvas_resize",
@@ -519,7 +519,7 @@ fn the_bounded_pane_is_within_the_bounds_for_fractional_pixels_per_point() {
 #[test]
 fn the_canvas_view_actions_leave_the_banner_standing() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     for (action, params) in [
         ("view.zoom_in", json!({})),
         ("view.zoom_out", json!({})),
@@ -553,7 +553,7 @@ fn the_canvas_view_actions_leave_the_banner_standing() {
 #[test]
 fn view_steps_fetch_no_page_and_re_execute_no_query() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let calls = shell.page_content_calls();
     let (_, re_before) = shell.memo_totals().expect("the session has a memo store");
     let entities = shell.canvas().unwrap().page().entities.clone();
@@ -598,11 +598,11 @@ fn view_steps_fetch_no_page_and_re_execute_no_query() {
 #[test]
 fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
     let tmp = Tmp::new("canvas");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let a = std::sync::Arc::clone(shell.canvas().unwrap().page());
     let rev = shell.revision();
     let other = tmp.0.join("other.ew");
-    common::copy_dir(Path::new(common::GOLDEN_A), &other);
+    common::copy_dir(Path::new(common::SAMPLE), &other);
     done(
         &mut shell,
         "file.open",
@@ -627,7 +627,7 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
 #[test]
 fn the_canvas_says_how_to_move_about_and_back() {
     let tmp = Tmp::new("canvas-ways");
-    let mut shell = tmp.shell("103");
+    let mut shell = tmp.sample_shell("103");
     let zoom_tip = |shell: &ShellModel| {
         ew_viewmodel::status::bar(shell, false)
             .into_iter()
@@ -672,14 +672,15 @@ fn text_places(items: &[ew_dl::Item]) -> Vec<(String, (i64, i64))> {
     out
 }
 
-/// One page has one set of text places: on Golden A's folio 101 the canvas prints every text where an export of the
-/// project prints it, when opened and after an edit beside -T55's texts (the wire to -T55:5 loses its route).
+/// One page has one set of text places: on the sample's folio 101 the canvas prints every text where an export of
+/// the project prints it, when opened and after an edit beside the power supply -101G1's texts (the wire to its L
+/// loses its route).
 #[test]
 fn the_canvas_prints_every_text_where_the_export_does() {
     let tmp = Tmp::new("canvas-texts");
-    let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "101");
+    let mut shell = tmp.sample_in(ew_viewmodel::shell::Mode::Headless, true, "101");
     let canvas = |s: &ShellModel| text_places(&s.canvas().unwrap().page().list.items);
-    let (fresh, _) = ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (fresh, _) = ew_api::Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
     let opened = fresh
         .export_pages(&ew_api::output::ExportOptions {
             pages: ew_api::output::PageSelection::Folios(vec!["101".to_owned()]),
@@ -692,11 +693,12 @@ fn the_canvas_prints_every_text_where_the_export_does() {
         "opened"
     );
     let wire = common::tables(&shell)
-        .connections
+        .cps
         .iter()
-        .find(|c| c.id.to_string() == "f40a98e3-3bd6-5d3f-85f7-004cda0ab94a")
-        .map(|c| c.id.to_string())
-        .expect("the wire to -T55:5");
+        .find(|c| c.label == "-101G1:L")
+        .and_then(|c| c.connections.iter().next())
+        .map(ToString::to_string)
+        .expect("the wire to the power supply's L");
     done(
         &mut shell,
         "command.run",

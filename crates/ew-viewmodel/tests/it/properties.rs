@@ -20,7 +20,7 @@ const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 
 /// A headless shell with a writable copy of Golden A on `folio`.
 fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
-    tmp.shell_in(Mode::Headless, true, folio)
+    tmp.sample_in(Mode::Headless, true, folio)
 }
 
 /// The value text of row `key`.
@@ -694,7 +694,7 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
 #[test]
 fn a_read_only_project_offers_no_action() {
     let tmp = Tmp::new("props-ro");
-    let mut shell = tmp.shell("101");
+    let mut shell = tmp.sample_shell("101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
     let sheet = shell.properties().sheet().unwrap();
     assert!(sheet.read_only.is_some());
@@ -755,7 +755,7 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
     }
     // Golden A's size profile, from its project file.
     let golden =
-        std::fs::read_to_string(std::path::Path::new(common::GOLDEN_A).join("project.jsonl")).unwrap();
+        std::fs::read_to_string(std::path::Path::new(common::SAMPLE).join("project.jsonl")).unwrap();
     let size = golden
         .lines()
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
@@ -786,7 +786,7 @@ fn an_edit_of_501_targets_opens_the_card() {
     use ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("props-501");
     // A copy of Golden A with 501 devices more, made through the session (no hand-edited file).
-    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     let mut ids: Vec<String> = Vec::new();
     for _ in 0..501 {
         let receipt = session
@@ -1222,7 +1222,7 @@ fn a_representations_position_reads_in_millimetres_with_its_cell() {
     );
     shell.shutdown();
     // The project's decimal comma (no command sets it: the company-standard wizard writes it).
-    let file = tmp.golden_copy().join("project.jsonl");
+    let file = tmp.sample_copy().join("project.jsonl");
     let jsonl = std::fs::read_to_string(&file).unwrap();
     assert!(jsonl.contains("\"decimal_separator\":\"point\""));
     std::fs::write(
@@ -1316,7 +1316,7 @@ fn no_row_of_properties_answers_that_no_command_edits_it() {
     let tmp = Tmp::new("pf7-rows");
     let mut shell = writable(&tmp, "101");
     let mut all = Vec::new();
-    records(&tmp.golden_copy(), &mut all);
+    records(&tmp.sample_copy(), &mut all);
     let mut per_kind: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     let mut problems = std::collections::BTreeSet::new();
     let mut walk = |shell: &ShellModel| {

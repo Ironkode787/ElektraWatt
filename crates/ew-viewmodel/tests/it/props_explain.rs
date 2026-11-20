@@ -47,7 +47,7 @@ fn rows_on_show(s: &ShellModel, out: &mut BTreeSet<(String, String, String)>) {
 #[test]
 fn every_row_of_the_sample_explains_itself_in_both_languages() {
     let tmp = Tmp::new("props-explain");
-    let mut s = tmp.open(false);
+    let mut s = tmp.open_sample(false);
     done(&mut s, "props.show", json!({"on": true}));
     done(&mut s, "props.show_advanced", json!({"on": true}));
     let mut rows = BTreeSet::new();

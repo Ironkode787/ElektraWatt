@@ -57,7 +57,7 @@ fn last_waive(shell: &ShellModel) -> serde_json::Value {
 #[test]
 fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_again() {
     let tmp = Tmp::new("waive-prompt");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     done(
@@ -150,7 +150,7 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
 #[test]
 fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_commit() {
     let tmp = Tmp::new("waive-refusals");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     let rev = shell.revision();
@@ -185,7 +185,7 @@ fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_
 
     // Headless: `check.waive` is `HumanOnly`.
     let tmp = Tmp::new("waive-headless");
-    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     assert_eq!(
@@ -202,7 +202,7 @@ fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_
 /// A writable window copy of Golden A on folio 103 with the bond B1 deleted: 0 V and PE merge over W27 and EW-POT-001
 /// reports (as in `tests/bond.rs`).
 fn without_b1(tmp: &Tmp) -> ShellModel {
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let bond = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
@@ -224,7 +224,7 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
 #[test]
 fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_declared() {
     let tmp = Tmp::new("conflict-golden");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     assert!(shell.conflict_members().is_empty(), "Golden A has its bond");
     assert!(shell.conflict_overlay(0).is_empty());
     shell.shutdown();
@@ -288,7 +288,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
 #[test]
 fn a_named_connection_point_draws_its_wires_or_its_ring() {
     let tmp = Tmp::new("ft696");
-    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let page = std::sync::Arc::clone(shell.canvas().expect("folio 103").page());
     let sheet = |p: &(i64, i64)| page.snapper.page_to_sheet(*p);
     let wired = page
@@ -386,8 +386,8 @@ fn an_undefined_potential_s_finding_draws_its_named_point() {
 #[test]
 fn a_scripted_window_shows_the_waive_refusal_in_words() {
     let tmp = Tmp::new("waive-scripted");
-    let dir = tmp.golden_copy();
-    common::copy_dir(std::path::Path::new(common::GOLDEN_A), &dir);
+    let dir = tmp.sample_copy();
+    common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
     let mut shell = ShellModel::new_scripted(ew_viewmodel::shell::ShellConfig::in_dir(
         &tmp.0.join("config"),
         "0.0.0-test",
