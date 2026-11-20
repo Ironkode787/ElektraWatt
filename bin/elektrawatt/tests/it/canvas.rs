@@ -139,7 +139,7 @@ fn rgb_at(img: &[u8], width: u32, x: i64, y: i64) -> [u8; 3] {
 /// A6: the canvas snapshot's sheet matches the golden page, the grid dots sit on the QET 10 px pitch, the surround
 /// and the page bounds are where the view says, and the dark theme changes the surround only.
 #[test]
-fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
+fn the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
     let tmp = Tmp::new();
     let dir = tmp.golden("a6");
     let light = tmp.path("light");
@@ -269,7 +269,7 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
 /// A8: the canvas member and the describe lines through the binary; the pointer at an entity's centre hovers it
 /// (or a smaller entity there).
 #[test]
-fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text() {
+fn the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text() {
     let tmp = Tmp::new();
     let dir = tmp.golden("a8");
     // An entity of folio 103 and its rectangle, from the project itself.
@@ -400,7 +400,7 @@ fn side_by_side_script(dir: &Path, out: &Path) -> String {
 /// V8 (FR-UI-035): 102 left and 103 right with their own zooms, pans and pointers; tab switches and Back keep each
 /// tab's view; a snapshot per group.
 #[test]
-fn v8_side_by_side_headless() {
+fn side_by_side_headless() {
     let tmp = Tmp::new();
     let dir = tmp.golden("v8");
     let out_dir = tmp.path("v8out");
@@ -497,7 +497,7 @@ fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
 /// T7: the snapshot composites the Measure line, its snap markers, the grid cursor and a rubber band; twice the
 /// same bytes; labels never.
 #[test]
-fn t7_the_snapshot_composites_the_tool_overlay() {
+fn the_snapshot_composites_the_tool_overlay() {
     let tmp = Tmp::new();
     let dir = tmp.golden("t7");
     let (empty, _) = points(&dir, "102");
@@ -587,7 +587,7 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
 /// T8: `canvas.preview_snapshot` writes the link preview (320 × 200 points), byte-identical twice; refused without
 /// a preview.
 #[test]
-fn t8_the_preview_snapshot_is_deterministic() {
+fn the_preview_snapshot_is_deterministic() {
     let tmp = Tmp::new();
     let dir = tmp.golden("t8");
     let (_, link) = points(&dir, "101");

@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn b1_every_row_of_the_switch_rule() {
+    fn every_row_of_the_switch_rule() {
         let auto = BackendSetting::Auto;
         let none = Flags::default();
         let vulkan = adapter(DeviceKind::Discrete, GpuApi::Vulkan);
@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn b1_the_no_gpu_adapter_selector_on_synthetic_lists() {
+    fn the_no_gpu_adapter_selector_on_synthetic_lists() {
         let hw = adapter(DeviceKind::Discrete, GpuApi::Dx12);
         let igpu = adapter(DeviceKind::Integrated, GpuApi::Dx12);
         let warp = adapter(DeviceKind::Cpu, GpuApi::Dx12);

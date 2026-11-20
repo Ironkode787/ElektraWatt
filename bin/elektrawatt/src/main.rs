@@ -916,7 +916,7 @@ mod tests {
     }
 
     #[test]
-    fn b6_a_missing_adapter_exits_with_code_3_and_names_the_ways_without_one() {
+    fn a_missing_adapter_exits_with_code_3_and_names_the_ways_without_one() {
         use eframe::egui_wgpu::WgpuError;
         // The --no-gpu selector found no adapter at all (the injected failure of an empty adapter list).
         let selector = eframe::Error::Wgpu(WgpuError::CustomNativeAdapterSelectionError(

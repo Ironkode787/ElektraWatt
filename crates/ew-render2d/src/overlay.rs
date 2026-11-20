@@ -1407,7 +1407,7 @@ mod tests {
     }
 
     #[test]
-    fn t7_a_line_runs_from_the_pixel_of_its_start_to_the_pixel_of_its_end() {
+    fn a_line_runs_from_the_pixel_of_its_start_to_the_pixel_of_its_end() {
         let v = view(1.0);
         let t = v.settled_transform();
         let (a, b) = ((100_000_000, 100_000_000), (150_000_000, 100_000_000));
@@ -1457,7 +1457,7 @@ mod tests {
     }
 
     #[test]
-    fn t7_rectangles_polylines_and_ghosts_map_to_the_screen() {
+    fn rectangles_polylines_and_ghosts_map_to_the_screen() {
         let v = view(1.0);
         let t = v.settled_transform();
         let r = Rect::from_points(
@@ -1535,7 +1535,7 @@ mod tests {
     }
 
     #[test]
-    fn t7_markers_are_a_cross_a_ring_and_a_square() {
+    fn markers_are_a_cross_a_ring_and_a_square() {
         let v = view(1.0);
         let t = v.settled_transform();
         let at = (148_500_000, 105_000_000);
@@ -1561,7 +1561,7 @@ mod tests {
     }
 
     #[test]
-    fn t7_the_tool_overlay_composites_between_the_selection_and_the_cursor() {
+    fn the_tool_overlay_composites_between_the_selection_and_the_cursor() {
         let v = view(1.0);
         let at = (148_500_000, 105_000_000);
         let tool = [
@@ -1602,7 +1602,7 @@ mod tests {
     }
 
     #[test]
-    fn t7_a_line_far_outside_the_pane_draws_only_what_shows() {
+    fn a_line_far_outside_the_pane_draws_only_what_shows() {
         let v = view(1.0);
         let far = [ToolMark::Line {
             a: (-9_000_000_000_000, 105_000_000),

@@ -1103,7 +1103,7 @@ mod tests {
     }
 
     #[test]
-    fn b3_n_placements_of_one_symbol_are_one_mesh_and_n_instances() {
+    fn n_placements_of_one_symbol_are_one_mesh_and_n_instances() {
         let mut cache = MeshCache::default();
         let s = prepare(1, &placed(7), &NoFonts, &mut cache);
         assert_eq!(
@@ -1128,7 +1128,7 @@ mod tests {
     }
 
     #[test]
-    fn b3_a_second_preparation_tessellates_nothing() {
+    fn a_second_preparation_tessellates_nothing() {
         let mut cache = MeshCache::default();
         let mut list = placed(3);
         list.push(Item::path(
