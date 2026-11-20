@@ -18,7 +18,7 @@ The page's menu is the quick way to what fits the thing under the pointer: its f
 come the general ones (Rotate, Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, Properties of
 selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the selection.
 
-- On a wire: Reroute, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
+- On a wire: Route, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
@@ -161,7 +161,7 @@ junction. It keeps clear of texts too, unless the only way round them is far lon
 the sheet) or there is none: then the route crosses the text and the hint says "The route crosses a text: keeping
 clear of it is a far longer way." A device tag on the wire then moves to a free place beside its symbol. When no route exists at all the wire shows as a dashed right-angled
 line and the hint says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
-or route it later with Reroute." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
+or route it later with Route." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
 dashed and the check reports it ("Wire … has no route: it is drawn as a dashed line.") until it has a route. Click
 on empty points to place bends and the wire follows them ("Bend placed: click a connection point to end the wire.");
 a click inside a symbol places no bend and says so ("A bend cannot sit inside a symbol; click one of its connection
@@ -175,7 +175,7 @@ four arms): end on the wire a step beside the crossing.
 
 An unrouted wire, from an import or a placement, is drawn as a dashed line between its ends, straight or with
 one corner and never diagonal, on the page and in the PDF. The line takes no notice of what lies under it: it is
-no route yet. Route page or Reroute draws it.
+no route yet. Route draws it.
 
 ## Tube
 

@@ -75,3 +75,132 @@ fn clamp(p: Pt2, page: Rect) -> Pt2 {
 fn clamp_nm(v: Nm, lo: Nm, hi: Nm) -> Nm {
     v.max(lo).min(hi)
 }
+
+/// The unit step from `a` to `b` on one line; `None` for one point or a slant.
+fn unit(a: Pt2, b: Pt2) -> Option<(i64, i64)> {
+    let (dx, dy) = ((b.x - a.x).0, (b.y - a.y).0);
+    match (dx.signum(), dy.signum()) {
+        (0, 0) => None,
+        (sx, 0) => Some((sx, 0)),
+        (0, sy) => Some((0, sy)),
+        _ => None,
+    }
+}
+
+/// Where two lines that start at one point part: walked from it together while they run the same way. The point
+/// where they part, the direction they arrived there in, and the length of their last shared run; `None` when they share
+/// nothing.
+fn parting(a: &[Pt2], b: &[Pt2]) -> Option<(Pt2, (i64, i64), Nm)> {
+    let (mut ia, mut ib) = (1usize, 1usize);
+    let mut cur = *a.first()?;
+    let mut found: Option<(Pt2, (i64, i64), Nm)> = None;
+    while ia < a.len() && ib < b.len() {
+        let (ta, tb) = (a[ia], b[ib]);
+        let d = unit(cur, ta)?;
+        if unit(cur, tb) != Some(d) {
+            break;
+        }
+        let len = |t: Pt2| (t.x - cur.x).0.abs() + (t.y - cur.y).0.abs();
+        let l = len(ta).min(len(tb));
+        let next = Pt2::new(cur.x + Nm(d.0 * l), cur.y + Nm(d.1 * l));
+        let run = match found {
+            Some((_, prev, so_far)) if prev == d => so_far + Nm(l),
+            _ => Nm(l),
+        };
+        found = Some((next, d, run));
+        cur = next;
+        if cur == ta {
+            ia += 1;
+        }
+        if cur == tb {
+            ib += 1;
+        }
+    }
+    found
+}
+
+/// The drawn lines of the wires of one pin, where they share their run out of it, parted as the trade draws two wires
+/// on one terminal (docs/design/06a-drafting.md §3.4): where the run parts, a wire that turns while another goes on
+/// straight, or of two that turn away from each other the one that turns right or down, leaves the run by a 45° bevel
+/// from one `step` before the parting to one `step` along its own way; the other keeps its square corner. A run or a way
+/// on shorter than a step keeps its corner. `pins`: each pin's point with the lines (indices into `lines`) that end at
+/// it.
+pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: Nm) {
+    for (p, members) in pins {
+        if members.len() < 2 {
+            continue;
+        }
+        // Each member's line from the pin outward, and whether it was turned for that.
+        let out: Vec<Option<(Vec<Pt2>, bool)>> = members
+            .iter()
+            .map(|&k| {
+                let l = lines.get(k)?;
+                if l.first() == Some(p) {
+                    Some((l.clone(), false))
+                } else if l.last() == Some(p) {
+                    Some((l.iter().rev().copied().collect(), true))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        // Each member's parting with the member it shares the longest run with.
+        let mut parts: Vec<Option<(Pt2, (i64, i64), Nm)>> = vec![None; members.len()];
+        for i in 0..members.len() {
+            for j in 0..members.len() {
+                if i == j {
+                    continue;
+                }
+                let (Some((a, _)), Some((b, _))) = (&out[i], &out[j]) else { continue };
+                if let Some(x) = parting(a, b) {
+                    let far = |q: &(Pt2, (i64, i64), Nm)| (q.0.x - p.x).0.abs() + (q.0.y - p.y).0.abs();
+                    if parts[i].as_ref().is_none_or(|q| far(&x) > far(q)) {
+                        parts[i] = Some(x);
+                    }
+                }
+            }
+        }
+        // The way each member goes on from its parting: its next direction there.
+        let way = |i: usize| -> Option<(usize, (i64, i64), Nm)> {
+            let (line, _) = out[i].as_ref()?;
+            let (x, d_in, _) = parts[i]?;
+            let k = line.iter().position(|q| *q == x)?;
+            let next = *line.get(k + 1)?;
+            let d = unit(x, next)?;
+            Some((k, d, Nm((next.x - x.x).0.abs() + (next.y - x.y).0.abs()))).filter(|_| d != (-d_in.0, -d_in.1))
+        };
+        for i in 0..members.len() {
+            let Some((x, d_in, run)) = parts[i] else { continue };
+            let Some((k, d_out, on)) = way(i) else { continue };
+            if d_out == d_in || run < step || on < step {
+                continue;
+            }
+            // The others parting at the same point: one going straight on gives the turn the bevel; else the turn right
+            // or down takes it.
+            let others: Vec<usize> = (0..members.len())
+                .filter(|j| *j != i && parts[*j].is_some_and(|q| q.0 == x))
+                .collect();
+            if others.is_empty() {
+                continue;
+            }
+            let straight = others.iter().any(|j| {
+                let Some((line, _)) = out[*j].as_ref() else { return false };
+                // A member straight through the parting has no vertex there.
+                !line.contains(&x) || way(*j).is_some_and(|w| w.1 == d_in)
+            });
+            if !straight && !matches!(d_out, (1, 0) | (0, 1)) {
+                continue;
+            }
+            let Some((mut line, turned)) = out[i].clone() else { continue };
+            let back = Pt2::new(x.x - Nm(d_in.0 * step.0), x.y - Nm(d_in.1 * step.0));
+            let on_way = Pt2::new(x.x + Nm(d_out.0 * step.0), x.y + Nm(d_out.1 * step.0));
+            line.splice(k..=k, [back, on_way]);
+            if turned {
+                line.reverse();
+            }
+            if let Some(l) = lines.get_mut(members[i]) {
+                *l = line;
+            }
+        }
+    }
+}

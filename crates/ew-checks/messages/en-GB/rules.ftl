@@ -278,16 +278,16 @@ rule-ew-core-067 = { $line ->
         [junction] the junction in { $pin }
         [junction-off-grid] a junction
        *[cp] { $pin }
-    } without joining it, so on paper it looks connected. Reroute it so that it passes beside.
+    } without joining it, so on paper it looks connected. Route it again so that it passes beside.
     .title = Wire through a connection point
-    .hint = Open the message: the wire is selected on its page. Press Reroute, or drag its round handles so that it keeps clear of the point.
+    .hint = Open the message: the wire is selected on its page. Press Route, or drag its round handles so that it keeps clear of the point.
 
 rule-ew-core-068 = { $line ->
         [tube] Tube
        *[wire] Wire
-    } { $wire } lies on top of { $other } on page { $page }, so on paper the two cannot be told apart. Reroute one of them.
+    } { $wire } lies on top of { $other } on page { $page }, so on paper the two cannot be told apart. Route one of them again.
     .title = Wire along another wire
-    .hint = Open the message: both wires are selected on their page. Press Reroute, or drag one wire's handles, so that each runs on a line of its own.
+    .hint = Open the message: both wires are selected on their page. Press Route, or drag one wire's handles, so that each runs on a line of its own.
 
 rule-ew-core-069 = { $line ->
         [tube] Tube
@@ -297,7 +297,7 @@ rule-ew-core-069 = { $line ->
        *[device] { $device }
     }.
     .title = Wire through a symbol
-    .hint = Select the wire and use Reroute, or move the symbol out of its way.
+    .hint = Select the wire and use Route, or move the symbol out of its way.
 
 rule-ew-core-070 = { $line ->
         [tube] Tube
@@ -311,7 +311,7 @@ rule-ew-core-070 = { $line ->
        *[symbol] the text "{ $text }" of { $device }
     }.
     .title = Wire through a text
-    .hint = Select the wire and use Reroute, or move the text.
+    .hint = Select the wire and use Route, or move the text.
 
 rule-ew-core-071 = a graphic line ends on { $cp }, which joins nothing electrically; draw a connection instead
     .title = Graphic line on a CP
@@ -329,7 +329,7 @@ rule-ew-core-073 = { $line ->
        *[wire] Wire
     } { $wire } has no route: it is drawn as a dashed line.
     .title = Unrouted wire
-    .hint = Run Route page; where it finds no clear way, drag the wire's handles or move the symbols.
+    .hint = Run Route; where it finds no clear way, drag the wire's handles or move the symbols.
 
 rule-ew-core-074 = { $line ->
         [tube] Tube
@@ -337,9 +337,9 @@ rule-ew-core-074 = { $line ->
     } { $wire } and { $other } turn on one point { $place ->
         [off-grid] on folio { $page }
        *[cell] at { $cell }
-    } without a junction, so on paper they look joined. Reroute one of them.
+    } without a junction, so on paper they look joined. Route one of them again.
     .title = Wires meet without joining
-    .hint = Open the message: both wires are selected. Reroute one of them, or drag a bend a grid step away.
+    .hint = Open the message: both wires are selected. Route one of them again, or drag a bend a grid step away.
 
 rule-ew-core-075 = { $owner ->
         [free-text] The free text "{ $text }"

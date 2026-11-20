@@ -22,7 +22,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"cursor.set","params":{"x_mm":257.696,"y_mm":112.867}}
 {"action":"canvas.activate","params":{}}
-{"action":"route.reroute","params":{}}
+{"action":"layout.route","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"messages.check","params":{}}
 {"action":"file.save","params":{}}

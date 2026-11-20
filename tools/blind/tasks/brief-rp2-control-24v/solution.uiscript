@@ -139,7 +139,7 @@
 {"action":"cursor.set","params":{"x_mm":270.744,"y_mm":150.705}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
-{"action":"route.page","params":{}}
+{"action":"layout.route","params":{}}
 {"action":"file.save","params":{}}
 {"action":"file.export_pdf","params":{"path":"project.pdf"}}
 {"action":"app.quit","params":{}}

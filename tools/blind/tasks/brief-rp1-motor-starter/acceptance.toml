@@ -39,9 +39,9 @@ expect = "== 0"
 [[item]]
 id = "A5"
 kind = "hard"
-what = "The tester let the program route the starter page (Route page)."
+what = "The tester let the program route the starter page (Route)."
 how = "outcomes"
-actions = ["route.page"]
+actions = ["layout.route"]
 
 [[item]]
 id = "A6"

@@ -426,7 +426,7 @@ action-project-wire-numbers = Print wire numbers
 tool-wire = Wire
 hint-wire-armed = Click or { $p0 } on a connection point, a junction or a wire to start, then on free points to lead the wire through them
 hint-wire-routing = Click a connection point to end, a free point for a bend; { $p0 } removes the last bend; { $p1 } cancels
-hint-wire-direct = No clear route: the wire stays a dashed line without a route. Click free points to lead it, or route it later with Reroute.
+hint-wire-direct = No clear route: the wire stays a dashed line without a route. Click free points to lead it, or route it later with Route.
 hint-wire-full-junction = This junction already joins three wires: end on a wire to make a new junction.
 # ID-1497 (11): after a click that placed a bend instead of ending the wire.
 hint-wire-bend = Bend placed: click a connection point to end the wire.
@@ -2143,6 +2143,7 @@ refusal-terminal-move-unchanged = the terminals are already there
 # The normalisers: a split connection, a dissolving junction and a valve's functions.
 refusal-split-not-on-route = the split point is not on the route of { $p0 }; pick a point on the wire
 refusal-split-second-not-on-route = the second split point is not on the route of { $p0 } after the first
+refusal-split-shared-run = two wires run here; place the part where they have parted
 refusal-junction-merge-numbers = { $p0 } would merge a wire { $p1 } and a wire { $p2 }, which carry different numbers; clear one of the numbers or delete the wires separately
 refusal-junction-numbered = numbered "{ $p0 }"
 refusal-junction-numbered-assigned = numbered "{ $p0 }" with assigned number { $p1 }
@@ -2720,9 +2721,9 @@ toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one i
 toast-page-grid-set = Page { $p0 } now has the { $p1 } grid.
 toast-page-grid-fitted-none = Page { $p0 } now has the { $p1 } grid: every item stood on it already, and its wires were drawn anew. Undo takes it all back in one step.
 toast-page-grid-fitted = Page { $p0 } now has the { $p1 } grid: { $p2 } items moved onto it and its wires were drawn anew. Undo takes it all back in one step.
-toast-wires-unrouted = { $p0 } wires found no way and are drawn as thin dashed lines: move the items apart and choose Reroute.
-toast-wires-unrouted-one = One wire found no way and is drawn as a thin dashed line: move the items apart and choose Reroute.
-tip-wire-unrouted = This wire has no route, so it is drawn as a thin dashed line: move what is in its way and choose Reroute.
+toast-wires-unrouted = { $p0 } wires found no way and are drawn as thin dashed lines: move the items apart and choose Route.
+toast-wires-unrouted-one = One wire found no way and is drawn as a thin dashed line: move the items apart and choose Route.
+tip-wire-unrouted = This wire has no route, so it is drawn as a thin dashed line: move what is in its way and choose Route.
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.

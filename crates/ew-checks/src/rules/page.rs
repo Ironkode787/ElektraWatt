@@ -1037,7 +1037,7 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         discriminator,
         wire.words,
         format!(
-            "{} {} crosses {named} without joining it, so on paper it looks connected. Reroute it so that it passes \
+            "{} {} crosses {named} without joining it, so on paper it looks connected. Route it again so that it passes \
              beside.",
             wire.noun(),
             wire.words
@@ -1058,7 +1058,7 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
         "",
         wire.words,
         format!(
-            "{} {} lies on top of {} on page {folio}, so on paper the two cannot be told apart. Reroute one of them.",
+            "{} {} lies on top of {} on page {folio}, so on paper the two cannot be told apart. Route one of them again.",
             wire.noun(),
             wire.words,
             other.words
@@ -1296,8 +1296,8 @@ pub fn wires_meet(
         cell,
         wire.words,
         format!(
-            "{} {} and {} turn on one point {at} without a junction, so on paper they look joined. Reroute one of \
-             them.",
+            "{} {} and {} turn on one point {at} without a junction, so on paper they look joined. Route one of \
+             them again.",
             wire.noun(),
             wire.words,
             other.words

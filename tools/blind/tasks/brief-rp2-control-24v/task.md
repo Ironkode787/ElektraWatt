@@ -20,7 +20,7 @@ Run `{run}` is a `{kind}` run with the caps {turns} turns, {steps} steps, {looks
   coil from 24 V; the relay's normally open contact, wired across the start pushbutton, holds it on; the coil's other
   end goes to 0 V. The lamp lights through another contact of the relay, and the second pushbutton lights it
   directly; the lamp's other end goes to 0 V.
-- Let the program draw the routes of the wires (Route page), and look at what it drew: say in your notes where a wire
+- Let the program draw the routes of the wires (Route), and look at what it drew: say in your notes where a wire
   runs as you would draw it and where it does not.
 
 ## What to hand over

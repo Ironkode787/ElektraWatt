@@ -4281,7 +4281,7 @@ mod tests {
             ("-1K1", "the station address is TBD", false),
             (
                 wire,
-                "Wire -G1:+ → -S1:1 has no route: Route page draws it.",
+                "Wire -G1:+ → -S1:1 has no route: Route draws it.",
                 true,
             ),
             (

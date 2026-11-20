@@ -15,7 +15,7 @@ requires = [
     "action: strip.new",
     "action: tool.ip",
     "action: tool.wire",
-    "action: route.page",
+    "action: layout.route",
     "action: file.export_pdf",
 ]
 areas = ["new page", "terminal strips", "interruption points", "relay contacts", "wiring", "routing", "save and export"]

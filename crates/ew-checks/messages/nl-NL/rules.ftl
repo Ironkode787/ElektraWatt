@@ -282,14 +282,14 @@ rule-ew-core-067 = { $line ->
        *[cp] { $pin }
     } zonder ermee verbonden te zijn, dus op papier lijkt hij aangesloten. Routeer hem opnieuw zodat hij ernaast loopt.
     .title = Draad door een aansluitpunt
-    .hint = Open de melding: de draad is geselecteerd op zijn pagina. Kies Opnieuw routeren, of sleep zijn ronde grepen zodat hij vrij blijft van het punt.
+    .hint = Open de melding: de draad is geselecteerd op zijn pagina. Kies Routeren, of sleep zijn ronde grepen zodat hij vrij blijft van het punt.
 
 rule-ew-core-068 = { $line ->
         [tube] Slang
        *[wire] Draad
     } { WORD($wire) } ligt over { WORD($other) } op pagina { $page }, dus op papier zijn de twee niet uit elkaar te houden. Routeer een van beide opnieuw.
     .title = Draad over een andere draad
-    .hint = Open de melding: beide draden zijn geselecteerd op hun pagina. Kies Opnieuw routeren, of sleep de grepen van één draad, zodat elke draad een eigen lijn heeft.
+    .hint = Open de melding: beide draden zijn geselecteerd op hun pagina. Kies Routeren, of sleep de grepen van één draad, zodat elke draad een eigen lijn heeft.
 
 rule-ew-core-069 = { $line ->
         [tube] Slang
@@ -299,7 +299,7 @@ rule-ew-core-069 = { $line ->
        *[device] { WORD($device) }
     }.
     .title = Draad door een symbool
-    .hint = Selecteer de draad en gebruik Opnieuw routeren, of verplaats het symbool uit de weg.
+    .hint = Selecteer de draad en gebruik Routeren, of verplaats het symbool uit de weg.
 
 rule-ew-core-070 = { $line ->
         [tube] Slang
@@ -313,7 +313,7 @@ rule-ew-core-070 = { $line ->
        *[symbol] de tekst "{ $text }" van { WORD($device) }
     }.
     .title = Draad door een tekst
-    .hint = Selecteer de draad en gebruik Opnieuw routeren, of verplaats de tekst.
+    .hint = Selecteer de draad en gebruik Routeren, of verplaats de tekst.
 
 rule-ew-core-071 = een grafische lijn eindigt op { $cp }, wat elektrisch niets verbindt; teken in plaats daarvan een verbinding
     .title = Grafische lijn op een aansluitpunt
@@ -331,7 +331,7 @@ rule-ew-core-073 = { $line ->
        *[wire] Draad { WORD($wire) } heeft geen route: hij is als gestreepte lijn getekend.
     }
     .title = Draad zonder route
-    .hint = Gebruik Pagina routeren; waar die geen vrije weg vindt, versleep de grepen van de draad of verplaats de symbolen.
+    .hint = Gebruik Routeren; waar dat geen vrije weg vindt, versleep de grepen van de draad of verplaats de symbolen.
 
 rule-ew-core-074 = { $line ->
         [tube] Slangen

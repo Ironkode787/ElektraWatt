@@ -18,7 +18,7 @@ Run `{run}` is a `{kind}` run with the caps {turns} turns, {steps} steps, {looks
 - Folio 102, the motor starter, on one page: L1, L2, L3 and PE arrive at interruption points at the page's left edge.
   Each phase goes through its own main contact of the contactor, in phase order, to the motor's U1, V1 and W1; PE goes
   to the motor's PE.
-- Let the program draw the routes of the starter page's wires (Route page), and look at what it drew: say in your
+- Let the program draw the routes of the starter page's wires (Route), and look at what it drew: say in your
   notes where a wire runs as you would draw it and where it does not.
 
 ## What to hand over

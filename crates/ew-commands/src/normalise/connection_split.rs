@@ -164,6 +164,20 @@ impl Normaliser for ConnectionSplit {
                     continue;
                 }
                 let (c1, c2) = (cps[i1], cps[i2]);
+                // Two wires of one pin that share their run (docs/design/06a-drafting.md §3.4) are no place for a part:
+                // cut, the other would run on through its pins.
+                let shared = on_page.iter().any(|o| {
+                    *o != cid
+                        && tx.get::<Connection>(*o).is_some_and(|w| {
+                            let path: Vec<Pt2> = squared(&w.route, settle).into_iter().map(settle).collect();
+                            !w.route.is_empty()
+                                && locate(&path, settle(c1.pos)).is_some()
+                                && locate(&path, settle(c2.pos)).is_some()
+                        })
+                });
+                if shared {
+                    return tx.reject(text!("refusal-split-shared-run"));
+                }
                 // The wire is cut on its own line, at the point beside each pin: the pin's coordinate along the
                 // stored segment it lies on, the segment's own number across it.
                 let beside = |seg: usize, p: Pt2| match (route.get(seg), route.get(seg + 1)) {

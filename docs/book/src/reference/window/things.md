@@ -34,8 +34,8 @@ To make one: **Draw ▸ Connect ▸ Wire** (`W`), then a click on a start point 
 ([Wire](tools.md#wire)).
 
 To change one: select it. The selected wire shows round handles; drag one to change its route
-([Change a wire's route by hand](tools.md#change-a-wires-route-by-hand)), or choose **Reroute** to route it again
-([Reroute](tools.md#reroute)). Its number, colour and cross-section are its rows in Properties, explained under
+([Change a wire's route by hand](tools.md#change-a-wires-route-by-hand)), or choose **Route** to route it again
+([Route](tools.md#route)). Its number, colour and cross-section are its rows in Properties, explained under
 [Connection](../properties.md#connection).
 
 ## Cables and their marks

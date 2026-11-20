@@ -4,4 +4,4 @@
 text = "Select E56 with a click, then move it with Move in the Draw tab's Arrange group or drag it; its wires follow."
 
 [[hint]]
-text = "Draw the new lamp's two wires to E56's two connection points; Reroute in the Draw tab's Connect group then routes every wire of the selected lamp again."
+text = "Draw the new lamp's two wires to E56's two connection points; Route in the Draw tab's Connect group then routes every wire of the selected lamp again."

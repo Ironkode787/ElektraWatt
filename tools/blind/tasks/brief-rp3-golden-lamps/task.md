@@ -10,7 +10,7 @@ Run `{run}` is a `{kind}` run with the caps {turns} turns, {steps} steps, {looks
 
 - Move the signal lamp E56 two columns to the right on folio 101; its wires stay connected.
 - Add a second signal lamp in parallel with E56: its two connections on the same two potentials as E56's.
-- Let the program route the wires of the two lamps again (Reroute), and look at what it drew: say in your
+- Let the program route the wires of the two lamps again (Route), and look at what it drew: say in your
   notes where a wire runs as you would draw it and where it does not.
 - Run the check and look at what it says about your change.
 - Export the PDF of the drawing set and leave the project saved.

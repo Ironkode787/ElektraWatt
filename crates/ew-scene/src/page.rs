@@ -1457,10 +1457,29 @@ impl Builder<'_> {
             Crossings::Plain => Vec::new(),
             Crossings::Hops => hops(&drawn.iter().map(|(_, p)| p.clone()).collect::<Vec<_>>()),
         };
-        for (k, (id, pts)) in drawn.iter().enumerate() {
+        // The wires of one pin that share their run out of it part with a bevel (docs/design/06a-drafting.md §3.4).
+        let mut lines: Vec<Vec<Pt2>> = drawn.iter().map(|(_, p)| p.clone()).collect();
+        let mut at_pin: BTreeMap<(Uuid, u16), Vec<usize>> = BTreeMap::new();
+        for (k, (id, _)) in drawn.iter().enumerate() {
+            if let Some(cv) = view.connections.iter().find(|c| c.connection.id == *id) {
+                for e in [&cv.connection.a, &cv.connection.b] {
+                    if let Endpoint::Cp(f, idx) = e {
+                        at_pin.entry((f.as_uuid(), *idx)).or_default().push(k);
+                    }
+                }
+            }
+        }
+        let pins: Vec<(Pt2, Vec<usize>)> = at_pin
+            .into_iter()
+            .filter_map(|(key, ks)| Some((cps.get(&key)?.0, ks)))
+            .collect();
+        let step = Nm(view.grid.at(1).map_or(0, |n| n.0) - view.grid.at(0).map_or(0, |n| n.0));
+        crate::route::bevel_partings(&mut lines, &pins, step);
+        for (k, (id, _)) in drawn.iter().enumerate() {
+            let pts = &lines[k];
             let path = match hopped.get(k) {
                 _ if flexible[k] => flexible_arc(pts),
-                Some(h) if !h.is_empty() => hop_path(pts, h),
+                Some(h) if !h.is_empty() => hop_path(&drawn[k].1, h),
                 _ => Path::polyline(pts),
             };
             self.push(Item::path(path, Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
