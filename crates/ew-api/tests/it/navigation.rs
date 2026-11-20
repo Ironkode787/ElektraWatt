@@ -153,7 +153,7 @@ fn golden_pdf(s: &Session) -> (Pdf, Vec<String>) {
 }
 
 #[test]
-fn v1_link_sources_are_the_pdf_link_annotations_on_folios_101_to_103() {
+fn link_sources_are_the_pdf_link_annotations_on_folios_101_to_103() {
     let s = golden_common::session(&batch());
     let (pdf, folios) = golden_pdf(&s);
     let mut matched = 0;
@@ -199,7 +199,7 @@ fn v1_link_sources_are_the_pdf_link_annotations_on_folios_101_to_103() {
 }
 
 #[test]
-fn v1_link_targets_are_the_pdf_named_destinations_and_print_the_xref_cells() {
+fn link_targets_are_the_pdf_named_destinations_and_print_the_xref_cells() {
     let b = batch();
     let ids = ids_by_key(&b);
     let s = golden_common::session(&b);
@@ -290,7 +290,7 @@ fn v1_link_targets_are_the_pdf_named_destinations_and_print_the_xref_cells() {
 }
 
 #[test]
-fn v1_link_targets_print_the_eplan_preset() {
+fn link_targets_print_the_eplan_preset() {
     let b = batch();
     let ids = ids_by_key(&b);
     let mut s = golden_common::session(&b);
@@ -327,7 +327,7 @@ fn eplan(s: &mut Session) {
 /// the golden project. The count skips the continuation page 2.1 before folio 101, so the index of 101 is 6 and not 7
 /// (FR-XRF-003).
 #[test]
-fn v1_the_navigators_page_index_is_the_xref_engines() {
+fn the_navigators_page_index_is_the_xref_engines() {
     let b = batch();
     let ids = ids_by_key(&b);
     let mut s = golden_common::session(&b);
@@ -375,7 +375,7 @@ fn v1_the_navigators_page_index_is_the_xref_engines() {
 }
 
 #[test]
-fn v1_page_rows_follow_the_page_order() {
+fn page_rows_follow_the_page_order() {
     let s = golden_common::session(&batch());
     let rows = s.page_rows();
     let labels = s.page_labels();
@@ -412,7 +412,7 @@ fn v1_page_rows_follow_the_page_order() {
 }
 
 #[test]
-fn v1_page_cells_on_the_qet_frame() {
+fn page_cells_on_the_qet_frame() {
     let b = batch();
     let ids = ids_by_key(&b);
     let s = golden_common::session(&b);
@@ -597,7 +597,7 @@ fn path_ends(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Vec<(i
 }
 
 #[test]
-fn t5_page_cps_on_folio_102() {
+fn page_cps_on_folio_102() {
     let s = golden_common::session(&batch());
     let cps = s.page_cps("102");
     assert!(cps.len() >= 10, "{}", cps.len());

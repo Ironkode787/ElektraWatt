@@ -160,7 +160,7 @@ fn the_rows_are_the_online_findings_under_their_severity_and_rule() {
 }
 
 #[test]
-fn ef08_is_a_warning_row_that_opens_the_cable_on_its_page() {
+fn is_a_warning_row_that_opens_the_cable_on_its_page() {
     let s = golden();
     let t = s.navigator_table(NavKind::Messages);
     let row = findings(&t)

@@ -43,7 +43,7 @@ fn block_title(sheet: &PropertySheet) -> String {
 }
 
 #[test]
-fn p1_a_generated_page_is_titled_by_its_folio_and_derived_title() {
+fn a_generated_page_is_titled_by_its_folio_and_derived_title() {
     let s = golden();
     let first = sheet_of(&s, "901");
     assert_eq!(first.header.title, "901 Partlist 1");

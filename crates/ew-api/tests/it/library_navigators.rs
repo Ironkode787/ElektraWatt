@@ -118,7 +118,7 @@ fn cell<'t>(t: &'t NavTable, n: &'t NavNode, key: &str) -> &'t str {
 /// read-only. Tiers and the group of the project's copies are words. (Golden A's parts are its own items, which
 /// `library_status` leaves out)
 #[test]
-fn ui4_golden_a_copies_have_no_source_without_libraries() {
+fn golden_a_copies_have_no_source_without_libraries() {
     let s = golden(None);
     let t = s.navigator_table(NavKind::Libraries);
     let system = row(&t, NavRole::Tier, "System");
@@ -173,7 +173,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
 /// UI-4: 2904602 assigned to -102G1 from a fixture user library is current; once the library holds 1.0.1 the copy
 /// has an update available. The library stands under "User", writable.
 #[test]
-fn ui4_a_fixture_library_offers_an_update() {
+fn a_fixture_library_offers_an_update() {
     let (_root, t, lib) = fixture_library("ew-api-ui4");
     let mut s = golden(Some(t));
     let item: Uuid = golden_part()["item_id"].as_str().unwrap().parse().unwrap();
@@ -227,7 +227,7 @@ fn free_point() -> ew_units::Pt2 {
 /// device count; the detail lists its three devices, has no thumbnail and names the macro by reference. A new
 /// instance ID is the same twice and moves on after an insertion.
 #[test]
-fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
+fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     let root = Dir(ew_testdir::fresh_dir("ew-api-ui1"));
     let t = tiers(&root.0);
     let mut reg = Registry::open(&t).unwrap();

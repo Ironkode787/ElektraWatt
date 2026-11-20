@@ -794,7 +794,7 @@ fn findings(s: &Session, rule: &str, device: Uuid) -> Vec<ew_api::checks::Findin
 /// The terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010;
 /// emptying a position takes its symbol away.
 #[test]
-fn rc3_a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes() {
+fn a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes() {
     let mut s = project(191);
     let vt = place_drawn_terminal(&mut s, (60_000_000, 80_000_000));
     let valves: Vec<Uuid> = (1..=4).map(|n| fill(&mut s, vt, n, true)).collect();
@@ -872,7 +872,7 @@ fn rc3_a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes(
 /// as wide as it needs: the box keeps its corner and grows to the right, the valve and the cells to its right move,
 /// each valve stands in its own cell with ports 2 and 4 on the top edge, and the tubes still end at their ports.
 #[test]
-fn rc3_a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
+fn a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
     let mut s = project(193);
     let vt = place_drawn_terminal(&mut s, (60_000_000, 80_000_000));
     let box_at = |s: &Session| {
@@ -953,7 +953,7 @@ fn rc3_a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
 /// terminal's supply in its left end; a valve drawn on another page on purpose stays there, and its cell names the
 /// place it is drawn at, linked to it.
 #[test]
-fn rc3_a_project_made_before_draws_its_valves_in_the_terminal() {
+fn a_project_made_before_draws_its_valves_in_the_terminal() {
     let mut s = project(192);
     let vt = place_terminal(&mut s, (60_000_000, 80_000_000));
     let (a, b) = (fill(&mut s, vt, 1, false), fill(&mut s, vt, 2, false));

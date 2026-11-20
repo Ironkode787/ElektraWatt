@@ -137,7 +137,7 @@ fn tags_of_910() -> Vec<String> {
 /// RK-1 (FR-REP-008): the header and 68 data rows, the devices of folio 910 in its order, and the rows doc 20 §6.1
 /// gives.
 #[test]
-fn rk1_the_device_list_lists_the_68_devices_of_folio_910() {
+fn the_device_list_lists_the_68_devices_of_folio_910() {
     let s = common::golden_session();
     let q = s.query();
     let out = export(&q, "device_list");
@@ -175,7 +175,7 @@ fn rk1_the_device_list_lists_the_68_devices_of_folio_910() {
 /// FR-REP-010: the three strips' rows whole, in `terminal_diagram`'s default strip order (the
 /// natural order of the printed tag, so "-X1031" and "-X1032" before "1X1").
 #[test]
-fn rk2_the_terminal_overview_lists_the_three_strips() {
+fn the_terminal_overview_lists_the_three_strips() {
     let s = common::golden_session();
     let q = s.query();
     let out = export(&q, "terminal_overview");
@@ -234,7 +234,7 @@ fn rk2_the_terminal_overview_lists_the_three_strips() {
 
 /// RK-2: per strip, used, spare and other equal the counts of its `terminal_diagram` rows' State column.
 #[test]
-fn rk2_the_counts_agree_with_the_terminal_diagram_states() {
+fn the_counts_agree_with_the_terminal_diagram_states() {
     let s = common::golden_session();
     let q = s.query();
     let overview = project_rows(&q, "terminal_overview", None).expect("the overview");
@@ -281,7 +281,7 @@ fn device(s: &Session, short: &str) -> Id<ew_schema::Device> {
 
 /// RK-2: a `reserved` terminal counts in Other; renumbering -X1031 to -X1041 (a frozen tag) keeps the row ID.
 #[test]
-fn rk2_a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
+fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
     let mut s = common::golden_session();
     let strip = device(&s, "-X1031");
     let row_of = |q: &Q| -> (ew_reports::RowSet, usize) {
@@ -351,7 +351,7 @@ fn rk2_a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
 
 /// The four refusals as `RowsError::to_string()`, whole.
 #[test]
-fn rk3_the_refusals_of_the_export_by_kind() {
+fn the_refusals_of_the_export_by_kind() {
     let s = common::golden_session();
     let q = s.query();
     let kind = |k: &str| RowExport::Kind(k.to_owned());
@@ -390,7 +390,7 @@ fn rk3_the_refusals_of_the_export_by_kind() {
 
 /// Every registered kind but `terminal_diagram` exports a header line without a panic.
 #[test]
-fn rk3_every_registered_kind_but_terminal_diagram_exports() {
+fn every_registered_kind_but_terminal_diagram_exports() {
     let s = common::golden_session();
     let q = s.query();
     for name in Registry::builtin().names().filter(|n| *n != "terminal_diagram") {
@@ -403,7 +403,7 @@ fn rk3_every_registered_kind_but_terminal_diagram_exports() {
 
 /// RK-3: `--kind parts_summary` writes the component-mode rows, the rows of `expected/csv/bom_parts.csv`.
 #[test]
-fn rk3_the_parts_summary_kind_is_the_component_bom() {
+fn the_parts_summary_kind_is_the_component_bom() {
     let s = common::golden_session();
     let q = s.query();
     let committed = std::fs::read_to_string(expected_csv("bom_parts")).unwrap();
@@ -413,7 +413,7 @@ fn rk3_the_parts_summary_kind_is_the_component_bom() {
 /// The revision overview's CSV prints the changed pages as folio 911 does: V1.0 empty, V2.0
 /// "101, 106"; the export by kind writes the same rows.
 #[test]
-fn rk6_the_revision_overview_csv_prints_the_changed_pages() {
+fn the_revision_overview_csv_prints_the_changed_pages() {
     let s = common::golden_session();
     let q = s.query();
     let by_block = row_export(&q, &RowExport::Report, Some("911")).expect("folio 911's rows");
@@ -475,7 +475,7 @@ fn notes_of(s: &Session, block: Id<ReportBlock>) -> (usize, Vec<DeriveNote>) {
 /// `params.mode` "assembly" gives the assembly rows; "Assembly", 3 and an undeclared key give the
 /// component rows and exactly one note naming the block in words and the key.
 #[test]
-fn rk5_the_parts_summary_mode_parameter() {
+fn the_parts_summary_mode_parameter() {
     let component = golden_with_block(parts_block(None));
     let block = parts_block(None).id;
     let (component_rows, notes) = notes_of(&component, block);
@@ -533,7 +533,7 @@ fn rk5_the_parts_summary_mode_parameter() {
 /// RK-5: a long undeclared key and a long value are quoted cut to 40 characters (hostile input). The diagnostics list
 /// their notes sorted.
 #[test]
-fn rk5_a_long_key_or_value_is_quoted_cut() {
+fn a_long_key_or_value_is_quoted_cut() {
     let long = "k".repeat(1000);
     let s = golden_with_block(parts_block(Some(
         json!({ long.clone(): 1, "mode": "x".repeat(1000) }),
@@ -582,7 +582,7 @@ fn folios_but(q: &Q, but: &[&str]) -> Vec<String> {
 /// paginate with the house layout, no placeholder page and no overflow (no cell below the 1.8 mm floor); the TOC
 /// lists them; every other page keeps its folio and order.
 #[test]
-fn rk4_the_list_kinds_paginate_on_the_house_table() {
+fn the_list_kinds_paginate_on_the_house_table() {
     let mut s = common::golden_session();
     let before = folios_but(&s.query(), &[]);
     let (form, section) = form_of_910(&s);

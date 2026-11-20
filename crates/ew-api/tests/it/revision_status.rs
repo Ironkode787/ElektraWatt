@@ -174,7 +174,7 @@ fn store_options(state: &Path) -> StoreOptions {
 /// PD-1: the digest of every Golden A page is the same in two sessions, on 1 and 4 threads, page by page and as a
 /// map, and after the project is written to a directory and opened again; the pages' digests differ.
 #[test]
-fn pd1_the_digests_are_stable_across_runs_threads_and_a_save() {
+fn the_digests_are_stable_across_runs_threads_and_a_save() {
     let a = common::golden_session();
     let q = a.query();
     let serial = page_digests(&q, Parallelism::Serial);
@@ -226,7 +226,7 @@ fn pd1_the_digests_are_stable_across_runs_threads_and_a_save() {
 /// PD-1: moving a representation on folio 101 changes 101's digest and no other (undo restores it); changing only
 /// the open revision's label, which every title block prints, changes none.
 #[test]
-fn pd1_a_move_on_101_changes_101_only_and_a_label_changes_none() {
+fn a_move_on_101_changes_101_only_and_a_label_changes_none() {
     let mut s = common::golden_session();
     let before = page_digests(&s.query(), Parallelism::Serial);
     move_within_cell(&mut s, "101");
@@ -261,7 +261,7 @@ fn pd1_a_move_on_101_changes_101_only_and_a_label_changes_none() {
 /// lists V1.0 released and V2.0 open with those pages, a withdrawal record directly after the revision it
 /// withdraws; the page navigator's "Changed in" is V2.0 on 101 and 106 and V1.0 on every other page.
 #[test]
-fn pd3_golden_a_changes_101_and_106_in_v2() {
+fn golden_a_changes_101_and_106_in_v2() {
     let mut s = common::golden_session();
     let q = s.query();
     assert_eq!(
@@ -336,7 +336,7 @@ fn pd3_golden_a_changes_101_and_106_in_v2() {
 /// in V2.0 in the overview and the "Changed in" column, 102 stays at V1.0 until an edit on it, and folio 911 lists
 /// V2.0's pages from the digests and the notes.
 #[test]
-fn pd2_a_digest_based_release_follows_the_digests_and_the_page_notes() {
+fn a_digest_based_release_follows_the_digests_and_the_page_notes() {
     let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
     let mut s = golden_variant(false, Some(digests));
     let q = s.query();
@@ -389,7 +389,7 @@ fn pd2_a_digest_based_release_follows_the_digests_and_the_page_notes() {
 /// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it; the noted
 /// pages 101 and 106 stay V2.0) and an unnoted, unchanged page keeps V1.0.
 #[test]
-fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
+fn the_placeholder_prints_the_revision_that_last_changed_the_page() {
     let s = golden_variant(true, None);
     let q = s.query();
     for e in q.get::<PageOrder>(()).entries.iter() {
@@ -435,7 +435,7 @@ fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
 /// page's change status runs no digest again, and a move on 102 runs only 102's digest again (101 and 106 are named
 /// by V2.0's page notes, so their status does not read their digests).
 #[test]
-fn pd5_the_digest_is_memoised_per_page() {
+fn the_digest_is_memoised_per_page() {
     let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
     let mut s = golden_variant(false, Some(digests));
     let runs = |s: &Session| {

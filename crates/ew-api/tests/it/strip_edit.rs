@@ -202,7 +202,7 @@ fn group_labels_rewrite_the_groups() {
 
 /// D13: a terminal's Properties list "Printed label" and "Group" after Designation; the Group row shows the label.
 #[test]
-fn d13_terminal_properties_show_the_printed_label_and_the_group() {
+fn terminal_properties_show_the_printed_label_and_the_group() {
     let s = common::golden_session();
     let t7 = terminal(&s, "-X1031", "7");
     let sheet = s.property_sheet(&[t7]);

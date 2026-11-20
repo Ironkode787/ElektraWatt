@@ -297,7 +297,7 @@ fn the_layout_report_leaves_an_unrouted_wire_out() {
 /// RK1, EW-CORE-067: a wire routed through a coil's A1 that it does not join; its fixed twin runs a step above the
 /// point's stub.
 #[test]
-fn rk1_a_wire_through_a_connection_point_fires_ew_core_067() {
+fn a_wire_through_a_connection_point_fires_ew_core_067() {
     let (mut s, page, k) = rk1_page(&[(60, 20), (65, 28), (70, 20)]);
     let w = draw(
         &mut s,
@@ -328,7 +328,7 @@ fn rk1_a_wire_through_a_connection_point_fires_ew_core_067() {
 
 /// RK1, EW-CORE-068: two wires on one line for six grid steps; the fixed twin runs the second a step lower.
 #[test]
-fn rk1_a_wire_along_another_fires_ew_core_068() {
+fn a_wire_along_another_fires_ew_core_068() {
     let (mut s, page, k) = rk1_page(&[(60, 20), (62, 20), (68, 20), (70, 20)]);
     draw(
         &mut s,
@@ -366,7 +366,7 @@ fn rk1_a_wire_along_another_fires_ew_core_068() {
 
 /// RK1, EW-CORE-069: a wire through a coil's body; the fixed twin runs below the coil.
 #[test]
-fn rk1_a_wire_through_a_symbol_fires_ew_core_069() {
+fn a_wire_through_a_symbol_fires_ew_core_069() {
     let (mut s, page, k) = rk1_page(&[(60, 20), (65, 25), (70, 20)]);
     let w = draw(
         &mut s,
@@ -395,7 +395,7 @@ fn rk1_a_wire_through_a_symbol_fires_ew_core_069() {
 /// test takes a text that stays put); the fixed twin runs round it. The wording of a symbol's text in both languages:
 /// [`ew_api::checks::rules::page::wire_through_text`] with a device.
 #[test]
-fn rk1_a_wire_through_a_text_fires_ew_core_070() {
+fn a_wire_through_a_text_fires_ew_core_070() {
     use ew_api::checks::rules::page::{LayoutWire, TextOwner, wire_through_text};
     let (mut s, page, k) = rk1_page(&[(60, 20), (60, 32)]);
     run(
@@ -620,7 +620,7 @@ fn a_wire_through_an_interruption_point_names_it_in_each_language() {
 /// RK1, EW-CORE-072: wires from above, below, the left and the right into one junction; its twin, the junction before
 /// the fourth wire, joins three.
 #[test]
-fn rk1_a_four_way_junction_fires_ew_core_072() {
+fn a_four_way_junction_fires_ew_core_072() {
     let (mut s, page, k) = rk1_page(&[(60, 20), (60, 32), (52, 20), (68, 20)]);
     let v = draw(
         &mut s,
@@ -692,7 +692,7 @@ fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
 /// RK1, EW-CORE-073: a wire drawn without a route between two points (info online, an error in release mode); its
 /// fixed twin has the straight route. A waiver of the finding waives it, and EW-CORE-081 does not report the waiver.
 #[test]
-fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver() {
+fn an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver() {
     use ew_api::checks::{CheckMode, FindingState, PRE_DELIVERY, Severity};
     let (mut s, page, k) = rk1_page(&[(60, 20), (60, 30)]);
     let w = draw(&mut s, &page, pin(&k[0], 1), pin(&k[1], 0), serde_json::json!([]));
@@ -750,7 +750,7 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
 
 /// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
 #[test]
-fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
+fn golden_a_s_check_report_holds_no_layout_finding() {
     use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
     let (_tmp, s) = golden_copy();
     for report in [
