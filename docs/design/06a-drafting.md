@@ -961,9 +961,10 @@ digital and analogue inputs, counters, IO-Link and multi-function ports; outputs
 Its box is `pins × CARD_PIN_PITCH` and two steps wide, the row centred (half a step to the left), `CARD_HEIGHT`
 high; its other pins stand down its left side `MARK_PITCH` apart, the lowest that far above the lower edge of a card
 of inputs and the highest that far under the upper edge of a card of outputs. The CPU and any device without
-channel pins keep their box; so does a box a person draws (Place here). The cards of inputs stand along the foot,
-a new row over the first where the area is full, and after the other boxes where something stands there already; the
-other boxes stand from the next free place at the head, in slot order. A row wider than the drawing area takes as
+channel pins keep their box; so does a box a person draws (Place here). The other boxes stand from the next free
+place, in slot order; then each card's box takes the first place that keeps a gap from what the page draws, a card
+of inputs as near the foot as there is room and one of outputs as near the head, each line from the left; a card that
+finds no room waits for another page, which a toast and the To do list say. A row wider than the drawing area takes as
 many pins as fit, `CARD_PINS_MOST` at most; "asks for the page" is the station view's To do list, which offers the
 rest on another page, and a toast after the draw says so. `plc.draw_station` draws a box of a card whose black-box
 function a page draws already as another drawing of it when none of its pins is drawn yet, which also gives a card
