@@ -8,6 +8,7 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)).
 | File | What it is |
 |---|---|
 | [m3.5.md](m3.5.md) | The hygiene milestone that is running: the scan, the steps, the loop measured |
+| [m3.5-reference-project.md](m3.5-reference-project.md) | Step 9's design: what ends with the reference project, the sample that replaces it, the lanes |
 | [m3.md](m3.md) | The automation milestone: its scope, how a work package is built, the order, the log |
 | [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [m2.5-fix.md](m2.5-fix.md) | The fix milestone: how a fix is made, the order of the rows, the log |
