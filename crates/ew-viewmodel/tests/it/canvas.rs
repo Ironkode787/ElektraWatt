@@ -655,3 +655,52 @@ fn the_canvas_says_how_to_move_about_and_back() {
     assert_eq!(shell.notifications().len(), before, "said once");
     shell.shutdown();
 }
+
+/// Every text of a list (groups opened) with its origin, sorted.
+fn text_places(items: &[ew_viewmodel::ew_api::output::ew_dl::Item]) -> Vec<(String, (i64, i64))> {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<(String, (i64, i64))>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => out.push((run.text.clone(), (run.origin.x.0, run.origin.y.0))),
+                ItemKind::Group(group) => walk(&group.items, out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(items, &mut out);
+    out.sort();
+    out
+}
+
+/// One page has one set of text places: on Golden A's folio 101 the canvas prints every text where an export of the
+/// project prints it, when opened and after an edit beside -T55's texts (the wire to -T55:5 loses its route).
+#[test]
+fn the_canvas_prints_every_text_where_the_export_does() {
+    let tmp = Tmp::new("canvas-texts");
+    let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "101");
+    let canvas = |s: &ShellModel| text_places(&s.canvas().unwrap().page().list.items);
+    let (fresh, _) = ew_viewmodel::ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let opened = fresh
+        .export_pages(&ew_viewmodel::ew_api::output::ExportOptions {
+            pages: ew_viewmodel::ew_api::output::PageSelection::Folios(vec!["101".to_owned()]),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(canvas(&shell), text_places(&opened.pages[0].content.items), "opened");
+    let wire = common::tables(&shell)
+        .connections
+        .iter()
+        .find(|c| c.id.to_string() == "f40a98e3-3bd6-5d3f-85f7-004cda0ab94a")
+        .map(|c| c.id.to_string())
+        .expect("the wire to -T55:5");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "connection.route", "params": {"connection": wire, "route": []}}),
+    );
+    let edited = shell.page_content("101").expect("folio 101");
+    assert_eq!(canvas(&shell), text_places(&edited.pages[0].content.items), "after the edit");
+    shell.shutdown();
+}
