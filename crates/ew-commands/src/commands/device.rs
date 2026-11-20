@@ -1326,7 +1326,7 @@ impl Command for TransformReps {
                 let body: Vec<Pt2> = match old.box_.as_ref() {
                     Some(b) if b.outline.is_empty() => b.cps.iter().map(|c| c.pos).collect(),
                     Some(b) => b.outline.clone(),
-                    // rc.3: a symbol turned about its insertion point jumped onto its neighbour.
+                    // A symbol turned about its insertion point jumped onto its neighbour.
                     None => tx
                         .get::<LibCopy<SymbolDef>>(old.symbol)
                         .and_then(|s| s.item.graphic_bounds())
