@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The memoised `Q` against a cold `Q` over the golden project, family by family and key by key, at every
+//! The memoised `Q` against a cold `Q` over the sample project, family by family and key by key, at every
 //! step of an edit sequence (ADR-0002 amendment 4: the memo engine must give the values of a cold run).
 //!
 //! The states: open, a rep move on its page, a cross-page rep move, a page-less wire, a drawn wire, a
@@ -35,7 +35,7 @@
 // The profile edit of the last state applies raw ops to a snapshot (`Model::apply_unchecked`, `raw-read`).
 #![allow(clippy::disallowed_methods)]
 
-use crate::golden_common;
+use crate::common;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
@@ -47,36 +47,28 @@ use ew_derive::{
     FunctionCps, Oracle, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
 };
 use ew_model::{AnyRow, EndpointKey, Model, Op};
-use ew_schema::{Kind, Page, Record};
+use ew_schema::{Kind, Page};
 use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
 const ORACLE_ONE_IN: u32 = 64;
 
-/// The golden session with the colour and size profiles, a seeded ID source and the given memo mode.
-fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode) -> Session {
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    let mut project = project.expect("the batch holds the project");
-    golden_common::with_profiles(&mut project);
+/// The sample (which holds colour and size profiles) over its records, with a seeded ID source and the given memo
+/// mode.
+fn session(memo: MemoMode) -> Session {
+    let (project, records, lib) = common::sample_records();
     Session::from_records(
         project,
         records,
-        batch.lib.clone(),
+        lib,
         SessionOptions {
             memo,
             ids: Some(seeded_ids(11)),
             ..SessionOptions::default()
         },
     )
-    .expect("the golden batch passes the model's integrity check")
+    .expect("the sample passes the model's integrity check")
 }
 
 /// Reads every family at every key of the snapshot through `memo` (and compares with `cold`), through the
@@ -128,7 +120,19 @@ fn apply(session: &mut Session, state: &str, candidates: Vec<AnyCommand>) -> Str
     panic!("{state}: every candidate was refused:\n{}", refused.join("\n"));
 }
 
-/// Targets of the golden snapshot at open, in ID order: what the candidate commands are built from.
+/// The ID of the sample's section 1 (the schematic pages 100 to 199), as JSON.
+fn section_1(s: &Session) -> Value {
+    let q = s.query();
+    let id = q
+        .table::<ew_schema::Section>()
+        .iter()
+        .find(|(_, sec)| sec.number == 1)
+        .map(|(id, _)| id)
+        .expect("section 1");
+    id_json(id)
+}
+
+/// Targets of the sample's snapshot at open, in ID order: what the candidate commands are built from.
 struct Targets {
     /// Same-page rep moves.
     move_on_page: Vec<AnyCommand>,
@@ -187,7 +191,7 @@ impl Targets {
         // grid).
         let mut move_on_page = Vec::new();
         let mut move_across = Vec::new();
-        for rep in q.reps().ids().take(40) {
+        for rep in q.reps().ids() {
             let r = q.reps().get(rep).expect("the rep exists");
             let Some(page) = q.pages().get(r.page) else {
                 continue;
@@ -520,7 +524,7 @@ fn run_states(
         // Section 1's pages, inside its folios 100 to 199.
         &by(vec![cmd(
             "page.renumber",
-            json!({"scope": {"section": "4fedea58-1889-5ba9-aeb8-8ab28ffe9e89"}, "start": 110, "step": 3}),
+            json!({"scope": {"section": section_1(session)}, "start": 110, "step": 3}),
         )]),
     );
     step(session, "10 tag counter", &by(targets.counter.clone()));
@@ -607,8 +611,7 @@ fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap
 /// workload reaches it.
 #[test]
 fn every_family_the_store_memoises_is_swept() {
-    let batch = golden_common::batch();
-    let mut session = session(&batch, MemoMode::On);
+    let mut session = session(MemoMode::On);
     run_states(&mut session, STATES, |_, _, _, _| {});
     // The checks memoise their findings in the same store (FT-1664).
     session.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
@@ -631,8 +634,7 @@ fn every_family_the_store_memoises_is_swept() {
 
 #[test]
 fn memo_equals_cold_over_every_state() {
-    let batch = golden_common::batch();
-    let mut session = session(&batch, MemoMode::On);
+    let mut session = session(MemoMode::On);
     let mut counts_at_open = None;
     run_states(&mut session, STATES, |session, _, state, model| {
         let counts = memo_q_notes_equal(session, model, state);
@@ -691,8 +693,7 @@ fn oracle_on_every_read_over_the_second_half_of_the_states() {
 /// an oracle that counts the reads (`OneIn`) but checks none of them. A count of `u32::MAX` reads selects no
 /// read before the 4,294,967,295th, far beyond the reads of a run.
 fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
-    let batch = golden_common::batch();
-    let mut session = session(&batch, MemoMode::Oracle);
+    let mut session = session(MemoMode::Oracle);
     let counting = Oracle::OneIn(NonZeroU32::MAX);
     session
         .memo()
@@ -748,19 +749,18 @@ fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
 
 /// A cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
 /// evaluates every (family, key) at most once, detached scopes included. Before the fix every detached scope
-/// had a cache of its own: one cold partition of the golden project evaluated `drawn_page_order` once per
+/// had a cache of its own: one cold partition of the sample evaluated `drawn_page_order` once per
 /// interruption point.
 #[test]
 fn a_cold_q_evaluates_every_query_once() {
-    let batch = golden_common::batch();
-    let session = session(&batch, MemoMode::Off);
+    let session = session(MemoMode::Off);
     let model = session.world().model;
     let recorder = Rc::new(RecordingTracker::new());
     let q = Q::with_tracker(&model, Box::new(Rc::clone(&recorder)));
     let part = q.get::<PotentialPartition>(());
     let evaluated = recorder.evaluated();
     let count = |family: &str| evaluated.iter().filter(|(f, _)| *f == family).count();
-    assert!(count("ip_info") > 1, "the golden project has interruption points");
+    assert!(count("ip_info") > 1, "the sample has interruption points");
     assert_eq!(
         count("drawn_page_order"),
         1,
@@ -811,8 +811,7 @@ fn growth_counts(session: &Session) -> (usize, usize, usize, usize) {
 /// per cycle exceeds every bound below.
 #[test]
 fn creating_and_deleting_a_page_60_times_does_not_grow_the_store() {
-    let batch = golden_common::batch();
-    let mut session = session(&batch, MemoMode::On);
+    let mut session = session(MemoMode::On);
     let live_pages = session.world().model.table::<Page>().len();
     let sweeping = std::cell::Cell::new(false);
     let read = |session: &Session| {
