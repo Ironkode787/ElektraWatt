@@ -46,7 +46,7 @@ fn older() -> (Model, Id<Function>, Id<Function>) {
 
 /// [`model`] with, given its route, the wire [`OLD`] as a record.
 fn model_with(route: Option<Vec<Pt2>>) -> (Model, Id<Function>, Id<Function>) {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut fns = Vec::new();
     for (n, x) in [(0u128, 0i64), (1, 8 * G)] {
         let (dev, f, r): (Id<Device>, Id<Function>, Id<Representation>) =

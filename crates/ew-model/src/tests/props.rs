@@ -24,7 +24,7 @@ use serde_json::json;
 use crate::entity::{AnyKey, table_keys};
 use crate::fixture::{
     DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LIBRARY_X, LOC, PAGE_101, PAGE_102, conductor,
-    connection, cp, device, fndef_copy_for, function, mini_golden, mini_golden_parts, part_using, strip,
+    connection, cp, device, fndef_copy_for, function, mini_project, mini_project_parts, part_using, strip,
     structure_node, symbol_using,
 };
 use crate::{AnyRow, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
@@ -623,7 +623,7 @@ proptest! {
     /// and stamps every row it touches with its own revision.
     #[test]
     fn apply_then_inverse_restores_everything(actions in batch()) {
-        let m0 = mini_golden();
+        let m0 = mini_project();
         let mut counter = 0;
         let ops = interpret(&m0, &actions, &mut counter);
         let r = m0.rev().next();
@@ -648,7 +648,7 @@ proptest! {
     fn incremental_indexes_equal_rebuilt_after_every_batch(
         batches in prop::collection::vec(batch(), 1..=5),
     ) {
-        let mut m = mini_golden();
+        let mut m = mini_project();
         let mut counter = 0;
         for actions in &batches {
             m = step(&m, actions, &mut counter).0;
@@ -660,7 +660,7 @@ proptest! {
     /// (each as a new revision) restores the start.
     #[test]
     fn undo_of_a_sequence_restores_the_start(batches in prop::collection::vec(batch(), 1..=4)) {
-        let start = mini_golden();
+        let start = mini_project();
         let mut m = start.clone();
         let mut counter = 0;
         let mut applied = Vec::new();
@@ -680,7 +680,7 @@ proptest! {
     /// `content_diff` is `None` exactly when `content_eq` holds, both ways, after a batch and after its undo.
     #[test]
     fn content_diff_agrees_with_content_eq(actions in batch()) {
-        let m0 = mini_golden();
+        let m0 = mini_project();
         let mut counter = 0;
         let (m1, ops) = step(&m0, &actions, &mut counter);
         prop_assert_eq!(m1.content_diff(&m0).is_none(), m1.content_eq(&m0));
@@ -698,10 +698,10 @@ proptest! {
     fn from_records_is_order_independent(
         (records, lib) in (
             Just(records_with_unknowns()).prop_shuffle(),
-            Just(mini_golden_parts().2).prop_shuffle(),
+            Just(mini_project_parts().2).prop_shuffle(),
         ),
     ) {
-        let (project, plain, plain_lib) = mini_golden_parts();
+        let (project, plain, plain_lib) = mini_project_parts();
         let mut expected = plain;
         expected.extend(unknown_records());
         let reference = Model::from_records(project.clone(), expected, plain_lib)
@@ -778,7 +778,7 @@ proptest! {
     /// removes a copy that a record of the start names (EW-INV-021), and then with `Referenced`.
     #[test]
     fn undo_of_an_embedding_restores_the_start(items in prop::collection::vec(lib_ref_item(), 1..=4)) {
-        let (project, records, mut lib) = mini_golden_parts();
+        let (project, records, mut lib) = mini_project_parts();
         for (i, it) in items.iter().enumerate() {
             let (item, before, _) = lib_ref_ids(i);
             if it.named_before {
@@ -830,7 +830,7 @@ fn unknown_records() -> Vec<Record> {
 }
 
 fn records_with_unknowns() -> Vec<Record> {
-    let mut records = mini_golden_parts().1;
+    let mut records = mini_project_parts().1;
     records.extend(unknown_records());
     records
 }
@@ -875,7 +875,7 @@ fn digest(m: &Model) -> Vec<String> {
 /// The generator reaches every action, and a delete can cascade.
 #[test]
 fn generator_produces_nontrivial_batches() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut counter = 0;
     let plan = [
         Action::AddStructureNode(0),
@@ -923,7 +923,7 @@ fn generator_exercises_link_updates() {
     use proptest::test_runner::TestRunner;
     use std::collections::BTreeMap;
 
-    let start = mini_golden();
+    let start = mini_project();
     let mut runner = TestRunner::deterministic();
     let strategy = batch();
     let mut applied: BTreeMap<String, u32> = BTreeMap::new();
@@ -986,7 +986,7 @@ fn shrunk_seed_fndef_copy_removed_before_aux_function() {
             AddAuxFunction(3_100_600_842),
         ],
     ];
-    let mut m = mini_golden();
+    let mut m = mini_project();
     let mut counter = 0;
     let mut flags = Vec::new();
     for actions in &batches {

@@ -39,7 +39,7 @@ fn the_step_limit_drops_the_oldest_entries() {
         max_steps: 3,
         max_bytes: usize::MAX,
     };
-    let mut e = engine_with_limits(golden_model(), limits);
+    let mut e = engine_with_limits(mini_model(), limits);
     let original = lines(e.model());
     moves(&mut e, 2);
     let after_two = lines(e.model());
@@ -65,7 +65,7 @@ fn the_byte_limit_keeps_the_newest_entry() {
         max_steps: 500,
         max_bytes: 1,
     };
-    let mut e = engine_with_limits(golden_model(), limits);
+    let mut e = engine_with_limits(mini_model(), limits);
     moves(&mut e, 3);
     assert_eq!(e.history().entries().len(), 1);
     assert_eq!(e.history().cursor(), 1);
@@ -79,7 +79,7 @@ fn a_trimmed_saved_state_leaves_the_model_dirty() {
         max_steps: 2,
         max_bytes: usize::MAX,
     };
-    let mut e = engine_with_limits(golden_model(), limits);
+    let mut e = engine_with_limits(mini_model(), limits);
     e.execute(&mv(1)).unwrap();
     e.mark_saved();
     assert!(!e.is_dirty());
@@ -107,7 +107,7 @@ fn the_initial_state_is_clean_until_trimmed() {
         max_steps: 2,
         max_bytes: usize::MAX,
     };
-    let mut e = engine_with_limits(golden_model(), limits);
+    let mut e = engine_with_limits(mini_model(), limits);
     assert!(!e.is_dirty());
     moves(&mut e, 2);
     while e.undo(&Origin::Gui).is_ok() {}
@@ -120,7 +120,7 @@ fn the_initial_state_is_clean_until_trimmed() {
 
 #[test]
 fn a_new_command_truncates_the_redo_branch() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(!e.history().can_undo());
     assert!(!e.history().can_redo());
     moves(&mut e, 3);
@@ -143,7 +143,7 @@ fn a_new_command_truncates_the_redo_branch() {
 
 #[test]
 fn a_failed_command_leaves_the_history_alone() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     moves(&mut e, 1);
     let bad = MoveReps {
         routes: Vec::new(),
@@ -170,7 +170,7 @@ fn a_step_records_the_exposure_of_its_command() {
     };
     let script = Origin::Script { name: "drag".into() };
     // An `Edit` step below is still the script's to undo once the GUI took the `HumanOnly` one back.
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&mv(1)).unwrap();
     assert_eq!(e.history().entries()[0].exposure(), Exposure::Edit);
     e.execute(&checks).expect("checks");
@@ -191,7 +191,7 @@ fn a_step_records_the_exposure_of_its_command() {
 /// passed over.
 #[test]
 fn a_transparent_human_only_marker_does_not_block_a_scripted_undo() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&mv(1)).unwrap();
     let listed = format!("sha256:{}", "ab".repeat(32));
     let p = e
@@ -221,7 +221,7 @@ fn a_transparent_human_only_marker_does_not_block_a_scripted_undo() {
 
 /// A real op list: the ops of a `rep.move` preview.
 fn some_ops() -> Vec<Op> {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.preview(&mv(1)).expect("preview").ops().to_vec()
 }
 

@@ -290,9 +290,9 @@ fn extra_library() -> Vec<LibDocument> {
     ]
 }
 
-/// The golden model plus [`extra_library`], with `f` applied to the records.
+/// The mini model plus [`extra_library`], with `f` applied to the records.
 fn arrange_model(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     f(&mut records);
     let mut lib = library();
     lib.extend(extra_library());
@@ -799,10 +799,10 @@ fn new_terminal_with_a_part_carries_the_part_use() {
 const CON_A: Id<ew_schema::Connection> = id(0x4201);
 const CON_C: Id<ew_schema::Connection> = id(0x4203);
 
-/// The golden model with `REP_102F2`, `REP_T1` and `REP_102G1` drawn by the two-CP symbol at grid indices whose x
+/// The mini model with `REP_102F2`, `REP_T1` and `REP_102G1` drawn by the two-CP symbol at grid indices whose x
 /// indices differ in `k mod 3` (4, 8, 3), and three routed wires:
 /// `CON_A` from CP 1 of the first to CP 0 of the second (both ends move), `CON_C` from CP 1 of the third to a
-/// function nothing draws (one end moves); the golden wire `CON_W11A` on folio 101 gets a route and never moves.
+/// function nothing draws (one end moves); the fixture wire `CON_W11A` on folio 101 gets a route and never moves.
 fn steps_model() -> Model {
     steps_model_at(grid_at(11))
 }
@@ -1085,7 +1085,7 @@ fn level_model() -> (Model, Pt2, Pt2) {
     let a = p(grid_at(4), Nm(grid_at(6).0 + MM10));
     let b = p(grid_at(12), Nm(grid_at(7).0 + MM10 - step1));
     assert_eq!(a.y, b.y, "both CPs on one coordinate");
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     for rec in records.iter_mut() {
         if let Record::Representation(r) = rec {
             if r.id == REP_102F2 {
@@ -1289,7 +1289,7 @@ fn m_at() -> Pt2 {
     pt(10 * G, 4 * G)
 }
 
-/// The golden model plus two lamps on folio 102, each with routed wires at both CPs: `REP_L` (function with the
+/// The mini model plus two lamps on folio 102, each with routed wires at both CPs: `REP_L` (function with the
 /// FnDef "1", "2", drawn by `SYM_TWO`) with wires at CP 0 (end b), CP 1 (end a) and a loop from CP 0 to CP 1;
 /// `REP_M` (FnDef "L", "N", drawn by `SYM_OWN`) with a wire at CP 0.
 fn exchange_model(f: impl FnOnce(&mut Vec<Record>)) -> Model {
@@ -1672,14 +1672,14 @@ fn set_drawing(crossings: Option<Option<Crossings>>) -> SetDrawing {
 }
 
 fn project_with_drawing(value: Value) -> Model {
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.settings.extra.insert("drawing".to_owned(), value);
     Model::from_records(project, records, library()).expect("valid model")
 }
 
 #[test]
 fn drawing_set_writes_merges_and_removes_crossings() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(drawing_of(&e), None);
     let r = e.execute(&set_drawing(Some(Some(Crossings::Hops)))).unwrap();
     assert_eq!(r.outcome.primary, None);
@@ -1721,7 +1721,7 @@ fn drawing_set_keeps_the_members_it_does_not_know() {
 
 #[test]
 fn drawing_set_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     // No member given: invalid at the root.
     invalid_at(e.execute(&set_drawing(None)), "");
     // An unknown value, through the JSON parameters.
@@ -2338,7 +2338,7 @@ fn positional_part(swapped: bool) -> ew_schema::LibCopy<ew_schema::Part> {
 #[test]
 fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
     let model = {
-        let (project, records, _) = mini_golden_parts();
+        let (project, records, _) = mini_project_parts();
         let mut lib = library();
         lib.extend(extra_library());
         lib.push(LibDocument::Part(positional_part(false)));

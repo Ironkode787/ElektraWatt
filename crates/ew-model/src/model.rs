@@ -699,7 +699,7 @@ mod tests {
     /// structure box like any other row.
     #[test]
     fn keys_lists_every_row() {
-        let (project, mut records, lib) = fixture::mini_golden_parts();
+        let (project, mut records, lib) = fixture::mini_project_parts();
         let item: Id<ew_schema::PageItem> = Id::from_uuid(Uuid::from_u128(0x9001));
         let structure_box: Id<ew_schema::StructureBox> = Id::from_uuid(Uuid::from_u128(0x9002));
         records.push(Record::PageItem(fixture::graphic_line(item, fixture::PAGE_101)));

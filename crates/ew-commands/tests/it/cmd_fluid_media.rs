@@ -35,14 +35,14 @@ const LINE_2: Id<Connection> = id(0x7a31);
 const TUBE_PART: Id<Part> = id(0x7a40);
 
 /// A model with two pneumatic devices -?Q91 and -?Q92 (CPs "1", "2") joined by two fluid lines on page 102, a wire of
-/// the mini golden project, and a tube part.
+/// the mini project, and a tube part.
 fn model() -> Model {
     model_with(Vec::new())
 }
 
 /// [`model`] with the library documents `extra`.
 fn model_with(extra: Vec<LibDocument>) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut lib = library();
     lib.extend(extra);
     let mut def = fndef(PNEU, &["1", "2"]);

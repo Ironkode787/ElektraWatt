@@ -95,7 +95,7 @@ fn plan_applies(m: &Model, ops: &[Op]) {
 /// Insert, update and delete stamp rows, tables and index keys with the batch revision.
 #[test]
 fn insert_update_delete_stamp_changed_at() {
-    let m0 = mini_golden();
+    let m0 = mini_project();
     let node = new_node(0x20000, LOC);
     let m1 = m0
         .apply_history(&[Op::insert(AnyRow::of(node.clone()))], Rev(1))
@@ -137,7 +137,7 @@ fn insert_update_delete_stamp_changed_at() {
 /// A successful apply leaves the original snapshot untouched.
 #[test]
 fn apply_leaves_the_original_snapshot_unchanged() {
-    let m0 = mini_golden();
+    let m0 = mini_project();
     let m1 = m0
         .apply_history(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
         .unwrap();
@@ -147,13 +147,13 @@ fn apply_leaves_the_original_snapshot_unchanged() {
     );
     assert_eq!(m0.rev(), Rev::ZERO);
     assert_eq!(m0.table::<StructureNode>().len(), 2);
-    assert!(m0.content_eq(&mini_golden()));
+    assert!(m0.content_eq(&mini_project()));
 }
 
 /// An op whose `before` is not the current row is stale, for updates, inserts and deletes alike.
 #[test]
 fn stale_before_is_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let key = dkey(DEV_101F1);
 
     let mut other = device_of(&m, DEV_101F1);
@@ -186,7 +186,7 @@ fn stale_before_is_rejected() {
 /// Two ops on one key chain within a batch: the second expects the first's `after`.
 #[test]
 fn ops_on_the_same_key_chain_within_a_batch() {
-    let m = mini_golden();
+    let m = mini_project();
     let first = device_update(&m, DEV_101F1, |d| d.function_text = MlText::neutral("one"));
     let mut second_after = device_of(&m, DEV_101F1);
     second_after.function_text = MlText::neutral("two");
@@ -204,7 +204,7 @@ fn ops_on_the_same_key_chain_within_a_batch() {
 /// The revision must be greater than the model's.
 #[test]
 fn rev_must_increase() {
-    let m = mini_golden();
+    let m = mini_project();
     assert_eq!(
         m.apply_history(&[], Rev(0)).unwrap_err(),
         ModelError::RevNotIncreasing {
@@ -226,7 +226,7 @@ fn rev_must_increase() {
 /// Ops with a mismatching key, a project removal or a reserved kind are malformed.
 #[test]
 fn malformed_ops_are_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let device_row = m.row(&dkey(DEV_101F1)).unwrap();
 
     let mismatch = Op::Put {
@@ -264,7 +264,7 @@ fn malformed_ops_are_rejected() {
 /// Applying the inverse batch restores the content and stamps the restored rows with the new revision.
 #[test]
 fn invert_batch_restores_and_stamps_a_new_rev() {
-    let m0 = mini_golden();
+    let m0 = mini_project();
     let plan = m0.delete_plan(&dkey(DEV_102F2)).unwrap();
     let m1 = m0.apply_history(&plan, Rev(1)).unwrap();
     assert!(!m1.content_eq(&m0));
@@ -290,7 +290,7 @@ fn invert_batch_restores_and_stamps_a_new_rev() {
 /// The project row is updated and inverted through the op layer like any other row.
 #[test]
 fn project_row_updates_and_inverts() {
-    let m0 = mini_golden();
+    let m0 = mini_project();
     let key = (Kind::Project, PROJECT.cast());
     let mut p: Project = (**m0.project()).clone();
     p.master.description = MlText::neutral("Renamed");
@@ -313,7 +313,7 @@ fn project_row_updates_and_inverts() {
 /// Deleting a device cascades to its functions, representations and connections, and trims the junction.
 #[test]
 fn delete_plan_device_cascades_functions_reps_and_connections() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&dkey(DEV_102F2)).unwrap();
     assert_plan(
         &ops,
@@ -336,7 +336,7 @@ fn delete_plan_device_cascades_functions_reps_and_connections() {
 /// the single-root plan when one root's cascade contains the other.
 #[test]
 fn delete_plan_many_is_order_independent() {
-    let m = mini_golden();
+    let m = mini_project();
     let fkey = <Function as Entity>::key(FN_102F2);
     let rkey = <Representation as Entity>::key(REP_102F2_AUX);
     let one = m.delete_plan(&dkey(DEV_102F2)).unwrap();
@@ -355,7 +355,7 @@ fn delete_plan_many_is_order_independent() {
 /// which `apply` rejects; the transient snapshot still plans removals.
 #[test]
 fn apply_unchecked_skips_the_invariants() {
-    let m = mini_golden();
+    let m = mini_project();
     let fkey = <Function as Entity>::key(FN_102F2);
     // The main function with its cascade: the device is left without a main function.
     let only_fn: Vec<Op> = m.delete_plan(&fkey).unwrap();
@@ -381,7 +381,7 @@ fn apply_unchecked_skips_the_invariants() {
 /// Deleting a function drops the definitions and bonds at its connection points.
 #[test]
 fn delete_plan_function_drops_definitions_and_bonds() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&<Function as Entity>::key(FN_102G1)).unwrap();
     assert_plan(
         &ops,
@@ -403,7 +403,7 @@ fn delete_plan_function_drops_definitions_and_bonds() {
 /// Deleting a conductor turns the core connection back into a plain wire.
 #[test]
 fn delete_plan_conductor_unlinks_core() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&<Conductor as Entity>::key(COND_A)).unwrap();
     assert_plan(
         &ops,
@@ -422,7 +422,7 @@ fn delete_plan_conductor_unlinks_core() {
 /// Deleting a connection trims the junction sequence and clears the bond's `via`.
 #[test]
 fn delete_plan_connection_unlinks_sequence_and_bond_via() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&<Connection as Entity>::key(CON_W27)).unwrap();
     assert_plan(
         &ops,
@@ -441,7 +441,7 @@ fn delete_plan_connection_unlinks_sequence_and_bond_via() {
 /// Deleting a cable removes its conductors and unlinks the cores.
 #[test]
 fn delete_plan_cable_cascades_conductors_and_unlinks_cores() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&dkey(DEV_3W1)).unwrap();
     assert_plan(
         &ops,
@@ -467,7 +467,7 @@ fn delete_plan_cable_cascades_conductors_and_unlinks_cores() {
 /// device functions stay unplaced (FR-PAG-025).
 #[test]
 fn delete_plan_page_cascades_page_owned_rows() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&<Page as Entity>::key(PAGE_101)).unwrap();
     assert_plan(
         &ops,
@@ -485,7 +485,7 @@ fn delete_plan_page_cascades_page_owned_rows() {
 /// Deleting the representation of an interruption point removes the function it owns and its connections.
 #[test]
 fn delete_plan_ip_representation_cascades_its_function() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m
         .delete_plan(&<Representation as Entity>::key(REP_IP_102))
         .unwrap();
@@ -503,7 +503,7 @@ fn delete_plan_ip_representation_cascades_its_function() {
 /// Deleting an interruption-point function removes its representation and its connections.
 #[test]
 fn delete_plan_ip_function_cascades_its_representation() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m.delete_plan(&<Function as Entity>::key(FN_IP_101)).unwrap();
     assert_plan(
         &ops,
@@ -519,7 +519,7 @@ fn delete_plan_ip_function_cascades_its_representation() {
 /// Deleting the representation of a device function removes only it: the device function stays unplaced.
 #[test]
 fn delete_plan_device_rep_keeps_device_function() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = m
         .delete_plan(&<Representation as Entity>::key(REP_101F1))
         .unwrap();
@@ -532,7 +532,7 @@ fn delete_plan_device_rep_keeps_device_function() {
 /// A `forbid` link with a remaining referrer rejects the plan.
 #[test]
 fn delete_plan_forbid_rejects() {
-    let m = mini_golden();
+    let m = mini_project();
     let err = m.delete_plan(&dkey(DEV_X1031)).unwrap_err();
     match err {
         ModelError::Referenced {
@@ -563,7 +563,7 @@ fn delete_plan_forbid_rejects() {
 /// A missing key is not found; the project row cannot be removed.
 #[test]
 fn delete_plan_of_missing_or_project_key() {
-    let m = mini_golden();
+    let m = mini_project();
     let missing = dkey(nid(0x20003));
     assert_eq!(
         m.delete_plan(&missing).unwrap_err(),
@@ -578,7 +578,7 @@ fn delete_plan_of_missing_or_project_key() {
 /// `apply` executes no cascade: a lone removal is fine without referrers and an invariant error with them.
 #[test]
 fn delete_without_plan_is_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let rep = m.row(&<Representation as Entity>::key(REP_102F2_AUX)).unwrap();
     assert!(m.apply_history(&[Op::delete(rep)], Rev(1)).is_ok());
 
@@ -592,7 +592,7 @@ fn delete_without_plan_is_rejected() {
 /// `referrers` lists the links that name a record, in link order.
 #[test]
 fn referrers_lists_links() {
-    let m = mini_golden();
+    let m = mini_project();
     let found = m.referrers(&<Junction as Entity>::key(J5));
     assert!(found.iter().all(|(link, (kind, _))| {
         *kind == Kind::Connection
@@ -627,9 +627,9 @@ fn referrers_lists_links() {
 // ---------------------------------------------------------------------------------------------------------
 // LibRef links
 
-/// The mini golden project with extra library documents.
-fn golden_with_lib(extra: Vec<LibDocument>) -> Model {
-    let (project, records, mut lib) = mini_golden_parts();
+/// The mini project with extra library documents.
+fn mini_with_lib(extra: Vec<LibDocument>) -> Model {
+    let (project, records, mut lib) = mini_project_parts();
     lib.extend(extra);
     Model::from_records(project, records, lib).expect("valid")
 }
@@ -644,7 +644,7 @@ fn model_with_symbol_on_fndef() -> (Model, AnyKey, AnyKey) {
     let sym = symbol_using(nid(0x9300), LIBRARY_X, ITEM_X);
     let fkey = fndef_key(&copy);
     let skey = <LibCopy<SymbolDef> as Entity>::key(sym.id);
-    let m = golden_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Symbol(sym)]);
+    let m = mini_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Symbol(sym)]);
     (m, fkey, skey)
 }
 
@@ -688,7 +688,7 @@ fn lib_ref_part_template_fndef_in_use_is_referenced() {
     let part = part_using(nid(0x9400), "TPL-1", LIBRARY_X, ITEM_X);
     let fkey = fndef_key(&copy);
     let pkey = <LibCopy<Part> as Entity>::key(part.id);
-    let m = golden_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Part(part)]);
+    let m = mini_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Part(part)]);
     match m.delete_plan(&fkey).unwrap_err() {
         ModelError::Referenced {
             link,
@@ -719,11 +719,11 @@ fn lib_ref_part_template_fndef_in_use_is_referenced() {
 #[test]
 fn lib_ref_unembedded_target_is_not_a_link() {
     let sym = symbol_using(nid(0x9300), LIBRARY_X, ITEM_Y);
-    let m = golden_with_lib(vec![LibDocument::Symbol(sym)]);
+    let m = mini_with_lib(vec![LibDocument::Symbol(sym)]);
     assert!(m.integrity_check().is_ok());
 
     let extra = symbol_using(nid(0x9301), LIBRARY_X, ITEM_Y);
-    let m = mini_golden();
+    let m = mini_project();
     assert!(m.apply_history(&[Op::insert(AnyRow::of(extra))], Rev(1)).is_ok());
 }
 
@@ -745,7 +745,7 @@ fn lib_ref_referrers_lists_symbol() {
 /// Two records with one key, or a project record among the records, are duplicates.
 #[test]
 fn from_records_rejects_duplicates() {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     let dev = records
         .iter()
         .find_map(|r| match r {
@@ -759,7 +759,7 @@ fn from_records_rejects_duplicates() {
         ModelError::DuplicateRecord { key: dkey(DEV_101F1) }
     );
 
-    let (_, mut records, _) = mini_golden_parts();
+    let (_, mut records, _) = mini_project_parts();
     records.push(Record::Project(project.clone()));
     assert_eq!(
         Model::from_records(project, records, lib).unwrap_err(),
@@ -775,13 +775,13 @@ fn from_records_keeps_unknown_records() {
     let a = Record::Unknown(json!({"$k": "net_def", "id": "00000000-0000-0000-0000-00000000a001"}));
     let b = Record::Unknown(json!({"$k": "net_def", "id": "00000000-0000-0000-0000-00000000b002"}));
     let load = |extra: Vec<Record>| {
-        let (project, mut records, lib) = mini_golden_parts();
+        let (project, mut records, lib) = mini_project_parts();
         records.extend(extra);
         Model::from_records(project, records, lib).unwrap()
     };
     let ab = load(vec![a.clone(), b.clone()]);
     let ba = load(vec![b, a]);
-    let plain = mini_golden();
+    let plain = mini_project();
     assert_eq!(ab.unknown_records().len(), 2);
     assert_eq!(ab.unknown_records(), ba.unknown_records());
     assert!(ab.content_eq(&ba));
@@ -817,13 +817,13 @@ const ID_LOW_FULL: &str = "00000000-0000-0000-0000-0000000000ff";
 const ID_HIGH_FULL: &str = "ffffffff-0000-0000-0000-000000000001";
 
 fn load_records(extra: Vec<Record>) -> Result<Model, ModelError> {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.extend(extra);
     Model::from_records(project, records, lib)
 }
 
 fn load_lib(extra: Vec<LibDocument>) -> Result<Model, ModelError> {
-    let (project, records, mut lib) = mini_golden_parts();
+    let (project, records, mut lib) = mini_project_parts();
     lib.extend(extra);
     Model::from_records(project, records, lib)
 }
@@ -961,7 +961,7 @@ fn from_records_orders_unknown_lib_documents() {
 /// The indexes of a loaded model equal a fresh rebuild; a few entries are spot-checked.
 #[test]
 fn rebuilt_indexes_equal_loaded_indexes() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(BaseIndexes::rebuild(&m).same_entries(m.indexes()));
     let idx = m.indexes();
     assert_eq!(
@@ -986,7 +986,7 @@ fn rebuilt_indexes_equal_loaded_indexes() {
 
 /// A model with 10 001 structure nodes (and no other record).
 fn large_model() -> Model {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let mut records = vec![Record::StructureNode(structure_node(
         LOC,
         Aspect::Location,
@@ -1020,7 +1020,7 @@ fn clone_shares_structure() {
 /// Applying a batch shares the tables it does not touch with the old snapshot.
 #[test]
 fn apply_shares_untouched_tables() {
-    let m = mini_golden();
+    let m = mini_project();
     let m1 = m
         .apply_history(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
         .unwrap();
@@ -1036,7 +1036,7 @@ fn apply_shares_untouched_tables() {
 /// The strictness is read from `settings.extra.checks.strictness`; anything unreadable is strict.
 #[test]
 fn strictness_reads_project_settings() {
-    let (project, records, lib) = mini_golden_parts();
+    let (project, records, lib) = mini_project_parts();
     let with = |checks: serde_json::Value| {
         let mut p = project.clone();
         p.settings.extra.insert("checks".into(), checks);
@@ -1044,7 +1044,7 @@ fn strictness_reads_project_settings() {
             .unwrap()
             .strictness()
     };
-    assert_eq!(mini_golden().strictness(), Strictness::Strict);
+    assert_eq!(mini_project().strictness(), Strictness::Strict);
     assert_eq!(
         with(json!({"strictness": {"lenient": {"since": "2026-10-01"}}})),
         Strictness::Lenient {
@@ -1084,7 +1084,7 @@ impl PreventHook for NoDevices {
 /// The prevent hook runs after the structural invariants and only when options are given.
 #[test]
 fn prevent_hook_runs_after_structural_invariants() {
-    let m = mini_golden();
+    let m = mini_project();
     let hook = NoDevices;
     let opts = ApplyOptions { prevent: Some(&hook) };
 
@@ -1111,10 +1111,10 @@ fn prevent_hook_runs_after_structural_invariants() {
 // ---------------------------------------------------------------------------------------------------------
 // Page items and structure boxes (EW-INV-022, EW-INV-023)
 
-/// The mini golden project with a line and a structure box on page 101 and two wire markers on page 102: one
+/// The mini project with a line and a structure box on page 101 and two wire markers on page 102: one
 /// listing W22 and W27, one listing W22 alone; the box stands for an external reference at `LOC`.
 fn with_items() -> Model {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.push(Record::ExternalRef(external_ref(nid(0x4600), LOC)));
     records.push(Record::PageItem(graphic_line(nid(0x4300), PAGE_101)));
     records.push(Record::StructureBox(structure_box(

@@ -59,9 +59,9 @@ fn rejected(r: Result<Receipt, CmdError>) -> String {
     }
 }
 
-/// The two nets of a PROFIBUS line in the mini golden project.
+/// The two nets of a PROFIBUS line in the mini project.
 fn with_nets() -> (Engine, Id<LogicalNet>, Id<PhysicalNet>) {
-    let mut e = engine(mini_golden());
+    let mut e = engine(mini_project());
     let r = e
         .execute(&lnet("DP", BusSystem::ProfibusDp, Some(1_500_000)))
         .expect("bus.logical_net.create");

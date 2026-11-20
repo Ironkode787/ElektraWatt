@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the integration tests: the mini golden fixture (`ew_model::fixture`) with a library that
+//! Shared helpers of the integration tests: the mini project fixture (`ew_model::fixture`) with a library that
 //! adds a two-CP symbol, and engines with a seeded ID source.
 
 #![allow(dead_code)]
@@ -72,17 +72,17 @@ pub fn symbol_two() -> ew_schema::LibCopy<SymbolDef> {
     copy
 }
 
-/// The mini golden library plus [`symbol_two`] and its FnDef copy.
+/// The mini project library plus [`symbol_two`] and its FnDef copy.
 pub fn library() -> Vec<LibDocument> {
-    let (_, _, mut lib) = mini_golden_parts();
+    let (_, _, mut lib) = mini_project_parts();
     lib.push(LibDocument::Fndef(fndef_copy_for(LIBRARY_X, ITEM_X, &["1", "2"])));
     lib.push(LibDocument::Symbol(symbol_two()));
     lib
 }
 
-/// The mini golden project row.
+/// The mini project row.
 pub fn project() -> Project {
-    mini_golden_parts().0
+    mini_project_parts().0
 }
 
 /// A model with the project row and [`library`] only: the starting point of command-built models.
@@ -90,15 +90,15 @@ pub fn empty_model() -> Model {
     Model::from_records(project(), [], library()).expect("library-only model is valid")
 }
 
-/// The mini golden model plus [`symbol_two`] and its FnDef copy.
-pub fn golden_model() -> Model {
-    let (p, r, _) = mini_golden_parts();
-    Model::from_records(p, r, library()).expect("mini golden is valid")
+/// The mini model plus [`symbol_two`] and its FnDef copy.
+pub fn mini_model() -> Model {
+    let (p, r, _) = mini_project_parts();
+    Model::from_records(p, r, library()).expect("the mini project is valid")
 }
 
-/// The mini golden model with `f` applied to its records first.
-pub fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+/// The mini model with `f` applied to its records first.
+pub fn mini_model_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
+    let (p, mut records, _) = mini_project_parts();
     f(&mut records);
     Model::from_records(p, records, library()).expect("valid model")
 }

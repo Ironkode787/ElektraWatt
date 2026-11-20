@@ -4,8 +4,8 @@
 //! `layout.place` and `layout.move` with `mode` at the command layer, on a fixture rail.
 //! Free, push and swap with every refusal text whole, one undo step per drop, clearance pads, the read set
 //! that makes a neighbour's concurrent edit conflict, and the property that the
-//! resolver a tool runs for its ghost gives exactly the committed poses. Golden A's numbers
-//! are `ew-api`'s `tests/it/golden_rail_snap.rs`.
+//! resolver a tool runs for its ghost gives exactly the committed poses. The numbers on a
+//! whole project are `ew-api`'s `tests/it/golden_rail_snap.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -97,7 +97,7 @@ fn uses(item: u128) -> Vec<PartUse> {
 }
 
 fn model() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut uc1 = device(DEV_UC1, "UC", 1);
     uc1.parts = uses(ITEM_ENCL);
     let mut plate = device(DEV_PLATE, "UC", 2);

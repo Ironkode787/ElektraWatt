@@ -73,7 +73,7 @@ fn mapped_module(part_id: Id<Part>, coil14: &str, coil12: &str) -> LibCopy<Part>
     )
 }
 
-/// The mini golden model with the module, valve and `extra` part copies and the valve FnDefs.
+/// The mini model with the module, valve and `extra` part copies and the valve FnDefs.
 fn model_with(extra: Vec<LibCopy<Part>>) -> Model {
     model_with_records(extra, vec![])
 }
@@ -84,7 +84,7 @@ fn model_with_records(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
 
 /// [`model_with_records`] with library documents of any kind as `extra`.
 fn model_with_documents(extra: Vec<LibDocument>, more: Vec<Record>) -> Model {
-    let (p, mut records, mut lib) = mini_golden_parts();
+    let (p, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(mapped_module(MODULE_H1, "2p", "2p+1")));
     lib.push(LibDocument::Part(mapped_module(MODULE_H2, "2p+1", "2p")));
     lib.push(LibDocument::Part(solenoid_valve_part(VALVE, "571334", &["14"])));
@@ -233,7 +233,7 @@ fn leaves_the_coil_unbound_when_the_map_channel_is_held() {
     );
 }
 
-/// The golden project's "as drawn" binding: after N2 bound coil 14 to channel 2p (H1), the explicit
+/// The "as drawn" binding of a valve terminal: after N2 bound coil 14 to channel 2p (H1), the explicit
 /// `plc.bind_channel` of channel 2p + 1 moves the coil there and unbinds channel 2p (FR-PLC-005). N2 does
 /// not run again for an untouched valve, so the explicit binding stays.
 #[test]

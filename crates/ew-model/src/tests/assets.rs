@@ -6,7 +6,7 @@
 
 use ew_schema::{AssetFormat, AssetRef, Sha256};
 
-use crate::fixture::mini_golden;
+use crate::fixture::mini_project;
 use crate::{Asset, Rev};
 
 /// An asset whose hash is `n` repeated (the model does not hash; the caller computed the reference).
@@ -23,7 +23,7 @@ fn asset(n: u8) -> Asset {
 
 #[test]
 fn the_assets_stamp_grows_with_every_insert_and_only_then() {
-    let mut m = mini_golden();
+    let mut m = mini_project();
     assert_eq!(m.assets_stamp(), Rev(0));
     let snapshot = m.clone();
     m.put_asset(asset(1));

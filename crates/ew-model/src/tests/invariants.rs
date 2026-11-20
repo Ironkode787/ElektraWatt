@@ -16,7 +16,7 @@ use crate::fixture::{
     CON_J5_IN, CON_W22, CON_W27, DEV_3W1, DEV_101F1, DEV_102F2, DEV_102G1, DEV_X1031, FN_101F1, FN_102F2,
     FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, FORM, FUNC_P01, ITEM_X, ITEM_Y, J5, LIBRARY_X,
     LOC, PAGE_101, PAGE_102, REP_IP_101, SEC1, at_junction, cable, conductor, connection, cp, device,
-    fndef_copy_for, function, ip_function, mini_golden, mini_golden_parts, page, part_using, rep, strip,
+    fndef_copy_for, function, ip_function, mini_project, mini_project_parts, page, part_using, rep, strip,
     structure_node, symbol_using, terminal,
 };
 use crate::{AnyKey, AnyRow, ApplyOptions, Entity, Model, ModelError, Op, Rev, RowId, invert_batch};
@@ -56,7 +56,7 @@ fn apply(m: &Model, ops: &[Op]) -> Result<Model, ModelError> {
 /// A new function whose device and def exist is accepted.
 #[test]
 fn inv001_refs_resolve_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let f = function(nid(0x10_000), DEV_101F1, FNDEF_CONTACT, FnRole::Aux);
     assert!(apply(&m, &[ins(f)]).is_ok());
 }
@@ -64,7 +64,7 @@ fn inv001_refs_resolve_ok() {
 /// A function naming a missing FnDef is rejected.
 #[test]
 fn inv001_refs_resolve_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let f = function(nid(0x10_000), DEV_101F1, nid(0x10_001), FnRole::Aux);
     rejected_by(apply(&m, &[ins(f)]), crate::REFS_RESOLVE);
 }
@@ -72,7 +72,7 @@ fn inv001_refs_resolve_rejected() {
 /// Removing a device while its conductors (cascade referrers) remain is rejected.
 #[test]
 fn inv001_removed_target_with_cascade_referrer_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = Op::delete(m.row(&Device::key(DEV_3W1)).unwrap());
     rejected_by(apply(&m, &[op]), crate::REFS_RESOLVE);
 }
@@ -80,7 +80,7 @@ fn inv001_removed_target_with_cascade_referrer_rejected() {
 /// Removing a strip that terminals name is a forbid-link `Referenced` error.
 #[test]
 fn inv001_forbid_referenced() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = Op::delete(m.row(&Device::key(DEV_X1031)).unwrap());
     let err = apply(&m, &[op]).expect_err("must be rejected");
     assert!(
@@ -92,7 +92,7 @@ fn inv001_forbid_referenced() {
 /// The integrity check of a load rejects a dangling reference.
 #[test]
 fn integrity_check_on_load_rejected() {
-    let (p, mut records, lib) = mini_golden_parts();
+    let (p, mut records, lib) = mini_project_parts();
     records.push(Record::Representation(rep(
         nid(0x10_000),
         PAGE_101,
@@ -106,7 +106,7 @@ fn integrity_check_on_load_rejected() {
 /// violation hides, the first of them being the integrity check's error.
 #[test]
 fn integrity_violations_report_every_dangling_reference() {
-    let (p, mut records, lib) = mini_golden_parts();
+    let (p, mut records, lib) = mini_project_parts();
     let (gone_a, gone_b) = (nid::<Function>(0x10_001), nid::<Function>(0x10_003));
     let keys: [AnyKey; 2] = [
         (ew_schema::Kind::Function, gone_a.cast()),
@@ -127,7 +127,7 @@ fn integrity_violations_report_every_dangling_reference() {
         .collect();
     assert_eq!(named, keys);
     assert_eq!(m.integrity_check(), Err(all[0].clone()));
-    assert!(mini_golden().integrity_violations().is_empty());
+    assert!(mini_project().integrity_violations().is_empty());
 }
 
 /// A `LibRef` referrer that the removal of its copy leaves behind is no violation of EW-INV-001: the history
@@ -149,7 +149,7 @@ fn inv001_load_tolerant_added_target_rejected() {
     let fitting = |n: u128| -> Option<ew_schema::PartRef> {
         Some(serde_json::from_value(json!({ "copy": crate::fixture::uid(nid::<Part>(n)) })).unwrap())
     };
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     for r in &mut records {
         if let Record::Junction(j) = r
             && j.id == J5
@@ -171,14 +171,14 @@ fn inv001_load_tolerant_added_target_rejected() {
 // ---------------------------------------------------------------------------------------------------------
 // EW-INV-021 (delete-time): the `LibRef` keep-alive
 
-/// The mini golden project with an embedded symbol copy whose `fndef` names `ITEM_X` of `LIBRARY_X`, with or
+/// The mini project with an embedded symbol copy whose `fndef` names `ITEM_X` of `LIBRARY_X`, with or
 /// without the FnDef copy that the `LibRef` resolves to; the keys of that FnDef copy and of the symbol.
 fn lib_ref_model(embedded: bool) -> (Model, AnyKey, AnyKey) {
     let copy = fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]);
     let sym = symbol_using(nid(0x21_000), LIBRARY_X, ITEM_X);
     let fkey = <LibCopy<FnDef> as Entity>::key(copy.id);
     let skey = <LibCopy<SymbolDef> as Entity>::key(sym.id);
-    let (project, records, mut lib) = mini_golden_parts();
+    let (project, records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Symbol(sym));
     if embedded {
         lib.push(LibDocument::Fndef(copy));
@@ -287,7 +287,7 @@ fn inv021_undo_of_an_embedding_restores_the_state_before_ok() {
 /// The fixture is valid and an extra Aux function next to the Main is accepted.
 #[test]
 fn inv002_one_main_function_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(m.integrity_check().is_ok());
     let f = function(nid(0x10_000), DEV_101F1, FNDEF_CONTACT, FnRole::Aux);
     assert!(apply(&m, &[ins(f)]).is_ok());
@@ -296,14 +296,14 @@ fn inv002_one_main_function_ok() {
 /// A device without functions is allowed.
 #[test]
 fn inv002_zero_functions_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &[ins(device(nid(0x10_000), "Q", 9))]).is_ok());
 }
 
 /// A second Main function on a device is rejected.
 #[test]
 fn inv002_one_main_function_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let f = function(nid(0x10_000), DEV_101F1, FNDEF_CONTACT, FnRole::Main);
     rejected_by(apply(&m, &[ins(f)]), crate::ONE_MAIN_FUNCTION);
 }
@@ -311,7 +311,7 @@ fn inv002_one_main_function_rejected() {
 /// Moving the Main away leaves the old device (a neighbour) without one.
 #[test]
 fn inv002_main_moved_away_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let new = nid(0x10_000);
     let ops = [
         ins(device(new, "Q", 9)),
@@ -326,7 +326,7 @@ fn inv002_main_moved_away_rejected() {
 /// A new interruption point without a device is accepted, together with its one representation.
 #[test]
 fn inv003_device_iff_not_ip_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let f = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
     let r = rep(nid(0x10_001), PAGE_101, vec![f.id]);
     assert!(apply(&m, &[ins(f), ins(r)]).is_ok());
@@ -335,7 +335,7 @@ fn inv003_device_iff_not_ip_ok() {
 /// A Normal function without a device is rejected.
 #[test]
 fn inv003_device_iff_not_ip_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut f = function(nid(0x10_000), DEV_101F1, FNDEF_CONTACT, FnRole::Aux);
     f.device = None;
     rejected_by(apply(&m, &[ins(f)]), crate::DEVICE_IFF_NOT_IP);
@@ -344,7 +344,7 @@ fn inv003_device_iff_not_ip_rejected() {
 /// An interruption point with a device is rejected (role Aux isolates the rule from EW-INV-002).
 #[test]
 fn inv003_ip_with_device_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut f = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
     f.device = Some(DEV_101F1);
     f.role = FnRole::Aux;
@@ -357,7 +357,7 @@ fn inv003_ip_with_device_rejected() {
 /// A connection between two different CPs of one function is accepted.
 #[test]
 fn ci01_endpoints_differ_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let c = connection(nid(0x10_000), Some(PAGE_101), cp(FN_101F1, 0), cp(FN_101F1, 2));
     assert!(apply(&m, &[ins(c)]).is_ok());
 }
@@ -365,7 +365,7 @@ fn ci01_endpoints_differ_ok() {
 /// A connection with identical endpoints is rejected.
 #[test]
 fn ci01_endpoints_differ_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let c = connection(nid(0x10_000), Some(PAGE_101), cp(FN_101F1, 0), cp(FN_101F1, 0));
     rejected_by(apply(&m, &[ins(c)]), crate::ENDPOINTS_DIFFER);
 }
@@ -376,7 +376,7 @@ fn ci01_endpoints_differ_rejected() {
 /// A representation drawing two functions of one device is accepted.
 #[test]
 fn inv004_rep_one_device_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let r = rep(nid(0x10_000), PAGE_102, vec![FN_102F2, FN_102F2_AUX]);
     assert!(apply(&m, &[ins(r)]).is_ok());
 }
@@ -384,7 +384,7 @@ fn inv004_rep_one_device_ok() {
 /// A new interruption-point function may be drawn with a device's function (in one batch with its representation).
 #[test]
 fn inv004_ip_function_excepted_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let ip = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
     let r = rep(nid(0x10_001), PAGE_101, vec![FN_101F1, ip.id]);
     assert!(apply(&m, &[ins(ip), ins(r)]).is_ok());
@@ -393,7 +393,7 @@ fn inv004_ip_function_excepted_ok() {
 /// A representation drawing functions of two devices is rejected.
 #[test]
 fn inv004_rep_one_device_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let r = rep(nid(0x10_000), PAGE_101, vec![FN_101F1, FN_102G1]);
     rejected_by(apply(&m, &[ins(r)]), crate::REP_ONE_DEVICE);
 }
@@ -401,7 +401,7 @@ fn inv004_rep_one_device_rejected() {
 /// Moving a drawn function to another device breaks the representation (a neighbour).
 #[test]
 fn inv004_function_moved_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let r = rep(nid(0x10_000), PAGE_102, vec![FN_102F2, FN_102F2_AUX]);
     let m = m.apply_history(&[ins(r)], Rev(1)).unwrap();
     let op = upd(&m, FN_102F2_AUX, |f: &mut Function| {
@@ -435,7 +435,7 @@ fn pin_map_rep(second_symbol_cp: u16) -> Representation {
 /// A pin map with distinct symbol CPs is accepted.
 #[test]
 fn inv005_pin_map_unique_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &[ins(pin_map_rep(1))]).is_ok());
 }
 
@@ -452,7 +452,7 @@ fn inv005_pin_map_unique_rejected() {
 /// The fixture satisfies CI-04 and a connection added together with its junction entry is accepted.
 #[test]
 fn ci04_junction_sequence_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(m.integrity_check().is_ok());
     let c = nid(0x10_000);
     let ops = [
@@ -465,7 +465,7 @@ fn ci04_junction_sequence_ok() {
 /// A connection ending at a junction that does not list it is rejected.
 #[test]
 fn ci04_junction_sequence_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let c = connection(nid(0x10_000), Some(PAGE_102), at_junction(J5), cp(FN_T3, 0));
     rejected_by(apply(&m, &[ins(c)]), crate::JUNCTION_SEQUENCE);
 }
@@ -473,7 +473,7 @@ fn ci04_junction_sequence_rejected() {
 /// Rewiring a connection away from a junction without updating it is rejected (old junction is a neighbour).
 #[test]
 fn ci04_rewired_connection_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, CON_W22, |c: &mut Connection| c.a = cp(FN_102G1, 6));
     rejected_by(apply(&m, &[op]), crate::JUNCTION_SEQUENCE);
 }
@@ -481,7 +481,7 @@ fn ci04_rewired_connection_rejected() {
 /// A sequence listing a connection twice is rejected.
 #[test]
 fn ci04_duplicate_entry_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, J5, |j: &mut Junction| {
         j.sequence = vec![CON_J5_IN, CON_W22, CON_W27, CON_W22];
     });
@@ -491,7 +491,7 @@ fn ci04_duplicate_entry_rejected() {
 /// A CI-04 violation that is repaired later in the same batch is accepted (ADR-0009 decision 1).
 #[test]
 fn transient_violation_inside_batch_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let c = nid(0x10_000);
     let ops = [
         ins(connection(c, Some(PAGE_102), at_junction(J5), cp(FN_T3, 0))),
@@ -507,14 +507,14 @@ fn transient_violation_inside_batch_ok() {
 /// A conductor of a cable device is accepted.
 #[test]
 fn inv006_conductor_cable_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &[ins(conductor(nid(0x10_000), DEV_3W1, "D"))]).is_ok());
 }
 
 /// A conductor of a device without the cable aspect is rejected.
 #[test]
 fn inv006_conductor_cable_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let c = conductor(nid(0x10_000), DEV_101F1, "D");
     rejected_by(apply(&m, &[ins(c)]), crate::CONDUCTOR_CABLE);
 }
@@ -522,7 +522,7 @@ fn inv006_conductor_cable_rejected() {
 /// Removing the cable aspect from a cable that has conductors is rejected.
 #[test]
 fn inv006_cable_aspect_removed_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, DEV_3W1, |d: &mut Device| d.aspects.cable = None);
     rejected_by(apply(&m, &[op]), crate::CONDUCTOR_CABLE);
 }
@@ -533,14 +533,14 @@ fn inv006_cable_aspect_removed_rejected() {
 /// A terminal on a strip is accepted.
 #[test]
 fn inv007_terminal_strip_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &[ins(terminal(nid(0x10_000), DEV_X1031, 4, "4"))]).is_ok());
 }
 
 /// A terminal whose strip lacks the strip aspect is rejected.
 #[test]
 fn inv007_terminal_strip_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let t = terminal(nid(0x10_000), DEV_101F1, 1, "1");
     rejected_by(apply(&m, &[ins(t)]), crate::TERMINAL_STRIP);
 }
@@ -548,7 +548,7 @@ fn inv007_terminal_strip_rejected() {
 /// Removing the strip aspect from a strip that has terminals is rejected.
 #[test]
 fn inv007_strip_aspect_removed_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, DEV_X1031, |d: &mut Device| d.aspects.strip = None);
     rejected_by(apply(&m, &[op]), crate::TERMINAL_STRIP);
 }
@@ -559,7 +559,7 @@ fn inv007_strip_aspect_removed_rejected() {
 /// A chain of location nodes is accepted.
 #[test]
 fn inv008_structure_acyclic_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let (a, b) = (nid(0x10_000), nid(0x10_001));
     let ops = [
         ins(structure_node(a, Aspect::Location, "A", Some(LOC))),
@@ -571,7 +571,7 @@ fn inv008_structure_acyclic_ok() {
 /// Two nodes that are each other's parent are rejected.
 #[test]
 fn inv008_structure_acyclic_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let (a, b) = (nid(0x10_000), nid(0x10_001));
     let ops = [
         ins(structure_node(a, Aspect::Location, "A", Some(b))),
@@ -583,7 +583,7 @@ fn inv008_structure_acyclic_rejected() {
 /// A node that is its own parent is rejected.
 #[test]
 fn inv008_self_parent_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, LOC, |n: &mut StructureNode| n.parent = Some(LOC));
     rejected_by(apply(&m, &[op]), crate::STRUCTURE_ACYCLIC);
 }
@@ -594,7 +594,7 @@ fn inv008_self_parent_rejected() {
 /// A device nested under another device is accepted.
 #[test]
 fn inv009_device_acyclic_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut d = device(nid(0x10_000), "Q", 9);
     d.parent = Some(DEV_102F2);
     assert!(apply(&m, &[ins(d)]).is_ok());
@@ -603,7 +603,7 @@ fn inv009_device_acyclic_ok() {
 /// Two devices that are each other's parent are rejected.
 #[test]
 fn inv009_device_acyclic_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = [
         upd(&m, DEV_101F1, |d: &mut Device| d.parent = Some(DEV_102G1)),
         upd(&m, DEV_102G1, |d: &mut Device| d.parent = Some(DEV_101F1)),
@@ -614,7 +614,7 @@ fn inv009_device_acyclic_rejected() {
 /// A device that is its own parent is rejected.
 #[test]
 fn inv009_self_parent_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = upd(&m, DEV_101F1, |d: &mut Device| d.parent = Some(DEV_101F1));
     rejected_by(apply(&m, &[op]), crate::DEVICE_ACYCLIC);
 }
@@ -626,7 +626,7 @@ fn inv009_self_parent_rejected() {
 /// of each point the same way.
 #[test]
 fn inv015_inheritance_acyclic_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut t = terminal(nid(0x10_000), DEV_X1031, 5, "5");
     t.parent = Some(DEV_X1031);
     let mut child = device(nid(0x10_001), "Q", 9);
@@ -639,7 +639,7 @@ fn inv015_inheritance_acyclic_ok() {
 /// holds), but S inherits from B and B from S.
 #[test]
 fn inv015_strip_whose_parent_is_its_terminal_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let b = terminal(nid(0x10_000), DEV_X1031, 5, "5");
     let m = apply(&m, &[ins(b)]).expect("the terminal alone is valid");
     let op = upd(&m, DEV_X1031, |d: &mut Device| {
@@ -652,7 +652,7 @@ fn inv015_strip_whose_parent_is_its_terminal_rejected() {
 /// Review probe 2: A's parent is terminal B, B's strip is S, S's parent is A.
 #[test]
 fn inv015_three_device_cycle_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let a = nid::<Device>(0x10_001);
     let mut dev_a = device(a, "K", 9);
     dev_a.parent = Some(nid(0x10_000));
@@ -666,7 +666,7 @@ fn inv015_three_device_cycle_rejected() {
 /// record, `Model::from_records`).
 #[test]
 fn inv015_cycle_rejected_on_load() {
-    let (p, mut records, lib) = mini_golden_parts();
+    let (p, mut records, lib) = mini_project_parts();
     records.push(Record::Device(terminal(nid(0x10_000), DEV_X1031, 5, "5")));
     for r in &mut records {
         if let Record::Device(d) = r {
@@ -684,14 +684,14 @@ fn inv015_cycle_rejected_on_load() {
 /// A plain terminal device is accepted.
 #[test]
 fn inv010_terminal_aspects_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &[ins(terminal(nid(0x10_000), DEV_X1031, 5, "5"))]).is_ok());
 }
 
 /// A terminal that also has the strip aspect is rejected.
 #[test]
 fn inv010_terminal_aspects_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let strip_aspect = m
         .row(&Device::key(DEV_X1031))
         .unwrap()
@@ -708,7 +708,7 @@ fn inv010_terminal_aspects_rejected() {
 /// A strip and a cable, each with its single aspect, are accepted.
 #[test]
 fn inv010_strip_and_cable_alone_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = [
         ins(strip(nid(0x10_000), "X", 2000)),
         ins(cable(nid(0x10_001), "W", 2)),
@@ -719,7 +719,7 @@ fn inv010_strip_and_cable_alone_ok() {
 /// A terminal that also has the cable aspect is rejected.
 #[test]
 fn inv010_terminal_cable_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let cable_aspect = m
         .row(&Device::key(DEV_3W1))
         .unwrap()
@@ -737,7 +737,7 @@ fn inv010_terminal_cable_rejected() {
 /// A strip that also has the cable aspect is rejected.
 #[test]
 fn inv010_strip_cable_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut s = strip(nid(0x10_000), "X", 2000);
     s.aspects.cable = cable(nid(0x10_001), "W", 2).aspects.cable;
     assert!(s.aspects.cable.is_some());
@@ -747,7 +747,7 @@ fn inv010_strip_cable_rejected() {
 /// Adding the strip aspect to the existing cable by an update is rejected.
 #[test]
 fn inv010_aspect_added_by_update_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let strip_aspect = m
         .row(&Device::key(DEV_X1031))
         .unwrap()
@@ -766,7 +766,7 @@ fn inv010_aspect_added_by_update_rejected() {
 /// A child with the parent's aspect is accepted.
 #[test]
 fn inv011_structure_same_aspect_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let n = structure_node(nid(0x10_000), Aspect::Location, "L2", Some(LOC));
     assert!(apply(&m, &[ins(n)]).is_ok());
 }
@@ -774,14 +774,14 @@ fn inv011_structure_same_aspect_ok() {
 /// A Function-aspect node under a Location node is rejected.
 #[test]
 fn inv011_structure_same_aspect_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let n = structure_node(nid(0x10_000), Aspect::Function, "F2", Some(LOC));
     rejected_by(apply(&m, &[ins(n)]), crate::STRUCTURE_SAME_ASPECT);
 }
 
 /// A model with one child (a Function node) under the root `FUNC_P01`, which no record's structure slot names.
 fn model_with_function_child() -> (Model, Id<StructureNode>) {
-    let m = mini_golden();
+    let m = mini_project();
     let child = nid(0x10_000);
     let n = structure_node(child, Aspect::Function, "P01.1", Some(FUNC_P01));
     (apply(&m, &[ins(n)]).expect("same aspect"), child)
@@ -818,7 +818,7 @@ fn inv011_parent_and_children_changed_together_ok() {
 /// A stored MultiLine page is accepted.
 #[test]
 fn inv012_no_stored_report_page_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let p = page(nid(0x10_000), Some(SEC1), 103, "New page");
     assert!(apply(&m, &[ins(p)]).is_ok());
 }
@@ -826,7 +826,7 @@ fn inv012_no_stored_report_page_ok() {
 /// A stored Report page is rejected.
 #[test]
 fn inv012_no_stored_report_page_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let mut p = page(nid(0x10_000), Some(SEC1), 103, "Report");
     p.kind = PageType::Report;
     rejected_by(apply(&m, &[ins(p)]), crate::NO_STORED_REPORT_PAGE);
@@ -845,14 +845,14 @@ fn new_ip_with_rep(function: u128, representation: u128) -> [Op; 2] {
 /// A new interruption point with its one representation, created in one batch, is accepted.
 #[test]
 fn inv013_ip_with_one_rep_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     assert!(apply(&m, &new_ip_with_rep(0x10_000, 0x10_001)).is_ok());
 }
 
 /// A new interruption point without any representation is rejected.
 #[test]
 fn inv013_ip_without_rep_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let f = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
     rejected_by(apply(&m, &[ins(f)]), crate::IP_ONE_REPRESENTATION);
 }
@@ -860,7 +860,7 @@ fn inv013_ip_without_rep_rejected() {
 /// A second representation of an interruption point is rejected.
 #[test]
 fn inv013_second_rep_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let r = rep(nid(0x10_000), PAGE_102, vec![FN_IP_101]);
     rejected_by(apply(&m, &[ins(r)]), crate::IP_ONE_REPRESENTATION);
 }
@@ -868,7 +868,7 @@ fn inv013_second_rep_rejected() {
 /// Removing the only representation of an interruption point, without the function, is rejected.
 #[test]
 fn inv013_rep_removed_without_function_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let op = Op::delete(m.row(&Representation::key(REP_IP_101)).unwrap());
     rejected_by(apply(&m, &[op]), crate::IP_ONE_REPRESENTATION);
 }
@@ -877,7 +877,7 @@ fn inv013_rep_removed_without_function_rejected() {
 #[test]
 fn inv013_rep_repointed_rejected() {
     let x = nid(0x10_000);
-    let m = apply(&mini_golden(), &new_ip_with_rep(0x10_000, 0x10_001)).unwrap();
+    let m = apply(&mini_project(), &new_ip_with_rep(0x10_000, 0x10_001)).unwrap();
     let op = upd(&m, REP_IP_101, |r: &mut Representation| r.functions = vec![x]);
     rejected_by(m.apply_history(&[op], Rev(2)), crate::IP_ONE_REPRESENTATION);
 }
@@ -904,7 +904,7 @@ fn report_block(n: u128, first_folio: Option<u32>, embedded: Option<Id<ew_schema
 /// A page-oriented report block with a first folio is accepted.
 #[test]
 fn inv014_report_block_folio_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let b = report_block(0x10_000, Some(907), None);
     assert!(apply(&m, &[ins(b)]).is_ok());
 }
@@ -912,7 +912,7 @@ fn inv014_report_block_folio_ok() {
 /// An embedded report block needs no first folio.
 #[test]
 fn inv014_embedded_without_folio_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let b = report_block(0x10_000, None, Some(PAGE_101));
     assert!(b.embedded.is_some() && b.first_folio.is_none());
     assert!(apply(&m, &[ins(b)]).is_ok());
@@ -921,7 +921,7 @@ fn inv014_embedded_without_folio_ok() {
 /// A page-oriented report block without a first folio is rejected.
 #[test]
 fn inv014_report_block_folio_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let b = report_block(0x10_000, None, None);
     rejected_by(apply(&m, &[ins(b)]), crate::REPORT_BLOCK_FOLIO);
 }
@@ -929,7 +929,7 @@ fn inv014_report_block_folio_rejected() {
 /// Making an embedded block without a folio page-oriented (`embedded` removed) is rejected.
 #[test]
 fn inv014_embedded_removed_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let b = report_block(0x10_000, None, Some(PAGE_101));
     let id = b.id;
     let m = m.apply_history(&[ins(b)], Rev(1)).unwrap();
@@ -968,9 +968,9 @@ fn note(page: Id<ew_schema::Page>) -> PageNote {
     }
 }
 
-/// Golden A's history: V1.0 released (historic), V2.0 open.
+/// A history of two revisions: V1.0 released (historic), V2.0 open.
 fn with_history() -> Model {
-    let m = mini_golden();
+    let m = mini_project();
     let v1 = revision(0x60_001, "V1.0", RevisionState::Released);
     let v2 = revision(0x60_002, "V2.0", RevisionState::Open);
     m.apply_history(&[ins(v1), ins(v2)], Rev(1))
@@ -1128,7 +1128,7 @@ fn inv016_two_open_revisions_rejected_on_load() {
     let kept = after.revisions.get(&nid(0x60_002)).unwrap();
     assert_eq!(kept.page_notes.len(), 1);
 
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.push(Record::Revision(revision(0x60_001, "V1.0", RevisionState::Open)));
     records.push(Record::Revision(revision(0x60_002, "V2.0", RevisionState::Open)));
     rejected_by(
@@ -1143,7 +1143,7 @@ fn inv016_two_open_revisions_rejected_on_load() {
 /// A graphic and a structure box on an existing page are accepted.
 #[test]
 fn inv022_items_and_boxes_on_their_page_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let ops = [
         ins(crate::fixture::graphic_line(nid(0x43_000), PAGE_101)),
         ins(crate::fixture::structure_box(
@@ -1159,7 +1159,7 @@ fn inv022_items_and_boxes_on_their_page_ok() {
 /// A page item or a structure box on a page that does not exist is rejected, through the page link of EW-INV-001.
 #[test]
 fn inv022_item_on_missing_page_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     rejected_by(
         edit(&m, &[ins(crate::fixture::graphic_line(nid(0x43_000), nid(0x39)))]),
         crate::REFS_RESOLVE,
@@ -1181,7 +1181,7 @@ fn inv022_item_on_missing_page_rejected() {
 /// A wire marker listing connections of its own page is accepted.
 #[test]
 fn inv023_marker_on_its_page_ok() {
-    let m = mini_golden();
+    let m = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, CON_W27]);
     assert!(edit(&m, &[ins(marker)]).is_ok());
 }
@@ -1190,7 +1190,7 @@ fn inv023_marker_on_its_page_ok() {
 /// link.
 #[test]
 fn inv023_missing_connection_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
     rejected_by(edit(&m, &[ins(marker)]), crate::REFS_RESOLVE);
 }
@@ -1198,7 +1198,7 @@ fn inv023_missing_connection_rejected() {
 /// A wire marker listing a connection of another page is rejected.
 #[test]
 fn inv023_connection_on_another_page_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_101, vec![CON_W22]);
     rejected_by(edit(&m, &[ins(marker)]), crate::MARKER_CONNECTIONS);
 }
@@ -1206,7 +1206,7 @@ fn inv023_connection_on_another_page_rejected() {
 /// A connection moved to another page while a marker lists it is rejected.
 #[test]
 fn inv023_connection_moved_off_its_page_rejected() {
-    let m = mini_golden();
+    let m = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22]);
     let m = edit(&m, &[ins(marker)]).expect("a marker");
     let op = upd(&m, CON_W22, |c: &mut Connection| c.page = Some(PAGE_101));
@@ -1219,7 +1219,7 @@ fn inv023_connection_moved_off_its_page_rejected() {
 #[test]
 fn inv023_stale_list_loads_and_edits_keep_it_ok() {
     let mut records: Vec<Record> = Vec::new();
-    let base = mini_golden();
+    let base = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff), CON_W11A_ID]);
     records.push(Record::PageItem(marker.clone()));
     let m = reload_with(&base, records);
@@ -1249,7 +1249,7 @@ fn inv023_stale_list_loads_and_edits_keep_it_ok() {
 /// An edit that adds a stale entry to a list is rejected, also when the list held stale entries already.
 #[test]
 fn inv023_added_stale_entry_rejected() {
-    let base = mini_golden();
+    let base = mini_project();
     let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
     let m = reload_with(&base, vec![Record::PageItem(marker.clone())]);
     let op = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
@@ -1263,10 +1263,10 @@ fn inv023_added_stale_entry_rejected() {
 /// The ID of `CON_W11A`, a connection of page 101.
 const CON_W11A_ID: Id<Connection> = crate::fixture::CON_W11A;
 
-/// The mini golden project plus `extra` records, loaded through `Model::from_records` (the integrity check of an
+/// The mini project plus `extra` records, loaded through `Model::from_records` (the integrity check of an
 /// open).
 fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
-    let (project, mut records, lib) = crate::fixture::mini_golden_parts();
+    let (project, mut records, lib) = crate::fixture::mini_project_parts();
     records.extend(extra);
     Model::from_records(project, records, lib).expect("a stale list is not an integrity violation")
 }
@@ -1297,9 +1297,9 @@ const FQ1: u128 = 0x24_201;
 const FQ2: u128 = 0x24_202;
 const FH: u128 = 0x24_203;
 
-/// The mini golden project with two pneumatic valves and a hydraulic one: their FnDefs, devices and functions.
+/// The mini project with two pneumatic valves and a hydraulic one: their FnDefs, devices and functions.
 fn with_fluid_ports() -> Model {
-    let m = mini_golden();
+    let m = mini_project();
     let mut ops = vec![
         ins(fluid_fndef(nid(PNEU), ew_schema::Discipline::Pneumatic)),
         ins(fluid_fndef(nid(HYD), ew_schema::Discipline::Hydraulic)),
@@ -1327,7 +1327,7 @@ fn fluid(id: u128, a: ew_schema::Endpoint, b: ew_schema::Endpoint) -> Connection
 /// port was "no fluid port" and every such update was refused.
 #[test]
 fn inv024_a_port_without_its_definition_is_not_judged() {
-    let (project, mut records, mut lib) = mini_golden_parts();
+    let (project, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Fndef(fluid_fndef(
         nid(HYD),
         ew_schema::Discipline::Hydraulic,
@@ -1478,9 +1478,9 @@ fn inv024_media_across_a_ring_of_three_junctions() {
 // ---------------------------------------------------------------------------------------------------------
 // EW-INV-025 (ADR-0009 amendment 10)
 
-/// The mini golden project, loaded with -101F1 under `parent` and a link -101F1 drives -102F2.
+/// The mini project, loaded with -101F1 under `parent` and a link -101F1 drives -102F2.
 fn drives_model(parent: Id<Device>) -> Model {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     for r in &mut records {
         if let Record::Device(d) = r
             && d.id == DEV_101F1

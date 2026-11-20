@@ -80,9 +80,9 @@ fn rejected(err: &CmdError) -> bool {
     matches!(err, CmdError::Rejected { .. })
 }
 
-/// Golden A's history through commands: V1.0 historic released, V2.0 open with two page notes.
+/// A history of two revisions through commands: V1.0 historic released, V2.0 open with two page notes.
 fn with_history() -> (Engine, Id<Revision>, Id<Revision>) {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let v1 = CreateRevision {
         date: Some(Date::new(2025, 3, 3).unwrap()),
         description: MlText::neutral("Initial issue"),
@@ -123,7 +123,7 @@ fn create_writes_an_open_and_a_historic_released_revision() {
 /// The default state is `open`; one undo removes the revision again, redo restores it byte for byte.
 #[test]
 fn create_is_undoable() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let id: Id<Revision> = typed(
         e.execute(&serde_json::from_value::<CreateRevision>(json!({"label": "V1.0"})).unwrap())
@@ -172,7 +172,7 @@ fn create_refusals_name_revisions_and_pages_in_words() {
 
 #[test]
 fn create_refuses_author_as_checker() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = CreateRevision {
         author: Some(PartyRole::Engineer),
         checker: Some(PartyRole::Engineer),
@@ -191,7 +191,7 @@ fn create_refuses_author_as_checker() {
 
 #[test]
 fn create_refuses_a_missing_page_or_a_page_noted_twice() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let missing = CreateRevision {
         page_notes: vec![note(PAGE_101), note(Id::from_uuid(uuid(0xdead)))],
         ..create("V1.0", NewRevisionState::Open)
@@ -363,7 +363,7 @@ fn the_open_revision_can_be_deleted_a_released_one_cannot() {
 /// the note with the page.
 #[test]
 fn deleting_a_noted_page_drops_the_open_revision_note_and_keeps_a_released_one() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let v1 = CreateRevision {
         page_notes: vec![note(PAGE_101)],
         ..create("V1.0", NewRevisionState::Released)
@@ -464,9 +464,9 @@ fn raw(id: u128, label: &str, state: RevisionState) -> Revision {
     }
 }
 
-/// The mini golden model with a label format and revisions.
+/// The mini model with a label format and revisions.
 fn model_with(format: Option<LabelFormat>, revisions: Vec<Revision>) -> Model {
-    let (mut project, mut records, _) = mini_golden_parts();
+    let (mut project, mut records, _) = mini_project_parts();
     project.settings.revision_label = format;
     records.extend(revisions.into_iter().map(Record::Revision));
     Model::from_records(project, records, library()).expect("a valid model")
@@ -526,7 +526,7 @@ fn scripted() -> [Origin; 3] {
 /// label; an open revision follows every label; a historic released revision precedes the open one.
 #[test]
 fn create_prevents_a_label_out_of_format_or_order() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (rule, finding) = prevented(e.execute(&create("2", NewRevisionState::Open)).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
     // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
@@ -617,7 +617,7 @@ fn create_follows_the_project_label_format() {
 /// `v5(V1.0, "next")` and no author; one undo removes both, redo restores both; a further edit opens nothing more.
 #[test]
 fn a_content_edit_after_a_release_opens_the_next_revision() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let v1: Id<Revision> = typed(
         e.execute(&create("V1.0", NewRevisionState::Released))
             .expect("V1.0")
@@ -652,7 +652,7 @@ fn a_content_edit_after_a_release_opens_the_next_revision() {
 fn only_a_content_edit_after_a_release_opens_a_revision() {
     assert!(!ew_schema::is_content_kind(Kind::Comment) && !ew_schema::is_content_kind(Kind::Transmittal));
     assert!(ew_schema::is_content_kind(Kind::Device) && ew_schema::is_content_kind(Kind::Project));
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&device_edit("Feed")).expect("the edit");
     assert!(e.model().table::<Revision>().is_empty(), "nothing released");
     let v1: Id<Revision> = typed(
@@ -738,7 +738,7 @@ fn the_roles_are_not_set_by_fields_set() {
         }
     }
     assert_eq!(lines(e.model()), before);
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = CreateRevision {
         checker: Some(PartyRole::Checker),
         ..create("V1.0", NewRevisionState::Open)

@@ -14,7 +14,7 @@ use serde_json::json;
 // `terminal.designation`, which leaves the duplicate to the prevent rules.
 #[test]
 fn prevent_rules_are_not_wired_until_wp_s1_15() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     // The strip DEV_X1031 holds terminals "1", "2" and "3": rename the second one to "1".
     let cmd = SetFields {
         kind: KindName::Device,

@@ -50,14 +50,14 @@ fn fluid_fndef(def: Id<FnDef>, discipline: Discipline) -> LibCopy<FnDef> {
     copy
 }
 
-/// The mini golden project with two pneumatic valves -Q71 and -Q72 and a hydraulic one, -Q73.
+/// The mini project with two pneumatic valves -Q71 and -Q72 and a hydraulic one, -Q73.
 fn fluid_model() -> Model {
     fluid_model_with(Vec::new())
 }
 
 /// [`fluid_model`] with the records `more`.
 fn fluid_model_with(more: Vec<Record>) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.extend(more);
     let mut lib = library();
     lib.push(LibDocument::Fndef(fluid_fndef(PNEU, Discipline::Pneumatic)));
@@ -264,7 +264,7 @@ fn module_model() -> Model {
 
 /// [`module_model`] with the library documents `extra`.
 fn module_model_with(extra: Vec<LibDocument>) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut lib = library();
     lib.extend(extra);
     lib.push(LibDocument::Fndef(fluid_fndef(PNEU, Discipline::Pneumatic)));
@@ -537,7 +537,7 @@ fn fluid_fndef_n(def: Id<FnDef>, designations: &[&str]) -> LibCopy<FnDef> {
 
 /// A valve -Q61 (supply 1, working 2 and 4) on a terminal -U61 and two cylinders -Q62 and -Q63 (consumer A, B).
 fn actuator_model() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Fndef(role_fndef(
         VALVE_DEF,

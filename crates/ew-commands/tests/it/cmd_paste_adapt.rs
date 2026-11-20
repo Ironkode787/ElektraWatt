@@ -47,9 +47,9 @@ fn version(version: &str, cps: &[&str], description: &str) -> LibCopy<Part> {
     with_hash(c)
 }
 
-/// The mini golden model holding `held`.
+/// The mini model holding `held`.
 fn model(held: &LibCopy<Part>) -> Model {
-    let (p, r, _) = mini_golden_parts();
+    let (p, r, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Part(held.clone()));
     Model::from_records(p, r, lib).expect("valid")
@@ -77,7 +77,7 @@ fn refusal(e: &mut Engine, cmd: &PasteFragment) -> (String, String) {
     }
 }
 
-/// The part copies the pasted devices name (every device but the mini golden's).
+/// The part copies the pasted devices name (every device but the mini project's).
 fn pasted_uses(e: &Engine, before: &[Id<Device>]) -> Vec<Id<Part>> {
     e.model()
         .table::<Device>()

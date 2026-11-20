@@ -38,10 +38,10 @@ fn members() -> Vec<(AnyId, AnyId)> {
     ]
 }
 
-/// The mini golden project with a macro copy, a manufacturer copy, a page item on page 102 and an instance of the
+/// The mini project with a macro copy, a manufacturer copy, a page item on page 102 and an instance of the
 /// macro anchored on page 102 that lists `members`.
 fn with_instance(members: Vec<(AnyId, AnyId)>) -> Result<Model, ModelError> {
-    let (project, mut records, mut lib) = mini_golden_parts();
+    let (project, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Macro(macro_copy(MAC)));
     lib.push(LibDocument::Manufacturer(manufacturer_copy(MFR)));
     records.push(Record::PageItem(graphic_line(ITEM, PAGE_102)));
@@ -231,7 +231,7 @@ fn members_and_the_macro_copy_must_resolve() {
         .expect("a page and a junction resolve");
     rejected_by(with_instance(vec![(local(9), local(9))]), crate::REFS_RESOLVE);
 
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.push(Record::MacroInstance(macro_instance(MI, MAC, PAGE_102, vec![])));
     rejected_by(Model::from_records(project, records, lib), crate::REFS_RESOLVE);
 }

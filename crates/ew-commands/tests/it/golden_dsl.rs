@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command-DSL builder of the mini golden model: the records of `fixture::mini_golden_parts()` (minus
+//! The command-DSL builder of the mini model: the records of `fixture::mini_project_parts()` (minus
 //! the bond, which has no command in v0) constructed through commands only, from `empty_model()`, and
 //! compared record for record with a hand-built expectation that uses the IDs the commands minted.
 
@@ -215,7 +215,7 @@ impl Dsl {
     }
 }
 
-/// Builds the mini golden project through commands only.
+/// Builds the mini project through commands only.
 fn build(seed: u64) -> (Dsl, Ids) {
     let mut d = Dsl::new(seed);
     let loc = d.node(Aspect::Location, "J-E-2416", &["JE2416"]);
@@ -614,7 +614,7 @@ fn commands_build_the_mini_golden_records() {
 #[test]
 fn record_counts_match_the_fixture() {
     let (d, _) = build(SEED);
-    let fixture_model = golden_model();
+    let fixture_model = mini_model();
     for (kind, n) in [
         (Kind::Device, 8),
         (Kind::Function, 10),

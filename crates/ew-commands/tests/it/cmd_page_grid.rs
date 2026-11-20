@@ -22,7 +22,7 @@ fn set_grid(page: Id<Page>, grid: Value) -> SetFields {
 
 #[test]
 fn a_populated_pages_grid_change_is_refused_and_an_empty_pages_grid_is_set() {
-    let mut e = engine(mini_golden());
+    let mut e = engine(mini_project());
     let before = lines(e.model());
     let mm4 = json!({"num": 4_000_000, "den": 1});
     assert_eq!(

@@ -56,7 +56,7 @@ fn set_device(device: Id<Device>, path: &str, value: Value) -> SetFields {
 
 #[test]
 fn attach_sets_parent_and_positions_and_undo_restores() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&attach(
             DEV_102G1,
@@ -77,7 +77,7 @@ fn attach_sets_parent_and_positions_and_undo_restores() {
 
 #[test]
 fn attach_rejects_malformed_and_conflicting_requests() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let c = "assembly.attach";
     assert_eq!(
         invalid_path(e.execute(&attach(DEV_102G1, vec![])), c),
@@ -118,7 +118,7 @@ fn attach_rejects_malformed_and_conflicting_requests() {
 
 #[test]
 fn attach_moves_a_child_to_another_parent() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&attach(DEV_102G1, vec![child(DEV_102F2, Some(1))]))
         .expect("first");
     e.execute(&attach(DEV_101F1, vec![child(DEV_102F2, Some(1))]))
@@ -150,7 +150,7 @@ fn valve(module: Id<Device>, position: Option<u32>, fndef: Option<Id<ew_schema::
 
 #[test]
 fn valve_add_takes_the_lowest_free_position_and_creates_the_function() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&attach(DEV_102G1, vec![child(DEV_101F1, Some(1))]))
         .expect("attach");
     let r = e
@@ -174,7 +174,7 @@ fn valve_add_takes_the_lowest_free_position_and_creates_the_function() {
 
 #[test]
 fn valve_add_checks_positions_and_undo_removes_the_valve() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let c = "valve.add";
     e.execute(&attach(DEV_102G1, vec![child(DEV_101F1, Some(1))]))
         .expect("attach");
@@ -214,7 +214,7 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
 
 #[test]
 fn device_link_creates_and_validates() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let link = |from, to| LinkDevices {
         from,
         to,
@@ -254,7 +254,7 @@ fn config_project(name: &str, profile: &str, cpu: Option<Id<Device>>) -> CreateP
 
 #[test]
 fn config_project_create_validates_name_profile_and_cpu() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let c = "plc.config_project.create";
     let r = e
         .execute(&config_project("PLC1", "siemens-tia-intl@2027.1", None))
@@ -299,7 +299,7 @@ fn module_part(part_id: Id<Part>) -> LibCopy<Part> {
 }
 
 fn plc_model() -> Model {
-    let (mut p, mut records, mut lib) = mini_golden_parts();
+    let (mut p, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(module_part(MODULE_PART)));
     let supply: SupplySpec =
         serde_json::from_value(json!({"phases": 1, "u_nom": "230", "frequency": "50"})).expect("supply");
@@ -537,9 +537,9 @@ fn module_part_with(part_id: Id<Part>, count: u16) -> LibCopy<Part> {
     copy
 }
 
-/// The mini golden model with the module part and `extra` part copies (no supply).
+/// The mini model with the module part and `extra` part copies (no supply).
 fn plc_model_with(extra: Vec<LibCopy<Part>>) -> Model {
-    let (p, records, mut lib) = mini_golden_parts();
+    let (p, records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(module_part(MODULE_PART)));
     lib.extend(extra.into_iter().map(LibDocument::Part));
     Model::from_records(p, records, lib).expect("plc model is valid")
@@ -603,7 +603,7 @@ fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
 /// gets no second channel of a number it has.
 #[test]
 fn keys_existing_channels_on_module_and_number_not_on_the_id() {
-    let (p, mut records, mut lib) = mini_golden_parts();
+    let (p, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(module_part(MODULE_PART)));
     let foreign: Id<Channel> = id(0xc000);
     records.push(Record::Channel(
@@ -747,7 +747,7 @@ fn supply_set_edits_one_member() {
 
 #[test]
 fn supply_set_is_rejected_without_a_supply() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&SetProjectSupply {
         path: "origin.source".into(),
         value: json!(XREF),
@@ -787,7 +787,7 @@ fn embed(copies: Vec<Value>) -> EmbedLibraryCopies {
 
 #[test]
 fn library_embed_inserts_a_copy_once_and_undo_removes_it() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (id, json) = embeddable(0xa0001, 0xa0002);
     let r = e.execute(&embed(vec![json.clone()])).expect("library.embed");
     assert_eq!(r.outcome.primary, Some((Kind::Form, id.cast())));
@@ -803,7 +803,7 @@ fn has_form(e: &Engine, id: Id<FormDef>) -> bool {
 
 #[test]
 fn library_embed_validates_every_copy() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let c = "library.embed";
     let (copy_id, good) = embeddable(0xa0001, 0xa0002);
     assert_eq!(
@@ -836,10 +836,10 @@ fn library_embed_validates_every_copy() {
 /// The part copy of these tests: its one function template names [`ITEM_Y`] of [`LIBRARY_X`].
 const PART_316: Id<Part> = id(0xa316);
 
-/// The golden model with an embedded part copy whose function template names an FnDef item the project does
+/// The mini model with an embedded part copy whose function template names an FnDef item the project does
 /// not embed: valid, the `LibRef` names nothing (NFR-REL-11).
 fn model_with_part_naming_an_unembedded_fndef() -> Model {
-    let (p, r, _) = mini_golden_parts();
+    let (p, r, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Part(part_using(
         PART_316, "TPL-316", LIBRARY_X, ITEM_Y,

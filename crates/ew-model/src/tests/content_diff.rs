@@ -9,7 +9,7 @@ use ew_rds::Aspect;
 use ew_schema::{Kind, LibDocument, Record, StructureNode};
 use serde_json::json;
 
-use crate::fixture::{mini_golden_parts, structure_node};
+use crate::fixture::{mini_project_parts, structure_node};
 use crate::{AnyRow, ContentDiff, Model, Presence, Rev};
 
 const ROOT: Id<StructureNode> = Id::from_uuid(Uuid::from_u128(0x9001));
@@ -17,7 +17,7 @@ const CHILD: Id<StructureNode> = Id::from_uuid(Uuid::from_u128(0x9002));
 
 #[test]
 fn content_diff_is_none_for_equal_models() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let child = structure_node(CHILD, Aspect::Location, "B", Some(ROOT));
     let m = Model::from_records(
@@ -41,7 +41,7 @@ fn content_diff_is_none_for_equal_models() {
 
 #[test]
 fn content_diff_names_the_project_row() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let mut other = project.clone();
     other.master.description = MlText::neutral("Other");
     let a = Model::from_records(project, [], []).expect("the project loads");
@@ -53,7 +53,7 @@ fn content_diff_names_the_project_row() {
 
 #[test]
 fn content_diff_names_a_row_in_one_model_only() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let m1 =
         Model::from_records(project.clone(), [Record::StructureNode(root)], []).expect("the fixture loads");
@@ -86,7 +86,7 @@ fn content_diff_names_a_row_in_one_model_only() {
 
 #[test]
 fn content_diff_names_a_changed_row() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let changed = structure_node(ROOT, Aspect::Location, "C", None);
     let m1 =
@@ -109,7 +109,7 @@ fn content_diff_names_a_changed_row() {
 
 #[test]
 fn content_diff_names_the_first_row_in_id_order() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let child = structure_node(CHILD, Aspect::Location, "B", Some(ROOT));
     let m = Model::from_records(
@@ -133,7 +133,7 @@ fn content_diff_names_the_first_row_in_id_order() {
 
 #[test]
 fn content_diff_names_an_unknown_record() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let rec = Record::Unknown(json!({
         "$k": "zz_future",
         "id": "0190aaaa-0000-7000-8000-000000000001"
@@ -158,7 +158,7 @@ fn content_diff_names_an_unknown_record() {
 
 #[test]
 fn content_diff_names_an_unknown_library_document() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let doc = LibDocument::Unknown(json!({
         "$k": "zz_future_lib",
         "id": "0190aaaa-0000-7000-8000-000000000002"
@@ -185,7 +185,7 @@ fn content_diff_names_an_unknown_library_document() {
 
 #[test]
 fn content_diff_names_the_first_differing_index_entry() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let child = structure_node(CHILD, Aspect::Location, "B", Some(ROOT));
     let m1 = Model::from_records(
@@ -227,7 +227,7 @@ fn content_diff_names_the_first_differing_index_entry() {
 
 #[test]
 fn content_diff_names_the_earlier_part_first() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let child = structure_node(CHILD, Aspect::Location, "B", Some(ROOT));
     let rec = Record::Unknown(json!({
@@ -305,7 +305,7 @@ fn content_diff_names_the_earlier_part_first() {
 
 #[test]
 fn content_diff_names_the_first_index_then_the_first_key() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let root = structure_node(ROOT, Aspect::Location, "A", None);
     let child = structure_node(CHILD, Aspect::Location, "B", Some(ROOT));
     let m1 = Model::from_records(
@@ -345,7 +345,7 @@ fn content_diff_names_the_first_index_then_the_first_key() {
 
 #[test]
 fn content_diff_names_a_later_unknown_record_with_both_texts() {
-    let (project, _, _) = mini_golden_parts();
+    let (project, _, _) = mini_project_parts();
     let r1 = Record::Unknown(json!({
         "$k": "zz_future",
         "id": "0190aaaa-0000-7000-8000-000000000001"

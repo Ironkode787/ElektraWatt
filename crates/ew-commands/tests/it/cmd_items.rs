@@ -165,7 +165,7 @@ fn refused_value(e: &mut Engine, kind: KindName, target: AnyId, path: &str, valu
 /// undo removes it.
 #[test]
 fn item_place_places_every_shape_and_free_texts() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let shapes = [
         ShapeParam::Line {
             a: pt(0, 0),
@@ -230,7 +230,7 @@ fn item_place_places_every_shape_and_free_texts() {
 /// Every rejection of `item.place`, at its pointer; a missing page is not found.
 #[test]
 fn item_place_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let degenerate = [
         ShapeParam::Line {
             a: pt(1, 1),
@@ -339,7 +339,7 @@ fn image(asset: ew_schema::Sha256, a: Pt2, b: Pt2) -> PlaceItem {
 /// round-trips as `{"image": {"asset", "rect"}}` and undo removes it.
 #[test]
 fn item_place_places_an_image_of_a_held_asset() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let hash = hold_asset(&mut e, IMAGE_SVG);
     let id = place(
         &mut e,
@@ -369,7 +369,7 @@ fn item_place_places_an_image_of_a_held_asset() {
 /// (`/kind/image`), a missing page (not found); nothing is placed.
 #[test]
 fn item_place_image_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let hash = hold_asset(&mut e, IMAGE_SVG);
     let unknown = ew_schema::Sha256([0xab; 32]);
     let err = e
@@ -429,7 +429,7 @@ fn tiny_png() -> Vec<u8> {
 #[test]
 fn item_place_with_data_stores_the_asset_and_the_item() {
     use sha2::Digest;
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     for bytes in [IMAGE_SVG.to_vec(), tiny_png()] {
         let hash = ew_schema::Sha256(sha2::Sha256::digest(&bytes).into());
         assert!(e.model().asset(&hash).is_none(), "not held before");
@@ -456,7 +456,7 @@ fn item_place_with_data_stores_the_asset_and_the_item() {
 /// removes the item and the asset stays held.
 #[test]
 fn item_place_with_data_of_a_held_asset_keeps_it() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let hash = hold_asset(&mut e, IMAGE_SVG);
     let held: Vec<_> = e.model().assets().map(|a| *a.sha256()).collect();
     let id = place(
@@ -479,7 +479,7 @@ fn item_place_with_data_of_a_held_asset_keeps_it() {
 #[test]
 fn item_place_data_rejections() {
     use sha2::Digest;
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let hash = hold_asset(&mut e, IMAGE_SVG);
     let rect = (pt(0, 0), pt(40_000_000, 10_000_000));
     let both = PlaceItem {
@@ -562,7 +562,7 @@ fn item_place_data_rejections() {
 /// `rep.move` moves an image by translating its rectangle.
 #[test]
 fn rep_move_moves_an_image() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let hash = hold_asset(&mut e, IMAGE_SVG);
     let img = place(&mut e, &image(hash, pt(0, 0), pt(40_000_000, 10_000_000)));
     e.execute(&mv(vec![], vec![img.cast()], pt(7_937_500, 15_875_000)))
@@ -582,7 +582,7 @@ fn rep_move_moves_an_image() {
 /// `marker.place` sets the connections' marker overrides and lists them in order; undo restores them.
 #[test]
 fn marker_place_sets_overrides_and_lists_the_connections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before: Vec<_> = [CON_W22, CON_W27].iter().map(|c| conn(&e, *c)).collect();
     let mut m = marker(vec![CON_W27, CON_W22]);
     m.angle = Angle2(90_000);
@@ -616,7 +616,7 @@ fn marker_place_sets_overrides_and_lists_the_connections() {
 /// Every rejection of `marker.place`, at its pointer.
 #[test]
 fn marker_place_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cases: Vec<(PlaceMarker, &str)> = vec![
         (marker(vec![]), "/connections"),
         (marker(vec![CON_W22, CON_W22]), "/connections/1"),
@@ -678,7 +678,7 @@ fn marker_place_rejections() {
 /// foreign code; IEC codes, a declared company code and `null` pass; a refusal changes nothing.
 #[test]
 fn fields_set_refuses_a_colour_the_profile_does_not_know() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let target: AnyId = CON_W22.cast();
     let before = conn(&e, CON_W22).overrides.colour.clone();
     let refused = |e: &mut Engine, value: Value| {
@@ -727,7 +727,7 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
 /// nothing.
 #[test]
 fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let target: AnyId = COND_A.cast();
     let colour = |e: &Engine| {
         e.model()
@@ -782,7 +782,7 @@ fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
 /// `box.structure` creates the box; every rejection at its pointer.
 #[test]
 fn box_structure_creates_a_box_and_refuses_bad_members() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let ext = e
         .execute(&CreateExternalRef {
             location: LOC,
@@ -848,7 +848,7 @@ fn box_structure_creates_a_box_and_refuses_bad_members() {
 /// Items and boxes move with the representations by `delta`, and alone by grid steps (the steps' rounded nm length).
 #[test]
 fn rep_move_moves_items_and_boxes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let line = place(
         &mut e,
         &graphic(ShapeParam::Line {
@@ -916,7 +916,7 @@ fn rep_move_moves_items_and_boxes() {
 /// The rejections of `rep.move`'s `items`.
 #[test]
 fn rep_move_items_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let on_101 = place(&mut e, &text("a", None, 0));
     let mut other = text("b", None, 0);
     other.page = PAGE_102;
@@ -959,7 +959,7 @@ fn rep_move_items_rejections() {
 /// An item of a variant this build keeps verbatim cannot be moved.
 #[test]
 fn rep_move_refuses_an_unknown_variant() {
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     let lib = library();
     let unknown: PageItem = serde_json::from_value(
         json!({"id": id::<()>(0x4300).to_string(), "page": PAGE_101.to_string(),
@@ -987,7 +987,7 @@ fn rep_move_refuses_an_unknown_variant() {
 /// left empty goes, and undo restores it.
 #[test]
 fn a_cross_page_move_unlinks_the_old_pages_markers() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut m = marker(vec![CON_W11A]);
     m.page = PAGE_101;
     let marker_id: Id<PageItem> = e.execute(&m).unwrap().outcome.primary.unwrap().1.cast();
@@ -1022,7 +1022,7 @@ fn a_cross_page_move_unlinks_the_old_pages_markers() {
 /// removed one's place.
 #[test]
 fn delete_unlinks_markers_and_takes_items_and_boxes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let both: Id<PageItem> = e
         .execute(&marker(vec![CON_W29, CON_W27]))
         .unwrap()
@@ -1120,7 +1120,7 @@ fn delete_unlinks_markers_and_takes_items_and_boxes() {
 /// Deleting a page deletes its items and boxes (FR-PAG-025).
 #[test]
 fn deleting_a_page_deletes_its_items_and_boxes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     place(&mut e, &text("x", None, 0));
     e.execute(&structure_box(location(LOC))).unwrap();
     e.execute(&DeleteSelection {
@@ -1140,7 +1140,7 @@ fn deleting_a_page_deletes_its_items_and_boxes() {
 /// The settable paths of the two kinds, the variant rule and the checks repeated at `/value`.
 #[test]
 fn fields_set_edits_items_and_boxes_with_the_place_checks() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let t = place(&mut e, &text("40x60", None, 0));
     let line = place(
         &mut e,
@@ -1231,7 +1231,7 @@ fn fields_set_edits_items_and_boxes_with_the_place_checks() {
 /// The next edit of a wire marker of an older file writes a clean list.
 #[test]
 fn an_edit_of_a_stale_marker_writes_a_clean_list() {
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     let lib = library();
     let stale: PageItem = serde_json::from_value(json!({"id": id::<()>(0x4300).to_string(), "page": PAGE_102.to_string(),
         "kind": {"wire_marker": {"connections": [CON_W22.to_string(), id::<()>(0x4ff).to_string(), CON_W11A.to_string()],
@@ -1258,7 +1258,7 @@ fn an_edit_of_a_stale_marker_writes_a_clean_list() {
 
 #[test]
 fn drawing_set_writes_and_removes_the_marker_mode() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&SetDrawing {
         crossings: None,
         marker_mode: Some(Some(MarkerModeParam::Deviations)),

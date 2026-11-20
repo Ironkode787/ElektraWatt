@@ -90,7 +90,7 @@ fn block(first_folio: Option<u32>) -> CreateReportBlock {
 
 #[test]
 fn create_page_with_an_explicit_folio() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = CreatePage::at(Some(SEC1), 110);
     cmd.title = ew_mltext::MlText::neutral("New");
     let r = e.execute(&cmd).unwrap();
@@ -102,7 +102,7 @@ fn create_page_with_an_explicit_folio() {
 
 #[test]
 fn create_page_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut none = CreatePage::at(Some(SEC1), 0);
     none.number = None;
     assert!(reason(e.execute(&none)).contains("explicit folio"));
@@ -122,7 +122,7 @@ fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePag
 /// page in no section has no range.
 #[test]
 fn create_page_refuses_a_folio_outside_the_section_range() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(
         reason(e.execute(&CreatePage::at(Some(SEC1), 210))),
         "folio 210 lies outside section 1's folio range 100 to 199; choose a folio in the range"
@@ -137,7 +137,7 @@ fn create_page_refuses_a_folio_outside_the_section_range() {
 /// FR-PAG-009: the first folio of a section with a divider prints the divider; a sub-page of it does not.
 #[test]
 fn create_page_refuses_the_divider_folio() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sec2: Id<Section> = typed(
         e.execute(&section_cmd(2, 200, 299))
             .unwrap()
@@ -160,7 +160,7 @@ fn create_page_refuses_the_divider_folio() {
 /// section and an embedded block refuse nothing.
 #[test]
 fn create_page_refuses_a_folio_a_report_block_generates() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
     let mut next = block(Some(180));
     next.continuation = ContinuationPolicy::NextFolio;
@@ -188,7 +188,7 @@ fn create_page_refuses_a_folio_a_report_block_generates() {
 fn create_page_names_the_first_of_several_refusals() {
     // A report block of section 2 whose first folio is the divider's: no command makes it, so the project is
     // loaded with it, as a file may hold it.
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let sec2: Id<Section> = id(0xf200);
     let mut divided = section(sec2, 2, 200, 299, "Terminals");
     divided.divider = true;
@@ -209,7 +209,7 @@ fn create_page_names_the_first_of_several_refusals() {
     );
     // Report block before duplicate: no command makes a page that prints "190" beside a block at 190,
     // so the project is loaded with both, as a file may hold them.
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut printed = ew_schema::Record::Page(page(id(0xf190), Some(SEC1), 191, "Prints 190"));
     if let ew_schema::Record::Page(pg) = &mut printed {
         pg.folio.label = Some(ident("190"));
@@ -232,7 +232,7 @@ fn create_page_names_the_first_of_several_refusals() {
 /// that has it, by its folio and title.
 #[test]
 fn create_page_refuses_a_printed_folio_another_page_prints() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(
         reason(e.execute(&labelled(Some(SEC1), 102, "101"))),
         "page 101 Power Supply 1 - Main Current has folio 101 already; choose a free folio"
@@ -246,7 +246,7 @@ fn create_page_refuses_a_printed_folio_another_page_prints() {
 
 #[test]
 fn delete_page_cascades_and_keeps_devices() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     bulk(&mut e, &delete(&[PAGE_101], false)).unwrap();
     assert!(!has(&e, PAGE_101));
     assert!(has(&e, PAGE_102));
@@ -264,7 +264,7 @@ fn delete_page_cascades_and_keeps_devices() {
 
 #[test]
 fn delete_page_with_devices_removes_the_unplaced_ones() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     bulk(&mut e, &delete(&[PAGE_101], true)).unwrap();
     assert!(!has::<Device>(&e, DEV_101F1));
     assert!(!has::<Function>(&e, FN_101F1));
@@ -274,7 +274,7 @@ fn delete_page_with_devices_removes_the_unplaced_ones() {
 
 #[test]
 fn delete_devices_skips_a_strip_with_terminals() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     // Page 102 places the terminal strip X1031, whose terminals still reference it: it is kept, unplaced.
     let r = bulk(&mut e, &delete(&[PAGE_102], true)).unwrap();
     assert!(!has(&e, PAGE_102));
@@ -287,7 +287,7 @@ fn delete_devices_skips_a_strip_with_terminals() {
 
 #[test]
 fn delete_pages_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(reason(bulk(&mut e, &delete(&[], false))).contains("at least one"));
     let missing: Id<Page> = id(0xdead);
     assert!(matches!(
@@ -303,7 +303,7 @@ fn delete_pages_rejections() {
 
 #[test]
 fn renumber_section_keeps_every_reference() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     bulk(&mut e, &renumber(PageScope::Section(SEC1), 171, 1, false)).unwrap();
     assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 171, None));
@@ -322,14 +322,14 @@ fn renumber_section_keeps_every_reference() {
 
 #[test]
 fn renumber_with_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     bulk(&mut e, &renumber(PageScope::Project, 110, 5, false)).unwrap();
     assert_eq!(folio_of(&e, PAGE_101).1, 110);
     assert_eq!(folio_of(&e, PAGE_102).1, 115);
 }
 
 fn with_page_105() -> (Engine, Id<Page>) {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&CreatePage::at(Some(SEC1), 105)).unwrap();
     let id = typed(r.outcome.primary.unwrap());
     (e, id)
@@ -350,7 +350,7 @@ fn renumber_keeps_gaps_or_compacts() {
 
 #[test]
 fn renumber_sub_pages_move_together() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut sub = CreatePage::at(Some(SEC1), 101);
     sub.label = Some(ident("1"));
     let a: Id<Page> = typed(e.execute(&sub).unwrap().outcome.primary.unwrap());
@@ -364,7 +364,7 @@ fn renumber_sub_pages_move_together() {
 /// A label whose leading number segment is the page's old printed folio follows the new folio.
 #[test]
 fn renumber_rewrites_sub_page_labels() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mk = |e: &mut Engine, section: Option<Id<Section>>, number: u32, label: &str| -> Id<Page> {
         typed(
             e.execute(&labelled(section, number, label))
@@ -404,7 +404,7 @@ fn renumber_rewrites_sub_page_labels() {
 /// its number but follows the label rule.
 #[test]
 fn renumber_sub_page_labels_undo_in_one_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sub: Id<Page> = typed(
         e.execute(&labelled(Some(SEC1), 101, "101.1"))
             .unwrap()
@@ -422,7 +422,7 @@ fn renumber_sub_page_labels_undo_in_one_step() {
 /// A rewritten label may not collide with the printed folio of another page of the section.
 #[test]
 fn renumber_refuses_a_rewritten_label_that_collides() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
     e.execute(&labelled(Some(SEC1), 150, "120.1")).unwrap();
     let reason = reason(bulk(
@@ -434,7 +434,7 @@ fn renumber_refuses_a_rewritten_label_that_collides() {
 
 #[test]
 fn renumber_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let zero_step = reason(bulk(&mut e, &renumber(PageScope::Section(SEC1), 10, 0, false)));
     assert!(zero_step.contains("step"));
     let empty = reason(bulk(&mut e, &renumber(PageScope::Pages(vec![]), 10, 1, false)));
@@ -461,9 +461,9 @@ fn new_page(e: &mut Engine, cmd: &CreatePage) -> Id<Page> {
     typed(e.execute(cmd).unwrap().outcome.primary.unwrap())
 }
 
-/// Golden A's section 1 as 101, 102, 103, 106 (the two new pages returned in this order).
+/// Section 1 as 101, 102, 103 and 106 (the two new pages returned in this order).
 fn with_pages_103_and_106() -> (Engine, Id<Page>, Id<Page>) {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let p103 = new_page(&mut e, &CreatePage::at(Some(SEC1), 103));
     let p106 = new_page(&mut e, &CreatePage::at(Some(SEC1), 106));
     (e, p103, p106)
@@ -497,7 +497,7 @@ fn reorder_moves_a_page_before_another_and_swaps_the_keys() {
 
 #[test]
 fn reorder_to_the_section_end() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = bulk(&mut e, &reorder(&[PAGE_101], None, Some(SEC1))).unwrap();
     assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 101, None));
     assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 102, None));
@@ -506,7 +506,7 @@ fn reorder_to_the_section_end() {
 
 #[test]
 fn reorder_moves_labelled_keys_as_whole_keys() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sec = typed(
         e.execute(&section_cmd(2, 1, 99))
             .unwrap()
@@ -538,7 +538,7 @@ fn reorder_undo_restores_every_folio() {
 
 #[test]
 fn reorder_front_matter() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let a = new_page(&mut e, &CreatePage::at(None, 10));
     let b = new_page(&mut e, &CreatePage::at(None, 11));
     let r = bulk(&mut e, &reorder(&[a], None, None)).unwrap();
@@ -553,7 +553,7 @@ fn reorder_front_matter() {
 
 #[test]
 fn reorder_refusals() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let missing_page: Id<Page> = id(0x9999);
     let missing_section: Id<Section> = id(0x9998);
     let many: Vec<Id<Page>> = (0..1001).map(|n| id(0x9000 + n)).collect();
@@ -632,7 +632,7 @@ fn reorder_refusals() {
 
 #[test]
 fn reorder_rejects_a_page_of_another_section() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sec = typed(
         e.execute(&section_cmd(2, 200, 299))
             .unwrap()
@@ -654,7 +654,7 @@ fn reorder_rejects_a_page_of_another_section() {
 
 #[test]
 fn create_structure_node() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = node(Aspect::Function, "A1", Some(FUNC_P01));
     cmd.aliases = vec![ident("b"), ident("a"), ident("b")];
     let r = e.execute(&cmd).unwrap();
@@ -674,7 +674,7 @@ fn create_structure_node() {
 
 #[test]
 fn create_structure_node_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(reason(e.execute(&node(Aspect::Product, "X", None))).contains("product"));
     let wrong = reason(e.execute(&node(Aspect::Location, "X", Some(FUNC_P01))));
     assert!(wrong.contains("another aspect"));
@@ -704,7 +704,7 @@ fn section_cmd(number: u16, from: u32, to: u32) -> CreateSection {
 
 #[test]
 fn create_section() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&section_cmd(2, 200, 299)).unwrap();
     let s = e
         .model()
@@ -718,7 +718,7 @@ fn create_section() {
 
 #[test]
 fn create_section_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(reason(e.execute(&section_cmd(2, 299, 200))).contains("folio_range"));
     assert!(reason(e.execute(&section_cmd(1, 200, 299))).contains("number 1"));
     assert!(reason(e.execute(&section_cmd(2, 150, 250))).contains("overlaps"));
@@ -731,7 +731,7 @@ fn create_section_rejections() {
 
 #[test]
 fn create_report_block() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&block(Some(907))).unwrap();
     let b = e
         .model()
@@ -748,7 +748,7 @@ fn create_report_block() {
 
 #[test]
 fn create_report_block_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(reason(e.execute(&block(None))).contains("first_folio"));
     let mut bad_form = block(Some(907));
     bad_form.form = id(0xdead);
@@ -763,7 +763,7 @@ fn create_report_block_rejections() {
 /// of another page-oriented block of the section. A block of another section and an embedded block refuse nothing.
 #[test]
 fn create_report_block_refuses_a_folio_a_page_holds() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(
         reason(e.execute(&block(Some(101)))),
         "folio 101 already exists in this section; choose a free folio"
@@ -824,7 +824,7 @@ fn set_block(block: Id<ReportBlock>, path: &str, value: serde_json::Value) -> Se
 /// `<first>.<k>`, another block's first folio. The block's own folio is no conflict; nothing changes on a refusal.
 #[test]
 fn set_fields_refuses_a_report_block_folio_a_page_holds() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&labelled(Some(SEC1), 191, "190"))
         .expect("a page that prints 190");
     let mut next = block(Some(189));
@@ -858,7 +858,7 @@ fn set_fields_refuses_a_report_block_folio_a_page_holds() {
 /// page that exists, `page.renumber` and `page.create` name the divider. Nothing changes on a refusal.
 #[test]
 fn every_folio_path_refuses_the_divider_folio() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sec2: Id<Section> = typed(
         e.execute(&section_cmd(2, 200, 299))
             .unwrap()
@@ -908,7 +908,7 @@ fn every_folio_path_refuses_the_divider_folio() {
 /// label takes when it follows its page. Nothing changes on a refusal; a free folio goes through.
 #[test]
 fn renumber_refuses_a_folio_a_report_block_generates() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
     let before = lines(e.model());
     assert_eq!(
@@ -944,7 +944,7 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
 /// does; nothing changes on a refusal.
 #[test]
 fn renumber_refuses_a_folio_outside_its_section() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     assert_eq!(
         reason(bulk(
@@ -966,7 +966,7 @@ fn renumber_refuses_a_folio_outside_its_section() {
 /// and without a divider the range is free.
 #[test]
 fn set_fields_refuses_a_divider_onto_a_held_folio() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let set = |path: &str, value: serde_json::Value| set_fields(KindName::Section, SEC1.cast(), path, value);
     e.execute(&set("folio_range", serde_json::json!([101, 199])))
         .expect("no divider");
@@ -989,8 +989,8 @@ fn set_fields_refuses_a_divider_onto_a_held_folio() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON
-/// form: a library item the mini golden project does not embed.
+/// The shipped frame without the grid (`content/forms`), the form of the report blocks, in the `lib/` JSON
+/// form: a library item the mini project does not embed.
 const NOGRID: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
 /// The title block that frame names: its closure.
 const TITLE_BLOCK: &str = include_str!("../../../../content/forms/ew.titleblock.qet-a4.json");
@@ -1020,7 +1020,7 @@ fn with_copy(first_folio: u32, form: Id<ew_schema::FormDef>, copy: &serde_json::
 /// uses the copy the project holds.
 #[test]
 fn report_block_create_embeds_its_form_from_the_library_in_one_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let (doc, form, key) = nogrid();
     let tb = shipped(TITLE_BLOCK).2;
@@ -1053,7 +1053,7 @@ fn report_block_create_embeds_its_form_from_the_library_in_one_step() {
 
 #[test]
 fn report_block_create_refuses_a_form_copy_that_does_not_fit() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (doc, form, _) = nogrid();
     // `form` is not the copy's ID.
     match e.execute(&with_copy(950, FORM, &doc)) {

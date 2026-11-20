@@ -59,7 +59,7 @@ fn placement(id: Id<Placement>, device: Id<ew_schema::Device>, carrier: CarrierR
     }
 }
 
-/// The mini golden project with a layout space on the location node `LOC_B`, whose enclosure is -102F2 and whose
+/// The mini project with a layout space on the location node `LOC_B`, whose enclosure is -102F2 and whose
 /// plate surface is the device -3W1; a rail holding -101F1, an empty rail, -102G1 on the surface itself and the
 /// auxiliary function of -102F2 placed on its own.
 fn layout_records() -> Vec<Record> {
@@ -103,7 +103,7 @@ fn layout_records() -> Vec<Record> {
 }
 
 fn with_layout() -> Result<Model, ModelError> {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.extend(layout_records());
     Model::from_records(project, records, lib)
 }
@@ -259,7 +259,7 @@ fn a_space_keeps_its_location_and_cascades_once_empty() {
 /// placed device without its placement is rejected.
 #[test]
 fn a_placement_without_its_device_is_rejected() {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     records.extend(layout_records());
     records.push(Record::Placement(placement(
         Id::from_uuid(Uuid::from_u128(0x9520)),

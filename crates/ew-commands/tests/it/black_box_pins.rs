@@ -335,7 +335,7 @@ fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
 #[test]
 fn a_black_box_dragged_by_grid_steps_wires_to_every_pin() {
     for s in [[1, 0], [2, 0], [4, 0], [0, 1], [0, 2], [0, 4]] {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         let (pos, spec) = play_box();
         let (rep, f) = place_box(&mut e, pos, spec);
         e.execute(&steps(rep, s)).expect("rep.move by steps");
@@ -364,7 +364,7 @@ fn a_mirrored_or_turned_black_box_wires_to_every_pin() {
         vec![(3, false)],
     ];
     for case in cases {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         let (pos, spec) = play_box();
         let (rep, f) = place_box(&mut e, pos, spec);
         for (rotate, mirror) in &case {
@@ -391,7 +391,7 @@ fn a_black_box_saved_with_a_pin_one_nm_off_the_grid_still_wires() {
     assert!(!on_grid(stored));
     let pin = grid().settle_point(stored);
     assert!(on_grid(pin) && pin != stored);
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.push(Record::Device(device(dev, "A", 7)));
     let mut func = function(f, dev, fndef_two(), FnRole::Main);
     func.kind = FunctionKind::BlackBox;
@@ -427,7 +427,7 @@ fn an_older_drawing_s_wire_follows_its_box_onto_the_pin() {
     let (pos, mut spec) = play_box();
     spec.cps[1].pos.x = Nm(spec.cps[1].pos.x.0 + 1);
     let stored = pos + spec.cps[1].pos;
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.push(Record::Device(device(dev, "A", 7)));
     let mut func = function(f, dev, fndef_two(), FnRole::Main);
     func.kind = FunctionKind::BlackBox;
@@ -469,7 +469,7 @@ fn an_older_drawing_s_wire_follows_its_box_onto_the_pin() {
 
 #[test]
 fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (pos, spec) = play_box();
     let (rep, f) = place_box(&mut e, pos, spec);
     let wires = wire_every_pin(&mut e, rep, f);
@@ -512,7 +512,7 @@ fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
 #[test]
 fn a_black_box_mirrors_and_turns_within_its_bounding_box() {
     for (rotate, mirror) in [(0, true), (2, true), (2, false), (1, false), (3, false)] {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         let (pos, spec) = play_box();
         let (rep, _) = place_box(&mut e, pos, spec);
         let (min0, max0) = bbox(&e, rep);
@@ -555,7 +555,7 @@ fn a_black_box_mirrors_and_turns_within_its_bounding_box() {
 /// The fixture with `SYM` given the generic black box's text slots (`content/symbols/ew.gen.blackbox.json`): tag 0,
 /// function text 1, cross-reference 2, part number 3.
 fn texts_model() -> Model {
-    let (p, records, _) = mini_golden_parts();
+    let (p, records, _) = mini_project_parts();
     let mut lib = library();
     let slots: Vec<ew_schema::TextSlot> = serde_json::from_value(json!([
         {"kind": "tag", "pos": [0, -1_000_000], "align": "bottom_left", "visible": true},
@@ -610,7 +610,7 @@ fn a_half_turn_of_a_black_box_writes_no_text_override_and_a_second_gives_the_rec
 
 #[test]
 fn a_quarter_turn_snaps_the_centre_to_the_grid_and_four_turns_bring_the_box_back() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (pos, spec) = play_box();
     let (rep, _) = place_box(&mut e, pos, spec);
     let start = bbox(&e, rep);
@@ -647,7 +647,7 @@ fn a_box_with_an_odd_width_plus_height_comes_back_after_four_quarter_turns() {
         ((34, 48), &[1, 2][..], &[1, 2][..]),
     ] {
         for rotate in [1, 3] {
-            let mut e = engine(golden_model());
+            let mut e = engine(mini_model());
             let (pos, spec) = tool_box((31, 46), k1, tops, bottoms);
             let (rep, _) = place_box(&mut e, pos, spec);
             for _ in 0..4 {
@@ -674,7 +674,7 @@ fn a_box_with_an_odd_width_plus_height_comes_back_after_four_quarter_turns() {
 
 #[test]
 fn a_symbol_keeps_its_insertion_point_pivot() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (rep, _) = place_two(&mut e, PAGE_101, gp(9, 9));
     for (rotate, mirror) in [(1, false), (0, true), (2, true)] {
         e.execute(&transform(rep, rotate, mirror)).expect("rep.transform");
@@ -687,7 +687,7 @@ fn a_symbol_keeps_its_insertion_point_pivot() {
 
 #[test]
 fn an_off_grid_wire_corner_is_refused_in_words() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (_, fa) = place_two(&mut e, PAGE_102, pt(G, G));
     let (_, fb) = place_two(&mut e, PAGE_102, pt(4 * G, G));
     let reason = rejection(e.execute(&Connect {
@@ -713,7 +713,7 @@ fn an_off_grid_wire_corner_is_refused_in_words() {
 
 #[test]
 fn an_off_grid_position_is_refused_in_words() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let reason = rejection(e.execute(&PlaceSymbol {
         copies: Vec::new(),
         page: PAGE_102,
@@ -741,7 +741,7 @@ fn an_off_grid_position_is_refused_in_words() {
 fn a_step_move_of_an_off_grid_symbol_is_refused_in_words() {
     let (dev, f, r): (Id<ew_schema::Device>, Id<Function>, Id<Representation>) =
         (id(0x7002), id(0x7102), id(0x7202));
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.push(Record::Device(device(dev, "K", 7)));
     records.push(Record::Function(function(f, dev, fndef_two(), FnRole::Main)));
     let mut rec = rep(r, PAGE_101, vec![f]);
@@ -759,7 +759,7 @@ fn a_step_move_of_an_off_grid_symbol_is_refused_in_words() {
 
 #[test]
 fn an_off_grid_paste_point_is_refused_in_words() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let fragment = json!({"format": "0.1", "project": uuid(0x7300).to_string(), "grid": [7_937_500, 3],
         "page_kind": "multi_line", "anchor": [0, 0],
         "records": [{"$k": "device", "id": uuid(0x7301).to_string(), "tag": {"letter": "F", "counter": 9}}]});

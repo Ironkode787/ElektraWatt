@@ -132,7 +132,7 @@ fn largest_on_grid(grid: Grid) -> i64 {
 fn a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
     let d = largest_on_grid(Grid::QET_10PX);
     for (first, second) in [(d, d), (G, MAX_COORD)] {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         // The aux representation sits at the origin and has no connections.
         e.execute(&move_reps(vec![REP_102F2_AUX], pt(first, 0)))
             .expect("the first move stays in range");
@@ -155,7 +155,7 @@ fn a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() 
     // CP 1 of the two-CP symbol lies 10 mm below the insertion point: in range three steps of `G` below the largest
     // grid coordinate, out of range one step of `G` below it.
     let top = largest_on_grid(Grid::QET_10PX);
-    let mut e = engine(golden_with(|records| {
+    let mut e = engine(mini_model_with(|records| {
         records.push(Record::Device(device(dev, "K", 7)));
         records.push(Record::Function(function(f, dev, fndef_two(), FnRole::Main)));
         let mut rec = rep(r, PAGE_102, vec![f]);
@@ -186,7 +186,7 @@ fn a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() 
 /// nanometres, and ends with what the user can do.
 #[test]
 fn a_position_outside_the_drawable_range_is_refused_in_words() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(
         rejection(e.execute(&place_k("K", PAGE_102, pt(MAX_COORD + 1, 0)))),
         "the position at x 9007199254.7, y 0 mm lies outside the drawable range; move it nearer the page origin"
@@ -230,7 +230,7 @@ fn wire(c: Id<Connection>, a: Endpoint, b: Endpoint) -> Record {
 fn cascade_j1_j3_j4_cleans_up_in_one_pass() {
     let (j1, j3, j4): (Id<Junction>, Id<Junction>, Id<Junction>) = (id(0x4001), id(0x4003), id(0x4004));
     let [a, b, c, d, ee, f]: [Id<Connection>; 6] = std::array::from_fn(|i| id(0x5001 + i as u128));
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(wire(a, at_junction(j1), at_junction(j3)));
         r.push(wire(b, at_junction(j1), at_junction(j3)));
         r.push(wire(c, at_junction(j1), cp(FN_102F2, 8)));
@@ -268,7 +268,7 @@ fn a_50_long_chain_cleans_up_in_one_pass() {
     let bj = |i: u128| -> Id<Junction> { id(0x4800 - 2 * i - 1) };
     let conn = |i: u128, k: u128| -> Id<Connection> { id(0x5000 + 4 * i + k) };
     let feed: Id<Connection> = id(0x5fff);
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(wire(feed, at_junction(aj(0)), cp(FN_102F2, 8)));
         for i in 0..PAIRS {
             let (p, q, d) = (conn(i, 0), conn(i, 1), conn(i, 2));
@@ -302,7 +302,7 @@ fn a_50_long_chain_cleans_up_in_one_pass() {
 #[test]
 fn editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field() {
     let (first, second): (Id<Device>, Id<Device>) = (id(0x1001), id(0x1002));
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         add_placed(r, 1, "K", 1, PAGE_102);
         add_placed(r, 2, "K", 1, PAGE_102);
     });
@@ -331,7 +331,7 @@ fn editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field() {
 #[test]
 fn moving_onto_a_colliding_page_renumbers_the_moved_device() {
     let (moved, stayed): (Id<Device>, Id<Device>) = (id(0x1001), id(0x1002));
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         add_placed(r, 1, "K", 1, PAGE_101); // the mover: K1 on page 101
         add_placed(r, 2, "K", 1, PAGE_102); // K1 on page 102
     });
@@ -362,12 +362,12 @@ fn moving_onto_a_colliding_page_renumbers_the_moved_device() {
 #[test]
 fn a_preview_from_another_engine_is_re_run() {
     let cmd = CreatePage::at(Some(SEC1), 103);
-    let start = lines(&golden_model());
+    let start = lines(&mini_model());
 
-    let mut a = engine_seeded(golden_model(), 1);
-    let mut b = engine_seeded(golden_model(), 2);
-    let mut c = engine_seeded(golden_model(), 1);
-    let mut d = engine_seeded(golden_model(), 2);
+    let mut a = engine_seeded(mini_model(), 1);
+    let mut b = engine_seeded(mini_model(), 2);
+    let mut c = engine_seeded(mini_model(), 1);
+    let mut d = engine_seeded(mini_model(), 2);
     let c_receipt = c.execute(&cmd).expect("reference run with A's seed");
     d.execute(&cmd).expect("reference run with B's seed");
     assert_ne!(
@@ -392,10 +392,10 @@ fn a_preview_from_another_engine_at_a_different_revision_is_re_run() {
     let unrelated = CreatePage::at(Some(SEC1), 104);
     let cmd = CreatePage::at(Some(SEC1), 103);
 
-    let mut a = engine_seeded(golden_model(), 1);
+    let mut a = engine_seeded(mini_model(), 1);
     a.execute(&unrelated).unwrap();
-    let mut b = engine_seeded(golden_model(), 2);
-    let mut c = engine_seeded(golden_model(), 1);
+    let mut b = engine_seeded(mini_model(), 2);
+    let mut c = engine_seeded(mini_model(), 1);
     c.execute(&unrelated).unwrap();
     c.execute(&cmd).unwrap();
 
@@ -419,9 +419,9 @@ fn delete_main_function_and_device_in_either_order() {
     let dev = target(KindName::Device, DEV_102F2.cast());
     let rep_t = target(KindName::Representation, REP_102F2.cast());
 
-    let mut e1 = engine(golden_model());
-    let mut e2 = engine(golden_model());
-    let mut e3 = engine(golden_model());
+    let mut e1 = engine(mini_model());
+    let mut e2 = engine(mini_model());
+    let mut e3 = engine(mini_model());
     e1.execute(&delete(vec![main_fn, dev]))
         .expect("[function, device]");
     e2.execute(&delete(vec![dev, main_fn]))
@@ -441,7 +441,7 @@ fn delete_main_function_and_device_in_either_order() {
 
 #[test]
 fn setting_a_colliding_counter_is_rejected_with_the_next_free_one() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (_, _, k1) = place_device(&mut e, "K", PAGE_102, pt(G, G));
     let (_, _, k2) = place_device(&mut e, "K", PAGE_102, pt(2 * G, G));
     assert_eq!(row(&e, k1).tag.counter, Some(1));
@@ -491,7 +491,7 @@ fn place_ip(pos: Pt2) -> PlaceIp {
 #[test]
 fn off_grid_positions_are_rejected() {
     // device.place
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let off = |what: &str, at: &str| {
         format!("{what} at {at} on page 102 is not on the drawing grid; move it onto the grid")
     };
@@ -527,7 +527,7 @@ fn off_grid_positions_are_rejected() {
         .expect("on-grid move");
 
     // connection.draw and connection.route between the CPs of two placed devices
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (_, fa, _) = place_device(&mut e, "K", PAGE_102, pt(G, G));
     let (_, fb, _) = place_device(&mut e, "K", PAGE_102, pt(4 * G, G));
     let draw = |route: Vec<Pt2>| Connect {
@@ -593,7 +593,7 @@ fn off_grid_positions_are_rejected() {
 
 #[test]
 fn junction_edit_takes_no_coordinates_and_works_off_the_grid() {
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         for rec in r.iter_mut() {
             if let Record::Junction(j) = rec {
                 if j.id == J5 {
@@ -621,7 +621,7 @@ fn junction_edit_takes_no_coordinates_and_works_off_the_grid() {
 #[test]
 fn edit_delete_cost_counts_planned_records() {
     let (dev, f): (Id<Device>, Id<Function>) = (id(0x1001), id(0x1101));
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(Record::Device(device(dev, "K", 1)));
         r.push(Record::Function(function(f, dev, FNDEF_CONTACT, FnRole::Main)));
         for i in 0..=BULK_ABOVE as u128 {
@@ -631,10 +631,10 @@ fn edit_delete_cost_counts_planned_records() {
     let cascade = delete(vec![target(KindName::Device, dev.cast())]);
     assert_eq!(Command::cost(&cascade, &model), Cost::Bulk);
 
-    let golden = golden_model();
+    let model = mini_model();
     let same = target(KindName::Representation, REP_102G1.cast());
     let many = delete(vec![same; 600]);
-    assert_eq!(Command::cost(&many, &golden), Cost::Interactive);
+    assert_eq!(Command::cost(&many, &model), Cost::Interactive);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -643,7 +643,7 @@ fn edit_delete_cost_counts_planned_records() {
 
 /// Two devices on page 102 with their first CPs at (G, G) and (4G, G).
 fn two_devices() -> (Engine, Id<Function>, Id<Function>) {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (_, fa, _) = place_device(&mut e, "K", PAGE_102, pt(G, G));
     let (_, fb, _) = place_device(&mut e, "K", PAGE_102, pt(4 * G, G));
     (e, fa, fb)

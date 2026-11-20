@@ -15,10 +15,10 @@ use crate::{Model, ModelError, Op, Rev};
 /// A configured part copy of the fixture library, used only by the assembly.
 const PART_CONF: Id<Part> = Id::from_uuid(Uuid::from_u128(0x7_1001));
 
-/// The mini golden model with an assembly aspect on -102G1: one order code (the configured part) covering
+/// The mini model with an assembly aspect on -102G1: one order code (the configured part) covering
 /// -102G1 itself and -102F2.
 fn assembly_model() -> Model {
-    let (project, mut records, mut lib) = mini_golden_parts();
+    let (project, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(part(PART_CONF, "51E-F13GCQP-D+H2GG")));
     let mut covers = vec![uid(DEV_102G1), uid(DEV_102F2)];
     covers.sort();
@@ -63,7 +63,7 @@ fn a_configured_part_named_by_an_assembly_cannot_be_removed() {
 
 #[test]
 fn a_dangling_cover_is_an_invariant_violation() {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     for r in &mut records {
         if let Record::Device(d) = r {
             if d.id == DEV_102G1 {

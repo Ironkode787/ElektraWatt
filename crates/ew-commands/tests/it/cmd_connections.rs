@@ -40,11 +40,11 @@ fn cp_param(f: Id<Function>, idx: u16) -> EndpointParam {
 const W: Id<Connection> = id(0x4100);
 
 fn model_with_wire() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut w = connection(W, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
     w.route = vec![pt(0, 0), pt(4 * G, 0)];
     records.push(Record::Connection(w));
-    Model::from_records(p, records, library()).expect("golden plus wire")
+    Model::from_records(p, records, library()).expect("the mini model plus a wire")
 }
 
 fn draw(a: EndpointParam, b: EndpointParam, page: Option<Id<ew_schema::Page>>) -> Connect {
@@ -75,7 +75,7 @@ fn is_rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) -> bool {
 
 #[test]
 fn draw_between_two_cps_creates_one_unnumbered_connection() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = draw(cp_param(FN_102G1, 1), cp_param(FN_T2, 2), Some(PAGE_102));
     cmd.route = vec![pt(0, 0), pt(G, 0)];
     let r = e.execute(&cmd).expect("connection.draw");
@@ -93,7 +93,7 @@ fn draw_between_two_cps_creates_one_unnumbered_connection() {
 
 #[test]
 fn draw_without_page_is_a_page_less_bridge() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = draw(cp_param(FN_T1, 1), cp_param(FN_T2, 2), None);
     cmd.kind = ConnectionKind::Wire;
     let r = e.execute(&cmd).unwrap();
@@ -159,7 +159,7 @@ fn draw_page_defaults_to_the_split_connections_page() {
 
 #[test]
 fn draw_between_two_connections_makes_two_junctions() {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let w = id(0x4100);
     let v: Id<Connection> = id(0x4101);
     let mut wc = connection(w, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
@@ -198,7 +198,7 @@ fn draw_between_two_connections_makes_two_junctions() {
 
 #[test]
 fn draw_at_an_existing_junction_appends_to_its_sequence() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = draw(
         EndpointParam::Junction { junction: J5 },
         cp_param(FN_T1, 1),
@@ -216,7 +216,7 @@ fn draw_at_an_existing_junction_appends_to_its_sequence() {
 
 #[test]
 fn draw_rejects_the_same_endpoint_at_both_ends_and_a_page_less_connection() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let r = e.execute(&draw(cp_param(FN_T1, 1), cp_param(FN_T1, 1), None));
     assert!(is_rejected(r));
@@ -247,7 +247,7 @@ fn draw_rejects_both_ends_on_the_same_connection() {
 
 #[test]
 fn draw_names_a_missing_record() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let ghost: Id<Function> = id(0xdead);
     let r = e.execute(&draw(cp_param(ghost, 0), cp_param(FN_T2, 1), None));
     assert!(matches!(r, Err(CmdError::NotFound { key }) if key == (Kind::Function, ghost.cast())));
@@ -279,7 +279,7 @@ fn bridge(a: Id<Function>, b: Id<Function>) -> Connect {
 
 #[test]
 fn draw_many_draws_every_entry_in_one_undo_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = ConnectMany {
         connections: vec![bridge(FN_T1, FN_T2), bridge(FN_T2, FN_T3)],
@@ -303,7 +303,7 @@ fn draw_many_draws_every_entry_in_one_undo_step() {
 
 #[test]
 fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let r = e.execute(&ConnectMany { connections: vec![] });
     assert!(
@@ -327,7 +327,7 @@ fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
 #[test]
 fn draw_many_cost_and_entry_limit() {
     use ew_commands::{Command, Cost};
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let many = |n: usize| ConnectMany {
         connections: vec![bridge(FN_T1, FN_T2); n],
     };
@@ -349,7 +349,7 @@ fn draw_many_cost_and_entry_limit() {
 
 #[test]
 fn route_replaces_the_route_only_and_refuses_a_missing_connection() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = row(&e, CON_W29);
     let route = vec![pt(0, 0), pt(0, G), pt(G, G)];
     let r = e
@@ -513,7 +513,7 @@ fn layout_apply_keeps_a_junction_s_form_and_sequence() {
 
 #[test]
 fn delete_removes_the_connection() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&DeleteConnections {
         connections: vec![CON_W29],
     })
@@ -524,7 +524,7 @@ fn delete_removes_the_connection() {
 
 #[test]
 fn delete_of_a_third_member_dissolves_the_junction() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     e.execute(&DeleteConnections {
         connections: vec![CON_W27],
@@ -547,7 +547,7 @@ fn delete_of_a_third_member_dissolves_the_junction() {
 /// its position and page, never by its ID.
 #[test]
 fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     for r in &mut records {
         if let Record::Connection(c) = r {
             if c.id == CON_J5_IN {
@@ -579,7 +579,7 @@ fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
 /// The refusal of deleting `gone` at J5 (moved to x 120, y 45.5 mm) when `first` and `second` carry the assigned
 /// counters 3 and 4.
 fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone: Id<Connection>) -> String {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     // without the PE bond that W27 realises, W27's wire is numbered like any other
     records.retain(|r| !matches!(r, Record::Bond(b) if b.via == Some(CON_W27)));
     let assigned = |counter: u32| {
@@ -631,7 +631,7 @@ fn a_junction_that_cannot_merge_two_assigned_numbers_names_the_printed_numbers()
 
 #[test]
 fn delete_of_two_members_removes_the_junction_with_the_last() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     e.execute(&DeleteConnections {
         connections: vec![CON_W27, CON_W22],
@@ -648,7 +648,7 @@ fn delete_of_two_members_removes_the_junction_with_the_last() {
 
 #[test]
 fn delete_rejects_an_empty_list_and_names_a_missing_connection() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(is_rejected(e.execute(&DeleteConnections { connections: vec![] })));
     let before = lines(e.model());
     let ghost: Id<Connection> = id(0xdead);
@@ -673,7 +673,7 @@ fn edit(junction: Id<Junction>) -> EditJunction {
 
 #[test]
 fn edit_junction_sets_wiring_style_and_sequence() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let seq = vec![CON_W27, CON_J5_IN, CON_W22];
     let bevel = JunctionStyle::Bevel(Default::default());
@@ -696,7 +696,7 @@ fn edit_junction_sets_wiring_style_and_sequence() {
 
 #[test]
 fn edit_junction_wiring_choices() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut star = edit(J5);
     star.wiring = Some(WiringChoice::StyleDefault);
     e.execute(&star).unwrap();
@@ -709,7 +709,7 @@ fn edit_junction_wiring_choices() {
 
 #[test]
 fn edit_junction_rejects_a_sequence_that_is_not_a_permutation_and_a_missing_junction() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     for seq in [
         vec![CON_J5_IN, CON_W22],
         vec![CON_J5_IN, CON_W22, CON_W22],
@@ -745,7 +745,7 @@ fn place(page: Id<ew_schema::Page>, name: &str, direction: IpDirection) -> Place
 
 #[test]
 fn place_ip_creates_the_function_and_its_representation() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_101, "L-2", IpDirection::Source);
     cmd.star_source = true;
     cmd.sort = Some(4);
@@ -781,7 +781,7 @@ fn place_ip_creates_the_function_and_its_representation() {
 
 #[test]
 fn place_ip_without_fndef_resolves_the_symbols_def() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_101, "L-2", IpDirection::Source);
     cmd.symbol = SYM_TWO;
     cmd.fndef = None;
@@ -792,12 +792,12 @@ fn place_ip_without_fndef_resolves_the_symbols_def() {
 
 #[test]
 fn place_ip_rejects_an_unresolvable_def_and_missing_records() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_101, "L-2", IpDirection::Source);
     cmd.fndef = None;
     assert!(
         matches!(e.execute(&cmd), Err(CmdError::NotFound { .. })),
-        "the golden symbol's FnDef reference does not resolve"
+        "the fixture symbol's FnDef reference does not resolve"
     );
     let ghost_page: Id<ew_schema::Page> = id(0xdead);
     assert!(matches!(
@@ -814,7 +814,7 @@ fn place_ip_rejects_an_unresolvable_def_and_missing_records() {
 
 #[test]
 fn an_ip_pair_is_placed_and_continued() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let mut cmd = place(PAGE_101, "L-2", IpDirection::Source);
     cmd.orient = Orient2::default();
@@ -857,7 +857,7 @@ fn an_ip_pair_is_placed_and_continued() {
     original_rep.functions = vec![partner];
     original_rep.id = rep.id;
     assert_eq!(rep, original_rep);
-    // Undo twice restores the golden bytes.
+    // Undo twice restores the mini model's bytes.
     e.undo(&ew_commands::Origin::Gui).unwrap();
     e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
@@ -865,7 +865,7 @@ fn an_ip_pair_is_placed_and_continued() {
 
 #[test]
 fn continue_ip_reverses_the_direction_and_takes_a_position() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&ContinueIp {
             ip: FN_IP_102,
@@ -913,7 +913,7 @@ fn continue_ip_reverses_the_direction_and_takes_a_position() {
 
 #[test]
 fn continue_ip_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     // The original's own page.
     assert!(is_rejected(e.execute(&ContinueIp {
@@ -966,7 +966,7 @@ fn define(at: EndpointParam, name: &str) -> DefinePotential {
 
 #[test]
 fn define_potential_at_a_cp_and_at_a_junction() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&define(cp_param(FN_102G1, 4), "L1"))
         .expect("potential.define");
@@ -989,7 +989,7 @@ fn define_potential_at_a_cp_and_at_a_junction() {
 /// first; nothing is written.
 #[test]
 fn define_potential_twice_at_one_point_is_refused_naming_the_first() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&define(cp_param(FN_102G1, 4), "L1"))
         .expect("potential.define");
     let before = lines(e.model());
@@ -1013,7 +1013,7 @@ fn define_potential_on_a_connection_is_rejected() {
 
 #[test]
 fn define_potential_names_a_missing_record() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let ghost: Id<Function> = id(0xdead);
     assert!(matches!(
         e.execute(&define(cp_param(ghost, 0), "L1")),

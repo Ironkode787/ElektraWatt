@@ -27,7 +27,7 @@ const ITEM_ENCL: u128 = 0xe101;
 const ITEM_PLATE: u128 = 0xe102;
 const DEV_UC1: Id<Device> = id(0xb00);
 const DEV_PLATE: Id<Device> = id(0xb01);
-/// The panel-layout page, folio 902 (as Golden A's).
+/// The panel-layout page, folio 902.
 const PAGE_902: Id<Page> = id(0xb10);
 
 fn uses(item: u128) -> Vec<PartUse> {
@@ -35,7 +35,7 @@ fn uses(item: u128) -> Vec<PartUse> {
 }
 
 fn model() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut uc1 = device(DEV_UC1, "UC", 1);
     uc1.parts = uses(ITEM_ENCL);
     let mut plate = device(DEV_PLATE, "UC", 2);

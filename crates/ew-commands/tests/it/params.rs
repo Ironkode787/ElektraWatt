@@ -11,7 +11,7 @@ use common::*;
 use ew_commands::{AnyCommand, CmdError, CommandRegistry, validate_schema};
 use serde_json::{Value, json};
 
-/// One example parameter object per command, referencing the golden IDs.
+/// One example parameter object per command, referencing the fixture's IDs.
 fn examples() -> Vec<(&'static str, Value)> {
     let fn_a = json!({"cp": {"function": FN_102F2.to_string(), "idx": 1}});
     let fn_b = json!({"cp": {"function": FN_102G1.to_string(), "idx": 1}});
@@ -614,7 +614,7 @@ fn an_unknown_name_is_an_unknown_command() {
 
 #[test]
 fn any_command_runs_with_validated_parameters_only() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let bad = any("connection.route", json!({"connection": CON_W22.to_string()}));
     let err = e.execute(&bad).unwrap_err();
     assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");

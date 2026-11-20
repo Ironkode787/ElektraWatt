@@ -31,7 +31,7 @@ fn normaliser_order_is_the_registry_order() {
 
 #[test]
 fn execute_commits_one_revision_and_notifies() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&create_after(PAGE_102)).expect("page.create");
     assert_eq!(r.rev.0, 1);
     let key = r.outcome.primary.expect("primary");
@@ -49,7 +49,7 @@ fn execute_commits_one_revision_and_notifies() {
 
 #[test]
 fn folio_proposal_counts_sub_pages_and_nests_after_a_sub_page() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let label_of = |e: &ew_commands::Engine, r: ew_commands::Receipt| {
         let page = e
             .model()
@@ -77,7 +77,7 @@ fn folio_proposal_counts_sub_pages_and_nests_after_a_sub_page() {
 
 #[test]
 fn undo_and_redo_are_new_revisions_and_restore_bytes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     e.execute(&create_after(PAGE_102)).unwrap();
     let after = lines(e.model());
@@ -94,9 +94,9 @@ fn undo_and_redo_are_new_revisions_and_restore_bytes() {
 
 #[test]
 fn preview_then_commit_equals_execute() {
-    let mut a = engine(golden_model());
+    let mut a = engine(mini_model());
     a.execute(&create_after(PAGE_102)).unwrap();
-    let mut b = engine(golden_model());
+    let mut b = engine(mini_model());
     let p = b.preview(&create_after(PAGE_102)).unwrap();
     assert_eq!(p.diff().len(), 1);
     assert_eq!(b.model().rev().0, 0, "a preview commits nothing");
@@ -106,7 +106,7 @@ fn preview_then_commit_equals_execute() {
 
 #[test]
 fn commit_after_an_unrelated_change_applies_the_prepared_ops() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let p = e.preview(&create_after(PAGE_102)).unwrap();
     let prepared_key = p.ops()[0].key();
     // A change the preview did not read: a page in no section.
@@ -121,7 +121,7 @@ fn commit_after_an_unrelated_change_applies_the_prepared_ops() {
 
 #[test]
 fn commit_after_a_conflicting_change_reruns_the_command() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let p = e.preview(&create_after(PAGE_102)).unwrap();
     let prepared_key = p.ops()[0].key();
     // Folio 103 is taken meanwhile: the proposal must move to a sub-page.
@@ -138,7 +138,7 @@ fn commit_after_a_conflicting_change_reruns_the_command() {
 
 #[test]
 fn any_command_runs_through_the_registry() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = AnyCommand {
         name: "page.create".into(),
         params: serde_json::json!({ "after": PAGE_102.to_string() }),
@@ -157,7 +157,7 @@ fn any_command_runs_through_the_registry() {
 
 #[test]
 fn rejected_commands_change_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e.execute(&CreatePage::at(Some(SEC1), 101)).unwrap_err();
     assert!(matches!(err, CmdError::Rejected { .. }), "{err:?}");
     assert_eq!(e.model().rev().0, 0);

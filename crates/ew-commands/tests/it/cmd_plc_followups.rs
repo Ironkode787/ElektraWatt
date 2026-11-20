@@ -77,7 +77,7 @@ fn mapped_module() -> LibCopy<Part> {
 }
 
 fn model_with(extra: Vec<LibCopy<Part>>, more: Vec<Record>) -> Model {
-    let (p, mut records, mut lib) = mini_golden_parts();
+    let (p, mut records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(mapped_module()));
     lib.push(LibDocument::Part(solenoid_valve_part(VALVE, "571334", &["14"])));
     lib.push(LibDocument::Fndef(valve_52_fndef()));

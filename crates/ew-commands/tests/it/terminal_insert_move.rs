@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `terminal.insert` and `terminal.move` (§5.2, D4; acceptance SE1, SE2) and `strip.accessories`
-//! through `fields.set` (D5; SE3), on the mini golden's -X1031 grown to Golden A's shape: twenty terminals
+//! through `fields.set` (D5; SE3), on the mini project's -X1031 grown to twenty terminals
 //! designated 1 … 20 at seq 1 … 20, the groups 1–4 "Pneumatics", 5–10 "Spare", 11–14 "Pneumatics" and 15–20
-//! "Spare", and the bridge BR1 from :1 to :3. The same examples on Golden A itself run in `ew-testkit`
+//! "Spare", and the bridge BR1 from :1 to :3. The same examples on a whole project run in `ew-testkit`
 //! (`tests/terminal_insert_move.rs`).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -25,7 +25,7 @@ use ew_model::ModelError;
 use ew_schema::{Device, Kind, PartRef, PartUse, StripAccessory, TerminalGroup};
 use serde_json::json;
 
-/// The groups of Golden A's -X1031 as `(from_seq, to_seq, label)`.
+/// The groups of the grown -X1031 as `(from_seq, to_seq, label)`.
 const GROUPS: [(u32, u32, &str); 4] = [
     (1, 4, "Pneumatics"),
     (5, 10, "Spare"),
@@ -54,9 +54,9 @@ fn set_strip(e: &mut Engine, path: &str, value: serde_json::Value) -> Result<(),
     .map(|_| ())
 }
 
-/// The mini golden with -X1031 in Golden A's shape (see the module comment); the history is cleared.
-fn golden_a_strip() -> Engine {
-    let mut model_engine = engine(golden_model());
+/// The mini project with -X1031 grown to twenty terminals (see the module comment); the history is cleared.
+fn twenty_terminal_strip() -> Engine {
+    let mut model_engine = engine(mini_model());
     let specs = (4..=20)
         .map(|n| TerminalSpec {
             seq: Some(n),
@@ -186,7 +186,7 @@ fn accessory(after_seq: u32) -> serde_json::Value {
 /// §5.1's example: before :5 with one terminal designated 21.
 #[test]
 fn insert_before_5_shifts_the_following_terminals_and_groups() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let before = lines(e.model());
     let bridges = connections(&e);
     let t5 = terminal(&e, "5");
@@ -228,7 +228,7 @@ fn insert_before_5_shifts_the_following_terminals_and_groups() {
 /// An accessory after 4 stays before the inserted terminal; one after 5 moves with terminal 5.
 #[test]
 fn insert_shifts_accessories_at_or_after_the_position() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     set_strip(
         &mut e,
         "strip.accessories",
@@ -248,7 +248,7 @@ fn insert_shifts_accessories_at_or_after_the_position() {
 /// Without `before` the terminals go after the last; several are numbered in list order with the parts given.
 #[test]
 fn insert_at_the_end_numbers_in_list_order_with_parts() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let groups_before = groups(&e);
     let mut cmd = insert(None, &["A", "B"]);
     cmd.parts = vec![PartUse {
@@ -276,7 +276,7 @@ fn insert_at_the_end_numbers_in_list_order_with_parts() {
 /// An empty strip starts at seq 1.
 #[test]
 fn insert_into_an_empty_strip_starts_at_1() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let strip = new_strip(&mut e);
     let r = e
         .execute(&InsertTerminals {
@@ -291,7 +291,7 @@ fn insert_into_an_empty_strip_starts_at_1() {
 
 #[test]
 fn insert_rejections_name_their_pointer() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let t5 = terminal(&e, "5");
     // Not a strip.
     let cmd = InsertTerminals {
@@ -348,7 +348,7 @@ fn insert_rejections_name_their_pointer() {
 /// A shifted or new seq beyond `u32::MAX` is refused at `/terminals`.
 #[test]
 fn insert_rejects_a_seq_beyond_u32_max() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let t20 = terminal(&e, "20");
     set_strip(&mut e, "strip.groups", json!([])).unwrap();
     e.execute(&SetFields {
@@ -374,7 +374,7 @@ fn insert_rejects_a_seq_beyond_u32_max() {
 /// §5.2's example: :13 before :11.
 #[test]
 fn move_13_before_11_permutes_the_changed_range() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     set_strip(&mut e, "strip.accessories", json!([accessory(12)])).unwrap();
     let before = lines(e.model());
     let (groups_before, accessories_before) = (groups(&e), strip_aspect(&e).accessories);
@@ -406,7 +406,7 @@ fn move_13_before_11_permutes_the_changed_range() {
 /// Without `before` the terminals go to the end, in strip order whatever the list order.
 #[test]
 fn move_to_the_end() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let before = lines(e.model());
     let groups_before = groups(&e);
     e.execute(&MoveTerminals {
@@ -426,7 +426,7 @@ fn move_to_the_end() {
 
 #[test]
 fn move_rejections_name_their_pointer() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let (t1, t2, t3) = (terminal(&e, "1"), terminal(&e, "2"), terminal(&e, "3"));
     let mv = |terminals: Vec<Id<Device>>, before: Option<Id<Device>>| MoveTerminals { terminals, before };
     // An empty list.
@@ -459,7 +459,7 @@ fn move_rejections_name_their_pointer() {
 /// Terminals of two strips are refused at the first of the other strip.
 #[test]
 fn move_rejects_terminals_of_two_strips() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let other = new_strip(&mut e);
     let r = e
         .execute(&InsertTerminals {
@@ -486,7 +486,7 @@ fn move_rejects_terminals_of_two_strips() {
 
 #[test]
 fn strip_accessories_are_set_by_fields_set() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     set_strip(&mut e, "strip.accessories", json!([accessory(20)])).unwrap();
     let accessories = strip_aspect(&e).accessories;
     assert_eq!(accessories.len(), 1);
@@ -498,7 +498,7 @@ fn strip_accessories_are_set_by_fields_set() {
 /// A part copy that does not exist is refused by the link check at the end of the transaction (EW-INV-001).
 #[test]
 fn a_dangling_accessory_part_is_refused_by_the_link_check() {
-    let mut e = golden_a_strip();
+    let mut e = twenty_terminal_strip();
     let before = lines(e.model());
     let r = set_strip(
         &mut e,

@@ -87,9 +87,9 @@ fn copies() -> Vec<LibCopy<Part>> {
     ]
 }
 
-/// The mini golden project with the devices and copies above.
+/// The mini project with the devices and copies above.
 fn model() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut uc1 = device(DEV_UC1, "UC", 1);
     uc1.parts = uses(&[ITEM_ENCL]);
     let mut plate = device(DEV_PLATE, "UC", 2);

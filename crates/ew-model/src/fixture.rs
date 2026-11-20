@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests and,
-//! through the feature `testkit`, by the tests of `ew-commands`; with the record, library and valve helpers they
-//! build their own records with. The JSON fixture builder of `ew-derive`'s tests is `ew-derive/tests/common/`.
+//! The mini project as typed records: two pages of a small control cabinet (placeholders only), shared by the
+//! in-crate tests and, through the feature `testkit`, by the tests of `ew-commands`; with the record, library and
+//! valve helpers they build their own records with. The JSON fixture builder of `ew-derive`'s tests is
+//! `ew-derive/tests/common/`.
 
 #![allow(dead_code)]
 #![allow(missing_docs, reason = "test data: each name says which record it builds")]
@@ -594,8 +595,8 @@ pub fn coil_function(valve: Id<Device>, k: u32) -> Id<Function> {
 // ---------------------------------------------------------------------------------------------------------
 // The fixture
 
-/// The mini golden project as records and library documents, in the order of the golden files.
-pub fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
+/// The mini project as records and library documents, in the order of a project folder's files.
+pub fn mini_project_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
     let project = Project {
         id: PROJECT,
         v: 1,
@@ -788,10 +789,10 @@ pub fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
     (project, records, library)
 }
 
-/// The mini golden project as a validated model snapshot.
-pub fn mini_golden() -> Model {
-    let (p, r, l) = mini_golden_parts();
-    Model::from_records(p, r, l).expect("mini golden is valid")
+/// The mini project as a validated model snapshot.
+pub fn mini_project() -> Model {
+    let (p, r, l) = mini_project_parts();
+    Model::from_records(p, r, l).expect("the mini project is valid")
 }
 
 /// The key of the row `id` of kind `T`.

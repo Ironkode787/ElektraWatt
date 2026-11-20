@@ -43,7 +43,7 @@ fn waivers(e: &Engine) -> Vec<Waiver> {
 /// fingerprint in lower case, and is one undo step; `check.unwaive` removes it, also one step.
 #[test]
 fn waive_records_a_waiver_and_unwaive_removes_it_each_one_undo_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let outcome = e.execute(&waive(w1())).expect("the waiver commits");
     let [w] = waivers(&e).try_into().expect("one waiver");
@@ -71,7 +71,7 @@ fn waive_records_a_waiver_and_unwaive_removes_it_each_one_undo_step() {
 /// no author, and a one-character reason commits too.
 #[test]
 fn waive_takes_no_reason_and_no_author() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut bare = w1();
     let params = bare.as_object_mut().unwrap();
     params.remove("reason");
@@ -92,7 +92,7 @@ fn waive_takes_no_reason_and_no_author() {
 /// rejected naming its rule; an unknown waiver is invalid.
 #[test]
 fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cases = [
         ("rule", json!("EW-CORE-41"), "/rule"),
         ("rule", json!("CORE-041"), "/rule"),
@@ -156,7 +156,7 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
 /// changes; the GUI and a confirmed CLI subcommand may waive.
 #[test]
 fn waive_and_unwaive_are_refused_from_a_script() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let scripted = [
         Origin::CmdLog {
             file: "replay.ewcmd".into(),

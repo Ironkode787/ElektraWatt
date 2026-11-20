@@ -137,7 +137,7 @@ fn join_model() -> Model {
 
 /// [`join_model`] with its records edited before the model is built.
 fn join_model_with(edit: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     let mut k3 = device(DEV_K3, "K", 3);
     k3.parts = uses(PART_RLY);
     let mut k5 = device(DEV_K5, "K", 5);

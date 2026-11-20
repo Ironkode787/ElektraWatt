@@ -50,7 +50,7 @@ fn invalid_at(err: CmdError) -> (String, String) {
 
 #[test]
 fn one_value_per_target_in_one_transaction_and_one_undo_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = many(vec![
         set(
@@ -97,9 +97,9 @@ fn equals_a_sequence_of_fields_set() {
             json!("designation"),
         ),
     ];
-    let mut one = engine(golden_model());
+    let mut one = engine(mini_model());
     one.execute(&many(edits.clone())).unwrap();
-    let mut seq = engine(golden_model());
+    let mut seq = engine(mini_model());
     for e in &edits {
         seq.execute(e).unwrap();
     }
@@ -108,7 +108,7 @@ fn equals_a_sequence_of_fields_set() {
 
 #[test]
 fn no_entry_and_too_many_entries_are_refused_at_edits() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e.execute(&many(Vec::new())).unwrap_err();
     assert_eq!(invalid_at(err), ("fields.set_many".into(), "/edits".into()));
     let one = set(KindName::Device, &[dev(DEV_101F1)], "function_text", json!("x"));
@@ -120,7 +120,7 @@ fn no_entry_and_too_many_entries_are_refused_at_edits() {
 
 #[test]
 fn a_pair_named_twice_is_refused_at_the_later_entry() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&many(vec![
             set(
@@ -153,7 +153,7 @@ fn a_pair_named_twice_is_refused_at_the_later_entry() {
 /// Every rejection of `fields.set` comes back with its pointer below `/edits/<i>`.
 #[test]
 fn an_entry_rejected_as_fields_set_would_be_carries_the_prefixed_pointer() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let ok = set(KindName::Device, &[dev(DEV_101F1)], "function_text", json!("x"));
     let cases: Vec<(SetFields, &str)> = vec![
         (
@@ -214,7 +214,7 @@ fn an_entry_rejected_as_fields_set_would_be_carries_the_prefixed_pointer() {
 /// A released revision is immutable (FR-REV-009) in an entry too: refused at its target below `/edits/<i>`.
 #[test]
 fn a_closed_revision_in_an_entry_is_refused_at_its_target() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let released = CreateRevision {
         label: ident("V1.0"),
         state: NewRevisionState::Released,
@@ -245,7 +245,7 @@ fn a_closed_revision_in_an_entry_is_refused_at_its_target() {
 /// D2's tag-collision refusal applies to an entry as to `fields.set`: G1 takes F2's letter and counter on page 102.
 #[test]
 fn a_counter_collision_is_refused_as_fields_set_refuses_it() {
-    let model = golden_model();
+    let model = mini_model();
     let counter = model
         .table::<Device>()
         .get(&DEV_102F2)
@@ -257,7 +257,7 @@ fn a_counter_collision_is_refused_as_fields_set_refuses_it() {
         set(KindName::Device, &[dev(DEV_102G1)], "tag.letter", json!("F")),
         set(KindName::Device, &[dev(DEV_102G1)], "tag.counter", json!(counter)),
     ];
-    let mut seq = engine(golden_model());
+    let mut seq = engine(mini_model());
     let oracle: Result<(), CmdError> = edits.iter().try_for_each(|c| seq.execute(c).map(|_| ()));
     let mut e = engine(model);
     let got = e.execute(&many(edits)).map(|_| ());
@@ -274,7 +274,7 @@ fn a_counter_collision_is_refused_as_fields_set_refuses_it() {
 
 #[test]
 fn the_cost_is_bulk_above_500_targets_in_total() {
-    let model = golden_model();
+    let model = mini_model();
     let targets = |n: u128, base: u128| -> Vec<AnyId> {
         (0..n)
             .map(|i| Id::<Device>::from_uuid(uuid(base + i)).cast())

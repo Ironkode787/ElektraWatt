@@ -42,7 +42,7 @@ fn invalid(e: &mut Engine, cmd: &SetProjectSettings) -> (String, String) {
 
 #[test]
 fn settings_set_is_bulk_and_needs_preview() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e.execute(&set("numbering", numbering())).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
     let registry = CommandRegistry::builtin();
@@ -53,14 +53,13 @@ fn settings_set_is_bulk_and_needs_preview() {
 
 #[test]
 fn settings_set_numbering_previews_commits_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let p = e.preview(&set("numbering", numbering())).unwrap();
     assert_eq!(p.diff().len(), 1);
     let change = &p.diff().changes[0];
     assert_eq!(change.key.0, Kind::Project);
-    // The mini golden model has no settings, so the diff reports the added `settings` member as a whole
-    // (over the golden project, which has settings, the path is `settings.numbering.schemes`: golden_b.rs).
+    // The mini model has no settings, so the diff reports the added `settings` member as a whole.
     assert!(!change.fields.is_empty());
     assert!(
         change.fields.iter().all(|f| f.starts_with("settings")),
@@ -75,7 +74,7 @@ fn settings_set_numbering_previews_commits_and_undoes() {
 
 #[test]
 fn settings_set_unknown_member_lists_the_settable_ones() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (path, message) = invalid(&mut e, &set("identifier_set", json!({})));
     assert_eq!(path, "/member");
     assert!(
@@ -88,7 +87,7 @@ fn settings_set_unknown_member_lists_the_settable_ones() {
 /// at `/value` (every case of `ew_derive::check_settings_member` reaches it).
 #[test]
 fn settings_set_refuses_invalid_values() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let scheme = json!({"key": "page-based", "format": "{page}{letter}{counter}"});
     let bad_scheme = json!({"default":"x","schemes":[{"key":"x","format":"{letter}{counter}","rules":[]}]});
     let bad_xref = json!({"ip":"{page}-{row}{column}","aux_to_main":"x","main_to_aux":"y",
@@ -140,7 +139,7 @@ fn settings_set_refuses_invalid_values() {
 
 #[test]
 fn settings_set_null_removes_and_equal_values_change_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     commit(&mut e, &set("numbering", numbering()));
     assert!(stored(&e, "numbering").is_some());
     // the same value again: nothing to do
@@ -157,7 +156,7 @@ fn settings_set_null_removes_and_equal_values_change_nothing() {
 /// and `null` remove it, and a value outside the rules is refused at the member path.
 #[test]
 fn settings_set_text_styles_replaces_the_member_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let tag = json!({"tag.main": {"size": 4_000_000}});
     commit(&mut e, &set("text_styles", tag.clone()));
@@ -184,7 +183,7 @@ fn settings_set_text_styles_replaces_the_member_and_undoes() {
 
 #[test]
 fn settings_set_text_styles_refuses_at_the_member_path() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cases = [
         (
             json!({"tag.main": {"size": 100}}),

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Property tests of the command layer (ARCH §13, doc 18 §3.3): random command sequences over the golden
+//! Property tests of the command layer (ARCH §13, doc 18 §3.3): random command sequences over the mini
 //! model, with the laws of undo, previews, normaliser convergence, both renumbering commands and
 //! determinism. Steps name their targets by index into the live records, so a sequence stays meaningful
 //! whatever the earlier steps did; a step that cannot be resolved is skipped, and a command error is fine
@@ -343,7 +343,7 @@ proptest! {
     /// `undo(all) ∘ apply(cmds) = id`.
     #[test]
     fn undo_of_everything_restores_the_initial_model(sequence in steps(false)) {
-        let initial = golden_model();
+        let initial = mini_model();
         let initial_lines = lines(&initial);
         let mut e = engine(initial.clone());
         run_all(&mut e, &sequence)?;
@@ -356,8 +356,8 @@ proptest! {
     /// Preview and commit equal execute, after every step.
     #[test]
     fn preview_then_commit_equals_execute(sequence in steps(true)) {
-        let mut a = engine(golden_model());
-        let mut b = engine(golden_model());
+        let mut a = engine(mini_model());
+        let mut b = engine(mini_model());
         for step in &sequence {
             let ra = run_step(&mut a, step, false)?;
             let rb = run_step(&mut b, step, true)?;
@@ -369,7 +369,7 @@ proptest! {
     /// The normalisers converge within MAX_PASSES (plus the confirming pass).
     #[test]
     fn normalisers_converge(sequence in steps(true)) {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         for step in &sequence {
             if let Ran::Cmd(Ok(receipt)) = run_step(&mut e, step, false)? {
                 prop_assert!(receipt.passes <= ew_commands::normalise::MAX_PASSES + 1, "{} passes after {:?}", receipt.passes, step);
@@ -380,7 +380,7 @@ proptest! {
     /// Undo restores the exact bytes of the previous state, redo those of the step (AC-18).
     #[test]
     fn every_step_undoes_to_exact_bytes(sequence in steps(false)) {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         for step in &sequence {
             let before = lines(e.model());
             let rev = e.model().rev();
@@ -401,7 +401,7 @@ proptest! {
     /// `numbering.renumber` keeps every reference and the topology, and is idempotent.
     #[test]
     fn device_renumbering_keeps_references_and_is_idempotent(sequence in steps(true)) {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         run_all(&mut e, &sequence)?;
         let before = e.model().clone();
         let cmd = renumber_devices();
@@ -426,7 +426,7 @@ proptest! {
     /// `page.renumber` changes only the folio numbers of pages and the sub-page labels that carry them.
     #[test]
     fn page_renumbering_keeps_references(sequence in steps(true), start_101 in any::<bool>()) {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         run_all(&mut e, &sequence)?;
         let before = e.model().clone();
         let cmd = renumber_pages(if start_101 { 101 } else { 300 });
@@ -445,8 +445,8 @@ proptest! {
     /// The same sequence on two engines with the same seed gives identical models.
     #[test]
     fn a_sequence_is_deterministic(sequence in steps(true)) {
-        let mut a = engine(golden_model());
-        let mut b = engine(golden_model());
+        let mut a = engine(mini_model());
+        let mut b = engine(mini_model());
         for step in &sequence {
             let ra = run_step(&mut a, step, false)?;
             let rb = run_step(&mut b, step, false)?;
@@ -459,7 +459,7 @@ proptest! {
 /// The generator is not vacuous: a fixed sequence of every step kind mostly commits.
 #[test]
 fn the_step_kinds_commit() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let sequence = [
         Step::Place {
             two_cp: true,

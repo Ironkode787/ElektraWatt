@@ -50,7 +50,7 @@ fn card(part_id: Id<Part>, number: &str) -> LibCopy<Part> {
 }
 
 fn model() -> Model {
-    let (p, records, mut lib) = mini_golden_parts();
+    let (p, records, mut lib) = mini_project_parts();
     lib.push(LibDocument::Part(plc_part(
         CPU,
         "CPU-1",

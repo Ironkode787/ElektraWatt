@@ -59,7 +59,7 @@ fn invalid_path(err: CmdError) -> String {
 
 #[test]
 fn set_device_function_text() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&set_device(DEV_102F2, "function_text", json!("Feed")))
         .unwrap();
     assert_eq!(device(&e, DEV_102F2).function_text, MlText::neutral("Feed"));
@@ -68,7 +68,7 @@ fn set_device_function_text() {
 
 #[test]
 fn set_tag_counter() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&set_device(DEV_102F2, "tag.counter", json!(9)))
         .unwrap();
     assert_eq!(device(&e, DEV_102F2).tag.counter, Some(9));
@@ -80,7 +80,7 @@ fn set_tag_counter() {
 
 #[test]
 fn set_strip_aspect_member() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&set_device(DEV_X1031, "strip.label_mode", json!("designation")))
         .unwrap();
     let strip = device(&e, DEV_X1031);
@@ -92,7 +92,7 @@ fn set_strip_aspect_member() {
 
 #[test]
 fn set_connection_override_creates_the_parent_and_null_resets_it() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = |v: Value| set(KindName::Connection, &[CON_W22.cast()], "overrides.csa", v);
     e.execute(&cmd(json!({"awg": 12}))).unwrap();
@@ -108,7 +108,7 @@ fn set_connection_override_creates_the_parent_and_null_resets_it() {
 
 #[test]
 fn set_page_title() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = set(KindName::Page, &[PAGE_101.cast()], "title", json!("Main"));
     e.execute(&cmd).unwrap();
     let page = e.model().table::<Page>().get(&PAGE_101).unwrap().clone();
@@ -117,7 +117,7 @@ fn set_page_title() {
 
 #[test]
 fn set_rejects_an_unknown_path_a_kind_without_settable_fields_and_an_absent_aspect() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     for path in ["nope", "id", "tag", "tag.letter.x", "strip.groups.0", ""] {
         let err = e.execute(&set_device(DEV_102F2, path, json!(1))).unwrap_err();
         assert_eq!(invalid_path(err), "/path", "{path}");
@@ -140,7 +140,7 @@ fn set_rejects_an_unknown_path_a_kind_without_settable_fields_and_an_absent_aspe
 
 #[test]
 fn set_rejects_a_bad_value() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&set_device(DEV_102F2, "tag.counter", json!("many")))
         .unwrap_err();
@@ -159,7 +159,7 @@ fn set_rejects_a_bad_value() {
 
 #[test]
 fn set_on_a_missing_target_is_not_found() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let missing: Id<Device> = id(0xdead);
     let err = e
         .execute(&set_device(missing, "tag.counter", json!(3)))
@@ -174,7 +174,7 @@ fn set_on_a_missing_target_is_not_found() {
 
 #[test]
 fn set_needs_distinct_targets_and_at_least_one() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&set(KindName::Device, &[], "tag.counter", json!(1)))
         .unwrap_err();
@@ -190,7 +190,7 @@ fn set_needs_distinct_targets_and_at_least_one() {
 
 #[test]
 fn set_over_several_targets_is_one_undo_step() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = set(
         KindName::Device,
@@ -210,7 +210,7 @@ fn set_over_several_targets_is_one_undo_step() {
 #[test]
 fn set_null_on_an_absent_member_commits_nothing() {
     // A reset of a member that is absent changes nothing and commits no op.
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     e.execute(&set_device(DEV_102F2, "function_text", Value::Null))
         .unwrap();
@@ -232,7 +232,7 @@ fn exists(e: &Engine, key: AnyKey) -> bool {
 
 #[test]
 fn delete_a_device_takes_its_functions_representations_and_connections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&delete(vec![target(KindName::Device, DEV_102F2.cast())]))
         .unwrap();
     assert!(!exists(&e, (Kind::Device, DEV_102F2.cast())));
@@ -256,7 +256,7 @@ fn delete_a_device_takes_its_functions_representations_and_connections() {
 
 #[test]
 fn delete_a_representation_leaves_the_function_unplaced() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&delete(vec![target(
         KindName::Representation,
         REP_102F2_AUX.cast(),
@@ -271,7 +271,7 @@ fn delete_a_representation_leaves_the_function_unplaced() {
 
 #[test]
 fn delete_a_strip_with_terminals_is_forbidden() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&delete(vec![target(KindName::Device, DEV_X1031.cast())]))
         .unwrap_err();
@@ -282,7 +282,7 @@ fn delete_a_strip_with_terminals_is_forbidden() {
 
 #[test]
 fn delete_needs_a_target_and_a_missing_target_is_not_found_and_changes_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e.execute(&delete(vec![])).unwrap_err();
     assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");
     let missing: AnyId = id::<()>(0xbeef);
@@ -303,7 +303,7 @@ fn delete_needs_a_target_and_a_missing_target_is_not_found_and_changes_nothing()
 
 #[test]
 fn delete_skips_a_target_that_an_earlier_cascade_removed() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&delete(vec![
         target(KindName::Device, DEV_102F2.cast()),
         target(KindName::Function, FN_102F2.cast()),
@@ -314,9 +314,9 @@ fn delete_skips_a_target_that_an_earlier_cascade_removed() {
     assert!(!exists(&e, (Kind::Function, FN_102F2.cast())));
 }
 
-/// The golden model plus `n` extra representations of `FN_102F2` on page 102.
+/// The mini model plus `n` extra representations of `FN_102F2` on page 102.
 fn model_with_extra_reps(n: usize) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     for i in 0..n {
         records.push(Record::Representation(rep(
             id(0x20_000 + i as u128),
@@ -324,7 +324,7 @@ fn model_with_extra_reps(n: usize) -> Model {
             vec![FN_102F2],
         )));
     }
-    Model::from_records(p, records, library()).expect("golden plus representations")
+    Model::from_records(p, records, library()).expect("the mini model plus representations")
 }
 
 #[test]
@@ -337,8 +337,8 @@ fn delete_is_bulk_above_500_records() {
     let mut e = engine(model);
     let err = e.execute(&cmd).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
-    // the golden model's own cascade is small
-    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
+    // the mini model's own cascade is small
+    assert_eq!(Command::cost(&cmd, &mini_model()), Cost::Interactive);
     // a bulk delete runs through preview and commit, and undoes whole
     let p = e.preview(&cmd).unwrap();
     e.commit(p).unwrap();
@@ -354,8 +354,8 @@ fn many_targets_with_a_small_plan_stay_interactive() {
     let mut targets = vec![target(KindName::Representation, REP_102F2_AUX.cast())];
     targets.resize(BULK_ABOVE + 1, targets[0]);
     let cmd = delete(targets);
-    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
-    let mut e = engine(golden_model());
+    assert_eq!(Command::cost(&cmd, &mini_model()), Cost::Interactive);
+    let mut e = engine(mini_model());
     e.execute(&cmd).unwrap();
     assert!(!exists(&e, (Kind::Representation, REP_102F2_AUX.cast())));
 }
@@ -368,8 +368,8 @@ fn missing_targets_cost_interactive_and_fail_not_found() {
             .map(|i| target(KindName::Device, id::<()>(0x10_000 + i as u128)))
             .collect(),
     );
-    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
-    let mut e = engine(golden_model());
+    assert_eq!(Command::cost(&cmd, &mini_model()), Cost::Interactive);
+    let mut e = engine(mini_model());
     let err = e.execute(&cmd).unwrap_err();
     assert!(matches!(err, CmdError::NotFound { .. }), "{err:?}");
 }
@@ -390,9 +390,9 @@ fn project_scope() -> RenumberDevices {
     renumber(DeviceScope::Project, RenumberOptions::default())
 }
 
-/// The golden model with `DEV_102G1` turned into an `F` device, to the right of `DEV_102F2` on page 102.
+/// The mini model with `DEV_102G1` turned into an `F` device, to the right of `DEV_102F2` on page 102.
 fn two_f_model(edit: impl FnOnce(&mut Device, &mut Device)) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut devices = records.iter_mut().filter_map(|r| match r {
         Record::Device(d) if d.id == DEV_102F2 || d.id == DEV_102G1 => Some(d),
         _ => None,
@@ -461,7 +461,7 @@ fn renumber_assigns_counters_in_position_order_and_touches_only_counters() {
 
 #[test]
 fn renumber_a_lone_device_becomes_one() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
         .unwrap();
     let p = e.preview(&project_scope()).unwrap();
@@ -600,7 +600,7 @@ fn renumber_include_frozen_with_only_nonconforming_keeps_conforming_counters() {
 /// or the project's), so with `include_frozen` its frozen tag gives way to a counter, as a placed device's does.
 #[test]
 fn renumber_include_frozen_numbers_a_cable_without_a_representation() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&set_device(DEV_3W1, "tag.frozen", json!({"text": "W99"})))
         .unwrap();
     let p = e.preview(&include_frozen(RenumberOptions::default())).unwrap();
@@ -651,7 +651,7 @@ fn renumber_scopes_selection_and_pages() {
 
 #[test]
 fn renumber_rejects_unknown_scope_members_and_is_refused_by_execute() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let missing: Id<Device> = id(0xdead);
     let r = e.preview(&renumber(
         DeviceScope::Selection(vec![missing]),
@@ -670,7 +670,7 @@ fn renumber_rejects_unknown_scope_members_and_is_refused_by_execute() {
 #[test]
 fn representation_positions_are_read_from_the_main_representation() {
     // Moving the representation of DEV_102G1 to the left of DEV_102F2 swaps their numbers.
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     for r in &mut records {
         match r {
             Record::Device(d) if d.id == DEV_102G1 => d.tag.letter = ident("F"),

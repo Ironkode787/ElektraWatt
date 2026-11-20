@@ -40,7 +40,7 @@ const Y_GRID: i64 = 5_291_667;
 /// Two placed devices whose second CP (10 mm below the insertion point) is drawn at `y = Y_CP`, at x = 0
 /// and x = 4G. The positions are in the records, not placed by a command (a command would refuse them).
 fn model_with_cps_off_the_grid() -> (Model, Id<Function>, Id<Function>) {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut fns = Vec::new();
     for (n, x) in [(0u128, 0i64), (1, 4 * G)] {
         let (dev, f, r): (Id<Device>, Id<Function>, Id<Representation>) =
@@ -207,7 +207,7 @@ fn engine_with_human_only(origin: Origin) -> Engine {
     let mut registry = CommandRegistry::builtin().clone();
     registry.register::<HumanOnlyNoop>();
     Engine::new(
-        golden_model(),
+        mini_model(),
         EngineOptions {
             registry: Some(registry),
             ids: Some(ew_testids::seeded_ids(SEED)),

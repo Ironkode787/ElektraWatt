@@ -67,7 +67,7 @@ fn black(pos: Pt2, box_: Option<BoxSpec>, target: PlaceTarget) -> PlaceBlackBox 
 
 #[test]
 fn black_box_new_device_creates_function_and_representation() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&black(pt(3 * G, 4 * G), Some(spec()), new_device("A")))
         .expect("box.black");
@@ -91,7 +91,7 @@ fn black_box_new_device_creates_function_and_representation() {
 
 #[test]
 fn black_box_join_device_creates_aux_black_box_function() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let target = PlaceTarget::JoinDevice {
         device: DEV_102F2,
         fndef: None,
@@ -111,7 +111,7 @@ fn black_box_join_device_creates_aux_black_box_function() {
 
 #[test]
 fn black_box_existing_function_must_be_a_black_box() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let target = PlaceTarget::ExistingFunction { function: FN_102F2 };
     rejected(e.execute(&black(pt(3 * G, 4 * G), Some(spec()), target)));
 
@@ -131,7 +131,7 @@ fn black_box_existing_function_must_be_a_black_box() {
 
 #[test]
 fn black_box_invalid_specs_are_named_by_their_path() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut b = spec();
     b.outline = vec![pt(0, 0), pt(G, G)];
     let path = invalid_path(e.execute(&black(pt(0, 0), Some(b), new_device("A"))), "box.black");
@@ -144,7 +144,7 @@ fn black_box_invalid_specs_are_named_by_their_path() {
 
 #[test]
 fn black_box_refusals_change_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     // A CP off the grid.
     let mut b = spec();
@@ -171,8 +171,8 @@ fn black_box_refusals_change_nothing() {
 
 #[test]
 fn black_box_undo_and_redo() {
-    let mut e = engine(golden_model());
-    let before = golden_model();
+    let mut e = engine(mini_model());
+    let before = mini_model();
     e.execute(&black(pt(3 * G, 4 * G), Some(spec()), new_device("A")))
         .unwrap();
     let after = lines(e.model());
@@ -201,7 +201,7 @@ fn cp_param(function: Id<Function>, idx: u16) -> EndpointParam {
 
 #[test]
 fn bond_create_inserts_the_bond() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), Some(CON_W27));
     let r = e.execute(&cmd).expect("bond.create");
     let id: Id<Bond> = primary(&r);
@@ -214,7 +214,7 @@ fn bond_create_inserts_the_bond() {
 
 #[test]
 fn bond_create_refusals_write_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let on_conn = EndpointParam::OnConnection {
         connection: CON_W27,
         at: pt(0, 0),
@@ -244,7 +244,7 @@ fn xref(location: Id<ew_schema::StructureNode>) -> CreateExternalRef {
 
 #[test]
 fn external_ref_create_inserts_the_reference() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&xref(LOC)).expect("external_ref.create");
     let x = row(&e, primary::<ExternalRef>(&r));
     assert_eq!(x.location, LOC);
@@ -255,14 +255,14 @@ fn external_ref_create_inserts_the_reference() {
 
 #[test]
 fn external_ref_create_needs_an_existing_location_node() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&xref(FUNC_P01)));
     not_found(e.execute(&xref(id(0xbeef))));
 }
 
 #[test]
 fn external_ref_device_is_editable_with_fields_set() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&xref(LOC)).unwrap();
     let x: Id<ExternalRef> = primary(&r);
     e.execute(&SetFields {
@@ -292,7 +292,7 @@ fn external_of(e: &ew_commands::Engine, f: Id<Function>) -> Option<Id<ExternalRe
 /// target that is no interruption point is refused.
 #[test]
 fn ip_supply_in_marks_the_points_with_one_external_reference() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mark = |points: Vec<Id<Function>>| MarkSupplyIn {
         points,
         location: Some(ident("Supply")),

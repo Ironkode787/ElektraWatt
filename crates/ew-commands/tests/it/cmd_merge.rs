@@ -47,9 +47,9 @@ fn set_overrides(records: &mut [Record], id: ew_ids::Id<Connection>, overrides: 
     }
 }
 
-/// The mini golden model with W29's colour BU and a conflict on it: `ours` and `theirs` as given.
+/// The mini model with W29's colour BU and a conflict on it: `ours` and `theirs` as given.
 fn model_with_conflict(ours: Value, theirs: Value) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     set_overrides(&mut records, CON_W29, json!({"colour": ["BU"]}));
     records.push(record(json!({
         "$k": "conflict", "id": CON_W29.to_string(), "kind": "connection",
@@ -194,7 +194,7 @@ fn page_102_lines(model: &Model, edit: impl Fn(AnyKey, Value) -> Option<Value>) 
 /// changed, one left out and so deleted); taking the other side removes only the conflict.
 #[test]
 fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
-    let base = golden_model();
+    let base = mini_model();
     let path = format!("pages/{PAGE_102}.jsonl");
     let held = page_102_lines(&base, |key, mut v| {
         if key == (Kind::Connection, CON_W29.cast()) {
@@ -206,7 +206,7 @@ fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
         Some(v)
     });
     let conflict_id = "00000000-0000-7000-8000-00000000c0f1";
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.push(record(json!({
         "$k": "conflict", "id": conflict_id, "kind": "file", "path": path, "side": "theirs", "lines": held
     })));
@@ -225,7 +225,7 @@ fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
     let mut e = engine(model);
     e.execute(&choose("theirs")).expect("theirs is taken");
     // Expected: W27 white, then W29 deleted through the delete plan.
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     set_overrides(&mut records, CON_W27, json!({"colour": ["WH"]}));
     let mut expected = engine(Model::from_records(p, records, library()).expect("the model is valid"));
     expected
@@ -241,7 +241,7 @@ fn a_file_level_conflict_taken_replaces_the_records_of_its_file() {
 #[test]
 fn a_file_level_conflict_whose_line_does_not_read_is_refused() {
     let conflict_id = "00000000-0000-7000-8000-00000000c0f1";
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     records.push(record(json!({
         "$k": "conflict", "id": conflict_id, "kind": "file", "path": format!("pages/{PAGE_102}.jsonl"),
         "side": "theirs", "lines": [r#"{"$k":"connection","#]

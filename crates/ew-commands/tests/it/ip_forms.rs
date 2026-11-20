@@ -42,9 +42,9 @@ fn form(key: &str) -> LibDocument {
     LibDocument::Symbol(s)
 }
 
-/// The mini golden model with the source form, and the target form when `twin`.
+/// The mini model with the source form, and the target form when `twin`.
 fn model(twin: bool) -> Model {
-    let (p, records, _) = mini_golden_parts();
+    let (p, records, _) = mini_project_parts();
     let mut lib = library();
     lib.push(form("ew.gen.ip@qet10"));
     if twin {

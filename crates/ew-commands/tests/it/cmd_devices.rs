@@ -25,8 +25,8 @@ use ew_units::{Orient2, Pt2};
 // ---------------------------------------------------------------------------------------------------------
 // Helpers
 
-fn golden_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+fn mini_model_with(f: impl FnOnce(&mut Vec<Record>)) -> Model {
+    let (p, mut records, _) = mini_project_parts();
     f(&mut records);
     Model::from_records(p, records, library()).expect("valid model")
 }
@@ -119,7 +119,7 @@ fn add_terminals(strip: ew_ids::Id<Device>, terminals: Vec<TerminalSpec>) -> Add
 
 #[test]
 fn create_device_without_function_stays_unnumbered() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = create("F");
     cmd.kind = Some(DeviceKind::Psu);
     cmd.function_text = ew_mltext::MlText::neutral("Protection");
@@ -146,7 +146,7 @@ fn create_device_without_function_stays_unnumbered() {
 
 #[test]
 fn create_device_with_main_function_and_explicit_counter() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = create("K");
     cmd.counter = Some(9);
     cmd.main_fndef = Some(FNDEF_MCB);
@@ -164,7 +164,7 @@ fn create_device_with_main_function_and_explicit_counter() {
 /// A frozen tag given to `device.create` is the new device's, in the creating commit; by JSON too.
 #[test]
 fn create_device_with_a_frozen_tag_freezes_it_in_the_same_commit() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&AnyCommand {
             name: "device.create".into(),
@@ -185,7 +185,7 @@ fn create_device_with_a_frozen_tag_freezes_it_in_the_same_commit() {
 
 #[test]
 fn create_strip_device_carries_the_strip_aspect() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = create("X");
     cmd.counter = Some(2000);
     cmd.strip = strip(DEV_X1031, "X", 1).aspects.strip;
@@ -202,7 +202,7 @@ fn create_strip_device_carries_the_strip_aspect() {
 
 #[test]
 fn create_device_needs_existing_parts_and_fndef() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = create("F");
     cmd.main_fndef = Some(id(0xdead));
     not_found(e.execute(&cmd));
@@ -221,7 +221,7 @@ fn create_device_needs_existing_parts_and_fndef() {
 
 #[test]
 fn place_new_device_creates_device_function_and_representation() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let target = PlaceTarget::NewDevice {
         letter: ident("F"),
         fndef: None,
@@ -252,7 +252,7 @@ fn place_new_device_creates_device_function_and_representation() {
 
 #[test]
 fn online_numbering_fills_the_page_scope() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut counters = Vec::new();
     for _ in 0..2 {
         let r = e
@@ -274,7 +274,7 @@ fn online_numbering_fills_the_page_scope() {
 #[test]
 fn placing_the_main_function_numbers_an_unplaced_device_and_keeps_an_explicit_counter() {
     for (given, placed) in [(None, Some(1)), (Some(7), Some(7))] {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         let mut cmd = create("F");
         cmd.counter = given;
         cmd.main_fndef = Some(fndef_two());
@@ -294,7 +294,7 @@ fn placing_the_main_function_numbers_an_unplaced_device_and_keeps_an_explicit_co
 
 #[test]
 fn place_existing_function_adds_a_representation_and_keeps_the_device() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = row(&e, DEV_102F2);
     let r = e
         .execute(&place(
@@ -316,7 +316,7 @@ fn place_existing_function_adds_a_representation_and_keeps_the_device() {
 
 #[test]
 fn place_rejects_an_interruption_point_and_bad_references() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&place(
         PAGE_101,
         pt(0, 0),
@@ -340,7 +340,7 @@ fn place_rejects_an_interruption_point_and_bad_references() {
 
 #[test]
 fn place_join_device_adds_an_auxiliary_function() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e
         .execute(&place(
             PAGE_102,
@@ -375,7 +375,7 @@ fn place_join_device_adds_an_auxiliary_function() {
 
 #[test]
 fn place_hints_create_wires_and_extend_junctions() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![
         ConnectHint {
@@ -413,7 +413,7 @@ fn place_hints_create_wires_and_extend_junctions() {
 
 #[test]
 fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![ConnectHint {
         route: Vec::new(),
@@ -454,7 +454,7 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
 
 #[test]
 fn place_hint_on_a_connection_splits_it_at_a_junction() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![ConnectHint {
         route: Vec::new(),
@@ -481,7 +481,7 @@ fn place_on_a_wire_splits_it() {
     original.overrides.colour = Some(ew_schema::ColourSpec::one(ew_schema::ColourCode::Iec(
         ew_schema::IecColour::Bu,
     )));
-    let model = golden_with(|r| r.push(Record::Connection(original.clone())));
+    let model = mini_model_with(|r| r.push(Record::Connection(original.clone())));
     let mut e = engine(model);
     let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
     assert!(
@@ -519,7 +519,7 @@ fn place_on_a_shared_run_is_refused_in_words() {
     a.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
     let mut b = connection(two, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 2));
     b.route = vec![pt(0, -MM10), pt(0, 2 * MM10), pt(MM10, 2 * MM10)];
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(Record::Connection(a.clone()));
         r.push(Record::Connection(b.clone()));
     });
@@ -543,7 +543,7 @@ fn hinted_wire(
     ew_ids::Id<Function>,
     ew_ids::Id<Function>,
 ) {
-    hinted_wire_in(golden_model(), b_at)
+    hinted_wire_in(mini_model(), b_at)
 }
 
 /// [`hinted_wire`] in `model`.
@@ -628,7 +628,7 @@ fn a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_first() {
     let routed: ew_ids::Id<Connection> = id(u128::MAX - 1);
     let mut original = connection(routed, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
     original.route = vec![pt(0, MM10), pt(0, 6 * G)];
-    let model = golden_with(|r| r.push(Record::Connection(original.clone())));
+    let model = mini_model_with(|r| r.push(Record::Connection(original.clone())));
     let (mut e, hinted, _, _) = hinted_wire_in(model, pt(0, 6 * G));
     assert!(hinted < routed);
     let before = (*row(&e, hinted)).clone();
@@ -667,9 +667,9 @@ fn mv(reps: Vec<ew_ids::Id<Representation>>, delta: Pt2) -> MoveReps {
     }
 }
 
-/// The golden model with a routed wire between the representations of `FN_102F2` and `FN_T1`.
-fn routed_golden() -> Model {
-    golden_with(|records| {
+/// The mini model with a routed wire between the representations of `FN_102F2` and `FN_T1`.
+fn routed_mini() -> Model {
+    mini_model_with(|records| {
         for rec in records {
             if let Record::Connection(c) = rec {
                 if c.id == CON_W29 {
@@ -682,7 +682,7 @@ fn routed_golden() -> Model {
 
 #[test]
 fn move_translates_the_whole_route_when_both_ends_move() {
-    let mut e = engine(routed_golden());
+    let mut e = engine(routed_mini());
     let delta = pt(G, 2 * G);
     let r = e.execute(&mv(vec![REP_102F2, REP_T1], delta)).unwrap();
     assert_eq!(r.outcome.primary, None);
@@ -697,14 +697,14 @@ fn move_translates_the_whole_route_when_both_ends_move() {
 
 #[test]
 fn move_follows_the_end_when_one_end_moves() {
-    let mut e = engine(routed_golden());
+    let mut e = engine(routed_mini());
     e.execute(&mv(vec![REP_102F2], pt(0, G))).unwrap();
     assert_eq!(
         row(&e, CON_W29).route,
         vec![pt(0, G), pt(G, G), pt(G, 3 * G), pt(2 * G, 3 * G)]
     );
     // The end at B follows too, keeping its neighbour orthogonal.
-    let mut e = engine(routed_golden());
+    let mut e = engine(routed_mini());
     e.execute(&mv(vec![REP_T1], pt(G, 0))).unwrap();
     assert_eq!(
         row(&e, CON_W29).route,
@@ -714,7 +714,7 @@ fn move_follows_the_end_when_one_end_moves() {
 
 #[test]
 fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let placed = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
     let new_dev: ew_ids::Id<Device> = created(&placed, Kind::Device)[0];
     assert_eq!(row(&e, new_dev).tag.counter, Some(1));
@@ -746,7 +746,7 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
 
 #[test]
 fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = MoveReps {
         routes: Vec::new(),
         connect: Vec::new(),
@@ -775,7 +775,7 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
 
 #[test]
 fn move_rejects_empty_lists_and_unknown_references() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&mv(vec![], pt(G, 0))));
     not_found(e.execute(&mv(vec![id(0x999)], pt(G, 0))));
     not_found(e.execute(&MoveReps {
@@ -792,7 +792,7 @@ fn move_rejects_empty_lists_and_unknown_references() {
 
 #[test]
 fn move_changes_only_the_position_without_wires() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = row(&e, REP_102F2_AUX);
     e.execute(&mv(vec![REP_102F2_AUX], pt(5 * G, -G))).unwrap();
     let mut expected = (*before).clone();
@@ -812,10 +812,10 @@ fn transform(reps: Vec<ew_ids::Id<Representation>>, rotate: u8, mirror: bool) ->
     }
 }
 
-/// The golden model with `REP_102F2` drawn by the two-CP symbol at the origin and a vertical wire at its
+/// The mini model with `REP_102F2` drawn by the two-CP symbol at the origin and a vertical wire at its
 /// CP 1.
-fn two_cp_golden() -> Model {
-    golden_with(|records| {
+fn two_cp_mini() -> Model {
+    mini_model_with(|records| {
         for rec in records.iter_mut() {
             if let Record::Representation(r) = rec {
                 if r.id == REP_102F2 {
@@ -831,7 +831,7 @@ fn two_cp_golden() -> Model {
 
 #[test]
 fn transform_composes_orientation_and_sets_the_variant() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = transform(vec![REP_102G1], 1, true);
     cmd.variant = Some(3);
     let r = e.execute(&cmd).unwrap();
@@ -849,7 +849,7 @@ fn transform_composes_orientation_and_sets_the_variant() {
 
 #[test]
 fn transform_makes_the_route_follow_the_moved_cp() {
-    let mut e = engine(two_cp_golden());
+    let mut e = engine(two_cp_mini());
     e.execute(&transform(vec![REP_102F2], 1, false)).unwrap();
     assert_eq!(row(&e, REP_102F2).orient, Orient2::R90);
     // CP 1 at (0, 10 mm) turns to (-10 mm, 0): a displacement of (-10 mm, -10 mm). The far end stays, so the
@@ -865,7 +865,7 @@ fn transform_makes_the_route_follow_the_moved_cp() {
 /// nearest the middle of its body, its wire follows its connection point, and four quarter turns bring it back.
 #[test]
 fn a_turned_symbol_keeps_the_middle_of_its_body_and_four_turns_bring_it_back() {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     for rec in records.iter_mut() {
         if let Record::Representation(r) = rec
             && r.id == REP_102F2
@@ -923,7 +923,7 @@ fn a_turned_symbol_keeps_the_middle_of_its_body_and_four_turns_bring_it_back() {
 
 #[test]
 fn transform_without_cp_geometry_leaves_routes_alone() {
-    let mut e = engine(routed_golden());
+    let mut e = engine(routed_mini());
     let before = kinds(e.model(), Kind::Connection);
     e.execute(&transform(vec![REP_102F2, REP_T1], 2, true)).unwrap();
     assert_eq!(kinds(e.model(), Kind::Connection), before);
@@ -931,7 +931,7 @@ fn transform_without_cp_geometry_leaves_routes_alone() {
 
 #[test]
 fn transform_rejects_empty_lists_and_bad_rotations() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&transform(vec![], 1, false)));
     rejected(e.execute(&transform(vec![REP_102G1], 4, false)));
     not_found(e.execute(&transform(vec![id(0x997)], 1, false)));
@@ -943,7 +943,7 @@ fn transform_rejects_empty_lists_and_bad_rotations() {
 
 #[test]
 fn add_terminals_defaults_the_sequence_numbers() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut with_text = terminal_spec("4", None);
     with_text.function_text = ew_mltext::MlText::neutral("2+");
     with_text.rail_bonded = true;
@@ -973,7 +973,7 @@ fn add_terminals_defaults_the_sequence_numbers() {
 
 #[test]
 fn add_terminals_starts_at_one_in_an_empty_strip_and_keeps_explicit_sequences() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = create("X");
     cmd.counter = Some(2000);
     cmd.strip = strip(DEV_X1031, "X", 1).aspects.strip;
@@ -994,7 +994,7 @@ fn add_terminals_starts_at_one_in_an_empty_strip_and_keeps_explicit_sequences() 
 
 #[test]
 fn add_terminals_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&add_terminals(DEV_102F2, vec![terminal_spec("9", None)])));
     rejected(e.execute(&add_terminals(DEV_X1031, vec![])));
     // Designation of an existing terminal.
@@ -1029,7 +1029,7 @@ fn cable_cmd(cores: &[&str]) -> CreateCable {
 
 #[test]
 fn create_cable_creates_conductors_in_order() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = cable_cmd(&["1", "2", "SH"]);
     cmd.counter = Some(5);
     cmd.conductors[2].shield = true;
@@ -1060,7 +1060,7 @@ fn create_cable_creates_conductors_in_order() {
 fn create_cable_letter_defaults_to_w_and_rejects_duplicate_cores() {
     let cmd: CreateCable = serde_json::from_value(serde_json::json!({})).unwrap();
     assert_eq!(cmd.letter, ident("W"));
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     rejected(e.execute(&cable_cmd(&["1", "2", "1"])));
     assert_eq!(e.model().rev().0, 0);
     // No conductors is fine.
@@ -1073,7 +1073,7 @@ fn create_cable_letter_defaults_to_w_and_rejects_duplicate_cores() {
 #[test]
 fn create_cable_makes_the_listed_wires_its_cores() {
     let wire: ew_ids::Id<Connection> = id(0x4100);
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(Record::Connection(connection(
             wire,
             Some(PAGE_102),
@@ -1120,7 +1120,7 @@ fn a_cable_made_from_wires_gets_its_mark_on_each_page() {
         c.route = vec![mm(x, 20), mm(x, 60)];
         Record::Connection(c)
     };
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(routed(0x4101, PAGE_102, 48));
         r.push(routed(0x4102, PAGE_102, 40));
         r.push(routed(0x4103, PAGE_101, 40));
@@ -1178,7 +1178,7 @@ fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
         c.route = vec![mm(x, 20), mm(x, 60)];
         Record::Connection(c)
     };
-    let model = golden_with(|r| {
+    let model = mini_model_with(|r| {
         r.push(routed(0x4121, 40));
         r.push(routed(0x4122, 48));
     });
@@ -1233,7 +1233,7 @@ fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
 #[test]
 fn a_part_given_to_a_cable_sets_its_cores() {
     let wires = [id::<Connection>(0x4111), id(0x4112)];
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     for (n, w) in wires.iter().enumerate() {
         records.push(Record::Connection(connection(
             *w,
@@ -1298,7 +1298,7 @@ fn a_part_given_to_a_cable_sets_its_cores() {
 
 #[test]
 fn add_conductors_extends_a_cable() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut shield = conductor_spec("SH2");
     shield.shield = true;
     let r = e
@@ -1319,7 +1319,7 @@ fn add_conductors_extends_a_cable() {
 
 #[test]
 fn add_conductors_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let add = |cable, cores: &[&str]| AddConductors {
         cable,
         conductors: cores.iter().map(|c| conductor_spec(c)).collect(),
@@ -1369,7 +1369,7 @@ fn invalid_at<T: std::fmt::Debug>(r: Result<T, CmdError>, at: &str) {
 
 #[test]
 fn set_anchor_policy_overrides_one_representation_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert_eq!(anchor_of(&e, REP_102F2), None);
     let r = e
         .execute(&set_anchor(vec![REP_102F2], Some(AnchorPolicy::GraphicCentre)))
@@ -1393,7 +1393,7 @@ fn set_anchor_policy_overrides_one_representation_and_undoes() {
 
 #[test]
 fn set_anchor_policy_rejections() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     invalid_at(
         e.execute(&set_anchor(vec![], Some(AnchorPolicy::Origin))),
         "/reps",
@@ -1418,7 +1418,7 @@ fn set_anchor_policy_rejections() {
 
 #[test]
 fn set_anchor_policy_with_the_same_value_changes_nothing() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let r = e.execute(&set_anchor(vec![REP_102F2], None));
     assert!(r.map_or(true, |r| r.outcome.notices.is_empty()));
     assert_eq!(anchor_of(&e, REP_102F2), None);
@@ -1426,7 +1426,7 @@ fn set_anchor_policy_with_the_same_value_changes_nothing() {
 
 #[test]
 fn set_anchor_policy_parses_from_json() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let cmd = AnyCommand {
         name: "rep.set_anchor_policy".into(),
         params: serde_json::json!({ "reps": [REP_102F2.to_string()], "anchor": "graphic_centre" }),

@@ -126,9 +126,9 @@ fn ip_library() -> Vec<LibDocument> {
     lib
 }
 
-/// The golden records with `f` applied, over [`ip_library`].
+/// The mini project's records with `f` applied, over [`ip_library`].
 fn ip_model(f: impl FnOnce(&mut Vec<Record>)) -> Model {
-    let (project, mut records, _) = mini_golden_parts();
+    let (project, mut records, _) = mini_project_parts();
     // A wire may start at `FN_102G1`'s CP 1 on page 102; the mini model's `SYM` draws no CP, so
     // [`SYM_CP1`] draws it at the origin.
     let mut drawn = rep(REP_DRAWN_CP1, PAGE_102, vec![FN_102G1]);

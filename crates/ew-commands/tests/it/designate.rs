@@ -48,7 +48,7 @@ fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
 
 #[test]
 fn designate_sets_one_terminal() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     e.execute(&cmd(vec![assign(DEV_T1, "9")])).unwrap();
     assert_eq!(designation(&e, DEV_T1), "9");
@@ -61,7 +61,7 @@ fn designate_sets_one_terminal() {
 
 #[test]
 fn designate_swaps_two_terminals_in_one_transaction() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let r = e
         .execute(&cmd(vec![assign(DEV_T3, "2"), assign(DEV_T2, "3")]))
@@ -93,7 +93,7 @@ fn designate_rejects_bad_assignments_and_writes_nothing() {
         ),
     ];
     for (case, assignments, path) in cases {
-        let mut e = engine(golden_model());
+        let mut e = engine(mini_model());
         assert_eq!(invalid_path(e.execute(&cmd(assignments))), path, "{case}");
         assert_eq!(designation(&e, DEV_T1), "1", "{case}");
         assert_eq!(e.model().rev().0, 0, "{case}");
@@ -102,7 +102,7 @@ fn designate_rejects_bad_assignments_and_writes_nothing() {
 
 #[test]
 fn designate_missing_terminal_is_not_found() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     match e.execute(&cmd(vec![assign(id(0x996), "9")])) {
         Err(CmdError::NotFound { .. }) => {}
         other => panic!("expected NotFound, got {other:?}"),
@@ -111,7 +111,7 @@ fn designate_missing_terminal_is_not_found() {
 
 #[test]
 fn designate_rejects_empty_designation() {
-    let e = engine(golden_model());
+    let e = engine(mini_model());
     let any = AnyCommand {
         name: "terminal.designate".into(),
         params: json!({"assignments": [{"terminal": DEV_T1.to_string(), "designation": ""}]}),

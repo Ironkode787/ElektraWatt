@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use ew_model::fixture::{FORM, form, id, mini_golden_parts};
+use ew_model::fixture::{FORM, form, id, mini_project_parts};
 use common::*;
 use ew_commands::commands::{COMPANY_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, SetCompany};
 use ew_commands::{
@@ -69,7 +69,7 @@ fn the_company_standard_commands_are_registered_with_their_cost_and_exposure() {
         assert_eq!((meta.cost, meta.exposure), (cost, exposure), "{name}");
         assert!(meta.undoable, "{name}");
     }
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&any("project.company.set", json!({"name": "Example Panels"})))
         .unwrap_err();
@@ -81,7 +81,7 @@ fn the_company_standard_commands_are_registered_with_their_cost_and_exposure() {
 
 #[test]
 fn company_set_creates_the_panel_builder_party_and_the_notice_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = SetCompany {
         name: Some(MlText::neutral("Example Panels")),
@@ -116,7 +116,7 @@ fn company_set_creates_the_panel_builder_party_and_the_notice_and_undoes() {
 
 #[test]
 fn company_set_edits_the_existing_party_and_keeps_the_logo() {
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.parties.push(ew_schema::Party {
         role: PartyRole::PanelBuilder,
         name: Default::default(),
@@ -169,7 +169,7 @@ fn company_set_edits_the_existing_party_and_keeps_the_logo() {
 
 #[test]
 fn company_set_refuses_what_it_cannot_do() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (path, _) = invalid(&mut e, &any("project.company.set", json!({})));
     assert_eq!(path, "");
     let reason = rejected(
@@ -182,7 +182,7 @@ fn company_set_refuses_what_it_cannot_do() {
     commit(&mut e, &any("project.company.set", json!({"name": ""})));
     assert_eq!(e.model().rev(), rev);
     // A company member of another shape is never overwritten.
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.extra.insert(COMPANY_MEMBER.into(), json!("newer"));
     let mut e = engine(Model::from_records(project, records, library()).unwrap());
     let reason = rejected(&mut e, &any("project.company.set", json!({"notice": "x"})));
@@ -215,7 +215,7 @@ fn logo_png() -> Vec<u8> {
 #[test]
 fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     use sha2::Digest;
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let cmd = any(
         "project.company.set",
@@ -262,7 +262,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
 #[test]
 fn a_logo_picked_again_without_row_changes_leaves_the_project_unsaved() {
     use sha2::Digest;
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     let (format, size) = ew_schema::sniff(LOGO_SVG).unwrap();
     let reference = ew_schema::AssetRef {
         sha256: ew_schema::Sha256(sha2::Sha256::digest(LOGO_SVG).into()),
@@ -293,7 +293,7 @@ fn a_logo_picked_again_without_row_changes_leaves_the_project_unsaved() {
 /// A logo above 512 KiB is refused; one of exactly the limit passes.
 #[test]
 fn company_set_refuses_a_logo_above_the_limit() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut bytes = logo_png();
     bytes.resize(ew_schema::MAX_LOGO_BYTES + 1, 0);
     let (path, message) = invalid(
@@ -324,7 +324,7 @@ fn with_title_block() -> (Model, Id<FormDef>) {
     let tb: Id<FormDef> = id(0x4f);
     let mut copy = form(tb);
     copy.item.kind = FormKind::TitleBlock;
-    let (p, r, _) = mini_golden_parts();
+    let (p, r, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Form(copy));
     (Model::from_records(p, r, lib).unwrap(), tb)
@@ -332,7 +332,7 @@ fn with_title_block() -> (Model, Id<FormDef>) {
 
 #[test]
 fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let form = FORM.to_string();
     commit(
@@ -379,7 +379,7 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
 #[test]
 fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
     let form = FORM.to_string();
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.settings.extra.insert(
         "frames".into(),
         json!({"default": form, "per_page_type": [], "ew.newer": {"x": 1}}),
@@ -403,7 +403,7 @@ fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
         settings_member(&e, "frames"),
         Some(json!({"ew.newer": {"x": 1}, "per_page_type": []}))
     );
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.settings.extra.insert("frames".into(), json!("newer"));
     let mut e = engine(Model::from_records(project, records, library()).unwrap());
     let reason = rejected(&mut e, &any("project.frames.set", json!({"default": form})));
@@ -473,7 +473,7 @@ fn frames_set_refuses_bad_forms_and_page_types() {
 
 #[test]
 fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project.settings.formatting.tag_case = Some(ew_schema::TagCase::Insensitive);
     let mut e = engine(Model::from_records(project, records, library()).unwrap());
     let before = lines(e.model());
@@ -521,7 +521,7 @@ fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
 
 #[test]
 fn languages_set_refuses_translations_that_do_not_fit() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (path, _) = invalid(
         &mut e,
         &any("project.languages.set", json!({"translations": ["de"]})),
@@ -553,7 +553,7 @@ fn languages_set_refuses_translations_that_do_not_fit() {
 
 #[test]
 fn checks_set_names_the_schemes_and_keeps_the_rest_of_the_member() {
-    let (mut project, records, _) = mini_golden_parts();
+    let (mut project, records, _) = mini_project_parts();
     project
         .settings
         .extra
@@ -582,7 +582,7 @@ fn checks_set_names_the_schemes_and_keeps_the_rest_of_the_member() {
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
     // Without anything else in the member, removing both schemes removes the member.
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&any("project.checks.set", json!({"release_scheme": "full"})))
         .unwrap();
     e.execute(&any("project.checks.set", json!({}))).unwrap();
@@ -591,7 +591,7 @@ fn checks_set_names_the_schemes_and_keeps_the_rest_of_the_member() {
 
 #[test]
 fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let err = e
         .execute(&any("project.checks.set", json!({"release_scheme": "lenient"})))
         .unwrap_err();
@@ -627,7 +627,7 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
 /// from every origin but the GUI and a confirmed CLI subcommand, with the session unchanged.
 #[test]
 fn checks_set_is_undone_and_redone_only_by_a_human() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&any("project.checks.set", json!({"release_scheme": "full"})))
         .unwrap();
     let step = e.history().entries().last().unwrap();
@@ -702,7 +702,7 @@ fn checks_set_is_undone_and_redone_only_by_a_human() {
 /// An `Edit` step is undone and redone from a scripted origin as before.
 #[test]
 fn an_edit_step_is_undone_from_a_script() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     commit(
         &mut e,
         &any("project.company.set", json!({"name": "Example Panels"})),
@@ -728,7 +728,7 @@ fn assets_purge_is_a_transparent_non_undoable_marker() {
     assert!(!meta.undoable);
     assert_eq!(meta.confirmation, ew_commands::Confirmation::Destructive);
 
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     commit(
         &mut e,
         &any("project.company.set", json!({"name": "Example Panels"})),
@@ -761,7 +761,7 @@ fn assets_purge_is_a_transparent_non_undoable_marker() {
 
 #[test]
 fn assets_purge_refuses_malformed_and_repeated_hashes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let (path, _) = invalid(
         &mut e,
         &any("project.assets.purge", json!({"assets": ["sha256:AB"]})),
@@ -778,7 +778,7 @@ fn assets_purge_refuses_malformed_and_repeated_hashes() {
 /// The history names every asset its entries could bring back, the redo branch included.
 #[test]
 fn the_history_names_the_assets_of_its_entries() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     assert!(e.history().asset_mentions().unwrap().is_empty());
     commit(
         &mut e,
@@ -811,7 +811,7 @@ fn the_history_names_the_assets_of_its_entries() {
 /// them at `/logo` (a hostile SVG with the rejecter's reason), and the model holds no new asset.
 #[test]
 fn company_set_refuses_a_logo_that_is_no_image_or_a_hostile_svg() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = e.model().assets().count();
     let hostile = [
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
@@ -843,7 +843,7 @@ fn company_set_refuses_a_logo_that_is_no_image_or_a_hostile_svg() {
 /// text and a language object both read back.
 #[test]
 fn fields_set_sets_the_project_description_and_undoes() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let project = ew_model::fixture::PROJECT.to_string();
     let before = e.model().project().master.description.clone();
     e.execute(&any(
@@ -875,7 +875,7 @@ fn fields_set_sets_the_project_description_and_undoes() {
 /// `/targets/0`).
 #[test]
 fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let project = ew_model::fixture::PROJECT.to_string();
     let (path, message) = invalid(
         &mut e,

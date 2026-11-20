@@ -27,9 +27,9 @@ fn exists<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
     e.model().table::<T>().get(&id).is_some()
 }
 
-/// The golden model with `PAGE_101` turned into a page of the given type.
+/// The mini model with `PAGE_101` turned into a page of the given type.
 fn with_page_type(kind: PageType) -> Model {
-    golden_with(|records| {
+    mini_model_with(|records| {
         for r in records.iter_mut() {
             if let Record::Page(p) = r {
                 if p.id == PAGE_101 {
@@ -81,7 +81,7 @@ fn registry_has_no_dangling_alias() {
 
 #[test]
 fn place_refuses_a_rep_type_the_page_does_not_allow() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let reason = rejection_reason(e.execute(&place(PAGE_102, Some(RepType::Overview))));
     assert!(
         reason.contains("overview") && reason.contains("multi-line") && reason.contains("contact image"),
@@ -94,7 +94,7 @@ fn place_refuses_a_rep_type_the_page_does_not_allow() {
     e.execute(&place(PAGE_101, Some(RepType::Overview)))
         .expect("overview on overview");
     rejection_reason(e.execute(&place(PAGE_101, Some(RepType::MultiLine))));
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&place(PAGE_102, Some(RepType::ContactImage)))
         .expect("contact image on multi-line");
     // The default is the symbol's type (multi-line).
@@ -111,7 +111,7 @@ fn place_refuses_a_rep_type_the_page_does_not_allow() {
 /// stay refused there.
 #[test]
 fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.execute(&place(PAGE_102, Some(RepType::Graphic)))
         .expect("graphic on multi-line");
 
@@ -141,7 +141,7 @@ fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() 
     let mut e = engine(with_page_type(PageType::SingleLine));
     let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::Graphic))));
     assert!(reason.contains("single-line"), "{reason}");
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let reason = rejection_reason(e.execute(&place(PAGE_102, Some(RepType::Fluid))));
     assert!(reason.contains("fluid") && reason.contains("graphic"), "{reason}");
     assert_eq!(e.model().rev().0, 0);
@@ -174,7 +174,7 @@ fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
 const W: Id<Connection> = id(0x4200);
 
 fn model_with_wire() -> Model {
-    golden_with(|records| {
+    mini_model_with(|records| {
         let mut w = connection(W, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
         w.route = vec![pt(0, 0), pt(4 * G, 0)];
         records.push(Record::Connection(w));
@@ -249,7 +249,7 @@ fn a_hint_onto_a_wire_off_the_grid_is_rejected() {
 
 #[test]
 fn a_hint_whose_target_vanished_is_dropped_and_reported() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let mut cmd = place(PAGE_102, None);
     cmd.connect = vec![ConnectHint {
         route: Vec::new(),
@@ -289,7 +289,7 @@ fn define_at(at: EndpointParam) -> DefinePotential {
 
 #[test]
 fn potential_define_notifies_the_page_of_its_cp() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.drain_changes();
     e.execute(&define_at(EndpointParam::Cp {
         function: FN_102F2,
@@ -303,7 +303,7 @@ fn potential_define_notifies_the_page_of_its_cp() {
 
 #[test]
 fn potential_define_at_a_junction_notifies_the_junction_page() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     e.drain_changes();
     e.execute(&define_at(EndpointParam::Junction { junction: J5 }))
         .expect("potential.define");
@@ -336,7 +336,7 @@ impl PreventHook for RejectAll {
 #[test]
 fn a_prevent_rule_rejection_carries_its_rule_id() {
     let mut e = Engine::new(
-        golden_model(),
+        mini_model(),
         EngineOptions {
             ids: Some(Box::new(SeededSource::new(SEED))),
             prevent: Some(Box::new(RejectAll)),
@@ -377,7 +377,7 @@ const WC: Id<Connection> = id(0x4302);
 /// A junction with three wires WA (to CP 10), WB (to CP 11) and WC (to CP 12), listed in that order, with
 /// the numbers of WA and WB as given.
 fn model_with_star(na: NumberSpec, nb: NumberSpec) -> Model {
-    golden_with(|records| {
+    mini_model_with(|records| {
         let mut a = connection(WA, Some(PAGE_102), cp(FN_102F2, 10), at_junction(JX));
         a.number = na;
         let mut b = connection(WB, Some(PAGE_102), at_junction(JX), cp(FN_102F2, 11));

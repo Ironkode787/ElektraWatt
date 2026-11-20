@@ -43,7 +43,7 @@ fn the_budget_holds_after_many_steps() {
     const BUDGET: usize = 64 * 1024;
     const N: usize = 500;
     let mut e = engine_with_limits(
-        golden_model(),
+        mini_model(),
         HistoryLimits {
             max_steps: 10_000,
             max_bytes: BUDGET,
@@ -66,7 +66,7 @@ fn the_budget_holds_after_many_steps() {
     assert!(h.bytes() > 0);
     // A step larger than the budget stays, alone.
     let mut e = engine_with_limits(
-        golden_model(),
+        mini_model(),
         HistoryLimits {
             max_steps: 10_000,
             max_bytes: 100,
@@ -97,7 +97,7 @@ fn accounting_is_within_2x_of_a_measured_step() {
     let payload = devices.len() * LEN;
 
     let mut e: Engine = engine_with_limits(
-        golden_model(),
+        mini_model(),
         HistoryLimits {
             max_steps: 1,
             max_bytes: usize::MAX,
@@ -120,7 +120,7 @@ fn accounting_is_within_2x_of_a_measured_step() {
 
 #[test]
 fn undo_counts_the_after_rows_of_the_redo_branch() {
-    let mut e = engine_with_limits(golden_model(), unlimited());
+    let mut e = engine_with_limits(mini_model(), unlimited());
     e.execute(&set_text(&[DEV_102F2], &text(10_000, 0)))
         .expect("fields.set");
     let applied = e.history().bytes();

@@ -492,7 +492,7 @@ proptest! {
 // online numbering orders by (normalisers see no derived data). The two must agree on every representation, for
 // every anchor policy, orientation, slot override and frame resolution the derivation handles.
 
-/// The golden grid frame's copy ID (`content/forms/ew.frame.qet-a4-landscape-grid.json`).
+/// The QET grid frame's copy ID (`content/forms/ew.frame.qet-a4-landscape-grid.json`).
 const FRAME_COPY: &str = "c80af135-34f8-574c-8f52-756bd24c7bd0";
 /// The page every anchor case draws on.
 const ANCHOR_PAGE: u128 = 0x701;
@@ -659,7 +659,7 @@ fn assert_anchor_cells_agree(m: &ew_model::Model, what: &str) -> usize {
     with_cell
 }
 
-/// A fixture with the golden frame, the labelled frame (0x600), a frame without a grid (0x601), the anchor
+/// A fixture with the QET grid frame, the labelled frame (0x600), a frame without a grid (0x601), the anchor
 /// symbols and one device whose main function the representations draw; the page is added by the caller.
 fn anchor_fixture() -> (Fx, Vec<u128>) {
     let mut fx = Fx::new();
@@ -748,7 +748,7 @@ proptest! {
     // PROPTEST_CASES overrides it.
     #![proptest_config(ProptestConfig::with_cases(32))]
 
-    /// Random anchors (a representation's named point or a dragged slot), orientations and positions on the golden
+    /// Random anchors (a representation's named point or a dragged slot), orientations and positions on the QET grid
     /// frame and on the labelled frame: both layers give the same cell.
     #[test]
     fn random_anchor_cells_agree_with_the_command_layer(

@@ -140,7 +140,7 @@ fn invalid_path(r: Result<Receipt, CmdError>) -> String {
 
 #[test]
 fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_them() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     let before = lines(e.model());
     let (mfr, mfr_json) = manufacturer();
     let (mac, mac_json) = macro_copy();
@@ -194,7 +194,7 @@ fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_t
 
 #[test]
 fn library_embed_checks_manufacturer_and_macro_copies_like_the_others() {
-    let mut e = engine(golden_model());
+    let mut e = engine(mini_model());
     for (kind, good) in [("manufacturer", manufacturer().1), ("macro", macro_copy().1)] {
         // the same item twice
         assert_eq!(
@@ -247,7 +247,7 @@ fn library_embed_checks_manufacturer_and_macro_copies_like_the_others() {
 // ---------------------------------------------------------------------------------------------------------
 // macro_instance links under the delete commands
 
-/// The mini golden model plus the macro copy and an instance on page 102 whose members are the device
+/// The mini model plus the macro copy and an instance on page 102 whose members are the device
 /// `-G1` and the representation of `-F2`.
 fn model_with_instance() -> Model {
     model_with_members(
@@ -256,9 +256,9 @@ fn model_with_instance() -> Model {
     )
 }
 
-/// The mini golden model plus the macro copy, the `extra` records and an instance on page 102 listing `members`.
+/// The mini model plus the macro copy, the `extra` records and an instance on page 102 listing `members`.
 fn model_with_members(members: Vec<(AnyId, AnyId)>, extra: Vec<Record>) -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let (mac, mac_json) = macro_copy();
     let mut lib = library();
     lib.push(LibDocument::from_value(mac_json).expect("the macro copy"));

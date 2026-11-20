@@ -97,7 +97,7 @@ fn uses(part: Id<Part>) -> Vec<PartUse> {
 }
 
 fn model() -> Model {
-    let (p, mut records, _) = mini_golden_parts();
+    let (p, mut records, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Fndef(fndef_of(FNDEF_DP, ContactKind::BusPort)));
     lib.push(LibDocument::Fndef(fndef_of(FNDEF_BOX, ContactKind::BlackBox)));

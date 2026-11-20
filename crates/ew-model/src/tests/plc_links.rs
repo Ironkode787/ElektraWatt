@@ -16,7 +16,7 @@ const CFG: Id<PlcConfigProject> = Id::from_uuid(Uuid::from_u128(0x7_0001));
 const CH: Id<Channel> = Id::from_uuid(Uuid::from_u128(0x7_0002));
 const LINK: Id<DeviceLink> = Id::from_uuid(Uuid::from_u128(0x7_0003));
 
-/// The mini golden model with a configuration project (CPU -102F2), the station -101F1, the module -102G1,
+/// The mini model with a configuration project (CPU -102F2), the station -101F1, the module -102G1,
 /// one channel of the module bound to CP 0 of -102F2's aux function and targeting it, and a link -101F1 drives
 /// -102F2.
 fn plc_model() -> Model {
@@ -25,7 +25,7 @@ fn plc_model() -> Model {
 
 /// The PLC model of [`plc_model`] with the records `extra`.
 fn plc_model_with(extra: &[serde_json::Value]) -> Model {
-    let (project, mut records, lib) = mini_golden_parts();
+    let (project, mut records, lib) = mini_project_parts();
     for r in &mut records {
         if let Record::Device(d) = r {
             if d.id == DEV_101F1 {

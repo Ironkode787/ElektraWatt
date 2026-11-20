@@ -20,7 +20,7 @@ use ew_schema::{
 };
 use serde_json::{Value, json};
 
-/// The project ID of the mini golden project.
+/// The project ID of the mini project.
 fn project_uuid() -> ew_ids::Uuid {
     project().id.as_uuid()
 }
@@ -70,9 +70,9 @@ fn manufacturer_doc() -> (Id<Manufacturer>, Value) {
     (id, serde_json::to_value(LibDocument::Manufacturer(c)).unwrap())
 }
 
-/// The mini golden model with the project-local copy added.
+/// The mini model with the project-local copy added.
 fn model() -> Model {
-    let (p, r, _) = mini_golden_parts();
+    let (p, r, _) = mini_project_parts();
     let mut lib = library();
     lib.push(LibDocument::Part(local_copy()));
     Model::from_records(p, r, lib).expect("valid")
