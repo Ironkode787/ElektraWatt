@@ -902,19 +902,10 @@ fn a_deprecated_part_offers_its_successor() {
 }
 
 /// The 0.1.0 copies Golden A held before the `plc_address` slot, by key, with their published hashes.
-const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
-    (
-        "ew.iec.lamp@qet10",
-        "sha256:6361cb1f5af892dcf3c76c6dd5a44f3bfb74172810e1b7275fad93de3e3e8955",
-    ),
-    (
-        "ew.iec.position-switch-no@qet10",
-        "sha256:f9bc6581347a7d9f8a1516604c5447cef1935fa3c57865597dfac2fde38c5d6f",
-    ),
-    (
-        "ew.iso.valve-5-2-sol-spring@qet10",
-        "sha256:3195e0603f56bbfdfb265ecb3055317d187fa0ef819c4737f81238d88a846cd3",
-    ),
+const GOLDEN_PRE_FT698: [&str; 3] = [
+    "ew.iec.lamp@qet10",
+    "ew.iec.position-switch-no@qet10",
+    "ew.iso.valve-5-2-sol-spring@qet10",
 ];
 
 /// A 0.2.0 starter symbol as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
@@ -961,22 +952,18 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
     let mut current = Vec::new();
     let mut lib = batch.lib.clone();
     for doc in &mut lib {
-        let Some((key, published)) =
-            symbol_key(doc).and_then(|k| GOLDEN_PRE_FT698.into_iter().find(|(p, _)| *p == k))
-        else {
+        let Some(key) = symbol_key(doc).filter(|k| GOLDEN_PRE_FT698.contains(&k.as_str())) else {
             continue;
         };
         current.push(doc.clone());
         let before = before_ft698(doc);
-        let LibDocument::Symbol(c) = &before else {
-            unreachable!("a symbol stays a symbol")
-        };
-        // The 5/2 valve was redrawn on the 12 mm module since (rc.2, 0.4.0): taking the later members off the shipped
-        // drawing no longer gives its published 0.1.0, so only the lamp and the switch are checked against their
-        // hashes; the valve's rebuilt copy still names 0.1.0, which is what the update reads.
-        if key != "ew.iso.valve-5-2-sol-spring@qet10" {
-            assert_eq!(c.sha256.to_string(), published, "{key}");
-        }
+        // The 5/2 valve was redrawn on the 12 mm module since (rc.2, 0.4.0), and the lamp's and the switch's texts moved
+        // to the drafting design's first places (06a §5.2): taking the later members off the shipped drawings no longer
+        // gives their published 0.1.0; each rebuilt copy still names 0.1.0, which is what the update reads.
+        assert!(
+            matches!(&before, LibDocument::Symbol(c) if c.version.to_string() == "0.1.0"),
+            "{key}"
+        );
         *doc = before;
     }
     assert_eq!(current.len(), GOLDEN_PRE_FT698.len());
@@ -991,17 +978,22 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         .collect();
     let valve = device(&s, "-201U3-Q1");
     assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
-    // The 5/2 valve's update is the major one to its redrawn 0.4.0
+    // Each update is to the shipped version; the 5/2 valve's is the major one to its redrawn 0.4.0.
     let target = |copy: Uuid| {
-        let valve = current.iter().any(|d| {
-            matches!(d, LibDocument::Symbol(c) if c.id.as_uuid() == copy)
-                && symbol_key(d).as_deref() == Some("ew.iso.valve-5-2-sol-spring@qet10")
-        });
-        if valve {
-            ("0.4.0", ChangeClass::Major)
+        let doc = current
+            .iter()
+            .find(|d| matches!(d, LibDocument::Symbol(c) if c.id.as_uuid() == copy));
+        let version = match doc {
+            Some(LibDocument::Symbol(c)) => c.version.to_string(),
+            _ => String::new(),
+        };
+        let valve = doc.and_then(symbol_key).as_deref() == Some("ew.iso.valve-5-2-sol-spring@qet10");
+        let class = if valve {
+            ChangeClass::Major
         } else {
-            ("0.2.1", ChangeClass::Minor)
-        }
+            ChangeClass::Minor
+        };
+        (version, class)
     };
     for c in s.library_status() {
         if copies.contains(&c.copy) {
@@ -1020,13 +1012,13 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         }
     }
     let plan = s.update_from_library(&copies, &[]).unwrap();
-    let mut planned: Vec<(Uuid, &str, &str, ChangeClass)> = plan
+    let mut planned: Vec<(Uuid, &str, String, ChangeClass)> = plan
         .copies
         .iter()
-        .map(|c| (c.copy, c.from.as_str(), c.to.as_str(), c.class))
+        .map(|c| (c.copy, c.from.as_str(), c.to.clone(), c.class))
         .collect();
     planned.sort_by_key(|p| p.0);
-    let mut expected: Vec<(Uuid, &str, &str, ChangeClass)> = copies
+    let mut expected: Vec<(Uuid, &str, String, ChangeClass)> = copies
         .iter()
         .map(|c| (*c, "0.1.0", target(*c).0, target(*c).1))
         .collect();

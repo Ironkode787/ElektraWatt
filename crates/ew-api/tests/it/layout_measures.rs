@@ -132,7 +132,7 @@ fn the_geometry_of_folio_101_holds_its_bodies_texts_and_frame_bands() {
     );
     // The lamp's pin text X1 beside its point: a text box of E56's representation, once.
     let lamp = t.cps.iter().find(|c| c.label == "E56:X1").unwrap();
-    let x1 = [236_140_625, 100_261_208, 237_672_563, 102_063_021];
+    let x1 = [236_140_625, 100_922_667, 237_672_563, 102_724_480];
     assert_eq!(
         g.texts
             .iter()
@@ -266,14 +266,15 @@ fn draw(
     )
 }
 
-/// The findings of `rule` in the online run of the drafting scheme: each message in English and in Dutch, with its
-/// severity.
+/// The findings of `rule` on RK1's page (folio 103) in the online run of the drafting scheme: each message in English
+/// and in Dutch, with its severity.
 fn findings(s: &Session, rule: &str) -> Vec<(String, String, ew_api::checks::Severity)> {
+    let page = s.page_tables("103").map(|t| t.page);
     let report = s.check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online);
     report
         .findings
         .iter()
-        .filter(|f| f.rule == rule)
+        .filter(|f| f.rule == rule && f.page.map(|p| p.as_uuid()) == page)
         .map(|f| (f.message.clone(), ew_api::checks::render(f, "nl-NL"), f.severity))
         .collect()
 }
@@ -665,7 +666,8 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
     assert_eq!(findings(&s, "EW-CORE-073"), []);
 }
 
-/// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
+/// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073 but EF-27 of
+/// doc 20 §18.2 (a wire across -T55's type text).
 #[test]
 fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
     use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
@@ -689,7 +691,10 @@ fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
             })
             .map(|f| f.message.as_str())
             .collect();
-        assert_eq!(layout, Vec::<&str>::new());
+        assert_eq!(
+            layout,
+            ["Wire the junction in C11 → -E55:L runs through the text \"SK 3110.000\" of -T55."]
+        );
         assert!(
             report.rules.iter().any(|m| m.id == "EW-CORE-073"),
             "the run evaluated the rules"

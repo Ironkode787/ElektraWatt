@@ -3,3 +3,4 @@ EF-20,EW-FL-010,warning,1,=P01+J-E-2416-201U1,the valve-terminal assembly -201U1
 EF-21,EW-FL-007,warning,16,-201U3-Q1:2 → -203Q1:A; -201U3-Q1:4 → -203Q1:B; -201U3-Q2:2 → -203Q2:A; -201U3-Q2:4 → -203Q2:B; -201U3-Q3:2 → -203Q3:A; -201U3-Q3:4 → -203Q3:B; -201U3-Q4:2 → -203Q4:A; -201U3-Q4:4 → -203Q4:B; -201U4-Q1:2 → -203Q5:A; -201U4-Q1:4 → -203Q5:B; -201U4-Q2:2 → -203Q6:A; -201U4-Q2:4 → -203Q6:B; -201U4-Q3:2 → -203Q7:A; -201U4-Q3:4 → -203Q7:B; -201U4-Q4:2 → -203Q8:A; -201U4-Q4:4 → -203Q8:B,F1 … F16,D-28,
 EF-22,EW-PLC-013,warning,2,-201U1:3; -202U1:3,"-201U1:3, -202U1:3; supersedes EF-10",D-16,
 EF-26,EW-CORE-077,warning,1,-201U1,"-201U1, under the plug -3X1 drawn round its DP port on folio 3",—,
+EF-27,EW-CORE-070,warning,1,the junction in C11 → -E55:L,"-T55's type text SK 3110.000 on folio 101, which the page router routes across as the thermostat's texts stand at its upper right",—,

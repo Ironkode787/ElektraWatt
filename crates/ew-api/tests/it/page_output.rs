@@ -420,7 +420,7 @@ fn the_display_list_of_folio_101_is_stable() {
             wires path 09ed5beb els=4 first=(42333333,76729167) last=(42333334,44979167) stroke=264583 fill=-
             wires path 13c75a2c els=3 first=(18520833,142875000) last=(42333333,82020833) stroke=264583 fill=-
             wires path 17b31bbc els=4 first=(42333334,37041667) last=(145520833,31750000) stroke=264583 fill=-
-            wires path 2b9b8f17 els=4 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
+            wires path 2b9b8f17 els=6 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
             wires path 2be33590 els=6 first=(203729167,66145833) last=(203729167,105833333) stroke=264583 fill=-
             wires path 301459db els=6 first=(145520833,31750000) last=(209020833,31750000) stroke=264583 fill=-
             wires path 35faab6c els=4 first=(206375000,100541667) last=(248708334,142875000) stroke=264583 fill=-
@@ -431,72 +431,72 @@ fn the_display_list_of_folio_101_is_stable() {
             wires path 628881aa els=2 first=(37041667,76729167) last=(37041667,44979167) stroke=264583 fill=-
             wires path 6d50c972 els=3 first=(18520833,132291667) last=(37041667,82020833) stroke=264583 fill=-
             wires path 8d27ba7c els=3 first=(137583333,42333333) last=(264583334,169333333) stroke=264583 fill=-
-            wires path a697efb2 els=4 first=(209020833,42333333) last=(219604167,58208333) stroke=264583 fill=-
+            wires path a697efb2 els=3 first=(209020833,42333333) last=(219604167,58208333) stroke=264583 fill=-
             wires path aba94b57 els=4 first=(50270833,76729167) last=(87312500,79375000) stroke=264583 fill=-
-            wires path b5382424 els=5 first=(187854167,58208333) last=(203729167,95250000) stroke=264583 fill=-
-            wires path c851008e els=4 first=(187854167,58208333) last=(235479167,108479167) stroke=264583 fill=-
+            wires path b5382424 els=6 first=(187854167,58208333) last=(203729167,95250000) stroke=264583 fill=-
+            wires path c851008e els=5 first=(187854167,58208333) last=(235479167,108479167) stroke=264583 fill=-
             wires path ce52ac00 els=4 first=(37041667,37041667) last=(137583333,31750000) stroke=264583 fill=-
-            wires path d48db15f els=4 first=(201083333,42333333) last=(187854167,58208333) stroke=264583 fill=-
-            wires path f40a98e3 els=5 first=(219604167,58208333) last=(203729167,58208333) stroke=264583 fill=-
+            wires path d48db15f els=5 first=(201083333,42333333) last=(187854167,58208333) stroke=264583 fill=-
+            wires path f40a98e3 els=4 first=(219604167,58208333) last=(203729167,58208333) stroke=264583 fill=-
             wires instance 0c0b22d7 sym=a3e1ca3e variant=A translate=(187854167,58208333)
             wires instance 1f9afba6 sym=a3e1ca3e variant=A translate=(219604167,58208333)
-            labels glyphs 20d847a1 "S56" origin=(237463542,83910223) size=3439583 angle=0
-            labels glyphs 20d847a1 "13" origin=(233304292,80508739) size=1322917 angle=0
-            labels glyphs 20d847a1 "14" origin=(233304292,87123323) size=1322917 angle=0
+            labels glyphs 20d847a1 "S56" origin=(224364286,81013035) size=3439583 angle=0
+            labels glyphs 20d847a1 "13" origin=(236140625,81170198) size=1322917 angle=0
+            labels glyphs 20d847a1 "14" origin=(236140625,86461864) size=1322917 angle=0
             labels glyphs 23a4ce3c "PE" origin=(44293102,80602931) size=3439583 angle=0
-            labels glyphs 313e2bc4 "N-1" origin=(263936957,156729377) size=2381250 angle=0
-            labels glyphs 313e2bc4 "102-A1" origin=(259492486,162618473) size=2381250 angle=0
-            labels path 313e2bc4 els=5 first=(259492486,160072917) last=(267229167,160072917) stroke=- fill=-
-            labels glyphs 57543b91 "S51" origin=(28572620,42238348) size=3439583 angle=0
-            labels glyphs 57543b91 "Eaton" origin=(46963542,38553231) size=2381250 angle=0
-            labels glyphs 57543b91 "533356" origin=(46963542,41860523) size=2381250 angle=0
-            labels glyphs 57543b91 "40 A" origin=(46963542,45167815) size=2381250 angle=0
+            labels glyphs 313e2bc4 "N-1" origin=(267890625,159600106) size=2381250 angle=0
+            labels glyphs 313e2bc4 "102-A1" origin=(256185194,161957014) size=2381250 angle=0
+            labels path 313e2bc4 els=5 first=(256185194,159411458) last=(263921875,159411458) stroke=- fill=-
+            labels glyphs 57543b91 "S51" origin=(29234078,38679702) size=3439583 angle=0
+            labels glyphs 57543b91 "Eaton" origin=(28625536,42894515) size=2381250 angle=0
+            labels glyphs 57543b91 "533356" origin=(26884842,46863265) size=2381250 angle=0
+            labels glyphs 57543b91 "40 A" origin=(30192398,50832015) size=2381250 angle=0
             labels glyphs 57543b91 "1" origin=(37703125,38836865) size=1322917 angle=0
             labels glyphs 57543b91 "2" origin=(37703125,44128531) size=1322917 angle=0
             labels glyphs 57543b91 "3" origin=(42994792,38836865) size=1322917 angle=0
             labels glyphs 57543b91 "4" origin=(42994792,44128531) size=1322917 angle=0
             labels glyphs 5e0e0f25 "J-E-206-N" origin=(10789841,140854377) size=2381250 angle=0
-            labels glyphs 5e0e0f25 "+J-E-206 / JE-N1000-03" origin=(5574507,146743473) size=2381250 angle=0
-            labels glyphs 6112da7c "E56" origin=(226324584,105738348) size=3439583 angle=0
-            labels glyphs 6112da7c "X1" origin=(236140625,101675406) size=1322917 angle=0
-            labels glyphs 6112da7c "X2" origin=(236140625,108289990) size=1322917 angle=0
+            labels glyphs 5e0e0f25 "+J-E-206 / JE-N1000-03" origin=(5905236,146743473) size=2381250 angle=0
+            labels glyphs 6112da7c "E56" origin=(226986043,102179702) size=3439583 angle=0
+            labels glyphs 6112da7c "X1" origin=(236140625,102336865) size=1322917 angle=0
+            labels glyphs 6112da7c "X2" origin=(236140625,107628531) size=1322917 angle=0
             labels glyphs 66c620c1 "1" origin=(33089851,80602931) size=3439583 angle=0
-            labels glyphs 682aa707 "T55" origin=(205713542,61420639) size=3439583 angle=0
-            labels glyphs 682aa707 "15 °C" origin=(205713542,65011564) size=2381250 angle=0
-            labels glyphs 682aa707 "5" origin=(202311000,59342072) size=1322917 angle=0
-            labels glyphs 682aa707 "3" origin=(202311000,65956656) size=1322917 angle=0
-            labels glyphs 682aa707 "SK 3110.000" origin=(205713542,68318856) size=2381250 angle=0
-            labels glyphs 7b76f7a3 "-101F1" origin=(124175045,38269598) size=3439583 angle=0
-            labels glyphs 7b76f7a3 "Schneider Electric" origin=(147505208,34584481) size=2381250 angle=0
-            labels glyphs 7b76f7a3 "A9P52610" origin=(147505208,37891773) size=2381250 angle=0
-            labels glyphs 7b76f7a3 "C10" origin=(147505208,41199064) size=2381250 angle=0
+            labels glyphs 682aa707 "T55" origin=(213426146,61830743) size=3439583 angle=0
+            labels glyphs 682aa707 "15 °C" origin=(213406037,70014306) size=2381250 angle=0
+            labels glyphs 682aa707 "5" origin=(204390625,60003531) size=1322917 angle=0
+            labels glyphs 682aa707 "3" origin=(204390625,65295197) size=1322917 angle=0
+            labels glyphs 682aa707 "SK 3110.000" origin=(205700312,66045556) size=2381250 angle=0
+            labels glyphs 7b76f7a3 "-101F1" origin=(124836503,33388035) size=3439583 angle=0
+            labels glyphs 7b76f7a3 "Schneider Electric" origin=(115813152,37602848) size=2381250 angle=0
+            labels glyphs 7b76f7a3 "A9P52610" origin=(124464233,41571598) size=2381250 angle=0
+            labels glyphs 7b76f7a3 "C10" origin=(131369858,45540348) size=2381250 angle=0
             labels glyphs 7b76f7a3 "1" origin=(138244791,33545198) size=1322917 angle=0
             labels glyphs 7b76f7a3 "2" origin=(138244791,41482698) size=1322917 angle=0
             labels glyphs 7b76f7a3 "N" origin=(146182291,33545198) size=1322917 angle=0
             labels glyphs 7b76f7a3 "N" origin=(146182291,41482698) size=1322917 angle=0
-            labels glyphs 8c4dbb72 "F55" origin=(192717473,38269598) size=3439583 angle=0
-            labels glyphs 8c4dbb72 "Siemens" origin=(211005208,34584481) size=2381250 angle=0
-            labels glyphs 8c4dbb72 "5SY4204-7" origin=(211005208,37891773) size=2381250 angle=0
-            labels glyphs 8c4dbb72 "C4" origin=(211005208,41199064) size=2381250 angle=0
+            labels glyphs 8c4dbb72 "F55" origin=(193378931,33388035) size=3439583 angle=0
+            labels glyphs 8c4dbb72 "Siemens" origin=(189652539,37602848) size=2381250 angle=0
+            labels glyphs 8c4dbb72 "5SY4204-7" origin=(187504652,41571598) size=2381250 angle=0
+            labels glyphs 8c4dbb72 "C4" origin=(196231933,45540348) size=2381250 angle=0
             labels glyphs 8c4dbb72 "1" origin=(201744791,33545198) size=1322917 angle=0
             labels glyphs 8c4dbb72 "2" origin=(201744791,41482698) size=1322917 angle=0
             labels glyphs 8c4dbb72 "N" origin=(209682291,33545198) size=1322917 angle=0
             labels glyphs 8c4dbb72 "N" origin=(209682291,41482698) size=1322917 angle=0
             labels glyphs 92878d9b "J-E-206-PE" origin=(10312400,151437710) size=2381250 angle=0
-            labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(5574507,157326806) size=2381250 angle=0
+            labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(5905236,157326806) size=2381250 angle=0
             labels glyphs 9945b5aa "2" origin=(40035163,83414129) size=3439583 angle=0
-            labels glyphs 9b2316f2 "PE-1.1" origin=(246584391,140854377) size=2381250 angle=0
-            labels glyphs 9b2316f2 "103-G6" origin=(243405555,146743473) size=2381250 angle=0
-            labels path 9b2316f2 els=5 first=(243405555,144197917) last=(251354167,144197917) stroke=- fill=-
-            labels glyphs dc21e14c "L-1" origin=(264217944,167312710) size=2381250 angle=0
-            labels glyphs dc21e14c "102-A1" origin=(259492486,173201806) size=2381250 angle=0
-            labels path dc21e14c els=5 first=(259492486,170656250) last=(267229167,170656250) stroke=- fill=-
-            labels glyphs de795e26 "E55" origin=(195236043,101769598) size=3439583 angle=0
+            labels glyphs 9b2316f2 "PE-1.1" origin=(252015625,143725106) size=2381250 angle=0
+            labels glyphs 9b2316f2 "103-G6" origin=(240098263,146082014) size=2381250 angle=0
+            labels path 9b2316f2 els=5 first=(240098263,143536458) last=(248046875,143536458) stroke=- fill=-
+            labels glyphs dc21e14c "L-1" origin=(267890625,170183439) size=2381250 angle=0
+            labels glyphs dc21e14c "102-A1" origin=(256185194,172540347) size=2381250 angle=0
+            labels path dc21e14c els=5 first=(256185194,169994791) last=(263921875,169994791) stroke=- fill=-
+            labels glyphs de795e26 "E55" origin=(195897501,96888035) size=3439583 angle=0
             labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
             labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0
             labels glyphs de795e26 "PE" origin=(207036459,99492593) size=1322917 angle=0
             labels glyphs f4fdc202 "J-E-206-L" origin=(11070828,130271044) size=2381250 angle=0
-            labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(5574507,136160140) size=2381250 angle=0
+            labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(5905236,136160140) size=2381250 angle=0
             labels glyphs 66c620c1 "1X1" origin=(29933636,75225275) size=3439583 angle=0
             labels path 09ed5beb els=2 first=(40833333,68791667) last=(43833333,68791667) stroke=264583 fill=-
             labels glyphs 09ed5beb "2.5" origin=(44833333,69263948) size=1322917 angle=0
@@ -504,9 +504,9 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 17b31bbc "2.5" origin=(92993104,23570718) size=1322917 angle=0
             labels path 628881aa els=2 first=(35541667,60854167) last=(38541667,60854167) stroke=264583 fill=-
             labels glyphs 628881aa "2.5" origin=(39541667,61326448) size=1322917 angle=0
-            labels path ce52ac00 els=2 first=(87312500,27604167) last=(87312500,30604167) stroke=264583 fill=-
-            labels glyphs ce52ac00 "2.5" origin=(86378521,26216552) size=1322917 angle=0
-            "#);
+            labels path ce52ac00 els=2 first=(87312500,22312500) last=(87312500,25312500) stroke=264583 fill=-
+            labels glyphs ce52ac00 "2.5" origin=(86378521,20924885) size=1322917 angle=0
+        "#);
     });
 }
 

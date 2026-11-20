@@ -255,6 +255,10 @@ const DETOURS: &[(&str, &str)] = &[];
 
 /// Why a connection of Golden A bends more than four times (RG3), by its words.
 const BENDS: &[(&str, &str)] = &[
+    ("-X1032:1/a → PE-AIR2", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
+    ("-X1031:13/b → 0VDC-AIR3", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
+    ("PE-1.3 → -201U1:FE", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
+    ("PE-1.4 → -202U1:FE", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
     (
         "PE-1.1 → -X1032:1/b",
         "one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the \
@@ -267,19 +271,6 @@ const BENDS: &[(&str, &str)] = &[
     ),
 ];
 
-/// The pairs of a page's text boxes whose insides overlap.
-fn text_overlaps(texts: &[ew_derive::routing::TextBox]) -> usize {
-    let mut n = 0;
-    for (i, a) in texts.iter().enumerate() {
-        for b in &texts[i + 1..] {
-            let (a, b) = (a.rect, b.rect);
-            if a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3] {
-                n += 1;
-            }
-        }
-    }
-    n
-}
 
 /// Each drawn connection of a page with its words and its detour in tenths (the drawn length over the Manhattan
 /// distance of its ends, rounded), for the connections whose ends lie apart.
@@ -318,8 +309,10 @@ fn layout_text() -> String {
     );
     for folio in ROUTED {
         let pages = s.layout_report(Some(folio)).expect("a drawn page");
-        let overlaps = text_overlaps(&s.page_geometry(folio).expect("a drawn page").texts);
         for p in &pages {
+            // Texts on texts as the one measure counts them (06a §1.2: two texts meet when they overlap by more than a
+            // tick).
+            let overlaps = p.texts_on_texts.len();
             out.push_str(&format!(
                 "{}: hard {}, crossings {}, bends {}, text overlaps {}\n",
                 p.folio,

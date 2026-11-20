@@ -1291,9 +1291,10 @@ EF-14 are no longer pending: EW-FL-001 and EW-FL-004 report their 20 subjects ea
 | EF-24 | EW-POT-018 with EW-PLC-014 load vs channel rating (FR-CHK-041) | — | none at the test loads; the evaluation lists MICO Out1 feeding 24V El and 24V Val of -201U1 and -202U1 | 0 | D-25 |
 | EF-25 | EW-CORE-065 description lint (FR-CHK-040) | — | none | 0 | D-35 |
 | EF-26 | EW-CORE-077 symbol on a symbol ([06a](06a-drafting.md) §1.2, F7) | warning | -201U1, under the plug -3X1 drawn round its DP port on folio 3 | 1 | — |
+| EF-27 | EW-CORE-070 wire through a text ([06a](06a-drafting.md) §1.2, C4) | warning | the junction in C11 → -E55:L, across -T55's type text on folio 101: the thermostat's texts stand at its upper right since the starter symbols' first places (06a §5.2), and the page router of ADR-0033 routes across them | 1 | — |
 
 *As built (FT-1728).* The shipped schemes run the rules of release 1.0 that are built, so a pre-delivery run of
-Golden A reports §18.1 with this section's rows: EF-20, EF-21, EF-22 and EF-26 are in
+Golden A reports §18.1 with this section's rows: EF-20, EF-21, EF-22, EF-26 and EF-27 are in
 `crates/ew-api/tests/expected/findings_1_0.csv`, EF-22 takes EF-10's place, and the totals are 42 errors, 58
 warnings and 31 infos (`ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv`).
 

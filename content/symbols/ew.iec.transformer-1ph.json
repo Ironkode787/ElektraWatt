@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bd5dff42-e6b1-56b3-b32f-e951a2ea9c08",
   "version": "0.1.2",
-  "sha256": "sha256:198fc3b19b779499450bb5af51ae6834d75d4fdefbf7755382ecd32311cec705",
+  "sha256": "sha256:0b2881175e50ae8ccf5c341327a7da7b5b26d61306e21bd6a7b0c96e60488033",
   "meta": {
     "key": "ew.iec.transformer-1ph",
     "licence": "CC-BY-SA-4.0",
@@ -178,7 +178,7 @@
       "kind": "function_text",
       "pos": [
         -5000000,
-        10000000
+        11000000
       ],
       "align": "top_right"
     },

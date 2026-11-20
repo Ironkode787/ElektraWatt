@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "64def00a-cdf5-5e38-80de-2c28bda2b1a2",
   "version": "0.1.3",
-  "sha256": "sha256:b5027e259212f5fdfcacfd873e834154b53e5a51a5e9ef8789e1ae1005364831",
+  "sha256": "sha256:e87065f4a8a85e165c3b7f6bcd44f7cb468ee20bcd2e9a530f4c0249d0b0bd1a",
   "meta": {
     "key": "ew.iec.heater",
     "licence": "CC-BY-SA-4.0",
@@ -176,7 +176,7 @@
       "kind": "function_text",
       "pos": [
         -3000000,
-        10000000
+        11000000
       ],
       "align": "top_right"
     },

@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "9ee97e04-d5e6-59ed-8685-52bdceb940ad",
   "version": "0.1.2",
-  "sha256": "sha256:be1acad3c4097a8e89d1fcd2a92e962c386cbca0478af610dbc2aced4adbf18a",
+  "sha256": "sha256:68906d7d6bf13e487d9c7851d49323975bb21f3eb3a6669b70042a333d3907ad",
   "meta": {
     "key": "ew.iec.switch-2p-manual",
     "licence": "CC-BY-SA-4.0",
@@ -204,7 +204,7 @@
       "kind": "part_number",
       "pos": [
         -3000000,
-        10000000
+        11000000
       ],
       "align": "top_right",
       "visible": true
@@ -213,7 +213,7 @@
       "kind": "tech_data",
       "pos": [
         -3000000,
-        15000000
+        17000000
       ],
       "align": "top_right",
       "visible": true
@@ -222,7 +222,7 @@
       "kind": "function_text",
       "pos": [
         -3000000,
-        20000000
+        23000000
       ],
       "align": "top_right"
     },
