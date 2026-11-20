@@ -118,7 +118,11 @@ fn the_tabs_and_the_draw_row_dispatch_their_actions() {
             // A card the action opens (Arrange and route's preview) takes room from the canvas, which is resized after it.
             let dispatched = h.state().dispatched();
             assert_eq!(
-                dispatched.iter().rev().find(|a| **a != "view.canvas_resize").copied(),
+                dispatched
+                    .iter()
+                    .rev()
+                    .find(|a| **a != "view.canvas_resize")
+                    .copied(),
                 Some(b.id),
                 "the button {:?} dispatches its action",
                 b.bar_label
