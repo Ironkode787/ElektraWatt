@@ -26,7 +26,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowI
 /// standing for its strip), and of a bus cable the devices of its bus line's ports; a core row
 /// prints the end of its physical wire (`-X1031:12/b`, `-201U1:1`); a core of a bus cable, over which no wire runs,
 /// the pins the signal maps of its bus line's ports give it (`ew_derive::bus_core_pins`, FR-BUS-023), else the port
-/// itself (`-101A1:DP`): the line uses every core of its cable (rc.5); a core of no wire and no line prints nothing.
+/// itself (`-101A1:DP`): the line uses every core of its cable; a core of no wire and no line prints nothing.
 /// The length is the manual length in metres, `from part` for a length taken from the part
 /// (the part carries no value yet), and "length missing" for a cable without one (EW-CORE-033). Cores come
 /// in natural order of their names, the shield last: the pin order of doc 20 §10 is not modelled. A core's
@@ -171,7 +171,7 @@ fn bus_line_ports(q: &Q, cable: Id<Device>) -> [Option<Id<Function>>; 2] {
 
 fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRec>) -> Row {
     let (mut a, mut b) = (Vec::new(), Vec::new());
-    // A bus cable's ends are the devices of its line's ports (rc.5).
+    // A bus cable's ends are the devices of its line's ports.
     let [pa, pb] = bus_line_ports(q, cable);
     a.extend(pa.and_then(|f| super::conn::device_of(q, f)));
     b.extend(pb.and_then(|f| super::conn::device_of(q, f)));
@@ -234,7 +234,7 @@ fn core_row(
         .and_then(|w| w.props.csa.as_ref().map(|p| p.value.clone()))
         .or_else(|| c.csa.clone());
     // a core no wire runs over: the pins a bus line's signal maps give it (FR-BUS-023), else the line's port: the bus
-    // line uses every core of its cable (rc.5)
+    // line uses every core of its cable
     let bus = if wire.is_none() {
         ew_derive::bus_core_ends(q, cable, c.core.as_str(), c.shield)
     } else {
