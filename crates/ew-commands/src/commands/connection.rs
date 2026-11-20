@@ -10,10 +10,10 @@ use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::{EndpointKey, FluidPortClass, fluid_port_class};
 use ew_schema::{
-    BevelSpec, Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Extra, FnDef,
-    FnRole, Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind,
-    LibCopy, NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef,
-    WireOverrides, WireProps,
+    BevelSpec, Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef,
+    Extra, FnDef, FnRole, Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle,
+    JunctionWiring, Kind, LibCopy, NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType,
+    Representation, SymbolDef, WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -48,7 +48,14 @@ fn resolve_end(
             Ok(Endpoint::Junction(*junction))
         }
         EndpointParam::OnConnection { connection, at } => {
-            let junction = split_at(tx, *connection, *at, new_id, &format!("{field}/on_connection/at"), dot)?;
+            let junction = split_at(
+                tx,
+                *connection,
+                *at,
+                new_id,
+                &format!("{field}/on_connection/at"),
+                dot,
+            )?;
             if let Some(page) = tx.get::<Junction>(junction).map(|j| j.page) {
                 split_page.get_or_insert(page);
             }
@@ -151,7 +158,9 @@ pub(crate) fn bevel_orient(tx: &TxBuilder<'_>, j: &Junction) -> Option<Orient2> 
 /// Sets the way each bevel junction of `junctions` points from the routes that meet at it ([`bevel_orient`]).
 pub(crate) fn point_bevels(tx: &mut TxBuilder<'_>, junctions: &[Id<Junction>]) -> Result<(), CmdError> {
     for id in junctions {
-        let Some(j) = tx.get::<Junction>(*id) else { continue };
+        let Some(j) = tx.get::<Junction>(*id) else {
+            continue;
+        };
         if !matches!(j.style, JunctionStyle::Bevel(_)) {
             continue;
         }
@@ -289,8 +298,20 @@ impl Command for Connect {
         refuse_fluid_mismatch(tx, &self.kind, &[&self.a, &self.b])?;
         let new_id: Id<Connection> = tx.mint();
         let (mut split_page, mut made) = (None, Vec::new());
-        let a = resolve_end(tx, &self.a, ("/a", self.dot), new_id, (&mut split_page, &mut made))?;
-        let b = resolve_end(tx, &self.b, ("/b", self.dot), new_id, (&mut split_page, &mut made))?;
+        let a = resolve_end(
+            tx,
+            &self.a,
+            ("/a", self.dot),
+            new_id,
+            (&mut split_page, &mut made),
+        )?;
+        let b = resolve_end(
+            tx,
+            &self.b,
+            ("/b", self.dot),
+            new_id,
+            (&mut split_page, &mut made),
+        )?;
         if let Some(page) = self.page.or(split_page) {
             require_route(tx, page, &a, &b, &self.route, "/route")?;
         }

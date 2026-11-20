@@ -655,7 +655,9 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     );
     let rev = s.revision();
     let bends = |s: &ShellModel| {
-        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft).counts.bends
+        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft)
+            .counts
+            .bends
     };
     let drawn = bends(&s);
     done(&mut s, "layout.route", json!({}));

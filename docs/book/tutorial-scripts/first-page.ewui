@@ -33,8 +33,8 @@
 {"action":"canvas.press","params":{"x_mm":167.595,"y_mm":106.343}}
 {"action":"canvas.release","params":{"x_mm":167.595,"y_mm":106.343}}
 {"action":"potential.draw","params":{"name":"24VAC","type":"L","voltage":"24 V AC"}}
-{"action":"canvas.press","params":{"x_mm":167.595,"y_mm":119.391}}
-{"action":"canvas.release","params":{"x_mm":167.595,"y_mm":119.391}}
+{"action":"canvas.press","params":{"x_mm":167.595,"y_mm":122.182}}
+{"action":"canvas.release","params":{"x_mm":167.595,"y_mm":122.182}}
 {"action":"potential.draw","params":{"name":"0VAC","type":"N","voltage":"24 V AC"}}
 {"action":"navigator.show","params":{"kind":"potentials"}}
 {"action":"messages.show","params":{"on":true}}

@@ -11,9 +11,9 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
-    Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, Kind,
-    LibCopy, NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType,
-    Representation, SlotOverride, Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
+    Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, Kind, LibCopy, NumberSpec,
+    Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType, Representation, SlotOverride,
+    Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
 use ew_units::{Angle2, Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -27,8 +27,7 @@ use crate::commands::layout::push_after_growth;
 use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
 use crate::geometry::{
-    OutOfRange, add, follow_end, follow_ends, rep_cps_checked, require_on_grid, sub,
-    translate,
+    OutOfRange, add, follow_end, follow_ends, rep_cps_checked, require_on_grid, sub, translate,
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{Angle2S, IdentS, MlTextS, Orient2S, Pt2S, UuidS};

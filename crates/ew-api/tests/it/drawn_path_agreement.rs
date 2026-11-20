@@ -108,7 +108,13 @@ fn golden_a_s_wires_are_drawn_along_the_one_path() {
             assert!(!c.route.is_empty(), "{} {}: unrouted", entry.folio, row.id);
             let path = drawn_path(&q, &c, page).expect("a routed wire is drawn");
             let scene = wire_of(&wires, row.id);
-            assert!(drawn_as(&pts(&path), &scene), "{} {}: {:?} {scene:?}", entry.folio, row.id, pts(&path));
+            assert!(
+                drawn_as(&pts(&path), &scene),
+                "{} {}: {:?} {scene:?}",
+                entry.folio,
+                row.id,
+                pts(&path)
+            );
             assert!(drawn_as(&row.polyline, &scene), "{} {}", entry.folio, row.id);
             drawn += 1;
         }

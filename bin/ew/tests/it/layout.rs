@@ -107,20 +107,14 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     let o = t.ew(&["route", &p, "--page", "3", "--dry-run"]);
     assert_eq!(
         (o.status.code(), stdout(&o)),
-        (
-            Some(0),
-            "Route 1 wire on folio 3: 1 routed, 0 not routed.\n".to_owned()
-        ),
+        (Some(0), "Would route 1 wire on folio 3.\n".to_owned()),
         "{}",
         stderr(&o)
     );
     let o = t.ew(&["route", &p, "--page", "3"]);
     assert_eq!(
         (o.status.code(), stdout(&o)),
-        (
-            Some(0),
-            "Route 1 wire on folio 3: 1 routed, 0 not routed.\n".to_owned()
-        ),
+        (Some(0), "Routed 1 wire on folio 3.\n".to_owned()),
         "{}",
         stderr(&o)
     );

@@ -14,8 +14,8 @@
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::Grid;
 use ew_drafting::consts::TICKS_PER_STEP;
-use ew_drafting::{JunctionId, PinId, Pt, Side, WireEnd};
 pub use ew_drafting::{DraftPage, Jobs, Plan, Quality, Reason, WireId, measure, route as route_on};
+use ew_drafting::{JunctionId, PinId, Pt, Side, WireEnd};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -105,10 +105,12 @@ impl Ticks {
         if n == 2 && a.0 != b.0 && a.1 != b.1 {
             // A straight route between two numbers of one grid line: a jog at the grid line nearest its middle.
             let mid = if vertical(route[0], route[1]) {
-                let y = self.nm(i32::try_from((i64::from(route[0].y) + i64::from(route[1].y)) / 2).unwrap_or(0));
+                let y =
+                    self.nm(i32::try_from((i64::from(route[0].y) + i64::from(route[1].y)) / 2).unwrap_or(0));
                 vec![(a.0, y), (b.0, y)]
             } else {
-                let x = self.nm(i32::try_from((i64::from(route[0].x) + i64::from(route[1].x)) / 2).unwrap_or(0));
+                let x =
+                    self.nm(i32::try_from((i64::from(route[0].x) + i64::from(route[1].x)) / 2).unwrap_or(0));
                 vec![(x, a.1), (x, b.1)]
             };
             pts.splice(1..1, mid);
@@ -255,7 +257,10 @@ pub enum ToolEnd {
 fn wire_end(ticks: Ticks, e: ToolEnd) -> WireEnd {
     match e {
         ToolEnd::Cp { function, idx } => {
-            let cp: Id<()> = ew_derive::ew_ids::v5::cp_id(Id::<ew_derive::ew_schema::Function>::from_uuid(function), u32::from(idx));
+            let cp: Id<()> = ew_derive::ew_ids::v5::cp_id(
+                Id::<ew_derive::ew_schema::Function>::from_uuid(function),
+                u32::from(idx),
+            );
             WireEnd::Pin(PinId(cp.as_uuid()))
         }
         ToolEnd::Junction(j) => WireEnd::Junction(JunctionId(j)),
@@ -276,7 +281,12 @@ pub fn route_wire(
     arrive: Option<Dir>,
 ) -> Option<(Vec<(i64, i64)>, bool)> {
     let ticks = Ticks::new(grid);
-    let found = ew_drafting::route_wire(draft, wire_end(ticks, from), wire_end(ticks, to), arrive.map(side))?;
+    let found = ew_drafting::route_wire(
+        draft,
+        wire_end(ticks, from),
+        wire_end(ticks, to),
+        arrive.map(side),
+    )?;
     Some((ticks.route(&found.route, a, b), found.over_text))
 }
 

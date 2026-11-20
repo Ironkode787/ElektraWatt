@@ -120,7 +120,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
                 .unwrap_or_default()
         };
         let page = page_result(&folio, &plan, words);
-        text.push_str(&page_text(&page, &plan));
+        text.push_str(&page_text(&page, &plan, a.dry_run));
         if !a.dry_run
             && let Some(params) = plan.params.clone()
         {
@@ -192,17 +192,18 @@ fn page_result(
     }
 }
 
-/// The text of one page: its summary line (the page as `folio <label>`, as the window words it), then one line per
-/// wire left without a way and per wire across a text.
-fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
+/// The text of one page: its summary line (the page as `folio <label>`, as the window words it; with `--dry-run` what
+/// Route would do), then one line per wire left without a way and per wire across a text.
+fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -> String {
     let (routed, unrouted) = (page.routed.len(), page.unrouted.len());
+    let verb = if dry_run { "Would route" } else { "Routed" };
     let mut out = match (routed, unrouted) {
         (0, 0) => format!(
             "Nothing to route on folio {}: every wire runs as well as the rules allow.\n",
             page.folio
         ),
-        (1, _) => format!("Routed 1 wire on folio {}.\n", page.folio),
-        (n, _) => format!("Routed {n} wires on folio {}.\n", page.folio),
+        (1, _) => format!("{verb} 1 wire on folio {}.\n", page.folio),
+        (n, _) => format!("{verb} {n} wires on folio {}.\n", page.folio),
     };
     for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
@@ -235,7 +236,7 @@ mod tests {
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);
         assert_eq!(
-            page_text(&page, &plan),
+            page_text(&page, &plan, false),
             "Routed 1 wire on folio 101.\n  No way for -K2:1 → -X1:2: symbols are in its way.\n  No way for -K3:1 → \
              -X1:3: it would be a fourth arm at a junction.\n"
         );
@@ -245,7 +246,7 @@ mod tests {
             params: None,
         };
         assert_eq!(
-            page_text(&page_result("102", &empty, words), &empty),
+            page_text(&page_result("102", &empty, words), &empty, false),
             "Nothing to route on folio 102: every wire runs as well as the rules allow.\n"
         );
     }

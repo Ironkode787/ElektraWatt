@@ -4279,11 +4279,7 @@ mod tests {
             ("-1K1", "-1K1 has no part", true),
             ("-1K1", "-1K10 has no part", false),
             ("-1K1", "the station address is TBD", false),
-            (
-                wire,
-                "Wire -G1:+ → -S1:1 has no route: Route draws it.",
-                true,
-            ),
+            (wire, "Wire -G1:+ → -S1:1 has no route: Route draws it.", true),
             (
                 wire,
                 "Draad -G1:+ → -S1:1 heeft geen route: Pagina routeren tekent hem.",

@@ -789,11 +789,16 @@ type RouteKey = (
 /// A routed tail in the cache: its key, its points, whether it is the router's fallback, and whether it crosses a text.
 type CachedTail = (RouteKey, Vec<(i64, i64)>, bool, bool);
 
+/// Where a tail starts: the point, the direction it leaves along, the direction it arrived there along.
+type TailStart = ((i64, i64), Option<Dir>, Option<Dir>);
+
 /// A target as the router's end: a connection point of the page, a junction, a point on a wire, else a free point (a
 /// grid point, or a connection point of a symbol not drawn yet).
 fn tool_end(cx: &ToolCx<'_>, t: &WireTarget) -> ToolEnd {
     match t {
-        WireTarget::Cp { function, idx, at, .. } => {
+        WireTarget::Cp {
+            function, idx, at, ..
+        } => {
             let drawn = cx
                 .page
                 .tables
@@ -820,7 +825,7 @@ fn tool_end(cx: &ToolCx<'_>, t: &WireTarget) -> ToolEnd {
 /// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
 /// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner.
 fn l_tail(
-    (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
+    (from, from_dir, arrive): TailStart,
     to: (i64, i64),
     to_dir: Option<Dir>,
 ) -> Vec<(i64, i64)> {
@@ -860,7 +865,7 @@ fn l_tail(
 /// representations' bodies, texts and CPs left out. Otherwise `None`, and the router runs as before.
 fn through_route(
     cx: &ToolCx<'_>,
-    ((from, from_dir, arrive), from_end): (((i64, i64), Option<Dir>, Option<Dir>), ToolEnd),
+    ((from, from_dir, arrive), from_end): (TailStart, ToolEnd),
     own: [Option<EntityRef>; 2],
     to: &WireTarget,
 ) -> Option<Vec<(i64, i64)>> {
@@ -883,7 +888,15 @@ fn through_route(
     through.sort_unstable();
     through.dedup();
     let ends = (from_end, tool_end(cx, to));
-    wire_clear(&cx.page.draft, cx.page.tables.grid, ends, arrive, &through, &direct).then_some(direct)
+    wire_clear(
+        &cx.page.draft,
+        cx.page.tables.grid,
+        ends,
+        arrive,
+        &through,
+        &direct,
+    )
+    .then_some(direct)
 }
 
 /// The Wire tool.
@@ -999,7 +1012,7 @@ impl WireTool {
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
-        ((from, from_dir, arrive), from_end): (((i64, i64), Option<Dir>, Option<Dir>), ToolEnd),
+        ((from, from_dir, arrive), from_end): (TailStart, ToolEnd),
         own: [Option<EntityRef>; 2],
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {

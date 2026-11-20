@@ -1428,14 +1428,8 @@ mod tests {
     /// F1 on Route opens its section of the tools page, not the project view's page.
     #[test]
     fn route_opens_its_section() {
-        for (action, fragment) in [("layout.route", "route")] {
-            let a = action_topic(action).and_then(anchor).expect(action);
-            assert_eq!(
-                (a.page.as_ref(), a.fragment.as_ref()),
-                (TOOLS, fragment),
-                "{action}"
-            );
-        }
+        let a = action_topic("layout.route").and_then(anchor).expect("layout.route");
+        assert_eq!((a.page.as_ref(), a.fragment.as_ref()), (TOOLS, "route"));
     }
 
     /// Every shipped rule, the integrity rules of opening a project included, has a page under the built rule

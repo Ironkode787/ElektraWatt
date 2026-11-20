@@ -11,8 +11,8 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction, EndpointParam,
-    ApplyLayout, JunctionPlace, PlaceIp, RouteConnection, WiringChoice,
+    ApplyLayout, Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction,
+    EndpointParam, JunctionPlace, PlaceIp, RouteConnection, WiringChoice,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;

@@ -610,7 +610,10 @@ pub(super) fn layout_apply(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if other.connection != conn && other.page == r.page {
                 routes.push(json!({"connection": other.connection, "route": []}));
             }
-            Some(Step::cmd("layout.apply", json!({"page": r.page, "routes": routes})))
+            Some(Step::cmd(
+                "layout.apply",
+                json!({"page": r.page, "routes": routes}),
+            ))
         }
     }
 }

@@ -324,7 +324,10 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
     }
     // The moved CPs' new points, by (function, index).
     let moved_cp = |function: ew_api::output::Uuid, idx: u16| -> Option<(i64, i64)> {
-        let cp = tables.cps.iter().find(|c| c.function == function && c.idx == idx)?;
+        let cp = tables
+            .cps
+            .iter()
+            .find(|c| c.function == function && c.idx == idx)?;
         let d = delta_of(cp.rep)?;
         Some((cp.at.0 + d.0, cp.at.1 + d.1))
     };
@@ -337,12 +340,17 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
                     .find(|c| c.function == *function && c.idx == *idx)
                     .map(|c| c.at)
             }),
-            ew_api::output::TableEnd::Junction { id } => tables.junctions.iter().find(|j| j.id == *id).map(|j| j.at),
+            ew_api::output::TableEnd::Junction { id } => {
+                tables.junctions.iter().find(|j| j.id == *id).map(|j| j.at)
+            }
         }
     };
     let end_delta = |e: &ew_api::output::TableEnd| match e {
         ew_api::output::TableEnd::Cp { function, idx } => {
-            let cp = tables.cps.iter().find(|c| c.function == *function && c.idx == *idx)?;
+            let cp = tables
+                .cps
+                .iter()
+                .find(|c| c.function == *function && c.idx == *idx)?;
             delta_of(cp.rep)
         }
         ew_api::output::TableEnd::Junction { .. } => None,

@@ -16,14 +16,26 @@ fn routes(s: &ew_api::Session, folio: &str) -> Vec<(ew_api::output::Uuid, Vec<(i
     let mut out: Vec<_> = t
         .connections
         .iter()
-        .map(|c| (c.id, if c.stored_route { c.polyline.clone() } else { Vec::new() }))
+        .map(|c| {
+            (
+                c.id,
+                if c.stored_route {
+                    c.polyline.clone()
+                } else {
+                    Vec::new()
+                },
+            )
+        })
         .collect();
     out.sort();
     out
 }
 
 /// Every junction of the project: its form, its sequence and the wires it produces.
-fn junctions(s: &ew_api::Session, folios: &[String]) -> Vec<(String, String, Vec<ew_api::output::Uuid>, Vec<String>)> {
+fn junctions(
+    s: &ew_api::Session,
+    folios: &[String],
+) -> Vec<(String, String, Vec<ew_api::output::Uuid>, Vec<String>)> {
     let mut out = Vec::new();
     for f in folios {
         let Some(t) = s.page_tables(f) else { continue };
@@ -33,7 +45,12 @@ fn junctions(s: &ew_api::Session, folios: &[String]) -> Vec<(String, String, Vec
                 .into_iter()
                 .map(|w| format!("{} {} {}", w.label, w.from, w.to))
                 .collect();
-            out.push((j.id.to_string(), format!("{} {}", j.style, j.wiring), j.sequence.clone(), wires));
+            out.push((
+                j.id.to_string(),
+                format!("{} {}", j.style, j.wiring),
+                j.sequence.clone(),
+                wires,
+            ));
         }
     }
     out.sort();

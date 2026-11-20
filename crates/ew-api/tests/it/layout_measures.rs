@@ -116,7 +116,11 @@ fn the_draft_of_folio_101_holds_its_parts_wires_and_frame_bands() {
     let reps: Vec<_> = t.reps.iter().map(|r| r.id).collect();
     assert!(d.parts.iter().all(|p| reps.contains(&p.id.0)));
     for c in &t.connections {
-        let w = d.wires.iter().find(|w| w.id.0 == c.id).expect("a wire of the page");
+        let w = d
+            .wires
+            .iter()
+            .find(|w| w.id.0 == c.id)
+            .expect("a wire of the page");
         assert_eq!(w.route.is_empty(), !c.stored_route);
     }
     // The frame's bands keep clear of every pin of the page, and the QET frame has some.
@@ -125,7 +129,10 @@ fn the_draft_of_folio_101_holds_its_parts_wires_and_frame_bands() {
         for p in &d.parts {
             for pin in &p.pins {
                 let at = p.at.plus(pin.at);
-                assert!(!(b.x0 < at.x && at.x < b.x1 && b.y0 < at.y && at.y < b.y1), "{b:?}");
+                assert!(
+                    !(b.x0 < at.x && at.x < b.x1 && b.y0 < at.y && at.y < b.y1),
+                    "{b:?}"
+                );
             }
         }
     }

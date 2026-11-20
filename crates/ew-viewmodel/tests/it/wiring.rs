@@ -795,7 +795,11 @@ fn route_previews_a_broken_route_the_person_drew() {
     coils_and_wires(
         &mut s,
         &[(55, 20), (55, 29), (60, 29)],
-        &[("-103K1:A2", "-103K3:A2", &[(55, 24), (55, 36), (60, 36), (60, 33)])],
+        &[(
+            "-103K1:A2",
+            "-103K3:A2",
+            &[(55, 24), (55, 36), (60, 36), (60, 33)],
+        )],
     );
     done(&mut s, "ui.dismiss", json!({}));
     let rev = s.revision();

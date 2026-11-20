@@ -1069,7 +1069,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
-
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
     /// by `connection.draw`; a stored `route` is set by `connection.route`.
     ///

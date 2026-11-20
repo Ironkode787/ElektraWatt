@@ -179,7 +179,10 @@ impl Command for ApplyLayout {
             if let Some(c) = tx.get::<Connection>(r.connection) {
                 for e in [&c.a, &c.b] {
                     if let ew_schema::Endpoint::Junction(j) = e
-                        && !self.junctions.iter().any(|p| p.junction == *j && p.orient.is_some())
+                        && !self
+                            .junctions
+                            .iter()
+                            .any(|p| p.junction == *j && p.orient.is_some())
                     {
                         bevels.push(*j);
                     }

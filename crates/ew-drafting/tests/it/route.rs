@@ -5,9 +5,7 @@
 //! the same plan whatever the order of the page's lists, and the fixtures of §9.1.
 
 use crate::kit::{Page, fixtures, p, s};
-use ew_drafting::{
-    DraftPage, End, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire,
-};
+use ew_drafting::{DraftPage, End, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire};
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
 fn routed(page: &DraftPage) -> DraftPage {
@@ -112,9 +110,19 @@ fn a_route_the_person_shaped_is_in_no_page_wide_plan_and_a_broken_one_is_flagged
     b.device("K3", p(20, 10));
     b.device("K4", p(20, 20));
     // His: a detour, but free of faults.
-    let his = b.run("his", b.pin("K1", "2"), b.pin("K2", "1"), &[p(10, 16), p(8, 16), p(8, 18), p(10, 18)]);
+    let his = b.run(
+        "his",
+        b.pin("K1", "2"),
+        b.pin("K2", "1"),
+        &[p(10, 16), p(8, 16), p(8, 18), p(10, 18)],
+    );
     // Broken: through K4's body.
-    let broken = b.run("broken", b.pin("K3", "2"), b.pin("K4", "2"), &[p(20, 26), p(22, 26), p(22, 24)]);
+    let broken = b.run(
+        "broken",
+        b.pin("K3", "2"),
+        b.pin("K4", "2"),
+        &[p(20, 26), p(22, 26), p(22, 24)],
+    );
     let jobs = jobs(&b.page, Scope::Page);
     assert!(!jobs.wires.contains(&his));
     assert_eq!(jobs.his, vec![broken]);
@@ -204,7 +212,8 @@ fn every_fixture_with_its_parts_in_line_routes_straight_with_trunks_and_no_fault
                     .find_map(|part| part.pins.iter().find(|x| x.id == pin).and_then(|x| x.side)),
                 End::Junction(_) => None,
             };
-            let facing = (a.x == b.x && side(w.ends[0]) == Some(if a.y < b.y { Side::Down } else { Side::Up }))
+            let facing = (a.x == b.x
+                && side(w.ends[0]) == Some(if a.y < b.y { Side::Down } else { Side::Up }))
                 || (a.y == b.y && side(w.ends[0]) == Some(if a.x < b.x { Side::Right } else { Side::Left }));
             let between = facing && side(w.ends[1]).is_some();
             if between {
@@ -231,7 +240,9 @@ fn the_wire_tool_shares_the_run_of_a_wire_of_the_same_pin() {
     .expect("a route");
     let mut drawn = b.page.clone();
     let w = b.wire("next", b.pin("K1", "1"), b.pin("K2", "1"), &found.route);
-    drawn.wires.push(b.page.wires.iter().find(|x| x.id == w).unwrap().clone());
+    drawn
+        .wires
+        .push(b.page.wires.iter().find(|x| x.id == w).unwrap().clone());
     let q = measure(&drawn);
     assert_eq!(q.faults, 0, "{:?} {:?}", found.route, q.findings);
 }
@@ -267,6 +278,12 @@ fn route_over_a_person_s_route_makes_no_figure_worse() {
     }
     let (before, after) = (measure(&page).counts, measure(&done).counts);
     assert!(after.labels_moved <= before.labels_moved, "{before:?} {after:?}");
-    assert!(after.length <= before.length && after.bends <= before.bends, "{before:?} {after:?}");
-    assert!(after.crossings <= before.crossings && after.across_texts <= before.across_texts, "{before:?} {after:?}");
+    assert!(
+        after.length <= before.length && after.bends <= before.bends,
+        "{before:?} {after:?}"
+    );
+    assert!(
+        after.crossings <= before.crossings && after.across_texts <= before.across_texts,
+        "{before:?} {after:?}"
+    );
 }

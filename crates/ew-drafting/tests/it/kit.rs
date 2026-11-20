@@ -741,18 +741,31 @@ pub fn full_sheet() -> DraftPage {
             );
             from = j;
         }
-        b.wire(&format!("{name}-end"), from, b.pin(&format!("out-{name}"), "1"), &[]);
+        b.wire(
+            &format!("{name}-end"),
+            from,
+            b.pin(&format!("out-{name}"), "1"),
+            &[],
+        );
     }
     for (row, (top, bottom)) in [(30, 42), (46, 58)].into_iter().enumerate() {
         b.mark_in(&format!("in-L+{row}"), p(3, top));
         b.mark_in(&format!("in-M{row}"), p(3, bottom));
-        let (mut t, mut m) = (b.pin(&format!("in-L+{row}"), "1"), b.pin(&format!("in-M{row}"), "1"));
+        let (mut t, mut m) = (
+            b.pin(&format!("in-L+{row}"), "1"),
+            b.pin(&format!("in-M{row}"), "1"),
+        );
         for k in 0..20 {
             let x = 8 + 4 * k;
             let (s_name, k_name) = (format!("S{row}-{k}"), format!("K{row}-{k}"));
             b.device(&s_name, p(x, top + 2));
             b.device(&k_name, p(x, top + 7));
-            b.wire(&format!("{s_name}-{k_name}"), b.pin(&s_name, "2"), b.pin(&k_name, "1"), &[]);
+            b.wire(
+                &format!("{s_name}-{k_name}"),
+                b.pin(&s_name, "2"),
+                b.pin(&k_name, "1"),
+                &[],
+            );
             let jt = b.junction(&format!("JT{row}-{k}"), p(x, top));
             let jb = b.junction(&format!("JB{row}-{k}"), p(x, bottom));
             b.wire(&format!("L+{row}-{k}"), t, jt, &[]);

@@ -479,13 +479,11 @@ impl Router {
     }
 }
 
-/// The routes of a net on trunk `line`: per wire its route, or `None` when its drop is not straight; the junction taps'
-/// places; `None` when the line breaks the spine's order.
-fn trunk_routes(
-    r: &Router,
-    net: &Net,
-    line: Line,
-) -> Option<(BTreeMap<WireId, Option<Vec<Pt>>>, BTreeMap<JunctionId, Pt>)> {
+/// A net's routes on a trunk: per wire its route, or `None` when its drop is not straight; the junction taps' places.
+type TrunkRoutes = (BTreeMap<WireId, Option<Vec<Pt>>>, BTreeMap<JunctionId, Pt>);
+
+/// The routes of a net on trunk `line`; `None` when the line breaks the spine's order.
+fn trunk_routes(r: &Router, net: &Net, line: Line) -> Option<TrunkRoutes> {
     let movable: BTreeSet<JunctionId> = net
         .taps
         .iter()
@@ -651,7 +649,7 @@ impl Router {
                 .min()
                 .unwrap_or(u8::MAX)
         };
-        let mut order: Vec<(u8, (i32, i32), usize, WireId, usize)> = nets
+        let mut order: Vec<_> = nets
             .iter()
             .enumerate()
             .filter(|(_, n)| n.wires.len() >= 2 && (n.spine.is_some() || is_fan(n)))
@@ -693,11 +691,7 @@ impl Router {
                 .collect();
             let area = self.page.area;
             let lines = nets::candidates(&pins, &junctions, (area.top_left(), Pt::new(area.x1, area.y1)));
-            let mut best: Option<(
-                (u64, u8, u8, i32),
-                BTreeMap<WireId, Option<Vec<Pt>>>,
-                BTreeMap<JunctionId, Pt>,
-            )> = None;
+            let mut best: Option<((u64, u8, u8, i32), TrunkRoutes)> = None;
             let mut against_order = false;
             for line in lines {
                 let Some((routes, places)) = trunk_routes(self, net, line) else {
@@ -758,11 +752,11 @@ impl Router {
                     continue;
                 }
                 let key = (cost, u8::from(!line.now), u8::from(!line.horizontal), line.at);
-                if best.as_ref().is_none_or(|(k, _, _)| key < *k) {
-                    best = Some((key, kept, places));
+                if best.as_ref().is_none_or(|(k, _)| key < *k) {
+                    best = Some((key, (kept, places)));
                 }
             }
-            let Some((_, routes, places)) = best else {
+            let Some((_, (routes, places))) = best else {
                 if against_order {
                     notes.push(net.wires.clone());
                 }

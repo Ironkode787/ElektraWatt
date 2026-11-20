@@ -87,13 +87,15 @@ fn unit(a: Pt2, b: Pt2) -> Option<(i64, i64)> {
     }
 }
 
-/// Where two lines that start at one point part: walked from it together while they run the same way. The point
-/// where they part, the direction they arrived there in, and the length of their last shared run; `None` when they share
-/// nothing.
-fn parting(a: &[Pt2], b: &[Pt2]) -> Option<(Pt2, (i64, i64), Nm)> {
+/// The point where two lines part, the direction they arrived there in, and the length of their last shared run.
+type Parting = (Pt2, (i64, i64), Nm);
+
+/// Where two lines that start at one point part: walked from it together while they run the same way; `None` when they
+/// share nothing.
+fn parting(a: &[Pt2], b: &[Pt2]) -> Option<Parting> {
     let (mut ia, mut ib) = (1usize, 1usize);
     let mut cur = *a.first()?;
-    let mut found: Option<(Pt2, (i64, i64), Nm)> = None;
+    let mut found: Option<Parting> = None;
     while ia < a.len() && ib < b.len() {
         let (ta, tb) = (a[ia], b[ib]);
         let d = unit(cur, ta)?;
@@ -145,15 +147,17 @@ pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: 
             })
             .collect();
         // Each member's parting with the member it shares the longest run with.
-        let mut parts: Vec<Option<(Pt2, (i64, i64), Nm)>> = vec![None; members.len()];
+        let mut parts: Vec<Option<Parting>> = vec![None; members.len()];
         for i in 0..members.len() {
             for j in 0..members.len() {
                 if i == j {
                     continue;
                 }
-                let (Some((a, _)), Some((b, _))) = (&out[i], &out[j]) else { continue };
+                let (Some((a, _)), Some((b, _))) = (&out[i], &out[j]) else {
+                    continue;
+                };
                 if let Some(x) = parting(a, b) {
-                    let far = |q: &(Pt2, (i64, i64), Nm)| (q.0.x - p.x).0.abs() + (q.0.y - p.y).0.abs();
+                    let far = |q: &Parting| (q.0.x - p.x).0.abs() + (q.0.y - p.y).0.abs();
                     if parts[i].as_ref().is_none_or(|q| far(&x) > far(q)) {
                         parts[i] = Some(x);
                     }
@@ -167,7 +171,7 @@ pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: 
             let k = line.iter().position(|q| *q == x)?;
             let next = *line.get(k + 1)?;
             let d = unit(x, next)?;
-            Some((k, d, Nm((next.x - x.x).0.abs() + (next.y - x.y).0.abs()))).filter(|_| d != (-d_in.0, -d_in.1))
+            (d != (-d_in.0, -d_in.1)).then_some((k, d, Nm((next.x - x.x).0.abs() + (next.y - x.y).0.abs())))
         };
         for i in 0..members.len() {
             let Some((x, d_in, run)) = parts[i] else { continue };
@@ -184,14 +188,18 @@ pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: 
                 continue;
             }
             let straight = others.iter().any(|j| {
-                let Some((line, _)) = out[*j].as_ref() else { return false };
+                let Some((line, _)) = out[*j].as_ref() else {
+                    return false;
+                };
                 // A member straight through the parting has no vertex there.
                 !line.contains(&x) || way(*j).is_some_and(|w| w.1 == d_in)
             });
             if !straight && !matches!(d_out, (1, 0) | (0, 1)) {
                 continue;
             }
-            let Some((mut line, turned)) = out[i].clone() else { continue };
+            let Some((mut line, turned)) = out[i].clone() else {
+                continue;
+            };
             let back = Pt2::new(x.x - Nm(d_in.0 * step.0), x.y - Nm(d_in.1 * step.0));
             let on_way = Pt2::new(x.x + Nm(d_out.0 * step.0), x.y + Nm(d_out.1 * step.0));
             line.splice(k..=k, [back, on_way]);

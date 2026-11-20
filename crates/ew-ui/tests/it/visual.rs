@@ -1298,4 +1298,3 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
     assert_eq!(direction(&mut d, "102"), "target", "one undo takes both back");
     d.shell_mut().shutdown();
 }
-
