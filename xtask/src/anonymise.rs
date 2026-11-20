@@ -321,8 +321,8 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("xtask-anon-{}", std::process::id()));
         std::fs::create_dir_all(dir.join("ci")).unwrap();
         std::fs::write(dir.join("ci/denylist.sha256"), "# no entries\n").unwrap();
-        // The strict path returns before the repository is listed, so no git repository is needed.
-        let v = crate::check_anonymisation_at(&dir, true).unwrap();
+        // The strict path returns before the files are read, so it is given none.
+        let v = crate::check_anonymisation_at(&dir, true, &[]).unwrap();
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("has no entries"), "{v:#?}");

@@ -152,7 +152,7 @@ pub(crate) fn metadata() -> Result<cargo_metadata::Metadata> {
 
 /// Runs `cargo metadata --locked --all-features` for the workspace at `root`: the resolved graph with every
 /// optional dependency, as the licence boundary requires.
-pub(crate) fn metadata_all_features(root: &Path) -> Result<cargo_metadata::Metadata> {
+fn metadata_all_features(root: &Path) -> Result<cargo_metadata::Metadata> {
     cargo_metadata::MetadataCommand::new()
         .cargo_path(cargo())
         .manifest_path(root.join("Cargo.toml"))
@@ -165,8 +165,45 @@ pub(crate) fn metadata_all_features(root: &Path) -> Result<cargo_metadata::Metad
 /// The violations a rule found; empty means it passed.
 type Violations = Vec<String>;
 
+/// What the rules read of the workspace: read once by [`rules`] and handed to each rule.
+pub(crate) struct Workspace {
+    /// `cargo metadata --locked`: the declared edges and the resolve with the default features.
+    metadata: cargo_metadata::Metadata,
+    /// `cargo metadata --locked --all-features`: the resolve with every optional dependency, which the licence
+    /// boundary needs; the required features need the default resolve above, so both are read.
+    metadata_all_features: cargo_metadata::Metadata,
+    /// `ci/dep-rules.toml`, its layers read from the manifests.
+    pub(crate) policy: deps::Policy,
+    /// Every file of the repository ([`repo::list_files`]): its path and its bytes.
+    files: Vec<(String, Vec<u8>)>,
+}
+
+impl Workspace {
+    /// Reads the workspace at `root`.
+    fn read(root: &Path) -> Result<Self> {
+        let metadata = metadata()?;
+        let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.with_layers(&metadata);
+        let mut files = Vec::new();
+        for path in repo::list_files(root)? {
+            let bytes = std::fs::read(root.join(&path)).with_context(|| format!("reading {path}"))?;
+            files.push((path, bytes));
+        }
+        Ok(Self {
+            metadata_all_features: metadata_all_features(root)?,
+            metadata,
+            policy,
+            files,
+        })
+    }
+
+    /// The `cargo metadata --locked` of the workspace.
+    pub(crate) fn metadata(&self) -> &cargo_metadata::Metadata {
+        &self.metadata
+    }
+}
+
 /// A repository rule: the violations it finds at a root.
-type Rule = fn(&Path) -> Result<Violations>;
+type Rule = fn(&Path, &Workspace) -> Result<Violations>;
 
 /// The repository rules, each with its name. They read files, git and `cargo metadata` only: nothing is built.
 const RULES: &[(&str, Rule)] = &[
@@ -174,15 +211,18 @@ const RULES: &[(&str, Rule)] = &[
     ("features", check_features),
     ("raw-read", raw_read::violations),
     ("licences", check_licence_map_at),
-    ("anonymisation", |root| check_anonymisation_at(root, false)),
-    ("ui-strings", ui_strings::check),
+    ("anonymisation", |root, ws| {
+        check_anonymisation_at(root, false, &ws.files)
+    }),
+    ("ui-strings", |root, _| ui_strings::check(root)),
 ];
 
 /// `rules`: every repository rule, then `gen --check`. Prints one line per rule and each violation.
 pub(crate) fn rules(root: &Path) -> Result<bool> {
+    let ws = Workspace::read(root)?;
     let mut ok = true;
     for (name, rule) in RULES {
-        let violations = rule(root)?;
+        let violations = rule(root, &ws)?;
         if violations.is_empty() {
             println!("{name}: ok");
         } else {
@@ -197,31 +237,29 @@ pub(crate) fn rules(root: &Path) -> Result<bool> {
 }
 
 /// The crate layers and dependency rules of `ci/dep-rules.toml`.
-fn check_deps(root: &Path) -> Result<Violations> {
-    let metadata = metadata()?;
-    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.with_layers(&metadata);
-    let graph = deps::Graph::from_metadata(&metadata);
-    let mut violations = deps::check(&policy, &graph);
-    violations.extend(deps::check_confined_manifests(&policy, root)?);
+fn check_deps(root: &Path, ws: &Workspace) -> Result<Violations> {
+    let policy = &ws.policy;
+    let graph = deps::Graph::from_metadata(&ws.metadata);
+    let mut violations = deps::check(policy, &graph);
+    violations.extend(deps::check_confined_manifests(policy, root)?);
     violations.extend(deps::importer_purity(root)?);
     Ok(violations)
 }
 
 /// Test-only features and crates never reach a shipped binary (`ci/dep-rules.toml`: `banned_features`,
 /// `banned_crates`, `uniform_test_features`, `required_features`).
-fn check_features(root: &Path) -> Result<Violations> {
-    let metadata = metadata()?;
-    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?.with_layers(&metadata);
+fn check_features(root: &Path, ws: &Workspace) -> Result<Violations> {
+    let (metadata, policy) = (&ws.metadata, &ws.policy);
     let rules = features::Rules {
         features: &policy.banned_features,
         crates: &policy.banned_crates,
     };
-    let packages = features::from_metadata(&metadata);
+    let packages = features::from_metadata(metadata);
     let mut violations = features::check(&rules, &packages);
     violations.extend(features::check_uniform(&policy.uniform_test_features, &packages));
     violations.extend(features::check_required(
         &policy.required_features,
-        &features::resolved_from_metadata(&metadata),
+        &features::resolved_from_metadata(metadata),
     ));
     // The shipped binaries: every workspace package with a binary target, the development tools aside.
     let shipped: Vec<&str> = metadata
@@ -238,20 +276,22 @@ fn check_features(root: &Path) -> Result<Violations> {
 
 /// Path licences, the collective notice, crate licences and the permissive-layer licence boundary
 /// (`ci/licence-map.toml`, `REUSE.toml`).
-pub(crate) fn check_licence_map_at(root: &Path) -> Result<Violations> {
+fn check_licence_map_at(root: &Path, ws: &Workspace) -> Result<Violations> {
     let map = licence::LicenceMap::load(&root.join("ci/licence-map.toml"))?;
     let reuse = licence::ReuseToml::load(&root.join("REUSE.toml"))?;
-    let mut files = Vec::new();
-    for path in repo::list_files(root)? {
-        let bytes = std::fs::read(root.join(&path)).with_context(|| format!("reading {path}"))?;
-        let header = licence::read_header(&String::from_utf8_lossy(&bytes));
-        files.push(licence::FileInfo { path, header });
-    }
+    let files: Vec<licence::FileInfo> = ws
+        .files
+        .iter()
+        .map(|(path, bytes)| licence::FileInfo {
+            path: path.clone(),
+            header: licence::read_header(&String::from_utf8_lossy(bytes)),
+        })
+        .collect();
 
     let mut violations = licence::check_policy(&map);
     violations.extend(licence::check_files(&map, &reuse, &files));
 
-    let metadata = metadata_all_features(root)?;
+    let metadata = &ws.metadata_all_features;
     let crates: Vec<licence::CrateInfo> = metadata
         .workspace_packages()
         .iter()
@@ -268,21 +308,23 @@ pub(crate) fn check_licence_map_at(root: &Path) -> Result<Violations> {
     violations.extend(licence::check_crates(&map, &crates));
 
     // The permissive layer is the crates whose manifest says so.
-    let layers = deps::Policy::load(&root.join("ci/dep-rules.toml"))?
-        .with_layers(&metadata)
-        .layers;
-    let graph = licence::DepGraph::from_metadata(&metadata)?;
+    let graph = licence::DepGraph::from_metadata(metadata)?;
     violations.extend(licence::check_boundary(
         &map.boundary.allow,
-        &layers.permissive,
+        &ws.policy.layers.permissive,
         &graph,
     ));
     Ok(violations)
 }
 
-/// No committed word n-gram is on the confidential-token list (`ci/denylist.sha256`). Binary files (a NUL byte in
-/// the first 8 KiB) are skipped. An empty list prints a warning and passes, unless `require_entries` is set.
-pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Result<Violations> {
+/// No word n-gram of the repository's `files` is on the confidential-token list (`ci/denylist.sha256`). Binary files
+/// (a NUL byte in the first 8 KiB) are skipped. An empty list prints a warning and passes, unless `require_entries` is
+/// set.
+pub(crate) fn check_anonymisation_at(
+    root: &Path,
+    require_entries: bool,
+    files: &[(String, Vec<u8>)],
+) -> Result<Violations> {
     let list = root.join("ci/denylist.sha256");
     let text = std::fs::read_to_string(&list).with_context(|| format!("reading {}", list.display()))?;
     let denylist = anonymise::parse_denylist(&text).with_context(|| format!("parsing {}", list.display()))?;
@@ -294,14 +336,11 @@ pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Resu
         }
         eprintln!("{}", anonymise::EMPTY_WARNING);
     }
-    let mut files = Vec::new();
-    for path in repo::list_files(root)? {
-        let bytes = std::fs::read(root.join(&path)).with_context(|| format!("reading {path}"))?;
-        if let Some(text) = anonymise::decode(&bytes) {
-            files.push((path, text));
-        }
-    }
-    Ok(anonymise::check(&files, &denylist))
+    let texts: Vec<(String, String)> = files
+        .iter()
+        .filter_map(|(path, bytes)| anonymise::decode(bytes).map(|text| (path.clone(), text)))
+        .collect();
+    Ok(anonymise::check(&texts, &denylist))
 }
 
 /// `denylist-hash <phrase>`: prints the digests in the denylist format. Comments give only n and the word

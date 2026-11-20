@@ -2015,14 +2015,22 @@ fn load_workspace_files(
     })
 }
 
-/// Reads the policy and the packages of the workspace at `root`.
-fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>, WorkspaceFiles)> {
-    let policy = crate::deps::Policy::load(&root.join(POLICY_FILE))?
+/// The `[raw_read]` section of the policy.
+fn section(policy: &crate::deps::Policy) -> Result<RawReadPolicy> {
+    policy
         .raw_read
-        .with_context(|| format!("{POLICY_FILE} has no [raw_read] section (ADR-0001 amendment 2)"))?;
-    let metadata = crate::metadata()?;
-    let manifests = features::from_metadata(&metadata);
-    let reach = reaches(&metadata, &policy.krate);
+        .clone()
+        .with_context(|| format!("{POLICY_FILE} has no [raw_read] section (ADR-0001 amendment 2)"))
+}
+
+/// Reads the packages of the workspace at `root` (`metadata` is its `cargo metadata`) for the section `policy`.
+fn load(
+    root: &Path,
+    policy: RawReadPolicy,
+    metadata: &cargo_metadata::Metadata,
+) -> Result<(RawReadPolicy, Vec<SourcePackage>, WorkspaceFiles)> {
+    let manifests = features::from_metadata(metadata);
+    let reach = reaches(metadata, &policy.krate);
     let mut packages = Vec::new();
     for (meta, manifest) in metadata.workspace_packages().iter().zip(manifests) {
         let manifest_dir = meta
@@ -2055,16 +2063,12 @@ fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>, WorkspaceFile
     Ok((policy, packages, ws))
 }
 
-/// Runs the check on the workspace at `root`.
-pub fn check(root: &Path) -> Result<Outcome> {
-    let (policy, packages, ws) = load(root)?;
-    Ok(check_workspace(&policy, &packages, &ws))
-}
-
 /// The rule `raw-read`, or with `bless` the `lint-list` step of `cargo xtask gen`: prints the outcome and returns whether the check passed. With
 /// `bless` the generated clippy configuration is written first.
 pub fn run(root: &Path, bless: bool) -> Result<bool> {
-    let (policy, packages, mut ws) = load(root)?;
+    let metadata = crate::metadata()?;
+    let policy = section(&crate::deps::Policy::load(&root.join(POLICY_FILE))?)?;
+    let (policy, packages, mut ws) = load(root, policy, &metadata)?;
     if bless {
         match generate(&policy, &packages) {
             Ok(text) => {
@@ -2099,9 +2103,10 @@ pub fn run(root: &Path, bless: bool) -> Result<bool> {
     }
 }
 
-/// The violations of the check, for the in-process `ci` summary (read-only).
-pub fn violations(root: &Path) -> Result<Vec<String>> {
-    Ok(check(root)?.violations)
+/// The rule `raw-read` of `cargo xtask rules` over the workspace `ws` read at `root`: its violations.
+pub(crate) fn violations(root: &Path, ws: &crate::Workspace) -> Result<Vec<String>> {
+    let (policy, packages, files) = load(root, section(&ws.policy)?, ws.metadata())?;
+    Ok(check_workspace(&policy, &packages, &files).violations)
 }
 
 #[cfg(test)]
