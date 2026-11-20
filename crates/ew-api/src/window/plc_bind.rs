@@ -20,8 +20,8 @@ use std::collections::BTreeSet;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::{Channel, Device, Function};
 use ew_derive::{
-    ChannelAddr, ChannelAddresses, ChannelsByCp, CpRef, DeviceTag, FunctionCps, PotentialPartition, Q,
-    channel_pin, cp_label, module_part,
+    ChannelAddr, ChannelAddresses, ChannelsByCp, CpRef, FunctionCps, PotentialPartition, Q, channel_pin,
+    cp_label, module_part, short_tag,
 };
 
 use crate::Session;
@@ -72,15 +72,6 @@ pub enum OffCardBind {
         /// The card serves valve positions, but none is free (or the device sits on another assembly).
         valve_terminal: bool,
     },
-}
-
-/// The short tag of a device (`Tag::short`), empty when it has none.
-fn tag_of(q: &Q, device: Id<Device>) -> String {
-    q.get::<DeviceTag>(device)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default()
 }
 
 /// The channel pins of `module`: the CPs of its own functions whose designation the part's channel → pin map gives
@@ -174,7 +165,7 @@ impl Session {
         if ew_commands::commands::is_on_module(f.device, module, |d| devices.get(d).and_then(|x| x.parent)) {
             return None;
         }
-        let card_tag = tag_of(&q, module);
+        let card_tag = short_tag(&q, module);
         let Some(device) = f.device else {
             return Some(OffCardBind::Neither {
                 device: String::new(),
@@ -182,7 +173,7 @@ impl Session {
                 valve_terminal: false,
             });
         };
-        let tag = tag_of(&q, device);
+        let tag = short_tag(&q, device);
         let pins = channel_pins(&q, module);
         if !pins.is_empty() {
             let partition = q.get::<PotentialPartition>(());
@@ -281,7 +272,7 @@ impl Session {
                 ChannelAddr::At { text, .. } => Some(text.clone()),
                 _ => None,
             });
-        Some(address.unwrap_or_else(|| format!("channel {} of {}", ch.number, tag_of(&q, ch.module))))
+        Some(address.unwrap_or_else(|| format!("channel {} of {}", ch.number, short_tag(&q, ch.module))))
     }
 
     /// The channels other than `except` bound to CP `idx` of `function`, in ID order: the ones `plc.bind_channel`

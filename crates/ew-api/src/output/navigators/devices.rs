@@ -12,7 +12,7 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_rds::Aspect;
 use ew_derive::ew_schema::{Device, DeviceState, FnRole, Function, Page, Representation};
-use ew_derive::{DeviceTag, Q, StructureOf};
+use ew_derive::{Q, StructureOf, short_tag};
 
 use super::function_kind::{fndef_name, function_kind_text};
 use super::{
@@ -47,13 +47,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder) {
         rows.insert(id, DeviceRow { cells, part });
     }
     let folios = folios(q);
-    let tag = |d: Id<Device>| {
-        q.get::<DeviceTag>(d)
-            .as_ref()
-            .as_ref()
-            .map(ew_derive::Tag::short)
-            .unwrap_or_default()
-    };
+    let tag = |d: Id<Device>| short_tag(q, d);
     let aspect_text = |d: Id<Device>, a: Aspect| q.get::<StructureOf>(d).designation(|x| x == a).to_string();
     // The top-level devices by (function, location), in natural tag order.
     let top: Vec<Id<Device>> = rows

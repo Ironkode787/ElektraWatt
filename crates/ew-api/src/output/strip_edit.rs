@@ -23,7 +23,7 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{AccessoryKind, Device, FnDef, LibDocument, TerminalGroup};
-use ew_derive::{MainFunction, Q};
+use ew_derive::{MainFunction, Q, short_tag};
 use serde_json::{Value, json};
 
 use super::fields::{FieldChoice, ParseCx, PartCopyText, PartMiss, find_part, part_order};
@@ -187,13 +187,7 @@ impl Session {
     /// Every bridge group of the project, in `BR<n>` order (`bridge_groups`).
     pub fn bridges(&self) -> Vec<BridgeRow> {
         let q = self.query();
-        let tag = |d: Id<Device>| {
-            q.get::<ew_derive::DeviceTag>(d)
-                .as_ref()
-                .as_ref()
-                .map(ew_derive::Tag::short)
-                .unwrap_or_default()
-        };
+        let tag = |d: Id<Device>| short_tag(&q, d);
         ew_reports::bridge_groups(&q)
             .into_iter()
             .map(|(label, strip, g)| {

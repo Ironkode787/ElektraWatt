@@ -10,9 +10,9 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, Unit};
 use ew_derive::ew_units::Dec3;
-use ew_derive::{DevicePartLines, Q};
+use ew_derive::{DevicePartLines, Q, short_tag};
 
-use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, tag_short, text_cell};
+use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
 
@@ -65,7 +65,7 @@ impl ReportKindDef for CableOverview {
             .devices()
             .iter()
             .filter(|(_, d)| d.aspects.cable.is_some())
-            .map(|(id, _)| (natural_key(&tag_short(q, id)), id))
+            .map(|(id, _)| (natural_key(&short_tag(q, id)), id))
             .collect();
         cables.sort();
 
@@ -80,9 +80,9 @@ impl ReportKindDef for CableOverview {
         for (_, cable) in &cables {
             let part = part_number(q, *cable);
             let title = if part.is_empty() {
-                tag_short(q, *cable)
+                short_tag(q, *cable)
             } else {
-                format!("{} {part}", tag_short(q, *cable))
+                format!("{} {part}", short_tag(q, *cable))
             };
             set.rows
                 .push(heading(&format!("cable/{}", cable.as_uuid()), &title));
@@ -146,7 +146,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
 fn device_set(q: &Q, devices: impl IntoIterator<Item = Id<Device>>) -> String {
     let mut tags: Vec<(NaturalKey, String)> = devices
         .into_iter()
-        .map(|d| tag_short(q, d))
+        .map(|d| short_tag(q, d))
         .filter(|t| !t.is_empty())
         .map(|t| (natural_key(&t), t))
         .collect();

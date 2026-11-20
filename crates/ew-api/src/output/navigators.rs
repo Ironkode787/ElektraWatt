@@ -33,7 +33,7 @@ pub use ew_derive::ew_ids::Uuid;
 pub use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_mltext::{natural_key, to_nfc};
 use ew_derive::ew_schema::{Device, DeviceState, FnRole, Page, Representation};
-use ew_derive::{DeviceTag, PageOrder, PageRef, Q, RepAnchorCell};
+use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
 
 use crate::Session;
 
@@ -825,15 +825,6 @@ pub const EARTH_CONNECTION: &str = "earth connection";
 
 /// The badge of a Messages rule group every finding of which has a quick fix of one kind: its Fix all.
 pub const FIX_ALL: &str = "fix all";
-
-/// A device's short tag.
-fn short_tag(q: &Q, d: Id<Device>) -> String {
-    q.get::<DeviceTag>(d)
-        .as_ref()
-        .as_ref()
-        .map(ew_derive::Tag::short)
-        .unwrap_or_default()
-}
 
 #[cfg(test)]
 mod tests {

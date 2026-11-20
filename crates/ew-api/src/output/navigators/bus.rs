@@ -11,7 +11,8 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::Function;
 
-use super::{Builder, NavRole, base_facets, device_drawables, drawable, folios, group, short_tag, sorted};
+use super::{Builder, NavRole, base_facets, device_drawables, drawable, folios, group, sorted};
+use ew_derive::short_tag;
 
 /// The bus navigator's columns (FR-UI-006): a port row's device, interface, bus, role, address, termination and nets.
 /// The address and termination, which are edited here, follow the port's name, so that a table at the default rail

@@ -132,7 +132,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_derive::{DeviceTag, Oracle, PageOrder, Q, ReportPagesProvider};
+use ew_derive::{Oracle, PageOrder, Q, ReportPagesProvider, short_tag};
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, SaveReport, Store};
@@ -1404,13 +1404,7 @@ impl Session {
                 .and_then(|r| r.functions.iter().find_map(|f| q.functions().get(*f)?.device)),
             _ => None,
         });
-        let device = device.map(|d| {
-            q.get::<DeviceTag>(d)
-                .as_ref()
-                .as_ref()
-                .map(|t| t.short())
-                .unwrap_or_default()
-        });
+        let device = device.map(|d| short_tag(&q, d));
         let installed = self.installed_document(kind, copy);
         let part = match &installed {
             Some((LibDocument::Part(c), library)) => Some((c.item.part_number.to_string(), library.clone())),

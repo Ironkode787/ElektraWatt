@@ -6,10 +6,10 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, ReportBlock, Side};
-use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q};
+use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
 
 use super::conn::{
-    WireRec, Wires, bridges, end_text, tag_short, terminal_state, terminal_wired, text_cell, wires_by_cp,
+    WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -159,7 +159,7 @@ pub(super) fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     };
     let mut keyed: Vec<(NaturalKey, Id<Device>)> = strips
         .drain(..)
-        .map(|s| (natural_key(&tag_short(q, s)), s))
+        .map(|s| (natural_key(&short_tag(q, s)), s))
         .collect();
     keyed.sort();
     keyed.dedup();
@@ -178,7 +178,7 @@ fn target_text(q: &Q, rec: &WireRec, at: CpRef) -> String {
     if let Some(core) = rec.wire.core.and_then(|c| q.conductors().get(c)) {
         text.push_str(&format!(
             " via {} {}",
-            tag_short(q, core.cable),
+            short_tag(q, core.cable),
             core.core.as_str()
         ));
     }

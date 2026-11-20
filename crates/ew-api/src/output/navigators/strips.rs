@@ -12,9 +12,8 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, DeviceState};
 
-use super::{
-    Builder, NavRole, base_facets, cell_of, device_drawables, folios, row_entity, short_tag, state_word,
-};
+use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, row_entity, state_word};
+use ew_derive::short_tag;
 
 /// The strips of the project in natural tag order.
 fn strips(q: &Q) -> Vec<Id<Device>> {

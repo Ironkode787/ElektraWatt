@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::{DeviceTag, MainFunction, Q, assembly_members, overview_rep};
+use ew_derive::{MainFunction, Q, assembly_members, overview_rep, short_tag};
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_schema::{Device, FnRole, Kind, LibCopy, Page, PageType, RepType, Representation, SymbolDef};
@@ -112,13 +112,7 @@ impl Command for GenerateOverview {
                 crate::words::device(tx, self.station)
             ));
         }
-        let tag = |d: Id<Device>| {
-            q.get::<DeviceTag>(d)
-                .as_ref()
-                .as_ref()
-                .map(|t| t.short())
-                .unwrap_or_default()
-        };
+        let tag = |d: Id<Device>| short_tag(&q, d);
         // Each member: its main function, its overview representation and the symbol it is drawn with.
         let mut plan = Vec::new();
         for m in &members {

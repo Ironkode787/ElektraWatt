@@ -7,7 +7,7 @@
 //! a tag or a number is a plain argument, every word around it a [`Text`] in the window's language.
 
 use ew_derive::layout::{CarrierLabel, CarrierLabelKind};
-use ew_derive::{DeviceTag, Q};
+use ew_derive::{Q, short_tag};
 use ew_schema::{
     Connection, Device, Function, FunctionKind, Junction, Kind, Page, PageType, RepType, Representation,
 };
@@ -19,12 +19,7 @@ use crate::tx::TxBuilder;
 /// the transaction made, its letter and counter (`-K1`; `-K` before online numbering gives it a counter).
 fn tag_of(tx: &TxBuilder<'_>, id: ew_ids::Id<Device>, dev: &Device) -> String {
     let q = Q::new(tx.base_model());
-    let short = q
-        .get::<DeviceTag>(id)
-        .as_ref()
-        .as_ref()
-        .map(ew_derive::Tag::short)
-        .unwrap_or_default();
+    let short = short_tag(&q, id);
     if !short.is_empty() {
         return short;
     }

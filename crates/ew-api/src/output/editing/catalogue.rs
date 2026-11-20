@@ -16,7 +16,7 @@ use ew_derive::ew_schema::{
     ConnectionKind, ContactKind, Device, FnDef, IpDirection, LibCopy, LibDocument, LibRef, LineKind, Page,
     PageType, Part, PartKind, RepType, SymbolDef,
 };
-use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Q};
+use ew_derive::{DisplayedTag, PageOrder, PageRef, Q, short_tag};
 use ew_library::starter;
 use ew_library::starter::StarterKind;
 
@@ -1078,15 +1078,7 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
             }
             // The tag as the page prints it; a strip the page shows nothing of yet prints its short tag.
             let shown = q.get::<DisplayedTag>((id, page)).as_ref().clone();
-            let tag = if shown.is_empty() {
-                q.get::<DeviceTag>(id)
-                    .as_ref()
-                    .as_ref()
-                    .map(|t| t.short())
-                    .unwrap_or_default()
-            } else {
-                shown
-            };
+            let tag = if shown.is_empty() { short_tag(q, id) } else { shown };
             CatalogueStrip {
                 id: id.as_uuid(),
                 tag,

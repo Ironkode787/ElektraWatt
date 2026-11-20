@@ -15,7 +15,7 @@ use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_schema::{
     ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation,
 };
-use ew_derive::{DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
+use ew_derive::{FunctionCps, PageOrder, PageRef, Q, RepAnchorCell, short_tag};
 
 use crate::Session;
 
@@ -116,15 +116,6 @@ pub(super) fn fndef_copy(r: &LibRef) -> Id<FnDef> {
     v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid())
 }
 
-/// The tag a report prints for `device`; empty without one.
-fn tag_of(q: &Q, device: Id<Device>) -> String {
-    q.get::<DeviceTag>(device)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default()
-}
-
 /// The slot of `function`: its CP designations in index order, joined by `-`.
 pub(crate) fn slot_of(q: &Q, function: Id<Function>) -> String {
     q.get::<FunctionCps>(function)
@@ -218,7 +209,7 @@ impl Session {
             .collect();
         free.sort();
         Some(JoinMisfit {
-            tag: tag_of(&q, target_id),
+            tag: short_tag(&q, target_id),
             free: free
                 .into_iter()
                 .filter_map(|g| {
@@ -258,7 +249,7 @@ impl Session {
         joins.then(|| JoinProposal {
             rep: rep.as_uuid(),
             device: target,
-            tag: tag_of(&q, target_id),
+            tag: short_tag(&q, target_id),
             slot,
         })
     }
@@ -282,7 +273,7 @@ impl Session {
             None => folio,
         };
         Some(JoinedText {
-            tag: tag_of(&q, device),
+            tag: short_tag(&q, device),
             kind: super::navigators::function_kind_text(&q, f),
             place,
         })
@@ -311,7 +302,7 @@ impl Session {
     pub fn device_tag(&self, device: Uuid) -> Option<String> {
         let q = self.query();
         let id: Id<Device> = Id::from_uuid(device);
-        q.devices().contains(id).then(|| tag_of(&q, id))
+        q.devices().contains(id).then(|| short_tag(&q, id))
     }
 
     /// The numbering format a new device with the aspect `aspect` (`strip`, `cable`) and the letter `letter` takes
@@ -348,7 +339,7 @@ impl Session {
             }
             slots.push(JoinCandidate {
                 device: device.as_uuid(),
-                tag: tag_of(&q, device),
+                tag: short_tag(&q, device),
                 function: Some(id.as_uuid()),
                 slot: slot_of(&q, id),
             });
@@ -367,7 +358,7 @@ impl Session {
                 }
                 devices.push(JoinCandidate {
                     device: id.as_uuid(),
-                    tag: tag_of(&q, id),
+                    tag: short_tag(&q, id),
                     function: None,
                     slot: String::new(),
                 });

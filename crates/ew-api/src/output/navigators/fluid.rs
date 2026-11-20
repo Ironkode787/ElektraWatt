@@ -15,9 +15,10 @@ use ew_derive::ew_schema::Device;
 
 use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawable, device_drawables, folios, group, row_entity,
-    row_segment, short_tag, sorted,
+    row_segment, sorted,
 };
 use crate::Session;
+use ew_derive::short_tag;
 
 /// The medium a zone's key names.
 fn medium_of(key: &ew_derive::MediumKey) -> Id<ew_derive::ew_schema::Medium> {

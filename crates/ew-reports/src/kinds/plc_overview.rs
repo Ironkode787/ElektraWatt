@@ -8,9 +8,9 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock};
-use ew_derive::{ChannelAddr, PageRef, PlcRow, PlcRows, Q, RepAnchorCell};
+use ew_derive::{ChannelAddr, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
 
-use super::conn::{put, tag_short};
+use super::conn::put;
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
 
@@ -141,7 +141,7 @@ impl Selection {
 fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
     let mut keyed: Vec<(NaturalKey, Id<Device>)> = stations
         .into_iter()
-        .map(|s| (natural_key(&tag_short(q, s)), s))
+        .map(|s| (natural_key(&short_tag(q, s)), s))
         .collect();
     keyed.sort();
     keyed.dedup();
@@ -162,7 +162,7 @@ fn ident(text: Option<&str>) -> Cell {
 
 fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
-    put(columns, &mut cells, "module", Cell::Ident(tag_short(q, r.module)));
+    put(columns, &mut cells, "module", Cell::Ident(short_tag(q, r.module)));
     if let Some(part) = r.part.and_then(|p| q.parts().get(p)) {
         put(
             columns,
@@ -196,7 +196,7 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
         ident(r.text.process_tag.as_deref()),
     );
     if let Some(d) = r.target_device {
-        put(columns, &mut cells, "target", Cell::Ident(tag_short(q, d)));
+        put(columns, &mut cells, "target", Cell::Ident(short_tag(q, d)));
     }
     put(
         columns,

@@ -25,6 +25,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{
     DeviceTag, DisplayedTag, MainRep, PageOrder, PageRef, PropSource, Q, RepAnchorCell, TagSource, cp_label,
+    short_tag,
 };
 use ew_model::EndpointKey;
 use ew_schema::{
@@ -515,12 +516,7 @@ pub(crate) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     let main_page = (*q.get::<MainRep>(device)).and_then(|r| q.reps().get(r).map(|rep| rep.page));
     match main_page {
         Some(page) => q.get::<DisplayedTag>((device, page)).as_ref().clone(),
-        None => q
-            .get::<DeviceTag>(device)
-            .as_ref()
-            .as_ref()
-            .map(|t| t.short())
-            .unwrap_or_default(),
+        None => short_tag(q, device),
     }
 }
 

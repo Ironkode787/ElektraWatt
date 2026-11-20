@@ -6,9 +6,9 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock};
-use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot};
+use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot, short_tag};
 
-use super::conn::{put, tag_short};
+use super::conn::put;
 use super::plc_overview::{address_cell, kind_name, page_cell};
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -135,11 +135,11 @@ impl Station {
         let cpu = cfg
             .as_ref()
             .and_then(|c| c.cpu)
-            .map_or(Cell::Empty, |d| ident(&tag_short(q, d)));
+            .map_or(Cell::Empty, |d| ident(&short_tag(q, d)));
         Station {
             config_project,
             cpu,
-            station: ident(&tag_short(q, station)),
+            station: ident(&short_tag(q, station)),
             bus_address: bus_address(q, station),
         }
     }
@@ -190,7 +190,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
     if let Some(slot) = slot_text(r.slot) {
         put(columns, &mut cells, "slot", Cell::Ident(slot));
     }
-    put(columns, &mut cells, "module", ident(&tag_short(q, r.module)));
+    put(columns, &mut cells, "module", ident(&short_tag(q, r.module)));
     let section = ew_derive::module_part(q, r.module);
     if let Some((copy, _)) = &section {
         put(
@@ -241,7 +241,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         ident(r.text.process_tag.as_deref().unwrap_or_default()),
     );
     if let Some(d) = r.target_device {
-        put(columns, &mut cells, "target", ident(&tag_short(q, d)));
+        put(columns, &mut cells, "target", ident(&short_tag(q, d)));
     }
     if let Some(cp) = r.target_pin {
         let pin = q

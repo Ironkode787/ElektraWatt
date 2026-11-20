@@ -18,10 +18,10 @@ use ew_derive::ew_schema::{
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
     NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, bus_word, external_partner_text, iolink_device,
-    module_io, module_part, net_address_text, port_windows, profile_of, stations,
+    module_io, module_part, net_address_text, port_windows, profile_of, short_tag, stations,
 };
 
-use super::conn::{put, tag_short};
+use super::conn::put;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -139,9 +139,9 @@ impl ReportKindDef for PlcCardList {
             for m in q.get::<ModuleOrder>(cfg).iter() {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
-                put(c, &mut cells, "station", ident(&tag_short(q, m.station)));
+                put(c, &mut cells, "station", ident(&short_tag(q, m.station)));
                 put(c, &mut cells, "slot", ident(&slot_text(m.slot)));
-                put(c, &mut cells, "module", ident(&tag_short(q, m.module)));
+                put(c, &mut cells, "module", ident(&short_tag(q, m.module)));
                 if let Some((copy, _)) = module_part(q, m.module) {
                     put(c, &mut cells, "part", ident(copy.item.part_number.as_str()));
                 }
@@ -319,7 +319,7 @@ fn port_row(
         put(c, &mut cells, "net", ident(net));
     }
     if let Some(d) = q.functions().get(f).and_then(|func| func.device) {
-        put(c, &mut cells, "station", ident(&tag_short(q, d)));
+        put(c, &mut cells, "station", ident(&short_tag(q, d)));
         let part = q.devices().get(d).and_then(|dev| {
             dev.parts
                 .first()
@@ -426,7 +426,7 @@ impl ReportKindDef for BusOverview {
                 put(c, &mut cells, "net", ident(&net));
                 let row_id = match m {
                     SegmentMember::Cable(cable) => {
-                        put(c, &mut cells, "cable", ident(&tag_short(q, *cable)));
+                        put(c, &mut cells, "cable", ident(&short_tag(q, *cable)));
                         put(c, &mut cells, "length", length_cell(q, *cable));
                         RowId::entity(*cable)
                     }
@@ -438,12 +438,12 @@ impl ReportKindDef for BusOverview {
                         put(c, &mut cells, "external", Cell::Bool(external));
                         match (func.and_then(|x| x.bus_port.clone()), func.and_then(|x| x.device)) {
                             (Some(p), Some(d)) if p.role == PortRole::Passive && !switch_port(q, d, &p) => {
-                                put(c, &mut cells, "connector", ident(&tag_short(q, d)));
+                                put(c, &mut cells, "connector", ident(&short_tag(q, d)));
                                 put(c, &mut cells, "termination", termination(&p.termination));
                             }
                             (Some(p), device) => {
                                 if let Some(d) = device {
-                                    put(c, &mut cells, "station", ident(&tag_short(q, d)));
+                                    put(c, &mut cells, "station", ident(&short_tag(q, d)));
                                 }
                                 put(c, &mut cells, "port", ident(p.interface.as_str()));
                                 let address = match &p.address {
@@ -542,7 +542,7 @@ impl ReportKindDef for BusCableList {
         }
         let mut cables: Vec<_> = by_cable
             .into_iter()
-            .map(|(c, ends)| (natural_key(&tag_short(q, c)), c, ends))
+            .map(|(c, ends)| (natural_key(&short_tag(q, c)), c, ends))
             .collect();
         cables.sort();
         for (_, cable, mut ends) in cables {
@@ -555,7 +555,7 @@ impl ReportKindDef for BusCableList {
                 .find_map(|f| functions.get(f).and_then(|x| x.bus_port.clone()));
             let mut cells = vec![Cell::Empty; set.columns.len()];
             let c = &set.columns;
-            put(c, &mut cells, "cable", ident(&tag_short(q, cable)));
+            put(c, &mut cells, "cable", ident(&short_tag(q, cable)));
             if let Some(p) = &port {
                 put(c, &mut cells, "bus", text(bus_word(&p.bus)));
                 if let Some(net) = p
@@ -639,7 +639,7 @@ impl ReportKindDef for IolinkPortList {
                     };
                     let mut cells = vec![Cell::Empty; set.columns.len()];
                     let c = &set.columns;
-                    put(c, &mut cells, "master", ident(&tag_short(q, m.module)));
+                    put(c, &mut cells, "master", ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "port", Cell::Number(i64::from(w.number) + 1));
                     let mode = match w.mode {
                         PortMode::IoLink => "IO-Link",
@@ -655,7 +655,7 @@ impl ReportKindDef for IolinkPortList {
                         _ => "",
                     };
                     put(c, &mut cells, "class", ident(class_text));
-                    put(c, &mut cells, "device", ident(&tag_short(q, device)));
+                    put(c, &mut cells, "device", ident(&short_tag(q, device)));
                     if let Some(d) = iolink_device(q, device) {
                         if let Some(v) = d.vendor_id {
                             put(c, &mut cells, "vendor_id", Cell::Number(i64::from(v)));
@@ -681,7 +681,7 @@ impl ReportKindDef for IolinkPortList {
                         _ => None,
                     };
                     if let Some(cable) = cable {
-                        put(c, &mut cells, "cable", ident(&tag_short(q, cable)));
+                        put(c, &mut cells, "cable", ident(&short_tag(q, cable)));
                     }
                     set.rows.push(Row::data(
                         RowId::entity(w.channel).with(RowKey::Name("port".to_owned())),
@@ -749,13 +749,13 @@ impl ReportKindDef for SafetyIoList {
                             put(c, &mut cells, "f_source", Cell::Number(i64::from(a)));
                         }
                     }
-                    put(c, &mut cells, "module", ident(&tag_short(q, m.module)));
+                    put(c, &mut cells, "module", ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "channel", Cell::Number(i64::from(ch.number)));
                     if let Some(p) = s.pair.and_then(|p| channels.get(p)) {
                         put(c, &mut cells, "pair", Cell::Number(i64::from(p.number)));
                     }
                     if let Some(d) = t.device {
-                        put(c, &mut cells, "target", ident(&tag_short(q, d)));
+                        put(c, &mut cells, "target", ident(&short_tag(q, d)));
                     }
                     if let Some(r) = &s.requirement {
                         put(c, &mut cells, "requirement", ident(r.as_str()));
@@ -771,7 +771,7 @@ impl ReportKindDef for SafetyIoList {
                             .functions()
                             .get(*f)
                             .and_then(|x| x.device)
-                            .map(|d| tag_short(q, d))
+                            .map(|d| short_tag(q, d))
                             .unwrap_or_default();
                         put(c, &mut cells, "test_pulse", ident(&format!("{device}:{pin}")));
                     }

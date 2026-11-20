@@ -6,10 +6,10 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, RepType, ReportBlock, Representation};
 use ew_derive::{
-    DevicePartLines, DrawnPageOrder, MainRep, PageOrderV, PageRef, Q, RepAnchorCell, StructureOf,
+    DevicePartLines, DrawnPageOrder, MainRep, PageOrderV, PageRef, Q, RepAnchorCell, StructureOf, short_tag,
 };
 
-use super::conn::{Wires, bridges, put, tag_short, terminal_state, terminal_wired, text_cell, wires_by_cp};
+use super::conn::{Wires, bridges, put, terminal_state, terminal_wired, text_cell, wires_by_cp};
 use super::terminal_diagram::strips_of;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
@@ -98,7 +98,7 @@ impl ReportKindDef for TerminalOverview {
                 .to_string();
             let set_columns = &set.columns;
             let mut cells = vec![Cell::Empty; set_columns.len()];
-            put(set_columns, &mut cells, "strip", ident(&tag_short(q, strip)));
+            put(set_columns, &mut cells, "strip", ident(&short_tag(q, strip)));
             put(set_columns, &mut cells, "location", ident(&location));
             put(
                 set_columns,

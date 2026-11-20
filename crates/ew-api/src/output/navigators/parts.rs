@@ -11,9 +11,8 @@ use ew_derive::Q;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::Device;
 
-use super::{
-    Builder, NavRole, base_facets, cell_of, device_drawables, folios, group, row_segment, short_tag,
-};
+use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, group, row_segment};
+use ew_derive::short_tag;
 
 /// Parts in use (§7.1): manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
 pub(super) fn parts_table(q: &Q, b: &mut Builder) {

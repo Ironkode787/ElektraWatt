@@ -12,7 +12,7 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::{DeviceTag, Q, XrefTextOf};
+use ew_derive::{Q, XrefTextOf, short_tag};
 use ew_ids::Id;
 use ew_schema::{Device, Representation};
 
@@ -46,14 +46,6 @@ impl DerivedDiff {
     }
 }
 
-fn tag_text(q: &Q, id: Id<Device>) -> String {
-    q.get::<DeviceTag>(id)
-        .as_ref()
-        .as_ref()
-        .map(ew_derive::Tag::short)
-        .unwrap_or_default()
-}
-
 fn xref_text(q: &Q, id: Id<Representation>) -> String {
     if q.reps().get(id).is_none() {
         return String::new();
@@ -68,7 +60,7 @@ pub fn derived_diff(before: &Q, after: &Q) -> DerivedDiff {
     let tags = devices
         .into_iter()
         .filter_map(|id| {
-            let (b, a) = (tag_text(before, id), tag_text(after, id));
+            let (b, a) = (short_tag(before, id), short_tag(after, id));
             (b != a).then_some(DerivedChange {
                 key: id,
                 before: b,

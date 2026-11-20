@@ -15,9 +15,10 @@ use ew_derive::ew_schema::{Device, Function, Page};
 
 use super::{
     Builder, Drawable, NOT_DRAWN, NavOpen, NavRole, base_facets, device_drawables, drawable, folios, group,
-    short_tag, sorted,
+    sorted,
 };
 use crate::Session;
+use ew_derive::short_tag;
 
 impl Session {
     /// The PLC cards that wait for a CPU with their short tags, in natural order: the devices with `plc_module` and

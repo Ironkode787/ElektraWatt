@@ -6,11 +6,11 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{Device, ReportBlock};
-use ew_derive::{CpRef, Q, WireNumbers};
+use ew_derive::{CpRef, Q, WireNumbers, short_tag};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    join_texts, pages_cell, put, source_text, tag_short, text_cell,
+    join_texts, pages_cell, put, source_text, text_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -102,7 +102,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
     let (to, to_cp) = end_cells(q, &w.ends[1]);
     let mut via: Vec<String> = Vec::new();
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
-        via.push(format!("{} {}", tag_short(q, core.cable), core.core.as_str()));
+        via.push(format!("{} {}", short_tag(q, core.cable), core.core.as_str()));
     }
     let (junction, daisy) = join_texts(q, w);
     via.extend(junction);

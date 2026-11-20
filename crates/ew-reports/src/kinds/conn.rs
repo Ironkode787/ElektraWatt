@@ -22,7 +22,7 @@ use ew_derive::ew_schema::{
 use ew_derive::{
     BridgeGroup, CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
     PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
-    StripBridges, WireEnd, WirePropsOf, orient_wire,
+    StripBridges, WireEnd, WirePropsOf, orient_wire, short_tag,
 };
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
@@ -212,7 +212,7 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
             let Some(d) = device_of(q, end.cp.function) else {
                 return String::new();
             };
-            let short = tag_short(q, d);
+            let short = short_tag(q, d);
             let cp = cp_designation(q, end.cp);
             let is_terminal = q.devices().get(d).is_some_and(|d| d.aspects.terminal.is_some());
             if is_terminal {
@@ -273,15 +273,6 @@ pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<String>, Option<Str
         format!("chain on {}", cps.join(", "))
     });
     (junction, daisy)
-}
-
-/// The tag of a device without its structure (`-X1031:1`), `""` for a device without one.
-pub(super) fn tag_short(q: &Q, d: Id<Device>) -> String {
-    q.get::<DeviceTag>(d)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default()
 }
 
 /// The natural-order key of a device's full tag, for sorting.

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
-use ew_derive::{Cycle, DeviceTag, GeneratedPage, Policy, Q, Query, ReportPagesProvider, map_ml};
+use ew_derive::{Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider, map_ml, short_tag};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::{Registry, kind_name};
@@ -129,13 +129,7 @@ fn resolve_title(
         .map(|a| Id::<Device>::from_uuid(a.as_uuid()))
         .filter(|d| q.devices().contains(*d))
         .collect();
-    let tag = |d: Id<Device>| {
-        q.get::<DeviceTag>(d)
-            .as_ref()
-            .as_ref()
-            .map(|t| t.short())
-            .unwrap_or_default()
-    };
+    let tag = |d: Id<Device>| short_tag(q, d);
     let strip = devices
         .iter()
         .find(|d| q.devices().get(**d).is_some_and(|x| x.aspects.strip.is_some()))

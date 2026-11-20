@@ -35,7 +35,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
-use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q};
+use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q, short_tag};
 use ew_export::PdfDate;
 use ew_reports::csv::{CsvOptions, Preset, csv_field, restyle, rows_csv};
 use ew_reports::kinds::PartsSummary;
@@ -482,14 +482,6 @@ fn whole(q: &Q, set: RowSet, kind: String, blocks: Vec<String>, key: String) -> 
         notices: Vec::new(),
     }
 }
-/// The printed tag of a strip.
-fn strip_tag(q: &Q, strip: Id<Device>) -> String {
-    q.get::<DeviceTag>(strip)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default()
-}
 
 /// The strip of a data row: its first row-ID component.
 fn row_strip(row: &Row) -> Option<Id<Device>> {
@@ -624,7 +616,7 @@ fn terminals(
     let strips: Vec<(Id<Device>, String, String, Vec<Row>)> = gathered
         .strips
         .into_iter()
-        .map(|(s, label, rows)| (s, strip_tag(q, s), label, rows))
+        .map(|(s, label, rows)| (s, short_tag(q, s), label, rows))
         .collect();
     let notices_of = |only: Option<Id<Device>>| -> Vec<String> {
         gathered
