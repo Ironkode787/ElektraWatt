@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The reference form of the commands: a fixture company library
-//! with the golden parts 2904602 and A9P52610 (and an MCB A9P52616 made up for the replacement), their manufacturers;
-//! `Session::embed_command`, `assign_part`, `update_from_library` and `library_status` over it and over Golden A.
+//! The reference form of the commands: a fixture company library with the sample project's power supply part
+//! EW-GEN-PSU-1 and its 2-pole breaker part EW-GEN-MCB-4 (at version 1.0.0 there; and a breaker MCB-4-C16 made up for
+//! the replacement), with their manufacturer; `Session::embed_command`, `assign_part`, `update_from_library` and
+//! `library_status` over it and over the sample.
 
 use crate::common::{self, Dir};
-use crate::golden_common;
 
 use std::path::Path;
 
@@ -23,8 +23,8 @@ use serde_json::{Value, json};
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
-/// The item of the made-up MCB A9P52616 (C16).
-const A9P52616: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_a916);
+/// The item of the made-up breaker MCB-4-C16.
+const MCB_C16: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_a916);
 
 fn tiers(root: &Path) -> LibraryTiers {
     LibraryTiers {
@@ -33,33 +33,33 @@ fn tiers(root: &Path) -> LibraryTiers {
     }
 }
 
-/// The golden document of a part number, as JSON.
-fn golden_part(number: &str) -> Value {
-    let batch = golden_common::batch();
-    let doc = batch
-        .lib
+/// The sample's copy of a part number, as JSON.
+fn sample_part(number: &str) -> Value {
+    let (_, _, lib) = common::sample_records();
+    let doc = lib
         .iter()
         .find(|d| matches!(d, LibDocument::Part(p) if p.item.part_number.as_str() == number))
-        .expect("a golden part");
+        .expect("a part of the sample");
     serde_json::to_value(doc).unwrap()
 }
 
-/// The golden manufacturer copy of the part number's manufacturer, as JSON.
-fn golden_manufacturer_of(number: &str) -> Value {
-    let part = golden_part(number);
+/// The sample's manufacturer copy of the part number's manufacturer, as JSON.
+fn sample_manufacturer_of(number: &str) -> Value {
+    let part = sample_part(number);
     let item = part["manufacturer"]["item"].clone();
-    let batch = golden_common::batch();
-    let doc = batch
-        .lib
+    let (_, _, lib) = common::sample_records();
+    let doc = lib
         .iter()
         .find(|d| matches!(d, LibDocument::Manufacturer(m) if json!(m.item_id.as_uuid().to_string()) == item))
-        .expect("a golden manufacturer");
+        .expect("a manufacturer of the sample");
     serde_json::to_value(doc).unwrap()
 }
 
-/// A golden document moved into the library `lib` (the registry recomputes the copy ID and hash on write).
+/// A document of the sample moved into the library `lib` at version 1.0.0 (the registry recomputes the copy ID and
+/// hash on write).
 fn into_library(mut v: Value, lib: Uuid) -> LibDocument {
     v["library_id"] = json!(lib.to_string());
+    v["version"] = json!("1.0.0");
     if v.get("manufacturer").is_some() {
         v["manufacturer"]["library"] = json!(lib.to_string());
         v["manufacturer"]["version_req"] = json!("^1");
@@ -67,19 +67,18 @@ fn into_library(mut v: Value, lib: Uuid) -> LibDocument {
     LibDocument::from_value(v).expect("a library document")
 }
 
-/// The fixture documents: 2904602 and A9P52610 with their manufacturers, and A9P52616 (Schneider Electric, C16).
+/// The fixture documents: EW-GEN-PSU-1 and EW-GEN-MCB-4 with their manufacturer, and MCB-4-C16 (a C16 breaker).
 fn fixture_docs(lib: Uuid) -> Vec<LibDocument> {
-    let mut mcb16 = golden_part("A9P52610");
-    mcb16["item_id"] = json!(A9P52616.to_string());
-    mcb16["part_number"] = json!("A9P52616");
-    mcb16["meta"]["key"] = json!("A9P52616");
-    mcb16["tech_data"][1]["value"]["value"] = json!("16");
+    let mut mcb16 = sample_part("EW-GEN-MCB-4");
+    mcb16["item_id"] = json!(MCB_C16.to_string());
+    mcb16["part_number"] = json!("MCB-4-C16");
+    mcb16["meta"]["key"] = json!("MCB-4-C16");
+    mcb16["tech_data"] = json!([{"key": "rated_current", "value": {"value": "16", "unit": "A"}}]);
     vec![
-        into_library(golden_part("2904602"), lib),
-        into_library(golden_part("A9P52610"), lib),
+        into_library(sample_part("EW-GEN-PSU-1"), lib),
+        into_library(sample_part("EW-GEN-MCB-4"), lib),
         into_library(mcb16, lib),
-        into_library(golden_manufacturer_of("2904602"), lib),
-        into_library(golden_manufacturer_of("A9P52610"), lib),
+        into_library(sample_manufacturer_of("EW-GEN-PSU-1"), lib),
     ]
 }
 
@@ -107,11 +106,10 @@ fn options(libraries: Option<LibraryTiers>) -> SessionOptions {
     }
 }
 
-/// Golden A with the libraries of `tiers`.
-fn golden(tiers: Option<LibraryTiers>) -> Session {
-    let batch = golden_common::batch();
-    let (project, records) = common::split(&batch);
-    Session::from_records(project, records, batch.lib.clone(), options(tiers)).unwrap()
+/// The sample with the libraries of `tiers`.
+fn sample(tiers: Option<LibraryTiers>) -> Session {
+    let (project, records, lib) = common::sample_records();
+    Session::from_records(project, records, lib, options(tiers)).unwrap()
 }
 
 fn lib_ref(lib: Uuid, item: Uuid) -> LibRef {
@@ -120,7 +118,7 @@ fn lib_ref(lib: Uuid, item: Uuid) -> LibRef {
 }
 
 fn item_of(number: &str) -> Uuid {
-    golden_part(number)["item_id"].as_str().unwrap().parse().unwrap()
+    sample_part(number)["item_id"].as_str().unwrap().parse().unwrap()
 }
 
 fn copy_in(lib: Uuid, item: Uuid) -> Uuid {
@@ -128,16 +126,13 @@ fn copy_in(lib: Uuid, item: Uuid) -> Uuid {
     id.as_uuid()
 }
 
-fn golden_copy(number: &str) -> Uuid {
-    golden_part(number)["id"].as_str().unwrap().parse().unwrap()
+/// The sample's held copy of a part number.
+fn held_copy(number: &str) -> Uuid {
+    sample_part(number)["id"].as_str().unwrap().parse().unwrap()
 }
 
 fn device(s: &Session, tag: &str) -> Id<Device> {
-    golden_common::tags(s)
-        .into_iter()
-        .find(|(_, t)| t == tag)
-        .unwrap_or_else(|| panic!("no device {tag}"))
-        .0
+    Id::from_uuid(s.resolve_reference(tag).unwrap_or_else(|_| panic!("no device {tag}")))
 }
 
 /// The slot texts printed by the representations of a device, on every page.
@@ -179,17 +174,18 @@ fn with_hash(v: Value) -> Value {
     v
 }
 
-/// -102G1 takes the company library's 2904602 in place of Golden A's copy: the library, the item and the part use
-/// that the project holds afterwards.
-fn replace_2904602_on_g1(s: &mut Session, lib: Uuid) -> (Id<Device>, Uuid) {
-    let g1 = device(s, "-102G1");
-    let item = item_of("2904602");
+/// -101G1 takes the company library's EW-GEN-PSU-1 in place of the sample's copy: the library, the item and the part
+/// use that the project holds afterwards.
+fn replace_psu_on_g1(s: &mut Session, lib: Uuid) -> (Id<Device>, Uuid) {
+    let g1 = device(s, "-101G1");
+    let item = item_of("EW-GEN-PSU-1");
+
     let cmd = s
         .assign_part(
             &[g1.as_uuid()],
             &lib_ref(lib, item),
             AssignMode::Replace {
-                from: golden_copy("2904602"),
+                from: held_copy("EW-GEN-PSU-1"),
             },
             Dec3::ONE,
         )
@@ -211,14 +207,14 @@ fn invalid_path(e: CmdError) -> (String, String) {
     }
 }
 
-/// EM-1 (D7): `embed_command` by reference embeds 2904602 with its manufacturer and its template FnDef in one
+/// EM-1 (D7): `embed_command` by reference embeds EW-GEN-PSU-1 with its manufacturer and its template FnDef in one
 /// command, and the command replays on a session with no library.
 #[test]
 fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
     let (_root, t, lib) = company("ew-api-em1");
     let project: ew_schema::Project = serde_json::from_str(PROJECT).unwrap();
     let mut s = Session::from_records(project.clone(), [], [], options(Some(t))).unwrap();
-    let cmd = s.embed_command(&[lib_ref(lib, item_of("2904602"))]).unwrap();
+    let cmd = s.embed_command(&[lib_ref(lib, item_of("EW-GEN-PSU-1"))]).unwrap();
     assert_eq!(cmd.name, "library.embed");
     let kinds: Vec<&str> = cmd.params["copies"]
         .as_array()
@@ -242,14 +238,14 @@ fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
         )
     };
     let (parts, fndefs, makers) = held(&s);
-    assert_eq!(parts, [copy_in(lib, item_of("2904602"))]);
+    assert_eq!(parts, [copy_in(lib, item_of("EW-GEN-PSU-1"))]);
     assert_eq!((fndefs.len(), makers.len()), (1, 1));
     // The manufacturer names itself from the embedded copy.
     let q = s.query();
     let part = q.parts().get(Id::from_uuid(parts[0])).unwrap();
     assert_eq!(
         ew_derive::manufacturer_name(&q, &part.item.manufacturer),
-        "Phoenix Contact"
+        "Generic"
     );
     drop(q);
     // The replay: a command log line on a session that has no library at all.
@@ -262,7 +258,7 @@ fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
     assert_eq!(held(&replay), held(&s));
     // Asking again: the project holds everything.
     assert_eq!(
-        s.embed_command(&[lib_ref(lib, item_of("2904602"))]).unwrap_err(),
+        s.embed_command(&[lib_ref(lib, item_of("EW-GEN-PSU-1"))]).unwrap_err(),
         ApiError::NothingToDo
     );
 }
@@ -271,15 +267,15 @@ fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
 #[test]
 fn every_rejection_of_part_assign_names_its_pointer() {
     let (_root, t, lib) = company("ew-api-em2");
-    let mut s = golden(Some(t));
-    let f55 = device(&s, "F55").as_uuid().to_string();
+    let mut s = sample(Some(t));
+    let f55 = device(&s, "-102F1").as_uuid().to_string();
     let f1 = device(&s, "-101F1").as_uuid().to_string();
-    let held_part = golden_copy("A9P52610").to_string();
-    let lib_part = copy_in(lib, item_of("A9P52610")).to_string();
+    let held_part = held_copy("EW-GEN-MCB-4").to_string();
+    let lib_part = copy_in(lib, item_of("EW-GEN-MCB-4")).to_string();
     let closure = s
         .assign_part(
-            &[device(&s, "F55").as_uuid()],
-            &lib_ref(lib, item_of("A9P52610")),
+            &[device(&s, "-102F1").as_uuid()],
+            &lib_ref(lib, item_of("EW-GEN-MCB-4")),
             AssignMode::Append,
             Dec3::ONE,
         )
@@ -365,23 +361,20 @@ fn every_rejection_of_part_assign_names_its_pointer() {
     );
 }
 
-/// EM-3 (D8, D10): assigning A9P52610 to F55 from the company library embeds the part and Schneider Electric's
+/// EM-3 (D8, D10): assigning EW-GEN-MCB-4 to -102F1 from the company library embeds the part and its maker's
 /// manufacturer copy, sets the part use and prints the manufacturer, the part number and the rating in the slots.
 #[test]
 fn assigning_from_a_company_library_embeds_and_prints() {
     let (_root, t, lib) = company("ew-api-em3");
-    let mut s = golden(Some(t));
-    let f55 = device(&s, "F55");
+    let mut s = sample(Some(t));
+    let f55 = device(&s, "-102F1");
     let before = slot_texts(&s, f55);
-    assert!(
-        before.iter().any(|t| t == "Siemens") && before.iter().any(|t| t == "5SY4204-7"),
-        "{before:?}"
-    );
+    assert!(before.iter().any(|t| t == "EW-GEN-MCB-1"), "{before:?}");
     let makers = s.query().manufacturers().ids().count();
     let cmd = s
         .assign_part(
             &[f55.as_uuid()],
-            &lib_ref(lib, item_of("A9P52610")),
+            &lib_ref(lib, item_of("EW-GEN-MCB-4")),
             AssignMode::ReplaceAll,
             Dec3::ONE,
         )
@@ -394,22 +387,21 @@ fn assigning_from_a_company_library_embeds_and_prints() {
         .collect();
     assert_eq!(kinds, ["part", "manufacturer"]);
     s.execute(&cmd).unwrap();
-    assert_eq!(part_uses(&s, f55), [copy_in(lib, item_of("A9P52610"))]);
+    assert_eq!(part_uses(&s, f55), [copy_in(lib, item_of("EW-GEN-MCB-4"))]);
     assert_eq!(s.query().manufacturers().ids().count(), makers + 1);
+    // The part number prints; the starter's maker Generic names no maker, so its slot stays empty.
     let after = slot_texts(&s, f55);
-    for text in ["Schneider Electric", "A9P52610", "C10"] {
-        assert!(after.iter().any(|t| t == text), "{text}: {after:?}");
-    }
-    assert!(!after.iter().any(|t| t == "Siemens"), "{after:?}");
+    assert!(after.iter().any(|t| t == "EW-GEN-MCB-4"), "{after:?}");
+    assert!(!after.iter().any(|t| t == "EW-GEN-MCB-1" || t == "Generic"), "{after:?}");
 }
 
-/// EM-4 (FR-PRT-023): replacing A9P52610 by another MCB across the devices that use it lists -101F1 in the preview and
+/// EM-4 (FR-PRT-023): replacing EW-GEN-MCB-4 by another MCB across the devices that use it lists -101F1 in the preview and
 /// commits once.
 #[test]
 fn replacing_a_part_across_devices_lists_them_and_commits_once() {
     let (_root, t, lib) = company("ew-api-em4");
-    let mut s = golden(Some(t));
-    let from = golden_copy("A9P52610");
+    let mut s = sample(Some(t));
+    let from = held_copy("EW-GEN-MCB-4");
     let users: Vec<Uuid> = s
         .query()
         .devices()
@@ -422,7 +414,7 @@ fn replacing_a_part_across_devices_lists_them_and_commits_once() {
     let cmd = s
         .assign_part(
             &users,
-            &lib_ref(lib, A9P52616),
+            &lib_ref(lib, MCB_C16),
             AssignMode::Replace { from },
             Dec3::ONE,
         )
@@ -439,21 +431,21 @@ fn replacing_a_part_across_devices_lists_them_and_commits_once() {
     let steps = s.history().entries().len();
     s.commit(preview).unwrap();
     assert_eq!(s.history().entries().len(), steps + 1);
-    assert_eq!(part_uses(&s, f1), [copy_in(lib, A9P52616)]);
+    assert_eq!(part_uses(&s, f1), [copy_in(lib, MCB_C16)]);
     let texts = slot_texts(&s, f1);
     assert!(
-        texts.iter().any(|t| t == "A9P52616") && texts.iter().any(|t| t == "C16"),
+        texts.iter().any(|t| t == "MCB-4-C16") && texts.iter().any(|t| t == "16 A"),
         "{texts:?}"
     );
 }
 
-/// EM-5 (FR-PRT-014, D9): updating 2904602 with a description change is a patch; the plan shows the field diff and
-/// -102G1 before the commit; the library status says so before and after.
+/// EM-5 (FR-PRT-014, D9): updating EW-GEN-PSU-1 with a description change is a patch; the plan shows the field diff and
+/// -101G1 before the commit; the library status says so before and after.
 #[test]
 fn a_patch_update_shows_the_field_diff_and_the_device() {
     let (_root, t, lib) = company("ew-api-em5");
-    let mut s = golden(Some(t));
-    let (g1, item) = replace_2904602_on_g1(&mut s, lib);
+    let mut s = sample(Some(t));
+    let (g1, item) = replace_psu_on_g1(&mut s, lib);
     let copy = copy_in(lib, item);
     let state = |s: &Session| {
         s.library_status()
@@ -514,17 +506,17 @@ fn a_patch_update_shows_the_field_diff_and_the_device() {
     assert_eq!(state(&s).0, CopyState::Current);
 }
 
-/// The library's next version of 2904602 names a manufacturer the project does not hold. The plan's
+/// The library's next version of EW-GEN-PSU-1 names a manufacturer the project does not hold. The plan's
 /// `library.update` embeds it in the same command; the command without it is refused with the missing item listed.
 #[test]
 fn an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
     let (_root, t, lib) = company("ew-api-em9");
-    let mut s = golden(Some(t));
-    let (_, item) = replace_2904602_on_g1(&mut s, lib);
+    let mut s = sample(Some(t));
+    let (_, item) = replace_psu_on_g1(&mut s, lib);
     let copy = copy_in(lib, item);
     // The next version names a new manufacturer of the library.
     let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0640);
-    let mut maker = golden_manufacturer_of("2904602");
+    let mut maker = sample_manufacturer_of("EW-GEN-PSU-1");
     maker["item_id"] = json!(maker_item.to_string());
     maker["key"] = json!("PowerCo");
     maker["name"] = json!("PowerCo");
@@ -553,7 +545,7 @@ fn an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
         CmdError::Rejected { reason, .. } => assert_eq!(
             reason,
             "the new versions name items the project does not hold; give them in `embed`: a manufacturer, named by \
-             2904602 at version 1.1.0"
+             EW-GEN-PSU-1 at version 1.1.0"
         ),
         other => panic!("expected the missing closure refused, got {other:?}"),
     }
@@ -590,7 +582,7 @@ fn rehashed(mut v: Value) -> Value {
 /// preview lists; one that removes a connected CP is refused with the list.
 #[test]
 fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_cp() {
-    let mut s = golden(None);
+    let mut s = sample(None);
     let old = held_symbol(&s, "ew.gen.ip@qet10");
     let mut moved = old.clone();
     moved["anchor"] = json!({"named": [80_000_000, 0]});
@@ -628,40 +620,23 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
     let CmdError::Rejected { reason, .. } = &e else {
         panic!("{e:?}")
     };
-    // The attached records in words, a wire by its number or page, never by its ID; whole.
-    let wires = [
-        "wire 103.1",
-        "a wire on page 103",
-        "wire 102.12",
-        "wire 102.11",
-        "wire 103.2",
-        "wire 101.11",
-        "wire 102.5",
-        "a wire on page 103",
-        "wire 102.10",
-        "wire 102.1",
-        "a wire on page 103",
-        "wire 101.12",
-        "a wire on page 103",
-        "a wire on page 103",
-        "wire 102.13",
-        "a wire on page 106",
-        "a wire on page 106",
-        "wire 101.18",
-        "wire 102.9",
-        "a wire on page 103",
-        "a wire on page 103",
-        "a wire on page 103",
-    ];
+    // The attached records in words, a wire by its number, never by its ID; whole: the six outgoing marks of 101
+    // (1L1, 1L2, 1L3, PE, 0V and 24V), each with its wire.
     // Each pin by its interruption point's name and printed designation, never by a raw member (FT-1556).
     let list = reason
         .strip_prefix("the update leaves connected CPs without a CP; map them in `cp_maps`: ")
         .unwrap_or_else(|| panic!("{reason}"));
     let pieces: Vec<&str> = list.split("; ").collect();
-    assert_eq!(pieces.len(), wires.len(), "{reason}");
-    for (piece, wire) in pieces.iter().zip(wires) {
+    assert_eq!(pieces.len(), 6, "{reason}");
+    for name in ["1L1", "1L2", "1L3", "PE", "0V", "24V"] {
         assert!(
-            piece.starts_with("interruption point ") && piece.ends_with(&format!(": {wire}")),
+            pieces.iter().any(|p| p.starts_with(&format!("interruption point {name}:"))),
+            "{name}: {reason}"
+        );
+    }
+    for piece in &pieces {
+        assert!(
+            piece.starts_with("interruption point ") && piece.contains(": wire 101."),
             "{piece}"
         );
         assert!(
@@ -674,7 +649,7 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
 /// EM-7 (doc 07 §4.5): a declared patch that removes a CP is classified major, whatever its version says.
 #[test]
 fn a_declared_patch_that_removes_a_cp_is_major() {
-    let old = golden_part("2904602");
+    let old = sample_part("EW-GEN-PSU-1");
     let mut new = old.clone();
     new["version"] = json!("1.0.1");
     new["cp_pattern"].as_array_mut().unwrap().pop();
@@ -684,23 +659,23 @@ fn a_declared_patch_that_removes_a_cp_is_major() {
     );
     assert_eq!(diff.class, ChangeClass::Major);
     let reasons: Vec<String> = diff.major_reasons.iter().map(ToString::to_string).collect();
-    assert_eq!(reasons, ["CP 6 (−) disappears"]);
+    assert_eq!(reasons, ["CP 6 (-) disappears"]);
 }
 
 /// The CP-map path of `library.update`: a part whose CP index changes designation is major, the connected CP needs a
 /// mapping, and the mapping moves the connection endpoints.
 #[test]
 fn a_major_part_update_remaps_connections_through_the_cp_map() {
-    let mut s = golden(None);
-    let old = golden_part("2904602");
-    let copy = golden_copy("2904602");
-    // CPs 3 and 4 ("+") swap places with 5 and 6 ("−"): by designation, 3 → 5 and 5 → 3 (the lowest index first).
+    let mut s = sample(None);
+    let old = sample_part("EW-GEN-PSU-1");
+    let copy = held_copy("EW-GEN-PSU-1");
+    // CPs 3 and 4 ("+") swap places with 5 and 6 ("-"): by designation, 3 → 5 and 5 → 3 (the lowest index first).
     let mut new = old.clone();
     let pattern = new["cp_pattern"].as_array_mut().unwrap();
     for cp in pattern.iter_mut() {
         let d = match cp["designation"].as_str().unwrap() {
-            "+" => "−",
-            "−" => "+",
+            "+" => "-",
+            "-" => "+",
             other => other,
         };
         cp["designation"] = json!(d);
@@ -708,7 +683,7 @@ fn a_major_part_update_remaps_connections_through_the_cp_map() {
     let new = rehashed(new);
     let ends_at = |s: &Session, idx: u16| -> usize {
         let q = s.query();
-        let g1 = device(s, "-102G1");
+        let g1 = device(s, "-101G1");
         let f = q
             .functions()
             .iter()
@@ -747,8 +722,8 @@ fn a_major_part_update_remaps_connections_through_the_cp_map() {
 #[test]
 fn library_update_refuses_what_it_cannot_update() {
     let (_root, t, lib) = company("ew-api-update-refusals");
-    let mut s = golden(Some(t));
-    let not_held = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, A9P52616)).unwrap()).unwrap();
+    let mut s = sample(Some(t));
+    let not_held = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, MCB_C16)).unwrap()).unwrap();
     let run = |s: &mut Session, params: Value| {
         invalid_path(
             s.preview(&AnyCommand {
@@ -770,7 +745,7 @@ fn library_update_refuses_what_it_cannot_update() {
     );
     // A manufacturer by its name and key, never "a manufacturer".
     let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1524);
-    let mut maker = golden_manufacturer_of("2904602");
+    let mut maker = sample_manufacturer_of("EW-GEN-PSU-1");
     maker["item_id"] = json!(maker_item.to_string());
     maker["key"] = json!("PWC");
     maker["name"] = json!("PowerCo");
@@ -818,41 +793,42 @@ fn library_update_refuses_what_it_cannot_update() {
         let (p, m) = run(&mut s, json!({"copies": [doc]}));
         assert_eq!((p.as_str(), m.as_str()), ("/copies/0", want));
     }
-    let mut lower = golden_part("2904602");
+    let mut lower = sample_part("EW-GEN-PSU-1");
     lower["description"] = json!("older");
-    lower["version"] = json!("0.9.0");
+    lower["version"] = json!("0.0.1");
+
     let lower = with_hash(lower);
     let (p, m) = run(&mut s, json!({"copies": [lower]}));
     assert_eq!(p, "/copies/0/version");
     assert!(m.contains("downgrade"), "{m}");
     let (p, _) = run(
         &mut s,
-        json!({"copies": [rehashed(golden_part("2904602"))], "cp_maps": [{"copy": Uuid::from_u128(1).to_string(), "map": []}]}),
+        json!({"copies": [rehashed(sample_part("EW-GEN-PSU-1"))], "cp_maps": [{"copy": Uuid::from_u128(1).to_string(), "map": []}]}),
     );
     assert_eq!(p, "/cp_maps/0/copy");
     let (p, _) = run(
         &mut s,
-        json!({"copies": [rehashed(golden_part("2904602"))], "cp_maps": [{"copy": golden_copy("2904602").to_string(), "map": [[9, 0]]}]}),
+        json!({"copies": [rehashed(sample_part("EW-GEN-PSU-1"))], "cp_maps": [{"copy": held_copy("EW-GEN-PSU-1").to_string(), "map": [[9, 0]]}]}),
     );
     assert_eq!(p, "/cp_maps/0/map/0/0");
 }
 
-/// EM-8 (FR-PRT-034): deprecating A9P52610 with a successor; Golden A still opens unchanged with the library, and
+/// EM-8 (FR-PRT-034): deprecating EW-GEN-MCB-4 with a successor; the sample still opens unchanged with the library, and
 /// `library_status` offers the successor for -101F1 once it holds the library's copy.
 #[test]
 fn a_deprecated_part_offers_its_successor() {
     let (_root, t, lib) = company("ew-api-em8");
-    let item = item_of("A9P52610");
+    let item = item_of("EW-GEN-MCB-4");
     {
         let mut reg = Registry::open(&t).unwrap();
         let mut v = serde_json::to_value(reg.resolve(&lib_ref(lib, item)).unwrap()).unwrap();
         v["version"] = json!("1.1.0");
-        v["meta"]["status"] = json!({"deprecated": {"successor": lib_ref(lib, A9P52616)}});
+        v["meta"]["status"] = json!({"deprecated": {"successor": lib_ref(lib, MCB_C16)}});
         reg.write(lib, &[LibDocument::from_value(v).unwrap()]).unwrap();
     }
-    // Golden A opens as it does without libraries: every page the same.
-    let plain = golden(None);
-    let mut s = golden(Some(t));
+    // The sample opens as it does without libraries: every page the same.
+    let plain = sample(None);
+    let mut s = sample(Some(t));
     let pages = |s: &Session| {
         let q = s.query();
         q.get::<PageOrder>(())
@@ -864,7 +840,7 @@ fn a_deprecated_part_offers_its_successor() {
     assert!(pages(&s) == pages(&plain));
     // -101F1 takes the library's copy (at version 1.0.0 here, the version the project had embedded before).
     let f1 = device(&s, "-101F1");
-    let mut v = golden_part("A9P52610");
+    let mut v = sample_part("EW-GEN-MCB-4");
     v["library_id"] = json!(lib.to_string());
     v["id"] = json!(copy_in(lib, item).to_string());
     v["manufacturer"]["library"] = json!(lib.to_string());
@@ -874,7 +850,7 @@ fn a_deprecated_part_offers_its_successor() {
     s.execute(&AnyCommand {
         name: "part.assign".into(),
         params: json!({"devices": [f1.as_uuid().to_string()], "part": copy_in(lib, item).to_string(),
-            "copies": [v, maker], "mode": "replace", "from": golden_copy("A9P52610").to_string()}),
+            "copies": [v, maker], "mode": "replace", "from": held_copy("EW-GEN-MCB-4").to_string()}),
     })
     .unwrap();
     let status = s.library_status();
@@ -883,14 +859,14 @@ fn a_deprecated_part_offers_its_successor() {
     assert_eq!(
         mcb.state,
         CopyState::Deprecated {
-            successor: Some(lib_ref(lib, A9P52616))
+            successor: Some(lib_ref(lib, MCB_C16))
         }
     );
     // The successor resolves and can replace it on -101F1.
     let cmd = s
         .assign_part(
             &[f1.as_uuid()],
-            &lib_ref(lib, A9P52616),
+            &lib_ref(lib, MCB_C16),
             AssignMode::Replace {
                 from: copy_in(lib, item),
             },
@@ -898,11 +874,11 @@ fn a_deprecated_part_offers_its_successor() {
         )
         .unwrap();
     s.execute(&cmd).unwrap();
-    assert_eq!(part_uses(&s, f1), [copy_in(lib, A9P52616)]);
+    assert_eq!(part_uses(&s, f1), [copy_in(lib, MCB_C16)]);
 }
 
-/// The 0.1.0 copies Golden A held before the `plc_address` slot, by key, with their published hashes.
-const GOLDEN_PRE_FT698: [&str; 3] = [
+/// The symbols of the sample that took the `plc_address` slot after 0.1.0, by key.
+const PRE_FT698: [&str; 3] = [
     "ew.iec.lamp@qet10",
     "ew.iec.position-switch-no@qet10",
     "ew.iso.valve-5-2-sol-spring@qet10",
@@ -940,19 +916,17 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
     }
 }
 
-/// The product path of Golden A's symbol change: over Golden A as it was (its lamp, position
-/// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
-/// status offers exactly those three copies an update, a minor one to the starter's 0.2.x (the 5/2 valve a major one
-/// to its 0.4.0, which names the FnDef's 0.2); "update from library" updates them in one command, after which
-/// the held copies equal the bootstrap's (the committed fixture's), no copy has an update left and the valve of
-/// -201U3-Q1 prints its channel address Q0.1.
+/// The product path of a symbol change: over the sample as an older project held it (its lamp, position switch and
+/// 5/2 valve at 0.1.0, rebuilt from the new copies), the library status offers exactly those three copies an update, a
+/// minor one to the starter's 0.2.x (the 5/2 valve a major one to its 0.4.0, which names the FnDef's 0.2); "update
+/// from library" updates them in one command, after which the held copies equal the sample's own, no copy has an
+/// update left and the valve -201K1-Q1 prints its channel address Q0.0.
 #[test]
-fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
-    let batch = golden_common::batch();
+fn update_from_library_brings_older_symbols_to_the_plc_address_slot() {
+    let (project, records, mut lib) = common::sample_records();
     let mut current = Vec::new();
-    let mut lib = batch.lib.clone();
     for doc in &mut lib {
-        let Some(key) = symbol_key(doc).filter(|k| GOLDEN_PRE_FT698.contains(&k.as_str())) else {
+        let Some(key) = symbol_key(doc).filter(|k| PRE_FT698.contains(&k.as_str())) else {
             continue;
         };
         current.push(doc.clone());
@@ -966,8 +940,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         );
         *doc = before;
     }
-    assert_eq!(current.len(), GOLDEN_PRE_FT698.len());
-    let (project, records) = common::split(&batch);
+    assert_eq!(current.len(), PRE_FT698.len());
     let mut s = Session::from_records(project, records, lib, options(None)).unwrap();
     let copies: Vec<Uuid> = current
         .iter()
@@ -976,8 +949,8 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
             _ => unreachable!("symbols only"),
         })
         .collect();
-    let valve = device(&s, "-201U3-Q1");
-    assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+    let valve = device(&s, "-201K1-Q1");
+    assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.0"));
     // Each update is to the shipped version; the 5/2 valve's is the major one to its redrawn 0.4.0.
     let target = |copy: Uuid| {
         let doc = current
@@ -1031,7 +1004,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
             .iter()
             .all(|c| !matches!(c.state, CopyState::UpdateAvailable { .. }))
     );
-    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.0"));
 }
 
 /// A damaged library copy a device names is named by its part's words, as the installed
@@ -1039,8 +1012,8 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
 #[test]
 fn a_damaged_copy_is_named_by_its_installed_part() {
     let (root, t, lib) = company("ew-api-damaged-named");
-    let mut s = golden(Some(t.clone()));
-    let (_, item) = replace_2904602_on_g1(&mut s, lib);
+    let mut s = sample(Some(t.clone()));
+    let (_, item) = replace_psu_on_g1(&mut s, lib);
     let dir = root.0.join("project");
     s.create(&dir, ew_api::StoreOptions::new("0.0.0-test")).unwrap();
     s.close();
@@ -1061,14 +1034,14 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
     // The copy and the record that names it in words, whole; a record names it, so a Save As is refused.
     assert_eq!(
         damaged.words.to_string(),
-        "the library copy of part 2904602 named by -102G1"
+        "the library copy of part EW-GEN-PSU-1 named by -101G1"
     );
     assert!(!damaged.left_out);
     assert_eq!(
         (damaged.device, damaged.part),
         (
-            Some("-102G1".to_owned()),
-            Some(("2904602".to_owned(), "Acme".to_owned()))
+            Some("-101G1".to_owned()),
+            Some(("EW-GEN-PSU-1".to_owned(), "Acme".to_owned()))
         )
     );
 }
@@ -1078,9 +1051,9 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
 /// step.
 #[test]
 fn an_update_that_adds_a_plc_section_makes_the_device_a_module() {
-    let mut s = golden(None);
-    let g1 = device(&s, "-102G1");
-    let mut newer = golden_part("2904602");
+    let mut s = sample(None);
+    let g1 = device(&s, "-101G1");
+    let mut newer = sample_part("EW-GEN-PSU-1");
     newer["sections"]["plc"] = json!({
         "role": "module",
         "io": [{"dir": "in", "bits": 8}],
