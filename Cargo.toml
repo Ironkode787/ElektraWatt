@@ -59,8 +59,8 @@ mem_forget = "warn"
 opt-level = 1
 
 # Two crates where most edits happen stay at opt-level 0, which compiles fastest; measured, their tests gain 5 to
-# 10 % at opt-level 1. The window () is at opt-level 1 with the rest: its tests are the largest share of the
-# suite and ran in about 0.6 of the time, for about 3.5 s more on an edit of the crate (measured by hand in M3.5).
+# 10 % at opt-level 1. The window (`ew-ui`) is at opt-level 1 with the rest: its tests are the largest share of
+# the suite and ran in about 0.6 of the time, for about 3.5 s more on an edit of the crate (measured by hand).
 [profile.dev.package.ew-api]
 opt-level = 0
 
