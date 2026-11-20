@@ -886,8 +886,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   until its supply crosses none of its channels (06a §4.4, §3.6)
 - fix: Route no longer refuses a whole plan, leaving wires without a route, because a text then lies across a wire
   that was routed before: it routes them and names that wire (06a §3.6)
-- fix: a second Arrange and route on a page of the QET grid no longer routes a few wires again: a text's box has
-  the same size wherever its symbol stands (06a §2.1)
 - behaviour-change: content: the starter symbols with a pin leaving upward carry their tag at the upper left, make,
   type and rating under it and pin numbers right of their pins, and the interruption point's two forms their name in
   line with the wire, so that marks stack two steps apart; each changed symbol's version rises (06a §5.2, §7.5)

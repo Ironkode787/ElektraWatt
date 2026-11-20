@@ -266,16 +266,13 @@ impl Grid {
     }
 
     /// The span `lo..hi` in ticks of `1 / per_step` of a step, rounded outward: the box of a text (§2.1 of
-    /// docs/design/06a-drafting.md). An end within two nanometres of a tick takes that tick: on a grid whose step is
-    /// no whole number of nanometres a grid point is up to half a nanometre off the grid's own line, and a box drawn
-    /// on a tick of its symbol must have the same ticks wherever the symbol stands. Saturates at the `i64` limits.
+    /// docs/design/06a-drafting.md). Saturates at the `i64` limits.
     pub fn tick_span(self, lo: Nm, hi: Nm, per_step: u32) -> (i64, i64) {
-        const SLACK: i128 = 2;
         let (num, den, per) = (i128::from(self.num), i128::from(self.den), i128::from(per_step));
         let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
-        let floor = ((i128::from(lo.0) + SLACK) * den * per).div_euclid(num);
-        let ceil = -(-((i128::from(hi.0) - SLACK) * den * per)).div_euclid(num);
-        (sat(floor), sat(ceil.max(floor)))
+        let floor = (i128::from(lo.0) * den * per).div_euclid(num);
+        let ceil = -(-(i128::from(hi.0) * den * per)).div_euclid(num);
+        (sat(floor), sat(ceil))
     }
 
     /// The coordinate of tick `t` of `1 / per_step` of a step: `round(t × num / (den × per_step))`, ties toward zero,
@@ -348,18 +345,6 @@ impl Grid {
 mod tests {
     use super::*;
     use proptest::prelude::*;
-
-    #[test]
-    fn a_box_on_a_tick_of_its_symbol_has_the_same_ticks_wherever_the_symbol_stands() {
-        let g = Grid::QET_10PX;
-        // A box from half a step to a whole step beside its symbol's origin, in whole nanometres as a file stores it.
-        let half = 1_322_917;
-        for k in 0..9 {
-            let origin = g.at(k).unwrap().0;
-            let (lo, hi) = g.tick_span(Nm(origin + half), Nm(origin + 2 * half), 16);
-            assert_eq!((lo - 16 * k, hi - 16 * k), (8, 16), "at grid point {k}");
-        }
-    }
 
     #[test]
     fn ticks_round_a_span_outward_and_a_whole_step_back_to_the_grids_number() {

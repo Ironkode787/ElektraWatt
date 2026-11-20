@@ -973,12 +973,20 @@ fn a_card_under_the_controller_steps_aside_until_its_supply_crosses_no_channel()
         b.terminal(&terminal, p(9 + 8 * k, 34));
         b.device(&sensor, p(9 + 8 * k, 19));
         b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(&terminal, "1"), &[]);
-        b.wire(&format!("c{k}"), b.pin(&terminal, "2"), b.pin("A1", &format!("{k}")), &[]);
+        b.wire(
+            &format!("c{k}"),
+            b.pin(&terminal, "2"),
+            b.pin("A1", &format!("{k}")),
+            &[],
+        );
     }
     let (_, done) = run(&b.page, &[]);
     assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
     let card = at(&done, "A1");
-    assert!(card.x >= s(22), "the card stands right of the pins its supply comes from: {card:?}");
+    assert!(
+        card.x >= s(22),
+        "the card stands right of the pins its supply comes from: {card:?}"
+    );
     assert_eq!(card.y, s(50), "along the foot");
     for k in 0..3 {
         let x = card.x + s(5 + 8 * k);

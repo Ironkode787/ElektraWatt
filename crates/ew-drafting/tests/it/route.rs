@@ -6,7 +6,8 @@
 
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    DraftPage, End, LabelKind, Owner, Places, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire,
+    DraftPage, End, LabelKind, Owner, Places, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route,
+    route_wire,
 };
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
@@ -352,12 +353,25 @@ fn a_plan_that_routes_a_wire_without_a_route_is_not_refused_for_a_text_on_a_kept
     b.part("L", p(10, 12), (p(0, 0), p(4, 4)), &[("1", p(4, 2), Side::Right)]);
     b.part("R", p(26, 12), (p(0, 0), p(4, 4)), &[("1", p(0, 2), Side::Left)]);
     let new = b.wire("new", b.pin("L", "1"), b.pin("R", "1"), &[]);
-    b.label(Owner::Wire(new), 0, LabelKind::WireNumber, (s(8), 12), Places::AlongWire);
+    b.label(
+        Owner::Wire(new),
+        0,
+        LabelKind::WireNumber,
+        (s(8), 12),
+        Places::AlongWire,
+    );
     let plan = route(&b.page, &jobs(&b.page, Scope::Page));
-    assert!(plan.routes.iter().any(|(w, r)| *w == new && !r.is_empty()), "{plan:?}");
+    assert!(
+        plan.routes.iter().any(|(w, r)| *w == new && !r.is_empty()),
+        "{plan:?}"
+    );
     assert_eq!((plan.after.faults, plan.after.unrouted), (0, 0));
     assert!(
-        plan.after.findings.across_texts.iter().any(|(w, _, _)| *w == kept),
+        plan.after
+            .findings
+            .across_texts
+            .iter()
+            .any(|(w, _, _)| *w == kept),
         "the plan names the text across the kept wire: {:?}",
         plan.after.findings.across_texts
     );

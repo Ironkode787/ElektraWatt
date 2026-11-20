@@ -262,13 +262,17 @@ the plan could leave two devices of two terminals of one strip in each other's o
 ### 2.1 Units: grid ticks, never nanometres
 
 The layout computes in **ticks**: 1/16 of a grid step, as `i32`. A grid position is a multiple of 16, a half-grid
-position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page); an edge
-within two nanometres of a tick takes that tick. (On a grid whose step is no whole number of nanometres a grid
-point is up to half a nanometre off its own line. A text set on a tick of its symbol then had a box one tick
-larger or smaller according to where the symbol stood, the page as stored was not the page the plan was made
-for, and a second press routed a few wires again.) The adapter
+position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page). The adapter
 in `ew-api` converts the page into ticks once and a plan back into nanometres once, through `ew_units::Grid`.
 Inside the crate no nanometre exists, so two numbers for one grid position cannot meet.
+
+*Known, not mended (2026-11-20).* On the QET grid, whose step is no whole number of nanometres, a grid point is up
+to half a nanometre off its own line. A text set on a tick of its symbol then has a box one tick larger or smaller
+according to where the symbol stands, so after a plan moves symbols the page as stored is not quite the page the
+plan was made for, and a second press may route a few wires again (seen on one page: five wires, ten points of
+cost; the third press offers nothing). Taking an edge within two nanometres of a tick as on it (in
+`Grid::tick_span`) mends it and moves texts by a tick on every page of that grid, which changes the reference
+project's expected output; it waits for that decision.
 
 **What the design needs from the position model.** On a page whose step is not a whole number of nanometres, a
 pin's stored point is a sum of two rounded numbers and can lie 1 nm beside the grid's number for that position.
