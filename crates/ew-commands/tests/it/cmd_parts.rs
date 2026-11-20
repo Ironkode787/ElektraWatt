@@ -9,33 +9,37 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::{ImportParts, import_counts};
+use ew_commands::commands::{ImportParts, import_counts, library_copy_hash};
 use ew_commands::{CmdError, Cost, Engine, Origin, Receipt};
-use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part};
+use ew_model::fixture::{ident, lib_ref_to, manufacturer_copy, part};
+use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part, Sha256};
 use serde_json::{Value, json};
 
-/// The golden project's part copies (`golden/J-E-2416.ew/lib/parts`), re-homed as project-local copies of the test
-/// project: `library_id` = the project ID, the copy ID its identity; the item (and so its hash) unchanged.
+/// The library of the manufacturers the part copies name before a test re-homes them.
+const MAKER_LIBRARY: u128 = 0x9a00;
+/// The manufacturer items of [`local_manufacturers`]; the part copies name them in turn.
+const MAKERS: [u128; 2] = [0x9a01, 0x9a02];
+
+/// `n` part copies `P1` … `Pn` (key and part number), project-local to the test project: `library_id` = the
+/// project ID, the copy ID its identity, `sha256` its item's hash. Each names a manufacturer of [`MAKERS`] in
+/// turn, in [`MAKER_LIBRARY`].
 fn local_copies(n: usize) -> Vec<Value> {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/lib/parts");
-    let mut paths: Vec<_> = std::fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    paths.sort();
     let project = project().id.as_uuid();
-    paths
-        .iter()
-        .take(n)
-        .map(|p| {
-            let LibDocument::Part(mut c) =
-                LibDocument::from_json(&std::fs::read_to_string(p).unwrap()).unwrap()
-            else {
-                panic!("a part copy")
-            };
+    (0..n)
+        .map(|i| {
+            let item = uuid(0x9b01 + i as u128);
+            let key = format!("P{}", i + 1);
+            let mut c = part(ew_ids::v5::lib_copy_id(project, item), &key);
             c.library_id = ew_ids::Id::from_uuid(project);
-            c.id = ew_ids::v5::lib_copy_id(project, c.item_id.as_uuid());
-            serde_json::to_value(LibDocument::Part(c)).unwrap()
+            c.item_id = ew_ids::Id::from_uuid(item);
+            c.item.meta.key = Some(ident(&key));
+            c.item.manufacturer = lib_ref_to(uuid(MAKER_LIBRARY), uuid(MAKERS[i % MAKERS.len()]));
+            let mut doc = LibDocument::Part(c);
+            let hash = library_copy_hash(&doc).expect("a part copy has a hash");
+            if let LibDocument::Part(c) = &mut doc {
+                c.sha256 = Sha256(hash);
+            }
+            serde_json::to_value(doc).unwrap()
         })
         .collect()
 }
@@ -96,26 +100,18 @@ fn a_second_import_skips_every_key_and_undo_removes_the_first() {
     assert_eq!(parts(&e), before);
 }
 
-/// The golden project's manufacturer copies, re-homed as project-local copies like [`local_copies`].
+/// The manufacturer copies of [`MAKERS`], project-local like [`local_copies`].
 fn local_manufacturers() -> Vec<LibCopy<Manufacturer>> {
-    let dir =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/lib/manufacturers");
-    let mut paths: Vec<_> = std::fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    paths.sort();
     let project = project().id.as_uuid();
-    paths
+    MAKERS
         .iter()
-        .map(|p| {
-            let LibDocument::Manufacturer(mut c) =
-                LibDocument::from_json(&std::fs::read_to_string(p).unwrap()).unwrap()
-            else {
-                panic!("a manufacturer copy")
-            };
+        .map(|&item| {
+            let mut c = manufacturer_copy(ew_ids::v5::lib_copy_id(project, uuid(item)));
             c.library_id = ew_ids::Id::from_uuid(project);
-            c.id = ew_ids::v5::lib_copy_id(project, c.item_id.as_uuid());
+            c.item_id = ew_ids::Id::from_uuid(uuid(item));
+            c.sha256 = Sha256(
+                library_copy_hash(&LibDocument::Manufacturer(c.clone())).expect("a manufacturer copy has a hash"),
+            );
             c
         })
         .collect()
