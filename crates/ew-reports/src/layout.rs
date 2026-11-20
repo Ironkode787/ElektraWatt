@@ -5,17 +5,13 @@
 //! §3.2).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{DataArea, FormDef, RowTemplate, WrapPolicy};
+use ew_derive::ew_schema::{
+    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, RowTemplate, WrapPolicy,
+};
 use ew_derive::ew_units::Nm;
 use ew_derive::{DeriveNote, Q};
 
 use crate::rowset::RowKind;
-
-/// The row height of the house report form (doc 09 §2.5, doc 20 §16): 6.52 mm.
-pub const HOUSE_ROW_HEIGHT: Nm = Nm(6_520_000);
-
-/// The data rows per page of the house report form (doc 20 §16).
-pub const HOUSE_ROWS_PER_PAGE: i64 = 23;
 
 /// The longest continuation chain followed; a longer or cyclic chain repeats its last form.
 const MAX_CHAIN: usize = 16;

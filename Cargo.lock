@@ -1406,7 +1406,6 @@ version = "0.3.0"
 dependencies = [
  "automod",
  "ew-commands",
- "ew-drafting",
  "ew-hack",
  "ew-ids",
  "ew-memo",
@@ -1791,7 +1790,6 @@ dependencies = [
  "ew-hack",
  "ew-ids",
  "ew-mltext",
- "ew-reports",
  "ew-schema",
  "ew-text",
  "ew-units",

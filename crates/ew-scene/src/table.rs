@@ -4,7 +4,7 @@
 //! The `tables` layer of a generated report page: the house report table of doc 20 §16.
 //!
 //! The caller (which holds the tracked read context) fills a [`TableView`] with the **printed** texts of
-//! one page's rows: the cell values are typed [`ew_reports::Cell`]s rendered late (doc 09 §3.6), so this
+//! one page's rows: the cell values are typed `Cell`s of `ew-reports` rendered late (doc 09 §3.6), so this
 //! module only draws strings. [`lower_table`] is a pure function of the view, the form's page-to-sheet
 //! map and the font set.
 //!
@@ -57,13 +57,13 @@ pub const RIGHT: Nm = Nm(277_270_000);
 /// The top edge of the table (the top of the header row), printed.
 pub const TOP: Nm = Nm(15_010_000);
 /// The height of the header and of every row, printed (doc 20 §16).
-pub const ROW_HEIGHT: Nm = Nm(6_520_000);
+pub const ROW_HEIGHT: Nm = ew_schema::HOUSE_ROW_HEIGHT;
 /// The grid line width, printed.
 pub const LINE_WIDTH: Nm = Nm(183_000);
 /// The header fill.
 pub const HEADER_FILL: Color = Color::from_rgb8(192, 192, 192);
 /// The most rows below the header the house form holds (doc 20 §16: 23 data rows per page).
-pub const MAX_ROWS: usize = ew_reports::layout::HOUSE_ROWS_PER_PAGE as usize;
+pub const MAX_ROWS: usize = ew_schema::HOUSE_ROWS_PER_PAGE as usize;
 /// The smallest printed cap height of shrink-to-fit (doc 09 §2.5; the 1.8 mm of REF-088).
 pub const MIN_CAP_HEIGHT: Nm = Nm(1_800_000);
 

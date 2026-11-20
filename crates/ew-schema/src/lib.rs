@@ -149,7 +149,7 @@ pub use library::{
     Configured, ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation,
     Dir4, Discipline, DuctSection, EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind,
     FittingData, FluidPortData, FluidPortRole, FluidSection, FluidTransform, FnDef, FnFlags, FormCell,
-    FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, GalleryData, ImagePrim, InternalKind,
+    FormDef, FormKind, FrameColumns, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, FrameGrid, FrameRows, FreeProp, GalleryData, ImagePrim, InternalKind,
     InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance,
     MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow,
     Part, PartBox, PartBoxPin, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection,

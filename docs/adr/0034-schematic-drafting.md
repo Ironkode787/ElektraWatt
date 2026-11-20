@@ -83,7 +83,7 @@
 13. **Guides while placing by hand.** A guide shows where a pin of the hanging part is in line with a pin it
     faces; within three quarters of a grid step (the ordinary snap is half a step), at most eight screen points
     further, the part takes that line. No place is computed for a part that is placed by hand.
-14. **One home.** A crate `ew-drafting` (GPL-3.0-or-later; `ew-units` and `ew-ids` only) holds the model, the
+14. **One home.** A crate `ew-drafting` (GPL-3.0-or-later; `ew-ids` only, `ew-units` allowed) holds the model, the
     measure, the text placer, the router, the placer and the guides. `ew_derive::routing` is deleted.
 15. **Kept from ADR-0033:** the two forms of the interruption point; connecting on a move.
 

@@ -2258,6 +2258,13 @@ pub struct ShrinkSpec {
     pub extra: Extra,
 }
 
+/// The row height of the house report form (doc 09 §2.5, doc 20 §16): 6.52 mm. The pagination of `ew-reports` and
+/// the table that `ew-scene` draws both read it.
+pub const HOUSE_ROW_HEIGHT: Nm = Nm(6_520_000);
+
+/// The data rows per page of the house report form (doc 20 §16).
+pub const HOUSE_ROWS_PER_PAGE: i64 = 23;
+
 /// The data area of a report form.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DataArea {

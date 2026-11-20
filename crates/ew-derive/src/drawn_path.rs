@@ -10,7 +10,7 @@
 //!   from end `a`'s point to end `b`'s, both included (ADR-0033); equal neighbours are merged, and an
 //!   end whose point differs from the route's end vertex (a stale route) is joined to it by one straight segment.
 //! - A connection without one has no wire geometry: it is *unrouted* (the scene draws a dashed right-angled
-//!   line between its ends, `ew_drafting::unrouted_line`, which no rule reads) or, with its
+//!   line between its ends, `unrouted_line` of `ew-drafting`, which no rule reads) or, with its
 //!   ends at one point, drawn as nothing.
 //! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
 //!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.

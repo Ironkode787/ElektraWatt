@@ -15,9 +15,9 @@ publish = false
 workspace = true
 
 [dependencies]
-ew-reports = { path = "../ew-reports" }
-# The drawn path of a connection (`route::provisional_route` builds on `ew_derive::provisional_path`), one rule for
-# the page, normaliser 7 and EW-TERM-006 (decision log ID-1110, ID-1111); already in the graph through `ew-reports`.
+# Its pure functions only, never a `Q`: the drawn path of a connection (`route::connection_polyline` builds on
+# `ew_derive::stored_path`), one rule for the page, normaliser 7 and EW-TERM-006 (decision log ID-1110, ID-1111), and
+# a representation's text frame.
 ew-derive = { path = "../ew-derive" }
 # The page as the layout sees it, and the one text placer that the labels layer draws its texts with
 # (docs/design/06a-drafting.md §5).
