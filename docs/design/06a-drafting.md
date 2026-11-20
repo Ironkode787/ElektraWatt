@@ -119,6 +119,15 @@ sees and make a page comparable before and after: the wires drawn **straight** a
 the **detour** (the summed length against the summed city-block distance of the ends, in percent); and the
 **labels moved** off their first place. Their causes are already in the cost.
 
+*As built (step 1).* F3 excepts only the common beginning of two wires of one pin, within `STUB` along the pin's
+side; the shared run of §3.4 comes with the router (step 2). F6 is a corner on another wire's corner: a corner or
+an end on another wire's end, a junction on a crossing and a wire's end on a wire are F2 by their geometry. F7
+leaves out an outline drawn round other parts, a part without pins and two parts on one pin's point (an
+interruption point on a pin). Two texts meet when they overlap by more than a tick (a text's box is rounded outward
+to ticks); C4 does not count a wire across a text of a cable mark or of the wire itself. The checks name parts as
+the program does, "symbols": F7 is EW-CORE-077 "Symbol on a symbol", and §8's "Text on a part" is EW-CORE-076 "Text
+on a symbol".
+
 ### 1.3 Rules that hold on every page
 
 Source: a rule number of the research, or **E** for a rule measured on the pilot's reference set and taken as this program's default (on a sheet of
@@ -812,6 +821,21 @@ is placed by the program unless the person moved it) stays, with one placer inst
 up: a later version of the placer may place a text of an old drawing differently. The fixtures of §9 hold its
 results.
 
+*As built (step 1).* The adapter is the scene's (`ew-scene`, `draft.rs`): it builds the page's `DraftPage` from
+what the Labels layer draws, and `Session::page_draft` adds the supply ranks and the page's kind; `role` is
+`Other` until the placer reads it (step 4). A symbol's slot, where its author put the text, is a label's first
+place; there a label only must not lie on a fixed text or a text of its own part, and two texts of one part both at
+their author's places do not count against each other. After §5.2's places each kind has a few more, tried in this order: one
+line lower (a tag in a row); above the upper corners; a strip designation above it, ending at its left edge; a
+mark's name one line higher; a drawn box's data under the earlier data, and above the box over its tag; a
+terminal's name turned a quarter, and beside its body; a mark's cross-reference beyond the arrow, under then over
+the wire. A label stands nowhere it reads as another part's (nearer another part of the same body size than its
+own), and a label of a part without pins stays inside its outline or clear of it. A place that is the free first
+place of a label not yet placed is taken only when no other is clear. A text whose author's place lies on a text
+of its own part placed before it has the place under that text second (line under line). The repair round tries
+each label a clashing label lies on at its first other clear place, and the clashing label then at its first clear
+place.
+
 ---
 
 ## 6. Placing by hand, helped
@@ -968,6 +992,10 @@ point; connecting on a move.
 measure; -068 allows a shared run. Three are added with the next free numbers of that family: "Wires meet without
 joining" (F6, a warning; it was a hard rule of the router that no check reported), "Text on a text" and "Text on
 a part" (C5, hygiene warnings). EW-TERM-006 is unchanged.
+
+*As built (step 1).* Four are added, F7 among them as §1.2 asks: EW-CORE-074 "Wires meet without joining",
+-075 "Text on a text", -076 "Text on a symbol" and -077 "Symbol on a symbol" (a conflict warning), with the rows of
+[15](15-checks-revisions-collaboration.md) §4.2. Until step 2, -068 allows the common beginning of §1.2's note only.
 
 ### 8.1 What is left out
 
