@@ -9,7 +9,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,

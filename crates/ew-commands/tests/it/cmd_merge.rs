@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::{AnyCommand, Engine, Origin};
 use ew_model::{AnyKey, Model};

@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests.
+//! The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests and,
+//! through the feature `testkit`, by the tests of `ew-commands`; with the record, library and valve helpers they
+//! build their own records with. The JSON fixture builder of `ew-derive`'s tests is `ew-derive/tests/common/`.
 
 #![allow(dead_code)]
 #![allow(missing_docs, reason = "test data: each name says which record it builds")]
@@ -239,12 +241,7 @@ pub fn cable(cable_id: Id<Device>, letter: &str, counter: u32) -> Device {
     d
 }
 
-pub fn function(
-    function_id: Id<Function>,
-    device: Id<Device>,
-    def: Id<FnDef>,
-    role: FnRole,
-) -> Function {
+pub fn function(function_id: Id<Function>, device: Id<Device>, def: Id<FnDef>, role: FnRole) -> Function {
     Function {
         id: function_id,
         v: 1,
@@ -284,11 +281,7 @@ pub fn ip_function(function_id: Id<Function>, name: &str, direction: IpDirection
     }
 }
 
-pub fn rep(
-    rep_id: Id<Representation>,
-    page: Id<Page>,
-    functions: Vec<Id<Function>>,
-) -> Representation {
+pub fn rep(rep_id: Id<Representation>, page: Id<Page>, functions: Vec<Id<Function>>) -> Representation {
     Representation {
         id: rep_id,
         v: 1,
@@ -536,6 +529,66 @@ pub fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uui
         extra: Extra::new(),
     }];
     copy
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Solenoid valves
+
+/// The library of the solenoid-valve FnDefs.
+pub const LIBRARY_VALVE: Uuid = Uuid::from_u128(0x9300);
+/// The 5/2 valve body of [`LIBRARY_VALVE`].
+pub const ITEM_VALVE_52: Uuid = Uuid::from_u128(0x9301);
+/// The internal solenoid coil of [`LIBRARY_VALVE`].
+pub const ITEM_SOLENOID: Uuid = Uuid::from_u128(0x9302);
+
+/// The 5/2 valve body: contact kind `valve`, ports 1 to 5.
+pub fn valve_52_fndef() -> LibCopy<FnDef> {
+    let mut copy = fndef_copy_for(LIBRARY_VALVE, ITEM_VALVE_52, &["1", "2", "3", "4", "5"]);
+    copy.item.contact_kind = ContactKind::Valve;
+    copy
+}
+
+/// The internal solenoid coil: contact kind `coil`, one non-physical CP "14".
+pub fn solenoid_fndef() -> LibCopy<FnDef> {
+    let mut copy = fndef_copy_for(LIBRARY_VALVE, ITEM_SOLENOID, &["14"]);
+    copy.item.contact_kind = ContactKind::Coil;
+    let cps: Vec<CpDef> = copy
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .map(|mut cp| {
+            cp.physical = false;
+            cp
+        })
+        .collect();
+    copy.item.cps = ew_schema::KeyedList::from_vec(cps).expect("one CP");
+    copy
+}
+
+/// A valve part that declares `solenoids`: its template is the 5/2 body (main) and one internal coil per solenoid.
+pub fn solenoid_valve_part(part_id: Id<Part>, part_number: &str, solenoids: &[&str]) -> LibCopy<Part> {
+    let mut copy = part(part_id, part_number);
+    copy.item.function_template = std::iter::once((ITEM_VALVE_52, true))
+        .chain(solenoids.iter().map(|_| (ITEM_SOLENOID, false)))
+        .map(|(item, main)| TemplateFn {
+            fndef: lib_ref_to(LIBRARY_VALVE, item),
+            main,
+            cps: vec![],
+            extra: Extra::new(),
+        })
+        .collect();
+    copy.item.sections.fluid = Some(ew_schema::FluidSection {
+        solenoids: solenoids.iter().map(|s| ident(s)).collect(),
+        ..Default::default()
+    });
+    copy
+}
+
+/// The coil function of solenoid `k` (0-based) that N-FL-1 gives a valve of a [`solenoid_valve_part`]:
+/// `v5(valve, k + 1)`.
+pub fn coil_function(valve: Id<Device>, k: u32) -> Id<Function> {
+    ew_ids::v5::template_function_id(valve, k + 1)
 }
 
 // ---------------------------------------------------------------------------------------------------------

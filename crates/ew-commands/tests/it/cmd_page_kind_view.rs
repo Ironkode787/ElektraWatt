@@ -9,7 +9,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{KindName, LabelModeParam, SetFields, SetManyFields, SetSurfaceView};
 use ew_commands::{AnyCommand, CommandRegistry, Engine, Origin};

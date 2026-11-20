@@ -6,7 +6,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::MoveReps;
 use ew_commands::{AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Transaction};

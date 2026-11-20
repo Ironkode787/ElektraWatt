@@ -11,7 +11,7 @@ use crate::common;
 
 use std::fmt::Debug;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Crossings, DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,

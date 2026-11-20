@@ -13,7 +13,7 @@ use crate::common;
 
 use std::sync::Arc;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Connect, CreatePage, DeleteConnections, DeleteSelection, DeviceScope, EndpointParam, KindName, MoveReps,

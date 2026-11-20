@@ -12,7 +12,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::Engine;
 use ew_commands::commands::{Connect, ConnectHint, EndpointParam, PlaceSymbol, PlaceTarget};

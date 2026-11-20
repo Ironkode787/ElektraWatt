@@ -1,14 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the integration tests: the mini golden fixture, a library with a two-CP symbol, and
-//! engines with a seeded ID source.
+//! Shared helpers of the integration tests: the mini golden fixture (`ew_model::fixture`) with a library that
+//! adds a two-CP symbol, and engines with a seeded ID source.
 
 #![allow(dead_code)]
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
-
-pub mod fixture;
 
 use ew_commands::commands::{CreateEnclosure, CreateLayoutSpace, EndpointParam, KindName, SetFields};
 use ew_commands::{CmdError, Engine, EngineOptions, HistoryLimits, Receipt};
@@ -22,7 +20,7 @@ use ew_schema::{
 use ew_testids::SeededSource;
 use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
 
-use fixture::*;
+use ew_model::fixture::*;
 
 /// The seed of [`engine`].
 pub const SEED: u64 = 7;

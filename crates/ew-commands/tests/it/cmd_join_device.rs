@@ -11,7 +11,7 @@ use crate::common;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{JoinDevice, KindName, LinkDevices, SetFields};
 use ew_commands::{CmdError, Engine, Origin};

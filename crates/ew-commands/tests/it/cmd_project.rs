@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::fixture::{FORM, form, id, mini_golden_parts};
+use ew_model::fixture::{FORM, form, id, mini_golden_parts};
 use common::*;
 use ew_commands::commands::{COMPANY_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, SetCompany};
 use ew_commands::{
@@ -844,7 +844,7 @@ fn company_set_refuses_a_logo_that_is_no_image_or_a_hostile_svg() {
 #[test]
 fn fields_set_sets_the_project_description_and_undoes() {
     let mut e = engine(golden_model());
-    let project = common::fixture::PROJECT.to_string();
+    let project = ew_model::fixture::PROJECT.to_string();
     let before = e.model().project().master.description.clone();
     e.execute(&any(
         "fields.set",
@@ -876,7 +876,7 @@ fn fields_set_sets_the_project_description_and_undoes() {
 #[test]
 fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
     let mut e = engine(golden_model());
-    let project = common::fixture::PROJECT.to_string();
+    let project = ew_model::fixture::PROJECT.to_string();
     let (path, message) = invalid(
         &mut e,
         &any(

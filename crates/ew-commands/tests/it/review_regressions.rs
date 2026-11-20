@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::reason as rejection;
 use common::*;
 use ew_commands::commands::{Connect, ConnectHint, CreatePage, EndpointParam, PlaceSymbol, PlaceTarget};

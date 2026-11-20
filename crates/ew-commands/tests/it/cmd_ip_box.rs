@@ -10,7 +10,7 @@ use crate::common;
 
 use std::fmt::Debug;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{ArrangeIps, DrawToIp, EndpointParam, IpAtEnd, ReshapeBox};
 use ew_commands::geometry::point_on_grid;

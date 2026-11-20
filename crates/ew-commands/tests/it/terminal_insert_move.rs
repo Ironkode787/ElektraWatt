@@ -13,7 +13,7 @@ use crate::common;
 
 use std::collections::BTreeMap;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddTerminals, CreateDevice, InsertTerminals, KindName, MoveTerminals, SetFields, TerminalSpec,

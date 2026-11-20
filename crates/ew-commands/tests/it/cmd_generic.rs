@@ -7,7 +7,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     BULK_ABOVE, DeleteSelection, DeviceScope, KindName, RenumberDevices, RenumberOptions, SetFields,

@@ -9,7 +9,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{EditPartCopy, KindName, SetManyFields, library_copy_hash};
 use ew_commands::{CmdError, Engine, Origin};

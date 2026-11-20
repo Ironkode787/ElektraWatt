@@ -6,7 +6,7 @@
 
 use crate::common;
 
-use common::fixture::*;
+use ew_model::fixture::*;
 use common::*;
 use ew_commands::{AnyCommand, CmdError, CommandRegistry, validate_schema};
 use serde_json::{Value, json};
