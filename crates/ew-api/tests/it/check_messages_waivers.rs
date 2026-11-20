@@ -323,7 +323,7 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
             pending.push(format!("{} {} ({})", r.ef, r.rule, r.pending));
         }
     }
-    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21, EF-22, EF-26 and EF-27, and EF-22
+    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21, EF-22 and EF-26, and EF-22
     // (EW-PLC-013) supersedes EF-10 (EW-POT-003) on its pins.
     want.remove(&("EW-POT-003".to_owned(), "warning".to_owned()));
     for r in rows_of("findings_1_0.csv") {

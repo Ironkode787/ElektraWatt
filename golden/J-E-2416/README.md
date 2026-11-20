@@ -650,8 +650,9 @@ the router's). Still open:
 - **Router.** *Closed by WP-S2.19 (cycle 53; decision log ID-1499, ID-1502 to ID-1505).* Every page connection of
   folios 3, 101, 102, 103, 106 and 203 has the schematic router's route, written into `connections.csv`'s `route`
   column by Golden A's route tool, with no wire through a connection point, along another wire, through a symbol or
-  through a text; `expected/layout.txt` holds each page's crossings and bends, a ratchet that a later router change
-  may not raise. The provisional router's overlaps that this item listed are gone.
+  through a text. Since the drafting design (ADR-0034) the stored routes are the drawing: they are no longer compared
+  with the router's, and Route of 06a routes them again. The provisional router's overlaps that this item listed are
+  gone.
 - **Report pages.** The generated pages (2, 2.1, 901, 903 … 911) draw their `tables` layer (FT-53): the house
   report table of doc 20 §16 (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0, 8.88 pt), column widths by
   the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's

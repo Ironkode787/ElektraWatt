@@ -1,7 +1,7 @@
 # The acceptance list of RP3 (WP-S2.19 section 11.3), on a copy of Golden A, whose own check report has errors of
 # other packages (the panel layout's, for one), so no item asks for a clean report. Correctness is A1 and A2 (`ew sql`);
 # the measures are A4 and A7 here and `ew layout <project> --page 101` in the round's report: its hard rules must be 0,
-# and its crossings and bends are written beside the keep score and Golden A's own line in `expected/layout.txt`. A
+# and its crossings and bends are written beside the keep score and Golden A's own `ew layout` line. A
 # finding of the run is written as a row of the round's report: the run, the item or the measure, what the tester did,
 # what the program showed, a frame.
 

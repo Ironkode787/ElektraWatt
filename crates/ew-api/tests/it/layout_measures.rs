@@ -666,8 +666,7 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
     assert_eq!(findings(&s, "EW-CORE-073"), []);
 }
 
-/// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073 but EF-27 of
-/// doc 20 §18.2 (a wire across -T55's type text).
+/// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
 #[test]
 fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
     use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
@@ -691,10 +690,7 @@ fn rk2_golden_a_s_check_report_holds_no_layout_finding() {
             })
             .map(|f| f.message.as_str())
             .collect();
-        assert_eq!(
-            layout,
-            ["Wire the junction in C11 → -E55:L runs through the text \"SK 3110.000\" of -T55."]
-        );
+        assert_eq!(layout, Vec::<&str>::new());
         assert!(
             report.rules.iter().any(|m| m.id == "EW-CORE-073"),
             "the run evaluated the rules"
