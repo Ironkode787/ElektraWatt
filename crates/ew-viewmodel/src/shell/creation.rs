@@ -1839,11 +1839,11 @@ impl ShellModel {
             if self.mode == Mode::Gui && !self.in_form_of(PLC_EXPORT.action) {
                 let mut dialog = PLC_EXPORT.dialog(p);
                 if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "format") {
-                    f.options = super::automation::PLC_FORMATS
+                    f.options = super::plc_exchange::PLC_FORMATS
                         .iter()
                         .map(|(w, name)| ((*w).to_owned(), (*name).to_owned()))
                         .collect();
-                    super::automation::PLC_FORMATS[0].0.clone_into(&mut f.value);
+                    super::plc_exchange::PLC_FORMATS[0].0.clone_into(&mut f.value);
                 }
                 // The document date starts as today's, which the window read (headless: empty, the model's date).
                 if let Some(f) = dialog

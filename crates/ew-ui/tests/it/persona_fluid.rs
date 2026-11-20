@@ -2254,7 +2254,7 @@ fn profinet_terminal(d: &mut Driver, valves: usize) -> Uuid {
 
 /// Whether the To do list of the station view on show still asks for the terminal on a fluid page.
 fn asks_for_fluid_page(d: &mut Driver) -> bool {
-    use ew_ui::ew_viewmodel::shell::automation::TodoFix;
+    use ew_ui::ew_viewmodel::shell::station::TodoFix;
     d.shell_mut()
         .station_todo()
         .iter()

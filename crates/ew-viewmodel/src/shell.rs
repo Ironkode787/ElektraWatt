@@ -13,7 +13,7 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use ew_api::output::{ExportOptions, ExportPages, PageRow, PageSelection};
+use ew_api::output::{ExportOptions, ExportPages, PageRow, PageSelection, Uuid};
 use ew_api::{
     Access, CmdError, CmdLog, CmdLogError, IdSource, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery,
     SaveError, Session, SessionOptions, StoreOptions,
@@ -34,9 +34,17 @@ use crate::strings::Key;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
-// The window's entries of the PLC, bus and fluid commands (WP-S2.13).
-pub mod automation;
 mod creation;
+
+// The station view (the rack), its edits and drawing a station on pages.
+pub mod station;
+
+// The window's entries of the fluid commands (WP-S2.13).
+mod fluid;
+
+// The PLC exchange's import and export, the instrument list and the addressing preview.
+pub mod plc_exchange;
+
 // The closed sets of a form field's choices.
 pub mod choices;
 mod clipboard;
@@ -127,9 +135,9 @@ mod tips;
 mod wire_colours;
 // The start-up offer after a crash.
 pub mod startup;
-pub use automation::{rack_position_text, rack_positions_text, rack_slot_text};
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
+pub use station::{rack_position_text, rack_positions_text, rack_slot_text};
 pub use tips::Tip;
 
 pub use bond::BOND_KINDS;
@@ -482,7 +490,7 @@ pub enum Dialog {
     /// The PLC import's preview (doc 10 §4.4, §6): the changes, conflicts, removed and parked objects of an exchange
     /// file against a configuration project, by tab, with the choices of its conflicts and parked objects; Apply or
     /// Cancel.
-    PlcImport(Box<crate::shell::automation::PlcImportCard>),
+    PlcImport(Box<crate::shell::plc_exchange::PlcImportCard>),
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
         /// The `.ewz` (never printed).
@@ -793,11 +801,10 @@ pub struct ShellModel {
         u64,
         std::collections::BTreeMap<ew_api::output::Uuid, Option<ew_api::output::RackView>>,
     )>,
-    /// What the station views on show draw ([`automation::StationShown`]), kept for the state each was made for: one
+    /// What the station views on show draw ([`station::StationShown`]), kept for the state each was made for: one
     /// per group of tabs.
     #[allow(clippy::type_complexity)]
-    station_cache:
-        std::cell::RefCell<Vec<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
+    station_cache: std::cell::RefCell<Vec<(station::StationKey, std::sync::Arc<station::StationShown>)>>,
     /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
     last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
@@ -1325,6 +1332,11 @@ impl ShellModel {
     /// Whether a project is open.
     pub fn has_project(&self) -> bool {
         self.project.is_some()
+    }
+
+    /// The open project's session, for the dialogs' specs and describe lines.
+    pub(crate) fn project_session(&self) -> Option<&ew_api::Session> {
+        self.project.as_ref().map(|p| &p.session)
     }
 
     /// The open project's directory name (never its path).
@@ -2001,6 +2013,24 @@ impl ShellModel {
                 Outcome::Done
             }
         }
+    }
+
+    /// A record named by parameter `name`: its UUID, or a reference (`tag:-201U1`, `id:<uuid>`).
+    fn record_param(&self, p: &Map<String, Value>, name: &str) -> Result<Uuid, Outcome> {
+        let text = match string_param(p, name)? {
+            Some(t) => t.trim(),
+            None => return Err(failed(key!("error-missing-param"), &[name])),
+        };
+        if let Ok(id) = text.parse::<Uuid>() {
+            return Ok(id);
+        }
+        let project = self.project.as_ref().ok_or(Outcome::Refused {
+            reason_key: key!("reason-no-project"),
+        })?;
+        project
+            .session
+            .resolve_reference(text)
+            .map_err(|_| failed(key!("error-bad-param"), &[name]))
     }
 
     pub(crate) fn act_open(&mut self, p: &Map<String, Value>) -> Outcome {

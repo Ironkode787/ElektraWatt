@@ -1095,7 +1095,7 @@ impl ShellModel {
                         .chain(
                             menu.open_ports
                                 .iter()
-                                .map(|(f, idx, _)| super::automation::plug_fix(*f, *idx)),
+                                .map(|(f, idx, _)| super::fluid::plug_fix(*f, *idx)),
                         )
                         .collect();
                     run = json!({ "cmd": "check.fix_all", "params": { "fixes": fixes } });
@@ -1111,7 +1111,7 @@ impl ShellModel {
         }
         for (function, idx, designation) in &menu.open_ports {
             let label = strings::format(key!("canvas-port-plug"), &[designation]);
-            out.extend(self.aimed("command.run", super::automation::plug_fix(*function, *idx), label));
+            out.extend(self.aimed("command.run", super::fluid::plug_fix(*function, *idx), label));
         }
     }
 

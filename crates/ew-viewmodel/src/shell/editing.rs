@@ -352,7 +352,7 @@ impl ShellModel {
             let slot = session
                 .rack_view(station)
                 .and_then(|v| v.rows.into_iter().find(|r| r.module == Some(card)))
-                .map(|r| super::automation::rack_slot_text(&r))
+                .map(|r| super::station::rack_slot_text(&r))
                 .unwrap_or_default();
             let text = strings::format(key!("toast-card-joined"), &[&tag, &at, &slot]);
             self.last_station = Some(station);
@@ -439,7 +439,7 @@ impl ShellModel {
         // Its valves and its supply stand in it with their symbols (rc.3).
         if let Some(c) = self.canvas() {
             let cells = session.cell_copies(Some(terminal), &[], Some(c.page().tables.page));
-            super::automation::extend_copies(&mut copies, cells);
+            super::fluid::extend_copies(&mut copies, cells);
         }
         let count = u16::try_from(session.terminal_positions(terminal).len()).ok();
         let target = BoxTarget::Device {
@@ -1186,7 +1186,7 @@ impl ShellModel {
             let mut copies = copies;
             if let (Some(_), Some(project), Some(c)) = (slots, &self.project, self.canvas()) {
                 let cells = project.session.cell_copies(None, &[], Some(c.page().tables.page));
-                super::automation::extend_copies(&mut copies, cells);
+                super::fluid::extend_copies(&mut copies, cells);
             }
             self.activate_tool(Box::new(
                 BlackBoxTool::new(copy.to_string(), target)

@@ -598,7 +598,7 @@ impl ShellModel {
                     *text = session
                         .terminal_positions(terminal)
                         .iter()
-                        .map(|(n, p)| format!("{n} {}", super::automation::rack_position_text(p)))
+                        .map(|(n, p)| format!("{n} {}", super::station::rack_position_text(p)))
                         .collect::<Vec<_>>()
                         .join(" · ");
                 }

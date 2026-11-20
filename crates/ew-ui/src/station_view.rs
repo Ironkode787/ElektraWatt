@@ -27,7 +27,7 @@ use ew_viewmodel::actions::MenuEntry;
 use ew_viewmodel::area::{StationCursor, StationTab};
 use ew_viewmodel::ew_api::output::{PlcGroup, RackView, Uuid};
 use ew_viewmodel::key;
-use ew_viewmodel::shell::automation::{StationKind, StationPart, StationShown, TodoFix};
+use ew_viewmodel::shell::station::{StationKind, StationPart, StationShown, TodoFix};
 use ew_viewmodel::shell::{ShellModel, rack_position_text, rack_slot_text};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};

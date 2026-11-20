@@ -19,10 +19,10 @@ use crate::theme;
 /// object, with Create where it can be created unplaced.
 pub(crate) fn plc_import(
     ui: &mut Ui,
-    card: &ew_viewmodel::shell::automation::PlcImportCard,
+    card: &ew_viewmodel::shell::plc_exchange::PlcImportCard,
     events: &mut Vec<Event>,
 ) {
-    use ew_viewmodel::shell::automation::ImportTab;
+    use ew_viewmodel::shell::plc_exchange::ImportTab;
     let t = theme::current(ui.ctx());
     let small = |text: String, colour: theme::Rgba| {
         RichText::new(text)

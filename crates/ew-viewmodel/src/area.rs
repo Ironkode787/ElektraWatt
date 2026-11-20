@@ -51,7 +51,7 @@ pub struct StationTab {
     /// The station device; `None` while the station is not made yet.
     pub station: Option<ew_api::output::Uuid>,
     /// The station not made yet: what it is, its head part, its PLC and its cards. Create makes it.
-    pub draft: Option<crate::shell::automation::StationDraft>,
+    pub draft: Option<crate::shell::station::StationDraft>,
     /// The place chosen in the rack: a card selects its device as a click on a page does; a free slot takes the
     /// catalogue's next part.
     pub cursor: Option<StationCursor>,

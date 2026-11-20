@@ -11,7 +11,7 @@ use crate::support::Tmp;
 
 use ew_ui::ew_viewmodel::ew_api::output::Uuid;
 use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::shell::automation::TodoFix;
+use ew_ui::ew_viewmodel::shell::station::TodoFix;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
