@@ -130,7 +130,7 @@ impl Rule for DeviceNotInSchematic {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
-        // F17 of the rc.1 test: the `?` in such a tag, where the page goes, said nothing; the text names it.
+        // F17 of a test: the `?` in such a tag, where the page goes, said nothing; the text names it.
         let message = if d.parts.is_empty() {
             format!(
                 "{tag} is not drawn on any page, so its tag shows ? where the page number belongs. Draw it on a page, or \

@@ -119,7 +119,7 @@ impl Rule for WorkingPortOpen {
             }
             let ports = ew_derive::open_working_ports(q, f);
             let open: Vec<String> = ports.iter().map(|(_, designation)| designation.clone()).collect();
-            // The rc.3 rack run plugged them one by one from a menu it found by chance: the fix plugs them all.
+            // A rack run plugged them one by one from a menu it found by chance: the fix plugs them all.
             let plugs: Vec<serde_json::Value> = ports
                 .iter()
                 .map(|(idx, _)| {
@@ -578,7 +578,7 @@ impl Rule for Occupancy {
                 .arg("form", "empty")
                 .arg("module", module.clone())
                 .arg("position", p.to_string())
-                // The rc.2 re-test searched the parts for a blanking plate: the fix fits one, Fix all every one.
+                // A re-test searched the parts for a blanking plate: the fix fits one, Fix all every one.
                 .with_fix(QuickFix {
                     label: format!("Blanking plate on position {p}"),
                     key: Some("fix-blank-position"),
