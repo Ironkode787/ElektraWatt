@@ -176,7 +176,7 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         .next()
         .expect("the canvas")
         .rect();
-    entry(&h, first, "Reroute");
+    entry(&h, first, "Route");
     for label in ["Rotate", "Mirror", "Renumber devices"] {
         assert!(
             h.query_all_by_label_contains(label)
@@ -188,7 +188,7 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         &h,
         first,
         &[
-            "Reroute",
+            "Route",
             "Wire marker",
             "Define potential",
             "Cable…",
@@ -364,12 +364,15 @@ fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
     let band = {
         let c = h.state().shell().canvas().unwrap();
         let page = std::sync::Arc::clone(c.page());
-        let [x0, y0, x1, y1] = *page
-            .geometry
-            .frame_bands
+        // The largest of the frame's bands, in page nm.
+        let ticks = ew_viewmodel::ew_api::routing::Ticks::new(page.tables.grid);
+        let b = *page
+            .draft
+            .keep_out
             .iter()
-            .max_by_key(|[x0, y0, x1, y1]| (x1 - x0) * (y1 - y0))
+            .max_by_key(|r| i64::from(r.w()) * i64::from(r.h()))
             .expect("a frame band");
+        let [x0, y0, x1, y1] = [ticks.nm(b.x0), ticks.nm(b.y0), ticks.nm(b.x1), ticks.nm(b.y1)];
         // A spot of the band where the canvas picks nothing.
         (1..8)
             .flat_map(|i| (1..8).map(move |j| (x0 + (x1 - x0) * i / 8, y0 + (y1 - y0) * j / 8)))

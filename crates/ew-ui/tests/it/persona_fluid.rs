@@ -1385,8 +1385,8 @@ fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
     d.shell_mut().shutdown();
 }
 
-/// R2-C, Route page: the same tube stored without a route (as the Wire tool stored it before) is routed by Route page;
-/// since the lower valve's tag stands by its own valve (rc.3), the route keeps clear of the texts and the card names
+/// R2-C, Route: the same tube stored without a route (as the Wire tool stored it before) is routed by Route at once;
+/// since the lower valve's tag stands by its own valve (rc.3), the route keeps clear of the texts and the toast names
 /// no text crossed.
 #[test]
 fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
@@ -1399,17 +1399,13 @@ fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
         "kind": {"fluid": {}}, "route": []}});
     assert_eq!(d.shell_mut().dispatch("command.run", &draw), Outcome::Done);
     d.settle();
-    assert_eq!(d.shell_mut().dispatch("route.page", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("layout.route", &json!({})), Outcome::Done);
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
     assert!(
-        !d.texts()
-            .iter()
-            .any(|t| t.starts_with("Routed across a text, as keeping clear of it is a far longer way:")),
-        "no text crossed"
+        !d.texts().iter().any(|t| t.contains("No way for")),
+        "no wire without a way"
     );
-    d.input(&click(d.find("Apply").expect("the card's Apply")));
-    d.settle();
     let routed: Vec<bool> = d
         .shell_mut()
         .canvas()
@@ -1455,7 +1451,10 @@ fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
     };
     assert_eq!(
         hint_at(&mut d, on_line),
-        json!("A click here joins the line under the pointer with a tee; Alt+Click places a bend instead.")
+        json!(
+            "A click here joins the line under the pointer with a bevel; . makes the joint a dot; Alt+Click places a bend \
+             instead."
+        )
     );
     assert_eq!(
         hint_at(&mut d, (start.0, start.1 - 3)),

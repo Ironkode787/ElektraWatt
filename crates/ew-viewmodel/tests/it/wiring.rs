@@ -785,6 +785,32 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     );
 }
 
+/// A route the person drew that is broken (it runs through another coil) is replaced by a page-wide Route only after a
+/// preview (docs/design/06a-drafting.md §7.2): the card names the wire, the canvas draws the planned route, nothing
+/// changes until Apply, and Apply stores it in one step.
+#[test]
+fn route_previews_a_broken_route_the_person_drew() {
+    let tmp = Tmp::new("rw3");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (55, 29), (60, 29)],
+        &[("-103K1:A2", "-103K3:A2", &[(55, 24), (55, 36), (60, 36), (60, 33)])],
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    let rev = s.revision();
+    done(&mut s, "layout.route", json!({}));
+    assert_eq!(s.revision(), rev, "nothing changed yet");
+    let card = card_line(&s);
+    assert!(card.contains("\"layout.apply\""), "{card}");
+    assert!(card.contains("You drew this wire and it is broken"), "{card}");
+    let group = s.area().unwrap().focused;
+    assert!(!s.route_preview(group).is_empty(), "the canvas draws the plan");
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    assert!(s.route_preview(group).is_empty(), "the plan goes with the card");
+}
+
 /// The label of a connection's end `a`.
 fn cp_label_at(t: &PageTables, c: &TableConnection) -> String {
     end_label(t, &c.a)
