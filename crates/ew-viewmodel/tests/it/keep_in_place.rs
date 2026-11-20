@@ -38,7 +38,12 @@ fn keep_in_place_keeps_the_selected_symbols_in_one_step_and_lets_them_go() {
     // Two symbols of two devices that are no terminals, with their tags as their connection points print them.
     let page = shell.canvas().unwrap().page().clone();
     let mut reps = Vec::new();
-    for r in page.tables.reps.iter().filter(|r| r.device.is_some() && !r.terminal) {
+    for r in page
+        .tables
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some() && !r.terminal)
+    {
         let Some(cp) = page.tables.cps.iter().find(|c| r.functions.contains(&c.function)) else {
             continue;
         };

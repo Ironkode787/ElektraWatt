@@ -763,7 +763,7 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
 
 /// The canvas context menu (FT-1693) over an object lists what fits it first (a fuse of a device: Choose part…, Edit
 /// symbol, Copy and edit), then the command bar's selection commands (the Arrange group, a split button followed by its
-/// other variant), then Cut, Copy, Paste, Delete and Properties, in the registry's words; over nothing it offers Paste,
+/// other variant) and Keep in place, then Cut, Copy, Paste, Delete and Properties, in the registry's words; over nothing it offers Paste,
 /// Page properties and New page…, over the frame Title block fields… first. On a read-only project the editing entries
 /// are disabled and say why.
 #[test]
@@ -807,6 +807,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
         "Mirror left to right".to_owned(),
         "Mirror top to bottom".to_owned(),
         "Renumber devices…".to_owned(),
+        "Keep in place".to_owned(),
         "Cut".to_owned(),
         "Copy".to_owned(),
         "Paste".to_owned(),
