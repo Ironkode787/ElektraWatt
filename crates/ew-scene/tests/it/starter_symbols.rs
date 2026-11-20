@@ -1330,15 +1330,15 @@ fn snapshot_mcb_1pn_r0() {
       cp 3 fn 3 (12000000,16000000) Down
       text slot Tag (-3000000,4000000) 0 BottomRight visible=true
       text slot Manufacturer (-3000000,5000000) 0 TopRight visible=true
-      text slot PartNumber (-3000000,8000000) 0 TopRight visible=true
-      text slot TechData (-3000000,11000000) 0 TopRight visible=true
-      text slot FunctionText (-3000000,14000000) 0 TopRight visible=false
+      text slot PartNumber (-3000000,10000000) 0 TopRight visible=true
+      text slot TechData (-3000000,15000000) 0 TopRight visible=true
+      text slot FunctionText (-3000000,20000000) 0 TopRight visible=false
       text slot CpDesignation(0) (1000000,2000000) 0 MiddleLeft visible=true
       text slot CpDesignation(1) (1000000,14000000) 0 MiddleLeft visible=true
       text slot CpDesignation(2) (13000000,2000000) 0 MiddleLeft visible=true
       text slot CpDesignation(3) (13000000,14000000) 0 MiddleLeft visible=true
       anchor (4000000,8000000)
-      bounds (-3000000,0) (13000000,16000000)
+      bounds (-3000000,0) (13000000,20000000)
       items 14
         0 path pen w260000 #000000ff fill none M(0,0) L(0,5000000)
         1 path pen w260000 #000000ff fill none M(0,16000000) L(0,12000000)

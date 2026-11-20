@@ -314,8 +314,8 @@ fn a_wire_number_stands_along_its_wire_turned_on_a_vertical_stretch() {
 }
 
 /// A valve placed four grid steps right of a vertical wire would have its tag on
-/// the wire; the tag moves off it, stays upright and stands centred above or below its valve, clear of the valve's own
-/// texts (a tag is never turned to make room).
+/// the wire; the tag moves off it, stays upright and stands at another of its places, clear of the valve's own texts
+/// and pin numbers (a tag is never turned to make room).
 #[test]
 fn a_tag_does_not_sit_on_a_wire() {
     let (coil, valve) = (symbol(COIL), symbol(VALVE));
@@ -359,9 +359,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     for own in ["24 V", "A1", "A2"] {
         assert!(!overlap(tag, run(&r, 0x33, own).rect), "clear of {own}");
     }
-    // Upright and centred on its valve's axis.
     assert!(upright(run(&r, 0x33, "-101M1")));
-    assert!(tag.min().x.0 < g(44) && g(44) < tag.max().x.0, "{tag:?}");
 }
 
 /// The rc.3 rack run: a tag that had to move took a place on a symbol (a valve's tag on its own valve, a turned
