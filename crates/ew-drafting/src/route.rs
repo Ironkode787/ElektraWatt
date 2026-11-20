@@ -21,10 +21,9 @@
 //! 6. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
 //!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
 //!    lower; at most [`PASSES`] rounds.
-//! 7. **Weighed against the stored drawing** (§3.9): a net whose stored routes keep free of faults among the others
-//!    keeps them where they cost no less, or where its new routes are worse in a figure a reader compares (more
-//!    crossings, bends, turn-backs, wires across texts, label clashes or labels moved, fewer wires straight, a longer
-//!    way).
+//! 7. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
+//!    among the others keeps them. The figures §1.2 only reports (length, labels moved, wires straight, turn-backs)
+//!    veto nothing.
 //! 8. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
 //!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
 //!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides.
@@ -1035,27 +1034,11 @@ impl Router {
             let alt = self.stored_page(net);
             let (qa, qn) = (measure(&alt), measure(&self.page));
             let faulty: BTreeSet<WireId> = wires_with_faults(&qa);
-            if (qa.key() <= qn.key() || worse_in_a_figure(&qa, &qn))
-                && net.wires.iter().all(|w| !faulty.contains(w))
-            {
+            if qa.key() <= qn.key() && net.wires.iter().all(|w| !faulty.contains(w)) {
                 self.page = alt;
             }
         }
     }
-}
-
-/// Whether `after` is worse than `before` in a figure a reader compares (§1.2): more crossings, bends, turn-backs,
-/// wires across texts, label clashes or labels off their first place, fewer wires straight, or a longer way.
-fn worse_in_a_figure(before: &Quality, after: &Quality) -> bool {
-    let (b, a) = (&before.counts, &after.counts);
-    a.crossings > b.crossings
-        || a.bends > b.bends
-        || a.turn_backs > b.turn_backs
-        || a.across_texts > b.across_texts
-        || a.label_clashes > b.label_clashes
-        || a.labels_moved > b.labels_moved
-        || a.straight < b.straight
-        || a.length > b.length
 }
 
 fn is_fan(net: &Net) -> bool {

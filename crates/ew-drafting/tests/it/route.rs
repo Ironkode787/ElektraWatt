@@ -256,10 +256,10 @@ fn the_full_sheet_ends_with_no_fault() {
 }
 
 #[test]
-fn route_over_a_person_s_route_makes_no_figure_worse() {
+fn route_over_a_person_s_route_takes_a_cheaper_way_with_no_new_finding() {
     // His wire from K1's upper pin to K2's runs high over K5, round the wire that drops from K5 to K6 between them;
-    // the short way, cheaper by the cost, crosses that wire. A Route of the selection keeps his route or finds one
-    // that is worse in no figure.
+    // the short way crosses that wire. A crossing is weighed in the cost, not a finding (§1.2): a Route of the
+    // selection takes the short way, as the page costs less and no wire or text gets a finding it did not have.
     let mut b = Page::new(40, 36);
     b.device("K1", p(10, 18));
     b.device("K2", p(20, 18));
@@ -270,20 +270,26 @@ fn route_over_a_person_s_route_makes_no_figure_worse() {
     let selected = [his.0];
     let page = b.page.clone();
     let plan = route(&page, &jobs(&page, Scope::Selection(&selected)));
+    assert!(plan.routes.iter().any(|(w, _)| *w == his), "{:?}", plan.routes);
     let mut done = page.clone();
     for (w, r) in &plan.routes {
         if let Some(x) = done.wires.iter_mut().find(|x| x.id == *w) {
             x.route.clone_from(r);
         }
     }
-    let (before, after) = (measure(&page).counts, measure(&done).counts);
-    assert!(after.labels_moved <= before.labels_moved, "{before:?} {after:?}");
+    let (before, after) = (measure(&page), measure(&done));
+    assert!(after.better_than(&before), "{:?} {:?}", before.key(), after.key());
+    let f = &after.findings;
     assert!(
-        after.length <= before.length && after.bends <= before.bends,
-        "{before:?} {after:?}"
-    );
-    assert!(
-        after.crossings <= before.crossings && after.across_texts <= before.across_texts,
-        "{before:?} {after:?}"
+        f.through_points.is_empty()
+            && f.on_wires.is_empty()
+            && f.through_parts.is_empty()
+            && f.four_way.is_empty()
+            && f.false_joints.is_empty()
+            && f.across_texts.is_empty()
+            && f.texts_on_texts.is_empty()
+            && f.texts_on_parts.is_empty()
+            && f.texts_outside.is_empty(),
+        "{f:?}"
     );
 }
