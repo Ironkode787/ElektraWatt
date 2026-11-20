@@ -202,7 +202,7 @@ mod tests {
     /// and the session's model are unchanged; an SQL error keeps its own line.
     #[test]
     fn a_panicking_statement_gives_s1_and_changes_nothing() {
-        let root = ew_testdir::fresh_dir("ew-cli-guard");
+        let root = ew_testdir::Tmp::new("ew-cli-guard");
         let dir = root.join("J-E-2416.ew");
         copy(
             &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew"),
@@ -240,6 +240,5 @@ mod tests {
         assert!(session.world().model.content_eq(&model), "the model changed");
         drop((projection, session));
         assert!(files(&dir) == before, "the copy's files changed");
-        let _ = std::fs::remove_dir_all(&root);
     }
 }

@@ -264,7 +264,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
 /// writes back as read.
 #[test]
 fn the_surface_view_round_trips_and_is_refused_elsewhere() {
-    let dir = ew_testdir::fresh_dir("ew-panel-lp1");
+    let dir = ew_testdir::Tmp::new("ew-panel-lp1");
     copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let mut options = StoreOptions::new("panel-lp1");
     let (state, state_2) = (

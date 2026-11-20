@@ -202,8 +202,8 @@ fn pd1_the_digests_are_stable_across_runs_threads_and_a_save() {
         "a second run"
     );
 
-    let dir = ew_testdir::fresh_dir("ew-pd1-project");
-    let state = ew_testdir::fresh_dir("ew-pd1-state");
+    let dir = ew_testdir::Tmp::new("ew-pd1-project");
+    let state = ew_testdir::Tmp::new("ew-pd1-state");
     let mut c = common::golden_session();
     c.create(&dir, store_options(&state))
         .expect("the project is written");
@@ -221,8 +221,6 @@ fn pd1_the_digests_are_stable_across_runs_threads_and_a_save() {
         "after a save and a reload"
     );
     reopened.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// PD-1: moving a representation on folio 101 changes 101's digest and no other (undo restores it); changing only

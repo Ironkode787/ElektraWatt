@@ -36,7 +36,7 @@ fn saved(dir: &Path) -> Session {
 
 #[test]
 fn a_dirty_session_exports_its_saved_generation_and_says_so() {
-    let base = ew_testdir::fresh_dir("ew-api-ewz-export");
+    let base = ew_testdir::Tmp::new("ew-api-ewz-export");
     let dir = base.join("p.ew");
     let mut session = saved(&dir);
     let clean = session.export_ewz().unwrap();
@@ -73,12 +73,11 @@ fn a_dirty_session_exports_its_saved_generation_and_says_so() {
         2,
         "nothing written beside the project and the archive"
     );
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 #[test]
 fn a_refused_archive_is_an_open_error_in_words() {
-    let base = ew_testdir::fresh_dir("ew-api-ewz-refused");
+    let base = ew_testdir::Tmp::new("ew-api-ewz-refused");
     let archive = base.join("p.ewz");
     std::fs::write(&archive, b"PK not an archive at all, but long enough").unwrap();
     let Err(e) = Session::open_reader(&archive, "ElektraWatt test", "check") else {
@@ -94,5 +93,4 @@ fn a_refused_archive_is_an_open_error_in_words() {
         panic!("a missing archive opens");
     };
     assert!(matches!(e, OpenError::Ewz(ew_api::ewz::EwzError::Io(_))));
-    let _ = std::fs::remove_dir_all(&base);
 }

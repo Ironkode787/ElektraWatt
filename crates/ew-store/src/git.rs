@@ -1118,7 +1118,7 @@ mod tests {
     /// mount named through one) runs from that AppImage.
     #[test]
     fn the_appimage_mount_compares_through_a_symbolic_link() {
-        let dir = ew_testdir::fresh_dir("ew-store-appimage-link");
+        let dir = ew_testdir::Tmp::new("ew-store-appimage-link");
         let mount = dir.join("mount");
         std::fs::create_dir_all(mount.join("usr")).unwrap();
         std::fs::write(mount.join("usr").join("ew"), b"").unwrap();
@@ -1140,13 +1140,12 @@ mod tests {
         let beside = dir.join("beside");
         std::fs::create_dir_all(&beside).unwrap();
         assert_eq!(ew_command(&exe, image, Some(&beside)), sh_quoted(&exe));
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// A hooks directory reached through a symbolic link into the repository is the repository's own.
     #[test]
     fn hooks_through_a_symbolic_link_into_the_repository_are_its_own() {
-        let dir = ew_testdir::fresh_dir("ew-store-hooks-link");
+        let dir = ew_testdir::Tmp::new("ew-store-hooks-link");
         let repo = dir.join("repo");
         std::fs::create_dir_all(repo.join(".git").join("hooks")).unwrap();
         let link = dir.join("link");
@@ -1159,13 +1158,12 @@ mod tests {
         assert!(own_hooks(&vfs, &repo, &link.join("githooks")).unwrap());
         assert!(own_hooks(&vfs, &repo, &link.join(".git").join("hooks")).unwrap());
         assert!(!own_hooks(&vfs, &repo, &dir.join("shared-hooks")).unwrap());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// An I/O error reading the git directory's `commondir` (here a folder) names that path.
     #[test]
     fn an_io_error_of_own_hooks_names_the_path_that_failed() {
-        let dir = ew_testdir::fresh_dir("ew-store-hooks-commondir");
+        let dir = ew_testdir::Tmp::new("ew-store-hooks-commondir");
         let repo = dir.join("repo");
         let commondir = repo.join(".git").join("commondir");
         std::fs::create_dir_all(&commondir).unwrap();
@@ -1174,6 +1172,5 @@ mod tests {
             e.to_string(),
             format!("{}: not a regular file", commondir.display())
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

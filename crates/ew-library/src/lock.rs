@@ -515,7 +515,7 @@ mod tests {
 
     #[test]
     fn a_live_lock_is_locked_and_a_stale_one_is_stale() {
-        let dir = ew_testdir::fresh_dir("ew-library-lock");
+        let dir = ew_testdir::Tmp::new("ew-library-lock");
         let me = Identity::current("test");
         plant(&dir, &other("elsewhere"), Duration::from_secs(1));
         match acquire(&dir, &me, &quick()) {
@@ -557,12 +557,11 @@ mod tests {
         // No lock: a takeover is an ordinary acquire.
         take_over(&dir, &me, &quick()).unwrap();
         release(&dir, &me).unwrap();
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn a_crashed_takeovers_leftover_is_pruned() {
-        let dir = ew_testdir::fresh_dir("ew-library-lock-leftover");
+        let dir = ew_testdir::Tmp::new("ew-library-lock-leftover");
         let me = Identity::current("test");
         plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
         let bytes = std::fs::read(dir.join(LOCK)).unwrap();
@@ -575,7 +574,6 @@ mod tests {
                 .session,
             me.session
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// B read the stale lock S, then A moved S aside to `stale-<S>` and created its live lock. B's
@@ -583,7 +581,7 @@ mod tests {
     /// aside; it loses with `Locked` and A's lock stays as it is.
     #[test]
     fn a_takeover_that_lost_the_race_leaves_the_winners_lock_alone() {
-        let dir = ew_testdir::fresh_dir("ew-library-lock-lost");
+        let dir = ew_testdir::Tmp::new("ew-library-lock-lost");
         plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
         let path = dir.join(LOCK);
         let found = read(&path).unwrap().unwrap();
@@ -605,7 +603,6 @@ mod tests {
             found.bytes,
             "the stale copy stays"
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The protocol assumes a contender's steps between its read of the stale lock and its create finish within the
@@ -618,12 +615,12 @@ mod tests {
             ..quick()
         };
         for round in 0..5 {
-            let dir = ew_testdir::fresh_dir("ew-library-lock-race");
+            let dir = ew_testdir::Tmp::new("ew-library-lock-race");
             plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
             let barrier = Arc::new(Barrier::new(2));
             let handles: Vec<_> = (0..2)
                 .map(|_| {
-                    let (dir, barrier) = (dir.clone(), Arc::clone(&barrier));
+                    let (dir, barrier) = (dir.to_path_buf(), Arc::clone(&barrier));
                     std::thread::spawn(move || {
                         let me = Identity::current("test");
                         barrier.wait();
@@ -645,7 +642,6 @@ mod tests {
                     assert!(matches!(e, LibraryError::Locked { .. }), "{e:?}");
                 }
             }
-            let _ = std::fs::remove_dir_all(&dir);
         }
     }
 }

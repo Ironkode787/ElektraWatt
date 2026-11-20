@@ -12,8 +12,8 @@ use ew_testids::seeded_ids;
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-fn temp(tag: &str) -> PathBuf {
-    ew_testdir::fresh_dir(&format!("ew-api-newproject-{tag}"))
+fn temp(tag: &str) -> ew_testdir::Tmp {
+    ew_testdir::Tmp::new(&format!("ew-api-newproject-{tag}"))
 }
 
 fn store(state: &Path) -> StoreOptions {
@@ -95,7 +95,6 @@ fn the_built_in_basic_project_has_one_empty_page_and_round_trips() {
         .unwrap();
     assert!(pdf.bytes.starts_with(b"%PDF"));
     reopened.close();
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 #[test]
@@ -123,7 +122,6 @@ fn the_kind_basic_is_written_and_a_basic_project_is_a_template() {
         "the copy is a schematic project: {text}"
     );
     assert_ne!(text, project_text(&basic_dir), "a new project ID");
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 #[test]
@@ -154,7 +152,6 @@ fn a_directory_template_copies_the_records_under_new_ids() {
     let reopened = reopen_sound(&dir, &work.join("state"));
     assert_eq!(reopened.page_labels(), golden.page_labels());
     reopened.close();
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 #[test]
@@ -174,7 +171,6 @@ fn a_directory_that_is_no_project_is_an_error() {
     )
     .unwrap_err();
     assert!(matches!(err, ew_api::OpenError::NoProject(_)), "{err}");
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -342,7 +338,6 @@ fn two_copies_with_one_seed_are_byte_equal() {
             "{name} differs between the two copies"
         );
     }
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 #[test]
@@ -712,7 +707,6 @@ fn a_project_from_a_basic_project_records_it() {
         project_line(&copy_of_golden(13))["basic_project"],
         serde_json::json!({"id": golden["id"], "generation": manifest["generation"]})
     );
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// The frame of folio 1 as the page output resolves it: the frame form, its title block and its geometry.
@@ -809,7 +803,6 @@ fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
     assert_eq!(ct, gt, "the title-block form");
     assert_eq!(cg, gg, "the frame and title-block geometry");
     basic.close();
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// The lines of each kind in a project directory's `layout/` files, and the number of those files.
@@ -884,7 +877,6 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     for (kind, n) in &golden_layout {
         assert_eq!(wc.get(*kind), Some(n), "every {kind} is kept");
     }
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// FR-MAC-011: without pages and devices the basic project keeps the sections, the structure and the report blocks
@@ -909,7 +901,6 @@ fn a_basic_project_without_pages_and_devices() {
     assert_eq!(report_blocks(&basic), report_blocks_with_own_pages(&golden));
     let err = golden.save_as_basic(&dir, true, true, store(&state)).unwrap_err();
     assert!(matches!(err, ew_api::SaveAsBasicError::Write(_)), "{err}");
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// FT-1692 (ADR-0011 decision 6, an additive member of `settings.extra.drawing`): a project saved without
@@ -991,5 +982,4 @@ fn a_project_from_a_template_without_its_pages_starts_with_one_empty_page() {
     let summary = ew_api::template_summary(&dir).unwrap();
     assert_eq!((summary.pages, summary.devices), (0, 0), "{summary:?}");
     assert!(summary.template);
-    let _ = std::fs::remove_dir_all(&work);
 }

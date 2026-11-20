@@ -858,7 +858,7 @@ mod tests {
     /// in a process of its own, so the hook stays in this one.
     #[test]
     fn a_caught_panic_is_logged_without_the_end_line_and_never_offered() {
-        let dir = ew_testdir::fresh_dir("ew-crash-caught");
+        let dir = ew_testdir::Tmp::new("ew-crash-caught");
         let config = ShellConfig::in_dir(&dir, VERSION);
         crash::install(VERSION);
         crash::set_dir(crash_dir(&config));
@@ -879,7 +879,6 @@ mod tests {
         let mut shell = ShellModel::new(Mode::Headless, config);
         shell.start_up();
         assert_eq!(shell.startup_offer(), None);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     fn parse(args: &[&str]) -> Result<Cli, String> {
@@ -1175,11 +1174,10 @@ mod tests {
     fn the_portal_needs_a_session_bus() {
         assert!(session_bus_present(Some(PathBuf::from("unix:path=/x")), None));
         assert!(!session_bus_present(None, None));
-        let dir = ew_testdir::fresh_dir("ew-bus-test");
-        assert!(!session_bus_present(None, Some(dir.clone())));
+        let dir = ew_testdir::Tmp::new("ew-bus-test");
+        assert!(!session_bus_present(None, Some(dir.to_path_buf())));
         std::fs::write(dir.join("bus"), b"").unwrap();
-        assert!(session_bus_present(None, Some(dir.clone())));
-        let _ = std::fs::remove_dir_all(&dir);
+        assert!(session_bus_present(None, Some(dir.to_path_buf())));
     }
 
     /// The chain's result reads as the window's end of a print: the notice when an earlier

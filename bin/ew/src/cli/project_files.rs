@@ -979,8 +979,8 @@ mod tests {
     const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
     /// A fresh directory with a saved project (`p.ew`, pages 1 and 2) and an empty state directory (`state`).
-    fn setup(tag: &str) -> PathBuf {
-        let dir = ew_testdir::fresh_dir(&format!("ew-cli-recover-{tag}"));
+    fn setup(tag: &str) -> ew_testdir::Tmp {
+        let dir = ew_testdir::Tmp::new(&format!("ew-cli-recover-{tag}"));
         std::fs::create_dir(dir.join("state")).unwrap();
         let mut s =
             ew_api::Session::from_records(serde_json::from_str(PROJECT).unwrap(), [], [], Default::default())
@@ -1249,7 +1249,6 @@ mod tests {
             (code, shown.as_str(), errors.as_str()),
             (0, "no journal of a crashed session: nothing to recover\n", "")
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// `ew recover` checks that it got edit access; if not, it refuses with exit 2 and the same
@@ -1301,7 +1300,6 @@ mod tests {
             assert_eq!(journals(&dir), before, "{action:?}");
         }
         editor.close();
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// `journal_refusal` names the command that now exists and no FT number; each kind of subcommand that prints it
@@ -1334,7 +1332,6 @@ mod tests {
                 project.display()
             )
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The texts of a replay the journal itself refuses (a control sequence from the journal is escaped) and of the
@@ -1553,7 +1550,7 @@ mod tests {
     };
 
     /// [`setup`]'s project with the stamps of the test format "0.0".
-    fn setup_v0(tag: &str) -> PathBuf {
+    fn setup_v0(tag: &str) -> ew_testdir::Tmp {
         let dir = setup(tag);
         let path = dir.join("p.ew").join("manifest.json");
         let text = std::fs::read_to_string(&path).unwrap();
@@ -1689,7 +1686,6 @@ mod tests {
                 String::new()
             )
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The writers other than `ew upgrade` (`ew apply`, the purge, the release and the
@@ -1754,7 +1750,6 @@ mod tests {
             })
         );
         assert_eq!(upgrade_files(&dir), before, "nothing was written");
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// MG-5: without a terminal or `--yes` it exits 2, and a word other than `upgrade` exits 1: nothing changed either
@@ -1798,7 +1793,6 @@ mod tests {
             )
         );
         assert!(backup_of(&dir).is_file());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// MG-5: `--yes` writes the backup and saves; afterwards, and on a current project, there is nothing to upgrade.
@@ -1840,7 +1834,6 @@ mod tests {
             none
         );
         assert_eq!(upgrade_files(&dir), after);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// With a released list that lacks this build's format, the save of `ew upgrade --yes`
@@ -1872,7 +1865,6 @@ mod tests {
             assert_eq!(errors, if marked { warning } else { "" }, "{released:?}");
             let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
             assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
-            let _ = std::fs::remove_dir_all(&dir);
         }
     }
 
@@ -1929,7 +1921,6 @@ mod tests {
                 );
                 let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
                 assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
-                let _ = std::fs::remove_dir_all(&dir);
             }
         }
     }
@@ -2025,7 +2016,6 @@ mod tests {
         assert!(backup_of(&dir).is_file());
         assert_eq!(saved_folios(&dir), ["1", "2", "3"]);
         assert!(journals(&dir).is_empty());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// `--check` on an `.ewz` of an older format opens it through the injected chain and exits 1;
@@ -2052,6 +2042,5 @@ mod tests {
             )
         );
         assert_eq!(upgrade_files(&dir), before);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

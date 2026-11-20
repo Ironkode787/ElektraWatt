@@ -106,7 +106,7 @@ fn without_generator(manifest: &[u8]) -> String {
 /// its page, and the open revision V1.0 by the author. The parties and the drawing ID are set on the project record,
 /// which no command sets yet; everything else goes through commands.
 fn build_release_min(dir: &Path, state: &Path) {
-    let base = ew_testdir::fresh_dir("ew-release-min-base");
+    let base = ew_testdir::Tmp::new("ew-release-min-base");
     let mut s = Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, seeded(39))
         .expect("the built-in project");
     s.create(&base, store_options(state)).expect("written");
@@ -181,7 +181,6 @@ fn build_release_min(dir: &Path, state: &Path) {
     s.create(dir, store_options(state))
         .expect("the fixture is written");
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 // Allowed: the program boundary of a test, read once; the value never reaches a result.
@@ -194,8 +193,8 @@ fn bless() -> bool {
 /// writes it.
 #[test]
 fn the_release_fixture_is_built_by_its_helper() {
-    let built = ew_testdir::fresh_dir("ew-release-min-built");
-    let state = ew_testdir::fresh_dir("ew-release-min-state");
+    let built = ew_testdir::Tmp::new("ew-release-min-built");
+    let state = ew_testdir::Tmp::new("ew-release-min-state");
     build_release_min(&built, &state);
     let (manifest, files) = project_files(&built);
     if bless() {
@@ -219,8 +218,6 @@ fn the_release_fixture_is_built_by_its_helper() {
     for (path, data) in &files {
         assert!(fixed[path] == *data, "{path} differs (EW_BLESS=1 rewrites it)");
     }
-    let _ = std::fs::remove_dir_all(&built);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -367,8 +364,8 @@ fn revision(s: &Session) -> Arc<Revision> {
 }
 
 /// The fixture copied to a fresh directory, opened and approved.
-fn approved_copy(tag: &str) -> (PathBuf, PathBuf, Session, Vec<checks::IntegrityItem>) {
-    let base = ew_testdir::fresh_dir(&format!("ew-release-{tag}"));
+fn approved_copy(tag: &str) -> (ew_testdir::Tmp, PathBuf, Session, Vec<checks::IntegrityItem>) {
+    let base = ew_testdir::Tmp::new(&format!("ew-release-{tag}"));
     let dir = base.join("release-min");
     let state = base.join("state");
     common::copy_dir(&fixture(), &dir);
@@ -380,12 +377,11 @@ fn approved_copy(tag: &str) -> (PathBuf, PathBuf, Session, Vec<checks::Integrity
 /// The gate of the approved fixture passes (D15's fixture: no finding besides those the approval settles).
 #[test]
 fn the_approved_fixture_passes_the_gate() {
-    let (base, _, s, integrity) = approved_copy("gate");
+    let (_base, _, s, integrity) = approved_copy("gate");
     let gate = s.release_gate(LABEL, &integrity).expect("the gate runs");
     assert!(gate.passes(), "{:#?}", gate.report.findings);
     assert!(gate.report.findings.is_empty(), "{:#?}", gate.report.findings);
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// A release reports whether the manifest its stamp wrote is marked `unstable`: with a
@@ -395,7 +391,7 @@ fn a_release_reports_an_unreleased_format() {
     static OLDER: [&str; 1] = ["0.0"];
     static THIS: [&str; 1] = [ew_api::FORMAT];
     for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
-        let base = ew_testdir::fresh_dir(&format!("ew-release-unreleased-{n}"));
+        let base = ew_testdir::Tmp::new(&format!("ew-release-unreleased-{n}"));
         let (dir, state, root) = (
             base.join("release-min"),
             base.join("state"),
@@ -415,7 +411,6 @@ fn a_release_reports_an_unreleased_format() {
         s.close();
         let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
         assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
-        let _ = std::fs::remove_dir_all(&base);
     }
 }
 
@@ -598,7 +593,6 @@ fn the_release_writes_the_archive_and_the_record() {
     assert_eq!(release_record(&r), record);
     assert_eq!(r.store().expect("a store").generation(), g + 1);
     r.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// With a waiver in force the release report lists it. On a copy of the fixture one connection of
@@ -607,7 +601,7 @@ fn the_release_writes_the_archive_and_the_record() {
 /// each once and sorted, beside the disclaimer.
 #[test]
 fn the_release_report_lists_the_waivers_in_force() {
-    let base = ew_testdir::fresh_dir("ew-release-waivers");
+    let base = ew_testdir::Tmp::new("ew-release-waivers");
     let dir = base.join("release-min");
     let state = base.join("state");
     common::copy_dir(&fixture(), &dir);
@@ -673,7 +667,6 @@ fn the_release_report_lists_the_waivers_in_force() {
         "ElektraWatt's checks do not replace engineering verification by a competent person."
     );
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// RA-5: two releases of the same saved state (two copies in directories of different names, one with one thread
@@ -689,7 +682,6 @@ fn two_releases_of_the_same_saved_state_write_the_same_bytes() {
         let released = s.release(&context(), &integrity, &o).expect("released");
         archives.push(std::fs::read(&released.archive).expect("the archive"));
         s.close();
-        let _ = std::fs::remove_dir_all(&base);
     }
     assert!(archives[0] == archives[1], "the two archives differ");
 }
@@ -703,7 +695,7 @@ fn two_releases_of_the_same_saved_state_write_the_same_bytes() {
 /// in the archive root and the revision stays open.
 #[test]
 fn the_refusals_write_nothing() {
-    let base = ew_testdir::fresh_dir("ew-release-refusals");
+    let base = ew_testdir::Tmp::new("ew-release-refusals");
     let dir = base.join("release-min");
     let state = base.join("state");
     let root = base.join("archives");
@@ -801,7 +793,6 @@ fn the_refusals_write_nothing() {
     assert!(matches!(plan, Err(ReleaseError::ReadOnly)), "{plan:?}");
     r.close();
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// Spec §10: a release is reachable only from a human path. `revision.release` is refused by `execute` and `preview`
@@ -876,7 +867,6 @@ fn only_a_human_path_reaches_the_release() {
         );
         s.close();
     }
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1488,7 +1478,7 @@ fn crashed_at_the_tag(image: &[(String, Vec<u8>)], git: &FakeGit, after: bool) -
 /// tag.
 #[test]
 fn a_copy_of_the_project_never_discards_the_other_copys_archive() {
-    let base = ew_testdir::fresh_dir("ew-release-copies");
+    let base = ew_testdir::Tmp::new("ew-release-copies");
     let state = base.join("state");
     let root = base.join("archives");
     let dir_a = base.join("a").join("release-min");
@@ -1554,7 +1544,6 @@ fn a_copy_of_the_project_never_discards_the_other_copys_archive() {
     assert_eq!(std::fs::read_dir(&root).expect("the root").count(), 1);
     a.close();
     b.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// This project directory's own crashed run (it died in the tag step, before creating the tag or right after
@@ -1974,7 +1963,7 @@ fn the_release_commits_and_tags_in_a_git_repository() {
         eprintln!("RA-7 skipped: no git executable on the path");
         return;
     }
-    let base = ew_testdir::fresh_dir("ew-release-git");
+    let base = ew_testdir::Tmp::new("ew-release-git");
     let repo = base.join("repo");
     std::fs::create_dir_all(&repo).expect("the repository directory");
     for args in [
@@ -2075,7 +2064,6 @@ fn the_release_commits_and_tags_in_a_git_repository() {
     let status = git_in(&repo, &["status", "--porcelain", "--", "release-min"]).expect("the status");
     assert!(status.contains("revisions.jsonl"), "{status}");
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// On a file system without hard links that cannot set the archive's time (some SMB or FUSE
@@ -2206,7 +2194,6 @@ fn the_release_gate_judges_the_origin_of_the_submission() {
     assert_eq!(revision(&s).state, RevisionState::Released);
     assert!(released.archive.exists());
     s.close();
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// The two shipped forms a report block needs (the frame without the grid and the title block it names).
@@ -2228,7 +2215,7 @@ fn shipped_report_forms() -> (serde_json::Value, serde_json::Value) {
 /// 901 first (the fixture itself is unchanged), so that the archive holds report rows.
 #[test]
 fn the_archive_reproduces_its_pdf_and_its_report_rows() {
-    let base = ew_testdir::fresh_dir("ew-release-ru1");
+    let base = ew_testdir::Tmp::new("ew-release-ru1");
     let dir = base.join("release-min");
     let state = base.join("state");
     common::copy_dir(&fixture(), &dir);
@@ -2299,5 +2286,4 @@ fn the_archive_reproduces_its_pdf_and_its_report_rows() {
         Session::open_archive(&damaged, "wp-s1-18-part5"),
         Err(ew_api::ArchiveOpenError::Archive(_))
     ));
-    let _ = std::fs::remove_dir_all(&base);
 }

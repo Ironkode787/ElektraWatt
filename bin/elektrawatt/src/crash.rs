@@ -204,8 +204,8 @@ pub(crate) fn ended() {
 mod tests {
     use super::*;
 
-    fn fresh(stem: &str) -> PathBuf {
-        let dir = ew_testdir::fresh_dir(stem);
+    fn fresh(stem: &str) -> ew_testdir::Tmp {
+        let dir = ew_testdir::Tmp::new(stem);
         install("0.0.0-test");
         set_dir(Some(dir.join("crashes")));
         dir
@@ -219,21 +219,20 @@ mod tests {
     /// are this test's.
     #[test]
     fn a_log_stops_taking_entries_at_its_cap() {
-        let dir = fresh("ew-crash-cap");
+        let _dir = fresh("ew-crash-cap");
         for n in 0..MAX_ENTRIES + 5 {
             assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
         }
         let text = log_text();
         assert_eq!(text.matches(" crash log\n").count(), MAX_ENTRIES);
         assert!(text.ends_with(&format!("\n\n{CAPPED_LINE}\n")));
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// Past the cap, the newest panic's entry is kept and `ended()` writes it before the end line, so the
     /// final entry is the panic that ended the session and the offer reads its time (the log's last `Time:` line).
     #[test]
     fn the_panic_past_the_cap_that_ends_the_session_gets_the_final_entry() {
-        let dir = fresh("ew-crash-cap-ended");
+        let _dir = fresh("ew-crash-cap-ended");
         for n in 0..MAX_ENTRIES + 5 {
             assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
         }
@@ -249,14 +248,13 @@ mod tests {
         let own = last.lines().find_map(|l| l.strip_prefix("Time: "));
         assert!(own.is_some());
         assert_eq!(offered, own);
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// Past the cap, a job thread's panic between the panic that ends the session and `ended()` never
     /// becomes the final entry: the slot is kept per thread, and `ended()` runs on the thread that panicked.
     #[test]
     fn a_job_thread_s_later_panic_never_takes_the_final_entry() {
-        let dir = fresh("ew-crash-cap-thread");
+        let _dir = fresh("ew-crash-cap-thread");
         for n in 0..MAX_ENTRIES {
             assert!(std::panic::catch_unwind(move || panic!("caught {n}")).is_err());
         }
@@ -270,20 +268,18 @@ mod tests {
         assert!(last.ends_with(&format!("\n\n{ENDED_LINE}\n")));
         let message = last.lines().find_map(|l| l.strip_prefix("Message: "));
         assert_eq!(message, Some("the session's end"));
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// A panic on a thread already in the hook writes nothing (std aborts on a panic inside the hook, so
     /// the guard is reached here by setting it).
     #[test]
     fn a_panic_inside_the_hook_is_not_logged_again() {
-        let dir = fresh("ew-crash-guard");
+        let _dir = fresh("ew-crash-guard");
         IN_HOOK.with(|f| f.set(true));
         assert!(std::panic::catch_unwind(|| panic!("inside")).is_err());
         IN_HOOK.with(|f| f.set(false));
         assert!(!LOG.get().unwrap().exists());
         assert!(std::panic::catch_unwind(|| panic!("outside")).is_err());
         assert!(log_text().contains("\nMessage: outside\n"));
-        let _ = std::fs::remove_dir_all(dir);
     }
 }

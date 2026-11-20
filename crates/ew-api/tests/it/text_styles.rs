@@ -5,7 +5,7 @@
 //! scenes, EW-CORE-061 and `project.settings.set`.
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::StoreOptions;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
@@ -28,8 +28,8 @@ const PX13: i64 = 3_439_583;
 const NEW_PROJECT_MEMBER: &str =
     r#""text_styles":{"cp.small":{"size":1852083},"marker":{"size":1852083},"terminal":{"size":2521009}}"#;
 
-fn temp(tag: &str) -> PathBuf {
-    ew_testdir::fresh_dir(&format!("ew-api-textstyles-{tag}"))
+fn temp(tag: &str) -> ew_testdir::Tmp {
+    ew_testdir::Tmp::new(&format!("ew-api-textstyles-{tag}"))
 }
 
 fn store(state: &Path) -> StoreOptions {
@@ -147,7 +147,6 @@ fn a_new_project_writes_its_overrides() {
     assert!(core061(&reopened).is_empty());
     reopened.close();
     assert_eq!(project_text(&dir), text);
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// TS-2: with the new-project overrides, every wire marker and small pin number prints at 7 px in the export job's
@@ -222,7 +221,6 @@ fn an_unknown_member_of_an_entry_survives_a_save() {
     assert_eq!(big.em.0, 6_000_000);
     reopened.close();
     assert_eq!(project_text(&dir), text);
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// TS-6: a company basic project without the member makes a project without it; `save_as_basic` of a new project
@@ -247,7 +245,6 @@ fn a_basic_project_is_copied_as_it_is() {
         from_basic.query().project().settings.text_styles,
         fresh.query().project().settings.text_styles
     );
-    let _ = std::fs::remove_dir_all(&work);
 }
 
 fn run_fonts(items: &[Item], out: &mut Vec<ew_api::output::ew_dl::FontKey>) {

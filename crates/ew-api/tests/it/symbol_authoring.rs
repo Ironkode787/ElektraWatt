@@ -93,11 +93,11 @@ fn qet_conversion_details_survive_a_portable_round_trip() {
 pub fn library(
     name: &str,
 ) -> (
-    std::path::PathBuf,
+    ew_testdir::Tmp,
     ew_api::library::Registry,
     ew_derive::ew_ids::Uuid,
 ) {
-    let dir = ew_testdir::fresh_dir(name);
+    let dir = ew_testdir::Tmp::new(name);
     let lib = dir.join("symbols.ewlib");
     let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
     let mut registry = ew_api::library::Registry::open(&tiers).unwrap();
@@ -141,7 +141,7 @@ fn six_pin_block_variants_roundtrip_and_canonical_publication() {
     let docs = d.documents(symbols::DRAFT_LIBRARY).unwrap();
     assert_eq!(docs.len(), 2);
     assert_eq!(SymbolDraft::parse(&serde_json::to_vec(&d).unwrap()).unwrap(), d);
-    let dir = ew_testdir::fresh_dir("symbol-publish");
+    let dir = ew_testdir::Tmp::new("symbol-publish");
     let lib = dir.join("symbols.ewlib");
     let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);
     let mut registry = ew_api::library::Registry::open(&tiers).unwrap();
@@ -189,8 +189,7 @@ fn off_grid_is_retained_and_blocks_save_while_fine_graphics_are_valid() {
 #[test]
 fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
     use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
-    let (dir, mut registry, library) = library("symbol-part-closure");
-    let _dir = ew_testdir::Tmp(dir);
+    let (_dir, mut registry, library) = library("symbol-part-closure");
     let mut draft = block();
     draft.publish(&mut registry, library).unwrap();
     let docs = draft.documents(library).unwrap();
@@ -387,7 +386,7 @@ fn symbol_imports_pass_the_front_door_and_refuse_in_words() {
             .len(),
         4
     );
-    let dir = ew_testdir::fresh_dir("symbol-import");
+    let dir = ew_testdir::Tmp::new("symbol-import");
     let pxf = dir.join("macro.pxf");
     std::fs::write(
         &pxf,
@@ -395,7 +394,6 @@ fn symbol_imports_pass_the_front_door_and_refuse_in_words() {
     )
     .unwrap();
     assert_eq!(symbols::open(&pxf, "k").unwrap().len(), 1);
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// A link at `at` to `target`, where the system lets a test make one: Windows asks a privilege for a symbolic link,
@@ -428,7 +426,7 @@ fn link(target: &std::path::Path, at: &std::path::Path, dir: bool) -> bool {
 /// words otherwise: a missing folder or table, a parent path, and a linked table or folder.
 #[test]
 fn slk_reads_only_its_own_tables_beside_it() {
-    let dir = ew_testdir::fresh_dir("symbol-slk");
+    let dir = ew_testdir::Tmp::new("symbol-slk");
     let slk = dir.join("lib.slk");
     let words = |descriptor: &str| {
         std::fs::write(&slk, descriptor).unwrap();
@@ -451,5 +449,4 @@ fn slk_reads_only_its_own_tables_beside_it() {
     if link(&tables, &dir.join("other.sdb"), true) {
         assert_eq!(words("other.sdb\n1.2\n"), PATH);
     }
-    let _ = std::fs::remove_dir_all(&dir);
 }

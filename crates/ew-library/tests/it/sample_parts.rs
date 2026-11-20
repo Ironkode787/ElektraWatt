@@ -422,7 +422,7 @@ fn tiers(root: &Path, system: Vec<PathBuf>, company: Vec<PathBuf>) -> LibraryTie
 /// directory (`EW_BLESS=1` rewrites it).
 #[test]
 fn the_shipped_library_is_the_generated_one() {
-    let root = ew_testdir::fresh_dir("ew-library-sample-parts");
+    let root = ew_testdir::Tmp::new("ew-library-sample-parts");
     let dir = root.join("company").join("ew-sample-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();
     let mut manifest = LibManifest::new(library(), KEY, NAME, LICENCE);
@@ -582,7 +582,7 @@ fn the_derived_templates_sections_and_marks_are_golden_as() {
 /// closure (its manufacturer, its plate and the starter FnDefs of its template).
 #[test]
 fn the_system_tier_finds_the_library_and_resolves_its_parts() {
-    let root = ew_testdir::fresh_dir("ew-library-sample-tier");
+    let root = ew_testdir::Tmp::new("ew-library-sample-tier");
     let reg = Registry::open(&tiers(&root, vec![repo().join("content/libraries")], Vec::new())).unwrap();
     let info = reg
         .libraries()
@@ -617,5 +617,4 @@ fn the_system_tier_finds_the_library_and_resolves_its_parts() {
         }
     }
     drop(reg);
-    let _ = std::fs::remove_dir_all(&root);
 }

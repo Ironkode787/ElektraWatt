@@ -40,7 +40,7 @@ impl ProcessProbe for Probe {
 
 /// A scratch directory tree removed at the end of the test.
 struct Scratch {
-    base: PathBuf,
+    base: ew_testdir::Tmp,
     project: PathBuf,
     state: PathBuf,
     clock: Arc<ManualClock>,
@@ -49,7 +49,7 @@ struct Scratch {
 
 impl Scratch {
     fn new() -> Scratch {
-        let base = ew_testdir::fresh_dir("ew-store-lock");
+        let base = ew_testdir::Tmp::new("ew-store-lock");
         let project = base.join("J-E-2416.ew");
         let state = base.join("state");
         std::fs::create_dir_all(&state).unwrap();
@@ -111,12 +111,6 @@ impl Scratch {
             .collect();
         v.sort();
         v
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.base);
     }
 }
 

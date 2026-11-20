@@ -20,13 +20,13 @@ const ZERO: &str = "sha256:00000000000000000000000000000000000000000000000000000
 
 /// A fresh root with the four tiers and the cache under it.
 struct Fixture {
-    root: PathBuf,
+    root: ew_testdir::Tmp,
     tiers: LibraryTiers,
 }
 
 impl Fixture {
     fn new(stem: &str) -> Fixture {
-        let root = ew_testdir::fresh_dir(stem);
+        let root = ew_testdir::Tmp::new(stem);
         let tiers = LibraryTiers {
             system: vec![root.join("system")],
             community: root.join("data").join("packs"),
@@ -44,12 +44,6 @@ impl Fixture {
             settle: Duration::from_millis(10),
         });
         r
-    }
-}
-
-impl Drop for Fixture {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.root);
     }
 }
 

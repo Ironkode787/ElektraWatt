@@ -1786,7 +1786,7 @@ fn files_of(dir: &Path) -> BTreeMap<String, String> {
 /// shipped directory (`EW_BLESS=1` rewrites it).
 #[test]
 fn the_shipped_library_is_the_generated_one() {
-    let root = ew_testdir::fresh_dir("ew-library-starter-parts");
+    let root = ew_testdir::Tmp::new("ew-library-starter-parts");
     let dir = root.join("company").join("ew-starter-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();
     let mut manifest = LibManifest::new(starter_parts_library(), STARTER_PARTS_KEY, NAME, LICENCE);

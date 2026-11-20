@@ -70,7 +70,7 @@ fn the_golden_tables_import_to_a_project_with_the_bootstrapped_model() {
     );
     let bootstrapped = session_from_batch(&batch, SessionOptions::default()).unwrap();
 
-    let dir = ew_testdir::fresh_dir("ew-api-import-csv");
+    let dir = ew_testdir::Tmp::new("ew-api-import-csv");
     let out = dir.join("new.ew");
     create_project(&batch, &out, store()).expect("the project is written");
     let names: Vec<String> = std::fs::read_dir(&dir)
@@ -109,14 +109,13 @@ fn the_golden_tables_import_to_a_project_with_the_bootstrapped_model() {
             .count(),
         golden.len()
     );
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// An unreadable table refuses the import with the reader's line (FM-6), before anything is written; a non-empty
 /// target refuses the write and keeps what is there; an empty one is replaced by the project.
 #[test]
 fn an_unreadable_table_and_a_non_empty_target_are_refused() {
-    let dir = ew_testdir::fresh_dir("ew-api-import-csv-refused");
+    let dir = ew_testdir::Tmp::new("ew-api-import-csv-refused");
     let copy = dir.join("tables");
     std::fs::create_dir_all(&copy).unwrap();
     for (name, bytes) in tree(&tables()) {
@@ -156,7 +155,6 @@ fn an_unreadable_table_and_a_non_empty_target_are_refused() {
     std::fs::create_dir_all(&empty).unwrap();
     create_project(&batch, &empty, store()).unwrap();
     assert!(empty.join("manifest.json").is_file());
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// The project `ew import csv` writes reports whether its manifest is marked `unstable`: with a
@@ -166,7 +164,7 @@ fn a_tables_project_reports_an_unreleased_format() {
     static OLDER: [&str; 1] = ["0.0"];
     static THIS: [&str; 1] = [ew_api::FORMAT];
     let batch = import_tables(&read_tables(&tables()).unwrap(), &library(), ImportMode::Strict).unwrap();
-    let dir = ew_testdir::fresh_dir("ew-api-import-csv-unreleased");
+    let dir = ew_testdir::Tmp::new("ew-api-import-csv-unreleased");
     for (n, (released, marked)) in [(&OLDER[..], true), (&THIS[..], false)].into_iter().enumerate() {
         let out = dir.join(format!("p{n}.ew"));
         let mut options = store();
@@ -175,5 +173,4 @@ fn a_tables_project_reports_an_unreleased_format() {
         let manifest = std::fs::read_to_string(out.join("manifest.json")).unwrap();
         assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
     }
-    let _ = std::fs::remove_dir_all(&dir);
 }

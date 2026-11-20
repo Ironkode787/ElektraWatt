@@ -99,7 +99,7 @@ fn place(s: &mut Session, number: &str, symbol_key: &str, template: usize, slot:
 
 #[test]
 fn the_sample_valve_module_derives_q0_0_to_q0_7_in_a_new_project() {
-    let root = ew_testdir::fresh_dir("ew-api-sample-parts");
+    let root = ew_testdir::Tmp::new("ew-api-sample-parts");
     let mut s = fresh(&root);
     place(&mut s, "EW-GEN-CPU-1", "ew.gen.blackbox@qet10", 0, 1);
     // Its black box (template entry 1) on the multi-line page; the overview entry 0 is drawn on an overview page.
@@ -127,5 +127,4 @@ fn the_sample_valve_module_derives_q0_0_to_q0_7_in_a_new_project() {
     assert_eq!(part_confidence(&copy, "mech"), Confidence::Test);
     drop(q);
     drop(s);
-    let _ = std::fs::remove_dir_all(&root);
 }

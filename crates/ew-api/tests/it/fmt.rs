@@ -682,7 +682,7 @@ fn a_hand_edited_project_is_repaired_after_a_backup_of_its_files_as_found() {
             found,
             "every listed file as it was"
         );
-        let dir = ew_testdir::fresh_dir("ew-api-fmt-as-found");
+        let dir = ew_testdir::Tmp::new("ew-api-fmt-as-found");
         let archive = dir.join("p.before-repair-g1.ewz");
         std::fs::write(&archive, &bytes).unwrap();
         let (opened, report) = Session::open_ewz(&archive, "ElektraWatt test").unwrap();

@@ -187,10 +187,10 @@ fn waive(fingerprint: &str) -> AnyCommand {
     }
 }
 
-/// A copy of Golden A with the waiver recorded and saved, and the directory it lives in (removed by the caller).
-fn golden_a_with_waiver(tag: &str) -> (PathBuf, PathBuf) {
-    let copy = ew_testdir::fresh_dir(&format!("ew-part5-{tag}"));
-    let state = ew_testdir::fresh_dir(&format!("ew-part5-{tag}-state"));
+/// A copy of Golden A with the waiver recorded and saved, and its state directory, each removed on drop.
+fn golden_a_with_waiver(tag: &str) -> (ew_testdir::Tmp, ew_testdir::Tmp) {
+    let copy = ew_testdir::Tmp::new(&format!("ew-part5-{tag}"));
+    let state = ew_testdir::Tmp::new(&format!("ew-part5-{tag}-state"));
     ew_testdir::copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &copy);
     let mut s = open(&copy, &state);
     let fp = waived(&s.check(&PRE_DELIVERY, CheckMode::Release))
@@ -272,8 +272,6 @@ fn a_waiver_waives_through_the_file_and_only_a_human_can_waive() {
     assert!(waived(&after).is_open());
     assert_eq!(after.counts, plain.counts);
     s.close();
-    let _ = std::fs::remove_dir_all(&copy);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on Golden A reports, for the

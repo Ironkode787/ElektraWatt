@@ -190,8 +190,8 @@ mod tests {
 
     /// A fresh directory with a project `p.ew` (its manifest of format `format`) and the three sides as git's
     /// temporary files.
-    fn setup(format: &str) -> (PathBuf, MergeDriverArgs) {
-        let dir = ew_testdir::fresh_dir("ew-merge-driver");
+    fn setup(format: &str) -> (ew_testdir::Tmp, MergeDriverArgs) {
+        let dir = ew_testdir::Tmp::new("ew-merge-driver");
         std::fs::create_dir_all(dir.join("p.ew")).unwrap();
         std::fs::write(dir.join("p.ew/manifest.json"), manifest(format)).unwrap();
         for (name, text) in [("o", "base\n"), ("a", "ours\n"), ("b", "theirs\n")] {

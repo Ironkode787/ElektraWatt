@@ -202,7 +202,7 @@ fn embedding_a_library_part_moves_it_among_the_projects_parts() {
 /// manufacturer the project does not hold is listed under the same text as the part is once embedded.
 #[test]
 fn a_part_names_its_maker_by_the_library_records_name_not_its_key() {
-    let root = ew_testdir::fresh_dir("ew-api-maker-name");
+    let root = ew_testdir::Tmp::new("ew-api-maker-name");
     let tiers = LibraryTiers {
         system: Vec::new(),
         community: root.join("data").join("packs"),

@@ -380,7 +380,7 @@ fn xlsx_parts_tables() {
 /// An `.ewz` opened as every reader opens one (`Session::open_ewz`).
 #[test]
 fn ewz_archives() {
-    let dir = ew_testdir::fresh_dir("ew-hostile-ewz");
+    let dir = ew_testdir::Tmp::new("ew-hostile-ewz");
     class(
         "ewz",
         &[
@@ -403,7 +403,6 @@ fn ewz_archives() {
             }
         },
     );
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// Golden A's files, read once.
@@ -560,7 +559,7 @@ fn raster_assets() {
 #[cfg(unix)]
 #[test]
 fn a_page_file_that_is_a_symbolic_link_is_not_followed() {
-    let root = ew_testdir::fresh_dir("ew-hostile-link");
+    let root = ew_testdir::Tmp::new("ew-hostile-link");
     let dir = root.join("J-E-2416.ew");
     for (rel, bytes) in golden_files() {
         let path = dir.join(rel);
@@ -596,5 +595,4 @@ fn a_page_file_that_is_a_symbolic_link_is_not_followed() {
              followed (NFR-SEC-16)"
         )
     );
-    let _ = std::fs::remove_dir_all(&root);
 }

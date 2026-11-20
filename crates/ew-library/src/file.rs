@@ -98,7 +98,7 @@ mod tests {
     /// staged write dropped before its commit leaves the target as it was.
     #[test]
     fn a_write_replaces_the_target_and_an_uncommitted_one_leaves_it() {
-        let dir = ew_testdir::fresh_dir("ew-library-file");
+        let dir = ew_testdir::Tmp::new("ew-library-file");
         let target = dir.join("out.txt");
         std::fs::write(&target, b"old").unwrap();
         write_replacing(&target, b"new").unwrap();

@@ -181,8 +181,8 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
 ///   `.ewcmd` line naming it is refused with the exposure error before any line runs.
 #[test]
 fn approve_the_saved_revision_bound_to_its_content() {
-    let copy = ew_testdir::fresh_dir("ew-part3-approve");
-    let state = ew_testdir::fresh_dir("ew-part3-approve-state");
+    let copy = ew_testdir::Tmp::new("ew-part3-approve");
+    let state = ew_testdir::Tmp::new("ew-part3-approve-state");
     common::copy_dir(&golden(), &copy);
     let (mut s, integrity) = open(&copy, &state);
 
@@ -398,6 +398,4 @@ fn approve_the_saved_revision_bound_to_its_content() {
     );
     assert!(!gate.passes());
     s.close();
-    let _ = std::fs::remove_dir_all(&copy);
-    let _ = std::fs::remove_dir_all(&state);
 }

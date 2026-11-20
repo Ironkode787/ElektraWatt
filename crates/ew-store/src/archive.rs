@@ -1165,7 +1165,7 @@ mod tests {
     /// do not, two directories whose names differ only in case have two keys.
     #[test]
     fn the_key_keeps_the_stored_case() {
-        let base = ew_testdir::fresh_dir("ew-archive-key-case");
+        let base = ew_testdir::Tmp::new("ew-archive-key-case");
         let vfs = crate::vfs::OsVfs;
         let dir = base.join("Plant.ew");
         std::fs::create_dir_all(&dir).unwrap();
@@ -1182,7 +1182,6 @@ mod tests {
             std::fs::create_dir_all(&lower).unwrap();
             assert_ne!(key, path_key(&vfs, &lower), "two directories");
         }
-        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// A run record is written durably under `<state>/releases/<key>-<key>.json`, read back equal, replaced by
@@ -1534,7 +1533,7 @@ mod tests {
     /// hard-link rename (or the fallback), so the record written before the rename names the archive's time.
     #[test]
     fn the_record_names_the_archives_time_on_disk() {
-        let base = ew_testdir::fresh_dir("ew-archive-record-time");
+        let base = ew_testdir::Tmp::new("ew-archive-record-time");
         let vfs = crate::vfs::OsVfs;
         let root = base.join("p.ew-archive");
         let state = base.join("state");
@@ -1558,7 +1557,6 @@ mod tests {
             "{:?} against {modified:?}",
             kept.modified
         );
-        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// A record written into a state directory that did not exist survives a power loss right after
@@ -1709,7 +1707,7 @@ mod tests {
     /// and the release reports the failure.
     #[test]
     fn a_torn_fallback_leaves_no_partial_archive() {
-        let base = ew_testdir::fresh_dir("ew-archive-torn");
+        let base = ew_testdir::Tmp::new("ew-archive-torn");
         let root = base.join("p.ew-archive");
         let state = base.join("state");
         let project = base.join("p.ew");
@@ -1743,7 +1741,6 @@ mod tests {
             0,
             "the record is taken back"
         );
-        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// The clock of the finding-2 tests once the temp is written.

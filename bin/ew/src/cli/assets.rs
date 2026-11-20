@@ -152,8 +152,8 @@ mod tests {
 
     /// A saved project in a fresh directory whose first logo's asset file nothing names any more (the logo was
     /// replaced and saved, and the session that did it is closed).
-    fn project_with_an_unnamed_asset(tag: &str) -> PathBuf {
-        let dir = ew_testdir::fresh_dir(&format!("ew-cli-purge-{tag}"));
+    fn project_with_an_unnamed_asset(tag: &str) -> ew_testdir::Tmp {
+        let dir = ew_testdir::Tmp::new(&format!("ew-cli-purge-{tag}"));
         let project = serde_json::from_str(
             r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
         )
@@ -260,6 +260,5 @@ mod tests {
         let (code, shown) = purge(&dir, false, true, "");
         assert_eq!(code, 0);
         assert!(!shown.contains("Type `purge`"), "{shown}");
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

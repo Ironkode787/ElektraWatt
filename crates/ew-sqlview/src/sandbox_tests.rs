@@ -95,7 +95,7 @@ fn the_statement_gate_refuses_anything_but_one_query() {
 
 #[test]
 fn vacuum_into_behind_a_query_creates_no_file() {
-    let dir = ew_testdir::fresh_dir("ew-sqlview-vacuum");
+    let dir = ew_testdir::Tmp::new("ew-sqlview-vacuum");
     let target = dir.join("x.db");
     let target_sql = target.to_string_lossy().replace('\'', "''");
     let r = ew_sql();

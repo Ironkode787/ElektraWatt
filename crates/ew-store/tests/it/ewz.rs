@@ -47,7 +47,7 @@ fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>
 /// file, `.ew/`, a lock, a temp and `.git/` change nothing; extracting gives a directory byte-equal to the source.
 #[test]
 fn golden_a_packs_deterministically_and_extracts_to_its_source() {
-    let base = ew_testdir::fresh_dir("ew-ewz-ez1");
+    let base = ew_testdir::Tmp::new("ew-ewz-ez1");
     let source = base.join("J-E-2416.ew");
     ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
     for (name, data) in git_files() {
@@ -119,7 +119,6 @@ fn golden_a_packs_deterministically_and_extracts_to_its_source() {
         1,
         "no staging directory is left"
     );
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// The repair's pack as found: on a copy of Golden A with git files, whose files match
@@ -128,7 +127,7 @@ fn golden_a_packs_deterministically_and_extracts_to_its_source() {
 /// hashed to it, the other files and the git files as they are, and counts it.
 #[test]
 fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
-    let base = ew_testdir::fresh_dir("ew-ewz-as-found");
+    let base = ew_testdir::Tmp::new("ew-ewz-as-found");
     let source = base.join("J-E-2416.ew");
     ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
     for (name, data) in git_files() {
@@ -169,7 +168,6 @@ fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
         read.entries, expected,
         "the files as found, the manifest hashed to them"
     );
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// The bound inside `pack`: a project whose archive the reader would refuse is not packed, in words.
@@ -438,13 +436,12 @@ fn create_dir_is_exclusive() {
         vfs.create_dir(Path::new("/w/no/b")).unwrap_err().kind(),
         io::ErrorKind::NotFound
     );
-    let base = ew_testdir::fresh_dir("ew-ewz-create-dir");
+    let base = ew_testdir::Tmp::new("ew-ewz-create-dir");
     OsVfs.create_dir(&base.join("a")).unwrap();
     assert_eq!(
         OsVfs.create_dir(&base.join("a")).unwrap_err().kind(),
         io::ErrorKind::AlreadyExists
     );
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// `bytes` with every occurrence of `from` replaced by `to` (the same length): a name in both of its headers.

@@ -456,7 +456,7 @@ const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 /// Points of `folio` read through an in-process shell as the viewer reads them: a point with no entity and no link,
 /// and the centre of a link to another page.
 fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
-    let config = ew_testdir::fresh_dir("ew-tools-points");
+    let config = ew_testdir::Tmp::new("ew-tools-points");
     let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
     let open = json!({"dir": dir.to_string_lossy(), "read_only": true});
     assert_eq!(shell.dispatch("file.open", &open), Outcome::Done);

@@ -21,8 +21,8 @@ use ew_testids::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
-fn temp(tag: &str) -> PathBuf {
-    ew_testdir::fresh_dir(&format!("ew-api-persistence-{tag}"))
+fn temp(tag: &str) -> ew_testdir::Tmp {
+    ew_testdir::Tmp::new(&format!("ew-api-persistence-{tag}"))
 }
 
 fn store_options(state: &Path) -> StoreOptions {
@@ -62,7 +62,7 @@ fn pages(s: &Session) -> usize {
 }
 
 /// A project with two pages written to a fresh directory.
-fn created(state: &Path) -> (Session, PathBuf) {
+fn created(state: &Path) -> (Session, ew_testdir::Tmp) {
     let dir = temp("project");
     let project = serde_json::from_str(PROJECT).unwrap();
     let mut s = Session::from_records(project, [], [], options(7)).unwrap();
@@ -105,8 +105,6 @@ fn create_save_and_reopen() {
     assert_eq!(lines(&r), expected);
     assert_eq!(pages(&r), 3);
     r.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 #[test]
@@ -124,8 +122,6 @@ fn undo_after_a_save_removes_the_file_again() {
     assert!(!dir.join(file.as_str()).exists());
     assert_eq!(removed.generation, 3);
     s.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 #[test]
@@ -143,8 +139,6 @@ fn a_second_session_is_read_only() {
     // The second session did not take the holder's lock away.
     assert!(dir.join(".~ew.lock").exists());
     s.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 #[test]
@@ -181,8 +175,6 @@ fn the_journal_recovers_unsaved_commits_after_a_crash() {
     assert!(report.recovery.is_none(), "the recovered journal is gone");
     assert_eq!(lines(&again), live);
     again.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// `project.company.set` with a logo, previewed and committed (a Bulk command).
@@ -226,8 +218,6 @@ fn an_undone_logo_survives_a_crash_after_a_save() {
         X
     );
     r.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 #[test]
@@ -356,8 +346,6 @@ fn the_session_purges_asset_files_nothing_names() {
     assert!(m.purge_preview().unwrap().remove.is_empty());
     let p = m.preview(&purge_cmd(&[])).unwrap();
     m.commit(p).unwrap();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// `project.assets.purge` is `HumanOnly`. A session that submits as a command log, a script,
@@ -413,8 +401,6 @@ fn only_a_human_origin_purges() {
     assert_eq!(plan.remove.len(), 1);
     assert!(!dir.join(plan.remove[0].path.as_str()).exists());
     s.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// Review fix 7: a purge whose save passes its commit point and then fails (antivirus holds `manifest.json`) has
@@ -518,8 +504,6 @@ fn an_image_placed_with_data_survives_a_crash_and_the_next_save_writes_its_file(
     assert!(report.findings.is_empty(), "{:?}", report.findings);
     assert!(again.world().model.assets().any(|a| &**a.bytes() == IMAGE));
     again.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }
 
 /// After a save and a reopen the purge keeps the asset file that only an image item names, and
@@ -549,6 +533,4 @@ fn the_purge_keeps_an_asset_only_an_image_item_names() {
     assert_eq!(plan.remove.len(), 1, "{plan:?}");
     assert_eq!(plan.kept, 0);
     s.close();
-    let _ = std::fs::remove_dir_all(&dir);
-    let _ = std::fs::remove_dir_all(&state);
 }

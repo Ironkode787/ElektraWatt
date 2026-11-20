@@ -54,7 +54,7 @@ fn line() -> ew_schema::Primitive {
 
 #[test]
 fn a_second_draft_on_the_same_key_is_refused_and_the_first_symbol_stays() {
-    let (dir, mut registry, id) = library("symbol-two-drafts");
+    let (_dir, mut registry, id) = library("symbol-two-drafts");
     let mut first = block();
     let added = first.publish(&mut registry, id).unwrap();
     let identity = first.identity.clone().expect("minted at the first publication");
@@ -92,12 +92,11 @@ fn a_second_draft_on_the_same_key_is_refused_and_the_first_symbol_stays() {
     let copy = SymbolDraft::fork(&registry, &published, "example.copy").unwrap();
     assert_eq!(copy.identity, None);
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn a_symbol_keyed_like_a_function_definition_is_its_own_item() {
-    let (dir, mut registry, id) = library("symbol-kind-identity");
+    let (_dir, mut registry, id) = library("symbol-kind-identity");
     block().publish(&mut registry, id).unwrap();
     let mut named = block();
     named.key = "example.power.function".into();
@@ -108,12 +107,11 @@ fn a_symbol_keyed_like_a_function_definition_is_its_own_item() {
         LibDocument::Fndef(f) if f.item.meta.key.as_ref().unwrap().as_str() == "example.power.function"
     ));
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn a_function_key_held_by_another_item_is_refused_and_nothing_is_written() {
-    let (dir, mut registry, id) = library("symbol-function-key");
+    let (_dir, mut registry, id) = library("symbol-function-key");
     let mut other = block();
     other.key = "example.other".into();
     let mut docs = other.documents(id).unwrap();
@@ -139,12 +137,11 @@ fn a_function_key_held_by_another_item_is_refused_and_nothing_is_written() {
     );
     assert_eq!(generation(&registry, id), held);
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn a_refused_publication_leaves_the_library_generation_unchanged() {
-    let (dir, mut registry, id) = library("symbol-refused-generation");
+    let (_dir, mut registry, id) = library("symbol-refused-generation");
     let held = generation(&registry, id);
     let mut value = serde_json::to_value(block()).unwrap();
     value["symbol"]["cps"][0]["pos"] = json!([4_500_000, 4_000_000]);
@@ -165,12 +162,11 @@ fn a_refused_publication_leaves_the_library_generation_unchanged() {
     ));
     assert_eq!(generation(&registry, id), after);
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn an_unchanged_function_definition_keeps_its_version() {
-    let (dir, mut registry, id) = library("symbol-function-version");
+    let (_dir, mut registry, id) = library("symbol-function-version");
     let mut draft = block();
     draft.publish(&mut registry, id).unwrap();
     // A new drawing at a new version: the function definition stays at 1.0.0, so references to it still resolve.
@@ -195,7 +191,6 @@ fn an_unchanged_function_definition_keeps_its_version() {
         "=1.1.0"
     );
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -282,7 +277,7 @@ fn unknown_members_of_nested_objects_block_publication() {
 
 #[test]
 fn a_draft_under_another_key_than_its_items_publishes_new_ones_and_both_stay() {
-    let (dir, mut registry, id) = library("symbol-renamed-draft");
+    let (_dir, mut registry, id) = library("symbol-renamed-draft");
     let mut a = block();
     a.publish(&mut registry, id).unwrap();
     let first = a.identity.clone().unwrap();
@@ -329,12 +324,11 @@ fn a_draft_under_another_key_than_its_items_publishes_new_ones_and_both_stay() {
         symbol(&registry, id, key);
     }
     drop(registry);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn opening_a_zip_reads_it_as_an_archive_and_bytes_that_are_no_text_are_refused_in_words() {
-    let dir = ew_testdir::fresh_dir("symbol-zip");
+    let dir = ew_testdir::Tmp::new("symbol-zip");
     let zip = dir.join("symbols.zip");
     std::fs::write(&zip, b"PK\x03\x04 not a real archive").unwrap();
     let refused = symbols::open(&zip, "example").unwrap_err();
@@ -344,7 +338,6 @@ fn opening_a_zip_reads_it_as_an_archive_and_bytes_that_are_no_text_are_refused_i
     );
     let refused = SymbolDraft::parse(b"\xff\xfe binary").unwrap_err();
     assert_eq!(refused.to_string(), "The symbol document is not valid.");
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -366,7 +359,7 @@ fn an_empty_key_is_named_before_publication() {
 
 #[test]
 fn export_places_a_new_file_and_refuses_an_existing_one() {
-    let dir = ew_testdir::fresh_dir("symbol-export");
+    let dir = ew_testdir::Tmp::new("symbol-export");
     let path = dir.join("power.symbol.json");
     let draft = block();
     symbols::export(&draft, &path).unwrap();
@@ -381,7 +374,6 @@ fn export_places_a_new_file_and_refuses_an_existing_one() {
         .collect();
     assert_eq!(names, ["power.symbol.json"], "no temporary file is left");
     assert_eq!(SymbolDraft::parse(&std::fs::read(&path).unwrap()).unwrap(), draft);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]

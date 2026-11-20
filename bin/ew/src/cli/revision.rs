@@ -626,8 +626,8 @@ mod tests {
     }
 
     /// A copy of Golden A in a fresh directory.
-    fn golden_copy(tag: &str) -> PathBuf {
-        let dir = ew_testdir::fresh_dir(&format!("ew-cli-revision-{tag}"));
+    fn golden_copy(tag: &str) -> ew_testdir::Tmp {
+        let dir = ew_testdir::Tmp::new(&format!("ew-cli-revision-{tag}"));
         copy_dir(&golden(), &dir);
         dir
     }
@@ -781,7 +781,6 @@ mod tests {
         let (code, shown) = run(&dir, approve("boss"), true, "V2.0\n");
         assert_eq!((code, shown.as_str()), (2, ""));
         assert_eq!(files(&dir), before);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// RG-4/D15 through the CLI: the release of Golden A is refused with the gate's blockers listed (the release
@@ -809,7 +808,6 @@ mod tests {
         let (code, _) = run(&dir, release("V1.0"), true, "");
         assert_eq!(code, 1);
         assert_eq!(files(&dir), before);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// RG-1/RG-3 and RA-1 through the CLI: the typed label approves (the safety waivers listed first), the author's
@@ -905,7 +903,6 @@ mod tests {
         assert_eq!(code, 0, "{shown}");
         let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
         assert!(revisions.contains("the terminal plan was wrong"), "{revisions}");
-        let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&root);
     }
 
@@ -920,7 +917,7 @@ mod tests {
         waive_the_gate(&a);
         let (code, shown) = run(&a, approve("checker"), true, "V2.0\n");
         assert_eq!(code, 0, "{shown}");
-        let b = ew_testdir::fresh_dir("ew-cli-revision-incomplete-b");
+        let b = ew_testdir::Tmp::new("ew-cli-revision-incomplete-b");
         copy_dir(&a, &b);
         let root_a = a.with_extension("archives");
         let root_b = b.with_extension("archives");
@@ -989,7 +986,7 @@ mod tests {
         );
 
         // A damaged archive names no project: neither completed nor discarded, but kept, and nothing is offered.
-        let c = ew_testdir::fresh_dir("ew-cli-revision-incomplete-c");
+        let c = ew_testdir::Tmp::new("ew-cli-revision-incomplete-c");
         copy_dir(&golden(), &c);
         let root_c = c.with_extension("archives");
         let _ = std::fs::remove_dir_all(&root_c);
@@ -1005,7 +1002,7 @@ mod tests {
                 "{answer}: the damaged archive is kept"
             );
         }
-        for d in [&a, &b, &c, &root_a, &root_b, &root_c, &state] {
+        for d in [&root_a, &root_b, &root_c, &state] {
             let _ = std::fs::remove_dir_all(d);
         }
     }
