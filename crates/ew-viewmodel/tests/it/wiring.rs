@@ -756,7 +756,7 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(said.starts_with("Routed 1 wire: "), "{said}");
     assert!(
-        said.ends_with("No way for -103K3:A2 → -103K2:A2: symbols are in its way."),
+        said.contains(" No way for -103K3:A2 → -103K2:A2: symbols are in its way."),
         "{said}"
     );
     let t = tables(&s);
@@ -773,14 +773,14 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     assert_eq!(s.revision(), rev, "nothing committed");
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Nothing to route: every wire runs as well as the rules allow."),
+        said.starts_with("Nothing to route: no wire would run better."),
         "{said}"
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "layout.route", json!({}));
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Niets te routeren: elke draad loopt zo goed als de regels toelaten."),
+        said.starts_with("Niets te routeren: geen draad zou beter lopen."),
         "{said}"
     );
 }
@@ -879,6 +879,58 @@ fn route_routes_a_selected_wire_again_and_leaves_his_route_alone_otherwise() {
         before.connections,
         "one undo takes it back"
     );
+}
+
+/// A page whose routes carry no `computed` mark, as in a project made before it: a page-wide Route changes nothing,
+/// says so with the number of wires that keep their routes (never that every wire runs as well as the rules allow),
+/// and offers Route these too…, which opens the preview card; nothing changes until Apply, and Apply is one undo step
+/// that gives the person's detour a new route.
+#[test]
+fn route_names_the_wires_it_left_as_the_person_s_and_offers_to_route_them_too() {
+    let tmp = Tmp::new("rw4");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20)],
+        &[(
+            "-103K1:A2",
+            "-103K2:A2",
+            &[(55, 24), (55, 31), (60, 31), (60, 26), (65, 26), (65, 24)],
+        )],
+    );
+    let before = tables(&s);
+    let wire = before
+        .connections
+        .iter()
+        .find(|c| end_label(&before, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    done(&mut s, "ui.dismiss", json!({}));
+    let rev = s.revision();
+    done(&mut s, "layout.route", json!({}));
+    assert_eq!(s.revision(), rev, "nothing changes");
+    let toast = s.toast().cloned().expect("a toast");
+    assert!(toast.text.starts_with("Nothing changed: "), "{}", toast.text);
+    assert!(toast.text.contains(" keep the routes they have."), "{}", toast.text);
+    assert!(!toast.text.contains("as well as the rules allow"), "{}", toast.text);
+    assert_eq!(
+        ew_viewmodel::strings::text(ew_viewmodel::notifications::NoteAction::RouteHis.label_key()),
+        "Route these too…"
+    );
+    done(
+        &mut s,
+        "notifications.run",
+        json!({"entry": toast.serial, "action": "route_his"}),
+    );
+    assert_eq!(s.revision(), rev, "nothing changed yet");
+    let card = card_line(&s);
+    assert!(card.contains("\"layout.apply\""), "{card}");
+    assert!(card.contains(" you drew get"), "{card}");
+    done(&mut s, "preview.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    let now = tables(&s);
+    let now = now.connections.iter().find(|c| c.id == wire.id).expect("the wire");
+    assert_ne!(now.polyline, wire.polyline, "routed anew");
 }
 
 /// The selected wire's handles by keyboard (rc.3): Tab gives the first handle the focus and it shows as hot, an

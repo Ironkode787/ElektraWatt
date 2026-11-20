@@ -38,6 +38,9 @@ pub struct RoutePlan {
     pub plan: Plan,
     /// The parameters of the `layout.apply` that stores it; `None` for a plan that changes nothing.
     pub params: Option<Value>,
+    /// The page's routed wires a page-wide Route leaves alone as the person's (no `computed` mark, no fault), by ID;
+    /// empty for a selection.
+    pub kept: Vec<Uuid>,
 }
 
 impl RoutePlan {
@@ -210,7 +213,16 @@ impl Session {
         };
         let plan = ew_drafting::route(&draft, &jobs);
         let params = self.plan_params(&tables, &plan);
-        Some(RoutePlan { plan, params })
+        let kept = match scope {
+            RouteScope::Page => draft
+                .wires
+                .iter()
+                .filter(|w| !w.route.is_empty() && !jobs.wires.contains(&w.id))
+                .map(|w| w.id.0)
+                .collect(),
+            RouteScope::Selection(_) => Vec::new(),
+        };
+        Some(RoutePlan { plan, params, kept })
     }
 
     /// The `layout.apply` of `plan` on the page of `tables` ([`layout_apply_params`]), the markers' anchors read from

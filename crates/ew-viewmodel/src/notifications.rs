@@ -62,6 +62,8 @@ pub enum NoteAction {
     ChooseCable,
     /// Go to the page an Undo or a Redo changed, when it is not the page on show (rc.5).
     GoTo,
+    /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
+    RouteHis,
 }
 
 impl NoteAction {
@@ -85,6 +87,7 @@ impl NoteAction {
             NoteAction::RedrawBoxes => "redraw_boxes",
             NoteAction::ChooseCable => "choose_cable",
             NoteAction::GoTo => "go_to",
+            NoteAction::RouteHis => "route_his",
         }
     }
 
@@ -108,6 +111,7 @@ impl NoteAction {
             "redraw_boxes" => Some(NoteAction::RedrawBoxes),
             "choose_cable" => Some(NoteAction::ChooseCable),
             "go_to" => Some(NoteAction::GoTo),
+            "route_his" => Some(NoteAction::RouteHis),
             _ => None,
         }
     }
@@ -132,6 +136,7 @@ impl NoteAction {
             NoteAction::RedrawBoxes => key!("box-redraw"),
             NoteAction::ChooseCable => key!("note-action-choose-cable"),
             NoteAction::GoTo => key!("note-action-go-to-page"),
+            NoteAction::RouteHis => key!("note-action-route-his"),
         }
     }
 }

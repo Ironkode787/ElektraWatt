@@ -681,10 +681,12 @@ impl ShellModel {
 
     /// `layout.route` (Route): the plan of the selected wires and every wire with an end on a selected symbol, or with
     /// nothing of the page selected, of the page's wires that are unrouted, broken or routed by the program (§3.2).
-    /// Nothing to do: a toast says so. No route of the person's would change: applied at once as one `layout.apply` (one
-    /// undo step), a toast names the wires with Undo and the page draws them as selected while it is up; the wires
-    /// without a way are named with what is in it. A broken route the person drew would change: a preview card with
-    /// those wires named, and nothing changes until Apply.
+    /// Nothing to do: a toast says so, and names the number of wires a page-wide Route left as the person's; where
+    /// routing those anew would make the page better, its action Route these too… previews that ([`Self::route_his_card`]).
+    /// No route of the person's would change: applied at once as one `layout.apply` (one undo step), a toast names the
+    /// wires with Undo and the page draws them as selected while it is up; the wires without a way are named with what
+    /// is in it. A broken route the person drew would change: a preview card with those wires named, and nothing
+    /// changes until Apply.
     pub(crate) fn act_layout_route(&mut self) -> Outcome {
         let ids = self.route_selection_ids();
         let scope = if ids.is_empty() {
@@ -703,10 +705,29 @@ impl ShellModel {
         };
         let rows = route_rows(session, &folio, &plan);
         let changed = plan.changed();
+        let kept = plan.kept.len();
         let Some(params) = plan.params.clone() else {
-            let lead = strings::text(key!("toast-route-nothing")).to_owned();
+            // Nothing changed: the wires left as the person's are named by their number, with the offer where routing
+            // them anew would make the page better.
+            let gain = kept > 0
+                && session
+                    .route_plan(&folio, &ew_api::routing::RouteScope::Selection(plan.kept.clone()))
+                    .is_some_and(|p| p.params.is_some());
+            let lead = match (gain, kept) {
+                (false, _) => strings::text(key!("toast-route-nothing")).to_owned(),
+                (true, 1) => strings::text(key!("toast-route-kept-one")).to_owned(),
+                (true, n) => strings::format(key!("toast-route-kept"), &[&n.to_string()]),
+            };
             let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
-            self.notify(text, false);
+            let page = self
+                .page_rows()
+                .iter()
+                .find(|r| r.folio == folio)
+                .map(|r| r.id);
+            match page.filter(|_| gain) {
+                Some(page) => self.notify_route_his(text, page),
+                None => self.notify(text, false),
+            }
             return Outcome::Done;
         };
         let names = wire_names(session, &folio, &changed);
@@ -741,10 +762,61 @@ impl ShellModel {
         } else {
             strings::format(key!("toast-route-done"), &[&changed.len().to_string(), &names])
         };
-        let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
+        let kept = match kept {
+            0 => None,
+            1 => Some(strings::text(key!("route-kept-one")).to_owned()),
+            n => Some(strings::format(key!("route-kept"), &[&n.to_string()])),
+        };
+        let text = std::iter::once(lead)
+            .chain(rows)
+            .chain(kept)
+            .collect::<Vec<_>>()
+            .join(" ");
         self.notify(text, true);
         self.tools.rerouted = Some((self.notes.newest_serial(), self.revision(), changed));
         Outcome::Done
+    }
+
+    /// Route these too… (the action of Route's toast): the preview card of Route over the wires a page-wide Route
+    /// leaves as the person's on the page on show, the card a broken route of his gets; nothing changes until Apply,
+    /// one undo step. Where none would run better now, a toast says so.
+    pub(super) fn route_his_card(&mut self) -> Outcome {
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(kept) = session
+            .route_plan(&folio, &ew_api::routing::RouteScope::Page)
+            .map(|p| p.kept)
+        else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let plan = session.route_plan(&folio, &ew_api::routing::RouteScope::Selection(kept));
+        let Some((plan, params)) = plan.and_then(|p| p.params.clone().map(|params| (p, params))) else {
+            self.notify(strings::text(key!("toast-route-nothing")).to_owned(), false);
+            return Outcome::Done;
+        };
+        let rows = route_rows(session, &folio, &plan);
+        let routed = plan.changed().len();
+        let page = strings::format(key!("route-folio"), &[&folio]);
+        let lead = if routed == 1 {
+            strings::format(key!("route-preview-lead-his-one"), &[&page])
+        } else {
+            strings::format(key!("route-preview-lead-his"), &[&page, &routed.to_string()])
+        };
+        self.preview_host_card_as(
+            "layout.apply",
+            params,
+            key!("reason-route"),
+            crate::properties::CardOrigin::Route {
+                lead,
+                rows,
+                page,
+                routed,
+            },
+        )
     }
 
     /// The wires the last Route changed, while its toast is on screen and the project is at the revision Route left

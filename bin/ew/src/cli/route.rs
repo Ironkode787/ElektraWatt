@@ -193,17 +193,19 @@ fn page_result(
 }
 
 /// The text of one page: its summary line (the page as `folio <label>`, as the window words it; with `--dry-run` what
-/// Route would do), then one line per wire left without a way and per wire across a text.
+/// Route would do), then one line per wire left without a way and per wire across a text, and the number of wires a
+/// page-wide Route leaves as the person's.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -> String {
-    let (routed, unrouted) = (page.routed.len(), page.unrouted.len());
+    let (routed, unrouted, kept) = (page.routed.len(), page.unrouted.len(), plan.kept.len());
     let verb = if dry_run { "Would route" } else { "Routed" };
-    let mut out = match (routed, unrouted) {
-        (0, 0) => format!(
-            "Nothing to route on folio {}: every wire runs as well as the rules allow.\n",
+    let mut out = match (routed, unrouted, kept) {
+        (0, 0, 0) => format!(
+            "Nothing to route on folio {}: no wire would run better.\n",
             page.folio
         ),
-        (1, _) => format!("{verb} 1 wire on folio {}.\n", page.folio),
-        (n, _) => format!("{verb} {n} wires on folio {}.\n", page.folio),
+        (0, 0, _) => format!("Nothing changed on folio {}.\n", page.folio),
+        (1, _, _) => format!("{verb} 1 wire on folio {}.\n", page.folio),
+        (n, _, _) => format!("{verb} {n} wires on folio {}.\n", page.folio),
     };
     for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
@@ -212,6 +214,13 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
         out.push_str(&format!(
             "  Routed across a text that has no other place: {wire}.\n"
         ));
+    }
+    match kept {
+        0 => {}
+        1 => out.push_str("  1 wire keeps the route it has: name it with --selection to have it routed anew.\n"),
+        n => out.push_str(&format!(
+            "  {n} wires keep the routes they have: name them with --selection to have them routed anew.\n"
+        )),
     }
     out
 }
@@ -232,6 +241,7 @@ mod tests {
                 ..Plan::default()
             },
             params: None,
+            kept: Vec::new(),
         };
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);
@@ -244,10 +254,20 @@ mod tests {
         let empty = RoutePlan {
             plan: Plan::default(),
             params: None,
+            kept: Vec::new(),
         };
         assert_eq!(
             page_text(&page_result("102", &empty, words), &empty, false),
-            "Nothing to route on folio 102: every wire runs as well as the rules allow.\n"
+            "Nothing to route on folio 102: no wire would run better.\n"
+        );
+        let his = RoutePlan {
+            kept: vec![id(4), id(5)],
+            ..empty
+        };
+        assert_eq!(
+            page_text(&page_result("102", &his, words), &his, false),
+            "Nothing changed on folio 102.\n  2 wires keep the routes they have: name them with --selection to have \
+             them routed anew.\n"
         );
     }
 }

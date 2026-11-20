@@ -246,6 +246,21 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action, Route these too…, previews Route over the wires a page-wide
+    /// Route left as the person's on page `page` (its row's ID).
+    pub(super) fn notify_route_his(&mut self, text: String, page: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::RouteHis,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![page],
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows `text` as a toast of key `edit` whose action goes to page `page` (its row's ID), the page an Undo or a
     /// Redo changed (rc.5).
     pub(super) fn notify_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
@@ -444,6 +459,18 @@ impl ShellModel {
                 };
                 self.notes.dismiss(entry.serial);
                 self.dispatch("page.goto", &serde_json::json!({ "folio": folio }))
+            }
+            // Route these too…: on the page it names, while that page is on show; the toast is spent.
+            Some(NoteAction::RouteHis) => {
+                let page = entry.selects(action).first().copied();
+                let shown = self
+                    .current_folio()
+                    .and_then(|f| self.page_rows().iter().find(|r| r.folio == f).map(|r| r.id));
+                if page.is_none() || page != shown {
+                    return Outcome::refused(key!("reason-action-expired"));
+                }
+                self.notes.dismiss(entry.serial);
+                self.route_his_card()
             }
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);

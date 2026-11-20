@@ -248,9 +248,16 @@ tag that stands in a wire's way steps aside.
 Route applies at once, in one undo step: the toast names the wires it changed, by their numbers or their ends, three
 of them and then how many more ("Routed 5 wires: 101.3, 101.5, 101.7 and 2 more."), and the page shows them as
 selected wires while the toast is up. A wire without a way keeps its route, or stays a dashed line, and the toast says
-what is in its way, such as "No way for -101F1:2 → -101E55:L: other wires are in its way." When nothing is better, it
-says "Nothing to route: every wire runs as well as the rules allow." Where Route would replace a broken route you drew,
-the Preview tab shows the plan first and names those wires; Apply stores it, Cancel leaves the page as it is.
+what is in its way, such as "No way for -101F1:2 → -101E55:L: other wires are in its way." Where Route would replace a
+broken route you drew, the Preview tab shows the plan first and names those wires; Apply stores it, Cancel leaves the
+page as it is.
+
+With nothing selected, Route draws again by itself only the wires the program routed, the unrouted ones and the broken
+ones. Every other routed wire counts as drawn by you, and so does every wire of a project made before this version:
+the toast says how many keep their routes ("Nothing changed: 14 wires keep the routes they have."), and where routing
+them anew would make the page better, its Route these too… shows that plan in the Preview tab first. To have some of
+them drawn again, select them and choose Route. When no wire would run better, it says "Nothing to route: no wire
+would run better."
 
 ## Interruption point
 
