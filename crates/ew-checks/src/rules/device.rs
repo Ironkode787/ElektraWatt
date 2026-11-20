@@ -68,8 +68,8 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
 /// by_others`, FR-DEV-037) waits for the attribute (FT-209): until it exists the rule fires for
 /// such devices too. Left out: a strip (its terminals carry the parts), a PLC configuration device and a device without
 /// functions that is no cable (nothing is drawn or wired, so nothing is ordered), and an earth connection, a device
-/// drawn only with earth or ground symbols and given no part (rc.3). A cable without a cable part is
-/// reported (rc.3): its type is what is ordered. One finding per device: target the device, no
+/// drawn only with earth or ground symbols and given no part. A cable without a cable part is
+/// reported: its type is what is ordered. One finding per device: target the device, no
 /// discriminator, so the fingerprint holds only the device's ID (doc 15 §10.1: waiver W-1 survives a renumber).
 #[derive(Clone, Copy, Debug)]
 pub struct DeviceWithoutPart;

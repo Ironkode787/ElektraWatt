@@ -1089,7 +1089,7 @@ impl Rule for PinsUnbound {
 // ---------------------------------------------------------------------------------------------------------
 // EW-PLC-017
 
-/// EW-PLC-017 "Not a PLC module" (F17 of the rc.1 test): conflict, o r, warning, module.
+/// EW-PLC-017 "Not a PLC module": conflict, o r, warning, module.
 pub const NOT_A_MODULE: RuleMeta = RuleMeta {
     id: "EW-PLC-017",
     code: "110017",

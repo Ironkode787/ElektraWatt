@@ -17,7 +17,7 @@ use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, To
 use crate::rules::term::full_tag;
 
 /// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, warning (release: error), cable. A new cable
-/// has no length yet; that is an error only in the check for delivery (rc.3: it was an error from the moment a cable
+/// has no length yet; that is an error only in the check for delivery (it was an error from the moment a cable
 /// was made).
 pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     id: "EW-CORE-033",
@@ -151,7 +151,7 @@ impl Rule for DeviceNotInSchematic {
         )
         .arg("device", tag)
         .arg("part", if d.parts.is_empty() { "no" } else { "yes" });
-        // A valve on a valve terminal drawn as its positions (rc.3): Draw its valves in the terminal.
+        // A valve on a valve terminal drawn as its positions: Draw its valves in the terminal.
         let finding = match drawn_terminal_of(q, device) {
             Some(terminal) => finding.with_fix(QuickFix {
                 label: "Draw its valves in the valve terminal".to_owned(),

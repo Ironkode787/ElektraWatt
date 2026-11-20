@@ -31,7 +31,7 @@ fn core033_cases() {
             Case::reports("a cable without length", cable(None).build(), |c, f| {
                 assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                 assert_eq!(f[0].code, "003033", "case {c}");
-                // A warning while the drawing grows (rc.3: a new cable started as an error).
+                // A warning while the drawing grows (a new cable started as an error).
                 assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                 assert_eq!(f[0].discriminator, "", "case {c}");
                 assert_eq!(f[0].targets.len(), 1, "case {c}");

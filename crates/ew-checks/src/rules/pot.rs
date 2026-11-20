@@ -1769,7 +1769,7 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
 /// function, discriminator the CP index, shown on that page. Left out too: the pin of a PLC channel whose effective
 /// state is spare, reserved or deactivated (doc 10 §3.2): the channel's state says that it stays unconnected. Golden
 /// A: -102F2:13 and :14 (EF-09). A pin with an interruption point's unjoined CP within [`MARK_BESIDE_PIN_NM`] of it
-/// on the page says so, and its quick fix joins the two instead of marking the pin not used (rc.5: a mark dropped a
+/// on the page says so, and its quick fix joins the two instead of marking the pin not used (a mark dropped a
 /// grid step beside a supply pin, and the fix offered was "Mark not used").
 #[derive(Clone, Copy, Debug)]
 pub struct UnconnectedCp;
@@ -1918,7 +1918,7 @@ impl Rule for UnconnectedCp {
                     finding.with_severity(Severity::Info)
                 } else if let Some(m) = beside {
                     // The mark beside it joins it: the fix offers that before Mark not used, the opposite of what
-                    // the pin needs (rc.5).
+                    // the pin needs.
                     finding.with_fix(join_mark(CpRef::new(f, c.idx), m.1, page))
                 } else {
                     // The message says "mark it unused": its quick fix does that (three personas of M3's round
@@ -2138,7 +2138,7 @@ fn opening_pairs(q: &Q, f: Id<Function>) -> Vec<OpeningPair> {
 /// For each function with an opening pair whose upstream side (by the flow) is the potential `p` of type N or PEN:
 /// it is accepted when the function also opens a pair whose upstream type is L, L1, L2 or L3 (its poles are one
 /// mechanism: a two- or four-pole breaker or switch opens phase and neutral together, whatever its definition's
-/// `switches_n_with_l` says, rc.5); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
+/// `switches_n_with_l` says); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
 /// error. The loads are the devices with a CP in the downstream potential whose line CPs lie in a potential the
 /// function does not switch, named in natural order. One finding per pair, target the function, discriminator
 /// `pair:<up>-<down>` (the CP indices). There is no quick fix: the correct wiring is a human decision (▲U-11).

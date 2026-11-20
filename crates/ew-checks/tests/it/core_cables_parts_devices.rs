@@ -318,7 +318,7 @@ fn core037_reports_a_shield_connected_at_neither_end() {
 // ---------------------------------------------------------------------------------------------------------
 // Devices and parts
 
-/// EW-CORE-041: a device with functions and no part is a warning, and so is a cable without a cable part (rc.3: its
+/// EW-CORE-041: a device with functions and no part is a warning, and so is a cable without a cable part (its
 /// type is what is ordered); a device with a part, a strip and a device without functions are not reported.
 #[test]
 fn core041_reports_a_device_without_part() {
