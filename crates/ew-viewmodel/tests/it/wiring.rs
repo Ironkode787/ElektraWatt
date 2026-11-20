@@ -1723,7 +1723,11 @@ fn arrange_previews_its_moves_plans_again_on_an_untick_and_applies_in_one_step()
     coils_and_wires(
         &mut s,
         &[(55, 20), (56, 30)],
-        &[("-103K1:A2", "-103K2:A1", &[(55, 24), (55, 27), (56, 27), (56, 30)])],
+        &[(
+            "-103K1:A2",
+            "-103K2:A1",
+            &[(55, 24), (55, 27), (56, 27), (56, 30)],
+        )],
     );
     done(&mut s, "ui.dismiss", json!({}));
     let rev = s.revision();
@@ -1733,10 +1737,16 @@ fn arrange_previews_its_moves_plans_again_on_an_untick_and_applies_in_one_step()
     assert_eq!(s.revision(), rev, "nothing changed yet");
     let card = card_line(&s);
     assert!(card.contains(" arrange "), "{card}");
-    assert!(card.contains("[x] \""), "a ticked row names a symbol that moves: {card}");
+    assert!(
+        card.contains("[x] \""),
+        "a ticked row names a symbol that moves: {card}"
+    );
     let group = s.area().unwrap().focused;
     assert!(!s.arrange_moves(group).is_empty(), "the canvas marks the move");
-    assert!(s.arrange_page(group).is_some(), "the canvas shows the page as it would become");
+    assert!(
+        s.arrange_page(group).is_some(),
+        "the canvas shows the page as it would become"
+    );
     // Unticked, the coil stays: it is listed unticked, or nothing is left to arrange.
     done(&mut s, "layout.arrange_tick", json!({"row": 0}));
     assert_eq!(s.revision(), rev);

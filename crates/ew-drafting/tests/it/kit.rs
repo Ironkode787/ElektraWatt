@@ -6,8 +6,8 @@
 
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{
-    DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner, PageKind,
-    Part, PartId, Pin, PinId, Places, Pt, Rect, Role, Side, Tick, Wire, WireClass, WireId,
+    DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner,
+    PageKind, Part, PartId, Pin, PinId, Places, Pt, Rect, Role, Side, Tick, Wire, WireClass, WireId,
 };
 use ew_ids::Uuid;
 

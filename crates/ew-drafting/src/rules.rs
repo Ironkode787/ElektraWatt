@@ -192,6 +192,9 @@ impl<'a> Wiring<'a> {
     }
 }
 
+/// A partner of a part's pin on one side: the pin's coordinate across that side, the partner pin's, the partner.
+type Partner = (Tick, Tick, usize);
+
 /// The opposite side.
 pub(crate) fn opposite(s: Side) -> Side {
     match s {
@@ -320,7 +323,7 @@ fn changes(
 
 /// A4: per part and side, its partners' pins across that side in the order of its pins.
 fn a4(w: &Wiring<'_>) -> Vec<Broken> {
-    let mut rows: BTreeMap<(usize, Side), Vec<(Tick, Tick, usize)>> = BTreeMap::new();
+    let mut rows: BTreeMap<(usize, Side), Vec<Partner>> = BTreeMap::new();
     for (a, b) in w.pairs() {
         for (h, f) in [(a, b), (b, a)] {
             let ((hp, ha, hs), (fp, fa, _)) = (w.pins[&h], w.pins[&f]);
@@ -496,7 +499,7 @@ fn e3(w: &Wiring<'_>) -> Vec<Broken> {
 /// E4: a card's partners beyond its pins, in the order of its channels.
 fn e4(w: &Wiring<'_>) -> Vec<Broken> {
     let mut out = Vec::new();
-    let mut edges: BTreeMap<(usize, Side), Vec<(Tick, Tick, usize)>> = BTreeMap::new();
+    let mut edges: BTreeMap<(usize, Side), Vec<Partner>> = BTreeMap::new();
     for (a, b) in w.pairs() {
         for (c, f) in [(a, b), (b, a)] {
             let ((ci, cp, cs), (fi, fp, _)) = (w.pins[&c], w.pins[&f]);

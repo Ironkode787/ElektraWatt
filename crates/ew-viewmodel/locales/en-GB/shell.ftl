@@ -7855,7 +7855,7 @@ part-plug-with-resistor = switchable terminating resistor
 # Arrange and route (docs/design/06a-drafting.md §7.1, §7.3).
 action-layout-arrange = Arrange and route
 tooltip-layout-arrange = Line up the symbols of the selection, or of the page, and route their wires. You see the result before anything changes.
-action-layout-arrange-tick = Tick or untick a row of Arrange and route
+action-layout-arrange-tick = Tick or untick a row of the arranging preview
 action-layout-arrange-as-is = Show the page as it is
 reason-arrange = Arrange and route is shown before anything changes
 reason-arrange-tick = Open Arrange and route first

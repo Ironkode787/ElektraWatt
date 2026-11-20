@@ -7588,7 +7588,7 @@ part-plug-with-resistor = schakelbare afsluitweerstand
 # Schikken en routeren (docs/design/06a-drafting.md §7.1, §7.3).
 action-layout-arrange = Schikken en routeren
 tooltip-layout-arrange = Lijn de symbolen van de selectie, of van de pagina, uit en routeer hun draden. U ziet het resultaat voordat er iets verandert.
-action-layout-arrange-tick = Een regel van Schikken en routeren aan- of uitvinken
+action-layout-arrange-tick = Een regel van het schikvoorbeeld aan- of uitvinken
 action-layout-arrange-as-is = De pagina tonen zoals hij is
 reason-arrange = Schikken en routeren wordt getoond voordat er iets verandert
 reason-arrange-tick = Open eerst Schikken en routeren
@@ -7622,7 +7622,7 @@ arrange-up = { $p0 } stappen omhoog
 arrange-up-one = 1 stap omhoog
 arrange-down = { $p0 } stappen omlaag
 arrange-down-one = 1 stap omlaag
-arrange-a-symbol = een symbool zonder kenteken
+arrange-a-symbol = een symbool zonder kenmerk
 arrange-unticked = blijft staan (u hebt het uitgevinkt)
 arrange-his = krijgt een nieuwe route
 arrange-his-unticked = houdt zijn route (u hebt hem uitgevinkt)

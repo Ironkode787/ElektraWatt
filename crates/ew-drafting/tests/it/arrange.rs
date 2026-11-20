@@ -6,7 +6,8 @@
 
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    Arranged, DraftPage, End, PageKind, PartId, Pt, Role, Rule, Scope, Side, arrange, geom, measure, rules_kept,
+    Arranged, DraftPage, End, PageKind, PartId, Pt, Role, Rule, Scope, Side, arrange, geom, measure,
+    rules_kept,
 };
 
 /// The page as `a` leaves it: every part moved, every route and junction of its plan.
@@ -27,7 +28,11 @@ fn after(page: &DraftPage, a: &Arranged) -> DraftPage {
         wire.computed = !r.is_empty();
     }
     for (j, at) in &a.plan.junctions {
-        out.junctions.iter_mut().find(|x| x.id == *j).expect("a junction").at = *at;
+        out.junctions
+            .iter_mut()
+            .find(|x| x.id == *j)
+            .expect("a junction")
+            .at = *at;
     }
     for (m, d) in &a.plan.marks {
         let mark = out.marks.iter_mut().find(|x| x.id == *m).expect("a mark");
@@ -42,7 +47,10 @@ fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
     let done = after(page, &a);
     assert_eq!(rules_kept(page, &done), Ok(()), "the plan keeps the rules");
     if !a.is_empty() {
-        assert!(measure(&done).better_than(&measure(page)), "a plan is offered only when better");
+        assert!(
+            measure(&done).better_than(&measure(page)),
+            "a plan is offered only when better"
+        );
     }
     (a, done)
 }
@@ -73,7 +81,13 @@ fn routed_by_hand(hand: &DraftPage) -> DraftPage {
         w.route.clear();
     }
     let plan = ew_drafting::route(&bare, &ew_drafting::jobs(&bare, Scope::Page));
-    after(&bare, &Arranged { plan, ..Arranged::default() })
+    after(
+        &bare,
+        &Arranged {
+            plan,
+            ..Arranged::default()
+        },
+    )
 }
 
 #[test]
@@ -87,9 +101,24 @@ fn every_fixture_untidy_comes_out_tidy() {
         // No turn-back but those the pins' sides force: as many as the router draws with every part in place (a U
         // between two ports that face one way is one).
         let hand = measure(&routed_by_hand(&f.hand));
-        assert!(q.counts.turn_backs <= hand.counts.turn_backs, "{}: {:?}", f.name, q.findings.turn_backs);
-        assert!(q.findings.across_texts.is_empty(), "{}: {:?}", f.name, q.findings.across_texts);
-        assert!(q.findings.texts_on_texts.is_empty(), "{}: {:?}", f.name, q.findings.texts_on_texts);
+        assert!(
+            q.counts.turn_backs <= hand.counts.turn_backs,
+            "{}: {:?}",
+            f.name,
+            q.findings.turn_backs
+        );
+        assert!(
+            q.findings.across_texts.is_empty(),
+            "{}: {:?}",
+            f.name,
+            q.findings.across_texts
+        );
+        assert!(
+            q.findings.texts_on_texts.is_empty(),
+            "{}: {:?}",
+            f.name,
+            q.findings.texts_on_texts
+        );
         // Every wire between two pins that face each other on one line is straight.
         for w in &done.wires {
             let (a, b) = (point(&done, w.ends[0]), point(&done, w.ends[1]));
@@ -100,10 +129,17 @@ fn every_fixture_untidy_comes_out_tidy() {
                     .find_map(|part| part.pins.iter().find(|x| x.id == pin).and_then(|x| x.side)),
                 End::Junction(_) => None,
             };
-            let facing = (a.x == b.x && side(w.ends[0]) == Some(if a.y < b.y { Side::Down } else { Side::Up }))
+            let facing = (a.x == b.x
+                && side(w.ends[0]) == Some(if a.y < b.y { Side::Down } else { Side::Up }))
                 || (a.y == b.y && side(w.ends[0]) == Some(if a.x < b.x { Side::Right } else { Side::Left }));
             if facing && side(w.ends[1]).is_some() {
-                assert_eq!(geom::corners(&geom::clean(&w.route)).len(), 0, "{}: {:?}", f.name, w.route);
+                assert_eq!(
+                    geom::corners(&geom::clean(&w.route)).len(),
+                    0,
+                    "{}: {:?}",
+                    f.name,
+                    w.route
+                );
             }
         }
     }
@@ -124,7 +160,12 @@ fn inputs() -> Page {
     b.role(card, Role::Card);
     for (i, x) in [12, 17, 22].into_iter().enumerate() {
         b.device(&format!("B{i}"), p(x, 18));
-        b.wire(&format!("w{i}"), b.pin(&format!("B{i}"), "2"), b.pin("A1", &format!("{i}")), &[]);
+        b.wire(
+            &format!("w{i}"),
+            b.pin(&format!("B{i}"), "2"),
+            b.pin("A1", &format!("{i}")),
+            &[],
+        );
     }
     b
 }
@@ -150,7 +191,11 @@ fn a_sensor_below_a_card_whose_pin_faces_up_stands_above_it_after_the_run() {
     let (a, done) = run(&b.page, &[]);
     assert!(a.moves.iter().any(|(x, _)| *x == id("B1")), "{:?}", a.moves);
     assert!(at(&done, "B1").y < at(&done, "A1").y, "B1 above the card");
-    assert!(ew_drafting::rules::broken(&done).iter().all(|x| x.rule != Rule::E4));
+    assert!(
+        ew_drafting::rules::broken(&done)
+            .iter()
+            .all(|x| x.rule != Rule::E4)
+    );
     assert_eq!(measure(&done).faults, 0);
 }
 
@@ -181,7 +226,11 @@ fn a_circuit_above_the_rail_that_feeds_it_stands_below_it_after_the_run() {
 fn an_actuator_below_its_valve_stands_above_it_and_the_supply_below_it() {
     let mut b = Page::new(60, 50);
     b.page.kind = PageKind::Fluid;
-    let pins = [("2", p(2, 0), Side::Up), ("4", p(4, 0), Side::Up), ("1", p(3, 6), Side::Down)];
+    let pins = [
+        ("2", p(2, 0), Side::Up),
+        ("4", p(4, 0), Side::Up),
+        ("1", p(3, 6), Side::Down),
+    ];
     let valve = b.part("V", p(20, 20), (p(0, 0), p(6, 6)), &pins);
     b.role(valve, Role::Valve);
     let ends = [("a", p(2, 4), Side::Down), ("b", p(4, 4), Side::Down)];
@@ -193,8 +242,14 @@ fn an_actuator_below_its_valve_stands_above_it_and_the_supply_below_it() {
     b.wire("t4", b.pin("V", "4"), b.pin("C", "b"), &[]);
     b.wire("t1", b.pin("S", "out"), b.pin("V", "1"), &[]);
     let (_, done) = run(&b.page, &[]);
-    assert!(at(&done, "C").y + s(4) <= at(&done, "V").y, "the cylinder above the valve");
-    assert!(at(&done, "S").y >= at(&done, "V").y + s(6), "the supply below the valve");
+    assert!(
+        at(&done, "C").y + s(4) <= at(&done, "V").y,
+        "the cylinder above the valve"
+    );
+    assert!(
+        at(&done, "S").y >= at(&done, "V").y + s(6),
+        "the supply below the valve"
+    );
 }
 
 #[test]
@@ -217,12 +272,20 @@ fn a_part_without_a_wire_a_kept_part_and_a_part_outside_the_selection_do_not_mov
     b.device("free", p(45, 10));
     // D§9.3 row 5: a kept part is in no plan, and the parts are arranged round it (it is a host).
     for n in ["A1", "B2"] {
-        b.page.parts.iter_mut().find(|q| q.id == id(n)).expect("a part").locked = true;
+        b.page
+            .parts
+            .iter_mut()
+            .find(|q| q.id == id(n))
+            .expect("a part")
+            .locked = true;
     }
     let (a, done) = run(&b.page, &[]);
     let moved = |n: &str| a.moves.iter().any(|(x, _)| *x == id(n));
     assert!(!moved("free") && !moved("A1") && !moved("B2"), "{:?}", a.moves);
-    assert!(moved("B0") && moved("B1"), "the others line up under the kept card");
+    assert!(
+        moved("B0") && moved("B1"),
+        "the others line up under the kept card"
+    );
     assert_eq!(at(&done, "B0").x, s(12));
     // With a selection only the selected parts move.
     let sel = [id("B1").0];
@@ -236,7 +299,10 @@ fn a_second_run_gives_an_empty_plan() {
     put(&mut b, "B1", p(18, 18));
     let (a, done) = run(&b.page, &[]);
     assert!(!a.moves.is_empty());
-    assert!(arrange(&done, Scope::Page, &[]).moves.is_empty(), "a second run moves nothing");
+    assert!(
+        arrange(&done, Scope::Page, &[]).moves.is_empty(),
+        "a second run moves nothing"
+    );
 }
 
 #[test]
@@ -261,7 +327,11 @@ fn a_row_stands_in_the_order_of_its_host_s_pins_and_a_spacing_kept_is_unchanged(
     let (_, done) = run(&b.page, &[]);
     let xs: Vec<_> = ["B0", "B1", "B2"].iter().map(|n| at(&done, n).x).collect();
     assert!(xs.windows(2).all(|w| w[0] < w[1]), "{xs:?}");
-    assert_eq!(at(&done, "B1").y, s(14), "its distance from its pin is the person's");
+    assert_eq!(
+        at(&done, "B1").y,
+        s(14),
+        "its distance from its pin is the person's"
+    );
 }
 
 #[test]
@@ -288,7 +358,11 @@ fn a_page_whose_parts_do_not_fit_names_each_part_it_leaves_and_has_no_part_on_a_
     let done = after(&b.page, &a);
     assert!(measure(&done).findings.parts_on_parts.is_empty());
     for n in ["B0", "B1", "B2"] {
-        assert!(a.left.iter().any(|(x, s)| *x == id(n) && *s == Side::Up), "{n} named: {:?}", a.left);
+        assert!(
+            a.left.iter().any(|(x, s)| *x == id(n) && *s == Side::Up),
+            "{n} named: {:?}",
+            a.left
+        );
         assert!(!a.moves.iter().any(|(x, _)| *x == id(n)));
     }
 }
@@ -297,7 +371,11 @@ fn a_page_whose_parts_do_not_fit_names_each_part_it_leaves_and_has_no_part_on_a_
 fn each_rule_of_a_page_names_the_part_that_breaks_it() {
     use ew_drafting::rules::broken;
     let names = |page: &DraftPage, rule: Rule| -> Vec<PartId> {
-        broken(page).into_iter().filter(|b| b.rule == rule).flat_map(|b| b.parts).collect()
+        broken(page)
+            .into_iter()
+            .filter(|b| b.rule == rule)
+            .flat_map(|b| b.parts)
+            .collect()
     };
     // E1: a contact under the one it feeds through a pin facing down.
     let mut b = Page::new(40, 40);
@@ -351,16 +429,42 @@ fn rules_kept_names_a_moved_kept_part_a_reshaped_part_and_a_closed_up_chain() {
     b.device("K1", p(10, 6));
     b.device("K2", p(10, 16));
     b.run("w", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
-    b.page.parts.iter_mut().find(|q| q.id == id("K1")).expect("K1").locked = true;
+    b.page
+        .parts
+        .iter_mut()
+        .find(|q| q.id == id("K1"))
+        .expect("K1")
+        .locked = true;
     let mut moved = b.page.clone();
     moved.parts.iter_mut().find(|q| q.id == id("K1")).expect("K1").at = p(10, 4);
     let broken = rules_kept(&b.page, &moved).unwrap_err();
-    assert!(broken.iter().any(|x| x.rule == Rule::A2 && x.parts == vec![id("K1")]), "{broken:?}");
+    assert!(
+        broken
+            .iter()
+            .any(|x| x.rule == Rule::A2 && x.parts == vec![id("K1")]),
+        "{broken:?}"
+    );
     let mut closed = b.page.clone();
     closed.parts.iter_mut().find(|q| q.id == id("K2")).expect("K2").at = p(10, 12);
-    assert!(rules_kept(&b.page, &closed).unwrap_err().iter().any(|x| x.rule == Rule::A5));
+    assert!(
+        rules_kept(&b.page, &closed)
+            .unwrap_err()
+            .iter()
+            .any(|x| x.rule == Rule::A5)
+    );
     let mut reshaped = b.page.clone();
-    reshaped.parts.iter_mut().find(|q| q.id == id("K2")).expect("K2").body.y1 += 1;
-    assert!(rules_kept(&b.page, &reshaped).unwrap_err().iter().any(|x| x.rule == Rule::A3));
+    reshaped
+        .parts
+        .iter_mut()
+        .find(|q| q.id == id("K2"))
+        .expect("K2")
+        .body
+        .y1 += 1;
+    assert!(
+        rules_kept(&b.page, &reshaped)
+            .unwrap_err()
+            .iter()
+            .any(|x| x.rule == Rule::A3)
+    );
     assert_eq!(rules_kept(&b.page, &b.page), Ok(()));
 }

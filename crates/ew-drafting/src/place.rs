@@ -155,7 +155,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
             .collect();
         tries.push(d);
     }
-    let mut best: Option<(i64, Vec<(PartId, Pt)>, DraftPage, Plan, crate::Quality)> = None;
+    let mut best: Option<Candidate> = None;
     let mut seen: BTreeSet<Vec<(PartId, Pt)>> = BTreeSet::new();
     for (k, d) in tries.into_iter().enumerate() {
         // The plans without a branch are tried only when the full one is not taken, and so on.
@@ -325,6 +325,15 @@ fn finished(
     plan
 }
 
+/// A plan tried: its cost, its moves, the page moved, Route's plan of it and the page's quality after it.
+type Candidate = (i64, Vec<(PartId, Pt)>, DraftPage, Plan, crate::Quality);
+
+/// A relation of a unit: the other unit, its own pin, the other's pin and their kind.
+type Relation = (usize, PinId, PinId, Option<Kind>);
+
+/// What a part stands on for the fitting: its unit, its index, its body, its wired pins' first steps and its texts.
+type Footing = (usize, usize, Rect, Vec<Rect>, Vec<Rect>);
+
 /// How two related pins face each other (§4.2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum Kind {
@@ -465,7 +474,7 @@ impl<'a> Placer<'a> {
         let mut roots: BTreeMap<usize, usize> = BTreeMap::new();
         let mut units: Vec<Unit> = Vec::new();
         let mut unit_of = vec![0; n];
-        for i in 0..n {
+        for (i, slot) in unit_of.iter_mut().enumerate() {
             let r = root(&mut up, i);
             let u = *roots.entry(r).or_insert_with(|| {
                 units.push(Unit {
@@ -475,7 +484,7 @@ impl<'a> Placer<'a> {
                 });
                 units.len() - 1
             });
-            unit_of[i] = u;
+            *slot = u;
             let p = w.parts[i];
             let off = |v: Tick| v.rem_euclid(TICKS_PER_STEP) != 0;
             let fixed_part = p.locked
@@ -575,7 +584,7 @@ impl<'a> Placer<'a> {
     }
 
     /// The pairs between two units, each as (pin of the first, pin of the second, kind).
-    fn relations(&self) -> Vec<Vec<(usize, PinId, PinId, Option<Kind>)>> {
+    fn relations(&self) -> Vec<Vec<Relation>> {
         let mut out = vec![Vec::new(); self.units.len()];
         for (a, b) in self.w.pairs() {
             let (ua, ub) = (self.unit_of_pin(a), self.unit_of_pin(b));
@@ -696,7 +705,7 @@ impl<'a> Placer<'a> {
     /// The tree of hosts from `roots`, breadth first (§4.2): the units in the order found, and each follower's lead.
     fn tree(
         &self,
-        rel: &[Vec<(usize, PinId, PinId, Option<Kind>)>],
+        rel: &[Vec<Relation>],
         roots: &[usize],
     ) -> (Vec<usize>, BTreeMap<usize, Lead>) {
         let mut seen: BTreeSet<usize> = roots.iter().copied().collect();
@@ -1289,7 +1298,7 @@ impl<'a> Placer<'a> {
         };
         let wired: BTreeSet<PinId> = self.w.nets.iter().flat_map(|n| n.pins.iter().copied()).collect();
         // (unit, part, body, stubs, texts)
-        let mut items: Vec<(usize, usize, Rect, Vec<Rect>, Vec<Rect>)> = Vec::new();
+        let mut items: Vec<Footing> = Vec::new();
         for (v, unit) in self.units.iter().enumerate() {
             for j in unit.parts.iter().filter(|j| solid(j)) {
                 let p = self.w.parts[*j];
