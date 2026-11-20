@@ -138,24 +138,27 @@ impl Ticks {
 }
 
 /// The stored point of a wire's end on the page of `tables`, with the junctions at `moved` places and the connection
-/// points of the representations of `shifted` moved by their shifts.
+/// points of the representations of `shifted` where those stand after their moves (grid steps and page nm).
 fn end_point(
     tables: &PageTables,
     e: &TableEnd,
     moved: &[(Uuid, (i64, i64))],
-    shifted: &[(Uuid, (i64, i64))],
+    shifted: &[(Uuid, [i64; 2], (i64, i64))],
 ) -> Option<(i64, i64)> {
     match e {
         TableEnd::Cp { function, idx } => tables
             .cps
             .iter()
             .find(|c| c.function == *function && c.idx == *idx)
-            .map(|c| {
-                let d = shifted
-                    .iter()
-                    .find(|(r, _)| *r == c.rep)
-                    .map_or((0, 0), |(_, d)| *d);
-                (c.at.0 + d.0, c.at.1 + d.1)
+            .map(|c| match shifted.iter().find(|(r, _, _)| *r == c.rep) {
+                Some((_, steps, d)) => {
+                    let grid = Ticks::new(tables.grid).0;
+                    (
+                        moved_coordinate(grid, c.at.0, steps[0], d.0),
+                        moved_coordinate(grid, c.at.1, steps[1], d.1),
+                    )
+                }
+                None => c.at,
             }),
         TableEnd::Junction { id } => moved
             .iter()
@@ -163,6 +166,19 @@ fn end_point(
             .map(|(_, p)| *p)
             .or_else(|| tables.junctions.iter().find(|j| j.id == *id).map(|j| j.at)),
     }
+}
+
+/// A coordinate `x` of a connection point after its symbol moved by `k` grid steps, `by` nm: where it is a number of
+/// the grid, the grid's own number `k` positions on, as the moved symbol then draws it (a connection point on a grid
+/// position has that position's number, `Grid::settle_point`; on a grid whose step is no whole number of nm the
+/// coordinate plus the symbol's move can lie 1 nm beside it); else the coordinate moved by `by`.
+fn moved_coordinate(grid: Grid, x: i64, k: i64, by: i64) -> i64 {
+    use ew_derive::ew_units::Nm;
+    let own = grid
+        .snap_point(Nm(x))
+        .filter(|p| p.0 == x)
+        .and_then(|p| grid.at(grid.snap(p).checked_add(k)?));
+    own.map_or(grid.settle(Nm(x + by)).0, |p| p.0)
 }
 
 /// The move in page nm of a representation at `pos` moved by `steps` grid steps, as `rep.move` and `layout.apply` move
@@ -193,10 +209,7 @@ fn part_moves(tables: &PageTables, moves: &[(PartId, Pt)]) -> Vec<(Uuid, [i64; 2
 /// `moves` moves where they go.
 pub fn plan_routes(tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> Vec<(Uuid, Vec<(i64, i64)>)> {
     let ticks = Ticks::new(tables.grid);
-    let shifted: Vec<(Uuid, (i64, i64))> = part_moves(tables, moves)
-        .into_iter()
-        .map(|(r, _, d)| (r, d))
-        .collect();
+    let shifted = part_moves(tables, moves);
     let moved: Vec<(Uuid, (i64, i64))> = plan
         .junctions
         .iter()

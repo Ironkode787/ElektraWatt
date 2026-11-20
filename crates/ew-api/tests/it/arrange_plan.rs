@@ -93,3 +93,30 @@ fn layout_apply_refuses_a_kept_symbol_a_symbol_without_its_routes_and_one_out_of
     let kept = words(s.execute(&one([1, 0])).expect_err("kept in place"));
     assert!(kept.contains("kept in place"), "{kept}");
 }
+
+/// Every plan Arrange and route offers on a page of Golden A is stored by its `layout.apply`: on its grid, whose step
+/// is no whole number of nm, the route of a moved symbol's wire ends on the number the moved connection point then
+/// has (docs/design/06a-drafting.md §2.1).
+#[test]
+fn every_plan_arrange_offers_is_stored_by_its_command() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let mut folios: Vec<u32> = s.query().pages().iter().map(|(_, p)| p.folio.number).collect();
+    folios.sort_unstable();
+    let mut stored = false;
+    for folio in folios {
+        let folio = folio.to_string();
+        let Some(plan) = s.arrange_plan(&folio, &RouteScope::Page, &[]) else {
+            continue;
+        };
+        let Some(params) = plan.params.clone() else {
+            continue;
+        };
+        if let Err(e) = s.execute(&apply(params)) {
+            panic!("folio {folio}: {e}");
+        }
+        stored |= !plan.moves.is_empty();
+        s.undo(&Origin::Gui).expect("undo");
+    }
+    assert!(stored, "a plan with moved symbols was stored");
+}
