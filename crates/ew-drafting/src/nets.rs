@@ -31,7 +31,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{TICKS_PER_STEP, TRUNK_GAP, TRUNK_PITCH};
-use crate::model::{End, JunctionId, PinId, Pt, Side, Tick, WireId};
+use crate::model::{End, JunctionId, Pt, Side, Tick, WireId};
 
 /// A net job.
 #[derive(Clone, PartialEq, Eq, Debug)]
