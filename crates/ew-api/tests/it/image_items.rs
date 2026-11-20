@@ -1,17 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FR-SYM-025: an image placed on a page of Golden A's import. An SVG logo is
+//! FR-SYM-025: an image placed on a page of the sample project. An SVG logo is
 //! vector paths in the page's display list and in the exported PDF (no raster image object for it); a PNG is an image
 //! object; an unknown hash is refused. The assets are placeholders written here (no company's artwork).
 
-use crate::common::{count, red_png};
-use crate::golden_common;
+use crate::common::{self, count, red_png};
 
 use ew_api::output::{ExportOptions, PageSelection};
 use ew_api::{AnyCommand, Session};
 use ew_dl::{Color, Item, ItemKind};
-use golden_common::{batch, ids_by_key, session};
+use ew_schema::Record;
 use serde_json::{Value, json};
 use sha2::Digest;
 
@@ -46,6 +45,22 @@ fn place(s: &mut Session, page: &str, asset: &str) -> Result<ew_api::Receipt, ew
     ))
 }
 
+/// The page ID of folio `folio` as text.
+fn page_of(s: &Session, folio: &str) -> String {
+    s.page_tables(folio).expect("a drawn page").page.to_string()
+}
+
+/// The page ID of folio `folio` among the sample's records, as text.
+fn page_record(records: &[Record], folio: u32) -> String {
+    records
+        .iter()
+        .find_map(|r| match r {
+            Record::Page(p) if p.folio.number == folio => Some(p.id.to_string()),
+            _ => None,
+        })
+        .expect("the folio")
+}
+
 fn folio_101() -> ExportOptions {
     ExportOptions {
         pages: PageSelection::Folios(vec!["101".to_owned()]),
@@ -67,13 +82,17 @@ fn flat(items: &[Item], out: &mut Vec<Item>) {
 /// as drawing operators (no image XObject); the item itself is the record's image with the asset's hash.
 #[test]
 fn an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page = ids["pages|101"].clone();
-    let mut s = session(&batch);
+    let mut s = common::sample();
+    let page = page_of(&s, "101");
     let before = s.export_pdf(&folio_101()).unwrap();
     let hash = hold(&mut s, SVG);
-    place(&mut s, &page, &hash).expect("placed");
+    let item = place(&mut s, &page, &hash)
+        .expect("placed")
+        .outcome
+        .primary
+        .expect("the item")
+        .1
+        .as_uuid();
 
     let pages = s.export_pages(&folio_101()).unwrap();
     assert!(
@@ -96,10 +115,6 @@ fn an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
         .count();
     assert_eq!(painted, 1, "the logo's rectangle as one filled path");
     // The group of the image carries the record's entity: the entity rectangles pick it.
-    let item = {
-        let q = s.query();
-        q.page_items().ids().next().expect("the item").as_uuid()
-    };
     assert!(
         all.iter()
             .any(|i| i.entity.is_some_and(|e| e.0 == item) && matches!(i.kind, ItemKind::Group(_))),
@@ -122,10 +137,8 @@ fn an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
 /// IM1: a PNG image item stays an image item with the asset's bytes and is one image XObject in the PDF.
 #[test]
 fn a_png_image_item_is_an_image_object() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page = ids["pages|101"].clone();
-    let mut s = session(&batch);
+    let mut s = common::sample();
+    let page = page_of(&s, "101");
     let png = red_png(8, 2);
     let hash = hold(&mut s, &png);
     place(&mut s, &page, &hash).expect("placed");
@@ -152,11 +165,8 @@ fn a_png_image_item_is_an_image_object() {
 /// IM1: an asset the project does not hold is refused, and nothing is placed.
 #[test]
 fn an_unknown_hash_is_refused() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page = ids["pages|101"].clone();
-    let mut s = session(&batch);
-    // The golden project holds page items of its own (folio 902's surface view).
+    let mut s = common::sample();
+    let page = page_of(&s, "101");
     let before = s.query().page_items().ids().count();
     let unknown = ew_api::Sha256([0x5a; 32]).to_string();
     let err = place(&mut s, &page, &unknown).unwrap_err().to_string();
@@ -167,19 +177,18 @@ fn an_unknown_hash_is_refused() {
 /// The page tables list the image with its rectangle as `image`.
 #[test]
 fn the_page_tables_list_an_image_item() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page = ids["pages|101"].clone();
-    let mut s = session(&batch);
+    let mut s = common::sample();
+    let page = page_of(&s, "101");
     let hash = hold(&mut s, SVG);
     place(&mut s, &page, &hash).expect("placed");
     let tables = s.page_tables("101").expect("tables");
-    assert_eq!(tables.items.len(), 1);
-    assert_eq!(tables.items[0].kind, "image");
+    let images: Vec<_> = tables.items.iter().filter(|i| i.kind == "image").collect();
+    assert_eq!(images.len(), 1, "beside the page's own items");
     assert_eq!(
-        tables.items[0].bounds,
+        images[0].bounds,
         [20_000_000, 40_000_000, 100_000_000, 60_000_000]
     );
+
 }
 
 /// A page's views are memoised, and an image's format comes from the asset the project holds. An
@@ -188,18 +197,16 @@ fn the_page_tables_list_an_image_item() {
 /// first page's memoised views must follow: they equal the cold ones (an SVG now: vector paths, no raster image).
 #[test]
 fn an_asset_that_arrives_with_an_item_on_another_page_reaches_the_memoised_views() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let (page_a, page_b) = (ids["pages|101"].clone(), ids["pages|102"].clone());
+    let (project, mut records, lib) = common::sample_records();
+    let (page_a, page_b) = (page_record(&records, 101), page_record(&records, 102));
     let hash = ew_api::Sha256(sha2::Sha256::digest(SVG).into());
-    let mut s = golden_common::session_with(&batch, |_, records| {
-        let item: ew_schema::PageItem = serde_json::from_value(json!({
-            "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
-            "kind": {"image": {"asset": hash.to_string(),
-                "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
-        .unwrap();
-        records.push(ew_schema::Record::PageItem(item));
-    });
+    let item: ew_schema::PageItem = serde_json::from_value(json!({
+        "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
+        "kind": {"image": {"asset": hash.to_string(),
+            "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
+    .unwrap();
+    records.push(Record::PageItem(item));
+    let mut s = common::session_of(project, records, lib);
     assert!(s.asset(&hash).is_none(), "the file is missing");
     // The memo store holds the views of every page, page 101's with the image as a PNG of unknown bytes.
     let report = ew_api::verify::verify_derived(&s).expect("memo on");
@@ -233,22 +240,21 @@ fn an_asset_that_arrives_with_an_item_on_another_page_reaches_the_memoised_views
 /// follow (it is advanced although the revision stayed): the image's views equal the cold ones, an SVG now.
 #[test]
 fn an_asset_that_arrives_without_any_row_reaches_the_memoised_views() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page_a = ids["pages|101"].clone();
+    let (mut project, mut records, lib) = common::sample_records();
+    let page_a = page_record(&records, 101);
     let reference = ew_api::asset_ref_of(SVG).expect("the placeholder is an SVG");
-    let mut s = golden_common::session_with(&batch, |project, records| {
-        project.extra.insert(
-            ew_schema::COMPANY_MEMBER.into(),
-            json!({"logo": serde_json::to_value(reference).unwrap()}),
-        );
-        let item: ew_schema::PageItem = serde_json::from_value(json!({
-            "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
-            "kind": {"image": {"asset": reference.sha256.to_string(),
-                "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
-        .unwrap();
-        records.push(ew_schema::Record::PageItem(item));
-    });
+    project.extra.insert(
+        ew_schema::COMPANY_MEMBER.into(),
+        json!({"logo": serde_json::to_value(reference).unwrap()}),
+    );
+    let item: ew_schema::PageItem = serde_json::from_value(json!({
+        "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
+        "kind": {"image": {"asset": reference.sha256.to_string(),
+            "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
+    .unwrap();
+    records.push(Record::PageItem(item));
+    let mut s = common::session_of(project, records, lib);
+
     assert!(s.asset(&reference.sha256).is_none(), "the logo's file is missing");
     // The memo store holds every page's views, page 101's with the image as a PNG of unknown bytes.
     let report = ew_api::verify::verify_derived(&s).expect("memo on");

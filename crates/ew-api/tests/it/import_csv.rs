@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew import csv`'s library half (FM-6): the golden tables read from their directory, imported with
-//! the starter content and written as a new project, which opens with the model and the check findings of the golden
-//! CSV bootstrap (`tests/golden_csv.rs`), all or nothing at its target.
+//! `ew import csv`'s library half (FM-6): the test tables (`fixtures/tables/`) read from their directory, imported
+//! with the starter content and written as a new project, which opens with the model and the check findings of the
+//! imported batch, all or nothing at its target.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -20,7 +20,7 @@ fn repo() -> PathBuf {
 }
 
 fn tables() -> PathBuf {
-    repo().join("golden/J-E-2416/tables")
+    repo().join("fixtures/tables")
 }
 
 fn library() -> StarterLibrary {
@@ -51,14 +51,13 @@ fn store() -> StoreOptions {
     o
 }
 
-/// FM-6: the tables import to a project that opens, holds the rows of the bootstrapped model (so the record counts of
-/// `golden_csv.rs`) and checks with the same findings. Whether the written project equals `golden/J-E-2416.ew` byte
-/// for byte is reported, not required (it is printed).
+/// FM-6: the tables import to a project that opens, holds the rows of the bootstrapped model and checks with the same
+/// findings.
 #[test]
-fn the_golden_tables_import_to_a_project_with_the_bootstrapped_model() {
+fn the_tables_import_to_a_project_with_the_bootstrapped_model() {
     let inputs = read_tables(&tables()).unwrap();
     assert!(inputs.iter().any(|i| i.name() == "devices.csv"));
-    let batch = import_tables(&inputs, &library(), ImportMode::Strict).expect("the golden tables import");
+    let batch = import_tables(&inputs, &library(), ImportMode::Strict).expect("the test tables import");
     assert!(
         batch
             .report
@@ -92,24 +91,8 @@ fn the_golden_tables_import_to_a_project_with_the_bootstrapped_model() {
     let check = |s: &Session| s.check(&PRE_DELIVERY, CheckMode::Release).findings;
     assert_eq!(check(&opened), check(&bootstrapped), "the same check findings");
     opened.close();
-
-    // Reported, not required: the written files against the checked-in Golden A.
-    let written = tree(&out);
-    let golden = tree(&repo().join("golden/J-E-2416.ew"));
-    let differ: Vec<&String> = golden
-        .keys()
-        .chain(written.keys())
-        .filter(|k| golden.get(*k) != written.get(*k))
-        .collect();
-    println!(
-        "FM-6: {} of {} files of golden/J-E-2416.ew equal byte for byte; differing: {differ:?}",
-        golden
-            .keys()
-            .filter(|k| golden.get(*k) == written.get(*k))
-            .count(),
-        golden.len()
-    );
 }
+
 
 /// An unreadable table refuses the import with the reader's line (FM-6), before anything is written; a non-empty
 /// target refuses the write and keeps what is there; an empty one is replaced by the project.

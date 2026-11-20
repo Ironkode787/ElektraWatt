@@ -6,7 +6,7 @@
 //! and two imports with the same ID seed give the same bytes; the run reads back unchanged after a save and a
 //! reopen; the import is one non-undoable checkpoint.
 
-use crate::golden_common::repo;
+use crate::common::repo;
 use crate::qet_synth::build;
 
 use std::collections::BTreeMap;

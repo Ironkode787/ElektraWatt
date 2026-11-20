@@ -3,22 +3,13 @@
 
 //! The company logo through the export job: an SVG logo reaches every writer as vector paths (no image
 //! item is left to skip); a PNG or JPEG logo is embedded by the SVG writer as an `<image>` and by the PDF writer as an
-//! image XObject (the JPEG unchanged). Golden A's fixture with placeholder logos, in a read-only session (a test copy:
-//! nothing is written back).
+//! image XObject (the JPEG unchanged). The sample project with placeholder logos, in a read-only session (opened in
+//! place: nothing is written back).
 
-use crate::common::{count, red_png};
-
-use std::path::Path;
+use crate::common::{self, count, red_png};
 
 use ew_api::output::{ExportOptions, PageSelection};
 use ew_api::{AnyCommand, Session};
-
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
 
 fn set_logo(s: &mut Session, bytes: &[u8]) {
     let cmd = AnyCommand {
@@ -38,7 +29,7 @@ fn cover() -> ExportOptions {
 
 #[test]
 fn an_svg_logo_is_drawn_as_paths_by_every_writer() {
-    let mut s = golden();
+    let mut s = common::sample();
     let plain_svg = s.export_svg(&cover()).unwrap();
     set_logo(
         &mut s,
@@ -77,13 +68,13 @@ fn red_blue_jpeg() -> Vec<u8> {
 
 #[test]
 fn a_png_logo_is_embedded_by_the_svg_writer_and_the_pdf_writer() {
-    let mut s = golden();
+    let mut s = common::sample();
     let plain = s.export_pdf(&cover()).unwrap();
     assert_eq!((plain.report.images, plain.report.skipped_images), (0, 0));
     assert_eq!(
         count(&plain.bytes, b"/Subtype/Image"),
         0,
-        "the golden cover has no raster"
+        "the sample's cover has no raster"
     );
     let png = red_png(8, 2);
     set_logo(&mut s, &png);
@@ -109,10 +100,10 @@ fn a_png_logo_is_embedded_by_the_svg_writer_and_the_pdf_writer() {
     );
 }
 
-/// A JPEG logo prints on the golden cover in the PDF, embedded unchanged (DCT); the SVG writer embeds it too.
+/// A JPEG logo prints on the sample's cover in the PDF, embedded unchanged (DCT); the SVG writer embeds it too.
 #[test]
 fn a_jpeg_logo_is_printed_on_the_cover_in_the_pdf() {
-    let mut s = golden();
+    let mut s = common::sample();
     let jpeg = red_blue_jpeg();
     set_logo(&mut s, &jpeg);
     let pdf = s.export_pdf(&cover()).unwrap();
@@ -148,7 +139,7 @@ fn logos_that_cannot_be_drawn_are_page_findings() {
             })
             .collect()
     };
-    let mut s = golden();
+    let mut s = common::sample();
     assert!(image_findings(&s.export_pages(&cover()).unwrap().findings).is_empty());
     set_logo(
         &mut s,
@@ -159,7 +150,7 @@ fn logos_that_cannot_be_drawn_are_page_findings() {
         matches!(found.as_slice(), [(folio, ImageProblem::Refused(_))] if folio == "1"),
         "{found:?}"
     );
-    let mut s = golden();
+    let mut s = common::sample();
     set_logo(&mut s, &red_png(2, 2));
     let found = image_findings(
         &export_pages_with(&s.query(), &cover(), &ExportAssets::default())
@@ -178,7 +169,7 @@ fn a_raster_logo_that_does_not_decode_is_a_page_finding() {
     use ew_scene::page::PageFinding;
     let jpeg = red_blue_jpeg();
     let cut = &jpeg[..jpeg.len() - 12];
-    let mut s = golden();
+    let mut s = common::sample();
     set_logo(&mut s, cut);
     let pdf = s.export_pdf(&cover()).unwrap();
     let found: Vec<(String, ImageProblem, String)> = pdf

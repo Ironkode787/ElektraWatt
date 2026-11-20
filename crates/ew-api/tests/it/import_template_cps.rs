@@ -2,18 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tables importer and `ew-derive`'s `function_cps` agree on the CPs of a template-origin function. The
-//! golden tables plus a contactor whose template pairs by position (coil `A1`/`A2` at pattern 0/1, aux contact
+//! test tables (`fixtures/tables/`) plus a contactor whose template pairs by position (coil `A1`/`A2` at pattern 0/1, aux contact
 //! `13`/`14` at pattern 4/5, each FnDef with CPs 0 and 1): every connection end the importer writes is a CP the
 //! derivation gives, with the designation the table names.
 
-use crate::golden_common;
+use crate::common;
 
+use ew_api::SessionOptions;
+use ew_api::import::{ImportMode, StarterLibrary, import_tables, session_from_batch};
 use ew_derive::FunctionCps;
 use ew_import_tables::ew_interop_api::ImportInput;
-use ew_import_tables::{TablesImporter, bootstrap_context};
 use ew_schema::{Endpoint, Record};
 
-/// Rows appended to the golden tables: the positional contactor `-102K9` and two wires on it.
+/// Rows appended to the test tables: the positional contactor `-102K9` and two wires on it.
 const EXTRA: &[(&str, &str)] = &[
     (
         "parts.csv",
@@ -35,7 +36,7 @@ const EXTRA: &[(&str, &str)] = &[
 ];
 
 fn inputs() -> Vec<ImportInput> {
-    let dir = golden_common::repo().join("golden/J-E-2416/tables");
+    let dir = common::repo().join("fixtures/tables");
     let mut paths: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -61,9 +62,8 @@ fn inputs() -> Vec<ImportInput> {
 
 #[test]
 fn imported_connection_ends_are_derived_cps_of_a_positional_template() {
-    let batch = TablesImporter::new(golden_common::library())
-        .import(&inputs(), &bootstrap_context())
-        .expect("the extended tables import");
+    let library = StarterLibrary::from_dir(&common::repo().join("content")).expect("the starter content reads");
+    let batch = import_tables(&inputs(), &library, ImportMode::Strict).expect("the extended tables import");
     // The importer records no template entry: both it and the derivation take the first entry naming the FnDef.
     let k9: Vec<&ew_schema::Function> = batch
         .records
@@ -80,7 +80,8 @@ fn imported_connection_ends_are_derived_cps_of_a_positional_template() {
         .collect();
     assert_eq!(k9.len(), 2);
     assert!(k9.iter().all(|f| f.template_entry.is_none()));
-    let s = golden_common::session(&batch);
+    let s = session_from_batch(&batch, SessionOptions::default()).expect("the batch opens");
+
     let q = s.query();
     // Positional pairing: both functions have CPs 0 and 1, drawn as their pattern entries.
     for f in &k9 {
