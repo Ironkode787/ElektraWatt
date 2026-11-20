@@ -258,7 +258,7 @@ mod tests {
     /// worktree too.
     #[test]
     fn no_consent_exits_2_and_writes_nothing() {
-        let dir = ew_testdir_dir();
+        let dir = ew_testdir::Tmp::new("ew-git-setup");
         std::fs::create_dir_all(dir.join(".git")).unwrap();
         let a = GitSetupArgs {
             global: false,
@@ -284,14 +284,13 @@ mod tests {
             .collect();
         assert_eq!(listed, vec![std::ffi::OsString::from(".git")], "nothing written");
         assert!(std::fs::read_dir(dir.join(".git")).unwrap().next().is_none());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The question names the project folders it writes the blocks into, and only ElektraWatt ones: a web
     /// app's `manifest.json` is no project.
     #[test]
     fn the_question_names_the_project_folders_and_only_those() {
-        let dir = ew_testdir_dir();
+        let dir = ew_testdir::Tmp::new("ew-git-setup");
         std::fs::create_dir_all(dir.join(".git")).unwrap();
         let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/manifest.json");
         std::fs::create_dir_all(dir.join("plans/p.ew")).unwrap();
@@ -318,11 +317,5 @@ mod tests {
              [y/N] "
         );
         assert_eq!(project_folders(&dir), vec![dir.join("plans").join("p.ew")]);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    fn ew_testdir_dir() -> PathBuf {
-        static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-        ew_testdir::fresh_dir_in(&std::env::temp_dir(), "ew-git-setup", &COUNTER)
     }
 }
