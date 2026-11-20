@@ -83,7 +83,7 @@ impl ShellModel {
             &shown.title,
             (page.width.0, page.height.0),
             Arc::new(page.content),
-            shown.grid.clone(),
+            shown.grid,
         );
         out.session = shown.session;
         Some(Arc::new(out))

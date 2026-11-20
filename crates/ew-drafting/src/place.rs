@@ -703,11 +703,7 @@ impl<'a> Placer<'a> {
     }
 
     /// The tree of hosts from `roots`, breadth first (§4.2): the units in the order found, and each follower's lead.
-    fn tree(
-        &self,
-        rel: &[Vec<Relation>],
-        roots: &[usize],
-    ) -> (Vec<usize>, BTreeMap<usize, Lead>) {
+    fn tree(&self, rel: &[Vec<Relation>], roots: &[usize]) -> (Vec<usize>, BTreeMap<usize, Lead>) {
         let mut seen: BTreeSet<usize> = roots.iter().copied().collect();
         let mut frontier: Vec<usize> = roots.to_vec();
         frontier.sort_by_key(|u| self.key(*u));

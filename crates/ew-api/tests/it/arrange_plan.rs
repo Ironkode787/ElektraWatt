@@ -11,11 +11,11 @@ use ew_api::routing::RouteScope;
 use ew_api::{AnyCommand, Origin};
 use serde_json::json;
 
+/// The places of the symbols and the routes of the wires of a page.
+type Drawing = (Vec<(ew_api::output::Uuid, (i64, i64))>, Vec<Vec<(i64, i64)>>);
+
 /// The places of the symbols and the routes of the wires of folio `folio`.
-fn drawing(
-    s: &ew_api::Session,
-    folio: &str,
-) -> (Vec<(ew_api::output::Uuid, (i64, i64))>, Vec<Vec<(i64, i64)>>) {
+fn drawing(s: &ew_api::Session, folio: &str) -> Drawing {
     let t = s.page_tables(folio).expect("a drawn page");
     (
         t.reps.iter().map(|r| (r.id, r.pos)).collect(),
