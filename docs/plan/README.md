@@ -1,12 +1,14 @@
 # The plan
 
-**Running:** M3, automation breadth, since 2026-11-13 ([m3.md](m3.md)): new development, release 0.3.0. **Done:**
+**Running:** M3.5, hygiene, since 2026-11-20 ([m3.5.md](m3.5.md)): no features, release 0.3.5; and M3, automation
+breadth, since 2026-11-13 ([m3.md](m3.md)), whose sixth candidate of 0.3.0 waits for its release. **Done:**
 M2.5-Fix, a properly working program, closed with the release of 0.2.0 on 2026-11-13 ([m2.5-fix.md](m2.5-fix.md));
 M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)).
 
 | File | What it is |
 |---|---|
-| [m3.md](m3.md) | The milestone that is running: its scope, how a work package is built, the order, the log |
+| [m3.5.md](m3.5.md) | The hygiene milestone that is running: the scan, the steps, the loop measured |
+| [m3.md](m3.md) | The automation milestone: its scope, how a work package is built, the order, the log |
 | [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [m2.5-fix.md](m2.5-fix.md) | The fix milestone: how a fix is made, the order of the rows, the log |
 | [m2.5.md](m2.5.md) | The maintenance milestone: principles, steps, assessment, what was cut and why, the exit record |
