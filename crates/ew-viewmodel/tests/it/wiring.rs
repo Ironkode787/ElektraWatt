@@ -911,8 +911,16 @@ fn route_names_the_wires_it_left_as_the_person_s_and_offers_to_route_them_too() 
     assert_eq!(s.revision(), rev, "nothing changes");
     let toast = s.toast().cloned().expect("a toast");
     assert!(toast.text.starts_with("Nothing changed: "), "{}", toast.text);
-    assert!(toast.text.contains(" keep the routes they have."), "{}", toast.text);
-    assert!(!toast.text.contains("as well as the rules allow"), "{}", toast.text);
+    assert!(
+        toast.text.contains(" keep the routes they have."),
+        "{}",
+        toast.text
+    );
+    assert!(
+        !toast.text.contains("as well as the rules allow"),
+        "{}",
+        toast.text
+    );
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::notifications::NoteAction::RouteHis.label_key()),
         "Route these too…"
@@ -929,7 +937,11 @@ fn route_names_the_wires_it_left_as_the_person_s_and_offers_to_route_them_too() 
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
     let now = tables(&s);
-    let now = now.connections.iter().find(|c| c.id == wire.id).expect("the wire");
+    let now = now
+        .connections
+        .iter()
+        .find(|c| c.id == wire.id)
+        .expect("the wire");
     assert_ne!(now.polyline, wire.polyline, "routed anew");
 }
 

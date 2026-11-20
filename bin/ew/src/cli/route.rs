@@ -217,7 +217,8 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
     }
     match kept {
         0 => {}
-        1 => out.push_str("  1 wire keeps the route it has: name it with --selection to have it routed anew.\n"),
+        1 => out
+            .push_str("  1 wire keeps the route it has: name it with --selection to have it routed anew.\n"),
         n => out.push_str(&format!(
             "  {n} wires keep the routes they have: name them with --selection to have them routed anew.\n"
         )),

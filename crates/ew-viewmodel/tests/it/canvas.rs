@@ -688,7 +688,11 @@ fn the_canvas_prints_every_text_where_the_export_does() {
             ..Default::default()
         })
         .unwrap();
-    assert_eq!(canvas(&shell), text_places(&opened.pages[0].content.items), "opened");
+    assert_eq!(
+        canvas(&shell),
+        text_places(&opened.pages[0].content.items),
+        "opened"
+    );
     let wire = common::tables(&shell)
         .connections
         .iter()
@@ -701,6 +705,10 @@ fn the_canvas_prints_every_text_where_the_export_does() {
         json!({"cmd": "connection.route", "params": {"connection": wire, "route": []}}),
     );
     let edited = shell.page_content("101").expect("folio 101");
-    assert_eq!(canvas(&shell), text_places(&edited.pages[0].content.items), "after the edit");
+    assert_eq!(
+        canvas(&shell),
+        text_places(&edited.pages[0].content.items),
+        "after the edit"
+    );
     shell.shutdown();
 }
