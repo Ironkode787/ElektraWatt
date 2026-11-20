@@ -260,7 +260,7 @@ pub struct BoxSpec {
     /// Graphics inside the box.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub inner: Vec<Primitive>,
-    /// A valve terminal's box drawn as its valve positions (doc 11 §3.2, rc.2): one cell per position in a row, each
+    /// A valve terminal's box drawn as its valve positions (doc 11 §3.2): one cell per position in a row, each
     /// `pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an
     /// older build keeps it and draws the outline alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -292,7 +292,7 @@ pub struct BoxCp {
     pub pos: Pt2,
     /// The direction a wire leaves the CP.
     pub dir: Dir4,
-    /// The pin's name on a box whose device has no part (rc.5: a drawn box takes pins of its own): the box's function
+    /// The pin's name on a box whose device has no part (a drawn box takes pins of its own): the box's function
     /// has a CP of this index with this designation. Absent on a box of a part, whose pins are the part's. An optional
     /// member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and draws the pin unnamed.
     #[serde(default, skip_serializing_if = "Option::is_none")]

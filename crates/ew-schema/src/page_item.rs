@@ -352,7 +352,7 @@ pub struct WireMarker {
     pub angle: Angle2,
     /// The fields shown, `["csa", "colour"]`.
     pub fields: Vec<MarkerField>,
-    /// Where a cable mark's tag stands once moved (rc.3), relative to `at`; absent: at the line's start. A marker
+    /// Where a cable mark's tag stands once moved, relative to `at`; absent: at the line's start. A marker
     /// that marks no cable ignores it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Pt2S>")]
