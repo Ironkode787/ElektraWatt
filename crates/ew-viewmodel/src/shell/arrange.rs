@@ -34,7 +34,7 @@ impl ShellModel {
     pub(crate) fn act_layout_arrange(&mut self) -> Outcome {
         let scope = self.route_selection_ids();
         let fitted = self.canvas().is_some_and(|c| c.is_fitted());
-        let out = self.arrange_with(scope, Vec::new(), Vec::new());
+        let out = self.arrange_with(scope, Vec::new(), Vec::new(), Vec::new());
         self.tools.refit = self
             .area
             .as_ref()
@@ -43,9 +43,16 @@ impl ShellModel {
         out
     }
 
-    /// Plans Arrange and route over `scope` (empty: the page) with the rows `unticked` (symbols and wires by ID) kept as
-    /// they stand, and opens its card; `listed` are the symbols the card listed before, which stay listed unticked.
-    fn arrange_with(&mut self, scope: Vec<Uuid>, unticked: Vec<Uuid>, listed: Vec<ArrangeRow>) -> Outcome {
+    /// Plans Arrange and route over `scope` (empty: the page) with the rows `unticked` (symbols and wires by ID) and
+    /// the wires `unlisted` kept as they stand, and opens its card; `listed` are the symbols the card listed before,
+    /// which stay listed unticked. Nothing left to apply after an untick: the card closes and a toast says that.
+    fn arrange_with(
+        &mut self,
+        scope: Vec<Uuid>,
+        unticked: Vec<Uuid>,
+        unlisted: Vec<Uuid>,
+        listed: Vec<ArrangeRow>,
+    ) -> Outcome {
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
@@ -57,12 +64,18 @@ impl ShellModel {
         } else {
             RouteScope::Selection(scope.clone())
         };
-        let Some(plan) = session.arrange_plan(&folio, &range, &unticked) else {
+        let kept: Vec<Uuid> = unticked.iter().chain(&unlisted).copied().collect();
+        let Some(plan) = session.arrange_plan(&folio, &range, &kept) else {
             return Outcome::refused(key!("reason-no-page"));
         };
         let Some(params) = plan.params.clone() else {
             self.props.card = None;
-            self.notify(strings::text(key!("toast-arrange-nothing")).to_owned(), false);
+            let why = if unticked.is_empty() {
+                key!("toast-arrange-nothing")
+            } else {
+                key!("toast-arrange-none-left")
+            };
+            self.notify(strings::text(why).to_owned(), false);
             return Outcome::Done;
         };
         let card = arrange_card(session, &folio, scope, &plan, &unticked, &listed);
@@ -136,7 +149,9 @@ impl ShellModel {
 
     /// `layout.arrange_tick {row?, all?}`: ticks or unticks row `row` of the open card's symbols and wires (in that
     /// order), or with `all` ticks (`true`) or unticks (`false`) every row of the wires you drew, and plans again with
-    /// every unticked one kept as it stands. Refused without an Arrange and route card or with neither parameter.
+    /// every unticked one kept as it stands. A plan made again brings in no wire you drew that the card did not list:
+    /// those keep their routes too, so that an unticked row is the last word on your wires (untick all: none of them
+    /// changes). Refused without an Arrange and route card or with neither parameter.
     pub(crate) fn act_layout_arrange_tick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(card) = self.props.card.as_ref().and_then(|c| match &c.origin {
             CardOrigin::Arrange(a) => Some(a.as_ref().clone()),
@@ -166,7 +181,20 @@ impl ShellModel {
             }
         }
         let listed = card.parts.clone();
-        self.arrange_with(card.scope, unticked, listed)
+        let unlisted: Vec<Uuid> = self
+            .project
+            .as_ref()
+            .and_then(|p| p.session.page_draft(&card.folio))
+            .map(|d| {
+                d.wires
+                    .iter()
+                    .filter(|w| !w.computed && !w.route.is_empty())
+                    .map(|w| w.id.0)
+                    .filter(|id| !card.wires.iter().any(|r| r.id == *id))
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.arrange_with(card.scope, unticked, unlisted, listed)
     }
 
     /// `layout.arrange_as_is`: what B does while an Arrange and route card is open (the window shows the page as it is

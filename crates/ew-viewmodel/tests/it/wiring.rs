@@ -1807,6 +1807,30 @@ fn arrange_counts_the_wires_you_drew_and_unticks_them_all_at_once() {
     assert!(card.contains(" door u getekend."), "{card}");
 }
 
+/// When every row of an Arrange and route card is unticked nothing is left to apply: the card closes and the toast
+/// says that, not that the page is already arranged (§7.3), in both languages.
+#[test]
+fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
+    let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    for (language, words) in [("en", "Nothing is left to apply"), ("nl", "Er blijft niets over")] {
+        let tmp = Tmp::new("ar6");
+        let mut s = coils_out_of_line(&tmp);
+        done(&mut s, "view.language", json!({"value": language}));
+        done(&mut s, "layout.arrange", json!({}));
+        // Each untick plans again; the first ticked row goes until the card does.
+        for _ in 0..8 {
+            let Some(card) = describe_line(&s, "card ") else {
+                break;
+            };
+            let ticked = card.find(" [x] \"").expect("a ticked row while the card is open");
+            let row = card[..ticked].matches(" [ ] \"").count();
+            done(&mut s, "layout.arrange_tick", json!({"row": row}));
+        }
+        assert_eq!(describe_line(&s, "card "), None, "the card closed");
+        assert!(said(&s).starts_with(words), "{}", said(&s));
+    }
+}
+
 /// The undo step of Arrange and route is named "Arrange and route" when symbols moved; Route's, which moves none,
 /// "Route wires" (§7.3), in both languages.
 #[test]

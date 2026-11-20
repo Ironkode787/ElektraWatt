@@ -246,7 +246,7 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -
     };
     for symbol in &page.left {
         out.push_str(&format!(
-            "  No room for {symbol} on the side its pin faces: it is left where it stands.\n"
+            "  No better place for {symbol} on the side its pin faces: it is left where it stands.\n"
         ));
     }
     for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
