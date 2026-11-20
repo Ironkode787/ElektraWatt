@@ -168,7 +168,7 @@ fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
 }
 
 /// TS-3 (FR-SYM-013's acceptance): `tag.main` at 4 mm changes every device tag on every page in one undo step, and
-/// leaves the terminals' numbers, which print in `terminal` at the same built-in size (rc.3); undo restores; a size of
+/// leaves the terminals' numbers, which print in `terminal` at the same built-in size; undo restores; a size of
 /// 100 nm is refused at `/text_styles/tag.main/size`.
 #[test]
 fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {

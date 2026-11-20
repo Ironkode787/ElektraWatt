@@ -151,7 +151,7 @@ fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bo
 
 /// The one representation of `device` when D3 lets it join another device: exactly one function of the device is
 /// drawn, a normal one, by that one representation, which draws only it; the device's other functions (of its part)
-/// are neither drawn nor wired, so the join empties the device, which goes with them (rc.2, F11); terminals and strips
+/// are neither drawn nor wired, so the join empties the device, which goes with them; terminals and strips
 /// never.
 fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Function>)> {
     let d = q.devices().get(device)?;
@@ -186,7 +186,7 @@ fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Fun
 
 impl Session {
     /// Why typing `text` into the Tag field of `device` joins nothing although `text` names another device whose
-    /// placed symbol could join one (rc.2, F11): that device's tag, its free (unplaced) functions in words and what the
+    /// placed symbol could join one: that device's tag, its free (unplaced) functions in words and what the
     /// symbol is. `None` when `text` names no other device, `device` has no symbol that could join, or the join is
     /// proposed ([`Self::join_proposal`]).
     pub fn join_misfit(&self, device: Uuid, text: &str) -> Option<JoinMisfit> {

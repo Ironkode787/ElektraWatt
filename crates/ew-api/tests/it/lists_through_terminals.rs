@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The lists tell what the drawing connects (rc.2 persona run, entries 33 and 34): the starter CPU and input card drawn
+//! The lists tell what the drawing connects: the starter CPU and input card drawn
 //! with the Black box tool, the card's pins wired through starter terminals to two starter push buttons, one of them
 //! through a cable core. The terminal diagram names what is on each clamp; the PLC overview, the I/O list and the PLC
 //! grid call both channels used by their push button, not spare.

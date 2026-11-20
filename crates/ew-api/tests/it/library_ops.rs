@@ -957,7 +957,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         };
         current.push(doc.clone());
         let before = before_ft698(doc);
-        // The 5/2 valve was redrawn on the 12 mm module since (rc.2, 0.4.0), and the lamp's and the switch's texts moved
+        // The 5/2 valve was redrawn on the 12 mm module since (0.4.0), and the lamp's and the switch's texts moved
         // to the drafting design's first places (06a §5.2): taking the later members off the shipped drawings no longer
         // gives their published 0.1.0; each rebuilt copy still names 0.1.0, which is what the update reads.
         assert!(

@@ -53,7 +53,7 @@ pub struct CableForm {
     pub type_text: String,
     /// The wires and the core each has or gets, in order.
     pub rows: Vec<(Uuid, String)>,
-    /// That cable's length in metres as typed (`25`), else empty (rc.5: the form asks for it, as a bus line's does).
+    /// That cable's length in metres as typed (`25`), else empty (the form asks for it, as a bus line's does).
     pub length: String,
 }
 
@@ -248,7 +248,7 @@ impl Session {
         rows
     }
 
-    /// The cable parts that fit the wires `wires` (rc.3, the Cable form's type list): power and control cables (each
+    /// The cable parts that fit the wires `wires` (the Cable form's type list): power and control cables (each
     /// core states its cross-section, which a bus cable's do not) with a core for every wire: a green-yellow one for
     /// each wire whose potential says PE, and one of another colour for each other wire (a green-yellow core is never
     /// given to another wire, so a 3G cable takes two wires that are no PE); the closest core count first, then
@@ -261,7 +261,7 @@ impl Session {
             .count();
         let want = written_type(proposed).map(|t| t.2.to_string());
         let mut fit: Vec<(usize, bool, bool, String, String)> = Vec::new();
-        // One read of the offers; each makes its command from itself (rc.5: each offer read every library again).
+        // One read of the offers; each makes its command from itself (each offer read every library again).
         for offer in self.layout_part_offers("cable") {
             let number = offer.number.clone();
             let command = super::cable_edit::cable_command(offer);
@@ -298,7 +298,7 @@ impl Session {
             .collect()
     }
 
-    /// Why the part `pick` does not fit the cable `cable` (rc.3, the cable's part dialog shows it greyed with this):
+    /// Why the part `pick` does not fit the cable `cable` (the cable's part dialog shows it greyed with this):
     /// fewer cores (shields left out) than the cable has wires (`part-misfit-cores`: the part's cores, the wires), or no
     /// green-yellow core where a wire's potential says PE (`part-misfit-pe`); `None` when it fits, for a part that is
     /// no cable part with cores, and for a record that is no cable.

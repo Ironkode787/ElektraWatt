@@ -132,7 +132,7 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
         let (kind, text) = match &item.kind {
             K::Graphic(_) => ("graphic", None),
             K::FreeText(t) => ("free_text", Some(ew_derive::free_text(q, item.page, t))),
-            // A cable's mark is named by its cable (rc.3).
+            // A cable's mark is named by its cable.
             K::WireMarker(_) => match ew_derive::cable_mark(q, item) {
                 Some(mark) => ("cable_mark", Some(mark.tag)),
                 None => ("wire_marker", ew_derive::group_marker(q, item).map(|g| g.text)),

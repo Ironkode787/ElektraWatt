@@ -99,7 +99,7 @@ pub struct LayoutPartOffer {
     /// The library documents to embed first; empty for a project copy.
     pub copies: Vec<Value>,
     /// The part's sections (a cable's cores, a bus part's bus section), read with the offer so that a form needs no
-    /// second read of the libraries (rc.5).
+    /// second read of the libraries.
     pub sections: ew_schema::PartSections,
 }
 
@@ -1009,7 +1009,7 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
-            // Where a marked supply point comes from (rc.3, G7): the place or the device there typed in its row moves
+            // Where a marked supply point comes from: the place or the device there typed in its row moves
             // the point and the points of its group to it (a new place is made).
             ("function", "supply_place" | "supply_device") => {
                 let Some((place, device)) = self.supply_source(&[edit.target]) else {
@@ -1549,7 +1549,7 @@ impl Session {
     }
 
     /// The enclosures of the project's locations as `(location node, enclosure tag, its first mounting surface)`, in
-    /// [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a layout page (rc.3). An
+    /// [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a layout page. An
     /// enclosure without a mounting surface is left out: there is nothing to draw.
     pub fn location_enclosures(&self) -> Vec<(Uuid, String, Uuid)> {
         let q = self.query();

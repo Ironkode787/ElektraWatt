@@ -313,7 +313,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     .and_then(|d| d.aspects.plc_module.as_ref())
                     .is_some_and(|m| m.safety.is_some());
                 // A station that is its own module (a compact device, a valve terminal with a bus node) is one row,
-                // its channels under it (F17 of the rc.1 test: two rows of one tag, one under the other).
+                // its channels under it (two rows of one tag, one under the other).
                 let mnode = match modules.get(&r.module.as_uuid()) {
                     Some(n) => *n,
                     None if r.module == station => snode,
@@ -480,7 +480,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
 }
 
 /// The PLC cards without a station, by their short tags (natural order): a station's own module and a device that
-/// nothing describes as a module (`ew_derive::not_a_module`, EW-PLC-017's) are no cards (F17 of the rc.1 test: a copy of
+/// nothing describes as a module (`ew_derive::not_a_module`, EW-PLC-017's) are no cards (a copy of
 /// a station kept its own module, waited here and was attached to a CPU).
 fn cards_without_cpu(q: &Q) -> Vec<(Id<Device>, String)> {
     let mut out: Vec<(NaturalKey, Id<Device>, String)> = q

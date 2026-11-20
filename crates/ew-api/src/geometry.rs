@@ -98,7 +98,7 @@ pub fn variant_letter(o: u8) -> char {
 /// A slotted box ([`slot_box`]): its insertion point, its outline relative to it, and its cell width (nm).
 pub type SlotBox = ((i64, i64), Vec<(i64, i64)>, i64);
 
-/// The box of a valve terminal of `count` positions drawn as its positions (doc 11 §3.2, rc.2) on a page of grid
+/// The box of a valve terminal of `count` positions drawn as its positions (doc 11 §3.2) on a page of grid
 /// `grid` (`(num, den)` nm, as the page tables give it), its top-left corner at the grid point nearest `at`: the
 /// insertion point, the outline relative to it, and the cell width (`ew_derive::SlotFrame`); `None` without positions
 /// or for a grid that is none.

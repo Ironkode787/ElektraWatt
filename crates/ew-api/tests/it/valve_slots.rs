@@ -788,7 +788,7 @@ fn findings(s: &Session, rule: &str, device: Uuid) -> Vec<ew_api::checks::Findin
         .collect()
 }
 
-/// G16 (rc.3): a position filled from the rack stood as a tag in its cell, without a port. Now each valve stands in its
+/// G16: a position filled from the rack stood as a tag in its cell, without a port. Now each valve stands in its
 /// cell as its symbol, its working ports 2 and 4 on the cell's top edge, and tubes reach them from a cylinder: all four
 /// positions filled (the owner's terminal held four valves), four valves in four cells, each with its own cylinder.
 /// The terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010;
@@ -948,7 +948,7 @@ fn a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
     assert_eq!(tubes.len(), 2, "both tubes of position 3 end at its ports");
 }
 
-/// G16 (rc.3), a project made before: valves put on the positions without a symbol stand as tags, each reported "not
+/// G16, a project made before: valves put on the positions without a symbol stand as tags, each reported "not
 /// drawn on any page" with the fix Draw its valves in the terminal. The fix draws them in their cells and the
 /// terminal's supply in its left end; a valve drawn on another page on purpose stays there, and its cell names the
 /// place it is drawn at, linked to it.

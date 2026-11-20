@@ -770,7 +770,7 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
             why: (*why).to_owned(),
         });
     }
-    // The project's edited date is the save's (the owner's test of 0.3.0-rc.1).
+    // The project's edited date is the save's.
     if (kind, path) == ("project", "master.edited") {
         return EditRoute::ReadOnly(FieldReadOnly::OnSave);
     }
@@ -1706,7 +1706,7 @@ pub(crate) fn parse_input(
             value,
             notes: Vec::new(),
         }),
-        // Typed as the project shows it (the owner's test of 0.3.0-rc.1), stored ISO.
+        // Typed as the project shows it, stored ISO.
         FieldType::Date => {
             let format = cx.date_format();
             match format.parse(text) {

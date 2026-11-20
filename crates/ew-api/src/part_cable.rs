@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The cable section of a cable part as a form (rc.3, New cable type…): the number of cores, the cross-section, with
+//! The cable section of a cable part as a form (New cable type…): the number of cores, the cross-section, with
 //! or without a protective conductor, how the cores are marked, shielded or not, as texts checked one by one, and the
 //! cable as it will read (`3G1.5 · BN BU GNYE`). The outer diameter is the technical value `outer_diameter`.
 //!
@@ -10,7 +10,7 @@
 //! green-yellow last with a protective conductor; `own`: a table of core and colour the person fills in, which starts
 //! as the cores the other marking gave. A shielded cable has a shield after its cores, as the starter cables do.
 //!
-//! **A bus cable** (rc.5, New bus cable…): `bus` names the bus systems the cable is made for (`BusSection.cable_for`).
+//! **A bus cable** (New bus cable…): `bus` names the bus systems the cable is made for (`BusSection.cable_for`).
 //! Choosing a bus fills the cores as the bus has them ([`bus_cores`]: PROFIBUS A green and B red with a shield, an
 //! Ethernet cable's four or eight cores by pair, …) in the own marking; a bus cable's cores need no cross-section.
 

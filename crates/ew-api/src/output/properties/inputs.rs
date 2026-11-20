@@ -79,7 +79,7 @@ impl Session {
 }
 
 /// Whether the row of member `member` of `kind`, of type `ty`, offers and takes the libraries' parts beside the
-/// project's (choosing one embeds it): a Parts row, the Part row of one part use (rc.3: a cable's Part row refused a
+/// project's (choosing one embeds it): a Parts row, the Part row of one part use (a cable's Part row refused a
 /// catalogue cable's number) and a fluid line's tube part.
 fn offers_library_parts(kind: &str, member: &str, ty: &FieldType) -> bool {
     ty.is_part_uses()

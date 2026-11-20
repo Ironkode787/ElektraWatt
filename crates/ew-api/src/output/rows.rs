@@ -971,7 +971,7 @@ pub fn report_folios(q: &Q, block: &str) -> Result<Vec<String>, RowsError> {
 }
 
 /// The devices the parts list leaves out because they have no part (those EW-CORE-041 names), in natural order of
-/// their full tags: what the window counts and selects when it shows the parts list (rc.2 persona run, entry 31).
+/// their full tags: what the window counts and selects when it shows the parts list.
 pub fn unlisted_devices(q: &Q) -> Vec<Id<Device>> {
     let mut out: Vec<(ew_derive::ew_mltext::NaturalKey, Id<Device>)> = q
         .devices()

@@ -142,7 +142,7 @@ fn placeholder(what: &str, users: &str) -> Vec<String> {
     ])
 }
 
-/// The rows Golden A derives as checked in, whole and in order. -XPE, an earth connection, is asked no part (rc.3);
+/// The rows Golden A derives as checked in, whole and in order. -XPE, an earth connection, is asked no part;
 /// the eight FIELD-203Q valves have no part until FT-209 (FT-638).
 #[test]
 fn golden_a_lists_its_open_items() {

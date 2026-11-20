@@ -88,7 +88,7 @@ impl Session {
 }
 
 /// The `cable.create` of a cable part offer ([`Session::create_cable`]): read from the offer itself, so that a list
-/// of offers makes its commands without reading the libraries again per offer (rc.5).
+/// of offers makes its commands without reading the libraries again per offer.
 pub(crate) fn cable_command(offer: crate::output::LayoutPartOffer) -> AnyCommand {
     let part = offer.part;
     let conductors: Vec<_> = offer
@@ -230,7 +230,7 @@ impl Session {
                 _ => None,
             })
             .collect();
-        // A bus line uses every core of the cable that carries it (rc.5): none is free for a wire.
+        // A bus line uses every core of the cable that carries it: none is free for a wire.
         let on_bus = ew_derive::cable_bus_line(&q, cable_id).is_some();
         let free: Vec<Id<Conductor>> = cores
             .iter()

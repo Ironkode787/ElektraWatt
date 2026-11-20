@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What a device is (rc.2, the owner's F9 and F12): its natures, derived from what the model knows of it — the
+//! What a device is (the owner's F9 and F12): its natures, derived from what the model knows of it — the
 //! disciplines of its functions' connection points, its bus ports and its aspects. One notion feeds the Properties
 //! header ("Compressed-air supply point · pneumatic"), the rows Properties shows and the entries of its menus
 //! ("Define potential…" on an electrical point only, "Medium ▸" on a fluid source); [`Session::device_natures`]

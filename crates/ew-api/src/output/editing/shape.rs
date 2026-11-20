@@ -48,9 +48,9 @@ pub struct SymbolShape {
     /// own that joins the terminal.
     pub valve: bool,
     /// Whether that FnDef is a contact (normally open, normally closed or change-over: a switch, a push-button, a
-    /// sensor's contact): autoconnect never joins it to a PLC output (rc.3).
+    /// sensor's contact): autoconnect never joins it to a PLC output.
     pub contact: bool,
-    /// Whether that FnDef is a fitting (`ew_derive::is_fitting`): autoconnect never joins it to another fitting (rc.5).
+    /// Whether that FnDef is a fitting (`ew_derive::is_fitting`): autoconnect never joins it to another fitting.
     pub fitting: bool,
 }
 
@@ -379,7 +379,7 @@ impl Session {
     }
 
     /// The library documents (`lib/` JSON form) a valve terminal drawn as its positions needs to draw its valves and its
-    /// supply in its box (rc.3, `seat_reps`), for the commands that fill a position or draw the box to embed: for the
+    /// supply in its box (`seat_reps`), for the commands that fill a position or draw the box to embed: for the
     /// valve FnDef of every valve of the terminal of `device` (the terminal or one of its modules; `None` for a terminal
     /// not made yet) and of every part of `parts` (a valve about to take a position), and for the terminal's supply (its
     /// own, else the starter's supply FnDef, `ew_derive::is_supply_def`), on the grid of each page the terminal is drawn

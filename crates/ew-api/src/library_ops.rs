@@ -605,7 +605,7 @@ impl Session {
     /// libraries and the person's own, My parts), as library documents with copy metadata, in library then item ID
     /// order. Every place that offers parts (the device browser, a station's catalogue, the Cable form's type list, the
     /// Parts row) lists those the project does not hold after its embedded copies: a part a person made in one project
-    /// is offered in the next (rc.3).
+    /// is offered in the next.
     pub fn library_parts(&self) -> Vec<LibCopy<Part>> {
         let reg = self.libraries();
         reg.libraries()

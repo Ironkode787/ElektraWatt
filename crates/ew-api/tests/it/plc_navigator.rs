@@ -227,7 +227,7 @@ fn the_typed_editors() {
 }
 
 /// The grid's routes: the channel members through `fields.set`, the slot on the module; the
-/// derived columns read-only. The function text is typed on a wired channel's row (the wired device's, rc.5) and
+/// derived columns read-only. The function text is typed on a wired channel's row (the wired device's) and
 /// read-only with the reason on a channel nothing is wired to.
 #[test]
 fn the_grid_columns_and_routes() {

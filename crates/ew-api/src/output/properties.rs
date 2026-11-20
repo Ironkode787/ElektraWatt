@@ -96,11 +96,11 @@ pub struct SheetHeader {
     /// The words the record's findings name it by where its title is in none of them (a tube, an unnumbered wire): the
     /// Messages filter of its finding chips; `None`: the title is.
     pub filter: Option<String>,
-    /// What the one selected device is (rc.2, F9); `None` for anything but one device, its function or its symbol.
+    /// What the one selected device is; `None` for anything but one device, its function or its symbol.
     pub what: Option<SheetWhat>,
 }
 
-/// What the one selected device is, for the header's line under the title (rc.2, F9: "Compressed-air supply point ·
+/// What the one selected device is, for the header's line under the title ("Compressed-air supply point ·
 /// pneumatic"): its natures, its symbol's name and what a valve or a station adds. A window writes it in its language.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SheetWhat {
@@ -112,7 +112,7 @@ pub struct SheetWhat {
     pub solenoids: usize,
     /// What kind of valve terminal it is (`Session::terminal_kind`); `None` for any other device.
     pub terminal: Option<super::TerminalKind>,
-    /// Whether what is selected is the cable's mark on a page, which stands for the cable (rc.3: it read as a raw wire
+    /// Whether what is selected is the cable's mark on a page, which stands for the cable (it read as a raw wire
     /// marker).
     pub mark: bool,
 }
@@ -144,7 +144,7 @@ pub struct SheetSection {
 }
 
 /// The row a wire's cross-section or colour that its cable core gives goes to: the cable's Parts row, whose part gives
-/// its cores (rc.3: "Change it at cable -W1").
+/// its cores ("Change it at cable -W1").
 pub const CABLE_SOURCE_ROW: &str = "device/parts";
 
 /// One row (§6.3, §6.4).
@@ -770,7 +770,7 @@ impl Session {
                 continue;
             };
             let mut reach: BTreeMap<Kind, BTreeSet<Uuid>> = BTreeMap::new();
-            // A cable's mark stands for its cable: the cable's rows, not the marker's (rc.3).
+            // A cable's mark stands for its cable: the cable's rows, not the marker's.
             match (kind == Kind::PageItem)
                 .then(|| marked_cable(&q, Id::from_uuid(id)))
                 .flatten()

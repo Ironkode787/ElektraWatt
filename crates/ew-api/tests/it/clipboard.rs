@@ -575,7 +575,7 @@ fn every_rejection_at_its_pointer() {
     let page = page_of(&s, "102");
     let mut run = |page: Uuid, at: [i64; 2], f: &Value| s.preview(&paste_cmd(page, at, f)).map(|_| ());
     assert_eq!(pointer(run(Uuid::from_u128(9), at, &frag).unwrap_err()), "/page");
-    // A fragment of another grid is fitted (rc.5); its anchor is a point of its own grid.
+    // A fragment of another grid is fitted; its anchor is a point of its own grid.
     let mut grid = frag.clone();
     grid["grid"] = json!([4_000_000, 1]);
     grid["anchor"] = json!([1, 1]);

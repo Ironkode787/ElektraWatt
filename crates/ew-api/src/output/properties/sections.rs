@@ -582,7 +582,7 @@ impl Session {
                     return Vec::new();
                 }
                 let mut out = vec![potential_row(q, cx, "function", &ends)];
-                // A marked supply point (rc.3): where it comes from, the place and the device there, each changed in
+                // A marked supply point: where it comes from, the place and the device there, each changed in
                 // its row (`ip.supply_in`, its group with it).
                 if let [one] = targets
                     && let Some((place, device)) = self.supply_source(&[*one])

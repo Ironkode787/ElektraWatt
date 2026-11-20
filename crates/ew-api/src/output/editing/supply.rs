@@ -93,7 +93,7 @@ impl Session {
     }
 
     /// Where the interruption points `points` (their functions) come from when every one names the same external
-    /// reference: its location's code and the device there (`+Supply`, `-X0`); `None` otherwise (rc.3: Where the
+    /// reference: its location's code and the device there (`+Supply`, `-X0`); `None` otherwise (Where the
     /// supply comes from… shows it to change it).
     pub fn supply_source(&self, points: &[Uuid]) -> Option<(String, String)> {
         let q = self.query();
@@ -112,7 +112,7 @@ impl Session {
         Some((location, x.device.as_str().to_owned()))
     }
 
-    /// The other points of the group of the marked supply point `point` (rc.3, `IpSpec::group`): the points of its
+    /// The other points of the group of the marked supply point `point` (`IpSpec::group`): the points of its
     /// place with its group, in ID order; empty for a point in no group.
     pub fn supply_group(&self, point: Uuid) -> Vec<Uuid> {
         let q = self.query();

@@ -226,7 +226,7 @@ pub struct PartDraft {
     pub to_library: bool,
     /// The PLC section of a new part (doc 10 §2.6) as its form's texts; no role: none.
     pub plc: crate::part_plc::PlcRows,
-    /// The cable section (rc.3): a cable part's cores as its form's texts, edited where the PLC section is.
+    /// The cable section: a cable part's cores as its form's texts, edited where the PLC section is.
     pub cable: crate::part_cable::CableRows,
     /// The name of the symbol a new part made from the symbol editor is drawn with ("Make a part for this symbol…").
     pub drawn_with: Option<String>,

@@ -126,7 +126,7 @@ const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Structure, "usage"),
     (NavKind::Blocks, "pages"),
     // A channel's process tag comes from its target, its page from the bound coil. Its function text, its target's
-    // too, is typed in its cell (rc.5, `table_edit::channel_text_cell`).
+    // too, is typed in its cell (`table_edit::channel_text_cell`).
     (NavKind::Plc, "process_tag"),
     (NavKind::Plc, "placed_on"),
     // The rack is the module's slot's (edited in the Slot cell).

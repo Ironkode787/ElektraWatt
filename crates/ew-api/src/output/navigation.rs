@@ -736,7 +736,7 @@ pub struct PageListTable {
     /// The text printed instead of rows (a row source not derived yet, an empty block).
     pub note: Option<String>,
     /// The sheet rectangle, nm `[left, top, right, bottom]`, of one row right under the table's last row: where the
-    /// window says that a list runs on (rc.5).
+    /// window says that a list runs on.
     pub foot: [i64; 4],
 }
 

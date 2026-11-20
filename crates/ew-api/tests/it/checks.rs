@@ -527,7 +527,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
 ///
 /// EW-CORE-041 also reports a known deviation from EF-04 until its package lands: the process valves -203Q1 to -203Q8
 /// (supplied by others, exempt once `supply_scope` exists, FT-209). -XPE (EF-19) is an earth connection and asked no
-/// part (rc.3).
+/// part.
 #[test]
 fn golden_a_ew_core_part3_reports_the_ef_rows() {
     let batch = golden_common::batch();

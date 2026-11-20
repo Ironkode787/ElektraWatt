@@ -166,7 +166,7 @@ fn device_node(
         })
         .collect();
     let mut drawables = sorted(all);
-    // A cable is drawn where its cores run, a strip where its terminals stand (rc.3: both read "not drawn").
+    // A cable is drawn where its cores run, a strip where its terminals stand (both read "not drawn").
     if drawables.is_empty() {
         drawables = drawn_as_members(q, folios, dev);
     }

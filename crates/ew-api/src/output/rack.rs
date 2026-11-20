@@ -46,7 +46,7 @@ pub struct RackRow {
     pub allowed: Vec<u16>,
     /// Whether the module's slot is positional (its rank), not authored.
     pub positional: bool,
-    /// A valve terminal module's positions in order (1 … n), each with what holds it (rc.2: one row each).
+    /// A valve terminal module's positions in order (1 … n), each with what holds it (one row each).
     pub positions: Vec<RackPosition>,
 }
 
@@ -111,7 +111,7 @@ pub struct RackView {
     pub head: RackRow,
     /// The name of the PLC the station belongs to; empty for a station not made yet.
     pub plc: String,
-    /// The PLC (its configuration project) the station belongs to, whose name the view changes in place (rc.5); `None`
+    /// The PLC (its configuration project) the station belongs to, whose name the view changes in place; `None`
     /// for a station not made yet.
     pub plc_project: Option<Uuid>,
     /// A valve terminal's positions, left to right; empty for any other station.
@@ -131,7 +131,7 @@ pub struct RackView {
     /// EW-PLC-011's findings on the station, as the online check gives them.
     pub findings: Vec<Finding>,
     /// Whether the station's part describes it for the PLC (a PLC section); a bus device given to a PLC whose part
-    /// says nothing of its modules has an open rack (F19 of the rc.1 test).
+    /// says nothing of its modules has an open rack.
     pub described: bool,
 }
 
@@ -662,12 +662,12 @@ impl Session {
         ew_derive::station_of(&self.query(), Id::from_uuid(device)).map(|s| s.as_uuid())
     }
 
-    /// Whether `device` is a bus device that can be a station of a PLC (F19 of the rc.1 test): [`PlcOffer::BusDevice`].
+    /// Whether `device` is a bus device that can be a station of a PLC: [`PlcOffer::BusDevice`].
     pub fn bus_device(&self, device: Uuid) -> bool {
         self.plc_offer(device) == PlcOffer::BusDevice
     }
 
-    /// What a device's menu offers for the PLC (F19 of the rc.1 test): a station names its PLC; a device one of whose
+    /// What a device's menu offers for the PLC: a station names its PLC; a device one of whose
     /// parts declares a bus port with an address (a master, controller, slave or device port) and none of whose parts is
     /// a PLC module (which goes into a rack instead) can be given to a PLC; one whose bus ports are all passive (a switch,
     /// a plug) takes no part in a PLC's configuration; anything else is not offered.
@@ -675,7 +675,7 @@ impl Session {
         plc_offer(&self.query(), Id::from_uuid(device))
     }
 
-    /// Whether `device` is a network switch (rc.2 persona run): it belongs to a PLC without a rack ([`network_switch`]).
+    /// Whether `device` is a network switch: it belongs to a PLC without a rack ([`network_switch`]).
     pub fn network_switch(&self, device: Uuid) -> bool {
         network_switch(&self.query(), Id::from_uuid(device))
     }
@@ -914,7 +914,7 @@ impl Session {
         Some(params)
     }
 
-    /// What `plc.draw_station` needs for `station` on page `page` (rc.2, Draw on this page): `at`, the next free place
+    /// What `plc.draw_station` needs for `station` on page `page` (Draw on this page): `at`, the next free place
     /// of the page (the left of its drawing area under everything drawn on it, its top left on an empty page);
     /// `right`, the drawing area's right, where the row wraps; `foot`, its foot, where a card of inputs stands
     /// (docs/design/06a-drafting.md §7.5); `devices`, the station and its modules in slot order that no electrical page
@@ -942,7 +942,7 @@ impl Session {
             })
             .max();
         // On an empty page the boxes stand two gaps under the frame's top: their captions (the tag, the part number
-        // and the manufacturer above each box) stay inside the drawing area, off the column numbers (rc.3).
+        // and the manufacturer above each box) stay inside the drawing area, off the column numbers.
         let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + 2 * gap, |b| b + 2 * gap));
         let grid = q.pages().get(page_id)?.grid;
         let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
@@ -975,7 +975,7 @@ impl Session {
     }
 
     /// The station `station` and its modules, in slot order, that no electrical page (multi-line or single-line) draws
-    /// yet (rc.5): its electrical side, which a drawing on a bus page or as its positions on a fluid page does not
+    /// yet: its electrical side, which a drawing on a bus page or as its positions on a fluid page does not
     /// draw. Empty for a device that is no station.
     pub fn off_electrical_pages(&self, station: Uuid) -> Vec<Uuid> {
         off_electrical_pages(&self.query(), Id::from_uuid(station))
@@ -1081,7 +1081,7 @@ impl Session {
         }
     }
 
-    /// The solenoids of a stand-alone valve (rc.2, F11): each solenoid its valve part declares, with the coil function
+    /// The solenoids of a stand-alone valve: each solenoid its valve part declares, with the coil function
     /// that is it (the k-th function on a coil FnDef in template order is solenoid k, doc 11 §2.6), where that
     /// function is drawn and the PLC output that drives it. Empty for a device that declares no solenoid and for a valve
     /// on a valve terminal, whose coils its module drives.
@@ -1106,8 +1106,8 @@ impl Session {
 
     /// Where `device` sits after a drop into a valve terminal's box: on a valve terminal (its tag and the valve
     /// position, none for a supply plate), loose (a valve for a terminal on none: the terminal had no free position),
-    /// or its own (a device that takes no valve position, rc.2); `None` for a device that is gone. A terminal of either
-    /// kind seats it (the rc.2 re-test: a valve the multipin terminal took was said to stay loose).
+    /// or its own (a device that takes no valve position); `None` for a device that is gone. A terminal of either
+    /// kind seats it (a valve the multipin terminal took was said to stay loose).
     pub fn terminal_seat(&self, device: Uuid) -> Option<TerminalSeat> {
         let q = self.query();
         let id: Id<Device> = Id::from_uuid(device);
@@ -1142,7 +1142,7 @@ impl Session {
     }
 
     /// The box of a valve terminal of `count` positions drawn as its positions on `page`, its top-left corner at the
-    /// grid point nearest `at` (doc 11 §3.2, rc.2): the insertion point and the `box` of `box.black`
+    /// grid point nearest `at` (doc 11 §3.2): the insertion point and the `box` of `box.black`
     /// (`{outline, slots: {pitch}}`, `ew_derive::SlotFrame`); `None` for a page that is gone or no positions.
     pub fn slot_box(
         &self,
@@ -1170,7 +1170,7 @@ impl Session {
         }
     }
 
-    /// Whether `function` is a black-box function (drawn by the black-box frame: a multipin terminal's plug, rc.2).
+    /// Whether `function` is a black-box function (drawn by the black-box frame: a multipin terminal's plug).
     pub fn is_black_box_function(&self, function: Uuid) -> bool {
         self.query()
             .functions()
@@ -1178,7 +1178,7 @@ impl Session {
             .is_some_and(|f| f.kind == ew_derive::ew_schema::FunctionKind::BlackBox)
     }
 
-    /// What kind of valve terminal `device` is (rc.2, F15): with a bus node (a PLC station: the outputs that drive its
+    /// What kind of valve terminal `device` is: with a bus node (a PLC station: the outputs that drive its
     /// solenoids are inside it), with the bus its part's first bus port names, or multipin (wired through its plug);
     /// `None` for any other device.
     pub fn terminal_kind(&self, device: Uuid) -> Option<TerminalKind> {
@@ -1186,7 +1186,7 @@ impl Session {
     }
 
     /// The valve positions of a valve terminal, left to right (`ew_derive::terminal_cells`: its own, then its modules'),
-    /// each its number on its module and what holds it; empty for a device without (rc.2).
+    /// each its number on its module and what holds it; empty for a device without.
     pub fn terminal_positions(&self, terminal: Uuid) -> Vec<(u32, RackPosition)> {
         let q = self.query();
         ew_derive::terminal_cells(&q, Id::from_uuid(terminal))
@@ -1260,7 +1260,7 @@ impl Session {
     }
 }
 
-/// What kind of valve terminal `id` is ([`Session::terminal_kind`]); also Properties' header (rc.2).
+/// What kind of valve terminal `id` is ([`Session::terminal_kind`]); also Properties' header.
 pub(crate) fn terminal_kind(q: &ew_derive::Q, id: Id<Device>) -> Option<TerminalKind> {
     if ew_derive::is_multipin_terminal(q, id) {
         return Some(TerminalKind::Multipin);
@@ -1361,7 +1361,7 @@ pub struct ValveSolenoid {
     pub drawn: Option<String>,
     /// The PLC output that drives it (`Q0.1`); `None` while none does.
     pub output: Option<String>,
-    /// Where it is driven from when its valve sits on a valve terminal (rc.2, F15); `None` for a stand-alone valve.
+    /// Where it is driven from when its valve sits on a valve terminal; `None` for a stand-alone valve.
     pub seat: Option<SolenoidSeat>,
 }
 
@@ -1393,7 +1393,7 @@ pub(crate) fn solenoids(q: &Q, device: Id<Device>) -> Vec<ValveSolenoid> {
     let Some(dev) = q.devices().get(device) else {
         return Vec::new();
     };
-    // A valve on a valve terminal (or on a module of one): its solenoids are driven from the terminal (rc.2, F15).
+    // A valve on a valve terminal (or on a module of one): its solenoids are driven from the terminal.
     let on = dev.parent.filter(|m| ew_derive::valve_positions(q, *m).is_some());
     let terminal = on.and_then(|m| {
         [Some(m), q.devices().get(m).and_then(|d| d.parent)]
@@ -1516,13 +1516,13 @@ pub(crate) fn terminal_plug(q: &Q, device: Id<Device>) -> Option<TerminalPlug> {
 }
 
 impl Session {
-    /// The plug of multipin valve terminal `device` (rc.2): its main function and where it is drawn; `None` for any
+    /// The plug of multipin valve terminal `device`: its main function and where it is drawn; `None` for any
     /// other device.
     pub fn terminal_plug(&self, device: Uuid) -> Option<TerminalPlug> {
         terminal_plug(&self.query(), Id::from_uuid(device))
     }
 
-    /// Where Go to shows a thing (rc.2): the page and the representation of the first drawing (in representation-ID
+    /// Where Go to shows a thing: the page and the representation of the first drawing (in representation-ID
     /// order) of function `record`, or of the device `record`'s main function; `None` for one drawn nowhere.
     pub fn first_drawing(&self, record: Uuid) -> Option<(Uuid, Uuid)> {
         let q = self.query();
@@ -1547,7 +1547,7 @@ impl Session {
     }
 
     /// Whether the valve terminal of `device` (the terminal itself, one of its modules or one of their valves) is drawn as
-    /// its positions on a page (rc.3): a valve that takes a position then stands in its cell by itself.
+    /// its positions on a page: a valve that takes a position then stands in its cell by itself.
     pub fn drawn_as_positions(&self, device: Uuid) -> bool {
         let q = self.query();
         let mut seen: Vec<Id<Device>> = Vec::new();
@@ -1562,7 +1562,7 @@ impl Session {
         false
     }
 
-    /// Whether Draw its valves in the terminal (`valve_terminal.draw_valves`, rc.3) has something to draw for valve
+    /// Whether Draw its valves in the terminal (`valve_terminal.draw_valves`) has something to draw for valve
     /// terminal `terminal`: it is drawn as its positions, and a valve on one of its positions, or its supply, is drawn on
     /// no page, or it has no supply, or a valve stands off its cell on a page it is drawn as its positions on (drawn by
     /// an earlier build, whose cells put the valves lower). Its menu, its view's To do and EW-CORE-047's fix offer it
@@ -1618,9 +1618,9 @@ impl Session {
         })
     }
 
-    /// The valve terminals of the project drawn on no fluid page yet (made as a station in the New station dialog, rc.2):
+    /// The valve terminals of the project drawn on no fluid page yet (made as a station in the New station dialog):
     /// each with its tag, in natural order of the tag. A terminal put on a bus page first has its bus port as its main
-    /// function and its positions as another (rc.3): any of its functions drawn on a fluid page counts.
+    /// function and its positions as another: any of its functions drawn on a fluid page counts.
     pub fn undrawn_fluid_terminals(&self) -> Vec<(Uuid, String)> {
         let q = self.query();
         let (reps, pages) = (q.reps(), q.pages());

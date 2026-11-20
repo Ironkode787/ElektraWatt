@@ -79,7 +79,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
     let port_row = |b: &mut Builder, parent: u32, f: Id<Function>, mut badges: Vec<String>| -> Option<u32> {
         let func = functions.get(f)?;
         let port = func.bus_port.as_ref()?;
-        // The PLC its device belongs to, or that it belongs to none (rc.2 persona run); its menu gives it to one.
+        // The PLC its device belongs to, or that it belongs to none; its menu gives it to one.
         match func.device.map(|d| crate::output::rack::plc_offer(q, d)) {
             Some(crate::output::rack::PlcOffer::Station(name)) => badges.push(name),
             Some(crate::output::rack::PlcOffer::BusDevice) => badges.push("in no PLC".to_owned()),

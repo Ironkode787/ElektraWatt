@@ -3,7 +3,7 @@
 
 //! The message panel's provider on Golden A (the `ew-api` half of acceptance check MS1): the finding
 //! rows equal `Session::check(online_scheme, Online)`'s findings in order, each under its severity and its rule; EF-08
-//! (EW-CORE-033 on -3W1) is a warning row (an error only for delivery, rc.3) that opens the page of -3W1's first
+//! (EW-CORE-033 on -3W1) is a warning row (an error only for delivery) that opens the page of -3W1's first
 //! drawable with it selected; the keys are
 //! stable across a revision that changes no finding; the online scheme is `drafting` while the project names none.
 

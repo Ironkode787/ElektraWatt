@@ -70,10 +70,10 @@ pub struct BusCableForm {
     /// The plug parts made for the bus, by part number.
     pub plugs: Vec<BusPartOffer>,
     /// The project's cables made for the bus, each with its words (`-902W1 · EW-GEN-CBL-2`), by tag: a further line
-    /// can run on in one of them (rc.5).
+    /// can run on in one of them.
     pub existing: Vec<(Uuid, String)>,
     /// Whether the lines' cable carries nothing else (no other line, no core, no drawing): replaced by another, it is
-    /// removed in the same step, and its tag is free again (rc.5).
+    /// removed in the same step, and its tag is free again.
     pub left_unused: bool,
 }
 
@@ -105,7 +105,7 @@ impl Session {
             .layout_part_offers(kind)
             .into_iter()
             .filter_map(|o| {
-                // The offer carries its sections: no second read of the libraries per offer (rc.5, the late form).
+                // The offer carries its sections: no second read of the libraries per offer (the late form).
                 let section = o.sections.bus;
                 let made_for = match (kind, &section, bus) {
                     ("cable", Some(s), Some(b)) => s.cable_for.contains(b),
@@ -251,7 +251,7 @@ impl Session {
         let form = self.bus_cable_form(lines);
         match (cable, part) {
             (Some(c), Some(p)) if form.cable == Some(c) && form.part != Some(p) => {
-                // Another part for the lines' cable: its cores follow (rc.5: the part was dropped in silence).
+                // Another part for the lines' cable: its cores follow (the part was dropped in silence).
                 let offer = form.cables.iter().find(|o| o.part == p)?;
                 params["cable"] = json!(c.to_string());
                 params["part"] = json!(p.to_string());

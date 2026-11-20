@@ -314,17 +314,17 @@ pub struct TableBox {
     /// Whether the box is a valve terminal's (its device a PLC station of role `valve_terminal`): a valve placed inside
     /// is a valve of its own that joins the terminal, never a function of the terminal's device.
     pub valve_terminal: bool,
-    /// The cells of a box drawn as the terminal's valve positions (rc.2), left to right; empty for a free box.
+    /// The cells of a box drawn as the terminal's valve positions, left to right; empty for a free box.
     pub cells: Vec<SlotCell>,
     /// The supply end of such a box (left, top, right, bottom on the page); `None` for a free box.
     pub supply_end: Option<[i64; 4]>,
-    /// Whether the box's pins are its own (rc.5): its function is a black box whose device has no part, so a pin is
+    /// Whether the box's pins are its own: its function is a black box whose device has no part, so a pin is
     /// added, named and removed on the box itself; a box of a part draws the part's pins, edited in its device box.
     pub own_pins: bool,
     /// The names of the box's own pins (`BoxCp.name`): function CP index and name.
     pub names: Vec<(u16, String)>,
-    /// The least height in grid steps that keeps the turned pin texts of its top and bottom sides apart and inside it
-    /// (rc.5); 0 where they print none.
+    /// The least height in grid steps that keeps the turned pin texts of its top and bottom sides apart and inside it;
+    /// 0 where they print none.
     pub depth: i64,
 }
 
@@ -417,10 +417,10 @@ pub struct TableCp {
     /// for an unbound CP or an address that does not resolve.
     pub plc_address: Option<String>,
     /// Whether a PLC output channel (digital or analogue) is bound to it: autoconnect never joins a contact to it
-    /// (rc.3: a sensor placed near an output card was joined to an output).
+    /// (a sensor placed near an output card was joined to an output).
     pub plc_output: bool,
     /// Whether its function's FnDef is a fitting (`ew_derive::is_fitting`): autoconnect never joins a fitting's port
-    /// to it (rc.5: four flow controls placed in a row were joined by tubes).
+    /// to it (four flow controls placed in a row were joined by tubes).
     pub fitting: bool,
 }
 

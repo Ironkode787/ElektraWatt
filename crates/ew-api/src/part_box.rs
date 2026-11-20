@@ -138,7 +138,7 @@ pub fn card_share(pins: usize, room: i64) -> usize {
 }
 
 /// The length in nanometres of the pin text `text` on one line in style `data.small` with the bundled fonts: how far a
-/// text of a top or bottom side, turned a quarter, reaches into the box (rc.5).
+/// text of a top or bottom side, turned a quarter, reaches into the box.
 pub fn pin_text_length(text: &str) -> i64 {
     let Some(style) = ew_text::builtin().resolve("data.small") else {
         return 0;

@@ -88,7 +88,7 @@ pub struct CatalogueSymbol {
     /// The first level of its FnDef's category (`ProtectionOvercurrent`, the browser's tree node); empty when the
     /// FnDef is missing.
     pub category: String,
-    /// The discipline its connection points share (rc.2, F9: the browser says what a symbol is for); `None` when they
+    /// The discipline its connection points share (the browser says what a symbol is for); `None` when they
     /// differ or it has none.
     pub discipline: Option<ew_schema::Discipline>,
 }
@@ -158,9 +158,9 @@ pub struct CataloguePart {
     /// per interface (`bus.place_ports`, doc 10 §2.7); empty on another page and for a part without them.
     pub interfaces: Vec<CatalogueInterface>,
     /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
-    /// terminal's empty position offers (rc.2).
+    /// terminal's empty position offers.
     pub terminal_valve: bool,
-    /// Whether such a valve has a fluid symbol to stand in a valve position's cell, of any width (rc.3): a position
+    /// Whether such a valve has a fluid symbol to stand in a valve position's cell, of any width: a position
     /// offers a valve without one with the reason, and does not take it.
     pub cell_symbol: bool,
     /// What the part is to a PLC ([`CataloguePlc`]): a station's head or a card; `None` for a part without a PLC
@@ -445,7 +445,7 @@ pub(super) fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
     })
 }
 
-/// The fluid symbol that draws FnDef copy `def` in a valve terminal's box (rc.3: a valve in its cell, the terminal's
+/// The fluid symbol that draws FnDef copy `def` in a valve terminal's box (a valve in its cell, the terminal's
 /// supply in its supply end), on `grid` when one is given: the project's of the lowest ID (the one `seat_reps` draws
 /// with), else the starter's; with whether it is the starter's.
 pub(super) fn box_symbol(
@@ -470,7 +470,7 @@ pub(super) fn box_symbol(
     })
 }
 
-/// The FnDef copy of a part's valve function (rc.3): its first template entry on a FnDef of contact kind `valve`
+/// The FnDef copy of a part's valve function: its first template entry on a FnDef of contact kind `valve`
 /// (embedded, else the starter's); `None` for a part without one.
 pub(super) fn part_valve_def(q: &Q, part: &Part) -> Option<Id<FnDef>> {
     part.function_template.iter().find_map(|t| {
@@ -689,7 +689,7 @@ fn catalogue_part(
         set?.mapping(category.as_str(), Some(group.as_str()))
             .map(|m| m.letter().as_str().to_owned())
     });
-    // A valve for a valve terminal (rc.2): a valve without a coil of its own to wire, and no PLC part.
+    // A valve for a valve terminal: a valve without a coil of its own to wire, and no PLC part.
     let defs: Vec<_> = part
         .function_template
         .iter()
@@ -700,7 +700,7 @@ fn catalogue_part(
                 .or_else(|| fndef_of(q, &t.fndef))
         })
         .collect();
-    // A valve made for a terminal names the solenoids the terminal drives (rc.2: hand-operated valves fit no position).
+    // A valve made for a terminal names the solenoids the terminal drives (hand-operated valves fit no position).
     let terminal_valve = part.sections.plc.is_none()
         && part
             .sections
@@ -948,7 +948,7 @@ impl Session {
                 let address = format!("library:{}:{}", copy.library_id, copy.item_id);
                 let mut row = symbol_row(&q, set, &page, address, None, &copy.item);
                 // A published symbol of another grid is listed with both grids; Place puts its copy drawn on the page's
-                // grid there (rc.3). Whether the page's type takes it stays `allowed`.
+                // grid there. Whether the page's type takes it stays `allowed`.
                 if copy.item.grid != page.grid {
                     row.grid_mismatch = Some([
                         (copy.item.grid.num(), copy.item.grid.den()),

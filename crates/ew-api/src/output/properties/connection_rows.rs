@@ -260,7 +260,7 @@ impl Session {
                             note: format!("override on {on}"),
                         }
                     }
-                    // A core's cross-section and colour are the cable's: changed at the cable (rc.3).
+                    // A core's cross-section and colour are the cable's: changed at the cable.
                     other @ PropSource::Conductor(_) => Provenance::Derived {
                         via: prop_via(q, other, &potential, class.as_ref()),
                     },
@@ -314,7 +314,7 @@ impl Session {
             // A cable's core has no wire number (FR-NUM-019): its cable and core name it (`-1W1 BN`), never `?`.
             let core = match q.connections().get(*c).map(|conn| conn.kind.clone()) {
                 Some(ew_schema::ConnectionKind::Core(x)) => record_title(q, x.as_uuid(), None),
-                // A bus line has no wire number either: its cable names it (rc.5: it read `?`).
+                // A bus line has no wire number either: its cable names it (it read `?`).
                 Some(ew_schema::ConnectionKind::Bus(line)) => line.cable.map(|x| device_tag_text(q, x)),
                 _ => None,
             };
@@ -392,7 +392,7 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
             id: at.as_uuid(),
             row: format!("connection/derived.{name}"),
         },
-        // A core's value is its cable's: the cable's Parts row, whose part gives the cores (rc.3).
+        // A core's value is its cable's: the cable's Parts row, whose part gives the cores.
         PropSource::Conductor(c) => match q.conductors().get(*c) {
             Some(core) => SourceLink::Record {
                 id: core.cable.as_uuid(),

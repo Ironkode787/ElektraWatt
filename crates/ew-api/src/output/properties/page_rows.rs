@@ -120,7 +120,7 @@ impl Session {
                 Vec::new(),
             ));
         }
-        // The coil symbol of a valve's solenoid says which valve it belongs to (rc.2, F11), a link to the valve.
+        // The coil symbol of a valve's solenoid says which valve it belongs to, a link to the valve.
         if let [one] = targets
             && let Some(rep) = q.reps().get(Id::from_uuid(*one))
             && let [f] = rep.functions.as_slice()

@@ -728,10 +728,10 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
     out
 }
 
-/// The cells of the valve terminals drawn as their positions on a drawn page (doc 11 §3.2, rc.2): for each box
+/// The cells of the valve terminals drawn as their positions on a drawn page (doc 11 §3.2): for each box
 /// representation with `slots`, in representation-ID order, its frame and per cell (`terminal_cells`) its number and
 /// what it holds (a valve not drawn on this page with its tag and where it is drawn), whether its supply stands on the
-/// page, and the valves' ports that end on its sub-base with the gallery each joins (rc.3). A plain
+/// page, and the valves' ports that end on its sub-base with the gallery each joins. A plain
 /// function of the tracked reads of `q`, like `page_valve_glyphs`.
 pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
     let reps = q.reps();
@@ -760,7 +760,7 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
             continue;
         };
         // The page is read only where a box is drawn as its positions: a page record's change (a renumber) leaves the
-        // symbol layers of the other pages alone. Each cell is as wide as its valve needs (rc.3).
+        // symbol layers of the other pages alone. Each cell is as wide as its valve needs.
         let Some(frame) = ew_derive::box_frame(q, rep) else {
             continue;
         };
@@ -771,7 +771,7 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
             .map(|c| {
                 let view = match c.slot {
                     ew_derive::ValveSlot::Valve { device, .. } if drawn_here(device) => {
-                        // The ports that end on the sub-base, each joined to its gallery (rc.3).
+                        // The ports that end on the sub-base, each joined to its gallery.
                         for f in ew_derive::valve_functions(q, device) {
                             for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
                                 let k = ew_derive::GALLERY_PORTS
@@ -815,7 +815,7 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
     out
 }
 
-/// Where a valve of a cell that is not drawn on the cell's page is drawn (rc.3): the place of its main symbol
+/// Where a valve of a cell that is not drawn on the cell's page is drawn: the place of its main symbol
 /// (`<folio>-<cell>`, the folio alone off the frame grid) and that symbol; `None` for a valve drawn nowhere.
 fn drawn_elsewhere(q: &Q, device: Id<Device>) -> Option<(String, Id<Representation>)> {
     let rep = (*q.get::<ew_derive::MainRep>(device))?;
@@ -828,7 +828,7 @@ fn drawn_elsewhere(q: &Q, device: Id<Device>) -> Option<(String, Id<Representati
     Some((place, rep))
 }
 
-/// The texts beside the pins of the multipin valve terminals' plugs on a drawn page (rc.2): for each box
+/// The texts beside the pins of the multipin valve terminals' plugs on a drawn page: for each box
 /// representation of a multipin terminal that is no box drawn as its positions, in representation-ID order, a text
 /// per box CP that a pin of the plug is (`ew_derive::plug_pins`): the valve's tag and the solenoid where a valve holds
 /// the position (`-201K2-Q1 14`), else the position and the solenoid (`1 · 14`), and `COM` for the common. A plain
@@ -1039,7 +1039,7 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
 }
 
 /// The least height in grid steps of the black box `r` that keeps the pin texts of its top and its bottom side apart
-/// and inside it (rc.5: the height collapsed through them): a text of a top or bottom side is turned a quarter and
+/// and inside it (the height collapsed through them): a text of a top or bottom side is turned a quarter and
 /// reaches in from its pin by the scene's `PIN_TEXT_GAP` and its length (one line's height for a text of signs only,
 /// which the scene prints horizontally); the longest of the top side and the longest of the bottom side, with half a
 /// millimetre between them. 0 for a representation that is no black box or prints no pin text on a top or bottom side.

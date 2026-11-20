@@ -52,7 +52,7 @@ mod layers;
 // Properties for layout records and the Surface view rows.
 mod layout_edit;
 mod navigation;
-// What a device is: its natures (rc.2, F9 and F12).
+// What a device is: its natures.
 mod natures;
 // A potential reasoned for an unnamed wire (FT-1700).
 pub(crate) mod navigators;

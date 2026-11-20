@@ -168,7 +168,7 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
     vec![medium, tube]
 }
 
-/// The fluid port of a source device, by what it is (rc.2, F9: a source drawn in the symbol editor or made in the part
+/// The fluid port of a source device, by what it is (a source drawn in the symbol editor or made in the part
 /// editor is one too, whatever its category): a device whose only fluid port is a supply or plain port (no consumer's,
 /// no sensing port), on a function that is no interruption point; `None` for any other device.
 pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
@@ -211,7 +211,7 @@ fn medium_at(q: &Q, at: EndpointKey) -> (Option<Id<ew_derive::ew_schema::Medium>
 
 /// A source device's **Medium** row ([`source_port`]): the medium its port's net carries and where it is defined, set
 /// as a tube's (`fluid.medium.define` at the port through [`Session::layout_edit`]); `None` for any other device.
-/// Without a medium its chip says to choose one (rc.2, F9).
+/// Without a medium its chip says to choose one.
 pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Built> {
     use ew_derive::ew_schema::Medium;
     let (f, idx) = source_port(q, device)?;
@@ -223,7 +223,7 @@ pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> 
     };
     let media = q.table::<Medium>();
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
-    // A medium given to this source at its own port is its own (the rc.2 re-test: the row said "derived" for the
+    // A medium given to this source at its own port is its own (the row said "derived" for the
     // medium just chosen); one that reaches it from elsewhere is derived.
     let own = def.is_some_and(|at| at.function == f && at.idx == idx);
     let provenance = if own {
@@ -262,7 +262,7 @@ pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> 
     ))
 }
 
-/// The media of a fluid device, for its menu (rc.2, F9).
+/// The media of a fluid device, for its menu.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DeviceMedia {
     /// Whether it is a source: its Medium row and menu set the medium.
@@ -308,7 +308,7 @@ impl Session {
         })
     }
 
-    /// The fluid sources of the project that are drawn (the air supplies, where a medium is chosen; rc.2): each its tag
+    /// The fluid sources of the project that are drawn (the air supplies, where a medium is chosen): each its tag
     /// and where its first drawing stands (`201-B4`), in natural order of the tag.
     pub fn fluid_sources(&self) -> Vec<(String, String)> {
         let q = self.query();
@@ -348,7 +348,7 @@ pub(crate) fn medium_words(m: &ew_derive::ew_schema::Medium) -> String {
     }
 }
 
-/// The fluid ports of a device that is no source (rc.2, F9), one read-only row each (`port[n]`, in port order): the
+/// The fluid ports of a device that is no source, one read-only row each (`port[n]`, in port order): the
 /// medium the port carries in words and where it is defined, linked to the Medium row of the source whose definition
 /// gives that medium; the value names the port's designation and the medium (`null` for none, which the window writes
 /// as what to do).

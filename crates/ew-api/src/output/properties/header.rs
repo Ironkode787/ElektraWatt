@@ -45,7 +45,7 @@ pub(in crate::output) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> 
         }
         // A fluid line has no wire number; it is named by its line kind ("drain line").
         Kind::Connection => match json.pointer("/kind/fluid") {
-            // A bus line is named by its cable (rc.5: it read `?`).
+            // A bus line is named by its cable (it read `?`).
             None if json.pointer("/kind/bus").is_some() => json
                 .pointer("/kind/bus/cable")
                 .and_then(Value::as_str)

@@ -136,7 +136,7 @@ impl Session {
                 per.push((Some(Value::String(text)), provenance));
             }
             let (value, provenance) = merge(cx, &FieldType::Text, per);
-            // The row stands for its stored member (rc.2, F12): it is typed into as that member is.
+            // The row stands for its stored member: it is typed into as that member is.
             let mut actions = vec![RowAction::Edit];
             if inherited {
                 actions.push(RowAction::Override);
@@ -213,7 +213,7 @@ impl Session {
                 actions,
             ));
         }
-        // A valve terminal's positions (rc.2, F15: a terminal drawn before as a free box shows its positions nowhere on
+        // A valve terminal's positions (a terminal drawn before as a free box shows its positions nowhere on
         // its page): each with what holds it, read-only; the window words the blanking plates and the empty ones.
         if let [one] = devices.as_slice() {
             let cells = ew_derive::terminal_cells(q, *one);
@@ -247,7 +247,7 @@ impl Session {
                 ));
             }
         }
-        // The PLC a bus device belongs to (rc.2 persona run: "no such field in the switch's properties"): a station names
+        // The PLC a bus device belongs to ("no such field in the switch's properties"): a station names
         // its PLC, read-only; a bus device in no PLC (JSON null) is given to one by choosing it, the PLCs by ID
         // (`plc.add_to_plc`, which the window runs).
         if let [one] = devices.as_slice() {
@@ -305,11 +305,11 @@ impl Session {
         {
             out.push(row);
         }
-        // Any other fluid device's ports with the medium each carries and from where (rc.2, F9).
+        // Any other fluid device's ports with the medium each carries and from where.
         if let [one] = devices.as_slice() {
             out.extend(fluid_port_rows(q, *one));
         }
-        // A stand-alone valve's solenoids (rc.2, F11): one row each, where its coil is drawn (a link that goes there, or
+        // A stand-alone valve's solenoids: one row each, where its coil is drawn (a link that goes there, or
         // draws it while it is not) and the PLC output that drives it.
         if let [one] = devices.as_slice() {
             for (k, s) in crate::output::rack::solenoids(q, *one).into_iter().enumerate() {
@@ -317,7 +317,7 @@ impl Session {
                     .output
                     .as_ref()
                     .map_or_else(|| "no PLC output".to_owned(), |o| format!("PLC output {o}"));
-                // A terminal valve's solenoid says where it is driven from (rc.2, F15): an output inside the terminal,
+                // A terminal valve's solenoid says where it is driven from: an output inside the terminal,
                 // or a pin of a multipin terminal's plug; the window words it.
                 let seat = match &s.seat {
                     None => Value::Null,
@@ -355,7 +355,7 @@ impl Session {
                 ));
             }
         }
-        // A multipin valve terminal's plug (rc.2): where it is drawn (a link that goes there), or that it is not, which
+        // A multipin valve terminal's plug: where it is drawn (a link that goes there), or that it is not, which
         // draws it on an electrical page.
         if let [one] = devices.as_slice()
             && let Some(plug) = crate::output::rack::terminal_plug(q, *one)

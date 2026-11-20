@@ -815,12 +815,12 @@ fn cell_of<'a>(set: &ew_reports::RowSet, texts: &'a [String], key: &str) -> &'a 
         .map_or("", String::as_str)
 }
 
-/// The badge of a device row whose device no page draws (F17 of the rc.1 test: its tag shows `?` where the page goes,
+/// The badge of a device row whose device no page draws (its tag shows `?` where the page goes,
 /// and nothing said why); the window explains it on hover.
 pub const NOT_DRAWN: &str = "not drawn";
 
 /// The badge of a device row whose device is an earth connection (`ew_derive::layout::is_earth_connection`): drawn
-/// with earth or ground symbols only and given no part, so no part is asked of it (rc.3).
+/// with earth or ground symbols only and given no part, so no part is asked of it.
 pub const EARTH_CONNECTION: &str = "earth connection";
 
 /// The badge of a Messages rule group every finding of which has a quick fix of one kind: its Fix all.
