@@ -43,12 +43,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, STEP, TEXT_CROSSED, TEXT_STEP,
-    TICKS_PER_STEP,
+    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, STEP, TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP,
 };
 use crate::geom::{self, Seg};
 use crate::labels::{Settled, settle_labels};
-use crate::model::{DraftPage, End, JunctionId, LabelId, LabelKind, PartId, PinId, Pt, Rect, Side, Tick, WireId};
+use crate::model::{
+    DraftPage, End, JunctionId, LabelId, LabelKind, PartId, PinId, Pt, Rect, Side, Tick, WireId,
+};
 
 /// What a wire runs through without ending there (F2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]

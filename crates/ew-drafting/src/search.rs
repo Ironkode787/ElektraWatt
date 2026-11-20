@@ -262,8 +262,14 @@ impl<'a> Space<'a> {
                     Holder::Junction(j) => tips.iter().any(|t| t.owner == Owner::Junction(*j)),
                 };
                 // A free pin's stub on an end's own stub is the end's way out.
-                let shared_stub = matches!(h, Holder::Pin { stub: true, wired: false, .. })
-                    && self.stubs.contains(&Some(n));
+                let shared_stub = matches!(
+                    h,
+                    Holder::Pin {
+                        stub: true,
+                        wired: false,
+                        ..
+                    }
+                ) && self.stubs.contains(&Some(n));
                 if !own && !shared_stub {
                     return true;
                 }
@@ -329,13 +335,9 @@ impl<'a> Space<'a> {
                 let Some(t) = self.ask.occ.texts.get(usize::try_from(k).unwrap_or(usize::MAX)) else {
                     continue;
                 };
-                let own = [&self.ask.from, &self.ask.to]
-                    .iter()
-                    .enumerate()
-                    .any(|(e, tip)| {
-                        tip.part.is_some_and(|(id, _)| id == t.owner)
-                            && self.corridors[e].contains(&b)
-                    });
+                let own = [&self.ask.from, &self.ask.to].iter().enumerate().any(|(e, tip)| {
+                    tip.part.is_some_and(|(id, _)| id == t.owner) && self.corridors[e].contains(&b)
+                });
                 if own {
                     continue;
                 }
@@ -494,7 +496,10 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
     let ceil = |v: Tick| i32::try_from(i64::from(v).div_euclid(i64::from(step)) + 1).unwrap_or(0);
     let floor = |v: Tick| i32::try_from(i64::from(v).div_euclid(i64::from(step))).unwrap_or(0);
     let (mut lo, mut hi) = if inset.x0 < inset.x1 && inset.y0 < inset.y1 {
-        ((ceil(inset.x0 - 1), ceil(inset.y0 - 1)), (floor(inset.x1), floor(inset.y1)))
+        (
+            (ceil(inset.x0 - 1), ceil(inset.y0 - 1)),
+            (floor(inset.x1), floor(inset.y1)),
+        )
     } else {
         (s, s)
     };
@@ -538,9 +543,8 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
                 // Reached over one of its pins, a step behind the bend: the person led the wire through the part.
                 let over_pin = ask.arrive.is_some_and(|h| {
                     let u = h.unit();
-                    pins.iter().any(|p| {
-                        (1..=STUB).any(|d| t.at.minus(Pt::new(u.x * d, u.y * d)) == *p)
-                    })
+                    pins.iter()
+                        .any(|p| (1..=STUB).any(|d| t.at.minus(Pt::new(u.x * d, u.y * d)) == *p))
                 });
                 t.owner == Owner::Free && inside && over_pin
             })
@@ -635,9 +639,21 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
         }
     };
     match to.side {
-        Some(d) => put(state(goal, Some(opposite(d))), (0, 0), vec![to.at], &mut dist, &mut heap),
+        Some(d) => put(
+            state(goal, Some(opposite(d))),
+            (0, 0),
+            vec![to.at],
+            &mut dist,
+            &mut heap,
+        ),
         None => {
-            for h in [None, Some(Side::Right), Some(Side::Down), Some(Side::Left), Some(Side::Up)] {
+            for h in [
+                None,
+                Some(Side::Right),
+                Some(Side::Down),
+                Some(Side::Left),
+                Some(Side::Up),
+            ] {
                 put(state(goal, h), (0, 0), vec![to.at], &mut dist, &mut heap);
             }
         }
@@ -674,10 +690,12 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
         }
     }
     // A closed node is passed by no route; it may only be a start (in that start's state) or an end.
-    let open = |p: Node, st: usize| p == sp.s || p == sp.t || !sp.closed(sp.occ(p)) || start_states.contains(&st);
+    let open =
+        |p: Node, st: usize| p == sp.s || p == sp.t || !sp.closed(sp.occ(p)) || start_states.contains(&st);
     let first_pin = from.side.and_then(|_| sp.node(sp.s)).filter(|&n| n != goal);
-    let free_turn =
-        |st: usize| from.side.is_none() && ask.arrive.is_some() && sp.node(sp.s).map(|k| state(k, ask.arrive)) == Some(st);
+    let free_turn = |st: usize| {
+        from.side.is_none() && ask.arrive.is_some() && sp.node(sp.s).map(|k| state(k, ask.arrive)) == Some(st)
+    };
     let best = |dist: &Vec<Dist>| {
         starts
             .iter()
@@ -706,7 +724,13 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
         if n1 == goal || first_pin == Some(n1) || !sp.free(p1, m) {
             continue;
         }
-        for h in [None, Some(Side::Right), Some(Side::Down), Some(Side::Left), Some(Side::Up)] {
+        for h in [
+            None,
+            Some(Side::Right),
+            Some(Side::Down),
+            Some(Side::Left),
+            Some(Side::Up),
+        ] {
             if h == Some(opposite(m)) {
                 continue;
             }

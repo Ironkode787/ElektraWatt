@@ -46,7 +46,11 @@ pub struct Net {
 
 /// The net jobs of `jobs` (module documentation), each wire in exactly one, in the order of their first wire's ID.
 /// `ends`: each wire's two ends; `movable`: whether a junction may move.
-pub fn nets(jobs: &[WireId], ends: &BTreeMap<WireId, [End; 2]>, movable: &dyn Fn(JunctionId) -> bool) -> Vec<Net> {
+pub fn nets(
+    jobs: &[WireId],
+    ends: &BTreeMap<WireId, [End; 2]>,
+    movable: &dyn Fn(JunctionId) -> bool,
+) -> Vec<Net> {
     let mut jobs: Vec<WireId> = jobs.to_vec();
     jobs.sort();
     jobs.dedup();
@@ -224,7 +228,11 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
         } else {
             (Side::Left, Side::Right)
         };
-        let facing = |want: Side| pins.iter().filter(move |(_, s)| *s == Some(want)).map(|(p, _)| across(*p));
+        let facing = |want: Side| {
+            pins.iter()
+                .filter(move |(_, s)| *s == Some(want))
+                .map(|(p, _)| across(*p))
+        };
         if let Some(min) = facing(before).min() {
             for k in 0..8 {
                 push(grid(min - TRUNK_GAP - k * TRUNK_PITCH), false);
@@ -232,7 +240,10 @@ pub fn candidates(pins: &[(Pt, Option<Side>)], junctions: &[Pt], bounds: (Pt, Pt
         }
         if let Some(max) = facing(after).max() {
             for k in 0..8 {
-                push(grid(max + TRUNK_GAP + k * TRUNK_PITCH + TICKS_PER_STEP - 1), false);
+                push(
+                    grid(max + TRUNK_GAP + k * TRUNK_PITCH + TICKS_PER_STEP - 1),
+                    false,
+                );
             }
         }
         // The middle between two rows that face each other.

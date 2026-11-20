@@ -610,7 +610,9 @@ it keep clear of it, and each pass tries it again first. Never worse: a net that
 have, or a wire routed before a finding it did not have, goes back to its stored drawing (a wire without one to no
 route), until none does; the text part of the rule (a label newly on a text or a part) holds where the plan routes no
 wire that had no route, since routing a dashed wire is the larger gain. A page whose Route gains only a tie is
-offered nothing. A mark moves along its line only (its line reaches across to its wires wherever it stands), by
+offered nothing. The weighing of §3.9 also keeps a net's stored routes where its new ones are worse in one of the
+figures of §1.2 a reader compares, though cheaper: a Route over a person's wires makes no figure worse, and a
+trade of one figure for another is left to Arrange (§4) and to him. A mark moves along its line only (its line reaches across to its wires wherever it stands), by
 `layout.apply`'s `markers`, which this step adds with `junctions` and `routes`; `parts` come with step 4. The plan's
 `his` rows are listed in Route's preview card (§7.2); ticking them comes with the preview of §7.3.
 

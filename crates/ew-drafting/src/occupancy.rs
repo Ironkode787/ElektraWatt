@@ -161,7 +161,8 @@ impl Occupancy {
         for p in parts {
             if !p.frame_only && !p.pins.is_empty() {
                 let b = p.bounds();
-                occ.bodies.push((p.id, b, p.pins.iter().map(|q| p.at.plus(q.at)).collect()));
+                occ.bodies
+                    .push((p.id, b, p.pins.iter().map(|q| p.at.plus(q.at)).collect()));
                 for (k, grow) in [(0, BODY_GAP), (1, HALF)] {
                     occ.each_inside(b.grown(grow), |occ, n| {
                         occ.body[k][n] = occ.body[k][n].saturating_add(1);
@@ -258,10 +259,12 @@ impl Occupancy {
             return;
         }
         let span = |lo: Tick, hi: Tick| {
-            sat(i64::from(lo).div_euclid(i64::from(HALF)))..=sat((i64::from(hi) - 1).div_euclid(i64::from(HALF)))
+            sat(i64::from(lo).div_euclid(i64::from(HALF)))
+                ..=sat((i64::from(hi) - 1).div_euclid(i64::from(HALF)))
         };
         let inside = |lo: Tick, hi: Tick| {
-            sat(i64::from(lo).div_euclid(i64::from(HALF)) + 1)..=sat((i64::from(hi) - 1).div_euclid(i64::from(HALF)))
+            sat(i64::from(lo).div_euclid(i64::from(HALF)) + 1)
+                ..=sat((i64::from(hi) - 1).div_euclid(i64::from(HALF)))
         };
         // Moves right on the rows strictly inside, over the columns they share with the box; and moves down.
         for down in [false, true] {
@@ -297,7 +300,13 @@ impl Occupancy {
     /// Lays the wire drawn along `route` (`add`), or lifts it again.
     pub fn lay(&mut self, route: &[Pt], add: bool) {
         let pts = geom::clean(route);
-        let bump = |v: &mut u16| *v = if add { v.saturating_add(1) } else { v.saturating_sub(1) };
+        let bump = |v: &mut u16| {
+            *v = if add {
+                v.saturating_add(1)
+            } else {
+                v.saturating_sub(1)
+            }
+        };
         for p in &pts {
             if let Some(k) = self.index(node_of(*p)) {
                 bump(&mut self.vertex[k]);

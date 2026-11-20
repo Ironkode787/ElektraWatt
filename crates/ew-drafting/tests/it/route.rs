@@ -4,11 +4,9 @@
 //! The router (docs/design/06a-drafting.md §3, §9.3 row 2): nets with trunks, shared runs, his routes left alone,
 //! the same plan whatever the order of the page's lists, and the fixtures of §9.1.
 
-use std::collections::BTreeSet;
-
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    DraftPage, End, Jobs, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire,
+    DraftPage, End, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire,
 };
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
@@ -213,12 +211,6 @@ fn every_fixture_with_its_parts_in_line_routes_straight_with_trunks_and_no_fault
                 assert_eq!(corners(&w.route), 0, "{}: {:?} {:?}", f.name, w.id, w.route);
             }
         }
-        // Every junction tap of a rail stands on one line with the others of its net.
-        let mut rails: BTreeSet<Vec<i32>> = BTreeSet::new();
-        for j in &done.junctions {
-            rails.insert(vec![j.at.y]);
-        }
-        let _ = rails;
     }
 }
 
@@ -242,7 +234,6 @@ fn the_wire_tool_shares_the_run_of_a_wire_of_the_same_pin() {
     drawn.wires.push(b.page.wires.iter().find(|x| x.id == w).unwrap().clone());
     let q = measure(&drawn);
     assert_eq!(q.faults, 0, "{:?} {:?}", found.route, q.findings);
-    let _ = Jobs::default();
 }
 
 #[test]
@@ -251,4 +242,31 @@ fn the_full_sheet_ends_with_no_fault() {
     let done = routed(&page);
     let q = measure(&done);
     assert_eq!(q.faults, 0, "{:?}", q.findings);
+}
+
+#[test]
+fn route_over_a_person_s_route_makes_no_figure_worse() {
+    // His wire from K1's upper pin to K2's runs high over K5, round the wire that drops from K5 to K6 between them;
+    // the short way, cheaper by the cost, crosses that wire. A Route of the selection keeps his route or finds one
+    // that is worse in no figure.
+    let mut b = Page::new(40, 36);
+    b.device("K1", p(10, 18));
+    b.device("K2", p(20, 18));
+    b.device("K5", p(15, 8));
+    b.device("K6", p(15, 26));
+    b.run("drop", b.pin("K5", "2"), b.pin("K6", "1"), &[]);
+    let his = b.run("his", b.pin("K1", "1"), b.pin("K2", "1"), &[p(10, 6), p(20, 6)]);
+    let selected = [his.0];
+    let page = b.page.clone();
+    let plan = route(&page, &jobs(&page, Scope::Selection(&selected)));
+    let mut done = page.clone();
+    for (w, r) in &plan.routes {
+        if let Some(x) = done.wires.iter_mut().find(|x| x.id == *w) {
+            x.route.clone_from(r);
+        }
+    }
+    let (before, after) = (measure(&page).counts, measure(&done).counts);
+    assert!(after.labels_moved <= before.labels_moved, "{before:?} {after:?}");
+    assert!(after.length <= before.length && after.bends <= before.bends, "{before:?} {after:?}");
+    assert!(after.crossings <= before.crossings && after.across_texts <= before.across_texts, "{before:?} {after:?}");
 }
