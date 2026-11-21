@@ -459,8 +459,8 @@ mod tests {
     #[test]
     fn the_sibling_is_hidden_beside_the_target() {
         assert_eq!(
-            sibling_of(Path::new("out/golden.pdf"), "golden.pdf"),
-            Path::new("out/.golden.pdf.ew-part")
+            sibling_of(Path::new("out/sample.pdf"), "sample.pdf"),
+            Path::new("out/.sample.pdf.ew-part")
         );
         assert_eq!(
             sibling_of(Path::new("x.pdf"), "x.pdf"),

@@ -14,9 +14,9 @@
 //! **The column mapping step (D11).** `parts.import {path}` first opens the mapping card on any
 //! table (CSV or XLSX): the source key (pre-filled from the file name), and per column its header, a sample value and
 //! the member it imports as, pre-filled from the map saved for the source key (`<config dir>/imports/<key>.toml`),
-//! else from the golden dialect's headers when the file has exactly those. `parts.map` changes the key or a column's
+//! else from the `ew` dialect's headers when the file has exactly those. `parts.map` changes the key or a column's
 //! member; `parts.map_import` saves the map and reads the table through `ew_api::catalog`, whose new parts go to the
-//! import card above. A golden-dialect table imported with its pre-filled map unchanged is read by the golden reader
+//! import card above. A table of the `ew` dialect imported with its pre-filled map unchanged is read by its reader
 //! with its sibling tables (part functions, cores), exactly as before the step. Escape (`ui.dismiss`) closes the card.
 
 use std::path::PathBuf;
@@ -38,11 +38,11 @@ use crate::tools::PreviewState;
 /// The name of the command the action dispatches.
 const COMMAND: &str = "parts.import";
 
-/// The columns of the golden dialect's `parts.csv` (`ew-import-tables`) and the member each fills in a column map:
+/// The columns of the `ew` dialect's `parts.csv` (`ew-import-tables`) and the member each fills in a column map:
 /// the required `key`, `manufacturer` and `part_number`, then the optional ones; `key`, `test_data`, `tech_data` (a
-/// `name=value;…` list), the mechanical columns (`width` … `rail_profile`, read by the golden reader) and
+/// `name=value;…` list), the mechanical columns (`width` … `rail_profile`, read by the dialect's reader) and
 /// `solenoids` (a valve part's fluid section) fill no member of the general importer.
-const GOLDEN_COLUMNS: [(&str, Option<&str>); 18] = [
+const EW_PARTS_COLUMNS: [(&str, Option<&str>); 18] = [
     ("key", None),
     ("manufacturer", Some("manufacturer")),
     ("part_number", Some("part_number")),
@@ -63,21 +63,21 @@ const GOLDEN_COLUMNS: [(&str, Option<&str>); 18] = [
     ("solenoids", None),
 ];
 
-/// The golden pre-fill of a table whose headers are exactly golden-dialect columns, the three required ones among
+/// The pre-fill of a table whose headers are exactly columns of the `ew` dialect, the three required ones among
 /// them, each once: one member per column. `None` for any other table.
-fn golden_members(columns: &[catalog::TableColumn]) -> Option<Vec<Option<String>>> {
-    let golden = |h: &str| GOLDEN_COLUMNS.iter().find(|(c, _)| *c == h);
+fn ew_dialect_members(columns: &[catalog::TableColumn]) -> Option<Vec<Option<String>>> {
+    let column = |h: &str| EW_PARTS_COLUMNS.iter().find(|(c, _)| *c == h);
     let mut seen = std::collections::BTreeSet::new();
     let all = columns
         .iter()
-        .all(|c| golden(&c.header).is_some() && seen.insert(c.header.as_str()));
+        .all(|c| column(&c.header).is_some() && seen.insert(c.header.as_str()));
     let required = ["key", "manufacturer", "part_number"]
         .iter()
         .all(|r| seen.contains(r));
     (all && required).then(|| {
         columns
             .iter()
-            .map(|c| golden(&c.header).and_then(|(_, m)| m.map(str::to_owned)))
+            .map(|c| column(&c.header).and_then(|(_, m)| m.map(str::to_owned)))
             .collect()
     })
 }
@@ -132,7 +132,7 @@ pub struct PartsMap {
     pub saved: bool,
     /// The columns in table order.
     pub columns: Vec<MapColumn>,
-    golden: Option<Vec<Option<String>>>,
+    ew_dialect: Option<Vec<Option<String>>>,
     /// Why Import is refused: the importer's message for the map (`the column map needs a column for
     /// `part_number``), or the last import's failure.
     pub error: Option<String>,
@@ -334,7 +334,7 @@ impl ShellModel {
     }
 
     /// `parts.import {path}`: reads the table's header row and opens the column mapping step on it,
-    /// pre-filled from the map saved for the file's source key, else from the golden dialect's headers when the file
+    /// pre-filled from the map saved for the file's source key, else from the `ew` dialect's headers when the file
     /// has exactly those. A table that cannot be read shows its problem in the banner and opens nothing.
     pub(crate) fn act_parts_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
@@ -356,7 +356,7 @@ impl ShellModel {
         let file = path
             .file_name()
             .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-        let golden = golden_members(&columns);
+        let ew_dialect = ew_dialect_members(&columns);
         let mut map = PartsMap {
             kind: MapKind::Parts,
             header_row: 0,
@@ -372,7 +372,7 @@ impl ShellModel {
                     member: None,
                 })
                 .collect(),
-            golden,
+            ew_dialect,
             error: None,
         };
         self.prefill(&mut map);
@@ -380,7 +380,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Fills the members from the map saved for the source key (`saved`), else from the golden dialect.
+    /// Fills the members from the map saved for the source key (`saved`), else from the `ew` dialect.
     fn prefill(&self, map: &mut PartsMap) {
         if matches!(map.kind, MapKind::Report(_)) {
             return self.prefill_report(map);
@@ -397,14 +397,14 @@ impl ShellModel {
                     .columns()
                     .find(|(_, h)| *h == c.header)
                     .map(|(member, _)| member.name()),
-                None => map.golden.as_ref().and_then(|g| g[i].clone()),
+                None => map.ew_dialect.as_ref().and_then(|g| g[i].clone()),
             };
         }
         map.error = map.column_map().err();
     }
 
     /// Whether the table `input` of `path` reads as a parts table without asking: a map is saved for its source key,
-    /// or its headers are exactly those of the golden dialect (File ▸ Import… then goes on to the parts import).
+    /// or its headers are exactly those of the `ew` dialect (File ▸ Import… then goes on to the parts import).
     pub(super) fn reads_as_parts_table(&self, path: &std::path::Path, input: &catalog::ImportInput) -> bool {
         let Ok(columns) = catalog::table_columns(input, None, &catalog::table_limits()) else {
             return false;
@@ -417,7 +417,7 @@ impl ShellModel {
             .config_dir
             .as_deref()
             .is_some_and(|dir| catalog::load_column_map(dir, &catalog::source_key_for(&file)).is_ok());
-        saved || golden_members(&columns).is_some()
+        saved || ew_dialect_members(&columns).is_some()
     }
 
     /// Fills a report's members from the mapping saved for the source key (and takes its kind).
@@ -468,7 +468,7 @@ impl ShellModel {
                     member: None,
                 })
                 .collect(),
-            golden: None,
+            ew_dialect: None,
             error: None,
         };
         self.prefill_report(&mut map);
@@ -588,7 +588,7 @@ impl ShellModel {
 
     /// `parts.map_import`: saves the map for the source key and reads the table through it
     /// (`ew_api::catalog`): the new parts go to the import card (`parts.import`, as before), the counts of the rows read
-    /// to the toast. A golden-dialect table whose pre-filled map is unchanged is read by the golden reader with its
+    /// to the toast. A table of the `ew` dialect whose pre-filled map is unchanged is read by the dialect's reader with its
     /// sibling tables, as before the mapping step. Refused while the importer refuses the map (its message under the
     /// table).
     pub(crate) fn act_parts_map_import(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -607,14 +607,14 @@ impl ShellModel {
         {
             return self.map_failed(e.to_string());
         }
-        let golden = map
-            .golden
+        let unchanged = map
+            .ew_dialect
             .as_ref()
             .is_some_and(|g| map.columns.iter().zip(g).all(|(c, m)| c.member == *m));
         let Some(project) = self.project.as_ref() else {
             return Outcome::Done;
         };
-        if golden {
+        if unchanged {
             let read = match read_parts_tables(&map.path, project.session.query().project().id.as_uuid()) {
                 Ok(read) => read,
                 Err(e) => return self.map_failed(e.to_string()),

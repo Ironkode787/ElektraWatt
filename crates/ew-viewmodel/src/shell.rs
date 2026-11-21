@@ -512,7 +512,7 @@ pub enum Dialog {
 pub struct HistoryMarker {
     /// The revision it belongs after.
     pub rev: u64,
-    /// The text (`Exported PDF to golden.pdf`).
+    /// The text (`Exported PDF to sample.pdf`).
     pub text: String,
 }
 

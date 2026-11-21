@@ -157,7 +157,7 @@ impl ShellModel {
     }
 
     /// The UI scale of the canvas's points: the setting's in the window, always 1 in the headless mode, so
-    /// no transcript, snapshot or golden depends on the UI scale.
+    /// no transcript, snapshot or expected file depends on the UI scale.
     pub fn canvas_ui_scale(&self) -> f64 {
         match self.mode {
             super::Mode::Gui => f64::from(self.settings.ui_scale),
