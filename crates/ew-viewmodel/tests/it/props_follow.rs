@@ -9,7 +9,7 @@ use crate::common;
 use common::{Tmp, done, refused};
 use ew_api::output::{PanelTables, RowValue};
 use ew_viewmodel::properties::{row_label, value_text, visible_rows};
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 fn panel(shell: &ShellModel) -> std::sync::Arc<PanelTables> {
@@ -91,6 +91,61 @@ fn f_follows_in_the_properties_context() {
         .map(|b| (b.chord.text(), format!("{:?}", b.context)))
         .collect();
     assert_eq!(keys, pairs(&[("F", "Properties")]));
+}
+
+/// The labels of the Placement rows of a page.
+const PLACEMENT_ROWS: [&str; 5] = [
+    "Scale",
+    "Connection grid",
+    "Grid step divisor",
+    "Grid step multiplier",
+    "Form",
+];
+
+/// "a placement's rows show labels and values in the user's words, and the members with no meaning
+/// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:5"; the form's row and the connection
+/// grid's fraction only under Advanced, the grid itself as the status bar writes it. The scale is edited in
+/// its words. The Form row reads no name of the sample's frame (FT-1915): it is the one row excepted.
+#[test]
+fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
+    let tmp = Tmp::new("ft1019");
+    let mut s = tmp.sample_in(Mode::Headless, true, "902");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "select.set", json!({"ids": []}));
+    let of = |rows: Vec<(String, String)>| -> Vec<(String, String)> {
+        rows.into_iter()
+            .filter(|(l, _)| PLACEMENT_ROWS.contains(&l.as_str()))
+            .collect()
+    };
+    // The Connection grid row is a choice outside Advanced; its fraction stays under it.
+    assert_eq!(
+        of(shown(&s, false)),
+        pairs(&[("Connection grid", "QET 10 px"), ("Scale", "1:5")])
+    );
+    assert_eq!(
+        of(shown(&s, true)),
+        pairs(&[
+            // FT-1915: the form's name, such as "Frame QET A4 landscape grid", belongs here.
+            ("Form", ""),
+            ("Connection grid", "QET 10 px"),
+            ("Grid step divisor", "3"),
+            ("Grid step multiplier", "7.9375 mm"),
+            ("Scale", "1:5"),
+        ])
+    );
+    done(&mut s, "props.edit", json!({"row": "page/scale"}));
+    assert_eq!(s.properties().edit().map(|e| e.buffer.as_str()), Some("1:5"));
+    done(&mut s, "props.input", json!({"text": "1:10"}));
+    assert_eq!(s.dispatch("props.commit", &json!({})), Outcome::Done);
+    let sheet = s.properties().sheet().expect("a sheet");
+    let scale = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == "page/scale")
+        .expect("the Scale row");
+    assert_eq!(value_text(scale), "1:10");
+    s.shutdown();
 }
 
 /// The (label, value) pairs of the rows on show under the Properties filter `filter`.
