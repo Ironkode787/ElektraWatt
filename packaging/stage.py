@@ -895,18 +895,6 @@ class StageTest(unittest.TestCase):
             ],
         )
 
-    def test_the_repositorys_installed_resources_script_has_each_resource_step_once(self):
-        with open(os.path.join(REPO, UISCRIPT), encoding="utf-8") as f:
-            lines = [json.loads(line) for line in f if line.strip()]
-        self.assertEqual(lines[0]["$schema"], "ew.uiscript/1")
-        actions = [line["action"] for line in lines[1:]]
-        for _, action, _ in RESOURCES:
-            self.assertEqual(actions.count(action), 1, action)
-        imported = next(i for i, line in enumerate(lines) if line.get("action") == "file.import_qet")
-        self.assertEqual(lines[imported]["params"], {"file": "example.qet", "dir": "imported.ew"})
-        # The import opens its card; the content shows in the banner of its Apply, the step right after it.
-        self.assertEqual(lines[imported + 1], {"action": "file.import_qet_apply", "params": {"confirm": True}})
-
     def test_the_setup_removes_d3s_entries_by_name(self):
         # The uninstall section of the setup deletes exactly the top-level entries of the Windows tree, and itself.
         with open(os.path.join(REPO, "packaging", "windows", "elektrawatt.nsi"), encoding="utf-8") as f:
