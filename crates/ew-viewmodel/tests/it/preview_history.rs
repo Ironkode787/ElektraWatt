@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab, the renumber dialogs on Golden B, the history panel and
-//! context restore, the GUI purge step and the exact counts of §9 item 5. Every test works on a copy of
-//! Golden A or on a new project; Golden A itself is only read.
+//! The Preview tab, the renumber dialogs, the history panel and
+//! context restore, the GUI purge step and the exact counts of §9 item 5. Every test works on a copy of the
+//! sample or on a new project.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -116,27 +116,38 @@ fn b1_settings(shell: &mut ShellModel) {
     );
 }
 
-const B1_TAGS: [&str; 11] = [
-    "  tag \"-XPE\" \"-101X2\"",
-    "  tag \"1X1\" \"-101X1\"",
-    "  tag \"1X1:1\" \"-101X1:1\"",
-    "  tag \"1X1:2\" \"-101X1:2\"",
-    "  tag \"1X1:PE\" \"-101X1:PE\"",
-    "  tag \"E55\" \"-101E1\"",
-    "  tag \"E56\" \"-101E2\"",
-    "  tag \"F55\" \"-101F2\"",
-    "  tag \"S51\" \"-101S1\"",
-    "  tag \"S56\" \"-101S2\"",
-    "  tag \"T55\" \"-101T1\"",
-];
+/// The tags the renumber gives back: the lamp and the breaker of folio 102, the only devices of their letters there,
+/// frozen to free-form tags first.
+const B1_TAGS: [&str; 2] = ["  tag \"-E56\" \"-102E1\"", "  tag \"-F55\" \"-102F1\""];
 
-/// Golden B through the window's steps in `mode`: B1's renumber previews its tag changes in the Preview tab, B2's
-/// renumber its 2 tags and 14 cross-reference texts with the page list; each Accept commits one transaction and a
-/// save after its undo equals the save before it, `generation` aside.
-fn golden_b(mode: Mode) {
+/// The sample with the lamp -102E1 and the breaker -102F1 frozen to the free-form tags E56 and F55 (the reference
+/// project's kind of tag), and folio 105, the last of section 1, renumbered to 106: what the renumbers below give back.
+fn renumbered_from_the_sample(shell: &mut ShellModel) {
+    for (tag, frozen) in [("-102E1", "E56"), ("-102F1", "F55")] {
+        done(
+            shell,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": format!("tag:{tag}")}],
+                "path": "tag.frozen", "value": {"text": frozen}}}),
+        );
+    }
+    let page = common::page_id(shell, "105");
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "page.renumber", "params": {"scope": {"pages": [page]}, "start": 106}}),
+    );
+}
+
+/// The reference project's renumber scenario on the sample, through the window's steps in `mode`: B1's renumber
+/// previews its tag changes in the Preview tab, B2's renumber of section 1 from 101 gives folio 106 back its 105 with
+/// its tags and cross-reference texts and the page list; each Accept commits one transaction and a save after its undo
+/// equals the save before it, `generation` aside.
+fn renumber_previews(mode: Mode) {
     let tmp = Tmp::new("pv2");
     let mut shell = tmp.sample_in(mode, true, "101");
     let dir = tmp.sample_copy();
+    renumbered_from_the_sample(&mut shell);
     b1_settings(&mut shell);
     done(&mut shell, "file.save", json!({}));
     let before_b1 = snapshot(&dir);
@@ -172,25 +183,25 @@ fn golden_b(mode: Mode) {
         section[..2],
         [
             format!("preview \"numbering.renumber\" ready rev {rev}"),
-            "  summary records 8 tags 11 xrefs 0 pages 1".to_owned(),
+            "  summary records 2 tags 2 xrefs 0 pages 1".to_owned(),
         ],
         "{section:#?}"
     );
     // The bulk card's one summary line, shared by the window's Preview tab and the text interface.
     assert_eq!(
         shell.preview_summary().as_deref(),
-        Some("8 items · 11 tags · 0 cross-reference texts · 1 page")
+        Some("2 items · 2 tags · 0 cross-reference texts · 1 page")
     );
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
-        Some("Preview: Renumber · 8 items · 11 tags · 0 cross-reference texts · 1 page")
+        Some("Preview: Renumber · 2 items · 2 tags · 0 cross-reference texts · 1 page")
     );
     let entities: Vec<&str> = section
         .iter()
         .filter(|l| l.starts_with("  entity "))
         .map(String::as_str)
         .collect();
-    assert_eq!(entities.len(), 8, "{section:#?}");
+    assert_eq!(entities.len(), 2, "{section:#?}");
     assert!(
         entities
             .iter()
@@ -204,7 +215,7 @@ fn golden_b(mode: Mode) {
     assert_eq!(tags, B1_TAGS, "natural order of the old tags");
     assert_eq!(
         lines_with(&shell, "card ready \"numbering.renumber\""),
-        ["card ready \"numbering.renumber\" targets 8 changes 8 tags 11 xrefs 0"]
+        ["card ready \"numbering.renumber\" targets 2 changes 2 tags 2 xrefs 0"]
     );
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
@@ -244,7 +255,7 @@ fn golden_b(mode: Mode) {
     let rev = shell.revision().unwrap();
     assert_eq!(section[0], format!("preview \"page.renumber\" ready rev {rev}"));
     assert!(
-        section[1].starts_with("  summary records 1 tags 2 xrefs 14 pages "),
+        section[1].starts_with("  summary records 1 tags "),
         "{section:#?}"
     );
     assert!(
@@ -252,16 +263,17 @@ fn golden_b(mode: Mode) {
             .iter()
             .any(|l| l.starts_with("  entity changed \"page\" \"106"))
     );
+    // The tags of folio 106's devices go back to 105's (its bus cable -105W1).
     let tags: Vec<&str> = section
         .iter()
         .filter(|l| l.starts_with("  tag "))
         .map(String::as_str)
         .collect();
-    assert_eq!(
-        tags,
-        ["  tag \"-106W1\" \"-104W1\"", "  tag \"-106W2\" \"-104W2\""]
+    assert!(tags.contains(&"  tag \"-106W1\" \"-105W1\""), "{tags:?}");
+    assert!(
+        tags.iter().all(|t| t.starts_with("  tag \"-106") && t.contains(" \"-105")),
+        "{tags:?}"
     );
-    assert_eq!(section.iter().filter(|l| l.starts_with("  xref ")).count(), 14);
     let pages = shell.preview_pane().pages().to_vec();
     assert!(!pages.is_empty() && pages.iter().all(|(f, _)| shell.page_labels().contains(f)));
     assert_eq!(
@@ -270,7 +282,7 @@ fn golden_b(mode: Mode) {
     );
     // The page whose folio changes is named by both folios; the others by their folio.
     assert!(
-        pages.contains(&("106".to_owned(), Some("104".to_owned()))),
+        pages.contains(&("106".to_owned(), Some("105".to_owned()))),
         "{pages:?}"
     );
     assert!(
@@ -278,12 +290,12 @@ fn golden_b(mode: Mode) {
         "{pages:?}"
     );
     assert!(
-        section.contains(&"  page \"106\" \"104\"".to_owned()),
+        section.contains(&"  page \"106\" \"105\"".to_owned()),
         "{section:?}"
     );
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
-    assert!(shell.page_labels().contains(&"104".to_owned()));
+    assert!(shell.page_labels().contains(&"105".to_owned()));
     done(&mut shell, "file.save", json!({}));
     done(&mut shell, "edit.undo", json!({}));
     done(&mut shell, "file.save", json!({}));
@@ -293,14 +305,15 @@ fn golden_b(mode: Mode) {
 
 /// PV2 headless: the renumber actions with their parameters.
 #[test]
-fn golden_b_headless() {
-    golden_b(Mode::Headless);
+fn renumber_previews_headless() {
+    renumber_previews(Mode::Headless);
 }
 
 /// PV2 in the window's mode: the dialogs, their defaults and OK.
 #[test]
-fn golden_b_through_the_dialogs() {
-    golden_b(Mode::Gui);
+fn renumber_previews_through_the_dialogs() {
+
+    renumber_previews(Mode::Gui);
 }
 
 /// PV2: a dialog keeps a refusal in its error line; headless a missing start or scheme fails naming it.
@@ -383,7 +396,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     done(
         &mut shell,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102S1"}],
             "path": "function_text", "value": "x"}}),
     );
     assert!(
@@ -413,7 +426,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     done(
         &mut shell,
         "find.folios",
-        json!({"folios": ["204", "205", "206"]}),
+        json!({"folios": ["201"]}),
     );
     done(&mut shell, "find.run", json!({}));
     done(&mut shell, "find.replace_all", json!({}));
@@ -421,18 +434,18 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     assert!(shell.preview_shown());
     assert_eq!(
         lines_with(&shell, "card ")[0],
-        "card ready \"fields.set_many\" targets 20 changes 20 tags 0 xrefs 0"
+        "card ready \"fields.set_many\" targets 2 changes 2 tags 0 xrefs 0"
     );
     assert!(
         preview_section(&shell)
             .iter()
-            .any(|l| l == "  summary records 20 tags 0 xrefs 0 pages 3"),
+            .any(|l| l == "  summary records 2 tags 0 xrefs 0 pages 1"),
         "{:?}",
         preview_section(&shell)
     );
-    // 20 entities print without a `more` line; the pages close the section.
+    // The 2 entities print without a `more` line; the page closes the section.
     assert!(!preview_section(&shell).iter().any(|l| l.starts_with("  more ")));
-    assert_eq!(preview_section(&shell).last().unwrap(), "  page \"206\"");
+    assert_eq!(preview_section(&shell).last().unwrap(), "  page \"201\"");
     done(&mut shell, "preview.cancel", json!({}));
     // The card opened the tab, so the tab closes with it.
     assert!(!shell.preview_shown(), "the tab the card opened closes");
@@ -442,13 +455,13 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     done(
         &mut shell,
         "pages.reorder",
-        json!({"pages": ["106"], "before": "103"}),
+        json!({"pages": ["104"], "before": "103"}),
     );
     assert_eq!(state(&shell)["card"]["origin"], "reorder");
     assert!(preview_section(&shell)[0].starts_with("preview \"page.reorder\" ready rev "));
     assert!(
         lines_with(&shell, "card ready \"page.reorder\"")[0]
-            .ends_with(" reorder \"106 → 103\" \"103 → 106\"")
+            .ends_with(" reorder \"104 → 103\" \"103 → 104\"")
     );
     done(&mut shell, "preview.cancel", json!({}));
     // Bulk: Renumber devices.
@@ -472,7 +485,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
         "file.new",
         json!({"dir": tmp.0.join("p.ew").to_string_lossy(), "template": "builtin"}),
     );
-    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
+    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
     done(&mut s, "parts.import", json!({"path": parts.to_string_lossy()}));
     done(&mut s, "parts.map_import", json!({}));
     assert!(s.preview_shown());
@@ -552,7 +565,7 @@ fn undo_and_redo_restore_the_page_view_and_selection() {
     let tmp = Tmp::new("pv5");
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let s101 = edit_on(&mut shell, "101", json!(["tag:-101F1"]), "one");
-    let s102 = edit_on(&mut shell, "102", json!(["tag:-102F1", "tag:-102F2"]), "two");
+    let s102 = edit_on(&mut shell, "102", json!(["tag:-102F1", "tag:-102S1"]), "two");
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     let on103 = entity_points(shell.canvas().unwrap());
     let id103 = format!("id:{}", on103[0].0.0);

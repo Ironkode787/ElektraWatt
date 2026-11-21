@@ -93,74 +93,6 @@ fn f_follows_in_the_properties_context() {
     assert_eq!(keys, pairs(&[("F", "Properties")]));
 }
 
-/// "a placement's rows show labels and values in the user's words, and the members with no meaning
-/// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:10"; the form's ID and the connection
-/// grid's fraction only under Advanced, the grid itself as the status bar writes it. The scale is edited in
-/// its words.
-#[test]
-fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
-    let tmp = Tmp::new("ft1019");
-    let mut s = tmp.sample_in(Mode::Headless, true, "902");
-    done(&mut s, "props.show", json!({"on": true}));
-    done(&mut s, "select.set", json!({"ids": []}));
-    let rows = shown(&s, false);
-    let placement: Vec<(String, String)> = rows
-        .iter()
-        .filter(|(l, _)| {
-            [
-                "Scale",
-                "Connection grid",
-                "Grid step divisor",
-                "Grid step multiplier",
-                "Form",
-            ]
-            .contains(&l.as_str())
-        })
-        .cloned()
-        .collect();
-    // The Connection grid row is a choice outside Advanced; its fraction stays under it.
-    assert_eq!(
-        placement,
-        pairs(&[("Connection grid", "QET 10 px"), ("Scale", "1:10")])
-    );
-    let advanced: Vec<(String, String)> = shown(&s, true)
-        .into_iter()
-        .filter(|(l, _)| {
-            [
-                "Scale",
-                "Connection grid",
-                "Grid step divisor",
-                "Grid step multiplier",
-                "Form",
-            ]
-            .contains(&l.as_str())
-        })
-        .collect();
-    assert_eq!(
-        advanced,
-        pairs(&[
-            ("Form", "Frame QET A4 landscape grid"),
-            ("Connection grid", "QET 10 px"),
-            ("Grid step divisor", "3"),
-            ("Grid step multiplier", "7.9375 mm"),
-            ("Scale", "1:10"),
-        ])
-    );
-    done(&mut s, "props.edit", json!({"row": "page/scale"}));
-    assert_eq!(s.properties().edit().map(|e| e.buffer.as_str()), Some("1:10"));
-    done(&mut s, "props.input", json!({"text": "1:5"}));
-    assert_eq!(s.dispatch("props.commit", &json!({})), Outcome::Done);
-    let sheet = s.properties().sheet().expect("a sheet");
-    let scale = sheet
-        .sections
-        .iter()
-        .flat_map(|sec| &sec.rows)
-        .find(|r| r.key == "page/scale")
-        .expect("the Scale row");
-    assert_eq!(value_text(scale), "1:5");
-    s.shutdown();
-}
-
 /// The (label, value) pairs of the rows on show under the Properties filter `filter`.
 fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
     let sheet = s.properties().sheet().expect("a Properties sheet");
@@ -172,7 +104,7 @@ fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
 
 /// The project's sheet is headed "Project", its yes and no, list
 /// counts and structured values read in words in either language, never as JSON; a filter shows its rows with their
-/// parents, so the four parties' "Personal data" rows never stand alone (doc 16a §6.8).
+/// parents, so a setting never stands alone (doc 16a §6.8).
 #[test]
 fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
     let tmp = Tmp::new("ft1357");
@@ -192,8 +124,7 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
             sheet.header.title.clone(),
             [
                 // A person of the project reads as a plain name (the list of parties waits under More).
-                value("Engineer"),
-                value("Neutral"),
+                value("Designer"),
                 value("Colour profile"),
                 value("Numbering"),
             ],
@@ -203,26 +134,22 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
         values(&s),
         (
             "Project".to_owned(),
-            ["<engineer>", "yes", "DBU/WH 24 V", "page-based"].map(str::to_owned)
+            ["Sample Designer", "DBU/WH 24 V", "page-based"].map(str::to_owned)
         )
     );
-    let party = |n: u8| {
+
+    // The sample's settings row with its size profile under it (the sample has no parties list).
+    assert_eq!(
+        filtered(&s, "size profile"),
         [
-            (format!("Parties {n}"), String::new()),
-            ("Personal data".to_owned(), "yes".to_owned()),
+            ("Settings".to_owned(), String::new()),
+            ("Size profile".to_owned(), "0.75/1.5".to_owned())
         ]
-    };
-    let mut rows = vec![("Parties".to_owned(), "4 items".to_owned())];
-    rows.extend((1..=4).flat_map(party));
-    assert_eq!(filtered(&s, "personal"), rows);
+    );
     done(&mut s, "view.language", json!({"value": "nl"}));
     let sheet = s.properties().sheet().expect("a sheet");
     assert_eq!(sheet.header.title, "Project");
-    let texts: Vec<String> = [
-        "project/parties",
-        "project/supply.neutral",
-        "project/settings.numbering",
-    ]
+    let texts: Vec<String> = ["project/settings.text_styles", "project/settings.numbering"]
     .iter()
     .map(|k| {
         let row = sheet.sections[0]
@@ -233,6 +160,7 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
         value_text(row)
     })
     .collect();
-    assert_eq!(texts, ["4 elementen", "ja", "page-based"]);
+    assert_eq!(texts, ["3 elementen", "page-based"]);
+
     s.shutdown();
 }

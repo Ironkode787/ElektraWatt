@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table… as the headless action `parts.import`: the golden parts table into a new
+//! File, Import, Parts table… as the headless action `parts.import`: the parts table of `fixtures/tables` into a new
 //! project through the inline preview card (29 created, none skipped; a second import skips all 29), the picker
 //! listing the parts in part-number order, a transcript that is byte-identical across runs and has no UUID, the
 //! disabled menu item without a project, a refused table with its pointer and no card, and the recorded command.
@@ -19,8 +19,8 @@ use serde_json::{Value, json};
 
 const VERSION: &str = "0.0.0-test";
 
-fn golden_parts() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv")
+fn table_parts() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
 fn headless(tmp: &Tmp) -> ShellModel {
@@ -57,7 +57,7 @@ fn run_flow(tag: &str) -> String {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     transcript.push(shell.describe());
@@ -66,7 +66,7 @@ fn run_flow(tag: &str) -> String {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     transcript.push(shell.describe());
@@ -77,7 +77,7 @@ fn run_flow(tag: &str) -> String {
 }
 
 #[test]
-fn the_golden_parts_table_imports_through_the_card_once() {
+fn the_table_parts_table_imports_through_the_card_once() {
     let tmp = Tmp::new("parts-import");
     let dir = tmp.0.join("proj.ew");
     let mut shell = headless(&tmp);
@@ -86,7 +86,7 @@ fn the_golden_parts_table_imports_through_the_card_once() {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     assert_eq!(
@@ -127,14 +127,14 @@ fn the_golden_parts_table_imports_through_the_card_once() {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "preview.apply", json!({}));
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     let text = shell.describe();
@@ -156,7 +156,7 @@ fn the_picker_lists_the_imported_parts_by_manufacturer_in_part_number_order() {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "preview.apply", json!({}));
@@ -219,7 +219,7 @@ fn without_a_project_the_parts_import_is_refused_with_its_reason() {
         refused(
             &mut shell,
             "parts.import",
-            json!({"path": golden_parts().to_string_lossy()})
+            json!({"path": table_parts().to_string_lossy()})
         ),
         "reason-no-project"
     );
@@ -234,7 +234,7 @@ fn a_read_only_project_refuses_the_import() {
         refused(
             &mut shell,
             "parts.import",
-            json!({"path": golden_parts().to_string_lossy()})
+            json!({"path": table_parts().to_string_lossy()})
         ),
         "reason-read-only"
     );
@@ -516,7 +516,7 @@ fn the_recorded_command_carries_the_parameters_of_the_read() {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     assert!(shell.recorded_commands().is_empty(), "the card records nothing");
@@ -533,7 +533,7 @@ fn the_recorded_command_carries_the_parameters_of_the_read() {
     done(&mut shell, "file.save", json!({}));
     let (reopened, _) = Session::open_read_only(&dir, VERSION).unwrap();
     let id = reopened.query().project().id.as_uuid();
-    let read = read_parts_tables(&golden_parts(), id).unwrap();
+    let read = read_parts_tables(&table_parts(), id).unwrap();
     assert_eq!(imports[0].1, read.params());
     shell.shutdown();
 }
@@ -566,7 +566,7 @@ fn the_card_survives_selection_changes_and_goes_with_the_project() {
     done(
         &mut shell,
         "parts.import",
-        json!({"path": golden_parts().to_string_lossy()}),
+        json!({"path": table_parts().to_string_lossy()}),
     );
     done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "props.show", json!({}));

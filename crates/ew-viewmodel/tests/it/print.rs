@@ -93,7 +93,7 @@ fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     wait_print_bounded(&mut s, "after the release at `written`");
     assert_eq!(
         labels(&s),
-        ["100", "101", "102", "103", "106"],
+        ["100", "101", "102", "103", "104", "105"],
         "the revision it started from"
     );
     s.shutdown();
@@ -251,19 +251,19 @@ fn print_send_hands_the_set_to_the_window_and_each_end_has_one_toast() {
     let request = s.take_print_request().expect("a request");
     assert_eq!(request.via, PrintVia::Viewer);
     assert!(request.monochrome);
-    assert_eq!(request.title, "J-E-2416");
+    assert_eq!(request.title, "sample");
     assert_eq!(request.set.pages.len(), 1);
     assert!(s.take_print_request().is_none(), "taken once");
     let cases = [
-        (PrintEnd::Printed, "Sent J-E-2416 to the printer."),
-        (PrintEnd::Opened, "Opened J-E-2416 in your PDF viewer."),
+        (PrintEnd::Printed, "Sent sample to the printer."),
+        (PrintEnd::Opened, "Opened sample in your PDF viewer."),
         (
             PrintEnd::FellBackToPrinter,
-            "Printing through the print dialog failed, so J-E-2416 went to the default printer.",
+            "Printing through the print dialog failed, so sample went to the default printer.",
         ),
         (
             PrintEnd::FellBackToViewer,
-            "Printing could not start, so J-E-2416 opened in your PDF viewer to print from there.",
+            "Printing could not start, so sample opened in your PDF viewer to print from there.",
         ),
         (
             PrintEnd::Failed("`lp` failed with exit status: 1".to_owned()),
@@ -315,7 +315,7 @@ fn a_running_print_is_a_job_whose_cancel_reaches_the_print() {
         .entries()
         .map(|e| (e.kind, e.name.clone(), e.is_running()))
         .collect();
-    assert_eq!(running, [(JobKind::Print, "J-E-2416".to_owned(), true)]);
+    assert_eq!(running, [(JobKind::Print, "sample".to_owned(), true)]);
     assert!(!request.cancel.load(Relaxed));
     done(&mut s, "jobs.cancel", json!({}));
     assert!(request.cancel.load(Relaxed), "the Cancel reaches the print");
@@ -360,22 +360,22 @@ fn a_cancel_too_late_for_a_handed_over_print_says_where_it_went() {
         (
             "en",
             PrintEnd::Printed,
-            "The printer already had J-E-2416 when you cancelled; cancel it in the system's print queue.",
+            "The printer already had sample when you cancelled; cancel it in the system's print queue.",
         ),
         (
             "en",
             PrintEnd::FellBackToViewer,
-            "J-E-2416 was already open in your PDF viewer when you cancelled; close it there.",
+            "sample was already open in your PDF viewer when you cancelled; close it there.",
         ),
         (
             "nl",
             PrintEnd::FellBackToPrinter,
-            "De printer had J-E-2416 al toen u annuleerde; annuleer het in de afdrukwachtrij van het systeem.",
+            "De printer had sample al toen u annuleerde; annuleer het in de afdrukwachtrij van het systeem.",
         ),
         (
             "nl",
             PrintEnd::Opened,
-            "J-E-2416 was al geopend in uw PDF-viewer toen u annuleerde; sluit het daar.",
+            "sample was al geopend in uw PDF-viewer toen u annuleerde; sluit het daar.",
         ),
     ];
     for (language, end, text) in cases {
