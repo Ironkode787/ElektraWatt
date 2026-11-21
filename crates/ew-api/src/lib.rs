@@ -362,9 +362,21 @@ impl PreventHook for ShippedPrevent {
         candidate: &Model,
         touched: &[AnyKey],
     ) -> Result<(), ew_model::PreventViolation> {
+        self.check_reproducing(base, candidate, touched, &[])
+    }
+
+    /// The violations of the rules `reproduced` are left out: the batch reproduces states the base holds (a copy of
+    /// pages), which the check reports in the copy as in the source.
+    fn check_reproducing(
+        &self,
+        base: &Model,
+        candidate: &Model,
+        touched: &[AnyKey],
+        reproduced: &[&str],
+    ) -> Result<(), ew_model::PreventViolation> {
         let keys: Vec<(ew_schema::Kind, ew_schema::AnyId)> = touched.iter().map(|k| (k.0, k.1)).collect();
         let violations = checks::prevent(&Q::new(base), &Q::new(candidate), &keys);
-        match violations.into_iter().next() {
+        match violations.into_iter().find(|f| !reproduced.contains(&f.rule)) {
             None => Ok(()),
             Some(f) => Err(ew_model::PreventViolation {
                 rule: f.rule.to_owned(),

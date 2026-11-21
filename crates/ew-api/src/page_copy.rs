@@ -10,7 +10,9 @@
 
 use std::collections::BTreeSet;
 
-use ew_commands::commands::{CopyPages, Fragment, NodeSwap, Rename, renamed};
+use ew_commands::commands::{
+    CopyPages, Fragment, NodeSwap, Rename, TextNames, designation_moves, renamed, text_names,
+};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{IpPairingQ, Q, short_tag};
 use ew_schema::{
@@ -51,10 +53,16 @@ pub struct PageCopyPlan {
     /// The devices, strips and cables also drawn on pages that are not copied, by their tags in natural order: their
     /// copies draw only what stands on the copied pages.
     pub drawn_elsewhere: Vec<String>,
-    /// The frozen tags the rename leaves as they were: the copy clears them and takes the scheme's tags.
+    /// The frozen tags the rename leaves as they were where the copy's full designation would be its original's: the
+    /// copy clears them and takes the scheme's tags.
     pub cleared_frozen: Vec<String>,
-    /// The interruption-point names whose copies continue points outside the copy (a shared supply).
+    /// The interruption-point names whose copies continue points outside the copy (a shared supply, an incoming
+    /// supply of targets only).
     pub continued: Vec<String>,
+    /// How many copied free texts take the copy's tag or the new name of what they name (`text_names`).
+    pub texts_named: usize,
+    /// The copied free texts left as they are because copied devices shared the tag they hold.
+    pub texts_left: Vec<String>,
 }
 
 /// The refusal of `page.copy` at `at`.
@@ -104,7 +112,7 @@ impl Session {
     /// The refusal of `page.copy`: no page, one named twice or not a drawn page, pages of different grids; a code that
     /// is no name; interruption points that would join the points they were copied from (a name whose points all lie
     /// on the pages, or whose copied points include a source, that neither the rename nor the structure rule gives a
-    /// pairing of its own).
+    /// pairing of its own; a name with no source in the project whose copied points are targets continues).
     pub fn copy_pages(&self, spec: &PageCopySpec) -> Result<PageCopyPlan, CmdError> {
         let q = self.query();
         if spec.pages.is_empty() {
@@ -166,7 +174,32 @@ impl Session {
                 api_text!("refusal-page-copy-ip-join", joins.join(", "), first.as_str()),
             ));
         }
-        let (drawn_elsewhere, cleared_frozen) = left_out(&q, &pages, &fragment, &rename);
+        let swapped: BTreeSet<Id<StructureNode>> = structure.iter().map(|s| s.from).collect();
+        let (drawn_elsewhere, cleared_frozen) = left_out(&q, &pages, &fragment, &rename, &swapped);
+        // The texts that name what is copied: those naming one device or a renamed point change (a frozen tag kept
+        // as it is prints as before); those naming devices that shared a tag are left.
+        let kept_frozen = |d: &Uuid| {
+            q.devices()
+                .get(Id::from_uuid(*d))
+                .and_then(|dev| dev.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()))
+                .is_some_and(|f| renamed(&f, &rename) == f && designation_moves(&q, Id::from_uuid(*d), &swapped))
+        };
+        let mut texts_named = 0;
+        let mut texts_left = BTreeSet::new();
+        for (item, names) in text_names(&q, &fragment, &rename) {
+            match names {
+                TextNames::Point(_) => texts_named += 1,
+                TextNames::Devices(devices, _) if devices.len() == 1 => {
+                    texts_named += usize::from(!kept_frozen(&devices[0]));
+                }
+                TextNames::Devices(..) => {
+                    texts_left.extend(q.page_items().get(Id::from_uuid(item)).and_then(|i| match &i.kind {
+                        ew_schema::PageItemKind::FreeText(t) => t.text.as_neutral().map(str::to_owned),
+                        _ => None,
+                    }));
+                }
+            }
+        }
         let (offset, after) = match spec.folios {
             CopyFolios::Offset(n) => (Some(n), None),
             CopyFolios::After(p) => (None, Some(Id::from_uuid(p))),
@@ -183,6 +216,8 @@ impl Session {
             drawn_elsewhere,
             cleared_frozen,
             continued,
+            texts_named,
+            texts_left: sorted(texts_left),
         })
     }
 }
@@ -292,8 +327,10 @@ fn widen(q: &Q, pages: &[Id<Page>], fragment: &mut Fragment) {
 
 /// The interruption-point names of the copy, by the project's pairing groups that have a point on the copied pages:
 /// those whose copies continue points outside the copy, and those whose copies would join the points they were copied
-/// from (the group lies wholly on the pages, or a copied point is a source, and neither the rename nor a swapped
-/// structure node gives the copies a group of their own); each in natural order.
+/// from (a copied point is a source, or the group lies wholly on the pages, and neither the rename nor a swapped
+/// structure node gives the copies a group of their own); each in natural order. A name with no source in the project
+/// whose copied points are all targets continues whether or not the copy takes all its points: a supply that comes in
+/// from outside the drawing feeds the copy too.
 fn ip_groups(
     q: &Q,
     fragment: &Fragment,
@@ -319,13 +356,17 @@ fn ip_groups(
         if separated {
             continue;
         }
-        let source = mine.iter().any(|f| {
+        let is_source = |f: &Id<Function>| {
             pairing
                 .ips
                 .get(f)
                 .is_some_and(|i| i.star_source || i.direction == IpDirection::Source)
-        });
-        if source || mine.len() == g.members.len() {
+        };
+        let incoming = !g.members.iter().any(is_source)
+            && mine
+                .iter()
+                .all(|f| pairing.ips.get(f).is_some_and(|i| i.direction == IpDirection::Target));
+        if !incoming && (mine.iter().any(is_source) || mine.len() == g.members.len()) {
             joins.insert(g.name.clone());
         } else {
             continued.insert(g.name.clone());
@@ -335,8 +376,15 @@ fn ip_groups(
 }
 
 /// What the copy leaves out, for the card: the devices drawn also on other pages (a function, a strip's terminal, a
-/// cable's core), and the frozen tags the rename does not change.
-fn left_out(q: &Q, pages: &[Id<Page>], fragment: &Fragment, rename: &[Rename]) -> (Vec<String>, Vec<String>) {
+/// cable's core), and the frozen tags the copy clears: the rename does not change them and no swapped node in
+/// `swapped` gives the copy another full designation.
+fn left_out(
+    q: &Q,
+    pages: &[Id<Page>],
+    fragment: &Fragment,
+    rename: &[Rename],
+    swapped: &BTreeSet<Id<StructureNode>>,
+) -> (Vec<String>, Vec<String>) {
     let on_pages: BTreeSet<Id<Page>> = pages.iter().copied().collect();
     let devices = ids_of(fragment, Kind::Device);
     let connections = ids_of(fragment, Kind::Connection);
@@ -365,6 +413,7 @@ fn left_out(q: &Q, pages: &[Id<Page>], fragment: &Fragment, rename: &[Rename]) -
         }
         if let Some(frozen) = &dev.tag.frozen
             && renamed(frozen.text.as_str(), rename) == frozen.text.as_str()
+            && !designation_moves(q, d, swapped)
         {
             cleared.insert(frozen.text.as_str().to_owned());
         }

@@ -84,6 +84,21 @@ pub trait PreventHook: Send + Sync {
     /// Checks `candidate`, the result of applying a batch to `base`; `touched` lists the keys the batch
     /// put, sorted.
     fn check(&self, base: &Model, candidate: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation>;
+
+    /// [`PreventHook::check`] for a batch that may carry the violations of the rules `reproduced` (rule IDs)
+    /// because it reproduces a state the base holds (a copy of pages copies a strip with two terminals of one
+    /// designation as the source strip holds them); the check reports them in the copy as in the source. The
+    /// default judges every rule, as `check` does.
+    fn check_reproducing(
+        &self,
+        base: &Model,
+        candidate: &Model,
+        touched: &[AnyKey],
+        reproduced: &[&str],
+    ) -> Result<(), PreventViolation> {
+        let _ = reproduced;
+        self.check(base, candidate, touched)
+    }
 }
 
 /// Options of [`Model::apply_with`](crate::Model::apply_with).
@@ -91,12 +106,16 @@ pub trait PreventHook: Send + Sync {
 pub struct ApplyOptions<'a> {
     /// Prevent rules to evaluate after the structural invariants; `None` evaluates none.
     pub prevent: Option<&'a dyn PreventHook>,
+    /// The prevent rules whose violations the batch may carry: it reproduces states the base holds
+    /// ([`PreventHook::check_reproducing`]); empty for every other batch.
+    pub reproduces: &'a [&'a str],
 }
 
 impl std::fmt::Debug for ApplyOptions<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ApplyOptions")
             .field("prevent", &self.prevent.map(|_| "dyn PreventHook"))
+            .field("reproduces", &self.reproduces)
             .finish()
     }
 }

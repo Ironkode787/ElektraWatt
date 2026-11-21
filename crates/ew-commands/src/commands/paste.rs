@@ -597,6 +597,9 @@ pub(crate) struct Insertion<'f> {
     /// The folio of each page record by its source ID (`page.copy` with an offset); `None` proposes the folios after
     /// [`Insertion::page`] (a page macro, `page.copy` with `after`).
     pub(crate) folios: Option<&'f BTreeMap<Uuid, ew_schema::Folio>>,
+    /// Whether the fragment is bounded by [`PASTE_MAX_RECORDS`]: clipboard text and a library's macro are untrusted
+    /// input; a copy of the project's own pages is as large as the pages are.
+    pub(crate) bounded: bool,
 }
 
 /// What an insertion wrote.
@@ -902,7 +905,7 @@ impl Insertion<'_> {
             return Err(self.invalid(format!("{}/records", self.prefix), text!("refusal-paste-empty")));
         }
         let total = records.len() + self.fragment.pages.len();
-        if total > PASTE_MAX_RECORDS {
+        if self.bounded && total > PASTE_MAX_RECORDS {
             return Err(self.invalid(
                 format!("{}/records", self.prefix),
                 text!(
@@ -1317,9 +1320,10 @@ impl Insertion<'_> {
                     }
                 }
                 Record::Connection(c) => c.number = NumberSpec::Unassigned,
-                Record::Representation(r) => {
-                    let kind_of_page = new_pages.get(&r.page.as_uuid()).unwrap_or(&page.kind);
-                    if let Some(allowed) = allowed_rep_types(kind_of_page)
+                // A representation on a page record of the fragment stands on a page of its source's kind, as the
+                // source holds it; one pasted onto the target page must suit that page.
+                Record::Representation(r) if !new_pages.contains_key(&r.page.as_uuid()) => {
+                    if let Some(allowed) = allowed_rep_types(&page.kind)
                         && !matches!(r.rep_type, ew_schema::RepType::Unknown(_))
                         && !allowed.contains(&r.rep_type)
                     {
@@ -1388,9 +1392,10 @@ impl Insertion<'_> {
                     _ => {}
                 }
             }
-        } else {
+        } else if !self.has_pages() {
             self.move_by_steps(tx, &mut typed, grid, steps)?;
         }
+        // A fragment with its pages keeps every position as its source holds it (a symbol off the grid too).
         // The records, in (kind rank, fragment order).
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
         // of their anchor cells (FR-NUM-028), whatever IDs this transaction mints.
@@ -1506,6 +1511,7 @@ impl Command for PasteFragment {
             keep_counter: BTreeSet::new(),
             keep_refs: BTreeSet::new(),
             folios: None,
+            bounded: true,
         };
         let out = insertion.run(tx)?;
         Ok(Outcome {

@@ -36,6 +36,9 @@ The integrity check never evaluates the delete-time rule.
 The configurable prevent rules are not in this file. They are rule-pack rules of `ew-checks`. They cover terminal designations,
 tag, PLC address, interruption-point pairing and conductor colours. They plug into `Model::apply_with`
 through `PreventHook` and are governed by `Strictness`. At MVP the shipped prevent rule is EW-TERM-002 (cycle 12, doc 08 §6.8); EW-RDS-004 has no prevent mode at MVP (ADR-0009 amendment 5) and EW-CORE-052's prevent mode is not wired (FT-194).
+A batch that can only reproduce the state of some prevent rules (a copy of pages, doc 06 §3.6) names them in
+`ApplyOptions::reproduces`, and the hook leaves their violations out (`PreventHook::check_reproducing`); the online check
+reports them in the copy as in the source.
 
 ## 2. ID scheme
 

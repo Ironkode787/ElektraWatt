@@ -1086,7 +1086,10 @@ impl PreventHook for NoDevices {
 fn prevent_hook_runs_after_structural_invariants() {
     let m = mini_project();
     let hook = NoDevices;
-    let opts = ApplyOptions { prevent: Some(&hook) };
+    let opts = ApplyOptions {
+        prevent: Some(&hook),
+        ..ApplyOptions::default()
+    };
 
     let update = device_update(&m, DEV_101F1, |d| d.function_text = MlText::neutral("x"));
     assert!(matches!(

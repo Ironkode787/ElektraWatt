@@ -404,3 +404,86 @@ fn a_text_in_the_header_band_does_not_refuse_the_paste() {
     );
     s.shutdown();
 }
+
+/// Writes `text` with the Text tool at grid index `k` of the page on show.
+fn write(s: &mut ShellModel, text: &str, k: (i64, i64)) {
+    done(s, "tool.text", json!({}));
+    let p = grid_point(s, k);
+    common::cursor(s, p);
+    done(s, "canvas.activate", json!({}));
+    done(s, "text.input", json!({ "text": text }));
+    done(s, "canvas.activate", json!({}));
+    done(s, "tool.select", json!({}));
+}
+
+/// The printed free texts of page `folio`, sorted.
+fn texts(s: &mut ShellModel, folio: &str) -> Vec<String> {
+    done(s, "page.goto", json!({ "folio": folio }));
+    let mut out: Vec<String> = common::tables(s)
+        .items
+        .iter()
+        .filter(|i| i.kind == "free_text")
+        .filter_map(|i| i.text.clone())
+        .collect();
+    out.sort();
+    out
+}
+
+/// D: free texts on 12 that name the strip by its tag ("-11X1") and the cable without its sign (its frozen "W1")
+/// print the copy's names on 22: the strip's "-21X1", and the cable's tag on 22 without its sign (the copy's frozen
+/// tag would print its original's, so it is cleared); a note that only holds the strip's tag is left as it is; the
+/// card counts the two texts.
+#[test]
+fn free_texts_that_name_a_copied_strip_or_cable_take_the_copys_names() {
+    let tmp = Tmp::new("ft1862-texts");
+    let mut s = small_project(&tmp);
+    done(&mut s, "page.goto", json!({"folio": "11"}));
+    let x = strip_tag(&s);
+    assert_eq!(x, "-11X1", "the fixture's strip");
+    let cables_before = cables(&mut s);
+    let w = cables_before[0].0.trim_start_matches('-').to_owned();
+    done(&mut s, "page.goto", json!({"folio": "12"}));
+    let note = format!("supply from {x}");
+    for (text, k) in [
+        (x.as_str(), (70, 15)),
+        (w.as_str(), (70, 25)),
+        (note.as_str(), (70, 35)),
+    ] {
+        write(&mut s, text, k);
+    }
+    let before = texts(&mut s, "12");
+    done(
+        &mut s,
+        "pages.copy",
+        json!({"pages": ["11", "12"], "offset": 10}),
+    );
+    let notices = s.preview_pane().notices().join("\n");
+    assert!(
+        notices.contains("2 texts that name a copied device or interruption point"),
+        "{notices}"
+    );
+    done(&mut s, "preview.apply", json!({}));
+    let copy_cable = cables(&mut s)
+        .into_iter()
+        .map(|(tag, _)| tag)
+        .find(|tag| !cables_before.iter().any(|(old, _)| old == tag))
+        .expect("the copy's cable");
+    assert_eq!(copy_cable, "-22W1", "the copy's cable takes the tag of 22");
+    let mut expected = vec!["-21X1".to_owned(), "22W1".to_owned(), note.clone()];
+    expected.sort();
+    assert_eq!(texts(&mut s, "22"), expected);
+    assert_eq!(texts(&mut s, "12"), before, "the originals print as before");
+}
+
+/// A refusal of the copy names it: "Copy pages: …".
+#[test]
+fn a_refused_copy_says_so() {
+    let tmp = Tmp::new("ft1862-refused");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    let message = common::failed(
+        &mut s,
+        "pages.copy",
+        json!({"pages": ["101", "102", "103"], "offset": 10}),
+    );
+    assert!(message.starts_with("Copy pages: "), "{message}");
+}

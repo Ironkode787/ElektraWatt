@@ -688,6 +688,7 @@ impl Command for InsertMacro {
             keep_counter: inst.keep_counter.clone(),
             keep_refs: inst.refs.clone(),
             folios: None,
+            bounded: true,
         };
         let out = insertion.run(tx)?;
         // EW's interruption-point forms always point right, so a window macro holding one is

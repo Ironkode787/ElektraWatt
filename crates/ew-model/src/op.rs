@@ -175,7 +175,7 @@ impl Model {
         invariants::check_delete_time(&m, &scope)?;
         if let Some(hook) = opts.prevent {
             let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
-            hook.check(self, &m, &touched)
+            hook.check_reproducing(self, &m, &touched, opts.reproduces)
                 .map_err(|v| ModelError::Prevented {
                     rule: v.rule,
                     message: v.message,

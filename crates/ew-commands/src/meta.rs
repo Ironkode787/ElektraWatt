@@ -104,6 +104,9 @@ pub struct CommandMeta {
     pub aliases: &'static [&'static str],
     /// Whether front-ends confirm before submitting.
     pub confirmation: Confirmation,
+    /// The prevent rules whose violations the command's transaction may carry because it reproduces a state the
+    /// base holds (`page.copy`, doc 06 §3.6); empty for every other command.
+    pub reproduces: &'static [&'static str],
 }
 
 impl CommandMeta {
@@ -119,6 +122,7 @@ impl CommandMeta {
             stability: Stability::Preview,
             aliases: &[],
             confirmation: Confirmation::None,
+            reproduces: &[],
         }
     }
 
@@ -133,6 +137,11 @@ impl CommandMeta {
     /// The same metadata with aliases.
     pub const fn with_aliases(self, aliases: &'static [&'static str]) -> CommandMeta {
         CommandMeta { aliases, ..self }
+    }
+
+    /// The same metadata with the prevent rules the command may reproduce ([`CommandMeta::reproduces`]).
+    pub const fn reproducing(self, reproduces: &'static [&'static str]) -> CommandMeta {
+        CommandMeta { reproduces, ..self }
     }
 }
 

@@ -437,6 +437,7 @@ impl Engine {
                 base.rev().next(),
                 &ApplyOptions {
                     prevent: (!internal && cmd.prevent()).then_some(&*self.prevent),
+                    reproduces: meta.reproduces,
                 },
             )
             .map_err(|e| crate::error::worded(e, &TxBuilder::new(base, &mut *self.ids)))?
@@ -641,6 +642,7 @@ impl Engine {
                     self.model.rev().next(),
                     &ApplyOptions {
                         prevent: Some(&*self.prevent),
+                        reproduces: meta.reproduces,
                     },
                 )
             };

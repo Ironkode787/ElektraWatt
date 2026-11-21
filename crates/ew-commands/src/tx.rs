@@ -902,6 +902,12 @@ impl<'a> TxBuilder<'a> {
         Ok(())
     }
 
+    /// The base with every pending put applied, without invariants, for reading what the transaction has made so far
+    /// (`page.copy` reads its copies' tags on it, doc 06 §3.6); it is never committed.
+    pub(crate) fn planning_model(&mut self) -> Result<&Model, CmdError> {
+        self.planning_snapshot()
+    }
+
     /// The base with every pending put applied, without invariants; brought up to date incrementally.
     fn planning_snapshot(&mut self) -> Result<&Model, CmdError> {
         let scratch = match self.scratch.take() {

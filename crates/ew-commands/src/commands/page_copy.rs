@@ -93,6 +93,106 @@ pub fn renamed(text: &str, rules: &[Rename]) -> String {
     out
 }
 
+/// The prevent rules whose violation a copy of pages may carry, because a copy can only reproduce it (doc 06 §3.6,
+/// "Refused in words"): a copied strip holds only copied terminals, with their designations, order and bridges
+/// (EW-TERM-001 a terminal without a designation, EW-TERM-002 two terminals of one designation, EW-TERM-004 a bridge
+/// group that breaks CI-06); a copied cable holds copied conductors on copied wires (EW-CORE-031 a core's colour,
+/// EW-CORE-036 a core on two wires); a copied valve stands at its copied module's position (EW-FL-013). The check
+/// reports each in the copy as in the source. Every other prevent rule judges a copy as any edit: a copy can make
+/// their state anew (a source joining its original's name, EW-CORE-052; a manual PLC address, symbol or slot met
+/// again in the project's one configuration project, EW-PLC-001, EW-PLC-007, EW-PLC-011; a name the rename makes
+/// confusable, EW-RDS-009; a folio, EW-CORE-022, which the command refuses first).
+pub const REPRODUCED: [&str; 6] = [
+    "EW-TERM-001",
+    "EW-TERM-002",
+    "EW-TERM-004",
+    "EW-CORE-031",
+    "EW-CORE-036",
+    "EW-FL-013",
+];
+
+/// Whether the copy of device `d` stands in a structure node of the copy's own: a node of `d`'s resolved structure
+/// (its own slots, else its strip's or parent's, its structure box's or its page's, `ew_derive::StructureOf`) is one
+/// the rule `swapped` replaces, so its full designation differs from its original's.
+pub fn designation_moves(q: &ew_derive::Q, d: Id<ew_schema::Device>, swapped: &BTreeSet<Id<StructureNode>>) -> bool {
+    q.get::<ew_derive::StructureOf>(d)
+        .slots
+        .values()
+        .any(|s| swapped.contains(&s.node))
+}
+
+/// Whether the whole text `text` is the printed tag `tag` (`-X1`), and with its sign (`-X1`) or without it (`X1`).
+pub fn names_tag(text: &str, tag: &str) -> Option<bool> {
+    if tag.is_empty() {
+        return None;
+    }
+    if text == tag {
+        return Some(true);
+    }
+    let bare = tag.strip_prefix('-')?;
+    (!bare.is_empty() && text == bare).then_some(false)
+}
+
+/// What a copied free text names by its whole text (doc 06 §3.6): copied devices by their printed tag before the
+/// copy (several when they shared it), with the sign or without it; or a copied interruption point by a name the
+/// rename changes, with the new name.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum TextNames {
+    /// The devices (source IDs) whose printed tag the text is, and whether it holds the tag's sign.
+    Devices(Vec<Uuid>, bool),
+    /// The interruption point's new name.
+    Point(String),
+}
+
+/// The free texts of `fragment`'s records (source item IDs) whose whole text names a device of the fragment by its
+/// printed tag on `q` (the source), or an interruption point of the fragment by a name `rename` changes; a bound
+/// text, a text in several languages and one that holds a tag inside a longer text name nothing.
+pub fn text_names(q: &ew_derive::Q, fragment: &Fragment, rename: &[Rename]) -> Vec<(Uuid, TextNames)> {
+    let mut tags: BTreeMap<String, Vec<Uuid>> = BTreeMap::new();
+    let mut names: BTreeMap<String, String> = BTreeMap::new();
+    let mut texts: Vec<(Uuid, String)> = Vec::new();
+    for v in &fragment.records {
+        match Record::from_value(v.clone()) {
+            Ok(Record::Device(d)) => {
+                let tag = ew_derive::short_tag(q, d.id);
+                if !tag.is_empty() {
+                    tags.entry(tag).or_default().push(d.id.as_uuid());
+                }
+            }
+            Ok(Record::Function(f)) => {
+                if let FunctionKind::Ip(ip) = &f.kind
+                    && ip.external.is_none()
+                {
+                    let new = renamed(ip.name.as_str(), rename);
+                    if new != ip.name.as_str() {
+                        names.insert(ip.name.as_str().to_owned(), new);
+                    }
+                }
+            }
+            Ok(Record::PageItem(item)) => {
+                if let ew_schema::PageItemKind::FreeText(t) = &item.kind
+                    && t.bind.is_none()
+                    && let Some(text) = t.text.as_neutral()
+                {
+                    texts.push((item.id.as_uuid(), text.trim().to_owned()));
+                }
+            }
+            _ => {}
+        }
+    }
+    texts
+        .into_iter()
+        .filter_map(|(item, text)| {
+            let device = tags
+                .iter()
+                .find_map(|(tag, devices)| names_tag(&text, tag).map(|sign| TextNames::Devices(devices.clone(), sign)));
+            device
+                .or_else(|| names.get(&text).map(|n| TextNames::Point(n.clone())))
+                .map(|named| (item, named))
+        })
+        .collect()
+}
+
 /// `page.copy` (`CopyPages`, doc 06 §3.6 "A copy of pages"): copies the pages of `fragment` (a fragment of this project
 /// with page records, `Session::copy_pages`) in one transaction, one undo step.
 ///
@@ -102,12 +202,18 @@ pub fn renamed(text: &str, rules: &[Rename]) -> String {
 /// for a node of the copied records the code of the copy's node: the node of that code with the same aspect and parent,
 /// created here when there is none; every structure slot of a copied page, device or box that names the node names
 /// the copy's. `rename` replaces texts in every frozen tag and every interruption-point name but an external point's
-/// ([`renamed`]); a frozen tag the rule leaves as it was is cleared, so the copy takes its scheme's tag.
+/// ([`renamed`]); a frozen tag the rule leaves as it was is cleared where the copy's full designation would be its
+/// original's ([`designation_moves`]), so the copy takes its scheme's tag there and keeps the frozen one in a node of
+/// its own.
 ///
-/// **Effects.** `edit.paste`'s effects with these differences: the pages' positions stay; every record's ID is minted,
-/// a PLC channel's `plc_channel_id(new module, number)`; every device keeps its tag counter, so its tag follows the
-/// numbering scheme from its new page (online numbering gives the next free counter where two copies would meet on one
-/// page); the records keep a reference to a held library copy or an external reference.
+/// **Effects.** `edit.paste`'s effects with these differences: the pages' positions stay as the source holds them (a
+/// symbol off the grid and a symbol type the page's kind would not take for a paste too); there is no bound on the
+/// records; every record's ID is minted, a PLC channel's `plc_channel_id(new module, number)`; every device keeps its
+/// tag counter, so its tag follows the numbering scheme from its new page (online numbering gives the next free
+/// counter where two copies would meet on one page); the records keep a reference to a held library copy or an
+/// external reference; a copied free text whose whole text names a copied device by its printed tag, or a copied
+/// interruption point by a name the rename changes, takes the copy's tag or name ([`text_names`]). The prevent rules
+/// of [`REPRODUCED`] do not refuse it: it can only reproduce their states.
 ///
 /// **Rejected**, at the JSON Pointer named: `/fragment/project` a fragment of another project; `/fragment/pages` none;
 /// `/fragment/pages/<i>` a page that takes no symbols, a generated page, or one of another grid; `/offset` both an
@@ -312,8 +418,11 @@ impl CopyPages {
     }
 
     /// The rename: every frozen tag and every interruption-point name but an external point's, through [`renamed`];
-    /// a frozen tag it leaves as it was is cleared.
-    fn rename_names(&self, fragment: &mut Fragment) -> Result<(), CmdError> {
+    /// a frozen tag it leaves as it was is cleared where the copy's full designation would be its original's
+    /// ([`designation_moves`] says where the structure rule gives it another).
+    fn rename_names(&self, tx: &TxBuilder<'_>, fragment: &mut Fragment) -> Result<(), CmdError> {
+        let q = ew_derive::Q::new(tx.base_model());
+        let swapped: BTreeSet<Id<StructureNode>> = self.structure.iter().map(|s| s.from).collect();
         let mut froms = BTreeSet::new();
         for (i, r) in self.rename.iter().enumerate() {
             if r.from.is_empty() {
@@ -347,7 +456,9 @@ impl CopyPages {
                     Some(frozen) => {
                         let new = name(frozen.text.as_str())?;
                         if new == frozen.text {
-                            d.tag.frozen = None;
+                            if !designation_moves(&q, d.id, &swapped) {
+                                d.tag.frozen = None;
+                            }
                         } else {
                             frozen.text = new;
                         }
@@ -372,11 +483,57 @@ impl CopyPages {
     }
 }
 
+impl CopyPages {
+    /// The copied free texts that name a copied device or a renamed interruption point ([`text_names`]) take the
+    /// copy's tag (with or without its sign, as the text had it) or the new name; a tag copied devices shared and
+    /// their copies no longer share is left. The copies' tags are read after online numbering, on the transaction's
+    /// planning snapshot. `members` maps the fragment's IDs to the copy's.
+    fn retext(&self, tx: &mut TxBuilder<'_>, members: &[(Uuid, Uuid)]) -> Result<(), CmdError> {
+        let named = text_names(&ew_derive::Q::new(tx.base_model()), &self.fragment, &self.rename);
+        if named.is_empty() {
+            return Ok(());
+        }
+        let new_of: BTreeMap<Uuid, Uuid> = members.iter().copied().collect();
+        crate::normalise::Normaliser::run(&crate::normalise::OnlineNumbering, tx)?;
+        let mut texts: Vec<(Uuid, String)> = Vec::new();
+        {
+            let q = ew_derive::Q::new(tx.planning_model()?);
+            for (item, names) in named {
+                let Some(&item) = new_of.get(&item) else { continue };
+                let text = match names {
+                    TextNames::Point(name) => Some(name),
+                    TextNames::Devices(devices, sign) => {
+                        let tags: BTreeSet<String> = devices
+                            .iter()
+                            .filter_map(|d| new_of.get(d))
+                            .map(|d| ew_derive::short_tag(&q, Id::from_uuid(*d)))
+                            .collect();
+                        match (tags.len(), tags.into_iter().next()) {
+                            (1, Some(tag)) if sign => Some(tag),
+                            (1, Some(tag)) => Some(tag.strip_prefix('-').unwrap_or(&tag).to_owned()),
+                            _ => None,
+                        }
+                    }
+                };
+                texts.extend(text.map(|t| (item, t)));
+            }
+        }
+        for (item, text) in texts {
+            tx.update::<ew_schema::PageItem>(Id::from_uuid(item), |i| {
+                if let ew_schema::PageItemKind::FreeText(t) = &mut i.kind {
+                    t.text = ew_mltext::MlText::neutral(&text);
+                }
+            })?;
+        }
+        Ok(())
+    }
+}
+
 impl Command for CopyPages {
     const NAME: &'static str = "page.copy";
 
     fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME).bulk()
+        CommandMeta::edit(Self::NAME).bulk().reproducing(&REPRODUCED)
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
@@ -411,7 +568,7 @@ impl Command for CopyPages {
         };
         let mut fragment = self.fragment.clone();
         self.swap_nodes(tx, &mut fragment)?;
-        self.rename_names(&mut fragment)?;
+        self.rename_names(tx, &mut fragment)?;
         // Every device keeps its counter: its tag follows the scheme from its new page.
         let devices: BTreeSet<Uuid> = fragment
             .records
@@ -434,8 +591,10 @@ impl Command for CopyPages {
             keep_counter: devices,
             keep_refs: BTreeSet::new(),
             folios: folios.as_ref(),
+            bounded: false,
         };
         let out = insertion.run(tx)?;
+        self.retext(tx, &out.members)?;
         Ok(Outcome {
             primary: out.pages.first().map(|p| (Kind::Page, p.cast())),
             note: None,

@@ -814,7 +814,8 @@ every pull request (§6.2).
 *As built (FT-1862).* A page macro's pages named by folio (`macros.save {pages}`) need no selection and no marked page,
 and without a kind they make a page macro. A copy of pages ([06](06-schematic-editor.md) §3.6) starts from the same
 fragment of the pages, widened by the cables, bonds and connections a second installation keeps together; the page
-macro itself does not carry them.
+macro itself does not carry them. A page macro's records keep their positions as the pages held them, a symbol off
+the grid too (it was refused as off the grid, though nothing moves it).
 
 **Variables are created by picking.**
 1. Select an object property in the property grid.

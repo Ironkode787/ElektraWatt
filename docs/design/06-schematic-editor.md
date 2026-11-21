@@ -839,27 +839,49 @@ command it commits is `page.copy` (`CopyPages`), whose parameters are the pages 
   it was copied from: a name whose points all lie on the copied pages, or whose copied points include a source, that
   neither Rename nor the structure rule (a new node in the aspect the project's pairing is scoped by) gives a pairing of
   its own. A copied target of a name whose source stays outside the copy (a supply both installations share) continues
-  it, and the card says so.
+  it, and the card says so. So does a name with no source anywhere in the project whose copied points are all targets,
+  whether or not the copy takes all of its points: a supply that comes in from outside the drawing (L, N, PE drawn as
+  targets only) feeds the copy too, and Rename still gives the copy its own name where the person wants one.
 - **Parts** stay the project's copies. **Texts**, graphics and wire markers come at their places; a text bound to the
-  folio or the title shows the copy's. A **report block** embedded on a copied page comes with it; report blocks that
-  make pages of their own are not copied: they list the whole project, the copy included.
+  folio or the title shows the copy's. A free text whose whole text is the printed tag a copied device had before the
+  copy, with or without its sign (the strip's name beside its first terminal, a cable's name at its cores, as an
+  imported set writes them), prints the copy's tag in the same form, and one whose whole text is the name of a copied
+  interruption point that Rename changes prints the new name; a text that only holds a tag inside a longer text, or
+  names a record outside the copy, stays as it is, and so does one whose tag several copied devices shared and their
+  copies no longer share, which the card names. The card counts the texts that change. A **report block** embedded on
+  a copied page comes with it; report blocks that make pages of their own are not copied: they list the whole project,
+  the copy included.
+- What the project holds is copied **as it holds it**: positions as they stand (a symbol off the grid too), symbol
+  types on a page of their source's kind, as many records as the pages hold, and a state a check reports in the
+  source (two terminals of one designation on a strip, a bridge group that breaks CI-06, a core on two wires, a core
+  colour the profile does not know, two valves at one position) is reported in the copy too instead of refusing it. A
+  copy can only reproduce those states, so their prevent rules (EW-TERM-001, EW-TERM-002, EW-TERM-004, EW-CORE-031,
+  EW-CORE-036, EW-FL-013) do not judge it.
 
 **How tags are made new.** Every numbered device keeps its counter, so its tag follows the project's numbering scheme
 from its new page (-6001K2 becomes -7001K2); online numbering gives the next free counter only where two copies would
-meet on one page. A frozen tag is renamed by Rename and stays frozen; one that Rename leaves as it was is cleared, so the
-copy takes the scheme's tag from its new page (a copy never prints its original's tag) and the card counts them. A
+meet on one page. A frozen tag is renamed by Rename and stays frozen. One that Rename leaves as it was stays frozen too
+where the copy stands in a structure node of its own (the structure rule gives the device, or the strip, parent, box or
+page it takes its structure from, another node), since its full designation differs from its original's (+CAB2-X5
+beside +CAB-X5); it is cleared only where the copy's full designation would equal its original's, so the copy takes
+the scheme's tag from its new page (a copy never prints its original's designation), and the card counts those. A
 terminal prints its strip's tag and its designation, a child its parent's tag, a cable the page of its first core: a tag
 that carries no page is therefore a frozen one.
 
-**Refused in words**, nothing copied: no page; a page named twice; a page that takes no symbols (title page, panel
-layout, model view, external document) or a generated one; pages of different connection grids; a new folio that a
-page, a section's divider or a report block holds, or one that no section's range holds where the page had a section;
-an offset and After together; a structure node the copied pages do not name, or a code that is no identifier; the
-interruption points above; whatever a prevent rule refuses.
+**Refused in words**, nothing copied, each with "Copy pages:" before it: no page; a page named twice; a page that
+takes no symbols (title page, panel layout, model view, external document) or a generated one; pages of different
+connection grids (a choice of pages, not a state: copy each grid's pages with the same rule); a new folio that a page,
+a section's divider or a report block holds, or one that no section's range holds where the page had a section; an
+offset and After together; a structure node the copied pages do not name, or a code that is no identifier; the
+interruption points above; and the prevent rules a copy can break anew: a second source of a name (EW-CORE-052), a
+manual PLC address, symbol or slot met again in the project's one configuration project (EW-PLC-001, EW-PLC-007,
+EW-PLC-011), a name Rename makes confusable (EW-RDS-009).
 
 **What it does not do.** Copy into another project (copy and paste a page's content, or save and insert a page macro);
 give the copies other counters (Tools ▸ Renumber devices… afterwards); a folio rule other than an offset or After;
-change texts other than frozen tags and interruption-point names (titles and free texts: Find and replace afterwards);
+change texts other than frozen tags, interruption-point names and the free texts that are a copied device's tag or a
+renamed point's name (titles and other texts: Find and replace afterwards); keep a wire's frozen number (the copy's
+wires are numbered anew, as pasted ones are, so no number prints twice);
 copy a panel layout (the second cabinet is laid out on its own); give the copy its own PLC configuration project or bus
 net (a copied PLC station joins the project's as a pasted one does, doc 10, and a copied bus port is on no net until it
 is joined to one).

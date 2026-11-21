@@ -50,6 +50,18 @@ fn rename_param(p: &Map<String, Value>) -> Result<Vec<(String, String)>, Outcome
     }
 }
 
+/// A refusal of the copy says that it is the copy's ("Copy pages: …"), as a refusal of its parameters already does.
+fn copy_refused(out: Outcome) -> Outcome {
+    match out {
+        Outcome::Failed { message } if !message.starts_with(strings::command_title("page.copy")) => {
+            Outcome::Failed {
+                message: strings::format(key!("page-copy-refused"), &[&message]),
+            }
+        }
+        other => other,
+    }
+}
+
 impl ShellModel {
     /// The structure nodes of the project as the form offers them: the node's ID and its designation (`+CAB`), in
     /// the order of the designations, after "no node of its own".
@@ -200,7 +212,7 @@ impl ShellModel {
         };
         let plan = match project.session.copy_pages(&spec) {
             Ok(plan) => plan,
-            Err(e) => return super::tools::command_failed(&e, &Value::Null),
+            Err(e) => return copy_refused(super::tools::command_failed(&e, &Value::Null)),
         };
         let mut rows = Vec::new();
         if !plan.drawn_elsewhere.is_empty() {
@@ -221,6 +233,18 @@ impl ShellModel {
                 &[&plan.continued.join(", ")],
             ));
         }
+        if plan.texts_named > 0 {
+            rows.push(strings::format_count(
+                crate::count_key!("page-copy-texts"),
+                plan.texts_named,
+            ));
+        }
+        if !plan.texts_left.is_empty() {
+            rows.push(strings::format(
+                key!("page-copy-texts-left"),
+                &[&plan.texts_left.join(", ")],
+            ));
+        }
         let folios: Vec<String> = pages
             .iter()
             .filter_map(|id| self.page_rows().iter().find(|r| r.id == *id))
@@ -233,12 +257,12 @@ impl ShellModel {
                 &[&folios.len().to_string(), &folios.join(", ")],
             ),
         };
-        self.preview_host_card_as(
+        copy_refused(self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,
             key!("reason-bulk"),
             CardOrigin::PageCopy { lead, rows },
-        )
+        ))
     }
 
     /// The toast of a copy of pages' Apply, read from its card before the commit: the new pages' folios; `None` for

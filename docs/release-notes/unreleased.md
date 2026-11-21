@@ -176,7 +176,13 @@ change here.
   whole (a coil with its contacts), a strip with its terminals and bridges, a cable with its conductors and cores, and
   bonds and page links come along; the copies take new folios (an offset, or after a page), the tags of their new
   pages, a structure node of their own and renamed frozen tags and interruption-point names, and a copy whose
-  interruption points would join the points they were copied from is refused in words (doc 06 §3.6, FT-1862)
+  interruption points would join the points they were copied from is refused in words (doc 06 §3.6, FT-1862); the copy
+  reproduces what the project holds (two terminals of one designation, a symbol off the grid) and the check reports it
+  in the copy as in the source; an incoming supply drawn as targets only continues; a frozen tag stays frozen where
+  the copy stands in a structure node of its own; a free text that is a copied device's tag or a renamed point's name
+  prints the copy's
+- behaviour-change: a page macro's symbols are inserted where they stood, a symbol off the grid too; it was refused as
+  off the grid though nothing moves it
 - api-add: Edit ▸ Paste in place (`edit.paste_in_place`) puts the clipboard's block down where it was copied, on any
   page of the same frame (doc 06 §3.6, FT-1862)
 - behaviour-change: Paste no longer refuses a block whose free text or graphic lies in the frame's bands, where the
