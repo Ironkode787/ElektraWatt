@@ -258,6 +258,10 @@ change here.
 - behaviour-change: paste, fill down, pattern fill and clear in the PLC grid's Function text column set the function
   text of the device wired to each channel, as typing does, one command per gesture; they said "no command yet", and
   a channel nothing is wired to is refused in words (doc 10 §6, FT-1846)
+- behaviour-change: a valve terminal's first overview page (Make the overview page in its station view, Generate
+  overview…, `valve_terminal.generate_overview`) follows the terminal's first fluid page in that page's section; it
+  followed the terminal's own page, which could be a schematic or bus page of the wiring section (doc 10 §6, doc 11
+  §5.5, FT-1823)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

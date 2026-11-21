@@ -1803,7 +1803,13 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   electrical page draws (`Session::off_electrical_pages`; a drawing on a bus page or as positions on a fluid page does
   not count), a station with bus interfaces on no bus page, a valve terminal on no fluid page; each button acts on the
   page the view stands on when it is of that kind, on a new page when the project has none, else lists the pages of
-  the kind and New page…; a valve terminal without an overview page;
+  the kind and New page…; a valve terminal without an overview page (Make the overview page, `plc.rack_next
+  {step: overview}`). An overview page belongs with the terminal's fluid diagram, as the reference set's 201 and 202
+  share their section with its fluid pages 203–206: the first one follows the terminal's first fluid page (the
+  first, by section and folio, that draws the terminal or a device under it) in that page's section, at the folio doc
+  06 §5.6 proposes after it (202 after 201), never in the wiring section where the terminal's box or bus port stands;
+  a terminal no fluid page draws yet follows its own page (FT-1823). Further pages follow the last overview page (doc
+  11 §5.5);
 - **the header**: the station's tag changes in place (a click, or F2 on the head; F2 or a click on the tag of the
   card under the cursor for a card), through the Properties Tag row's path (`plc.rack_rename`); a tag another device
   has is refused under the rack; the PLC's name at its right likewise (`plc.rack_rename {plc}`, `fields.set name` of the

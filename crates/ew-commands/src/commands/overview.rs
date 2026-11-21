@@ -34,8 +34,9 @@ use crate::tx::TxBuilder;
 /// symbol's graphics from the cursor on, snapped up to the page's grid, at `y`; one that would pass `right` starts
 /// the next page (never inside a module; a member wider than the band alone stands on a page of its own). The pages
 /// are those the members' overview representations are on, in member order, then new assembly-overview pages after
-/// the last (with its frame, grid, structure and `title`, else, when it is an overview page, its title), the first new one after
-/// the station's own page when there is none. A member already drawn in member order inside the band (on a later page
+/// the last (with its frame, grid, structure and `title`, else, when it is an overview page, its title); with none, the
+/// first new one follows the terminal's first fluid page, in that page's section, else the station's own page
+/// (`ew_derive::overview_start_page`). A member already drawn in member order inside the band (on a later page
 /// than the member before, or on the same page right of it) stays where it stands, so that a refresh of an overview
 /// in order changes nothing; a refresh moves the representations that stand
 /// elsewhere; break marks and page-based tags follow from the pages. The notices name each page's members, the pages it creates and a page
@@ -141,19 +142,12 @@ impl Command for GenerateOverview {
             }
         }
         let used_before = pages.clone();
-        let reference = match pages.first() {
-            Some(p) => *p,
-            None => match (*q.get::<ew_derive::MainRep>(self.station))
-                .and_then(|r| q.reps().get(r).map(|x| x.page))
-            {
-                Some(p) => p,
-                None => {
-                    return tx.reject(text!(
-                        "refusal-overview-unplaced",
-                        crate::words::device(tx, self.station)
-                    ));
-                }
-            },
+        // The first page of the overview, else the terminal's fluid page, which a first new page follows.
+        let Some(reference) = ew_derive::overview_start_page(&q, self.station) else {
+            return tx.reject(text!(
+                "refusal-overview-unplaced",
+                crate::words::device(tx, self.station)
+            ));
         };
         let mut created: Vec<Id<Page>> = Vec::new();
         let mut on_page: BTreeMap<usize, Vec<String>> = BTreeMap::new();

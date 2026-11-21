@@ -832,7 +832,8 @@ records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32
 *As built (WP-S2.13).* `valve_terminal.generate_overview {station, left, right, y, symbol?, copies?, title?}` is built, a
 `Bulk` command (previewed, one undo step); the window's entry is Generate overview… on a valve terminal's row of the
 fluid, PLC or device navigator, which sends the drawing area of the frame on the page the overview starts from (the
-first page of a member's overview, else the station's page; `Session::overview_params`) and, for members not drawn
+first page of a member's overview, else the terminal's first fluid page, else the station's page;
+`ew_derive::overview_start_page`, `Session::overview_params`) and, for members not drawn
 yet, the starter `ew.ovw.module-wide` of the page grid's family (*as built, M3 persona round 3*: the drawing area is
 the frame's, in page coordinates, never mapped as if it lay on the sheet, which put the strip left of a QET frame;
 `ew.ovw.module` is 24 mm wide and its QET edition 15.875 mm, too narrow for the starter parts' numbers and their valve
@@ -841,7 +842,8 @@ of twelve characters; a new overview page is titled by the window with the termi
 `title`). The members (`assembly_members`) stand left to right, each
 the width of its symbol's graphics, snapped to the page grid; one that would pass the band's right edge starts the next
 page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
-grid and structure). A member already drawn in member order inside the band (on a later page than the member before,
+grid and structure; with none, the first new page follows the terminal's first fluid page in its section, so that the
+overview stands with its fluid diagram, not in the wiring section, doc 10 §6). A member already drawn in member order inside the band (on a later page than the member before,
 or right of it on the same page) stays where it stands (M3 review): a refresh of Golden A's overviews 201 (-201U1 …
 -201U9) and 202 (-202U1 … -202U3) changes nothing. A member without an overview representation gets one of its main
 function; a module added without functions gets the symbol's FnDef as its main function. The preview's changes name

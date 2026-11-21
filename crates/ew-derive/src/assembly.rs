@@ -147,6 +147,40 @@ pub fn overview_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
     q.idx().reps_of_function(f).filter(|r| is_overview(*r)).min()
 }
 
+/// The page a valve terminal's overview starts from (doc 11 §5.5; doc 10 §6, To do): the page of the first member's
+/// overview representation; without one, the first fluid page (by section, folio number and label) that draws the
+/// terminal or a device under it, so that a first overview page stands with its fluid diagram in that page's
+/// section; else the page of its main representation. `None` for a terminal no page draws.
+pub fn overview_start_page(q: &Q, head: Id<Device>) -> Option<Id<Page>> {
+    let reps = q.reps();
+    if let Some(page) = assembly_members(q, head)
+        .iter()
+        .find_map(|m| overview_rep(q, *m).and_then(|r| reps.get(r)).map(|r| r.page))
+    {
+        return Some(page);
+    }
+    let mut devices = vec![head];
+    let mut at = 0;
+    while let Some(d) = devices.get(at).copied() {
+        at += 1;
+        devices.extend(q.idx().device_children(d).filter(|c| !devices.contains(c)).collect::<Vec<_>>());
+    }
+    let (pages, sections) = (q.pages(), q.sections());
+    let fluid = devices
+        .iter()
+        .flat_map(|d| q.idx().functions_of_device(*d).collect::<Vec<_>>())
+        .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+        .filter_map(|r| reps.get(r).map(|r| r.page))
+        .filter_map(|p| pages.get(p).filter(|x| x.kind == ew_schema::PageType::Fluid).map(|x| (p, x)))
+        .min_by_key(|(p, x)| {
+            let section = x.folio.section.and_then(|s| sections.get(s)).map(|s| s.number);
+            let label = x.folio.label.as_ref().map(|l| natural_key(l.as_str()));
+            (section, x.folio.number, label, *p)
+        })
+        .map(|(p, _)| p);
+    fluid.or_else(|| reps.get((*q.get::<MainRep>(head))?).map(|r| r.page))
+}
+
 /// The order-code text of a device (the `order_code` symbol slot, doc 20 §11.1, D-36): the order code of
 /// its assembly aspect's first config; empty for a device without one.
 pub fn order_code_text(q: &Q, device: Id<Device>) -> String {

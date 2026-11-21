@@ -872,8 +872,9 @@ impl Session {
     }
 
     /// The parameters of `valve_terminal.generate_overview` for `station` (doc 11 §5.5, FR-FLU-033): the band is the
-    /// drawing area of the frame on the page the overview starts from (the first page of a member's overview
-    /// representation, else the station's own page), the row's y that of the first overview representation, else a
+    /// drawing area of the frame on the page the overview starts from (`ew_derive::overview_start_page`: the first page
+    /// of a member's overview representation, else the terminal's fluid page, else its own page), the row's y that of
+    /// the first overview representation, else a
     /// third down the drawing area; the starter wide overview module (`ew.ovw.module-wide`, in the page grid's family) for the
     /// members not drawn yet, embedded with the command. `None` for an unknown or unplaced station or a page without a
     /// frame grid.
@@ -886,10 +887,7 @@ impl Session {
             .iter()
             .filter_map(|m| ew_derive::overview_rep(&q, *m).and_then(|r| q.reps().get(r).cloned()))
             .collect();
-        let page = match drawn.first() {
-            Some(r) => r.page,
-            None => q.reps().get((*q.get::<ew_derive::MainRep>(head))?)?.page,
-        };
+        let page = ew_derive::overview_start_page(&q, head)?;
         // The frame's drawing area is in page coordinates already, where the members are placed (read as
         // sheet millimetres and mapped back, the band would start left of the frame on a QET-scaled page).
         let (area, _) = super::scale_fit::drawing_area(&q, page)?;

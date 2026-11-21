@@ -102,7 +102,7 @@ mod xref_format;
 
 pub use assembly::{
     AssemblyBreakMarks, BreakMark, BreakSide, assembly_members, order_code_part, order_code_text,
-    overview_rep,
+    overview_rep, overview_start_page,
 };
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
