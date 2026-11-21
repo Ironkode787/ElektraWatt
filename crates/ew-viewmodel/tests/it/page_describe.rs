@@ -154,8 +154,8 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
     fresh.shutdown();
 }
 
-/// §6 item 4 (BD5 at the view-model level; the exact counts of `ew-ui` are the same cache): the first `page.describe` of
-/// a folio makes one `page_tables` call, a second makes none, and neither moves a memo counter after the first. On
+/// §6 item 4 (BD5; the window host reads the same cache): the first `page.describe` of a folio makes one `page_tables`
+/// call with the page content that carries it, a second makes none, and neither moves a memo counter after the first. On
 /// folio 104: on 102 and 103, which draw -102Q1's coil and contacts, a second description moves the memo totals (a
 /// fault, reported with this step).
 #[test]
@@ -163,12 +163,17 @@ fn page_describe_reads_the_cached_page_tables() {
     let tmp = Tmp::new("pagecount");
     let mut shell = tmp.sample_shell("101");
     let before = shell.session_calls();
-    let _ = page_text(&mut shell, Some(FOLIO));
+    let text = page_text(&mut shell, Some(FOLIO));
     let first = shell.session_calls();
     assert_eq!(
         first.page_tables,
         before.page_tables + 1,
         "one page_tables call for {FOLIO}"
+    );
+    assert_eq!(
+        first.page_content,
+        before.page_content + 1,
+        "with the page content that carries it"
     );
     let memo = shell.memo_totals();
     let again = page_text(&mut shell, Some(FOLIO));
@@ -179,6 +184,7 @@ fn page_describe_reads_the_cached_page_tables() {
     );
     assert_eq!(shell.memo_totals(), memo, "and no memo re-execution");
     assert!(again.starts_with(&format!("page \"{FOLIO}\"")));
+    assert_eq!(again, text, "the cached page describes as the first time");
     // The page on show is cached already.
     let shown = shell.session_calls();
     let _ = page_text(&mut shell, Some("101"));
