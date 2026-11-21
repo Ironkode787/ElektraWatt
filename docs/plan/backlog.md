@@ -211,7 +211,6 @@ where a real page shows it; each row says whether one is known.
 Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 
 - FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
-- FT-1890 `ew-viewmodel, ew-ui` (their `tests/` folders only): Comments there still carry about 78 section references that name no document (a bare `§`) and about 165 test-round tags (`rc.3`, `persona round`, "the owner's test of 0.3.0-rc.1"); the rest of the row is done. Left until the test pass of step 10 has moved and deleted its tests. Name the document, or say the point without the reference.
 
 ## M4
 
