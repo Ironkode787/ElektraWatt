@@ -552,7 +552,7 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 
 ## ew-import-tables
 
-`crates/ew-import-tables` · GPL-3.0-or-later · depends on `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-testkit` · in tests by none
+`crates/ew-import-tables` · GPL-3.0-or-later · depends on `ew-ids`, `ew-interop-api`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `ew-testkit`
 
 The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its tables read into format-level records.
 
@@ -948,11 +948,11 @@ Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.
 
 `crates/ew-testdir` · MIT OR Apache-2.0 · depends on none · used by none · in tests by `elektrawatt`, `ew`, `ew-api`, `ew-library`, `ew-sqlview`, `ew-store`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
-The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample, the release fixture, the golden project) and the starter content in the source tree. A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
+The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree. A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample, the release fixture, the golden project) and the starter content in the source tree. |
+| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree. |
 
 ## ew-testids
 
@@ -966,16 +966,14 @@ The seeded, reproducible UUIDv7 source of the tests (doc 18 §2.2). A dev-only c
 
 ## ew-testkit
 
-`crates/ew-testkit` · GPL-3.0-or-later · depends on `ew-ids`, `ew-import-tables`, `ew-model`, `ew-schema`, `ew-units` · used by none · in tests by `elektrawatt`, `ew-api`, `ew-viewmodel`
+`crates/ew-testkit` · GPL-3.0-or-later · depends on `ew-ids`, `ew-model`, `ew-schema`, `ew-units` · used by none · in tests by `elektrawatt`, `ew-api`, `ew-viewmodel`
 
-The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]), the builders of the reference project over it ([`golden`]: the CSV bootstrap and its translation into commands) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the hostile corpus (`hostile/`).
+The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the hostile corpus (`hostile/`).
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/dsl.rs` | large | The builder DSL (doc 20 §3.2 path (b)): typed methods that create one record each through the commands of doc 06 §3.1 and return the IDs the commands minted. |
-| `src/golden/mod.rs` |  | The golden builders of Golden A (doc 20 §3.2): build path (a), the CSV bootstrap, and build path (b), the builder DSL that constructs the same project through commands only. |
-| `src/golden/translate.rs` |  | Path (b) from the bootstrap batch: the batch's records, in dependency order, through the builder DSL. |
-| `src/lib.rs` |  | The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]), the builders of the reference project over it ([`golden`]: the CSV bootstrap and its translation into commands) and a synthetic parts library ([`library`]). |
+| `src/lib.rs` |  | The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]) and a synthetic parts library ([`library`]). |
 | `src/library.rs` |  | A synthetic parts library (IX-9, NFR-PERF-21): `n` parts and their manufacturers as library documents of one library, deterministic for a given `n` and library ID. |
 
 ## ew-text
@@ -1273,15 +1271,13 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/api_guard.rs` | large | `api-guard`: the guard of the published file-format surface (ADR-0011 amendment 6). |
 | `src/blind/brief.rs` | large | The open design brief (visual spec §6.1 and §6.2) and `check-brief <task>`. |
 | `src/blind/check_task.rs` |  | `check-task <task>`: checks a task folder without a product. |
-| `src/blind/check_task/tests.rs` |  | Tests of `check-task`: the committed task is checked against doc 20 without a product. |
+| `src/blind/check_task/tests.rs` |  | Tests of `check-task`: a brief's sheet is checked against the sample's script without a product. |
 | `src/blind/compose.rs` |  | `compose` (D10): the prompt of a run as the concatenation of its versioned files, deterministically. |
 | `src/blind/filter.rs` |  | The harness filter and the typed `key=value` arguments (§5.2.1). |
 | `src/blind/friction.rs` |  | The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. |
 | `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
 | `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
 | `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
-| `src/blind/oracle.rs` |  | `bless-oracle`; `check-task` is [`super::check_task`]. |
-| `src/blind/oracle/tests.rs` |  | Tests of the pure parts of `bless-oracle` (`check-task`'s are in `check_task/tests.rs`): `bless-oracle` itself, which opens a copy of Golden A with the built binaries, is the lane's command and is run by hand. |
 | `src/blind/protocol.rs` | large | The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |
 | `src/blind/round.rs` |  | The usability rounds' additions to a run: hints on request and the proxy questionnaire. |

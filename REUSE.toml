@@ -184,13 +184,6 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "MIT AND LGPL-2.1-only AND BSD-2-Clause AND BSD-3-Clause AND Zlib"
 
-# L8: the golden fixture (19 §2.1 L8, doc 20 §3.1): CSV tables and generated outputs cannot carry a header.
-[[annotations]]
-path = "golden/**"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
-SPDX-License-Identifier = "CC0-1.0"
-
 # L8: the released formats' frozen corpus (ADR-0011 amendment 6, WP-S6.08 D13): Golden A's files as each release shipped
 # them, byte for byte, with the corpus job's expected saves; project files cannot carry a header.
 [[annotations]]
@@ -214,10 +207,10 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
-# L8: binary test inputs kept from the former fuzz corpus: three command sequences and one EPLAN archive; the synthetic
-# EDZ of the part readers' tests (WP-S3.18), made by those tests (`EW_BLESS=1` writes them).
+# L8: binary test inputs: the synthetic EDZ of the part readers' tests (WP-S3.18), made by those tests (`EW_BLESS=1`
+# writes them).
 [[annotations]]
-path = ["crates/ew-testkit/tests/fixtures/command_fuzz/**", "crates/ew-import-eplan/tests/fixtures/*.edz"]
+path = "crates/ew-import-eplan/tests/fixtures/*.edz"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"

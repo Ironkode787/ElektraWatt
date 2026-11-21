@@ -326,12 +326,6 @@ allowed = ["CC0-1.0"]
 glob = "crates/*/tests/fixtures/**"
 allowed = ["CC0-1.0"]
 
-# L8 (golden fixture): golden/ holds the anonymised golden project, its tables, generator and expected outputs
-# (19 §2.1 L8, ADR-0024, doc 20 §3.1).
-[[path]]
-glob = "golden/**"
-allowed = ["CC0-1.0"]
-
 # L8 (golden fixture): fixtures/format/ holds each released format's frozen copy of the golden project and the corpus
 # job's expected saves (ADR-0011 amendment 6, WP-S6.08 D13).
 [[path]]
