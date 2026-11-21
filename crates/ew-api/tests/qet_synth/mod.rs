@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The synthetic QElectroTech project of the QET import spike (doc 14 §4, doc 20 §2.3): folios 101 to 103 of
-//! the golden project drawn the way QET stores a drawing, built from the public golden tables
-//! (`golden/J-E-2416/tables`) and the public starter content (`content/`). Nothing private is read.
+//! The synthetic QElectroTech project of the QET import spike (doc 14 §4): folios 101 and 102 of the test tables
+//! drawn the way QET stores a drawing, built from the test tables (`fixtures/tables`) and the public starter content
+//! (`content/`). Nothing private is read.
 //!
 //! What the builder does (QET 0.100 `.qet` XML, the subset the importer reads):
 //!
-//! - one `<diagram>` per drawn page; one embedded element definition per golden symbol (a black box per
+//! - one `<diagram>` per drawn page; one embedded element definition per symbol of the tables (a black box per
 //!   connection-point count, an interruption point per direction), its terminals the symbol's CPs on the
 //!   10 px grid relative to the symbol's anchor, named by the function CP designation they map to;
-//! - one `<element>` per device representation at the golden cell centre plus the table's offset, labelled
+//! - one `<element>` per device representation at the table's cell centre plus the table's offset, labelled
 //!   with the device key as printed; interruption points as `next_report` / `previous_report` elements with
 //!   a user text holding the IP name, paired by name;
 //! - terminal strips as QET draws them: one `terminal` element per terminal, stacked per segment column, the
@@ -27,12 +27,12 @@ use std::fmt::Write as _;
 
 use serde_json::Value;
 
-use crate::golden_common::repo;
+use crate::common::repo;
 
 pub mod scan;
 
 /// The drawn folios of the fixture, in order.
-pub const FOLIOS: [&str; 3] = ["101", "102", "103"];
+pub const FOLIOS: [&str; 2] = ["101", "102"];
 
 /// The first UUID counter value: its hex digits contain letters, so upper and lower case differ.
 const UUID_BASE: u64 = 0x00AB_C000;
@@ -65,7 +65,7 @@ fn uuid_text(n: u64, upper: bool) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The golden tables and the starter content
+// The test tables and the starter content
 
 #[derive(Clone, Debug)]
 struct Cp {
@@ -112,9 +112,9 @@ fn split(line: &str) -> Vec<String> {
     out
 }
 
-/// The rows of a golden table in file order.
+/// The rows of a test table in file order.
 fn rows(name: &str) -> Vec<Row> {
-    let path = repo().join("golden/J-E-2416/tables").join(name);
+    let path = repo().join("fixtures/tables").join(name);
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{name}: {e}"));
     let mut lines = text.lines();
     let header = split(lines.next().expect("a header"));
@@ -295,7 +295,7 @@ impl Golden {
             .collect()
     }
 
-    /// The CPs of a function by the template-origin rule of the golden README.
+    /// The CPs of a function by the template-origin rule of the tables' README.
     fn function_cps(&self, key: &str) -> Vec<Cp> {
         let f = self.function(key);
         let fndef = col(f, "fndef");
@@ -331,7 +331,7 @@ impl Golden {
             .clone()
     }
 
-    /// An endpoint of `connections.csv` in the notation of the golden README.
+    /// An endpoint of `connections.csv` in the notation of the tables' README.
     fn resolve(&self, text: &str) -> Ep {
         if let Some(j) = text.strip_prefix('@') {
             return Ep::Junction(j.to_owned());
@@ -391,7 +391,7 @@ impl Golden {
     }
 }
 
-/// A resolved golden endpoint.
+/// A resolved endpoint of the tables.
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum Ep {
     /// Function key and CP index.
@@ -471,7 +471,7 @@ struct Diagram {
     conductors: Vec<Conductor>,
 }
 
-/// How a golden function sits on a page: its element and which definition terminal each golden CP is.
+/// How a golden function sits on a page: its element and which definition terminal each CP of the tables is.
 struct Placed {
     elem: usize,
     cps: BTreeMap<u16, usize>,
@@ -498,7 +498,7 @@ pub struct FolioStats {
     pub integer_ends: usize,
 }
 
-/// A golden connection the fixture does not draw.
+/// A connection of the tables the fixture does not draw.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Skipped {
     /// The connection key (`W35.103`, `BR1.1`).
@@ -516,7 +516,7 @@ pub struct Fixture {
     pub text: String,
     /// Counts per folio, in folio order.
     pub folios: Vec<FolioStats>,
-    /// The golden connections on the folios, and the bridges of the drawn strips, that are not drawn.
+    /// The connections of the tables on the folios, and the bridges of the drawn strips, that are not drawn.
     pub skipped: Vec<Skipped>,
     /// Interruption points drawn: pairs linked to a partner on the folios.
     pub ip_pairs: usize,
@@ -1046,7 +1046,7 @@ impl Builder {
         writeln!(w, r#"<?xml version="1.0" encoding="UTF-8"?>"#).unwrap();
         writeln!(
             w,
-            r#"<project version="0.100" title="Synthetic J-E-2416 101-103">"#
+            r#"<project version="0.100" title="Synthetic test tables 101-102">"#
         )
         .unwrap();
         writeln!(w, "  <properties/>").unwrap();

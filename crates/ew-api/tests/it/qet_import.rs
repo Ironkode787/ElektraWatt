@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! QET project import spike, acceptance item 1 (doc 14 §4, doc 20 §2.3): a synthetic `.qet` built from the
-//! public golden tables (folios 101 to 103, `tests/qet_synth`) imports to a model whose page order, device
-//! tags, potentials and wire count are compared with the golden model's, for those folios, through the
+//! QET project import spike, acceptance item 1 (doc 14 §4): a synthetic `.qet` built from the test tables
+//! (`fixtures/tables`, folios 101 and 102, `tests/qet_synth`) imports to a model whose page order, device tags,
+//! potentials and wire count are compared with the model of the tables, for those folios, through the
 //! derivation. The differences are listed in `tests/qet_import/expected_diff.txt` (blessed with
 //! `EW_BLESS=1`, compared otherwise).
 //!
@@ -12,14 +12,13 @@
 //! - `fixture_is_well_formed`: tags balance, every element names a definition with the right number of
 //!   terminals, UUIDs are unique (references excepted), every conductor and link names existing UUIDs or
 //!   integer terminal IDs of its folio, the element counts match the builder's.
-//! - `synthetic_import_matches_golden_folios_101_to_103`: the import is `Ok`, its session opens, the drawn
-//!   page order is `101 102 103`, no connection is lost, the wire count is the number of conductors drawn;
+//! - `synthetic_import_matches_the_tables_folios_101_and_102`: the import is `Ok`, its session opens, the drawn
+//!   page order is `101 102`, no connection is lost, the wire count is the number of conductors drawn;
 //!   then the metrics of both sides and the difference listing.
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
 #![allow(clippy::disallowed_methods)]
 
-use crate::golden_common;
 use crate::qet_synth;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,7 +29,9 @@ use ew_api::Session;
 use ew_api::import::{StarterLibrary, import_qet};
 use ew_derive::{DeviceTag, PageOrder, PageRef, PotentialPartition};
 use ew_schema::ConnectionKind;
-use golden_common::{batch, repo, session};
+use crate::common::repo;
+use ew_import_tables::ew_interop_api::ImportInput;
+use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use qet_synth::scan::{Tag, norm_uuid, scan};
 use qet_synth::{FOLIOS, Fixture, build};
 
@@ -383,13 +384,13 @@ fn wires_text(s: &Side) -> String {
 }
 
 /// The listing: both sides' metrics, whether they agree, and the differences known by construction.
-fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
+fn listing(fx: &Fixture, tables: &Side, import: &Side) -> String {
     let mut t = String::new();
     let w = &mut t;
     let verdict = |equal: bool| if equal { "equal" } else { "DIFFERENT" };
     writeln!(
         w,
-        "QET import of the synthetic folios {} against the golden tables",
+        "QET import of the synthetic folios {} against the test tables",
         FOLIOS.join(" ")
     )
     .unwrap();
@@ -400,18 +401,18 @@ fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
     .unwrap();
 
     writeln!(w, "\n[1] drawn page order").unwrap();
-    writeln!(w, "golden: {}", list(&golden.pages)).unwrap();
+    writeln!(w, "tables: {}", list(&tables.pages)).unwrap();
     writeln!(w, "import: {}", list(&import.pages)).unwrap();
-    writeln!(w, "{}", verdict(golden.pages == import.pages)).unwrap();
+    writeln!(w, "{}", verdict(tables.pages == import.pages)).unwrap();
 
     writeln!(w, "\n[2] printed device tags (devices with a representation on the folios, interruption points excluded)").unwrap();
-    writeln!(w, "golden: {} tags", golden.tags.len()).unwrap();
+    writeln!(w, "tables: {} tags", tables.tags.len()).unwrap();
     writeln!(w, "import: {} tags", import.tags.len()).unwrap();
-    let only_golden: Vec<&String> = golden.tags.difference(&import.tags).collect();
-    let only_import: Vec<&String> = import.tags.difference(&golden.tags).collect();
-    writeln!(w, "only in golden: {}", list(only_golden)).unwrap();
+    let only_tables: Vec<&String> = tables.tags.difference(&import.tags).collect();
+    let only_import: Vec<&String> = import.tags.difference(&tables.tags).collect();
+    writeln!(w, "only in the tables: {}", list(only_tables)).unwrap();
     writeln!(w, "only in import: {}", list(only_import)).unwrap();
-    writeln!(w, "{}", verdict(golden.tags == import.tags)).unwrap();
+    writeln!(w, "{}", verdict(tables.tags == import.tags)).unwrap();
 
     writeln!(
         w,
@@ -421,9 +422,9 @@ fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
     writeln!(w, "sizes count those CPs, as <size>x<number of potentials>").unwrap();
     writeln!(
         w,
-        "golden: {} potentials, sizes {}",
-        golden.potentials.len(),
-        sizes(&golden.potentials)
+        "tables: {} potentials, sizes {}",
+        tables.potentials.len(),
+        sizes(&tables.potentials)
     )
     .unwrap();
     writeln!(
@@ -433,12 +434,12 @@ fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
         sizes(&import.potentials)
     )
     .unwrap();
-    writeln!(w, "{}", verdict(golden.potentials == import.potentials)).unwrap();
+    writeln!(w, "{}", verdict(tables.potentials == import.potentials)).unwrap();
 
     writeln!(w, "\n[4] wire connections drawn on the folios").unwrap();
-    writeln!(w, "golden: {}", wires_text(golden)).unwrap();
+    writeln!(w, "tables: {}", wires_text(tables)).unwrap();
     writeln!(w, "import: {}", wires_text(import)).unwrap();
-    writeln!(w, "{}", verdict(golden.wires == import.wires)).unwrap();
+    writeln!(w, "{}", verdict(tables.wires == import.wires)).unwrap();
 
     writeln!(w, "\n[5] differences known by construction").unwrap();
     writeln!(w, "folios drawn by the fixture: {}", list(FOLIOS)).unwrap();
@@ -492,7 +493,7 @@ fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
     .unwrap();
     writeln!(
         w,
-        "  report blocks, wire colours and cross-sections; the golden joins potentials through"
+        "  report blocks, wire colours and cross-sections; the tables join potentials through"
     )
     .unwrap();
     writeln!(
@@ -568,8 +569,31 @@ fn check_or_bless(listing: &str) {
 // ---------------------------------------------------------------------------------------------------------
 // The comparison
 
+/// The session of the test tables, imported as the table importer reads them.
+fn tables_session() -> Session {
+    let mut paths: Vec<PathBuf> = std::fs::read_dir(repo().join("fixtures/tables"))
+        .expect("the test tables")
+        .map(|e| e.expect("a directory entry").path())
+        .filter(|p| p.extension().is_some_and(|e| e == "csv"))
+        .collect();
+    paths.sort();
+    let inputs: Vec<ImportInput> = paths
+        .iter()
+        .map(|p| {
+            let name = p.file_name().expect("a file name").to_string_lossy().into_owned();
+            ImportInput::new(&name, std::fs::read(p).expect("a table")).expect("an input")
+        })
+        .collect();
+    let library = BuiltinLibrary::new(crate::view::library_docs()).expect("the content library");
+    let batch = TablesImporter::new(library)
+        .import(&inputs, &bootstrap_context())
+        .expect("the test tables import");
+    let (project, records) = crate::common::split(&batch);
+    crate::common::session_of(project, records, batch.lib.clone())
+}
+
 #[test]
-fn synthetic_import_matches_golden_folios_101_to_103() {
+fn synthetic_import_matches_the_tables_folios_101_and_102() {
     let fx = build();
     let library = StarterLibrary::from_dir(&repo().join("content")).expect("the starter content");
     let imported = import_qet("synthetic.qet", fx.text.clone().into_bytes(), &library)
@@ -579,9 +603,7 @@ fn synthetic_import_matches_golden_folios_101_to_103() {
         .as_ref()
         .unwrap_or_else(|e| panic!("the model refuses the imported batch: {e}"));
 
-    let golden_batch = batch();
-    let golden_session = session(&golden_batch);
-    let (golden, import) = (metrics(&golden_session), metrics(imported_session));
+    let (tables, import) = (metrics(&tables_session()), metrics(imported_session));
 
     // The hard assertions of the item.
     assert_eq!(import.drawn, FOLIOS, "the drawn page order of the import");
@@ -598,5 +620,5 @@ fn synthetic_import_matches_golden_folios_101_to_103() {
             .join(" ")
     );
 
-    check_or_bless(&listing(&fx, &golden, &import));
+    check_or_bless(&listing(&fx, &tables, &import));
 }

@@ -37,7 +37,8 @@ fn json_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     paths
 }
 
-fn library_docs() -> Vec<LibDocument> {
+/// The built-in content library: the QET symbols, the function definitions and the forms of `content/`.
+pub fn library_docs() -> Vec<LibDocument> {
     let mut docs = Vec::new();
     for sub in ["symbols/qet10", "fndefs", "forms"] {
         for p in json_files(&repo().join("content").join(sub), "json") {
