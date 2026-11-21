@@ -24,6 +24,8 @@ fn a_reader_and_a_writer_name_a_library_file_the_manifest_does_not_list() {
         args([&"layout", &p]),
         args([&"fmt", &"--check", &p]),
         args([&"fmt", &p]),
+        // `ew route`'s editing open (FT-1930).
+        args([&"route", &p]),
     ] {
         let o = t.ew(&run);
         assert!(stderr(&o).contains(warning), "{run:?}: {}", stderr(&o));

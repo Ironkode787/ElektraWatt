@@ -8,9 +8,9 @@
 
 use ew_api::cli_results as results;
 use ew_api::routing::{Reason, RoutePlan, RouteScope};
-use ew_api::{AnyCommand, Session};
+use ew_api::AnyCommand;
 
-use super::{RouteArgs, open_reader, project_dir, reader_dir};
+use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
 
 /// The reason's key in the JSON result and its sentence in the text.
 fn reason(why: Reason, wire: &str) -> (&'static str, String) {
@@ -46,32 +46,23 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let Some(dir) = reader_dir(a.project.as_ref()) else {
             return 2;
         };
-        open_reader(&dir, "route").map_err(|e| format!("{}: {e}", dir.display()))
+        open_reader(&dir, "route").map(|(s, _)| s).map_err(|e| {
+            eprintln!("error: {}: {e}", dir.display());
+            2
+        })
     } else {
         let Some(dir) = project_dir(a.project.as_ref()) else {
             return 2;
         };
-        let options = ew_api::SessionOptions {
-            origin: ew_api::Origin::Cli {
-                subcommand: "route".to_owned(),
-                confirmed: false,
-            },
-            ..ew_api::SessionOptions::default()
+        let origin = ew_api::Origin::Cli {
+            subcommand: "route".to_owned(),
+            confirmed: false,
         };
-        Session::open(
-            &dir,
-            ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
-            options,
-            ew_api::Recovery::Keep,
-        )
-        .map_err(|e| format!("{}: {e}", dir.display()))
+        open_for_writing(&dir, origin)
     };
     let mut session = match opened {
-        Ok((session, _)) => session,
-        Err(e) => {
-            eprintln!("error: {e}");
-            return 2;
-        }
+        Ok(session) => session,
+        Err(code) => return code,
     };
     let folios = match &a.page {
         Some(f) => {
