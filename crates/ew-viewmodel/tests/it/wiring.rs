@@ -1304,10 +1304,11 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     drop(q);
     let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
     let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
-    // The numbers are derived for every wire in page order, so W13's printed number goes on with one of its halves.
-    assert!(
-        [&kept_number, &half_number].contains(&&number_before),
-        "{number_before}: {kept_number}, {half_number}"
+    // FR-CON-008 keeps W13's number on its kept side (the `a` end); on the sample the new half prints it and the kept
+    // side a new one (a fault, reported with this step): pinned as it is, so the fix makes this `kept_number`.
+    assert_eq!(
+        half_number, number_before,
+        "{number_before}: kept {kept_number}, new half {half_number}"
     );
 
     assert!(

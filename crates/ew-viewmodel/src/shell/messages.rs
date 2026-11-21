@@ -1194,8 +1194,8 @@ mod tests {
         let mut shell = ShellModel::for_tests();
         let base = crate::shell::fresh_test_dir("ew-check-findings");
         let dir = base.join("g.ew");
-        let sample = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
-        crate::shell::properties::tests::copy_dir(&sample, &dir);
+        let sample = std::path::Path::new(ew_testdir::SAMPLE);
+        crate::shell::properties::tests::copy_dir(sample, &dir);
         let run = |shell: &mut ShellModel, action: &str, p: serde_json::Value| {
             assert_eq!(shell.dispatch(action, &p), Outcome::Done, "{action}");
         };
@@ -1235,8 +1235,8 @@ mod tests {
         let mut shell = ShellModel::for_tests();
         let base = crate::shell::fresh_test_dir("ew-check-scheme");
         let dir = base.join("g.ew");
-        let sample = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
-        crate::shell::properties::tests::copy_dir(&sample, &dir);
+        let sample = std::path::Path::new(ew_testdir::SAMPLE);
+        crate::shell::properties::tests::copy_dir(sample, &dir);
         let run = |shell: &mut ShellModel, action: &str, p: serde_json::Value| {
             assert_eq!(shell.dispatch(action, &p), Outcome::Done, "{action}");
         };

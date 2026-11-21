@@ -3076,8 +3076,8 @@ pub(super) mod tests {
         let mut shell = ShellModel::for_tests();
         let base = crate::shell::fresh_test_dir("ew-d4");
         let dir = base.join("g.ew");
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
-        copy_dir(&sample, &dir);
+        let sample = Path::new(ew_testdir::SAMPLE);
+        copy_dir(sample, &dir);
         assert_eq!(
             shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
             Outcome::Done
@@ -3159,8 +3159,8 @@ pub(super) mod tests {
         let mut shell = ShellModel::for_tests();
         let base = crate::shell::fresh_test_dir("ew-ft404");
         let dir = base.join("g.ew");
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
-        copy_dir(&sample, &dir);
+        let sample = Path::new(ew_testdir::SAMPLE);
+        copy_dir(sample, &dir);
         assert_eq!(
             shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
             Outcome::Done
