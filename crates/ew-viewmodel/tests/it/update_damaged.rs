@@ -18,10 +18,10 @@ use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
 
-/// Assigns the part `number` of the shell's libraries to the device F55 of the open project, saves and closes it: the
+/// Assigns the part `number` of the shell's libraries to the device -101F1 of the open project, saves and closes it: the
 /// part copy's ID.
 fn assign_f55(s: &mut ShellModel, number: &str) -> String {
-    done(s, "select.set", json!({ "refs": ["tag:F55"] }));
+    done(s, "select.set", json!({ "refs": ["tag:-101F1"] }));
     done(s, "part.choose", json!({ "use": 0 }));
     done(s, "part.pick", json!({ "part": number }));
     let params = s
@@ -44,7 +44,7 @@ fn assign_f55(s: &mut ShellModel, number: &str) -> String {
     copy
 }
 
-/// A copy of Golden A in `tmp` whose F55 uses the compiled-in starter part EW-GEN-MCB-2: the folder, the part copy's
+/// A copy of the sample in `tmp` whose -101F1 uses the compiled-in starter part EW-GEN-MCB-2: the folder, the part copy's
 /// file and its bytes as the save wrote them from the library.
 fn starter_project(tmp: &Tmp) -> (PathBuf, PathBuf, Vec<u8>) {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
@@ -104,14 +104,14 @@ fn update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
     for (locale, banner, toast) in [
         (
             "en",
-            "This project is open read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 from \
+            "This project is open read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 1 integrity \
              finding was found when the project was opened.",
             "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat F55 gebruikt de bibliotheekkopie van artikel \
+            "Dit project is alleen-lezen geopend: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
             "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1.",
@@ -154,22 +154,29 @@ fn update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
     assert!(strings::set_locale("en"));
 }
 
-/// Golden A's first part copy a device names (the device -201U8-Q1's), which no library holds: its file in `dir`.
-fn golden_part_copy(dir: &Path) -> PathBuf {
-    let mut shards: Vec<_> = std::fs::read_dir(dir.join("devices"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    shards.sort();
-    let golden = shards
-        .iter()
-        .find_map(|p| {
-            let text = std::fs::read_to_string(p).unwrap();
-            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
-            Some(text[at..at + 36].to_owned())
-        })
-        .expect("a device names a part copy");
-    dir.join("lib/parts").join(format!("{golden}.json"))
+/// The files of the folder `sub` of the project at `dir`.
+fn files_in(dir: &Path, sub: &str) -> Vec<PathBuf> {
+    std::fs::read_dir(dir.join(sub)).unwrap().map(|e| e.unwrap().path()).collect()
+}
+
+/// The sample's parts are all the starter library's: a part of the project's own, OWN-1 of the manufacturer Acme
+/// from a one-row parts table, given to -101Q1 in the copy at `dir` (saved, closed). Its part copy's file and its
+/// manufacturer copy's file, which no library holds.
+fn own_part_copy(tmp: &Tmp, dir: &Path) -> (PathBuf, PathBuf) {
+    let (parts, makers) = (files_in(dir, "lib/parts"), files_in(dir, "lib/manufacturers"));
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    common::import_parts(&mut s, tmp, "OWN-1,Acme,OWN-1,,,Own part,piece,,,,,,,,,,,\n");
+    done(&mut s, "select.set", json!({ "refs": ["tag:-101Q1"] }));
+    done(&mut s, "props.set", json!({"row": "device/parts", "value": "OWN-1"}));
+    done(&mut s, "file.save", json!({}));
+    done(&mut s, "file.close", json!({}));
+    let new = |sub: &str, before: &[PathBuf]| {
+        files_in(dir, sub)
+            .into_iter()
+            .find(|p| !before.contains(p))
+            .unwrap_or_else(|| panic!("a new file in {sub}"))
+    };
+    (new("lib/parts", &parts), new("lib/manufacturers", &makers))
 }
 
 /// The manifest's entry of the project file `path` (relative, with `/`) in `dir`.
@@ -178,26 +185,26 @@ fn manifest_entry(dir: &Path, path: &str) -> Value {
     manifest["files"][path].clone()
 }
 
-/// The banner offers the update only for the copy it names. It names Golden A's part copy of -201U8-Q1,
+/// The banner offers the update only for the copy it names. It names the part copy of -101Q1, the project's own,
 /// which no library holds, so it says so and offers nothing, though a library holds the starter part's damaged copy
 /// too; nothing is written. Both languages.
 #[test]
 fn the_banner_offers_the_update_only_for_the_copy_it_names() {
     let tmp = Tmp::new("ft1499-named");
     let (dir, file, _) = starter_project(&tmp);
-    damage(&golden_part_copy(&dir));
+    damage(&own_part_copy(&tmp, &dir).0);
     damage(&file);
     let before = tree(&dir);
     for (locale, banner) in [
         (
             "en",
-            "This project is open read-only: the device -201U8-Q1 uses the library copy of its part, which is \
+            "This project is open read-only: the device -101Q1 uses the library copy of its part, which is \
              damaged. No library on this computer holds it, so the copy cannot be updated from one. 2 integrity \
              findings were found when the project was opened.",
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat -201U8-Q1 gebruikt de bibliotheekkopie van zijn \
+            "Dit project is alleen-lezen geopend: het apparaat -101Q1 gebruikt de bibliotheekkopie van zijn \
              artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit \
              een bibliotheek worden bijgewerkt. Bij het openen van het project zijn 2 integriteitsbevindingen \
              gevonden.",
@@ -217,21 +224,27 @@ fn the_banner_offers_the_update_only_for_the_copy_it_names() {
 }
 
 /// Several damaged copies: the starter part's, which a library holds and the banner names, is updated, and a
-/// manufacturer copy of Golden A that no record names and no library holds, whose file is gone, stays damaged with its
+/// manufacturer copy of the project's own (Acme, of its part OWN-1) that no library holds, whose file is gone, stays
+/// damaged with its
 /// manifest entry and is named in the toast; the project opens read-only again with that copy's banner, which offers
 /// nothing. Both languages.
 #[test]
 fn several_copies_update_every_one_a_library_holds_and_name_the_rest() {
     let tmp = Tmp::new("ft1499-several");
     let (dir, file, original) = starter_project(&tmp);
-    let gone = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let maker = own_part_copy(&tmp, &dir).1;
+    let gone = format!(
+        "lib/manufacturers/{}",
+        maker.file_name().unwrap().to_string_lossy()
+    );
+    let gone = gone.as_str();
     let entry = manifest_entry(&dir, gone);
     assert!(entry.is_string(), "{gone} is listed");
     std::fs::remove_file(dir.join(gone)).unwrap();
     for (locale, before, toast, after) in [
         (
             "en",
-            "This project is open read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 from \
+            "This project is open read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 2 integrity \
              findings were found when the project was opened.",
             "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1. Not updated, as no \
@@ -242,7 +255,7 @@ fn several_copies_update_every_one_a_library_holds_and_name_the_rest() {
         ),
         (
             "nl",
-            "Dit project is alleen-lezen geopend: het apparaat F55 gebruikt de bibliotheekkopie van artikel \
+            "Dit project is alleen-lezen geopend: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project zijn 2 integriteitsbevindingen gevonden.",
             "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1. Niet \
@@ -438,29 +451,49 @@ fn a_project_opened_read_only_on_request_offers_no_update() {
     assert!(tree(&dir) == before, "nothing is written");
 }
 
-/// A library's version of the damaged copy that would break the project. Golden A's double-acting cylinder
-/// -203Q1 gets a wire between its two ports, which its definition, damaged and dropped, does not judge; the starter
+/// A library's version of the damaged copy that would break the project. The sample's double-acting cylinder
+/// -201M1 gets a wire between its two ports, which its definition, damaged and dropped, does not judge; the starter
 /// library's version makes them fluid ports, which no wire may end at (EW-INV-024). The update is refused with the
 /// misfit's words, whole in both languages, and nothing is written.
 #[test]
 fn a_library_version_that_breaks_the_project_refuses_the_update() {
     let tmp = Tmp::new("ft1499-misfit");
+    // -201M1's function, its definition and folio 201's page, read from the sample.
+    let (page_id, cylinder, def) = {
+        let s = tmp.sample_shell("201");
+        let page_id = s.current_page().expect("folio 201").uuid_text();
+        let cylinder = common::tables(&s)
+            .cps
+            .iter()
+            .find(|c| c.label.starts_with("-201M1:"))
+            .expect("-201M1 on folio 201")
+            .function
+            .to_string();
+        let (session, _) = Session::open_read_only(Path::new(common::SAMPLE), "test").expect("the sample opens");
+        let def = session
+            .query()
+            .functions()
+            .iter()
+            .find(|(id, _)| id.as_uuid().to_string() == cylinder)
+            .expect("the cylinder's function")
+            .1
+            .def
+            .as_uuid()
+            .to_string();
+        (page_id, cylinder, def)
+    };
     let dir = tmp.sample_copy();
     copy_dir(Path::new(common::SAMPLE), &dir);
-    let page = dir.join("pages/ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08.jsonl");
-    let cylinder = "eb6810a7-f538-5968-ac8c-cd35cc1c0725";
+    let page = dir.join(format!("pages/{page_id}.jsonl"));
     let mut text = std::fs::read_to_string(&page).unwrap();
-    assert!(text.contains(cylinder), "-203Q1's function is drawn on the page");
+    assert!(text.contains(&cylinder), "-201M1's function is drawn on the page");
     text.push_str(&format!(
         "{{\"$k\":\"connection\",\"id\":\"9d1c53a4-0000-4000-8000-000000000001\",\"a\":{{\"cp\":[\"{cylinder}\",0]}},\
-         \"b\":{{\"cp\":[\"{cylinder}\",1]}},\"page\":\"ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08\"}}\n"
+         \"b\":{{\"cp\":[\"{cylinder}\",1]}},\"page\":\"{page_id}\"}}\n"
     ));
     std::fs::write(&page, text).unwrap();
-    std::fs::write(
-        dir.join("lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json"),
-        "{\"$k\": \"fndef\",\n",
-    )
-    .unwrap();
+    std::fs::write(dir.join(format!("lib/fndefs/{def}.json")), "{\"$k\": \"fndef\",\n").unwrap();
+
     let before = tree(&dir);
     for (locale, message) in [
         (
