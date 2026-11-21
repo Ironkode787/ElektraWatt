@@ -18,7 +18,7 @@ use crate::pdf_support::{
     EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, report_row_link_count, structure_text,
     svg_options,
 };
-use crate::view::{fonts, golden_pages, sample_session};
+use crate::view::{fonts, page_views, sample_session};
 
 /// The tolerance of a written line against the form's geometry (doc 18 §3.9 "Frame geometry"), mm.
 const TOLERANCE_MM: f64 = 0.2;
@@ -89,7 +89,7 @@ fn deviation(l: &Line, s: &Segment) -> f64 {
 fn the_frame_lines_of_a_written_page_lie_on_the_form_geometry() {
     let s = sample_session(None);
     let q = s.query();
-    let frame = golden_pages(&q)
+    let frame = page_views(&q)
         .into_iter()
         .find(|g| g.entry.folio == "101")
         .and_then(|g| g.view.frame)
@@ -250,7 +250,7 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
     // What the links are: one per printed cross-reference item of the drawn pages (a slot the representation hides
     // prints none), one per linked row of the PLC overview (to the channel's connection point) and one per report
     // row link.
-    let views = golden_pages(&q);
+    let views = page_views(&q);
     let xref_items: usize = views
         .iter()
         .flat_map(|g| &g.view.reps)

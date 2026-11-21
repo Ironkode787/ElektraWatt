@@ -1,23 +1,23 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden PDF (doc 20 §3.3 "PDF structure"): the page list and options of the golden project through the
-//! shipped export job (`ew_api::output`), the committed structure file's text and the SHA-256. Shared by
-//! `tests/it/page_output.rs` and the acceptance runner.
+//! A project's PDF (doc 20 §3.3 "PDF structure"): the page list and options of a project through the
+//! shipped export job (`ew_api::output`) and the text of its structure. Shared by `tests/it/page_output.rs`,
+//! `tests/it/pdf_output.rs` and the acceptance runner.
 
 use ew_api::output::{self, ExportAssets, ExportOptions};
 use ew_derive::Q;
 use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput};
 use sha2::{Digest, Sha256};
 
-use super::view::GoldenPage;
+use super::view::ViewedPage;
 
 /// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
 /// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face
 /// (ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
-/// The PDF page list of the golden project through the shipped export job (`ew_api::output::export_pages_with`: the
+/// The PDF page list of the project of `q` through the shipped export job (`ew_api::output::export_pages_with`: the
 /// memoised layers, then the page phase on `par_map` under `parallelism`; FR-OUT-019, one code path for the
 /// serial and the parallel export).
 pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
@@ -29,19 +29,19 @@ pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
         },
         &ExportAssets::default(),
     )
-    .expect("the golden pages export")
+    .expect("the pages export")
     .pages
 }
 
-/// The export options of the golden PDF: the shipped job's (`ew_api::output::pdf_options`; dates from the
+/// The export options of the PDF: the shipped job's (`ew_api::output::pdf_options`; dates from the
 /// model's edited date, FR-OUT-026).
 pub fn pdf_options(q: &Q) -> PdfOptions {
     output::export_pages_with(q, &ExportOptions::default(), &ExportAssets::default())
-        .expect("the golden pages export")
+        .expect("the pages export")
         .options
 }
 
-/// The SVG options of the golden export (used by the acceptance runner, AC-14): the shipped job's.
+/// The SVG options of the export: the shipped job's.
 pub fn svg_options() -> SvgOptions {
     output::svg_options(false)
 }
@@ -131,7 +131,7 @@ pub fn outline_json(entries: &[ew_export::OutlineEntry], depth: usize) -> String
 
 /// The cross-reference texts of the drawn pages: (linked texts, their link targets, external texts without a
 /// link). Doc 20 §15: 63 linked texts with 64 targets and 4 external ones.
-pub fn xref_counts(pages: &[GoldenPage]) -> (usize, usize, usize) {
+pub fn xref_counts(pages: &[ViewedPage]) -> (usize, usize, usize) {
     let (mut linked, mut targets, mut external) = (0, 0, 0);
     for g in pages {
         for r in &g.view.reps {
@@ -158,7 +158,7 @@ pub fn xref_counts(pages: &[GoldenPage]) -> (usize, usize, usize) {
 /// The report row links the generated pages draw other than the PLC overview's connection-point links, per
 /// folio in page order: every link of a drawn data row whose cell prints a text. Each is one link annotation
 /// of the PDF, so the PDF's links are the cross-reference items, the PLC overview rows and these.
-pub fn report_row_links(pages: &[GoldenPage]) -> Vec<(String, usize)> {
+pub fn report_row_links(pages: &[ViewedPage]) -> Vec<(String, usize)> {
     pages
         .iter()
         .filter_map(|g| {
@@ -185,6 +185,6 @@ pub fn report_row_links(pages: &[GoldenPage]) -> Vec<(String, usize)> {
 }
 
 /// The sum of [`report_row_links`].
-pub fn report_row_link_count(pages: &[GoldenPage]) -> usize {
+pub fn report_row_link_count(pages: &[ViewedPage]) -> usize {
     report_row_links(pages).iter().map(|(_, n)| n).sum()
 }

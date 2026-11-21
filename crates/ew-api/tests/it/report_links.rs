@@ -41,7 +41,7 @@ fn page(q: &Q, folio: &str) -> PageRef {
 
 /// The drawn table rows of a block's pages: its first folio and its continuations, in page order.
 fn block_rows(q: &Q, first: &str) -> Vec<TableRow> {
-    view::golden_pages(q)
+    view::page_views(q)
         .into_iter()
         .filter(|g| g.entry.folio == first || g.entry.folio.starts_with(&format!("{first}.")))
         .flat_map(|g| g.view.table.map(|t| t.rows).unwrap_or_default())

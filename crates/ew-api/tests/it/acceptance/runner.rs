@@ -30,7 +30,7 @@ use crate::golden_common;
 use crate::golden_files::text_csv;
 use crate::pdf_read::{PageRead, PdfFile};
 use crate::pdf_support::{pdf_options, pdf_pages};
-use crate::view::{GoldenPage, fonts, golden_pages, golden_session};
+use crate::view::{ViewedPage, fonts, page_views, golden_session};
 
 use super::checks;
 use super::freshness;
@@ -68,7 +68,7 @@ pub struct Ctx {
     /// The golden model, memoised without the oracle (the cross-reference scans).
     pub memoised: Session,
     /// The pages of `page_order` with their views.
-    pub pages: Vec<GoldenPage>,
+    pub pages: Vec<ViewedPage>,
     /// The text CSV of every folio as the page output generates it.
     pub text: BTreeMap<String, String>,
     pub pdf_pages: Vec<PdfPage>,
@@ -99,7 +99,7 @@ impl Ctx {
         let memoised = golden_common::session(&batch);
         let view = golden_session(None);
         let q = view.query();
-        let pages = golden_pages(&q);
+        let pages = page_views(&q);
         // The page text as the shipped export job draws it (the memoised layers of `ew_api::output`).
         let text = pages
             .iter()

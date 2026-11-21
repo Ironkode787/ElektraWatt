@@ -602,7 +602,7 @@ fn compare(a: &Session, c: &Session, san: &San, details: &mut Vec<String>) -> Ve
 
     // text.<folio>
     let qc = c.query();
-    let pages = view::golden_pages(&qc);
+    let pages = view::page_views(&qc);
     let text_dir = golden_files::expected_dir("text");
     let mut expected_files: Vec<PathBuf> = std::fs::read_dir(&text_dir)
         .expect("the expected text files")

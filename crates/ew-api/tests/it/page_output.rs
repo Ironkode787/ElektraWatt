@@ -21,7 +21,7 @@ use ew_scene::page::{
 use serde_json::json;
 
 use pdf_support::{pdf_options, pdf_pages};
-use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, sample_session};
+use view::{ViewedPage, builtin_symbol, destination, fonts, page_views, sample_session};
 
 /// The export job's page scene, assembled from the memoised layer families, equals `ew-scene`'s page scene over
 /// the full view on every page: every layer of the page's kind, the geometry, the findings and the sheet. So the
@@ -139,10 +139,10 @@ fn the_items_of_a_cross_reference_list_have_disjoint_ordered_link_boxes() {
     });
 }
 
-fn with_pages(f: impl FnOnce(&[GoldenPage])) {
+fn with_pages(f: impl FnOnce(&[ViewedPage])) {
     let s = sample_session(None);
     let q = s.query();
-    f(&golden_pages(&q));
+    f(&page_views(&q));
 }
 
 /// `ew-derive`'s `cp_point` (the position of a function CP on a page, which the wire numbers read) and the page
@@ -153,7 +153,7 @@ fn cp_point_equals_the_cp_points_of_the_page_scene() {
     let s = sample_session(None);
     let q = s.query();
     let mut checked = 0;
-    for g in golden_pages(&q) {
+    for g in page_views(&q) {
         for ((function, idx), at) in ew_scene::page::cp_points(&g.view) {
             let function = Id::from_uuid(function);
             assert_eq!(
@@ -168,7 +168,7 @@ fn cp_point_equals_the_cp_points_of_the_page_scene() {
     assert!(checked > 0, "{checked} CPs compared");
 }
 
-fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {
+fn folio<'a>(pages: &'a [ViewedPage], folio: &str) -> &'a ViewedPage {
     pages
         .iter()
         .find(|g| g.entry.folio == folio)
@@ -439,7 +439,7 @@ fn the_pdf_of_folio_101_has_one_width_class_for_frame_symbols_and_wires() {
 fn prev_and_next_follow_the_page_order_with_the_report_pages() {
     let s = sample_session(None);
     let q = s.query();
-    let pages = golden_pages(&q);
+    let pages = page_views(&q);
     let text = |page: ew_derive::PageRef, path: &str| -> Option<String> {
         q.get::<ew_derive::TitleBlockValues>(page)
             .values

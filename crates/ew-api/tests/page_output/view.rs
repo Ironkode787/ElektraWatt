@@ -125,7 +125,7 @@ pub fn fonts() -> BTreeMap<FontKey, FontBytes> {
 }
 
 /// One page of the page order with its view.
-pub struct GoldenPage {
+pub struct ViewedPage {
     /// The page-order entry.
     pub entry: PageEntry,
     /// The view (`ew_api::output::page_view`).
@@ -133,11 +133,11 @@ pub struct GoldenPage {
 }
 
 /// Every page of the page order with the product's view.
-pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
+pub fn page_views(q: &Q) -> Vec<ViewedPage> {
     q.get::<PageOrder>(())
         .entries
         .iter()
-        .map(|entry| GoldenPage {
+        .map(|entry| ViewedPage {
             entry: entry.clone(),
             view: output::page_view(q, entry),
         })
