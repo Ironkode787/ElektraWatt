@@ -247,11 +247,13 @@ fn the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
         ]
     );
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/fragment_102F1.txt");
+    // The IDs numbered in order of first appearance: the file holds no generated ID.
+    let numbered = common::ids_numbered(&a.text);
     if bless() {
-        std::fs::write(&path, &a.text).unwrap();
+        std::fs::write(&path, &numbered).unwrap();
     }
     let expected = std::fs::read_to_string(&path).expect("the expected fragment; bless with EW_BLESS=1");
-    assert_eq!(a.text, expected.replace("\r\n", "\n"));
+    assert_eq!(numbered, expected.replace("\r\n", "\n"));
 }
 
 /// CB1: a terminal brings its strip device (with only the copied terminal), not the strip's other terminals:

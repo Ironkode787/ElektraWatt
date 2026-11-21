@@ -164,3 +164,34 @@ pub fn first_page(s: &Session) -> ew_ids::Uuid {
     pages.sort();
     pages.first().copied().expect("the new project has a page")
 }
+
+/// `text` with every UUID replaced by `<n>`, numbered in order of first appearance, so that a comparison holds no
+/// generated ID (a change of the sample's script above a record renumbers the IDs, never the shape).
+pub fn ids_numbered(text: &str) -> String {
+    let is_id = |s: &str| {
+        s.bytes().enumerate().all(|(i, b)| match i {
+            8 | 13 | 18 | 23 => b == b'-',
+            _ => b.is_ascii_hexdigit(),
+        })
+    };
+    let mut seen: Vec<&str> = Vec::new();
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(c) = rest.chars().next() {
+        match rest.get(..36).filter(|s| is_id(s)) {
+            Some(id) => {
+                let n = seen.iter().position(|s| *s == id).unwrap_or_else(|| {
+                    seen.push(id);
+                    seen.len() - 1
+                });
+                out.push_str(&format!("<{}>", n + 1));
+                rest = &rest[36..];
+            }
+            None => {
+                out.push(c);
+                rest = &rest[c.len_utf8()..];
+            }
+        }
+    }
+    out
+}
