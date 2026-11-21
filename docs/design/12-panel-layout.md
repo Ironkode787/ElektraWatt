@@ -509,9 +509,10 @@ report folios.
 
 **Projection.** A model point (u, v) of the surface maps to paper by
 `x = datum.x + u·num/den`, `y = datum.y − v·num/den` (paper y points down, 03 §3.1), computed in i128 nm with one
-rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26) occupies 75 × 100 mm on the A4 sheet,
-which leaves the grid columns right of the plate for the legend. Changing the scale changes no stored pose
-(FR-LAY-002).
+rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26) occupies 75 × 100 mm on the A4 sheet.
+Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet** (0.3.5): a new view fits
+its enclosure to the frame's whole drawing area at the first ratio of the series that holds it and centres it there;
+nothing is kept free for a legend, which is a list page of its own (§5.4).
 
 *As built.* The page item `surface_view`
 is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each
@@ -588,12 +589,15 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   inside), centred in the footprint when it fits, else outside with its leader as a tag. With both, the balloon
   stands left of the tag in one label. The Properties row Labels sets it, and so does the page's menu (Labels: Tags,
   Item numbers, Both, the current one checked; `layout.labels {show}`, rc.2); Add legend on a page that shows tags
-  answers with a toast whose Show item numbers switches it. A view the window makes (the page's Surface
-  row, Enclosure… on an empty panel page) looks at whether the tags fit: on a surface with placements it takes item
-  numbers when the tag of one of them fits its footprint on paper neither across nor turned (the labels layer's own
-  fit test), else tags; on a surface without placements it takes item numbers at 1:5 and smaller scales (a 6 mm
-  terminal is little more than a millimetre on paper there); a page not to scale takes tags. A page that starts with
-  item numbers gets its legend in the same gesture (§5.4).
+  answers with a toast whose Show item numbers switches it.
+- **Tags where they fit, balloons where they do not** (0.3.5, the owner's sketch; `labels: tags_or_numbers`, Labels:
+  Tags or numbers). A device prints its tag inside its footprint where the tag fits whole at the label size, across
+  or turned (the fit test above, never shrunk); where it does not (a terminal, a small part) it prints its item
+  number in a balloon instead, centred in the footprint where the balloon fits, else outside with its leader. Every
+  view the window makes (the page's Surface row on a page without a view, Enclosure…) takes this mode, whatever the
+  scale; tags, item numbers and both stay as choices, and the legend lists every position whatever the mode. An older
+  build reads the value as one of a newer format and draws tags. A view the window makes gets its legend page in the
+  same gesture (§5.4).
 - **Crowded labels move apart.** A label placed outside its footprint takes, left to right by footprint, the first
   place that overlaps no label placed before it (labels inside their footprints and moved labels stand first): its
   first side (above, or below when above leaves the surface), the other side, then one stack level (its height plus
@@ -636,8 +640,8 @@ surface view shows, and carrier lines are left out. A `layout.move` rebuilds no 
 *As built (0.3).* **Add legend** (the page's right-click menu, Page ▸ Order ▸ Add legend; Select at rest says so over
 the free spot) puts an embedded `enclosure_legend` block on a panel page that shows a surface and holds none: in the largest
 free part of the frame's drawing area right of, left of, below or above the layout (its enclosure's outline as
-projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm; else it is refused in
-words. Such a legend prints position, DT, quantity, part number and description through the block's own printed
+projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm and the legend prints
+every row and every text whole there (0.3.5); else it makes the legend page (below). Such a legend prints position, DT, quantity, part number and description through the block's own printed
 columns (`ReportBlock.columns`, added in 0.3: `{key, weight}` per column, absent means the kind's layout, which an older
 build prints). A block with its own columns is a **lookup table** (rc.2, the persona round: the legend stood over the
 frame's ruler as a narrow strip with every cell cut): one flow column across the block; each column as wide as its
@@ -662,6 +666,42 @@ resizes it (`fields.set` of `embedded.rect`, on whole millimetres, at least 30 �
 room ends); Delete removes it. Golden A's block has no `columns` and prints its four columns in two flow columns as
 before. The legend keeps the order of `layout_legend`: the enclosure, the plate and the carriers stand together before
 the devices, since Golden A's legend holds that order and they are items a shop orders and cuts.
+
+*As built (0.3.5, the owner's sketch; FT-1920: beside the sample's plate the legend drew 21 of its 30 rows and cut every
+part number).* **The legend is a list page of its own, right after its layout page** (FR-REP-023 brought forward). A
+page block of kind `enclosure_legend` that names its layout page (`ReportBlock.layout_page`, [09](09-reports-forms-output.md)
+§2.2) lists the surface that page's view shows, and is a list like any other: it runs on over as many pages as its rows
+need, on the set's own frame (09 §3.8), with its own printed columns and caption (made with position, tag, quantity,
+part number and description; the manufacturer and the unit are among the others List columns… offers), in the
+project's language, in the contents and the PDF outline, and `ew export report --block <its ID>` (or `--kind
+enclosure_legend`) writes it as CSV or XLSX. Its pages follow the layout page, 902.1, 902.2 … after 902 (09 §3.2 says
+where those are taken). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
+`Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it). Deleting the layout
+page deletes its legend list.
+- **Enclosure…** makes the legend page with the view: the view on the layout page and its legend page are one undo
+  step, and so are a new layout page the act makes, its view and its legend page. A page's Surface row that gives a
+  page its first view makes the legend page the same way.
+- **Add legend** puts the legend on the layout page itself only where it prints every row and every text whole there
+  (above); otherwise a toast says so in words ("The legend does not fit beside the layout whole, so it has a page of
+  its own: 902.1") and Add legend makes the legend page. A layout with a legend, on the page or as a page, is offered
+  no second one ("This layout has its legend on a page of its own").
+- **An embedded legend made before keeps printing as it does.** **Move the legend to its own page** (the legend's
+  context menu, Page ▸ Order; `report_block.legend_to_page`) removes the box and makes the legend page in one undo
+  step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
+  without its own.
+- **A layout made before keeps its datum and its scale as stored** (§5.1). To give such a page the whole sheet once
+  its legend has gone, a person sets its Scale row (Page properties) to the next larger ratio and its Surface view's
+  Datum row to where the plate stands in the middle; a page set back to Not to scale takes the fitting scale and the
+  centred datum when its Surface row chooses the plate again.
+- **From the drawing to the row and back** (the cross-references' links, 09 §4.2). On a layout whose surface has a
+  legend page, a device's label (its tag, its balloon, its leader) links to the device's row on the legend page, and
+  the row's tag links to the device's footprint on the layout: Follow reference (F) goes either way, as a click in the
+  exported PDF does; F with one device selected and no link under the pointer goes to its row. A layout without a
+  legend page draws these links not at all, so its drawing is unchanged.
+- **What it does not do.** A legend page for two layout pages of one surface (the first in page order gets the
+  links); a legend page of a page of another kind; rows in any order but `layout_legend`'s (the positions are the
+  balloons' numbers); wrapping a description on the list page (a list's cells do not wrap, 09 §3.8: the column takes
+  the room the others leave, as every list's does).
 
 ### 5.5 Dimensions and views (1.0)
 

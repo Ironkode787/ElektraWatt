@@ -127,6 +127,7 @@ pub struct ReportBlock {
     pub caption: MlText,                     // + the line above the table (§3.8)
     pub legend: MlText,                      // + the line under the table (§3.8)
     pub added_rows: Vec<AddedRow>,           // + { cells: { key: MlText } }: rows the model does not hold (§3.8)
+    pub layout_page: Option<Id<Page>>,       // + the panel layout page a legend list follows (below, §3.2)
     pub source_ref: Option<SourceRef>,       // import provenance (14 §2.3)
     // later, appended (kept in `extra` until then): params, filter (WP-S3.03)
 }
@@ -142,8 +143,8 @@ in `ew-derive` (`layout/legend.rs`), not memo families: the enclosure, the plate
 copy), one row per carrier (rails, then ducts, then carrier kinds the build does not know, each top to bottom then left
 to right by its first point; the DT cell empty; the length in metres as the quantity, "Missing" without one), then
 the placements by DT in natural order; positions 1 … n, derived; a row that is not a carrier has quantity 1. The
-block takes its surface only from the page it is embedded on, so a block on no page, or on a page without a surface
-view, lists no rows. Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
+block takes its surface from the page it is embedded on, or, as a list of its own (0.3.5), from the layout page it
+names, so a block on no page, or on a page without a surface view, lists no rows. Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
 902 and its export are WP-S4.01 part 4b's. In the BOM, a layout object's line (the enclosure, the plate, the carrier
 part lines) prints the panel pages that view its surface in its Folios cell only.
 
@@ -168,6 +169,19 @@ words onto further lines while the block has the height for every row so grown, 
 narrower than its identifiers at that size cuts one. The rule and its order are 12 §5.4's. A legend without its own
 columns (made before 0.3) prints the kind's four columns in two flow columns as before, until a person chooses its
 columns (§3.8, "In the window").
+
+**A legend as a list of its own** (0.3.5, [12](12-panel-layout.md) §5.4). `ReportBlock.layout_page` (an optional page
+ID, additive) names the panel layout page a page block of kind `enclosure_legend` lists: its rows are those of the
+surface that page's view shows, its pages follow that page in folio and section (§3.2), its title's `{layout}` prints
+that page's folio, and its generated pages print the layout page's structure in their title block. It is a link that
+cascades: deleting the layout page deletes the block. `report_block.create {layout_page}` writes the layout page's
+folio number as `first_folio` and its section as `section`, so the block keeps EW-INV-014; this build reads neither for
+such a block, and the folio checks of `page.create` and `report_block.create` leave it out (its pages move to a free
+folio instead). **What an older build shows:** a page block of kind `enclosure_legend` whose rows it takes from an
+embedded page only, so no rows and, by `empty`'s default, no pages: the legend page is not there, nothing else
+changes, and the build keeps `layout_page` as an unknown member and writes it back. A legend list's rows link both
+ways ([12](12-panel-layout.md) §5.4): the tag of a device's row to its footprint on the layout (`LinkTarget::Placement`),
+and the row is where the device's label links to.
 
 **Encodings and deferred members**:
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
@@ -289,7 +303,7 @@ owned by the listed document; this document owns forms, pagination and output fo
 | `revision_overview` | Revision overview: every revision, Withdrawn ones with their reason; from 1.0 also the issue purpose and the last transmittal response. *As built:* derived from `revision_rows` in label order, a withdrawal record after the revision it withdraws; the changed pages come from the page change status of [15](15-checks-revisions-collaboration.md) §5.6 (the page-notes branch of ID-117 when the last release has no digests), handed to folio 911's pages cell at draw time; `{page.last_changed_in}` reads the same status in the title block (a free text: FT-703; the CSV and navigator consumers: FT-704) | revisions, page change status, transmittals (1.0) | — | MVP | FR-REP-018 | 911 |
 | `open_items` | Open items | Tbd values, unplaced, missing parts and lengths | category | MVP | FR-REP-021 | — |
 | `numbering_report` | Frozen tags and numbers with rule values. *As built:* columns `item` (the device tag; empty for a wire), `kind` (`tag` or `wire number`), `frozen` (the frozen text), `rule` (the value the active scheme derives where the frozen value is left out: `rule_product` for a tag, the `wire_numbers` label for a wire; empty when the scheme derives none) and `status` (`matches` or `deviates`); one row per frozen tag in natural order of the full tag, then one row per frozen wire number in connection ID order; EW-NUM-001 reports the deviating frozen tags (the 10 infos of EF-15 on the golden project); frozen wire numbers are EW-NUM-002's, not built | `TagSpec.frozen`, `NumberSpec` | — | MVP | FR-REP-022 | — |
-| `enclosure_legend`, `mounting_list` | Enclosure legend (EPLAN `.f18`), mounting list (`.f32`) | placements ([12](12-panel-layout.md)) | surface | legend embedded on the layout page: MVP (FR-LAY-012); as pages and mounting list: 1.0 (FR-REP-023) | FR-REP-023, FR-LAY-012 | 902 |
+| `enclosure_legend`, `mounting_list` | Enclosure legend (EPLAN `.f18`), mounting list (`.f32`) | placements ([12](12-panel-layout.md)) | surface | legend embedded on the layout page: MVP (FR-LAY-012); as pages: 0.3.5 (FR-REP-023, brought forward); mounting list: 1.0 | FR-REP-023, FR-LAY-012 | 902 |
 | `tube_list`, `tube_cut_list`, `valve_terminal_config`, `medium_overview` | Fluid lists | [11](11-fluid-power.md) | — | 1.0 | FR-FLU-012, FR-FLU-013, FR-FLU-015, FR-FLU-016 | — |
 | `load_summary` | Load per potential and protective device | part currents, potentials | potential | 1.0 | FR-REP-026 | — |
 | `order_list`, `manufacturer_list` | Purchasing views | `bom_rows` | supplier | 1.0 | FR-REP-025 | — |
@@ -603,6 +617,12 @@ report_pages(block):
   and 3. The page before has no room to take them: it closed because it was full, and the row kept free under a list's
   table (§3.8) is where the window marks that the list runs on, not a data row. `ew_reports::paginate::slice`
   (`LAST_PAGE_ROWS`).
+- **A legend's pages follow its layout page** (0.3.5, §2.2's `layout_page`). The layout page is printed N (or N.j); the
+  legend's pages are N.k, N.(k + 1) … in the layout page's section, k the least from 1 (from j + 1) at which no drawn
+  page of that section holds one of them, so its run is never split by a drawn page: 902.1 and 902.2 after 902, and
+  902.2 and 902.3 where a drawn page is 902.1. A drawn page made later at one of its folios is not refused; the legend
+  moves on to the next free run. Another block's pages at the same folios collide as any two blocks' do (EW-CORE-022).
+  A legend whose layout page is gone has no pages (the link cascades, so only a file edited by hand holds one).
 - **Wrapping is opt-in per row template.** It makes pagination depend on text measurement (`shaped_text` in
   `ew-text`) and therefore on the display language (§4.7, FR-REP-049).
 - **Page counts.** `{block.page_count}` is filled after the block is paginated, since row heights do not depend on
@@ -959,7 +979,9 @@ sequential assembly in page order (FR-OUT-001, ARCH §2). *As built:* the page p
 | Tagged PDF (1.0) | structure tree: page content as sections, symbols as figures with alternative text "tag, function text", report tables as tables with header cells, title block last | FR-OUT-012, NFR-A11Y-05 |
 
 - **Destination names** derive from stable IDs: `ew:p:<page uuid>`, `ew:r:<representation uuid>`,
-  `ew:cp:<v5(function, idx)>`, generated pages `v5(block, index)`, a section divider its section's ID. Only targets
+  `ew:cp:<v5(function, idx)>`, generated pages `v5(block, index)`, a section divider its section's ID; a device placed
+  on a panel layout `ew:pl:<placement uuid>` (its footprint) and its row on the layout's legend page `ew:lr:<placement
+  uuid>` (0.3.5, [12](12-panel-layout.md) §5.4). Only targets
   referenced by a link get a destination, plus one per page, which bounds the file size at XL.
 - **As built (ADR-0015 amendment 5).** `/PageLabels` are krilla's own page labels.
   Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
