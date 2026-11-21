@@ -444,6 +444,62 @@ fn behind_terminals(q: &Q, device: Id<Device>) -> bool {
     reached
 }
 
+/// The devices Auto-fill rail offers for a rail of the layout space `space` (doc 12 §3.3, FT-1802): the space's
+/// [`Unplaced`] devices, then the [`unlocated`] ones, each with its first guess of whether it goes on the rail. The
+/// guess reads what the model says of a device, first match wins:
+///
+/// 1. its primary part's mount kind: a rail profile goes on the rail, any other kind (screwed, in the door, on a
+///    busbar) does not;
+/// 2. it has the space's location: it goes;
+/// 3. a function category of field equipment ([`field_category`]: a sensor, a cylinder, a motor, a valve terminal), or
+///    it stands behind terminals in the field (every wire from it ends at a terminal's field side): it does not;
+/// 4. otherwise it goes.
+pub fn fill_candidates(q: &Q, space: Id<LayoutSpace>) -> Vec<(Id<Device>, bool)> {
+    let located = q.get::<Unplaced>(space);
+    let devices = q.devices();
+    let guess = |d: Id<Device>, in_space: bool| {
+        let mount = devices
+            .get(d)
+            .and_then(|dev| primary_part(q, dev))
+            .and_then(|p| mount_kind_of(q, &p));
+        if let Some(kind) = mount.filter(mounts) {
+            return super::fit::Profile::of(&kind).is_some();
+        }
+        if in_space {
+            return true;
+        }
+        let (fns, fndefs) = (q.functions(), q.fndefs());
+        let field = q.idx().functions_of_device(d).any(|f| {
+            fns.get(f)
+                .and_then(|f| fndefs.get(f.def))
+                .is_some_and(|def| field_category(def.item.category.0.as_str()))
+        });
+        !field && !behind_terminals(q, d)
+    };
+    located
+        .iter()
+        .map(|d| (*d, guess(*d, true)))
+        .chain(unlocated(q).into_iter().map(|d| (d, guess(d, false))))
+        .collect()
+}
+
+/// Whether a function category (its first level) is equipment that stands in the field, outside a cabinet: Auto-fill
+/// rail's first guess leaves a device without a location of such a category off the rail ([`fill_candidates`]).
+fn field_category(category: &str) -> bool {
+    matches!(
+        category,
+        "SensingPosition"
+            | "SensingPressure"
+            | "SensingTemperature"
+            | "FluidSensor"
+            | "CylinderFluid"
+            | "MotorRotary"
+            | "ValveTerminal"
+            | "ValveTerminalNode"
+            | "ValveTerminalModule"
+    )
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // placement_geometry(p)
 

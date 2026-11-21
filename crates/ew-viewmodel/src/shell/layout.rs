@@ -1480,8 +1480,31 @@ impl ShellModel {
             .or_else(|| panel.carriers.iter().find(|c| c.axis.is_some()).map(|c| c.id))
     }
 
-    /// The devices Auto-fill rail fills with: the Unplaced devices navigator's marked device rows; empty for none (the
-    /// command then takes every unplaced device of the layout space that fits the rail).
+    /// The devices Auto-fill rail offers on the page shown (`Session::fill_candidates`: the cabinet's unplaced devices,
+    /// then those without a location), each with its tag and whether it starts ticked: the devices marked in Unplaced
+    /// devices where some are, else the first guess.
+    fn fill_offer(&self, panel: &PanelTables) -> Vec<(Uuid, String, bool)> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let marked = self.fill_devices();
+        project
+            .session
+            .fill_candidates(panel.surface)
+            .into_iter()
+            .map(|(d, guess)| {
+                let tag = project.session.device_tag(d).unwrap_or_default();
+                let ticked = if marked.is_empty() {
+                    guess
+                } else {
+                    marked.contains(&d)
+                };
+                (d, tag, ticked)
+            })
+            .collect()
+    }
+
+    /// The devices marked in the Unplaced devices navigator: what Auto-fill rail ticks where some are.
     fn fill_devices(&self) -> Vec<Uuid> {
         let Some(nav) = self.nav(crate::navigators::NavKind::Unplaced) else {
             return Vec::new();
@@ -1592,43 +1615,19 @@ impl ShellModel {
         }
     }
 
-    /// Why Auto-fill rail on the page shown has nothing to place, in words, with the number of devices that have no
-    /// location (what its Give-and-place button takes); `None` while devices are marked or the cabinet has unplaced
-    /// devices (a device that does not fit says so in the fill's own words).
-    pub fn fill_cause(&self) -> Option<(String, usize)> {
+    /// Why Auto-fill rail on the page shown has nothing to offer, in words; `None` while it offers a device (a device
+    /// that does not fit says so in the fill's own words).
+    pub fn fill_cause(&self) -> Option<String> {
         let panel = self.panel_tables()?;
-        if !self.fill_devices().is_empty() || !panel.unplaced.is_empty() {
+        if !self.fill_offer(&panel).is_empty() {
             return None;
         }
-        let unlocated = self.project.as_ref()?.session.unlocated_devices().len();
         let location = panel.location.as_str();
-        let text = match unlocated {
-            0 if !panel.placements.is_empty() => {
-                strings::format(key!("auto-fill-cause-all-placed"), &[location])
-            }
-            0 => strings::format(key!("auto-fill-cause-none"), &[location]),
-            1 => strings::format(key!("auto-fill-cause-unlocated-one"), &[location]),
-            n => strings::format(key!("auto-fill-cause-unlocated"), &[location, &n.to_string()]),
-        };
-        Some((text, unlocated))
-    }
-
-    /// The Auto-fill rail dialog's way out when devices have no location: its button's label and the action's
-    /// parameters (the dialog's rail and order with `locate`); `None` otherwise.
-    pub fn fill_locate_offer(&self) -> Option<(String, Value)> {
-        let (_, n) = self.fill_cause().filter(|(_, n)| *n > 0)?;
-        let location = self.panel_tables()?.location.clone();
-        let label = match n {
-            1 => strings::format(key!("auto-fill-locate-one"), &[&location]),
-            n => strings::format(key!("auto-fill-locate"), &[&n.to_string(), &location]),
-        };
-        let mut params = json!({ "locate": true });
-        if let Some(super::Dialog::Form(f)) = &self.dialog {
-            for field in &f.fields {
-                params[field.name] = Value::String(field.value.clone());
-            }
-        }
-        Some((label, params))
+        Some(if panel.placements.is_empty() {
+            strings::format(key!("auto-fill-cause-none"), &[location])
+        } else {
+            strings::format(key!("auto-fill-cause-all-placed"), &[location])
+        })
     }
 
     /// The Auto-fill rail dialog's line on the devices it fills with.
@@ -1639,13 +1638,15 @@ impl ShellModel {
         }
     }
 
-    /// `layout.auto_fill_rail {rail?, order, locate?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6): `layout.auto_fill`
-    /// of the rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or
-    /// `dt`) with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says
-    /// what it placed and what did not fit. With `locate` the devices without a location get the cabinet's first
-    /// (`fields.set` of `structure.location`, its own undo step: the dialog's Give-and-place button). In the
-    /// window without `order` the Auto-fill rail dialog opens, saying why there is nothing to place where that is so;
-    /// a refusal stays under its fields.
+    /// `layout.auto_fill_rail {rail?, order, devices?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, FT-1802):
+    /// `layout.auto_fill` of the rail (its label or ID; by default the selected rail, else the page's first) in
+    /// `order` (`schematic` or `dt`) with the devices chosen of those it offers ([`Self::fill_offer`]: the cabinet's
+    /// unplaced devices, then those without a location). `devices` are device IDs or tags, or the rows of the
+    /// window's table in its order (a ticked row's device); absent: the ticked ones (the marked devices, else the first
+    /// guess). A chosen device without a location takes the cabinet's first (`fields.set` of `structure.location`),
+    /// in the fill's undo step; a refused fill takes it back. A toast says what it placed and what did not fit. In the
+    /// window without `order` the Auto-fill rail dialog opens with the devices each with its tick, saying why there is
+    /// nothing to offer where that is so; a refusal stays under its fields.
     pub(crate) fn act_layout_auto_fill_rail(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.auto_fill_rail";
         let Some(panel) = self.panel_tables() else {
@@ -1663,6 +1664,7 @@ impl ShellModel {
             .filter(|c| c.axis.is_some())
             .map(|c| (c.id.to_string(), c.label.clone()))
             .collect();
+        let offer = self.fill_offer(&panel);
         let Some(order) = given("order") else {
             return match self.mode {
                 super::Mode::Headless => failed(key!("error-missing-param"), &["order"]),
@@ -1695,7 +1697,29 @@ impl ShellModel {
                             },
                         ],
                         error: None,
-                        table: None,
+                        // Each device it offers with its tick: the person chooses what goes on the rail.
+                        table: (!offer.is_empty()).then(|| super::FormTable {
+                            name: "devices",
+                            heading_key: key!("form-auto-fill-devices"),
+                            fixed: true,
+                            key_label: key!("form-locate-device"),
+                            add_key: key!("form-value-set-add"),
+                            columns: vec![(
+                                strings::text(key!("form-auto-fill-tick")).to_owned(),
+                                super::TICK.to_owned(),
+                            )],
+                            rows: offer
+                                .iter()
+                                .map(|(_, tag, ticked)| super::FormRow {
+                                    key: tag.clone(),
+                                    cells: vec![if *ticked {
+                                        super::TICKED.to_owned()
+                                    } else {
+                                        String::new()
+                                    }],
+                                })
+                                .collect(),
+                        }),
                     };
                     self.open_dialog(super::Dialog::Form(form))
                 }
@@ -1704,11 +1728,45 @@ impl ShellModel {
         if order != "schematic" && order != "dt" {
             return failed(key!("error-bad-param"), &["order"]);
         }
-        if super::flag(p, "locate") {
-            let out = self.locate_unlocated(&panel);
-            if out != Outcome::Done {
-                return self.layout_form_done(ACTION, out);
+        let devices: Vec<Uuid> = match p.get("devices") {
+            None | Some(Value::Null) => offer.iter().filter(|o| o.2).map(|o| o.0).collect(),
+            Some(Value::Array(items)) => {
+                let mut out = Vec::new();
+                for (i, item) in items.iter().enumerate() {
+                    match item {
+                        // A row of the window's table: its device when ticked.
+                        Value::Object(row) => {
+                            let ticked = row
+                                .get("values")
+                                .and_then(Value::as_object)
+                                .is_some_and(|v| !v.is_empty());
+                            match offer.get(i) {
+                                Some((d, ..)) if ticked => out.push(*d),
+                                Some(_) => {}
+                                None => return failed(key!("error-bad-param"), &["devices"]),
+                            }
+                        }
+                        // A device the script names by its ID or its tag, of those offered.
+                        Value::String(s) => {
+                            let s = s.trim();
+                            match offer.iter().find(|(d, tag, _)| d.to_string() == s || tag == s) {
+                                Some((d, ..)) => out.push(*d),
+                                None => {
+                                    let message = strings::format(key!("error-fill-device"), &[s]);
+                                    return self.form_failed(ACTION, message);
+                                }
+                            }
+                        }
+                        _ => return failed(key!("error-bad-param"), &["devices"]),
+                    }
+                }
+                out
             }
+            Some(_) => return failed(key!("error-bad-param"), &["devices"]),
+        };
+        if devices.is_empty() {
+            let message = strings::text(key!("reason-fill-none")).to_owned();
+            return self.form_failed(ACTION, message);
         }
         let rail = match given("rail") {
             Some(r) => rails
@@ -1730,12 +1788,44 @@ impl ShellModel {
             .iter()
             .filter(|x| x.carrier == Some(rail))
             .count();
-        let devices = self.fill_devices();
-        let mut params = json!({ "carrier": rail.to_string(), "order": order });
-        if !devices.is_empty() {
-            params["devices"] = Value::Array(devices.iter().map(|d| Value::String(d.to_string())).collect());
-        }
+        // The chosen devices without a location take the cabinet's first, in the fill's undo step.
+        let unlocated: Vec<Uuid> = self.project.as_ref().map_or_else(Vec::new, |p| {
+            let none = p.session.unlocated_devices();
+            devices.iter().copied().filter(|d| none.contains(d)).collect()
+        });
+        let location = self.project.as_ref().and_then(|p| {
+            p.session
+                .layout_locations()
+                .into_iter()
+                .find(|(_, code)| *code == panel.location)
+                .map(|(id, _)| id)
+        });
+        let located = match location {
+            Some(location) if !unlocated.is_empty() => {
+                let out = self.give_location(&unlocated, location);
+                if out != Outcome::Done {
+                    return self.layout_form_done(ACTION, out);
+                }
+                true
+            }
+            _ => false,
+        };
+        let params = json!({
+            "carrier": rail.to_string(),
+            "order": order,
+            "devices": devices.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        });
         let (out, notices) = self.host_create_noticed("layout.auto_fill", params);
+        if located {
+            // All or nothing: one undo takes back the location with the fill, and a refused fill takes it back.
+            if out == Outcome::Done {
+                if let Some(p) = &mut self.project {
+                    p.session.fold_last_step();
+                }
+            } else {
+                let _ = self.act_undo();
+            }
+        }
         if out == Outcome::Done {
             // The page's tables follow at the next frame; the session's are current.
             let after = self
@@ -1758,24 +1848,6 @@ impl ShellModel {
             self.notify(text, true);
         }
         self.layout_form_done(ACTION, out)
-    }
-
-    /// Gives every device without a location the location of the cabinet `panel` shows, one `fields.set`.
-    fn locate_unlocated(&mut self, panel: &PanelTables) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
-        let devices = project.session.unlocated_devices();
-        let location = project
-            .session
-            .layout_locations()
-            .into_iter()
-            .find(|(_, code)| *code == panel.location)
-            .map(|(id, _)| id);
-        let (false, Some(location)) = (devices.is_empty(), location) else {
-            return Outcome::Done;
-        };
-        self.give_location(&devices, location)
     }
 
     /// Whether devices drawn on the wiring pages have no location: what a layout page's Give location… offers.

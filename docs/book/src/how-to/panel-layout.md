@@ -43,11 +43,13 @@ the parts list and the enclosure legend read it from there.
    **Location…**.
 6. Drag a device from the list onto a rail, or select its row, press `Enter` and click the place. On a rail it
    snaps to its neighbour, the rail's ends or the plate grid; a device mounted by screws goes on the plate.
-7. To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ Auto-fill rail…**: it places the devices you marked in
-   the list, or every unplaced device that fits, in the order of the schematic or of their tags, and a toast says what
-   did not fit. When there is nothing to place, the dialog says why: every device is placed already, or no device
-   has the cabinet's location yet. Then **Give the … devices without a location … and place them** gives them the
-   cabinet's location (one step of Undo) and fills the rail.
+7. To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ Auto-fill rail…**: it lists the cabinet's
+   unplaced devices and the devices without a location, each with a tick. The devices you marked in the list start
+   ticked; else the cabinet's own devices and those whose part goes on a rail, while sensors, cylinders, motors and
+   valve terminals without a location start unticked. Untick what stands in the field and choose **Fill**: the ticked
+   devices are placed in the order of the schematic or of their tags, a ticked device without a location takes the
+   cabinet's (one step of Undo), and a toast says what did not fit. When there is nothing to place, the dialog says
+   why.
 
 ## Labels and the legend
 

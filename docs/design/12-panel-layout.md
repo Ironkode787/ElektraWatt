@@ -314,6 +314,11 @@ unknown footprint. Assembly children are not exempt by being children: "with its
   box-shaped: plate, with door and gland templates read but used from 1.0 (FR-LAY-003). Dimensions are never typed on
   the page; changing the part re-derives the surfaces' usable polygons and reports placements that no longer fit
   (EW-LAY-010).
+  *As built (0.3.5, FT-1899).* The enclosure device and its plate take the **numbering scheme's tags, not frozen
+  ones**: the enclosure letter `UC` with the lowest counter no `UC` tag holds, its tag printing no page since no page
+  draws it (as a cable without a drawing, [03](03-domain-model.md) §8.2), so `-UC1`; the plate its child `U1`
+  (`-UC1-U1`). A frozen tag is a person's or an import's fixed text, which EW-NUM-001 lists as deviating; one the
+  program chose itself made the check report both right after Enclosure…. An older project keeps its frozen tags.
 - **Families.** Schneider Thalassa PLA polyester wall enclosures (NSYPLA1074G with NSYPMM107, folio 902) have no
   system punching: rails and ducts are screwed to the plate, which creates fixing features (§10). Rittal AX compact
   enclosures behave the same way. Rittal VX25 frame enclosures add a punching lattice (25 mm pitch *(unverified)*)
@@ -370,6 +375,18 @@ snap_on_rail(rail, device, cursor, mode):
 - **Bulk placement** (FR-LAY-016). `AutoFillRail{rail, devices, order: Dt | SchematicPosition}` fills greedily from
   the left with clearance gaps and stops at the rail end, listing what did not fit. Schematic order is (page order,
   row, column) of each device's main representation.
+  *As built (0.3.5, FT-1802).* **The person chooses the devices.** Auto-fill rail… (`layout.auto_fill_rail`) offers
+  the cabinet's unplaced devices, then the devices without a location, each a row with a tick; Fill places the ticked
+  ones, and a ticked device without a location takes the cabinet's location in the same undo step (a refused fill
+  takes it back). The devices marked in Unplaced devices start ticked; without marks the **first guess** reads only
+  what the model already holds of a device, first match wins: (1) its primary part's mount kind: a rail profile is
+  ticked, any other kind (screwed, in the door, on a busbar) is not; (2) it has the cabinet's location: ticked; (3) a
+  function whose FnDef category is field equipment (`SensingPosition`, `SensingPressure`, `SensingTemperature`,
+  `FluidSensor`, `CylinderFluid`, `MotorRotary`, `ValveTerminal`, `ValveTerminalNode`, `ValveTerminalModule`), or it
+  stands behind terminals in the field (every wire from it ends at a terminal's field side, as Give location reads
+  it): unticked; (4) otherwise ticked. No data is added to a device. A script names the devices (`devices`: IDs or
+  tags of those offered; another is refused in words) or, leaving them out, takes the guess. The dialog's former
+  button that gave every device without a location the cabinet's and placed them all, field devices too, is gone.
 
 ### 3.4 Strips, assemblies and group accessories
 

@@ -445,7 +445,9 @@ fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
         "the title"
     );
     assert!(
-        h.query_all_by_label("Fills with every unplaced device that fits the rail.")
+        h.query_all_by_label(ew_viewmodel::strings::text(ew_viewmodel::key!(
+            "auto-fill-devices-all"
+        )))
             .next()
             .is_some(),
         "the devices' line"

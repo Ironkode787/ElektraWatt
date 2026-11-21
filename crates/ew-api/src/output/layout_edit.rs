@@ -933,13 +933,12 @@ pub(crate) fn centred_datum(
 ) -> Option<(i64, i64)> {
     q.pages().get(page)?;
     let s = q.table::<MountingSurface>().get(surface)?;
-    // The drawing area's centre on the page (the frame's geometry is on the sheet).
+    // The drawing area's centre on the page: the frame's geometry is in page coordinates already (FT-1768).
     let (area, map) = drawing_area(q, page)?;
-    let mid_sheet = ew_derive::ew_units::Pt2::new(
+    let mid = ew_derive::ew_units::Pt2::new(
         ew_derive::ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
         ew_derive::ew_units::Nm((area.min().y.0 + area.max().y.0) / 2),
     );
-    let mid = map.unapply(mid_sheet);
     // The enclosure's rectangle in the surface's frame: its corner at minus the frame's offset (D5's MVP frames).
     let enclosure = q
         .table::<Enclosure>()
@@ -1526,6 +1525,24 @@ impl Session {
             .into_iter()
             .map(|(d, field)| (d.as_uuid(), field))
             .collect()
+    }
+
+    /// The devices Auto-fill rail offers for a rail of the mounting surface `surface`, each with its first guess of
+    /// whether it goes on the rail (`ew_derive::layout::fill_candidates`): its layout space's unplaced devices, then
+    /// the devices without a location. Empty for a surface the project does not hold.
+    pub fn fill_candidates(&self, surface: Uuid) -> Vec<(Uuid, bool)> {
+        let q = self.query();
+        let space = q
+            .table::<MountingSurface>()
+            .get(Id::from_uuid(surface))
+            .and_then(|s| q.table::<Enclosure>().get(s.enclosure))
+            .map(|e| e.space);
+        space.map_or_else(Vec::new, |space| {
+            ew_derive::layout::fill_candidates(&q, space)
+                .into_iter()
+                .map(|(d, guess)| (d.as_uuid(), guess))
+                .collect()
+        })
     }
 
     /// Whether giving `device` the location node `location` makes its tags print that location on a page that draws

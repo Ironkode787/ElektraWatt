@@ -606,7 +606,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
         ),
         (
             "Auto-fill rail",
-            vec!["Fills with the 4 devices marked in Unplaced devices.".to_owned()],
+            vec!["Ticked: the 4 devices marked in Unplaced devices.".to_owned()],
             "Fill"
         )
     );
@@ -653,59 +653,6 @@ fn unplace(s: &mut ShellModel, tags: &[&str]) {
             json!({"cmd": "layout.remove", "params": {"placement": p.to_string()}}),
         );
     }
-}
-
-/// "Nothing was placed on rail 1: no device to place" must say why. On 902 with the unplaced devices' location taken
-/// away, Auto-fill rail's dialog says that no device has the
-/// cabinet's location and how many have none, and its button gives them the cabinet's location (one undo step) and
-/// fills the rail.
-#[test]
-fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
-    let tmp = Tmp::new("fill-why");
-    let mut s = tmp.sample_in(Mode::Gui, true, "902");
-    unplace(&mut s, &["-104E1", "-104E2"]);
-    let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
-    assert!(!unplaced.is_empty());
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": unplaced,
-            "path": "structure.location", "value": "none"}}),
-    );
-    assert!(panel(&s).unplaced.is_empty());
-    done(&mut s, "layout.auto_fill_rail", json!({}));
-    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
-    let n = unplaced.len();
-    let why = format!("No device has this cabinet's location +CAB yet: {n} devices have no location.");
-    assert_eq!(
-        spec.body,
-        [
-            "Fills with every unplaced device that fits the rail.".to_owned(),
-            why
-        ]
-    );
-    let give = format!("Give the {n} devices without a location +CAB and place them");
-    let button = spec
-        .secondary
-        .iter()
-        .find(|b| b.label == give)
-        .unwrap_or_else(|| panic!("{:?}", spec.secondary))
-        .clone();
-    let ew_viewmodel::dialogs::DialogAnswer::Action(action, params) = button.answer else {
-        panic!("{:?}", button.answer)
-    };
-    let before = panel(&s).placements.len();
-    assert_eq!(s.dispatch(action, &params), Outcome::Done);
-    assert!(s.dialog().is_none(), "the dialog closes");
-    let t = panel(&s);
-    assert!(t.placements.len() > before, "the fill placed devices");
-    assert!(
-        s.recorded_commands()
-            .iter()
-            .any(|c| c.cmd == "fields.set" && c.params["path"] == "structure.location"),
-        "the location in one step"
-    );
-    s.shutdown();
 }
 
 /// Fifteen devices need not be given their cabinet one by one: a click on the group "(none)" must do something.
@@ -1212,7 +1159,7 @@ fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
     assert_eq!(message, "The page has no rail; draw one first.");
     done(&mut s, "layout.auto_fill_rail", json!({}));
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
-    assert_eq!(spec.body, ["Fills with the device marked in Unplaced devices."]);
+    assert_eq!(spec.body, ["Ticked: the device marked in Unplaced devices."]);
     assert_eq!(s.submit_form(), Outcome::Done);
     let toast = s
         .notifications()
