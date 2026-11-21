@@ -32,7 +32,8 @@ impl Normaliser for BoundTexts {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         // Each moved representation: its ID, its displacement, its page before and now.
-        let mut moved: Vec<(Id<Representation>, Pt2, Id<Page>, Id<Page>)> = Vec::new();
+        type Moved = (Id<Representation>, Pt2, Id<Page>, Id<Page>);
+        let mut moved: Vec<Moved> = Vec::new();
         let mut touched: BTreeSet<Id<PageItem>> = BTreeSet::new();
         for key in tx.changed_keys() {
             match key.0 {

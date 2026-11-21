@@ -838,21 +838,24 @@ fn like_rows(ground: &Ground<'_>, units: &[Unit]) -> Vec<Vec<usize>> {
         .collect()
 }
 
+/// What the choice writes as it places units: each unit's place (its box, its place down its list, turned), the
+/// buckets of the placed boxes, and each unit's list.
+type Placing<'s> = (
+    &'s mut [Option<(Rect, u32, bool)>],
+    &'s mut Buckets,
+    &'s mut [Vec<(Rect, bool)>],
+);
+
 /// The row rule (module documentation): the units of `row` take the first place, the same number down each one's list,
 /// at which every one of them is clear, each tried against the ones before it. `false`, with nothing placed, where
 /// their lists are not alike (a wire leaves one of them upward) or no place is clear for all: then each is placed on
 /// its own.
-#[allow(clippy::type_complexity)]
 fn place_row(
     ground: &Ground<'_>,
     units: &[Unit],
     row: &[usize],
     (firsts, numbers): (&Buckets, &[(Rect, bool, Seg)]),
-    (placed, grid, lists): &mut (
-        &mut [Option<(Rect, u32, bool)>],
-        &mut Buckets,
-        &mut [Vec<(Rect, bool)>],
-    ),
+    (placed, grid, lists): &mut Placing<'_>,
 ) -> bool {
     let row_lists: Vec<Vec<(Rect, bool)>> = row
         .iter()
