@@ -208,8 +208,9 @@ fn a_cross_reference_is_centred_under_its_label_text() {
         };
         for o in &rep.text_slots {
             let slot = &symbol.text_slots[usize::from(o.slot)];
-            // A report's cross-reference stands where its label text stands, aligned as that text.
-            if slot.kind == SlotKind::Xref && slot.align != Align::MiddleLeft {
+            // A report's cross-reference stands where its label text stands, aligned as that text (an element's
+            // own texts stand on their baseline, doc 09 §4.8).
+            if slot.kind == SlotKind::Xref && slot.align != Align::BaselineLeft {
                 assert_eq!(slot.align, Align::TopCentre);
                 centred.extend(o.pos.map(|p| p.x.0));
             }

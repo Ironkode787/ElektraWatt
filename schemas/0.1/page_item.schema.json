@@ -21,6 +21,17 @@
           ],
           "description": "The horizontal alignment at `at`; absent: left."
         },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where `at` lies on the text vertically (doc 09 §4.8); absent: its middle (since 0.3.5; an older build prints\nevery text by its middle)."
+        },
         "angle": {
           "$ref": "#/$defs/Angle2",
           "description": "The angle; default 0."
@@ -594,6 +605,21 @@
         {
           "const": "right",
           "description": "The text ends at the point.",
+          "type": "string"
+        }
+      ]
+    },
+    "TextAnchor": {
+      "description": "Where a free text's point lies on it vertically (doc 09 §4.8).",
+      "oneOf": [
+        {
+          "const": "middle",
+          "description": "The text is centred from its first line's cap height to its last baseline on the point (what absent means).",
+          "type": "string"
+        },
+        {
+          "const": "baseline",
+          "description": "The first line's baseline lies on the point; more lines go down from it.",
           "type": "string"
         }
       ]

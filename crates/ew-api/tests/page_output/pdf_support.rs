@@ -42,7 +42,7 @@ pub fn pdf_options(q: &Q) -> PdfOptions {
 
 /// The SVG options of the export: the shipped job's.
 pub fn svg_options() -> SvgOptions {
-    output::svg_options(false)
+    output::svg_options(ew_text::bundled(), false)
 }
 
 /// The text of a PDF's structure over `pages` (its pages, labels, outline and fonts), as JSON.

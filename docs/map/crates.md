@@ -132,6 +132,7 @@ The `Session` facade shared by every front-end.
 | `src/output/table_edit.rs` |  | Table mode's pure rule (doc 16 §7.1, §7.2; moved down from the view model), so that the grid and the table round trip produce the same command for the same cells. |
 | `src/output/table_io.rs` | large | The table round trip (D8, D9, D11): a navigator table as a [`Table`] ([`Session::table_export`]), and a round-trip file read back against the project's table of the same key ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into one `fields.set_many` ([`Session::apply_table_import`]). |
 | `src/output/title_block_fields.rs` |  | What the window's Title block fields form reads of a page (FT-1686): the placeholder paths the page's frame and title-block forms print, in the order of their cells, each with its text now; and where those values live (the project's ID, whether the page overrides the project's description, the open revision, the parties). |
+| `src/output/typeface.rs` |  | The project's typeface (doc 09 §4.8): the font set every page layer, the panel labels and the export shape the project's texts with ([`ProjectFontsQ`], [`fonts`]), and the fonts the writers and renderers draw them with ([`DrawingFonts`]). |
 | `src/output/underlay.rs` |  | Underlays (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a DXF drawing placed under a page by an import (`import.apply` of one `underlay` page item), and drawn by the export job when its options ask for them: the window's canvas always, an export only when the user prints underlays. |
 | `src/output/view.rs` | large | The glue rules of the page view (doc 09 §4.1): the parts of an [`ew_scene::page::PageView`] filled from the tracked read context `Q`. |
 | `src/part_box.rs` |  | The device box of a part (doc 07 §2.5, "The device box"): the pins a part of one's own has and where they stand on the box a device of it is drawn as. |
@@ -269,6 +270,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/structure_box.rs` |  | `box.structure` (`CreateStructureBox`, FR-PRJ-020): a dotted or dash-dot box that assigns a structure to the representations it encloses, and the checks `fields.set` repeats after it writes a box. |
 | `src/commands/supply.rs` |  | `project.supply.set` (`SetProjectSupply`): one member of the project's supply (doc 03 §5). |
 | `src/commands/terminal.rs` | large | Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `terminal.insert`, `terminal.move`, `cable.create`, `conductor.add`. |
+| `src/commands/typeface.rs` |  | `project.typeface.set` (`SetTypeface`): the project's typeface (doc 09 §4.8), a font file of the user's that every text of the Standard typeface prints in, held as a project asset (`assets/<sha256>.ttf` or `.otf`, doc 05 §13.3). |
 | `src/derived.rs` |  | The derived consequences of a transaction (doc 03 §8.6 "diff_query", doc 17 §3.5 `--preview`), v0 subset: the printed device tags and the cross-reference texts. |
 | `src/diff.rs` |  | The entity and field changes of a transaction (ADR-0008, ARCH §5.4), for previews and the history panel. |
 | `src/engine.rs` |  | The commit pipeline (ARCH §5.2), undo and redo (§5.3) and previews (§5.4): the engine behind `ew_api::Session`. |
@@ -426,7 +428,7 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/dxf.rs` |  | The DXF writer (doc 09 §4.4, FR-OUT-015): one AutoCAD 2000 (AC1015) ASCII file per page from the page's sheet layers, in millimetres (`$INSUNITS` 4), y up from the sheet's bottom edge. |
+| `src/dxf.rs` | large | The DXF writer (doc 09 §4.4, FR-OUT-015): one AutoCAD 2000 (AC1015) ASCII file per page from the page's sheet layers, in millimetres (`$INSUNITS` 4), y up from the sheet's bottom edge. |
 | `src/font_subset.rs` |  | The font subsetter of the SVG writer: a TrueType (`glyf`) face cut down to the glyphs a page draws, **with the glyph IDs kept** (doc 09 §4.4; FR-OUT-013). |
 | `src/lib.rs` |  | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PNG export. |
 | `src/parallel.rs` |  | The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07, AC-14). |
@@ -873,7 +875,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | File | Size | What it holds |
 |---|---|---|
 | `src/anchor.rs` |  | The cross-reference anchor of a symbol in its own frame (FR-SYM-010, FR-XRF-005, D-14; doc 06 §5.1). |
-| `src/asset.rs` | large | Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), and the embedded sources of underlays (a PDF or a DXF the user embedded, WP-S3.19), which no image gate takes ([`pixel_limit`]). |
+| `src/asset.rs` | large | Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), the embedded sources of underlays (a PDF or a DXF the user embedded, WP-S3.19) and the project's typeface (a TrueType or OpenType file, doc 09 §4.8), which no image gate takes ([`pixel_limit`]). |
 | `src/asset/work.rs` |  | The arithmetic of the two work bounds of [`super::svg_hazard`] (FT-470, FT-471; doc 18 §11.1 TM-18): upper bounds of what usvg 0.48.1 (with svgtypes 0.16.1, kurbo 0.13.1, simplecss 0.2.2 and roxmltree 0.21.1) does with an admitted document, computed from the raw text without parsing it the way usvg does. |
 | `src/asset/work/tests.rs` |  | FT-470 and FT-471: the work bounds' arithmetic, hostile documents generated here (no committed binaries), and the real-exporter corpus kept under the limits. |
 | `src/bus.rs` |  | The bus model (doc 03 §14, doc 10 §2.7; WP-S1.21 D11): the `BusPort` aspect of a function and the record kinds `logical_net` (rank 12) and `physical_net` (13) in `project.jsonl`. |
@@ -986,7 +988,7 @@ Fonts and shaping: one text stack for screen, pagination and paper (ADR-0015 dec
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/fonts.rs` |  | The font set: bundled font files only, each identified by its SHA-256 ([`FontKey`]). |
+| `src/fonts.rs` |  | The font set: the bundled font files and a project's typeface (doc 09 §4.8), each identified by its SHA-256 ([`FontKey`]). |
 | `src/lib.rs` |  | Fonts and shaping: one text stack for screen, pagination and paper (ADR-0015 decision 4, ARCH §8.3). |
 | `src/shape.rs` |  | Shaping: a string and a [`TextStyle`] to a [`ShapedRun`] in integer nanometres. |
 | `src/style.rs` |  | The built-in text-style table of doc 20 §17.5: style key → QET px → native pt → em height in nm. |

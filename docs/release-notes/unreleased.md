@@ -69,3 +69,27 @@ change here.
 - behaviour-change: `library.embed` and `report_block.create` take a frame or title-block form of the project's own,
   and a report block's form is set with `fields.set` path `form` (its Form row in Properties) to a form the project
   holds (FT-1859)
+- api-add: a project prints in a typeface of its own: Project ▸ Text styles… ▸ Choose a font file…
+  (`text_styles.typeface`; the command `project.typeface.set {file, name}`) takes a TrueType or OpenType file of at
+  most 768 KiB into the project, and every text of the Standard typeface prints in it in the PDF, the SVG, the PNG,
+  the print and on screen; the DXF names the file in its text style; **Use Noto Sans** takes it back. A font whose
+  licence forbids embedding is refused (doc 09 §4.8, FT-1872)
+- api-add: a free text can stand on its baseline (`anchor: baseline`, `item.place`'s `anchor`), and a symbol's text
+  has the alignments `baseline_left`, `baseline_centre` and `baseline_right` (the symbol editor's *On the baseline*),
+  so a text keeps its place in any typeface; a project without them prints as before
+- behaviour-change: the QElectroTech import stands a page's free texts and an element's texts on QET's own baseline,
+  so they lie where QET's own PDF has them in any typeface (an element's static text stood a descent lower in a face
+  other than Noto Sans)
+- behaviour-change: the DXF export writes a text as high as the capitals of its own face: a Technical drawing text is
+  0.719 of its em high (it was 0.714, Noto Sans's); the other bundled faces are unchanged
+- dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
+  in the graph
+- format-variant: form Align baseline_centre
+- format-variant: form Align baseline_left
+- format-variant: form Align baseline_right
+- format-variant: representation Align baseline_centre
+- format-variant: representation Align baseline_left
+- format-variant: representation Align baseline_right
+- format-variant: symbol Align baseline_centre
+- format-variant: symbol Align baseline_left
+- format-variant: symbol Align baseline_right

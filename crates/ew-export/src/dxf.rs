@@ -952,6 +952,57 @@ mod tests {
         assert_eq!(mm(297_000_000), "297");
     }
 
+    /// Each face's style names its font file, and a text is as high as that face's capitals; a face without an entry
+    /// is Noto Sans Regular, 714 of 1000 units high (doc 09 §4.8).
+    #[test]
+    fn a_text_is_as_high_as_its_faces_capitals_in_a_style_that_names_its_file() {
+        let key = |b: u8| FontKey {
+            sha256: [b; 32],
+            face_index: 0,
+        };
+        let run = |font: FontKey, x: i64| {
+            Item::glyphs(Arc::new(ew_dl::ShapedRun {
+                font,
+                size: Nm(1_024_000),
+                origin: Pt2::new(Nm(x), Nm(50_000_000)),
+                transform: Transform::IDENTITY,
+                glyphs: Vec::new(),
+                text: "K1".to_owned(),
+                brush: Brush::BLACK,
+                layout_box: ew_dl::ew_units::Rect::from_point(Pt2::ORIGIN),
+            }))
+        };
+        let sheet = DxfSheet {
+            label: "1".to_owned(),
+            width: Nm(420_000_000),
+            height: Nm(297_000_000),
+            layers: vec![(
+                Layer::Labels,
+                DisplayList {
+                    items: vec![run(key(1), 10_000_000), run(key(2), 20_000_000)],
+                },
+            )],
+            geometry: BTreeMap::new(),
+            scale_ppb: 1_000_000_000,
+        };
+        let options = DxfOptions {
+            faces: BTreeMap::from([(
+                key(1),
+                DxfFace {
+                    family: "Routed Gothic".to_owned(),
+                    bold: false,
+                    file: "routed-gothic.ttf".to_owned(),
+                    cap: (736, 1024),
+                },
+            )]),
+            ..DxfOptions::default()
+        };
+        let text = &dxf(&[sheet], &options)[0].text;
+        assert!(text.contains("  2\nEW-ROUTED-GOTHIC\n") && text.contains("  3\nrouted-gothic.ttf\n"));
+        assert!(text.contains(" 40\n0.736\n  1\nK1\n 50\n0\n  7\nEW-ROUTED-GOTHIC\n"), "{text}");
+        assert!(text.contains(" 40\n0.731136\n  1\nK1\n 50\n0\n  7\nEW-NOTO-SANS\n"), "{text}");
+    }
+
     #[test]
     fn text_outside_ascii_is_escaped() {
         // A reader decodes the file in the code page it assumes: Windows-1252 for an AC1015 file, whatever bytes a

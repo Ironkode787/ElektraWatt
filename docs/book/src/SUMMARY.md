@@ -142,6 +142,7 @@
     - [`project.languages.set`](reference/commands/project.languages.set.md)
     - [`project.settings.set`](reference/commands/project.settings.set.md)
     - [`project.supply.set`](reference/commands/project.supply.set.md)
+    - [`project.typeface.set`](reference/commands/project.typeface.set.md)
     - [`rep.exchange_symbol`](reference/commands/rep.exchange_symbol.md)
     - [`rep.join_device`](reference/commands/rep.join_device.md)
     - [`rep.move`](reference/commands/rep.move.md)

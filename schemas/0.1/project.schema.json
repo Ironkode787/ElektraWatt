@@ -612,6 +612,17 @@
           },
           "description": "The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the\ntable takes the entry's size and weight, any other key adds a style. Absent is the built-in table.",
           "type": "object"
+        },
+        "typeface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypefaceFile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The project's typeface (doc 09 §4.8): the font file every text of the Standard typeface prints in; absent:\nthe bundled Noto Sans. Optional and additive within format 0.1 (since 0.3.5; an older build keeps it in\n`extra` and prints with the bundled faces)."
         }
       },
       "type": "object"
@@ -634,6 +645,11 @@
         "unit"
       ],
       "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
     },
     "SourceRef": {
       "additionalProperties": true,
@@ -994,6 +1010,25 @@
           "type": "string"
         }
       ]
+    },
+    "TypefaceFile": {
+      "additionalProperties": true,
+      "description": "A font file of the user's that the project holds (doc 09 §4.8): the asset `assets/<sha256>.ttf` or `.otf` and the\nfile's name as the person chose it.",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The asset: the font file's SHA-256."
+        },
+        "name": {
+          "description": "The file's name without its folder (`LiberationSans-Regular.ttf`): what the window shows and what a DXF's text\nstyle names.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset",
+        "name"
+      ],
+      "type": "object"
     },
     "Unit": {
       "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",
