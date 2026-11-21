@@ -78,6 +78,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-1810 `ew-ui`: The symbol editor's start card gets a "Carry on with…" row on top after a save, which moves every entry down; Copy a library symbol is one long list without order or preview; the pin list of a device box sorts itself again after an edge is changed.
 - FT-1830 `ew-viewmodel, ew-ui`: A person who expects the mouse wheel to pan meets a wheel that zooms; View ▸ Mouse wheel scrolls makes it pan, but only the zoom's tooltip says so. Offer the choice where the zoom is first met, and give the page scroll bars.
 - FT-1845 `ew-viewmodel, ew-ui`: A part search for "sensor" finds nothing, "normally open contact" ranks the contactor first, and the first row is selected before the person chose it, so Enter takes it. Search by what a part is for as well as by its words, and preselect nothing.
+- FT-1965 `ew-viewmodel, ew-ui`: A form table that adds rows names its cells and remove buttons for a screen reader as value sets ("`<column>`, value set 2", "Remove value set 6"), Copy pages…'s rename table too (`value_table.rs`); name them by the table's own row word, as its add button is named since FT-1862.
 
 #### Properties and the title block's words
 
