@@ -32,6 +32,8 @@ change here.
 - text-change: the example keys of `ew queries` and the guide's query reference name records of the new sample
   project (`-104A1-A2`, `-201K1-Q2`, `-X1011:L1`, `-102Q1` and two of its IDs), as the reference project's records
   are gone; every example answers on the sample
+- text-change: the company-standard wizard's `report_blocks` value `golden` is `standard` (every list and overview,
+  the default); a script that sets `golden` is refused and must set `standard`; there is no alias
 - behaviour-change: File ▸ Open sample project and Help ▸ Tutorials open the new sample project, a smaller control
   cabinet the program draws itself from its own script; the release ships it as `samples/sample.ew` in place of
   `samples/J-E-2416.ew`

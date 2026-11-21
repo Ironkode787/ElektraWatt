@@ -3,12 +3,12 @@
 
 //! The two profiles of the sample project's company convention, as JSON text: the colour
 //! profile "DBU/WH 24 V" and the size profile "0.75/1.5". They are the values of the members `colour_profile` and
-//! `size_profile` of `golden/J-E-2416.ew/project.jsonl` (the CC0 sample project, NFR-DOC-04), compact and with
+//! `size_profile` of `fixtures/sample/sample.ew/project.jsonl` (the CC0 sample project, NFR-DOC-04), compact and with
 //! sorted keys, compiled in from `content/profiles/colour/company.dbu-wh-24v.json` and
 //! `content/profiles/size/company.0.75-1.5.json`. The company-standard wizard starts from them (doc 16 section 9.2, steps 3 and 4), and with its
 //! defaults reproduces the sample project's settings, which a test checks against the sample project itself.
 //!
-//! Beside them, the content the wizard ships, compiled in from `content/`: the frame and title-block forms (step 2), the colour profiles "EN 60204-1 machine" and "IEC 60445 installation" (step 3) and the golden
+//! Beside them, the content the wizard ships, compiled in from `content/`: the frame and title-block forms (step 2), the colour profiles "EN 60204-1 machine" and "IEC 60445 installation" (step 3) and the standard
 //! layout of the report blocks (step 9).
 
 /// The colour profile "DBU/WH 24 V" (IEC 60757 codes with the company code DBU; basis: company convention).
@@ -38,12 +38,12 @@ pub const SHIPPED_COLOUR_PROFILES: [(&str, &str); 2] = [
     ),
 ];
 
-/// The golden layout of the report blocks (doc 16 section 9.2, step 9): report kind, first folio and page
+/// The standard layout of the report blocks (doc 16 section 9.2, step 9): report kind, first folio and page
 /// title. The sample project's blocks are these, on the shipped frame without the grid; its three terminal-diagram
 /// blocks 903 to 905 select one strip each, which a basic project has none of, so the basic project holds one
 /// terminal-diagram block at 903 over every strip (its pages continue as 903.1, 903.2), and the titles that name
 /// the strip or the device of a selection (`{strip}`, `{device}`) count pages instead (`{n}`).
-pub const GOLDEN_REPORT_LAYOUT: [(&str, u32, &str); 9] = [
+pub const STANDARD_REPORT_LAYOUT: [(&str, u32, &str); 9] = [
     ("toc", 2, "Table of Contents {n}"),
     ("parts_summary", 901, "Partlist {n}"),
     ("terminal_diagram", 903, "Terminal Diagram {n}"),

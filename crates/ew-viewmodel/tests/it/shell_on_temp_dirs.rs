@@ -1870,7 +1870,7 @@ fn logo_of(dir: &Path) -> Option<([u8; 32], Value)> {
 }
 
 /// The wizard writes the logo as a project asset that the title block draws, the shipped EN 60204-1
-/// colour profile, and the report blocks of the golden layout, whose folios render through the page output; the
+/// colour profile, and the report blocks of the standard layout, whose folios render through the page output; the
 /// preview shows the logo on the sample's cover; a project made from the basic project carries the asset; the review
 /// says `written` for every field but the check scheme.
 #[test]
@@ -1934,7 +1934,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     let project = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
     assert!(project.contains("\"key\":\"ew.en60204-1-machine\""), "{project}");
     assert!(project.contains("\"verified\":false"), "{project}");
-    // The report blocks of the golden layout, on the embedded no-grid frame.
+    // The report blocks of the standard layout, on the embedded no-grid frame.
     let blocks = std::fs::read_to_string(basic.join("report-blocks.jsonl")).unwrap();
     assert_eq!(blocks.lines().count(), 9, "{blocks}");
     for kind in ["toc", "parts_summary", "terminal_diagram", "revision_overview"] {

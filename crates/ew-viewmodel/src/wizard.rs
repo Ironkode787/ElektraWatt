@@ -10,14 +10,14 @@
 //! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
 //! shipped EN 60204-1 and IEC 60445 profiles), the size profile, the numbering schemes and the
 //! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
-//! the structure nodes, the sections, the report blocks of the golden layout (`report_block.create`, each
+//! the structure nodes, the sections, the report blocks of the standard layout (`report_block.create`, each
 //! with its form from the library) and the first revision. The check level is validated in the draft and written by
 //! Create in the window: its command, `project.checks.set`, is `HumanOnly` (ADR-0008 amendment 3: it decides a check
 //! outcome), so it is no model command of the draft's script, and a template a script makes keeps it out. A field's
 //! [`FieldMeta::written`] says which kind it is.
 //!
 //! **Defaults are the sample project's conventions.** The draft's defaults reproduce the settings of the CC0
-//! sample project (`golden/J-E-2416.ew`): the numbering `{page}{letter}{counter}` with the strip rule
+//! sample project (`fixtures/sample/sample.ew`): the numbering `{page}{letter}{counter}` with the strip rule
 //! `{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
 //! cross-reference format, the structure `=P01` and the sections 1, 2 and 9. A test checks that the settings
 //! commands of the defaults leave the sample project unchanged.
@@ -35,7 +35,7 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::wizard_data::{
-    COLOUR_PROFILE_SAMPLE, GOLDEN_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES,
+    COLOUR_PROFILE_SAMPLE, STANDARD_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES,
     SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
 };
 
@@ -399,8 +399,8 @@ pub static FIELDS: &[FieldMeta] = &[
         Step::Reports,
         "report_blocks",
         key!("wizard-field-report-blocks"),
-        Choice(&["golden", "none"]),
-        "golden",
+        Choice(&["standard", "none"]),
+        "standard",
         true,
     ),
     field(
@@ -856,7 +856,7 @@ impl Draft {
 
     /// The commands the live preview applies to the sample project, in order: the company (the logo included), the
     /// frame defaults, the settings, and the languages and formats. The sample project holds the shipped forms and
-    /// the golden report blocks already, so the preview embeds nothing and adds no block.
+    /// the standard layout's report blocks already, so the preview embeds nothing and adds no block.
     pub fn preview_commands(&self) -> Vec<(&'static str, Value)> {
         self.preview_commands_with(self.company_command())
     }
@@ -870,12 +870,12 @@ impl Draft {
         out
     }
 
-    /// The report blocks of the golden layout ([`GOLDEN_REPORT_LAYOUT`]) when the `report_blocks` field says so:
+    /// The report blocks of the standard layout ([`STANDARD_REPORT_LAYOUT`]) when the `report_blocks` field says so:
     /// one `report_block.create` per block, on the shipped frame without the grid, with that form and the title
     /// block it names as `form_copies` (the form comes from the library with the block), in the section
     /// whose folio range holds the block's first folio (a `{"ref": "section:<n>"}`), else in none.
     fn report_commands(&self, sections: &[SectionRow]) -> Vec<(&'static str, Value)> {
-        if self.get("report_blocks") != "golden" {
+        if self.get("report_blocks") != "standard" {
             return Vec::new();
         }
         let copies: Vec<Value> = [NOGRID_FRAME, TITLE_BLOCK]
@@ -885,7 +885,7 @@ impl Draft {
         let Some(form) = shipped_form_id(NOGRID_FRAME) else {
             return Vec::new();
         };
-        GOLDEN_REPORT_LAYOUT
+        STANDARD_REPORT_LAYOUT
             .iter()
             .map(|(kind, folio, title)| {
                 let mut params = json!({
@@ -1248,8 +1248,8 @@ impl Draft {
                 return out;
             }
         };
-        let reports: &[(&str, u32, &str)] = if self.get("report_blocks") == "golden" {
-            &GOLDEN_REPORT_LAYOUT
+        let reports: &[(&str, u32, &str)] = if self.get("report_blocks") == "standard" {
+            &STANDARD_REPORT_LAYOUT
         } else {
             &[]
         };
@@ -1290,8 +1290,8 @@ impl Draft {
     /// The reports step's example: each report with its page and what it lists, then the chosen check level and what it
     /// stops.
     fn reports_example(&self) -> Vec<String> {
-        let mut out: Vec<String> = if self.get("report_blocks") == "golden" {
-            GOLDEN_REPORT_LAYOUT
+        let mut out: Vec<String> = if self.get("report_blocks") == "standard" {
+            STANDARD_REPORT_LAYOUT
                 .iter()
                 .map(|(kind, folio, _)| {
                     strings::format(
@@ -1602,7 +1602,7 @@ mod tests {
             assert!(strings::lookup(s.hint_key().as_str()).is_some());
             assert!(strings::lookup(s.later_key().as_str()).is_some());
         }
-        for (kind, _, _) in GOLDEN_REPORT_LAYOUT {
+        for (kind, _, _) in STANDARD_REPORT_LAYOUT {
             assert!(
                 strings::lookup(&format!("wizard-report-{kind}")).is_some(),
                 "{kind}"
@@ -1786,7 +1786,7 @@ mod tests {
                 "revision.create"
             ]
         );
-        // The golden layout, each block with its form and the title block it names from the library.
+        // The standard layout, each block with its form and the title block it names from the library.
         let blocks: Vec<&Value> = cmds
             .iter()
             .filter(|(n, _)| *n == "report_block.create")

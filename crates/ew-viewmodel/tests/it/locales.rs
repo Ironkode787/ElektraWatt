@@ -427,7 +427,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("layout-too-many", "layout", "the window's layout (indeling)"),
     ("keymap-ctrl-alt", "layout", "a keyboard layout (indeling)"),
     (
-        "choice-report_blocks-golden",
+        "choice-report_blocks-standard",
         "layout",
         "the report pages' layout (indeling)",
     ),
