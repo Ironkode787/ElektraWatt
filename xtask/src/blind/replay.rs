@@ -458,12 +458,6 @@ pub fn bless(root: &Path, run: &Run, name: &str, replay: &str) -> Result<PathBuf
         bail!("--replay is check, deep or none");
     }
     let rj = run.load()?;
-    if rj.golden_changed {
-        bail!(
-            "run `{}`: golden/ changed during the run (D16); it is not blessed",
-            rj.run
-        );
-    }
     if matches!(rj.end.as_deref(), Some("lost" | "diverged")) {
         bail!(
             "run `{}` ended `{}`: it is not blessed",
@@ -549,7 +543,7 @@ pub fn bless(root: &Path, run: &Run, name: &str, replay: &str) -> Result<PathBuf
 }
 
 /// The `run.json` a recording keeps of the run `rj`, blessed with `replay`: not stale. A self-test recording keeps no
-/// digests (no `files`, no `golden`): its replay (R1, R2) is the evidence, and the digests of the
+/// digests (no `files`): its replay (R1, R2) is the evidence, and the digests of the
 /// reference and task files, which many changes re-bless, only made merge conflicts. A persona or check recording
 /// keeps both: they mark a recording made under older references.
 fn recorded_run_json(rj: &RunJson, replay: &str) -> RunJson {
@@ -558,7 +552,6 @@ fn recorded_run_json(rj: &RunJson, replay: &str) -> RunJson {
     recorded.stale = None;
     if is_selftest(&rj.task) {
         recorded.files.clear();
-        recorded.golden.clear();
     }
     recorded
 }
@@ -699,19 +692,16 @@ mod tests {
             "tools/blind/reference/actions.txt".to_owned(),
             "ab".to_owned(),
         )]);
-        rj.golden = "cd".to_owned();
         rj.stale = Some("old".to_owned());
         for task in ["selftest", "selftest-visual"] {
             rj.task = task.to_owned();
             let recorded = recorded_run_json(&rj, "check");
             assert_eq!((recorded.replay.as_str(), &recorded.stale), ("check", &None));
             let json: Value = serde_json::to_value(&recorded).unwrap();
-            for key in ["files", "golden"] {
-                assert_eq!(json.get(key), None, "{task}: {key}");
-            }
-            // The recording still loads: the keys have defaults.
+            assert_eq!(json.get("files"), None, "{task}");
+            // The recording still loads: the key has a default.
             let back: RunJson = serde_json::from_value(json).unwrap();
-            assert_eq!((back.files.len(), back.golden.as_str()), (0, ""));
+            assert_eq!(back.files.len(), 0);
         }
         rj.task = "gpp".to_owned();
         rj.persona = Some("qet-veteran".to_owned());
@@ -720,7 +710,6 @@ mod tests {
             json["files"],
             serde_json::json!({"tools/blind/reference/actions.txt": "ab"})
         );
-        assert_eq!(json["golden"], "cd");
         assert_eq!(json["stale"], Value::Null);
     }
 

@@ -49,7 +49,7 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
    writes, network tools. The harness does not write them; the orchestrator does.
 4. `cargo xtask blind stop gpp-r1`: the epilogue (a `page.describe` per folio, a save only if the project is dirty,
    `app.quit`), the exports of the copied `ew` (PDF on 1 and 4 threads, the parts list, `ew check` as text and JSON),
-   the second hash of `golden/`, the score (`out/score.json`: hard checks H1 to H7, soft checks S1 to S8, each `ok`,
+   the score (`out/score.json`: hard checks H1 to H7, soft checks S1 to S8, each `ok`,
    `miss` or `gap`, and the outcome `pass`, `pass-with-gaps`, `fail` or `incomplete`) and `out/report.md`.
 5. `cargo xtask blind start --kind check --task gpp-101-103 --of gpp-r1 --run gpp-r1-check` for the checker (view
    actions only, on a copy of the project; the drafter's check report, parts list and score are copied into its

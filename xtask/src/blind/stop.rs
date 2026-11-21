@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `stop`: the epilogue, the product's exit, the exports of the copied `ew`, the second hash of `golden/`
+//! `stop`: the epilogue, the product's exit, the exports of the copied `ew`
 //! and the report.
 //!
 //! The epilogue is part of `steps.uiscript`: `page.describe` for every folio of the run, `file.save` only when the
@@ -18,7 +18,6 @@ use serde_json::{Value, json};
 use super::run::{Run, Turn, append, sha256_hex, step_line};
 use super::score::{ExportFacts, score_markdown, score_run};
 use super::session::{Backend, Sent, Step};
-use super::start::check_golden;
 
 /// The headings of the checker's audit (§5.6).
 pub const CHECKER_HEADINGS: [&str; 5] = [
@@ -248,7 +247,7 @@ fn write_checker_exports(run: &Run, range: [usize; 2]) -> Result<()> {
 ///
 /// # Errors
 ///
-/// A missing hand-back (unless the reason is `orchestrator`), a product that fails, a `golden/` that changed.
+/// A missing hand-back (unless the reason is `orchestrator`), a product that fails.
 pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> Result<String> {
     let rj = run.load()?;
     if reason != "orchestrator" && !rj.handed_back {
@@ -326,14 +325,12 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     if !check {
         write_checker_exports(run, [first, last])?;
     }
-    let golden = check_golden(root, &rj);
     let rj = run.update(|j| {
         if reason == "orchestrator" && j.end.is_none() {
             j.end = Some("orchestrator".to_owned());
         }
         j.clean_before_epilogue = dirty.map(|d| !d);
         j.child_exit = code;
-        j.golden_changed = golden.is_err();
     })?;
     // The score (§5.9): a gate run against its oracle, a brief run its acceptance list decided mechanically,
     // any other run only its protocol; a check run has none.
@@ -393,11 +390,6 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     for n in &ex.notes {
         let _ = writeln!(md, "- {n}");
     }
-    let _ = writeln!(
-        md,
-        "- golden/ unchanged: {}",
-        if golden.is_ok() { "yes" } else { "NO" }
-    );
     let _ = writeln!(md, "\n## Prelude\n");
     let prelude = super::run::read_script(&run.path("prelude.uiscript"))?;
     let _ = writeln!(md, "{} lines\n", prelude.len());
@@ -440,7 +432,6 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     for name in ["elektrawatt", "ew"] {
         let _ = std::fs::remove_file(run.product_exe(name));
     }
-    golden?;
     Ok(format!(
         "run `{}` stopped; the report is {}\n",
         rj.run,
@@ -453,14 +444,12 @@ mod tests {
     use super::*;
     use crate::blind::protocol::tests::{fixture, s};
     use crate::blind::protocol::{HANDBACK_HEADINGS, do_steps, handback, note};
-    use crate::blind::run::{Kind, tree_sha};
+    use crate::blind::run::Kind;
 
-    fn repo_with_golden(f: &crate::blind::protocol::tests::Fixture) -> std::path::PathBuf {
+    /// The repository root of a test: an empty folder.
+    fn repo(f: &crate::blind::protocol::tests::Fixture) -> std::path::PathBuf {
         let root = f.tmp.0.join("repo");
-        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
-        std::fs::write(root.join("golden/J-E-2416.ew/x.txt"), "1").unwrap();
-        let sha = tree_sha(&root.join("golden/J-E-2416.ew")).unwrap();
-        f.run.update(|j| j.golden = sha).unwrap();
+        std::fs::create_dir_all(&root).unwrap();
         root
     }
 
@@ -501,7 +490,7 @@ mod tests {
     #[test]
     fn stop_needs_the_hand_back_unless_the_reason_is_orchestrator() {
         let mut f = fixture(Kind::Free);
-        let root = repo_with_golden(&f);
+        let root = repo(&f);
         let err = stop(&root, &f.run, &mut f.backend, "handback").unwrap_err();
         assert!(err.to_string().contains("needs the hand-back"), "{err}");
         let out = stop(&root, &f.run, &mut f.backend, "orchestrator").unwrap();
@@ -514,7 +503,7 @@ mod tests {
     #[test]
     fn stop_runs_the_epilogue_records_it_and_reports() {
         let mut f = fixture(Kind::Free);
-        let root = repo_with_golden(&f);
+        let root = repo(&f);
         // A dirty project: the fake becomes dirty on `edit.undo`.
         f.run.update(|j| j.folios = vec!["101".to_owned()]).unwrap();
         std::fs::write(
@@ -538,7 +527,6 @@ mod tests {
         let report = std::fs::read_to_string(f.run.path("out/report.md")).unwrap();
         assert!(report.contains("turns 1, steps 1, looks 0"), "{report}");
         assert!(report.contains("no (the epilogue saved it)"), "{report}");
-        assert!(report.contains("golden/ unchanged: yes"), "{report}");
         assert!(report.contains("not exported"), "{report}");
         // §5.9: a run without an oracle holds its protocol in `score.json`, and the report has a score section.
         assert!(
@@ -563,47 +551,11 @@ mod tests {
         );
     }
 
-    /// A run stops cleanly when only `expected/` or a document changed, and fails when the
-    /// golden project changed.
-    #[test]
-    fn only_the_golden_project_voids_a_run() {
-        let mut f = fixture(Kind::Free);
-        let root = f.tmp.0.join("repo");
-        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
-        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
-        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
-        std::fs::write(root.join("golden/J-E-2416/README.md"), "a").unwrap();
-        let sha = crate::blind::run::golden_digest(&root).unwrap();
-        f.run
-            .update(|j| {
-                j.golden = sha;
-            })
-            .unwrap();
-        std::fs::write(root.join("golden/J-E-2416/README.md"), "b").unwrap();
-        std::fs::write(root.join("golden/J-E-2416/expected/x.csv"), "c").unwrap();
-        stop(&root, &f.run, &mut f.backend, "orchestrator").unwrap();
-        assert!(!f.run.load().unwrap().golden_changed);
-
-        let mut g = fixture(Kind::Free);
-        let root = g.tmp.0.join("repo");
-        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
-        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
-        let sha = crate::blind::run::golden_digest(&root).unwrap();
-        g.run
-            .update(|j| {
-                j.golden = sha;
-            })
-            .unwrap();
-        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "2").unwrap();
-        assert!(stop(&root, &g.run, &mut g.backend, "orchestrator").is_err());
-        assert!(g.run.load().unwrap().golden_changed);
-    }
-
     /// A brief run of the fixture with its task in `root`: three agent steps (`nav.follow` and `edit.undo` done,
     /// `nav.back` refused), a hint and a friction entry.
     fn brief_fixture() -> (crate::blind::protocol::tests::Fixture, std::path::PathBuf) {
         let f = fixture(Kind::Brief);
-        let root = repo_with_golden(&f);
+        let root = repo(&f);
         let dir = root.join("tools/blind/tasks/brief-ut");
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
@@ -734,22 +686,5 @@ mod tests {
             ),
             "{report}"
         );
-    }
-
-    /// BD10: a changed golden fails the stop, after the report is written.
-    #[test]
-    fn a_golden_that_changed_during_the_run_fails_the_stop() {
-        let mut f = fixture(Kind::Free);
-        let root = repo_with_golden(&f);
-        std::fs::write(root.join("golden/J-E-2416.ew/x.txt"), "2").unwrap();
-        let err = stop(&root, &f.run, &mut f.backend, "orchestrator").unwrap_err();
-        assert!(err.to_string().contains("golden/ changed"), "{err}");
-        let report = std::fs::read_to_string(f.run.path("out/report.md")).unwrap();
-        assert!(report.contains("golden/ unchanged: NO"), "{report}");
-        // The run is marked, and `bless` refuses it.
-        assert!(f.run.load().unwrap().golden_changed);
-        let err = crate::blind::replay::bless(&root, &f.run, "x", "none").unwrap_err();
-        assert!(err.to_string().contains("golden/ changed"), "{err}");
-        assert!(!root.join("tools/blind/recordings/x").exists());
     }
 }

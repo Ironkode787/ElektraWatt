@@ -32,6 +32,5 @@
   "replay": "check",
   "stale": null,
   "clean_before_epilogue": true,
-  "child_exit": 1,
-  "golden_changed": false
+  "child_exit": 1
 }

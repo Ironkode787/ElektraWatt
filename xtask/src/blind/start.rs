@@ -6,7 +6,7 @@
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
 //! the reference files are copied into the folder. The sample project is not: `EW_SAMPLE_DIR` points at an empty
-//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project is a copy of the golden project made here, never a path to the fixture.
+//! folder. A usability task's start project is a copy of the sample project made here, never a path to the fixture.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -15,8 +15,8 @@ use anyhow::{Context, Result, bail};
 
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
-    Caps, Counts, GOLDEN_PROJECT_DIR, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, Senses, copy_dir,
-    golden_digest, script_header, turns_header, valid_run_id,
+    Caps, Counts, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, Senses, copy_dir, script_header,
+    turns_header, valid_run_id,
 };
 use super::visual::Geometry;
 
@@ -95,22 +95,6 @@ pub fn inside_repo(root: &Path, dir: &Path) -> bool {
         full.push(part);
     }
     full.starts_with(&root)
-}
-
-/// Compares the golden digest recorded in `rj` with the fixture now (D16): the golden project fixture.
-///
-/// # Errors
-///
-/// The hash cannot be taken, or the fixture changed.
-pub fn check_golden(root: &Path, rj: &RunJson) -> Result<()> {
-    let now = golden_digest(root)?;
-    if now != rj.golden {
-        bail!(
-            "golden/ changed during the run ({GOLDEN_PROJECT_DIR} digest {now}, at the start {}): the fixture is read through copies only",
-            rj.golden
-        );
-    }
-    Ok(())
 }
 
 fn exe_name(name: &str) -> String {
@@ -243,7 +227,6 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         None
     };
     let (start, rounds) = toml.map(|t| (t.start, t.rounds)).unwrap_or_default();
-    let golden = golden_digest(root)?;
     // Every option is validated here, before anything is created: the composition checks the persona, the task and the
     // kind, and the sources are looked up now.
     let blind = run.blind_command();
@@ -272,7 +255,6 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
             composed,
             files,
             folios,
-            golden,
             start,
             rounds,
         },
@@ -292,7 +274,6 @@ struct Inputs {
     composed: super::compose::Composed,
     files: BTreeMap<String, String>,
     folios: Vec<String>,
-    golden: String,
     start: Option<String>,
     rounds: Vec<String>,
 }
@@ -312,7 +293,6 @@ fn populate(
         composed,
         files,
         folios,
-        golden,
         start,
         rounds,
     } = inputs;
@@ -416,7 +396,6 @@ fn populate(
         folios: folios.clone(),
         caps: a.caps(),
         files: files.clone(),
-        golden: golden.clone(),
         app_version,
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: a.stateless || a.kind == Kind::Check,
@@ -431,7 +410,6 @@ fn populate(
         stale: None,
         clean_before_epilogue: None,
         child_exit: None,
-        golden_changed: false,
         start: start.clone(),
         rounds: rounds.clone(),
     };
@@ -595,10 +573,9 @@ pub fn start(root: &Path, a: &StartArgs) -> Result<Run> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blind::run::tree_sha;
     use crate::blind::testkit::Tmp;
 
-    /// A repository root of a test: golden, content, tools/blind and a `target/debug` of dummy binaries.
+    /// A repository root of a test: the sample, content, tools/blind and a `target/debug` of dummy binaries.
     fn fake_repo(tmp: &Tmp) -> PathBuf {
         let root = tmp.0.join("repo");
         let w = |rel: &str, text: &str| {
@@ -606,7 +583,6 @@ mod tests {
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
             std::fs::write(p, text).unwrap();
         };
-        w("golden/J-E-2416.ew/project.json", "{}\n");
         w("fixtures/sample/sample.ew/project.json", "{}\n");
         w("content/symbols/x.json", "{}\n");
         w("tools/blind/HELP.md", "Help {blind}\n");
@@ -694,7 +670,6 @@ mod tests {
                 .is_none()
         );
         let rj = run.load().unwrap();
-        assert_eq!(rj.golden, tree_sha(&root.join("golden/J-E-2416.ew")).unwrap());
         assert_eq!(rj.app_version, "0.0.0");
         assert!(rj.files.contains_key("tools/blind/HELP.md"));
         let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
@@ -930,51 +905,6 @@ mod tests {
         assert!(check.load().unwrap().stateless, "a check run is stateless");
     }
 
-    /// The golden project fixture is hashed at the start and compared at the stop; a changed byte or a
-    /// new file under it fails the run, a change next to it (`expected/`, the README) does not.
-    #[test]
-    fn a_changed_golden_fails_the_check() {
-        let tmp = Tmp::new("start-golden");
-        let root = fake_repo(&tmp);
-        let mut rj = crate::blind::testkit::new_run_json("g", Kind::Free);
-        rj.golden = golden_digest(&root).unwrap();
-        check_golden(&root, &rj).unwrap();
-        // Expected outputs and documents beside the project may change during a run.
-        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
-        std::fs::write(
-            root.join("golden/J-E-2416/expected/x.csv"),
-            "a
-",
-        )
-        .unwrap();
-        std::fs::write(
-            root.join("golden/J-E-2416/README.md"),
-            "r
-",
-        )
-        .unwrap();
-        std::fs::create_dir_all(tmp.0.join("runs/d1/work/project")).unwrap();
-        check_golden(&root, &rj).unwrap();
-        std::fs::write(
-            root.join("golden/J-E-2416.ew/project.json"),
-            "{ }
-",
-        )
-        .unwrap();
-        let err = check_golden(&root, &rj).unwrap_err();
-        assert!(err.to_string().contains("golden/ changed"), "{err}");
-        std::fs::write(
-            root.join("golden/J-E-2416.ew/project.json"),
-            "{}
-",
-        )
-        .unwrap();
-        check_golden(&root, &rj).unwrap();
-        // A new file (a lock, a journal) is a change too.
-        std::fs::write(root.join("golden/J-E-2416.ew/lock"), "").unwrap();
-        assert!(check_golden(&root, &rj).is_err());
-    }
-
     /// A refused `start` leaves no run folder behind; the next correct `start` of the same name succeeds.
     #[test]
     fn a_refused_start_leaves_no_run_folder() {
@@ -1058,8 +988,7 @@ mod tests {
     }
 
     /// UR-1 (D5): a brief with `start = "sample"` starts on a copy of the sample project in `work/project`, kept in
-    /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the golden digest is
-    /// the same at the start and after; the round and the hints reach the run.
+    /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the round and the hints reach the run.
     #[test]
     fn a_brief_starts_on_a_copy_of_the_sample_project() {
         let tmp = Tmp::new("start-project");
@@ -1086,7 +1015,6 @@ mod tests {
                 .contains("Ask with "),
             "the round prompt is composed"
         );
-        check_golden(&root, &rj).unwrap();
         // A stateless call or a resume deletes `work/` and puts the copy back.
         std::fs::remove_dir_all(run.path("work")).unwrap();
         reseed_check_project(&run).unwrap();

@@ -38,6 +38,5 @@
   "replay": "check",
   "stale": null,
   "clean_before_epilogue": true,
-  "child_exit": 0,
-  "golden_changed": false
+  "child_exit": 0
 }

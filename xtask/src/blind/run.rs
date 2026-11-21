@@ -39,19 +39,6 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     hex(&Sha256::digest(bytes))
 }
 
-/// The golden project fixture, relative to the repository root.
-pub const GOLDEN_PROJECT_DIR: &str = "golden/J-E-2416.ew";
-
-/// The D16 digest of the golden project fixture under `root`: it hashes `golden/J-E-2416.ew/` only, so that a
-/// legitimate change to `golden/J-E-2416/expected/` or its README during a run does not void it.
-///
-/// # Errors
-///
-/// The tree cannot be read.
-pub fn golden_digest(root: &Path) -> Result<String> {
-    tree_sha(&root.join(GOLDEN_PROJECT_DIR))
-}
-
 /// The digest over every file under `dir`, in path order: each file's relative path (with `/`), a NUL, its SHA-256 and
 /// a newline, hashed again. A text file's line ends do not matter (the fixture is read the same on every checkout).
 pub fn tree_sha(dir: &Path) -> Result<String> {
@@ -333,10 +320,6 @@ pub struct RunJson {
     /// the evidence, and digests of files that many changes re-bless only made merge conflicts.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<String, String>,
-    /// The SHA-256 at `start` over the golden project fixture (D16). Empty, and left out of the file, in a
-    /// self-test recording ([`is_selftest`]); a live run always has it, and `stop` compares it.
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub golden: String,
     /// `elektrawatt --version`.
     pub app_version: String,
     /// The harness's version.
@@ -377,9 +360,6 @@ pub struct RunJson {
     /// After `stop`: the exit code of the product.
     #[serde(default)]
     pub child_exit: Option<i32>,
-    /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
-    #[serde(default)]
-    pub golden_changed: bool,
     /// A brief's start project (`sample`): `work/project` is a copy of the project `start`
     /// made in `.harness/start-project`; absent for a run that starts from its prelude alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -391,8 +371,7 @@ pub struct RunJson {
 }
 
 /// Whether `task` is one of the self-test tasks (`selftest`, `selftest-visual`). Their prompt names no persona and no
-/// role file, and their recordings pin no digests of the files they depend on: `run.json` keeps no `files` and no
-/// `golden`, the composed prompt no file digests, and the PDF digest is not recorded.
+/// role file, and their recordings pin no digests of the files they depend on: `run.json` keeps no `files`, the composed prompt no file digests, and the PDF digest is not recorded.
 pub fn is_selftest(task: &str) -> bool {
     task.starts_with("selftest")
 }
@@ -761,7 +740,6 @@ mod tests {
             folios: vec!["101".to_owned()],
             caps: Kind::Free.caps(),
             files: BTreeMap::from([("tools/blind/HELP.md".to_owned(), "ab".to_owned())]),
-            golden: "cd".to_owned(),
             app_version: "0.0.0".to_owned(),
             harness_version: HARNESS_VERSION.to_owned(),
             stateless: false,
@@ -776,7 +754,6 @@ mod tests {
             stale: None,
             clean_before_epilogue: None,
             child_exit: None,
-            golden_changed: false,
             start: None,
             rounds: Vec::new(),
         };

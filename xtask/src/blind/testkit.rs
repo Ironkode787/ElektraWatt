@@ -43,7 +43,6 @@ pub fn new_run_json(id: &str, kind: Kind) -> RunJson {
         folios: vec!["101".to_owned()],
         caps: kind.caps(),
         files: Default::default(),
-        golden: "0".to_owned(),
         app_version: "0.0.0".to_owned(),
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: false,
@@ -58,7 +57,6 @@ pub fn new_run_json(id: &str, kind: Kind) -> RunJson {
         stale: None,
         clean_before_epilogue: None,
         child_exit: None,
-        golden_changed: false,
         start: None,
         rounds: Vec::new(),
     }
