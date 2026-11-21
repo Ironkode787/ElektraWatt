@@ -8,7 +8,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    BoxCp, BoxSpec, Connection, Device, Dir4, Endpoint, Function, LibCopy, Page, Part, Representation, SymbolDef,
+    BoxCp, BoxSpec, Connection, Device, Dir4, Endpoint, Function, LibCopy, Page, Part, Representation,
+    SymbolDef,
 };
 use ew_units::{Nm, Orient2, Pt2};
 
@@ -105,7 +106,9 @@ fn follow_box(
     {
         if let Some((far, to)) = grown {
             let shift = to.0 - far.0;
-            let along_x = placed.first().is_some_and(|c| matches!(c.dir, Dir4::Up | Dir4::Down));
+            let along_x = placed
+                .first()
+                .is_some_and(|c| matches!(c.dir, Dir4::Up | Dir4::Down));
             let at = |p: &mut Pt2| {
                 let v = if along_x { &mut p.x } else { &mut p.y };
                 if *v == far {

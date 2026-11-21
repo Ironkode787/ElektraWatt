@@ -514,7 +514,9 @@ impl Session {
             .documents(library, Kind::Part)
             .into_iter()
             .find_map(|d| match d {
-                LibDocument::Part(c) if c.item_id.as_uuid() == item => Some(c.item.part_number.as_str().to_owned()),
+                LibDocument::Part(c) if c.item_id.as_uuid() == item => {
+                    Some(c.item.part_number.as_str().to_owned())
+                }
                 _ => None,
             });
         let (Some(mine), Some(number)) = (mine, number) else {

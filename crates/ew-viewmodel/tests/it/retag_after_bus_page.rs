@@ -37,11 +37,7 @@ fn a_station_s_box_on_a_schematic_page_says_its_new_tag() {
         .find_map(|r| r.device.filter(|_| r.rep_type == "topology"))
         .expect("the station's interface boxes");
     done(&mut s, "page.goto", json!({"folio": "101"}));
-    done(
-        &mut s,
-        "plc.module_place",
-        json!({"device": station.to_string()}),
-    );
+    done(&mut s, "plc.module_place", json!({"device": station.to_string()}));
     two_corners(&mut s, (10, 10), (24, 22));
     let said = toast(&s);
     let (pair, why) = said.split_once(": ").unwrap_or_else(|| panic!("{said:?}"));

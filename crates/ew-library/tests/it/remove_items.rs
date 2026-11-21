@@ -64,14 +64,20 @@ fn an_item_taken_out_of_a_library_is_gone_and_the_rest_stays() {
         "item_id": maker.to_string(), "version": "1.0.0", "sha256": ZERO, "key": "EX", "name": "Example",
     }))
     .unwrap();
-    reg.write(lib, &[mfr, part(lib, a, "DI-4", maker), part(lib, b, "DO-4", maker)])
-        .unwrap();
+    reg.write(
+        lib,
+        &[mfr, part(lib, a, "DI-4", maker), part(lib, b, "DO-4", maker)],
+    )
+    .unwrap();
     assert_eq!(numbers(&reg, lib), ["DI-4", "DO-4"]);
     assert_eq!(found(&reg, lib, "DI-4"), ["DI-4"]);
     let report = reg.remove(lib, Kind::Part, &[a]).unwrap();
     assert_eq!(report.deleted, [a]);
     assert_eq!(numbers(&reg, lib), ["DO-4"], "the rest of its shard stays");
-    assert!(found(&reg, lib, "DI-4").is_empty(), "the search no longer finds it");
+    assert!(
+        found(&reg, lib, "DI-4").is_empty(),
+        "the search no longer finds it"
+    );
     // Taking it out again changes nothing.
     let again = reg.remove(lib, Kind::Part, &[a]).unwrap();
     assert!(again.deleted.is_empty() && again.written.is_empty());

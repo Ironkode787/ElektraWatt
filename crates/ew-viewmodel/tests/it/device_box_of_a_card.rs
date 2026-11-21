@@ -95,12 +95,7 @@ fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
         .iter()
         .find_map(|r| r.black_box.clone())
         .expect("the card's box");
-    let left: Vec<u16> = b
-        .cps
-        .iter()
-        .filter(|c| c.2 == Dir::Left)
-        .map(|c| c.0)
-        .collect();
+    let left: Vec<u16> = b.cps.iter().filter(|c| c.2 == Dir::Left).map(|c| c.0).collect();
     assert_eq!(left, [first.0], "pin 1 on the left edge: {b:?}");
     assert_eq!(b.cps.len(), 4, "every channel's pin");
 }

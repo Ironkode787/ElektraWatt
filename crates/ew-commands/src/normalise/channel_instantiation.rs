@@ -203,71 +203,76 @@ impl Normaliser for ChannelInstantiation {
             let section = module_section(tx, &dev);
             // Every spec's channels, numbered on from the spec before (a card of two kinds, FT-1766).
             let count = section.as_ref().map_or(0, PlcSection::channel_count);
-            let kind_of = |n: u16| section.as_ref().and_then(|s| s.spec_of(n)).map(|(_, s)| s.kind.clone());
+            let kind_of = |n: u16| {
+                section
+                    .as_ref()
+                    .and_then(|s| s.spec_of(n))
+                    .map(|(_, s)| s.kind.clone())
+            };
             // existence is keyed on (module, number), not on the v5 ID: a module pasted or imported with
             // other channel IDs keeps its channels and gets no second channel of a number
             let present = channels_by_number(tx, dev.id);
-                for number in (0..count).filter(|n| !present.contains_key(n)) {
-                    let Some(kind) = kind_of(number) else { continue };
-                    let id = v5::plc_channel_id(dev.id, number);
-                    if let Some(other) = tx.get::<Channel>(id) {
-                        return tx.reject(text!(
-                            "refusal-channel-identity-taken",
-                            number.to_string(),
-                            words::device(tx, dev.id),
-                            other.number.to_string(),
-                            words::device(tx, other.module)
-                        ));
-                    }
-                    tx.insert(Channel {
-                        id,
-                        v: 1,
-                        module: dev.id,
-                        number,
-                        designation: None,
-                        kind,
-                        address: AddrSpec::Auto,
-                        state: None,
-                        symbol: None,
-                        comment: MlText::default(),
-                        binding: None,
-                        target: None,
-                        data_type: None,
-                        signal_range: None,
-                        mode: None,
-                        safety: None,
-                        source_ref: None,
-                        extra: Extra::new(),
-                    })?;
-                    changed = true;
+            for number in (0..count).filter(|n| !present.contains_key(n)) {
+                let Some(kind) = kind_of(number) else { continue };
+                let id = v5::plc_channel_id(dev.id, number);
+                if let Some(other) = tx.get::<Channel>(id) {
+                    return tx.reject(text!(
+                        "refusal-channel-identity-taken",
+                        number.to_string(),
+                        words::device(tx, dev.id),
+                        other.number.to_string(),
+                        words::device(tx, other.module)
+                    ));
                 }
-                // The part's kind applies to the existing channels below the count
-                for (c, kind) in present
-                    .values()
-                    .filter_map(|c| Some((c, kind_of(c.number)?)))
-                    .filter(|(c, kind)| c.kind != *kind)
-                {
-                    // The module by its tag and the binding in words, as N2's notices name them
-                    if let ChannelKind::Unknown(_) = c.kind {
-                        tx.notice(format!(
-                            "channel {} of module {} keeps its kind of a newer format; its part gives {}",
-                            c.number,
-                            words::device(tx, dev.id),
-                            kind_name(&kind)
-                        ));
-                        continue;
-                    }
+                tx.insert(Channel {
+                    id,
+                    v: 1,
+                    module: dev.id,
+                    number,
+                    designation: None,
+                    kind,
+                    address: AddrSpec::Auto,
+                    state: None,
+                    symbol: None,
+                    comment: MlText::default(),
+                    binding: None,
+                    target: None,
+                    data_type: None,
+                    signal_range: None,
+                    mode: None,
+                    safety: None,
+                    source_ref: None,
+                    extra: Extra::new(),
+                })?;
+                changed = true;
+            }
+            // The part's kind applies to the existing channels below the count
+            for (c, kind) in present
+                .values()
+                .filter_map(|c| Some((c, kind_of(c.number)?)))
+                .filter(|(c, kind)| c.kind != *kind)
+            {
+                // The module by its tag and the binding in words, as N2's notices name them
+                if let ChannelKind::Unknown(_) = c.kind {
                     tx.notice(format!(
-                        "channel {} of module {} changes from {} to {} after its part; it stays {}",
+                        "channel {} of module {} keeps its kind of a newer format; its part gives {}",
                         c.number,
                         words::device(tx, dev.id),
-                        kind_name(&c.kind),
-                        kind_name(&kind),
-                        binding_words(tx, c.binding.as_ref())
+                        kind_name(&kind)
                     ));
-                    tx.update::<Channel>(c.id, |c| c.kind = kind)?;
-                    changed = true;
+                    continue;
                 }
+                tx.notice(format!(
+                    "channel {} of module {} changes from {} to {} after its part; it stays {}",
+                    c.number,
+                    words::device(tx, dev.id),
+                    kind_name(&c.kind),
+                    kind_name(&kind),
+                    binding_words(tx, c.binding.as_ref())
+                ));
+                tx.update::<Channel>(c.id, |c| c.kind = kind)?;
+                changed = true;
+            }
             // Surplus channels stay until `plc.set_module_part` is confirmed
             let surplus: Vec<&Arc<Channel>> = present.values().filter(|c| c.number >= count).collect();
             if !surplus.is_empty() {

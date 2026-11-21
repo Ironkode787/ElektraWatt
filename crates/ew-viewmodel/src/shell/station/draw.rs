@@ -637,7 +637,10 @@ impl ShellModel {
                 let target = &params["target"];
                 let of_function = id(&target["existing_function"]["function"]).and_then(|f| {
                     let q = session.query();
-                    q.functions().get(f.to_string().parse().ok()?)?.device.map(|d| d.as_uuid())
+                    q.functions()
+                        .get(f.to_string().parse().ok()?)?
+                        .device
+                        .map(|d| d.as_uuid())
                 });
                 of_function
                     .or_else(|| id(&target["join_device"]["device"]))
@@ -661,7 +664,7 @@ impl ShellModel {
             .iter()
             .filter_map(|(d, was)| {
                 let now = session.device_tag(*d)?;
-                (now != *was).then(|| strings::format(key!("toast-retag-pair"), &[was, &now]))
+                (now != *was).then(|| strings::format(key!("retag-pair"), &[was, &now]))
             })
             .collect();
         (!pairs.is_empty()).then(|| strings::format(key!("toast-retagged"), &[&pairs.join(", ")]))

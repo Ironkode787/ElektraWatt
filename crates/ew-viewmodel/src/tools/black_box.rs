@@ -515,14 +515,15 @@ impl BlackBoxTool {
             return layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]);
         };
         let boxes = port_layouts(grid, first, at, interfaces)?;
-        let (pos, outline) = row_of(&boxes)?;
+        let (pos, outline, _) = row_of(&boxes)?;
         match fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline) {
             Ok(inside) if inside != pos => {
                 let (kx, ky) = (
                     grid.index(inside.0) - grid.index(pos.0),
                     grid.index(inside.1) - grid.index(pos.1),
                 );
-                let shift = |p: (i64, i64)| (grid.coord(grid.index(p.0) + kx), grid.coord(grid.index(p.1) + ky));
+                let shift =
+                    |p: (i64, i64)| (grid.coord(grid.index(p.0) + kx), grid.coord(grid.index(p.1) + ky));
                 port_layouts(grid, shift(first), shift(at), interfaces)
             }
             _ => Some(boxes),
@@ -536,7 +537,7 @@ impl BlackBoxTool {
             return None;
         }
         let boxes = self.current(cx)?;
-        let (pos, outline) = row_of(&boxes)?;
+        let (pos, outline, _) = row_of(&boxes)?;
         let (area, grid) = (
             super::ip::drawing_area(cx.page),
             PageGridMap::new(cx.page.tables.grid),
@@ -551,14 +552,19 @@ impl BlackBoxTool {
             let Some(a) = bounds(outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
                 return false;
             };
-            cx.page.tables.reps.iter().filter(|r| r.device.is_some()).any(|r| {
-                let o = r
-                    .black_box
-                    .as_ref()
-                    .and_then(|b| bounds(b.outline.iter().copied()))
-                    .unwrap_or(r.body);
-                a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
-            })
+            cx.page
+                .tables
+                .reps
+                .iter()
+                .filter(|r| r.device.is_some())
+                .any(|r| {
+                    let o = r
+                        .black_box
+                        .as_ref()
+                        .and_then(|b| bounds(b.outline.iter().copied()))
+                        .unwrap_or(r.body);
+                    a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
+                })
         });
         covers.then_some(ToolOutput::Refused(key!("reason-ports-occupied")))
     }
@@ -823,15 +829,16 @@ fn bounds(pts: impl Iterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
     })
 }
 
-/// The row of boxes `boxes` as one box: the top-left corner of their bounds and the bounds' outline relative to it.
-fn row_of(boxes: &[BoxLayout]) -> Option<((i64, i64), Vec<(i64, i64)>)> {
+/// The row of boxes `boxes` as one box without CPs: the top-left corner of their bounds and the bounds' outline
+/// relative to it.
+fn row_of(boxes: &[BoxLayout]) -> Option<BoxLayout> {
     let b = bounds(
         boxes
             .iter()
             .flat_map(|(pos, outline, _)| outline.iter().map(move |p| (pos.0 + p.0, pos.1 + p.1))),
     )?;
     let (w, h) = (b[2] - b[0], b[3] - b[1]);
-    Some(((b[0], b[1]), vec![(0, 0), (w, 0), (w, h), (0, h)]))
+    Some(((b[0], b[1]), vec![(0, 0), (w, 0), (w, h), (0, h)], Vec::new()))
 }
 
 impl Tool for BlackBoxTool {

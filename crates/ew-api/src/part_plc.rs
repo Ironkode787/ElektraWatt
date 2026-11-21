@@ -262,7 +262,11 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
         _ if count2.is_empty() => {}
         Ok(n) if (1..=MAX_CHANNELS).contains(&n) => {
             if kind2.is_empty() {
-                say("kind2", ew_commands::text_key!("error-part-plc-kind-missing"), &[]);
+                say(
+                    "kind2",
+                    ew_commands::text_key!("error-part-plc-kind-missing"),
+                    &[],
+                );
             }
         }
         _ => say(
@@ -405,9 +409,11 @@ fn slots_text(slots: &[u16]) -> String {
 
 /// Whether two forms give the same pins: the same role, channels, pin pattern and supply pins.
 pub(crate) fn same_pins(a: &PlcRows, b: &PlcRows) -> bool {
-    ["role", "kind", "count", "kind2", "count2", "pin_of", "l_plus", "m"]
-        .iter()
-        .all(|m| a.text(m).trim() == b.text(m).trim())
+    [
+        "role", "kind", "count", "kind2", "count2", "pin_of", "l_plus", "m",
+    ]
+    .iter()
+    .all(|m| a.text(m).trim() == b.text(m).trim())
 }
 
 /// Keeps in a section made from the form what the held section (`held`) has and the form does not show: the unbound
@@ -473,11 +479,7 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         .map(|((dir, bits), analog)| IoRange {
             dir: if dir == "in" { IoDir::In } else { IoDir::Out },
             bits,
-            class: if analog {
-                IoClass::Analog
-            } else {
-                IoClass::Digital
-            },
+            class: if analog { IoClass::Analog } else { IoClass::Digital },
             extra: Default::default(),
         })
         .collect();

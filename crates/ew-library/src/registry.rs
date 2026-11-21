@@ -1094,7 +1094,10 @@ impl Registry {
         let (i, dir) = self.writable(library)?;
         let mut incoming: Incoming = BTreeMap::new();
         for item in items {
-            incoming.entry(ShardKey::of(kind, *item)).or_default().insert(*item, None);
+            incoming
+                .entry(ShardKey::of(kind, *item))
+                .or_default()
+                .insert(*item, None);
         }
         self.write_lines(i, &dir, incoming)
     }
@@ -1126,7 +1129,12 @@ impl Registry {
         result
     }
 
-    fn write_locked(&mut self, i: usize, dir: &Path, incoming: Incoming) -> Result<WriteReport, LibraryError> {
+    fn write_locked(
+        &mut self,
+        i: usize,
+        dir: &Path,
+        incoming: Incoming,
+    ) -> Result<WriteReport, LibraryError> {
         // The manifest on disk now, not the one of the open: another writer may have written since.
         let base = open_manifest(dir, &self.limits).map_err(LibraryError::Format)?;
         if base.id != self.libs[i].info.id {

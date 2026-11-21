@@ -6,32 +6,27 @@
 //! corrected to four, its box keeps no mark of the sockets it lost.
 
 use crate::common::{Tmp, cursor, done, grid_point, new_project, tables};
-use ew_api::geometry::Dir;
+use ew_viewmodel::ew_api::output::TableBox;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
-/// The sockets of the one interface box on the page shown: (index, point, direction), by index; and its outline.
-fn sockets(s: &ShellModel) -> (Vec<(u16, (i64, i64), Dir)>, Vec<(i64, i64)>) {
+/// The one interface box on the page shown, its sockets (index, point, direction) by index.
+fn sockets(s: &ShellModel) -> TableBox {
     let t = tables(s);
-    let b = t
+    let mut b = t
         .reps
         .iter()
         .filter(|r| r.rep_type == "topology")
         .find_map(|r| r.black_box.clone())
         .expect("the switch's box");
-    let mut cps = b.cps.clone();
-    cps.sort_by_key(|c| c.0);
-    (cps, b.outline)
+    b.cps.sort_by_key(|c| c.0);
+    b
 }
 
 /// Edit part… on SW-6, its port count set to `ports`, saved, and the update applied.
 fn correct(s: &mut ShellModel, ports: &str) {
     done(s, "part.edit", json!({"part": "SW-6"}));
-    done(
-        s,
-        "part.field",
-        json!({"field": "bus.0.ports", "value": ports}),
-    );
+    done(s, "part.field", json!({"field": "bus.0.ports", "value": ports}));
     done(s, "part.save", json!({}));
     done(s, "preview.apply", json!({}));
     done(s, "page.goto", json!({"folio": "102"}));
@@ -69,11 +64,13 @@ fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
         done(&mut s, "canvas.activate", json!({}));
     }
     done(&mut s, "page.goto", json!({"folio": "102"}));
-    let (six, _) = sockets(&s);
+    let six = sockets(&s).cps;
     assert_eq!(six.iter().map(|c| c.0).collect::<Vec<_>>(), [0, 1, 2, 3, 4, 5]);
     // Eight: the two new sockets stand at once, after socket 6 on its edge, leaving as it does, on the box.
     correct(&mut s, "8");
-    let (eight, outline) = sockets(&s);
+    let TableBox {
+        cps: eight, outline, ..
+    } = sockets(&s);
     assert_eq!(
         eight.iter().map(|c| c.0).collect::<Vec<_>>(),
         [0, 1, 2, 3, 4, 5, 6, 7]
@@ -95,6 +92,6 @@ fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
     assert_eq!(points.len(), 8, "no two sockets on one point");
     // Four: the sockets it lost leave the box.
     correct(&mut s, "4");
-    let (four, _) = sockets(&s);
+    let four = sockets(&s).cps;
     assert_eq!(four.iter().map(|c| c.0).collect::<Vec<_>>(), [0, 1, 2, 3]);
 }
