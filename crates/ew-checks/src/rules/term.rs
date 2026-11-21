@@ -9,6 +9,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{CaseSensitivity, natural_cmp};
 use ew_derive::ew_schema::{
     Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
+    Terminal,
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
@@ -59,8 +60,21 @@ fn strip_end(q: &Q, strip: Id<Device>) -> &'static str {
 /// The designation groups of a strip: comparison key → (designation text, terminals).
 type Groups = BTreeMap<String, (String, Vec<Id<Device>>)>;
 
-/// The terminals of `strip` grouped by the comparison key of their designation, each group sorted by ID;
-/// the designation text of each group is the first member's.
+/// The designations of a terminal by comparison key, each once: its own, then those of its listed levels that have
+/// one of their own (a block with a number on each level, doc 08 §6.3).
+fn designations(term: &Terminal, case: CaseSensitivity) -> Vec<(String, &str)> {
+    let mut out: Vec<(String, &str)> = Vec::new();
+    for d in std::iter::once(&term.designation).chain(term.levels.iter().filter_map(|l| l.designation.as_ref())) {
+        let key = d.comparison_key(case).into_owned();
+        if !out.iter().any(|(k, _)| *k == key) {
+            out.push((key, d.as_str()));
+        }
+    }
+    out
+}
+
+/// The terminals of `strip` grouped by the comparison key of their designations ([`designations`]), each group sorted
+/// by ID; the designation text of each group is the first member's.
 fn designation_groups(q: &Q, strip: Id<Device>) -> Groups {
     let case = case_setting(q);
     let mut groups: Groups = BTreeMap::new();
@@ -70,12 +84,13 @@ fn designation_groups(q: &Q, strip: Id<Device>) -> Groups {
         let Some(term) = q.devices().get(t).and_then(|d| d.aspects.terminal.as_ref()) else {
             continue;
         };
-        let key = term.designation.comparison_key(case).into_owned();
-        groups
-            .entry(key)
-            .or_insert_with(|| (term.designation.as_str().to_owned(), Vec::new()))
-            .1
-            .push(t);
+        for (key, text) in designations(term, case) {
+            groups
+                .entry(key)
+                .or_insert_with(|| (text.to_owned(), Vec::new()))
+                .1
+                .push(t);
+        }
     }
     groups
 }
@@ -196,7 +211,8 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 };
 
 /// EW-TERM-002: a designation used by more than one terminal of a strip (FR-TRM-002, D-12; doc 08 §6.8).
-/// Designations compare under the project's case setting.
+/// Designations compare under the project's case setting; the number of a level of a block (doc 08 §6.3) is a
+/// designation of the strip as the terminal's own is.
 ///
 /// - **Online and release:** one finding per duplicated designation, targets every terminal of the group,
 ///   no discriminator (renaming a member makes it another defect). A strip whose frozen designation is
@@ -260,81 +276,83 @@ impl Rule for DuplicateDesignation {
             let Some(term) = after.devices().get(id).and_then(|d| d.aspects.terminal.clone()) else {
                 continue;
             };
-            let key = term.designation.comparison_key(case).into_owned();
-            let old = before
-                .devices()
-                .get(id)
-                .and_then(|d| d.aspects.terminal.as_ref())
+            let was = before.devices().get(id).and_then(|d| d.aspects.terminal.clone());
+            let old = was
+                .as_ref()
                 .map(|t| (t.strip, t.designation.comparison_key(case).into_owned()));
-            if old.as_ref() == Some(&(term.strip, key.clone())) {
-                continue;
+            // The designations it had on this strip before, its levels' included: a level's number that stays is
+            // no new duplicate.
+            let kept: Vec<String> = was
+                .as_ref()
+                .filter(|t| t.strip == term.strip)
+                .map(|t| designations(t, case).into_iter().map(|(k, _)| k).collect())
+                .unwrap_or_default();
+            for (n, (key, _)) in designations(&term, case).into_iter().enumerate() {
+                if kept.contains(&key) || reported.contains(&(term.strip, key.clone())) {
+                    continue;
+                }
+                let groups = strips
+                    .entry(term.strip)
+                    .or_insert_with(|| designation_groups(after, term.strip));
+                let Some((designation, members)) = groups.get(&key) else {
+                    continue;
+                };
+                if members.len() < 2 {
+                    continue;
+                }
+                reported.insert((term.strip, key.clone()));
+                let strip_tag = full_tag(after, term.strip, "the strip");
+                let mut remedy = Vec::new();
+                let free = next_free_number(groups.values().map(|(d, _)| d.as_str()));
+                if let Some(free) = &free {
+                    remedy.push(format!("use {free}"));
+                }
+                // A swap is proposed for the terminal's own designation, not a level's.
+                let mut swap = None;
+                if n == 0
+                    && let Some((strip, old_key)) = &old
+                    && *strip == term.strip
+                    && !groups.contains_key(old_key)
+                    && let Some(old_text) = was.as_ref().map(|t| t.designation.as_str().to_owned())
+                {
+                    remedy.push(format!(
+                        "swap {old_text} \u{2194} {designation} in one transaction (terminal.designate)"
+                    ));
+                    swap = Some(old_text);
+                }
+                let mut message = format!(
+                    "designation {designation} is taken on {strip_tag} ({} terminals)",
+                    members.len()
+                );
+                if !remedy.is_empty() {
+                    message.push_str("; ");
+                    message.push_str(&remedy.join(" or "));
+                }
+                // The arguments of the rule's pattern, so that each language words the prevent finding too.
+                let remedy = match (&free, &swap) {
+                    (Some(_), Some(_)) => "both",
+                    (Some(_), None) => "free",
+                    (None, Some(_)) => "swap",
+                    (None, None) => "none",
+                };
+                out.push(
+                    Finding::new(
+                        &DUPLICATE_DESIGNATION,
+                        members.iter().map(|m| Target::new(Kind::Device, *m)),
+                        "",
+                        format!("{strip_tag}:{designation}"),
+                        message,
+                    )
+                    .arg("form", "taken")
+                    .arg("designation", designation.clone())
+                    .arg("count", members.len().to_string())
+                    .arg("strip", strip_tag)
+                    .arg("end", strip_end(after, term.strip))
+                    .arg("remedy", remedy)
+                    .arg("free", free.map(|f| f.to_string()).unwrap_or_default())
+                    .arg("old", swap.unwrap_or_default()),
+                );
             }
-            if reported.contains(&(term.strip, key.clone())) {
-                continue;
-            }
-            let groups = strips
-                .entry(term.strip)
-                .or_insert_with(|| designation_groups(after, term.strip));
-            let Some((designation, members)) = groups.get(&key) else {
-                continue;
-            };
-            if members.len() < 2 {
-                continue;
-            }
-            reported.insert((term.strip, key.clone()));
-            let strip_tag = full_tag(after, term.strip, "the strip");
-            let mut remedy = Vec::new();
-            let free = next_free_number(groups.values().map(|(d, _)| d.as_str()));
-            if let Some(free) = &free {
-                remedy.push(format!("use {free}"));
-            }
-            let mut swap = None;
-            if let Some((strip, old_key)) = &old
-                && *strip == term.strip
-                && !groups.contains_key(old_key)
-                && let Some(old_text) = before
-                    .devices()
-                    .get(id)
-                    .and_then(|d| d.aspects.terminal.as_ref())
-                    .map(|t| t.designation.as_str().to_owned())
-            {
-                remedy.push(format!(
-                    "swap {old_text} \u{2194} {designation} in one transaction (terminal.designate)"
-                ));
-                swap = Some(old_text);
-            }
-            let mut message = format!(
-                "designation {designation} is taken on {strip_tag} ({} terminals)",
-                members.len()
-            );
-            if !remedy.is_empty() {
-                message.push_str("; ");
-                message.push_str(&remedy.join(" or "));
-            }
-            // The arguments of the rule's pattern, so that each language words the prevent finding too.
-            let remedy = match (&free, &swap) {
-                (Some(_), Some(_)) => "both",
-                (Some(_), None) => "free",
-                (None, Some(_)) => "swap",
-                (None, None) => "none",
-            };
-            out.push(
-                Finding::new(
-                    &DUPLICATE_DESIGNATION,
-                    members.iter().map(|m| Target::new(Kind::Device, *m)),
-                    "",
-                    format!("{strip_tag}:{designation}"),
-                    message,
-                )
-                .arg("form", "taken")
-                .arg("designation", designation.clone())
-                .arg("count", members.len().to_string())
-                .arg("strip", strip_tag)
-                .arg("end", strip_end(after, term.strip))
-                .arg("remedy", remedy)
-                .arg("free", free.map(|f| f.to_string()).unwrap_or_default())
-                .arg("old", swap.unwrap_or_default()),
-            );
         }
         out
     }

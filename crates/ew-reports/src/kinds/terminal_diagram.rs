@@ -3,13 +3,15 @@
 
 //! `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; from folio 903 of the standard layout).
 
+use std::collections::BTreeSet;
+
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, ReportBlock, Side};
-use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
+use ew_derive::ew_schema::{Device, Endpoint, ReportBlock, Side, Terminal};
+use ew_derive::{Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
 
 use super::conn::{
-    WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,
+    Bridge, WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -17,9 +19,10 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// The terminal diagram.
 ///
 /// The strips are the devices of the block's manual selection (`manual.include`) that have a strip aspect,
-/// else every strip in natural order of its tag; one row per terminal of a strip in `(seq, ID)` order.
-/// Row ID: `(strip, terminal, level)`, the level being 1 (multi-level terminals get a row per level with
-/// their level terminals, not modelled yet).
+/// else every strip in natural order of its tag; one row per terminal of a strip in `(seq, ID)` order, and for a block
+/// of several levels (doc 08 §6.3, FR-TRM-004) one row per level ([`row_levels`]): the level's designation, potential,
+/// sides, bridge and state, its CPs without a level on its first row.
+/// Row ID: `(strip, terminal, level)`, the level being 1 for a terminal of one level.
 ///
 /// `strip` is the strip's tag, so that two strips' terminals of one number read apart (FT-1805). `label` is the
 /// terminal's function text (the "1+" of the reference), `group` the caption of the strip
@@ -101,62 +104,114 @@ impl ReportKindDef for TerminalDiagram {
                         super::parts::part_number_cell(c.item.part_number.as_str())
                     });
 
-                let (mut side1, mut side2) = (Vec::new(), Vec::new());
-                let mut potential = Cell::Empty;
-                for f in q.idx().functions_of_device(t) {
-                    for cp in q.get::<FunctionCps>(f).iter() {
-                        let r = CpRef::new(f, cp.idx);
+                let cps: Vec<(CpRef, Cp)> = q
+                    .idx()
+                    .functions_of_device(t)
+                    .flat_map(|f| {
+                        q.get::<FunctionCps>(f)
+                            .iter()
+                            .map(|c| (CpRef::new(f, c.idx), c.clone()))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect();
+                for (level, first) in row_levels(term, &cps) {
+                    // The CPs of this row: the level's, and on the first row those without a level.
+                    let here: Vec<&(CpRef, Cp)> = cps
+                        .iter()
+                        .filter(|(_, c)| level.is_none() || c.level == level || (first && c.level.is_none()))
+                        .collect();
+                    let (mut side1, mut side2) = (Vec::new(), Vec::new());
+                    let mut potential = Cell::Empty;
+                    for (r, cp) in &here {
                         if potential == Cell::Empty
                             && let Some(p) = partition.potential_at(r.key())
                         {
                             potential = Cell::Ident(q.get::<PotentialNameOf>(p.id).name.text.clone());
                         }
-                        let Some(recs) = by_cp.get(&r) else { continue };
+                        let Some(recs) = by_cp.get(r) else { continue };
                         // A CP whose part and definition give it no side lists on side 1, never nowhere.
                         let target = match cp.side {
                             Some(Side::Side2) => &mut side2,
                             _ => &mut side1,
                         };
                         for rec in recs {
-                            target.push(target_text(q, rec, r));
+                            target.push(target_text(q, rec, *r));
                         }
                     }
+                    let bridge = bridges.iter().find(|b| {
+                        b.terminals.contains(&t) && (level.is_none() || bridged_at(q, b, &here))
+                    });
+                    let wired = match level {
+                        None => terminal_wired(q, t, &by_cp),
+                        Some(_) => here.iter().any(|(r, _)| by_cp.contains_key(r)),
+                    };
+                    let state = terminal_state(&dev.state, wired, bridge.is_some());
+                    let mut r = Row::data(
+                        RowId(vec![
+                            RowKey::Entity(strip.as_uuid()),
+                            RowKey::Entity(t.as_uuid()),
+                            RowKey::Index(level.map_or(1, u32::from)),
+                        ]),
+                        vec![
+                            Cell::Tag(strip),
+                            Cell::Ident(term.level_designation(level).as_str().to_owned()),
+                            if dev.function_text.is_empty() {
+                                Cell::Empty
+                            } else {
+                                Cell::Text(dev.function_text.clone())
+                            },
+                            group.clone(),
+                            part.clone(),
+                            potential,
+                            text_cell(side1.join(", ")),
+                            text_cell(side2.join(", ")),
+                            bridge.map_or(Cell::Empty, |b| Cell::Ident(b.label.clone())),
+                            Cell::Text(MlText::from_langs(
+                                [("en-GB", state.0), ("nl-NL", state.1)]
+                                    .into_iter()
+                                    .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
+                            )),
+                        ],
+                    );
+                    r.sources = vec![t.cast(), strip.cast()];
+                    set.rows.push(r);
                 }
-                let bridge = bridges.iter().find(|b| b.terminals.contains(&t));
-                let state = terminal_state(&dev.state, terminal_wired(q, t, &by_cp), bridge.is_some());
-                let mut r = Row::data(
-                    RowId(vec![
-                        RowKey::Entity(strip.as_uuid()),
-                        RowKey::Entity(t.as_uuid()),
-                        RowKey::Index(1),
-                    ]),
-                    vec![
-                        Cell::Tag(strip),
-                        Cell::Ident(term.designation.as_str().to_owned()),
-                        if dev.function_text.is_empty() {
-                            Cell::Empty
-                        } else {
-                            Cell::Text(dev.function_text.clone())
-                        },
-                        group,
-                        part,
-                        potential,
-                        text_cell(side1.join(", ")),
-                        text_cell(side2.join(", ")),
-                        bridge.map_or(Cell::Empty, |b| Cell::Ident(b.label.clone())),
-                        Cell::Text(MlText::from_langs(
-                            [("en-GB", state.0), ("nl-NL", state.1)]
-                                .into_iter()
-                                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
-                        )),
-                    ],
-                );
-                r.sources = vec![t.cast(), strip.cast()];
-                set.rows.push(r);
             }
         }
         set
     }
+}
+
+/// The rows of a terminal as (level, whether it is the first row): one row (`None`) for a terminal of one level, else
+/// one per level (doc 08 §6.3, FR-TRM-004): the levels it lists in their order, else those its CPs carry, ascending.
+fn row_levels(term: &Terminal, cps: &[(CpRef, Cp)]) -> Vec<(Option<u8>, bool)> {
+    let mut levels: Vec<u8> = Vec::new();
+    let listed = term.levels.iter().map(|l| l.level);
+    let carried: BTreeSet<u8> = cps.iter().filter_map(|(_, c)| c.level).collect();
+    for l in listed.chain(carried) {
+        if !levels.contains(&l) {
+            levels.push(l);
+        }
+    }
+    if levels.len() < 2 {
+        return vec![(None, true)];
+    }
+    levels
+        .into_iter()
+        .enumerate()
+        .map(|(i, l)| (Some(l), i == 0))
+        .collect()
+}
+
+/// Whether one of the connections of bridge `b` ends at one of the CPs `here`.
+fn bridged_at(q: &Q, b: &Bridge, here: &[&(CpRef, Cp)]) -> bool {
+    let connections = q.connections();
+    b.connections.iter().filter_map(|c| connections.get(*c)).any(|c| {
+        [&c.a, &c.b].into_iter().any(|e| match e {
+            Endpoint::Cp(f, i) => here.iter().any(|(r, _)| *r == CpRef::new(*f, *i)),
+            _ => false,
+        })
+    })
 }
 
 /// The strips of a block: the strip devices of its manual selection, else all strips by natural tag (shared with

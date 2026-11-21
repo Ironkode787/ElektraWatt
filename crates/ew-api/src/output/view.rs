@@ -1159,7 +1159,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
     let label = dev
         .as_ref()
         .filter(|_| rep.rep_type != RepType::StripSegment)
-        .and_then(|d| terminal_label(q, d));
+        .and_then(|d| terminal_label(q, d, rep));
     let mut out = Vec::new();
     for (i, slot) in def.text_slots.iter().enumerate() {
         let mut item_links = Vec::new();
@@ -1287,10 +1287,11 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
     out
 }
 
-/// The label a terminal's own representation prints in its tag slot (doc 08 §6.1, FR-TRM-021):
+/// The label a terminal's own representation `rep` prints in its tag slot (doc 08 §6.1, FR-TRM-021):
 /// its function text when its strip's `label_mode` is FunctionText and the text is not empty (then `true`: the
-/// function-text slot stays empty), else its designation; `None` for a device that is not a terminal.
-fn terminal_label(q: &Q, dev: &ew_schema::Device) -> Option<(String, bool)> {
+/// function-text slot stays empty), else the designation of the level the representation draws (doc 08 §6.3: the
+/// symbol of a block's second level prints that level's number); `None` for a device that is not a terminal.
+fn terminal_label(q: &Q, dev: &ew_schema::Device, rep: &Representation) -> Option<(String, bool)> {
     let t = dev.aspects.terminal.as_ref()?;
     let by_text = q
         .devices()
@@ -1301,7 +1302,8 @@ fn terminal_label(q: &Q, dev: &ew_schema::Device) -> Option<(String, bool)> {
     Some(if by_text && !text.is_empty() {
         (text, true)
     } else {
-        (t.designation.as_str().to_owned(), false)
+        let level = ew_derive::rep_level(q, rep);
+        (t.level_designation(level).as_str().to_owned(), false)
     })
 }
 

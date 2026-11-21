@@ -241,7 +241,6 @@ extra_only!(
     IpPairing,
     Formatting,
     LineageCopy,
-    LevelSpec,
     WireFlags,
     Cable,
     PinMapEntry,
@@ -784,6 +783,12 @@ impl HeapSize for TagSpec {
 impl HeapSize for StripAccessory {
     fn heap_size(&self) -> usize {
         self.part.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for LevelSpec {
+    fn heap_size(&self) -> usize {
+        self.designation.heap_size() + self.extra.heap_size()
     }
 }
 

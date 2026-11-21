@@ -63,6 +63,9 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// `rep.join_device` (`JoinDevice`): the placed representation `rep` joins `device` in one
 /// transaction, at the same page, position and orientation, its wires kept.
 ///
+/// A representation of a **terminal** joins another terminal of its strip as that terminal's next level, the whole
+/// terminal with it (doc 08 §6.3; `join_level`). Otherwise:
+///
 /// It takes one of D1's two ways:
 ///
 /// - **A slot first.** When `device` has an unplaced normal function of the representation's FnDef (a part's template
@@ -82,7 +85,7 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
 /// and the outcome's notices name each dropped member. A main function never lands on a
 /// device that has one (EW-INV-002): the moved function is auxiliary or fills a slot. Refused, with the pointer: a
-/// representation that draws not exactly one normal function of a device, or whose device is a terminal or a strip,
+/// representation that draws not exactly one normal function of a device, or whose device is a strip,
 /// has another function that is drawn or wired, or another representation, or takes part in a device link, which the join would lose
 /// (`/rep`; remove the link first); the representation's own device (`/device`); a
 /// device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
@@ -112,7 +115,7 @@ fn entry_def(t: &TemplateFn) -> Id<FnDef> {
 /// The non-default members of the source device that its removal drops, in record order, as the user reads them. Its
 /// kind and structure count only where they differ from the target's (the representation reads the target's
 /// afterwards).
-fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str> {
+pub(super) fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str> {
     let mut out = Vec::new();
     let tag = &device.tag;
     if tag.scheme != TagScheme::Default {
@@ -168,7 +171,7 @@ fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str>
 }
 
 /// The own members of the old function that the slot case drops (its record goes; the slot keeps its own).
-fn dropped_function_members(function: &Function) -> Vec<&'static str> {
+pub(super) fn dropped_function_members(function: &Function) -> Vec<&'static str> {
     let mut out = Vec::new();
     if !function.cp_overrides.is_empty() {
         out.push("connection point overrides");
@@ -183,7 +186,7 @@ fn dropped_function_members(function: &Function) -> Vec<&'static str> {
 }
 
 /// `a`, `a and b`, `a, b and c`.
-fn listed(items: &[&str]) -> String {
+pub(super) fn listed(items: &[&str]) -> String {
     match items {
         [] => String::new(),
         [one] => (*one).to_owned(),
@@ -193,7 +196,7 @@ fn listed(items: &[&str]) -> String {
 
 /// The verb after [`listed`]: one member name is singular unless it ends in `s` (of the names above, only "unknown
 /// members" and "connection point overrides" do, and they are plurals).
-fn was_or_were(items: &[&str]) -> &'static str {
+pub(super) fn was_or_were(items: &[&str]) -> &'static str {
     match items {
         [one] if !one.ends_with('s') => "was",
         _ => "were",
@@ -203,6 +206,57 @@ fn was_or_were(items: &[&str]) -> &'static str {
 /// Whether `device` is a terminal or a strip.
 fn terminal_or_strip(device: &Device) -> bool {
     device.aspects.terminal.is_some() || device.aspects.strip.is_some()
+}
+
+/// Moves every connection, potential definition, bond and channel binding or target at function `from` (whose CPs are
+/// `cps`) to function `to`: CP `i` of `from` becomes CP `idx(i)` of `to`.
+pub(super) fn move_attached(
+    tx: &mut TxBuilder<'_>,
+    from: Id<Function>,
+    cps: &BTreeSet<u16>,
+    to: Id<Function>,
+    idx: &dyn Fn(u16) -> u16,
+) -> Result<(), CmdError> {
+    let map = |e: &Endpoint| match e {
+        Endpoint::Cp(g, i) if *g == from => Endpoint::Cp(to, idx(*i)),
+        other => other.clone(),
+    };
+    for c in tx.connections_of_function(from) {
+        tx.update::<Connection>(c, |c| {
+            c.a = map(&c.a);
+            c.b = map(&c.b);
+        })?;
+    }
+    let (mut defs, mut bonds) = (BTreeSet::new(), BTreeSet::new());
+    for i in cps {
+        let at = EndpointKey::Cp(from, *i);
+        defs.extend(tx.potential_defs_at(at));
+        bonds.extend(tx.bonds_at(at));
+    }
+    for d in defs {
+        tx.update::<PotentialDef>(d, |d| d.at = map(&d.at))?;
+    }
+    for b in bonds {
+        tx.update::<Bond>(b, |b| {
+            b.a = map(&b.a);
+            b.b = map(&b.b);
+        })?;
+    }
+    let channels: Vec<Id<Channel>> = tx
+        .iter::<Channel>()
+        .into_iter()
+        .filter(|c| c.target == Some(from) || matches!(c.binding, Some(Endpoint::Cp(g, _)) if g == from))
+        .map(|c| c.id)
+        .collect();
+    for c in channels {
+        tx.update::<Channel>(c, |c| {
+            c.binding = c.binding.as_ref().map(map);
+            if c.target == Some(from) {
+                c.target = Some(to);
+            }
+        })?;
+    }
+    Ok(())
 }
 
 impl Command for JoinDevice {
@@ -233,6 +287,10 @@ impl Command for JoinDevice {
             return not_eligible(text!("refusal-join-no-device"));
         };
         let source_device = tx.require::<Device>(source)?;
+        // A terminal joins a terminal of its strip as that one's next level (doc 08 §6.3).
+        if source_device.aspects.terminal.is_some() {
+            return super::join_level::join_level(tx, self.rep, &source_device, self.device);
+        }
         if terminal_or_strip(&source_device) {
             return not_eligible(text!("refusal-join-terminal"));
         }
@@ -405,10 +463,6 @@ impl Command for JoinDevice {
         }
         match slot {
             Some(slot) => {
-                let map = |e: &Endpoint| match e {
-                    Endpoint::Cp(g, i) if *g == function => Endpoint::Cp(slot, *i),
-                    other => other.clone(),
-                };
                 // The pin map keeps its keys (the symbol CPs): only the function it names changes.
                 let pins: Vec<ew_schema::PinMapEntry> = rep
                     .pin_map
@@ -427,44 +481,7 @@ impl Command for JoinDevice {
                     r.functions = vec![slot];
                     r.pin_map = pins;
                 })?;
-                for c in tx.connections_of_function(function) {
-                    tx.update::<Connection>(c, |c| {
-                        c.a = map(&c.a);
-                        c.b = map(&c.b);
-                    })?;
-                }
-                let (mut defs, mut bonds) = (BTreeSet::new(), BTreeSet::new());
-                for i in &fn_cps {
-                    let at = EndpointKey::Cp(function, *i);
-                    defs.extend(tx.potential_defs_at(at));
-                    bonds.extend(tx.bonds_at(at));
-                }
-                for d in defs {
-                    tx.update::<PotentialDef>(d, |d| d.at = map(&d.at))?;
-                }
-                for b in bonds {
-                    tx.update::<Bond>(b, |b| {
-                        b.a = map(&b.a);
-                        b.b = map(&b.b);
-                    })?;
-                }
-                let channels: Vec<Id<Channel>> = tx
-                    .iter::<Channel>()
-                    .into_iter()
-                    .filter(|c| {
-                        c.target == Some(function)
-                            || matches!(c.binding, Some(Endpoint::Cp(g, _)) if g == function)
-                    })
-                    .map(|c| c.id)
-                    .collect();
-                for c in channels {
-                    tx.update::<Channel>(c, |c| {
-                        c.binding = c.binding.as_ref().map(map);
-                        if c.target == Some(function) {
-                            c.target = Some(slot);
-                        }
-                    })?;
-                }
+                move_attached(tx, function, &fn_cps, slot, &|i| i)?;
             }
             None => tx.put(after),
         }

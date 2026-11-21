@@ -40,6 +40,7 @@ mod frames;
 mod import;
 pub(crate) mod items;
 mod join;
+mod join_level;
 mod languages;
 mod layout;
 pub(crate) mod library;
@@ -52,6 +53,7 @@ mod page_copy;
 mod part_edit;
 mod parts;
 mod paste;
+mod placeholder;
 mod plc;
 mod plc_exchange;
 mod renumber;
@@ -241,6 +243,8 @@ commands! {
     items::PlaceMarker,
     parts::ImportParts,
     assign::AssignPart,
+    // A part whose type is not known yet (FT-1878)
+    placeholder::AssignPlaceholder,
     library_update::UpdateLibraryCopies,
     macro_insert::InsertMacro,
     join::JoinDevice,

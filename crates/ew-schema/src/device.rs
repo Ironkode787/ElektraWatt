@@ -472,6 +472,53 @@ pub struct Terminal {
     pub extra: Extra,
 }
 
+impl Terminal {
+    /// The designation of level `level` (doc 08 §6.3): the level's own, else the terminal's, which is also that of a
+    /// connection point without a level and of a level the terminal does not list.
+    pub fn level_designation(&self, level: Option<u8>) -> &Ident {
+        level
+            .and_then(|l| self.levels.iter().find(|s| s.level == l))
+            .and_then(|s| s.designation.as_ref())
+            .unwrap_or(&self.designation)
+    }
+
+    /// The connection points that the listed levels add to a function of the terminal whose own connection points
+    /// are `cps` (index, level) (doc 08 §6.3): when `cps` carry exactly one level, each listed level they do not carry,
+    /// the k-th of them in list order (k from 1), copies every connection point of the carried level at index
+    /// `idx + k·n`, `n` being the highest index of `cps` plus one. Each as (index, the index it copies, level), the
+    /// levels in list order, each in the order of `cps`; none when `cps` carry no level or several. A copy whose index
+    /// would pass `u16::MAX` is left out.
+    pub fn level_copies(&self, cps: &[(u16, Option<u8>)]) -> Vec<(u16, u16, u8)> {
+        let mut carried = cps.iter().filter_map(|(_, l)| *l);
+        let Some(base) = carried.next() else {
+            return Vec::new();
+        };
+        if carried.any(|l| l != base) {
+            return Vec::new();
+        }
+        let span = cps.iter().map(|(i, _)| u32::from(*i) + 1).max().unwrap_or(0);
+        let mut added: Vec<u8> = Vec::new();
+        for s in &self.levels {
+            if s.level != base && !added.contains(&s.level) {
+                added.push(s.level);
+            }
+        }
+        let mut out = Vec::new();
+        for (k, level) in (1u32..).zip(added) {
+            for (idx, l) in cps {
+                if *l != Some(base) {
+                    continue;
+                }
+                let at = span.checked_mul(k).and_then(|o| o.checked_add(u32::from(*idx)));
+                if let Some(at) = at.and_then(|a| u16::try_from(a).ok()) {
+                    out.push((at, *idx, level));
+                }
+            }
+        }
+        out
+    }
+}
+
 /// One level of a multi-level terminal.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct LevelSpec {
@@ -480,6 +527,12 @@ pub struct LevelSpec {
     /// Role; default main.
     #[serde(default, skip_serializing_if = "is_default")]
     pub role: LevelRole,
+    /// The level's own designation: a block with a number on each level (doc 08 §6.3); absent, the level is designated
+    /// by its terminal's. An optional member without cascade semantics (ADR-0011 amendment 6): an older build keeps it
+    /// in `extra` and designates the level by the terminal's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub designation: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

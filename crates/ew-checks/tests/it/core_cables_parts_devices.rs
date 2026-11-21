@@ -439,7 +439,7 @@ fn placeholders(ids: [u128; 2]) -> Model {
     placeholders_fx(ids).build()
 }
 
-/// EW-CORE-043 (D-04, EF-17): one finding per placeholder copy (part number TBD), a warning online and an error in
+/// EW-CORE-043 (D-04, EF-17): one finding per placeholder copy (part number TBD), info online and an error in
 /// release mode, naming every device that uses it; a real part is not reported. Permuting the devices' IDs leaves the
 /// finding unchanged.
 #[test]
@@ -448,7 +448,7 @@ fn core043_reports_each_placeholder_part_once() {
     let f = findings_of(&a, "EW-CORE-043");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "102043");
-    assert_eq!(f[0].severity, Severity::Warning);
+    assert_eq!(f[0].severity, Severity::Info);
     assert_eq!(f[0].subject, "TBD Wiring duct");
     assert_eq!(
         f[0].message,

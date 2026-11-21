@@ -10,7 +10,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
-use ew_commands::commands::{AssignModeParam, AssignPart};
+use ew_commands::commands::{AssignModeParam, AssignPart, AssignPlaceholder};
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_schema::{Device, FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
@@ -599,6 +599,49 @@ impl Session {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    /// Type not known yet… of the part dialog (doc 07 §3.3): `part.placeholder` giving `devices` a placeholder part
+    /// described by `description`, in the dialog's mode.
+    ///
+    /// # Errors
+    ///
+    /// [`ApiError::Cmd`] when the parameters have no JSON form.
+    pub fn placeholder_command(
+        &self,
+        devices: &[Uuid],
+        mode: AssignMode,
+        description: &str,
+    ) -> Result<AnyCommand, ApiError> {
+        let (mode, from) = match mode {
+            AssignMode::Append => (AssignModeParam::Append, None),
+            AssignMode::ReplaceAll => (AssignModeParam::ReplaceAll, None),
+            AssignMode::Replace { from } => (AssignModeParam::Replace, Some(Id::from_uuid(from))),
+        };
+        let cmd = AssignPlaceholder {
+            devices: devices.iter().map(|d| Id::from_uuid(*d)).collect(),
+            description: description.to_owned(),
+            mode,
+            from,
+        };
+        AnyCommand::of(&cmd).map_err(ApiError::Cmd)
+    }
+
+    /// The devices that carry the part copy `copy`, in ID order, when it is a placeholder (part number TBD, doc 07
+    /// §3.3): a real part chosen for one of them replaces it on all; `None` for another part or a copy the project does
+    /// not hold.
+    pub fn placeholder_users(&self, copy: Uuid) -> Option<Vec<Uuid>> {
+        let q = self.query();
+        let id: Id<Part> = Id::from_uuid(copy);
+        q.parts().get(id).filter(|c| c.item.is_placeholder())?;
+        let mut users: Vec<Uuid> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy == id))
+            .map(|(d, _)| d.as_uuid())
+            .collect();
+        users.sort_unstable();
+        Some(users)
     }
 
     /// The one command of a choice (D16): for devices `part.assign` in the target's mode (a held copy without

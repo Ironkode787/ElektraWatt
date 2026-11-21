@@ -22,7 +22,7 @@ use ew_derive::ew_schema::{
 use ew_derive::{
     BridgeGroup, CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
     PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
-    StripBridges, WireEnd, WirePropsOf, orient_wire, short_tag,
+    StripBridges, WireEnd, WirePropsOf, level_short_tag, orient_wire, short_tag,
 };
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
@@ -221,14 +221,14 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
             let cp = cp_designation(q, end.cp);
             let is_terminal = q.devices().get(d).is_some_and(|d| d.aspects.terminal.is_some());
             if is_terminal {
-                let clamp = q
-                    .get::<FunctionCps>(end.cp.function)
-                    .iter()
-                    .find(|c| c.idx == end.cp.idx)
-                    .and_then(|c| match &c.clamp {
-                        Some(ClampKey::Clamp(ch)) => Some(ch.to_string()),
-                        _ => None,
-                    });
+                let cps = q.get::<FunctionCps>(end.cp.function);
+                let this = cps.iter().find(|c| c.idx == end.cp.idx);
+                // A level of a block with a number of its own prints that number (doc 08 §6.3).
+                let short = level_short_tag(q, d, this.and_then(|c| c.level));
+                let clamp = this.and_then(|c| match &c.clamp {
+                    Some(ClampKey::Clamp(ch)) => Some(ch.to_string()),
+                    _ => None,
+                });
                 match clamp {
                     Some(c) => format!("{short}/{c}"),
                     None => short,
@@ -367,6 +367,8 @@ pub(super) struct Bridge {
     pub kind: &'static str,
     /// The terminals it joins in `(seq, ID)` order.
     pub terminals: Vec<Id<Device>>,
+    /// Its connections, as the group orders them (a level of a block is bridged where they end, doc 08 §6.3).
+    pub connections: Vec<Id<Connection>>,
     /// The page of its first drawn connection, if any is drawn.
     pub page: Option<Id<Page>>,
     /// The label `BR<n>`, numbered over the strips in natural tag order, then group number.
@@ -397,6 +399,7 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
                 group: g.group,
                 kind,
                 terminals: g.terminals,
+                connections: g.connections,
                 page,
                 label,
             }

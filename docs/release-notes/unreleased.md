@@ -156,6 +156,16 @@ change here.
   prints the device's function text or the strip's tag, the strip then named on that page by the text alone; Function
   text over its path and Name the terminal strip here in the canvas menu over one symbol place one (doc 06 §3.8,
   FT-1875)
+- api-add: a two-level terminal block with a number on each level is one terminal with one part: Join device… (J) on a
+  terminal's symbol offers the other terminals of its strip, and `rep.join_device` makes the terminal the chosen one's
+  next level, its symbols, wires and number kept; a level's number is the optional member `designation` of
+  `terminal.levels[]`, its symbol prints it, a wire end reads `-X1:2/a`, the terminal diagram has a row per level and
+  EW-TERM-002 counts it (doc 08 §6.3, FT-1878)
+- api-add: a part whose type is not known yet: Type not known yet… in the part dialog, or `part.placeholder {devices,
+  description}`, gives the devices a placeholder part numbered TBD with those words, which the parts list prints as a
+  row of its own; a real part chosen for one of them replaces it on all; EW-CORE-043 reports a placeholder as info
+  instead of a warning (still an error in release mode) and EW-CORE-042 asks it for no manufacturer (doc 07 §3.3,
+  FT-1878)
 - behaviour-change: `ew print --fit` and the print dialog's Scale to fit enlarge a page to the paper too, an A4 set on
   A3 at 141 %, and stamp it "scaled n %" (FT-1826)
 - behaviour-change: the terminal diagram's first column is the strip, so two strips' terminals 1 read apart; its CSV

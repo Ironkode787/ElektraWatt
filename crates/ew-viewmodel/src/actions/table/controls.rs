@@ -863,6 +863,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
+        "description:text",
+        hidden(act(
+            "part.placeholder",
+            Command,
+            Menu::Edit,
+            &[],
+            part_dialog_open,
+            None,
+            |s, p| s.act_part_placeholder(p),
+        )),
+    ),
+    with_params(
         "index?:uint",
         hidden(act(
             "part.favourite",

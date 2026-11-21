@@ -327,6 +327,36 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Vec::new();
         };
+        // A terminal joins another terminal of its strip as that one's next level (doc 08 §6.3): the strip's other
+        // terminals in their order on the strip.
+        let q = project.session.query();
+        if let Some(strip) = own
+            .to_string()
+            .parse()
+            .ok()
+            .and_then(|id| q.devices().get(id))
+            .and_then(|d| d.aspects.terminal.as_ref())
+            .map(|t| t.strip)
+        {
+            let mut terminals: Vec<(u32, Uuid)> = q
+                .idx()
+                .terminals_of_strip(strip)
+                .filter_map(|t| Some((q.devices().get(t)?.aspects.terminal.as_ref()?.seq, t.as_uuid())))
+                .filter(|(_, t)| *t != own)
+                .collect();
+            terminals.sort_unstable();
+            return terminals
+                .into_iter()
+                .map(|(_, t)| ChooserRow {
+                    name: project.session.device_tag(t).unwrap_or_default(),
+                    kind: strings::text(key!("chooser-kind-level")).to_owned(),
+                    value: ChooserValue::JoinRep {
+                        rep: rep.to_string(),
+                        device: t.to_string(),
+                    },
+                })
+                .collect();
+        }
         let mut rows: Vec<ChooserRow> = Vec::new();
         for c in project.session.join_candidates(fndef).rows {
             let device = c.device.to_string();

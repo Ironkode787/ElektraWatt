@@ -38,10 +38,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 - FT-1981 `ew-api, ew-import-catalog`: The units of technical data are listed by hand three times beside `Unit` (the typed units, a parts catalogue's units, the derive's symbols); the catalogue's list lacks `mm`, `piece` and `set`. One list from `Unit`.
 - FT-1933 `ew-derive`: A protective-earth potential that only an earth symbol names takes that symbol's pin name: an imported earth point's pin is `1`, so the potential is called `1` in the potential list and the SQL view. Call such a potential PE.
 
-#### What the model has no place for
-
-- FT-1878 `ew-model, ew-checks, ew-scene`: A draughtsman's drawing shows what the model cannot hold: two terminal numbers on one two-level terminal block (the job put half a part on each); a part whose type is not known (no placeholder: the device has no part and the check warns). The other three such gaps are FT-1905, M4.
-
 #### Files and the text interface
 
 - FT-1930 `ew`: Three openings do not yet warn about a file `manifest.json` does not list, as the common open does since FT-1879: the editing open of `ew route`, `ew revision`, and the editing part of `ew project assets purge`.

@@ -331,6 +331,17 @@
       "additionalProperties": true,
       "description": "One level of a multi-level terminal.",
       "properties": {
+        "designation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The level's own designation: a block with a number on each level (doc 08 §6.3); absent, the level is designated\nby its terminal's. An optional member without cascade semantics (ADR-0011 amendment 6): an older build keeps it\nin `extra` and designates the level by the terminal's."
+        },
         "level": {
           "description": "Level number.",
           "format": "uint8",

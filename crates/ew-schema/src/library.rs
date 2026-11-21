@@ -1339,6 +1339,17 @@ pub struct Part {
     pub extra: Extra,
 }
 
+/// The part number of a placeholder part, which says that a part belongs to the device and that its type is not known
+/// yet (FR-CHK-034, doc 07 §3.3).
+pub const PLACEHOLDER_PART_NUMBER: &str = "TBD";
+
+impl Part {
+    /// Whether the part is a placeholder: its number is [`PLACEHOLDER_PART_NUMBER`].
+    pub fn is_placeholder(&self) -> bool {
+        self.part_number.as_str() == PLACEHOLDER_PART_NUMBER
+    }
+}
+
 /// The device box of a part ([`Part::box_`]): the rectangle a device of the part is drawn as and the pins on its
 /// edges. A placed box is a copy of it on the page's connection grid (`box.black`); the page's box is then the
 /// person's to reshape, and a later change of the part asks before it redraws.

@@ -197,19 +197,46 @@ pub(crate) fn one() -> u32 {
 /// has a CP); else a template-origin function's from its part's pattern (`ew_schema::template_entry_of`,
 /// `TemplateFn::function_cps`, which yields pattern entries only, so no filter follows); else, for a black box, the CP
 /// pattern of the device's first part use that has one (the generic black-box FnDef defines no CPs, the card's part
-/// does); else its FnDef copy's. The one accessor the commands use (join, `plc.bind_channel`, the boxes that follow a
-/// corrected part), so their CP checks agree with the CPs the pages draw; the join refuses a black box before it reads
-/// CPs, so only `plc.bind_channel` reaches the black-box branch.
+/// does); else its FnDef copy's; then, for a terminal, the copies its listed levels add (`Terminal::level_copies`,
+/// doc 08 §6.3). The one accessor the commands use (join, `plc.bind_channel`, the boxes that follow a corrected part),
+/// so their CP checks agree with the CPs the pages draw; the join refuses a black box before it reads CPs, so only
+/// `plc.bind_channel` reaches the black-box branch.
 pub(crate) fn function_cp_indices(
     tx: &TxBuilder<'_>,
     func: &Function,
     device: &ew_schema::Device,
 ) -> std::collections::BTreeSet<u16> {
+    function_cp_levels(tx, func, device)
+        .into_iter()
+        .map(|(i, _)| i)
+        .collect()
+}
+
+/// [`function_cp_indices`] with the terminal level of each CP (the pattern entry's, else its FnDef CP's, as
+/// `ew_derive::FunctionCps` takes it), in index order.
+pub(crate) fn function_cp_levels(
+    tx: &TxBuilder<'_>,
+    func: &Function,
+    device: &ew_schema::Device,
+) -> Vec<(u16, Option<u8>)> {
+    let mut cps = own_cp_levels(tx, func, device);
+    if let Some(t) = &device.aspects.terminal {
+        let copies = t.level_copies(&cps);
+        cps.extend(copies.into_iter().map(|(i, _, l)| (i, Some(l))));
+    }
+    cps.sort_unstable();
+    cps.dedup_by_key(|(i, _)| *i);
+    cps
+}
+
+/// The CPs of [`function_cp_levels`] before the level copies.
+fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device) -> Vec<(u16, Option<u8>)> {
     use ew_schema::{FnDef, FunctionKind, LibCopy, Part, TemplateFn, template_entry_of};
-    let def: Vec<u16> = tx
+    let def_cps: Vec<(u16, Option<u8>)> = tx
         .get::<LibCopy<FnDef>>(func.def)
-        .map(|c| c.item.cps.iter().map(|d| d.idx).collect())
+        .map(|c| c.item.cps.iter().map(|d| (d.idx, d.level)).collect())
         .unwrap_or_default();
+    let def: Vec<u16> = def_cps.iter().map(|(i, _)| *i).collect();
     let parts: Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> = device
         .parts
         .iter()
@@ -226,7 +253,7 @@ pub(crate) fn function_cp_indices(
                 .filter(|n| *n > 0)
         })
     {
-        return (0..n).collect();
+        return (0..n).map(|i| (i, None)).collect();
     }
     let names_def = |t: &TemplateFn| {
         let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
@@ -239,10 +266,17 @@ pub(crate) fn function_cp_indices(
     );
     if let Some((_, part, n)) = template {
         let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
-        let cps: std::collections::BTreeSet<u16> = part.function_template[n]
+        let cps: Vec<(u16, Option<u8>)> = part.function_template[n]
             .function_cps(&pattern, &def)
             .into_iter()
-            .map(|t| t.idx)
+            .map(|t| {
+                let own = part.cp_pattern.iter().find(|c| c.idx == t.pattern).and_then(|c| c.level);
+                let of_def = t
+                    .def
+                    .and_then(|d| def_cps.iter().find(|(i, _)| *i == d))
+                    .and_then(|(_, l)| *l);
+                (t.idx, own.or(of_def))
+            })
             .collect();
         if !cps.is_empty() {
             return cps;
@@ -250,8 +284,8 @@ pub(crate) fn function_cp_indices(
     }
     if matches!(func.kind, FunctionKind::BlackBox) {
         if let Some((_, part)) = parts.iter().find(|(_, p)| !p.item.cp_pattern.is_empty()) {
-            return part.item.cp_pattern.iter().map(|c| c.idx).collect();
+            return part.item.cp_pattern.iter().map(|c| (c.idx, c.level)).collect();
         }
     }
-    def.into_iter().collect()
+    def_cps
 }

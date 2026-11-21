@@ -275,6 +275,47 @@ pub fn short_tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
+/// The short tag of the terminal `device` at a connection point of level `level` (doc 08 §6.3): its strip and the
+/// level's designation (`-X1:11`, the second level of the block `-X1:10`); [`short_tag`] for a device that is no
+/// terminal, for a level designated by its terminal's designation and for a tag without one (a frozen tag).
+pub fn level_short_tag(q: &Q, device: Id<Device>, level: Option<u8>) -> String {
+    let tag = q.get::<DeviceTag>(device);
+    let Some(t) = tag.as_ref().as_ref() else {
+        return String::new();
+    };
+    let devices = q.devices();
+    let own = devices
+        .get(device)
+        .and_then(|d| d.aspects.terminal.as_ref())
+        .map(|term| term.level_designation(level).as_str());
+    match own {
+        Some(d) if t.cp.as_deref().is_some_and(|cp| cp != d) => {
+            let mut t = t.clone();
+            t.cp = Some(d.to_owned());
+            t.short()
+        }
+        _ => t.short(),
+    }
+}
+
+/// The terminal level that the representation `rep` draws (doc 08 §6.3): the level of the first of its symbol's CPs, in
+/// the symbol's order, whose function CP (by its pin map, else the first function's `fn_cp`) has one; `None` for a
+/// representation that draws no CP with a level or whose symbol copy is missing.
+pub fn rep_level(q: &Q, rep: &Representation) -> Option<u8> {
+    let symbols = q.symbols();
+    let symbol = symbols.get(rep.symbol)?;
+    symbol.item.cps.iter().find_map(|cp| {
+        let (f, i) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
+            Some(p) => (p.function, p.idx),
+            None => (*rep.functions.first()?, cp.fn_cp),
+        };
+        q.get::<crate::FunctionCps>(f)
+            .iter()
+            .find(|c| c.idx == i)
+            .and_then(|c| c.level)
+    })
+}
+
 fn counter_text(counter: Option<u32>) -> String {
     counter.map_or_else(|| "?".to_owned(), |c| c.to_string())
 }

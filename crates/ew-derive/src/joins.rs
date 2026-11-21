@@ -194,7 +194,8 @@ fn daisy_ends(q: &Q, w: &PhysicalWire) -> Vec<CpRef> {
 
 /// A CP as one text, as the junction notation prints it (doc 08 §3.8 "Wire-end locus"): a device CP
 /// `tag:designation` with `#n` where the function's printed designations repeat (`-102G1:−#1`, the n-th CP of
-/// that designation in index order), a terminal `strip:terminal/clamp` (`-X1031:1/b`) with `#n` where the
+/// that designation in index order), a terminal `strip:terminal/clamp` (`-X1031:1/b`, the designation that of the CP's
+/// level, `level_short_tag`) with `#n` where the
 /// function's clamps of one level repeat a letter (a third-party FnDef: `-X1:1/a#2`), an interruption
 /// point its name; empty for an unknown function.
 pub fn cp_label(q: &Q, cp: CpRef) -> String {
@@ -222,6 +223,8 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
         .get(device)
         .is_some_and(|d| d.aspects.terminal.is_some());
     if terminal {
+        // A level of a block with a number of its own prints that number (`-X1:11/a`, doc 08 §6.3).
+        let short = crate::tag::level_short_tag(q, device, this.level);
         let Some(ew_schema::ClampKey::Clamp(ch)) = &this.clamp else {
             return short;
         };

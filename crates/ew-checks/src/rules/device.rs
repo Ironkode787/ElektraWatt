@@ -132,13 +132,14 @@ pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-core-042",
 };
 
-/// What a part copy lacks for EW-CORE-042, in a fixed order: `description`, `manufacturer`.
+/// What a part copy lacks for EW-CORE-042, in a fixed order: `description`, `manufacturer`. A placeholder (part
+/// number TBD, a part whose type is not known yet) is not asked for a manufacturer (doc 07 §3.3).
 fn missing_part_data(q: &Q, part: &Part) -> Vec<&'static str> {
     let mut out = Vec::new();
     if part.description.is_empty() {
         out.push("description");
     }
-    if manufacturer_name(q, &part.manufacturer).is_empty() {
+    if !part.is_placeholder() && manufacturer_name(q, &part.manufacturer).is_empty() {
         out.push("manufacturer");
     }
     out
@@ -197,7 +198,7 @@ impl Rule for IncompletePartData {
 // ---------------------------------------------------------------------------------------------------------
 // EW-CORE-043
 
-/// EW-CORE-043 "Placeholder part" (doc 15 §4.2): completeness, o r, warning (release: error), device.
+/// EW-CORE-043 "Placeholder part" (doc 15 §4.2): completeness, o r, info (release: error), device.
 pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     id: "EW-CORE-043",
     code: "102043",
@@ -205,7 +206,7 @@ pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     title: "Placeholder part",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
-    severity: Severity::Warning,
+    severity: Severity::Info,
     release_severity: Some(Severity::Error),
     scope: ScopeKind::Device,
     supersedes: &[],
@@ -213,16 +214,14 @@ pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-core-043",
 };
 
-/// The part number of a placeholder ("to be defined") part.
-const PLACEHOLDER_NUMBER: &str = "TBD";
-
-/// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17). The schema has
-/// no typed placeholder marker on a part, so a placeholder part carries the part number `TBD`. One finding per placeholder copy, as EF-17 counts them: targets the copy and
+/// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17;
+/// `Part::is_placeholder`), a part that belongs to the device and whose type is not known yet (`part.placeholder`, doc 07
+/// §3.3). One finding per placeholder copy, as EF-17 counts them: targets the copy and
 /// every device that uses it (a part use, or a carrier part line of its enclosure: -UC1's rail
 /// and duct are carriers, not part uses), the fingerprint keyed on the copy, discriminator `placeholder`. It
 /// is reported in the scope of the first of those devices by printed tag, so a further user of the part
-/// changes neither the count nor the fingerprint. A warning online, an error in release mode (an open item
-/// that blocks release).
+/// changes neither the count nor the fingerprint. Info online (a decision the person recorded, not a gap), an error in
+/// release mode (an open item that blocks release).
 #[derive(Clone, Copy, Debug)]
 pub struct PlaceholderPart;
 
@@ -240,7 +239,7 @@ impl Rule for PlaceholderPart {
         };
         let mut out = Vec::new();
         for (id, part) in placeholder_candidates(q, d) {
-            if part.item.part_number.as_str() != PLACEHOLDER_NUMBER {
+            if !part.item.is_placeholder() {
                 continue;
             }
             // Every device that uses the copy, by printed tag.

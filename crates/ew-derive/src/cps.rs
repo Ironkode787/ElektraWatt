@@ -83,6 +83,9 @@ pub struct Cp {
 /// - A black box that takes no CPs from a part (a box drawn without one) adds the named pins of its boxes
 ///   (`BoxCp.name`, in representation ID order, the first of one index): a CP of that index printed with that name,
 ///   with the defaults of a black-box pattern CP. An index its FnDef has already is kept as the FnDef's.
+/// - A function of a terminal whose CPs carry one level gains a copy of them for every other level its terminal lists
+///   (`Terminal::level_copies`, doc 08 §6.3): the second level of a two-level block drawn from a one-level FnDef or
+///   part.
 /// - `Function.cp_overrides` then replace designation, alias and description where given, copy the
 ///   `unused` flag and mark the CP `overridden`. An override whose index has no CP is ignored (finding it
 ///   is a normaliser's job).
@@ -112,6 +115,7 @@ impl Query for FunctionCps {
         if own {
             box_pin_cps(q, *key, &mut cps);
         }
+        level_cps(q, function, &mut cps);
         supply_role_fallback(q, function, &mut cps);
         for o in &function.cp_overrides {
             let Some(cp) = cps.iter_mut().find(|c| c.idx == o.idx) else {
@@ -130,6 +134,29 @@ impl Query for FunctionCps {
             cp.overridden = true;
         }
         Arc::new(cps)
+    }
+}
+
+/// The CPs the listed levels of the function's terminal add (`Terminal::level_copies`): each a copy of the CP it
+/// stands for, with its own index and level.
+fn level_cps(q: &Q, function: &Function, cps: &mut Vec<Cp>) {
+    let devices = q.devices();
+    let Some(terminal) = function
+        .device
+        .and_then(|d| devices.get(d))
+        .and_then(|d| d.aspects.terminal.as_ref())
+    else {
+        return;
+    };
+    let have: Vec<(u16, Option<u8>)> = cps.iter().map(|c| (c.idx, c.level)).collect();
+    for (idx, of, level) in terminal.level_copies(&have) {
+        if let Some(base) = cps.iter().find(|c| c.idx == of).cloned() {
+            cps.push(Cp {
+                idx,
+                level: Some(level),
+                ..base
+            });
+        }
     }
 }
 

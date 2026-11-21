@@ -112,7 +112,7 @@ impl PartsSummary {
                 Cell::Ident(pos),
                 qty_cell(row.qty),
                 Cell::Ident(unit_symbol(&row.unit)),
-                manufacturer_cell(q, &row.manufacturer),
+                part_maker_cell(q, &row.manufacturer, &row.part_number),
                 part_number_cell(&row.part_number),
                 Cell::Text(row.description.clone()),
                 Cell::Range(row.devices.clone()),
@@ -222,7 +222,7 @@ impl ReportKindDef for PartsList {
                         Cell::Tag(device),
                         qty_cell(line.qty),
                         Cell::Ident(unit_symbol(&part.unit)),
-                        manufacturer_cell(q, &part.manufacturer),
+                        part_maker_cell(q, &part.manufacturer, part.part_number.as_str()),
                         part_number_cell(part.part_number.as_str()),
                         Cell::Text(part.description.clone()),
                     ],
@@ -293,9 +293,19 @@ pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
     Cell::Ident(name)
 }
 
-/// The part-number cell: `Tbd` when empty or "TBD".
+/// The manufacturer cell of a part numbered `part_number`: [`manufacturer_cell`], but empty for a placeholder (TBD),
+/// whose type and maker are not known yet (doc 07 §3.3), so that its row reads as a placeholder, not a gap.
+pub(super) fn part_maker_cell(q: &Q, m: &LibRef, part_number: &str) -> Cell {
+    if part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER {
+        Cell::Empty
+    } else {
+        manufacturer_cell(q, m)
+    }
+}
+
+/// The part-number cell: `Tbd` when empty or a placeholder's ("TBD").
 pub(super) fn part_number_cell(part_number: &str) -> Cell {
-    if part_number.is_empty() || part_number == "TBD" {
+    if part_number.is_empty() || part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER {
         Cell::Tbd
     } else {
         Cell::Ident(part_number.to_owned())
@@ -305,7 +315,7 @@ pub(super) fn part_number_cell(part_number: &str) -> Cell {
 /// The manufacturer, part-number and description cells of a part.
 pub(super) fn part_cells(q: &Q, part: &Part) -> [Cell; 3] {
     [
-        manufacturer_cell(q, &part.manufacturer),
+        part_maker_cell(q, &part.manufacturer, part.part_number.as_str()),
         part_number_cell(part.part_number.as_str()),
         Cell::Text(part.description.clone()),
     ]

@@ -116,6 +116,7 @@
     - [`page.surface_view.set`](reference/commands/page.surface_view.set.md)
     - [`part.assign`](reference/commands/part.assign.md)
     - [`part.edit_copy`](reference/commands/part.edit_copy.md)
+    - [`part.placeholder`](reference/commands/part.placeholder.md)
     - [`parts.import`](reference/commands/parts.import.md)
     - [`plc.add_module`](reference/commands/plc.add_module.md)
     - [`plc.add_station`](reference/commands/plc.add_station.md)

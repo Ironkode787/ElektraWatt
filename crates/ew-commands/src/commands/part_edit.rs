@@ -409,7 +409,7 @@ impl Command for EditPartCopy {
 }
 
 /// The `sha256` of a part copy's item (EW-CORE-014).
-fn hash(copy: &LibCopy<Part>) -> Result<ew_schema::Sha256, CmdError> {
+pub(super) fn hash(copy: &LibCopy<Part>) -> Result<ew_schema::Sha256, CmdError> {
     library_copy_hash(&LibDocument::Part(copy.clone()))
         .map(ew_schema::Sha256)
         .ok_or_else(|| CmdError::internal("a part copy has a hash"))

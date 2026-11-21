@@ -447,7 +447,16 @@ impl ShellModel {
                 (_, Some(Some(from))) => AssignMode::Replace { from },
             }
         };
-        let devices = section.targets.clone();
+        // A placeholder is replaced on every device that has it (doc 07 §3.3).
+        let devices = match mode {
+            AssignMode::Replace { from } => self
+                .project
+                .as_ref()
+                .and_then(|p| p.session.placeholder_users(from))
+                .filter(|users| !users.is_empty())
+                .unwrap_or_else(|| section.targets.clone()),
+            _ => section.targets.clone(),
+        };
         let tag = self.tag_of(devices[0]);
         let function = self
             .project
@@ -781,6 +790,35 @@ impl ShellModel {
                 self.settings.record_part_use(&item_text(item));
                 self.save_settings();
             }
+        }
+        out
+    }
+
+    /// `part.placeholder {description}` (Type not known yet… in the part dialog, doc 07 §3.3): gives the dialog's devices
+    /// a placeholder part described by `description` in the dialog's mode, as Choose would give them a part, and closes
+    /// the dialog. A bridge's or an accessory's part is refused: a placeholder is a device's.
+    pub(crate) fn act_part_placeholder(&mut self, p: &Map<String, Value>) -> Outcome {
+        let description = match string_param(p, "description") {
+            Ok(Some(d)) => d.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["description"]),
+            Err(e) => return e,
+        };
+        let Some(c) = self.part_chooser() else {
+            return Outcome::refused(key!("reason-no-part-dialog"));
+        };
+        let PartTarget::Devices { devices, mode } = &c.target else {
+            return Outcome::refused(key!("reason-part-placeholder-target"));
+        };
+        let Some(project) = &self.project else {
+            return Outcome::Done;
+        };
+        let cmd = match project.session.placeholder_command(devices, *mode, &description) {
+            Ok(cmd) => cmd,
+            Err(e) => return api_refusal(e),
+        };
+        let out = self.run_commit(&cmd);
+        if matches!(out, Outcome::Done) {
+            self.dialog = None;
         }
         out
     }

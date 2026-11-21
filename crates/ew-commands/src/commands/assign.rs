@@ -88,7 +88,7 @@ pub struct AssignPart {
     pub qty: Option<Dec3>,
 }
 
-fn is_append(m: &AssignModeParam) -> bool {
+pub(super) fn is_append(m: &AssignModeParam) -> bool {
     *m == AssignModeParam::Append
 }
 

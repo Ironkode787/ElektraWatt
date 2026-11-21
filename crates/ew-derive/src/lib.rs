@@ -224,8 +224,8 @@ pub use structure::{
     ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath, would_print_location,
 };
 pub use tag::{
-    DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, numbering_format,
-    rule_product, short_tag,
+    DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, level_short_tag,
+    numbering_format, rep_level, rule_product, short_tag,
 };
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{

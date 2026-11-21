@@ -783,6 +783,31 @@ as many pattern CPs as its FnDef has CPs pairs them by position, so each functio
 symbol's `fn_cp`, the FnDef's internal links) and prints the pattern's designations. A part may therefore template
 several functions of one FnDef: the generic relay and contactor template their contacts.
 
+**A part whose type is not known** (FT-1878, after the first production job: "four grey terminals, type not known").
+The drawing shows that a part belongs to a device and nobody knows which yet. The model's placeholder part serves:
+a part copy numbered `TBD` (`PLACEHOLDER_PART_NUMBER`, `Part::is_placeholder`; FR-CHK-034). No new member and no new
+record kind.
+- *Command.* `part.placeholder {devices, description, mode?, from?}` makes a project-local part copy numbered `TBD`
+  with the person's words as its description, no manufacturer (its reference names the project library and no item)
+  and the kind `terminal` when every device is a terminal, else `device`, and gives it to the devices as
+  `part.assign` with that `mode` and `from` does, in one undo step. A project-local placeholder of the same kind and
+  description is reused, so four grey terminals given "Grey terminal" in one step or in four share one copy. An empty
+  description is refused in words.
+- *Window.* In the part dialog (Properties ▸ Part ▸ Choose…, a strip's terminals without a part), Type not known yet…
+  opens a field for what the part is and Use as placeholder (or Enter) gives it; the placeholder is a held part of the
+  project from then on, so the dialog lists it among the project's parts for the next device.
+- *What prints.* The parts list has its row: no manufacturer, part number TBD, the description, the count of its
+  devices; the terminal diagram's Part column prints TBD.
+- *The check.* The device has a part, so EW-CORE-041 is silent. EW-CORE-043 reports the placeholder as info online (a
+  decision the person recorded, not a gap) and as an error in release mode, an open item that blocks release
+  (FR-CHK-034). EW-CORE-042 does not ask a placeholder for a manufacturer.
+- *Replaced in one step.* A real part chosen in the part dialog for a device that carries a placeholder replaces it on
+  every device that carries it (`part.assign` with mode `replace`, `from` the placeholder, over its devices); a script
+  sends that `part.assign`. The placeholder copy then has no user and stays in the project until it is purged.
+- *Copied.* A copy of pages and a paste carry the part use as they carry any: the devices of the copy name the same
+  placeholder.
+- *Not built.* A placeholder of a cable sold by the metre (it is a piece); a placeholder offered from the library.
+
 ### 3.4 Data quality levels
 
 The quality level is **derived, never stored** (FR-PRT-021). For each category a requirement profile (data, editable

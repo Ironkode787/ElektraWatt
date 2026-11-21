@@ -505,12 +505,14 @@ pub fn read_report(
                                 t.levels.push(LevelSpec {
                                     level: l,
                                     role: Default::default(),
+                                    designation: None,
                                     extra: BTreeMap::new(),
                                 });
                             }
                             t.levels.push(LevelSpec {
                                 level,
                                 role: Default::default(),
+                                designation: None,
                                 extra: BTreeMap::new(),
                             });
                         }
