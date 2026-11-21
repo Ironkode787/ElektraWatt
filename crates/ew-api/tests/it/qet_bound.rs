@@ -210,8 +210,11 @@ fn project() -> String {
         ],
         &[wire(13, 1, 1, 14, 3, 0, &[])],
     );
+    // A coil lists its contacts as QET draws them (`contacts`: right of its label's middle), and a contact prints its
+    // coil's place above its label, 7 px away.
+    let xrefs = r#"<newdiagrams><xrefs><xref type="coil" master_label="%f-%l%c" slave_label="(%f-%l%c)" displayhas="contacts" snapto="label" xrefpos="AlignTop" slave_offset="7"/></xrefs></newdiagrams>"#;
     format!(
-        r#"<project version="0.80" title="Bound">{f1}{f2}<collection><category name="import">{defs}</category></collection></project>"#
+        r#"<project version="0.80" title="Bound">{xrefs}{f1}{f2}<collection><category name="import">{defs}</category></collection></project>"#
     )
 }
 
@@ -461,4 +464,84 @@ fn junctions_earths_strips_and_cable_marks_make_the_wired_cabinet() {
     });
     assert_eq!(kept.len(), 1, "the stored route is kept");
     assert_eq!(kept[0].route.len(), 4);
+}
+
+/// Each slot the representation of placed element `id` shows: its kind, style and alignment on the symbol, and where
+/// and at what angle the representation shows it.
+fn shown_slots(i: &Imported, id: u32) -> Vec<String> {
+    let (_, rep) = of(i, id);
+    let symbol = i
+        .batch
+        .lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Symbol(c) if c.id == rep.symbol => Some(c.item.clone()),
+            _ => None,
+        })
+        .expect("the symbol");
+    let mut out: Vec<String> = rep
+        .text_slots
+        .iter()
+        .filter(|o| o.visible == Some(true))
+        .map(|o| {
+            let s = &symbol.text_slots[usize::from(o.slot)];
+            format!("{:?} {:?} {:?} at {:?} turned {:?}", s.kind, s.style, s.align, o.pos, o.angle)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+/// A bound element keeps its look (doc 14 §4.17): the coil's cross-reference stands where QET draws its contact list
+/// (right of its label's middle) and the contact's where QET draws its coil's place (above its label), as without the
+/// map, and a terminal's number shows its tag where its text stood.
+#[test]
+fn a_bound_element_keeps_the_places_of_its_texts_and_cross_references() {
+    let plain = import(&folder("look-plain", ""));
+    let bound = import(&folder("look-bound", MAP));
+    let xref = |i: &Imported, id: u32| -> Vec<String> {
+        shown_slots(i, id)
+            .into_iter()
+            .filter(|s| s.starts_with("Xref"))
+            .collect()
+    };
+    for (id, what) in [(5, "the coil"), (6, "the contact")] {
+        assert_eq!(xref(&bound, id).len(), 1, "{what}");
+        assert_eq!(xref(&bound, id), xref(&plain, id), "{what}");
+    }
+    // Without the map the coil's label `-1K1` and the terminal's number `2` are free texts (their symbols have no tag
+    // slot of their style); with it the tag shows where each text stood, in its style.
+    for (id, text) in [(5, "-1K1"), (8, "2")] {
+        assert_eq!(tag_place(&bound, id), free_text(&plain, text), "{text}");
+    }
+}
+
+/// Where the free text `text` stands on its page, and its style.
+fn free_text(i: &Imported, text: &str) -> Option<(Pt2, Option<ew_mltext::Ident>)> {
+    i.batch.records.iter().find_map(|r| match r {
+        Record::PageItem(p) => match &p.kind {
+            ew_schema::PageItemKind::FreeText(t) if t.text == ew_mltext::MlText::neutral(text) => {
+                Some((t.at, t.style.clone()))
+            }
+            _ => None,
+        },
+        _ => None,
+    })
+}
+
+/// Where the representation of placed element `id` (unturned) shows its tag on its page, and the slot's style.
+fn tag_place(i: &Imported, id: u32) -> Option<(Pt2, Option<ew_mltext::Ident>)> {
+    let (_, rep) = of(i, id);
+    let symbol = i.batch.lib.iter().find_map(|d| match d {
+        LibDocument::Symbol(c) if c.id == rep.symbol => Some(c.item.clone()),
+        _ => None,
+    })?;
+    let tag = rep.text_slots.iter().find(|o| {
+        symbol.text_slots[usize::from(o.slot)].kind == ew_schema::SlotKind::Tag && o.visible == Some(true)
+    })?;
+    let local = tag.pos?;
+    Some((
+        Pt2::new(Nm(rep.pos.x.0 + local.x.0), Nm(rep.pos.y.0 + local.y.0)),
+        symbol.text_slots[usize::from(tag.slot)].style.clone(),
+    ))
 }

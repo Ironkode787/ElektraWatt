@@ -79,6 +79,9 @@ pub struct ElementImport {
     pub version: Option<String>,
     /// The definition's `link_type` (default `simple`).
     pub link_type: String,
+    /// The definition's `kindInformations` (name → trimmed text): a master's `type` says where its cross-reference
+    /// and its slaves' print (doc 14 §4.5), whatever FnDef its symbol names.
+    pub kind: BTreeMap<String, String>,
     /// The identity key `qet:eldef:<hex>`.
     pub key: String,
 }
@@ -452,6 +455,7 @@ pub(crate) fn read_on_stack(
         entries: ctx.take_entries(),
         version,
         link_type,
+        kind,
         key,
     })
 }

@@ -135,15 +135,10 @@ fn def_category<'e>(e: &Elem<'e>) -> Option<&'e str> {
     e.import.fndef.as_ref().map(|f| f.item.category.0.as_str())
 }
 
-/// The master type of `e`: its definition's `kindInformation` `type` ("" when it has none).
+/// The master type of `e`: its definition's `kindInformation` `type` ("" when it has none), also of a definition the
+/// symbol map binds, which generates no FnDef to carry it.
 fn kind_type<'e>(e: &Elem<'e>) -> &'e str {
-    e.import
-        .fndef
-        .as_ref()
-        .and_then(|f| f.item.extra.get("qet.kind"))
-        .and_then(|k| k.get("type"))
-        .and_then(Value::as_str)
-        .unwrap_or("")
+    e.import.kind.get("type").map_or("", String::as_str)
 }
 
 /// The fallback letter of an element without a usable label or `prefix` (EN 81346-2:2009 class A: no

@@ -1342,7 +1342,8 @@ its device's main function, and a `master`'s linked slaves stay its auxiliary fu
 strip (§4.11), its designation read from its number text; an interruption point drawn as a folio report keeps its
 pairing (§4.6), any other one is an interruption point of its own, named by its tag text, without direction, which
 pairs by name. The named texts show the symbol's slots where they stand (§4.4.2): the tag, the terminal's number and
-the cross-reference follow the project from then on.
+the cross-reference follow the project from then on. A bound coil's and contact's cross-references stand where QET
+prints them (§4.5), by the definition's own `kindInformation` `type`, which the row does not change.
 
 **A set already imported** takes the map by its re-import (D12): the same file re-imported into its import with the
 map beside it. The bound records are changes of the source; a record a person changed since the import is kept and
