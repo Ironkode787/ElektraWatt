@@ -144,16 +144,7 @@ fn a_wires_colour_through_the_editor_and_undo() {
         .map(|e| e.0.to_string())
         .collect();
     assert_eq!(selected, [w]);
-    // The chips of PG2.
-    assert_eq!(
-        row(&h, "connection/derived.csa"),
-        (
-            "0.75 mm²".to_owned(),
-            Provenance::Derived {
-                via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
-            }
-        )
-    );
+    // The colour's chip of PG2 (its cross-section's: `ew-viewmodel`'s `a_wire_override_and_its_reset`).
     assert_eq!(
         row(&h, "connection/derived.colour"),
         (
