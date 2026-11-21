@@ -1416,19 +1416,18 @@ fn marks_follow(page: &DraftPage, changed: &BTreeSet<WireId>) -> Vec<(MarkId, Pt
             .collect();
         let along_c = if m.horizontal { c.y } else { c.x };
         // The lines on the grid where every wire has a stretch strictly across, their places within the pitch.
-        let fits = |v: i32, wires: &[Vec<(i32, i32, i32)>]| -> Option<i32> {
+        let fits = |v: i32, wires: &[Vec<(i32, i32, i32)>]| -> bool {
             let mut at: Vec<i32> = Vec::new();
             for runs in wires {
-                let x = runs.iter().find(|(_, lo, hi)| *lo < v && v < *hi)?.0;
+                let Some(&(x, _, _)) = runs.iter().find(|(_, lo, hi)| *lo < v && v < *hi) else {
+                    return false;
+                };
                 at.push(x);
             }
             at.sort();
-            at.windows(2)
-                .all(|w| w[1] - w[0] <= TRACK_PITCH)
-                .then(|| (at.first().copied().unwrap_or(0) + at.last().copied().unwrap_or(0)) / 2)
+            at.windows(2).all(|w| w[1] - w[0] <= TRACK_PITCH)
         };
-        let here = |wires: &[Vec<(i32, i32, i32)>]| fits(along_c, wires);
-        if here(&runs).is_some() {
+        if fits(along_c, &runs) {
             continue;
         }
         let (lo, hi) = runs
@@ -1437,22 +1436,22 @@ fn marks_follow(page: &DraftPage, changed: &BTreeSet<WireId>) -> Vec<(MarkId, Pt
             .fold((i32::MAX, i32::MIN), |(lo, hi), (_, a, b)| {
                 (lo.min(*a), hi.max(*b))
             });
-        let near = |wires: &[Vec<(i32, i32, i32)>]| -> Option<(i32, i32)> {
+        let near = |wires: &[Vec<(i32, i32, i32)>]| -> Option<i32> {
             let step = TICKS_PER_STEP;
-            let mut best: Option<(i32, i32, i32)> = None;
+            let mut best: Option<(i32, i32)> = None;
             let mut v = lo.div_euclid(step) * step;
             while v <= hi {
-                if let Some(x) = fits(v, wires) {
+                if fits(v, wires) {
                     let d = (v - along_c).abs();
-                    if best.is_none_or(|(bd, bv, _)| (d, v) < (bd, bv)) {
-                        best = Some((d, v, x));
+                    if best.is_none_or(|(bd, bv)| (d, v) < (bd, bv)) {
+                        best = Some((d, v));
                     }
                 }
                 v += step;
             }
-            best.map(|(_, v, x)| (v, x))
+            best.map(|(_, v)| v)
         };
-        let Some((v, _)) =
+        let Some(v) =
             near(&runs).or_else(|| runs.first().and_then(|first| near(std::slice::from_ref(first))))
         else {
             continue;

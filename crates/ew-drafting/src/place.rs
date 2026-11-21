@@ -38,7 +38,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{BRANCHES, MOVE_PRICE, ROUNDS, TICKS_PER_STEP};
 use crate::measure::measure;
-use crate::model::{DraftPage, End, PartId, PinId, Pt, Rect, Side, WireId};
+use crate::model::{DraftPage, End, PartId, PinId, Pt, Side, WireId};
 use crate::route::{self, Jobs, Plan, Scope};
 use crate::rules::{broken, rules_kept};
 
@@ -63,15 +63,6 @@ impl Arranged {
     /// Whether the plan changes nothing.
     pub fn is_empty(&self) -> bool {
         self.moves.is_empty() && self.plan.is_empty()
-    }
-
-    /// The parts that move further than a third of the drawing area `area` across or down (§4.8), by ID.
-    pub fn far(&self, area: Rect) -> Vec<PartId> {
-        self.moves
-            .iter()
-            .filter(|(_, d)| 3 * d.x.abs() > area.w() || 3 * d.y.abs() > area.h())
-            .map(|(p, _)| *p)
-            .collect()
     }
 }
 
@@ -164,27 +155,19 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     }
 }
 
-/// `page` as `a` leaves it: its parts moved (with their texts the program may not place), its routes, junctions and
-/// marks.
+/// `page` as `a` leaves it: its parts moved (with their texts the program may not place; a wire of a moved part the
+/// plan leaves without a way keeps no route), its routes, junctions and marks.
 fn applied_all(page: &DraftPage, a: &Arranged) -> DraftPage {
     let (moved, _) = moved(page, &a.moves);
-    let mut out = applied(&moved, &a.plan);
-    // A wire of a moved part the plan leaves without a way keeps no route.
-    for w in &mut out.wires {
-        if let Some((_, r)) = a.plan.routes.iter().find(|(x, _)| *x == w.id) {
-            w.route.clone_from(r);
-        }
-    }
-    out
+    applied(&moved, &a.plan)
 }
 
 /// A plan tried and taken: what it is compared by (faults, unrouted wires, the cost with the price of its moves), each
-/// unit's move, the parts' moves, the page moved, Route's plan of it and the page's quality after it.
+/// unit's move, the parts' moves, Route's plan of the page moved and the page's quality after it.
 struct Taken {
     score: (usize, usize, i64),
     d: Vec<Pt>,
     moves: Vec<(PartId, Pt)>,
-    moved: DraftPage,
     plan: Plan,
     quality: crate::Quality,
 }
@@ -275,7 +258,7 @@ fn arrange_try(
         if rules_kept(page, &moved(page, &moves).0).is_err() {
             return None;
         }
-        let (moved, plan, after) = routed(page, &moves, scope, fixed);
+        let (plan, after) = routed(page, &moves, scope, fixed);
         if rules_kept(page, &after).is_err() {
             return None;
         }
@@ -293,7 +276,6 @@ fn arrange_try(
             score,
             d: d.to_vec(),
             moves,
-            moved,
             plan,
             quality,
         })
@@ -405,7 +387,11 @@ fn arrange_try(
         // Without a better plan: Route's plan, and the parts that stay against a rule named all the same.
         return (
             Arranged {
-                plan: finished(page, page, routed_only, before, baseline),
+                plan: Plan {
+                    before,
+                    after: baseline,
+                    ..routed_only
+                },
                 left: left(&[]),
                 moves: Vec::new(),
             },
@@ -415,7 +401,11 @@ fn arrange_try(
     (
         Arranged {
             left: left(&taken.moves),
-            plan: finished(page, &taken.moved, taken.plan, before, taken.quality),
+            plan: Plan {
+                before,
+                after: taken.quality,
+                ..taken.plan
+            },
             moves: taken.moves,
         },
         stepping,
@@ -553,14 +543,14 @@ fn junctions_follow(page: &DraftPage, by: &BTreeMap<PartId, Pt>) -> Vec<(crate::
     step.into_iter().filter(|(_, d)| *d != Pt::default()).collect()
 }
 
-/// The page with every part of `moves` moved ([`moved`]); Route's plan of it for the wires of the moved parts and the
-/// jobs of `scope`; and the page as the plan leaves it.
+/// Route's plan of the page with every part of `moves` moved ([`moved`]) for the wires of the moved parts and the jobs
+/// of `scope`; and the page as the plan leaves it.
 fn routed(
     page: &DraftPage,
     moves: &[(PartId, Pt)],
     scope: Scope<'_>,
     fixed: &[ew_ids::Uuid],
-) -> (DraftPage, Plan, DraftPage) {
+) -> (Plan, DraftPage) {
     let (moved, touched) = moved(page, moves);
     let mut jobs: Jobs = jobs(&moved, scope, fixed);
     jobs.wires.extend(touched);
@@ -568,7 +558,7 @@ fn routed(
     jobs.wires.dedup();
     let plan = route::route(&moved, &jobs);
     let after = applied(&moved, &plan);
-    (moved, plan, after)
+    (plan, after)
 }
 
 /// `page` with `plan`'s routes, junctions and marks.
@@ -591,36 +581,4 @@ fn applied(page: &DraftPage, plan: &Plan) -> DraftPage {
         }
     }
     out
-}
-
-/// The plan of the arranged page: Route's plan on the moved page, with every wire whose route differs from the
-/// page's (a wire of a moved part without a way: an empty route), the person's among them flagged.
-fn finished(
-    page: &DraftPage,
-    moved: &DraftPage,
-    mut plan: Plan,
-    before: crate::Quality,
-    after: crate::Quality,
-) -> Plan {
-    let mut routes: BTreeMap<WireId, Vec<Pt>> = plan.routes.drain(..).collect();
-    for w in &moved.wires {
-        let old = page.wires.iter().find(|x| x.id == w.id);
-        if !routes.contains_key(&w.id) && old.is_some_and(|o| o.route != w.route) {
-            routes.insert(w.id, w.route.clone());
-        }
-    }
-    plan.routes = routes.into_iter().collect();
-    plan.his = plan
-        .routes
-        .iter()
-        .filter(|(w, _)| {
-            page.wires
-                .iter()
-                .any(|x| x.id == *w && !x.computed && !x.route.is_empty())
-        })
-        .map(|(w, _)| *w)
-        .collect();
-    plan.before = before;
-    plan.after = after;
-    plan
 }
