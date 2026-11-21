@@ -484,6 +484,11 @@ shape of a net is the wiring order the person declared (D-8) and is not the rout
 library (libavoid, ELK).* Neither routes on a grid with pin sides, rails and texts; the first is gridless C++
 under the LGPL, the second Java. Everything here is written anew except the search, which is moved.
 
+*Why the straights come first (FT-1932).* The search would draw most of them the same, but a straight laid first
+keeps its line from the structure: a wire between two marks that face each other, passing between two devices whose
+wire steps from one to the other on that line, stays one segment and the stepping wire takes its next track; searched
+after the tracks, it went round the stepping wire.
+
 ### 3.2 Jobs
 
 `route(page, jobs) -> Plan`. The caller names the wires that may be routed:
