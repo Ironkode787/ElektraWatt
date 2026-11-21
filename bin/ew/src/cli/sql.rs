@@ -153,8 +153,8 @@ pub(super) fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    //! `ew sql`'s statement under its panic guard, given a panicking closure, on a copy of
-    //! Golden A in a fresh directory; nothing under `golden/` is opened for writing.
+    //! `ew sql`'s statement under its panic guard, given a panicking closure, on a copy of the sample project in a
+    //! fresh directory.
     use super::*;
 
     /// Every file below `dir` with its bytes, by path relative to `base`.
@@ -166,19 +166,6 @@ mod tests {
             } else {
                 let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
                 out.insert(rel, std::fs::read(&p).unwrap());
-            }
-        }
-    }
-
-    fn copy(from: &Path, to: &Path) {
-        std::fs::create_dir_all(to).unwrap();
-        for e in std::fs::read_dir(from).unwrap() {
-            let p = e.unwrap().path();
-            let target = to.join(p.file_name().unwrap());
-            if p.is_dir() {
-                copy(&p, &target);
-            } else {
-                std::fs::copy(&p, &target).unwrap();
             }
         }
     }
@@ -198,16 +185,12 @@ mod tests {
         );
     }
 
-    /// S1 whole, when the statement panics after it ran on the projection of a copy of Golden A; the copy's files
-    /// and the session's model are unchanged; an SQL error keeps its own line.
+    /// S1 whole, when the statement panics after it ran on the projection of a copy of the sample; the copy's
+    /// files and the session's model are unchanged; an SQL error keeps its own line.
     #[test]
     fn a_panicking_statement_gives_s1_and_changes_nothing() {
         let root = ew_testdir::Tmp::new("ew-cli-guard");
-        let dir = root.join("J-E-2416.ew");
-        copy(
-            &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew"),
-            &dir,
-        );
+        let dir = root.sample("sample.ew");
         let files = |d: &Path| {
             let mut out = std::collections::BTreeMap::new();
             tree(d, d, &mut out);

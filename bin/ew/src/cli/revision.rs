@@ -545,8 +545,8 @@ pub(super) fn withdraw_revision(
 
 #[cfg(test)]
 mod tests {
-    //! `ew revision approve|release|withdraw` with the injected terminal: the runs work on a
-    //! copy of Golden A in a fresh directory; nothing under `golden/` is opened for writing.
+    //! `ew revision approve|release|withdraw` with the injected terminal: the runs work on a copy of the release
+    //! fixture in a fresh directory.
     use super::*;
 
     fn parse(a: &[&str]) -> Result<Command, String> {
@@ -612,27 +612,69 @@ mod tests {
         }
     }
 
-    fn golden() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew")
+    use ew_testdir::copy_dir;
+
+    /// The first line of `file` in `dir` that holds `needle`, read as JSON.
+    fn record(dir: &Path, file: &str, needle: &str) -> serde_json::Value {
+        let text = std::fs::read_to_string(dir.join(file)).unwrap();
+        let line = text.lines().find(|l| l.contains(needle)).unwrap();
+        serde_json::from_str(line).unwrap()
     }
 
-    fn copy_dir(from: &Path, to: &Path) {
-        std::fs::create_dir_all(to).unwrap();
-        for e in std::fs::read_dir(from).unwrap() {
-            let e = e.unwrap();
-            let target = to.join(e.file_name());
-            if e.path().is_dir() {
-                copy_dir(&e.path(), &target);
-            } else {
-                std::fs::copy(e.path(), &target).unwrap();
-            }
-        }
-    }
-
-    /// A copy of Golden A in a fresh directory.
-    fn golden_copy(tag: &str) -> ew_testdir::Tmp {
+    /// A copy of the sample in a fresh directory, made ready for a release as a person makes it at the window: a
+    /// checker among the parties, the author as the author of the open revision V1.0, and one safety error for the
+    /// gate (the shield wire of -103W1 without its 2.5 mm² override: EW-POT-006, PE undersized).
+    fn sample_copy(tag: &str) -> ew_testdir::Tmp {
         let dir = ew_testdir::Tmp::new(&format!("ew-cli-revision-{tag}"));
-        copy_dir(&golden(), &dir);
+        copy_dir(Path::new(ew_testdir::SAMPLE), &dir);
+        let project = record(&dir, "project.jsonl", "\"$k\":\"project\"");
+        let mut parties = project["parties"].clone();
+        parties
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({"role": "checker", "name": "Sample Checker"}));
+        let revision = record(&dir, "revisions.jsonl", "\"label\":\"V1.0\"");
+        let pages = std::fs::read_dir(dir.join("pages")).unwrap();
+        let shield = pages
+            .map(|e| e.unwrap().path())
+            .find_map(|p| {
+                let text = std::fs::read_to_string(&p).unwrap();
+                let line = text.lines().find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
+                Some(serde_json::from_str::<serde_json::Value>(line).unwrap())
+            })
+            .unwrap();
+        let (mut s, _) = ew_api::Session::open(
+            &dir,
+            store(),
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        for (name, params) in [
+            (
+                "fields.set",
+                serde_json::json!({"kind": "project", "targets": [project["id"]], "path": "parties",
+                    "value": parties}),
+            ),
+            (
+                "revision.set_author",
+                serde_json::json!({"revision": revision["id"], "role": "author"}),
+            ),
+            (
+                "fields.set",
+                serde_json::json!({"kind": "connection", "targets": [shield["id"]], "path": "overrides.csa",
+                    "value": null}),
+            ),
+        ] {
+            let cmd = ew_api::AnyCommand {
+                name: name.into(),
+                params,
+            };
+            s.execute_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
+                .unwrap();
+        }
+        s.save().unwrap();
+        s.close();
         dir
     }
 
@@ -753,7 +795,7 @@ mod tests {
         )
         .unwrap();
         let items = ew_api::integrity_items(&report);
-        let gate = s.release_gate("V2.0", &items).unwrap();
+        let gate = s.release_gate("V1.0", &items).unwrap();
         let waive: Vec<(String, String)> = gate
             .approval_blockers()
             .iter()
@@ -763,7 +805,7 @@ mod tests {
             let cmd = ew_api::AnyCommand {
                 name: "check.waive".into(),
                 params: serde_json::json!({"rule": rule, "fingerprint": fingerprint,
-                    "reason": "accepted for the test release", "author": "engineer", "date": "2025-06-01"}),
+                    "reason": "accepted for the test release", "author": "author", "date": "2025-06-01"}),
             };
             s.execute_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
                 .unwrap();
@@ -775,25 +817,25 @@ mod tests {
     /// Without a terminal each subcommand exits 2 and writes nothing; a role that is no party role exits 2.
     #[test]
     fn revision_commands_need_a_terminal_and_a_party_role() {
-        let dir = golden_copy("terminal");
+        let dir = sample_copy("terminal");
         let before = files(&dir);
-        for action in [approve("checker"), release("V2.0"), withdraw("V1.0")] {
-            let (code, shown) = run(&dir, action.clone(), false, "V2.0\nV1.0\n");
+        for action in [approve("checker"), release("V1.0"), withdraw("V2.0")] {
+            let (code, shown) = run(&dir, action.clone(), false, "V1.0\nV2.0\n");
             assert_eq!(code, 2, "{action:?}");
             assert_eq!(shown, "", "{action:?}: no prompt");
         }
-        let (code, shown) = run(&dir, approve("boss"), true, "V2.0\n");
+        let (code, shown) = run(&dir, approve("boss"), true, "V1.0\n");
         assert_eq!((code, shown.as_str()), (2, ""));
         assert_eq!(files(&dir), before);
     }
 
-    /// RG-4/D15 through the CLI: the release of Golden A is refused with the gate's blockers listed (the release
-    /// scheme's errors and EW-REL-001's checker), and the approval is refused while those errors are open.
+    /// RG-4/D15 through the CLI: the release of the prepared sample is refused with the gate's blockers listed (the
+    /// release scheme's errors and EW-REL-001's checker), and the approval is refused while those errors are open.
     #[test]
-    fn the_gate_refuses_release_and_approval_of_golden_a_listing_the_blockers() {
-        let dir = golden_copy("refused");
+    fn the_gate_refuses_release_and_approval_listing_the_blockers() {
+        let dir = sample_copy("refused");
         let before = files(&dir);
-        let (code, shown) = run(&dir, release("V2.0"), true, "");
+        let (code, shown) = run(&dir, release("V1.0"), true, "");
         assert_eq!(code, 1, "{shown}");
         assert!(
             shown
@@ -803,46 +845,46 @@ mod tests {
         );
         assert!(shown.lines().any(|l| l.starts_with("error EW-POT-")), "{shown}");
         assert!(shown.lines().all(|l| l.starts_with("error ")), "{shown}");
-        let (code, listed) = run(&dir, approve("checker"), true, "V2.0\n");
+        let (code, listed) = run(&dir, approve("checker"), true, "V1.0\n");
         assert_eq!(code, 1, "{listed}");
         assert!(!listed.contains("EW-REL-001"), "{listed}");
         assert!(!listed.contains("Type the revision label"), "no prompt: {listed}");
         assert_eq!(listed.lines().count() + 1, shown.lines().count());
         // A label that is not the open revision's.
-        let (code, _) = run(&dir, release("V1.0"), true, "");
+        let (code, _) = run(&dir, release("V2.0"), true, "");
         assert_eq!(code, 1);
         assert_eq!(files(&dir), before);
     }
 
     /// RG-1/RG-3 and RA-1 through the CLI: the typed label approves (the safety waivers listed first), the author's
     /// role and a wrong label do not; the release shows its plan and needs the typed label, then writes the archive
-    /// (with Golden A's report blocks as CSV) and stamps the revision; a released revision is withdrawn on its typed
+    /// (with the sample's report blocks as CSV) and stamps the revision; a released revision is withdrawn on its typed
     /// label.
     #[test]
     fn approve_release_and_withdraw_on_the_typed_label() {
-        let dir = golden_copy("approve");
+        let dir = sample_copy("approve");
         let root = ew_testdir::Tmp(dir.with_extension("archives"));
         let _ = std::fs::remove_dir_all(&root);
         waive_the_gate(&dir);
         let before = files(&dir);
-        for wrong in ["", "\n", "v2.0\n", "V2\n", "yes\n", "V1.0\n"] {
+        for wrong in ["", "\n", "v1.0\n", "V1\n", "yes\n", "V2.0\n"] {
             let (code, shown) = run(&dir, approve("checker"), true, wrong);
             assert_eq!(code, 1, "{wrong:?}");
             assert!(
-                shown.contains("Type the revision label `V2.0` to approve it and acknowledge the"),
+                shown.contains("Type the revision label `V1.0` to approve it and acknowledge the"),
                 "{shown}"
             );
             assert!(shown.contains("  safety waiver "), "{shown}");
         }
-        // The author's party may not check (Golden A's V2.0 is authored by the engineer).
-        let (code, _) = run(&dir, approve("engineer"), true, "V2.0\n");
+        // The author's party may not check (the fixture's V1.0 is authored by the author).
+        let (code, _) = run(&dir, approve("author"), true, "V1.0\n");
         assert_eq!(code, 1);
         assert_eq!(files(&dir), before);
 
-        let (code, shown) = run(&dir, approve("checker"), true, " V2.0 \r\n");
+        let (code, shown) = run(&dir, approve("checker"), true, " V1.0 \r\n");
         assert_eq!(code, 0, "{shown}");
         assert!(
-            shown.contains("approved revision V2.0 as checker; saved"),
+            shown.contains("approved revision V1.0 as checker; saved"),
             "{shown}"
         );
         let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
@@ -851,26 +893,26 @@ mod tests {
 
         // The gate passes now: the plan and the prompt; a wrong label writes nothing.
         let approved = files(&dir);
-        let (code, shown) = run(&dir, release_into("V2.0", &root), true, "V1.0\n");
+        let (code, shown) = run(&dir, release_into("V1.0", &root), true, "V2.0\n");
         assert_eq!(code, 1, "{shown}");
-        assert!(shown.starts_with("release revision V2.0: generation "), "{shown}");
+        assert!(shown.starts_with("release revision V1.0: generation "), "{shown}");
         assert!(shown.contains("  archive: "), "{shown}");
         assert!(!shown.contains("  git: "), "outside a worktree: {shown}");
         assert!(
-            shown.contains("Type the revision label `V2.0` to release it"),
+            shown.contains("Type the revision label `V1.0` to release it"),
             "{shown}"
         );
         assert_eq!(files(&dir), approved);
         assert!(!root.exists());
         // An archive root inside the project is refused.
-        let (code, _) = run(&dir, release_into("V2.0", &dir.join("archives")), true, "V2.0\n");
+        let (code, _) = run(&dir, release_into("V1.0", &dir.join("archives")), true, "V1.0\n");
         assert_eq!(code, 1);
         assert_eq!(files(&dir), approved);
 
-        let (code, shown) = run(&dir, release_into("V2.0", &root), true, "V2.0\n");
+        let (code, shown) = run(&dir, release_into("V1.0", &root), true, "V1.0\n");
         assert_eq!(code, 0, "{shown}");
-        assert!(shown.contains("released revision V2.0: archive "), "{shown}");
-        let archive = std::fs::read(root.join("V2.0.ewarchive")).expect("the archive");
+        assert!(shown.contains("released revision V1.0: archive "), "{shown}");
+        let archive = std::fs::read(root.join("V1.0.ewarchive")).expect("the archive");
         let limits = ew_api::zip::ZipLimits {
             max_ratio: u64::MAX,
             ..ew_api::zip::ZipLimits::default()
@@ -889,9 +931,9 @@ mod tests {
             entries.keys()
         );
         let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
-        assert!(revisions.contains("\"V2.0.ewarchive\""), "{revisions}");
+        assert!(revisions.contains("\"V1.0.ewarchive\""), "{revisions}");
         // Released once: a second release is refused.
-        let (code, _) = run(&dir, release_into("V2.0", &root), true, "V2.0\n");
+        let (code, _) = run(&dir, release_into("V1.0", &root), true, "V1.0\n");
         assert_eq!(code, 1);
         let released = files(&dir);
 
@@ -916,9 +958,9 @@ mod tests {
     /// removes nothing; with the record it is offered and removes the archive and the record.
     #[test]
     fn an_incomplete_release_is_completed_or_discarded() {
-        let a = golden_copy("incomplete-a");
+        let a = sample_copy("incomplete-a");
         waive_the_gate(&a);
-        let (code, shown) = run(&a, approve("checker"), true, "V2.0\n");
+        let (code, shown) = run(&a, approve("checker"), true, "V1.0\n");
         assert_eq!(code, 0, "{shown}");
         let b = ew_testdir::Tmp::new("ew-cli-revision-incomplete-b");
         copy_dir(&a, &b);
@@ -930,20 +972,20 @@ mod tests {
         }
         let (code, shown) = run_in(
             &a,
-            release_into("V2.0", &root_a),
+            release_into("V1.0", &root_a),
             true,
-            "V2.0\n",
+            "V1.0\n",
             Some(state.dir()),
         );
         assert_eq!(code, 0, "{shown}");
 
         // B, a copy of A, on A's archive folder with the same state directory: `discard` is not offered, and typed it
         // removes nothing.
-        let archived = std::fs::read(root_a.join("V2.0.ewarchive")).unwrap();
+        let archived = std::fs::read(root_a.join("V1.0.ewarchive")).unwrap();
         let before_b = files(&b);
         let (code, shown) = run_in(
             &b,
-            release_into("V2.0", &root_a),
+            release_into("V1.0", &root_a),
             true,
             "discard\n",
             Some(state.dir()),
@@ -951,7 +993,7 @@ mod tests {
         assert_eq!(code, 1, "{shown}");
         assert!(
             shown.contains(
-                "  it is not offered for discarding: the archive V2.0.ewarchive in that folder is not provably a \
+                "  it is not offered for discarding: the archive V1.0.ewarchive in that folder is not provably a \
                  leftover of this project folder's own release (no release from this folder recorded writing it, and a \
                  copy of the folder names the same project); remove the file by hand if you know it is a leftover\n"
             ),
@@ -959,18 +1001,18 @@ mod tests {
         );
         assert!(shown.contains("Type `complete` to stamp"), "{shown}");
         assert!(!shown.contains("`discard`"), "{shown}");
-        assert_eq!(std::fs::read(root_a.join("V2.0.ewarchive")).unwrap(), archived);
+        assert_eq!(std::fs::read(root_a.join("V1.0.ewarchive")).unwrap(), archived);
         assert_eq!(files(&b), before_b);
 
         std::fs::create_dir_all(&root_b).unwrap();
-        std::fs::copy(root_a.join("V2.0.ewarchive"), root_b.join("V2.0.ewarchive")).unwrap();
+        std::fs::copy(root_a.join("V1.0.ewarchive"), root_b.join("V1.0.ewarchive")).unwrap();
 
         // Aborted: nothing changes.
         let before = files(&b);
-        let (code, shown) = run(&b, release_into("V2.0", &root_b), true, "V2.0\n");
+        let (code, shown) = run(&b, release_into("V1.0", &root_b), true, "V1.0\n");
         assert_eq!(code, 1, "{shown}");
         assert!(
-            shown.starts_with("incomplete release V2.0: the archive "),
+            shown.starts_with("incomplete release V1.0: the archive "),
             "{shown}"
         );
         assert!(shown.contains("Type `complete` to stamp"), "{shown}");
@@ -980,7 +1022,7 @@ mod tests {
         let record = run_record_of(&b, &root_b, &state);
         let (code, shown) = run_in(
             &b,
-            release_into("V2.0", &root_b),
+            release_into("V1.0", &root_b),
             true,
             "discard\n",
             Some(state.dir()),
@@ -988,18 +1030,18 @@ mod tests {
         assert_eq!(code, 0, "{shown}");
         assert!(shown.contains(", `discard` to remove it"), "{shown}");
         assert!(
-            shown.contains("discarded the incomplete release V2.0: removed "),
+            shown.contains("discarded the incomplete release V1.0: removed "),
             "{shown}"
         );
-        assert!(!root_b.join("V2.0.ewarchive").exists());
+        assert!(!root_b.join("V1.0.ewarchive").exists());
         assert!(!record.exists(), "the run's record is removed");
         assert_eq!(files(&b), before_b);
-        std::fs::copy(root_a.join("V2.0.ewarchive"), root_b.join("V2.0.ewarchive")).unwrap();
+        std::fs::copy(root_a.join("V1.0.ewarchive"), root_b.join("V1.0.ewarchive")).unwrap();
 
         // Completed with the archive's own facts.
-        let (code, shown) = run(&b, release_into("V2.0", &root_b), true, "complete\n");
+        let (code, shown) = run(&b, release_into("V1.0", &root_b), true, "complete\n");
         assert_eq!(code, 0, "{shown}");
-        assert!(shown.contains("released revision V2.0: archive "), "{shown}");
+        assert!(shown.contains("released revision V1.0: archive "), "{shown}");
         assert_eq!(
             std::fs::read(b.join("revisions.jsonl")).unwrap(),
             std::fs::read(a.join("revisions.jsonl")).unwrap(),
@@ -1008,17 +1050,17 @@ mod tests {
 
         // A damaged archive names no project: neither completed nor discarded, but kept, and nothing is offered.
         let c = ew_testdir::Tmp::new("ew-cli-revision-incomplete-c");
-        copy_dir(&golden(), &c);
+        copy_dir(Path::new(ew_testdir::SAMPLE), &c);
         let root_c = ew_testdir::Tmp(c.with_extension("archives"));
         let _ = std::fs::remove_dir_all(&root_c);
         std::fs::create_dir_all(&root_c).unwrap();
-        std::fs::write(root_c.join("V2.0.ewarchive"), b"not an archive").unwrap();
+        std::fs::write(root_c.join("V1.0.ewarchive"), b"not an archive").unwrap();
         for answer in ["complete\n", "discard\n"] {
-            let (code, shown) = run(&c, release_into("V2.0", &root_c), true, answer);
+            let (code, shown) = run(&c, release_into("V1.0", &root_c), true, answer);
             assert_eq!(code, 1, "{shown}");
             assert!(!shown.contains("Type `discard`"), "{shown}");
             assert_eq!(
-                std::fs::read(root_c.join("V2.0.ewarchive")).unwrap(),
+                std::fs::read(root_c.join("V1.0.ewarchive")).unwrap(),
                 b"not an archive",
                 "{answer}: the damaged archive is kept"
             );

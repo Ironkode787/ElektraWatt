@@ -1660,9 +1660,9 @@ mod tests {
         );
     }
 
-    /// MG-5: `--check` writes nothing and exits 1 on the test fixture and 0 on Golden A (read only, no lock).
+    /// MG-5: `--check` writes nothing and exits 1 on the test fixture and 0 on the sample (read only, no lock).
     #[test]
-    fn upgrade_check_exits_1_on_an_older_project_and_0_on_golden_a() {
+    fn upgrade_check_exits_1_on_an_older_project_and_0_on_the_sample() {
         let dir = setup_v0("upgrade-check");
         let before = upgrade_files(&dir);
         assert_eq!(
@@ -1677,9 +1677,14 @@ mod tests {
             )
         );
         assert_eq!(upgrade_files(&dir), before);
-        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
         assert_eq!(
-            upgrade(&golden, upgrade_store(&dir), (true, false), false, ""),
+            upgrade(
+                Path::new(ew_testdir::SAMPLE),
+                upgrade_store(&dir),
+                (true, false),
+                false,
+                ""
+            ),
             (
                 0,
                 format!("the project needs no upgrade to format {}\n", ew_api::FORMAT),

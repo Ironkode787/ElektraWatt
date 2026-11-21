@@ -292,9 +292,9 @@ mod tests {
     fn the_question_names_the_project_folders_and_only_those() {
         let dir = ew_testdir::Tmp::new("ew-git-setup");
         std::fs::create_dir_all(dir.join(".git")).unwrap();
-        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/manifest.json");
+        let manifest = Path::new(ew_testdir::SAMPLE).join("manifest.json");
         std::fs::create_dir_all(dir.join("plans/p.ew")).unwrap();
-        std::fs::copy(golden, dir.join("plans/p.ew/manifest.json")).unwrap();
+        std::fs::copy(manifest, dir.join("plans/p.ew/manifest.json")).unwrap();
         std::fs::create_dir_all(dir.join("web/public")).unwrap();
         std::fs::write(dir.join("web/public/manifest.json"), b"{\"name\":\"app\"}\n").unwrap();
         let a = GitSetupArgs {
