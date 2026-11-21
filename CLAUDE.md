@@ -44,7 +44,6 @@ counts; a passing suite is not proof that the program works.
   fixes for its candidates land there, each also on the working branch.
 - **Public repository.** Never commit customer or end-user names, addresses, project or drawing numbers, personal
   names or e-mail addresses, the reference drawing PDF, local filesystem paths or agent IDs.
-- **Golden A.** Never open `golden/J-E-2416.ew` in a writing or locking mode. Copy it first.
 - **The licence boundary.** Permissive crates (`MIT OR Apache-2.0`) never depend on GPL crates, and they build on
   the Rust version their manifest names. `cargo xtask rules` and `cargo deny` guard it.
 - **Downloads.** Fetch crates, tools and images without asking (owner, 2026-10-22). Keep versions pinned. The
