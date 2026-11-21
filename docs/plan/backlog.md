@@ -83,15 +83,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-1768 `ew-api`: `centred_datum` (`output/layout_edit.rs`, where an enclosure is placed) maps the drawing area, which `drawing_area` (`output/scale_fit.rs`) gives in page coordinates already, through the frame's page-to-sheet map once more: on a frame with an offset the mounting plate stands off-centre. A test on a frame with an offset shows the plate's place.
 - FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
 
-#### Lists and legends
-
-These touch the files of "Lists and frames" above: not beside that lane.
-
-- FT-1772 `ew-api, ew-viewmodel`: A legend block made before `ReportBlock.columns` keeps the report's four columns (position, tag, quantity, part number), and nothing offers it the description.
-- FT-1782 `ew-scene`: The legend's part-number column is shortened and, last, left out where the legend has no room (decide whether the legend wraps its texts or asks for a wider box); an enclosure's legend shows "…" in its quantity and part-number columns (the embedded table's own cutting rule), and its header and drop shadow are heavy.
-- FT-1827 `ew-reports`: The potential overview numbers its bond rows by id order, so a drawn bond can shift the numbers of the declared ones.
-- FT-1842 `ew-reports, ew-derive`: A list's last page can hold only one or two rows.
-
 #### What a new item takes
 
 - FT-1834 `ew-derive, ew-viewmodel`: A new wire takes the control size, 0.75 mm², unless its potential names another circuit class, so a 16 A mains wire gets it. Propose the cross-section from the circuit.
