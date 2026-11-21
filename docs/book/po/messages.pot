@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-21T05:09:35+01:00\n"
+"POT-Creation-Date: 2026-11-21T06:14:28+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -77,7 +77,7 @@ msgid "Draw a page from the text interface"
 msgstr ""
 
 #: src/SUMMARY.md:24 src/how-to/headless-workflow.md:1
-msgid "Use the command line on the golden project"
+msgid "Use the command line on the sample project"
 msgstr ""
 
 #: src/SUMMARY.md:25 src/how-to/define-supply-potential.md:1
@@ -324,10 +324,12 @@ msgstr ""
 
 #: src/introduction.md:58
 msgid ""
-"Every example uses the anonymised golden project (`golden/J-E-2416`, licence "
-"CC0-1.0). It holds placeholders where a real project would name a customer, "
-"an end user or a person, such as `<customer>` and `<drawing id>`. Do not put "
-"real customer data into examples that you contribute to this guide."
+"Every example uses the sample project (`fixtures/sample/sample.ew` in the "
+"repository, `samples/sample.ew` in an installation; licence CC0-1.0), a "
+"small conveyor drive that the program draws itself from a script. It holds "
+"placeholders where a real project would name a customer, an end user or a "
+"person, such as `Sample Customer`. Do not put real customer data into "
+"examples that you contribute to this guide."
 msgstr ""
 
 #: src/tutorials/index.md:3
@@ -427,7 +429,7 @@ msgstr ""
 #: src/tutorials/index.md:39
 msgid ""
 "The `ew` command-line program has a how-to of its own: [Use the command line "
-"on the golden project](../how-to/headless-workflow.md)."
+"on the sample project](../how-to/headless-workflow.md)."
 msgstr ""
 
 #: src/tutorials/index.md:42
@@ -1821,7 +1823,7 @@ msgstr ""
 
 #: src/how-to/index.md:19
 msgid ""
-"[Use the command line on the golden project](headless-workflow.md): the `ew` "
+"[Use the command line on the sample project](headless-workflow.md): the `ew` "
 "program checks a project, writes its pages as PDF and SVG, exports the cable "
 "list and the bill of materials, and queries it in SQL. You need a checkout "
 "of the repository and the `ew` program."
@@ -2103,7 +2105,7 @@ msgstr ""
 #: src/how-to/install.md:110
 msgid ""
 "Check it: `ew --version` prints the version, and `ew export pdf "
-"<folder>/samples/J-E-2416.ew --out sample.pdf` writes the sample project's "
+"<folder>/samples/sample.ew --out sample.pdf` writes the sample project's "
 "drawings as a PDF."
 msgstr ""
 
@@ -2826,7 +2828,7 @@ msgid ""
 "click with the Select tool picks that wire and nothing else. A wire whose "
 "drawn route runs along another wire or through a symbol for its whole length "
 "has no such point; select it by its ends instead: `select.set` with `refs` "
-"`[\"wire:-101F1:1 -> F55:1\"]` (the ends as the `wire` line prints them, "
+"`[\"wire:-101F1:1 -> -103F1:1\"]` (the ends as the `wire` line prints them, "
 "either way round; a junction end is `junction <n>`)."
 msgstr ""
 
@@ -2904,15 +2906,15 @@ msgid ""
 "terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
 "and a strip by its tag (`-X1031`). `navigator.select` with `keys` and "
 "`table.set` with `rows` take these names (`table.set` with `kind` `strips`, "
-"`rows` `[\"-X1031:1\",\"-X1031:2\"]`, a `column` and a `value`)."
+"`rows` `[\"-X1021:1\",\"-X1021:2\"]`, a `column` and a `value`)."
 msgstr ""
 
 #: src/how-to/text-interface.md:60
 msgid ""
-"A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): "
+"A terminal's connection points print `strip:terminal/clamp` (`-X1021:1/b`): "
 "the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
-"(field), `1X1:1/a` and `1X1:1/b`. Where two clamps of one level carry the "
-"same letter, as on a library terminal that names them so, the label adds "
+"(field), `-X1021:1/a` and `-X1021:1/b`. Where two clamps of one level carry "
+"the same letter, as on a library terminal that names them so, the label adds "
 "`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
 msgstr ""
 
@@ -2982,8 +2984,8 @@ msgstr ""
 #: src/how-to/text-interface.md:93
 msgid ""
 "**Ending a wire on a wire** makes a junction there and splits that wire. The "
-"route's `end` names the wire it would split by its ends (`@101-C12 F55:2 -> "
-"E55:L`): check it before Enter when two wires run through one cell."
+"route's `end` names the wire it would split by its ends (`@102-D4 -102S1:13 "
+"-> -102Q1:13`): check it before Enter when two wires run through one cell."
 msgstr ""
 
 #: src/how-to/text-interface.md:96
@@ -8828,44 +8830,34 @@ msgid ""
 msgstr ""
 
 #: src/explanation/index.md:19
-msgid "the golden project used in the tutorials"
-msgstr ""
-
-#: src/explanation/index.md:19
-msgid ""
-"[Golden "
-"project](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/20-golden-project.md)"
-msgstr ""
-
-#: src/explanation/index.md:20
 msgid "why a decision was made"
 msgstr ""
 
-#: src/explanation/index.md:20
+#: src/explanation/index.md:19
 msgid ""
 "[Architecture decision "
 "records](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/adr/README.md)"
 msgstr ""
 
-#: src/explanation/index.md:22
+#: src/explanation/index.md:21
 msgid ""
 "The [documentation "
 "map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md) "
 "lists every design document with its purpose."
 msgstr ""
 
-#: src/explanation/index.md:25
+#: src/explanation/index.md:24
 msgid "For users of other programs"
 msgstr ""
 
-#: src/explanation/index.md:27
+#: src/explanation/index.md:26
 msgid ""
 "[EPLAN and EW](eplan-and-ew.md): the EPLAN concepts, such as functions, "
 "device tags, CDPs and message management, and what they are called and how "
 "they differ in EW."
 msgstr ""
 
-#: src/explanation/index.md:29
+#: src/explanation/index.md:28
 msgid ""
 "[QElectroTech and EW](qet-and-ew.md): the QElectroTech concepts, such as "
 "elements, master and slave, folio reports and conductors, and their EW "
