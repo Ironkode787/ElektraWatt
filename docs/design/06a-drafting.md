@@ -1106,6 +1106,13 @@ lower. The result does not depend on the order of the page's lists.
 A label leaves its first place only when something stands there, so a change elsewhere on the page does not move
 it.
 
+**The row rule** (FT-1870). Like parts that stand level (one shape: the same body and pins, their origins on one
+line) take one place for each of their texts: when the first of them comes in the order, the place the same number
+down every one's list at which all of them are clear is taken for all, so the tags and cross-references of a row of
+relays stand alike and a wire across one tag's first place moves the row's tags, not that one. Where their lists are
+not alike (a wire leaves one of them upward) or no place is clear for all, each is placed on its own; texts wider than
+the row's pitch keep the two-rows rule of §5.2.
+
 **The stacked-marks rule.** A symbol's author may have set a mark's name above its arrow (the starter symbols of
 before step 7, an imported library). Such a mark is three to four steps tall with its texts, and marks stacked two
 steps apart (§4.4) would stand on each other's names. So the name of a mark whose texts, where their author put
@@ -1119,7 +1126,23 @@ it, and so does a name its author set in line already (the starter symbols since
 - **The pin texts of a drawn box** are as the scene draws them: inside the box, turned a quarter and reading from
   bottom to top on the upper and lower sides, horizontal on the left and right sides. The layout treats them as
   fixed texts and changes neither place nor angle.
-- Free texts, captions of structure boxes and plug pin notes.
+- Free texts, captions of structure boxes and plug pin notes. A text of a symbol ([06](06-schematic-editor.md) §3.8)
+  is the symbol's to the layout: a plan that moves the symbol moves it along.
+
+**Where the placer may move a text** (FT-1875). The placer places only a text without a stored place: a slot text at
+its symbol's slot (the author's place is its first place, which it leaves only when something stands there, §5.3),
+and the texts the program derives (a strip's tag at its first terminal, a wire's number, a cable mark's tag and type
+line). A text with a stored place is never moved: a slot whose place the person set by dragging it, or the import set
+from its drawing (a slot override with a position), and every free text. The row offered two forms, a switch that
+leaves a text where its symbol has it and the placer only for texts without a place; this is the second, for two
+reasons. The stored place already says, text by text, that a text stands where someone put it, so a switch would say
+it a second time, page-wide, and would also freeze the starter symbols' texts that the program places on a new symbol
+drawn onto such a page; and a switch needs a member, a row in Properties and a default to choose. **An imported page
+gets it with nothing set**: the QElectroTech import stores the place of every text it brings, a tag, a terminal's
+number or a cross-reference as a shown slot at the place its drawing has it ([14](14-interop.md) §4.4.2), any other
+text of an element as a text of its symbol; so the page prints them there, a move of an element and Arrange and route
+keep each on its element, and only the texts the program derives are placed. *Not done:* a person who wants a starter
+symbol's texts kept at its slots whatever stands there drags each once; Reset text positions gives them back.
 
 ### 5.5 Derived, not stored
 

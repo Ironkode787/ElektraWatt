@@ -795,8 +795,9 @@ by its import style (§4.10). Each placed element then prints its own texts, eac
   a turned element keeps QET's look while EW's own symbols keep their texts upright; so the printed tag stays the device's live tag. That needs a device
   whose tag prints the label unchanged (a derived or frozen tag without a structure prefix), a symbol slot of
   that kind in the text's own style, and a text of one line.
-- **Else as a free text** on the page (`qet:el:<key>#text<n>`), the nearest record the model has: it prints the
-  value as QET printed it but does not follow the element when it moves.
+- **Else as a text of the element's symbol** (a free text `qet:el:<key>#text<n>` whose `of` names the element's
+  representation, [06](06-schematic-editor.md) §3.8): it prints the value as QET printed it, moves with the element
+  and goes with it.
 - An element without its own texts prints none; an empty text prints nothing.
 
 The element information beyond the label stays in `Device.extra["qet.info"]` (EW-IMP-008), as before: it prints

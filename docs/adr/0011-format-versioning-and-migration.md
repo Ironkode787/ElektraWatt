@@ -144,7 +144,11 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    Applied again in cycle 51 to the reserved kind `import_run` (rank 72,
    `imports/<run-uuid>.jsonl`), typed within 0.1 with `schemas/0.1` re-blessed with additions only, and to
    `ImportLineage.last_run`, now a link to the run without cascade; a build from before the change keeps the runs
-   verbatim as a reserved kind.
+   verbatim as a reserved kind. Applied again in 0.3.5 (FT-1875) to the optional member `FreeText.of`, the
+   representation a text belongs to ([schematic editor](../design/06-schematic-editor.md) §3.8), appended after the
+   released members: its link cascades and is load-tolerant, as the exchange kinds' link is. An older build keeps it in
+   `extra`; a text that build leaves when it deletes the symbol is a text whose symbol is gone, which a newer build
+   prints as a free text of no symbol (a symbol's binding empty) and never refuses, so no `min_reader` is raised.
 5. **The project fragment widens within v1 for macros** (2026-10-30, WP-S1.19 part 5, cycle 36; lead programmer,
    delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
    §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a

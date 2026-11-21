@@ -82,6 +82,19 @@ change here.
 - behaviour-change: `library.embed` and `report_block.create` take a frame or title-block form of the project's own,
   and a report block's form is set with `fields.set` path `form` (its Form row in Properties) to a form the project
   holds (FT-1859)
+- behaviour-change: a wire's frozen number prints: on the page, in the wire list, in `api_v1_wire.number` and in
+  Properties' title and Number row, which takes a number typed as the page should print it (`6A03`; empty unfreezes)
+  where it refused it as not strict JSON; the frozen wire keeps its place in the count (doc 08 §5.3, FT-1858)
+- behaviour-change: Draw ▸ Connect ▸ Number wires by potential (`project.drawing.set {wire_numbering:
+  per_potential}`) gives every wire of a potential its potential's name as its code (`D02`, `6A03`), none to a
+  protective earth or a potential known only by its fallback name; EW-POT-015 counts potentials as the units then
+  (doc 08 §5.2, FT-1858)
+- behaviour-change: like parts that stand level take one place for their tags, cross-references and data where one
+  is clear for all of them: a row of relays no longer has its tags at different places (doc 06a §5.3, FT-1870)
+- behaviour-change: a text clicked with the Text tool on a wire's line stands beside the wire, 1 mm above a
+  horizontal line on its baseline or 1 mm right of a vertical one, where it lay on the wire (doc 06 §4.5, FT-1870)
+- behaviour-change: a QElectroTech element's own text that shows no slot of its symbol moves with the element and
+  goes with it (a text of its symbol), where a move or Arrange and route left it behind (doc 14 §4.4.2, FT-1875)
 - api-add: a project prints in a typeface of its own: Project ▸ Text styles… ▸ Choose a font file…
   (`text_styles.typeface`; the command `project.typeface.set {file, name}`, the file in base64 parts of at most
   1 MiB each) takes a TrueType or OpenType file of at most 2.5 MiB, Arial and Calibri among them, into the project in
@@ -138,6 +151,11 @@ change here.
   1.1.0); a Dutch project printed them in English (FT-1874)
 - api-add: the starter forms hold an A3 landscape frame with the grid and its title block, which a new project holds
   and the template wizard's Frame offers (FT-1826)
+- api-add: a free text may belong to a symbol (`of`, a representation on its page; `item.place`'s
+  `free_text.of`): it moves with the symbol and goes with it, and with `bind` `device.function_text` or `strip.tag`
+  prints the device's function text or the strip's tag, the strip then named on that page by the text alone; Function
+  text over its path and Name the terminal strip here in the canvas menu over one symbol place one (doc 06 §3.8,
+  FT-1875)
 - behaviour-change: `ew print --fit` and the print dialog's Scale to fit enlarge a page to the paper too, an A4 set on
   A3 at 141 %, and stamp it "scaled n %" (FT-1826)
 - behaviour-change: the terminal diagram's first column is the strip, so two strips' terminals 1 read apart; its CSV
@@ -165,6 +183,8 @@ change here.
   Text tool puts them; a copied fragment names those in its header (`free`, a member an older version ignores)
 - behaviour-change: Save as macro… with `pages` (folios) saves a page macro with nothing selected and no page marked;
   it said "Nothing is selected"
+- text-change: Properties titles a wire without a number "Wire without a number" ("Draad zonder nummer"), not "?"
+  (FT-1799)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

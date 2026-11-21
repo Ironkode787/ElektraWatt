@@ -532,6 +532,7 @@ and accepted only while its refusal is still under the field on the same revisio
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
 | 18 | **Interruption-point form** (`ip_form`) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
+| 18a | **Texts of a symbol** (`bound_texts`) | A free text of a symbol (`of`) that the transaction did not change takes the displacement and the page of its symbol when the transaction moved it; a text the command moved itself is not moved twice | this document §3.8 |
 
 **Routing is one pure function, `ew_drafting::route` ([06a](06a-drafting.md) §3), reached through `ew_api::routing`, and
 the tools call it; the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
@@ -896,6 +897,36 @@ Mechanical linkages between related functions (an actuator and its contacts; a v
 derived dashed lines, not graphics (FR-SYM-014, FR-DEV-028). Dragging the actuator moves its linkage, and the
 linkage cannot be selected as a free line.
 
+**Texts the schematic carries** (FT-1875). A drawing carries texts beside its symbols that a person reads as part of
+the model: a cable's name and type, the core numbers at its wires, a strip's name, a device's function text over its
+current path, a note. Each is one of these, and only the last follows nothing:
+
+| Text | What it is | It follows | In the window | By command |
+|---|---|---|---|---|
+| A cable's name and type, a core's number at a wire | the cable mark: a wire marker across the cable's cores ([08](08-connections-terminals-cables.md) §4.5; doc 06a §5.2) | a rename of the cable, its part's type, a core's designation; its line moves with the mark | the Wire marker tool across the cores | `marker.place` |
+| A strip's name, once on a page | the strip's tag that the program prints at its first terminal on the page ([08](08-connections-terminals-cables.md) §6.7), or, where the person wants it elsewhere, a **text of a symbol** bound to `strip.tag` | a rename or renumbering of the strip; a move of its terminal | Name the terminal strip here, in the canvas menu over one terminal: the text right-aligned one step left of the terminal, level with it, to be dragged where the drawing wants it | `item.place {free_text: {bind: "strip.tag", of: <the terminal's symbol>, at}}` |
+| A device's function text over its current path | a **text of a symbol** bound to `device.function_text` (the symbol's own function-text slot prints beside the symbol, where its author put it) | a change of the function text; a move of the symbol | Function text over its path, in the canvas menu over one symbol of a device with a function text: the text centred over the symbol, its baseline two steps above the body, to be dragged to the head of the path | `item.place {free_text: {bind: "device.function_text", of: <the symbol>, at}}` |
+| A note on a page | a free text | nothing: it is the person's words about the page, which no record holds | the Text tool | `item.place {free_text: {text, at}}` |
+
+A **text of a symbol** is a free text whose optional member `of` names a representation on its page. It moves with
+that symbol whichever command moves it (normaliser 18a, §3.2), goes with it when it is deleted (a cascade link,
+load-tolerant: an older build keeps `of` and leaves the text, which then stands alone and prints a symbol's binding
+empty), and with one of the symbol's two names prints that symbol's value: `device.function_text` its device's
+function text, `strip.tag` the tag of the strip whose terminal it draws, as the page prints that tag. A strip named on
+a page by such a text is named there by it alone: the program prints that strip's tag on that page no more, so the
+name stands once. The QElectroTech import writes an element's own texts that show no slot of its symbol as texts of
+that symbol ([14](14-interop.md) §4.4.2), so they follow the element as its slots do.
+
+*Refused in words:* a symbol's name without its symbol ("`device.function_text` belongs to a symbol: name the symbol it
+prints for"), a page's name with one, a symbol that does not exist or stands on another page than the text, a strip's
+name of a symbol that is no terminal of a strip; Function text over its path on a device without a function text
+("type it in Properties first").
+
+*What it does not do:* bind a text to a cable or a core (the cable mark is that text), to a page column range (the path
+function text of FR-DEV-011, below, is not built), or to any other value of a device; turn with its symbol (a turn
+moves it by the symbol's displacement only); and it adds no setting: where the text placer may place a text is doc
+06a §5.4's rule.
+
 Text, Text edit, Graphic, Wire marker and Structure box are implemented through the tool host (§4.5); Image remains part 5.
 
 ### 3.9 Undo granularity
@@ -1159,6 +1190,11 @@ readout chip `dx … dy … mm, d mm`. Its points snap to a connection point wit
 held. It never previews and never commits, and it does not want hover, so the entity hover outline and the link hover
 and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
 (doc 16 §4.5).
+
+*A text clicked on a wire* (FT-1870). A point within 1.5 mm of a straight stretch of a wire is a code written for
+that wire: the Text tool sets the text beside it, as a wire's code is written, on its baseline 1 mm above a
+horizontal line or 1 mm right of a vertical one, and shows it there while it is typed. Set by its middle at the
+point, it lay on the wire.
 
 *As built.* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
 

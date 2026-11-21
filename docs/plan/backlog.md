@@ -30,10 +30,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Texts the schematic carries
 
-- FT-1875 `ew-commands, ew-scene, ew-drafting`: Texts that follow nothing in the model have no place: a cable's name and type and a core's number at a point on a wire, a strip's name once per strip and page (the program names it at every terminal), a device's function text over its current path, a note on a page. The text placer moves the tags and cross-references of an imported page away from where the drawing has them (the job pinned some three hundred by script): a switch that leaves a text where its symbol has it, or the placer only for texts without a place.
-- FT-1870 `ew-drafting, ew-scene`: The tags and cross-references of like devices in one row stand at different places from device to device (each text is placed alone; a row should take one place for all); a code written as a free text beside a wire lies on the wire; a mark set at a wire's head leaves a small hook where the mark's pin is not on the wire's line.
-- FT-1858 `ew-derive, ew-scene, ew-reports, ew-viewmodel`: A wire's frozen number is stored and never printed: the page, the wire list and the SQL view keep the automatic number, Properties shows "automatic · frozen", and typing the number into its row is refused as "not strict JSON". There is no numbering scheme by potential (one code per potential, a circuit number in front), which a drawing specification may ask for.
-- FT-1799 `ew-api`: An unnumbered wire's Properties title reads "?" (`wire_number_text`, `output/properties/selection.rs`); say "wire without a number" in words.
+- FT-1975 `ew-scene, ew-drafting`: A mark set at a wire's head leaves a small hook where the mark's pin is not on the wire's line (FT-1870's last part): seen on the first production job's pages, which a script wrote, where a stored route's end stood off its pin and is drawn joined to it by one straight stretch (`ew_derive::stored_path`). Not reproduced from the window or the import: the import of that job's source, and Arrange and route on it, showed no hook. The repeat steps are the work; then the command that leaves the end off its pin is the place of the fix.
 
 #### External points, earth and 0 V
 

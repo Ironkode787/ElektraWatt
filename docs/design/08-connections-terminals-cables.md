@@ -859,6 +859,18 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   known deviation. Golden A's nine tied wires are numbered W1 101.1, W2 101.2, W3 101.3, W7 101.4, W9 101.5, W4 101.6, W5 101.7, W22 102.3 and W23 102.4. **As built:** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
   (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
   tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.
+- **By potential, as built** (FT-1858). A drawing specification may ask for wire codes by potential: one code per
+  potential (0 V DC D01, 24 V DC D02, AC A01 …), a circuit number in front where a set has several circuits (6A03), every
+  wire carrying its potential's code. The project setting `drawing.wire_numbering: per_potential` (Draw ▸ Connect ▸
+  Number wires by potential; `project.drawing.set`) gives every wire the code of its potential: the potential's name
+  by steps 1 to 2c of §3.5 (a definition's name, an interruption point's, a supply's), exactly as written. *What it is:*
+  the person names the potentials as the specification codes them, circuit number included (`6A03`, `7A03`), and every
+  wire of the potential prints that code; a frozen number still prints in place of the code; EW-POT-015 counts the
+  potential as the unit, so the wires of one potential print one code without a finding, and two potentials of one name
+  are one. *What it is not:* it does not make the codes (D01, D02 in the order of the diagram) nor the circuit number,
+  which the model does not have; it gives no code to a potential named only by its fallback `<tag>:<cp>` (the wire
+  prints none: name the potential), to a protective earth (type PE or PEN: its colour names it) nor to a bond wire,
+  which joins two potentials; and it is not the signal scope of FR-NUM-020, nor `{potential}.{subcounter}`.
 - **Potential-oriented example** (1.0): `{potential}.{subcounter}` with net extension gives W29 and the BN core of
   -106W1 one number, "24VDC-1.1", because terminal 1 is one signal. The WH core on terminal 2 is in another signal
   and gets "24VDC-1.2", because bridges bound signals.
@@ -870,6 +882,11 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Effect.** Frozen numbers survive renumbering (FR-NUM-022). The numbering report lists each one with its
   rule-derived value (FR-REP-022), and EW-NUM-002 reports deviations as info (FR-CHK-037,
   [15](15-checks-revisions-collaboration.md) §4.3).
+- **It prints** (FT-1858). A wire whose carrier holds a frozen number prints it in place of the scheme's: on the page
+  (when the project prints wire numbers), in the wire list, in `api_v1_wire.number`, in Properties' title and Number
+  row. It keeps its place in the count, so freezing one wire renumbers no other. A cable's core and a wire drawn on no
+  page stay unnumbered, frozen or not. Properties' Number row takes the number typed as the page should print it
+  (`6A03`); an empty entry unfreezes, and a text that is no identifier (a tab, a line break) is refused in words.
 - **Import.** A QET `num` imports as a frozen number (FR-IMP-012).
 - **Uniqueness.** The numbering unit is the scheme's scope: a physical wire (connection-oriented), a signal (signal
   scope) or a potential (potential-oriented). One printed number on two units, or two numbers within one unit,
