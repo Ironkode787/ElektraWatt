@@ -13,7 +13,7 @@
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on a free grid point, or Alt held | floating | `Commit(ip.place …)`; sticky |
-//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`, an external point's with its `external`; sticky |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`, an external point's with its `external`; on a box's upper or lower side the point stood off with its route (see below); sticky |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
@@ -50,13 +50,19 @@
 //! to -102F2:14"); Alt (held on the last pointer move or the press, or `canvas.activate_alt`) places the point free
 //! with `ip.place`. An external connection point connects the same way. On the CP of another interruption
 //! point the click is refused in words.
+//!
+//! **On a drawn box's pin** (doc 06 §3.5, FT-1798) EW's two forms, which are never turned, never lie along or in the
+//! box: on a pin of its lower side the point stands one grid step below the pin, on its upper side two steps above
+//! it, joined by a straight wire (`connection.draw_to_ip` with that route, [`IpTool::stand_off`]; the ghost shows it
+//! there); on its left side a target, on its right side a source stands on the pin as on any other; a source on the
+//! left side or a target on the right side would point into the box and is refused in words, Alt placing it free.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::checks::rules::pot::MARK_BESIDE_PIN_NM;
-use ew_api::geometry::{orient_point, orient_then};
+use ew_api::geometry::{Dir, orient_point, orient_then};
 use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, TablePotential, Uuid};
 use serde_json::{Value, json};
 
@@ -512,6 +518,9 @@ pub struct IpTool {
     shown_taken: Option<String>,
     /// The pin without a wire the last overlay's point stands beside without joining it, in words.
     shown_beside: Option<String>,
+    /// Where the last overlay's point stands (page nm): the insertion point, or off a box's side
+    /// ([`IpTool::stand_off`]).
+    shown_at: Option<(i64, i64)>,
 }
 
 /// What a click does with the ghost's CP where it is.
@@ -551,6 +560,7 @@ impl IpTool {
             shown_connects: None,
             shown_taken: None,
             shown_beside: None,
+            shown_at: None,
         }
     }
 
@@ -688,6 +698,48 @@ impl IpTool {
     ) -> impl Iterator<Item = &'a TableCp> + use<'a> {
         let c = self.cp_at(pos, &cx.page.tables);
         cx.page.tables.cps.iter().filter(move |x| c == Some(x.at))
+    }
+
+    /// The way `pin` leaves its drawn box, where it is a pin on a box's side and the tool draws EW's two forms, whose
+    /// arrow is never turned (doc 06 §3.5, FT-1798); `None` for a pin of a symbol, or with a symbol the person turns.
+    fn box_side(&self, cx: &ToolCx<'_>, pin: &TableCp) -> Option<Dir> {
+        let drawn_box = cx
+            .page
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.id == pin.rep && r.black_box.is_some());
+        (self.forms() && drawn_box).then_some(pin.dir).flatten()
+    }
+
+    /// Where a point dropped on `pin` at the insertion point `pos` stands, and the route of its wire from the pin
+    /// (empty: its connection point on the pin). On a pin of a box's lower side the point stands one grid step below
+    /// the pin, on the upper side two steps above it (its cross-reference under the arrow needs the room), joined by
+    /// a straight wire, so that its arrow never lies along the box's edge (doc 06 §3.5, FT-1798); elsewhere on the pin.
+    fn stand_off(&self, cx: &ToolCx<'_>, pos: (i64, i64), pin: &TableCp) -> ((i64, i64), Vec<(i64, i64)>) {
+        use ew_units::{Grid, Nm};
+        let steps = match self.box_side(cx, pin) {
+            Some(Dir::Down) => 1,
+            Some(Dir::Up) => -2,
+            _ => return (pos, Vec::new()),
+        };
+        let (n, d) = cx.page.tables.grid;
+        let Some(grid) = u64::try_from(n)
+            .ok()
+            .zip(u64::try_from(d).ok())
+            .and_then(|(n, d)| Grid::new(n, d).ok())
+        else {
+            return (pos, Vec::new());
+        };
+        let Some(y) = grid
+            .snap(Nm(pin.at.1))
+            .checked_add(steps)
+            .and_then(|k| grid.at(k))
+        else {
+            return (pos, Vec::new());
+        };
+        let cp = (pin.at.0, y.0);
+        ((pos.0, pos.1 + (cp.1 - pin.at.1)), vec![pin.at, cp])
     }
 
     /// The insertion point (sheet nm, page nm) for the pointer at the sheet point `at`: the grid point under it,
@@ -845,10 +897,21 @@ impl IpTool {
         // A pin always wins, without the room rule below: the pin decides where its mark stands (the second
         // mark of a power supply's two pins, a grid step apart, was refused, and Alt then placed it unjoined).
         if let Some(pin) = under.first() {
-            return if self.suppressed {
-                DropOn::Free
-            } else {
-                DropOn::Pin((*pin).clone())
+            if self.suppressed {
+                return DropOn::Free;
+            }
+            // But an arrow that would point into a drawn box from its side is not placed there (FT-1798).
+            let target = self.resolve(cx, Some(pos)).1 == IpDir::Target;
+            return match (self.box_side(cx, pin), target) {
+                (Some(Dir::Left), false) => DropOn::Refused(crate::strings::format(
+                    key!("notice-ip-into-box-source"),
+                    &[&crate::describe::pin_in_sentence(&pin.label)],
+                )),
+                (Some(Dir::Right), true) => DropOn::Refused(crate::strings::format(
+                    key!("notice-ip-into-box-target"),
+                    &[&crate::describe::pin_in_sentence(&pin.label)],
+                )),
+                _ => DropOn::Pin((*pin).clone()),
             };
         }
         // Without a pin, a point on a junction or strictly inside a wire would sit on it without joining it, so it is
@@ -911,7 +974,8 @@ impl IpTool {
     }
 
     /// The command a click at the current point commits: `connection.draw_to_ip` from the pin under the ghost's CP
-    /// with an empty route, else `ip.place`; `None` before the first move or where the click is refused.
+    /// with an empty route (the point standing off a box's upper or lower side, with the straight route to it,
+    /// [`IpTool::stand_off`]), else `ip.place`; `None` before the first move or where the click is refused.
     fn command(&self, cx: &ToolCx<'_>) -> Option<(Box<AnyCommand>, String, IpDir)> {
         let (_, pos) = self.at?;
         let (name, direction) = self.resolve(cx, Some(pos));
@@ -921,6 +985,7 @@ impl IpTool {
         let (cmd_name, mut params) = match self.drop_on(cx, pos) {
             DropOn::Refused(_) => return None,
             DropOn::Pin(pin) => {
+                let (pos, route) = self.stand_off(cx, pos, &pin);
                 let mut ip = json!({
                     "symbol": symbol,
                     "pos": [pos.0, pos.1],
@@ -940,7 +1005,7 @@ impl IpTool {
                     json!({
                         "a": {"cp": {"function": pin.function.to_string(), "idx": pin.idx}},
                         "page": page,
-                        "route": [],
+                        "route": route.iter().map(|p| [p.0, p.1]).collect::<Vec<_>>(),
                         "ip": ip,
                     }),
                 )
@@ -985,18 +1050,32 @@ impl IpTool {
             (Some(DropOn::Free), Some(p)) => self.beside(cx, p),
             _ => None,
         };
+        // Off a box's upper or lower side the ghost stands where the point will, with its wire.
+        let (stood, route) = match (&drop, pos) {
+            (Some(DropOn::Pin(pin)), Some(p)) => self.stand_off(cx, p, pin),
+            _ => (pos.unwrap_or_default(), Vec::new()),
+        };
         self.shown_connects = match drop {
             Some(DropOn::Pin(pin)) => Some(crate::describe::pin_in_sentence(&pin.label)),
             _ => None,
         };
-        let Some((sheet, pos)) = self.at else {
+        let Some((sheet, _)) = self.at else {
             return Overlay::default();
         };
+        let pos = stood;
+        self.shown_at = Some(pos);
         let (_, outline, orient) = self.drawn(direction);
         let mut items = vec![OverlayItem::Paths {
             paths: Arc::clone(outline),
             transform: (orient, pos),
         }];
+        if let [a, b] = route[..] {
+            items.push(OverlayItem::Line {
+                a: cx.snapper.page_to_sheet(a),
+                b: cx.snapper.page_to_sheet(b),
+                style: super::overlay::Style::dashed(super::overlay::Token::Ghost),
+            });
+        }
         if let Some(c) = self.cp_at(pos, &cx.page.tables) {
             items.push(OverlayItem::Marker {
                 at: cx.snapper.page_to_sheet(c),
@@ -1174,7 +1253,8 @@ impl Tool for IpTool {
     }
 
     fn ghost(&self) -> Option<Ghost> {
-        let pos = self.at.map(|(_, p)| p);
+        // Where the last overlay stood the point: off a box's side it is not the insertion point under the pointer.
+        let pos = self.at.and(self.shown_at);
         Some(Ghost::Ip {
             name: self.shown.clone(),
             direction: self.shown_dir.word(),

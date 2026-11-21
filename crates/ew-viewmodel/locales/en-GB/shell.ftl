@@ -575,6 +575,10 @@ toast-ip-beside-pin = { $p0 } stands beside { $p1 } without joining it: place it
 # FT-948 (ID-1150): a drop whose connection point lies on a junction or inside a wire, which it would not join.
 notice-ip-on-wire = Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point
 
+# FT-1798: an arrow of EW's two forms on a drawn box's left or right side that would point into the box.
+notice-ip-into-box-source = Not placed: a source's wire leaves its arrow at the tail, on the left, so on { $p0 } the arrow would lie in the box. Make it a target, or hold Alt to place it beside the box and draw its wire
+notice-ip-into-box-target = Not placed: a target's wire leaves its arrow at the tip, on the right, so on { $p0 } the arrow would lie in the box. Make it a source, or hold Alt to place it beside the box and draw its wire
+
 # H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
 notice-ip-second-source = Not placed: { $p0 } already has a source on page { $p1 }; press { $p2 } for a target, or mark one source as the star
 
