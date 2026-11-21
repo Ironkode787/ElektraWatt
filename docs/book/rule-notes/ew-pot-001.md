@@ -21,7 +21,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, replace the 0 V–PE bond B1 by a plain wire, so that 0V and PE become one potential.
+In a copy of the sample project, replace the 0 V–PE bond B1 by a plain wire, so that 0V and PE become one potential.
 
 ## How to fix
 

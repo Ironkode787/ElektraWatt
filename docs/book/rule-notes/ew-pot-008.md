@@ -15,8 +15,8 @@ place mean a PE connection is missing, so some exposed parts are not bonded.
 
 ## Example
 
-Golden A has none: the rails R1 to R3 join every PE connection point. In a copy, clear rail bonding on -X1032: the
-location +J-E-2416 then holds two PE potentials.
+In a copy of the sample project, delete the wire from -X1011:PE to -X1031:PE and clear rail bonding on -X1031:PE: the
+location `+CAB` then holds two PE networks.
 
 ## How to fix
 

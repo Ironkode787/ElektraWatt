@@ -19,7 +19,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Golden A has none. In a new project, wire two valve coils' A1 to a PLC output and join their A2 pins to each other but
+In a new project, wire two valve coils' A1 to a PLC output and join their A2 pins to each other but
 not to 0 V.
 
 ## How to fix

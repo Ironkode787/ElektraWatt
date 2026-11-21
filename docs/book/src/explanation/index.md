@@ -16,7 +16,6 @@ of record, and this section links to them instead of copying them, so that there
 | how potentials, terminals and cables connect | [Connections, terminals, cables](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/08-connections-terminals-cables.md) |
 | how rules, findings and waivers work | [Checks, revisions, collaboration](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/15-checks-revisions-collaboration.md) |
 | the command line, scripting and the SQL projection | [Extensibility](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md) |
-| the golden project used in the tutorials | [Golden project](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/20-golden-project.md) |
 | why a decision was made | [Architecture decision records](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/adr/README.md) |
 
 The [documentation map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md) lists every design

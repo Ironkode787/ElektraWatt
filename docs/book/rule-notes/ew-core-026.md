@@ -16,7 +16,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, exclude a strip from the terminal-diagram block's selection.
+In a copy of the sample project, exclude the strip -X1031 from the terminal-diagram block's selection.
 
 ## How to fix
 

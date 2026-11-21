@@ -17,7 +17,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, add a device on two branches of a copy of Golden A that both take the next free tag, then merge.
+To see it, add a device on two branches of a copy of the sample project that both take the next free tag, then merge.
 
 ## How to fix
 

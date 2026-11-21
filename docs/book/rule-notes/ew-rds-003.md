@@ -17,7 +17,7 @@ transformer (T). A wrong letter misleads every reader of the drawing.
 
 ## Example
 
-On Golden A, the temperature switch T55 carries the letter T; the suggestion is B, BT under the 2019 set.
+In a copy of the sample project, give the contactor -102Q1 the letter K: the suggestion is Q.
 
 ## How to fix
 

@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, copy one line of `project.jsonl` in a copy of Golden A to the end of the file and open the copy.
+To see it, copy one line of `project.jsonl` in a copy of the sample project to the end of the file and open the copy.
 
 ## How to fix
 

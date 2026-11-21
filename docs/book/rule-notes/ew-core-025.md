@@ -15,7 +15,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-It needs a table of contents whose entries sit right at a page boundary; Golden A has none.
+It needs a table of contents whose entries sit right at a page boundary; the sample project has none.
 
 ## How to fix
 

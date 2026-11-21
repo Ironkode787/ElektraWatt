@@ -14,7 +14,7 @@ earth by whoever works on the machine.
 
 ## Example
 
-In a copy of Golden A, give a 24 V wire the colour GNYE in the property grid.
+In a copy of the sample project, give a 24 V wire the colour GNYE in the property grid.
 
 ## How to fix
 

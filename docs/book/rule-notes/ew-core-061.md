@@ -14,7 +14,7 @@ Text below the minimum height becomes unreadable once a drawing is printed or co
 
 ## Example
 
-On Golden A, the built-in styles Connection point and Wire marker print at 0.94 mm. A new project starts with both at
+With the built-in table, the styles Connection point and Wire marker print at 0.94 mm. A new project starts with both at
 1.32 mm, so it passes.
 
 ## How to fix

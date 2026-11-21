@@ -51,7 +51,7 @@ There is no continuous integration until 1.0. `check` is the check.
   once after you add the file, since cargo does not see a new file in that folder until `main.rs` changes.
 - No performance tests and no timing assertions during development.
 - A test that is too slow for every change is `#[ignore = "deep run: …"]`: the oracle on every read, the long
-  fuzz, the acceptance gate with its raster comparison, the long recordings. The deep run takes them all, at
+  fuzz, the long recordings. The deep run takes them all, at
   the end of a milestone and before a release:
 
   ```sh

@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, the DP station address of -201U1 is TBD.
+In a copy of the sample project, set the PROFIBUS address of the valve terminal -201K1's port on page 105 to TBD, or to
+the address of the CPU -104A1's port.
 
 ## How to fix
 

@@ -16,7 +16,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, add a report block whose generated pages start at the folio of an existing drawn page.
+In a copy of the sample project, add a report block whose generated pages start at 101, the folio of a drawn page.
 
 ## How to fix
 

@@ -14,8 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, move one page's line from its file under `pages/` to another page's file in a copy of Golden A and open
-the copy.
+To see it, move one page's line from its file under `pages/` to another page's file in a copy of the sample project and
+open the copy.
 
 ## How to fix
 

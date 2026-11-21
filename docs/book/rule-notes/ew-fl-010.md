@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, gallery 1 of the valve terminal -201U1 is fed by nothing.
+In a copy of the sample project, delete the line from the air supply -201X1 to the valve terminal -201K1: its gallery 1
+is then fed by nothing.
 
 ## How to fix
 

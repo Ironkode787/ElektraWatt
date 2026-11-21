@@ -15,7 +15,7 @@ Exports such as AML, EPLAN XML and CSV then carry a designation that other tools
 
 ## Example
 
-Golden A's location code `J-E-2416` holds hyphens.
+The sample's location codes CAB, FLD and UP hold none; a code such as `J-E-2416` holds hyphens.
 
 ## How to fix
 

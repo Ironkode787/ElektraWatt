@@ -16,7 +16,7 @@ must not be earthed at all.
 
 ## Example
 
-Golden A's 0V is PELV with the bond B1. In a copy, delete B1, or draw a second bond between 0V and PE.
+The sample's 0V is PELV with the bond B1. In a copy, delete B1, or draw a second bond between 0V and PE.
 
 ## How to fix
 

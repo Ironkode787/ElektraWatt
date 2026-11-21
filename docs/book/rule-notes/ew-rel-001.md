@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A the checker is not set.
+On the sample project the open revision has no checker.
 
 ## How to fix
 

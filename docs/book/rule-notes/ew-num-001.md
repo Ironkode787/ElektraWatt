@@ -15,7 +15,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, ten devices keep frozen tags, among them S51, F55, T55, E55 and 1X1.
+On the sample, the enclosure -UC1 and its mounting plate keep the frozen tags that Enclosure… gave them: these are its
+two infos.
 
 ## How to fix
 

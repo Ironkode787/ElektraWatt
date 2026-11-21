@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, copy one record file of an older save of a copy of Golden A over the current one, and open the copy.
+To see it, copy one record file of an older save of a copy of the sample project over the current one, and open the
+copy.
 
 ## How to fix
 

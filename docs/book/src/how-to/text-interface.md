@@ -15,7 +15,7 @@ its tag, cell, symbol and position, its `cp` lines (connection points, the wires
   on that connection point, and the cursor line names it.
 - **A `wire` line ends with a point on the wire** (`at <x> <y> mm`) where a click with the Select tool picks that wire
   and nothing else. A wire whose drawn route runs along another wire or through a symbol for its whole length has no
-  such point; select it by its ends instead: `select.set` with `refs` `["wire:-101F1:1 -> F55:1"]` (the ends as the
+  such point; select it by its ends instead: `select.set` with `refs` `["wire:-101F1:1 -> -103F1:1"]` (the ends as the
   `wire` line prints them, either way round; a junction end is `junction <n>`).
 
 ## Place symbols
@@ -55,10 +55,10 @@ project's strips.
 
 In the Terminal strips navigator a row is named by what it prints: a terminal by its tag, the strip's label, a colon
 and its own (`-X1031:1`), and a strip by its tag (`-X1031`). `navigator.select` with `keys` and `table.set` with `rows`
-take these names (`table.set` with `kind` `strips`, `rows` `["-X1031:1","-X1031:2"]`, a `column` and a `value`).
+take these names (`table.set` with `kind` `strips`, `rows` `["-X1021:1","-X1021:2"]`, a `column` and a `value`).
 
-A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): the starter terminal has clamp `a` on side 1
-(internal) and `b` on side 2 (field), `1X1:1/a` and `1X1:1/b`. Where two clamps of one level carry the same letter, as on
+A terminal's connection points print `strip:terminal/clamp` (`-X1021:1/b`): the starter terminal has clamp `a` on side 1
+(internal) and `b` on side 2 (field), `-X1021:1/a` and `-X1021:1/b`. Where two clamps of one level carry the same letter, as on
 a library terminal that names them so, the label adds `#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`.
 
 ### Bridge terminals
@@ -91,7 +91,7 @@ end and press Enter. The `canvas route` line names the start (`from`) and the en
   **column by column** (column 0 to 16, and in a column row A to H), then by position; this differs from the page
   text's order, which goes row by row. Going to a `cp` position with `cursor.set` needs no walk.
 - **Ending a wire on a wire** makes a junction there and splits that wire. The route's `end` names the wire it would
-  split by its ends (`@101-C12 F55:2 -> E55:L`): check it before Enter when two wires run through one cell.
+  split by its ends (`@102-D4 -102S1:13 -> -102Q1:13`): check it before Enter when two wires run through one cell.
 
 ## Delete
 

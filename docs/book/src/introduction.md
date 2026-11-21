@@ -55,6 +55,7 @@ without a connection. Pages that link to the repository need a connection to fol
 
 ## Sample data
 
-Every example uses the anonymised golden project (`golden/J-E-2416`, licence CC0-1.0). It holds placeholders where a
-real project would name a customer, an end user or a person, such as `<customer>` and `<drawing id>`. Do not put real
+Every example uses the sample project (`fixtures/sample/sample.ew` in the repository, `samples/sample.ew` in an
+installation; licence CC0-1.0), a small conveyor drive that the program draws itself from a script. It holds
+placeholders where a real project would name a customer, an end user or a person, such as `Sample Customer`. Do not put real
 customer data into examples that you contribute to this guide.

@@ -14,8 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, merge two branches of a copy of Golden A in git that both changed the same device's description, and
-open the project before resolving the conflict.
+To see it, merge two branches of a copy of the sample project in git that both changed the same device's description,
+and open the project before resolving the conflict.
 
 ## How to fix
 

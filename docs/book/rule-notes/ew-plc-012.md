@@ -16,8 +16,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Golden A binds its 28 coils to the odd bits Q0.1 to Q6.7; under the part's map H1 every binding differs, under map H2
-none does.
+In a copy of the sample project, bind the solenoid of the valve -201K1-Q1 to another channel of the valve terminal
+-201K1 than its part's map assigns.
 
 ## How to fix
 

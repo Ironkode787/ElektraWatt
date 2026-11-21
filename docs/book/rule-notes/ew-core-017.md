@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, change a connection's end `{"cp": ["<id>", 3]}` in a copy of Golden A to `{"cp": 3}` and open the
+To see it, change a connection's end `{"cp": ["<id>", 3]}` in a copy of the sample project to `{"cp": 3}` and open the
 copy.
 
 ## How to fix

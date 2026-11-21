@@ -60,8 +60,8 @@ $ cargo xtask docs-gen
 
 ## Writing pages
 
-- Examples use the anonymised golden project only. Never put a customer, end-user, person, project or drawing
-  identifier into a page; use the placeholders of the golden project (`<customer>`, `<drawing id>`).
+- Examples use the sample project only (`fixtures/sample/`, made by its script). Never put a customer, end-user,
+  person, project or drawing identifier into a page; use the sample's placeholders (`Sample Customer`).
 - Link design documents with their GitHub address (`https://github.com/Ironkode787/ElektraWatt/blob/main/docs/...`),
   because the built book does not contain them. Link pages of the book with relative `.md` paths.
 - Say plainly when something is not built yet.

@@ -15,7 +15,7 @@ and the labels ambiguous.
 
 ## Example
 
-In a copy of Golden A, freeze a device's tag to the tag of another device.
+In a copy of the sample project, freeze a device's tag to the tag of another device.
 
 ## How to fix
 

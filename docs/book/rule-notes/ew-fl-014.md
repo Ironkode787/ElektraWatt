@@ -13,7 +13,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-With the rule switched on, Golden A reports the 16 lines from the cabinet to the process valves in the field.
+With the rule switched on, the sample's tubes from the valve terminal -201K1 in the cabinet (`+CAB`) to the cylinders
+-201M1 and -201M2 in the field (`+FLD`) are reported.
 
 ## How to fix
 

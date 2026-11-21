@@ -14,8 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, nest one value of a line of `project.jsonl` in a copy of Golden A more than 64 arrays deep and open the
-copy.
+To see it, nest one value of a line of `project.jsonl` in a copy of the sample project more than 64 arrays deep and open
+the copy.
 
 ## How to fix
 

@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, add a member `"x_future": 1` to one line of `project.jsonl` in a copy of Golden A and open the copy.
+To see it, add a member `"x_future": 1` to one line of `project.jsonl` in a copy of the sample project and open the
+copy.
 
 ## How to fix
 

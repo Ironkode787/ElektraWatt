@@ -16,7 +16,7 @@ on it trusts a dead load that is not dead.
 
 ## Example
 
-Golden A's thermostat T55 and switch S56 open N-55 while E55 and E56 stay on L-55.
+A thermostat in the neutral of a heater whose phase comes straight from the supply opens N while the heater stays on L.
 
 ## How to fix
 

@@ -18,7 +18,8 @@ overheat or open before that, and then exposed parts stay live.
 
 ## Example
 
-Golden A's W6 is 1.5 mm² at 1X1, next to the 2.5 mm² line wire W4.
+On the sample's page 103 the shield core of the motor cable -103W1 counts as a PE wire at -X1031:SH, beside the
+2.5 mm² motor cores, so it is set to 2.5 mm². In a copy, set it to 1.5 mm²: the rule reports it.
 
 ## How to fix
 

@@ -15,7 +15,8 @@ symbol does not reach, sends the reader to the wrong place.
 
 ## Example
 
-In a copy of Golden A, set a contact's anchor policy to a corner that lies in an empty cell.
+In a copy of the sample project, set the anchor policy of a main contact of -102Q1 on page 103 to a corner that lies in
+an empty cell.
 
 ## How to fix
 

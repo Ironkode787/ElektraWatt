@@ -13,7 +13,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, the 16 working lines F1 to F16 carry no tube specification.
+In a copy of the sample project, a working line on page 201 is reported when neither the line, its tube part, its medium
+nor the project's default tube gives its diameters and material.
 
 ## How to fix
 

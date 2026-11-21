@@ -7,8 +7,7 @@ only.
 ## Why
 
 A spare is a terminal kept free for later use. Field wiring on it means either the terminal is in use and its state is
-wrong, or the wire is drawn to the wrong terminal. A spare may be fed on its inner side, as Golden A's spares 5, 7 and
-9 of -X1031 are.
+wrong, or the wire is drawn to the wrong terminal. A spare may be fed on its inner side.
 
 ## Standard
 
@@ -16,7 +15,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, draw a wire from a field device to spare terminal 5 of -X1031 on the field side.
+In a copy of the sample project, set a terminal of -X1021 to Spare and draw a wire to it on the field side.
 
 ## How to fix
 

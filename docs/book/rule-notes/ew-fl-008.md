@@ -13,7 +13,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-With the rule switched on, Golden A reports galleries 3 and 5 of the valve terminal -201U1.
+On the sample's page 201 the silencers -201X2 and -201X3 close the exhaust galleries of the valve terminal -201K1.
+With the rule switched on, a copy without them reports the two galleries.
 
 ## How to fix
 

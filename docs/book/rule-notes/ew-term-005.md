@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, set rail bonding on a feed-through terminal of -X1031.
+In a copy of the sample project, set rail bonding on a feed-through terminal of -X1021.
 
 ## How to fix
 

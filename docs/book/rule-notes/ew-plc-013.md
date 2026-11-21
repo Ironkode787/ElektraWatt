@@ -14,7 +14,8 @@ An FE pin on PE carries fault current into the electronics' earth; an unconnecte
 
 ## Example
 
-On Golden A, the earth screws -201U1:3 and -202U1:3 are wired to PE.
+In a copy of the sample project, delete the wire to the M pin of the CPU -104A1: its supply group's M pin is then not
+connected.
 
 ## How to fix
 

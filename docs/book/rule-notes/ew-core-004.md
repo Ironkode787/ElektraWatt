@@ -15,7 +15,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, put a copy of `project.jsonl` named `project (conflict).jsonl` in a copy of Golden A and open the copy.
+To see it, put a copy of `project.jsonl` named `project (conflict).jsonl` in a copy of the sample project and open the
+copy.
 
 ## How to fix
 

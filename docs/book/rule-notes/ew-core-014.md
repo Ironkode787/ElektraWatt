@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, change the description of one copy under `lib/` in a copy of Golden A in a text editor and open the
+To see it, change the description of one copy under `lib/` in a copy of the sample project in a text editor and open the
 copy.
 
 ## How to fix

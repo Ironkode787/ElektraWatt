@@ -15,7 +15,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, change the colour of a core of a cable whose part defines its cores.
+In a copy of the sample project, change the colour of a core of a cable whose part defines its cores.
 
 ## How to fix
 

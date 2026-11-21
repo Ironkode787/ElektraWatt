@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, F55, E55, E56, S56 and -201U9 are not placed.
+In a copy of the sample project, place a new device on page 102 and do not place it on the panel layout 902.
 
 ## How to fix
 

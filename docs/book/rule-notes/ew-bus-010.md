@@ -12,7 +12,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Move -201U1:DP to a second logical net while -3W1 joins it to the master.
+In a copy of the sample project, move the PROFIBUS port of the valve terminal -201K1 to a second logical net while the
+bus cable -105W1 still joins it to the CPU -104A1.
 
 ## How to fix
 

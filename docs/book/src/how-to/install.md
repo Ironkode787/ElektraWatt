@@ -107,7 +107,7 @@ CI job: `ew-<version>-x86_64-pc-windows-msvc.zip` and `ew-<version>-x86_64-unkno
    Set `EW_CONTENT_DIR` to the folder's `content` folder:
    - Linux: `export EW_CONTENT_DIR=<folder>/content`
    - Windows (PowerShell): `$env:EW_CONTENT_DIR = "<folder>\content"`
-3. Check it: `ew --version` prints the version, and `ew export pdf <folder>/samples/J-E-2416.ew --out sample.pdf`
+3. Check it: `ew --version` prints the version, and `ew export pdf <folder>/samples/sample.ew --out sample.pdf`
    writes the sample project's drawings as a PDF.
 
 The `ew.exe` that the setup installs finds the starter content the same way: set `EW_CONTENT_DIR` to the `content`

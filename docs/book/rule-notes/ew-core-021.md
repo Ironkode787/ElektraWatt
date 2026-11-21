@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, renumber a page of a section to a folio beyond the section's range.
+In a copy of the sample project, renumber page 103 to a folio beyond the range of its section.
 
 ## How to fix
 

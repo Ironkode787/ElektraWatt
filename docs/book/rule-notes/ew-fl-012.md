@@ -17,7 +17,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Draw a line from -201U3-Q1:2 to -201U3-Q1:4.
+In a copy of the sample project, draw a line from -201K1-Q1:2 to -201K1-Q1:4.
 
 ## How to fix
 

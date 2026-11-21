@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, 20 valve positions are spare.
+In a copy of the sample project, set the state of the valve -201K1-Q4 to Spare: its position of the valve terminal
+-201K1 is reported.
 
 ## How to fix
 

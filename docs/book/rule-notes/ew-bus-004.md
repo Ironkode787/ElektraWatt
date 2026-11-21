@@ -16,7 +16,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, the PROFIBUS segment ends outside the project at JE-N1000-03, whose termination is unknown.
+In a copy of the sample project, switch off the termination of the valve terminal -201K1's port, an end of the PROFIBUS
+segment on page 105.
 
 ## How to fix
 

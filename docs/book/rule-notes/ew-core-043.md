@@ -13,7 +13,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A the TBD bridge, end bracket, rail and duct are placeholders.
+In a copy of the sample project, give a device a part whose part number is TBD.
 
 ## How to fix
 

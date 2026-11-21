@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Golden A has none. In a new project, set a wire's cross-section to the value its potential already gives.
+In a new project, set a wire's cross-section to the value its potential already gives.
 
 ## How to fix
 

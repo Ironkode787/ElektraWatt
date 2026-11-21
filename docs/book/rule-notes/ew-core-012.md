@@ -15,7 +15,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-No change to a copy of Golden A shows it in this build.
+No change to a copy of the sample project shows it in this build.
 
 ## How to fix
 

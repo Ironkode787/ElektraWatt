@@ -14,7 +14,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, change a page's folio `number` to a text such as `"one"` in a copy of Golden A and open the copy.
+To see it, change a page's folio `number` to a text such as `"one"` in a copy of the sample project and open the copy.
 
 ## How to fix
 

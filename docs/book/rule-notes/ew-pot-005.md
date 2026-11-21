@@ -15,7 +15,7 @@ for it.
 
 ## Example
 
-Golden A's vendor cable cores W36 and W41 are blue on 0V.
+In a copy of the sample project, give a 24 V wire the colour BU in the property grid.
 
 ## How to fix
 
@@ -23,5 +23,4 @@ For a DC control circuit, a company colour such as DBU keeps the blue look witho
 
 ## Waiving
 
-Waive it for a cable whose core colours are fixed by the manufacturer and the documentation marks the core's use, as
-Golden A's vendor cable does.
+Waive it for a cable whose core colours are fixed by the manufacturer and the documentation marks the core's use.

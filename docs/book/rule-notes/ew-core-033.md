@@ -13,7 +13,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, -3W1 has no length.
+In a copy of the sample project, clear the length of the motor cable -103W1 in its properties.
 
 ## How to fix
 

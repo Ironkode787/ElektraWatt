@@ -16,7 +16,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-Golden A's -102F2:13 and :14, the signal contact of the electronic breaker, are open.
+In a copy of the sample project, delete the wire from the 0 V terminal to the lamp -102E1: its pin X2 is then open.
 
 ## How to fix
 

@@ -15,8 +15,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-To see it, change `derivation_profile` in `project.jsonl` of a copy of Golden A to a version that does not exist,
-such as `"2099.1"`, and open the copy.
+To see it, change `derivation_profile` in `project.jsonl` of a copy of the sample project to a version that does not
+exist, such as `"2099.1"`, and open the copy.
 
 ## How to fix
 

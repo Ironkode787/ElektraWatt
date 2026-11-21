@@ -18,7 +18,7 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, S56 and E56 have no part.
+In a copy of the sample project, remove the part of the lamp -102E1.
 
 ## How to fix
 

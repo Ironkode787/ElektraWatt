@@ -15,7 +15,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On Golden A, the supply from +J-E-206 to 1X1 (wires W1 to W3) has no cable.
+On the sample's page 101 the supply comes in from outside through the cable -101W1, so nothing is reported. Wired
+without a cable, the same supply is one finding.
 
 ## How to fix
 

@@ -15,7 +15,7 @@ wire list.
 
 ## Example
 
-Golden A has none. In a copy, freeze two wires to the same number.
+In a copy of the sample project, freeze two wires to the same number.
 
 ## How to fix
 

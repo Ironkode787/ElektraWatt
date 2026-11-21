@@ -14,8 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, waive the finding "has no part" of -203Q1, then assign it a part: the waiver then matches
-nothing.
+In a copy of the sample project, remove the part of the lamp -102E1, waive the finding "has no part", then assign it a
+part again: the waiver then matches nothing.
 
 ## How to fix
 
