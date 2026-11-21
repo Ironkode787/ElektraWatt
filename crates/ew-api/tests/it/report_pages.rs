@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The report-pages provider hook: the session installs the report engine, so `page_order`
-//! includes the generated report pages of the golden project and settles the TOC page count (doc 09 §3.1,
-//! doc 20 §5, §16); a `Q` without a provider has none; the TOC page count starts from its closed form, so
+//! includes the generated report pages of the sample project and settles the TOC page count (doc 09 §3.1); a `Q`
+//! without a provider has none; the TOC page count starts from its closed form, so
 //! large projects settle and every page is listed once; a provider that breaks the contract is reported and
 //! still loses no page; the provider is configuration, and a cycle through the page order is a note.
 
@@ -22,17 +22,20 @@ use ew_derive::{
 };
 use ew_schema::Record;
 
-/// The ID of the golden report block with this `report_blocks.csv` key.
-fn block(key: &str) -> Id<ReportBlock> {
-    let want = format!("report_blocks|{key}");
-    common::golden_batch()
-        .records
+/// The sample's pages without the report engine: the title page, the seven drawn pages and the three section
+/// dividers.
+const PAGES_WITHOUT_REPORTS: usize = 11;
+
+/// The ID of the sample's table of contents block (folio 2).
+fn toc_block() -> Id<ReportBlock> {
+    let (_, records, _) = common::sample_records();
+    records
         .iter()
         .find_map(|r| match r {
-            Record::ReportBlock(b) if common::source_key(r) == Some(want.as_str()) => Some(b.id),
+            Record::ReportBlock(b) if b.first_folio == Some(2) => Some(b.id),
             _ => None,
         })
-        .unwrap_or_else(|| panic!("no report block {key}"))
+        .expect("the table of contents")
 }
 
 fn title(q: &Q, page: PageRef) -> String {
@@ -43,15 +46,14 @@ fn title(q: &Q, page: PageRef) -> String {
 }
 
 #[test]
-fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
-    let s = common::golden_session();
+fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
+    let s = common::sample();
     let q = s.query();
     let order = q.get::<PageOrder>(());
 
-    // Doc 20 §5: front matter 1, 2, 2.1, 3; sections 1, 2 and 9 with their dividers; the generated folios of
-    // section 9 after 902. Kinds not derived yet (908, 911) hold one placeholder page each.
+    // Front matter 1, 2, 2.1; sections 1, 2 and 9 with their dividers; the generated folios of section 9 around 902.
     let labels = order.labels();
-    assert_eq!(&labels[..4], ["1", "2", "2.1", "3"]);
+    assert_eq!(&labels[..4], ["1", "2", "2.1", "100"]);
     let at = |l: &str| {
         labels
             .iter()
@@ -59,30 +61,30 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
             .unwrap_or_else(|| panic!("no folio {l}"))
     };
     assert!(at("900") < at("901") && at("901") < at("902") && at("902") < at("903"));
-    for f in ["903", "904", "905", "906", "907", "908", "909", "910", "911"] {
+    for f in ["903", "906", "907", "908", "909", "910", "911"] {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
     assert_eq!(labels.last(), Some(&"911"));
 
-    // The whole order: the 36 pages of doc 20 §5 and §16. The parts list 901 paginates into 901 and 901.1
-    // (27 rows), the wire list 907 into 907, 907.1 and 907.2, and the PLC overview 908 into 908,
-    // 908.1 and 908.2 (56 channels).
+    // The whole order: the sample's 27 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the wire
+    // list 907 into 907, 907.1 and 907.2, the PLC overview 908 into 908 and 908.1 (24 channels), the potential overview
+    // and the device tag overview into two pages each.
     assert_eq!(
         labels,
         [
-            "1", "2", "2.1", "3", "100", "101", "102", "103", "106", "200", "201", "202", "203", "204",
-            "205", "206", "900", "901", "901.1", "902", "903", "904", "905", "906", "907", "907.1", "907.2",
-            "908", "908.1", "908.2", "909", "910", "910.1", "910.2", "910.3", "911",
+            "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901", "901.1",
+            "902", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1", "910", "910.1",
+            "911",
         ]
     );
 
-    // The TOC fixpoint (doc 09 §3.1): 36 pages need two TOC pages of 23 rows; the count is stable.
-    assert_eq!(order.len(), 36);
+    // The TOC fixpoint (doc 09 §3.1): 27 pages need two TOC pages of 23 rows; the count is stable.
+    assert_eq!(order.len(), 27);
     assert_eq!(order.toc_pages, 2);
     assert!(order.fixpoint_reached);
 
     // Generated pages are `Report` pages after drawn ones, with titles from their blocks.
-    let toc = block("2");
+    let toc = toc_block();
     let toc1 = PageRef::Generated { block: toc, index: 0 };
     let toc2 = PageRef::Generated { block: toc, index: 1 };
     assert_eq!(order.entry(toc1).map(|e| e.origin), Some(Origin::Generated));
@@ -107,77 +109,78 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     assert_eq!(title(&q, last), "Revision Overview");
 }
 
-/// A generated page of a block outside every section (the TOC) takes the structure all drawn pages
-/// share, so its title block prints `=P01` and `+J-E-2416` like every other page (doc 20 §5); where the drawn
-/// pages disagree it has none.
+/// A generated page of a block outside every section (the TOC) takes the structure all drawn pages share: with the
+/// title page in +CAB like every other drawn page, its title block prints `+CAB`; in the sample as it is, whose title
+/// page has no location, the drawn pages disagree and it has none.
 #[test]
 fn the_toc_pages_take_the_structure_all_drawn_pages_share() {
     let rds = Default::default();
-    let toc = block("2");
+    let toc = toc_block();
     let toc_pages = [0, 1].map(|index| PageRef::Generated { block: toc, index });
-    let s = common::golden_session();
-    let q = s.query();
-    for page in toc_pages {
-        let structure = q.get::<PageRefStructure>(page);
-        assert_eq!(structure.render(&rds), "=P01+J-E-2416", "{page:?}");
-        let tb = q.get::<TitleBlockValues>(page);
-        assert_eq!(
-            tb.get("page.function"),
-            Some(&TbValue::Text("=P01".to_owned())),
-            "{page:?}"
-        );
-        assert_eq!(
-            tb.get("page.location"),
-            Some(&TbValue::Text("+J-E-2416".to_owned())),
-            "{page:?}"
-        );
-        // The current revision of the golden revision records (D-05): the open V2.0, on every page.
-        assert_eq!(
-            tb.get("revision.current.label"),
-            Some(&TbValue::Text("V2.0".to_owned())),
-            "{page:?}"
-        );
-        assert!(tb.get("revision.current.author.name").is_some(), "{page:?}");
-        assert_eq!(tb.get("revision.current.checker.name"), None, "{page:?}");
-    }
-
-    // One drawn page without a location: the pages disagree and the TOC pages print no structure.
-    let batch = common::golden_batch();
-    let (project, mut records) = common::split(&batch);
-    let odd = records
-        .iter_mut()
-        .find_map(|r| match r {
-            Record::Page(p) if p.folio.number == 3 => Some(p),
-            _ => None,
-        })
-        .expect("folio 3");
-    odd.structure.location = None;
-    let s = common::session_of(project, records, batch.lib.clone());
+    let s = common::sample();
     let q = s.query();
     for page in toc_pages {
         assert_eq!(q.get::<PageRefStructure>(page).render(&rds), "", "{page:?}");
+        let tb = q.get::<TitleBlockValues>(page);
+        // The current revision (D-05): the sample's open V1.0, on every page; it names no checker.
+        assert_eq!(
+            tb.get("revision.current.label"),
+            Some(&TbValue::Text("V1.0".to_owned())),
+            "{page:?}"
+        );
+        assert_eq!(tb.get("revision.current.checker.name"), None, "{page:?}");
+    }
+
+    // The title page in the structure of folio 101: every drawn page agrees.
+    let (project, mut records, lib) = common::sample_records();
+    let shared = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Page(p) if p.folio.number == 101 => Some(p.structure.clone()),
+            _ => None,
+        })
+        .expect("folio 101");
+    let title = records
+        .iter_mut()
+        .find_map(|r| match r {
+            Record::Page(p) if p.folio.number == 1 => Some(p),
+            _ => None,
+        })
+        .expect("folio 1");
+    assert_ne!(title.structure, shared, "the title page has no location");
+    title.structure = shared;
+    let s = common::session_of(project, records, lib);
+    let q = s.query();
+    for page in toc_pages {
+        assert_eq!(q.get::<PageRefStructure>(page).render(&rds), "+CAB", "{page:?}");
+        let tb = q.get::<TitleBlockValues>(page);
+        assert_eq!(
+            tb.get("page.location"),
+            Some(&TbValue::Text("+CAB".to_owned())),
+            "{page:?}"
+        );
     }
 }
 
 #[test]
 fn a_q_without_the_report_engine_has_no_generated_pages() {
-    let s = common::golden_session();
+    let s = common::sample();
     let mut q = Q::new(&s.world().model);
     assert!(!q.has_report_pages());
     let order = q.get::<PageOrder>(());
     assert!(order.entries.iter().all(|e| e.origin != Origin::Generated));
-    // 13 drawn pages and 3 dividers: one TOC page would suffice.
-    assert_eq!(order.len(), 16);
+    // One TOC page would suffice.
+    assert_eq!(order.len(), PAGES_WITHOUT_REPORTS);
     assert_eq!(order.toc_pages, 1);
 }
 
 #[test]
 fn the_drawn_page_order_keeps_the_relative_order_of_page_order() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let full = q.get::<PageOrder>(());
     let drawn = q.get::<DrawnPageOrder>(());
-    assert_eq!(drawn.len(), 16);
+    assert_eq!(drawn.len(), PAGES_WITHOUT_REPORTS);
     let projected: Vec<PageRef> = full
         .entries
         .iter()
@@ -190,14 +193,14 @@ fn the_drawn_page_order_keeps_the_relative_order_of_page_order() {
 
 #[test]
 fn bom_rows_do_not_depend_on_the_report_engine() {
-    let s = common::golden_session();
+    let s = common::sample();
     let with = s.query();
     let without = Q::new(&s.world().model);
     for mode in [BomMode::Component, BomMode::Assembly] {
         assert_eq!(*with.get::<BomRows>(mode), *without.get::<BomRows>(mode));
     }
     // And the page order evaluates BOM pagination without a query cycle.
-    assert!(with.get::<PageOrder>(()).len() > 16);
+    assert!(with.get::<PageOrder>(()).len() > PAGES_WITHOUT_REPORTS);
 }
 
 /// A provider with a scripted page count per block: the TOC block gets `toc(toc_pages)` pages with row
@@ -259,7 +262,7 @@ fn scripted(extra: u32) -> Arc<Scripted> {
 /// Every page of the order is listed by exactly one TOC row: the TOC pages' row ranges, in page order, run
 /// contiguously from 0 to the page count (a range may be empty: a blank TOC page, never a missing row).
 fn assert_toc_lists_every_page_once(order: &PageOrderV) {
-    let toc = block("2");
+    let toc = toc_block();
     let mut pages: Vec<&GeneratedPage> = order
         .entries
         .iter()
@@ -284,16 +287,16 @@ fn assert_toc_lists_every_page_once(order: &PageOrderV) {
 
 #[test]
 fn large_projects_settle_the_toc_with_every_page_listed_once() {
-    let s = common::golden_session();
-    // D = 16 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). 16 fixed pages + 8 = 24 others
-    // settle at 2 TOC pages (26 rows on 2 pages). The old three-round iteration first dropped a page at 551 other pages;
-    // 10,000 gave 455 TOC rows' worth for 456 pages.
-    for (extra, toc_pages) in [(8, 2), (535, 26), (600, 28), (2_000, 92), (10_000, 456)] {
+    let s = common::sample();
+    let fixed = PAGES_WITHOUT_REPORTS as u32;
+    // D = 11 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). 11 fixed pages + 8 = 19 others
+    // settle at 1 TOC page; 546 others need 25 (24 pages hold 552 rows, short of 546 + 24); 10,011 need 456.
+    for (extra, toc_pages) in [(8, 1), (535, 25), (600, 28), (2_000, 92), (10_000, 456)] {
         let q = Q::new(&s.world().model).with_report_pages(scripted(extra));
         let order = q.get::<PageOrder>(());
         assert!(order.fixpoint_reached, "{extra} extra pages: not settled");
         assert_eq!(order.toc_pages, toc_pages, "{extra} extra pages");
-        assert_eq!(order.len() as u32, 16 + extra + toc_pages);
+        assert_eq!(order.len() as u32, fixed + extra + toc_pages);
         assert!(order.toc_pages * 23 >= order.len() as u32);
         assert_toc_lists_every_page_once(&order);
     }
@@ -301,7 +304,7 @@ fn large_projects_settle_the_toc_with_every_page_listed_once() {
 
 #[test]
 fn a_provider_that_breaks_the_toc_count_is_reported_and_still_lists_every_page() {
-    let s = common::golden_session();
+    let s = common::sample();
     // The TOC block answers one page more than asked: the count never settles (EW-CORE-025).
     let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted {
         extra: 0,
@@ -309,10 +312,10 @@ fn a_provider_that_breaks_the_toc_count_is_reported_and_still_lists_every_page()
     }));
     let order = q.get::<PageOrder>(());
     assert!(!order.fixpoint_reached);
-    assert_eq!(order.len(), 18);
+    assert_eq!(order.len(), PAGES_WITHOUT_REPORTS + 2);
     assert_toc_lists_every_page_once(&order);
 
-    // One TOC page whatever is asked, for 616 other pages that need 28: the one page lists them all
+    // One TOC page whatever is asked, for 611 other pages that need 28: the one page lists them all
     // (overflowing; the finding reports it) rather than dropping any.
     let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted {
         extra: 600,
@@ -321,15 +324,15 @@ fn a_provider_that_breaks_the_toc_count_is_reported_and_still_lists_every_page()
     let order = q.get::<PageOrder>(());
     assert!(!order.fixpoint_reached);
     assert_eq!(order.toc_pages, 28);
-    assert_eq!(order.len(), 617);
+    assert_eq!(order.len(), PAGES_WITHOUT_REPORTS + 600 + 1);
     assert_toc_lists_every_page_once(&order);
 }
 
 #[test]
 fn installing_the_report_engine_discards_values_cached_without_it() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = Q::new(&s.world().model);
-    assert_eq!(q.get::<PageOrder>(()).len(), 16);
+    assert_eq!(q.get::<PageOrder>(()).len(), PAGES_WITHOUT_REPORTS);
     // The provider is configuration: installing it late must not leave the provider-less order cached.
     let mut q = q.with_report_pages(ew_reports::engine());
     assert!(q.has_report_pages());
@@ -339,12 +342,12 @@ fn installing_the_report_engine_discards_values_cached_without_it() {
 
 #[test]
 fn the_page_order_reads_only_through_tracked_queries() {
-    let s = common::golden_session();
+    let s = common::sample();
     let rec = Rc::new(RecordingTracker::new());
     let q =
         Q::with_tracker(&s.world().model, Box::new(Rc::clone(&rec))).with_report_pages(ew_reports::engine());
     let order = q.get::<PageOrder>(());
-    assert!(order.len() > 16);
+    assert!(order.len() > PAGES_WITHOUT_REPORTS);
     let reads = rec.reads();
     assert!(!reads.is_empty());
     // Every model read of the evaluation, the provider's included, is attributed to a query, so a memo
@@ -366,7 +369,7 @@ impl ReportPagesProvider for ReadsTheToc {
             .get(id)
             .is_some_and(|b| b.first_folio == Some(901))
         {
-            let rows = ew_reports::rows_of(q, block("2"));
+            let rows = ew_reports::rows_of(q, toc_block());
             assert!(!rows.is_derived());
         }
         ew_reports::engine().pages(q, id, toc_pages)
@@ -375,7 +378,7 @@ impl ReportPagesProvider for ReadsTheToc {
 
 #[test]
 fn a_row_source_that_reads_the_page_order_gets_a_cycle_note_not_a_panic() {
-    let s = common::golden_session();
+    let s = common::sample();
     let mut q = Q::new(&s.world().model).with_report_pages(Arc::new(ReadsTheToc));
     let order = q.get::<PageOrder>(());
     assert!(order.labels().contains(&"901"));
@@ -390,7 +393,7 @@ fn a_row_source_that_reads_the_page_order_gets_a_cycle_note_not_a_panic() {
 
 #[test]
 fn a_generated_page_on_a_drawn_folio_follows_the_drawn_page() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = Q::new(&s.world().model).with_report_pages(scripted(2));
     let order = q.get::<PageOrder>(());
     let labels = order.labels();
