@@ -638,6 +638,8 @@ pub struct SlotTextBox {
     pub angle: Angle2,
     /// Whether the representation's override moves or turns it.
     pub moved: bool,
+    /// Whether it is a pin's label (the slot of a connection point's designation).
+    pub pin: bool,
     /// Its box on the page.
     pub rect: Rect,
     /// The representation's text frame (`ew_derive::text_frame`): a page point `p` is `frame.orient⁻¹(p − origin)` in

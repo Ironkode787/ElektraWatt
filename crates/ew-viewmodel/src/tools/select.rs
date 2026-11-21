@@ -234,10 +234,11 @@ struct TextPress {
 }
 
 /// The text of the one selected representation under the sheet point `at`, the last printed first; with no
-/// representation selected, the tag of the one selected page item (a cable mark's). Else the tag under the
-/// point of a symbol or an item that is not one of several selected (a drag at a tag moved its symbol, or the
-/// symbol under it, so the tag under the pointer wins over a symbol's body), and so a drawn box's caption outside
-/// its outline (its part number: dragged, it moved the whole box); several selected move together.
+/// representation selected, the tag of the one selected page item (a cable mark's). Else the tag or a pin's label
+/// under the point of a symbol or an item that is not one of several selected (a drag at a tag moved its symbol, or
+/// the symbol under it, so the tag under the pointer wins over a symbol's body; a pin's label by its body too), and so
+/// a drawn box's caption outside its outline (its part number: dragged, it moved the whole box); several selected move
+/// together.
 pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
     let reps = selected_reps(cx.selection, cx.page);
     let items: Vec<EntityRef> = super::selection_kinds(cx.selection, &cx.page.tables)
@@ -259,8 +260,8 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
     if cx.link_at(at).is_some() {
         return None;
     }
-    // A symbol's tag (the text at its tag's anchor); its other texts (a pin's designation by its body) leave a drag to
-    // the symbol, as before.
+    // A symbol's tag (the text at its tag's anchor) and its pins' labels (`pin`); its other texts leave a drag to the
+    // symbol.
     let tag = |t: &ew_api::output::SlotTextBox| {
         cx.page
             .tables
@@ -287,7 +288,7 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
         .iter()
         .rev()
         .copied()
-        .find(|t| under(t) && (tag(t) || caption(t)) && !cx.selection.items.contains(&EntityRef(t.rep)))
+        .find(|t| under(t) && (tag(t) || t.pin || caption(t)) && !cx.selection.items.contains(&EntityRef(t.rep)))
 }
 
 /// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.

@@ -21,6 +21,8 @@ change here.
   more than a step between them keep a grid line between them for a wire (doc 06 §8 item 3, FT-1817)
 - behaviour-change: a drawn box goes no narrower than the pin texts of its left and right sides need, as it goes no
   lower than those of its top and bottom sides: a grip stops there (doc 06 §8 item 13, FT-1839)
+- behaviour-change: a drag that starts on a pin's label of a symbol that is not selected moves the label alone, as a
+  drag at its tag does; it moved the symbol (doc 06 §2.5, FT-1796)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit
