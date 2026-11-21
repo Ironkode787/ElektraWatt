@@ -57,13 +57,8 @@ fn the_palette_lists_save_disabled_with_its_reason_and_escape_closes_it() {
     settle(&mut h);
     let palette = h.state().shell().palette().unwrap().clone();
     assert_eq!(palette.query, "save");
-    let entries = h.state().shell().palette_entries();
-    let save = entries
-        .iter()
-        .find(|e| e.id == "file.save")
-        .expect("Save is listed");
-    assert!(!save.enabled);
-    assert_eq!(save.reason.as_deref(), Some("No project is open"));
+    // Save's reason on show (that Save is listed disabled with it: `ew-viewmodel`'s
+    // `palette_lists_disabled_entries_last_with_their_reason`).
     assert!(h.query_all_by_label_contains("No project is open").count() > 0);
     // Escape closes it.
     h.key_press(Key::Escape);
