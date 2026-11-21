@@ -843,3 +843,106 @@ fn ruling4_a_scripted_purge_is_refused() {
     assert_eq!(files(), before);
     h.shutdown();
 }
+
+/// The number of findings a revision dialog's list stands for: its lines, or the listed ones and "and <n> more".
+fn listed_count(list: &[String]) -> usize {
+    match list.last().and_then(|l| {
+        l.strip_prefix("and ")?
+            .strip_suffix(" more")?
+            .parse::<usize>()
+            .ok()
+    }) {
+        Some(more) => list.len() - 1 + more,
+        None => list.len(),
+    }
+}
+
+/// A copy of the sample whose release gate has errors (the sample's has none), its open revision V1.0 given its author
+/// as the window gives it (a person's Set author), saved: the supply cables -101W1 and -103W1 lack their length
+/// (EW-CORE-033 twice). Open in a headless shell.
+fn with_gate_errors(tmp: &Tmp) -> ShellModel {
+    let dir = tmp.sample_copy();
+    copy_dir(Path::new(common::SAMPLE), &dir);
+    let mut s = opened(ShellModel::new(Mode::Gui, config(tmp)), &dir);
+    done(
+        &mut s,
+        "revision.set_author",
+        json!({ "role": "engineer", "confirm": true }),
+    );
+    for cable in ["tag:-101W1", "tag:-103W1"] {
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": cable}],
+                "path": "cable.length", "value": "missing"}}),
+        );
+    }
+    done(&mut s, "file.save", json!({}));
+    s.shutdown();
+    opened(ShellModel::new(Mode::Headless, config(tmp)), &dir)
+}
+
+/// On a copy of the sample with errors (V1.0 open, its author set) the blocked Approve names the four-eyes rule by its
+/// title and the count in the plural, and the blocked Release counts its findings in the plural (the approval's errors
+/// and the four-eyes finding). The count is the dialog's own list.
+#[test]
+fn ruling1_ruling4_the_errors_are_counted_in_words() {
+    let tmp = Tmp::new("revision-errors");
+    let mut s = with_gate_errors(&tmp);
+    done(&mut s, "revision.approve", json!({}));
+    let errors = listed_count(s.revision_list());
+    assert!(errors >= 2, "several errors: {:?}", s.revision_list());
+    let (body, label, confirmable) = s.revision_dialog().expect("the Approve form");
+    assert_eq!(
+        (body.to_vec(), label, confirmable),
+        (
+            vec![format!(
+                "The release gate has {errors} errors besides the four-eyes rule; correct or waive them first:"
+            )],
+            "V1.0",
+            false
+        )
+    );
+    done(&mut s, "revision.approve", json!({ "cancel": true }));
+    done(&mut s, "revision.release", json!({}));
+    let blockers = listed_count(s.revision_list());
+    let (body, _, confirmable) = s.revision_dialog().expect("the Release form");
+    assert_eq!(
+        (body.to_vec(), confirmable),
+        (
+            vec![format!(
+                "The release is blocked by {blockers} findings of the release gate:"
+            )],
+            false
+        )
+    );
+    assert_eq!(
+        blockers,
+        errors + 1,
+        "the approval's errors and the four-eyes finding"
+    );
+    s.shutdown();
+}
+
+/// In nl-NL the Approve and Release dialogs list the gate's findings in Dutch, as Messages
+/// renders them, never the English message.
+#[test]
+fn the_revision_dialogs_list_the_findings_in_dutch() {
+    let tmp = Tmp::new("revision-nl");
+    let mut s = with_gate_errors(&tmp);
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    done(&mut s, "revision.approve", json!({}));
+    let approve = s.revision_list().to_vec();
+    done(&mut s, "revision.approve", json!({ "cancel": true }));
+    done(&mut s, "revision.release", json!({}));
+    let release = s.revision_list().to_vec();
+    let first = [
+        "-101W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout",
+        "-103W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout",
+    ];
+    assert_eq!(
+        (&approve[..2], &release[..2]),
+        (&first.map(String::from)[..], &first.map(String::from)[..])
+    );
+    s.shutdown();
+}
