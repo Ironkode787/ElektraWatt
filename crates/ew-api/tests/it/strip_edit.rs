@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor below the shell on Golden A: the strips table's rows, columns and accessory rows
+//! The strip editor below the shell on the sample: the strips table's rows, columns and accessory rows
 //! (SE7, D2, D3), the bridge groups (SE4, D6), the part resolver's kinds and ambiguity (SE5, D7), the group labels
 //! (SE8, D8, D13) and the commands `Session::strip_edit` compiles.
 
@@ -114,10 +114,12 @@ fn consistent(mut v: Value) -> Value {
     v
 }
 
-/// Embeds the two TBD copies of the blind task's prelude (an end bracket and a plug-in bridge) when Golden A lacks them.
+/// Embeds the two TBD copies of the blind task's prelude (an end bracket and a plug-in bridge) when the project lacks them.
 fn with_tbd_parts(s: &mut Session) -> (String, String) {
     if copy_of(s, "TBD", "end_bracket").is_none() {
-        let copy = tbd_copy;
+        let copy = |id: &str, item: &str, kind: &str, description: &str, key: &str| {
+            consistent(tbd_copy(id, item, kind, description, key))
+        };
         s.execute(&AnyCommand {
             name: "library.embed".into(),
             params: json!({"copies": [
@@ -139,49 +141,43 @@ fn run(s: &mut Session, cmd: &AnyCommand) {
     s.execute(cmd).unwrap_or_else(|e| panic!("{}: {e}", cmd.name));
 }
 
-/// SE8: D8's three examples on -X1031, each one `fields.set` of `strip.groups` and one undo step.
+/// The terminals `from` to `to` of -X1021.
+fn ts(s: &Session, from: u32, to: u32) -> Vec<Uuid> {
+    (from..=to)
+        .map(|n| terminal(s, "-X1021", &n.to_string()))
+        .collect()
+}
+
+/// The sample with -X1021's terminals grouped: 1 to 4 "Supply", 5 to 8 "Spare" (the sample's strips have no groups).
+fn with_groups() -> Session {
+    let mut s = common::sample();
+    for (from, to, label) in [(1, 4, "Supply"), (5, 8, "Spare")] {
+        let cmd = s
+            .strip_edit(&StripEdit::GroupLabel {
+                terminals: ts(&s, from, to),
+                label: label.to_owned(),
+            })
+            .expect("compiles");
+        run(&mut s, &cmd);
+    }
+    s
+}
+
+/// SE8: D8's three examples on -X1021, each one `fields.set` of `strip.groups` and one undo step.
 #[test]
 fn group_labels_rewrite_the_groups() {
-    let mut s = common::golden_session();
-    let x = strip(&s, "-X1031");
+    let mut s = with_groups();
+    let x = strip(&s, "-X1021");
     let before = groups(&s, x);
-    assert_eq!(
-        before,
-        [
-            g(1, 4, "Pneumatics"),
-            g(5, 10, "Spare"),
-            g(11, 14, "Pneumatics"),
-            g(15, 20, "Spare")
-        ]
-    );
-    let ts = |s: &Session, from: u32, to: u32| -> Vec<Uuid> {
-        (from..=to)
-            .map(|n| terminal(s, "-X1031", &n.to_string()))
-            .collect()
-    };
+    assert_eq!(before, [g(1, 4, "Supply"), g(5, 8, "Spare")]);
     let cases: [(Vec<Uuid>, &str, Vec<Group>); 3] = [
         (
             ts(&s, 7, 8),
             "Reserve",
-            vec![
-                g(1, 4, "Pneumatics"),
-                g(5, 6, "Spare"),
-                g(7, 8, "Reserve"),
-                g(9, 10, "Spare"),
-                g(11, 14, "Pneumatics"),
-                g(15, 20, "Spare"),
-            ],
+            vec![g(1, 4, "Supply"), g(5, 6, "Spare"), g(7, 8, "Reserve")],
         ),
-        (
-            ts(&s, 5, 10),
-            "Pneumatics",
-            vec![g(1, 14, "Pneumatics"), g(15, 20, "Spare")],
-        ),
-        (
-            ts(&s, 5, 10),
-            "",
-            vec![g(1, 4, "Pneumatics"), g(11, 14, "Pneumatics"), g(15, 20, "Spare")],
-        ),
+        (ts(&s, 5, 8), "Supply", vec![g(1, 8, "Supply")]),
+        (ts(&s, 5, 8), "", vec![g(1, 4, "Supply")]),
     ];
     for (terminals, label, want) in cases {
         let cmd = s
@@ -203,8 +199,8 @@ fn group_labels_rewrite_the_groups() {
 /// D13: a terminal's Properties list "Printed label" and "Group" after Designation; the Group row shows the label.
 #[test]
 fn terminal_properties_show_the_printed_label_and_the_group() {
-    let s = common::golden_session();
-    let t7 = terminal(&s, "-X1031", "7");
+    let s = with_groups();
+    let t7 = terminal(&s, "-X1021", "7");
     let sheet = s.property_sheet(&[t7]);
     let device = sheet
         .sections
@@ -240,7 +236,7 @@ fn terminal_properties_show_the_printed_label_and_the_group() {
     );
     assert!(group.route.is_editable());
     // Other devices: unchanged.
-    let x = strip(&s, "-X1031");
+    let x = strip(&s, "-X1021");
     let sheet = s.property_sheet(&[x]);
     assert!(
         sheet
@@ -251,39 +247,40 @@ fn terminal_properties_show_the_printed_label_and_the_group() {
     );
 }
 
-/// SE4: `bridge_groups` names BR1 to BR6 over the three strips as the wire list does.
+/// SE4: `bridge_groups` names the sample's two bridge groups BR1 and BR2 as the wire list does: -X1021's terminals 1
+/// to 4 (24 V) and 5 to 8 (0 V).
 #[test]
-fn bridge_groups_are_br1_to_br6() {
-    let s = common::golden_session();
+fn bridge_groups_are_br1_and_br2() {
+    let s = common::sample();
     let q = s.query();
     let groups = ew_reports::bridge_groups(&q);
     let labels: Vec<&str> = groups.iter().map(|(l, _, _)| l.as_str()).collect();
-    assert_eq!(labels, ["BR1", "BR2", "BR3", "BR4", "BR5", "BR6"]);
-    let x1031 = strip(&s, "-X1031");
+    assert_eq!(labels, ["BR1", "BR2"]);
+    let x1021 = strip(&s, "-X1021");
     let on: Vec<usize> = groups
         .iter()
-        .filter(|(_, st, _)| st.as_uuid() == x1031)
+        .filter(|(_, st, _)| st.as_uuid() == x1021)
         .map(|(_, _, g)| g.terminals.len())
         .collect();
-    assert_eq!(on, [4, 2, 2, 2, 10], "-X1031: BR1 to BR5");
+    assert_eq!(on, [4, 4], "-X1021: BR1 and BR2");
     assert!(
         groups.iter().all(|(_, _, g)| g.part.is_none()),
-        "Golden A's bridges have no part"
+        "the sample's bridges have no part"
     );
 }
 
 /// SE5: the resolver's kind filter, the long form and the ambiguity (D7).
 #[test]
 fn the_part_resolver_filters_by_kind_and_lists_every_match() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let (bracket, bridge) = with_tbd_parts(&mut s);
-    let x = strip(&s, "-X1031");
-    let t1 = terminal(&s, "-X1031", "1");
+    let x = strip(&s, "-X1021");
+    let t1 = terminal(&s, "-X1021", "1");
     // TBD among the end brackets: the end bracket.
     let cmd = s
         .strip_edit(&StripEdit::AddAccessory {
             strip: x,
-            after_seq: 20,
+            after_seq: 8,
             kind: "end_clamp".into(),
             part: Some("TBD".into()),
         })
@@ -292,7 +289,7 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     assert_eq!(cmd.params["path"], "strip.accessories");
     assert_eq!(
         cmd.params["value"],
-        json!([{"after_seq": 20, "kind": "end_clamp", "part": {"copy": bracket}}])
+        json!([{"after_seq": 8, "kind": "end_clamp", "part": {"copy": bracket}}])
     );
     // TBD among the accessories: the plug-in bridge (on a bridged terminal's carrier).
     let cmd = s
@@ -354,7 +351,7 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     let err = s
         .strip_edit(&StripEdit::AddAccessory {
             strip: x,
-            after_seq: 20,
+            after_seq: 8,
             kind: "end_clamp".into(),
             part: None,
         })
@@ -372,7 +369,7 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     let cmd = s
         .strip_edit(&StripEdit::AddAccessory {
             strip: x,
-            after_seq: 20,
+            after_seq: 8,
             kind: "end_clamp".into(),
             part: Some(format!("id:{bracket}")),
         })
@@ -383,14 +380,14 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
 /// §6.5: no part of the kind refuses `reason-no-accessory-part`; the one copy is taken without a text.
 #[test]
 fn add_accessory_takes_the_one_copy_or_refuses() {
-    let mut s = common::golden_session();
-    let x = strip(&s, "-X1031");
+    let mut s = common::sample();
+    let x = strip(&s, "-X1021");
     let had = copy_of(&s, "TBD", "end_bracket").is_some();
     if !had {
         let err = s
             .strip_edit(&StripEdit::AddAccessory {
                 strip: x,
-                after_seq: 20,
+                after_seq: 8,
                 kind: "end_clamp".into(),
                 part: None,
             })
@@ -401,7 +398,7 @@ fn add_accessory_takes_the_one_copy_or_refuses() {
     let cmd = s
         .strip_edit(&StripEdit::AddAccessory {
             strip: x,
-            after_seq: 20,
+            after_seq: 8,
             kind: "end_clamp".into(),
             part: None,
         })
@@ -409,14 +406,14 @@ fn add_accessory_takes_the_one_copy_or_refuses() {
     assert_eq!(cmd.params["value"][0]["part"]["copy"], json!(bracket));
 }
 
-/// SE7, D3: accessory rows after_seq 0, 20 and two at 4, placed and numbered; the remove and part edits.
+/// SE7, D3: accessory rows after_seq 0, 8 and two at 4, placed and numbered; the remove and part edits.
 #[test]
 fn accessory_rows_are_placed_and_numbered() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let (bracket, bridge) = with_tbd_parts(&mut s);
-    let x = strip(&s, "-X1031");
+    let x = strip(&s, "-X1021");
     for (after_seq, kind, part) in [
-        (20, "end_clamp", &bracket),
+        (8, "end_clamp", &bracket),
         (4, "partition", &bridge),
         (0, "end_clamp", &bracket),
         (4, "end_plate", &bridge),
@@ -432,7 +429,7 @@ fn accessory_rows_are_placed_and_numbered() {
         run(&mut s, &cmd);
     }
     let t = s.navigator_table(NavKind::Strips);
-    let rows: Vec<(String, String, NavRole)> = children(&t, strip_node(&t, "-X1031"))
+    let rows: Vec<(String, String, NavRole)> = children(&t, strip_node(&t, "-X1021"))
         .iter()
         .map(|n| (n.cells[1].clone(), n.label.clone(), n.role))
         .collect();
@@ -443,19 +440,19 @@ fn accessory_rows_are_placed_and_numbered() {
     }
     want.push(row("4.1", "Partition plate", NavRole::Accessory));
     want.push(row("4.2", "End plate", NavRole::Accessory));
-    for n in 5..=20 {
+    for n in 5..=8 {
         want.push(row(&n.to_string(), &n.to_string(), NavRole::Terminal));
     }
-    want.push(row("20.1", "End bracket", NavRole::Accessory));
+    want.push(row("8.1", "End bracket", NavRole::Accessory));
     assert_eq!(rows, want);
     // The accessory row: the strip, its part number, the facets `kind=accessory` and `strip`.
-    let acc = children(&t, strip_node(&t, "-X1031"))
+    let acc = children(&t, strip_node(&t, "-X1021"))
         .into_iter()
         .find(|n| n.role == NavRole::Accessory)
         .unwrap();
     assert!(acc.records.is_empty());
     assert!(acc.facets.contains(&("kind".to_owned(), "accessory".to_owned())));
-    assert!(acc.facets.contains(&("strip".to_owned(), "-x1031".to_owned())));
+    assert!(acc.facets.contains(&("strip".to_owned(), "-x1021".to_owned())));
     let part = t.columns.iter().position(|c| c.key == "part").unwrap();
     assert_eq!(acc.cells[part], "TBD");
     // The strip columns' strip-editor cells.
@@ -475,7 +472,7 @@ fn accessory_rows_are_placed_and_numbered() {
         cmd.params["value"],
         json!([
             {"after_seq": 0, "kind": "end_clamp", "part": {"copy": bracket}},
-            {"after_seq": 20, "kind": "end_clamp", "part": {"copy": bracket}},
+            {"after_seq": 8, "kind": "end_clamp", "part": {"copy": bracket}},
         ])
     );
     // The part of accessory 0 among end brackets; a bridge copy does not fit.
@@ -489,11 +486,11 @@ fn accessory_rows_are_placed_and_numbered() {
     assert!(matches!(err, StripEditError::Invalid(_)), "{err:?}");
 }
 
-/// SE7: the strips table's nodes are in the provider's order (the `Order` sort): -X1031 1 to 20, -X1032, 1X1;
+/// SE7: the strips table's nodes are in the provider's order (the `Order` sort): -X1011, -X1021 1 to 8, -X1031;
 /// every node of a strip carries the `strip` facet.
 #[test]
 fn the_provider_order_and_the_strip_facet() {
-    let s = common::golden_session();
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Strips);
     let strips: Vec<&str> = t
         .nodes
@@ -502,13 +499,13 @@ fn the_provider_order_and_the_strip_facet() {
         .map(|n| n.label.as_str())
         .collect();
     // D2: natural tag order (the sign sorts before the digits).
-    assert_eq!(strips, ["-X1031", "-X1032", "1X1"]);
-    let x = strip_node(&t, "-X1031");
+    assert_eq!(strips, ["-X1011", "-X1021", "-X1031"]);
+    let x = strip_node(&t, "-X1021");
     let labels: Vec<String> = children(&t, x).iter().map(|n| n.label.clone()).collect();
-    let want: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+    let want: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
     assert_eq!(labels, want);
     for n in children(&t, x) {
-        assert!(n.facets.contains(&("strip".to_owned(), "-x1031".to_owned())));
+        assert!(n.facets.contains(&("strip".to_owned(), "-x1021".to_owned())));
     }
 }
 
@@ -516,9 +513,9 @@ fn the_provider_order_and_the_strip_facet() {
 /// number; move to `terminal.move`; both alone.
 #[test]
 fn insert_and_move_compile_to_one_command() {
-    let mut s = common::golden_session();
-    let x = strip(&s, "-X1031");
-    let t5 = terminal(&s, "-X1031", "5");
+    let mut s = common::sample();
+    let x = strip(&s, "-X1021");
+    let t5 = terminal(&s, "-X1021", "5");
     let cmd = s
         .strip_edit(&StripEdit::Insert {
             strip: x,
@@ -531,21 +528,21 @@ fn insert_and_move_compile_to_one_command() {
     assert_eq!(cmd.params["before"], json!(t5.to_string()));
     assert_eq!(
         cmd.params["terminals"],
-        json!([{"designation": "21"}, {"designation": "22"}])
+        json!([{"designation": "9"}, {"designation": "10"}])
     );
     assert!(cmd.params["fndef"].is_string());
     assert_eq!(
         cmd.params["parts"].as_array().map(Vec::len),
         Some(1),
-        "PT 2.5-TWIN"
+        "EW-GEN-TRM-1"
     );
     run(&mut s, &cmd);
     let t = s.navigator_table(NavKind::Strips);
-    let labels: Vec<String> = children(&t, strip_node(&t, "-X1031"))
+    let labels: Vec<String> = children(&t, strip_node(&t, "-X1021"))
         .iter()
         .map(|n| n.label.clone())
         .collect();
-    assert_eq!(&labels[3..7], ["4", "21", "22", "5"]);
+    assert_eq!(&labels[3..7], ["4", "9", "10", "5"]);
     let err = s
         .strip_edit(&StripEdit::Insert {
             strip: x,
@@ -555,8 +552,8 @@ fn insert_and_move_compile_to_one_command() {
         })
         .unwrap_err();
     assert!(matches!(err, StripEditError::Invalid(_)));
-    let t13 = terminal(&s, "-X1031", "13");
-    let t10 = terminal(&s, "-X1031", "10");
+    let t13 = terminal(&s, "-X1021", "8");
+    let t10 = terminal(&s, "-X1021", "6");
     let cmd = s
         .strip_edit(&StripEdit::Move {
             terminals: vec![t13],
@@ -589,12 +586,12 @@ fn insert_and_move_compile_to_one_command() {
 /// §6.3: several cell gestures compile to one `fields.set_many`; a bridge part on a terminal without a bridge refuses.
 #[test]
 fn several_cells_compile_to_one_set_many() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let (_, bridge) = with_tbd_parts(&mut s);
-    let x1031 = strip(&s, "-X1031");
-    let t1 = terminal(&s, "-X1031", "1");
-    let t2 = terminal(&s, "-X1031", "2");
-    let t11 = terminal(&s, "-X1031", "11");
+    let x1031 = strip(&s, "-X1021");
+    let t1 = terminal(&s, "-X1021", "1");
+    let t2 = terminal(&s, "-X1021", "2");
+    let t11 = terminal(&s, "-X1021", "5");
     let cmd = s
         .strip_edits(&[
             StripEdit::GroupLabel {
@@ -614,7 +611,7 @@ fn several_cells_compile_to_one_set_many() {
     assert_eq!(
         edits[1]["targets"].as_array().map(Vec::len),
         Some(2),
-        "BR1's and BR5's carriers"
+        "BR1's and BR2's carriers"
     );
     assert_eq!(edits[1]["value"], json!({"copy": bridge}));
     run(&mut s, &cmd);
@@ -624,17 +621,7 @@ fn several_cells_compile_to_one_set_many() {
         .iter()
         .map(|(l, _, g)| (l.as_str(), g.part.is_some()))
         .collect();
-    assert_eq!(
-        parts,
-        [
-            ("BR1", true),
-            ("BR2", false),
-            ("BR3", false),
-            ("BR4", false),
-            ("BR5", true),
-            ("BR6", false)
-        ]
-    );
+    assert_eq!(parts, [("BR1", true), ("BR2", true)]);
     drop(q);
     // The bridge lines of the BOM: one per group with a part.
     let q = s.query();
