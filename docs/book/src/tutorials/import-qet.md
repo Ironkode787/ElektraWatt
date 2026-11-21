@@ -64,3 +64,31 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 - In the Messages pane's header you switch between the migration report and the project's own scheme.
 - [QElectroTech and EW](../explanation/qet-and-ew.md) explains how QElectroTech's elements, labels, conductors and
   folio reports become EW's functions, devices, wires and interruption points.
+
+## Binding elements with a symbol map
+
+Without help, every element comes in with a function EW makes up for it. A symbol map binds an element to one of EW's
+own coils, contacts, terminals or interruption points while it keeps its drawing, place and texts, so that its device
+can take a part and its tag, number and cross-reference follow the project.
+
+The map is a table `symbol-map.csv` in the folder of the `.qet` file, one row per element:
+
+```csv
+element,function,cps,tag,number,xref
+bobine3.elmt,ew.fn.coil,A1 A2,,,
+con_simple.elmt,ew.fn.contact-no,13 14,,,
+borne_continuite.elmt,ew.fn.terminal,1 2,,,
+```
+
+- `element`: the element's file name, a longer end of its collection path, or its UUID.
+- `function`: the key of an EW coil, contact, terminal or interruption point, such as `ew.fn.coil`.
+- `cps`: the function's connection points, one for each terminal of the element in its order; empty, in order.
+- `tag`, `number`, `xref`: the element's text that prints the tag, a terminal's number and an interruption point's
+  cross-reference: `label`, `user` (its first user text) or the name of an element information; empty, the usual
+  one.
+
+**File ▸ Import…** reads the map when it lies beside the file: the import card says so, and the migration report says
+what each row bound. For a project you imported before, put the map beside the file and choose **Project ▸ Re-import
+QElectroTech project…**: the re-import applies the map, and keeps what you changed since. A wrong row, such as an
+unknown function, a connection point the function does not have or a row that does not fit its element, stops the
+import with the line and the column at fault, and nothing is imported.
