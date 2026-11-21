@@ -35,7 +35,8 @@
 //!   reports [`OverflowKind::Error`] and draws no image.
 //! - The style key resolves through the caller's table (the project's effective table, ADR-0032); an unknown key uses
 //!   `text.normal` and is reported.
-//! - Placement: see [`CELL_PADDING`]; left/right text is inset by it, middle alignment centres the cap
+//! - Placement: see [`CELL_PADDING`]; left/right text is inset by it (by the cell's own `ew.cell.inset` extra member,
+//!   [`EXTRA_INSET`], where it has one), middle alignment centres the cap
 //!   height on the cell's midline. A cell's `ew.cell.max_lines` extra member (default 1) allows greedy
 //!   wrapping at the inset width up to that many lines; wrapped lines are aligned one by one.
 //! - Overflow (FR-REP-039, never silent): text fits when its widest line is within the inset width, it has
@@ -81,6 +82,13 @@ pub(crate) use text::{BoxSpec, lay_out, min_size, place, split_align};
 
 /// `FormCell.extra` member: the maximum number of wrapped lines (default 1).
 pub const EXTRA_MAX_LINES: &str = "ew.cell.max_lines";
+
+/// `FormCell.extra` member: the cell's own inset of its text in nm, 0 to [`MAX_INSET`] (default [`CELL_PADDING`]); a
+/// QElectroTech title block's cells have none (QET draws a cell's text on its edges; FT-1765).
+pub const EXTRA_INSET: &str = "ew.cell.inset";
+
+/// The largest inset a cell's [`EXTRA_INSET`] gives: 10 mm; a larger or negative value is the default.
+pub const MAX_INSET: Nm = Nm(10_000_000);
 
 /// Which form a cell or graphic belongs to.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -377,11 +385,18 @@ impl Lowerer<'_> {
             .get(EXTRA_MAX_LINES)
             .and_then(Value::as_u64)
             .map_or(1, |n| n.clamp(1, 64) as usize);
+        let padding = cell
+            .extra
+            .get(EXTRA_INSET)
+            .and_then(Value::as_i64)
+            .map(Nm)
+            .filter(|n| (Nm::ZERO..=MAX_INSET).contains(n))
+            .unwrap_or(CELL_PADDING);
         let spec = BoxSpec {
             rect,
             halign,
             valign,
-            padding: CELL_PADDING,
+            padding,
             overflow: Some(&cell.overflow),
             max_lines,
             sheet: self.sheet,

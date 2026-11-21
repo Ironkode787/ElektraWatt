@@ -21,7 +21,8 @@
 //!   values the import wrote into the project's and the page's fields bind to those fields ([`FIELDS`]), every other variable
 //!   is filled with the diagram's value (its title-block attributes, then the project's title and
 //!   properties, then the diagram's own properties), and variables naming a local path print nothing
-//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo stored as base64 (a PNG) or
+//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]); a cell's text has no inset
+//!   (`ew.cell.inset` 0), as QET draws it on the cell's edges. A logo stored as base64 (a PNG) or
 //!   as XML (an SVG) becomes an image in its cell, fitted and centred ([`logo_image`]); one the asset rules
 //!   refuse is reported. Without an embedded template the shipped `ew.titleblock.qet-a4` (QET's default)
 //!   applies.
@@ -628,6 +629,8 @@ fn title_block(
         if lines > 1 {
             extra.insert("ew.cell.max_lines".into(), Value::from(lines));
         }
+        // QET draws a cell's text on the cell's edges, without an inset (FT-1765).
+        extra.insert("ew.cell.inset".into(), Value::from(0));
         let Ok(rect) = Bounds::new(Pt2::new(px(x0), px(y0)), Pt2::new(px(x1), px(y1))) else {
             continue;
         };

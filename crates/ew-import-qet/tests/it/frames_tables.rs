@@ -163,6 +163,14 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
     // `colspan` counts the columns beyond the first: the title spans columns 1 and 2, to the right edge.
     assert_eq!(first.item.cells[0].rect.0.max().x, px(1).at(1040).unwrap());
     assert_eq!(first.item.cells[0].style.as_str(), "qet.7");
+    // QET draws a cell's text on the cell's edges: no inset (FT-1765).
+    assert!(
+        first
+            .item
+            .cells
+            .iter()
+            .all(|c| c.extra.get("ew.cell.inset") == Some(&serde_json::json!(0)))
+    );
     assert!(!first.item.graphics.is_empty());
     // Equal values share one form; another author makes another.
     assert_eq!(tb(0).id, tb(1).id);
