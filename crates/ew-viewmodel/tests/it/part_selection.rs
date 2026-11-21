@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Through the text interface: the part dialog and the part editor on
-//! writable copies of Golden A, with the compiled-in starter catalogue (the viewmodel names no schema types, so the
+//! writable copies of the sample, with the compiled-in starter catalogue (the viewmodel names no schema types, so the
 //! fixture catalogue of §11.3 is written by the `ew-api` tests; these tests assert the starter's named rows). No test
 //! pins the number of offers: they assert named rows and their order.
 
@@ -15,8 +15,17 @@ use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-fn golden(tmp: &Tmp) -> ShellModel {
-    tmp.sample_in(Mode::Headless, true, "101")
+/// A writable copy of the sample on folio 101 with a 1P+N breaker placed from the starter part EW-GEN-MCB-2:
+/// -101F2, beside -102F1's held copy of EW-GEN-MCB-1.
+fn writable(tmp: &Tmp) -> ShellModel {
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-MCB-2"}));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "select.set", json!({"ids": []}));
+    s
 }
 
 /// The describe lines of the open dialog that start with `prefix` (after the indent).
@@ -91,9 +100,9 @@ fn select(s: &mut ShellModel, tag: &str) {
 #[test]
 fn a_cable_is_offered_cable_parts_only() {
     let tmp = Tmp::new("part-sel-cable");
-    let mut s = golden(&tmp);
-    // A cable of Golden A.
-    let cable = "id:f3b82a14-05e8-5164-bfa5-91d50a302d27";
+    let mut s = writable(&tmp);
+    // The supply cable of the sample.
+    let cable = "tag:-101W1";
     done(&mut s, "select.set", json!({ "refs": [cable] }));
     done(&mut s, "part.choose", json!({}));
     let Some(Dialog::PartChoose(c)) = s.dialog() else {
@@ -113,24 +122,24 @@ fn a_cable_is_offered_cable_parts_only() {
 #[test]
 fn a_two_pole_switch_has_a_starter_part_that_fits() {
     let tmp = Tmp::new("part-sel-2p");
-    let mut s = golden(&tmp);
-    select(&mut s, "S51");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101Q1");
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.search", json!({ "fits": true }));
-    assert_eq!(results(&s).first().map(String::as_str), Some("EW-GEN-SW-2"));
-    assert!(result_of(&s, "EW-GEN-SW-2").ends_with("compatible same-fndef cursor"));
+    assert_eq!(results(&s).first().map(String::as_str), Some("EW-GEN-SW-3"));
+    assert!(result_of(&s, "EW-GEN-SW-3").ends_with("compatible same-fndef cursor"));
 }
 
-/// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
+/// PS1 in the shell: the part-less 1P+N breaker -101F2's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
 /// then every other offer, held copies before library parts; the detail names the template's function; Only parts
 /// that fit keeps the first two; the view In this project lists held copies only.
 #[test]
-fn f55_offers_the_same_function_first() {
+fn a_breaker_offers_the_same_function_first() {
     let tmp = Tmp::new("part-sel-1");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({ "use": 0 }));
-    assert_eq!(lines(&s, "dialog "), ["dialog \"Choose a part for F55\""]);
+    assert_eq!(lines(&s, "dialog "), ["dialog \"Choose a part for -101F2\""]);
     assert_eq!(
         lines(&s, "query "),
         ["query \"\" kind all category all fits off view all inactive off"]
@@ -139,12 +148,13 @@ fn f55_offers_the_same_function_first() {
     assert_eq!(r[..2], ["EW-GEN-MCB-2", "EW-GEN-MCB-1"], "{r:?}");
     assert!(
         result_of(&s, "EW-GEN-MCB-2")
-            .ends_with("library \"ElektraWatt starter parts\" compatible same-fndef cursor")
+            .ends_with("project compatible same-fndef cursor")
     );
     assert!(result_of(&s, "EW-GEN-MCB-1").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-3").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-4").ends_with("compatible same-category"));
-    // Every later offer is `other`, the held copies (source `project`) first; 5SY4204-7 and the terminals are held.
+    // Every later offer is `other`, the held copies (source `project`) first; the power supply's part and the
+    // terminals' are held.
     let rest = &lines(&s, "result ")[4..];
     assert!(rest.iter().all(|l| l.contains(" compatible other")), "{rest:#?}");
     let first_library = rest.iter().position(|l| l.contains(" library \"")).unwrap();
@@ -154,7 +164,7 @@ fn f55_offers_the_same_function_first() {
             .all(|l| l.contains(" project compatible"))
     );
     assert!(rest[first_library..].iter().all(|l| l.contains(" library \"")));
-    for held in ["5SY4204-7", "PT 2.5-TWIN", "PT 2.5-TWIN-PE"] {
+    for held in ["EW-GEN-PSU-1", "EW-GEN-TRM-1", "EW-GEN-TRM-2"] {
         assert!(
             result_of(&s, held).contains(" project compatible other"),
             "{held}"
@@ -181,12 +191,17 @@ fn f55_offers_the_same_function_first() {
     );
     assert!(lines(&s, "query ")[0].contains(" view project "));
     // A text narrows the list; the detail follows the active row.
-    done(&mut s, "part.search", json!({ "view": "all", "text": "PT 2.5" }));
-    assert_eq!(results(&s), ["PT 2.5-TWIN", "PT 2.5-TWIN-PE"]);
+    done(&mut s, "part.search", json!({ "view": "all", "text": "EW-GEN-TRM" }));
+    assert_eq!(results(&s), ["EW-GEN-TRM-1", "EW-GEN-TRM-2"]);
+    let version = starter_version("EW-GEN-TRM-1");
     assert_eq!(
         lines(&s, "detail "),
-        ["detail \"In this project · version 1.0.0 · released · functions Feed-through terminal a-b-c-s1\""]
+        [format!(
+            "detail \"ElektraWatt starter parts (System) · version {version} · released · functions Feed-through \
+             terminal a-b\""
+        )]
     );
+
     // Escape closes the dialog without a step.
     let n = steps(&s);
     done(&mut s, "ui.dismiss", json!({}));
@@ -200,8 +215,16 @@ fn f55_offers_the_same_function_first() {
 #[test]
 fn favourites_and_recent_persist() {
     let tmp = Tmp::new("part-sel-3");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    // A part of the project's own, which no library holds (the sample's parts are all library copies): OWN-1.
+    done(&mut s, "part.box", json!({"new": true}));
+    for (key, value) in [("part_number", "OWN-1"), ("manufacturer", "Own")] {
+        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
+    }
+    done(&mut s, "part.pin", json!({"add": true, "name": "1"}));
+    done(&mut s, "symbol.save", json!({}));
+    done(&mut s, "symbol.close", json!({}));
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({}));
     let vlv = item_text(&s, "EW-GEN-VLV-1");
     let n = steps(&s);
@@ -215,7 +238,7 @@ fn favourites_and_recent_persist() {
     // A held copy cannot be a favourite (D18: library items only).
     assert_eq!(
         {
-            let i = index_of(&s, "5SY4204-7");
+            let i = index_of(&s, "OWN-1");
             refused(&mut s, "part.favourite", json!({ "index": i }))
         },
         "reason-part-favourite-local"
@@ -225,12 +248,14 @@ fn favourites_and_recent_persist() {
         settings.contains("[parts]") && settings.contains(&vlv),
         "{settings}"
     );
+    // Saved, so that the next shell finds no journal of this one.
+    done(&mut s, "file.save", json!({}));
     s.shutdown();
     drop(s);
 
     // A new shell on the same configuration directory.
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({}));
     // In the view All the favourite leads the `other` library parts (after the held copies, before the rest).
     let other_library: Vec<String> = lines(&s, "result ")
@@ -254,7 +279,7 @@ fn favourites_and_recent_persist() {
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
     assert_eq!(s.settings().parts_recent, [mcb.clone(), con.clone()]);
     done(&mut s, "part.choose", json!({}));
-    done(&mut s, "part.pick", json!({ "part": "5SY4204-7 (Siemens)" }));
+    done(&mut s, "part.pick", json!({ "part": "OWN-1 (Own)" }));
     assert_eq!(s.settings().parts_recent, [mcb.clone(), con.clone()]);
     // The view Recent orders the most recent first.
     done(&mut s, "part.choose", json!({}));
@@ -277,12 +302,18 @@ fn favourites_and_recent_persist() {
 #[test]
 fn choosing_commits_one_command() {
     let tmp = Tmp::new("part-sel-4");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     let before = parts_text(&s);
     let n = steps(&s);
     done(&mut s, "part.choose", json!({ "use": 0 }));
-    done(&mut s, "part.pick", json!({ "index": 1 }));
+    // The first offer of a library (the held copies come first).
+    let i = lines(&s, "result ")
+        .iter()
+        .position(|l| l.contains(" library \""))
+        .expect("a library part")
+        + 1;
+    done(&mut s, "part.pick", json!({ "index": i }));
     assert!(s.dialog().is_none(), "Choose closes the dialog");
     assert_eq!(steps(&s), n + 1, "one step");
     let (cmd, params) = last(&s);
@@ -304,13 +335,13 @@ fn choosing_commits_one_command() {
     assert_eq!(parts_text(&s), before, "one undo step back");
     // Add part… appends.
     done(&mut s, "part.choose", json!({ "add": true }));
-    done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-1" }));
+    done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
     let (_, params) = last(&s);
     assert!(params.get("mode").is_none_or(|m| m == "append"), "{params}");
     done(&mut s, "edit.undo", json!({}));
     // A held copy travels without `copies`.
     done(&mut s, "part.choose", json!({ "add": true }));
-    done(&mut s, "part.pick", json!({ "part": "A9P52610" }));
+    done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-1" }));
     let (cmd, params) = last(&s);
     assert_eq!(cmd, "part.assign");
     assert!(
@@ -396,11 +427,11 @@ fn the_strip_editor_cells_choose_parts() {
 #[test]
 fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.edit", json!({}));
-    assert_eq!(lines(&s, "dialog "), ["dialog \"Edit part 5SY4204-7 (Siemens)\""]);
-    assert!(lines(&s, "field ").contains(&"field \"Part number\" \"5SY4204-7\"".to_owned()));
+    assert_eq!(lines(&s, "dialog "), ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]);
+    assert!(lines(&s, "field ").contains(&"field \"Part number\" \"EW-GEN-MCB-2\"".to_owned()));
     assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"4 A\"".to_owned()));
     assert_eq!(
         lines(&s, "source "),
@@ -416,7 +447,7 @@ fn the_part_editor_refuses_with_a_message() {
         ("tech:rated_current", "4 Amp", "rated_current", "rated_current: "),
     ];
     for (field, value, label, message) in cases {
-        done(&mut s, "part.edit", json!({ "part": "5SY4204-7" }));
+        done(&mut s, "part.edit", json!({ "part": "EW-GEN-MCB-2" }));
         done(&mut s, "part.field", json!({ "field": field, "value": value }));
         let invalid = lines(&s, "invalid ");
         assert_eq!(invalid.len(), 1, "{field}: {invalid:?}");
@@ -448,20 +479,21 @@ fn the_part_editor_refuses_with_a_message() {
     // A read-only project.
     let tmp = Tmp::new("part-sel-5r");
     let mut s = tmp.sample_shell("101");
-    select(&mut s, "F55");
+    select(&mut s, "-101F2");
     assert!(
         !matches!(s.dispatch("part.edit", &json!({})), Outcome::Done),
         "a read-only project refuses the part editor"
     );
 }
 
-/// PS6 in the shell: an edit in place of Golden A's project-local copy opens the `part` card with the field diff, the
-/// device and the BOM rows; Apply is one step, undo restores.
+/// PS6 in the shell: an edit in place of the project's copy of -101F2's part opens the `part` card with the field
+/// diff, the device and the BOM rows; Apply is one step, undo restores. (The sample holds no project-local copy, so
+/// the card's note on the library copy is not pinned here; `ew-commands`' `cmd_part_edit` edits a project-local one.)
 #[test]
 fn an_edit_in_place_is_previewed() {
     let tmp = Tmp::new("part-sel-6");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.edit", json!({}));
     done(
         &mut s,
@@ -480,11 +512,11 @@ fn an_edit_in_place_is_previewed() {
     let field = lines(&s, "field ");
     assert!(field.iter().any(|l| l.contains("MCB 1P+N C4")), "{text}");
     assert!(
-        lines(&s, "device ").contains(&"device \"F55\"".to_owned()),
+        lines(&s, "device ").contains(&"device \"-101F2\"".to_owned()),
         "{text}"
     );
     assert!(!lines(&s, "changed ").is_empty(), "{text}");
-    assert!(lines(&s, "note ").is_empty(), "no fork: {text}");
+
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(steps(&s), n + 1);
     assert_eq!(last(&s).0, "part.edit_copy");
@@ -498,8 +530,8 @@ fn an_edit_in_place_is_previewed() {
 #[test]
 fn the_device_dialog_never_offers_a_layout_part() {
     let tmp = Tmp::new("part-sel-layout");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({ "use": 0 }));
     for number in [
         "EW-GEN-ENC-1",
@@ -532,13 +564,13 @@ fn the_device_dialog_never_offers_a_layout_part() {
 fn a_part_dialog_offers_the_parts_its_device_kind_takes() {
     let layout = ["EW-GEN-RAIL-1", "EW-GEN-DUCT-1"];
     let cases: [(&str, Option<&str>, &[&str]); 3] = [
-        ("1X1", Some("EW-GEN-EB-1"), &["EW-GEN-ENC-1"]),
+        ("-X1011", Some("EW-GEN-EB-1"), &["EW-GEN-ENC-1"]),
         ("-UC1", Some("EW-GEN-ENC-1"), &["EW-GEN-EB-1"]),
-        ("F55", None, &[]),
+        ("-101F2", None, &[]),
     ];
     for (i, (tag, offered, refused_parts)) in cases.into_iter().enumerate() {
         let tmp = Tmp::new(&format!("part-sel-kind-{i}"));
-        let mut s = golden(&tmp);
+        let mut s = writable(&tmp);
         select(&mut s, tag);
         done(&mut s, "part.choose", json!({ "add": true }));
         if let Some(number) = offered {
@@ -566,8 +598,8 @@ fn a_part_dialog_offers_the_parts_its_device_kind_takes() {
 #[test]
 fn the_empty_search_says_it_once_and_chooses_nothing() {
     let tmp = Tmp::new("part-sel-empty");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.search", json!({ "text": "zz-no-such-part" }));
     assert!(results(&s).is_empty(), "{:?}", results(&s));
@@ -585,8 +617,8 @@ fn the_empty_search_says_it_once_and_chooses_nothing() {
 #[test]
 fn a_library_copy_forks() {
     let tmp = Tmp::new("part-sel-7");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
     done(&mut s, "part.edit", json!({}));
@@ -636,8 +668,8 @@ fn a_library_copy_forks() {
 #[test]
 fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
     let tmp = Tmp::new("part-sel-menu");
-    let mut s = golden(&tmp);
-    select(&mut s, "F55");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
     let key = {
         let sheet = s.properties().sheet().expect("a sheet");
         let (_, row) = find_row(sheet, "device/parts").expect("the Parts row");
@@ -655,9 +687,9 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
         "{labels:?}"
     );
     for (i, title) in [
-        (n - 3, "dialog \"Choose a part for F55\""),
-        (n - 2, "dialog \"Choose a part for F55\""),
-        (n - 1, "dialog \"Edit part 5SY4204-7 (Siemens)\""),
+        (n - 3, "dialog \"Choose a part for -101F2\""),
+        (n - 2, "dialog \"Choose a part for -101F2\""),
+        (n - 1, "dialog \"Edit part EW-GEN-MCB-2 (Generic)\""),
     ] {
         done(&mut s, "props.row", json!({ "to": key }));
         done(&mut s, "props.row_menu", json!({}));
