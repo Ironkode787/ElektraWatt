@@ -138,9 +138,9 @@ impl ReportKindDef for TerminalDiagram {
                             target.push(target_text(q, rec, *r));
                         }
                     }
-                    let bridge = bridges.iter().find(|b| {
-                        b.terminals.contains(&t) && (level.is_none() || bridged_at(q, b, &here))
-                    });
+                    let bridge = bridges
+                        .iter()
+                        .find(|b| b.terminals.contains(&t) && (level.is_none() || bridged_at(q, b, &here)));
                     let wired = match level {
                         None => terminal_wired(q, t, &by_cp),
                         Some(_) => here.iter().any(|(r, _)| by_cp.contains_key(r)),

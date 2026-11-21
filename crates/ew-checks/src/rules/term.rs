@@ -64,7 +64,9 @@ type Groups = BTreeMap<String, (String, Vec<Id<Device>>)>;
 /// one of their own (a block with a number on each level, doc 08 §6.3).
 fn designations(term: &Terminal, case: CaseSensitivity) -> Vec<(String, &str)> {
     let mut out: Vec<(String, &str)> = Vec::new();
-    for d in std::iter::once(&term.designation).chain(term.levels.iter().filter_map(|l| l.designation.as_ref())) {
+    for d in
+        std::iter::once(&term.designation).chain(term.levels.iter().filter_map(|l| l.designation.as_ref()))
+    {
         let key = d.comparison_key(case).into_owned();
         if !out.iter().any(|(k, _)| *k == key) {
             out.push((key, d.as_str()));

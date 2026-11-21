@@ -40,7 +40,9 @@ fn terminal(s: &Session, designation: &str) -> Id<Device> {
         })
         .collect();
     found.sort();
-    *found.first().unwrap_or_else(|| panic!("terminal {designation} of {STRIP}"))
+    *found
+        .first()
+        .unwrap_or_else(|| panic!("terminal {designation} of {STRIP}"))
 }
 
 /// The one function of a device.
@@ -125,7 +127,14 @@ fn cell<'r>(row: &'r [(String, String)], column: &str) -> &'r str {
 /// The strip's terminal-diagram rows as (terminal, side 1, side 2).
 fn diagram(s: &Session) -> Vec<(String, String, String)> {
     let q = s.query();
-    let out = row_export(&q, &RowExport::Terminals { strip: Some(STRIP.into()) }, None).expect("the terminal diagram");
+    let out = row_export(
+        &q,
+        &RowExport::Terminals {
+            strip: Some(STRIP.into()),
+        },
+        None,
+    )
+    .expect("the terminal diagram");
     rows(&out.csv)
         .iter()
         .map(|r| {
@@ -141,7 +150,14 @@ fn diagram(s: &Session) -> Vec<(String, String, String)> {
 /// The Part cell of the strip's terminal-diagram row `terminal`.
 fn diagram_part(s: &Session, terminal: &str) -> String {
     let q = s.query();
-    let out = row_export(&q, &RowExport::Terminals { strip: Some(STRIP.into()) }, None).expect("the terminal diagram");
+    let out = row_export(
+        &q,
+        &RowExport::Terminals {
+            strip: Some(STRIP.into()),
+        },
+        None,
+    )
+    .expect("the terminal diagram");
     rows(&out.csv)
         .iter()
         .find(|r| cell(r, "Terminal") == terminal)
@@ -189,8 +205,15 @@ fn a_terminal_joined_into_another_is_its_second_level_with_its_number() {
     );
 
     let q = s.query();
-    assert!(q.devices().get(six).is_none(), "terminal 6 is gone into the block");
-    let block = q.devices().get(five).and_then(|d| d.aspects.terminal.clone()).expect("the block");
+    assert!(
+        q.devices().get(six).is_none(),
+        "terminal 6 is gone into the block"
+    );
+    let block = q
+        .devices()
+        .get(five)
+        .and_then(|d| d.aspects.terminal.clone())
+        .expect("the block");
     let levels: Vec<(u8, Option<&str>)> = block
         .levels
         .iter()
@@ -204,26 +227,48 @@ fn a_terminal_joined_into_another_is_its_second_level_with_its_number() {
     assert!(!second.is_empty(), "{cps:?}");
     let rep = q.reps().get(rep6).expect("6's symbol stays");
     assert_eq!(rep.functions, [f]);
-    assert!(rep.pin_map.iter().all(|p| p.function == f && second.contains(&p.idx)));
+    assert!(
+        rep.pin_map
+            .iter()
+            .all(|p| p.function == f && second.contains(&p.idx))
+    );
     assert_eq!(ew_derive::rep_level(&q, rep), Some(2));
     // Its wires now end at the second level.
-    let ends: Vec<u16> = ends_at(&s, f).into_iter().filter(|i| second.contains(i)).collect();
+    let ends: Vec<u16> = ends_at(&s, f)
+        .into_iter()
+        .filter(|i| second.contains(i))
+        .collect();
     assert_eq!(ends.len(), wired);
     for i in &second {
         let label = ew_derive::cp_label(&q, ew_derive::CpRef::new(f, *i));
         assert!(label.starts_with(&format!("{STRIP}:6/")), "{label}");
     }
     // The symbols print their level's number.
-    assert!(printed(&s, rep6).iter().any(|t| t == "6"), "{:?}", printed(&s, rep6));
-    let rep5 = reps_of(&s, five).into_iter().find(|r| *r != rep6).expect("5's own symbol");
-    assert!(printed(&s, rep5).iter().any(|t| t == "5"), "{:?}", printed(&s, rep5));
+    assert!(
+        printed(&s, rep6).iter().any(|t| t == "6"),
+        "{:?}",
+        printed(&s, rep6)
+    );
+    let rep5 = reps_of(&s, five)
+        .into_iter()
+        .find(|r| *r != rep6)
+        .expect("5's own symbol");
+    assert!(
+        printed(&s, rep5).iter().any(|t| t == "5"),
+        "{:?}",
+        printed(&s, rep5)
+    );
     assert!(!printed(&s, rep5).iter().any(|t| t == "6"));
     // The terminal diagram: rows 5 and 6 as before, now one block's levels.
     let after = diagram(&s);
     assert_eq!(row_of(&after, "5"), row5);
     assert_eq!(row_of(&after, "6"), row6);
     assert_eq!(after.len(), before.len());
-    assert_eq!(diagram_part(&s, "5"), "EW-GEN-TRM-1", "the block's part on its first row");
+    assert_eq!(
+        diagram_part(&s, "5"),
+        "EW-GEN-TRM-1",
+        "the block's part on its first row"
+    );
     assert_eq!(diagram_part(&s, "6"), "", "and on no other");
     // The parts list: the block's one part.
     let parts_after: u32 = bom_qty(&s, "EW-GEN-TRM-1").parse().expect("a count");
@@ -233,7 +278,11 @@ fn a_terminal_joined_into_another_is_its_second_level_with_its_number() {
     assert!(
         report.findings.iter().all(|f| f.rule != "EW-TERM-002"),
         "{:?}",
-        report.findings.iter().filter(|f| f.rule == "EW-TERM-002").collect::<Vec<_>>()
+        report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-TERM-002")
+            .collect::<Vec<_>>()
     );
     // One undo step takes it back.
     s.undo(&ew_api::Origin::Gui).expect("an undo step");
@@ -257,7 +306,8 @@ fn two_terminals_of_one_number_become_one_block_of_two_levels() {
         }
     });
     let report = s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Online);
-    let duplicates = |r: &ew_api::checks::CheckReport| r.findings.iter().filter(|f| f.rule == "EW-TERM-002").count();
+    let duplicates =
+        |r: &ew_api::checks::CheckReport| r.findings.iter().filter(|f| f.rule == "EW-TERM-002").count();
     assert!(duplicates(&report) > 0, "the renumbered terminal is a duplicate");
     let q = s.query();
     let strip = Id::<Device>::from_uuid(s.resolve_reference(&format!("tag:{STRIP}")).expect("the strip"));
@@ -283,7 +333,11 @@ fn two_terminals_of_one_number_become_one_block_of_two_levels() {
         json!({"rep": rep.to_string(), "device": first.to_string()}),
     );
     let q = s.query();
-    let block = q.devices().get(first).and_then(|d| d.aspects.terminal.clone()).expect("the block");
+    let block = q
+        .devices()
+        .get(first)
+        .and_then(|d| d.aspects.terminal.clone())
+        .expect("the block");
     assert_eq!(block.levels.iter().map(|l| l.level).collect::<Vec<_>>(), [1, 2]);
     assert!(block.levels.iter().all(|l| l.designation.is_none()));
     assert!(printed(&s, rep).iter().any(|t| t == "5"));
@@ -309,7 +363,10 @@ fn a_level_number_is_taken_on_its_strip() {
         params: json!({"assignments": [{"terminal": seven.to_string(), "designation": "6"}]}),
     });
     let err = refused.expect_err("6 is the block's second level");
-    assert!(err.to_string().contains("EW-TERM-002") || err.to_string().contains("taken"), "{err}");
+    assert!(
+        err.to_string().contains("EW-TERM-002") || err.to_string().contains("taken"),
+        "{err}"
+    );
 }
 
 /// A terminal of another strip is refused in words, at the device.
@@ -325,7 +382,10 @@ fn a_terminal_of_another_strip_is_refused() {
         })
         .expect_err("another strip");
     let text = err.to_string();
-    assert!(text.contains("is no terminal of") && text.contains(STRIP), "{text}");
+    assert!(
+        text.contains("is no terminal of") && text.contains(STRIP),
+        "{text}"
+    );
 }
 
 /// Copy and paste carry the block: the block's two symbols pasted beside them are a new terminal 5 (on a new strip, as

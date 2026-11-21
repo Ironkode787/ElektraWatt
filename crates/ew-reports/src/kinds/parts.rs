@@ -293,13 +293,13 @@ pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
     Cell::Ident(name)
 }
 
-/// The manufacturer cell of a part numbered `part_number`: [`manufacturer_cell`], but empty for a placeholder (TBD),
-/// whose type and maker are not known yet (doc 07 §3.3), so that its row reads as a placeholder, not a gap.
+/// The manufacturer cell of a part numbered `part_number`: [`manufacturer_cell`], but empty, not "manufacturer
+/// missing", for a placeholder (TBD) that names no manufacturer, whose type and maker are not known yet (doc 07 §3.3),
+/// so that its row reads as a placeholder, not a gap.
 pub(super) fn part_maker_cell(q: &Q, m: &LibRef, part_number: &str) -> Cell {
-    if part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER {
-        Cell::Empty
-    } else {
-        manufacturer_cell(q, m)
+    match manufacturer_cell(q, m) {
+        Cell::Missing(_) if part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER => Cell::Empty,
+        cell => cell,
     }
 }
 

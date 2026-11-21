@@ -270,7 +270,11 @@ fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device
             .function_cps(&pattern, &def)
             .into_iter()
             .map(|t| {
-                let own = part.cp_pattern.iter().find(|c| c.idx == t.pattern).and_then(|c| c.level);
+                let own = part
+                    .cp_pattern
+                    .iter()
+                    .find(|c| c.idx == t.pattern)
+                    .and_then(|c| c.level);
                 let of_def = t
                     .def
                     .and_then(|d| def_cps.iter().find(|(i, _)| *i == d))

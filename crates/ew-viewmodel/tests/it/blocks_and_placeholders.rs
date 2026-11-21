@@ -20,7 +20,12 @@ fn shell(tmp: &Tmp) -> ShellModel {
 /// The device ID text of the terminal `-X1021:<n>` (selected by its tag, the selection is the device).
 fn terminal(s: &mut ShellModel, n: &str) -> String {
     done(s, "select.set", json!({"refs": [format!("tag:-X1021:{n}")]}));
-    s.selection().items.first().expect("the terminal is selected").0.to_string()
+    s.selection()
+        .items
+        .first()
+        .expect("the terminal is selected")
+        .0
+        .to_string()
 }
 
 /// Selects the symbol of `device` on 102.
@@ -50,11 +55,17 @@ fn j_on_a_terminal_joins_it_into_another_terminal_of_its_strip_as_its_next_level
         .unwrap_or_else(|| panic!("a row for -X1021:5: {:?}", chooser.rows));
     assert_eq!(chooser.rows[row].kind, "next level");
     assert!(
-        chooser.rows.iter().all(|r| matches!(&r.value, ChooserValue::JoinRep { device, .. } if *device != six)),
+        chooser
+            .rows
+            .iter()
+            .all(|r| matches!(&r.value, ChooserValue::JoinRep { device, .. } if *device != six)),
         "its own terminal is no row"
     );
     done(&mut s, "chooser.choose", json!({"row": row}));
-    assert_eq!(s.recorded_commands().last().map(|c| c.cmd.as_str()), Some("rep.join_device"));
+    assert_eq!(
+        s.recorded_commands().last().map(|c| c.cmd.as_str()),
+        Some("rep.join_device")
+    );
     let devices: Vec<String> = tables(&s)
         .reps
         .iter()
@@ -73,12 +84,19 @@ fn type_not_known_gives_a_placeholder_that_a_real_part_replaces_on_every_device(
     let tmp = Tmp::new("placeholder");
     let mut s = shell(&tmp);
     let four: Vec<String> = ["1", "2", "3", "4"].iter().map(|n| terminal(&mut s, n)).collect();
-    let refs: Vec<String> = ["1", "2", "3", "4"].iter().map(|n| format!("tag:-X1021:{n}")).collect();
+    let refs: Vec<String> = ["1", "2", "3", "4"]
+        .iter()
+        .map(|n| format!("tag:-X1021:{n}"))
+        .collect();
     done(&mut s, "select.set", json!({ "refs": refs }));
     done(&mut s, "part.choose", json!({}));
     let why = failed(&mut s, "part.placeholder", json!({"description": "  "}));
     assert!(why.contains("what the part is"), "{why}");
-    done(&mut s, "part.placeholder", json!({"description": "Grey terminal"}));
+    done(
+        &mut s,
+        "part.placeholder",
+        json!({"description": "Grey terminal"}),
+    );
     assert!(s.dialog().is_none(), "the dialog closes");
     let step = s.recorded_commands().last().expect("a command").clone();
     assert_eq!(step.cmd, "part.placeholder");

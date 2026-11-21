@@ -25,7 +25,12 @@ fn sample() -> Session {
 fn terminals(s: &Session) -> Vec<Id<Device>> {
     ["1", "2", "3", "4"]
         .iter()
-        .map(|n| Id::from_uuid(s.resolve_reference(&format!("tag:-X1021:{n}")).expect("a terminal")))
+        .map(|n| {
+            Id::from_uuid(
+                s.resolve_reference(&format!("tag:-X1021:{n}"))
+                    .expect("a terminal"),
+            )
+        })
         .collect()
 }
 
@@ -47,8 +52,18 @@ fn parts_list(s: &Session) -> Vec<(String, String, String, String)> {
     let out = row_export(&q, &RowExport::Bom(BomMode::Component), None).expect("the parts list");
     let mut lines = out.csv.lines();
     let header: Vec<&str> = lines.next().expect("a header").split(',').collect();
-    let col = |name: &str| header.iter().position(|h| *h == name).unwrap_or_else(|| panic!("{name}"));
-    let (qty, maker, number, words) = (col("Qty"), col("Manufacturer"), col("Part number"), col("Description"));
+    let col = |name: &str| {
+        header
+            .iter()
+            .position(|h| *h == name)
+            .unwrap_or_else(|| panic!("{name}"))
+    };
+    let (qty, maker, number, words) = (
+        col("Qty"),
+        col("Manufacturer"),
+        col("Part number"),
+        col("Description"),
+    );
     lines
         .filter(|l| l.starts_with("data,"))
         .map(|l| {
@@ -99,7 +114,11 @@ fn terminals_of_unknown_type_share_one_placeholder_until_the_real_part_replaces_
     let q = s.query();
     let copy = q.parts().get(placeholder).expect("the placeholder copy").clone();
     assert!(copy.item.is_placeholder());
-    assert_eq!(copy.library_id.as_uuid(), q.project().id.as_uuid(), "the project's own");
+    assert_eq!(
+        copy.library_id.as_uuid(),
+        q.project().id.as_uuid(),
+        "the project's own"
+    );
     assert_eq!(copy.item.description.as_neutral(), Some("Grey terminal"));
     assert_eq!(copy.item.kind, ew_schema::PartKind::Terminal);
     assert_eq!(ew_derive::manufacturer_name(&q, &copy.item.manufacturer), "");
@@ -109,7 +128,12 @@ fn terminals_of_unknown_type_share_one_placeholder_until_the_real_part_replaces_
     let tbd: Vec<_> = rows.iter().filter(|r| r.2 == "TBD").collect();
     assert_eq!(
         tbd,
-        [&("4".to_owned(), String::new(), "TBD".to_owned(), "Grey terminal".to_owned())],
+        [&(
+            "4".to_owned(),
+            String::new(),
+            "TBD".to_owned(),
+            "Grey terminal".to_owned()
+        )],
         "{rows:?}"
     );
 
@@ -179,7 +203,10 @@ fn a_copy_of_the_pages_carries_the_placeholder() {
         json!({"devices": [one.to_string()], "description": "Grey terminal", "mode": "replace_all"}),
     );
     let placeholder = parts_of(&s, one)[0];
-    let users = s.placeholder_users(placeholder.as_uuid()).expect("a placeholder").len();
+    let users = s
+        .placeholder_users(placeholder.as_uuid())
+        .expect("a placeholder")
+        .len();
     let pages = ["101", "102", "103"]
         .iter()
         .map(|f| s.page_tables(f).expect("a drawn page").page)
@@ -197,6 +224,9 @@ fn a_copy_of_the_pages_carries_the_placeholder() {
         })
         .expect("the copy of the pages");
     run_cmd(&mut s, &plan.command.name, plan.command.params.clone());
-    let after = s.placeholder_users(placeholder.as_uuid()).expect("a placeholder").len();
+    let after = s
+        .placeholder_users(placeholder.as_uuid())
+        .expect("a placeholder")
+        .len();
     assert_eq!(after, users + 1, "the copied terminal names the same placeholder");
 }

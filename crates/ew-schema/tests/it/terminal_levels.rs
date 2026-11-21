@@ -8,9 +8,8 @@
 use ew_schema::Terminal;
 
 fn terminal(levels: &str) -> Terminal {
-    let text = format!(
-        r#"{{"strip":"0190a000-0000-7000-8000-000000000001","seq":5,"designation":"5"{levels}}}"#
-    );
+    let text =
+        format!(r#"{{"strip":"0190a000-0000-7000-8000-000000000001","seq":5,"designation":"5"{levels}}}"#);
     let t: Terminal = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}: {text}"));
     assert_eq!(serde_json::to_string(&t).unwrap(), text, "written back as read");
     t
@@ -29,7 +28,10 @@ fn a_level_with_a_number_of_its_own_prints_it_and_one_without_prints_the_termina
 fn the_listed_levels_copy_the_connection_points_of_the_one_level_they_carry() {
     let block = terminal(r#","levels":[{"level":1},{"level":2,"designation":"6"}]"#);
     // `ew.fn.terminal`: CPs 0 and 1 on level 1.
-    assert_eq!(block.level_copies(&[(0, Some(1)), (1, Some(1))]), [(2, 0, 2), (3, 1, 2)]);
+    assert_eq!(
+        block.level_copies(&[(0, Some(1)), (1, Some(1))]),
+        [(2, 0, 2), (3, 1, 2)]
+    );
     // A rail foot without a level stays once; the span counts it.
     assert_eq!(
         block.level_copies(&[(0, Some(1)), (1, Some(1)), (2, None)]),

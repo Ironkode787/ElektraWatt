@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 use ew_ids::Id;
 use ew_model::EndpointKey;
 use ew_schema::{
-    Connection, Device, DeviceLink, Endpoint, Function, Kind, LevelSpec, LibCopy, PinMapEntry, Representation,
-    SymbolDef,
+    Connection, Device, DeviceLink, Endpoint, Function, Kind, LevelSpec, LibCopy, PinMapEntry,
+    Representation, SymbolDef,
 };
 
 use super::common::function_cp_levels;
@@ -90,7 +90,11 @@ pub(super) fn join_level(
         .filter(|l| l.from == source.id || l.to == source.id)
         .min_by_key(|l| l.id)
     {
-        let other = if link.from == source.id { link.to } else { link.from };
+        let other = if link.from == source.id {
+            link.to
+        } else {
+            link.from
+        };
         return Err(CmdError::invalid_params(
             NAME,
             "/rep",
@@ -159,11 +163,23 @@ pub(super) fn join_level(
     if gained.is_empty() {
         return no_level();
     }
-    let shared: Vec<u16> = target_cps.iter().filter(|(_, l)| l.is_none()).map(|(i, _)| *i).collect();
+    let shared: Vec<u16> = target_cps
+        .iter()
+        .filter(|(_, l)| l.is_none())
+        .map(|(i, _)| *i)
+        .collect();
 
     // The source's CPs onto the new level's (and its CPs without a level onto the target's), by position.
-    let leveled: Vec<u16> = source_cps.iter().filter(|(_, l)| l.is_some()).map(|(i, _)| *i).collect();
-    let unleveled: Vec<u16> = source_cps.iter().filter(|(_, l)| l.is_none()).map(|(i, _)| *i).collect();
+    let leveled: Vec<u16> = source_cps
+        .iter()
+        .filter(|(_, l)| l.is_some())
+        .map(|(i, _)| *i)
+        .collect();
+    let unleveled: Vec<u16> = source_cps
+        .iter()
+        .filter(|(_, l)| l.is_none())
+        .map(|(i, _)| *i)
+        .collect();
     let onto = |i: u16| -> Option<u16> {
         let at = |list: &[u16]| list.iter().position(|x| *x == i);
         match at(&leveled) {

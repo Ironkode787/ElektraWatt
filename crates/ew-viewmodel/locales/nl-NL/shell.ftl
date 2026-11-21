@@ -1635,7 +1635,7 @@ refusal-assign-part-missing = artikelkopie { $p0 } staat niet in het project en 
 refusal-assign-from-without-replace = `from` hoort alleen bij modus `replace`
 refusal-assign-replace-needs-from = modus `replace` heeft `from` nodig, het artikel dat wordt vervangen
 refusal-assign-quantity = het aantal moet groter dan 0 zijn
-refusal-placeholder-no-description = zeg in een paar woorden wat het artikel is, zodat de materiaallijst het kan noemen
+refusal-placeholder-no-description = zeg in een paar woorden wat het artikel is, zodat de stuklijst het kan noemen
 # rep.move and rep.transform.
 refusal-rep-move-surface-view = het paneelaanzicht op { $p0 } beweegt niet mee met een selectie; laat het buiten de selectie, of wijzig het met Paneelaanzicht instellen
 refusal-rep-move-unknown-item = een pagina-element op { $p0 } is van een soort die deze versie laat zoals hij is, dus het kan niet worden verplaatst; laat het buiten de selectie
@@ -4419,7 +4419,7 @@ action-part-search = Artikelen zoeken
 action-part-pick = Kiezen
 action-part-placeholder = Type nog onbekend…
 part-placeholder-description = Wat het is
-part-placeholder-note = De materiaallijst noemt het TBD met deze woorden; kies later voor een van zijn apparaten het echte artikel en elk apparaat dat het heeft krijgt dat artikel.
+part-placeholder-note = De stuklijst noemt het TBD met deze woorden; kies later voor een van zijn apparaten het echte artikel en elk apparaat dat het heeft krijgt dat artikel.
 part-placeholder-use = Als plaatsvervanger gebruiken
 action-part-favourite = Favoriet
 action-part-edit = Artikel bewerken…

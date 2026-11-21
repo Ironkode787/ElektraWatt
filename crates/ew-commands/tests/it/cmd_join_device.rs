@@ -304,10 +304,11 @@ fn a_lamp_joins_a_relay_as_a_second_symbol_of_its_own() {
 fn each_refusal_names_its_pointer_and_writes_nothing() {
     let mut e = engine(join_model());
     let rev = e.model().rev();
-    // `/rep`: an interruption point; a terminal. (A device's other functions that are neither drawn nor wired go
-    // with the join: `free_other_functions_go_with_the_join`.)
+    // `/rep`: an interruption point. (A device's other functions that are neither drawn nor wired go with the join:
+    // `free_other_functions_go_with_the_join`.) A terminal joins only a terminal of its own strip, as its next level
+    // (doc 08 §6.3): another device is refused at `/device`.
     invalid_at(e.execute(&join(REP_IP_101, DEV_K1)), "/rep", "interruption point");
-    invalid_at(e.execute(&join(REP_T1, DEV_K1)), "/rep", "terminal");
+    invalid_at(e.execute(&join(REP_T1, DEV_K1)), "/device", "is no terminal of");
     // `/device`: the representation's own device; a device whose family takes no auxiliary contacts; a terminal, which
     // takes no further function (FT-1860: a function of another kind than a contact joins any other device); a part
     // whose template draws other CPs than the connected ones.

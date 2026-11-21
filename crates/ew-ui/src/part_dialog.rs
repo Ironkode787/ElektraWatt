@@ -343,10 +343,7 @@ fn placeholder(ui: &mut Ui, text: &mut String, opened: bool, enter: bool, events
     .clicked();
     let given = (used || enter) && !words.is_empty();
     if given {
-        events.push(Event::Action(
-            "part.placeholder",
-            json!({ "description": words }),
-        ));
+        events.push(Event::Action("part.placeholder", json!({ "description": words })));
     }
     given
 }
