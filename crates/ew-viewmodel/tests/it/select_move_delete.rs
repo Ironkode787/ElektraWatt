@@ -338,6 +338,97 @@ fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
 // ---------------------------------------------------------------------------------------------------------------
 // The part-first arm
 
+/// The fixture part `MICO 4.10 TWO` (the `ew-testkit` test writes it).
+const TWO_FNDEF_PART: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../ew-api/tests/expected/two_fndef_part.json"
+);
+
+/// The sheet point of the grid indices `k` on the page shown.
+fn grid_sheet(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
+    let sn = &s.canvas().unwrap().page().snapper;
+    (sn.sheet_of_index(k.0, 0), sn.sheet_of_index(k.1, 1))
+}
+
+/// MICO 4.10 TWO's black box template places with its missing contact FnDef in one step. On a new project with a
+/// black box drawn first, so that the black box's FnDef is held and the contact's is not (the sample holds both).
+#[test]
+fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
+    let tmp = Tmp::new("part4b-part-fndef");
+    let mut s = common::new_project(&tmp);
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(&mut s, "tool.black_box", json!({"part": "EW-GEN-PSU-1"}));
+    for k in [(10, 10), (20, 18)] {
+        let p = grid_sheet(&s, k);
+        done(&mut s, "cursor.set", at(p, json!({})));
+        done(&mut s, "canvas.activate", json!({}));
+    }
+    done(&mut s, "ui.dismiss", json!({}));
+    let fixture: Value =
+        serde_json::from_str(&std::fs::read_to_string(TWO_FNDEF_PART).expect("the fixture")).expect("JSON");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "library.embed", "params": {"copies": [fixture]}}),
+    );
+    let before: Vec<_> = tables(&s).reps.iter().map(|r| r.id).collect();
+    // The black box's template function: the arm commits nothing (FT-656); the box carries the part's missing
+    // contact FnDef.
+    let rev = s.revision();
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
+    );
+    assert_eq!(s.revision(), rev, "the arm commits nothing");
+    assert_eq!(s.tool().name(), "black_box");
+    assert_eq!(s.tool().state(), "armed");
+    // Two corners with the grid cursor and Enter.
+    let (kx, ky) = (60, 40);
+    let first = grid_sheet(&s, (kx, ky));
+    done(&mut s, "cursor.set", at(first, json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.tool().state(), "outline");
+    let second = grid_sheet(&s, (kx + 6, ky + 4));
+    done(&mut s, "cursor.set", at(second, json!({})));
+    let rev = s.revision();
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "box.black, one undo step");
+    let last = s.recorded_commands().last().expect("the box.black");
+    assert_eq!(last.cmd, "box.black");
+    let copies = last.params["copies"].as_array().expect("copies");
+    assert_eq!(copies.len(), 1, "the missing FnDef, once: {copies:?}");
+    assert_eq!(copies[0]["$k"], "fndef");
+    let t = tables(&s);
+    let rep = t
+        .reps
+        .iter()
+        .find(|r| r.black_box.is_some() && !before.contains(&r.id))
+        .expect("the new box")
+        .clone();
+    let device = rep.device.expect("the box's device");
+    // The device has the part's two functions: read from the saved copy.
+    done(&mut s, "file.save", json!({}));
+    let (session, _) =
+        ew_api::Session::open_read_only(&tmp.0.join("new.ew"), "test").expect("the saved copy opens");
+    let n = {
+        let q = session.query();
+        q.functions()
+            .iter()
+            .filter(|(_, f)| f.device.is_some_and(|d| d.as_uuid() == device))
+            .count()
+    };
+    assert_eq!(n, 2, "the black box and the contact");
+    // A second pick of the same template commits nothing.
+    let rev = s.revision();
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
+    );
+    assert_eq!(s.revision(), rev);
+}
+
 #[test]
 fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() {
     let tmp = Tmp::new("part4b-part-first");
