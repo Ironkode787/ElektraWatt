@@ -87,9 +87,7 @@ fn the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays() {
     jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case(false);
 }
 
-pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case(
-    twice: bool,
-) {
+pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in crate::support::runs(twice) {
@@ -127,7 +125,9 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_a
         let pages = sample.page_labels().len();
         sample.close();
         assert!(
-            d.contains(&format!("jobs running 0\n  job 1 pdf \"out.pdf\" done pages {pages} kib ")),
+            d.contains(&format!(
+                "jobs running 0\n  job 1 pdf \"out.pdf\" done pages {pages} kib "
+            )),
             "{d}"
         );
         assert!(

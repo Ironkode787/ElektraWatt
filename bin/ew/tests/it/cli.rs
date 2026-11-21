@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::process::Output;
 
 use crate::support::{
-    CONTENT, EwTmp as _, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr, stdout,
-    tree,
+    CONTENT, EwTmp as _, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr,
+    stdout, tree,
 };
 
 /// The QElectroTech project of the import tests.
@@ -692,12 +692,7 @@ fn sql_query_from_file() {
         "SELECT count(*) AS n FROM api_v1_wire WHERE kind = 'bridge'\n",
     )
     .unwrap();
-    let o = ew(&[
-        "sql".as_ref(),
-        SAMPLE.as_ref(),
-        "--file".as_ref(),
-        f.as_os_str(),
-    ]);
+    let o = ew(&["sql".as_ref(), SAMPLE.as_ref(), "--file".as_ref(), f.as_os_str()]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     // The two bridges of -X1021 (terminals 1 to 4 and 5 to 8).
     assert_eq!(stdout(&o), "n\n2\n");
@@ -861,7 +856,13 @@ fn export_csv_prints_the_lists() {
     let with_covers: String = parts
         .lines()
         .enumerate()
-        .map(|(i, l)| if i == 0 { format!("{l},Covers\n") } else { format!("{l},\n") })
+        .map(|(i, l)| {
+            if i == 0 {
+                format!("{l},Covers\n")
+            } else {
+                format!("{l},\n")
+            }
+        })
         .collect();
     assert_eq!(assembly, with_covers);
 }
@@ -1198,7 +1199,12 @@ fn export_pdf_writes_every_page_alike_on_one_and_four_threads() {
     let t = Tmp::new("ew-cli-test");
     let project = sample_copy(&t);
     let before = tree(&project);
-    let order = t.ew(&["query".as_ref(), project.as_os_str(), "page_order".as_ref(), "-".as_ref()]);
+    let order = t.ew(&[
+        "query".as_ref(),
+        project.as_os_str(),
+        "page_order".as_ref(),
+        "-".as_ref(),
+    ]);
     assert_eq!(order.status.code(), Some(0), "{}", stderr(&order));
     let pages = stdout(&order).lines().count();
     let mut first: Option<Vec<u8>> = None;
@@ -1414,7 +1420,10 @@ fn source_date_epoch_dates_the_pdf() {
         undated.as_os_str(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert!(std::fs::read(&undated).unwrap() != a, "the model-dated PDF differs");
+    assert!(
+        std::fs::read(&undated).unwrap() != a,
+        "the model-dated PDF differs"
+    );
     let text = String::from_utf8_lossy(&a);
     assert!(
         text.contains("2023-11-14") || text.contains("D:20231114"),
@@ -2402,7 +2411,10 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
         (
             Some(0),
             format!("rewrote {rel}\n"),
-            format!("fmt: rewrote 1 file; saved generation {}\n", sample_generation() + 1)
+            format!(
+                "fmt: rewrote 1 file; saved generation {}\n",
+                sample_generation() + 1
+            )
         )
     );
     assert_eq!(
@@ -2475,7 +2487,10 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
         (
             Some(0),
             format!("rewrote {rel}\n"),
-            format!("{kept_text}fmt: rewrote 1 file; saved generation {}\n", sample_generation() + 1)
+            format!(
+                "{kept_text}fmt: rewrote 1 file; saved generation {}\n",
+                sample_generation() + 1
+            )
         )
     );
     let written = std::fs::read_to_string(project.join(rel)).unwrap();
@@ -2954,8 +2969,15 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
         run(&fmt(&["--repair"])),
         (
             Some(0),
-            format!("{discarded}backup {} (generation {})\n", backup.display(), sample_generation()),
-            format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
+            format!(
+                "{discarded}backup {} (generation {})\n",
+                backup.display(),
+                sample_generation()
+            ),
+            format!(
+                "Repaired: discarded 1 line; saved generation {}\n",
+                sample_generation() + 1
+            )
         )
     );
     let after = tree(&project);
@@ -3001,7 +3023,10 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
                 backup.display(),
                 sample_generation()
             ),
-            format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
+            format!(
+                "Repaired: discarded 1 line; saved generation {}\n",
+                sample_generation() + 1
+            )
         )
     );
     assert_eq!(tree(&project)[&rel], original);
@@ -3090,7 +3115,10 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
                     backup.display(),
                     sample_generation()
                 ),
-                format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
+                format!(
+                    "Repaired: discarded 1 line; saved generation {}\n",
+                    sample_generation() + 1
+                )
             ),
             "merged: {merged}"
         );

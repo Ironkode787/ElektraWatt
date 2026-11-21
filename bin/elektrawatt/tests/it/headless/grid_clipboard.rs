@@ -70,7 +70,10 @@ fn steps(sample: &Path, new: &Path) -> Vec<(&'static str, Value)> {
     vec![
         ("file.open", json!({ "dir": sample.to_string_lossy() })),
         ("page.goto", json!({"folio": "102"})),
-        ("select.set", json!({"refs": ["tag:-102S1", "tag:-102S2", "tag:-102E1"]})),
+        (
+            "select.set",
+            json!({"refs": ["tag:-102S1", "tag:-102S2", "tag:-102E1"]}),
+        ),
         ("edit.copy", json!({})),
         ("ui.describe", json!({})),
         ("file.open", json!({ "dir": new.to_string_lossy() })),

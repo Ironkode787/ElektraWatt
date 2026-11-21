@@ -40,8 +40,15 @@ fn wire_103() -> String {
     let text = page_text(103);
     let plain = text
         .lines()
-        .find(|l| l.contains("\"$k\":\"connection\"") && !l.contains("\"kind\"") && !l.contains("\"overrides\""))
-        .map(|l| serde_json::from_str::<Value>(l).unwrap()["id"].as_str().unwrap().to_owned());
+        .find(|l| {
+            l.contains("\"$k\":\"connection\"") && !l.contains("\"kind\"") && !l.contains("\"overrides\"")
+        })
+        .map(|l| {
+            serde_json::from_str::<Value>(l).unwrap()["id"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        });
     plain.unwrap_or(id)
 }
 
@@ -71,7 +78,12 @@ fn def_24v() -> String {
             let line = text
                 .lines()
                 .find(|l| l.contains("\"$k\":\"potential_def\"") && l.contains("\"name\":\"24V\""))?;
-            Some(serde_json::from_str::<Value>(line).unwrap()["id"].as_str().unwrap().to_owned())
+            Some(
+                serde_json::from_str::<Value>(line).unwrap()["id"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned(),
+            )
         })
         .expect("the potential definition 24V")
 }
@@ -240,10 +252,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             json!({"row": "connection/derived.csa", "action": "reset"}),
         ),
         ("select.set", json!({"ids": [def]})),
-        (
-            "props.set",
-            json!({"row": "potential_def/name", "value": "24VA"}),
-        ),
+        ("props.set", json!({"row": "potential_def/name", "value": "24VA"})),
         ("page.goto", json!({"folio": "101"})),
         // -101F1's representation, clicked on its symbol (the script placed it at 101-E8).
         ("tool.select", json!({})),
@@ -363,7 +372,10 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     for s in &steps {
         for member in ["properties", "card", "toast"] {
             let text = s["state"][member].to_string();
-            assert!(!text.contains(&wire_103()) && !text.contains(&def_24v()), "{text}");
+            assert!(
+                !text.contains(&wire_103()) && !text.contains(&def_24v()),
+                "{text}"
+            );
         }
     }
     // The record replayed onto a fresh copy: the same records as the saved project.

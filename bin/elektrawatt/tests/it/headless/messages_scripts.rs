@@ -17,7 +17,6 @@ use serde_json::{Value, json};
 
 use crate::support::{SAMPLE, Tmp, copy_dir};
 
-
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"messages\"}\n");
     for (action, params) in steps {
@@ -96,7 +95,9 @@ fn with_findings(dir: &Path) {
         devices
             .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
             .find_map(|t| {
-                let line = t.lines().find(|l| l.contains(r#""length":{"manual":10000000000}"#))?;
+                let line = t
+                    .lines()
+                    .find(|l| l.contains(r#""length":{"manual":10000000000}"#))?;
                 Some(serde_json::from_str::<Value>(line).unwrap()["id"].clone())
             })
             .expect("the cable -101W1")
@@ -205,7 +206,9 @@ fn view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice() {
     ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case(false);
 }
 
-pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case(twice: bool) {
+pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case(
+    twice: bool,
+) {
     let (lines, commands) = run_flow("ms1-ms4", false, true, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
@@ -350,7 +353,8 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[12]);
     let scheme = line(d, "  messages scheme ");
     assert!(
-        scheme.starts_with("  messages scheme \"Drafting\" errors 1 warnings 0 ") && scheme.ends_with(" pending 0"),
+        scheme.starts_with("  messages scheme \"Drafting\" errors 1 warnings 0 ")
+            && scheme.ends_with(" pending 0"),
         "Run checks makes it an error: {scheme}"
     );
     let rows = finding_rows(d);

@@ -316,11 +316,7 @@ fn report_pdf_writes_the_block_folios_only() {
         &report,
     ]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert!(
-        stdout(&o).contains("2 pages (908, 908.1)"),
-        "{}",
-        stdout(&o)
-    );
+    assert!(stdout(&o).contains("2 pages (908, 908.1)"), "{}", stdout(&o));
     let pages = t.0.join("pages.pdf");
     let o = t.ew(&args([
         &"export",
@@ -536,7 +532,9 @@ fn export_wires_lists_the_wires_and_the_bridges() {
     let o = t.ew(&args([&"export", &"wires", &p]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let want = stdout(&o);
-    let (wires, bridges) = want.split_once("\nheading,Bridges,").expect("the bridges' heading");
+    let (wires, bridges) = want
+        .split_once("\nheading,Bridges,")
+        .expect("the bridges' heading");
     assert!(data_rows(wires) > 0, "{want}");
     let bridges: Vec<&str> = bridges.lines().filter(|l| l.starts_with("data,")).collect();
     assert_eq!(bridges.len(), 2, "{want}");

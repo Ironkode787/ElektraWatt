@@ -142,14 +142,7 @@ fn every_reader_gives_the_same_output_on_the_ewz() {
     }
     assert_eq!(
         names(&t.0),
-        [
-            "home",
-            "outs",
-            "sample.ew",
-            "sample.ewz",
-            "tiny.ew",
-            "tiny.ewz"
-        ],
+        ["home", "outs", "sample.ew", "sample.ewz", "tiny.ew", "tiny.ewz"],
         "nothing written beside the archive"
     );
 }

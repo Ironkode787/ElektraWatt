@@ -34,7 +34,6 @@ mod preview_scripts;
 /// The part dialog's and the part editor's flows headless (PS1, PS4, PS5 and PS7).
 mod parts_scripts;
 
-
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
     support::elektrawatt(&bin_exe())
         .args(args)
@@ -195,7 +194,11 @@ fn the_smoke_script_runs_on_the_sample() {
     assert_eq!(state(0)["dirty"], false);
     let count = state(0)["page_count"].as_u64().unwrap();
     let (sample, _) = ew_viewmodel::ew_api::Session::open_read_only(Path::new(SAMPLE), "test").unwrap();
-    assert_eq!(count, sample.page_labels().len() as u64, "every page of the sample");
+    assert_eq!(
+        count,
+        sample.page_labels().len() as u64,
+        "every page of the sample"
+    );
     sample.close();
     assert_eq!(state(1)["page"], "103");
     assert_eq!(state(4)["dirty"], true);

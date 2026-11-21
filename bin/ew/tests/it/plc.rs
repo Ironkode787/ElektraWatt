@@ -185,12 +185,18 @@ fn an_instrument_list_is_previewed_and_applied() {
     };
     let text = ok(&run(&[]));
     // The first spare output of the output card; the sample has no analogue input.
-    assert!(text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"), "{text}");
+    assert!(
+        text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"),
+        "{text}"
+    );
     assert!(text.contains("TA05-T-01: no spare AI channel"), "{text}");
     assert!(text.contains("nothing is written: apply with --apply"), "{text}");
     let text = ok(&run(&["--apply".as_ref()]));
     assert!(text.contains("applied and saved"), "{text}");
     // applied: the row has its channel, so the same list reserves no other
     let text = ok(&run(&[]));
-    assert!(text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"), "{text}");
+    assert!(
+        text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"),
+        "{text}"
+    );
 }

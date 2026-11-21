@@ -96,7 +96,10 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     let p = t.sample("sample.ew").to_string_lossy().into_owned();
     // The PROFIBUS line from -104A1 to -201K1, the one wire of the bus page 105, without a route.
     let page = std::fs::read_to_string(Path::new(&p).join(page_file(Path::new(&p), 105))).unwrap();
-    let line = page.lines().find(|l| l.contains("\"$k\":\"connection\"")).unwrap();
+    let line = page
+        .lines()
+        .find(|l| l.contains("\"$k\":\"connection\""))
+        .unwrap();
     let wire: serde_json::Value = serde_json::from_str(line).unwrap();
     let log = Path::new(&p).with_file_name("unroute.ewcmd");
     std::fs::write(

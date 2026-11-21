@@ -683,16 +683,17 @@ fn the_io_list_round_trips_by_id_and_by_point() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let csv = stdout(&o);
     let rows = csv.matches("\r\n").count() - 1;
-    assert_eq!(stderr(&o), format!("{rows} rows\n"), "the header and a line per row");
+    assert_eq!(
+        stderr(&o),
+        format!("{rows} rows\n"),
+        "the header and a line per row"
+    );
     assert!(
         csv.starts_with("\u{feff}id;Configuration project;CPU;Station;"),
         "{csv}"
     );
     assert!(!csv.contains('"'), "no quoted field");
-    expected_file(
-        "csv/presets/io_list.excel-nl.csv",
-        &csv.replace("\r\n", "\n"),
-    );
+    expected_file("csv/presets/io_list.excel-nl.csv", &csv.replace("\r\n", "\n"));
     let comments = ["Klep open", "Pomp aan", "Koeling geïnstalleerd"];
     let rows: Vec<Vec<&str>> = csv
         .trim_start_matches('\u{feff}')

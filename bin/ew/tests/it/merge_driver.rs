@@ -260,7 +260,11 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
     let t = Tree::new();
     let id = format!(r#""id":"{}""#, shield_id());
     let shield = |page: String, change: &dyn Fn(&str) -> String| -> String {
-        let line = page.lines().find(|l| l.contains(&id)).expect("the shield wire").to_owned();
+        let line = page
+            .lines()
+            .find(|l| l.contains(&id))
+            .expect("the shield wire")
+            .to_owned();
         page.replace(&line, &change(&line))
     };
     let (base, ours, theirs) = clean_sides();
@@ -299,7 +303,10 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
     let doc = format!("proj/sample.ew/lib/manufacturers/{}", file.to_string_lossy());
     let doc = doc.as_str();
     let base = std::fs::read_to_string(t.0.path(doc)).unwrap();
-    let ours = base.replace(r#""name": {"en": "Generic"}"#, r#""name": {"en": "Generic parts"}"#);
+    let ours = base.replace(
+        r#""name": {"en": "Generic"}"#,
+        r#""name": {"en": "Generic parts"}"#,
+    );
     let theirs = base.replace(r#""$k": "manufacturer","#, r#""$k": "manufacturer", "$v": 2,"#);
     assert!(ours != base && theirs != base);
     let (out, merged) = t.merge([&base, &ours, &theirs], form(true, doc));

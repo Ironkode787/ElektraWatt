@@ -242,7 +242,10 @@ fn the_row_exports_and_sql_write_workbooks() {
         &args([&"export", &"report", &p, &"--block", &"908", &"--format", &"xlsx"]),
         "r.xlsx",
     );
-    let block_csv = csv_table(&printed(&t, &args([&"export", &"report", &p, &"--block", &"908"])));
+    let block_csv = csv_table(&printed(
+        &t,
+        &args([&"export", &"report", &p, &"--block", &"908"]),
+    ));
     assert_eq!(sheet(&block, None).rows.len(), block_csv.rows.len());
 
     let terminals = t.written(

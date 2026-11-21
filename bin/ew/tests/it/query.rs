@@ -67,10 +67,7 @@ fn device_tag_prints_its_text_and_its_json_result() {
         (r.query.as_str(), r.key.as_str(), r.rev),
         ("device_tag", "tag:-101F1", 0)
     );
-    assert_eq!(
-        r.output,
-        json!({"full": "+CAB-101F1", "displayed": "-101F1"})
-    );
+    assert_eq!(r.output, json!({"full": "+CAB-101F1", "displayed": "-101F1"}));
     assert_eq!(r.explain, None);
     assert!(stdout(&o).contains("\"explain\": null"), "{}", stdout(&o));
 

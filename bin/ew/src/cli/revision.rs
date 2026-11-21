@@ -639,7 +639,9 @@ mod tests {
             .map(|e| e.unwrap().path())
             .find_map(|p| {
                 let text = std::fs::read_to_string(&p).unwrap();
-                let line = text.lines().find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
+                let line = text
+                    .lines()
+                    .find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
                 Some(serde_json::from_str::<serde_json::Value>(line).unwrap())
             })
             .unwrap();
