@@ -63,11 +63,15 @@ fn inserts(ents: &[Vec<(i32, String)>]) -> Vec<Insert> {
                 block: get(e, 2).unwrap_or_default().to_owned(),
                 attributes: Vec::new(),
             }),
-            Some("ATTRIB") => out.last_mut().expect("an ATTRIB follows its INSERT").attributes.push((
-                get(e, 2).unwrap_or_default().to_owned(),
-                get(e, 1).unwrap_or_default().to_owned(),
-                get(e, 1000).map(str::to_owned),
-            )),
+            Some("ATTRIB") => out
+                .last_mut()
+                .expect("an ATTRIB follows its INSERT")
+                .attributes
+                .push((
+                    get(e, 2).unwrap_or_default().to_owned(),
+                    get(e, 1).unwrap_or_default().to_owned(),
+                    get(e, 1000).map(str::to_owned),
+                )),
             Some("ENDSEC") => break,
             _ => {}
         }
@@ -78,10 +82,7 @@ fn inserts(ents: &[Vec<(i32, String)>]) -> Vec<Insert> {
 /// The face's capitals over its em, as the DXF writes a text's height.
 fn cap_of(run: &ShapedRun) -> f64 {
     let fonts = ew_text::bundled();
-    let face = fonts
-        .faces()
-        .find(|f| f.key == run.font)
-        .expect("a bundled face");
+    let face = fonts.faces().find(|f| f.key == run.font).expect("a bundled face");
     f64::from(face.metrics.cap_height) / f64::from(face.metrics.units_per_em)
 }
 
@@ -95,7 +96,10 @@ fn anchor(run: &ShapedRun, t: Transform, cap: f64) -> Pt2 {
     let x0 = run.layout_box.min().x;
     let at = rt.apply(Pt2::new(x0, Nm(0)));
     let ahead = rt.apply(Pt2::new(x0 + Nm(1_000_000), Nm(0)));
-    let (dx, dy) = ((ahead.x.0 - at.x.0) as f64 / 1e6, (ahead.y.0 - at.y.0) as f64 / 1e6);
+    let (dx, dy) = (
+        (ahead.x.0 - at.x.0) as f64 / 1e6,
+        (ahead.y.0 - at.y.0) as f64 / 1e6,
+    );
     let half = (i128::from(run.size.0) as f64 * cap).trunc() / 2.0;
     Pt2::new(
         Nm(at.x.0 + (dy * half).round() as i64),
@@ -205,7 +209,8 @@ fn texts_stand_as_in_the_pdf(s: &Session, options: &ExportOptions, dxf: &DxfExpo
                     .map(|(t, at)| nearest(t, *at))
                     .try_fold(0.0f64, |m, d| Some(m.max(d?)))
             });
-            let d = d.unwrap_or_else(|| panic!("{}: the text {:?} is not in the DXF", file.name, line.whole.0));
+            let d =
+                d.unwrap_or_else(|| panic!("{}: the text {:?} is not in the DXF", file.name, line.whole.0));
             assert!(
                 d <= 1_000.0,
                 "{}: the text {:?} stands {d} nm from where the PDF has it",
@@ -222,14 +227,21 @@ fn texts_stand_as_in_the_pdf(s: &Session, options: &ExportOptions, dxf: &DxfExpo
 fn every_text_of_the_samples_pdf_stands_in_its_dxf_where_the_pdf_has_it() {
     let s = common::sample();
     let options = ExportOptions::default();
-    let dxf = s.export_dxf(&options, &DxfLayers::default(), false).expect("the DXF set");
+    let dxf = s
+        .export_dxf(&options, &DxfLayers::default(), false)
+        .expect("the DXF set");
     let largest = texts_stand_as_in_the_pdf(&s, &options, &dxf);
     eprintln!("the sample: the largest distance of a text from the PDF's is {largest} nm");
     // The symbols' texts are attributes of their inserts.
     let attributes: usize = dxf
         .files
         .iter()
-        .map(|f| inserts(&entities(&f.text)).iter().map(|i| i.attributes.len()).sum::<usize>())
+        .map(|f| {
+            inserts(&entities(&f.text))
+                .iter()
+                .map(|i| i.attributes.len())
+                .sum::<usize>()
+        })
         .sum();
     assert!(attributes > 0, "the sample's devices carry their texts");
 }
@@ -287,7 +299,13 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
     .expect("the new page")
     .1
     .as_uuid();
-    let coil = place(&mut s, first, "ew.iec.coil@qet10", (30, 12), json!({"new_device": {"letter": "K"}}));
+    let coil = place(
+        &mut s,
+        first,
+        "ew.iec.coil@qet10",
+        (30, 12),
+        json!({"new_device": {"letter": "K"}}),
+    );
     let device = created(&coil, Kind::Device);
     place(
         &mut s,
@@ -316,10 +334,16 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
             "copies": copies["copies"]}),
     );
     let logo = common::red_png(8, 4);
-    run(&mut s, "project.company.set", json!({"logo": ew_api::base64_encode(&logo)}));
+    run(
+        &mut s,
+        "project.company.set",
+        json!({"logo": ew_api::base64_encode(&logo)}),
+    );
 
     let options = ExportOptions::default();
-    let dxf = s.export_dxf(&options, &DxfLayers::default(), false).expect("the DXF set");
+    let dxf = s
+        .export_dxf(&options, &DxfLayers::default(), false)
+        .expect("the DXF set");
     let largest = texts_stand_as_in_the_pdf(&s, &options, &dxf);
     eprintln!("the test's project: the largest distance of a text from the PDF's is {largest} nm");
     let pages = s.export_pages(&options).expect("the pages");
@@ -328,7 +352,12 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
     // The coil's insert: its block named by its symbol, its tag and its cross-reference to the contact's page.
     let k = tag(&s, device);
     let device_insert = |file: &str| -> Insert {
-        let text = &dxf.files.iter().find(|f| f.name == file).expect("the page's file").text;
+        let text = &dxf
+            .files
+            .iter()
+            .find(|f| f.name == file)
+            .expect("the page's file")
+            .text;
         inserts(&entities(text))
             .into_iter()
             .find(|i| i.attributes.iter().any(|(n, v, _)| n == "TAG" && *v == k))
@@ -338,7 +367,11 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
     let coil_symbol = s.starter_symbol_copy("ew.iec.coil@qet10").expect("the coil");
     let name = {
         let q = s.query();
-        let copy = q.symbols().get(Id::from_uuid(coil_symbol)).expect("the coil's copy").clone();
+        let copy = q
+            .symbols()
+            .get(Id::from_uuid(coil_symbol))
+            .expect("the coil's copy")
+            .clone();
         let entry = q.get::<ew_derive::PageOrder>(()).entries[0].clone();
         let language = ew_api::output::page_view(&q, &entry).language;
         ew_scene::forms::ml_text(&copy.item.name, language.as_ref()).to_owned()
@@ -366,15 +399,19 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
     // The terminal carries its strip's tag.
     let strip_tag = tag(&s, strip);
     assert!(
-        inserts(&entities(&dxf.files[0].text))
+        inserts(&entities(&dxf.files[0].text)).iter().any(|i| i
+            .attributes
             .iter()
-            .any(|i| i.attributes.iter().any(|(n, v, _)| n == "STRIP" && *v == strip_tag)),
+            .any(|(n, v, _)| n == "STRIP" && *v == strip_tag)),
         "the terminal's strip tag {strip_tag}"
     );
 
     // The title block's logo: an IMAGE on the frame layer that names the picture file written beside the pages.
     let [picture] = dxf.pictures.as_slice() else {
-        panic!("one picture: {:?}", dxf.pictures.iter().map(|p| &p.name).collect::<Vec<_>>())
+        panic!(
+            "one picture: {:?}",
+            dxf.pictures.iter().map(|p| &p.name).collect::<Vec<_>>()
+        )
     };
     assert_eq!(&*picture.bytes, logo.as_slice());
     for file in &dxf.files {

@@ -105,7 +105,9 @@ pub(super) fn width_factor(parts: &[(&ShapedRun, &DxfFace)]) -> Option<f64> {
     for (run, face) in parts {
         let file = face.font.as_ref()?;
         let font = FontRef::from_index(&file.data, file.index).ok()?;
-        let upem = font.metrics(Size::unscaled(), LocationRef::default()).units_per_em;
+        let upem = font
+            .metrics(Size::unscaled(), LocationRef::default())
+            .units_per_em;
         if upem == 0 {
             return None;
         }

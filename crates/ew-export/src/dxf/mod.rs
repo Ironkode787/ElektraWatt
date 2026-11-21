@@ -36,8 +36,8 @@ use std::sync::Arc;
 
 use ew_dl::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_dl::{
-    Brush, Destination, DisplayList, EntityRef, FontKey, ImageData, Item, ItemKind, Layer, Link, MAX_INSTANCE_DEPTH,
-    PathEl, ShapedRun, SymbolGeomId, Transform,
+    Brush, Destination, DisplayList, EntityRef, FontKey, ImageData, Item, ItemKind, Layer, Link,
+    MAX_INSTANCE_DEPTH, PathEl, ShapedRun, SymbolGeomId, Transform,
 };
 use ew_render_cpu::FontBytes;
 use uuid::Uuid;
@@ -426,7 +426,12 @@ fn dxf_name(s: &str) -> String {
             }
         })
         .collect();
-    s.trim().trim_start_matches('*').trim().chars().take(200).collect()
+    s.trim()
+        .trim_start_matches('*')
+        .trim()
+        .chars()
+        .take(200)
+        .collect()
 }
 
 /// The block name of every symbol geometry the set inserts: its symbol's name and its variant (`Coil R0`), else
@@ -446,7 +451,10 @@ fn block_names(pages: &[DxfSheet], names: &BTreeMap<Uuid, String>) -> BTreeMap<S
                 .get(&id.symbol)
                 .map(|n| dxf_name(n))
                 .filter(|n| !n.is_empty())
-                .map_or_else(|| block_name(&id), |n| format!("{n} {}", variant_name(id.variant)));
+                .map_or_else(
+                    || block_name(&id),
+                    |n| format!("{n} {}", variant_name(id.variant)),
+                );
             let mut name = base.clone();
             let mut n = 1;
             while !taken.insert(name.to_uppercase()) {
@@ -473,10 +481,9 @@ fn link_files(pages: &[DxfSheet], dwg: bool) -> BTreeMap<Destination, String> {
     let mut out = BTreeMap::new();
     for p in pages {
         let dxf = dxf_file_name(&p.label);
-        let file = if dwg {
-            format!("{}.dwg", dxf.trim_end_matches(".dxf"))
-        } else {
-            dxf
+        let file = match dxf.strip_suffix(".dxf") {
+            Some(stem) if dwg => format!("{stem}.dwg"),
+            _ => dxf,
         };
         out.entry(p.destination).or_insert_with(|| file.clone());
         for (_, list) in &p.layers {
@@ -789,7 +796,9 @@ impl Writer<'_> {
                     if self.own_texts(inst.symbol, full, &items[i..i + own]) {
                         i += own;
                     }
-                    out.push(insert(self, item, inst.symbol, full, dl));
+                    let (ent, beside) = insert(self, item, inst.symbol, full, dl);
+                    out.push(ent);
+                    out.extend(beside);
                 }
             }
         }
@@ -915,8 +924,15 @@ fn unturned(t: Transform) -> bool {
 }
 
 /// The `INSERT` of the instance `item` of `symbol` under `full`, with the attributes the sheet gives its entity as its
-/// `ATTRIB`s (and, when it is unturned, its block's `ATTDEF`s).
-fn insert(w: &mut Writer<'_>, item: &Item, symbol: SymbolGeomId, full: Transform, dl: Option<Layer>) -> Ent {
+/// `ATTRIB`s (and, when it is unturned, its block's `ATTDEF`s); and an attribute that is no line of text drawn as it is
+/// beside it, never lost.
+fn insert(
+    w: &mut Writer<'_>,
+    item: &Item,
+    symbol: SymbolGeomId,
+    full: Transform,
+    dl: Option<Layer>,
+) -> (Ent, Vec<Ent>) {
     let lay = w.layer(dl, "insert");
     let at = full.apply(Pt2::ORIGIN);
     let (x, y) = w.xy(at);
@@ -927,6 +943,7 @@ fn insert(w: &mut Writer<'_>, item: &Item, symbol: SymbolGeomId, full: Transform
     let s = f64::from(w.sheet.scale_ppb) / 1e9;
     let sx = if full.orient.is_mirrored() { -s } else { s };
     let mut children = Vec::new();
+    let mut beside = Vec::new();
     if let Some(e) = item.entity
         && let Some(attrs) = w.sheet.attributes.get(&e)
     {
@@ -946,38 +963,39 @@ fn insert(w: &mut Writer<'_>, item: &Item, symbol: SymbolGeomId, full: Transform
                     }
                     children.push(Ent::new("ATTRIB", texts.clone(), text::attrib_body(&p, &tag)));
                 }
-                // Not a line of text: drawn as it is, never lost.
-                None => {
-                    let mut drawn = Vec::new();
-                    w.items(
-                        std::slice::from_ref(&a.line),
-                        Transform::IDENTITY,
-                        Some(Layer::Labels),
-                        None,
-                        0,
-                        &mut drawn,
-                    );
-                    children.extend(drawn.into_iter().filter(|d| d.kind == "TEXT").map(|d| Ent {
-                        kind: "ATTRIB",
-                        ..d
-                    }));
-                }
+                None => w.items(
+                    std::slice::from_ref(&a.line),
+                    Transform::IDENTITY,
+                    Some(Layer::Labels),
+                    None,
+                    0,
+                    &mut beside,
+                ),
             }
         }
     }
     let follows = if children.is_empty() { "" } else { " 66\n1\n" };
     let body = format!(
         "100\nAcDbBlockReference\n{follows}  2\n{}\n 10\n{x}\n 20\n{y}\n 30\n0\n 41\n{}\n 42\n{}\n 43\n{}\n 50\n{}\n",
-        text::dxf_text(&w.set.names.get(&symbol).cloned().unwrap_or_else(|| block_name(&symbol))),
+        text::dxf_text(
+            &w.set
+                .names
+                .get(&symbol)
+                .cloned()
+                .unwrap_or_else(|| block_name(&symbol))
+        ),
         real(sx),
         real(s),
         real(s),
         real(angle),
     );
-    Ent {
-        children,
-        ..Ent::new("INSERT", lay, body)
-    }
+    (
+        Ent {
+            children,
+            ..Ent::new("INSERT", lay, body)
+        },
+        beside,
+    )
 }
 
 /// The STYLE name of a face: its family in capitals with `-` for spaces, `-BOLD` for a bold face.
@@ -1028,7 +1046,14 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
     // pictures make the tables and objects.
     let mut model = Vec::new();
     for (layer, list) in &sheet.layers {
-        w.items(&list.items, Transform::IDENTITY, Some(*layer), None, 0, &mut model);
+        w.items(
+            &list.items,
+            Transform::IDENTITY,
+            Some(*layer),
+            None,
+            0,
+            &mut model,
+        );
     }
     // The attributes of an entity that inserts nothing, as texts of their own.
     for (e, attrs) in &sheet.attributes {
@@ -1455,7 +1480,11 @@ mod tests {
         assert_eq!(get(style, 3), Some("routed-gothic.ttf"));
         assert_eq!(get(style, 1001), Some("ACAD"));
         assert_eq!(get(style, 1000), Some("Routed Gothic"));
-        let text = |t: &str| ents.iter().find(|e| e[0].1 == "TEXT" && get(e, 1) == Some(t)).unwrap();
+        let text = |t: &str| {
+            ents.iter()
+                .find(|e| e[0].1 == "TEXT" && get(e, 1) == Some(t))
+                .unwrap()
+        };
         assert_eq!(get(text("K1"), 40), Some("0.736"));
         assert_eq!(get(text("K1"), 7), Some("EW-ROUTED-GOTHIC"));
         assert_eq!(get(text("K2"), 40), Some("0.731136"));
@@ -1512,7 +1541,10 @@ mod tests {
             (
                 Layer::Symbols,
                 DisplayList {
-                    items: ids.iter().map(|id| Item::instance(*id, Transform::IDENTITY)).collect(),
+                    items: ids
+                        .iter()
+                        .map(|id| Item::instance(*id, Transform::IDENTITY))
+                        .collect(),
                 },
             )
         };
@@ -1553,7 +1585,15 @@ mod tests {
                 Item::glyphs(run_of(key(0), "M", at + mm_pt(1, 1))).with_entity(e),
             ]
         };
-        let mut first = sheet("101", vec![(Layer::Symbols, DisplayList { items: placed(k1, mm_pt(50, 50)) })]);
+        let mut first = sheet(
+            "101",
+            vec![(
+                Layer::Symbols,
+                DisplayList {
+                    items: placed(k1, mm_pt(50, 50)),
+                },
+            )],
+        );
         let attribute = |tag: &str, text: &str, at: Pt2| DxfAttribute {
             tag: tag.to_owned(),
             line: Item::glyphs(run_of(key(0), text, at)),
@@ -1563,14 +1603,27 @@ mod tests {
             vec![
                 attribute("TAG", "-K1", mm_pt(60, 40)),
                 DxfAttribute {
-                    line: attribute("", "102-B2", mm_pt(60, 44)).line.with_link(Link::Source(target)),
+                    line: attribute("", "102-B2", mm_pt(60, 44))
+                        .line
+                        .with_link(Link::Source(target)),
                     tag: "CROSS_REFERENCE".to_owned(),
                 },
                 attribute("CROSS_REFERENCE", "102-B3", mm_pt(60, 48)),
             ],
         );
-        first.layers[0].1.items.extend(placed(EntityRef(Uuid::from_u128(13)), mm_pt(150, 50)));
-        let second = sheet("102", vec![(Layer::Symbols, DisplayList { items: placed(k2, mm_pt(50, 50)) })]);
+        first.layers[0]
+            .1
+            .items
+            .extend(placed(EntityRef(Uuid::from_u128(13)), mm_pt(150, 50)));
+        let second = sheet(
+            "102",
+            vec![(
+                Layer::Symbols,
+                DisplayList {
+                    items: placed(k2, mm_pt(50, 50)),
+                },
+            )],
+        );
         let geometry = Arc::new(DisplayList::new());
         let pages: Vec<DxfSheet> = [first, second]
             .into_iter()
@@ -1605,7 +1658,11 @@ mod tests {
             .collect();
         assert_eq!(
             attribs,
-            [("TAG", "-K1"), ("CROSS_REFERENCE", "102-B2"), ("CROSS_REFERENCE_2", "102-B3")]
+            [
+                ("TAG", "-K1"),
+                ("CROSS_REFERENCE", "102-B2"),
+                ("CROSS_REFERENCE_2", "102-B3")
+            ]
         );
         assert_eq!(get(&ents[at + 2], 1001), Some("PE_URL"));
         assert_eq!(get(&ents[at + 2], 1000), Some("102.dxf"));
@@ -1616,7 +1673,11 @@ mod tests {
             .position(|e| get(e, 0) == Some("BLOCK") && get(e, 2) == Some("Coil R0"))
             .unwrap();
         assert_eq!(get(&ents[begin], 70), Some("2"));
-        let end = begin + ents[begin..].iter().position(|e| get(e, 0) == Some("ENDBLK")).unwrap();
+        let end = begin
+            + ents[begin..]
+                .iter()
+                .position(|e| get(e, 0) == Some("ENDBLK"))
+                .unwrap();
         let content = &ents[begin + 1..end];
         let defs: Vec<&str> = content
             .iter()
@@ -1626,9 +1687,14 @@ mod tests {
         assert_eq!(defs, ["TAG", "CROSS_REFERENCE", "CROSS_REFERENCE_2"]);
         let own: Vec<_> = content.iter().filter(|e| get(e, 0) == Some("TEXT")).collect();
         assert_eq!(own.len(), 1);
-        assert_eq!((get(own[0], 1), get(own[0], 10), get(own[0], 20)), (Some("M"), Some("1"), Some("-1")));
+        assert_eq!(
+            (get(own[0], 1), get(own[0], 10), get(own[0], 20)),
+            (Some("M"), Some("1"), Some("-1"))
+        );
         assert!(
-            !ents.iter().any(|e| get(e, 0) == Some("TEXT") && get(e, 1) == Some("M") && get(e, 330) != get(own[0], 330)),
+            !ents.iter().any(|e| get(e, 0) == Some("TEXT")
+                && get(e, 1) == Some("M")
+                && get(e, 330) != get(own[0], 330)),
             "neither insert writes the block's own text again"
         );
         // A link names the DWG files on request.
@@ -1639,7 +1705,11 @@ mod tests {
                 ..options
             },
         );
-        assert!(entities(&dwg.files[0].text).iter().any(|e| get(e, 1000) == Some("102.dwg")));
+        assert!(
+            entities(&dwg.files[0].text)
+                .iter()
+                .any(|e| get(e, 1000) == Some("102.dwg"))
+        );
     }
 
     /// A PNG picture is an `IMAGE` stretched over its rectangle that names the picture file written once for the set,
@@ -1665,7 +1735,10 @@ mod tests {
                 vec![(
                     Layer::Frame,
                     DisplayList {
-                        items: vec![Item::image(Arc::clone(&image), Rect::from_points(mm_pt(10, 20), mm_pt(50, 40)))],
+                        items: vec![Item::image(
+                            Arc::clone(&image),
+                            Rect::from_points(mm_pt(10, 20), mm_pt(50, 40)),
+                        )],
                     },
                 )],
             )
@@ -1674,7 +1747,10 @@ mod tests {
         assert_eq!(set.pictures.len(), 1, "one file for the set");
         assert_eq!(set.pictures[0].name, "picture-abababababab.png");
         let ents = entities(&set.files[1].text);
-        let img = ents.iter().find(|e| get(e, 0) == Some("IMAGE")).expect("an image");
+        let img = ents
+            .iter()
+            .find(|e| get(e, 0) == Some("IMAGE"))
+            .expect("an image");
         assert_eq!(get(img, 8), Some("EW-FRAME"));
         // The lower left corner on the y-up sheet, 10 mm a pixel along, 10 mm a pixel up.
         assert_eq!((get(img, 10), get(img, 20)), (Some("10"), Some("257")));
@@ -1683,7 +1759,10 @@ mod tests {
         let def = ents.iter().find(|e| get(e, 0) == Some("IMAGEDEF")).unwrap();
         assert_eq!(get(img, 340), get(def, 5));
         assert_eq!(get(def, 1), Some("picture-abababababab.png"));
-        let reactor = ents.iter().find(|e| get(e, 0) == Some("IMAGEDEF_REACTOR")).unwrap();
+        let reactor = ents
+            .iter()
+            .find(|e| get(e, 0) == Some("IMAGEDEF_REACTOR"))
+            .unwrap();
         assert_eq!(get(img, 360), get(reactor, 5));
         assert_eq!(get(reactor, 330), get(img, 5));
         let classes: Vec<&str> = ents
@@ -1691,7 +1770,10 @@ mod tests {
             .filter(|e| get(e, 0) == Some("CLASS"))
             .map(|e| get(e, 1).unwrap())
             .collect();
-        assert_eq!(classes, ["IMAGE", "IMAGEDEF", "IMAGEDEF_REACTOR", "RASTERVARIABLES"]);
+        assert_eq!(
+            classes,
+            ["IMAGE", "IMAGEDEF", "IMAGEDEF_REACTOR", "RASTERVARIABLES"]
+        );
         // Bytes that do not decode are not written, and counted.
         let broken = Arc::new(ImageData {
             sha256: [1; 32],
@@ -1700,7 +1782,12 @@ mod tests {
         });
         let page = sheet(
             "3",
-            vec![(Layer::Frame, DisplayList { items: vec![Item::image(broken, Rect::from_point(Pt2::ORIGIN))] })],
+            vec![(
+                Layer::Frame,
+                DisplayList {
+                    items: vec![Item::image(broken, Rect::from_point(Pt2::ORIGIN))],
+                },
+            )],
         );
         let set = dxf(&[page], &DxfOptions::default());
         assert_eq!(set.files[0].skipped_images, 1);

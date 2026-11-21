@@ -117,7 +117,13 @@ impl PagePictures {
         for (name, class, flags, count, entity) in [
             ("IMAGE", "AcDbRasterImage", 2175, self.images.len(), 1),
             ("IMAGEDEF", "AcDbRasterImageDef", 0, self.used.len(), 0),
-            ("IMAGEDEF_REACTOR", "AcDbRasterImageDefReactor", 1, self.images.len(), 0),
+            (
+                "IMAGEDEF_REACTOR",
+                "AcDbRasterImageDefReactor",
+                1,
+                self.images.len(),
+                0,
+            ),
             ("RASTERVARIABLES", "AcDbRasterVariables", 0, 1, 0),
         ] {
             let _ = write!(
@@ -151,7 +157,10 @@ impl PagePictures {
             );
         }
         for (k, ((p, pixel), def)) in self.used.iter().zip(&self.defs).enumerate() {
-            let _ = write!(s, "  0\nIMAGEDEF\n  5\n{def}\n102\n{{ACAD_REACTORS\n330\n{dict}\n");
+            let _ = write!(
+                s,
+                "  0\nIMAGEDEF\n  5\n{def}\n102\n{{ACAD_REACTORS\n330\n{dict}\n"
+            );
             for (_, _, reactor) in self.images.iter().filter(|(i, _, _)| *i == k) {
                 let _ = write!(s, "330\n{reactor}\n");
             }

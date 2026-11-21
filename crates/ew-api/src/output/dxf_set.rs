@@ -7,8 +7,8 @@
 
 use std::collections::BTreeMap;
 
-use ew_dl::ew_units::{Pt2, Rect};
 use ew_derive::ew_ids::Uuid;
+use ew_dl::ew_units::{Pt2, Rect};
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Link};
 use ew_scene::page::{PageView, SlotTextBox};
 use ew_schema::SlotKind;
@@ -113,7 +113,8 @@ pub(super) fn split_attributes(
     // The item links of the texts: invisible paths with a link source, by their entity.
     let mut links: BTreeMap<EntityRef, Vec<(Pt2, Link)>> = BTreeMap::new();
     for item in &labels.items {
-        if let (ItemKind::Path(p), Some(e), Some(link @ Link::Source(_))) = (&item.kind, item.entity, item.link)
+        if let (ItemKind::Path(p), Some(e), Some(link @ Link::Source(_))) =
+            (&item.kind, item.entity, item.link)
             && p.stroke.is_none()
             && p.fill.is_none()
             && let Some(b) = bounds(item)
@@ -142,7 +143,12 @@ pub(super) fn split_attributes(
                     .find(|s| inside(s.rect, b))
                     .and_then(|s| def.text_slots.get(usize::from(s.slot)))
                     .map(|slot| attribute_name(&slot.kind))
-                    .or_else(|| rv.pins.iter().find(|p| p.text == text).map(|p| designation(p.idx)))
+                    .or_else(|| {
+                        rv.pins
+                            .iter()
+                            .find(|p| p.text == text)
+                            .map(|p| designation(p.idx))
+                    })
                     .or_else(|| {
                         view.strip_tags
                             .iter()
@@ -200,6 +206,9 @@ mod tests {
     fn a_designation_and_a_property_are_named_in_capitals() {
         assert_eq!(attribute_name(&SlotKind::CpDesignation(0)), "DESIGNATION_1");
         let prop = ew_mltext::Ident::from_input("rated-voltage").unwrap();
-        assert_eq!(attribute_name(&SlotKind::UserProp(prop)), "PROPERTY_RATED_VOLTAGE");
+        assert_eq!(
+            attribute_name(&SlotKind::UserProp(prop)),
+            "PROPERTY_RATED_VOLTAGE"
+        );
     }
 }
