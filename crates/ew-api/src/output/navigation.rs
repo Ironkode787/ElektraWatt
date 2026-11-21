@@ -755,6 +755,8 @@ impl Session {
     pub fn page_rows(&self) -> Vec<PageRow> {
         let q = self.query();
         let order = q.get::<PageOrder>(());
+        // A page's title as its pages print it, in the project's language (a list's title, doc 09 §3.8).
+        let lang = ew_derive::print_language(&q);
         order
             .entries
             .iter()
@@ -763,7 +765,7 @@ impl Session {
                 PageRow {
                     id: page_uuid(e.page),
                     folio: e.folio.clone(),
-                    title: neutral(&q.get::<PageTitle>(e.page)),
+                    title: ew_derive::text_in(&q.get::<PageTitle>(e.page), lang.as_ref()).to_owned(),
                     kind: kind_name(&e.kind),
                     kind_rank: kind_rank(&e.kind),
                     generated: matches!(e.page, PageRef::Generated { .. }),

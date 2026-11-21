@@ -885,12 +885,15 @@ pub fn pdf_options(
     }
 }
 
-/// The outline title of a page: "101 Power Supply 1 - Main Current".
+/// The outline title of a page: "101 Power Supply 1 - Main Current", its title in the project's language.
 pub fn outline_title(q: &Q, entry: &PageEntry) -> String {
     format!(
         "{} {}",
         entry.folio,
-        view::neutral(&q.get::<PageTitle>(entry.page))
+        ew_derive::text_in(
+            &q.get::<PageTitle>(entry.page),
+            ew_derive::print_language(q).as_ref()
+        )
     )
 }
 

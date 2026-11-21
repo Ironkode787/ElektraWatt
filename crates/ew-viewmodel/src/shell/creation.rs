@@ -424,6 +424,21 @@ pub(super) fn report_kind_words(kind: &str) -> String {
         .to_owned()
 }
 
+/// A report kind's name in every language the program ships, as a block's multi-language title
+/// (`{"en-GB": "Terminal diagram", "nl-NL": "Klemmenschema"}`); its key for a kind without words.
+fn report_kind_title(kind: &str) -> Value {
+    let texts = strings::shipped_texts(&format!("report-kind-{}", kind.replace('_', "-")));
+    if texts.is_empty() {
+        return Value::String(kind.to_owned());
+    }
+    Value::Object(
+        texts
+            .into_iter()
+            .map(|(tag, text)| (tag.to_owned(), Value::String(text.to_owned())))
+            .collect(),
+    )
+}
+
 /// The ID text of the section whose folio range contains `number`, else `None` (a page outside every section is front
 /// matter).
 fn section_of(shell: &ShellModel, number: u32) -> Option<String> {
@@ -2197,7 +2212,9 @@ impl ShellModel {
     }
 
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
-    /// of the report kind `kind` (its key, `tube_list`, or its name, `Tube list`) from folio `folio` on, titled `title` (else the report's name), on the shipped frame without the grid (embedded
+    /// of the report kind `kind` (its key, `tube_list`, or its name, `Tube list`) from folio `folio` on, titled `title` (else
+    /// the report's name in every shipped language), on the set's own frame (`Session::new_list_form`, doc 09 §3.8), else
+    /// on the shipped frame without the grid (embedded
     /// with its title block where the project does not hold it, as the company-standard wizard's blocks are), in the
     /// section whose folio range holds the folio. In the window without a kind or a folio its form opens, the first
     /// folio after the last page proposed.
@@ -2259,20 +2276,24 @@ impl ShellModel {
                 strings::format(key!("error-first-folio"), &[&folio]),
             );
         };
+        // The set's own frame when it has one (doc 09 §3.8), else the shipped frame without the grid.
+        let own = self.project.as_ref().and_then(|p| p.session.new_list_form());
         let (Some(form), Some(project)) = (
-            crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME),
+            own.map(|id| Value::String(id.to_string()))
+                .or_else(|| crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME)),
             &self.project,
         ) else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let held = form.as_str().is_some_and(|id| {
-            project
-                .session
-                .query()
-                .forms()
-                .iter()
-                .any(|(f, _)| f.as_uuid().to_string() == id)
-        });
+        let held = own.is_some()
+            || form.as_str().is_some_and(|id| {
+                project
+                    .session
+                    .query()
+                    .forms()
+                    .iter()
+                    .any(|(f, _)| f.as_uuid().to_string() == id)
+            });
         let mut params = json!({
             "source": { "kind": kind },
             "form": form,
@@ -2284,13 +2305,13 @@ impl ShellModel {
                 Value::Array(crate::wizard::shipped_forms_lacking(&project.session, &keys));
         }
         // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
-        // the page tree, not a bare folio (the persona re-test).
-        let title = if title.is_empty() {
-            report_kind_words(&kind)
+        // the page tree, not a bare folio (the persona re-test): in every language the program ships, so that its pages
+        // print it in the project's language (doc 09 §3.8). A title typed stays as typed.
+        params["title"] = if title.is_empty() {
+            report_kind_title(&kind)
         } else {
-            title
+            Value::String(title)
         };
-        params["title"] = Value::String(title);
         if let Some(id) = section_of(self, number) {
             params["section"] = Value::String(id);
         }

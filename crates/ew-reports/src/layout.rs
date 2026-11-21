@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
-//! §3.2), and the frame a list's pages print on (§3.8).
+//! §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{
-    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, ReportBlock, RowTemplate, WrapPolicy,
+    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock, RowTemplate,
+    WrapPolicy,
 };
 use ew_derive::ew_units::Nm;
-use ew_derive::{DeriveNote, FrameSettings, Q};
+use ew_derive::{DeriveNote, DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
 
 use crate::rowset::RowKind;
 
@@ -250,6 +251,38 @@ pub fn list_rows(q: &Q, form: &FormDef, caption: bool, legend: bool) -> i64 {
     form.list_area(title_block.map(|c| &c.item), caption, legend).rows
 }
 
+/// The set's own frame (doc 09 §3.8): the frame defaults' `default` when it names a form the project holds, else the
+/// frame most of the drawn pages print on (a title page and a page without a frame form of the project not counted; a
+/// tie goes to the frame that comes first in page order); `None` for a project with neither. A new list starts on it.
+pub fn set_frame(q: &Q) -> Option<Id<FormDef>> {
+    if let Some(default) = q
+        .get::<FrameSettings>(())
+        .default
+        .filter(|d| q.forms().get(*d).is_some())
+    {
+        return Some(default);
+    }
+    let order = q.get::<DrawnPageOrder>(());
+    most_used(order.entries.iter().filter_map(|e| {
+        let PageRef::Drawn(p) = e.page else { return None };
+        let page = q.pages().get(p).filter(|pg| pg.kind != PageType::TitlePage)?;
+        frame_form_of(q, page.form, &page.kind, true)
+    }))
+}
+
+/// The most frequent of `frames`; on a tie the one that came first.
+fn most_used(frames: impl IntoIterator<Item = Id<FormDef>>) -> Option<Id<FormDef>> {
+    let mut counts: Vec<(Id<FormDef>, usize)> = Vec::new();
+    for f in frames {
+        match counts.iter_mut().find(|(g, _)| *g == f) {
+            Some((_, n)) => *n += 1,
+            None => counts.push((f, 1)),
+        }
+    }
+    // `max_by_key` keeps the last of equal keys: the first one to come is the one kept by a reversed scan.
+    counts.iter().rev().max_by_key(|(_, n)| *n).map(|(f, _)| *f)
+}
+
 /// The frame the pages of a block on `form` print on (doc 09 §3.8): `form`, on the set's paper. When the set's frame
 /// (the frame defaults' `default`, a form the project holds) has another sheet size than `form`, the set's frame;
 /// so a set made A3 prints its lists on A3. A project without frame defaults, or a form it does not hold, keeps
@@ -263,5 +296,21 @@ pub fn list_frame(q: &Q, form: Id<FormDef>) -> Id<FormDef> {
     match (size(form), q.get::<FrameSettings>(()).default) {
         (Some(own), Some(set)) if size(set).is_some_and(|s| s != own) => set,
         _ => form,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_derive::ew_ids::Uuid;
+
+    /// The set's frame is the one most pages print on; of two as often, the one the first page prints on.
+    #[test]
+    fn the_most_used_frame_wins_and_a_tie_goes_to_the_first() {
+        let [a, b, c] = [1, 2, 3].map(|n| Id::<FormDef>::from_uuid(Uuid::from_u128(n)));
+        assert_eq!(most_used([c, b, b]), Some(b));
+        assert_eq!(most_used([a, b, b, a, c]), Some(a));
+        assert_eq!(most_used([b, a, a, b]), Some(b));
+        assert_eq!(most_used(Vec::new()), None);
     }
 }

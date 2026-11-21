@@ -22,7 +22,8 @@ use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::MlText;
 use ew_schema::{
-    Device, FormKind, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation, Sha256,
+    Device, FormDef, FormKind, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation,
+    Sha256,
 };
 
 use super::columns::column;
@@ -133,26 +134,26 @@ fn index_word(s: &IndexState) -> String {
     }
 }
 
-/// A form kind in words.
-fn form_kind_word(k: &FormKind) -> &'static str {
+/// A form kind in words, in the reader's language.
+fn form_kind_word(k: &FormKind) -> crate::Text {
     match k {
-        FormKind::Frame => "Frame",
-        FormKind::TitleBlock => "Title block",
-        FormKind::Cover => "Cover",
-        FormKind::Divider => "Section divider",
-        FormKind::Report => "Report page",
-        FormKind::Label => "Label",
-        _ => "Form",
+        FormKind::Frame => api_text!("library-form-frame"),
+        FormKind::TitleBlock => api_text!("library-form-title-block"),
+        FormKind::Cover => api_text!("library-form-cover"),
+        FormKind::Divider => api_text!("library-form-divider"),
+        FormKind::Report => api_text!("library-form-report"),
+        FormKind::Label => api_text!("library-form-label"),
+        _ => api_text!("library-form-other"),
     }
 }
 
 /// A form's name in words: its kind and the last segment of its key read as words, a segment of up to three
 /// letters and digits in capitals (`ew.titleblock.qet-a4` → "Title block QET A4", `ew.frame.qet-a4-landscape-cover`
 /// → "Frame QET A4 landscape cover"); the kind alone without a key. Forms carry no name of their own.
-fn form_name(kind: &FormKind, key: Option<&str>) -> String {
+fn form_name(kind: &FormKind, key: Option<&str>) -> crate::Text {
     let word = form_kind_word(kind);
     let Some(last) = key.and_then(|k| k.rsplit('.').next()).filter(|l| !l.is_empty()) else {
-        return word.to_owned();
+        return word;
     };
     let words: Vec<String> = last
         .split(['-', '_'])
@@ -166,10 +167,106 @@ fn form_name(kind: &FormKind, key: Option<&str>) -> String {
         })
         .collect();
     if words.is_empty() {
-        word.to_owned()
+        word
     } else {
-        format!("{word} {}", words.join(" "))
+        api_text!("library-form-named", word, words.join(" "))
     }
+}
+
+/// The name of a form without a key (one an import made, doc 09 §3.8), so that a person tells a project's own frames
+/// apart: its kind, its paper and the pages that print on it ("Frame A4 landscape, on 101, 102, 103 …"; a title block
+/// the pages whose frame names it; "on no page" for none).
+fn own_form_name(q: &Q, id: Id<FormDef>, form: &FormDef) -> crate::Text {
+    let (w, h) = (form.sheet.width.0, form.sheet.height.0);
+    let mm = |nm: i64| (nm + 500_000) / 1_000_000;
+    let (short, long) = (mm(w.min(h)), mm(w.max(h)));
+    const ISO: [(&str, i64, i64); 6] = [
+        ("A0", 841, 1189),
+        ("A1", 594, 841),
+        ("A2", 420, 594),
+        ("A3", 297, 420),
+        ("A4", 210, 297),
+        ("A5", 148, 210),
+    ];
+    let paper = ISO
+        .iter()
+        .find(|(_, s, l)| (short - s).abs() <= 1 && (long - l).abs() <= 1)
+        .map_or_else(
+            || format!("{} × {} mm", mm(w), mm(h)),
+            |(name, _, _)| (*name).to_owned(),
+        );
+    let order = q.get::<ew_derive::DrawnPageOrder>(());
+    let folios: Vec<&str> = order
+        .entries
+        .iter()
+        .filter(|e| {
+            let ew_derive::PageRef::Drawn(p) = e.page else {
+                return false;
+            };
+            let Some(page) = q.pages().get(p) else {
+                return false;
+            };
+            let Some(frame) = ew_derive::frame_form_of(q, page.form, &page.kind, true) else {
+                return false;
+            };
+            frame == id
+                || (form.kind == FormKind::TitleBlock
+                    && q.forms()
+                        .get(frame)
+                        .is_some_and(|f| f.item.title_block == Some(id)))
+        })
+        .map(|e| e.folio.as_str())
+        .collect();
+    let on: crate::TextArg = match folios.as_slice() {
+        [] => api_text!("library-form-on-no-page").into(),
+        [a, b, c, _, ..] => format!("{a}, {b}, {c} …").into(),
+        some => some.join(", ").into(),
+    };
+    let kind = form_kind_word(&form.kind);
+    if w > h {
+        api_text!("library-form-own-landscape", kind, paper, on)
+    } else {
+        api_text!("library-form-own-portrait", kind, paper, on)
+    }
+}
+
+/// A held form's name in words, in the reader's language: [`form_name`] for a form with a key, else
+/// [`own_form_name`].
+fn form_text(q: &Q, id: Id<FormDef>) -> Option<crate::Text> {
+    let c = q.forms().get(id)?;
+    Some(match c.item.meta.key.as_ref() {
+        Some(key) => form_name(&c.item.kind, Some(key.as_str())),
+        None => own_form_name(q, id, &c.item),
+    })
+}
+
+/// The forms a page or a report block prints on (every held form but a title block and a label), each by its name in
+/// the reader's language, in the order of their English names; two of one name are numbered (two frames on no page).
+/// The Form row's choices (doc 09 §3.8).
+pub(crate) fn frame_forms(q: &Q) -> Vec<(Uuid, crate::Text)> {
+    let mut forms: Vec<(Uuid, crate::Text, String)> = q
+        .forms()
+        .iter()
+        .filter(|(_, c)| !matches!(c.item.kind, FormKind::TitleBlock | FormKind::Label))
+        .filter_map(|(id, _)| {
+            let name = form_text(q, id)?;
+            let english = name.to_string();
+            Some((id.as_uuid(), name, english))
+        })
+        .collect();
+    forms.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.2, &b.2).then_with(|| a.0.cmp(&b.0)));
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    forms
+        .into_iter()
+        .map(|(id, name, english)| {
+            let n = seen.entry(english).or_insert(0);
+            *n += 1;
+            match *n {
+                1 => (id, name),
+                n => (id, api_text!("library-form-numbered", name, n.to_string())),
+            }
+        })
+        .collect()
 }
 
 /// The name a held copy is listed by (words, never an ID): a part's number, a symbol's or manufacturer's
@@ -213,10 +310,7 @@ pub(crate) fn copy_name(q: &Q, kind: Kind, copy: Uuid) -> Option<String> {
                 .or_else(|| key(c, |i| &i.meta))
                 .or_else(|| Some(format!("{a}.{b}.{d}")))
         }),
-        Kind::Form => q
-            .forms()
-            .get(Id::from_uuid(copy))
-            .map(|c| form_name(&c.item.kind, c.item.meta.key.as_ref().map(|k| k.as_str()))),
+        Kind::Form => form_text(q, Id::from_uuid(copy)).map(|t| t.to_string()),
         Kind::Manufacturer => q
             .manufacturers()
             .get(Id::from_uuid(copy))

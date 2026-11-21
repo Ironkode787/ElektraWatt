@@ -249,6 +249,83 @@ fn two_strips_terminals_of_one_designation_read_apart_in_the_terminal_diagram() 
     );
 }
 
+/// The starter A4 frame with the grid made a frame of the sample's own (its library ID the project's, no key, as an
+/// import makes one): its copy ID and its `lib/` JSON form.
+fn own_frame(s: &Session) -> (String, Value) {
+    let text = ew_api::output::SHIPPED_FORMS
+        .iter()
+        .find(|t| t.contains("\"ew.frame.qet-a4-landscape-grid\""))
+        .expect("the starter frame with the grid");
+    let ew_schema::LibDocument::Form(mut copy) = ew_schema::LibDocument::from_json(text).expect("a form")
+    else {
+        panic!("not a form");
+    };
+    let project = s.query().project().id.as_uuid();
+    let item = ew_derive::ew_ids::Uuid::from_u128(0x7e01);
+    copy.library_id = ew_derive::ew_ids::Id::from_uuid(project);
+    copy.item_id = ew_derive::ew_ids::Id::from_uuid(item);
+    copy.id = ew_derive::ew_ids::v5::lib_copy_id(project, item);
+    copy.item.meta.key = None;
+    let doc = ew_schema::LibDocument::Form(copy.clone());
+    copy.sha256 = ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a hash"));
+    let id = copy.id.as_uuid().to_string();
+    (
+        id,
+        serde_json::to_value(ew_schema::LibDocument::Form(copy)).expect("its JSON"),
+    )
+}
+
+/// A new list starts on the set's own frame (doc 09 §3.8): without frame defaults the frame most drawn pages print
+/// on, which a project of its own frames has, and the Form row names that frame by its paper and its pages, never by
+/// an ID; frame defaults on the starter forms start it on the starter frame.
+#[test]
+fn a_new_list_starts_on_the_frame_most_pages_print_on() {
+    let mut s = common::sample();
+    assert_eq!(s.new_list_form(), None, "the sample is on the starter forms");
+    let (own, json) = own_frame(&s);
+    common::run_cmd(&mut s, "library.embed", json!({ "copies": [json] }));
+    common::run_cmd(&mut s, "project.frames.set", json!({}));
+    let q = s.query();
+    let pages: Vec<String> = q
+        .pages()
+        .iter()
+        .filter(|(_, p)| p.kind != ew_schema::PageType::TitlePage)
+        .map(|(id, _)| id.as_uuid().to_string())
+        .collect();
+    drop(q);
+    let (most, rest) = pages.split_at(pages.len() / 2 + 1);
+    common::run_cmd(
+        &mut s,
+        "fields.set",
+        json!({"kind": "page", "targets": most, "path": "form", "value": own}),
+    );
+    assert_eq!(s.new_list_form().map(|u| u.to_string()), Some(own.clone()));
+    // The Form row offers the project's forms by name: the own frame by its paper and the pages it is on.
+    let choices = s.field_choices("page", "form", "");
+    let named = choices
+        .iter()
+        .find(|c| c.value == json!(own))
+        .expect("the own frame is offered");
+    assert!(
+        named.text.starts_with("Frame A4 landscape, on "),
+        "{}",
+        named.text
+    );
+    assert!(!choices.iter().any(|c| c.text.contains(&own)), "no ID is a name");
+    let texts: std::collections::BTreeSet<&String> = choices.iter().map(|c| &c.text).collect();
+    assert_eq!(texts.len(), choices.len(), "every form reads apart");
+    // Typed by its name, the row takes it.
+    let parsed = s
+        .parse_field_input("page", "form", &named.text)
+        .expect("its name");
+    assert_eq!(parsed.value, json!(own));
+    assert!(!rest.is_empty());
+    // Frame defaults on a starter frame: a new list starts on the starter frame.
+    let starter = ew_api::shipped_frames(ew_api::output::GRID_FRAME).expect("the shipped frames");
+    common::run_cmd(&mut s, "project.frames.set", starter);
+    assert_eq!(s.new_list_form(), None);
+}
+
 /// FT-1826: a set whose frame is the starter A3 frame prints its lists on it, as many rows to a page as its list area
 /// holds, more than the A4 one.
 #[test]

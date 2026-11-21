@@ -833,7 +833,7 @@ Built-in report row queries, user SQL reports through the sandboxed query API of
 | `src/kinds/terminal_overview.rs` |  | `terminal_overview`: the terminal strip overview (FR-REP-010). |
 | `src/kinds/toc.rs` |  | `toc`: the table of contents (FR-REP-003; folio 2 of the standard layout). |
 | `src/kinds/wire_list.rs` |  | `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout). |
-| `src/layout.rs` |  | The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5, §3.2), and the frame a list's pages print on (§3.8). |
+| `src/layout.rs` |  | The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5, §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8). |
 | `src/lib.rs` |  | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`, pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]). |
 | `src/paginate.rs` |  | Pagination of an arranged row set into generated pages (doc 09 §3.2, FR-REP-002, FR-PAG-011, FR-PAG-030). |
 | `src/queries.rs` |  | The query families of the report engine: a block's arranged rows and its generated pages. |

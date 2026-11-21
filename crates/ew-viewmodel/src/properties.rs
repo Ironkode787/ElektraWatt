@@ -109,12 +109,12 @@ pub struct Choices {
 }
 
 /// Whether a value type has a choice editor with options (doc 16 §6.3: a combo for enums and colours, a picker for part
-/// copies and structure nodes).
+/// copies, a page's or a report block's form and structure nodes).
 pub fn has_options(ty: &FieldType) -> bool {
     matches!(
         ty.inner(),
         FieldType::Enum { .. } | FieldType::Colour | FieldType::Slot
-    ) || matches!(ty.inner(), FieldType::Link { kind } if kind == "part")
+    ) || matches!(ty.inner(), FieldType::Link { kind } if kind == "part" || kind == "form")
         || ty.is_part_uses()
 }
 
@@ -970,7 +970,8 @@ pub fn is_more_key(key: &str) -> bool {
 }
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
-/// with its key and lineage, the tag counter, the form's UUID and the members of a page's connection
+/// with its key and lineage, the tag counter, a page's form (empty unless the page has one of its own; a report block's
+/// form, which it always has, is a choice of the project's forms in the open, doc 09 §3.8), the members of a page's connection
 /// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice, a connection's route, drawn on the canvas, and its mark that the program routed it.
 const ADVANCED: &[&str] = &[
     "$v",
@@ -1008,7 +1009,7 @@ fn primary_rank(kind: &str, row: &PropRow) -> Option<usize> {
 
 /// Whether `row` is an internal member, shown only while Advanced is on.
 pub fn is_advanced(row: &PropRow) -> bool {
-    !is_derived(row) && ADVANCED.iter().any(|p| under(&row.path, p))
+    !is_derived(row) && row.key != "report_block/form" && ADVANCED.iter().any(|p| under(&row.path, p))
 }
 
 /// The groups of a section in display order with their rows: Main first when the kind has primary rows, then each
@@ -1505,6 +1506,101 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
                 format!("{sign}{whole}.{}", format!("{part:06}").trim_end_matches('0'))
             };
             *text = strings::format(key!("status-grid-mm"), &[&strings::decimal(&mm)]);
+        }
+    }
+}
+
+/// Writes a report block's printed columns (their headings, the block's own else the report's), a printed column's
+/// column and each of its own rows' texts by the report's column headings in the window's language (doc 09 §3.8), never
+/// a column's key; `words` gives the headings of a block's report by key. The JSON values are unchanged.
+pub fn report_columns_in_words(
+    sheet: &mut PropertySheet,
+    words: impl Fn(ew_api::output::Uuid) -> Vec<(String, String)>,
+) {
+    for section in sheet.sections.iter_mut().filter(|s| s.kind == "report_block") {
+        let [id] = section.targets.as_slice() else {
+            continue;
+        };
+        let labels = words(*id);
+        if labels.is_empty() {
+            continue;
+        }
+        let label = |key: &str| {
+            labels
+                .iter()
+                .find(|(k, _)| k == key)
+                .map_or_else(|| key.to_owned(), |(_, l)| l.clone())
+        };
+        let text_of = |v: &Value| match v {
+            Value::String(s) => s.clone(),
+            Value::Object(m) => {
+                let lang = strings::rule_language();
+                m.get(lang)
+                    .or_else(|| m.values().next())
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_owned()
+            }
+            _ => String::new(),
+        };
+        for row in &mut section.rows {
+            let RowValue::One { json, text } = &mut row.value else {
+                continue;
+            };
+            let path = row.path.as_str();
+            if path == "columns" {
+                // The printed columns by their headings: a column's own, else the report's.
+                let heads: Vec<String> = json
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(
+                        |c| match c.get("heading").map(text_of).filter(|h| !h.is_empty()) {
+                            Some(h) => h,
+                            None => label(c.get("key").and_then(Value::as_str).unwrap_or_default()),
+                        },
+                    )
+                    .collect();
+                *text = heads.join(", ");
+            } else if path.starts_with("columns[") && path.ends_with("].key") {
+                *text = label(json.as_str().unwrap_or_default());
+            } else if path.starts_with("added_rows[") && path.ends_with("].cells") {
+                let cells: Vec<String> = json
+                    .as_object()
+                    .into_iter()
+                    .flatten()
+                    .map(|(k, v)| format!("{} {}", label(k), text_of(v)))
+                    .collect();
+                *text = cells.join("; ");
+            }
+        }
+    }
+}
+
+/// Writes a page's and a report block's Form row by the form's name in the window's language (doc 09 §3.8), never its
+/// ID; `forms` gives the project's forms by name, asked only when a Form row names one. The JSON value is unchanged.
+pub fn forms_in_words(
+    sheet: &mut PropertySheet,
+    forms: impl FnOnce() -> Vec<(ew_api::output::Uuid, String)>,
+) {
+    let (mut forms, mut names) = (Some(forms), None);
+    for section in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "page" || s.kind == "report_block")
+    {
+        for row in section.rows.iter_mut().filter(|r| r.path == "form") {
+            let RowValue::One {
+                json: Value::String(id),
+                text,
+            } = &mut row.value
+            else {
+                continue;
+            };
+            let names: &Vec<_> = names.get_or_insert_with(|| forms.take().map_or_else(Vec::new, |f| f()));
+            if let Some((_, name)) = names.iter().find(|(form, _)| form.to_string() == *id) {
+                *text = name.clone();
+            }
         }
     }
 }

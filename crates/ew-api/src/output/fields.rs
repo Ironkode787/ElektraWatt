@@ -876,6 +876,18 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
             }
         }
     }
+    if name == "page" || name == "report_block" {
+        // The form a page or a block prints on is one of the project's forms, chosen by its name (doc 09 §3.8).
+        let form = FieldType::Link {
+            kind: "form".to_owned(),
+        };
+        for f in out.iter_mut().filter(|f| f.path == "form") {
+            f.ty = match f.ty {
+                FieldType::Optional(_) => FieldType::Optional(Box::new(form.clone())),
+                _ => form.clone(),
+            };
+        }
+    }
     if name == "connection" {
         // A fluid line's line kind, `fields.set` path `line_kind` (`kind.fluid.line_kind`); the sheet
         // shows it on fluid lines only.
@@ -1388,6 +1400,11 @@ pub(crate) trait ParseCx {
     fn date_format(&self) -> DateFormat {
         DateFormat::Iso8601
     }
+    /// The forms a page or a report block prints on (every held form but a title block and a label): (copy ID, its
+    /// name in words, in the reader's language). Empty by default.
+    fn frame_forms(&self) -> Vec<(String, crate::Text)> {
+        Vec::new()
+    }
 }
 
 fn invalid(text: crate::Text) -> InputError {
@@ -1747,6 +1764,34 @@ pub(crate) fn parse_input(
             value: serde_json::json!({ "copy": copy }),
             notes: Vec::new(),
         }),
+        // A page's or a report block's form by its name, as the row's choices word it, or by its copy ID.
+        FieldType::Link { kind } if kind == "form" => {
+            let t = text.trim();
+            let forms = cx.frame_forms();
+            match forms
+                .iter()
+                .find(|(id, name)| name.to_string().eq_ignore_ascii_case(t) || id == t)
+            {
+                Some((id, _)) => Ok(ParsedInput {
+                    value: Value::String(id.clone()),
+                    notes: Vec::new(),
+                }),
+                None => {
+                    // The forms' names joined by "; ", each in the reader's language.
+                    let names = forms.into_iter().rev().fold(None, |tail, (_, name)| {
+                        Some(match tail {
+                            None => crate::TextArg::from(name),
+                            Some(tail) => api_text!("refusal-words-list", name, tail).into(),
+                        })
+                    });
+                    Err(invalid(api_text!(
+                        "refusal-input-form",
+                        t,
+                        names.unwrap_or_else(|| "".into())
+                    )))
+                }
+            }
+        }
         FieldType::Slot => {
             let t = text.trim();
             if t.is_empty() {
@@ -1999,6 +2044,16 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
             }
             all
         }
+        // A page's or a report block's form: the project's forms a page prints on, by name.
+        FieldType::Link { kind } if kind == "form" => cx
+            .frame_forms()
+            .into_iter()
+            .map(|(id, name)| FieldChoice {
+                text: name.to_string(),
+                value: Value::String(id),
+                note: None,
+            })
+            .collect(),
         // The minimal part chooser: one part use of quantity 1 replaces the list.
         FieldType::List(_) if ty.is_part_uses() => part_choices(
             cx,

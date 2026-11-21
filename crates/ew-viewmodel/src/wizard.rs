@@ -888,13 +888,13 @@ impl Draft {
         };
         STANDARD_REPORT_LAYOUT
             .iter()
-            .map(|(kind, folio, title)| {
+            .map(|(kind, folio, english, dutch)| {
                 let mut params = json!({
                     "source": { "kind": kind },
                     "form": form,
                     "form_copies": copies,
                     "first_folio": folio,
-                    "title": title,
+                    "title": { "en-GB": english, "nl-NL": dutch },
                 });
                 if let Some(s) = sections.iter().find(|s| s.first <= *folio && *folio <= s.last) {
                     params["section"] = json!({ "ref": format!("section:{}", s.number) });
@@ -1264,7 +1264,7 @@ impl Draft {
                 return out;
             }
         };
-        let reports: &[(&str, u32, &str)] = if self.get("report_blocks") == "standard" {
+        let reports: &[(&str, u32, &str, &str)] = if self.get("report_blocks") == "standard" {
             &STANDARD_REPORT_LAYOUT
         } else {
             &[]
@@ -1272,8 +1272,8 @@ impl Draft {
         let page = |folio: &u32, title: &str| format!("    {folio} {}", title.replace(" {n}", ""));
         let outside: Vec<String> = reports
             .iter()
-            .filter(|(_, folio, _)| !sections.iter().any(|s| s.first <= *folio && *folio <= s.last))
-            .map(|(_, folio, title)| page(folio, title))
+            .filter(|(_, folio, _, _)| !sections.iter().any(|s| s.first <= *folio && *folio <= s.last))
+            .map(|(_, folio, title, _)| page(folio, title))
             .collect();
         if !outside.is_empty() {
             out.push(strings::text(key!("wizard-example-outside")).to_owned());
@@ -1296,8 +1296,8 @@ impl Draft {
             out.extend(
                 reports
                     .iter()
-                    .filter(|(_, folio, _)| s.first <= *folio && *folio <= s.last)
-                    .map(|(_, folio, title)| page(folio, title)),
+                    .filter(|(_, folio, _, _)| s.first <= *folio && *folio <= s.last)
+                    .map(|(_, folio, title, _)| page(folio, title)),
             );
         }
         out
@@ -1309,7 +1309,7 @@ impl Draft {
         let mut out: Vec<String> = if self.get("report_blocks") == "standard" {
             STANDARD_REPORT_LAYOUT
                 .iter()
-                .map(|(kind, folio, _)| {
+                .map(|(kind, folio, _, _)| {
                     strings::format(
                         key!("wizard-example-report"),
                         &[
@@ -1618,7 +1618,7 @@ mod tests {
             assert!(strings::lookup(s.hint_key().as_str()).is_some());
             assert!(strings::lookup(s.later_key().as_str()).is_some());
         }
-        for (kind, _, _) in STANDARD_REPORT_LAYOUT {
+        for (kind, _, _, _) in STANDARD_REPORT_LAYOUT {
             assert!(
                 strings::lookup(&format!("wizard-report-{kind}")).is_some(),
                 "{kind}"

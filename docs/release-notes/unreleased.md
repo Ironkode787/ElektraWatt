@@ -142,6 +142,17 @@ change here.
   A3 at 141 %, and stamp it "scaled n %" (FT-1826)
 - behaviour-change: the terminal diagram's first column is the strip, so two strips' terminals 1 read apart; its CSV
   and XLSX have the column too (FT-1805)
+- behaviour-change: Report block… makes a new list on the set's own frame and title block: the frame defaults' frame,
+  else the frame most pages print on (a set brought in from QElectroTech); a set on the starter forms keeps the
+  starter frame (doc 09 §3.8)
+- behaviour-change: a page's and a report block's Form row in Properties chooses among the project's forms by name, in
+  the window's language; a frame of the project's own reads by its paper and the pages it is on ("Frame A4 landscape,
+  on 101, 102, 103 …", "Kader A4 liggend, op 101, 102, 103 …")
+- behaviour-change: a list's title the program writes (Report block… without a title, the template wizard's standard
+  layout) is in English and Dutch and prints in the project's language, in the title block, the contents, the page
+  tab and the PDF outline; a title a person types stays as typed
+- text-change: Properties names a report block's printed column by its heading in the window's language ("Column:
+  Strip"), never by its key
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

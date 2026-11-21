@@ -1339,10 +1339,16 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
     crate::common::copy_dir(std::path::Path::new(crate::common::SAMPLE), &dir);
     let blocks = dir.join("report-blocks.jsonl");
     let text = std::fs::read_to_string(&blocks).unwrap();
-    let edited = text.replace(",\"title\":\"Table of Contents {n}\"", "").replace(
-        "\"title\":\"Revision Overview\"",
-        "\"title\":\"revision_overview\"",
-    );
+    // The standard layout's titles are in English and Dutch (doc 09 §3.8).
+    let edited = text
+        .replace(
+            ",\"title\":{\"en-GB\":\"Table of Contents {n}\",\"nl-NL\":\"Inhoudsopgave {n}\"}",
+            "",
+        )
+        .replace(
+            "\"title\":{\"en-GB\":\"Revision Overview\",\"nl-NL\":\"Revisieoverzicht\"}",
+            "\"title\":\"revision_overview\"",
+        );
     assert!(edited != text);
     std::fs::write(&blocks, edited).unwrap();
     // The blocks of the table of contents and of the revision overview, by their kind.

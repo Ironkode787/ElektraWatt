@@ -145,6 +145,13 @@ impl ParseCx for SheetCx<'_> {
         self.q.project().settings.formatting.date_format()
     }
 
+    fn frame_forms(&self) -> Vec<(String, crate::Text)> {
+        crate::output::navigators::libraries::frame_forms(self.q)
+            .into_iter()
+            .map(|(id, name)| (id.to_string(), name))
+            .collect()
+    }
+
     fn company_codes(&self) -> Vec<(String, String)> {
         self.q
             .project()

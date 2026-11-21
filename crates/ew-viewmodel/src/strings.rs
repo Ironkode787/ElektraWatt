@@ -443,6 +443,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         .copied()
 }
 
+/// The text of `key` in each shipped language that has it, by its tag (`en-GB` first): a text the program writes into
+/// the project for its pages to print in the project's language (a list's title, doc 09 §3.8).
+pub fn shipped_texts(key: &str) -> Vec<(&'static str, &'static str)> {
+    [("en-GB", en_gb()), ("nl-NL", nl_nl())]
+        .into_iter()
+        .filter_map(|(tag, l)| Some((tag, *l.texts.get(key)?)))
+        .collect()
+}
+
 /// The headers of navigator `nav`'s column `key` (`nav` its word, `pages`) in each shipped language, en-GB first: its
 /// `column-<nav>-<key>` text, else `column-<key>` (a header copied in one language pastes in another).
 pub fn column_labels(nav: &str, key: &str) -> Vec<&'static str> {

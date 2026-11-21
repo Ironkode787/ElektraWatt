@@ -742,6 +742,25 @@ edited; a set that keeps no frame defaults (an older project) prints its lists o
 The rule is `ew_reports::layout::list_frame`; the pagination and the page output read it, so a list's pages and their
 frame never disagree. The title block is the frame's.
 
+**The frame a new list starts on.** Output ▸ Report block… gives a new list the set's own frame
+(`Session::new_list_form`): the frame defaults' `default` when it names a form the project holds, else the frame most of
+the drawn pages print on (a title page not counted; a tie goes to the frame that comes first in page order,
+`ew_reports::layout::set_frame`). A project without drawn pages, or whose frame is a starter form, starts it on the
+starter frame without the grid (embedded where the project lacks it), which the list then prints on the set's paper. So
+a set brought in from QElectroTech, whose pages each name a frame of its own and which keeps no frame defaults, makes
+its lists on its own frame and title block. The QElectroTech import does not write the frame defaults: it gives every
+page the frame of its diagram, and the diagrams of one project may have different frames; the rule above finds the
+set's frame from its pages, however the set was made.
+
+**The Form row.** A page's and a report block's Form row in Properties is a choice of the project's forms (every held
+form but a title block and a label), by name: a starter form by its kind and its key in words ("Frame QET A4 landscape
+nogrid"), a form of the project's own, which carries no name, by its kind, its paper and the pages that print on it
+("Frame A4 landscape, on 101, 102, 103 …", "on no page"; two of one name are numbered). The kind and the words around the
+paper are in the window's language ("Kader A4 liggend, op 101, 102"), in English on the command line; the key's words of
+a starter form stay as the key has them. Typed, the row takes such a name or the form's ID and refuses anything else in
+words, listing the forms. A block's Form row stands in the open; a page's waits under Advanced, as a page without a form
+of its own takes the frame defaults.
+
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
 title block. The table keeps the house table's distances to the starter A4 frame's drawing area (1.30 mm in on the
@@ -781,6 +800,13 @@ legend, the rows' texts, the terminal states, the title block's labels and multi
 the language's decimal sign unless the project sets its own separator. A project without a language prints English
 as before. The CSV and XLSX headers stay English.
 
+**The title.** A list's title is the person's or the program's. One a person types is kept as typed (a neutral text,
+printed in every language). The program's own is a multi-language text in every language it ships: Report block…
+without a title writes the report's name ("Terminal diagram", "Klemmenschema"), the template wizard the standard
+layout's titles ("Terminal Diagram {n}", "Klemmenschema {n}"); so the title block, the contents, the page tab and the
+PDF outline print the program's title in the project's language. A title written before as one English text is a text
+like a person's and stays English.
+
 **The terminal diagram names the strip** (FT-1805): its first column, `strip`, prints each terminal's strip tag, so
 two strips' terminals 1 read apart; a block of one strip may leave the column out.
 
@@ -788,8 +814,9 @@ two strips' terminals 1 read apart; a block of one strip may leave the column ou
 legend and a row per column of the kind (its heading in the window's language): a tick to print it, a heading of its
 own, its width and its order; Apply writes them in one undo step (`fields.set_many`). Output ▸ Rows of your own…
 shows the printed columns and the list's own rows with three empty rows to fill; a row left empty is left out.
-Properties of a block shows its caption, legend, printed columns and rows in words. **By a command:** `fields.set` on
-the block, paths `columns`, `caption`, `legend` and `added_rows`.
+Properties of a block shows its caption, legend, printed columns, each printed column and its rows by the report's
+column headings in the window's language, never a column's key. **By a command:** `fields.set` on the block, paths
+`columns`, `caption`, `legend` and `added_rows`.
 
 **A3 and the print.** The starter forms hold an A3 landscape frame with the grid and its title block, in the A4 ones'
 manner: QElectroTech's 60 px columns and 80 px rows, 25 by 12, printed at the A4 frame's scale and offset, so a text

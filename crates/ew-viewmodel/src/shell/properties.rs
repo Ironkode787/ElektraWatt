@@ -106,6 +106,16 @@ fn grid_choices() -> Vec<(String, Value)> {
         .collect()
 }
 
+/// The choices of a page's and a report block's Form row: the project's forms, each by its name in the window's
+/// language (doc 09 §3.8).
+fn form_choices(session: &ew_api::Session) -> Vec<(ew_api::output::Uuid, String)> {
+    session
+        .frame_forms()
+        .iter()
+        .map(|(id, name)| (*id, super::text_words(name)))
+        .collect()
+}
+
 /// The grid row and value of a tag typed for a device whose tag on show is `shown` (letter `letter`, counter
 /// `counter`) when the typed text changes exactly one of the two and keeps the rest: `-102F1` → `-102K1` is the Letter
 /// row with `K`, `-X1031` → `-X1032` the Counter row with `2` (the strip format `{letter}{page}{counter}`). `None` for
@@ -461,6 +471,10 @@ impl ShellModel {
         crate::properties::grid_in_words(&mut sheet);
         crate::properties::style_in_words(&mut sheet);
         crate::properties::ends_in_words(&mut sheet, |id| p.session.selection_words(id));
+        crate::properties::report_columns_in_words(&mut sheet, |id| {
+            p.session.report_column_words(id, strings::rule_language())
+        });
+        crate::properties::forms_in_words(&mut sheet, || form_choices(&p.session));
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
@@ -1099,6 +1113,15 @@ impl ShellModel {
                     .filter(|(text, _)| text.to_lowercase().contains(&f))
                     .collect()
             }
+            // A page's or a report block's form: the project's forms by name in the window's language.
+            (_, crate::properties::FieldType::Link { kind }) if kind == "form" => {
+                let f = filter.to_lowercase();
+                form_choices(&p.session)
+                    .into_iter()
+                    .filter(|(_, name)| name.to_lowercase().contains(&f))
+                    .map(|(id, name)| (name, Value::String(id.to_string())))
+                    .collect()
+            }
             // An enumerated row's choices are its words in the UI language, filtered by those words.
             (_, crate::properties::FieldType::Enum { options }) => {
                 let f = filter.to_lowercase();
@@ -1343,6 +1366,17 @@ impl ShellModel {
         {
             self.props.choices = None;
             return self.commit_value(key, value, text.to_owned(), Vec::new());
+        }
+        // A form typed by its name in the window's language is that form.
+        if matches!(row.ty.inner(), crate::properties::FieldType::Link { kind } if kind == "form")
+            && let Some((id, _)) = self.project.as_ref().and_then(|p| {
+                form_choices(&p.session)
+                    .into_iter()
+                    .find(|(_, name)| name.eq_ignore_ascii_case(text.trim()))
+            })
+        {
+            self.props.choices = None;
+            return self.commit_value(key, Value::String(id.to_string()), text.to_owned(), Vec::new());
         }
         // A word of an enumerated row is read back as its stored word.
         let typed = crate::properties::enum_value_of(&section.kind, &row, text);

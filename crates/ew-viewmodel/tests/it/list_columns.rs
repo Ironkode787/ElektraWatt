@@ -110,3 +110,135 @@ fn list_columns_and_rows_of_your_own_write_the_list_on_show() {
             .all(|r| r.cells.iter().all(String::is_empty))
     );
 }
+
+/// The text of row `key` of the window's property sheet.
+fn row_text(s: &ew_viewmodel::shell::ShellModel, key: &str) -> String {
+    let sheet = s.properties().sheet().expect("a sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"));
+    ew_viewmodel::properties::value_text(row)
+}
+
+/// A list's title prints in the project's language unless a person typed one (doc 09 §3.8): the standard layout's
+/// 903 and a new list without a title of its own print Dutch in a Dutch project; a typed title stays as typed.
+#[test]
+fn a_lists_title_prints_in_the_projects_language_unless_typed() {
+    let tmp = Tmp::new("list-title");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "project.languages.set", "params": {"source": "nl-NL"}}),
+    );
+    let title = |s: &ew_viewmodel::shell::ShellModel, folio: &str| {
+        s.page_rows()
+            .iter()
+            .find(|r| r.folio == folio)
+            .map(|r| r.title.clone())
+            .unwrap_or_else(|| panic!("a page {folio}"))
+    };
+    assert_eq!(title(&s, "903"), "Klemmenschema 1");
+    done(
+        &mut s,
+        "report_block.new",
+        json!({"kind": "terminal_diagram", "folio": "950"}),
+    );
+    let dutch = ew_viewmodel::strings::shipped_texts("report-kind-terminal-diagram")
+        .into_iter()
+        .find(|(tag, _)| *tag == "nl-NL")
+        .map(|(_, t)| t)
+        .expect("the Dutch name");
+    assert_eq!(title(&s, "950"), dutch);
+    done(
+        &mut s,
+        "report_block.new",
+        json!({"kind": "wire_list", "folio": "960", "title": "Draden"}),
+    );
+    assert_eq!(title(&s, "960"), "Draden");
+}
+
+/// A printed column's row in Properties names the column by its heading in the window's language, never by its key.
+#[test]
+fn a_printed_columns_row_reads_its_heading_not_its_key() {
+    let tmp = Tmp::new("list-column-row");
+    let mut s = tmp.sample_in(Mode::Headless, true, "903");
+    done(&mut s, "report_block.columns", json!({}));
+    let mut table = form(&s).table.expect("the columns' table");
+    for r in table.rows.iter_mut().skip(1) {
+        r.cells[0].clear();
+    }
+    let strip = table.rows[0].key.clone();
+    done(
+        &mut s,
+        "report_block.columns",
+        json!({ "columns": param(&table) }),
+    );
+    assert_eq!(row_text(&s, "report_block/columns[0].key"), strip);
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    let column = row_text(&s, "report_block/columns[0].key");
+    assert_ne!(column, "strip");
+    assert_ne!(column, strip, "the Dutch heading");
+    assert_eq!(row_text(&s, "report_block/columns"), column);
+}
+
+/// A list's Form row names its form in the window's language (doc 09 §3.8): the row, its choices and a name typed in
+/// that language, never an ID.
+#[test]
+fn a_lists_form_row_reads_in_the_windows_language() {
+    let tmp = Tmp::new("list-form-row");
+    let mut s = tmp.sample_in(Mode::Headless, true, "903");
+    // The list's block itself, as the Report blocks navigator selects it: its rows are edited there.
+    let block = s
+        .properties()
+        .sheet()
+        .expect("a sheet")
+        .sections
+        .iter()
+        .find(|x| x.kind == "report_block")
+        .expect("the list's block")
+        .targets[0];
+    done(&mut s, "select.set", json!({ "ids": [block.to_string()] }));
+    let frame = |lang: &str| {
+        ew_viewmodel::strings::shipped_texts("library-form-frame")
+            .into_iter()
+            .find(|(tag, _)| *tag == lang)
+            .map(|(_, t)| t)
+            .expect("the word")
+    };
+    let english = row_text(&s, "report_block/form");
+    assert!(english.starts_with(frame("en-GB")), "{english}");
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    let dutch = row_text(&s, "report_block/form");
+    assert!(dutch.starts_with(frame("nl-NL")), "{dutch}");
+    done(&mut s, "props.edit", json!({ "row": "report_block/form" }));
+    let items = s.properties().choices().expect("the forms").items.clone();
+    assert!(items.iter().any(|(t, _)| *t == dutch), "{items:?}");
+    done(&mut s, "props.cancel", json!({}));
+    let (other, value) = items
+        .iter()
+        .find(|(t, _)| *t != dutch && t.starts_with(frame("nl-NL")))
+        .cloned()
+        .expect("another frame");
+    done(
+        &mut s,
+        "props.set",
+        json!({ "row": "report_block/form", "value": other }),
+    );
+    assert_eq!(row_text(&s, "report_block/form"), other);
+    let sheet = s.properties().sheet().expect("a sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == "report_block/form")
+        .expect("the Form row");
+    assert!(
+        matches!(&row.value, ew_viewmodel::properties::RowValue::One { json, .. } if *json == value),
+        "{:?}",
+        row.value
+    );
+}

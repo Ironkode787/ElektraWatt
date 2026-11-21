@@ -39,18 +39,39 @@ pub const SHIPPED_COLOUR_PROFILES: [(&str, &str); 2] = [
 ];
 
 /// The standard layout of the report blocks (doc 16 section 9.2, step 9): report kind, first folio and page
-/// title. The sample project's blocks are these, on the shipped frame without the grid; its three terminal-diagram
-/// blocks 903 to 905 select one strip each, which a basic project has none of, so the basic project holds one
-/// terminal-diagram block at 903 over every strip (its pages continue as 903.1, 903.2), and the titles that name
-/// the strip or the device of a selection (`{strip}`, `{device}`) count pages instead (`{n}`).
-pub const STANDARD_REPORT_LAYOUT: [(&str, u32, &str); 9] = [
-    ("toc", 2, "Table of Contents {n}"),
-    ("parts_summary", 901, "Partlist {n}"),
-    ("terminal_diagram", 903, "Terminal Diagram {n}"),
-    ("cable_overview_diagrams", 906, "Cable Overview and Diagrams"),
-    ("wire_list", 907, "Wire List {n}"),
-    ("plc_overview", 908, "PLC Overview {n}"),
-    ("potential_overview", 909, "Potential Overview"),
-    ("structure_overview", 910, "Device Tag Overview {n}"),
-    ("revision_overview", 911, "Revision Overview"),
+/// title in English and in Dutch, which the block holds as one multi-language title so that its pages print it in the
+/// project's language (doc 09 §3.8). The sample project's blocks are these, on the shipped frame without the grid; its
+/// three terminal-diagram blocks 903 to 905 select one strip each, which a basic project has none of, so the basic
+/// project holds one terminal-diagram block at 903 over every strip (its pages continue as 903.1, 903.2), and the
+/// titles that name the strip or the device of a selection (`{strip}`, `{device}`) count pages instead (`{n}`).
+pub const STANDARD_REPORT_LAYOUT: [(&str, u32, &str, &str); 9] = [
+    ("toc", 2, "Table of Contents {n}", "Inhoudsopgave {n}"),
+    ("parts_summary", 901, "Partlist {n}", "Stuklijst {n}"),
+    (
+        "terminal_diagram",
+        903,
+        "Terminal Diagram {n}",
+        "Klemmenschema {n}",
+    ),
+    (
+        "cable_overview_diagrams",
+        906,
+        "Cable Overview and Diagrams",
+        "Kabeloverzicht en kabelschema's",
+    ),
+    ("wire_list", 907, "Wire List {n}", "Draadlijst {n}"),
+    ("plc_overview", 908, "PLC Overview {n}", "PLC-overzicht {n}"),
+    (
+        "potential_overview",
+        909,
+        "Potential Overview",
+        "Potentiaaloverzicht",
+    ),
+    (
+        "structure_overview",
+        910,
+        "Device Tag Overview {n}",
+        "Kenmerkenoverzicht {n}",
+    ),
+    ("revision_overview", 911, "Revision Overview", "Revisieoverzicht"),
 ];

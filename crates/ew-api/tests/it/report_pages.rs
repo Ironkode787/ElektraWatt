@@ -39,10 +39,8 @@ fn toc_block() -> Id<ReportBlock> {
 }
 
 fn title(q: &Q, page: PageRef) -> String {
-    q.get::<PageTitle>(page)
-        .as_neutral()
-        .unwrap_or_default()
-        .to_owned()
+    // The sample prints English: its titles' English (the standard layout's are in English and Dutch).
+    ew_derive::text_in(&q.get::<PageTitle>(page), None).to_owned()
 }
 
 #[test]
