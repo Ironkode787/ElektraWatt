@@ -441,6 +441,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `part.box_details` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_box_details` `crates/ew-viewmodel/src/shell/symbol_editor/device_box.rs` | `action-part-box-details` |
 | `part.redraw_boxes` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_redraw_boxes` `crates/ew-viewmodel/src/shell/symbol_editor/device_box.rs` | `action-part-redraw-boxes` |
 | `part.save` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_save` `crates/ew-viewmodel/src/shell/part_dialog.rs` | `action-part-save`, `part-save-another` |
+| `part.remove_own` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_remove_own` `crates/ew-viewmodel/src/shell/part_dialog.rs` | `action-part-remove-own`, `part-remove-own` |
 | `paste.resolve` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_paste_resolve` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-paste-resolve` |
 | `keymap.search` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_keymap_search` `crates/ew-viewmodel/src/shell/keymaps.rs` | `action-keymap-search`, `keymap-search-hint` |
 | `keymap.record_start` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_keymap_record_start` `crates/ew-viewmodel/src/shell/keymaps.rs` | `action-keymap-record-start` |

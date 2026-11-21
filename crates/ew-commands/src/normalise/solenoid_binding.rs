@@ -228,10 +228,10 @@ impl Normaliser for SolenoidBinding {
             let Some(section) = module_section(tx, &dev) else {
                 continue;
             };
+            let count = section.channel_count();
             let Some(map) = section.positions else {
                 continue;
             };
-            let count = section.channels.as_ref().map_or(0, |c| c.count);
             let triggered = valves.remove(&module).unwrap_or_default();
             let new_numbers = fresh.remove(&module).unwrap_or_default();
             // the child at each position, the lower ID first

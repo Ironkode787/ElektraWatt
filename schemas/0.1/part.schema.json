@@ -2271,6 +2271,13 @@
           ],
           "description": "The limits of a station of this part (`Max_Module`, the maximum I/O lengths; EW-PLC-011)."
         },
+        "more_channels": {
+          "description": "The channel specs after `channels`, of other kinds (doc 10 §2.6, FT-1766: a card of 8 inputs and 8 outputs),\neach numbered on from the one before ([`PlcSection::channel_specs`]). Appended last and omitted when empty, so a\npart of one kind writes the bytes it wrote before; an older build keeps it in `extra` and makes the first spec's\nchannels alone.",
+          "items": {
+            "$ref": "#/$defs/ChannelSpec"
+          },
+          "type": "array"
+        },
         "pin_of": {
           "anyOf": [
             {

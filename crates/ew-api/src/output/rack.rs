@@ -139,8 +139,13 @@ pub struct RackView {
 /// in bits (`16 bits in`); empty for a section that gives neither.
 pub fn gives_text(plc: &ew_derive::ew_schema::PlcSection) -> String {
     use ew_derive::ew_schema::IoDir;
-    if let Some(c) = &plc.channels {
-        return format!("{} {}", c.count, ew_derive::channel_kind_word(&c.kind));
+    let specs = plc.channel_specs();
+    if !specs.is_empty() {
+        return specs
+            .iter()
+            .map(|(_, c)| format!("{} {}", c.count, ew_derive::channel_kind_word(&c.kind)))
+            .collect::<Vec<_>>()
+            .join(", ");
     }
     plc.io
         .iter()
@@ -276,13 +281,14 @@ fn card_pins<'a>(
     use ew_derive::ew_schema::ChannelKind;
     let cps: Vec<(u16, &str)> = cps.into_iter().collect();
     let mut out = CardPins::default();
-    if let (Some(spec), Some(pin_of)) = (&plc.channels, &plc.pin_of) {
-        let input = match spec.kind {
-            ChannelKind::Do | ChannelKind::Ao => Some(false),
-            ChannelKind::PowerSupply | ChannelKind::Unknown(_) => None,
-            _ => Some(true),
-        };
-        for n in 0..spec.count {
+    if let Some(pin_of) = &plc.pin_of {
+        for n in 0..plc.channel_count() {
+            // Each channel by its spec's kind (a card of two kinds draws its inputs and outputs apart).
+            let input = plc.spec_of(n).and_then(|(_, spec)| match spec.kind {
+                ChannelKind::Do | ChannelKind::Ao => Some(false),
+                ChannelKind::PowerSupply | ChannelKind::Unknown(_) => None,
+                _ => Some(true),
+            });
             let (Some(input), Some(name)) = (input, ew_derive::channel_pin(pin_of, n)) else {
                 continue;
             };

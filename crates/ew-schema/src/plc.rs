@@ -711,9 +711,44 @@ pub struct PlcSection {
     /// The output current ratings of a module (EW-PLC-014, FR-PLC-048).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ratings: Option<OutputRatings>,
+    /// The channel specs after `channels`, of other kinds (doc 10 §2.6, FT-1766: a card of 8 inputs and 8 outputs),
+    /// each numbered on from the one before ([`PlcSection::channel_specs`]). Appended last and omitted when empty, so a
+    /// part of one kind writes the bytes it wrote before; an older build keeps it in `extra` and makes the first spec's
+    /// channels alone.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub more_channels: Vec<ChannelSpec>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+impl PlcSection {
+    /// The channel specs in channel order, each with the number of its first channel: `channels` from 0, then each
+    /// of `more_channels` from the number after the last of the one before.
+    pub fn channel_specs(&self) -> Vec<(u16, &ChannelSpec)> {
+        let mut first: u16 = 0;
+        let mut out = Vec::new();
+        for spec in self.channels.iter().chain(&self.more_channels) {
+            out.push((first, spec));
+            first = first.saturating_add(spec.count);
+        }
+        out
+    }
+
+    /// The number of channels of every spec together.
+    pub fn channel_count(&self) -> u16 {
+        self.channels
+            .iter()
+            .chain(&self.more_channels)
+            .fold(0u16, |n, s| n.saturating_add(s.count))
+    }
+
+    /// The spec channel `number` belongs to, with the number of its first channel; `None` past the last channel.
+    pub fn spec_of(&self, number: u16) -> Option<(u16, &ChannelSpec)> {
+        self.channel_specs()
+            .into_iter()
+            .find(|(first, s)| number >= *first && number - first < s.count)
+    }
 }
 
 /// The limits of a station part (doc 10 §2.8 `Max_Module` and the maximum I/O lengths; EW-PLC-011).

@@ -249,10 +249,11 @@ pub(crate) fn catalogue_plc(part: &Part) -> Option<CataloguePlc> {
     } else if !heads.is_empty() {
         PlcGroup::Interface
     } else {
-        match plc.channels.as_ref().map(|c| &c.kind) {
-            Some(ChannelKind::Di) => PlcGroup::DigitalIn,
-            Some(ChannelKind::Do) => PlcGroup::DigitalOut,
-            Some(ChannelKind::Ai | ChannelKind::Ao) => PlcGroup::Analogue,
+        // A card of two kinds of channels is a mixed card, among the other cards.
+        match plc.channel_specs().as_slice() {
+            [(_, c)] if c.kind == ChannelKind::Di => PlcGroup::DigitalIn,
+            [(_, c)] if c.kind == ChannelKind::Do => PlcGroup::DigitalOut,
+            [(_, c)] if matches!(c.kind, ChannelKind::Ai | ChannelKind::Ao) => PlcGroup::Analogue,
             _ => PlcGroup::OtherCard,
         }
     };

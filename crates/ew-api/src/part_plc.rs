@@ -8,8 +8,9 @@
 //! analogue one a word: `bit_of` `n` or `16n`), the pins as the part's CP pattern (the channel pins in channel order,
 //! then the supply pins with their potential roles) and a black-box main function over that pattern, as the starter
 //! cards carry: so a card made here gets its functions and connection points as EW-GEN-DI-1 does, and N1 and N3 give
-//! its channels and their pins. A part's channels are of one kind (`ChannelSpec`): a card with inputs and outputs is
-//! two parts.
+//! its channels and their pins. A card with inputs and outputs has a second kind of channels the other way (FT-1766):
+//! its channels follow the first kind's in number (`PlcSection::more_channels`), each kind's from bit 0 of its
+//! direction's range (`bit_of` a list), its pins by the one pin pattern over every channel.
 
 use ew_derive::channel_pin;
 use ew_mltext::Ident;
@@ -22,10 +23,12 @@ use serde_json::Value;
 use crate::part_editor::{DraftMessage, enum_words, message, stored_word};
 
 /// The members of the PLC form, in its order (`part.field`'s `plc.<member>`).
-pub const PLC_MEMBERS: [&str; 10] = [
+pub const PLC_MEMBERS: [&str; 12] = [
     "role",
     "kind",
     "count",
+    "kind2",
+    "count2",
     "data_type",
     "designation",
     "pin_of",
@@ -47,6 +50,10 @@ pub struct PlcRows {
     pub kind: String,
     /// The number of channels, or empty.
     pub count: String,
+    /// The kind of a card's channels the other way (`do` beside `di`), or empty.
+    pub kind2: String,
+    /// The number of those channels, or empty.
+    pub count2: String,
     /// The data type of a channel's tag ("Bool").
     pub data_type: String,
     /// The channel designation pattern over `{n}`.
@@ -70,6 +77,8 @@ impl PlcRows {
             "role" => &self.role,
             "kind" => &self.kind,
             "count" => &self.count,
+            "kind2" => &self.kind2,
+            "count2" => &self.count2,
             "data_type" => &self.data_type,
             "designation" => &self.designation,
             "pin_of" => &self.pin_of,
@@ -86,6 +95,8 @@ impl PlcRows {
             "role" => Some(&mut self.role),
             "kind" => Some(&mut self.kind),
             "count" => Some(&mut self.count),
+            "kind2" => Some(&mut self.kind2),
+            "count2" => Some(&mut self.count2),
             "data_type" => Some(&mut self.data_type),
             "designation" => Some(&mut self.designation),
             "pin_of" => Some(&mut self.pin_of),
@@ -112,10 +123,23 @@ impl PlcRows {
         self.count.trim().parse().ok()
     }
 
-    /// The pin of each channel by the pin pattern: `(channel, pin)` in channel order; `None` without channels or
-    /// pattern, or when the pattern gives no pin for a channel.
+    /// The count of the second kind's channels, when a second kind is named and its count is a number.
+    fn second_count(&self) -> Option<u16> {
+        (!self.kind2.trim().is_empty())
+            .then(|| self.count2.trim().parse().ok())
+            .flatten()
+    }
+
+    /// The channels of both kinds together.
+    fn all_channels(&self) -> Option<u16> {
+        let n = self.channel_count()?;
+        Some(n.saturating_add(self.second_count().unwrap_or(0)))
+    }
+
+    /// The pin of each channel by the pin pattern: `(channel, pin)` in channel order, both kinds'; `None` without
+    /// channels or pattern, or when the pattern gives no pin for a channel.
     pub fn pins(&self) -> Option<Vec<(u16, String)>> {
-        let n = self.channel_count().filter(|n| *n > 0)?;
+        let n = self.all_channels().filter(|n| *n > 0)?;
         let pattern = PinMap::Pattern(self.pin_of.trim().to_owned());
         if self.pin_of.trim().is_empty() {
             return None;
@@ -123,19 +147,36 @@ impl PlcRows {
         (0..n).map(|c| channel_pin(&pattern, c).map(|p| (c, p))).collect()
     }
 
-    /// The I/O the channels occupy: (direction word `in` or `out`, bits); `None` for a kind without process data in
-    /// the form.
-    pub fn io(&self) -> Option<(&'static str, u32)> {
-        let n = u32::from(self.channel_count()?);
-        let (dir, per) = match self.kind.trim() {
-            "di" | "counter" => ("in", 1),
-            "do" => ("out", 1),
-            "ai" => ("in", 16),
-            "ao" => ("out", 16),
-            _ => return None,
-        };
-        Some((dir, n * per))
+    /// The I/O the channels occupy: (direction word `in` or `out`, bits), the first kind's, then the second kind's;
+    /// empty when a kind has no process data in the form.
+    pub fn io(&self) -> Vec<(&'static str, u32)> {
+        let mut out = Vec::new();
+        for (kind, count) in [
+            (self.kind.trim(), self.channel_count()),
+            (self.kind2.trim(), self.second_count()),
+        ] {
+            if kind.is_empty() && out.len() == 1 {
+                break;
+            }
+            let (Some((dir, per)), Some(n)) = (way(kind), count) else {
+                return Vec::new();
+            };
+            out.push((dir, u32::from(n) * per));
+        }
+        out
     }
+}
+
+/// The direction of the channels of kind `kind` and the bits each takes in its range (`di` in, one bit; `ao` out, a
+/// word); `None` for a kind without process data in the form.
+fn way(kind: &str) -> Option<(&'static str, u32)> {
+    Some(match kind {
+        "di" | "counter" => ("in", 1),
+        "do" => ("out", 1),
+        "ai" => ("in", 16),
+        "ao" => ("out", 16),
+        _ => return None,
+    })
 }
 
 /// The PLC roles the form offers ([`PlcRole`]'s values).
@@ -212,6 +253,44 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
             &[],
         );
     }
+    // A second kind of channels (FT-1766): checked as the first, and going the other way.
+    let (kind2, count2) = (rows.kind2.trim(), rows.count2.trim());
+    if !kind2.is_empty() && !word_ok(kind2, &channel_kind_words()) {
+        say("kind2", ew_commands::text_key!("error-part-plc-kind"), &[kind2]);
+    }
+    match count2.parse::<u16>() {
+        _ if count2.is_empty() => {}
+        Ok(n) if (1..=MAX_CHANNELS).contains(&n) => {
+            if kind2.is_empty() {
+                say("kind2", ew_commands::text_key!("error-part-plc-kind-missing"), &[]);
+            }
+        }
+        _ => say(
+            "count2",
+            ew_commands::text_key!("error-part-plc-count"),
+            &[count2, &MAX_CHANNELS.to_string()],
+        ),
+    }
+    if !kind2.is_empty() && count2.is_empty() {
+        say(
+            "count2",
+            ew_commands::text_key!("error-part-plc-count-missing"),
+            &[],
+        );
+    }
+    if !kind2.is_empty() && word_ok(kind2, &channel_kind_words()) {
+        match (way(kind), way(kind2)) {
+            (Some((a, _)), Some((b, _))) if a != b => {}
+            _ => say("kind2", ew_commands::text_key!("error-part-plc-kind2-way"), &[]),
+        }
+    }
+    if rows.all_channels().is_some_and(|n| n > MAX_CHANNELS) {
+        say(
+            "count2",
+            ew_commands::text_key!("error-part-plc-count"),
+            &[count2, &MAX_CHANNELS.to_string()],
+        );
+    }
     for m in ["data_type", "l_plus", "m"] {
         let t = rows.text(m).trim();
         if !t.is_empty()
@@ -228,7 +307,7 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
         };
         say(missing, ew_commands::text_key!("error-part-plc-supply"), &[]);
     }
-    if let Some(n) = rows.channel_count().filter(|n| (1..=MAX_CHANNELS).contains(n)) {
+    if let Some(n) = rows.all_channels().filter(|n| (1..=MAX_CHANNELS).contains(n)) {
         let pattern = rows.pin_of.trim();
         if !pattern.is_empty() {
             let map = PinMap::Pattern(pattern.to_owned());
@@ -278,11 +357,14 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
 /// pattern, leaves the pattern empty and is kept).
 pub(crate) fn rows_of(s: &PlcSection) -> PlcRows {
     let channels = s.channels.as_ref();
+    let second = s.more_channels.first();
     let supply = s.supply_groups.first();
     PlcRows {
         role: stored_word(&s.role),
         kind: channels.map_or_else(String::new, |c| stored_word(&c.kind)),
         count: channels.map_or_else(String::new, |c| c.count.to_string()),
+        kind2: second.map_or_else(String::new, |c| stored_word(&c.kind)),
+        count2: second.map_or_else(String::new, |c| c.count.to_string()),
         data_type: channels
             .and_then(|c| c.data_type.as_ref())
             .map_or_else(String::new, |d| d.as_str().to_owned()),
@@ -323,7 +405,7 @@ fn slots_text(slots: &[u16]) -> String {
 
 /// Whether two forms give the same pins: the same role, channels, pin pattern and supply pins.
 pub(crate) fn same_pins(a: &PlcRows, b: &PlcRows) -> bool {
-    ["role", "kind", "count", "pin_of", "l_plus", "m"]
+    ["role", "kind", "count", "kind2", "count2", "pin_of", "l_plus", "m"]
         .iter()
         .all(|m| a.text(m).trim() == b.text(m).trim())
 }
@@ -353,11 +435,14 @@ pub(crate) fn keep_unshown(s: &mut PlcSection, held: Option<&PlcSection>, rows: 
     if rows.pin_of.trim().is_empty() && matches!(o.pin_of, Some(PinMap::List(_))) {
         s.pin_of.clone_from(&o.pin_of);
     }
-    if rows.io().is_none() {
+    if rows.io().is_empty() {
         s.io.clone_from(&o.io);
         s.bit_of.clone_from(&o.bit_of);
     }
     if let (Some(c), Some(old)) = (s.channels.as_mut(), o.channels.as_ref()) {
+        c.extra.clone_from(&old.extra);
+    }
+    if let (Some(c), Some(old)) = (s.more_channels.first_mut(), o.more_channels.first()) {
         c.extra.clone_from(&old.extra);
     }
 }
@@ -373,17 +458,42 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
     let ident = |t: &str| (!t.trim().is_empty()).then(|| Ident::from_input(t.trim()).expect("checked"));
     let count = rows.channel_count().filter(|n| *n > 0);
     let kind: Option<ChannelKind> = count.and_then(|_| serde_json::from_value(word(&rows.kind)).ok());
-    let io = rows.io().filter(|_| kind.is_some()).map(|(dir, bits)| IoRange {
-        dir: if dir == "in" { IoDir::In } else { IoDir::Out },
-        bits,
-        class: if matches!(kind, Some(ChannelKind::Ai | ChannelKind::Ao)) {
-            IoClass::Analog
-        } else {
-            IoClass::Digital
-        },
-        extra: Default::default(),
-    });
-    let analog = matches!(kind, Some(ChannelKind::Ai | ChannelKind::Ao));
+    // A card's second kind of channels, the other way (FT-1766).
+    let kind2: Option<ChannelKind> = kind
+        .as_ref()
+        .and(rows.second_count().filter(|n| *n > 0))
+        .and_then(|_| serde_json::from_value(word(&rows.kind2)).ok());
+    let analogue = |k: &Option<ChannelKind>| matches!(k, Some(ChannelKind::Ai | ChannelKind::Ao));
+    let classes = [analogue(&kind), analogue(&kind2)];
+    let io: Vec<IoRange> = rows
+        .io()
+        .into_iter()
+        .zip(classes)
+        .filter(|_| kind.is_some())
+        .map(|((dir, bits), analog)| IoRange {
+            dir: if dir == "in" { IoDir::In } else { IoDir::Out },
+            bits,
+            class: if analog {
+                IoClass::Analog
+            } else {
+                IoClass::Digital
+            },
+            extra: Default::default(),
+        })
+        .collect();
+    let analog = analogue(&kind);
+    // One kind's channels lie on bit `n` (a word each, `16n`); a second kind's, the other way, from bit 0 of its own
+    // range, so the map is a list.
+    let bit_of = match (&kind, &kind2, count, rows.second_count()) {
+        (Some(_), Some(_), Some(n), Some(m)) => {
+            let per = |a: bool| if a { 16 } else { 1 };
+            let first = (0..u32::from(n)).map(|k| k * per(analog));
+            let second = (0..u32::from(m)).map(|k| k * per(analogue(&kind2)));
+            Some(MapSpec::List(first.chain(second).collect()))
+        }
+        (Some(_), ..) => Some(MapSpec::Expr(if analog { "16n" } else { "n" }.to_owned())),
+        _ => None,
+    };
     let pins = rows.pins().filter(|_| kind.is_some()).unwrap_or_default();
     let mut cps: Vec<CpData> = Vec::new();
     let mut add_cp = |designation: &str, role: Option<PotentialType>| {
@@ -414,19 +524,18 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         add_cp(l.as_str(), Some(PotentialType::LPlus));
         add_cp(m.as_str(), Some(PotentialType::M));
     }
+    let designation = (!rows.designation.trim().is_empty()).then(|| rows.designation.trim().to_owned());
     let section = PlcSection {
         role,
-        io: io.into_iter().collect(),
+        io,
         channels: kind.clone().zip(count).map(|(kind, count)| ChannelSpec {
             count,
             kind,
             data_type: ident(&rows.data_type),
-            designation: (!rows.designation.trim().is_empty()).then(|| rows.designation.trim().to_owned()),
+            designation: designation.clone(),
             extra: Default::default(),
         }),
-        bit_of: kind
-            .is_some()
-            .then(|| MapSpec::Expr(if analog { "16n" } else { "n" }.to_owned())),
+        bit_of,
         unbound: None,
         positions: None,
         pin_of: (!pins.is_empty()).then(|| PinMap::Pattern(rows.pin_of.trim().to_owned())),
@@ -450,6 +559,20 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         }),
         iolink: None,
         ratings: None,
+        // The second kind takes the form's data type where it is of the first kind's class (digital or analogue),
+        // and the one name pattern, over its own channels from 0.
+        more_channels: kind2
+            .clone()
+            .zip(rows.second_count())
+            .map(|(k, count)| ChannelSpec {
+                count,
+                data_type: ident(&rows.data_type).filter(|_| analogue(&kind2) == analog),
+                kind: k,
+                designation,
+                extra: Default::default(),
+            })
+            .into_iter()
+            .collect(),
         extra: Default::default(),
     };
     Some((section, cps))

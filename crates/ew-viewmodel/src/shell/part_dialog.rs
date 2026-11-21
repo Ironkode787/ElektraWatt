@@ -1566,10 +1566,12 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
         ));
     }
     let (p, q) = (old.get("plc").unwrap_or(&empty), new.get("plc").unwrap_or(&empty));
-    let plc: [(&str, Key<'static>); 9] = [
+    let plc: [(&str, Key<'static>); 11] = [
         ("/role", key!("part-plc-role")),
         ("/channels/kind", key!("part-plc-kind")),
         ("/channels/count", key!("part-plc-count")),
+        ("/more_channels/0/kind", key!("part-plc-kind2")),
+        ("/more_channels/0/count", key!("part-plc-count2")),
         ("/channels/data_type", key!("part-plc-data_type")),
         ("/channels/designation", key!("part-plc-designation")),
         ("/pin_of", key!("part-plc-pin_of")),
@@ -1582,7 +1584,7 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
         if x != y {
             // A role or a channel kind is a choice of the form, in its words ("Station", "DI").
             let words = |v: Option<&Value>| match path {
-                "/role" | "/channels/kind" => strings::choice_text(&scalar(v)),
+                "/role" | "/channels/kind" | "/more_channels/0/kind" => strings::choice_text(&scalar(v)),
                 _ => scalar(v),
             };
             out.push((strings::text(key).to_owned(), words(x), words(y)));
@@ -1610,6 +1612,7 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
                 for k in [
                     "role",
                     "channels",
+                    "more_channels",
                     "pin_of",
                     "limits",
                     "allowed_slots",

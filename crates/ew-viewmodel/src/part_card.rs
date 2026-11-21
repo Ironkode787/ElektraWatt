@@ -99,7 +99,7 @@ pub fn card_words(card: &PartCard) -> CardWords {
         .iter()
         .map(|(kind, n)| format!("{n} \u{d7} {kind}"))
         .collect();
-    if let Some((kind, n)) = &card.channels {
+    for (kind, n) in &card.channels {
         gives.push(format!("{n} \u{d7} {}", strings::choice_text(kind)));
     }
     for (bus, ports) in &card.interfaces {

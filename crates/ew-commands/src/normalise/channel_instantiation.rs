@@ -10,11 +10,12 @@
 //! section: the rule of `ew_derive::module_part`, so N1 instantiates exactly the channels the derivation reads.
 //!
 //! Effect:
-//! - **Create.** The channels `0 … count − 1` of the section's `channels` spec that the module lacks, each
-//!   `Channel {module, number, kind}` with the ID `v5(module, "channel", number)` (ADR-0004: instantiated
+//! - **Create.** The channels `0 … count − 1` of the section's specs (`channels`, then `more_channels` numbered on
+//!   from it: `PlcSection::channel_specs`) that the module lacks, each
+//!   `Channel {module, number, kind}` of its spec's kind with the ID `v5(module, "channel", number)` (ADR-0004: instantiated
 //!   records have v5 IDs), so two branches that add the same module create the same records. A channel of
 //!   that module and number that exists already, whatever its ID, is kept with its authored members.
-//! - **Kind**. An existing channel `0 … count − 1` whose kind differs from the spec's takes the
+//! - **Kind**. An existing channel `0 … count − 1` whose kind differs from its spec's takes the
 //!   spec's kind, with a notice: the kind is part data instantiated on the channel (doc 10 §2.4, §2.6), not
 //!   an authored member, so a part change that turns outputs into inputs changes the channels with it; its
 //!   binding stays (a binding to a function of the wrong kind is EW-PLC-004, 1.0). A kind of a newer format
@@ -199,13 +200,15 @@ impl Normaliser for ChannelInstantiation {
             if !triggered(tx, &dev) && !part_changed {
                 continue;
             }
-            let spec = module_section(tx, &dev).and_then(|s| s.channels);
-            let count = spec.as_ref().map_or(0, |s| s.count);
+            let section = module_section(tx, &dev);
+            // Every spec's channels, numbered on from the spec before (a card of two kinds, FT-1766).
+            let count = section.as_ref().map_or(0, PlcSection::channel_count);
+            let kind_of = |n: u16| section.as_ref().and_then(|s| s.spec_of(n)).map(|(_, s)| s.kind.clone());
             // existence is keyed on (module, number), not on the v5 ID: a module pasted or imported with
             // other channel IDs keeps its channels and gets no second channel of a number
             let present = channels_by_number(tx, dev.id);
-            if let Some(spec) = &spec {
-                for number in (0..spec.count).filter(|n| !present.contains_key(n)) {
+                for number in (0..count).filter(|n| !present.contains_key(n)) {
+                    let Some(kind) = kind_of(number) else { continue };
                     let id = v5::plc_channel_id(dev.id, number);
                     if let Some(other) = tx.get::<Channel>(id) {
                         return tx.reject(text!(
@@ -222,7 +225,7 @@ impl Normaliser for ChannelInstantiation {
                         module: dev.id,
                         number,
                         designation: None,
-                        kind: spec.kind.clone(),
+                        kind,
                         address: AddrSpec::Auto,
                         state: None,
                         symbol: None,
@@ -239,9 +242,10 @@ impl Normaliser for ChannelInstantiation {
                     changed = true;
                 }
                 // The part's kind applies to the existing channels below the count
-                for c in present
+                for (c, kind) in present
                     .values()
-                    .filter(|c| c.number < spec.count && c.kind != spec.kind)
+                    .filter_map(|c| Some((c, kind_of(c.number)?)))
+                    .filter(|(c, kind)| c.kind != *kind)
                 {
                     // The module by its tag and the binding in words, as N2's notices name them
                     if let ChannelKind::Unknown(_) = c.kind {
@@ -249,7 +253,7 @@ impl Normaliser for ChannelInstantiation {
                             "channel {} of module {} keeps its kind of a newer format; its part gives {}",
                             c.number,
                             words::device(tx, dev.id),
-                            kind_name(&spec.kind)
+                            kind_name(&kind)
                         ));
                         continue;
                     }
@@ -258,14 +262,12 @@ impl Normaliser for ChannelInstantiation {
                         c.number,
                         words::device(tx, dev.id),
                         kind_name(&c.kind),
-                        kind_name(&spec.kind),
+                        kind_name(&kind),
                         binding_words(tx, c.binding.as_ref())
                     ));
-                    let kind = spec.kind.clone();
                     tx.update::<Channel>(c.id, |c| c.kind = kind)?;
                     changed = true;
                 }
-            }
             // Surplus channels stay until `plc.set_module_part` is confirmed
             let surplus: Vec<&Arc<Channel>> = present.values().filter(|c| c.number >= count).collect();
             if !surplus.is_empty() {

@@ -490,7 +490,7 @@ fn role(
         && rep
             .device
             .and_then(|d| ew_derive::module_part(q, Id::from_uuid(d)))
-            .is_some_and(|(_, plc)| plc.channels.as_ref().is_some_and(|c| c.count > 0));
+            .is_some_and(|(_, plc)| plc.channel_count() > 0);
     if card {
         return Role::Card;
     }

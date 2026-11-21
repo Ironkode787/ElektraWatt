@@ -231,6 +231,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/assembly.rs` | large | The device tree of assemblies and valve terminals (doc 03 §7, doc 10 §3.7, doc 11 §3.2, §4.3): `assembly.attach` (`AttachChildren`), `valve.add` (`AddValve`) and `device.link` (`LinkDevices`). |
 | `src/commands/assets.rs` |  | `project.assets.purge` (`PurgeAssets`): the explicit, previewed clean-up of asset files that nothing names (doc 05 §13.3). |
 | `src/commands/assign.rs` |  | `part.assign` (`AssignPart`, FR-PRT-023): the one part assignment command. |
+| `src/commands/box_follow.rs` |  | The drawn boxes of a corrected part follow it (FT-1766, doc 10 §2.6): `part.edit_copy` and `library.update` give each box a device of the part draws the pins and sockets the part has now. |
 | `src/commands/box_reshape.rs` |  | `box.reshape` (`ReshapeBox`, FR-DEV-039, §9.4): a black box's outline and connection points changed, its connections kept. |
 | `src/commands/bus.rs` |  | The bus records (doc 10 §2.7, §3.9): `bus.logical_net.create` (`CreateLogicalNet`), `bus.physical_net.create` (`CreatePhysicalNet`) and a bus line's cable and plugs, `bus.cable.set` (`SetBusCable`). |
 | `src/commands/cable_mark.rs` |  | A cable's mark placed with its cores: when drawn wires become a cable's cores in one command (`cable.create` and `conductor.add` with `wires`, the Cable form), each page they lie on gets the cable's mark at once, a wire marker listing them that the page draws as the cable's mark (`ew-scene`, "Cable marks"). |

@@ -48,8 +48,8 @@ pub struct PartCard {
     pub functions: Vec<(String, usize)>,
     /// The number of its connection points (the CP pattern).
     pub cps: usize,
-    /// Its PLC channels: their kind's file word (`digital_input`) and how many.
-    pub channels: Option<(String, u16)>,
+    /// Its PLC channels, by spec: their kind's file word (`digital_input`) and how many (two for a card of two kinds).
+    pub channels: Vec<(String, u16)>,
     /// Its bus interfaces: the bus system in words and the number of ports when it has several.
     pub interfaces: Vec<(String, Option<u16>)>,
     /// The library it comes from by name; empty for a part only the project holds.
@@ -153,12 +153,13 @@ impl Session {
         let channels = part
             .sections
             .plc
-            .as_ref()
-            .and_then(|p| p.channels.as_ref())
-            .and_then(|c| {
+            .iter()
+            .flat_map(|p| p.channel_specs())
+            .filter_map(|(_, c)| {
                 let kind = serde_json::to_value(&c.kind).ok()?.as_str()?.to_owned();
                 Some((kind, c.count))
-            });
+            })
+            .collect();
         let interfaces = part
             .sections
             .bus

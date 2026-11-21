@@ -513,8 +513,19 @@ pub struct PartBusPort {
   electronics supply group, the allowed slots and a station's `max_modules`. The I/O range follows from the channels
   (a digital channel one bit, an analogue one a word, `bit_of` `n` or `16n`); the pins become the CP pattern with a
   black-box main function over them, as the starter cards carry, so N1 and N3 give the channels and bind them to the
-  pins. A part has one channel spec, so a card with inputs and outputs is two parts until a later format adds a
-  second spec. The part is saved into the person's own library (My parts) and embedded, or kept project-local.
+  pins. *A card of two kinds (FT-1766).* The form has a second channel kind and its count, which go the other way
+  from the first (outputs beside inputs, or inputs beside outputs, each of DI, DO, AI, AO or counter; the same way
+  twice is refused at the field in words): the section gets the additive member `more_channels` (a list of
+  `ChannelSpec` after `channels`, appended last in `PlcSection`, omitted when empty, ADR-0011 decision 6's additive
+  rule), whose channels are numbered on after the first spec's (`PlcSection::channel_specs`, `spec_of`); each kind
+  lies from bit 0 of its own direction's range (`io` one range per direction, `bit_of` the list of the offsets, a
+  digital channel a bit, an analogue one a word); the one pin pattern runs over every channel (a card of four inputs
+  and four outputs with `{n+1}` has the pins 1 to 8), the one name pattern over each kind's own channels from 0, and
+  the data type is the second kind's where it is of the first's class. N1 makes every spec's channels of its kind;
+  the derivation, N3, the station view and the PLC lists read the channel count and each channel's spec through those
+  two accessors. An older build keeps the member in `extra` and makes the first spec's channels alone; a card of two
+  kinds of one direction is still two parts. The part is saved into the person's own library (My parts) and embedded,
+  or kept project-local.
   Edit part… on a part of his own opens the same forms with the saved values: a copy of My parts is saved as the
   item's next patch version there and the project's copy follows by `library.update` (previewed, listing the devices);
   a project-local copy changes in place by `part.edit_copy`, which takes its `sections`, `cp_pattern` and

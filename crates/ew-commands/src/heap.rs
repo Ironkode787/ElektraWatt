@@ -514,6 +514,7 @@ impl HeapSize for ew_schema::PlcSection {
         };
         self.io.heap_size()
             + self.channels.heap_size()
+            + self.more_channels.heap_size()
             + self.bit_of.as_ref().map_or(0, map_heap)
             + self.positions.heap_size()
             + pins

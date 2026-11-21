@@ -297,6 +297,7 @@ pub(crate) fn read_part_plc<'t>(
                     limits: None,
                     iolink: None,
                     ratings: None,
+                    more_channels: Vec::new(),
                     extra: Default::default(),
                 },
             ),

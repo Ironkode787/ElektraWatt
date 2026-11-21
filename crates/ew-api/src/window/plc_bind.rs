@@ -82,10 +82,12 @@ fn channel_pins(q: &Q, module: Id<Device>) -> BTreeSet<(Id<Function>, u16)> {
     let Some((_, section)) = module_part(q, module) else {
         return out;
     };
-    let (Some(pin_of), Some(spec)) = (section.pin_of.as_ref(), section.channels.as_ref()) else {
+    let Some(pin_of) = section.pin_of.as_ref() else {
         return out;
     };
-    let names: BTreeSet<String> = (0..spec.count).filter_map(|n| channel_pin(pin_of, n)).collect();
+    let names: BTreeSet<String> = (0..section.channel_count())
+        .filter_map(|n| channel_pin(pin_of, n))
+        .collect();
     for f in q.idx().functions_of_device(module) {
         for cp in q.get::<FunctionCps>(f).iter() {
             if names.contains(&cp.designation) {

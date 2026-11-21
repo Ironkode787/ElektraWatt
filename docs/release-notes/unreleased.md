@@ -202,6 +202,9 @@ change here.
 - behaviour-change: a drawn box follows its corrected part at once: a socket or pin the part adds stands on the box
   after the last one of its edge, the box growing where it needs to, and one the part no longer has leaves the box
   unless a bus line ends there (doc 10 §2.6, FT-1766)
+- api-add: a part holds a card of two channel kinds, inputs and outputs (`PlcSection.more_channels`, an optional
+  member after `ratings`): the part editor's PLC form has a second channel kind and its count, the outputs numbered on
+  after the inputs and each kind addressed from bit 0 of its own range (doc 10 §2.6, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

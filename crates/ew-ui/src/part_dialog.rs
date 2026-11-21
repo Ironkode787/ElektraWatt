@@ -938,18 +938,34 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         events,
     );
     message(ui, "kind");
-    let mut text_field = |ui: &mut Ui, m: &str| {
+    let text_field = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| -> bool {
         let field = format!("plc.{m}");
-        save |= labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
+        let entered = labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
             events.push(Event::Action(
                 "part.field",
                 json!({ "field": field, "value": text }),
             ));
         });
         message(ui, m);
+        entered
     };
-    for m in ["count", "data_type", "designation", "pin_of"] {
-        text_field(ui, m);
+    save |= text_field(ui, "count", events);
+    // A card with inputs and outputs: its second kind of channels, the other way (FT-1766).
+    labelled_combo(
+        ui,
+        "plc.kind2",
+        &label("kind2"),
+        &d.plc.kind2,
+        &kinds,
+        kind_word,
+        events,
+    );
+    message(ui, "kind2");
+    if !d.plc.kind2.trim().is_empty() {
+        save |= text_field(ui, "count2", events);
+    }
+    for m in ["data_type", "designation", "pin_of"] {
+        save |= text_field(ui, m, events);
     }
     note(ui, strings::text(key!("part-plc-pin_of-hint")));
     if let Some(pins) = d.plc.pins()
@@ -963,7 +979,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             ),
         );
     }
-    if let Some((dir, bits)) = d.plc.io() {
+    for (dir, bits) in d.plc.io() {
         let k = if dir == "in" {
             key!("part-plc-io-in")
         } else {
@@ -972,7 +988,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         note(ui, &strings::format(k, &[&bits.to_string()]));
     }
     for m in ["l_plus", "m", "slots", "max_modules"] {
-        text_field(ui, m);
+        save |= text_field(ui, m, events);
         // What Allowed slots takes, with an example, so a list is not taken for a count.
         if m == "slots" {
             note(ui, strings::text(key!("part-plc-slots-hint")));

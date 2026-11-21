@@ -1012,8 +1012,7 @@ pub fn channel_data_type(q: &Q, module: Id<Device>, channel: &Channel) -> Option
         }
     }
     module_part(q, module)
-        .and_then(|(_, s)| s.channels)
-        .and_then(|c| c.data_type)
+        .and_then(|(_, s)| s.spec_of(channel.number)?.1.data_type.clone())
         .map(|t| t.as_str().to_owned())
 }
 
@@ -1037,7 +1036,7 @@ fn module_channels(q: &Q, module: Id<Device>) -> Vec<Arc<Channel>> {
     let Some((_, plc)) = module_part(q, module) else {
         return Vec::new();
     };
-    let count = plc.channels.as_ref().map_or(0, |c| c.count);
+    let count = plc.channel_count();
     let table = q.table::<Channel>();
     q.get::<ModuleChannelIds>(module)
         .iter()
@@ -1705,7 +1704,7 @@ impl Query for SolenoidPositions {
         let Some(map) = plc.positions.as_ref() else {
             return Arc::new(Vec::new());
         };
-        let channel_count = plc.channels.as_ref().map_or(0, |c| c.count);
+        let channel_count = plc.channel_count();
         let devices = q.devices();
         // the child at each position, the lowest ID first
         let mut at: BTreeMap<u32, Id<Device>> = BTreeMap::new();
@@ -1997,9 +1996,11 @@ impl Query for ChannelTexts {
 
     fn run(q: &Q, key: &Self::Key) -> Arc<Vec<(Id<Channel>, ChannelText)>> {
         let part = module_part(q, *key);
-        let pattern = part
-            .as_ref()
-            .and_then(|(_, s)| s.channels.as_ref().and_then(|c| c.designation.clone()));
+        // A channel's pattern is its spec's, over its number in that spec (a card of two kinds counts each from 0).
+        let pattern_of = |number: u16| -> Option<(String, u16)> {
+            let (first, spec) = part.as_ref()?.1.spec_of(number)?;
+            Some((spec.designation.clone()?, number - first))
+        };
         let targets = q.get::<ChannelTargets>(*key);
         let devices = q.devices();
         let policy = module_cfg(q, *key).and_then(|(_, cfg)| {
@@ -2019,14 +2020,14 @@ impl Query for ChannelTexts {
             .iter()
             .map(|c| {
                 let designation = c.designation.as_ref().map(|d| d.as_str().to_owned()).or_else(|| {
-                    let pattern = pattern.as_ref()?;
-                    match expand_pattern(pattern, u32::from(c.number)) {
+                    let (pattern, n) = pattern_of(c.number)?;
+                    match expand_pattern(&pattern, u32::from(n)) {
                         Ok(text) => (!text.is_empty()).then_some(text),
                         Err(e) => {
                             if !std::mem::replace(&mut noted, true) {
                                 q.note(DeriveNote::DesignationPattern {
                                     module: key.to_string(),
-                                    pattern: pattern.clone(),
+                                    pattern,
                                     detail: e.to_string(),
                                 });
                             }

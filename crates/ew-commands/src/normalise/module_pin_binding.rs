@@ -121,8 +121,7 @@ fn repin(
     let new_map = new_section.as_ref().and_then(|s| s.pin_of.clone());
     let count = new_section
         .as_ref()
-        .and_then(|s| s.channels.as_ref())
-        .map_or(0, |c| c.count);
+        .map_or(0, ew_schema::PlcSection::channel_count);
     // the channels on their old pins and the pin the new part gives each (None: no pin)
     let mut moves: Vec<(Arc<Channel>, Option<Pin>)> = Vec::new();
     for (number, c) in channels_by_number(tx, dev.id) {

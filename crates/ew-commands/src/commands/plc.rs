@@ -536,9 +536,7 @@ impl Command for SetModulePart {
             tx.update::<Device>(m, |d| d.parts = parts)?;
         }
         let dev = tx.require::<Device>(m)?;
-        let count = module_section(tx, &dev)
-            .and_then(|s| s.channels)
-            .map_or(0, |c| c.count);
+        let count = module_section(tx, &dev).map_or(0, |s| s.channel_count());
         // the module's channels from the index, not a scan of the channel table
         let mut surplus: Vec<_> = tx
             .channels_of_module(m)
