@@ -37,7 +37,7 @@ fn files(dir: &Path) -> BTreeMap<String, Vec<u8>> {
         .collect()
 }
 
-/// The data rows of a golden-dialect CSV.
+/// The data rows of a CSV of the `ew` dialect.
 fn data_rows(csv: &str) -> usize {
     csv.lines().filter(|l| l.starts_with("data,")).count()
 }

@@ -17,7 +17,7 @@
 //! (RFC 4180), quotes doubled. **The guard** (NFR-SEC-17, doc 09 OQ 8): in `excel-nl` and `excel-en` a text cell (and a
 //! header) whose first character is `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe; a number cell never does;
 //! `ew` and `rfc4180` never alter a value. [`CsvOptions`] overrides the preset's byte-order mark and line end
-//! (FR-EXP-003); the encoding is UTF-8 only. The golden dialect stays the default `ew` ([`Preset::Ew`]): [`rows_csv`],
+//! (FR-EXP-003); the encoding is UTF-8 only. The `ew` dialect stays the default ([`Preset::Ew`]): [`rows_csv`],
 //! byte for byte, which [`restyle`] gives another byte-order mark or line end.
 
 use ew_derive::Q;
@@ -26,7 +26,7 @@ use crate::render::{RenderOptions, render};
 use crate::rowset::{RowKind, RowSet};
 use crate::table::{Table, TableCell};
 
-/// One field of the golden CSV dialect.
+/// One field of the `ew` CSV dialect.
 pub fn csv_field(s: &str) -> String {
     if s.contains([',', '"', '\n', '\r']) || s.starts_with(' ') || s.ends_with(' ') {
         format!("\"{}\"", s.replace('"', "\"\""))
@@ -75,7 +75,7 @@ pub fn rows_csv(q: &Q, set: &RowSet) -> String {
 /// A CSV dialect of the row exports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Preset {
-    /// The golden dialect (the default): [`rows_csv`].
+    /// The `ew` dialect (the default): [`rows_csv`].
     Ew,
     /// `;`, a decimal comma, a byte-order mark, CR LF, the guard.
     ExcelNl,
@@ -200,7 +200,7 @@ impl Default for CsvOptions {
     }
 }
 
-/// `csv`, a text in the golden dialect (LF record ends, no byte-order mark), with a byte-order mark when `bom` and its
+/// `csv`, a text in the `ew` dialect (LF record ends, no byte-order mark), with a byte-order mark when `bom` and its
 /// record ends written as `line_end`; a line break inside a quoted field is kept as it is.
 pub fn restyle(csv: &str, bom: bool, line_end: LineEnd) -> String {
     let mut out = String::with_capacity(csv.len() + csv.len() / 16 + 3);

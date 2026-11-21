@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The result of a query: column names and rows of SQLite values, written as CSV (the golden CSV dialect) or
+//! The result of a query: column names and rows of SQLite values, written as CSV (the `ew` CSV dialect) or
 //! JSON.
 
 use std::fmt::Write as _;
@@ -86,7 +86,7 @@ pub fn csv_field(s: &str) -> String {
 }
 
 impl ResultSet {
-    /// The result as CSV in the golden dialect: a header line with the column names, then one line per row,
+    /// The result as CSV in the `ew` dialect: a header line with the column names, then one line per row,
     /// every line ending in `\n`. `NULL` is an empty field.
     pub fn to_csv(&self) -> String {
         let mut out = String::new();
@@ -169,7 +169,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn csv_quotes_like_the_golden_dialect() {
+    fn csv_quotes_like_the_ew_dialect() {
         let set = ResultSet {
             columns: vec!["row".into(), "CP".into(), "CP".into()],
             rows: vec![

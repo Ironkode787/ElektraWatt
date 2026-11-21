@@ -85,7 +85,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenImport]);
-    // The column mapping step first, pre-filled from the golden dialect's headers; Import reads the table.
+    // The column mapping step first, pre-filled from the `ew` dialect's headers; Import reads the table.
     assert!(h.query_by_label("Map columns").is_some(), "the mapping card");
     assert!(
         h.query_by_label("Imports as part_number").is_some(),

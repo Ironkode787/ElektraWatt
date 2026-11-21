@@ -202,7 +202,7 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
 }
 
 /// One File ▸ Import… takes every file and goes on by what the file is (FT-1741): a drawing to its dialog, an EDZ to
-/// the terms, a parts XML to its parts, a parts table of the golden dialect to the column mapping, a report to its
+/// the terms, a parts XML to its parts, a parts table of the `ew` dialect to the column mapping, a report to its
 /// mappings; the menus hold no separate entry for any of them.
 #[test]
 fn one_import_goes_on_by_what_the_file_is() {

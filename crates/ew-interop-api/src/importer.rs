@@ -79,7 +79,7 @@ pub struct Limits {
     pub max_entry_bytes: u64,
     /// Highest expansion ratio of one archive entry, unpacked to packed bytes (doc 14 §11 "Archives": 200 : 1).
     pub max_entry_ratio: u32,
-    /// Most input files of one import of a set of inputs (the golden CSV bootstrap's tables).
+    /// Most input files of one import of a set of inputs (the CSV bootstrap's tables).
     pub max_input_files: u32,
     /// Most data rows of one table (doc 14 §11 "CSV, XLSX").
     pub max_table_rows: u32,
@@ -106,7 +106,7 @@ impl Limits {
         }
     }
 
-    /// The limits of the golden CSV bootstrap: the defaults with `max_input_bytes` of 64 MiB (67,108,864).
+    /// The limits of the CSV bootstrap: the defaults with `max_input_bytes` of 64 MiB (67,108,864).
     ///
     /// The total of all table files of one bootstrap is at most 64 MiB (doc 14 §11); each table file is bound
     /// by its own, lower, per-table limits.
@@ -174,7 +174,7 @@ impl Default for Limits {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum ImportMode {
     /// The value is refused: the item that carries it is dropped with an error finding (the default; the
-    /// golden CSV bootstrap runs strict, doc 14 §8.4).
+    /// CSV bootstrap runs strict, doc 14 §8.4).
     #[default]
     Strict,
     /// The value is kept as foreign data and reported, with a quick fix where one exists.

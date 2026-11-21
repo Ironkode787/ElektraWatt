@@ -526,9 +526,9 @@ pub struct ImportPartsResult {
     pub created: usize,
     /// The parts skipped (the project already has their key).
     pub skipped: usize,
-    /// The row counts of a mapped import (`--map`); `null` for the golden dialect.
+    /// The row counts of a mapped import (`--map`); `null` for the `ew` dialect.
     pub rows: Option<RowCounts>,
-    /// The report of a mapped import, one entry per finding; empty for the golden dialect.
+    /// The report of a mapped import, one entry per finding; empty for the `ew` dialect.
     pub report: Vec<ReportRow>,
 }
 

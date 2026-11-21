@@ -1184,7 +1184,7 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
     })
 }
 
-/// Parses a `parts.csv` of the golden dialect (text) and its sibling tables into project-local part copies of the
+/// Parses a `parts.csv` of the `ew` dialect (text) and its sibling tables into project-local part copies of the
 /// project `project` (`ew_import_tables::parse_parts_tables` with the starter FnDefs). `source` is the chosen file's
 /// name; only its base name is kept.
 ///
@@ -1308,7 +1308,7 @@ pub fn read_parts_tables(
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// Golden-dialect tables (`ew import csv`, FR-IMP-022)
+// Tables of the `ew` dialect (`ew import csv`, FR-IMP-022)
 
 pub use ew_import_tables::LibraryError;
 pub use ew_import_tables::csv::CsvError;

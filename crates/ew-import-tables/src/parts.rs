@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Parts tables into an existing project (the golden-dialect slice of the parts import): the
+//! Parts tables into an existing project (the `ew`-dialect slice of the parts import): the
 //! `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`,
 //! `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the
 //! bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts|{key}")` in the
@@ -28,7 +28,7 @@ use crate::library::BuiltinLibrary;
 use crate::schema;
 use crate::table::{Findings, Table};
 
-/// The file name of the parts table of the golden dialect.
+/// The file name of the parts table of the `ew` dialect.
 pub const PARTS_FILE: &str = "parts.csv";
 
 /// The sibling tables of a `parts.csv`, as text; `None` for a table the folder does not have.
@@ -107,7 +107,7 @@ fn load(name: &str, file: &str, text: &str, findings: &mut Findings) -> Result<O
     let spec = *schema::ALL
         .iter()
         .find(|s| s.name == name)
-        .expect("a table of the golden dialect");
+        .expect("a table of the ew dialect");
     let bytes: Arc<[u8]> = Arc::from(text.as_bytes());
     match csv::parse(&bytes, &TableLimits::default()) {
         Ok(t) => Ok(Table::new(
@@ -131,7 +131,7 @@ fn load(name: &str, file: &str, text: &str, findings: &mut Findings) -> Result<O
     }
 }
 
-/// Parses a `parts.csv` of the golden dialect and its sibling tables into project-local part copies of project
+/// Parses a `parts.csv` of the `ew` dialect and its sibling tables into project-local part copies of project
 /// `project`, in `parts.csv` row order, with the manufacturer copies they name ([`PartsTables`]).
 ///
 /// `source` names the chosen file; its base name (never a path) is the copies' provenance (`meta.sources`, FR-PRT-017;

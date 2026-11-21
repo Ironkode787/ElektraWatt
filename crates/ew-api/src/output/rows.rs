@@ -7,7 +7,7 @@
 //! whole-project rows of a registered kind ([`RowExport::Kind`]).
 //!
 //! The rows are a block's rows as its folios print them ([`ew_reports::rows_of`], the BOM in the export's mode through
-//! [`ew_reports::arranged`]), written by the one CSV writer of the golden dialect ([`ew_reports::csv::rows_csv`]), so
+//! [`ew_reports::arranged`]), written by the one CSV writer of the `ew` dialect ([`ew_reports::csv::rows_csv`]), so
 //! `ew export wires` is `expected/csv/wires.csv` byte for byte. Without `--block` the block is the project's
 //! page-oriented block of the kind with the lowest first folio (ties by ID), the rule of `ew export cables|bom`.
 //!
@@ -296,7 +296,7 @@ struct Chosen {
 /// [`RowsError::KindOneStrip`].
 pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCsv, RowsError> {
     let chosen = choose(q, what, block)?;
-    let (csv, rows) = golden_csv(q, &chosen.body);
+    let (csv, rows) = ew_csv(q, &chosen.body);
     let strips = match &chosen.body {
         Body::Whole(_) => Vec::new(),
         Body::Strip(_, tag) => vec![tag.clone()],
@@ -381,8 +381,8 @@ fn choose(q: &Q, what: &RowExport, block: Option<&str>) -> Result<Chosen, RowsEr
     }
 }
 
-/// The CSV of the golden dialect of `body` and its row count (a strip's heading row included).
-fn golden_csv(q: &Q, body: &Body) -> (String, usize) {
+/// The CSV of the `ew` dialect of `body` and its row count (a strip's heading row included).
+fn ew_csv(q: &Q, body: &Body) -> (String, usize) {
     match body {
         Body::Whole(set) | Body::Strip(set, _) => (rows_csv(q, set), set.rows.len()),
         Body::Strips(template, strips) => {
@@ -710,7 +710,7 @@ pub fn row_output(
     };
     let (output, rows) = match format {
         RowsFormat::Csv(options) if options.preset == Preset::Ew => {
-            let (csv, rows) = golden_csv(q, &chosen.body);
+            let (csv, rows) = ew_csv(q, &chosen.body);
             (
                 RowsOutput::Csv(restyle(&csv, options.writes_bom(), options.writes_line_end())),
                 rows,

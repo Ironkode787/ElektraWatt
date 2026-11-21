@@ -56,7 +56,7 @@ enum Top {
     /// Create, inspect, import and publish portable symbol drafts.
     #[command(subcommand)]
     Symbol(super::symbol::SymbolArgs),
-    /// Import a project, a parts table or golden-dialect tables.
+    /// Import a project, a parts table or tables of the `ew` dialect.
     #[command(subcommand)]
     Import(Import),
     /// Run a check scheme over a project.
@@ -110,8 +110,8 @@ enum Top {
     /// Render one page as PNG.
     ///
     /// `render --page <folio> --png` renders one page to `--out` (default: `<folio>.png` in the current directory,
-    /// never stdout) on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
-    /// resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
+    /// never stdout) on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150).
+    /// Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
     Render(RenderArgs),
     /// Replay a command log on the project and save.
     ///
@@ -388,7 +388,7 @@ enum Import {
     Qet(ImportQetArgs),
     /// Copy the parts of a parts table into the project.
     ///
-    /// Copies the parts of a parts table (the golden dialect: `parts.csv`, with `part_cps.csv`,
+    /// Copies the parts of a parts table (the `ew` dialect: `parts.csv`, with `part_cps.csv`,
     /// `part_templates.csv`, `cable_cores.csv` and `part_plc.csv` when they lie beside it) into the project
     /// (`--project`, default: the nearest ancestor of the current directory holding `manifest.json`) as project-local
     /// part copies (`parts.import`) and saves; a part whose key the project has already is skipped. Exit 0 when
@@ -404,10 +404,10 @@ enum Import {
     /// rejected with the reason; an `A / B` part number becomes two candidates flagged for review. The new parts are
     /// imported with `parts.import`, with copies of the manufacturers they name, and the project is saved.
     Parts(ImportPartsArgs),
-    /// Import golden-dialect tables as a new project.
+    /// Import tables of the `ew` dialect as a new project.
     ///
-    /// Imports golden-dialect tables (the `*.csv` files of `<tables-dir>`: `project.csv`, `devices.csv`,
-    /// `conductors.csv` and the others of `golden/J-E-2416/tables/`) with the starter content (`--content` or
+    /// Imports tables of the `ew` dialect (the `*.csv` files of `<tables-dir>`: `project.csv`, `devices.csv`,
+    /// `conductors.csv` and the dialect's other tables) with the starter content (`--content` or
     /// `EW_CONTENT_DIR`; required, the tables name its symbols, function definitions and forms) as a new project in
     /// `--out`, which must not exist or be an empty directory: the project is written beside it and renamed into
     /// place, so `--out` never holds a part of one. Every finding of the import is printed. Strict is the default: a
@@ -682,7 +682,7 @@ struct SqlDumpCli {
 enum ExportCli {
     /// Write the cable list as CSV or XLSX.
     ///
-    /// Writes the rows of the project's cable overview (the golden dialect) to stdout or to `--out`. `--block`
+    /// Writes the rows of the project's cable overview (the `ew` dialect) to stdout or to `--out`. `--block`
     /// names the report block by its ID or its first folio (`908`); without it the block is the project's block of
     /// the kind with the lowest first folio; a block of another kind is refused. `--format xlsx` writes a workbook to
     /// `--out`; `--preset` writes the CSV for Excel (`excel-nl`, `excel-en`) or as RFC 4180 (`rfc4180`), and `--bom`
@@ -691,7 +691,7 @@ enum ExportCli {
     Cables(RowsCli),
     /// Write the bill of materials as CSV or XLSX.
     ///
-    /// Writes the rows of the project's parts summary (the golden dialect) to stdout or to `--out`. `--mode parts`
+    /// Writes the rows of the project's parts summary (the `ew` dialect) to stdout or to `--out`. `--mode parts`
     /// (alias `component`, the default) lists every component part; `--mode assembly` replaces the parts a
     /// configured product covers by its row. `--block` names the report block by its ID or its first folio;
     /// without it the block is the project's block of the kind with the lowest first folio. `--format`, `--preset`,
@@ -699,14 +699,14 @@ enum ExportCli {
     Bom(BomCli),
     /// Write the wire list as CSV or XLSX.
     ///
-    /// Writes the rows of the project's wire list (the golden dialect) to stdout or to `--out`. `--block` names the
+    /// Writes the rows of the project's wire list (the `ew` dialect) to stdout or to `--out`. `--block` names the
     /// report block by its ID or its first folio; without it the block is the project's block of the kind with the
     /// lowest first folio. `--format`, `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success,
     /// 2 on everything else.
     Wires(RowsCli),
     /// Write the terminal diagrams as CSV or XLSX.
     ///
-    /// Writes the rows of the project's terminal diagram blocks (the golden dialect) to stdout or to `--out`.
+    /// Writes the rows of the project's terminal diagram blocks (the `ew` dialect) to stdout or to `--out`.
     /// Without `--block`, every terminal diagram block. `--strip <tag>` writes the rows of one strip (`-X1031`);
     /// without it every strip, each strip's rows after a heading row `heading,<tag>` (in XLSX, one sheet per strip
     /// named by its tag). `--format`, `--preset`, `--bom` and `--line-end` as for `export cables`. Exit 0 on success,
@@ -763,8 +763,8 @@ enum ExportCli {
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
-    /// only), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
-    /// resolution). `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
+    /// only), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150).
+    /// `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
     /// open errors, an unknown folio or section, write errors).
     Png(PngCli),
     /// Write a PLC configuration project as AutomationML for PLC software.
@@ -1184,7 +1184,7 @@ enum ReportPages {
 /// The CSV options of a row export and of `sql`.
 #[derive(Args, Debug)]
 struct CsvCli {
-    /// The CSV preset: ew (default, the golden dialect), excel-nl, excel-en or rfc4180.
+    /// The CSV preset: ew (the default), excel-nl, excel-en or rfc4180.
     #[arg(long, value_name = "preset", allow_hyphen_values = true, overrides_with = "preset", value_parser = preset)]
     preset: Option<Preset>,
     /// A UTF-8 byte-order mark: on or off (default: the preset's).
@@ -2230,7 +2230,7 @@ fn table_format(v: &str) -> Result<ReportPages, String> {
     }
 }
 
-/// The `--preset` of `import table`: a preset of the round trip, not the golden dialect.
+/// The `--preset` of `import table`: a preset of the round trip, not the `ew` dialect.
 fn import_preset(v: &str) -> Result<Preset, String> {
     Preset::parse(v).filter(|p| *p != Preset::Ew).ok_or_else(|| {
         let names: Vec<&str> = Preset::ALL

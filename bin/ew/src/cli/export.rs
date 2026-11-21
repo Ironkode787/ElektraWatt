@@ -108,7 +108,7 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
     0
 }
 
-/// `csv` (the golden dialect) with the byte-order mark and line end of `options`.
+/// `csv` (the `ew` dialect) with the byte-order mark and line end of `options`.
 pub(super) fn restyle(csv: &str, options: &CsvOptions) -> String {
     ew_api::output::restyle(csv, options.writes_bom(), options.writes_line_end())
 }

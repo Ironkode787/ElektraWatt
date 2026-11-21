@@ -1203,7 +1203,7 @@ fn export_errors() {
 }
 
 /// `--format xlsx` with `--out`, `--preset`, `--bom` and `--line-end` lower to the row format;
-/// the default is the golden dialect.
+/// the default is the `ew` dialect.
 #[test]
 fn row_export_formats() {
     use ew_api::output::{CsvOptions, LineEnd, Preset};

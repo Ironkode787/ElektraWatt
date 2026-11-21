@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Strict, bounded CSV reader and writer for the golden CSV dialect.
+//! Strict, bounded CSV reader and writer for the `ew` CSV dialect.
 //!
 //! The dialect: UTF-8 without BOM, records end with LF (a CR directly before the LF is dropped), delimiter `,`,
 //! RFC 4180 quoting with `"`, first record is the header, no empty lines, every record has the header's field count.
@@ -527,7 +527,7 @@ impl Scanner<'_> {
     }
 }
 
-/// Parses `bytes` as one table of the golden CSV dialect under `limits`. One pass, O(len) time; no allocation
+/// Parses `bytes` as one table of the `ew` CSV dialect under `limits`. One pass, O(len) time; no allocation
 /// per field: cells are 8-byte spans into `bytes` (plus one shared side buffer for the unescaped text of
 /// quoted fields with a doubled quote), at most one cell per input byte and never more than
 /// [`TableLimits::max_cells`]; the vectors are shrunk to fit at the end. Resolve cells with [`CsvTable::cell`]

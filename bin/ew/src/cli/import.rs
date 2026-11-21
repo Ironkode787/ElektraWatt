@@ -835,7 +835,7 @@ pub(super) fn run_reimport_qet(
     0
 }
 
-/// `ew import csv`: the golden-dialect tables of a directory with the starter content as a new
+/// `ew import csv`: the tables of the `ew` dialect in a directory with the starter content as a new
 /// project in `--out`. Every finding is printed; `--strict` (the default) writes nothing when the import made error
 /// findings (exit 1), `--lenient` writes the project with them.
 pub(super) fn run_import_csv(a: &ImportCsvArgs) -> i32 {

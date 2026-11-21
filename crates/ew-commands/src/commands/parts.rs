@@ -27,7 +27,7 @@ use super::library::read_copy;
 ///
 /// `copies` holds part and manufacturer copies in the `lib/` JSON form (doc 05 §3.4), as a parts table import
 /// produces them: the shell and `ew import parts` read the file and parse it (`ew_import_tables::parse_parts_tables`,
-/// the golden dialect), the command never sees a path. At least one part copy. Each copy is checked, at `/copies/i`:
+/// the `ew` dialect), the command never sees a path. At least one part copy. Each copy is checked, at `/copies/i`:
 /// - it reads as a library document of kind `part` or `manufacturer` (else invalid);
 /// - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` and its `sha256` the hash of its item
 ///   (the rules of `library.embed`);

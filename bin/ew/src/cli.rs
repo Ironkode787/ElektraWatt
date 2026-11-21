@@ -70,7 +70,7 @@ pub enum Command {
     ImportQet(ImportQetArgs),
     /// `ew import parts`.
     ImportParts(ImportPartsArgs),
-    /// `ew import csv`: golden-dialect tables as a new project.
+    /// `ew import csv`: tables of the `ew` dialect as a new project.
     ImportCsv(ImportCsvArgs),
     /// `ew import dxf`: a DXF drawing as a graphic page or symbol drafts.
     ImportDxf(dxf::ImportDxfArgs),
@@ -510,7 +510,7 @@ pub struct ExportTableArgs {
 /// How a row export writes its rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowFormat {
-    /// CSV in a preset (the default: the golden dialect `ew`).
+    /// CSV in a preset (the default: the `ew` dialect).
     Csv(CsvOptions),
     /// An XLSX workbook (`--format xlsx`, with `--out`).
     Xlsx,
@@ -525,7 +525,7 @@ impl Default for RowFormat {
 /// The result format of `ew sql`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SqlFormat {
-    /// CSV: the golden dialect, or a preset (`--preset`).
+    /// CSV: the `ew` dialect, or a preset (`--preset`).
     Csv,
     /// JSON (`ew.sql-result/1`).
     Json,
@@ -668,7 +668,7 @@ pub struct ImportQetArgs {
 /// The arguments of `ew import parts`.
 #[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
 pub struct ImportPartsArgs {
-    /// The parts table: `parts.csv` of the golden dialect, or with `--map` a supplier's CSV or XLSX table.
+    /// The parts table: `parts.csv` of the `ew` dialect, or with `--map` a supplier's CSV or XLSX table.
     #[arg(value_name = "table")]
     pub file: PathBuf,
     /// The project directory.
@@ -677,7 +677,7 @@ pub struct ImportPartsArgs {
     /// Print the result as JSON (`ew.import-parts-result/1`).
     #[arg(long, overrides_with = "json")]
     pub json: bool,
-    /// The column map (a TOML file): a supplier's table instead of the golden dialect.
+    /// The column map (a TOML file): a supplier's table instead of the `ew` dialect.
     #[arg(
         long,
         value_name = "map.toml",
