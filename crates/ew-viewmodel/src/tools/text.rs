@@ -6,7 +6,7 @@
 //!
 //! **The Text tool.** All points are page nm, fine-snapped ([`crate::tools::Snapper::snap_fine`],
 //! `FineKind::Text`); the overlay is in sheet nm. A bound text has nothing to type: a click places it at once with
-//! `bind` instead of `text`.
+//! `bind` instead of `text`. A text clicked on a wire's line stands beside it, as a wire's code is written ([`beside`]).
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
@@ -101,6 +101,7 @@ impl TextTool {
         let Some(at) = self.point() else {
             return Overlay::default();
         };
+        let label_at = cx.snapper.page_to_sheet(beside(cx, at).0);
         let at = cx.snapper.page_to_sheet(at);
         let mut items = vec![OverlayItem::Marker {
             at,
@@ -108,7 +109,7 @@ impl TextTool {
         }];
         if !self.text().is_empty() {
             items.push(OverlayItem::Label {
-                at,
+                at: label_at,
                 text: self.text().to_owned(),
                 anchor: Anchor::Right,
             });
@@ -116,12 +117,16 @@ impl TextTool {
         Overlay::new(items)
     }
 
-    /// The `item.place` of the text or the binding at `at` (page nm).
+    /// The `item.place` of the text or the binding clicked at `at` (page nm), where [`beside`] sets it.
     fn command(&self, cx: &ToolCx<'_>, at: (i64, i64), text: &str) -> Box<AnyCommand> {
-        let free = match &self.bind {
+        let (at, on_baseline) = beside(cx, at);
+        let mut free = match &self.bind {
             Some(b) => json!({"bind": b, "at": [at.0, at.1]}),
             None => json!({"text": text, "at": [at.0, at.1]}),
         };
+        if on_baseline {
+            free["anchor"] = json!("baseline");
+        }
         Box::new(AnyCommand {
             name: "item.place".into(),
             params: json!({
@@ -169,6 +174,32 @@ impl TextTool {
         self.state = State::Armed { at: Some(at) };
         ToolOutput::Commit(self.command(cx, at, &text))
     }
+}
+
+/// How near a wire's line a click counts as on it, in nm: a text set there by its middle would lie on the wire.
+const ON_WIRE: i64 = 1_500_000;
+
+/// How far beside a wire's line a text clicked on it stands, in nm (as a wire marker's text stands off its line).
+const BESIDE_GAP: i64 = 1_000_000;
+
+/// Where a text clicked at `at` stands (FT-1870, doc 06 §4.5), and whether on its baseline: clicked on a straight
+/// stretch of a wire (within [`ON_WIRE`] of its line), as a wire's code is written, beside it and not on it: over a
+/// horizontal stretch on its baseline [`BESIDE_GAP`] above the line, right of a vertical one by that gap; elsewhere at
+/// `at`. The first stretch of the page's connections in table order decides.
+fn beside(cx: &ToolCx<'_>, at: (i64, i64)) -> ((i64, i64), bool) {
+    for c in &cx.page.tables.connections {
+        for w in c.polyline.windows(2) {
+            let ((x0, y0), (x1, y1)) = (w[0], w[1]);
+            let (lo_x, hi_x, lo_y, hi_y) = (x0.min(x1), x0.max(x1), y0.min(y1), y0.max(y1));
+            if y0 == y1 && (lo_x..=hi_x).contains(&at.0) && (at.1 - y0).abs() <= ON_WIRE {
+                return ((at.0, y0 - BESIDE_GAP), true);
+            }
+            if x0 == x1 && (lo_y..=hi_y).contains(&at.1) && (at.0 - x0).abs() <= ON_WIRE {
+                return ((x0 + BESIDE_GAP, at.1), false);
+            }
+        }
+    }
+    (at, false)
 }
 
 impl Default for TextTool {

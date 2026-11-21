@@ -5560,6 +5560,7 @@ field-word-form = Formulier
 field-word-formatting = Opmaak
 field-word-frame = Kader
 field-word-free-text = Vrije tekst
+field-page-item-kind-free-text-of = Symbool
 field-word-eplan = Toebehoren en varianten
 field-word-frequency = Frequentie
 field-word-from = Van

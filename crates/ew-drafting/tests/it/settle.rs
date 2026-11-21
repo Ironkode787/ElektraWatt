@@ -32,7 +32,8 @@ fn apart(settled: &[Settled]) -> bool {
     })
 }
 
-/// Two parts side by side whose tags' first places overlap: both tags stand clear.
+/// Two like parts side by side, the second's tag's first place on the first's body: both tags stand clear, at one
+/// place for the row (the row rule, FT-1870).
 #[test]
 fn two_tags_whose_first_places_overlap_both_stand_clear() {
     let mut b = Page::new(40, 30);
@@ -46,8 +47,8 @@ fn two_tags_whose_first_places_overlap_both_stand_clear() {
     for t in [k1, k2] {
         assert!(!bodies.iter().any(|r| r.overlaps(t.rect)), "{t:?} on a body");
     }
-    assert_eq!(k1.rank, 0, "the first keeps its place");
-    assert!(k2.rank > 0, "the second steps aside");
+    assert_eq!(k1.rank, k2.rank, "one place for the row");
+    assert!(k2.rank > 0, "not the place the second's tag cannot take");
 }
 
 /// A wire across a tag's first place: the tag stands at its second.

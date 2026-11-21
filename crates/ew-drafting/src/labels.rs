@@ -60,6 +60,12 @@
 //! placed is taken only when no other is clear. A text whose author's place lies on a text of its own part placed
 //! before it has the place under that text second.
 //!
+//! **The row rule.** Like parts that stand level (one shape: the same body and pins; their origins on one line) take
+//! one place for each of their texts: when the first of them comes in the order, the place the same number down every
+//! one's list at which all of them are clear is taken for all, so the tags and cross-references of a row of relays
+//! stand alike. Where their lists are not alike or no place is clear for all, each is placed on its own; texts wider
+//! than their row's pitch keep the two-rows rule.
+//!
 //! A label without a clear place takes its place of least cost ([`LABEL_CLASH`] for each text and body it lies on
 //! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
 //! than [`LABEL_CLEAR`],
@@ -692,26 +698,31 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
     }
     let mut numbers: Vec<(Rect, bool, Seg)> = Vec::new();
     let mut clashing: Vec<usize> = Vec::new();
+    let rows = like_rows(&ground, &units);
+    let mut row_of: BTreeMap<usize, usize> = BTreeMap::new();
+    for (i, row) in rows.iter().enumerate() {
+        for &u in row {
+            row_of.insert(u, i);
+        }
+    }
+    let mut tried = vec![false; rows.len()];
     for &u in &order {
-        let mut list = candidates(&ground, &units[u], &numbers);
-        if list.is_empty() {
+        // A unit its row's decision placed.
+        if placed[u].is_some() {
             continue;
         }
-        // Line under line: a text whose author's place lies on a text of its own part placed before it (a turned
-        // symbol sets them on one row) has the place under that text second.
-        if let (Some(first), Owner::Part(_)) = (units[u].given.first(), units[u].owner)
-            && !matches!(units[u].kind, LabelKind::PinNumber(_))
-            && let Some(bottom) = (0..units.len())
-                .filter(|&v| v != u && units[v].owner == units[u].owner)
-                .filter_map(|v| placed[v].map(|(r, _, _)| r))
-                .filter(|r| geom::texts_meet(*r, *first) && !geom::stacked(*r, *first))
-                .map(|r| r.y1)
-                .max()
+        if let Some(&i) = row_of.get(&u)
+            && !tried[i]
         {
-            let under = (bx(first.x0, bottom + LABEL_CLEAR, first.size()), false);
-            if !list.contains(&under) {
-                list.insert(1.min(list.len()), under);
+            tried[i] = true;
+            let mut state = (&mut placed[..], &mut grid, &mut lists[..]);
+            if place_row(&ground, &units, &rows[i], (&firsts, &numbers), &mut state) {
+                continue;
             }
+        }
+        let list = list_of(&ground, &units, &placed, &numbers, u);
+        if list.is_empty() {
+            continue;
         }
         let clear = list.iter().enumerate().position(|(k, (r, _))| {
             let at_first = authors(&units[u], k);
@@ -768,6 +779,132 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
     }
     out.sort_by_key(|s| s.id);
     out
+}
+
+/// The places of unit `u` in order (its [`candidates`]), with line under line: a text whose author's place lies on a
+/// text of its own part placed before it (a turned symbol sets them on one row) has the place under that text second.
+fn list_of(
+    ground: &Ground<'_>,
+    units: &[Unit],
+    placed: &[Option<(Rect, u32, bool)>],
+    numbers: &[(Rect, bool, Seg)],
+    u: usize,
+) -> Vec<(Rect, bool)> {
+    let mut list = candidates(ground, &units[u], numbers);
+    if let (Some(first), Owner::Part(_)) = (units[u].given.first(), units[u].owner)
+        && !matches!(units[u].kind, LabelKind::PinNumber(_))
+        && let Some(bottom) = (0..units.len())
+            .filter(|&v| v != u && units[v].owner == units[u].owner)
+            .filter_map(|v| placed[v].map(|(r, _, _)| r))
+            .filter(|r| geom::texts_meet(*r, *first) && !geom::stacked(*r, *first))
+            .map(|r| r.y1)
+            .max()
+    {
+        let under = (bx(first.x0, bottom + LABEL_CLEAR, first.size()), false);
+        if !list.contains(&under) {
+            list.insert(1.min(list.len()), under);
+        }
+    }
+    list
+}
+
+/// The rows of the row rule (module documentation): the units of one kind and label number on parts of one shape (the
+/// same body and pins) whose origins stand level, two or more, left to right. A pin's number, a text along a wire and
+/// a text of the two-rows rule (wider than its row's pitch: staggered) are no row's.
+fn like_rows(ground: &Ground<'_>, units: &[Unit]) -> Vec<Vec<usize>> {
+    type Shape = (Rect, Vec<(Pt, Option<Side>)>);
+    let mut rows: BTreeMap<(LabelKind, u32, usize, Tick, Shape), Vec<(Tick, usize)>> = BTreeMap::new();
+    for (u, unit) in units.iter().enumerate() {
+        let Owner::Part(p) = unit.owner else { continue };
+        if unit.along || unit.stagger || matches!(unit.kind, LabelKind::PinNumber(_)) {
+            continue;
+        }
+        let Some(part) = ground.parts.get(&p) else {
+            continue;
+        };
+        let pins = part.pins.iter().map(|x| (x.at, x.side)).collect();
+        let n = ground.page.labels[unit.members[0].0].id.n;
+        rows.entry((unit.kind, n, unit.members.len(), part.at.y, (part.body, pins)))
+            .or_default()
+            .push((part.at.x, u));
+    }
+    rows.into_values()
+        .filter(|row| row.len() > 1)
+        .map(|mut row| {
+            row.sort();
+            row.into_iter().map(|(_, u)| u).collect()
+        })
+        .collect()
+}
+
+/// The row rule (module documentation): the units of `row` take the first place, the same number down each one's list,
+/// at which every one of them is clear, each tried against the ones before it. `false`, with nothing placed, where
+/// their lists are not alike (a wire leaves one of them upward) or no place is clear for all: then each is placed on
+/// its own.
+#[allow(clippy::type_complexity)]
+fn place_row(
+    ground: &Ground<'_>,
+    units: &[Unit],
+    row: &[usize],
+    (firsts, numbers): (&Buckets, &[(Rect, bool, Seg)]),
+    (placed, grid, lists): &mut (&mut [Option<(Rect, u32, bool)>], &mut Buckets, &mut [Vec<(Rect, bool)>]),
+) -> bool {
+    let row_lists: Vec<Vec<(Rect, bool)>> = row
+        .iter()
+        .map(|&u| list_of(ground, units, placed, numbers, u))
+        .collect();
+    let n = row_lists.first().map_or(0, Vec::len);
+    if n == 0 || row_lists.iter().any(|l| l.len() != n) {
+        return false;
+    }
+    for k in 0..n {
+        let mut set: Vec<usize> = Vec::new();
+        let all = row.iter().zip(&row_lists).all(|(&u, list)| {
+            let (r, turned) = list[k];
+            let at_first = authors(&units[u], k);
+            // The row's own first places are not reserved against it: its members move together.
+            let taken = reserved_except(units, placed, firsts, row, r);
+            let free = ground.clear(units[u].owner, r, (bodies(&units[u], at_first), at_first))
+                && labels_clear(units, placed, grid, u, (r, at_first))
+                && (at_first || taken == 0);
+            if free {
+                placed[u] = Some((r, k as u32, turned));
+                grid.insert(u, r);
+                set.push(u);
+            }
+            free
+        });
+        if all {
+            for (&u, list) in row.iter().zip(row_lists) {
+                lists[u] = list;
+            }
+            return true;
+        }
+        for u in set {
+            if let Some((r, _, _)) = placed[u].take() {
+                grid.remove(u, r);
+            }
+        }
+    }
+    false
+}
+
+/// [`reserved`] for a member of `row`: the first places of the units not yet placed, the row's own left out.
+fn reserved_except(
+    units: &[Unit],
+    placed: &[Option<(Rect, u32, bool)>],
+    firsts: &Buckets,
+    row: &[usize],
+    r: Rect,
+) -> usize {
+    let g = r.grown(LABEL_CLEAR);
+    firsts
+        .near(g)
+        .into_iter()
+        .filter(|&v| {
+            !row.contains(&v) && placed[v].is_none() && units[v].given.first().is_some_and(|f| f.overlaps(g))
+        })
+        .count()
 }
 
 /// Each label of a part at the first place of its list, by label ID: where it stands when nothing is in its way. The

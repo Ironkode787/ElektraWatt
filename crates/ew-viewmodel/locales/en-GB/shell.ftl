@@ -5825,6 +5825,7 @@ field-word-form = Form
 field-word-formatting = Formatting
 field-word-frame = Frame
 field-word-free-text = Free text
+field-page-item-kind-free-text-of = Symbol
 field-word-eplan = Accessories and variants
 field-word-frequency = Frequency
 field-word-from = From
