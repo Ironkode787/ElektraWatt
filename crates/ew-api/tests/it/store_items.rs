@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The store's per-file row index and the commands' row dump over Golden A's page items and structure boxes:
+//! The store's per-file row index and the commands' row dump over page items and structure boxes on the sample:
 //! a kind missing from the model's key list is dropped by the next save that rewrites its
 //! file, and `render_all` (`Session::create`) drops it too. Both readers are generated from the model's entity
 //! list now; these tests keep the save path and the row dump covered end to end.
-
-use crate::golden_common;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -17,7 +15,6 @@ use ew_derive::ew_ids::Id;
 use ew_schema::{Kind, Page, StructureNode};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{ManualClock, Vfs};
-use golden_common::{batch, ids_by_key, session};
 use serde_json::{Value, json};
 
 fn cmd(name: &str, params: Value) -> AnyCommand {
@@ -32,11 +29,10 @@ fn run(s: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
         .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
-fn id<T>(ids: &std::collections::BTreeMap<String, String>, key: &str) -> Id<T> {
-    ids.get(key)
-        .unwrap_or_else(|| panic!("no record {key}"))
-        .parse()
-        .unwrap_or_else(|_| panic!("{key} is an ID"))
+/// The sample's folio 101.
+fn page_101(s: &Session) -> Id<Page> {
+    let page = s.page_rows().into_iter().find(|r| r.folio == "101").expect("folio 101");
+    Id::from_uuid(page.id)
 }
 
 /// The location node of a structure node code.
@@ -71,19 +67,17 @@ fn items_of(s: &Session) -> (Vec<String>, Vec<String>) {
 /// per-file index (built from the model's generated key list) and `render_all` (`Session::create`).
 #[test]
 fn page_items_and_structure_boxes_survive_later_saves_and_save_as() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
     let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
     vfs.put_dir(Path::new("/state"));
     let dir = PathBuf::from("/p");
-    // A writable copy of Golden A.
-    let mut s = session(&batch);
+    // A writable copy of the sample, whose 101 holds no free text, graphic or structure box.
+    let mut s = crate::view::sample_session(None);
+    let page = page_101(&s);
     s.create(&dir, mem_store(&vfs)).expect("the copy is written");
     assert_eq!(s.save().expect("an unchanged copy saves nothing").generation, 1);
-    let je206 = {
+    let field = {
         let q = s.query();
-        node(&q, "J-E-206")
+        node(&q, "FLD")
     };
     run(
         &mut s,
@@ -97,7 +91,7 @@ fn page_items_and_structure_boxes_survive_later_saves_and_save_as() {
             "page": page.to_string(),
             "outline": [[40_000_000, 40_000_000], [70_000_000, 40_000_000], [70_000_000, 70_000_000], [40_000_000, 70_000_000]],
             "style": "dash_dot",
-            "assigns": {"location": je206.to_string()},
+            "assigns": {"location": field.to_string()},
         }),
     );
     s.save().expect("the first save writes the item and the box");
@@ -176,13 +170,11 @@ fn page_items_and_structure_boxes_survive_later_saves_and_save_as() {
 /// structure box like any other record.
 #[test]
 fn model_lines_sees_page_items_and_structure_boxes() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
-    let mut s = session(&batch);
-    let je206 = {
+    let mut s = crate::common::sample();
+    let page = page_101(&s);
+    let field = {
         let q = s.query();
-        node(&q, "J-E-206")
+        node(&q, "FLD")
     };
     run(
         &mut s,
@@ -196,7 +188,7 @@ fn model_lines_sees_page_items_and_structure_boxes() {
             "page": page.to_string(),
             "outline": [[40_000_000, 40_000_000], [70_000_000, 40_000_000], [70_000_000, 70_000_000], [40_000_000, 70_000_000]],
             "style": "dash_dot",
-            "assigns": {"location": je206.to_string()},
+            "assigns": {"location": field.to_string()},
         }),
     );
     let tables = s.page_tables("101").expect("page 101");

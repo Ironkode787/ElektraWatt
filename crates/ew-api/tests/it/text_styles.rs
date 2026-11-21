@@ -16,7 +16,6 @@ use ew_dl::{Item, ItemKind};
 use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
 /// The em heights of the built-in table that the tests follow: 5, 7 and 13 QET px.
 const PX5: i64 = 1_322_917;
@@ -49,13 +48,22 @@ fn project_text(dir: &Path) -> String {
     std::fs::read_to_string(dir.join("project.jsonl")).unwrap()
 }
 
-fn copy_of_golden(seed: u64) -> Session {
+/// A new project from the sample as its basic project.
+fn copy_of_sample(seed: u64) -> Session {
     Session::new_project(
-        ProjectTemplate::Directory(Path::new(GOLDEN_A)),
+        ProjectTemplate::Directory(Path::new(ew_testdir::SAMPLE)),
         NewProjectKind::Schematic,
         options(seed),
     )
     .unwrap()
+}
+
+/// A copy of the sample with its text-style overrides removed: every style at its built-in size.
+fn without_overrides(seed: u64) -> Session {
+    let mut s = copy_of_sample(seed);
+    commit_styles(&mut s, json!({}));
+    assert!(s.query().project().settings.text_styles.is_empty());
+    s
 }
 
 /// A new built-in project with seeded IDs.
@@ -115,12 +123,14 @@ fn core061(s: &Session) -> Vec<String> {
         .collect()
 }
 
-/// TS-1: Golden A writes no member and keeps EF-12's two EW-CORE-061 findings.
+/// TS-1: the sample, made as a new project, holds the new-project overrides and no EW-CORE-061 finding; without the
+/// member its pages print small pin numbers below the readable size, and EW-CORE-061 reports that style (the sample
+/// prints no text in `marker`: its wire markers are page items).
 #[test]
-fn golden_a_has_no_member_and_keeps_its_two_findings() {
-    assert!(!project_text(Path::new(GOLDEN_A)).contains("text_styles"));
-    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
-    assert_eq!(core061(&golden), ["cp.small", "marker"]);
+fn a_project_without_the_member_has_the_two_findings() {
+    assert!(project_text(Path::new(ew_testdir::SAMPLE)).contains(NEW_PROJECT_MEMBER));
+    assert!(core061(&copy_of_sample(1)).is_empty());
+    assert_eq!(core061(&without_overrides(1)), ["cp.small"]);
 }
 
 /// TS-2: a new project's `project.jsonl` holds exactly the two overrides, and they round-trip.
@@ -150,13 +160,13 @@ fn a_new_project_writes_its_overrides() {
 }
 
 /// TS-2: with the new-project overrides, every wire marker and small pin number prints at 7 px in the export job's
-/// scenes, and EW-CORE-061 reports nothing (over Golden A's pages, which print both).
+/// scenes, and EW-CORE-061 reports nothing (over the sample's pages without the overrides, which print pin numbers).
 #[test]
 fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
-    let mut s = copy_of_golden(2);
+    let mut s = without_overrides(2);
     let before = run_sizes(&s);
     assert!(n(&before, PX5) > 0, "{before:?}");
-    assert_eq!(core061(&s), ["cp.small", "marker"]);
+    assert_eq!(core061(&s), ["cp.small"]);
     commit_styles(
         &mut s,
         json!({"cp.small": {"size": PX7}, "marker": {"size": PX7}}),
@@ -172,7 +182,7 @@ fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
 /// 100 nm is refused at `/text_styles/tag.main/size`.
 #[test]
 fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {
-    let mut s = copy_of_golden(3);
+    let mut s = without_overrides(3);
     let before = run_sizes(&s);
     let tags = n(&before, PX13);
     assert!(tags > 10, "{before:?}");
@@ -223,14 +233,17 @@ fn an_unknown_member_of_an_entry_survives_a_save() {
     assert_eq!(project_text(&dir), text);
 }
 
-/// TS-6: a company basic project without the member makes a project without it; `save_as_basic` of a new project
+/// TS-6: a company basic project's member is copied as it is (the sample's overrides); `save_as_basic` of a new project
 /// keeps the overrides, and a project made from that basic project has them.
 #[test]
 fn a_basic_project_is_copied_as_it_is() {
     let work = temp("ts6");
     let state = work.join("state");
-    let copy = copy_of_golden(6);
-    assert!(copy.query().project().settings.text_styles.is_empty());
+    let copy = copy_of_sample(6);
+    assert_eq!(
+        copy.query().project().settings.text_styles,
+        crate::common::sample().query().project().settings.text_styles
+    );
     let fresh = new_basic(7);
     let basic = work.join("basic.ew");
     fresh.save_as_basic(&basic, false, false, store(&state)).unwrap();
@@ -261,7 +274,7 @@ fn run_fonts(items: &[Item], out: &mut Vec<ew_dl::FontKey>) {
 /// regular face in the scene the PDF writer draws, and the PDF embeds that face.
 #[test]
 fn a_style_in_the_technical_face_prints_and_exports_in_routed_gothic() {
-    let mut s = copy_of_golden(9);
+    let mut s = copy_of_sample(9);
     let technical = ew_text::bundled()
         .faces()
         .find(|f| f.family == ew_text::Family::Technical)

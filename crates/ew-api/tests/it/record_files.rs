@@ -3,7 +3,8 @@
 
 //! `merge.resolve` routes a record to its file by `ew-commands`' own copy of doc 05
 //! §2.2's rules, since `ew-commands` has no `ew-format` edge. This crate sees both, and pins the copy to
-//! `ew_format::record_file`, the writer's, over Golden A's records and conflict records, kind by kind.
+//! `ew_format::record_file`, the writer's, over the sample's records, records of the kinds it holds none of, and
+//! conflict records, kind by kind.
 
 // The model is built from records through ew-model's raw API (dev-dependency `ew-model/raw-read`).
 #![allow(clippy::disallowed_methods)]
@@ -17,8 +18,8 @@ use ew_schema::{Kind, KindStatus, Record};
 use ew_store::ew_format::{FilePath, Limits, RecordAnchors, load, record_file};
 use serde_json::json;
 
-/// Golden A's files, read only, by project-relative path.
-fn golden() -> BTreeMap<FilePath, Vec<u8>> {
+/// The sample's files, read only, by project-relative path.
+fn sample_files() -> BTreeMap<FilePath, Vec<u8>> {
     fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<FilePath, Vec<u8>>) {
         for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
             let path = entry.expect("a directory entry").path();
@@ -36,7 +37,7 @@ fn golden() -> BTreeMap<FilePath, Vec<u8>> {
             }
         }
     }
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    let dir = Path::new(ew_testdir::SAMPLE);
     let mut out = BTreeMap::new();
     walk(&dir, &dir, &mut out);
     out
@@ -48,10 +49,10 @@ fn record(v: serde_json::Value) -> Record {
 
 #[test]
 fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
-    let loaded = load(None, &golden(), &Limits::default());
-    let project = loaded.project.clone().expect("Golden A's project");
+    let loaded = load(None, &sample_files(), &Limits::default());
+    let project = loaded.project.clone().expect("the sample's project");
     let mut records = loaded.records.clone();
-    // Conflict records: on a connection of Golden A, on a record that does not exist, and of whole record files (the
+    // Conflict records: on a connection of the sample, on a record that does not exist, and of whole record files (the
     // merge driver writes a file-level conflict only into a record file).
     let connection = records
         .iter()
@@ -68,10 +69,14 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         })
         .expect("a page");
     let page = format!("pages/{page_id}.jsonl");
-    // The kinds Golden A holds no record of.
+    // The kinds the sample holds no record of.
     records.push(record(json!({
         "$k": "structure_box", "id": "5a0c1e2d-3b4f-5a61-8000-000000000005", "page": page_id,
         "outline": [[0, 0], [10, 0], [10, 10], [0, 10]], "style": "dash_dot", "assigns": {}
+    })));
+    // The window's bus tools make no physical net.
+    records.push(record(json!({
+        "$k": "physical_net", "id": "cc7f9a8a-c6fe-5687-aa61-ae25ef141801", "name": "DP", "medium": "copper"
     })));
     records.push(record(json!({
         "$k": "macro_instance", "id": "4b7d2e91-0c58-5a36-8f1e-d9a3c6b07e24",
@@ -82,30 +87,29 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         "target": {"finding": "9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}, "reason": "a reason", "author": "engineer",
         "date": "2025-04-14", "expires": "never"
     })));
-    // An import run of Golden A's lineage, in `imports/<run>.jsonl`.
-    let lineage = records
-        .iter()
-        .find_map(|r| match r {
-            Record::ImportLineage(l) => Some(l.id.to_string()),
-            _ => None,
-        })
-        .expect("Golden A's lineage");
+    // An import lineage (the sample was drawn, not imported) and a run of it, in `imports/<run>.jsonl`.
+    let lineage = "763dd2f1-b9b8-558e-8d55-97d7304a4929";
+    records.push(record(json!({
+        "$k": "import_lineage", "id": lineage, "importer": "csv", "source_name": "tables",
+        "anchor": {"fixed": "tables"}, "namespace": "bcd29740-77ac-52c2-8d87-635b0829fedd",
+        "last_source_sha256": format!("sha256:{}", "0".repeat(64))
+    })));
     records.push(record(json!({
         "$k": "import_run", "id": "019a4f00-0000-7000-8000-000000000001", "lineage": lineage, "importer": "csv",
         "importer_version": "1", "source": {"name": "tables", "sha256": format!("sha256:{}", "0".repeat(64)),
         "size": 0, "format": "csv"}, "mode": "strict"
     })));
-    // The exchange snapshot of Golden A's configuration project, in `exchange/<config project>.jsonl`.
+    // The exchange snapshot of the sample's configuration project, in `exchange/<config project>.jsonl`.
     let cfg = records
         .iter()
         .find_map(|r| match r {
             Record::PlcConfigProject(c) => Some(c.id.to_string()),
             _ => None,
         })
-        .expect("Golden A's configuration project");
+        .expect("the sample's configuration project");
     records.push(record(json!({
         "$k": "exchange_record", "id": "4b1d9e70-2c53-5a86-9f04-e8d1c6a3b752", "config_project": cfg,
-        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "fields": {"name": "-201U1"}
+        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "fields": {"name": "-104A1"}
     })));
     records.push(record(json!({
         "$k": "foreign_id", "id": "c05e7a19-8d42-5b63-a1f7-3e9b0d64c285", "config_project": cfg,
@@ -196,7 +200,7 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         assert_eq!(record_file_of(&model, r), writer, "{r:?}");
         kinds.extend(r.kind());
     }
-    // Every kind of record Golden A writes is compared.
+    // Every kind of record the project writes is compared.
     let missing: Vec<Kind> = Kind::ALL
         .into_iter()
         .filter(|k| k.status() == KindStatus::Implemented && !k.is_library())

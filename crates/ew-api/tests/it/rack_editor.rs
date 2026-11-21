@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rack and slot editor's view and `plc.add_module` (doc 10 §6, FR-PLC-028) on Golden A: the valve terminal's
-//! seven modules in manifold order with their valve positions beside the stored order codes; a module added after
-//! them where its part allows the slot, and refused by EW-PLC-011 where it does not.
+//! The rack and slot editor's view and `plc.add_module` (doc 10 §6, FR-PLC-028) on the sample: the CPU -104A1's two
+//! cards in slot order and the valve terminal -201K1's four valve positions; a module added after the cards where its
+//! part allows the slot, and refused by EW-PLC-011 where it does not; the overview of a station across pages.
 
 use crate::common;
 
@@ -12,15 +12,13 @@ use ew_api::{AnyCommand, Session};
 use ew_schema::LibDocument;
 use serde_json::{Value, json};
 
-/// Golden A with part 533361 allowing the slots `allowed`.
-fn golden_allowing(allowed: &[u16]) -> Session {
-    let batch = common::golden_batch();
-    let (project, records) = common::split(&batch);
-    let lib = batch
-        .lib
+/// The sample with the input card's part EW-GEN-DI-1 allowing the slots `allowed`.
+fn sample_allowing(allowed: &[u16]) -> Session {
+    let (project, records, lib) = common::sample_records();
+    let lib = lib
         .iter()
         .map(|d| match d {
-            LibDocument::Part(p) if p.item.part_number.as_str() == "533361" => {
+            LibDocument::Part(p) if p.item.part_number.as_str() == "EW-GEN-DI-1" => {
                 let mut v = serde_json::to_value(d).expect("a document");
                 v["sections"]["plc"]["allowed_slots"] = json!(allowed);
                 LibDocument::from_value(v).expect("the edited part")
@@ -32,7 +30,7 @@ fn golden_allowing(allowed: &[u16]) -> Session {
 }
 
 fn station(s: &Session) -> Uuid {
-    s.resolve_reference("tag:-201U1").expect("the valve terminal")
+    s.resolve_reference("tag:-104A1").expect("the CPU")
 }
 
 fn add(s: &mut Session, part: &str) -> Result<(), String> {
@@ -41,7 +39,7 @@ fn add(s: &mut Session, part: &str) -> Result<(), String> {
         .query()
         .parts()
         .iter()
-        .find(|(_, c)| c.item.part_number.as_str().starts_with(part))
+        .find(|(_, c)| c.item.part_number.as_str() == part)
         .map(|(id, _)| id.as_uuid())
         .expect("the module part");
     s.execute(&AnyCommand {
@@ -54,10 +52,10 @@ fn add(s: &mut Session, part: &str) -> Result<(), String> {
 }
 
 #[test]
-fn the_valve_terminal_in_the_rack_editor() {
-    let mut s = golden_allowing(&[1, 2, 3, 4, 5, 6, 7, 8]);
+fn the_cpu_in_the_rack_editor() {
+    let mut s = sample_allowing(&[1, 2, 3]);
     let v = s.rack_view(station(&s)).expect("a station");
-    assert_eq!(v.tag, "-201U1");
+    assert_eq!(v.tag, "-104A1");
     assert!(!v.racked, "positional slots");
     let modules: Vec<(&str, u32)> = v
         .rows
@@ -67,16 +65,8 @@ fn the_valve_terminal_in_the_rack_editor() {
         .collect();
     assert_eq!(
         modules,
-        [
-            ("-201U3", 1),
-            ("-201U4", 2),
-            ("-201U5", 3),
-            ("-201U6", 4),
-            ("-201U7", 5),
-            ("-201U8", 6),
-            ("-202U2", 7)
-        ],
-        "the seven modules in manifold order"
+        [("-104A1-A1", 1), ("-104A1-A2", 2)],
+        "the two cards in slot order"
     );
     let free: Vec<u32> = v
         .rows
@@ -84,67 +74,87 @@ fn the_valve_terminal_in_the_rack_editor() {
         .filter(|r| r.module.is_none())
         .map(|r| r.slot)
         .collect();
-    assert_eq!(free, [8], "the slot after the positional modules");
-    let first = &v.rows[0];
-    assert_eq!(first.positions.len(), 4, "a sub-base with four valve positions");
-    assert!(first.positions.iter().all(|p| p.valve.is_some()));
-    let codes: Vec<&str> = v.order_codes.iter().map(|(_, c)| c.as_str()).collect();
-    assert!(codes.contains(&"51E-F13GCQP-D+H2GG"), "{codes:?}");
+    assert_eq!(free, [3], "the slot after the positional modules");
+    assert_eq!(v.rows[0].addresses, "I0.0–I0.7");
     assert!(v.findings.is_empty());
 
-    add(&mut s, "533361").expect("slot 8 is allowed");
+    add(&mut s, "EW-GEN-DI-1").expect("slot 3 is allowed");
     let v = s.rack_view(station(&s)).unwrap();
-    assert_eq!(v.rows.iter().filter(|r| r.module.is_some()).count(), 8);
+    assert_eq!(v.rows.iter().filter(|r| r.module.is_some()).count(), 3);
     assert_eq!(
         v.rows
             .iter()
-            .find(|r| r.slot == 8)
+            .find(|r| r.slot == 3)
             .and_then(|r| r.module.map(|_| ())),
         Some(())
     );
 }
 
+/// The valve terminal is one module: its four valve positions hold the valves -201K1-Q1 … -201K1-Q4.
+#[test]
+fn the_valve_terminal_in_the_rack_editor_shows_its_valve_positions() {
+    let s = common::sample();
+    let v = s
+        .rack_view(s.resolve_reference("tag:-201K1").expect("the valve terminal"))
+        .expect("a station");
+    let valves: Vec<(u32, Option<&str>)> = v
+        .cells
+        .iter()
+        .map(|c| (c.position, c.at.valve.as_deref()))
+        .collect();
+    assert_eq!(
+        valves,
+        [
+            (1, Some("-201K1-Q1")),
+            (2, Some("-201K1-Q2")),
+            (3, Some("-201K1-Q3")),
+            (4, Some("-201K1-Q4")),
+        ]
+    );
+    assert!(v.findings.is_empty());
+}
+
 #[test]
 fn a_module_in_a_slot_its_part_does_not_allow_is_refused() {
-    let mut s = golden_allowing(&[1, 2, 3, 4, 5, 6, 7]);
+    let mut s = sample_allowing(&[1, 2]);
     let rev = s.world().rev;
-    let err = add(&mut s, "533361").expect_err("slot 8 is not allowed");
+    let err = add(&mut s, "EW-GEN-DI-1").expect_err("slot 3 is not allowed");
     assert!(
-        err.contains("EW-PLC-011") || err.contains("allows slots 1, 2, 3, 4, 5, 6, 7"),
+        err.contains("EW-PLC-011") || err.contains("allows slots 1, 2"),
         "{err}"
     );
     assert_eq!(s.world().rev, rev, "nothing committed");
 }
 
-/// `plc.add_module {slot: 3}` on the valve terminal, whose third positional module is -201U5: refused by EW-PLC-011,
-/// which names both modules, and nothing is committed.
+/// `plc.add_module {slot: 2}` on the CPU, whose second positional module is -104A1-A2: refused by EW-PLC-011, which
+/// names both modules, and nothing is committed.
 #[test]
 fn a_module_into_a_slot_another_module_holds_is_refused() {
-    let mut s = golden_allowing(&[]);
+    let mut s = sample_allowing(&[]);
     let rev = s.world().rev;
     let station = station(&s);
     let copy = s
         .query()
         .parts()
         .iter()
-        .find(|(_, c)| c.item.part_number.as_str().starts_with("533361"))
+        .find(|(_, c)| c.item.part_number.as_str() == "EW-GEN-DI-1")
         .map(|(id, _)| id.as_uuid())
         .expect("the module part");
     let err = s
         .execute(&AnyCommand {
             name: "plc.add_module".into(),
-            params: json!({"station": station.to_string(), "slot": 3,
+            params: json!({"station": station.to_string(), "slot": 2,
                 "part": {"part": {"copy": copy.to_string()}, "qty": "1"}}),
         })
-        .expect_err("slot 3 holds -201U5");
+        .expect_err("slot 2 holds -104A1-A2");
     let err = format!("{err}");
-    assert!(err.contains("-201U5") && err.contains("the same slot 3"), "{err}");
+    assert!(err.contains("-104A1-A2") && err.contains("the same slot 2"), "{err}");
     assert_eq!(s.world().rev, rev, "nothing committed");
 }
 
 #[test]
 fn a_part_that_is_no_module_is_refused_in_words() {
-    let mut s = golden_allowing(&[]);
+    let mut s = sample_allowing(&[]);
     let station = station(&s);
     let cpu = s
         .library_parts()
@@ -165,13 +175,14 @@ fn a_part_that_is_no_module_is_refused_in_words() {
     assert!(format!("{err}").contains("is no PLC module"), "{err}");
 }
 
-/// `valve_terminal.generate_overview` (FR-FLU-033, doc 11 §5.5) in a band five overview modules wide: the members fill
-/// 201 and 202 five at a time, never more, and the rest goes onto a new assembly-overview page, with a break mark at
-/// each open end; a second run changes nothing.
+/// `valve_terminal.generate_overview` (FR-FLU-033, doc 11 §5.5) of the CPU station in a band two overview modules
+/// wide: its three members (the head and the two cards) fill new pages two at a time, never more; a second run
+/// changes nothing. The break marks at each open end belong to a valve terminal's manifold, and the sample's valve
+/// terminal is one module: they are not checked here.
 #[test]
 fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
     use ew_derive::ew_schema::PageType;
-    let mut s = golden_allowing(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let mut s = common::sample();
     let pages = |s: &Session| {
         let q = s.query();
         q.pages()
@@ -182,8 +193,8 @@ fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
     let before = pages(&s);
     let mut params = s.overview_params(station(&s)).expect("the parameters");
     let left = params["left"].as_i64().expect("left");
-    // Golden A's overview module is 15.875 mm wide; five fit, a sixth does not.
-    params["right"] = json!(left + 5 * 15_875_000 + 7_937_500);
+    // The wide overview module is 42.333 mm wide; two fit, a third does not.
+    params["right"] = json!(left + 2 * 42_333_333 + 7_937_500);
     // A bulk command: previewed, then committed.
     let run = |s: &mut Session| {
         let cmd = AnyCommand {
@@ -198,13 +209,10 @@ fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
     assert!(notices.iter().any(|n| n.contains("(new page)")), "{notices:?}");
     for n in &notices {
         let members = n.split(": ").nth(1).map_or(0, |m| m.split(", ").count());
-        assert!(members <= 5, "{n}");
+        assert!(members <= 2, "{n}");
     }
-    assert_eq!(pages(&s), before + 1, "one page more");
-    let q = s.query();
-    let marks = q.get::<ew_derive::AssemblyBreakMarks>(());
-    assert!(marks.len() >= 4, "two marks at each of two breaks: {marks:?}");
+    assert_eq!(pages(&s), before + 2, "three members two at a time");
     let receipt = run(&mut s);
     assert!(!receipt.outcome.notices.iter().any(|n| n.contains("(new page)")));
-    assert_eq!(pages(&s), before + 1, "a refresh adds no page");
+    assert_eq!(pages(&s), before + 2, "a refresh adds no page");
 }
