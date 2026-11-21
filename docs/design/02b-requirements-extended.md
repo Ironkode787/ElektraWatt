@@ -10,6 +10,11 @@ project data. Each row is one testable requirement with a priority, a release ta
 project. The core areas (PRJ … REV) are in [02a](02a-requirements-core.md) and the non-functional requirements in
 [02c](02c-nonfunctional-requirements.md); feature documents 05 and 10–17 elaborate the rows defined here.
 
+**The acceptance criteria and the reference project.** The criteria of this catalogue were stated on the reference
+project (the golden project, GP), which was retired at 0.3.5 with its design document 20 (see the
+[glossary](glossary.md), "Golden project"). They stay as they were written. A criterion is restated on the sample
+project in its milestone's file when that milestone is planned.
+
 **Contents**
 0. [Conventions](#0-conventions)
 1. [PLC and I/O (PLC)](#1-plc-and-io-plc)
@@ -40,9 +45,9 @@ project. The core areas (PRJ … REV) are in [02a](02a-requirements-core.md) and
   deviation (DWG through the ODA converter at 1.0) is raised in Open question 3. Where a requirement is Should in
   one release and Must in a later one, the row carries the earlier release and says so in its text.
 - **Acceptance criterion** is the test that closes the row. "Golden" means the reference project J-E-2416 as
-  specified in [reference drawing](../research/reference-drawing.md) §4 and the [golden project](20-golden-project.md)
+  specified in [reference drawing](../research/reference-drawing.md) §4 and the golden project
   document. Values marked ▲ there (unknown in the reference) are test inputs, not facts. Golden A, A-R, B and C are
-  the variants and the resolution overlay of [golden project](20-golden-project.md) §2; AC-nn, EF-nn, MF-nn and U-nn
+  the variants and the resolution overlay of golden project §2; AC-nn, EF-nn, MF-nn and U-nn
   are its acceptance criteria, expected findings, migration findings and unknowns.
 
 **Source codes.** REF-nnn, D-nn, ADR-00nn, SC-n, IDEA-nnn, G-n and C-n are cited directly. Abbreviations:
@@ -891,7 +896,7 @@ criterion took the proposal's substance).
   FR-EXT-026 includes 02c's token row and FR-EXT-032 includes 11's fluid views.
 - **From [18](18-quality-security-release.md):** P18-7 → FR-UI-050; P18-8 → FR-UI-038 (one row with 02c's About
   dialog).
-- **From [20](20-golden-project.md):** FR-LAY-nnn (EW-L001 for devices without part) → FR-LAY-017 (refined);
+- **From 20:** FR-LAY-nnn (EW-L001 for devices without part) → FR-LAY-017 (refined);
   FR-IMP-nnn (element-origin anchor) → FR-IMP-038.
 
 ### Rows proposed to 02a and 02c

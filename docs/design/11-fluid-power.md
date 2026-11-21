@@ -415,7 +415,7 @@ flowchart TB
 
 - **Order.** Modules are children of the assembly device, ordered by `Device.position` (manifold order). Valves are
   children of their sub-base. Position p runs from 1 to the part's `positions` value. The address map's index is
-  p − 1 ([20](20-golden-project.md) §11.2).
+  p − 1.
 - **Occupancy** is derived per position:
   - `Valve(state)`: a valve child with state used, spare or reserved ("valve fitted, unused" when spare), or not
     fitted (planned position, no valve supplied: no BOM line, no EW-FL-001, its coils' channels deactivated);
@@ -514,7 +514,7 @@ the part editor's controls for the kind, the positions and the pin map (backlog)
 ### 3.3 Field devices, linkages, process tags and target tracking
 
 The process valves TA05-V-15, -33, -18, -17, -36, -38, -16 and -37 are **field devices** (FR-DEV-027): -203Q1 …
--203Q8 in `+FIELD` (both ▲U-07), marked "supplied by others" (FR-DEV-037, [20](20-golden-project.md) §6.2:
+-203Q8 in `+FIELD` (both ▲U-07), marked "supplied by others" (FR-DEV-037:
 excluded from the BOM and the part and layout checks, kept in fluid lines and target tracking). Each has:
 - a 2-way process-valve function and a double-acting actuator function (ports A, B ▲);
 - a derived dashed linkage between the two functions (FR-SYM-014);
@@ -1032,11 +1032,11 @@ alike (ADR-0018, FR-EXP-002).
 | Row source | Columns | Golden A |
 |---|---|---|
 | Tube list (FR-FLU-012, 1.0) | tag, from DT:port (role), to DT:port (role), medium, line kind, od×id, material, colour, tube part, length + source, fittings A/B, location change, page/cell | 16 rows F1–F16, e.g. "— · -201U3-Q1:2 (working) · -203Q1:A ▲ · — · working · (no spec, EW-FL-007) · +J-E-2416 → +FIELD · 203" |
-| Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment | Golden A-R (PU 6×4 BU at 1,200 mm on F1–F17 ▲, [20](20-golden-project.md) §12): 1 line, 17 pieces, 20.4 m |
+| Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment | Golden A-R (PU 6×4 BU at 1,200 mm on F1–F17 ▲): 1 line, 17 pieces, 20.4 m |
 | Tube labels (FR-FLU-013, 1.0) | per tube end: text by marking scheme (tag, or destination "-203Q1:A" / "-201U3-Q1:2"), marker part | Input to the label engine (FR-MFG-012, [13](13-manufacturing-outputs.md)) |
 | Valve-terminal configuration (FR-FLU-015, 1.0) | position, module DT, module part, valve DT, valve part, solenoids, channel and address, function text / process tag, occupancy and state | 12 module rows -201U1 … -202U3, 28 valve rows (8 used, 20 spare) |
 | Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone, and the actuators it reaches), default tube | Golden A-R (medium at -201U9:1 through F17): one row, 36 consumers |
-| Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded | Component mode: 571334 × 28, 533361 × 7, 533354 × 2 (D-04); assembly mode: rows A1 (51E-F13GCQP-D+H2GG) and A2 (32P-VGL-R-…-28MS) ([20](20-golden-project.md) §14.2) |
+| Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded | Component mode: 571334 × 28, 533361 × 7, 533354 × 2 (D-04); assembly mode: rows A1 (51E-F13GCQP-D+H2GG) and A2 (32P-VGL-R-…-28MS) |
 
 *As built (WP-S1.25).* The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` of
 `ew-derive`, shared by the report kinds and the SQL views. The tube list prints lengths in metres. The cut list
@@ -1133,7 +1133,7 @@ never see the model (ADR-0021, ARCH §3 rule 4):
 4. **Preview.** It shows the hand-drawn overview's count against the proposed children (MF-14, FR-CHK-022) and
    regenerates the overview on accept.
 
-The result equals step 6 of the Golden C fix script ([20](20-golden-project.md) §20.2).
+The result equals step 6 of the Golden C fix script.
 
 ---
 
@@ -1198,16 +1198,19 @@ Changing -201U3's module start re-renders "Q0.1" in the same commit (FR-FLU-005)
 
 **One value, one place.** The used valves carry no function text: TA05-V-15 … are stored once, as the field
 devices' process tags, and print on the valves through the `FunctionText` slot's `ProcessTag` fallback, as in
-[20](20-golden-project.md) §6.2 and the valve typical of [07](07-symbols-parts-macros.md) §9.3. The spare valves
+the valve typical of [07](07-symbols-parts-macros.md) §9.3. The spare valves
 keep the manual function text "Spare". Reports keep function text and process tag as separate columns
 ([10](10-plc-and-bus.md) §3.4).
 
 ### 11.2 Expected results
 
+These were the expectations on the reference project (Golden A and A-R), retired at 0.3.5; each rule now keeps its
+own tests (the *As built* paragraph below).
+
 - **MVP check run.**
   - EF-13: EW-FL-001, 20 warnings, one per spare valve, ports 2 and 4.
   - EF-14: EW-FL-004, 20 infos.
-  - EW-FL-002, EW-FL-011 and EW-FL-013 report nothing ([20](20-golden-project.md) §18.1).
+  - EW-FL-002, EW-FL-011 and EW-FL-013 report nothing.
 - **1.0 check run.**
   - EF-20: EW-FL-010, 1 warning on -201U1, because gallery 1 is fed by nothing.
   - EF-21: EW-FL-007, 16 warnings, F1–F16.
@@ -1215,15 +1218,15 @@ keep the manual function text "Spare". Reports keep function text and process ta
   - EW-FL-008 and EW-FL-014 are off.
 - **AC-32.** 28 valve children, overviews 201/202 generated with 4 valves on -202U2, break marks and "∞" references,
   16 lines to 8 field devices, derived address texts. At 1.0 the tube list has 16 rows.
-- **Propagation test** (FR-FLU-009, FR-FLU-026) on the Golden A-R fluid overlay ([20](20-golden-project.md) §2.4,
-  §12; ▲U-25). The `MediumDef` "compressed air 6 bar [1:4:1]" at the air-supply point reaches -201U9:1 through the
+- **Propagation test** (FR-FLU-009, FR-FLU-026) on the Golden A-R fluid overlay (▲U-25). The `MediumDef` "compressed air 6 bar [1:4:1]" at the air-supply point reaches -201U9:1 through the
   supply line F17 and port 1 of all 28 valves through gallery 1. It reaches ports 3 and 5 as `Exhaust`, and F1–F16
   as the medium. EF-20 clears. The default tube PU 6×4 BU clears EF-21, the plugs on the spare valves' ports 2 and 4
   clear EF-13, and the tube list has 17 rows F1–F17 at 1,200 mm (`expected/fluid.csv`).
 
-*As built.* EF-13 and EF-14 are found with their 20 subjects each,
-and AC-21 compares the whole `findings_mvp.csv`; F1 to F16 are drawn on folio 203 as working lines (doc 20 §12), and
-the valve glyphs print on 201 and 202. EW-FL-004 counts in the release run (`o r`, §6).
+*As built.* The fluid rules are tested on small models built in code: `crates/ew-checks/tests/it/fluid.rs`
+(EW-FL-001, -002, -004, -011, -013) and `fluid_media.rs` (EW-FL-005, -006, -007, -009, -010, -012). The sample
+project's page 201 draws a valve terminal with two used and two spare valves. EW-FL-004 counts in the release run
+(`o r`, §6).
 
 ### 11.3 Defects prevented
 
@@ -1292,7 +1295,7 @@ the line-kind picker and the navigator's fluid actions are built (§7).
 | [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.3–§2.5, §3.6, §9 | Symbol and FnDef format, `symbol-map.csv`, starter symbols, valve-module typical, part sections |
 | [08-connections-terminals-cables](08-connections-terminals-cables.md) §3, §7.6 | CI-02, union-find conventions, `LengthSource` |
 | [10-plc-and-bus](10-plc-and-bus.md) | Address and solenoid maps, binding semantics, EW-PLC-012/-014, EW-PRC-001, target tracking |
-| [09](09-reports-forms-output.md) §2.4, [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) §5.3, §8.1, [14](14-interop.md) §4.12–§4.13, [15](15-checks-revisions-collaboration.md) §2.2–§2.3, §4.1, §4.5.3, [16](16-ux-ui.md), [17](17-extensibility.md) §3.3, §6.1, [20](20-golden-project.md) §6.2, §11, §12, §14, §18 | Report kinds, routing, labels and `.ewpp`, QET recognisers and assembly findings, rule IDs, codes and scopes, panels, CLI and SQL views, golden expectations |
+| [09](09-reports-forms-output.md) §2.4, [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) §5.3, §8.1, [14](14-interop.md) §4.12–§4.13, [15](15-checks-revisions-collaboration.md) §2.2–§2.3, §4.1, §4.5.3, [16](16-ux-ui.md), [17](17-extensibility.md) §3.3, §6.1, §18 | Report kinds, routing, labels and `.ewpp`, QET recognisers and assembly findings, rule IDs, codes and scopes, panels, CLI and SQL views, golden expectations |
 | Crates ([04](04-architecture.md) §3) | `ew-schema` (fluid records, part section), `ew-model` (FI-01 … FI-07), `ew-derive` (§5.6 queries), `ew-commands` (N-FL-1 … 5, §4.3 commands, the reconstruction assistant), `ew-checks` (EW-FL), `ew-reports` (fluid row sources), `ew-scene` (fluid pages, overview segments, PART DATA blocks), `ew-library` (fluid part sections), `ew-sqlview` (fluid views), `ew-import-qet` (mapping table, text recognisers; no model access), `ew-viewmodel` and `ew-ui`; at 1.0 `ew-mfg` (tube labels, `tubes.json`); at 1.x `ew-panel` (`RouteTubes`) |
 
 ---
@@ -1361,7 +1364,7 @@ The ten rows this document proposed, and its column definition of the fluid SQL 
    with valves as child devices (FR-FLU-004). **Resolved:** FR-DEV-017's criterion reads "creates its PlcModule
    aspect with 8 channels and 4 empty valve positions (the valves stay child devices)".
 5. **Function-text fallback and the golden data.** Printing the tracked process tag could be put into FR-DEV-011's
-   automatic function text. [20](20-golden-project.md) §6.2 and [07](07-symbols-parts-macros.md) §9.3 instead store
+   automatic function text. The golden data and [07](07-symbols-parts-macros.md) §9.3 instead stored
    TA05-V-15 … as the used valves' manual function texts, duplicating the field devices' process tags, and
    [10](10-plc-and-bus.md) §3.4 read "the valve's function text" for the I/O list. **Resolved:** FR-DEV-011 is
    unchanged; used valves carry no function text, the `FunctionText` slot prints the automatic function text, else
@@ -1373,7 +1376,7 @@ The ten rows this document proposed, and its column definition of the fluid SQL 
    *Recommendation:* add as MVP Should a pilot-essentials set (3/2 NC, 5/2 bistable, 5/3 closed centre,
    single-acting and double-acting cylinders, silencer, plug, FRL service unit, on/off valve, one-way flow control,
    pressure switch) and confirm it against the pilot's QET usage (PQ-18).
-8. **Golden A-R has no fluid overlay.** [20](20-golden-project.md) §2.4 resolved no fluid unknowns, so EF-20 and EF-21
+8. **Golden A-R has no fluid overlay.** The golden variants resolved no fluid unknowns, so EF-20 and EF-21
    could not clear and AC-32's tube list had no data. **Resolved:** 20 §2.4 and §12 add the U-25 test rows: medium
    "compressed air 6 bar [1:4:1]" ▲ fed to -201U9:1 through the supply line F17, default tube PU 6×4 BU, 1,200 mm
    manual lengths, silencers on the supply plates' ports 3/5 and plugs on the spare valves' ports 2/4 (§11.2).

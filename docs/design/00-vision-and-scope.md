@@ -480,7 +480,7 @@ its substance:
    `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace
    ([architecture](04-architecture.md) §3, [13](13-manufacturing-outputs.md)).
 7. **Golden A with or without D-13?** **Resolved:** Golden A keeps the wiring as drawn, with EW-POT-013 reported
-   (EF-01, acceptance criterion 8), and Golden A-R carries a rewired test variant ([20](20-golden-project.md) §2.4)
+   (EF-01, acceptance criterion 8), and Golden A-R carries a rewired test variant
    until the pilot confirms the real wiring (PQ-13).
 8. **UI languages at MVP?** *Recommendation:* English and Dutch at MVP, German by 1.0, via Weblate.
 9. **When must the open ADRs be decided?** *Recommendation:* ADR-0025 and ADR-0030 before the first external

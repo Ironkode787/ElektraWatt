@@ -220,7 +220,7 @@ the fuzz session submits as the GUI, which `HumanOnly` admits, as for `project.c
 `project.settings.set`), `connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place` and
 `marker.place`, with additive members on `device.place`, `box.black`, `rep.move` (`steps`, `items`), `edit.delete` and
 `fields.set`. **Every new optional member is `skip_serializing_if`**, so the 609-command log of AC-15 and the golden
-bytes stay unchanged; the only change allowed under `golden/` is the re-bless rule. All eight are registered.
+bytes stayed unchanged. All eight are registered.
 
 *As built.* **`rep.exchange_symbol`** and **`project.drawing.set`** (with `crossings`) are both `Edit`, `Preview`, Interactive and undoable. The additive members `from_part` (`device.place`, `box.black`), `new_terminal` (`device.place`) and `steps` (`rep.move`) are built; every new optional member is `skip_serializing_if`, and AC-15's 609-command log and the golden bytes are unchanged. Each new command has its committed schema, its reference page, a DSL verb and a fuzzer arm ([06](06-schematic-editor.md) §3.1).
 
@@ -289,15 +289,14 @@ plugin from waiving EW-POT-013 or demoting EW-PLC-012 to make a release gate pas
 `ew waiver add|remove`, `ew trust grant|revoke|sign`, `ew plugin install|remove`) may submit a `HumanOnly`
 command, with origin `Cli{subcommand}`:
 1. The command's read-only part runs first. `ew revision release V2.0` on Golden A evaluates the gate and exits 1
-   with its 42 errors and "checker not set" without asking anything ([20](20-golden-project.md) §18.3).
+   with its 42 errors and "checker not set" without asking anything.
 2. If the command can proceed, EW prints the change summary on the controlling terminal and asks the person to type
    the revision label, the rule ID of the waiver, or `trust` / `install`. There is no `--yes` flag.
 3. Without a controlling terminal (CI runner, pipe, `nohup`), the subcommand exits 2 with "HumanOnly: needs an
    interactive terminal". Test builds of `ew-testkit` confirm through a test-build confirmation hook that release
    builds do not contain (asserted absent in release binaries like the egui inspection feature; the tests are in
    [18](18-quality-security-release.md)), so the fault-injection test of
-   `ew revision release` ([05](05-project-format-and-persistence.md) §14) and the Golden A-R sign-off of the
-   acceptance runner (`ew revision approve --as <checker>`, [20](20-golden-project.md) §2.4) still run in CI.
+   `ew revision release` ([05](05-project-format-and-persistence.md) §14) still runs in CI.
 
 Like four-eyes sign-off, this is a process control, not an authentication: a person who scripts a pseudo-terminal
 can defeat it, but no agent, plugin, replay or pipeline step can reach the gate by accident.
@@ -500,43 +499,44 @@ command tree: `ew import dxf|dwg|pdf|edz|parts-xml|eplan-report|plc-aml|plc-xlsx
 `ew plc status` and `ew verify-migration`. The importers of drawings and EPLAN data, the instrument list and the
 three PLC exports are Preview commands that print text only: they have no `--json` result yet (§3.1).
 
-### 3.4 Examples on the golden project
+### 3.4 Examples on the sample project
+
+The sample project is `fixtures/sample/sample.ew` (doc 18 §3.10); run from the root of a checkout, each command
+takes it as its project directory, here written `S`.
 
 ```console
-$ ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf      # 36 pages, outline, 64 xref links, /PageLabels
-$ ew export bom --mode assembly --format csv > bom-assembly.csv   # AC-07
-$ ew export wires --format xlsx --out wires.xlsx                  # 44 wires + 6 bridges, same rows as folio 907
-$ ew export terminals --format pdf --out terminals.pdf            # 1X1, -X1031, -X1032
-$ ew export cables --format csv > cables.csv                      # -106W1, -106W2, -3W1 (length missing)
-$ ew export plc-aml --config PLC1 --apc 1.4.0 --out PLC1.aml      # 1.0, CAEX 2.15
-$ ew export machine komax-topconvert-csv --out komax.csv          # 1.0, Golden A-R only (lengths required)
-$ ew export dxf --pages 101-106 --out dxf/                        # 1.0, AC1015 with configured layers
+$ ew export pdf S --out out/sample.pdf                            # 27 pages, outline, 160 links, /PageLabels
+$ ew export bom S --mode assembly --out bom-assembly.csv          # AC-07
+$ ew export wires S --format xlsx --out wires.xlsx                # 54 wires + 2 bridges, same rows as folio 907
+$ ew export terminals S --out terminals.csv                       # -X1011, -X1021, -X1031
+$ ew export cables S --out cables.csv                             # -101W1, -103W1, -105W1
+$ ew export plc-aml --config PLC1 --apc 1.4.0 --out PLC1.aml      # CAEX 2.15
+$ ew export machine komax-topconvert-csv --out komax.csv          # 1.0 (lengths required)
+$ ew export dxf S --pages 101-105 --out dxf/                      # AC1015 with configured layers
 
-$ ew check --scheme pre-delivery --format junit > check.xml; echo $?
-1                                   # Golden A: 42 errors, 32 warnings, 31 infos, 1 waived (AC-21)
-$ ew check <golden-a-r>.ew --scheme pre-delivery; echo $?
-0                                   # Golden A-R: Golden A plus the resolution overlay (20 §2.4)
+$ ew check S --scheme pre-delivery; echo $?
+0                                   # 0 errors, 0 warnings, 2 infos: the sample is clean
 
-$ ew sql "SELECT count(*) FROM api_v1_terminal"
+$ ew sql S "SELECT count(*) FROM api_v1_terminal"
 count(*)
-28                                  # CSV with its header line (golden dialect); 1X1: 3, -X1031: 20, -X1032: 5
-$ ew sql --timeout 5 "SELECT count(*) FROM api_v1_wire"   # --timeout: 1..86400 s, default 60 s
+18                                  # CSV with its header line (the `ew` dialect); -X1011: 5, -X1021: 8, -X1031: 5
+$ ew sql S --timeout 5 "SELECT count(*) FROM api_v1_wire" # --timeout: 1..86400 s, default 60 s
 count(*)
-50                                  # 44 wires and 6 bridges
-$ ew sql "ATTACH 'other.db' AS x"; echo $?
+56                                  # 54 wires and 2 bridges
+$ ew sql S "ATTACH 'other.db' AS x"; echo $?
 error: statement denied by the projection sandbox (ATTACH): only SELECT, WITH or VALUES may run
 2
-$ ew render --page 103 --png --dpi 150 --out 103.png              # equals the approved golden PNG (FR-EXT-004)
-$ ew export report --block <legend-902's ID> --format csv         # the legend on 902: a header and 30 rows, every column
+$ ew render S --page 103 --png --dpi 150 --out 103.png            # the page on the CPU with the bundled fonts
+$ ew export report S --block <legend-902's ID> --format csv       # the legend on 902, every column
 
-$ ew queries                                                      # the twelve public queries, in name order
-$ ew query golden/J-E-2416.ew device_tag <device> --explain       # the tag, the memo policy, verified or not, the trail
+$ ew queries                                                      # the public queries, in name order
+$ ew query S device_tag tag:-101F1 --explain                      # the tag, the memo policy, verified or not, the trail
 
-$ ew import qet <reference>.qet --report json > migration.json   # Golden C: summary on stderr; MF-01 … MF-27
+$ ew import qet <project>.qet --report json > migration.json     # summary on stderr
 $ ew upgrade old-project.ew                                       # writes an .ewz of the original first (NFR-REL-06)
 $ git config merge.elektrawatt.driver "ew merge-driver %O %A %B %L %P"   # normally via ew git setup
-$ git log -p --textconv -- devices/                               # "-102F1: part A9F78116 → …", not UUIDs
-$ ew mcp golden/J-E-2416.ew --stdio                               # started by the agent host, read-only
+$ git log -p --textconv -- devices/                               # "-102F1: part EW-GEN-MCB-1 → …", not UUIDs
+$ ew mcp S --stdio                                                # started by the agent host, read-only
 ```
 
 `ew query --explain` is the debugging tool for derived values (ARCH §6.8, IDEA-043):
@@ -555,16 +555,15 @@ device_tag(3f6a2c1e-8b4d-5e21-…) @ rev 214
   provenance  letter ← main function FnDef "MCB 1P+N", category ProtectionOvercurrent → F · counter ← online numbering
 ```
 
-The ID is a UUIDv5, because golden records are generated from the golden tables
+The example is the reference project's (until 0.3.5), whose IDs were UUIDv5 values generated from its tables
 ([05](05-project-format-and-persistence.md) §2.1); the letter derivation is the worked example of
 [03](03-domain-model.md) §8.3.
 
 ### 3.5 Command logs (`.ewcmd`)
 
 A command log is JSON Lines: one header, then one command per line. It is the serialised form of `AnyCommand`
-used by the macro recorder, the journal and the golden variants (`b1-page-based-tags.ewcmd` and
-`b2-renumber-pages.ewcmd`, `c-fix.ewcmd`,
-[20](20-golden-project.md) §2.2, §20.2).
+used by the macro recorder and the journal; the reference project's variants (`b1-page-based-tags.ewcmd`,
+`b2-renumber-pages.ewcmd`, `c-fix.ewcmd`) were such logs until 0.3.5.
 
 ```json
 {"$schema":"ew.cmdlog/1","label":"Golden B, steps B1 and B2"}
@@ -814,8 +813,7 @@ for line in device.parts {
 }
 ```
 
-On Golden A it reports nothing, because descriptions come from part data (EF-25,
-[20](20-golden-project.md) §18.2). On a migrated project whose part descriptions still hold the folio 901 texts it
+On Golden A it reports nothing, because descriptions come from part data (EF-25). On a migrated project whose part descriptions still hold the folio 901 texts it
 flags "10A C" (-101F1), "4A C" (F55), "16 B" (-102F1) and "20A" (-102G1)
 ([reference drawing](../research/reference-drawing.md) D-35). The shipped EW-CORE-065 description lint covers the
 same case from 1.0; the rhai rule gives a company the check at MVP without Rust. `matches` is a registered,
@@ -965,7 +963,7 @@ code.
   behind it, so it sees that view's table columns and its `rowid` only, never another table. The rule guards the
   contract, not secrecy, because every column of `t_x` is also a column of `api_v1_x`.
 - **Comments and options.** An inline query that starts with a `-- comment` is accepted; a lone argument that starts
-  with `-word` is refused as an unknown option. CSV output keeps its header line (golden dialect).
+  with `-word` is refused as an unknown option. CSV output keeps its header line (the `ew` dialect).
 - **Not built.** `ew_regexp`, `--format xlsx`, file-backed XL projections, per-table
   refresh, the CI prepare/EXPLAIN lint of `.sql` files and the sandbox fuzz target with its
   hostile-SQL corpus.
@@ -1496,6 +1494,9 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 
 ### 17.1 Walk-through
 
+These scenarios were stated on the reference project, retired at 0.3.5 (see the [glossary](glossary.md)); the
+examples on the sample project are §3.4, and a scenario still ahead is restated on the sample in its milestone's file.
+
 | Scenario | Command or script | Expected result |
 |---|---|---|
 | CI gate on Golden A | `ew check --scheme pre-delivery --format junit` | Exit 1; 42 errors, 32 warnings, 31 infos, 1 waived (AC-21); EF-01 (EW-POT-013 on T55, S56), EF-02 (EW-PLC-012, 28 findings under map H1), EF-03 (station address Tbd) among them |
@@ -1504,13 +1505,13 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 | Explain an address | `ew query channel_addresses -201U3 --explain` | Q0.0 … Q0.7: -201U3 is the first output module of station -201U1, so its `Auto` start is byte 0; part 533361's map gives 8 channels. The trail shows coil 14 of -201U3-Q1 bound to channel 1 (Q0.1) while map H1 assigns channel 0, which is why EW-PLC-012 fires (D-26, [10](10-plc-and-bus.md) §9.2) |
 | D-25 visible in SQL | report below | Four loads on 24VDC-1, all protected by -102F2 Out1 |
 | Terminal count | `ew sql "SELECT count(*) FROM api_v1_terminal"` | 28 |
-| Golden B | `ew apply golden/J-E-2416.ew variants/b1-page-based-tags.ewcmd --preview`, then `b2-renumber-pages.ewcmd` (as built through `Session::run_script` and `ew apply`) | Step 1: exactly the 10 tag changes of [20](20-golden-project.md) §2.2; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
+| Golden B | `ew apply golden/J-E-2416.ew variants/b1-page-based-tags.ewcmd --preview`, then `b2-renumber-pages.ewcmd` (as built through `Session::run_script` and `ew apply`) | Step 1: exactly the 10 tag changes of Golden B; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
 | Golden C | `ew import qet <reference>.qet --report json`, then `ew apply … variants/c-fix.ewcmd` | MF-01 … MF-27 listed; C fixed ≡ Golden A (AC-25, AC-26) |
 | Spare texts | `ew script run mark-spares.rhai --param text=Reserve` (§5.5) | The 20 spare valves on Q2 … Q6 change function text "Spare" → "Reserve" in one undo step labelled "Mark spare valve positions"; folio 908 follows (FR-EXT-012) |
 | Company lint | `desc-rating.rhai` (§5.4) | None on Golden A (EF-25); on a migrated project with folio 901's descriptions, warnings on "10A C", "4A C", "16 B" and "20A" (D-35) |
 | Agent question | MCP `sql_query` with the D-25 report | Rows as below; the agent explains that valve and electronics supplies share one 6 A channel |
 | Agent edit | MCP `preview_command(numbering.renumber, strips on folio 103)`, then `commit_preview` | Diff lists -X1031 → -103X1 and -X1032 → -103X2; nothing changes until the person approves; one undo step tagged `mcp:<client>` |
-| Decoder plugin (1.x) | action `build-assembly-from-order-code` on -201U1 with a test decoder: order code 1 (51E-F13GCQP-D+H2GG) covers 195740 and 550208 of -201U1, order code 2 (32P-VGL-R-…-28MS) the MPA section ([20](20-golden-project.md) §6.2) | Slot-list proposal as a preview of -201U1's children; EW-FL-003 reports that the drawn MPA section holds the CPX block -202U1 (550208), which order code 2 does not contain (D-40, FR-FLU-022) |
+| Decoder plugin (1.x) | action `build-assembly-from-order-code` on -201U1 with a test decoder: order code 1 (51E-F13GCQP-D+H2GG) covers 195740 and 550208 of -201U1, order code 2 (32P-VGL-R-…-28MS) the MPA section | Slot-list proposal as a preview of -201U1's children; EW-FL-003 reports that the drawn MPA section holds the CPX block -202U1 (550208), which order code 2 does not contain (D-40, FR-FLU-022) |
 
 The D-25 report, as an SQL file in `reports/` (1.0) or as `ew sql` text (MVP):
 
@@ -1535,7 +1536,7 @@ The supply pins of -102F1 and -102F2 have the role `through` (protective devices
 | 24VDC-1 | -102F2:Out1 | -202U1 | 4 |
 | 24VDC-1 | -102F2:Out1 | -202U1 | 5 |
 
-Pins 4 and 5 are "24V El" and "24V Val" of the CPX terminals ([20](20-golden-project.md) §6.1, §7.3); the spare
+Pins 4 and 5 are "24V El" and "24V Val" of the CPX terminals; the spare
 channels 24VDC-2 … 24VDC-4 feed only terminals and have no loads. A "total current per channel" column, as in the
 ARCH §11 wording of this report, needs a load current per pin: from 1.0 parts carry an optional load current per
 supply CP and `api_v1_cp.i_load` exposes it, so the 1.0 report adds `SUM(CAST(c.i_load AS REAL))` per channel
@@ -1598,7 +1599,6 @@ global plan §14), and the headless read-only MCP server from the MVP to 1.0.
   - [16](16-ux-ui.md): dialogs of §14;
   - [18](18-quality-security-release.md): the tests of §13 and the API guard (CI-PR-14, NFR-MAINT-10);
   - [19](19-open-source-governance.md): exception wording, registry policy;
-  - [20](20-golden-project.md): `.ewcmd` variants and acceptance criteria.
 
 | Crate | Layer | Role here |
 |---|---|---|
@@ -1700,7 +1700,7 @@ The fourteen rows this document proposed are in the catalogues with the numbers 
     decide on Sigstore countersignatures together with the registry (IDEA-095) in [19](19-open-source-governance.md).
 12. **`api_v1` before 1.0.** The views are a public contract from MVP while the format still upgrades on every
     release before 1.0 (ARCH §7.6). **Resolved:** `api_v1` is `Preview` until the 1.0 freeze and the golden
-    acceptance SQL is its compatibility corpus (ADR-0017 amendment 2, ARCH §10.2); column renames after MVP are
+    acceptance SQL was its compatibility corpus until 0.3.5 (ADR-0017 amendment 2, ARCH §10.2); column renames after MVP are
     release-note items (§11). **Settled:** the marking is built: `ew sql schema` flags every addition and
     `api_v1_meta` carries `api_status` and `preview_additions` (§6.1).
 13. **Merge-driver argument list.** ARCH §7.5 and FR-COL-014 wrote `%O %A %B %P`, while

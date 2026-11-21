@@ -424,7 +424,7 @@ centres the point. `cycle_tabs_with_keyboard` is false (§3.4).
 | Field | Example | Click action | Source |
 |---|---|---|---|
 | Tool hint | "Wire: click a connection point, N: next unconnected" | — | 06 §4.1 `status_hint` |
-| Cursor | "102-H15 · x 255.0 y 172.5 mm" (sheet coordinates; column 15 spans x 249.9 mm to 265.525 mm on the golden frame; the 265.6 that this table and [20](20-golden-project.md) §17.1 gave earlier is 15.01 + 16 × 15.66 rounded, and the exact edge is 265.525 mm) | Go to (Ctrl+G) | FR-UI-034 |
+| Cursor | "102-H15 · x 255.0 y 172.5 mm" (sheet coordinates; column 15 spans x 249.9 mm to 265.525 mm on the golden frame; the 265.6 that this table and the golden frame table gave earlier is 15.01 + 16 × 15.66 rounded, and the exact edge is 265.525 mm) | Go to (Ctrl+G) | FR-UI-034 |
 | Zoom | "156 %" (an integer from 10 %, one decimal below; paper zoom, §17 item 7) | — (View ▸ Zoom) | 06 §6 |
 | Grid and snap | "QET 10 px" (2.646 mm) or "4 mm"; snap on/off | grid menu | FR-UI-018, ADR-0027 |
 | Selection | "1 selected" / "3 devices" | show selection list | FR-UI-034 |
@@ -1190,8 +1190,7 @@ Start.
 
 Only the page record changes; the tags and xref texts are derived from it ([03](03-domain-model.md) §8.2), which is
 why the preview shows them as query diffs rather than entity changes. The BOM delta is one row (pos 13, tags
--106W1, -106W2 and folio 106), the wire-list delta the 12 rows W33 … W44 whose page references or cable tag change
-([20](20-golden-project.md) §8.2, §14.1).
+-106W1, -106W2 and folio 106), the wire-list delta the 12 rows W33 … W44 whose page references or cable tag change.
 
 - **Content** comes from `diff_model` and `diff_query` on the fork (ARCH §5.4): entity and field changes, tags,
   xref texts, BOM rows, wire-list rows, PLC addresses, affected pages, and the findings delta (new and resolved).
@@ -1201,7 +1200,7 @@ why the preview shows them as query diffs rather than entity changes. The BOM de
   re-run changes the result, the tab shows "Preview updated: 1 more tag" and needs a second Accept.
 - **Cancel** (Escape in the tab) drops the fork. Large diffs are virtualised and exportable as CSV.
 - **Example.** This is Golden B step B2 (folio 106 → 104): exactly 2 tags and 14 xref texts change, and one undo
-  restores the previous state ([20](20-golden-project.md) §2.2, AC-18).
+  restores the previous state (AC-18).
 
 *As built for find and replace.* A replace does not open the dockable tab yet: like the property grid's (§7.5), its preview is the inline card, shown **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"); Ctrl+Enter or Apply commits the one `fields.set_many`, one undo step, and the card counts only the hits that change. No toast follows, because the toast belongs to direct commits (WP-S2.05 §6.6): the results are marked `[stale]` and the pane notes "Replaced <n>; run again to refresh". A card made at an older revision is not applied: Apply runs the search again and shows a fresh card ("Preview updated: 1 fewer results") that needs a second Apply, as the Accept rule above.
 
@@ -1935,7 +1934,7 @@ where one needs Shift.
 
 1. **Open the sample.** Start page ▸ Open sample project. Golden A is S class, so folio 1 is interactive within
    0.5 s. The page navigator shows 36 pages; the 23 generated ones (2, 2.1, 100, 200, 900, 901, 901.1 and
-   903 … 911) carry the generated badge ([20](20-golden-project.md) §5).
+   903 … 911) carry the generated badge.
 2. **Messages.** The status bar reads "E 42 W 32 I 28"; the panel lists no waived finding (EF-19's -XPE is an earth
    connection, asked no part since rc.3). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
 3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class
@@ -2007,11 +2006,10 @@ any identity.
 
 - **Machine.** A BM-class Windows 11 laptop at 1920 × 1080 with an external mouse and the participant's keyboard
   layout ([02c](02c-nonfunctional-requirements.md) §1.4), offline.
-- **Fixture GP-UT.** Golden A without -102F1 and its four wires W20, W21, W24 and W25 and, for R2, without the
-  binding of -201U3 channel 1, plus a basic project built with the shipped defaults (the pilot's own basic project
-  replaces it in pilot sessions, which keeps its logo and notice out of the repository). GP-UT is the fixture
-  variant `variants/gp-ut.ewcmd` of [20](20-golden-project.md) §2, with the shipped-defaults basic project of 20
-  §3.1. Each session starts from a fresh copy.
+- **Fixture GP-UT.** The sample project without the 24 V breaker -102F1 and its two wires (the prelude of the
+  persona task `brief-ut-t1-place`), plus a basic project built with the shipped defaults (the pilot's own basic
+  project replaces it in pilot sessions, which keeps its logo and notice out of the repository). Until 0.3.5 it was
+  the reference project's variant `gp-ut`. Each session starts from a fresh copy.
 - **Session.** 90 minutes: a moderator and a note-taker, think-aloud, screen and audio recording with written
   consent. In-app help (F1, tooltips, glossary) is allowed and counts as unassisted; the moderator intervenes only
   after 2 minutes without progress or on request, and that counts as an assist. T6 runs without documentation
@@ -2121,7 +2119,6 @@ including its migration report, resolved in ≤ 1 hour (NFR-UX-06).
 | [17-extensibility](17-extensibility.md) §2.1 | `CommandMeta` catalogue and schemas (FR-EXT-015), MCP live bridge |
 | [18-quality-security-release](18-quality-security-release.md) | CI jobs: kittest flows, accessibility walker, CVD renders, contrast lint, pseudo-locale, keymap reachability, docs anchors |
 | [19-open-source-governance](19-open-source-governance.md) | Weblate workflow and glossary, usability consent template |
-| [20-golden-project](20-golden-project.md) | Golden A, GP-UT fixture, AC-18, AC-28, expected findings |
 | Crates | egui and eframe 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, egui-wgpu 0.37.0, accesskit 0.25.1 (through egui), muda 0.21.2, rfd 0.17.2, arboard 3.7.0, fluent-bundle 0.16.0, icu 2.3.1, egui_kittest 0.37.0 |
 
 A licence-clean icon set is needed before the toolbar is built: a general set under MIT, Apache-2.0, OFL or

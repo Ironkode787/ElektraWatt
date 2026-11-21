@@ -93,9 +93,10 @@ mapping crate (etcetera or directories) is **(verify)**, as in ARCH §3.
 
 ### 2.1 Layout of the golden project
 
-The reference project on disk ([golden project](20-golden-project.md), fixture `golden/J-E-2416.ew`). Golden IDs are
-UUIDv5 values derived from the golden tables ([golden project](20-golden-project.md) §3.2). Records later created in
-the GUI get UUIDv7 IDs (ADR-0004).
+The reference project on disk, as an example of the layout (Golden A, retired at 0.3.5; see the
+[glossary](glossary.md)). The sample project `fixtures/sample/sample.ew` has the same layout. Its IDs were UUIDv5
+values derived from its tables, as `ew import csv` derives them; records created in the GUI get UUIDv7 IDs
+(ADR-0004).
 
 ```text
 J-E-2416.ew/                      # folder name chosen by the user; everything inside is UUID-named
@@ -774,7 +775,7 @@ and APFS. Every reopen must yield g or g+1.
 [Quality, security and release](18-quality-security-release.md) runs the harness; this is its design:
 - **One I/O seam.** Every file operation of `ew-store` (create, write, `sync_all`, directory sync, rename, unlink,
   lock create) goes through a `Vfs` trait. Production uses `std::fs`; tests use `FaultVfs`, which numbers each call.
-- **Kill mode.** A child process saves the golden project and the M fixture through `FaultVfs` and aborts at call
+- **Kill mode.** A child process saves the sample project and the M fixture through `FaultVfs` and aborts at call
   k. The parent reopens with the real file system and asserts generation g or g+1, a model digest equal to one
   of the two generations and no integrity finding above info. 1,000 random k per file system on ext4, NTFS and
   APFS (NFR-REL-01).
@@ -1269,11 +1270,12 @@ reads it (`Q::logo_asset`), so a bare hash that names an SVG file prints as SVG.
   the strict check (ADR-0011 amendment 3). The `Unknown` catch-alls are omitted:
   the schemas of a format describe the variants it defines, and a newer minor's variant validates against that
   minor's schemas (ADR-0011 amendment 2). The schemas also go into the generated format specification (NFR-DOC-06) and into every as-built archive (NFR-REL-10).
-- **Permissive-only reader.** A sample reader built on the permissive crates alone validates the golden project in
-  CI (SC-11).
-- **Fixture corpus.** `fixtures/format/<version>/` holds the golden project and the QET-derived examples as each
-  released format wrote them. Every build opens them, saves them and compares the result with the expected migration
-  output (NFR-REL-05).
+- **Permissive-only reader.** A sample reader built on the permissive crates alone validates a project
+  (SC-11).
+- **Fixture corpus.** `fixtures/format/<version>/` holds the reference project (Golden A, frozen) and the QET-derived
+  examples as each released format wrote them; a format released after 0.1 holds the sample project (ADR-0011
+  amendment 7). Every build opens them, saves them and compares the result with the expected migration output
+  (NFR-REL-05).
 - **Development builds** with an unreleased schema write `"unstable": true` and warn on every save. Release builds
   open such projects read-only, because an unreleased member may still be renamed.
 
@@ -1874,26 +1876,22 @@ Screens are specified in [UX and UI](16-ux-ui.md). Persistence provides:
 
 ---
 
-## 17. The reference project on disk
+## 17. The sample project on disk
 
 ### 17.1 Size
 
-The golden project has about 200 files and is well under 1 MB:
+The reference project (until 0.3.5) had about 200 files and was well under 1 MB:
 - 5 root JSONL files and the manifest;
 - 13 page files;
 - about 80 device shards (256 × (1 − e^(−96/256)) ≈ 80 for 96 devices, terminals included, with everything else
   following its anchor);
 - 1 layout file, about 100 library documents and 1 asset.
 
-The fixture comparison of [golden project](20-golden-project.md) §3.2 ignores only the manifest's `generator`
-member, so an EW version bump does not invalidate the checked-in fixture.
-
-**As generated**. `golden/J-E-2416.ew/` is written by the bootstrap and
-checked in: 164 files, about 0.8 MB, generation 1 (so its manifest has no `base`). It opens with no finding, and a
-full save of it writes nothing. It has no revisions, waivers, layout or manufacturer copies yet, because those
-kinds are reserved in `ew-schema` v0, which is why it holds fewer files than the estimate above. One test compares
-it byte for byte with the bootstrap; its bless mode (`EW_BLESS_GOLDEN_FIXTURE=1`, run on that single test) only
-writes files, so a file that is no longer produced is removed by hand.
+**The sample.** `fixtures/sample/sample.ew/` is written by `cargo xtask gen` from the UI script
+`fixtures/sample/sample.uiscript` and checked in: 146 files, about 250 KB. The test
+`sample::the_committed_sample_is_what_its_script_makes` (`ew-viewmodel`) runs the script with a seeded ID source
+and compares every file byte for byte with the committed folder; its bless mode (`EW_BLESS=1`) writes the folder
+again as a whole. It opens with no error and no warning under the pre-delivery checks.
 
 ### 17.2 Edits and the files they write
 
@@ -1973,8 +1971,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
   - [16](16-ux-ui.md): dialogs;
   - [17](17-extensibility.md): CLI catalogue;
   - [18](18-quality-security-release.md): fault injection, the incremental-equals-full property, fixture corpus,
-    driver fuzzing, SMB and cloud jobs;
-  - [20](20-golden-project.md): fixture and acceptance criteria.
+    driver fuzzing, SMB and cloud jobs.
 
 | Crate | Layer | Role | Key dependencies |
 |---|---|---|---|
@@ -2026,7 +2023,7 @@ The eleven rows this document proposed are in the catalogues:
 ## Open questions
 
 1. **Source of the "Saved" date.** 02a OQ3 proposed `saved_at` in the manifest. FR-PRJ-001 already stores an
-   edited date as master data, the [golden project](20-golden-project.md) §17.2 and
+   edited date as master data, the reference project's title block and
    [09](09-reports-forms-output.md) bind "Saved" to it, and NFR-REL-07 forbids wall-clock times in project files.
    **Resolved:** there is no `saved_at`. "Saved" binds to `Project.master.edited` (day precision, `max` merge, an
    injectable clock for tests; FR-PRJ-029, a refinement of FR-PRJ-001). Release exports take date and label from

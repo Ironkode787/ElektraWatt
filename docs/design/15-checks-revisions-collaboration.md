@@ -390,7 +390,7 @@ or "checker ≠ author on release", are not rules and cannot be waived.
 
 ### 3.6 Supersession and de-duplication
 
-One defect yields one finding (FR-CHK-045, from [20](20-golden-project.md) §18.1). A rule declares
+One defect yields one finding (FR-CHK-045). A rule declares
 `supersedes = [...]`. When a superseding finding exists whose targets overlap a superseded finding's targets, the
 superseded finding is hidden, and it reappears when the superseding finding goes.
 
@@ -556,9 +556,9 @@ release are the registry's, and the rule reference that `cargo xtask gen` writes
 rule, with its notes and its findings on the golden project) prints them; the rule's doc comment names its
 requirement and owning document.
 
-**As built.** The EW-POT pack's MVP content is complete: EW-POT-003, -004, -005, -006, -008 (its PE-island half), -009, -013, -015, -016 and -017 join -001, -002, -011, -012 and -014, 15 rules in all (the generated rule reference lists them). Common to the pack: every order, text, target and fingerprint follows printed keys, never the IDs of a new project. Findings of a defined potential target every definition and are keyed on the potential's identity; findings of a potential without a definition target every member and are keyed on its discriminator member alone, the first member CP by printed text (device CPs before interruption points, then `<tag>:<designation>` in natural order, then the CP index), so a waiver survives adding a member. A wire note of a bond closure is reported once, by the potential of its subject that prints first. The bonds and the potential are read as their own parts of the partition (`BondsOf`). When a finding has several primary targets, `finding_node` breaks the tie on the printed label. On Golden A the pack's findings are exactly the EW-POT rows of [20](20-golden-project.md) §18.1, after two golden data fixes: the 1P+N MCB definition switches N with L, and the CPX earth screw has role PE ([08](08-connections-terminals-cables.md) §3.7, §8.2).
+**As built.** The EW-POT pack's MVP content is complete: EW-POT-003, -004, -005, -006, -008 (its PE-island half), -009, -013, -015, -016 and -017 join -001, -002, -011, -012 and -014, 15 rules in all (the generated rule reference lists them). Common to the pack: every order, text, target and fingerprint follows printed keys, never the IDs of a new project. Findings of a defined potential target every definition and are keyed on the potential's identity; findings of a potential without a definition target every member and are keyed on its discriminator member alone, the first member CP by printed text (device CPs before interruption points, then `<tag>:<designation>` in natural order, then the CP index), so a waiver survives adding a member. A wire note of a bond closure is reported once, by the potential of its subject that prints first. The bonds and the potential are read as their own parts of the partition (`BondsOf`). When a finding has several primary targets, `finding_node` breaks the tie on the printed label. On Golden A the pack's findings were exactly the golden EW-POT rows, after two golden data fixes: the 1P+N MCB definition switches N with L, and the CPX earth screw has role PE ([08](08-connections-terminals-cables.md) §3.7, §8.2).
 
-The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
+The remaining rules of the golden finding set are FT-192.
 
 **Columns.**
 - **Kind** (§2.3): `safety`, `conflict`, `completeness`, `hygiene`; `integrity` for findings about the stored
@@ -575,7 +575,7 @@ The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
   [standards](../research/standards.md), PMF = [panel-manufacturing](../research/panel-manufacturing.md), G15 =
   [gaps-and-corrections](../research/gaps-and-corrections.md) G15).
 - **D (golden):** the defects of the reference drawing set the rule detects, then its golden expectation: EF-nn on
-  Golden A ([20](20-golden-project.md) §18), MF-nn in Golden C (20 §20.1).
+  Golden A, MF-nn in Golden C (20 §20.1).
 - **Def.:** the document that specifies the rule's content; "15" is this document.
 
 ### 4.1 Packs
@@ -1454,8 +1454,10 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 
 ### 10.1 Golden A pre-delivery findings with final rule IDs
 
-[20](20-golden-project.md) §18 names some rules by their FR. These are the final IDs; the counts are unchanged:
-**42 errors, 32 warnings, 31 infos, 1 waived**, and `ew check --scheme pre-delivery` exits 1 (AC-21). As built, the pre-delivery run produces only EF-08 (EW-CORE-033 on -3W1); the rules of the other rows are not built (FT-192).
+The reference project's expected findings named some rules by their FR. These are their final IDs, with the counts
+of the reference: **42 errors, 32 warnings, 31 infos, 1 waived** (AC-21). The reference was retired at 0.3.5, and the
+set is no longer checked as a whole: each rule keeps its own tests in `crates/ew-checks/tests/it/`, and the sample
+project is clean under the pre-delivery checks.
 
 | EF | Final rule | Code | Severity | Count | D |
 |---|---|---|---|---|---|
@@ -1490,7 +1492,7 @@ is not recorded; the waiver tests waive -203Q1's EW-CORE-041 finding instead (a 
 
 `ew import qet` runs the `migration` scheme (§4.9): every enabled rule of `pre-delivery` at its pre-delivery
 severity, in lenient mode, so prevent violations become findings, plus the EW-IMP findings of the import run. Each
-MF row of [20](20-golden-project.md) §20.1 appears exactly once (AC-25). The rows below are live rules; where an
+golden MF row appeared exactly once (AC-25). The rows below are live rules; where an
 import code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is the row's origin. MF-21 and MF-22
 exist only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped
 in [14](14-interop.md) §15.2.
@@ -1507,15 +1509,15 @@ in [14](14-interop.md) §15.2.
 
 MF-04, the per-folio revision values "1", "V1.0", "V1" and "V2.0", is resolved by creating V1.0 (Released, historic,
 no archive) and V2.0 (Open). V2.0's page notes come from the folios that printed V2.0, so page change status gives
-101 and 106 → V2.0 and every other page → V1.0 (§5.6), matching [20](20-golden-project.md) §4.1.
+101 and 106 → V2.0 and every other page → V1.0 (§5.6), as the reference printed.
 
 ### 10.3 Release of V2.0
 
 - **Golden A.** `ew revision release V2.0` is refused and lists exactly the 42 errors of §10.1 and EW-REL-001
-  "checker not set" (AC-23, [20](20-golden-project.md) §18.3).
+  "checker not set" (AC-23).
 - **Golden A-R.** The overlay clears every error-level finding: rewired T55 and S56, map H2, address 3, placements,
-  W6 at 2.5 mm², -3W1 at 10 m and test parts ([20](20-golden-project.md) §2.4). `ew check --scheme pre-delivery`
-  then exits 0 ([17](17-extensibility.md) §3.4). The acceptance runner next invokes the CLI subcommand
+  W6 at 2.5 mm², -3W1 at 10 m and test parts. `ew check --scheme pre-delivery`
+  then exits 0. The acceptance runner (until 0.3.5) next invoked the CLI subcommand
   `ew revision approve --as <checker>` with `<checker>` ≠ `<engineer>`. It cannot be a step of the `.ewcmd`
   overlay, because a replay may not run `HumanOnly` commands (§5.4), and a sign-off digest cannot be stored in a
   static CSV, since it is bound to the content digest of the saved project. The terminal confirmation comes from
@@ -1611,8 +1613,8 @@ C = detected by a check, A = assisted by a tool, not checked.
 - [07](07-symbols-parts-macros.md) §6.2, [08](08-connections-terminals-cables.md), [10](10-plc-and-bus.md),
   [11](11-fluid-power.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md), [14](14-interop.md) §2.5:
   rule content of the families of §2.2, library lint and import findings.
-- [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md), [20](20-golden-project.md):
-  panels; CLI, SQL views and MCP `run_checks`; CI jobs; EF, MF and AC expectations.
+- [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md):
+  panels; CLI, SQL views and MCP `run_checks`; CI jobs.
 
 | Crate | Role |
 |---|---|
@@ -1717,8 +1719,8 @@ EW-THM-002 … 004 → FR-THM-012.
     `sign_off`, `withdraws` and `reason`; the three `ReleaseRecord` fields; `Waiver.target` as fingerprint or part
     selector with `expires`; `Comment.kind`, `revision`, `parent` and `resolved`; `Project.completed`; the finding
     state `possibly_resolved`; `Transmittal` records; `CheckSettings`; the rule scopes of §2.3.
-14. **Golden fixtures.** **Resolved:** [20](20-golden-project.md) adds a synthetic `history/V1.0` (one ▲ test change
-    each on 101 and 106) and `expected/findings_en60204.csv`. The Golden A-R acceptance runner calls
+14. **Golden fixtures.** **Resolved:** the golden project added a synthetic `history/V1.0` (one ▲ test change
+    each on 101 and 106) and `expected/findings_en60204.csv`. The Golden A-R acceptance runner called
     `ew revision approve --as <checker>` after the overlay, never as a `.ewcmd` line; the terminal confirmation
     comes from the test-build confirmation hook of [18](18-quality-security-release.md) §3.15, which release builds
     lack.

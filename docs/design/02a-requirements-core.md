@@ -67,18 +67,23 @@ requirements are in [02c](02c-nonfunctional-requirements.md).
 | VIS §n | [vision and scope](00-vision-and-scope.md) |
 | IDEA-nnn | [brainstorm](01-brainstorm.md) |
 | *nn* §n (e.g. 08 §5.2) | Design document *nn* of this set (`docs/design/nn-*.md`) |
-| AC-nn, EF-nn, MF-nn, U-nn | [golden project](20-golden-project.md): acceptance criteria, expected findings, migration findings, unknowns |
+| AC-nn, EF-nn, MF-nn, U-nn | golden project: acceptance criteria, expected findings, migration findings, unknowns |
 | FR-…, NFR-… | Rows of this catalogue, of [02b](02b-requirements-extended.md) and of [02c](02c-nonfunctional-requirements.md) |
 | ADR-00nn | ADR index; files in `docs/adr/` |
 
 ### 1.3 The golden project in acceptance criteria
+
+**The acceptance criteria and the reference project.** The criteria of this catalogue were stated on the reference
+project (the golden project, GP), which was retired at 0.3.5 with its design document 20 (see the
+[glossary](glossary.md), "Golden project"). They stay as they were written. A criterion is restated on the sample
+project in its milestone's file when that milestone is planned.
 
 "GP" is the reference project held as an EW model ([reference analysis](../research/reference-drawing.md) §4),
 reproduced in the faithful variant **Golden A** (the user's visible tags kept, S51, F55, T55, E55, S56, E56 and 1X1
 as frozen tags) unless an acceptance criterion names **Golden B** (all tags page-based, used to test renumbering),
 **Golden C** (the pilot's original QElectroTech file imported in lenient mode) or **Golden A-R** (Golden A plus the
 test values of the resolution overlay, used for release, layout and manufacturing tests); see
-[golden project](20-golden-project.md) §2. GP has **36 pages** (golden project §5): the 18 reproduced folios, the
+golden project §2. GP has **36 pages** (golden project §5): the 18 reproduced folios, the
 continuation pages 2.1 and 901.1, and 16 generated report pages (folios 903–911 and their continuation pages). "The
 cross-reference table" means GP §4.13: 22 interruption-point pairs and 9 main/aux reference sets.
 
@@ -1009,7 +1014,7 @@ They are elaborated by these feature documents:
 | CON, TRM, CBL | [connections, terminals, cables](08-connections-terminals-cables.md) |
 | REP, OUT | [reports, forms, output](09-reports-forms-output.md) |
 | CHK, REV | [checks, revisions, collaboration](15-checks-revisions-collaboration.md) |
-| Acceptance (all areas) | [golden project](20-golden-project.md) |
+| Acceptance (all areas) | golden project (retired at 0.3.5) |
 
 The vision's proposed company-standard wizard (FR-PRJ-nnn in [vision and scope](00-vision-and-scope.md)) is
 numbered here as **FR-PRJ-010**.
@@ -1037,7 +1042,7 @@ for shipped rules).
 | [12](12-panel-layout.md) | FR-CBL-nnn (routed plus external length) → FR-CBL-020 |
 | [13](13-manufacturing-outputs.md) | P13-8 → FR-CHK-058 |
 | [15](15-checks-revisions-collaboration.md) | FR-CHK-043 … FR-CHK-054 and FR-REV-021 … FR-REV-024 → same numbers |
-| [20](20-golden-project.md) | FR-PAG-nnn page-to-sheet transform → FR-PAG-029; sub-page continuation → FR-PAG-030; FR-DEV-nnn → FR-DEV-037; FR-CON-nnn (PE class) → FR-CON-038; FR-REP-nnn (tag ranges) → FR-REP-046; FR-CHK-nnn supersession → FR-CHK-045; text height per style → FR-CHK-051 |
+| 20 | FR-PAG-nnn page-to-sheet transform → FR-PAG-029; sub-page continuation → FR-PAG-030; FR-DEV-nnn → FR-DEV-037; FR-CON-nnn (PE class) → FR-CON-038; FR-REP-nnn (tag ranges) → FR-REP-046; FR-CHK-nnn supersession → FR-CHK-045; text height per style → FR-CHK-051 |
 | ADR-0027 (recommendation 4) | FR-PAG-nnn (grid for new pages) → FR-PAG-031 |
 | EPLAN feature inventory; scope-boundary decision (vision §9.2) | Safety functions → FR-DEV-040; installation data for sizing → FR-CBL-021; part safety data → FR-PRT-036; interconnection diagram → FR-REP-052; cross-section sizing → FR-CHK-062 (the LAY and EXP rows are in 02b) |
 
@@ -1046,7 +1051,7 @@ FR-IMP-009 with FR-IMP-010; FR-LAY-nnn (placements store no tag text) → FR-LAY
 addresses) → FR-PLC-013;
 FR-PLC-nnn (derived channel addresses) → FR-PLC-012 with FR-PLC-045; FR-UI-nnn (jump history) → FR-UI-019;
 NFR-REL-nn (atomic release) → NFR-REL-15; NFR-PERF-nn (online rule budget) → NFR-PERF-09; NFR-MAINT-nn (automated
-acceptance test per GP criterion) → the 02c acceptance-runner row shared with [20](20-golden-project.md)
+acceptance test per GP criterion) → the 02c acceptance-runner row shared with 20
 (NFR-MAINT-11).
 
 ## Open questions

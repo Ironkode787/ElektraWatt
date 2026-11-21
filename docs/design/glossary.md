@@ -25,7 +25,7 @@ the palette aliases ([16](16-ux-ui.md) §9.3, FR-UI-045, NFR-DOC-05) are generat
 
 ## 1. How to read this document
 
-- The glossary (§2) has 326 entries in alphabetical order, ignoring signs and case. A term written with a
+- The glossary (§2) lists its entries in alphabetical order, ignoring signs and case. A term written with a
   leading dot or backtick is listed under its first letter.
 - **EPLAN** names the nearest EPLAN Electric P8 concept, following [eplan-features](../research/eplan-features.md).
   **QElectroTech** names the nearest QET concept, following [interop](14-interop.md) §4. A dash means that the
@@ -35,7 +35,7 @@ the palette aliases ([16](16-ux-ui.md) §9.3, FR-UI-045, NFR-DOC-05) are generat
 - Release labels are MVP (the pilot can stop using QET for new projects), 1.0 (full v1 scope), 1.x and Later
   ([vision](00-vision-and-scope.md) §9).
 - Names in code font are records or types of `ew-schema` ([03](03-domain-model.md)); the reference project is the
-  golden project, cabinet J-E-2416 ([20](20-golden-project.md)).
+  golden project, cabinet J-E-2416, retired at 0.3.5 (§2, Golden project).
 
 The core idea in one picture: a **device** owns a part and has **functions**; each function has one or more
 **representations** on pages; everything printed is derived.
@@ -89,7 +89,7 @@ The IEC 81346 prefixes that appear in tags:
 | **As-built package** | The `.ewpp` content returned to engineering after the shop corrected the wiring, so that the as-built state flows back into the project. | Smart Production feedback | — | [13 §11.5](13-manufacturing-outputs.md) |
 | **Aspect (reference-designation aspect)** | One of the viewpoints of IEC 81346 under which a structure tree is built (function, product, location, and others). Each aspect has a sign and its own `StructureNode` tree, except the product aspect, which is the device tree. | Identifier block | — (plant and location strings only) | [03 §5](03-domain-model.md), [04 §4.2](04-architecture.md) |
 | **Assembly (aspect)** | A device aspect for a configured product with child devices, for example a valve terminal with its order code (`AssemblyConfig`) and a BOM basis of assembly or components. | Part assembly, module overview | — | [03 §7](03-domain-model.md), [11 §3.2](11-fluid-power.md) |
-| **Assembly mode (BOM)** | A bill-of-materials mode that lists configured assemblies by order code instead of every child component (the other mode is component mode). | Parts list with assemblies | — | [20 §14.2](20-golden-project.md) |
+| **Assembly mode (BOM)** | A bill-of-materials mode that lists configured assemblies by order code instead of every child component (the other mode is component mode). | Parts list with assemblies | — | [09 §2.4](09-reports-forms-output.md) |
 | **Assembly view** | The overview of a device assembly, drawn by the overview representations of the assembly device and its children, such as the valve terminal on folios 201 and 202. Its break marks are derived from the members' pages, so it cannot drift (D-10). | Overview representation of a device assembly | — | [03 §6](03-domain-model.md), [11 §5.5](11-fluid-power.md) |
 | **Asset store** | The content-addressed store of image bytes in a project: files `assets/<sha256>.<ext>` (SVG, PNG or JPEG; `glb` meshes from 1.0), kept in the model by hash and named by records through an `AssetRef {sha256, format, size}`, as the company logo is. A save writes the assets that records name and never removes an asset file; unreferenced files go only through the explicit, previewed purge command (`project.assets.purge`). | — | — | [05 §13.3](05-project-format-and-persistence.md) |
 | **Atomic code token** | A structure code that the parser never splits at prefix characters, so "J-E-2416" is not read as "+J", "-E", "-2416". The parser matches the longest known code first. | — | — | [03 §8.4](03-domain-model.md) |
@@ -139,12 +139,12 @@ The IEC 81346 prefixes that appear in tags:
 | **Clamp** | One connection position on a terminal (a, b, c) in a level; PT 2.5-TWIN has clamp a on side 1 and clamps b and c on side 2. | Connection point of a terminal | Terminal connection | [03 §11](03-domain-model.md), [08 §6.3](08-connections-terminals-cables.md) |
 | **Class I, II, III (freshness)** | See Freshness classes. | — | — | [ADR-0003](../adr/0003-freshness-contract.md) |
 | **Colour code** | A value of the IEC 60757 enumeration (BK, BN, RD, OG, YE, GN, BU, VT, GY, WH, PK, GD, TQ, SR) or a company code declared by a colour profile. There is no free-text colour. | Colour code | Free text | [03 §3.4](03-domain-model.md) |
-| **Colour profile** | A data set that maps potential types and circuit classes to wire colours (for example "DBU/WH 24 V"). It drives automatic wire colours with provenance. | Connection properties by potential | Per-conductor colour | [08 §4.2](08-connections-terminals-cables.md), [20 §7.1](20-golden-project.md) |
+| **Colour profile** | A data set that maps potential types and circuit classes to wire colours (for example "DBU/WH 24 V"). It drives automatic wire colours with provenance. | Connection properties by potential | Per-conductor colour | [08 §4.2](08-connections-terminals-cables.md) |
 | **Colour spec (`ColourSpec`)** | One or two colour codes; GNYE is [GN, YE]. | Two-colour wire | — | [03 §3.4](03-domain-model.md) |
 | **Command** | A serialisable, previewable request to change the model. Every front end (GUI, CLI, script, plugin, MCP) submits commands; they become transactions of ops. | Action | Undo command (QUndoCommand) | [04 §5](04-architecture.md), [ADR-0008](../adr/0008-transactions-undo-preview.md) |
 | **Command bar** | The window's top band: a tab row (app button, quick access, the tabs Project, Page, Draw, Check, Output and View, the command search) over a command row of grouped buttons and the next step, generated from the action registry. | Ribbon | Menu and toolbars | [16a §5.2](16a-design-language.md) |
 | **Committed computation (`Committed<T>`)** | A stored output of an explicit command, such as routes, lengths and frozen numbers, with the hash of the inputs it read (`input_hash`) and a revision. A check flags it when the inputs change. | — (recalculated on demand) | — | [04 §6.5](04-architecture.md), [ADR-0003](../adr/0003-freshness-contract.md) |
-| **Component mode (BOM)** | A bill-of-materials mode that lists every component part (the other mode is assembly mode). | Parts list | Nomenclature | [20 §14.1](20-golden-project.md) |
+| **Component mode (BOM)** | A bill-of-materials mode that lists every component part (the other mode is assembly mode). | Parts list | Nomenclature | [09 §2.4](09-reports-forms-output.md) |
 | **Conductor** | A core or shield inside a cable (`Conductor`), carried by a `Connection{kind: Core}` when wired. Also QET's name for a drawn wire. | Core, conductor | Conductor (a drawn wire) | [08 §7](08-connections-terminals-cables.md) |
 | **Connection** | An explicit logical edge between two endpoints (connection point or junction) with a route and a kind (Wire, Core, Bridge, Bus, Fluid, Overview, SingleLine). | Connection (autoconnect line) | Conductor | [03 §9](03-domain-model.md), [08 §3.1](08-connections-terminals-cables.md) |
 | **Connection point (CP)** | An instantiated point of a function, derived from the FnDef or the part pattern, with a designation and an internal index (`-101F1:N#1`). | Connection point | Terminal (of an element) | [03 §9](03-domain-model.md), [08 §2.1](08-connections-terminals-cables.md) |
@@ -166,7 +166,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Data quality level** | A derived grade of a part record (how complete its data is), shown in the library and checked by rules. | Part data completeness | — | [07 §3.4](07-symbols-parts-macros.md), [07 §4.4](07-symbols-parts-macros.md) |
 | **Deactivated (channel)** | A channel state: the I/O point is not fitted, for example a module point or valve slot that is not populated. | — | — | [10 §3.2](10-plc-and-bus.md) |
 | **Dec3** | Fixed-point decimal with three places (`i64` thousandths), written as a decimal string, used for cross-sections, currents, voltages, frequencies, pressures, temperatures, masses and losses. | Property value with unit | Free text with unit | [03 §3.2](03-domain-model.md), [ADR-0005](../adr/0005-value-types-nm-dec3-mltext.md) |
-| **Defect (D-nn)** | One of 42 defects D-01 … D-42 found in the reference drawing set. Each is a regression test that EW must prevent or detect. | — | — | [20 §19](20-golden-project.md), [01](01-brainstorm.md) |
+| **Defect (D-nn)** | One of 42 defects D-01 … D-42 found in the reference drawing set. Each is a regression test that EW must prevent or detect. | — | — | [reference-drawing](../research/reference-drawing.md) §3, [01](01-brainstorm.md) |
 | **Deferred (check)** | A state, not a mode: an online rule that exceeded its time budget is demoted to a pool job for the session. | — | — | [15 §3.1](15-checks-revisions-collaboration.md) |
 | **Derivation profile** | A versioned set of derivation rules pinned per project, so archived drawings do not change when EW is upgraded. | — | — | [04 §6.6](04-architecture.md) |
 | **Derived (kind D)** | A pure query result that is never stored and therefore cannot go stale (freshness Class I unless marked II). | Generated (updated by "update reports") | Stored evaluated label | [03 §1.1](03-domain-model.md), [ADR-0001](../adr/0001-core-model-persistent-maps.md) |
@@ -240,12 +240,8 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Generation (manifest)** | A complete, consistent state of the project files identified by a counter and recorded by the manifest, which is written last. | — | — | [05 §4](05-project-format-and-persistence.md) |
 | **Git integration** | The set of repository files, merge driver, textconv and post-merge checks that make projects work in git. | — | — | [05 §11](05-project-format-and-persistence.md), [ADR-0012](../adr/0012-git-integration.md) |
-| **Golden A** | The acceptance fixture: the reference with all determinable defects fixed and unknowns as flagged test inputs. | — | — | [20 §2](20-golden-project.md) |
-| **Golden A-R** | Golden A plus a resolution overlay that fills the gaps (release, layout, routing, manufacturing tests). | — | — | [20 §2.4](20-golden-project.md) |
-| **Golden B** | A renumbering test: Golden A with page-based tags and a page renumber. | — | — | [20 §2.2](20-golden-project.md) |
-| **Golden C** | A migration test: the pilot's original QET file imported, with defects visible as findings. | — | — | [20 §2.3](20-golden-project.md) |
-| **Golden project (GP)** | The reference project (cabinet J-E-2416) specified as data: the acceptance target with 18 folios, report folios 903–911, 42 defects and 42 acceptance criteria. | — | — | [20](20-golden-project.md) |
-| **GP-UT** | The start state of the usability tests: Golden A without -102F1 and four wires. | — | — | [20 §2](20-golden-project.md) |
+| **Golden project (GP), Golden A, A-R, B, C; doc 20** | Retired at 0.3.5. The golden project was the reference project (cabinet J-E-2416) specified as data in design document 20 (`20-golden-project.md`, deleted): the acceptance target with 18 folios, report folios 903–911, 42 defects, the acceptance criteria AC-nn, the expected findings EF-nn and MF-nn and the unknowns U-nn. Golden A was its fixture with every determinable defect fixed, A-R Golden A with a resolution overlay, B a renumbering test and C the migration test of the pilot's QET file. The sample project (`fixtures/sample/`) took its place in the tests, the guide and the release; the tag `v0.3.0` holds doc 20, the project and its runner. A design text that cites "20 §n" or names Golden A cites that record. | — | — | [18 §3.10](18-quality-security-release.md) |
+| **GP-UT** | The start state of the usability tests: the sample project without the 24 V breaker -102F1 and its wires. | — | — | [16](16-ux-ui.md) |
 | **Grid (`Grid`)** | A rational step in nanometres (numerator and denominator). The QET 10 px grid is exactly 7 937 500/3 nm. | Grid | Grid (px) | [03 §3.1](03-domain-model.md), [ADR-0027](../adr/0027-native-symbol-grid-and-qet-grid-policy.md) |
 | **Group accessory** | A part that travels with a strip or assembly (end plates, partitions, markers). | Accessory | — | [12 §3.4](12-panel-layout.md) |
 | **GSD / GSDML / IODD** | Device description files for PROFIBUS, PROFINET and IO-Link devices; imported to derive device types (1.x). | Device description import | — | [10 §2.8](10-plc-and-bus.md), [10 §4.9](10-plc-and-bus.md) |
@@ -331,7 +327,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Memo (`ew-memo`)** | The in-house memoisation layer of the derived-data engine: revision stamps, verification, backdating, durability levels, an LRU byte budget and reverse dependencies. v1 adds it only where profiling demands. | — | — | [04 §6.2](04-architecture.md), [ADR-0002](../adr/0002-derived-data-engine-ew-memo.md) |
 | **Merge driver** | A git merge driver (`ew merge-driver`) that merges project records at record and field level and writes in-file conflict records. | — | — | [05 §11.2](05-project-format-and-persistence.md), [ADR-0012](../adr/0012-git-integration.md) |
 | **Message management** | The panel that lists findings, with filters, jumps to the graphic and quick fixes. | Message management | — | [16 §8.4](16-ux-ui.md), [15](15-checks-revisions-collaboration.md) |
-| **MF finding (MF-nn)** | A numbered migration finding of the golden QET import (MF-01 … MF-27) mapped onto EW-IMP codes. | — | — | [14 §15.2](14-interop.md), [20 §20](20-golden-project.md) |
+| **MF finding (MF-nn)** | A numbered migration finding of the golden QET import (MF-01 … MF-27) mapped onto EW-IMP codes. | — | — | [14 §15.2](14-interop.md) |
 | **Migration (format)** | The ordered per-kind conversion of an older project file to the current format, with additive-change rules and unknown-byte preservation. | — | — | [05 §10](05-project-format-and-persistence.md), [ADR-0011](../adr/0011-format-versioning-and-migration.md) |
 | **Migration report** | The result of an import as a check run in the `migration` scheme: MF findings, lenient violations and import-only facts. | — | — | [14 §2.5](14-interop.md) |
 | **MlText** | Multilingual text: either a neutral string or a map of BCP 47 tags to strings, with EPLAN's mutual exclusion (adding a language removes the neutral string and vice versa). | Multilingual text (neutral or per-language) | Single-language string | [03 §3.3](03-domain-model.md) |
@@ -430,7 +426,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Rail bonding** | The joining of adjacent terminals by the rail or a bridge into one potential. | Bridging by rail | — | [08 §3.7](08-connections-terminals-cables.md) |
 | **Rail cut length** | A derived length of a DIN rail that fits a terminal strip and its accessories. | Rail length | — | [13 §6.2](13-manufacturing-outputs.md) |
 | **Record kind** | A type of persisted record (device, page, connection) with a rank and file placement in the kind registry. | — | — | [05 §2.2](05-project-format-and-persistence.md) |
-| **Reference drawing set (reference project)** | The 18-folio drawing set of cabinet J-E-2416, used as the acceptance specification. Its owner's details are anonymised in the repository. | — | — | [reference-drawing](../research/reference-drawing.md), [20](20-golden-project.md) |
+| **Reference drawing set (reference project)** | The 18-folio drawing set of cabinet J-E-2416, used as the acceptance specification until 0.3.5. Its owner's details are anonymised in the repository. | — | — | [reference-drawing](../research/reference-drawing.md) |
 | **Report block (`ReportBlock`)** | The authored definition of a report: source, filters, form, continuation and manual overrides. Generated pages follow from it. | Report block / template | Summary, nomenclature, folio list | [09 §2.2](09-reports-forms-output.md) |
 | **Report kind** | A built-in report type such as parts list, summarised parts list, device list, terminal diagram, cable diagram, wire list, PLC overview or TOC. | Report type | Summary or nomenclature | [09 §2.4](09-reports-forms-output.md) |
 | **Representation** | One drawn appearance of a function on a page: a symbol instance with orientation and text slots. A function can have several (multi-line, overview, panel front). | Representation type, symbol variant | Element on a folio | [03 §6](03-domain-model.md), [ADR-0006](../adr/0006-function-device-representation-model.md) |
@@ -538,11 +534,11 @@ The IEC 81346 prefixes that appear in tags:
 | FR | `FR-<AREA>-<nnn>` | Functional requirement. Areas of 02a: PRJ, PAG, SYM, DEV, NUM, CON, XRF, TRM, CBL, PRT, MAC, REP, OUT, CHK, REV. Areas of 02b: PLC, BUS, FLU, LAY, THM, MFG, IMP, EXP, UI, EXT, COL, I18N. IDs are stable; a withdrawn requirement keeps its ID | [02a](02a-requirements-core.md) §1.1, [02b](02b-requirements-extended.md) §0 |
 | NFR | `NFR-<AREA>-<nn>` | Non-functional requirement. Areas: PERF, PLAT, REL, SEC, PRIV, A11Y, I18N, MAINT, LIC, DOC, COMP, UX | [02c](02c-nonfunctional-requirements.md) |
 | REF | `REF-nnn` | Requirement candidate REF-001 … REF-108 extracted from the reference drawing set; each maps to at least one FR | [reference analysis](../research/reference-drawing.md), [02a](02a-requirements-core.md) Appendix A |
-| D | `D-nn` | One of the 42 defects D-01 … D-42 of the reference set that EW must prevent or detect | [20](20-golden-project.md) §19, [reference analysis](../research/reference-drawing.md) |
-| AC | `AC-nn` | Acceptance criterion AC-01 … AC-43 of the golden project; gates cite them | [20](20-golden-project.md) §21 |
-| EF | `EF-nn` | Expected finding of the golden check run (EF-01 … EF-25 on Golden A), listed in the expected-findings CSVs | [20](20-golden-project.md) §18 |
-| MF | `MF-nn` | Migration finding of the Golden C QET import (MF-01 … MF-27) | [14](14-interop.md) §15.2, [20](20-golden-project.md) §20 |
-| U | `U-nn` | Entry of the unknowns register: a value not determinable from the reference set, marked with a triangle in the golden tables | [20](20-golden-project.md) §1.2 |
+| D | `D-nn` | One of the 42 defects D-01 … D-42 of the reference set that EW must prevent or detect | [reference analysis](../research/reference-drawing.md) §3 |
+| AC | `AC-nn` | Acceptance criterion AC-01 … AC-43 of the golden project; gates cite them | §2, Golden project |
+| EF | `EF-nn` | Expected finding of the golden check run (EF-01 … EF-25 on Golden A), listed in the expected-findings CSVs | §2, Golden project |
+| MF | `MF-nn` | Migration finding of the Golden C QET import (MF-01 … MF-27) | [14](14-interop.md) §15.2 |
+| U | `U-nn` | Entry of the unknowns register: a value not determinable from the reference set, marked with a triangle in the golden tables | §2, Golden project |
 | ADR | `ADR-nnnn` | Architecture decision record 0001 … 0030, with status Accepted or Proposed | [adr/](../adr/) |
 | EW rule | `EW-<FAMILY>-<nnn>` | Check rule ID (EW-POT-013, EW-CORE-031); each rule also has a six-digit code (005013) | [15](15-checks-revisions-collaboration.md) §2.2 |
 | WP | `WP-S<s>.<nn>` | Work package nn of stream s (S0 … S7), for example WP-S1.04 | plan/02 |
@@ -584,7 +580,7 @@ The IEC 81346 prefixes that appear in tags:
 | DEC | `DEC-001` … `DEC-085` | A numbered open or taken decision of the decision log, with options, recommendation, owner and the gate by which it is due | plan/06 |
 | Release labels | MVP, 1.0, 1.x, Later | MVP: the pilot can stop using QElectroTech for new projects; 1.0: full v1 scope; 1.x: after 1.0; Later: not planned | [00](00-vision-and-scope.md) |
 | Priority | Must, Should, Could | MoSCoW priority within a release | [02a](02a-requirements-core.md) §1.1 |
-| ▲, ▲U-nn | triangle marker | A value that is a test input, not a fact from the reference set | [20](20-golden-project.md) §1.2 |
+| ▲, ▲U-nn | triangle marker | A value that is a test input, not a fact from the reference set | §2, Golden project |
 
 ## 4. Translation table: EPLAN, QElectroTech, ElektraWatt
 
@@ -700,14 +696,14 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | Abbreviation | Meaning | See |
 |---|---|---|
 | A11Y | Accessibility (requirement area) | [02c](02c-nonfunctional-requirements.md) |
-| AC | Acceptance criterion of the golden project | [20 §21](20-golden-project.md) |
+| AC | Acceptance criterion of the golden project | §2, Golden project |
 | ADR | Architecture decision record | [adr](../adr/) |
 | AML | AutomationML | [10 §4.3](10-plc-and-bus.md) |
 | AP214, AP242 | STEP application protocols | [14 §7.1](14-interop.md) |
 | APC | Automation project configuration (AML PLC recommendation) | [10 §4.3](10-plc-and-bus.md) |
 | AR | Application recommendation (AutomationML) | [10 §4.3](10-plc-and-bus.md) |
 | BMEcat | Catalogue exchange format for product data | [14 §7.3](14-interop.md) |
-| BOM | Bill of materials | [20 §14](20-golden-project.md) |
+| BOM | Bill of materials | [09 §2.4](09-reports-forms-output.md) |
 | BU, BK, BN, GN, GY, OG, PK, RD, SR, TQ, VT, WH, YE, GD | Colour codes of IEC 60757 (blue, black, brown, green, grey, orange, pink, red, silver, turquoise, violet, white, yellow, gold) | [03 §3.4](03-domain-model.md) |
 | CAEX | Computer Aided Engineering Exchange (IEC 62424) | [10 §4](10-plc-and-bus.md) |
 | CDP | Connection definition point | [03 §1.2](03-domain-model.md) |
@@ -730,7 +726,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | EWZ | ElektraWatt zipped project | [05 §12](05-project-format-and-persistence.md) |
 | FR | Functional requirement | [02a](02a-requirements-core.md) |
 | FTS5 | SQLite full-text search extension used for the library index | [04 §3](04-architecture.md) |
-| GP | Golden project | [20](20-golden-project.md) |
+| GP | Golden project | §2, Golden project |
 | GPL | GNU General Public Licence | [ADR-0024](../adr/0024-licence-set-and-permissive-gpl-boundary.md) |
 | GSD, GSDML | PROFIBUS and PROFINET device description files | [10 §4.9](10-plc-and-bus.md) |
 | IEC | International Electrotechnical Commission | [standards](../research/standards.md) |
@@ -741,7 +737,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | JSONL | JSON Lines | [05 §3](05-project-format-and-persistence.md) |
 | KKS | Power-plant identification system (uses the document-type block) | [research](../research/eplan-features.md) |
 | LRU | Least recently used (cache policy) | [04 §6.2](04-architecture.md) |
-| MCB | Miniature circuit breaker | [20](20-golden-project.md) |
+| MCB | Miniature circuit breaker | [07](07-symbols-parts-macros.md) |
 | MCP | Model Context Protocol | [04 §10.5](04-architecture.md) |
 | MF | Migration finding | [14](14-interop.md) |
 | MIT, Apache-2.0 | Permissive licences of the format crates | [ADR-0024](../adr/0024-licence-set-and-permissive-gpl-boundary.md) |
@@ -754,7 +750,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | PE | Protective earth | [08 §6.4](08-connections-terminals-cables.md) |
 | P&ID | Piping and instrumentation diagram | [11 §3.3](11-fluid-power.md) |
 | PLC | Programmable logic controller | [10](10-plc-and-bus.md) |
-| PSU | Power supply unit | [20](20-golden-project.md) |
+| PSU | Power supply unit | [07](07-symbols-parts-macros.md) |
 | QET | QElectroTech | [14 §4](14-interop.md) |
 | RDS | Reference designation system | [03 §8](03-domain-model.md) |
 | REUSE | FSFE specification for licence information per file | [19](19-open-source-governance.md) |
@@ -805,7 +801,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | `ew-reports` | GPL | Built-in report queries, user SQL reports, pagination and XLSX/CSV tables. | [09](09-reports-forms-output.md) |
 | `ew-scene` | GPL | Model-to-display-list conversion, forms engine, spatial index and hit-testing. | [09 §4.1](09-reports-forms-output.md) |
 | `ew-render2d` | GPL | The wgpu 2D renderer. | [04 §8.2](04-architecture.md) |
-| `ew-render-cpu` | GPL | The vello_cpu renderer for thumbnails, golden PNGs and banded printing. | [04 §8.2](04-architecture.md) |
+| `ew-render-cpu` | GPL | The vello_cpu renderer for thumbnails, PNG export and banded printing. | [04 §8.2](04-architecture.md) |
 | `ew-export` | GPL | PDF (PDF/A-2b), SVG, DXF and PNG writers. | [09 §4](09-reports-forms-output.md) |
 | `ew-print` | GPL | OS print adapters. | [09 §4.5](09-reports-forms-output.md) |
 | `ew-plc` | GPL | PLC exchange orchestration: AML AR APC, TIA PLC Tags, PLCopen. | [10 §4](10-plc-and-bus.md) |
@@ -814,7 +810,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | `ew-mfg` | GPL | Production package content, wire lists, ferrules, labels and machine profiles. | [13](13-manufacturing-outputs.md) |
 | `ew-import-qet, ew-import-eplan, ew-import-dxf` | GPL | The QET, EPLAN (EDZ, XML, XLSX) and DXF importers. | [14](14-interop.md) |
 | `ew-import-catalog` | GPL | Parts import from CSV/XLSX, BMEcat and ETIM xChange. | [14 §7.3](14-interop.md) |
-| `ew-import-tables` | GPL | The golden CSV bootstrap, table round trip and translation tables. | [14 §8](14-interop.md) |
+| `ew-import-tables` | GPL | The CSV bootstrap, table round trip and translation tables. | [14 §8](14-interop.md) |
 | `ew-script, ew-plugin-host` | GPL | rhai automation bindings and the WASM plugin host. | [04 §10](04-architecture.md) |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation and staleness tagging. | [04 §2](04-architecture.md) |
 | `ew-api` | GPL | The `Session` facade shared by every front end. | [04 §3](04-architecture.md) |
@@ -822,7 +818,7 @@ what changes in behaviour, not only in name. The authoritative mappings are [03]
 | `ew-ui` | GPL | The egui widgets, canvas host, tools, command palette and keymaps. | [16](16-ux-ui.md), [ADR-0014](../adr/0014-gui-toolkit-egui.md) |
 | `ew-viewer, ew-wiring-viewer` | GPL | The read-only package viewer library and binary (1.0). | [13 §11](13-manufacturing-outputs.md) |
 | `ew-step-worker` | GPL | The out-of-process OCCT STEP reader and tessellator. | [04 §8.6](04-architecture.md), [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) |
-| `ew-testkit` | GPL | Golden builders, size generators, oracle comparator and acceptance runner. | [04 §13](04-architecture.md) |
+| `ew-testkit` | GPL | The builder DSL and a synthetic parts library; its tests hold the command fuzzer and the hostile corpus. | [04 §13](04-architecture.md) |
 | `ew-py` | GPL | The Python wheel of the headless core (1.x). | [04 §10.5](04-architecture.md) |
 | `elektrawatt, ew` | GPL | The GUI binary and the CLI binary. | [04 §3](04-architecture.md) |
 

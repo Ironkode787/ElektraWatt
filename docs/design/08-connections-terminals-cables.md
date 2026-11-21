@@ -12,9 +12,8 @@ wire-numbering part of NUM in [02a](02a-requirements-core.md). It builds on the 
 (ADR-0001, ADR-0006, ADR-0007).
 
 **Notation.** W1 … W44, J1 … J6 and BR1 … BR6 are the physical wires, junctions and bridges of the golden project
-([20](20-golden-project.md) §8). ▲ and ▲U-nn mark golden test inputs that the reference set does not determine
-([20](20-golden-project.md) §1.2). EF-nn and MF-nn are expected findings ([20](20-golden-project.md) §18, §20). PQ-nn
-are questions for the pilot user ([brainstorm](01-brainstorm.md)).
+(retired at 0.3.5, see the [glossary](glossary.md)). ▲ and ▲U-nn mark golden test inputs that the reference set does
+not determine. EF-nn and MF-nn are expected findings. PQ-nn are questions for the pilot user ([brainstorm](01-brainstorm.md)).
 
 **Contents**
 1. [Scope and position](#1-scope-and-position)
@@ -186,7 +185,7 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   part once per group by construction. Golden A's bridges carry no part, so its BOM is unchanged; its interim part
   uses stay until a follow-up moves them onto the bridges.
 - **Strip groups** label ranges of terminals. The terminal's own `function_text` holds its printed label ("1+").
-  This follows [20](20-golden-project.md) §9, where "1+" is the printed function text and "Pneumatics" is the group
+  This follows the golden strip table, where "1+" is the printed function text and "Pneumatics" is the group
   label.
 - **`Strip.field_side`** says which terminal side faces the field when a strip is mounted the other way round. The
   default is Side2 (FR-TRM-012).
@@ -246,8 +245,7 @@ A junction tells the shop **which CP is wired to which**. A dot or a bevel only 
   confirms it (PQ-27, Open question 7).
 - **Daisy chain versus junction.** Two connections on one CP are a daisy chain (FR-CON-006). Their order is the
   order in which the shop lands them on the clamp. It is ascending connection ID unless a junction sequence fixes it.
-  The bevels of the folio 101 top bus are daisy chains on -101F1:1 and -101F1:N#1 that the scene draws as bevels
-  ([20](20-golden-project.md) §8.3).
+  The bevels of the folio 101 top bus are daisy chains on -101F1:1 and -101F1:N#1 that the scene draws as bevels.
 
 | Junction (golden) | Style, wiring | Sequence (arm 1 first) | Physical wires |
 |---|---|---|---|
@@ -389,8 +387,7 @@ potential_flow(potential):                              // memo per potential; t
 
 - **Switched.** `switched` marks functional switching: contacts, switches, thermostats. MCBs, fuses and electronic
   circuit breakers are protection, so their outputs are not "switched". All-pole switching devices such as S51 do
-  not set it either. On the golden project exactly N-55T (via T55) and N-55S (via S56) are "N, switched", as
-  [20](20-golden-project.md) §7.3 requires.
+  not set it either. On the golden project exactly N-55T (via T55) and N-55S (via S56) are "N, switched".
 - **Protected by.** `protected_by` names the nearest upstream protective device. 24VDC-1 is protected by the Out1
   channel of -102F2. This feeds the load summary (FR-REP-026) and D-25.
 - **Circuit class** (FR-CON-022) comes from the size profile's class rules, unless `PotentialDef.circuit_class` sets
@@ -545,7 +542,7 @@ physical_wires_of(potential):                              // memo per potential
      and the CP IDs come last, so no minted ID decides an orientation that the print can decide. No Golden A wire
      changed orientation or number.
 
-  This reproduces every From/To pair of [20](20-golden-project.md) §8.2. Examples: 1X1:1 → S51:2, because the supply
+  This reproduced every From/To pair of the golden wire table. Examples: 1X1:1 → S51:2, because the supply
   enters at J-E-206-L; -102G1:+#2 → -102F1:1; E55:PE → -X1032:1/b, by page order.
 
   **As built.** `ew-derive`'s `orient_wire` applies the
@@ -603,7 +600,7 @@ the level and the defining entity (FR-CON-017, FR-CON-025, D-08). This is the ch
 | 4 | `NetDef{scope: Signal}` (1.0, FR-CON-016) | any, including shielded and twisted | — |
 | 5 | `NetDef{scope: Net}` (1.0) | any | — |
 | 6 | Intrinsic data of the connection: `Conductor` colour and csa, bridge part | colour, csa, part | W39: BN from the -106W1 core |
-| 7 | CDP: `Connection.overrides` | any | W20: 1.5 mm²; its DBU still comes from level 2 ([20](20-golden-project.md) §8.1) |
+| 7 | CDP: `Connection.overrides` | any | W20: 1.5 mm²; its DBU still comes from level 2 |
 
 - **Fields.** Each wire has `csa: Csa`, `colour: ColourSpec`, `wire_part`, `insulation`, `function` and
   `flags{shielded, twisted}`. Its length is a separate value (§7.6, [12](12-panel-layout.md)).
@@ -856,8 +853,8 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Display** (FR-CON-026): on each segment, once per page or at both ends, with the text style `wire.number`.
 - **Golden** (▲U-33): connection-oriented `{page}.{counter}` (the `{page}` token prints the folio label; it is the
   one page token of every format), counter scope page, cores not numbered, not printed. W1–W34 receive 34 unique
-  numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
-  The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
+  numbers, listed in the derived "No." column of the golden wire table: W29 gets 102.10 and W33 103.1.
+  The acceptance runner generated the golden `expected/wires.csv` with this rule, which also decides the ties between wires of
   equal cells by what is printed, then by the wire ID. Since the orientation has its flow-distance step AC-09 has no
   known deviation. Golden A's nine tied wires are numbered W1 101.1, W2 101.2, W3 101.3, W7 101.4, W9 101.5, W4 101.6, W5 101.7, W22 102.3 and W23 102.4. **As built:** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
   (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
@@ -1005,7 +1002,7 @@ bus with dots. That drawing is derived from the bridge connections.
   label and page ID, then the lowest designation in natural order, then the smallest ID (the
   interim rule shared with [03](03-domain-model.md) §8.2 step 4 until WP-S1.11). 1X1, drawn only as three terminal
   symbols at 101-D2, derives the rule value -X1011, which the numbering report shows next to its frozen tag "1X1"
-  (EF-15); after Golden B's step B1 drops the strip rule it prints -101X1 ([20](20-golden-project.md) §2.2). Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
+  (EF-15); after Golden B's step B1 drops the strip rule it prints -101X1. Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
   frozen ([03](03-domain-model.md) §8.4).
 
 ### 6.8 Designation uniqueness (D-11, D-12)
@@ -1016,7 +1013,7 @@ bus with dots. That drawing is derived from the bridge connections.
   re-designations and inserts need no temporary names (FR-TRM-022).
 - **Strict mode** rejects the transaction with the duplicate set listed in the error.
 - **Lenient mode** (imports) commits and reports EW-TERM-001 (empty) and EW-TERM-002 (duplicate). For the reference
-  set these are MF-08 and MF-09 ([20](20-golden-project.md) §20.1). The quick fix "renumber 1–n, keep labels as
+  set these are MF-08 and MF-09. The quick fix "renumber 1–n, keep labels as
   function text" is the conversion that turns the drawing's "1+ ×4" into terminals 1–4 that print "1+".
 - **Generating designations** (FR-TRM-014): a pattern of prefix, start, step, numeric or alphanumeric and per level,
   as a preview. Schemes per profile follow at 1.0 (FR-NUM-024). Sorting uses natural order: 1, 2, … 10, never 1, 10,
@@ -1227,8 +1224,7 @@ p = prevent and r = release.
 | EW-CORE-036 | Core assigned to two wires, or more assignments than cores (invariant CI-05) | FR-CBL-003, FR-CBL-011 | p o | error | 0 |
 | EW-CORE-037 | Shield connected at neither end | FR-CBL-007 | o | warning | 0 |
 
-These rows reproduce EF-01, EF-06 … EF-11 and EF-23 of [20](20-golden-project.md) §18 and add nothing else to the
-golden finding set. Frozen wire numbers deviating from the scheme are reported by EW-NUM-002 (FR-CHK-037). The
+These rows reproduced EF-01, EF-06 … EF-11 and EF-23 of the golden finding set and added nothing else to it. Frozen wire numbers deviating from the scheme are reported by EW-NUM-002 (FR-CHK-037). The
 PLC-specific card supply rule EW-PLC-013 supersedes EW-POT-003 at 1.0 (EF-22). The opt-in EW-EN60204 pack
 ([15](15-checks-revisions-collaboration.md) §4.7) includes EW-POT-004, -005, -006, -007 and -010 with clause
 references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-007) over the effective cross-sections of
@@ -1449,7 +1445,7 @@ derivation profiles keep wire numbers and properties byte-identical across EW re
 | 3 | -3W1 as a `Bus` line with cable, length Missing | EW-CORE-033 (EF-08), blocks release |
 
 Counts: 19 potentials plus bond B1, 44 physical wires, 6 bridges, 6 junctions, 3 strips with 3 + 20 + 5 terminals,
-and 13 conductors in Golden A (16 in A-R) ([20](20-golden-project.md) AC-09, AC-10, AC-11).
+and 13 conductors in Golden A (16 in A-R).
 
 **Defects prevented or detected:**
 
@@ -1523,7 +1519,6 @@ and 13 conductors in Golden A (16 in A-R) ([20](20-golden-project.md) AC-09, AC-
 | [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.4, §2.5 | FnDef links and flags, CP patterns, clamp and cable-core data |
 | [09-reports-forms-output](09-reports-forms-output.md) §2.4 | report kinds, forms and pagination for folios 903–909 |
 | [10-plc-and-bus](10-plc-and-bus.md) §2.7, §3.3, [11-fluid-power](11-fluid-power.md), [12-panel-layout](12-panel-layout.md), [13-manufacturing-outputs](13-manufacturing-outputs.md), [14-interop](14-interop.md) §4.7, §5.4, [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) §2.2, §4.4, §4.7, [16-ux-ui](16-ux-ui.md), [17-extensibility](17-extensibility.md) §6 | bus connectors and channel bindings, fluid lines, carriers and lengths, wire records, QET and EPLAN mapping, rule codes and packs, panels, `api_v1` columns |
-| [20-golden-project](20-golden-project.md) §7–§10, §18 | expected potentials, wires, junctions, bridges, strips, cables, findings |
 | Crates | `ew-schema`, `ew-model` (invariants CI-01 … CI-07), `ew-derive` (§3–§7 queries), `ew-commands` (normalisers, `NumberWires`, `FreezeNumbers`, `cable.assign`, strip-editor commands), `ew-checks` (§8), `ew-reports`, `ew-sqlview`, `ew-viewmodel` and `ew-ui` (tables of §9), `ew-import-qet`; at 1.0 `ew-panel` and `ew-mfg` |
 
 ---
@@ -1546,7 +1541,7 @@ and 13 conductors in Golden A (16 in A-R) ([20](20-golden-project.md) AC-09, AC-
   NFR-PERF-09, NFR-PERF-10, NFR-REL-07, NFR-REL-08, NFR-REL-09, NFR-A11Y-03, NFR-COMP-05.
 - **Adopted from other documents and specified here:** FR-CON-035 (physical wires), FR-CON-036 (signals) and
   FR-CON-037 (bond via) of [03](03-domain-model.md), and FR-CON-038 (PE circuit class at the ends, with this
-  document's terminal-end rule of §4.2) of [20](20-golden-project.md).
+  document's terminal-end rule of §4.2) of the golden project's proposals.
 
 ### Proposed new requirements
 
@@ -1573,7 +1568,7 @@ The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
 ## Open questions
 
 1. **Folio 101 top bus.** [03](03-domain-model.md) §9.2 modelled W7/W8 as a Bevel junction in Chain mode.
-   [20](20-golden-project.md) §8.3 and [06](06-schematic-editor.md) §9.1 model it as daisy chains on the -101F1
+   The golden junction table and [06](06-schematic-editor.md) §9.1 model it as daisy chains on the -101F1
    CPs. The physical wires are identical. **Resolved:** daisy chains on the -101F1 CPs, as in 20.
 2. **`BridgeSpec{kind, group, shaft}`.** 03 had `Bridge(BridgeKind)` with the part in `overrides.wire_part`, which
    cannot express one comb over four terminals. **Resolved:** `ConnectionKind::Bridge(BridgeSpec{kind, group,
@@ -1593,8 +1588,7 @@ The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
 7. **Default junction sequence.** An earlier draft of [06](06-schematic-editor.md) §3.5 ordered the two parts of a
    split connection by reading order. This document puts the part nearer the source first and uses reading order
    only as a tie-break. Both give the same defaults for J1–J6; they differ only on pages drawn bottom-up, where flow
-   matches the shop's wiring better. **Resolved:** the flow rule, now also in 06 §3.5 and
-   [20](20-golden-project.md) §8.3; the M2 usability test confirms it (NFR-UX-01, PQ-27).
+   matches the shop's wiring better. **Resolved:** the flow rule, now also in 06 §3.5; the M2 usability test confirms it (NFR-UX-01, PQ-27).
 8. **PE sizing scope.** Whether L+ counts as an associated line conductor changes results on DC devices, and the
    NEBU core cross-sections are unknown (▲U-18). *Recommendation:* default `line_types = [L, L1, L2, L3]`, ship the
    table as unverified data and confirm it against the licensed standard ([02a](02a-requirements-core.md) OQ8).
@@ -1605,7 +1599,7 @@ The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
     xrefs. **Resolved:** kept; the bond-path naming rule of §3.5 is part of [03](03-domain-model.md) §9.6.
 11. **Vendor core colours under FR-CHK-031.** EF-11 reports the BU cores of the Festo cables on 0V.
     *Recommendation:* keep the warning, allow a waiver per cable part, and let [15](15-checks-revisions-collaboration.md)
-    decide on an exemption for part-defined cores ([20](20-golden-project.md) OQ6).
+    decide on an exemption for part-defined cores (golden OQ6).
 12. **Golden wire numbers.** 20 §8.2 had W indices but no derived number column (▲U-33). **Resolved:** 20 §8.2
     has a derived wire-number column (connection-oriented `{page}.{counter}`, ordered as in §5.2), and
     `expected/wires.csv` is generated from it; numbers are not printed on pages. The pilot's format is confirmed
@@ -1625,7 +1619,7 @@ The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
     4.10, a black box that declares no pass-through) stay unreached.
 16. **Override granularity of the golden markers.** This document, [06](06-schematic-editor.md) OQ8 and FR-IMP-012
     store only the cross-section on W4, W5, W7, W9 and W20–W25, while earlier drafts of [03](03-domain-model.md)
-    §9.5, [20](20-golden-project.md) §8.2, its D-08 test and the FR-CON-017 criterion read as if the colour were
+    §9.5, its D-08 test and the FR-CON-017 criterion read as if the colour were
     explicit. **Resolved:** these wires carry a cross-section override only, and their colours stay at level 2, so
     the markers print the effective colour and EW-POT-016 stays silent on Golden A (20 §8.1).
 17. **Bridge rows in the wire list.** FR-REP-014, [09](09-reports-forms-output.md) §2.4 and 20 §16 put 44 wires plus

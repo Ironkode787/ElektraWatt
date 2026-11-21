@@ -40,7 +40,7 @@ folios 3, 106 and 201–206.
 | PLC hardware in the cabinet, EtherCAT rail order | [12-panel-layout](12-panel-layout.md) |
 | PLC workspace layout, persona P3, journey J4 | [16-ux-ui](16-ux-ui.md), [vision](00-vision-and-scope.md) §5–§6 |
 
-Conventions: Golden A, B and C are the variants of [20-golden-project](20-golden-project.md); U-nn (unknowns),
+Conventions: Golden A, B and C are the variants of the golden project (retired at 0.3.5; see the [glossary](glossary.md)); U-nn (unknowns),
 EF-nn (expected findings), AC-nn (acceptance criteria) and MF-nn (migration findings) are its IDs. ▲ marks a value
 that is unknown in the reference set and used as a test input. "(unverified)" marks a vendor fact from the
 [PLC research](../research/plc-bus-fluid.md) that must be checked before it becomes a default (NFR-COMP-05).
@@ -431,7 +431,7 @@ re-blessed); a build from before keeps them in `extra`.
   position index p is 0-based: the valve child at `Device.position` q sits at p = q − 1 ([11](11-fluid-power.md)
   §3.2), and p runs over 0 … `count` − 1. `channel` is a map-language expression in `p` (`"2p"`, `"2p+1"`) or a list
   indexed by p; an entry that does not resolve at p, or gives a number not below the channel count, assigns no
-  channel. Golden A carries test input H1 in `tables/part_plc.csv` ([20](20-golden-project.md) §11.2).
+  channel. Golden A carries test input H1 in `tables/part_plc.csv`.
 - **`pin_of`** (`PinMap`) is the channel → pin map that §2.8 names as part data a device description lacks. It maps
   a channel number to a pin **designation**, never to a CP index, because a designation survives a reordering of the
   FnDef's CPs. Its persisted forms are a format contract for every reader:
@@ -813,8 +813,8 @@ The effective state comes from `channel_states(module)`:
 
 On Golden A, every coil is bound "as drawn" to channel 2p + 1. Under H1, channel 2p is assigned to coil 14, but
 that coil is bound elsewhere, so the channel is not claimed. Under H2, channel 2p is assigned to coil 12, which no
-monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare and 28 deactivated channels**
-([20](20-golden-project.md) §11.2). The PLC overview lists all 56. New I/O-list blocks default to
+monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare and 28 deactivated channels**.
+The PLC overview lists all 56. New I/O-list blocks default to
 `state != Deactivated` and list 28 rows (FR-PLC-019, FR-PLC-023).
 
 **As built.** `channel_states` applies all five steps; step 4 reads
@@ -1941,7 +1941,7 @@ Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-012 gives 28 or 0 findings (AC-
 
 The MVP column is what the golden acceptance criteria need: AC-31 at milestone M2 and AC-29 at the MVP release.
 AC-30 and the EW-PLC and EW-BUS part of AC-22 close at M3; SC-8 (the exchange test with real TIA and CODESYS
-installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-vision-and-scope.md) §3.2).
+installations) closes by 1.0 ([vision](00-vision-and-scope.md) §3.2).
 
 ---
 
@@ -1972,7 +1972,7 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
 | [12](12-panel-layout.md) | EtherCAT rail order, placement of PLC hardware |
 | [14](14-interop.md) | generic import and export, QET and EDZ PLC mapping |
 | [15](15-checks-revisions-collaboration.md) | rule engine, configuration-project scope, release gate |
-| [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md), [20](20-golden-project.md) | UI, CLI names, fuzzing and determinism jobs, AC-29 … AC-31 |
+| [16](16-ux-ui.md), [17](17-extensibility.md), [18](18-quality-security-release.md) | UI, CLI names, fuzzing and determinism jobs |
 
 ---
 
@@ -2024,7 +2024,7 @@ The ten rows this document proposed are in the catalogues:
 4. **Station allocation order.** Auto allocation needs an order that does not depend on tags. **Resolved:**
    `PlcStation.order: Option<u32>` is adopted, falling back to the UUIDv7 creation order, never tag, page or bus
    address ([03](03-domain-model.md) §13).
-5. **Channel binding vs `Internal` connection.** [03](03-domain-model.md) and [20](20-golden-project.md) bind the
+5. **Channel binding vs `Internal` connection.** [03](03-domain-model.md) and the golden project bind the
    coil CP directly, while [08](08-connections-terminals-cables.md) §2.3 cites the channel-to-coil link as an
    example of `Internal`. **Resolved:** `Channel.binding` only; `Internal` remains for other device-internal links
    between CPs of one part's functions, and 08 §2.3 uses such a link as its example (§3.3).
@@ -2095,7 +2095,7 @@ The ten rows this document proposed are in the catalogues:
     `PhysicalNet.medium`. **Resolved:** one schema-steward batch adopts them before `ew-schema` v0 freezes, and
     03 §13–§14 lists them (§2).
 23. **Direction of the golden bus segment.** FR-BUS-003 and [03](03-domain-model.md) §14 list the segment master
-    first (JE-N1000-03 → -3W1 → -3X1 → -201U1 DP); [20](20-golden-project.md) §11.1 listed it from -201U1.
+    first (JE-N1000-03 → -3W1 → -3X1 → -201U1 DP); the golden bus table listed it from -201U1.
     **Resolved:** master-first everywhere: A5 orders that way (§3.8), and 20 §11.1 lists the segment
     JE-N1000-03 → -3W1 → -3X1 → -201U1:DP.
 24. **Auto allocation around Manual ranges.** A1 places Auto ranges at the first free range at or after the cursor,

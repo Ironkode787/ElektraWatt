@@ -255,7 +255,7 @@ anywhere. User projects and QET elements are never used for model training
 
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
-| IDEA-103 | Golden project rebuilt with every determinable defect fixed (anonymised, CC0) as tutorial and CI fixture | H | L | MVP | DOC | Best adoption tool ([golden project](20-golden-project.md)) |
+| IDEA-103 | Golden project rebuilt with every determinable defect fixed (anonymised, CC0) as tutorial and CI fixture | H | L | MVP | DOC | Best adoption tool (the golden project, retired at 0.3.5) |
 | IDEA-104 | Rule page per check ID (why, clause, fix), linked from messages and F1 | M | L | MVP | DOC | Teachable checks (G13) |
 | IDEA-105 | Concept guides EPLAN↔EW, QET↔EW; "from QET" migration guide | M | L | MVP | DOC | Vocabulary is the first barrier |
 | IDEA-106 | Translations EN, NL, DE first (Weblate, Fluent, PO) | M | L | 1.0 | I18N | Home markets |
@@ -384,8 +384,7 @@ quadrantChart
 
 Consolidated from the open questions of all research notes and design documents; this is the single list of pilot
 questions, and the design documents cite these IDs instead of keeping their own. "Decides" names what the answer
-changes. Until a question is answered, the documented defaults and the ▲ test values of
-[20](20-golden-project.md) apply.
+changes. Until a question is answered, the documented defaults apply.
 
 | ID | Question | Decides | Source |
 |---|---|---|---|
@@ -403,7 +402,7 @@ changes. Until a question is answered, the documented defaults and the ▲ test 
 | PQ-10 | On X1031/X1032, is each drawn terminal one PT 2.5-TWIN or one level? "1+" designations or numbers with function text? | Terminal default | reference OQ4, eplan OQ7 |
 | PQ-11 | Should the title-block "Customer" show the contracting party or the end user? | Party binding (D-30) | reference OQ12 |
 | PQ-12 | Reports as folios 903–911 in section 9, or as separate documents? | Report-block defaults | reference OQ16 |
-| PQ-36 | Minimum printed text height? Technical-data notation ("C10" or "10A C")? How are the main PE point and the enclosure tagged (-XPE, -UC1)? | Text-height scheme parameter (FR-CHK-023); technical-data formats; per-class numbering rules | [20](20-golden-project.md) U-31, U-32, U-34 |
+| PQ-36 | Minimum printed text height? Technical-data notation ("C10" or "10A C")? How are the main PE point and the enclosure tagged (-XPE, -UC1)? | Text-height scheme parameter (FR-CHK-023); technical-data formats; per-class numbering rules | reference U-31, U-32, U-34 |
 | **Reference content** | | | |
 | PQ-13 | Are T55 and S56 really in the neutral, or is the F55 pole labelling wrong? | Golden fix of D-13 (safety) | reference OQ5 |
 | PQ-14 | Can you decode the Festo order codes or share configurator exports? Is -202U1 550208? Is 533354 a supply or end plate? 4 or 5 valves on -202U2? | Assembly model; IDEA-026 | reference OQ7, plc OQ7 |

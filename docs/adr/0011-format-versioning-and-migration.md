@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`), 2026-11-20 (amendment 7, the sample as fixture) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -188,6 +188,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      backup and a fixture (decision 6).
    - Golden A as the 0.1.0 release ships it is the released format's fixture. WP-S6.08 adds the guard against
      non-additive changes to the released schemas.
+7. **The sample is the fixture of formats released from now on** (2026-11-20, the project owner's standing
+   delegation; M3.5 step 9). The reference project (Golden A) left the repository at 0.3.5. Its frozen copy in
+   `fixtures/format/0.1/` stays byte for byte as format 0.1's fixture; every format released after it takes the sample
+   project (`fixtures/sample/sample.ew`, made by its script) as its fixture in decision 4's place of the golden project.
 
 ## Consequences
 

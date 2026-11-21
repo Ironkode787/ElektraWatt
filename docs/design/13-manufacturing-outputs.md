@@ -1101,9 +1101,9 @@ produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at 
   exactly these 31 rows to the Komax and Rittal WT profiles. `manual.csv` lists W1–W3 ("field"), W35–W44
   ("pre-assembled core") and, for the WT preview profile (`end_treatments = ["ferrule", "bare"]`), finishing tasks
   for the ring-lug ends of W6 (-XPE:PE, M6), W33 (-201U1:FE, M4) and W34 (-202U1:FE, M4) and for the eight
-  twin-ferrule ends, which the U-11 rewiring of [20](20-golden-project.md) §2.4 leaves on the same clamps: W13 and
+  twin-ferrule ends, which the U-11 rewiring of Golden A-R leaves on the same clamps: W13 and
   W14 on F55:2, W15 and W16 on F55:N#2, W20 and W21 on -102F1:1, W24 and W25 on -102F1:2 (§15.2;
-  `expected/mfg/manual.csv` of [20](20-golden-project.md) §3.1). Every exported row equals its folio 907 row with
+  the golden `expected/mfg/manual.csv`). Every exported row equals its folio 907 row with
   the same `RowId`, lengths included, because both carry the 10 mm-rounded value (§3.3). AC-35 requires every
   Komax and Rittal WT row to equal the folio 907 row with the same `RowId`, and the machine and manual lists
   together to cover W1–W44 (Open question 11). All 31 lie inside the WT range: the 2.5 mm² wires at S51 (W4, W5, W7, W9) are
@@ -1112,7 +1112,7 @@ produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at 
 
 ### 15.2 End treatments on Golden A
 
-Clamp data are test inputs ▲ (`tables/clamps.csv` of [20](20-golden-project.md) §3.1): PT 2.5-TWIN(-PE) and MICO
+Clamp data are test inputs ▲ (the golden `tables/clamps.csv`): PT 2.5-TWIN(-PE) and MICO
 push-in, 1 conductor, no twin; UK 5 N, USLKG 5, S51, T55 and E55 screw, 1 conductor; -101F1, F55, -102F1 and -102G1
 screw, 2 conductors, twin permitted; -XPE an M6 PE stud (FnDef, ▲U-34); the CPX FE screws of -201U1 and -202U1 M4
 studs. S56 and E56 have no parts (EF-04). The open ends of the cores W35–W44 on -X1031 and -X1032 get treatments by
@@ -1137,7 +1137,7 @@ pre-ferruled; they are not counted below.
 Over the 62 ends of W4–W34 this gives 47 single ferrules (14 × 0.75, 25 × 1.5, 8 × 2.5 mm²), 4 twin ferrules
 covering 8 ends, 3 ring lugs and 4 undetermined ends. Variant test for FR-MFG-006: setting -102G1's clamps to one
 conductor turns −#1 and −#2 into EW-POT-010 errors naming the clamps. These EW-MFG findings belong to the
-`manufacturing` scheme and do not change the pre-delivery expectations of [20](20-golden-project.md) §18.
+`manufacturing` scheme and do not change the golden pre-delivery expectations.
 
 ### 15.3 Labels (Golden A)
 
@@ -1185,7 +1185,7 @@ row (FR-MFG-016).
 
 ### 15.6 Change list
 
-Golden V1.0 is historic and has no archive ([20](20-golden-project.md) §4.1), so the base is V2.0. After V2.0 is
+Golden V1.0 is historic and has no archive, so the base is V2.0. After V2.0 is
 released on Golden A-R (AC-23), the next edit opens V3.0 (FR-REV-009): the engineer deletes W25 (-102F1:2 →
 -102F2:24VDC#2), so the MICO is fed through one input. "Wires changed since V2.0" lists exactly two wires:
 - **W25:** removed.
@@ -1253,7 +1253,7 @@ The release of every FR-MFG row follows [02b](02b-requirements-extended.md) §6:
 | [15](15-checks-revisions-collaboration.md) | Final rule IDs, the `manufacturing` scheme, release integration |
 | [16](16-ux-ui.md) | Manufacturing workspace layout, wizard step 10, usability task T11 (the viewer's own screens are §11.1 here) |
 | [17](17-extensibility.md) §3.3 | CLI catalogue (`ew export ewpp`, `machine`, `labels`, `drilling`; `ew mfg`) |
-| [20](20-golden-project.md) | Golden A-R inputs; `tables/clamps.csv` and `expected/mfg/*.csv` (§3.1), the 10 mm length increment (§4.4), AC-35 |
+| the golden project (retired at 0.3.5; [glossary](glossary.md)) | Golden A-R inputs; `tables/clamps.csv` and `expected/mfg/*.csv`, the 10 mm length increment, AC-35; restated on the sample when M4 is planned |
 
 | Crate | Use |
 |---|---|
@@ -1344,7 +1344,7 @@ The thirteen rows this document proposed are in the catalogues:
     *Recommendation:* `field` by default (end outside the location), with a per-wire flag to include them, and ask
     the pilot alongside PQ-17.
 11. **"Row-identical to folio 907" (AC-35).** Folio 907 has 44 wires and 6 bridges; machine files hold the 31 shop
-    wires. **Resolved:** AC-35 of [20](20-golden-project.md) requires every machine row to equal the folio 907 row
+    wires. **Resolved:** AC-35 requires every machine row to equal the folio 907 row
     with the same `RowId`, and the machine and manual lists together to cover W1–W44, with the expected rows in
     `expected/mfg/*.csv` (§15.1).
 12. **PDF snippets in the viewer.** Rendering the PDF/A region needs a PDF rasteriser at runtime; ARCH uses hayro

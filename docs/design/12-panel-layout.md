@@ -33,7 +33,7 @@ releases contain.
 19. [Requirements covered](#requirements-covered)
 20. [Open questions](#open-questions)
 
-Conventions: "GP" is the golden project ([20](20-golden-project.md)); ▲ marks a test value for an unknown of the
+Conventions: "GP" is the golden project; ▲ marks a test value for an unknown of the
 reference (U-nn in 20 §23.1) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a
 device tag; "CP" a connection point. Values marked *(unverified)* come from the research notes and ship as data,
 never as hard-coded constants (02b Open question 7). Source abbreviations: ARCH/arch =
@@ -391,7 +391,7 @@ snap_on_rail(rail, device, cursor, mode):
 - **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
   Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
   run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
-  brackets, as on folio 902 and in BOM row 26 ([20](20-golden-project.md) §14.1). Strips that are not placed, and
+  brackets, as on folio 902 and in BOM row 26. Strips that are not placed, and
   bridges, use authored part uses (bridge parts on their `BridgeSpec` connections). From 1.0 the part-data accessory
   lists (`AccessoryRef{per: Group}`, [07](07-symbols-parts-macros.md) §2.5; FR-PRT-005, FR-REP-051) declare the
   bracket part and must reproduce the same golden count.
@@ -1306,7 +1306,7 @@ for small teams.
 | [10](10-plc-and-bus.md), [11](11-fluid-power.md) | consume `carrier_order`; `RouteTubes` on the routing graph (1.x) |
 | [13](13-manufacturing-outputs.md) | consumes lengths, routes, bundles, features, glTF |
 | [14](14-interop.md) | QET folio 902 binding, EDZ drilling and CP patterns |
-| [15](15-checks-revisions-collaboration.md), [16](16-ux-ui.md), [18](18-quality-security-release.md), [20](20-golden-project.md) | rule registration; Panel 3D workspace; worker build, IPC fuzzing, determinism and 3D smoke jobs; golden expectations |
+| [15](15-checks-revisions-collaboration.md), [16](16-ux-ui.md), [18](18-quality-security-release.md) | rule registration; Panel 3D workspace; worker build, IPC fuzzing, determinism and 3D smoke jobs |
 | Crates (versions as pinned in arch §3) | parry3d 0.31.1 (not the yanked 0.31.0), glam 0.34.1, pathfinding 4.16.0, petgraph 0.8.3, rstar 0.13.0, meshopt 0.7.0, gltf 1.4.1, wgpu 30.0.1, transform-gizmo-egui 0.11.0, occt-sys 7.8.1, opencascade 0.3.0, postcard 1.1.3, rkyv 0.8.18, dxf 0.6.2, rayon 1.12.0 (marked **(verify)** in arch §2) |
 
 ---
@@ -1366,9 +1366,9 @@ for:
    `routing_path` and `surface_feature` (ranks 57, 58 in `layout/<space>.jsonl`), the page items as `page_item`
    variants and `assets/<sha256>.glb` for embeddable meshes (1.0).
 3. **Golden plate and rail geometry.** U-26 fixes the enclosure test size and the scale but not the plate's usable
-   area, the rail lengths or the gland plate. *Recommendation:* add test values to [20](20-golden-project.md) §13
+   area, the rail lengths or the gland plate. *Recommendation:* add test values to the golden layout
    (for example a 650 × 900 mm usable plate and a bottom gland surface ▲) and confirm the real NSYPMM107 data with
-   the pilot (PQ-24). **Resolved:** [20](20-golden-project.md) §13's
+   the pilot (PQ-24). **Resolved:** the golden layout's
    test geometry (▲U-50): the plate 650 × 900 mm, centred at plate frame (50, 50) mm in the 750 × 1000 × 420 mm
    enclosure, the eight carriers in plate millimetres (rails 1.71 m, ducts 3.17 m) and the twenty placements; no gland
    surface at the MVP; the real NSYPMM107 data stay a pilot question (PQ-24).
@@ -1409,7 +1409,7 @@ for:
 14. **Label position numbers.** Derived legend positions renumber when devices are added, which some shops dislike
     on revised drawings. *Recommendation:* keep them derived at MVP; offer frozen positions at release (like frozen
     wire numbers) if the pilot asks for it.
-15. **How the valve terminal is mounted.** [20](20-golden-project.md) §13 puts -201U1 … -202U3 on rail R3, and
+15. **How the valve terminal is mounted.** The golden layout put -201U1 … -202U3 on rail R3, and
     EF-23 lets the CPX earth screws reach the plate through R1–R3, while FR-LAY-056's acceptance expects drilling
     patterns of "screw-mounted modules -201U1 … -202U3". CPX/VMPA terminals can be wall-mounted or rail-mounted
     with a mounting kit *(unverified)*. **Resolved:** the golden stays on R3 with a rail-mounting-kit test part

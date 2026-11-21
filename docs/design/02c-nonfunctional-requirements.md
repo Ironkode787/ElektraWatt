@@ -10,6 +10,11 @@ names where it is verified. The targets come from the G6 budgets adopted by ADR-
 Where this file sets a number found in none of those sources, the row says "new target". Functional requirements
 are in [02a](02a-requirements-core.md) and [02b](02b-requirements-extended.md).
 
+**The acceptance criteria and the reference project.** The criteria of this catalogue were stated on the reference
+project (the golden project, GP), which was retired at 0.3.5 with its design document 20 (see the
+[glossary](glossary.md), "Golden project"). They stay as they were written. A criterion is restated on the sample
+project in its milestone's file when that milestone is planned.
+
 **Contents**
 1. [Conventions](#1-conventions)
 2. [PERF: performance](#2-perf-performance)
@@ -279,7 +284,7 @@ are quality targets.
 | NFR-MAINT-08 | Permissive crates shall `#![deny(missing_docs)]`. rustdoc is built and link-checked in CI. Architecture-level changes come with an ADR. `CONTRIBUTING.md` explains how to add a rule, report, importer and machine profile, and the invariant catalogue and `ew-memo` design notes stay current. | Must | MVP | ARCH §4.6, §6.2, §7.6; OSS §8.2 | **PR:** rustdoc and docs build without warnings. |
 | NFR-MAINT-09 | The application shall build with Rust and a C compiler (bundled SQLite) only. A C++ toolchain is needed only for `ew-step-worker`, which builds in a separate CI job with cached OCCT artefacts. | Should | MVP | RE §10.3; ARCH §8.6 | **PR:** the app job runs on an image without a C++ compiler. |
 | NFR-MAINT-10 | **API compatibility guard.** Snapshots of the command and query registries, the CLI help and JSON output schemas, the `api_v1` columns, the WIT package and the MCP tool list shall be checked on every PR. A breaking change fails unless it carries an `api-break` label, an ADR reference and a release note. | Must | MVP | 17 §11; 18 §5.2 (CI-PR-14); NFR-DOC-06 | **PR:** renaming a column of `api_v1_wire` fails the job. |
-| NFR-MAINT-11 | Every requirement whose acceptance criterion names GP shall have an automated test in the golden acceptance suite. The acceptance runner reports pass/fail per requirement ID, per AC-nn of [20](20-golden-project.md) and per D-nn regression test, and each milestone gate evaluates its AC subset (20 §22). | Must | MVP | ARCH §13; 18 §3.10; 20 §22 | **PR:** the M1 job prints a table of AC-01 … AC-20 and AC-39 results; a GP-named criterion without a test is listed as missing. *As built:* the acceptance runner reports each AC row (`golden/J-E-2416/expected/acceptance_headless.md`); the hand-kept map from requirement IDs to tests and its table are not in the repository during the alpha. |
+| NFR-MAINT-11 | Every requirement whose acceptance criterion names GP shall have an automated test once its criterion is restated on the sample project (the reference project and its acceptance runner were retired at 0.3.5; 18 §3.10). Each milestone gate evaluates the criteria its milestone's file restates. | Must | MVP | ARCH §13; 18 §3.10; 20 §22 | **PR:** the M1 job prints a table of AC-01 … AC-20 and AC-39 results; a GP-named criterion without a test is listed as missing. *As built:* until 0.3.5 the acceptance runner reported each AC row; the hand-kept map from requirement IDs to tests and its table are not in the repository during the alpha. |
 | NFR-MAINT-12 | Crates that produce persisted or exported bytes shall forbid, by lint, unordered hash collections, wall-clock and random APIs, and environment reads outside the settings module. Persisted records have no floating-point fields. | Must | MVP | NFR-REL-07; ARCH §1.2 (8), §4.5; 18 §3.5 | **PR:** a seeded `HashMap` iteration in `ew-reports` fails clippy. |
 | NFR-MAINT-13 | PR CI shall not retry tests. A nondeterministic test is quarantined within one working day with an issue and an owner and keeps running nightly; more than 10 quarantined tests block the next release. | Should | MVP | 18 §3.14 | **A:** release checklist item RC-02. |
 
@@ -384,7 +389,7 @@ FR-COL-029, FR-IMP-003, FR-IMP-005, FR-I18N-009 … FR-I18N-011, FR-I18N-015.
 | A11Y, UX, I18N (UI) | [16-ux-ui](16-ux-ui.md) |
 | SEC-05 … SEC-08, MAINT-10 | [17-extensibility](17-extensibility.md) |
 | LIC, DOC, COMP-01 … COMP-03, COMP-07, COMP-08, PRIV-10 | [19-open-source-governance](19-open-source-governance.md) |
-| PERF fixtures, DOC-04, UX-08, PRIV-09, MAINT-11 | [20-golden-project](20-golden-project.md) |
+| PERF fixtures, DOC-04, UX-08, PRIV-09, MAINT-11 | 20-golden-project (retired at 0.3.5); [18](18-quality-security-release.md) §3.10 |
 | PERF-16 … PERF-18, PERF-23 | [12-panel-layout](12-panel-layout.md) |
 | PERF-21 | [07-symbols-parts-macros](07-symbols-parts-macros.md) |
 | PERF-22 | [10-plc-and-bus](10-plc-and-bus.md) |
@@ -433,7 +438,7 @@ The provisional IDs proposed upstream map to these rows. "Merged" means the prop
 | [17](17-extensibility.md) | NFR-MAINT-10 → same number |
 | [18](18-quality-security-release.md) | P18-1 → NFR-SEC-15 (merged); P18-2 → NFR-SEC-19; P18-3 → NFR-SEC-20; P18-4 → NFR-PRIV-04 (merged); P18-5 → NFR-MAINT-12; P18-6 → NFR-MAINT-13; P18-9 → NFR-SEC-21; P18-10 → NFR-PLAT-08 |
 | [19](19-open-source-governance.md) | P19-1 → NFR-LIC-10; P19-2 → NFR-LIC-11; P19-3 → NFR-LIC-12; P19-4 → NFR-LIC-13; P19-5 → NFR-DOC-08; P19-6 → NFR-DOC-09; P19-7 → NFR-PRIV-10; P19-8 → NFR-COMP-07; P19-9 → NFR-LIC-14; P19-10 → NFR-COMP-08 |
-| [20](20-golden-project.md) | NFR-PRIV-nn (anonymisation guard) → NFR-PRIV-09; NFR-MAINT-nn (acceptance runner) → NFR-MAINT-11, shared with 02a |
+| 20 | NFR-PRIV-nn (anonymisation guard) → NFR-PRIV-09; NFR-MAINT-nn (acceptance runner) → NFR-MAINT-11, shared with 02a |
 | [ADR-0028](../adr/0028-default-drawing-fonts.md) (recommendation 6) | NFR-REL-nn (pinned font versions) → NFR-REL-17 |
 
 ### Rows proposed to 02a and 02b

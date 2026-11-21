@@ -268,7 +268,7 @@ These are statements about how the pilot draws, from counts only. The shares are
    ([07](07-symbols-parts-macros.md) §2.8) should hold the BOM report block, so that no one draws it by hand.
 7. **Valve terminals are drawn slice by slice.** Nine valve-terminal element types (82 uses, most of them Festo) draw the manifold as blank slices,
    feed plates, double-valve slices and four- and eight-valve blocks, next to 58 valve symbols and 8 process valves with a
-   double-acting actuator. This is the golden pattern (-201U1 and its children, [20](20-golden-project.md) §6.2). EW holds
+   double-acting actuator. This is the golden pattern (-201U1 and its children). EW holds
    the manifold as an assembly with a generated overview ([11](11-fluid-power.md) §5.5), so these elements are not mapped
    one to one: the reconstruction assistant of FR-IMP-039 builds the assembly and the overview from the detail folios, and
    the importer reports the drawn slices (EW-IMP-110, EW-IMP-112). The configurator decoder (FR-DEV-036) has to know the

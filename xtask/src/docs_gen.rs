@@ -1441,7 +1441,7 @@ fn queries_text(snapshot: &Value) -> Result<String> {
          | Query | Key | Summary |\n|---|---|---|\n{rows}\n{sections}",
         header("the query registry"),
         queries.len(),
-        repo_link(DOC_17, Some("34-examples-on-the-golden-project")),
+        repo_link(DOC_17, Some("34-examples-on-the-sample-project")),
     ))
 }
 

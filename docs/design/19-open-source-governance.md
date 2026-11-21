@@ -49,7 +49,7 @@ interim rules of the Proposed ADRs (0025, 0029, 0030) apply.
 | `CONTRIBUTING.md` (including the AI-use policy), `CODE_OF_CONDUCT.md`, `SECURITY.md` process, `GOVERNANCE.md`, `TRADEMARKS.md` | `PRIVACY.md` content (ADR-0029); security controls (NFR-SEC-*) |
 | Governance of community content: review authority, `verified` evidence, quality marks, takedown | Library linter EW-LIB-001 … EW-LIB-012 ([15](15-checks-revisions-collaboration.md) §4.11), review pipeline and pack layout ([07](07-symbols-parts-macros.md) §6) |
 | Community channels, the Weblate workflow and glossary, the usability-test consent template | UI localisation stack ([16](16-ux-ui.md) §12); usability-test protocol ([16](16-ux-ui.md) §19) |
-| Funding options, steward options, CRA role, relationship with QElectroTech (QET) | The QET importer ([14](14-interop.md) §4); the anonymised golden fixture ([20](20-golden-project.md) §3.5) |
+| Funding options, steward options, CRA role, relationship with QElectroTech (QET) | The QET importer ([14](14-interop.md) §4); the anonymised golden fixture |
 
 **Decided and open.** The licence set and DCO without a CLA are owner decisions (ADR-0024) and are not revisited
 here. Three decisions are still open: the plugin-exception wording (ADR-0025), the network and crash-report policy
@@ -144,7 +144,7 @@ Governance adds no record kind. It relies on fields other documents define:
 
 **Repository data, outside the EW model:**
 - `ci/licence-map.toml`: §2.1 in machine form;
-- `ci/denylist.sha256`: hashes for the anonymisation guard ([20](20-golden-project.md) §3.5);
+- `ci/denylist.sha256`: hashes for the anonymisation guard;
 - `.github/CODEOWNERS`: two named owners per critical crate (NFR-MAINT-07);
 - RFC front matter (§3.4) and the role table in `GOVERNANCE.md` (§2.5).
 
@@ -233,7 +233,7 @@ prose files is NFR-DOC-08.
 | LR-09 | Outputs are free of EW's copyleft. `LICENSE.md`, the About dialog and the docs say so in the same words. | Text assertion in CI (NFR-LIC-09) |
 | LR-10 | The bundled-asset allowlist (fonts, icons, data packs) is separate from the crate allowlist of NFR-LIC-04. A new asset licence needs maintainer consensus and a `NOTICE` entry. | REUSE lint over `assets/` and `content/` |
 | LR-11 | Fixtures from third parties (QET examples, vendor AML or GSDML samples) are fetched by CI at a pinned commit into the cache and never committed ([14](14-interop.md) OQ8). Own test files are CC0-1.0 (L8), including `crates/*/tests/fixtures/` inside GPL crates; the licence map gives that path its own, longer rule than the crate's row. | `.gitignore` plus the licence-map check (unknown files fail) |
-| LR-12 | Nothing confidential is committed: no customer or person identifiers, no reference PDF, no local paths. | Anonymisation guard (`ci/denylist.sha256`, NFR-PRIV-09, [20](20-golden-project.md) §3.5, AC-39) |
+| LR-12 | Nothing confidential is committed: no customer or person identifiers, no reference PDF, no local paths. | Anonymisation guard (`ci/denylist.sha256`, NFR-PRIV-09, AC-39) |
 
 *Development-only crates*. NFR-LIC-04's allowlist governs the application's dependencies. A development-only cargo
 workspace that no distributed artefact contains (the cargo-fuzz crate `fuzz/` of the 1.0 target,
@@ -295,7 +295,7 @@ carry no binaries.
 | **LG-2 Exceptions adopted** | ADR-0025 is accepted. The plugin-exception text and the design-exception text are in `LICENSES/` and in the SPDX headers. | Before the first PR from a non-maintainer is merged (ADR-0025; NFR-LIC-12); this may fall before MVP. Until then, such PRs carry the label `blocked:LG-2` | Owner, counsel |
 | **LG-3 Trademark clearance** | Searches in TMview, EUIPO eSearch and the BOIP register for "ElektraWatt" and phonetic neighbours in Nice classes 9 and 42; a domain check. "Electra"-named ECAD products are a known confusion risk ([oss-landscape](../research/oss-landscape.md) §7.5, unverified lineage). With a conflict, the product is renamed before any logo or domain spend. | Before the first public announcement or binary release; the word mark is filed by 1.0 (NFR-LIC-13) | Steward |
 | **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation, ADR-0030; no Apple enrolment, since macOS is not a supported platform; the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the global plan §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7; [18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12), which is 1.0's, or earlier when the owner holds a signing identity | Owner |
-| **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in [20](20-golden-project.md) and the design docs. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` (open question 4) | Pilot user |
+| **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in the design docs and, until 0.3.5, the reference project. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` (open question 4) | Pilot user |
 | **LG-6 Steward review** | Re-decide the steward form (§3.10) once there are more than 3 regular external contributors, more than €50k of income a year, or 1.0 is reached, whichever comes first. | Event-driven | Maintainers, steward |
 
 **Trademark policy** (`TRADEMARKS.md`, after the Rust, Mozilla and Blender models):
@@ -367,8 +367,7 @@ flowchart LR
 ```
 
 **`CONTRIBUTING.md` sections:** where to ask (security reports go to `SECURITY.md`); building and running the
-golden tests locally (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, the acceptance runner
-`ew-testkit accept`); the PR title as a conventional-commit title, because it becomes the squash commit and the
+tests locally ("The development loop": `cargo xtask check -p <crate>`); the PR title as a conventional-commit title, because it becomes the squash commit and the
 git-cliff changelog line (`fix(xref): …`, `feat(import-qet): …`); the DCO and the licence of the
 path you touch (§2.1); the PR checklist and review rules (§3.4); how to add a rule with its rule page and Fluent
 remedy key, a report, an importer, a machine profile and a migration (NFR-MAINT-08); content tracks for
@@ -728,7 +727,7 @@ trademark line of the font's name table (name ID 7), which `NOTICE` gains for No
 - **Licence and form.** `golden/J-E-2416.ew` and its `tables/` are CC0-1.0 (L8; NFR-DOC-04, AC-40).
 - **Placeholders.** They carry `<customer>`, `<end user>`, `<project ref>`, `<drawing id>`, `<engineer>`,
   `<checker>`, `<address>`, `<country>` and `<confidentiality notice>`, and the logo is
-  `golden/J-E-2416/assets/logo-placeholder.svg` ([20](20-golden-project.md) §1.2, §3.5).
+  `golden/J-E-2416/assets/logo-placeholder.svg`.
 - **What stays.** The technical content remains as the acceptance specification: =P01, +J-E-2416, -101F1
   (A9P52610), -102G1 (2904602), -102F2 (MICO 4.10), -X1031 with its 12 spare terminals, -201U1 with the order codes
   51E-F13GCQP-D+H2GG and 32P-VGL-R-…-28MS, Q0.1, TA05-V-15 and the external target J-E-206 / JE-N1000-03.
@@ -784,7 +783,6 @@ prevention from eroding and stops content defects at the library boundary:
 | [16-ux-ui](16-ux-ui.md) §12, §19 | Localisation stack, usability protocol |
 | [17-extensibility](17-extensibility.md) §8.5, §12 | Plugin signing and the technical scope of the exception |
 | [18-quality-security-release](18-quality-security-release.md) | CI jobs for LR-01 … LR-04, LR-11 and LR-12 (CI-PR-09 supply-chain, CI-PR-10 legal-docs); release checklist item RC-10 for LG-1, LG-4 and the steward checklist ST-01 … ST-10; the notice assembly of §5.3 (CI-R-07) |
-| [20-golden-project](20-golden-project.md) §3 | Fixture layout, anonymisation guard, private store |
 | Tools | reuse-tool 6.2.0, cargo-deny 0.20.2, cargo-about 0.9.2, cargo-cyclonedx 0.5.9, git-cliff, mdbook-i18n-helpers, Weblate (hosted) ([oss-landscape](../research/oss-landscape.md) §7.3, [rust-ecosystem](../research/rust-ecosystem.md), gaps G10) |
 
 ---

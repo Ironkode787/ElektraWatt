@@ -139,7 +139,7 @@ The reference drawings place cable markers and black boxes as graphics on multi-
   (FR-PAG-012).
 - **Page order** is `page_order()`, which merges drawn pages, dividers and report pages. Prev/Next, TOC, outline and
   `/PageLabels` come from it (FR-PAG-013). A report block that overflows continues on sub-pages `<folio>.<n>`
-  (FR-PAG-030; [20-golden-project](20-golden-project.md) §16).
+  (FR-PAG-030).
 - **Page title and description.** The page title ("Power Supply 1 - Main Current") is `Page.title`; the title-block
   "Description" inherits the project description unless `description_override` is set, which a check reports
   (FR-PAG-010, FR-REP-036; field split per [03](03-domain-model.md) OQ1).
@@ -290,8 +290,7 @@ Xref texts are freshness class I: every move, renumber and frame change updates 
 **Text placement** per relation kind (FR-XRF-011, FR-XRF-022): IP partner text below the arrow, right-aligned, style
 `data.small`, and so is the partner text of an external arrow; aux text `(…)` under the device tag and the main
 list after the tag, both style `xref.device` (as built: the xref slots of the IEC contact and coil symbols,
-`ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it; sizes in
-[20](20-golden-project.md) §17.5). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
+`ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
 
 **Interruption-point glyph.** The arrow shows signal flow, not page side (FR-XRF-009): a **Source** point draws its
 tip away from the wire, a **Target** point draws its tip at the wire. L-1 on 101 (Source, wire from the left) and
@@ -339,7 +338,7 @@ be; an outline has at least three points, box CP indexes are distinct and on the
 location node of the location aspect, device, optional connection and project). 29 commands are registered. The
 page-type admission of §2.2 also lets MultiLine and BusTopology pages take
 graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
-the reference drawings show (`allowed_rep_types`; AC-15 path (b), [20](20-golden-project.md) §22).
+the reference drawings show (`allowed_rep_types`; AC-15 path (b)).
 
 *As built.* Seven commands join, all `Edit`, `Preview`, Interactive,
 undoable, with committed schemas; 36 commands are registered. `assembly.attach` (`AttachChildren`: parent and
@@ -1431,7 +1430,7 @@ The engineer starts from the pilot basic project (FR-PRJ-009, NFR-UX-08), which 
 
 New pages use the native connection grid (Golden A itself is built on the QET grid, ADR-0027; the walkthrough shows
 the native-grid case a pilot user meets when drawing a new project). Anchor cells depend only on the frame, so every
-cell below equals the golden project ([20](20-golden-project.md) §6 and §15) as long as each symbol is dropped in the
+cell below equals the golden project as long as each symbol is dropped in the
 same cell. The walkthrough uses the starter library (FR-SYM-007).
 
 ### 9.1 Folio 101: Power Supply 1, Main Current
@@ -1446,7 +1445,7 @@ same cell. The walkthrough uses the starter library (FR-SYM-007).
 | 6 | Potential navigator: define L and N (230 V AC, 50 Hz) at 1X1:1 and 1X1:2 and PE at 1X1:PE, all undrawn (a `PotentialDef` sits at an endpoint, not on a wire) | `potential.define` × 3 | W1–W3 are typed L, N, PE. As devices are added, types propagate through S51, -101F1, F55 and T55 by FnDef pass-through pairs (FR-CON-011). Until step 20, downstream potentials carry their first source IP's name or the fallback `<tag>:<CP>` ([03](03-domain-model.md) §9.4) |
 | 7 | Insert the 2-pole switch at B2, variant A (pins 1/3 top, 2/4 bottom) | `device.place` with 2 hints | Ghost: CPs 2 and 4 face down onto 1X1:1 and 1X1:2; commit creates W4, W5. Online numbering proposes -101S1; typing "S51" freezes it |
 | 8 | Assign part Eaton 533356 | `fields.set` | "Eaton", "533356" and "40A" from part and technical data (FR-DEV-016) |
-| 9 | Marker tool across W4, W5 below S51: size 2.5 | `item.place` + overrides | Marker "2.5 BK BU": the size is the override, the colours come from the profile (FR-CON-039; [20](20-golden-project.md) §8.1) |
+| 9 | Marker tool across W4, W5 below S51: size 2.5 | `item.place` + overrides | Marker "2.5 BK BU": the size is the override, the colours come from the profile (FR-CON-039) |
 | 10 | Insert part A9P52610 at B8 | `device.place` (from part) | Device -101F1 (letter F from the MCB category, first F on 101); CPs 1, 2, N#1, N#2 printed "N" (FR-DEV-006) |
 | 11 | Wire S51:1 → -101F1:1 and S51:3 → -101F1:N#1 over row A; marker above S51 (2.5) | 2 × `connection.draw`, `item.place` | W7, W9 |
 | 12 | Insert part 5SY4204-7 at B12, type "F55"; wire -101F1:1 → F55:1 and -101F1:N#1 → F55:N#1 | `device.place`, 2 × `connection.draw` | W8, W10 are second connections on the -101F1 CPs (daisy chain, FR-CON-006); the scene draws the reference's bevels where the routes diverge |
@@ -1457,7 +1456,7 @@ same cell. The walkthrough uses the starter library (FR-SYM-007).
 | 17 | Earth symbol at D5; wire 1X1:PE → -XPE | `device.place`, `connection.draw` | -XPE by its class rule, tag hidden. W6 gets 1.5 mm² GNYE by rule: **PE smaller than line** (EF-06, D-38) with the quick fix "set W6 to 2.5 mm²" |
 | 18 | Wire E55:PE down to G15; `P` ends the wire in IP "PE-1.1", Source | `connection.draw` ending in a new IP (1 transaction) | Pending: unpaired IP |
 | 19 | Wire -101F1:2 and -101F1:N#2 to H16, each ending in an IP: "L-1", "N-1", Source | 2 × `connection.draw` ending in a new IP | Pending: two unpaired IPs. Potentials L-1 and N-1 take the IP names |
-| 20 | Potential navigator: name L-S at S51:1, N-S at S51:3, L-55 at F55:2, N-55 at F55:N#2, N-55T at T55:3 and N-55S at S56:14, all undrawn, names only (`ptype` unset, [03](03-domain-model.md) §9.4) | `potential.define` × 6 | The golden names of [20](20-golden-project.md) §7.3; the types stay derived, so N-55T and N-55S remain "N, switched" |
+| 20 | Potential navigator: name L-S at S51:1, N-S at S51:3, L-55 at F55:2, N-55 at F55:N#2, N-55T at T55:3 and N-55S at S56:14, all undrawn, names only (`ptype` unset, [03](03-domain-model.md) §9.4) | `potential.define` × 6 | The golden names; the types stay derived, so N-55T and N-55S remain "N, switched" |
 
 About 45 transactions, each one undo step. Folio 101 now shows the error findings EF-01 and EF-06 at once; the
 completeness findings stay pending until the engineer leaves the page.
@@ -1481,7 +1480,7 @@ exports a PDF within 30 minutes.
 | 10 | Wire from W23 to C15 ending in IP "0VDC", and from W22 to D15 ending in IP "PE-0VDC"; set both junctions to style Bevel, wiring Star | 2 × `connection.draw` ending in a new IP, 2 × `junction.edit` | J6 (W23, W26) and J5 (W22, W27) start at the PSU terminal, the first sequence member, as the shop wires it |
 | 11 | Marker tool across W20–W23 below -102G1 and across W24, W25 above -102F2: size 1.5 | 2 × (`item.place` + overrides) | Markers "1.5 DBU DBU WH WH" and "1.5 DBU DBU"; provenance "1.5 mm² · CDP; DBU · profile 'DBU/WH 24 V'" (FR-UI-010) |
 | 12 | Wire Out1 … Out4 to H15, H15, G15, G15, each ending in an IP "24VDC-1" … "24VDC-4", Source | 4 × `connection.draw` ending in a new IP | Names auto-increment; potentials 24VDC-1 … -4 take the IP names (first source IP, [03](03-domain-model.md) §9.4) |
-| 13 | Potential navigator: define +24V at -102G1:+#1, +24V-F at -102F1:2 and 0V at -102G1:−#1 (24 V DC), undrawn | `potential.define` × 3 | Golden names ([20](20-golden-project.md) §7.3); types L+ and M come from the PSU's potential roles; without the definition 0V would be named after its first source IP "0VDC", which now becomes an alias next to 0VDC-AIR1 … AIR4 |
+| 13 | Potential navigator: define +24V at -102G1:+#1, +24V-F at -102F1:2 and 0V at -102G1:−#1 (24 V DC), undrawn | `potential.define` × 3 | Golden names; types L+ and M come from the PSU's potential roles; without the definition 0V would be named after its first source IP "0VDC", which now becomes an alias next to 0VDC-AIR1 … AIR4 |
 
 When folio 103 is drawn and its IPs exist, folio 102 prints "103-G6", "103-A1", "103-G1", "103-A1", "103-C1",
 "103-D1" and "103-F1", exactly golden §15. Wiring PE-0VDC's partner to -X1032:2 on folio 103 then makes 0V meet PE.
@@ -1579,7 +1578,6 @@ interactions:
 | [10-plc-and-bus](10-plc-and-bus.md), [11-fluid-power](11-fluid-power.md), [12-panel-layout](12-panel-layout.md) | topology, fluid and panel page tools |
 | [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) §2.3, §3.1, §4 | rule IDs and kinds, demotion, `drafting` scheme, waivers, page change status |
 | [16-ux-ui](16-ux-ui.md) | docking, navigators, keymap infrastructure, usability test protocol |
-| [20-golden-project](20-golden-project.md) | anchor cells, xref table, wire table, expected findings |
 | ADR-0027 (proposed) | native connection grid; QET-grid policy |
 
 ---
@@ -1662,7 +1660,7 @@ The eleven rows this document proposed are in the catalogues:
 7. **Pending findings.** Muting completeness findings during editing reduces noise but could hide problems. The
    pending style is adopted as FR-UI-041. *Recommendation:* measure in the M2 test whether users miss pending
    findings; keep pending findings visible as muted icons on the canvas in any case.
-8. **Override granularity of the golden markers.** [20-golden-project](20-golden-project.md) §8.2 listed W4, W5,
+8. **Override granularity of the golden markers.** The golden wire table listed W4, W5,
    W7, W9 and W20–W25 as "size, colour (CDP)", but each colour equals the profile value, which the redundant-override
    rule EW-POT-016 ([08](08-connections-terminals-cables.md) §4.5) would report. **Resolved:** these wires carry
    a cross-section override only, and their colours stay at level 2 (profile). Markers print the effective colour,

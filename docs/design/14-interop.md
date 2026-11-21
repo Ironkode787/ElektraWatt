@@ -323,7 +323,7 @@ Re-importing an edited file into the same lineage keeps the IDs of every item wh
 | DXF entity | `dxf:{layout}\|{handle}`; R12 files without handles: `dxf:{layout}\|#{n}` | handle-stable |
 | EPLAN report row (§5.4) | `eplan:{target}\|{row key}`, the row key being the mapped DT plus designation (`=P01+J-E-2416-X1031:1`) | stable while the DT is |
 | Spreadsheet row | the hidden `id` column (§8) | stable |
-| Golden CSV | `{table}\|{row key}` in the lineage anchored `Fixed("golden")`, i.e. `v5(v5(NS_IMPORT, "csv␟fixed␟golden"), "{table}\|{row key}")` ([20](20-golden-project.md) §3.2) | stable |
+| Golden CSV | `{table}\|{row key}` in the lineage anchored `Fixed("golden")`, i.e. `v5(v5(NS_IMPORT, "csv␟fixed␟golden"), "{table}\|{row key}")` | stable |
 
 **As built.** The folio key of these keys is the printed folio label
 (`qet:folio-order:{position}` for a repeated label). The lineage is anchored on the QET 0.200 project UUID where the
@@ -337,7 +337,7 @@ IDs (FR-IMP-040).
 
 **Persisted provenance.** Every imported record carries `source_ref: {lineage, key}`. Locations (file, member,
 folio, cell, line) live only in the import run, which keeps entity files small. Golden C's equivalence test ignores
-the `id`, `source_ref` and provenance columns ([20](20-golden-project.md) §20.3).
+the `id`, `source_ref` and provenance columns.
 
 *As built.* **Two hashes
 per record.** `ImportRun.record_hashes` maps each imported record's ID to `{source, ew?}`: `source` is the first
@@ -661,7 +661,7 @@ rejected (§14).
 - **Frame.** A border of 17 × 60 px columns, 8 × 80 px rows and 20 px headers maps to the shipped QET-compatible
   frame (FR-PAG-015) instead of a duplicate form; other borders become frame forms in the "QET import" library.
   Column numbering keeps the source offset (the reference numbers 0–16). The form carries the page-to-sheet
-  transform of QET's fit-to-page export ([20](20-golden-project.md) §17.1, FR-PAG-029: scale 0.986282578, offset
+  transform of QET's fit-to-page export (FR-PAG-029: scale 0.986282578, offset
   9.79 mm on the golden frame), so printed geometry matches the reference to ±0.2 mm (REF-096).
 
 ### 4.3 Element definitions → symbols and function definitions
@@ -691,7 +691,7 @@ map one to one:
 
 - **Style mini-language.** `line-style: normal|dashed|dotted|dashdotted`, `line-weight: none|thin|normal|hight|eleve`
   (the historical tokens `hight` and `eleve` are accepted), `filling`, `color`, `antialias`. Line weights map to the
-  house widths of [20](20-golden-project.md) §17.4 (`thin` 0.5 px, `normal` 1 px).
+  house widths (`thin` 0.5 px, `normal` 1 px).
 - **Anchor policy.** QET-import symbols keep QET's **element-origin** cross-reference anchor, so imported xref
   texts equal QET's, "3-B0" included (FR-IMP-038; [07](07-symbols-parts-macros.md) §3.6). The MF-13 quick fix sets
   the anchor policy "graphics" (a named anchor on the bus-port graphics), which gives "3-B2".
@@ -727,7 +727,7 @@ map one to one:
 | `voltage_rating`, `current_rating` | `tech_data` as `Quantity` when parsable ("40A" → 40 A), else text with EW-IMP-008 |
 | `width`, `height`, `depth` | part dimensions when the part is created from element information |
 | `plc_type`, `plc_address`, `plc_function`, `plc_comment`, `plc_crossref` | pending channel binding (P7) |
-| `exclude_from_bom` | device scope "supplied by others" (FR-DEV-037; [20](20-golden-project.md) §6.2) |
+| `exclude_from_bom` | device scope "supplied by others" (FR-DEV-037) |
 | `comment`, `notes` | `Comment` anchored to the representation |
 
 #### 4.4.1 Tag inference
@@ -860,7 +860,7 @@ importer reconstructs QET's pairs exactly:
    a target text gets the proposal `IpSpec.external = Some(ExternalRef)`, the reference parsed from the box text
    (REF-018, FR-PRJ-021). Golden A has four external points: J-E-206-L, J-E-206-N and J-E-206-PE at 101-G0 (box
    "External Connection (J-E-206 / JE-N1000-03)") and DP at 3-G15 (box "To J-E-206 / JE-N1000-03"), each printing
-   "+J-E-206 / JE-N1000-03" ([20](20-golden-project.md) §15). Each one drawn as an unpaired QET report gets the
+   "+J-E-206 / JE-N1000-03". Each one drawn as an unpaired QET report gets the
    proposal; one drawn as a plain element or text is listed for a manual conversion (which applies depends on the
    file, PQ-02).
 
@@ -953,7 +953,7 @@ variable has an EW xref-format token (FR-XRF-003):
   label and reports it.
 - **Sections.** Proposed from numeric folio hundreds (1xx → section 1, 2xx → 2, 9xx → 9). Separator pages such as
   100, 200 and 900 stay drawn pages; converting them to generated dividers is a later, previewed step
-  ([20](20-golden-project.md) §20.2 step 4).
+  (step 4 of the Golden C fix script).
 - **Title-block templates** (FR-IMP-015) become title-block forms. Rows are absolute px. Columns are px, `tN%` (of the
   total width) or `rN%` (of the width left after absolute and `t` columns); they are resolved to nm for the
   diagram's actual width, producing one form per distinct width. Cells keep alignment, `hadjust` (shrink to fit),
@@ -1176,7 +1176,7 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
   transform, rasterises the matching page of a reference PDF with hayro, and compares (1) text runs (string and
   anchor within 0.5 mm) and (2) the raster per frame cell with text boxes masked, so font substitution does not
   swamp the result. Pages pair by folio label, the pages no label names by order (the reference PDF has physical page labels, D-33).
-  Expected deltas are declared per project. For Golden C they are the [20](20-golden-project.md) §3.4 items that
+  Expected deltas are declared per project. For Golden C they were the golden build-path items that
   apply to an import (AC-27): the font substitution, and "3-B0" listed as flagged. "3-B0" matches the reference
   because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion expects exactly these deltas
   (Open question 4). `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes
@@ -1254,8 +1254,8 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
 - **Evidence.** All three pilot projects import, derive and export to PDF with no lost connection: 34 folios, 1,004
   devices, 645 connections and 22 strips; 18, 110, 106 and 6 (the reference set, Golden C's source); 36, 734, 718
   and 48. The import of each is byte-identical across runs. On the reference set the duplicate-designation check
-  reports exactly the 8 EW-TERM-002 groups that MF-09 expects ([20](20-golden-project.md) §20.1); Golden C's
-  migration report and fix script are built ([20](20-golden-project.md) §20). The synthetic fixture of golden
+  reports exactly the 8 EW-TERM-002 groups that MF-09 expects; Golden C's
+  migration report and fix script are built. The synthetic fixture of golden
   folios 101 to 103 imports its 50 wires as 50 connections; its differences (strips without a strip
   representation, no drawn bridges, terminals with two CPs where Golden A's part has four) are limits of the QET
   source, except the bridges that QET 0.100+ stores in `<terminal_strips>`.
@@ -1677,26 +1677,27 @@ FR-EXP-005 is a column-map profile over `bom_component` or `bom_assembly`, like 
 description, ETIM or ECLASS class and DTs (compressed into ranges). The golden component export lists each -X1031
 terminal part once with its quantity and 571334 once with quantity 28 (D-04).
 
-### 8.4 Golden CSV bootstrap
+### 8.4 CSV bootstrap
 
-`ew import csv <tables dir>` (FR-IMP-022) reads the golden tables of [20](20-golden-project.md) (pages, structure,
-devices, parts, potentials, connections, terminals, cables, PLC, fluid, placements), with IDs
-`v5(namespace, "{table}|{row key}")` in the fixed lineage `Fixed("golden")`, whose namespace is
-`v5(NS_IMPORT, "csv␟fixed␟golden")` (§2.3). It runs in **strict** mode: Golden A must contain no prevent-rule violation, so the
-bootstrap is itself a test. `ew import csv` followed by `ew export pdf` produces the 18 folios plus 903–911 (SC-1).
+`ew import csv <tables dir>` (FR-IMP-022) reads tables of the `ew` dialect (pages, structure, devices, parts,
+potentials, connections, terminals, cables, PLC, fluid, placements), with IDs `v5(namespace, "{table}|{row key}")` in
+the fixed lineage `Fixed("golden")`, whose namespace is `v5(NS_IMPORT, "csv␟fixed␟golden")` (§2.3); the label
+keeps the name of the reference project the bootstrap was built for, because a new label would change every imported
+ID. It runs in **strict** mode by default. Its tests run on the hand-written tables of `fixtures/tables/` (the
+importer's own and `bin/ew`'s `import csv` test).
 
-*As built.* `TablesImporter` (§2.1) reads the 23 tables of `golden/J-E-2416/tables/`, whose schemas its
-README gives: project, parties and structure, sections, pages and report blocks, parts, devices, terminals, functions,
-representations and the connectivity tables. PLC and bus, fluid, layout and the configured products of
-[20](20-golden-project.md) §11–§14.2 are not covered yet, because their record kinds are reserved in schema v0, and
+*As built.* `TablesImporter` (§2.1) reads the tables whose schemas `crates/ew-import-tables/src/schema.rs` gives:
+project, parties and structure, sections, pages and report blocks, parts, devices, terminals, functions,
+representations and the connectivity tables. PLC and bus, fluid, layout and the configured products were
+not covered at first, because their record kinds are reserved in schema v0, and
 `colour_profile`, `size_profile` and `revisions` are read but not emitted (one EW-IMP-004 each). The importer never
 repairs a table: a malformed or duplicate row is dropped with EW-IMP-002, a row with an unresolved reference with
 EW-IMP-003, and a position or symbol anchor off the page's connection grid is an EW-IMP-002 error that drops the
 row, never a snap, because the grid rule binds every origin ([06](06-schematic-editor.md) §5.7); a key that is not in NFC is refused with EW-IMP-002 as well. A function is template-origin when its device carries a part whose template declares a function
 with the same FnDef (and role, if given); the part's CP pattern then defines its CP index space. A
 manufacturer is referenced by its name in a `LibRef`'s `extra.key` until a manufacturer library copy exists.
-Not covered yet: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP port,
-and doc 20 §11–§13 and §14.2. `ew import csv` is not wired yet, because `bin/ew` has no subcommands.
+Not covered at first: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP
+port, and the PLC, fluid, layout and configured-product tables.
 
 *As built.* `ImportContext.mode` (`Strict`, the default, or `Lenient`) reaches the table readers, and `bootstrap_context()` is strict. A colour cell whose two-letter codes are IEC 60757 codes or aliases of §4.12, at least one of them an alias, holds a foreign code. A strict import refuses the row (EW-IMP-002, naming EW-CORE-031). A lenient one keeps `ColourCode::Foreign` and reports EW-IMP-008 with the quick fix "use BN" on conductors and connection overrides: a declarative `fields.set` with the alias mapped, which the session applies like any command (D-17). Cable cores and the colour profile get the finding without a fix. `assembly_configs.csv` emits the assembly aspect (doc 20 §14.2). The QET project import sets `Lenient`. The subcommand `ew import csv` with `--strict` and `--lenient` is not built yet; the "GN/YE" alias of §4.12 is not yet accepted by the table reader (FT-259); EW-CORE-031 as a live check, which then owns the fix, is FT-261.
 
@@ -2031,7 +2032,6 @@ global plan §14.
 | [10 PLC and bus](10-plc-and-bus.md), [11 fluid](11-fluid-power.md) | exchange images, channel binding, device-description import, fluid symbol mapping, valve-terminal reconstruction assistant |
 | [12 panel layout](12-panel-layout.md), [13 manufacturing](13-manufacturing-outputs.md) | folio 902 binding, STEP pipeline, drilling DXF, profiles |
 | [15 checks](15-checks-revisions-collaboration.md), [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md), [18 quality](18-quality-security-release.md) | `EW-IMP` catalogue, panels, CLI and WIT importers, fuzz and corpus CI jobs |
-| [20 golden project](20-golden-project.md) | Golden C, MF-01 … MF-27, AC-25 … AC-27, AC-37, AC-38 |
 | Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.2, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), acadrust 0.6.4 (1.x; the dxf crate is not used, §6.1), calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
 
 ---
@@ -2057,7 +2057,7 @@ global plan §14.
 
 The nine rows this document proposed are in the catalogues:
 - element-origin cross-reference anchor for QET-import symbols → **FR-IMP-038**
-  ([02b](02b-requirements-extended.md) §7, one row with [20](20-golden-project.md)'s proposal);
+  ([02b](02b-requirements-extended.md) §7, one row with the golden project's proposal);
 - import lineage and re-import without duplicates → **FR-IMP-040** (02b);
 - persisted import run and the migration report → **FR-IMP-041** (02b);
 - numbering-rule inference per letter class → **FR-IMP-042** (02b);
@@ -2090,7 +2090,7 @@ The nine rows this document proposed are in the catalogues:
    printed, "3-B0" included, and "3-B2" only after the MF-13 quick fix, and FR-IMP-021 expects the deltas of AC-27
    (font substitution, "3-B0" flagged).
 5. **MF-10 in the fix script.** FR-IMP-013 merges the two -X1031 segments at import, while
-   [20](20-golden-project.md) §20.2 applied MF-10 as a quick fix. **Resolved:** MF-10 is an info with a "split" quick
+   the Golden C fix script applied MF-10 as a quick fix. **Resolved:** MF-10 is an info with a "split" quick
    fix, and step 1 of the fix script in 20 §20.2 confirms it and changes nothing.
 6. **Proposal defaults.** *Recommendation:* CLI `--proposals pending` (reproducible, Golden C lists all findings);
    GUI pre-ticks high-confidence proposals; `--proposals safe` for batch migration.

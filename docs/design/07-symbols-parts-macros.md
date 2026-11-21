@@ -7,7 +7,7 @@ parts database, macros with value sets, basic projects (company templates), and 
 hold them. It refines the [architecture](04-architecture.md) (§4.2 library copies, §5.5 macros, §7.7 catalogues)
 and the [domain model](03-domain-model.md) (§6 `SymbolDef`, §7 `FnDef`, `PartCopy`, `MacroDef`), and elaborates the
 SYM, PRT and MAC rows of [02a](02a-requirements-core.md). Every example comes from the reference project, the
-cabinet J-E-2416, held as Golden A of the [golden project](20-golden-project.md).
+cabinet J-E-2416, held as Golden A until 0.3.5 (see the [glossary](glossary.md)).
 
 The symbol editor's authoring profile is specified in [07a: Symbol design standard](07a-symbol-design-standard.md).
 Its implementation and import compatibility scope are recorded in WP-S2.10.
@@ -228,7 +228,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   in QET px rather than scaling the house pens: 0.26 mm becomes 1.0 px (264,583 nm), 0.13 mm 0.5 px and 0.52 mm
   2.0 px (and 0.18 mm 0.7 px, 0.42 mm 1.6 px, 1.30 mm 5.0 px), and wires and junction graphics
   on QET-grid pages use the 1.0 px pen. After the QET frame's page-to-sheet
-  scale they print 0.261, 0.130 and 0.522 mm, as [20](20-golden-project.md) §17.4 requires. Native-grid pages keep the
+  scale they print 0.261, 0.130 and 0.522 mm, the reference drawing's pens. Native-grid pages keep the
   house pens.
 - **Orientation variants A–H are never stored.** They are derived from the source variant (§4.1, FR-SYM-004), with
   the letter mapping of [06](06-schematic-editor.md) §2.5. Only the contact-image and CP variants are stored as
@@ -246,7 +246,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   symbol, the slot and the name, never as an error. As built: `style` is
   an optional identifier, absent by default, and `ew-scene` reports an unknown name as
   `PageFinding::UnknownSlotStyle`. The styles of the golden project are `tag.main`,
-  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29. *As built ([ADR-0032](../adr/0032-per-project-text-styles.md)):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
+  `data.small`, `cp.small` and the others of the built-in table, which removes D-29. *As built ([ADR-0032](../adr/0032-per-project-text-styles.md)):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
@@ -428,7 +428,7 @@ Part data is organised in **data levels**. Each level lists its consumers and th
   CSV import, or manual entry.
 - `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. The golden 533361 solenoid map H1 is
   `test`. The vendor's clamp range of PT 2.5-TWIN is `unverified` until checked. The golden test parts
-  `TEST-DOORSW-1` and `TEST-LAMP-1` are `test` ([20](20-golden-project.md) §2.4).
+  `TEST-DOORSW-1` and `TEST-LAMP-1` are `test`.
 - Findings computed from non-verified sections carry a "based on non-verified part data" marker. The release
   report lists every non-verified section in use (FR-PRT-031). Who may set `verified` in
   a community pack is governed by [19](19-open-source-governance.md) §3.6.
@@ -598,8 +598,7 @@ A basic project is an ordinary EW project with `Project.kind = Basic`. The `kind
 FR-PRJ-009, FR-PRJ-010 and FR-MAC-011 need it; restricting commands by kind (FR-PRJ-026, for example "a basic
 project cannot be released") is 1.0. It holds:
 - the schemes and profiles of FR-PRJ-008: numbering (including per-class rules such as the pilot's strip rule
-  `{letter}{page}{counter}`, which gives -X1031; the formatter adds the aspect sign, [20](20-golden-project.md)
-  §4.4), xref format, colour and size
+  `{letter}{page}{counter}`, which gives -X1031; the formatter adds the aspect sign), xref format, colour and size
   profile "DBU/WH 24 V", identifier set, check scheme and derivation profile;
 - the grid for new pages: the native grid or the QET 10 px grid (ADR-0027 recommendation 4);
 - frames and forms, text styles, sections with dividers, structure nodes;
@@ -676,7 +675,7 @@ preview shows:
    refuses an off-grid CP at save (FR-SYM-009). A symbol is placeable only on pages
    of its own grid: QET-import symbols keep their 10 px grid (`7_937_500/3` nm) and stay on QET-grid pages until
    the page conversion of v1.x (FR-PAG-022).
-2. **QET-grid edition of the starter set.** Golden A sits on the QET 10 px grid ([20](20-golden-project.md) §2.1),
+2. **QET-grid edition of the starter set.** Golden A sits on the QET 10 px grid,
    yet FR-SYM-007 requires folios 3–206 to render from the starter library, and Golden C step 3 exchanges
    QET-import symbols for starter symbols on QET-grid pages. The starter set therefore ships a second, **generated**
    edition with `grid = QET 10 px`: every CP offset keeps its count of grid steps (`k·g` → `k·7_937_500/3` nm),
@@ -694,7 +693,7 @@ preview shows:
    FnDef whose `rep_type` the page type allows (FR-SYM-006).
 5. **Anchor.** Every symbol declares its anchor policy explicitly; the symbol editor proposes `GraphicCentre`.
    Interruption points anchor at the arrow tip, the -201U1 bus port at its graphics ("3-B2"), the CPX power box at
-   its left edge ("106-G3", [20](20-golden-project.md) §4.4). The xref cell comes from the anchor, never from the
+   its left edge ("106-G3"). The xref cell comes from the anchor, never from the
    bounding box (D-14). The resolved anchor offset is snapped to the symbol's connection grid at save (ties toward
    the origin), because the integer cell lookup of [06](06-schematic-editor.md) §5.1 requires anchors on the grid.
 6. **Text readability.** Text primitives and slots are never mirrored and never turned by the symbol's variant:
@@ -710,7 +709,7 @@ preview shows:
    and actuator to process valve are all derived. A multi-pole symbol therefore declares a link
    point per pole and one for its actuator: `ew.iec.switch-2p-manual` declares `pole1`, `pole2` and `handle` at
    (11, 6) mm, and the derived chain runs pole1 → pole2 → handle. The one exception is the internal pole linkage
-   of the MCB, which is part of the MCB graphic ([20](20-golden-project.md) §17.4: 0.13 mm, dashed 4:2).
+   of the MCB, which is part of the MCB graphic (0.13 mm, dashed 4:2).
 9. **Licence.** Every symbol has an SPDX licence. Shipped symbols carry `CC-BY-SA-4.0 WITH
    KiCad-libraries-exception` if counsel confirms that the SPDX-listed exception covers control-cabinet projects
    and machine files, otherwise a project-specific exception (`AdditionRef-…`, SPDX 3.0 syntax, verify)
@@ -1279,7 +1278,7 @@ the plugin-signing infrastructure in 1.x.
 | Pasted records use another version of an embedded item | the paste asks: update, adapt to the existing copy, or keep both (§2.1); with "keep both" the library manager shows both and offers to unify them in one update |
 | QET-grid symbol on a native-grid page, or native symbol on a QET-grid page | refused, with the hint to use the symbol's other grid edition (starter set), place it on a page of its grid, or fork it onto the other grid |
 | Imported element with "3-B0"-style origin anchor | kept for Golden C fidelity; FR-CHK-035 reports it; quick fix sets the anchor policy (MF-13) |
-| "UK5N / ULSKG5" in one part-number field | split at "/" into two candidates and flagged; the importer cannot tell an alternative (FR-PRT-004) from a second part on another terminal. On 1X1 it is the latter: UK 5 N on terminals 1 and 2, USLKG 5 on PE ([20](20-golden-project.md) §9, U-17). "ULSKG5" is resolved to USLKG 5 only by review (D-18) |
+| "UK5N / ULSKG5" in one part-number field | split at "/" into two candidates and flagged; the importer cannot tell an alternative (FR-PRT-004) from a second part on another terminal. On 1X1 it is the latter: UK 5 N on terminals 1 and 2, USLKG 5 on PE (U-17). "ULSKG5" is resolved to USLKG 5 only by review (D-18) |
 | "Murr Elektronik", "Schneider", "Eaton / Holec" | resolved through master aliases; an unknown name creates a draft manufacturer, never a silent new spelling |
 | Same part number, different manufacturers | identity includes the manufacturer; search shows both |
 | Configured product without decodable components | BOM in assembly mode only; component mode lists the configured row and a finding until components are entered (D-36) |
@@ -1357,7 +1356,7 @@ Seven further symbols join the starter set for the pilot corpus (§2.3); they ar
 - *As built.* **Manufacturer copies.** Golden A holds eight
   project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
   readers take the name from the held copy and fall back to a legacy `key`, so a file written with the `key` alone derives
-  the same. Every exported output stayed byte-equal ([20](20-golden-project.md) ▲U-45).
+  the same. Every exported output stayed byte-equal (▲U-45).
 
 *As built.* The content versions after WP-S1.20, each checked against
 `main` before its bump: `ew.fn.valve-5-2-sol-spring` 0.2.0, `ew.fn.cylinder-double-acting` 0.1.1, the new
@@ -1384,7 +1383,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
   commit.
 - **Heater group on folio 101** (F55, T55, E55, S56, E56). Saved as a macro, it inserts with derived tags, because
   frozen tags are cleared (§3.5).
-- **Valve module typical** (window macro), following the device tree of [20](20-golden-project.md) §6.2. It
+- **Valve module typical** (window macro), following the reference project's device tree. It
   contains:
   - a module device with part 533361, parent `$assembly` (a `DeviceRef` bound at insertion), `position = $pos`
     (manifold order) and `plc_module.slot = $slot`;
@@ -1396,7 +1395,7 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
     decides whether that binding is right (EW-PLC-012, §9.2);
   - a placeholder group `field`, included by `$has_field`: four field devices, each with a 2-way process-valve and
     a double-acting actuator function joined by a linkage, process tags `$pt1 … $pt4`, a `DeviceLink{Drives}`
-    from its valve, and the fluid lines from valve ports 2 and 4 ([20](20-golden-project.md) §12);
+    from its valve, and the fluid lines from valve ports 2 and 4;
   - its aux module symbol and four valve symbols.
 - **Valve-manifold page** (page macro). It contains two module groups, A and B, and the variables `$has_b` and
   `$has_field`. Four value sets reproduce folios 203–206 (FR-MAC-004); the texts are the field devices' process
@@ -1414,12 +1413,12 @@ section) as `test` where doc 20 gives the value as a test input and `unverified`
   children (D-10). The valves get child tags -201U3-Q1 … (D-27, D-41) and the field devices page-based tags
   -203Q1 … -203Q8. At 1.0 the same typicals feed I/O-list generation from a 28-row CSV (B5, FR-MAC-017).
 - **The pilot basic project** from the wizard gives the QET-compatible frame, the text styles of
-  [20](20-golden-project.md) §17.5, "DBU/WH 24 V", the strip rule, sections 1/2/9 and blocks 903–911. Golden A then
+  the built-in table, "DBU/WH 24 V", the strip rule, sections 1/2/9 and blocks 903–911. Golden A then
   reproduces from defaults plus that basic project (NFR-UX-08).
 - **Golden C.** The QET import holds every element in the project's "QET import" library, for example the heater
   element of E55 with its source name (FR-SYM-018). Step 3 of `c-fix.ewcmd` exchanges the elements for the
   `@qet10` starter symbols through `symbol-map.csv`, keeping CPs by index, and step 5 assigns starter-catalogue
-  parts ([20](20-golden-project.md) §20.2).
+  parts.
 
 *As built.* The valve-manifold page macro is saved from folio 203 with the groups A, B (`$has_b`) and `field` (`$has_field`). Because Golden A's modules use positional slots (`SlotPath::Positional`), each module group binds a position and a tag counter (`$a_pos`, `$a_counter`; the window macro `$pos`) instead of `$slot`, besides `$assembly`, the states, the function texts and the process tags: value set 1 places groups A and B at positions 2 and 3 (counters 3 and 4), value set 4 places -202U2 at position 10 (counter 2). Inserted four times into Golden A without folios 203 to 206, it rebuilds them with every report-row block equal (MC-4); the overview on 201 and 202 does not regenerate yet (FT-741). Golden A draws no fluid lines on 203 to 206, so the typical carries none.
 

@@ -10,7 +10,7 @@ units, the relationships, identity and lifecycle, the invariants, whether the co
 only by commands) or derived (computed by a query, never stored), and its EPLAN Electric P8 and QElectroTech (QET)
 equivalent. It refines §4 of the accepted [architecture](04-architecture.md) without changing its decisions: record
 names are those of `ew-schema`, and every addition is marked and listed in §1.2. The reference project (cabinet
-J-E-2416) is the running example; its full acceptance specification lives in [20-golden-project.md](20-golden-project.md).
+J-E-2416) is the running example (Golden A, retired at 0.3.5 with its acceptance specification; see the [glossary](glossary.md)).
 
 **Contents**
 1. [Conventions](#1-conventions)
@@ -108,7 +108,7 @@ J-E-2416) is the running example; its full acceptance specification lives in [20
 | `IpSpec.star_source`, `IpSpec.sort`, `IpSpec.external`; `Function.device` optional for IPs | §10 | Star and chain pairing (FR-XRF-007), external points (FR-XRF-012) |
 | `BusPort.termination` | §14 | Connector termination as a property (FR-BUS-004) |
 | Assembly overview (the superseded `Representation.assembly_view`) | §6, §7 | Assembly overviews drawn by the members' overview representations, break marks derived (FR-DEV-023, D-10) |
-| `MasterData.document_title` | §5 | The cover subtitle "Electrical Definition" is its own field, distinct from `long_description` ([20](20-golden-project.md) §4.1) |
+| `MasterData.document_title` | §5 | The cover subtitle "Electrical Definition" is its own field, distinct from `long_description` |
 | `ProjectSettings` record shapes: `numbering`, `wire_numbering`, `xref_format`, `colour_profile`, `size_profile`, `wire_default`, `frames` | §5.1 | Fixed before M1, so the derivations of the golden PDF read one shape |
 | `UserPropDef`, `user_props` | §5 | Minimal definition of the user properties of FR-PRJ-007 |
 
@@ -508,7 +508,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `Project`: master data, parties, supply and settings of one cabinet project | A, one row | `master{description: MlText, long_description: MlText, document_title: MlText` (added: the cover subtitle "Electrical Definition", [20](20-golden-project.md) §4.1; appended, since 0.1), `project_ref: Ident, drawing_id: Ident, object_id: Ident, manufacturing_year: u16, created: Date, edited: Date}`; `control_voltage` (V); `rated_consumption` (A); `languages{source, translations}`; `derivation_profile` ("2027.1"); `kind: Schematic \| Basic \| Macro` (FR-PRJ-026); `supply?` (absent in basic and macro projects); `user_prop_defs: Vec<UserPropDef>` (below, FR-PRJ-007); `completed?{date, by, reopen_reason?}` (added, [15](15-checks-revisions-collaboration.md) §5.10); `extra` | Created from a basic project (FR-PRJ-009); the derivation profile changes only by a previewed upgrade (FR-PRJ-011). `edited` has day precision, merges by maximum and feeds the title-block "Saved" cell; there is no stored save time (FR-PRJ-029) | S: exactly one row. Chk at release: drawing id present (FR-PRJ-002) |
+| `Project`: master data, parties, supply and settings of one cabinet project | A, one row | `master{description: MlText, long_description: MlText, document_title: MlText` (added: the cover subtitle "Electrical Definition"; appended, since 0.1), `project_ref: Ident, drawing_id: Ident, object_id: Ident, manufacturing_year: u16, created: Date, edited: Date}`; `control_voltage` (V); `rated_consumption` (A); `languages{source, translations}`; `derivation_profile` ("2027.1"); `kind: Schematic \| Basic \| Macro` (FR-PRJ-026); `supply?` (absent in basic and macro projects); `user_prop_defs: Vec<UserPropDef>` (below, FR-PRJ-007); `completed?{date, by, reopen_reason?}` (added, [15](15-checks-revisions-collaboration.md) §5.10); `extra` | Created from a basic project (FR-PRJ-009); the derivation profile changes only by a previewed upgrade (FR-PRJ-011). `edited` has day precision, merges by maximum and feeds the title-block "Saved" cell; there is no stored save time (FR-PRJ-029) | S: exactly one row. Chk at release: drawing id present (FR-PRJ-002) |
 | `Party`: a person or organisation in a role | A, inside `Project` | `role: Customer \| EndUser \| PanelBuilder \| Author \| Checker \| Engineer`; `name: MlText`; `address{street, postcode, city, country}`; `personal_data: bool` (FR-PRJ-024) | Form cells and revisions refer to parties by role (FR-PRJ-003); `project.company.set` writes the first panel-builder party (§5.1) | S: a form cell binds exactly one role (D-30) |
 | `SupplySpec`: the incoming supply | A, value | `phases: u8`, `neutral`, `pe: bool`, `earthing: TN-S \| TN-C-S \| TT \| IT`, `u_nom: Dec3` (V), `frequency: Dec3` (Hz), `origin?{upstream_rating (A), ik_max (kA), source: ExternalRefId}` | Rendered by a format: "1 x 230 VAC + N + PE, 50 Hz" (FR-PRJ-004, FR-PRJ-006) | Chk: frequency 50 or 60 Hz |
 | `ProjectSettings`: named, versioned schemes | A | `identifier_set?: Ident` (EN 81346-2:2009 by default, ADR-0026); `ip_pairing?{mode: Star \| Chain, scope: Project \| Function \| Location}` (the pairing scope of every interruption point, §10); `formatting{date: DdMmYyyy \| Iso8601, decimal_separator: Point \| Comma, tag_case: Sensitive \| Insensitive}`; the schemes of §5.1: `numbering`, `wire_numbering`, `xref_format`, `colour_profile`, `size_profile`, `wire_default`, `frames`; later `checks: CheckSettings` (§19), `fluid{default_tube}` (§15), `mfg: MfgSettings` (§17) | Inherited from the basic project, project level wins; exportable as files (FR-PRJ-008) | — |
@@ -649,7 +649,7 @@ contact-image settings of 06 §2.8 are a later member owned by WP-S1.08.
 | `rows` | `Vec<{class: CircuitClass, csa: Csa, order: u32}>`, keyed by `class`; the display order of the cover's size table is the row's `order` (golden: DBU, WH, GNYE for control; BK, BU, GNYE for mains) |
 
 The company profile data (key, name, basis note, a `standards` text, the DBU code, `verified`) come from a `profiles.csv`
-source table, not from importer constants. The cover prints the `standards` text ("IEC60757 / EN60204-1", [20](20-golden-project.md)
+source table, not from importer constants. The cover prints the `standards` text ("IEC60757 / EN60204-1",
 U-35); the basis note stays metadata (FR-CON-020, D-37). The `order` column, `profiles.csv`, `standards` and the size note
 are delivered.
 
@@ -661,7 +661,7 @@ the spellings of the TOML exchange form (`"L+"`, `"DC"`).
 Vec<{page_type: PageType, form: Id<FormDef>}>}`, keyed by `page_type`. A drawn page's frame is `Page.form`, else the
 entry of its page type, else `default`. Generated report pages take the form of their block (`ReportBlock.form`),
 divider pages the entry for `section_divider`. When neither applies and no embedded form does, the built-in default
-is the QET-compatible A4 frame geometry of [20](20-golden-project.md) §17.1, and a derivation note says so.
+is the QET-compatible A4 frame geometry, and a derivation note says so.
 
 *As built.* A `Page.form`, or a page-type entry, that names a copy the project does not
 hold falls through to the next rule, identically in the cell grid and in the page output: both call
@@ -1379,7 +1379,7 @@ free counter (-102F3) and the preview shows it (FR-NUM-029).
 filled; it is deterministic over the current snapshot. A scheme option `reuse_gaps = false` switches to maximum + 1.
 Counters released by a revision (the tombstones of [15](15-checks-revisions-collaboration.md) §6.4) are never
 reused. In the example -102F1 and -102F2 exist, so the moved MCB becomes -102F3; in the usability fixture GP-UT,
-where -102F1 is missing, a new MCB on folio 102 becomes -102F1 ([20](20-golden-project.md) §2).
+where -102F1 is missing, a new MCB on folio 102 becomes -102F1.
 
 ### 8.7 Wire numbers
 
@@ -1541,7 +1541,7 @@ arch §6.4; algorithm in [08](08-connections-terminals-cables.md) §3.8) resolve
   in Star mode gives W13 (F55:2 → E55:L) and W14 (F55:2 → E56:X2).
 - Direct connections that share a CP form a daisy chain in ascending ID order (FR-CON-006). The bevelled top bus on
   101 is two such chains, not a junction: W7 (S51:1 → -101F1:1) and W8 (-101F1:1 → F55:1) on the L side, W9 and
-  W10 on the N side ([20](20-golden-project.md) §8.3). The physical wires are the same as with a Chain junction.
+  W10 on the N side. The physical wires are the same as with a Chain junction.
 - A bond's `via` connection is cut from the potential union but still forms a physical wire (§9.6).
 
 Wire identity is therefore a connection UUID (FR-MFG-001), stable under renumbering and route edits.
@@ -1706,7 +1706,7 @@ the first source point, else the first undirected point; targets of a name witho
 (before, the first target became their source), and a second source without a star stays apart (EW-CORE-052 asks
 which one feeds).
 
-**Worked examples** (all from the cross-reference table of [20-golden-project.md](20-golden-project.md)):
+**Worked examples** (all from the reference project's cross-reference table):
 
 | Relation | Source | Target | Printed at source | Printed at target |
 |---|---|---|---|---|
@@ -1872,7 +1872,7 @@ classDiagram
 `FromPart` (2 m, unverified). -3W1 (6XV1830-0EH10): cores A and B plus a shield, drawn single-line on folio 3 as
 one `Connection{kind: Bus(BusLine{cable: -3W1})}` (FR-CBL-008), length `Missing` until entered. Golden A therefore
 has 3 cables with 13 conductors. Golden A-R adds the incoming supply cable -101W1 from +J-E-206 to 1X1 (3 cores, ▲),
-which resolves D-19 and gives 4 cables with 16 conductors ([20](20-golden-project.md) §10).
+which resolves D-19 and gives 4 cables with 16 conductors.
 
 **Equivalents.** EPLAN: cable definition line, cable DT, conductors with function definition "conductor/wire",
 connection definition points at intersections, shields, edit-cable dialog. QET: `<cables>` with `<core>` entries in
@@ -2140,7 +2140,7 @@ and 2, 4 below, correction C3; FR-FLU-001) and a coil function 14 bound to its c
 the double-acting actuators of the field devices -203Q1 … -203Q8 (process tags TA05-V-15 … TA05-V-37) in +FIELD ▲,
 through tube pairs F1–F16 from ports 2 and 4 (Ø ▲). Golden A keeps the gaps of D-28. Golden A-R adds the medium
 "compressed air 6 bar [1:4:1]" ▲ through a supply line to -201U9:1, the default tube PU 6×4 BU, silencers on the
-supply plates' ports 3 and 5 and plugs on the spare valves' ports 2 and 4 ([20](20-golden-project.md) §12).
+supply plates' ports 3 and 5 and plugs on the spare valves' ports 2 and 4.
 
 **Equivalents.** EPLAN Fluid: fluid connection points, `PLCBoxFluid` and `PLCTerminalFluid` for valve terminals,
 ISO 1219 symbol library, fluid page type; media handling is unverified. QET: pneumatic elements with unnamed
@@ -2258,7 +2258,7 @@ terminals of one location join a virtual "location PE" node (OQ 10).
 **Golden.** One layout space +J-E-2416; enclosure -UC1 with plate; five 40×60 ducts (one type ▲); three TS 35
 rails ▲; placements in three rows (row 1: -102G1, -101F1, -102F1, -102F2, T55, S51; row 2: 1X1, -X1031, -X1032 with
 end brackets; row 3: the valve terminal -201U1 … -202U3). F55, E55, E56, S56 and -201U9 stay unplaced in Golden A
-(EF-05); Golden A-R places them ([20](20-golden-project.md) §13). Placement order and row assignment are the
+(EF-05); Golden A-R places them. Placement order and row assignment are the
 acceptance criteria (FR-LAY-016). A PanelLayout page shows the plate through one `SurfaceView` page item.
 
 **Equivalents.** EPLAN Pro Panel: layout space, mounting surface, mounting rail, cable duct, 3D macros and
@@ -2531,7 +2531,7 @@ classDiagram
 
 Prevent rules are the P invariants of the sections above; structural invariants are not rules and cannot be
 waived. **Golden expectation:** `ew check --scheme pre-delivery` reports exactly the rows of `findings_mvp.csv`
-([20](20-golden-project.md) §18.1, FR-CHK-042): among them D-13 (N switching), D-26 (address bits, depending on the
+(FR-CHK-042): among them D-13 (N switching), D-26 (address bits, depending on the
 map), the TBD station address, missing parts of S56 and E56 and unplaced devices.
 
 **Equivalents.** EPLAN: check runs and message management with message classes (P001xxx terminals, P003xxx cables,
@@ -2541,15 +2541,15 @@ P005xxx connections, P017xxx numbering). QET: none beyond import warnings.
 
 ## 20. Golden project mapping
 
-Summary only; the authoritative tables are in [20-golden-project.md](20-golden-project.md) and
-[reference-drawing.md](../research/reference-drawing.md) §4.
+Summary only; the reference project's own tables were retired with it at 0.3.5 (see the [glossary](glossary.md)), and
+[reference-drawing.md](../research/reference-drawing.md) §4 keeps the drawing's.
 
 | Model element | Golden content | Count |
 |---|---|---|
 | `Project` | object J-E-2416, project reference `<project ref>`, drawing id `<drawing id>`, parties `<customer>` and `<end user>` in separate roles, supply 1/N/PE AC 230 V 50 Hz (TN-S ▲), control 24 V DC, consumption 6 A, profiles "DBU/WH 24 V" and control 0.75 / mains 1.5 mm² | 1 |
 | `StructureNode` | =P01; +J-E-2416 (alias JE2416); +J-E-206; +FIELD ▲ | 4 |
 | `ExternalRef` | +J-E-206 / JE-N1000-03 (supply L, N, PE; PROFIBUS master) | 4 uses |
-| `Section`, `Page` | sections 1, 2, 9; 36 pages per [20](20-golden-project.md) §5: 13 drawn (1, 3, 101–103, 106, 201–206, 902), 5 reproduced generated folios (2, 100, 200, 900, 901), the continuations 2.1 and 901.1, and 16 report pages (903–911 with their sub-pages) | 3; 36 |
+| `Section`, `Page` | sections 1, 2, 9; 36 pages: 13 drawn (1, 3, 101–103, 106, 201–206, 902), 5 reproduced generated folios (2, 100, 200, 900, 901), the continuations 2.1 and 901.1, and 16 report pages (903–911 with their sub-pages) | 3; 36 |
 | `Device` | S51 … -202U3 (29 rows), 28 valve children -201U3-Q1 … -202U2-Q4, 8 field devices -203Q1 … -203Q8 (process tags TA05-V-xx), -XPE, -UC1 and plate, 3 strips with 3 + 20 + 5 terminals, 3 cables (4 with the A-R supply cable -101W1) | ≈ 100 |
 | Main/aux sets, IPs | 9 main/aux reference sets; 22 IP pairs; 4 external points | 22 pairs |
 | `Connection`, `Junction` | W1 … W44 plus bridges, junctions on 101–103 | 44 + bridges |
@@ -2641,7 +2641,7 @@ The seven rows this document proposed are in [02a](02a-requirements-core.md):
    device that carries the order codes, with `AssemblyConfig.covers` mapping order codes to children; on the golden
    project both are -201U1 ([10](10-plc-and-bus.md) §2.3).
 7. **Junction wiring default.** **Resolved:** Dot junctions default to Star from the first sequence member and
-   Bevel junctions to Chain (ADR-0007 amendment); golden J5 and J6 are set to Star ([20](20-golden-project.md) §8.3).
+   Bevel junctions to Chain (ADR-0007 amendment); golden J5 and J6 are set to Star.
    The default sequence orders the parts of a split connection by flow distance from the source; the M2 usability
    test confirms it (PQ-27), and QET imports, where only geometry is available, take the same defaults.
 8. **Strip tag format X1031.** Golden A needs letter-page-counter for strips but page-letter-counter elsewhere.

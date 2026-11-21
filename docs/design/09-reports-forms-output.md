@@ -288,13 +288,13 @@ The domain kinds of 02b are registered through one row (FR-REP-045); a labour-es
 Could).
 
 **BOM row order.** Component mode sorts device rows by the page order of the row's first main representation, then
-its position on that page (column, then row, the numbering order of [20](20-golden-project.md) §4.4), then the part
+its position on that page (column, then row, the numbering order), then the part
 number. Rows without a schematic representation (enclosure, plate, carriers, accessories) follow in the layout-legend
 order of [12](12-panel-layout.md) §5.4: enclosure, plate, carriers, then accessories. A row whose part is a layout-only
 accessory (kind end bracket or accessory) is always in that second group, whatever the placement of the strip it sits
 on; its folio column still lists the folios of its devices. Until layout placements exist, that column prints the folios of the
-devices' representations instead of the layout page ([20](20-golden-project.md) §14.1 prints 902). On Golden A the folio-3 rows
-(-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23 ([20](20-golden-project.md) §14.1).
+devices' representations instead of the layout page (the golden BOM printed 902). On Golden A the folio-3 rows
+(-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23.
 
 EPLAN report types without a kind of their own: the cable connection diagram (`.f07`) and the cable assignment
 diagram (`.f08`) are alternative forms of `cable_overview_diagrams` over the same `cable_rows`, shipped at 1.0
@@ -350,7 +350,7 @@ encoding and appends it to `FormDef`. Until then placeholder validity is checked
 and, for a report form, the report kind of the block that uses it; a file that carries `form_type` keeps it in
 `extra`.
 
-**The house report form of the reference** ([golden](20-golden-project.md) §16): table x 16.31–277.27 mm, header
+**The house report form of the reference**: table x 16.31–277.27 mm, header
 and data rows 6.52 mm, header fill #C0C0C0, grid 0.183 mm, text style `text.normal` 8.88 pt, **23 data rows per
 page**. The TOC form's columns are Folio number 16.31–79.73, Title 79.73–214.90, Location (+) 214.90–277.27.
 
@@ -420,8 +420,8 @@ tracked reads only (FR-EXT-011).
   no-grid variants sharing one title block (FR-PAG-017), and ISO 5457 frames A4–A0 at 1.0 (FR-PAG-016). Assignment:
   project default, page-type default, page override (FR-PAG-018; the stored shape and the fall-through rule are in §2.6). Golden folios 1, 2, 100, 200, 900, 901 and all
   generated pages use the no-grid variant.
-- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The golden title block of
-  [20](20-golden-project.md) §17.2 binds: the large page-description cell → `page.title` ("Valve Manifold
+- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The golden title block
+  binds: the large page-description cell → `page.title` ("Valve Manifold
   Overview 1"); "Project:" → `project.reference`; "Description:" → `page.description`; "Drawing:" →
   `project.drawing_id`; "Revision:" → `revision.current.label`; the `=` and `+` cells → `page.function`,
   `page.location`; the party cell → one party role (below); "Object:" → `project.object` ("J-E-2416");
@@ -458,7 +458,7 @@ tracked reads only (FR-EXT-011).
 ### 2.8 Text styles and fonts
 
 - Form cells reference **text styles held as model data** (FR-SYM-013). The golden styles (`text.normal` 8.88 pt,
-  `data.small` 6.66 pt, `pin` 5.92 pt, `xref.device` 5.18 pt …) are in [20](20-golden-project.md) §17.5.
+  `data.small` 6.66 pt, `pin` 5.92 pt, `xref.device` 5.18 pt …) are the built-in table's.
 
 - **Project text styles as built** ([ADR-0032](../adr/0032-per-project-text-styles.md)): the styles are project data in `ProjectSettings.text_styles`, overrides of the built-in table of doc 20 §17.5. The effective table (the built-in rows with the overrides applied, then the keys only the project adds) is `ew-derive`'s memoised `text_styles` query; the scene, the forms, the report tables and the exports, EW-CORE-061 and EW-CORE-063 all read it, and only callers with no project use `ew_text::builtin()`. New projects write `cp.small` and `marker` at 7 px.
 - **Fonts** are resolved from the project's font set: the bundled default family, optional osifont, and a bundled
@@ -686,7 +686,7 @@ ORDER BY potential COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_n
 | `Tag` | full designation (`=P01+J-E-2416-102G1`) or displayed form, per column setting | frozen S51 (`sign: Hidden`) prints "S51" in displayed form and `=P01+J-E-2416-S51` in full form ([03](03-domain-model.md) §8) |
 | `Range` | compressed tag list (below) | "-201U3-Q1 … -202U2-Q4" |
 
-**Tag-range compression** (FR-REP-046, from [20](20-golden-project.md) §14):
+**Tag-range compression** (FR-REP-046, from the golden BOM):
 
 ```text
 compress(tags, all_tags_of_class):        # class = same letter code and same assembly root or strip
@@ -1078,7 +1078,7 @@ title block, cover, divider and report forms reproduce the golden house style.
 
 ### 8.1 Generated and form-bound folios
 
-The golden page plan has 36 pages ([20](20-golden-project.md) §5, §16).
+The golden page plan has 36 pages.
 
 | Folio | EW mechanism | Defects prevented |
 |---|---|---|
@@ -1144,7 +1144,7 @@ The golden page plan has 36 pages ([20](20-golden-project.md) §5, §16).
 | [14 interop](14-interop.md) | QET title blocks → frame forms (FR-IMP-015), `graphics_table` → blocks (FR-IMP-016), Tahoma substitution (FR-IMP-020), the `_ew_base` round-trip sheet (§8.1) and the translation exchange format (§8.5) |
 | [15 checks, revisions](15-checks-revisions-collaboration.md) | check-report content, page change status, revision clouds in PDF (FR-REV-016) |
 | [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md) | dialogs and panels; `api_v1` view schemas, CLI, rhai formulas |
-| [18 quality](18-quality-security-release.md), [20 golden](20-golden-project.md) | veraPDF, cross-platform digests, hayro frame check; AC-01, AC-03, AC-04, AC-07 … AC-14, AC-37, AC-42 |
+| [18 quality](18-quality-security-release.md) | veraPDF, cross-platform digests; the written PDF's frame, structure, text layer and determinism are `ew-api`'s `pdf_output.rs` tests on the sample project |
 
 ---
 
@@ -1174,8 +1174,8 @@ The thirteen rows this document proposed are in the catalogues:
 - domain row sources of 02b as built-in report kinds, including the PLC card list and the safety I/O list →
   **FR-REP-045** ([02a](02a-requirements-core.md), one row with the proposal of
   [02b](02b-requirements-extended.md));
-- tag-range compression in report columns → **FR-REP-046** (02a, one row with the proposal of
-  [20](20-golden-project.md));
+- tag-range compression in report columns → **FR-REP-046** (02a, one row with the golden project's
+  proposal);
 - report-coverage finding for strips, cables and PLC stations (rule EW-CORE-026) → **FR-REP-047** (02a);
 - stable row identity → **FR-REP-048** (02a);
 - fixed-height rows and language-independent pagination → **FR-REP-049** (02a);
@@ -1198,7 +1198,7 @@ The thirteen rows this document proposed are in the catalogues:
    ([02a](02a-requirements-core.md)).
 2. **Page count in 02a.** FR-REV-003's criterion says "all 27 GP pages", 02a §1.3 mentions 903–911 only, while the
    golden page plan has 36 pages. **Resolved:** FR-REV-003's criterion reads "all 36 GP pages (20 §5)", and
-   [20](20-golden-project.md) §5 is the single count.
+   the golden page plan was the single count.
 3. **One block per strip or one grouped block.** Golden A uses three terminal-diagram blocks (903, 904, 905).
    *Recommendation:* keep separate blocks in the pilot basic project for fixed folios, offer a grouped block with
    `NewFolio` for projects that reserve a folio range, with the coverage check EW-CORE-026 (FR-REP-047). Answering
