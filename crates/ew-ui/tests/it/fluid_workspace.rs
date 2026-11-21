@@ -5,8 +5,8 @@
 //! shows the fluid navigator with the sample's valve terminal and its valves with their lines, and the tube
 //! and medium tables in the bottom dock; a tube's length typed into its cell becomes manual; New medium… adds a medium,
 //! a fluid line's context menu sets it and picks the line's kind, and the medium's row highlights its zones. Not here:
-//! the silencer's autoconnect, the interruption point's fluid form and an overview generated again on page 201
-//! (`ew-viewmodel`'s `fluid_page.rs`).
+//! the silencer's autoconnect, the interruption point's fluid form, an overview generated again on page 201 and the
+//! panels' Dutch words (`ew-viewmodel`'s `fluid_page.rs`).
 
 use crate::support;
 
@@ -481,41 +481,5 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
             .any(|r| r.rep_type == "overview" && r.symbol_key.starts_with("ew.ovw."))
     });
     assert!(drawn, "the overview drawn on {page}");
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// No English in a Dutch run of the fluid workspace: the valve terminal's role badge, the tube table's port roles,
-/// line kinds and length sources are Dutch, and its colour column is a tube's colour, not a core's.
-#[test]
-fn the_fluid_workspace_speaks_dutch() {
-    let tmp = Tmp::new();
-    let mut h = on_sample(&tmp, "201");
-    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
-    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
-    dispatch(&mut h, "navigator.show", json!({"kind": "tubes"}));
-    settle(&mut h);
-    let rows = h.state().shell().shown_rows(NavKind::Plc);
-    let terminal = rows
-        .iter()
-        .find(|r| r.role == NavRole::Station.word() && r.label == "-201K1")
-        .expect("the valve terminal");
-    assert!(
-        terminal.badges.iter().any(|b| b == "ventieleiland"),
-        "{:?}",
-        terminal.badges
-    );
-    let table = h
-        .state()
-        .shell()
-        .nav(NavKind::Tubes)
-        .and_then(|n| n.table())
-        .cloned()
-        .expect("the tube table");
-    let column = |key: &str| table.columns.iter().position(|c| c.key == key).expect(key);
-    assert_eq!(table.columns[column("colour")].label, "Kleur");
-    let first = &table.nodes[0].cells;
-    assert_eq!(first[column("line_kind")], "werkleiding", "{first:?}");
-    assert_eq!(first[column("from_role")], "werkpoort", "{first:?}");
-    assert_eq!(first[column("length_source")], "ontbreekt", "{first:?}");
     h.state_mut().shell_mut().shutdown();
 }

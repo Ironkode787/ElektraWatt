@@ -3,8 +3,9 @@
 
 //! The tools and the overview generator on the sample's fluid page 201, through the shell on a writable copy: a
 //! silencer placed facing a free fluid port autoconnects with a fluid line, the interruption-point tool places the
-//! fluid form, and a drawn overview is generated again without a change. Not here: the Fluid workspace's panes, menus
-//! and Dutch words in the window (`ew-ui`'s `fluid_workspace.rs`); the fluid forms' words (`fluid_forms.rs`).
+//! fluid form, a drawn overview is generated again without a change, and the PLC and tube panels speak Dutch. Not
+//! here: the Fluid workspace's panes, menus and cells in the window (`ew-ui`'s `fluid_workspace.rs`); the fluid forms'
+//! words (`fluid_forms.rs`).
 
 use crate::common::{Tmp, cursor, done, grid_point};
 
@@ -127,5 +128,39 @@ fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {
     let after = forms(&s);
     assert_eq!(after.len(), before + 1, "{after:?}");
     assert!(after.iter().all(|k| k.starts_with("ew.iso.ip")), "{after:?}");
+    s.shutdown();
+}
+
+/// No English in a Dutch run of the fluid workspace: the valve terminal's role badge, the tube table's port roles,
+/// line kinds and length sources are Dutch, and its colour column is a tube's colour, not a core's.
+#[test]
+fn the_fluid_workspace_speaks_dutch() {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
+    let tmp = Tmp::new("fluid-dutch");
+    let mut s = tmp.sample_in(Mode::Gui, true, "201");
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    done(&mut s, "rail.show", json!({"pane": "plc"}));
+    done(&mut s, "navigator.show", json!({"kind": "tubes"}));
+    let rows = s.shown_rows(NavKind::Plc);
+    let terminal = rows
+        .iter()
+        .find(|r| r.role == NavRole::Station.word() && r.label == "-201K1")
+        .expect("the valve terminal");
+    assert!(
+        terminal.badges.iter().any(|b| b == "ventieleiland"),
+        "{:?}",
+        terminal.badges
+    );
+    let table = s
+        .nav(NavKind::Tubes)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the tube table");
+    let column = |key: &str| table.columns.iter().position(|c| c.key == key).expect(key);
+    assert_eq!(table.columns[column("colour")].label, "Kleur");
+    let first = &table.nodes[0].cells;
+    assert_eq!(first[column("line_kind")], "werkleiding", "{first:?}");
+    assert_eq!(first[column("from_role")], "werkpoort", "{first:?}");
+    assert_eq!(first[column("length_source")], "ontbreekt", "{first:?}");
     s.shutdown();
 }
