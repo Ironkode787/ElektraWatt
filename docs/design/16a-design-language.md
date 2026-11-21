@@ -1091,7 +1091,7 @@ in tree-row style, newest first, each with its time, message and still-valid act
 
 *As built.* The notification model has no severity and no secondary line, so **the toast's icon follows from whether it offers an action**, and the line row is not drawn. The log's foot has Close, not Clear.
 
-*As built.* Deleting a device's last representation names the device left without a symbol in the delete toast, with "(now <new tag>)" after a re-tag. The check toast counts findings by the status bar's rule (§5.8).
+*As built.* Deleting a device's last representation names the device left without a symbol in the delete toast, with "(now <new tag>)" after a re-tag. The check toast counts findings by the status bar's rule (§5.8). A check that found something offers Show messages, which opens the Messages list in the bottom dock (FT-1761: the toast had no way to it).
 
 *As built.* A parts import says each outcome in one toast, the applied import's with Undo; the banner over the tab title is gone (a banner is for a state of the whole project, §6.11), and the Preview tab shows the summary and the lists without repeating the counts.
 

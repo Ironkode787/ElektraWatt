@@ -472,6 +472,11 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.route_his_card()
             }
+            // The check's Show messages: the Messages list in the bottom dock; the toast is spent.
+            Some(NoteAction::ShowMessages) => {
+                self.notes.dismiss(entry.serial);
+                self.dispatch("messages.show", &serde_json::json!({ "on": true }))
+            }
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("plc.new_station", &serde_json::json!({}))

@@ -4177,6 +4177,7 @@ history-changed-on = { $p0 } op { $p1 }
 history-undone = Ongedaan gemaakt: { $p0 }
 history-redone = Opnieuw gedaan: { $p0 }
 note-action-go-to-page = Naar pagina
+note-action-show-messages = Meldingen tonen
 note-action-route-his = Ook deze routeren…
 status-put-away-undo = Ongedaan maken legde weg wat aan de aanwijzer hing en maakte niets ongedaan; nog eens neemt de laatste stap terug.
 status-put-away-redo = Opnieuw legde weg wat aan de aanwijzer hing en deed niets opnieuw; nog eens doet de volgende stap opnieuw.

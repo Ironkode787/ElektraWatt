@@ -462,7 +462,21 @@ impl ShellModel {
                 .as_ref()
                 .map(|p| ((p.epoch, p.session.world().rev.0), table, c));
             self.messages.checked_findings = findings;
-            self.notify_toned(check_summary(c, before), check_tone(c));
+            // A check that found something offers the way to its list (FT-1761).
+            let action = (c.errors + c.warnings + c.infos > 0)
+                .then(|| self.project.as_ref().map(|p| p.epoch))
+                .flatten()
+                .map(|epoch| {
+                    (
+                        crate::notifications::NoteAction::ShowMessages,
+                        crate::notifications::Validity::Session {
+                            epoch,
+                            select: Vec::new(),
+                        },
+                    )
+                });
+            self.notes
+                .push_toned(check_summary(c, before), "edit", action, Some(check_tone(c)));
             self.messages.check_toast = self
                 .messages
                 .checked

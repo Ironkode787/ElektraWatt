@@ -64,6 +64,8 @@ pub enum NoteAction {
     GoTo,
     /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
     RouteHis,
+    /// The Messages list, after a check that found something (FT-1761: the check's toast had no way to it).
+    ShowMessages,
 }
 
 impl NoteAction {
@@ -88,6 +90,7 @@ impl NoteAction {
             NoteAction::ChooseCable => "choose_cable",
             NoteAction::GoTo => "go_to",
             NoteAction::RouteHis => "route_his",
+            NoteAction::ShowMessages => "show_messages",
         }
     }
 
@@ -112,6 +115,7 @@ impl NoteAction {
             "choose_cable" => Some(NoteAction::ChooseCable),
             "go_to" => Some(NoteAction::GoTo),
             "route_his" => Some(NoteAction::RouteHis),
+            "show_messages" => Some(NoteAction::ShowMessages),
             _ => None,
         }
     }
@@ -137,6 +141,7 @@ impl NoteAction {
             NoteAction::ChooseCable => key!("note-action-choose-cable"),
             NoteAction::GoTo => key!("note-action-go-to-page"),
             NoteAction::RouteHis => key!("note-action-route-his"),
+            NoteAction::ShowMessages => key!("note-action-show-messages"),
         }
     }
 }

@@ -4366,6 +4366,7 @@ history-changed-on = { $p0 } on { $p1 }
 history-undone = Undone: { $p0 }
 history-redone = Redone: { $p0 }
 note-action-go-to-page = Go to page
+note-action-show-messages = Show messages
 note-action-route-his = Route these too…
 status-put-away-undo = Undo put away what was on the pointer and undid nothing; Undo again takes back the last step.
 status-put-away-redo = Redo put away what was on the pointer and redid nothing; Redo again does the next step again.
