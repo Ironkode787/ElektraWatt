@@ -117,11 +117,17 @@ impl Tip for Response {
                 }
             });
         }
+        if under_backdrop(&self) {
+            return self;
+        }
         show_tip(&self.ctx, egui::containers::Tooltip::for_enabled(&self), &text);
         self
     }
 
     fn disabled_tip(self, text: impl Into<String>) -> Response {
+        if under_backdrop(&self) {
+            return self;
+        }
         show_tip(
             &self.ctx,
             egui::containers::Tooltip::for_disabled(&self),
@@ -131,6 +137,9 @@ impl Tip for Response {
     }
 
     fn disabled_tip_beside(self, text: impl Into<String>) -> Response {
+        if under_backdrop(&self) {
+            return self;
+        }
         let mut tooltip = egui::containers::Tooltip::for_disabled(&self);
         tooltip.popup = tooltip
             .popup
@@ -139,6 +148,12 @@ impl Tip for Response {
         show_tip(&self.ctx, tooltip, &text.into());
         self
     }
+}
+
+/// Whether a dialog's backdrop covers the widget (FT-1761: a grid cell's tooltip stood above the backdrop of a dialog
+/// that opened while the pointer rested on the cell): its tooltip does not show then.
+fn under_backdrop(r: &Response) -> bool {
+    !r.ctx.memory(|m| m.allows_interaction(r.layer_id))
 }
 
 /// An icon atom of `size` in `colour` (the text colour of its widget when `None`).
