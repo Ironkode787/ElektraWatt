@@ -192,6 +192,8 @@ change here.
 - behaviour-change: on a bus page the boxes of a device with several interfaces move together when one is dragged
   or moved by the keyboard; a row of such boxes drawn near the page's edge stands inside the drawing area, and one
   that would cover another device is refused in words (doc 10 §2.7, FT-1766)
+- behaviour-change: a finding of EW-PLC-012 (a binding or an address that differs from the part's map) offers Open
+  the part's PLC section… in its row menu, which opens the module's part in the part editor (doc 10 §3.10, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

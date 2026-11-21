@@ -1278,7 +1278,10 @@ touched channels, devices and parts (`library.update`) in the snapshots before a
 module whose removal moves the next one onto a manual address is checked; EW-PLC-011's prevent half finds its
 stations the same way, and its byte sums take an IO-Link master's port windows (`module_io`). EW-PLC-007 compares symbols cleaned by `iec_ident` under a strict policy. EW-BUS-008 is
 1.x. EW-PLC-012's second quick fix opens the part's PLC section in the window (WP-S2.13) through the existing
-`part.edit_copy`; a finding carries one command fix.
+`part.edit_copy`; a finding carries one command fix. *As built (FT-1766).* The Messages row of an EW-PLC-012 finding
+offers **Open the part's PLC section…** (the window's offer of its rule, beside the command fix "Rebind to the map's
+channel"): `part.edit` on the part of the channel's module, whose part editor shows the PLC section with the map for a
+part of one's own and offers Copy as a part of your own… for a library's; the rule in `ew-checks` is unchanged.
 
 *As built (fix round).* `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
 

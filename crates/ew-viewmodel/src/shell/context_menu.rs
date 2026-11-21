@@ -236,6 +236,18 @@ impl ShellModel {
                 json!({ "row": "device/cable.length", "record": record }),
                 strings::text(key!("messages-offer-length")).to_owned(),
             ),
+            // A binding or an address that differs from the part's map (FT-1766): the module's part in the part
+            // editor, whose PLC section holds the map (the finding's command fix rebinds instead).
+            "EW-PLC-012" => {
+                let session = self.project_session()?;
+                let module = session.channel_module(record.parse().ok()?)?;
+                let part = session.device_part(module)?;
+                self.aimed(
+                    "part.edit",
+                    json!({ "part": format!("id:{part}") }),
+                    strings::text(key!("messages-offer-plc-section")).to_owned(),
+                )
+            }
             _ => None,
         }
     }

@@ -275,6 +275,13 @@ impl Session {
         Some(address.unwrap_or_else(|| format!("channel {} of {}", ch.number, short_tag(&q, ch.module))))
     }
 
+    /// The module a channel belongs to; `None` for a missing channel.
+    pub fn channel_module(&self, channel: Uuid) -> Option<Uuid> {
+        let q = self.query();
+        let ch = q.table::<Channel>().get(Id::from_uuid(channel))?;
+        Some(ch.module.as_uuid())
+    }
+
     /// The channels other than `except` bound to CP `idx` of `function`, in ID order: the ones `plc.bind_channel`
     /// unbinds when it binds `except` there (FR-PLC-005).
     pub fn channels_bound_at(&self, function: Uuid, idx: u16, except: Uuid) -> Vec<Uuid> {
