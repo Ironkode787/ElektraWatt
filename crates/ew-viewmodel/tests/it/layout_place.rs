@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the shell on temporary copies of Golden A, folio 902 (the panel page of -UC1): the Unplaced
-//! devices navigator (rows, badges, empty states, the fetch counter); F55 pushed onto Rail 1 by a drag and from
-//! the keyboard (SN-3's poses, the ghost's predicted poses equal to the committed ones, one undo step); the
-//! refusals of a TS 32 rail, of a rail device off every rail, and E55 on the plate; target snapping, Shift and the
-//! 1 mm grid; -201U9's slot on Rail 3 against `layout.place_assembly`; Tab and Shift+Tab, the
-//! live region, the nudges, R, X, Delete, Lock and Unlock.
+//! Through the shell on temporary copies of the sample, folio 902 (the panel page of -UC1), with devices taken off
+//! its rails ([`TAKEN_OFF`]): the Unplaced devices navigator (rows, badges, empty states, the fetch counter); -102F1
+//! pushed onto Rail 1 by a drag and from the keyboard (the ghost's predicted poses equal to the committed ones, one
+//! undo step); the refusals of a TS 32 rail, of a rail device off every rail, and a screw-mounted device on the plate;
+//! target snapping, Shift and the 1 mm grid; -201K1-Q2's slot on Rail 2 against `layout.place_assembly`; Tab and
+//! Shift+Tab, the live region, the nudges, R, X, Delete, Lock and Unlock.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -21,9 +21,69 @@ use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
 
-/// A headless shell with a writable copy of Golden A on folio 902.
+/// The placements the set-up takes off: rail 1's but -101Q1, -101F1 and -101G1, which keep its start, and the
+/// assembly member -201K1-Q2 of rail 2. The sample places every device; these tests need unplaced devices and a rail
+/// with room at both ends.
+const TAKEN_OFF: [&str; 12] = [
+    "-X1011", "-102F1", "-X1021", "-102S2", "-102S1", "-102Q1", "-102E1", "-103F1", "-X1031", "-104E1", "-104E2",
+    "-201K1-Q2",
+];
+
+/// A headless shell with a writable copy of the sample on folio 902, [`TAKEN_OFF`] unplaced, saved and opened again
+/// (so the set-up is no undo step).
 fn writable(tmp: &Tmp) -> ShellModel {
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    let t = panel(&shell);
+    for tag in TAKEN_OFF {
+        let p = t.placements.iter().find(|p| p.tag == tag).unwrap().id;
+        done(
+            &mut shell,
+            "command.run",
+            json!({"cmd": "layout.remove", "params": {"placement": p.to_string()}}),
+        );
+    }
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
     tmp.sample_in(Mode::Headless, true, "902")
+}
+
+/// [`writable`] with a screw-mounted device, a black box of a part imported for it (the sample's parts all mount on a
+/// rail), drawn on 102 and so unplaced in +CAB: the shell and the device's label.
+fn with_a_screwed_device(tmp: &Tmp) -> (ShellModel, String) {
+    let mut shell = writable(tmp);
+    let csv = tmp.0.join("screwed.csv");
+    std::fs::write(
+        &csv,
+        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data,width,height,depth,\
+         mount_kind,enclosure,enclosure_plate,plate,rail_profile,solenoids\n\
+         BOX-50,Generic,BOX-50,,,Screw-mounted box,piece,,,50,50,40,screw,,,,,\n",
+    )
+    .unwrap();
+    done(&mut shell, "parts.import", json!({"path": csv.to_string_lossy()}));
+    done(&mut shell, "parts.map_import", json!({}));
+    done(&mut shell, "preview.apply", json!({}));
+    let before: Vec<Uuid> = panel(&shell).unplaced.iter().map(|u| u.device).collect();
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
+    done(&mut shell, "tool.place", json!({}));
+    done(
+        &mut shell,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "part": "BOX-50", "letter": "E"}),
+    );
+    done(&mut shell, "canvas.activate", json!({"alt": true}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let shell = tmp.sample_in(Mode::Headless, true, "902");
+    let label = panel(&shell)
+        .unplaced
+        .iter()
+        .find(|u| !before.contains(&u.device))
+        .expect("the screwed device is unplaced")
+        .label
+        .clone();
+    (shell, label)
 }
 
 fn panel(shell: &ShellModel) -> std::sync::Arc<PanelTables> {
@@ -168,33 +228,25 @@ fn undo_all_once(shell: &mut ShellModel) {
     assert!(!shell.can_undo(), "the gesture was one undo step");
 }
 
-const R1_BEFORE: [(&str, f64); 6] = [
-    ("-102G1", 96.0),
-    ("-101F1", 140.0),
-    ("-102F1", 158.0),
-    ("-102F2", 189.5),
-    ("T55", 228.5),
-    ("S51", 267.5),
+/// Rail 1 after the set-up: three devices from 26 mm, room before them and after them.
+const R1_BEFORE: [(&str, f64); 3] = [("-101Q1", 53.0), ("-101F1", 98.0), ("-101G1", 146.0)];
+
+/// -102F1 pushed in between -101F1 and -101G1: -101G1 moves by -102F1's 18 mm.
+const R1_PUSHED: [(&str, f64); 4] = [
+    ("-101Q1", 53.0),
+    ("-101F1", 98.0),
+    ("-102F1", 125.0),
+    ("-101G1", 164.0),
 ];
 
-/// SN-3: F55 pushed in between -101F1 and -102F1.
-const R1_SN3: [(&str, f64); 7] = [
-    ("-102G1", 96.0),
-    ("-101F1", 140.0),
-    ("F55", 158.0),
-    ("-102F1", 176.0),
-    ("-102F2", 207.5),
-    ("T55", 246.5),
-    ("S51", 285.5),
-];
 
 // ---------------------------------------------------------------------------------------------------------------
 // PW-1
 
-/// PW-1: the rows in `Unplaced` order with their badges and drag sources; placing F55 removes its
+/// PW-1: the rows in `Unplaced` order with their badges and drag sources; placing -102F1 removes its
 /// row in the same revision; the panel tables are fetched once per revision and folio, never for a schematic page.
 #[test]
-fn the_unplaced_devices_navigator_lists_the_five_devices() {
+fn the_unplaced_devices_navigator_lists_the_devices_taken_off() {
     let tmp = Tmp::new("layout-pw1");
     let mut shell = writable(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
@@ -214,21 +266,29 @@ fn the_unplaced_devices_navigator_lists_the_five_devices() {
     assert_eq!(
         shown,
         vec![
-            row("location", 1, "+J-E-2416", &[]),
-            row("device", 2, "-201U9", &["assembly"]),
-            row("device", 2, "E55", &[]),
-            row("device", 2, "E56", &["unknown size"]),
-            row("device", 2, "F55", &[]),
-            row("device", 2, "S56", &["unknown size"]),
+            row("location", 1, "+CAB", &[]),
+            row("device", 2, "-102E1", &["unknown size"]),
+            row("device", 2, "-102F1", &[]),
+            row("device", 2, "-102Q1", &[]),
+            row("device", 2, "-102S1", &["unknown size"]),
+            row("device", 2, "-102S2", &["unknown size"]),
+            row("device", 2, "-103F1", &[]),
+            row("device", 2, "-104E1", &["unknown size"]),
+            row("device", 2, "-104E2", &["unknown size"]),
+            row("device", 2, "-201K1-Q2", &["assembly", "unknown size"]),
+            row("device", 2, "-X1011", &["strip"]),
+            row("device", 2, "-X1021", &["strip"]),
+            row("device", 2, "-X1031", &["strip"]),
         ]
     );
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     let rows = shell.shown_rows(NavKind::Unplaced);
+    let at = rows.iter().position(|r| r.label == "-102F1").unwrap();
     assert_eq!(
-        rows[4].drag,
+        rows[at].drag,
         Some(ew_viewmodel::shell::DragSource::Device(f55.to_string()))
     );
-    assert!(rows[4].openable, "Enter places the device");
+    assert!(rows[at].openable, "Enter places the device");
     assert!(!rows[0].openable, "Enter toggles the location");
 
     // The fetch counter: none for a schematic page, one per revision and folio.
@@ -246,7 +306,7 @@ fn the_unplaced_devices_navigator_lists_the_five_devices() {
         "no fetch without a new revision"
     );
 
-    // Placing F55 removes its row in the same revision.
+    // Placing -102F1 removes its row in the same revision.
     let r1 = carrier(&shell, "Rail 1").to_string();
     done(
         &mut shell,
@@ -254,7 +314,7 @@ fn the_unplaced_devices_navigator_lists_the_five_devices() {
         json!({"cmd": "layout.place", "params": {
             "device": f55.to_string(),
             "carrier": {"carrier": r1},
-            "pose": {"t": [158 * MM, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
+            "pose": {"t": [125 * MM, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
             "mode": "push",
         }}),
     );
@@ -268,8 +328,9 @@ fn the_unplaced_devices_navigator_lists_the_five_devices() {
         .into_iter()
         .map(|r| r.label)
         .collect();
-    assert_eq!(labels, ["+J-E-2416", "-201U9", "E55", "E56", "S56"]);
-    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_SN3));
+    assert!(!labels.contains(&"-102F1".to_owned()), "{labels:?}");
+    assert_eq!(labels.len(), rows.len() - 1, "{labels:?}");
+    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_PUSHED));
     shell.shutdown();
 }
 
@@ -290,68 +351,19 @@ fn describe_names_the_surface_view() {
     shell.shutdown();
 }
 
-/// PW-1's empty states (doc 16a §6.17), whole: every device placed names the location; a project without a layout
-/// space says so.
+/// PW-1's empty states (doc 16a §6.17), whole: every device placed (the sample as it is) names the location; a
+/// project without a layout space says so.
 #[test]
 fn the_empty_states_name_the_location_or_the_missing_layout() {
     let tmp = Tmp::new("layout-pw1-empty");
-    let mut shell = writable(&tmp);
+    let mut shell = tmp.sample_shell("902");
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
-    let surface = panel(&shell).surface.to_string();
-    let r3 = carrier(&shell, "Rail 3").to_string();
-    let r1 = carrier(&shell, "Rail 1").to_string();
-    let one = [1_000_000_000_i64, 0, 0, 0];
-    let place = |device: Uuid, carrier: Value, t: [i64; 3], mode: Option<&str>| {
-        let mut p = json!({"device": device.to_string(), "carrier": carrier, "pose": {"t": t, "q": one}});
-        if let Some(m) = mode {
-            p["mode"] = json!(m);
-        }
-        json!({"cmd": "layout.place", "params": p})
-    };
-    let cmds = [
-        place(
-            unplaced(&shell, "F55"),
-            json!({"carrier": r1}),
-            [158 * MM, 0, 0],
-            Some("push"),
-        ),
-        place(
-            unplaced(&shell, "-201U9"),
-            json!({"carrier": r3}),
-            [338 * MM, 0, 0],
-            Some("push"),
-        ),
-        place(
-            unplaced(&shell, "E55"),
-            json!({"surface": surface}),
-            [520 * MM, 40 * MM, 0],
-            None,
-        ),
-        place(
-            unplaced(&shell, "E56"),
-            json!({"surface": surface}),
-            [560 * MM, 300 * MM, 0],
-            None,
-        ),
-        place(
-            unplaced(&shell, "S56"),
-            json!({"surface": surface}),
-            [600 * MM, 300 * MM, 0],
-            None,
-        ),
-    ];
-    for c in cmds {
-        done(&mut shell, "command.run", c);
-    }
-    assert!(
-        shell.shown_rows(NavKind::Unplaced).is_empty(),
-        "the location row goes with its last device"
-    );
+    assert!(shell.shown_rows(NavKind::Unplaced).is_empty());
     assert_eq!(
         shell.unplaced_empty(),
         (
             "All devices placed".to_owned(),
-            "Every device of +J-E-2416 is placed.".to_owned()
+            "Every device of +CAB is placed.".to_owned()
         )
     );
     shell.shutdown();
@@ -393,13 +405,13 @@ fn the_empty_states_name_the_location_or_the_missing_layout() {
 // ---------------------------------------------------------------------------------------------------------------
 // PW-2
 
-/// PW-2: F55 dragged from the navigator onto Rail 1 between -101F1 and -102F1 with Ctrl held: the ghost moves four
-/// neighbours, the predicted poses are the committed ones (SN-3), and one undo restores all five.
+/// PW-2: -102F1 dragged from the navigator onto Rail 1 between -101F1 and -101G1 with Ctrl held: the ghost moves
+/// -101G1, the predicted poses are the committed ones, and one undo restores both.
 #[test]
-fn f55_pushed_onto_rail_1_by_a_drag() {
+fn a_device_pushed_onto_rail_1_by_a_drag() {
     let tmp = Tmp::new("layout-pw2");
     let mut shell = writable(&tmp);
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -408,14 +420,14 @@ fn f55_pushed_onto_rail_1_by_a_drag() {
     assert_eq!(shell.tool().name(), "layout_place");
     assert_eq!(
         hud(&shell).prompt,
-        "Place F55 · Ctrl pushes · Alt swaps · Shift no snap · Esc done"
+        "Place -102F1 · Ctrl pushes · Alt swaps · Shift no snap · Esc done"
     );
-    let drop = on_rail(&shell, "Rail 1", 158 * MM);
+    let drop = on_rail(&shell, "Rail 1", 125 * MM);
     done(&mut shell, "canvas.pointer", at(drop, json!({"ctrl": true})));
     assert_eq!(
         ghost(&shell),
-        json!({"kind": "layout", "device": "F55", "carrier": "Rail 1", "mode": "push", "at_nm": [149 * MM],
-            "moved": 4, "refused": null})
+        json!({"kind": "layout", "device": "-102F1", "carrier": "Rail 1", "mode": "push", "at_nm": [116 * MM],
+            "moved": 1, "refused": null})
     );
     assert!(
         shell.layout_options_shown(),
@@ -432,17 +444,10 @@ fn f55_pushed_onto_rail_1_by_a_drag() {
         "the sticky mode stays"
     );
     let predicted = shell.layout_predicted_poses();
-    let tags = ["-102F1", "-102F2", "T55", "S51"].map(|t| placement(&shell, t));
-    let expected: Vec<(Uuid, (i64, i64, u8))> = std::iter::once((f55, (158 * MM, 0, 0)))
-        .chain(
-            tags.iter()
-                .zip([176_000_000, 207_500_000, 246_500_000, 285_500_000])
-                .map(|(p, s)| (*p, (s, 0, 0))),
-        )
-        .collect();
-    assert_eq!(predicted, expected);
+    let g1 = placement(&shell, "-101G1");
+    assert_eq!(predicted, [(f55, (125 * MM, 0, 0)), (g1, (164 * MM, 0, 0))]);
     done(&mut shell, "canvas.release", at(drop, json!({"ctrl": true})));
-    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_SN3));
+    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_PUSHED));
     assert_eq!(
         committed(&shell, &predicted),
         predicted,
@@ -451,27 +456,27 @@ fn f55_pushed_onto_rail_1_by_a_drag() {
     assert_eq!(shell.tool().name(), "select", "the tool returns to Select");
     assert!(ghost(&shell).is_null());
     // FT-900: the placement the drop made is the selection.
-    let f55_placed = placement(&shell, "F55");
+    let f55_placed = placement(&shell, "-102F1");
     assert_eq!(
         state(&shell)["canvas"]["selection"],
         json!([f55_placed.to_string()])
     );
     undo_all_once(&mut shell);
     assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_BEFORE));
-    assert_eq!(unplaced(&shell, "F55"), f55);
+    assert_eq!(unplaced(&shell, "-102F1"), f55);
     shell.shutdown();
 }
 
 /// The persona round of the second 0.3.0 candidate: "The drop is refused; nothing changed" told nothing. A refused drop
-/// names its reason and the way in the bar: -102F1 dragged by Select off its rail onto the plate moves along a rail
+/// names its reason and the way in the bar: -101F1 dragged by Select off its rail onto the plate moves along a rail
 /// only (the refusals of a device's drop: `refused_drops_and_a_plate_placement`).
 #[test]
 fn a_refused_drop_says_why_and_the_way() {
     let tmp = Tmp::new("layout-refusal-words");
     let mut shell = writable(&tmp);
     let revision = shell.revision();
-    select_placement(&mut shell, "-102F1");
-    let from = off_label(&shell, "-102F1");
+    select_placement(&mut shell, "-101F1");
+    let from = off_label(&shell, "-101F1");
     let away = sheet_of(&shell, (300 * MM as i128, 640 * MM as i128));
     done(&mut shell, "canvas.press", at(from, json!({})));
     done(&mut shell, "canvas.pointer", at(away, json!({})));
@@ -482,7 +487,7 @@ fn a_refused_drop_says_why_and_the_way() {
     assert_eq!(
         shell.tool_notice(),
         Some(
-            "-102F1 sits on rail 1 and mounts on a TS 35×7.5 rail, so it moves along a rail only: drag it along \
+            "-101F1 sits on rail 1 and mounts on a TS 35×7.5 rail, so it moves along a rail only: drag it along \
              rail 1 or onto another rail."
         )
     );
@@ -490,10 +495,10 @@ fn a_refused_drop_says_why_and_the_way() {
     shell.shutdown();
 }
 
-/// PW-2 from the keyboard: Enter on the F55 row floats it at the start of Rail 1, the arrows step it by snap step,
-/// Enter drops it; with Push as the sticky mode the poses are SN-3's, in one undo step.
+/// PW-2 from the keyboard: Enter on the -102F1 row floats it at the start of Rail 1, the arrows step it by snap step,
+/// Enter drops it; with Push as the sticky mode the poses are the drag's, in one undo step.
 #[test]
-fn f55_pushed_onto_rail_1_from_the_keyboard() {
+fn a_device_pushed_onto_rail_1_from_the_keyboard() {
     let tmp = Tmp::new("layout-pw2-keys");
     let mut shell = writable(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
@@ -501,7 +506,7 @@ fn f55_pushed_onto_rail_1_from_the_keyboard() {
     let key_of_f55 = shell
         .shown_rows(NavKind::Unplaced)
         .into_iter()
-        .find(|r| r.label == "F55")
+        .find(|r| r.label == "-102F1")
         .unwrap()
         .key;
     done(
@@ -516,22 +521,23 @@ fn f55_pushed_onto_rail_1_from_the_keyboard() {
         "it floats on the first rail it fits"
     );
     assert_eq!(ghost(&shell)["at_nm"], json!([0]));
-    let f55 = unplaced(&shell, "F55");
-    let target = (f55, (158 * MM, 0, 0));
+    let f55 = unplaced(&shell, "-102F1");
+    let target = (f55, (125 * MM, 0, 0));
     let mut steps = 0;
     while shell.layout_predicted_poses().first() != Some(&target) {
         assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
         steps += 1;
-        assert!(steps < 100, "the arrows never reached 149 mm: {}", ghost(&shell));
+        assert!(steps < 100, "the arrows never reached 116 mm: {}", ghost(&shell));
     }
     // One step back and forth lands on the same snap target.
     assert_eq!(key(&mut shell, "cursor.left"), Outcome::Done);
     assert_ne!(shell.layout_predicted_poses().first(), Some(&target));
     assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
     let predicted = shell.layout_predicted_poses();
-    assert_eq!(predicted.len(), 5, "four neighbours move");
+    assert_eq!(predicted.len(), 2, "one neighbour moves");
     done(&mut shell, "canvas.activate", json!({}));
-    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_SN3));
+    assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_PUSHED));
+
     assert_eq!(committed(&shell, &predicted), predicted);
     undo_all_once(&mut shell);
     assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_BEFORE));
@@ -541,33 +547,35 @@ fn f55_pushed_onto_rail_1_from_the_keyboard() {
 // ---------------------------------------------------------------------------------------------------------------
 // PW-3
 
-/// PW-3: F55 over a TS 32 rail shows the command's refusal in the chip and commits nothing; F55 away from every rail
-/// gets the tool's text; E55 (screw-mounted) lands on the plate at the snapped point.
+/// PW-3: -102F1 over a TS 32 rail shows the command's refusal in the chip and commits nothing; -102F1 away from every
+/// rail gets the tool's text; a screw-mounted device lands on the plate at the snapped point.
 #[test]
 fn refused_drops_and_a_plate_placement() {
     let tmp = Tmp::new("layout-pw3");
-    let mut shell = writable(&tmp);
-    // The TS 32 rail fixture, below Rail 3.
+    let (mut shell, e55) = with_a_screwed_device(&tmp);
+    // The TS 32 rail fixture, below Rail 2.
     let surface = panel(&shell).surface.to_string();
+    let rails: Vec<Uuid> = panel(&shell).carriers.iter().map(|c| c.id).collect();
     done(
         &mut shell,
         "command.run",
         json!({"cmd": "layout.carrier.add", "params": {
             "surface": surface,
             "kind": "rail",
-            "path": [[40 * MM, 60 * MM], [610 * MM, 60 * MM]],
+            "path": [[25 * MM, 60 * MM], [495 * MM, 60 * MM]],
             "params": {"rail": {"profile": "ts32"}},
         }}),
     );
     let ts32 = panel(&shell)
         .carriers
         .iter()
-        .find(|c| c.label == "Rail 4")
+        .find(|c| !rails.contains(&c.id))
         .expect("the TS 32 rail")
         .label
         .clone();
+    let rail = ts32.to_lowercase();
     let revision = shell.revision();
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -576,10 +584,10 @@ fn refused_drops_and_a_plate_placement() {
     let over = on_rail(&shell, &ts32, 100 * MM);
     done(&mut shell, "canvas.pointer", at(over, json!({})));
     let g = ghost(&shell);
-    assert_eq!(g["carrier"], "Rail 4");
+    assert_eq!(g["carrier"], ts32.as_str());
     assert_eq!(
         g["refused"],
-        "F55 mounts on a TS 35×7.5 rail and does not fit rail 4: drop it on a TS 35×7.5 rail."
+        format!("-102F1 mounts on a TS 35×7.5 rail and does not fit {rail}: drop it on a TS 35×7.5 rail.")
     );
     assert_eq!(
         shell.tool_overlay().items.len(),
@@ -593,7 +601,7 @@ fn refused_drops_and_a_plate_placement() {
     // The refused drop says why in the bar, as its ghost did.
     assert_eq!(
         shell.tool_notice(),
-        Some("F55 mounts on a TS 35×7.5 rail and does not fit rail 4: drop it on a TS 35×7.5 rail.")
+        Some(format!("-102F1 mounts on a TS 35×7.5 rail and does not fit {rail}: drop it on a TS 35×7.5 rail.").as_str())
     );
     assert_eq!(shell.revision(), revision, "nothing committed");
 
@@ -602,26 +610,26 @@ fn refused_drops_and_a_plate_placement() {
     done(&mut shell, "canvas.pointer", at(away, json!({})));
     let g = ghost(&shell);
     assert_eq!(g["carrier"], "plate");
-    assert_eq!(g["refused"], "F55 mounts on a TS 35×7.5 rail; drop it on a rail.");
+    assert_eq!(g["refused"], "-102F1 mounts on a TS 35×7.5 rail; drop it on a rail.");
     assert_eq!(
         refused(&mut shell, "canvas.release", at(away, json!({}))),
         "reason-layout-refused"
     );
     assert_eq!(
         shell.tool_notice(),
-        Some("F55 mounts on a TS 35×7.5 rail; drop it on a rail.")
+        Some("-102F1 mounts on a TS 35×7.5 rail; drop it on a rail.")
     );
     assert_eq!(shell.revision(), revision);
     done(&mut shell, "ui.dismiss", json!({}));
 
-    // E55 on the plate.
-    let e55 = unplaced(&shell, "E55");
+    // The screwed device on the plate.
+    let e55 = unplaced(&shell, &e55);
     done(
         &mut shell,
         "tool.place_layout",
         json!({"device": e55.to_string()}),
     );
-    let spot = sheet_of(&shell, (541_300_000, 77_700_000));
+    let spot = sheet_of(&shell, (441_300_000, 77_700_000));
     done(&mut shell, "canvas.pointer", at(spot, json!({})));
     let g = ghost(&shell);
     assert_eq!(g["carrier"], "plate");
@@ -645,28 +653,28 @@ fn refused_drops_and_a_plate_placement() {
 // ---------------------------------------------------------------------------------------------------------------
 // PW-4
 
-/// PW-4: near -102F2's end the left edge snaps to it (within 15 px, nearer than the grid point); Shift suspends the
+/// PW-4: near -101G1's end the left edge snaps to it (within 15 px, nearer than the grid point); Shift suspends the
 /// snap (0.1 mm); the 1 mm option changes the grid step.
 #[test]
 fn target_snapping_shift_and_the_grid_option() {
     let tmp = Tmp::new("layout-pw4");
     let mut shell = writable(&tmp);
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
         json!({"device": f55.to_string()}),
     );
-    // The left edge at 212.4 mm: -102F2 ends at 212 mm, the grid point is 210 mm.
-    let near = on_rail(&shell, "Rail 1", 221_400_000);
+    // The left edge at 176.4 mm: -101G1 ends at 176 mm, the grid point is 175 mm.
+    let near = on_rail(&shell, "Rail 1", 185_400_000);
     done(&mut shell, "canvas.pointer", at(near, json!({"ctrl": true})));
-    assert_eq!(ghost(&shell)["at_nm"], json!([212 * MM]));
+    assert_eq!(ghost(&shell)["at_nm"], json!([176 * MM]));
     done(
         &mut shell,
         "canvas.pointer",
         at(near, json!({"ctrl": true, "shift": true})),
     );
-    assert_eq!(ghost(&shell)["at_nm"], json!([212_400_000]));
+    assert_eq!(ghost(&shell)["at_nm"], json!([176_400_000]));
     // On the free end of the rail, 402.4 mm: the 5 mm grid gives 400, the 1 mm grid 402.
     let free = on_rail(&shell, "Rail 1", 411_400_000);
     done(&mut shell, "canvas.pointer", at(free, json!({})));
@@ -696,41 +704,34 @@ fn shell_failed_text(param: &str) -> String {
 // ---------------------------------------------------------------------------------------------------------------
 // PW-5
 
-/// PW-5: -201U9 dropped on Rail 3 without a modifier defaults to push at its member-order slot and gives AS-1's poses
-/// in one undo step; the whole rail equals what `layout.place_assembly` gives on another copy.
+/// PW-5: -201K1-Q2 dropped at the free end of Rail 2 without a modifier defaults to push at its member-order slot,
+/// back between -201K1-Q1 and -201K1-Q3 where the sample has it, in one undo step; the whole rail equals what
+/// `layout.place_assembly` gives on another copy.
 #[test]
 fn an_assembly_member_defaults_to_push_at_its_slot() {
+    let sample = Tmp::new("layout-pw5-sample");
+    let as_drawn = rail_poses(&sample.sample_shell("902"), "Rail 2");
     let tmp = Tmp::new("layout-pw5");
     let mut shell = writable(&tmp);
-    let u9 = unplaced(&shell, "-201U9");
+    let u9 = unplaced(&shell, "-201K1-Q2");
     done(&mut shell, "tool.place_layout", json!({"device": u9.to_string()}));
-    let drop = on_rail(&shell, "Rail 3", 520 * MM);
+    let drop = on_rail(&shell, "Rail 2", 450 * MM);
     done(&mut shell, "canvas.pointer", at(drop, json!({})));
     let g = ghost(&shell);
     assert_eq!(g["mode"], "push");
-    assert_eq!(g["moved"], 3);
     let predicted = shell.layout_predicted_poses();
     done(&mut shell, "canvas.release", at(drop, json!({})));
     assert_eq!(committed(&shell, &predicted), predicted);
-    let r3 = rail_poses(&shell, "Rail 3");
-    let tail: Vec<(String, f64, u8)> = r3[r3.len() - 4..].to_vec();
-    assert_eq!(
-        tail,
-        rows_of(&[
-            ("-201U9", 338.0),
-            ("-202U1", 373.0),
-            ("-202U2", 418.0),
-            ("-202U3", 448.0)
-        ])
-    );
+    let r3 = rail_poses(&shell, "Rail 2");
+    assert_eq!(r3, as_drawn, "the member's slot");
     undo_all_once(&mut shell);
-    assert_eq!(unplaced(&shell, "-201U9"), u9);
+    assert_eq!(unplaced(&shell, "-201K1-Q2"), u9);
     shell.shutdown();
 
     // Ruling 4: the same rail from `layout.place_assembly`.
     let other = Tmp::new("layout-pw5-assembly");
     let mut twin = writable(&other);
-    let rail3 = carrier(&twin, "Rail 3").to_string();
+    let rail3 = carrier(&twin, "Rail 2").to_string();
     done(
         &mut twin,
         "command.run",
@@ -740,7 +741,7 @@ fn an_assembly_member_defaults_to_push_at_its_slot() {
             "mode": "push",
         }}),
     );
-    assert_eq!(rail_poses(&twin, "Rail 3"), r3);
+    assert_eq!(rail_poses(&twin, "Rail 2"), r3);
     twin.shutdown();
 }
 
@@ -754,30 +755,27 @@ fn tab_cycles_the_rail_with_the_live_region() {
     let tmp = Tmp::new("layout-pw6-tab");
     let mut shell = writable(&tmp);
     let mut seen = Vec::new();
-    for _ in 0..7 {
+    for _ in 0..4 {
         assert_eq!(key(&mut shell, "tool.next_proposal"), Outcome::Done);
         seen.push(shell.layout_live_text().unwrap());
     }
     assert_eq!(
         seen,
         [
-            "-102G1, rail 1 at 96 mm, no findings",
-            "-101F1, rail 1 at 140 mm, no findings",
-            "-102F1, rail 1 at 158 mm, no findings",
-            "-102F2, rail 1 at 189.5 mm, no findings",
-            "T55, rail 1 at 228.5 mm, 2 findings",
-            "S51, rail 1 at 267.5 mm, 1 finding",
-            "-102G1, rail 1 at 96 mm, no findings",
+            "-101Q1, rail 1 at 53 mm, no findings",
+            "-101F1, rail 1 at 98 mm, no findings",
+            "-101G1, rail 1 at 146 mm, no findings",
+            "-101Q1, rail 1 at 53 mm, no findings",
         ]
     );
     assert_eq!(
         shell.tool_announcement(),
-        Some("-102G1, rail 1 at 96 mm, no findings")
+        Some("-101Q1, rail 1 at 53 mm, no findings")
     );
     done(&mut shell, "layout.previous", json!({}));
     assert_eq!(
         shell.layout_live_text().as_deref(),
-        Some("S51, rail 1 at 267.5 mm, 1 finding")
+        Some("-101G1, rail 1 at 146 mm, no findings")
     );
     // On a rail only X turns it, so R goes unnamed.
     assert_eq!(
@@ -796,45 +794,39 @@ fn tab_cycles_the_rail_with_the_live_region() {
 fn nudge_turn_lock_and_delete_a_selected_placement() {
     let tmp = Tmp::new("layout-pw6-edit");
     let mut shell = writable(&tmp);
-    let f1 = placement(&shell, "-102F1");
-    select_placement(&mut shell, "-102F1");
-    // Free: -102F1 touches -102F2.
+    let f1 = placement(&shell, "-101F1");
+    select_placement(&mut shell, "-101F1");
+    // Free: -101F1 touches -101G1 and -101Q1.
     assert_eq!(
         key(&mut shell, "cursor.right"),
         Outcome::Refused {
             reason_key: key!("reason-layout-blocked")
         }
     );
-    assert_eq!(shell.tool_announcement(), Some("Blocked by -102F2"));
+    assert_eq!(shell.tool_announcement(), Some("Blocked by -101G1"));
     assert_eq!(
         key(&mut shell, "cursor.left"),
         Outcome::Refused {
             reason_key: key!("reason-layout-blocked")
         }
     );
-    assert_eq!(shell.tool_announcement(), Some("Blocked by -101F1"));
-    // S51 is free to its right.
-    select_placement(&mut shell, "S51");
-    assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
-    assert_eq!(
-        shell.tool_announcement(),
-        Some("S51, rail 1 at 272.5 mm, 1 finding")
-    );
-    // Push: -102F1 pushes -102F2, T55 and S51 by one grid step.
+    assert_eq!(shell.tool_announcement(), Some("Blocked by -101Q1"));
+    // Push: -101F1 pushes -101G1 by one grid step.
     done(&mut shell, "layout.options", json!({"mode": "push"}));
-    select_placement(&mut shell, "-102F1");
     assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
     assert_eq!(
         rail_poses(&shell, "Rail 1"),
-        rows_of(&[
-            ("-102G1", 96.0),
-            ("-101F1", 140.0),
-            ("-102F1", 163.0),
-            ("-102F2", 194.5),
-            ("T55", 233.5),
-            ("S51", 272.5),
-        ])
+        rows_of(&[("-101Q1", 53.0), ("-101F1", 103.0), ("-101G1", 151.0)])
     );
+    // Free again: -101G1 is free to its right.
+    done(&mut shell, "layout.options", json!({"mode": "free"}));
+    select_placement(&mut shell, "-101G1");
+    assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
+    assert_eq!(
+        shell.tool_announcement(),
+        Some("-101G1, rail 1 at 156 mm, no findings")
+    );
+    select_placement(&mut shell, "-101F1");
     // R on a rail is refused in words with the keymap's keys; X flips.
     assert_eq!(
         key(&mut shell, "tool.rotate_cw"),
@@ -866,7 +858,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     let device = panel(&shell).placement(f1).unwrap().device;
     done(&mut shell, "edit.delete_selection", json!({}));
     assert!(panel(&shell).placement(f1).is_none());
-    assert_eq!(unplaced(&shell, "-102F1"), device);
+    assert_eq!(unplaced(&shell, "-101F1"), device);
     shell.shutdown();
 }
 
@@ -910,15 +902,15 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
         reason_key: key!("reason-layout-turn"),
     };
 
-    // The shell: the selected placement -102F1 on Rail 1.
-    select_placement(&mut shell, "-102F1");
+    // The shell: the selected placement -101F1 on Rail 1.
+    select_placement(&mut shell, "-101F1");
     assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
     assert_eq!(shell.tool_notice(), Some(TEXT));
     assert_eq!(shell.tool_announcement(), Some(TEXT));
     done(&mut shell, "ui.dismiss", json!({}));
 
-    // The layout place tool: F55's ghost over Rail 1.
-    let f55 = unplaced(&shell, "F55");
+    // The layout place tool: -102F1's ghost over Rail 1.
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -933,10 +925,10 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
     done(&mut shell, "tool.select", json!({}));
     assert_eq!(shell.tool().name(), "select");
 
-    // The Select tool: -102F1 dragged along Rail 1.
+    // The Select tool: -101F1 dragged along Rail 1.
     let revision = shell.revision();
-    select_placement(&mut shell, "-102F1");
-    let from = off_label(&shell, "-102F1");
+    select_placement(&mut shell, "-101F1");
+    let from = off_label(&shell, "-101F1");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 300 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));
@@ -985,7 +977,7 @@ fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     let turn_refused = Outcome::Refused {
         reason_key: key!("reason-layout-turn"),
     };
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -1005,11 +997,11 @@ fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     assert!(!shell.tool_overlay().items.is_empty());
     assert_eq!(shell.tool_notice(), None);
 
-    // Select's drag of -102F1 along Rail 1: R is refused, the drag goes on and its release commits.
+    // Select's drag of -101F1 along Rail 1: R is refused, the drag goes on and its release commits.
     done(&mut shell, "tool.select", json!({}));
     let revision = shell.revision();
-    select_placement(&mut shell, "-102F1");
-    let from = off_label(&shell, "-102F1");
+    select_placement(&mut shell, "-101F1");
+    let from = off_label(&shell, "-101F1");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 400 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));
@@ -1023,7 +1015,7 @@ fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     done(&mut shell, "canvas.release", at(to, json!({})));
     assert_eq!(shell.revision(), revision.map(|r| r + 1), "the drag committed");
 
-    // Another refusal ends its ghost: F55 released away from every rail.
+    // Another refusal ends its ghost: -102F1 released away from every rail.
     done(
         &mut shell,
         "tool.place_layout",
@@ -1044,13 +1036,13 @@ fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
 }
 
 /// The arrows stop a floating ghost as they stop a selected placement: at the rail's start and end
-/// with "At the rail end" and at a neighbour with "Blocked by -102G1", the ghost staying on Rail 1; a selected
+/// with "At the rail end" and at a neighbour with "Blocked by -101Q1", the ghost staying on Rail 1; a selected
 /// placement stops at the rail end in the same words.
 #[test]
 fn the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
     let tmp = Tmp::new("layout-ft992");
     let mut shell = writable(&tmp);
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -1063,11 +1055,11 @@ fn the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
     assert_eq!(shell.tool_notice(), Some("At the rail end"));
     assert_eq!(shell.tool_announcement(), Some("At the rail end"));
     assert_eq!(ghost(&shell)["at_nm"], json!([0]), "the ghost stays");
-    // Right: up to -102G1, then blocked by it.
+    // Right: up to -101Q1, then blocked by it.
     assert!(press_until_refused(&mut shell, "cursor.right") > 0);
-    assert_eq!(shell.tool_notice(), Some("Blocked by -102G1"));
+    assert_eq!(shell.tool_notice(), Some("Blocked by -101Q1"));
     assert_eq!(ghost(&shell)["carrier"], "Rail 1");
-    assert_eq!(ghost(&shell)["refused"], Value::Null, "it stops touching -102G1");
+    assert_eq!(ghost(&shell)["refused"], Value::Null, "it stops touching -101Q1");
     // From the free end of the rail: right to the end, never onto the plate.
     let free = on_rail(&shell, "Rail 1", 400 * MM);
     done(&mut shell, "canvas.pointer", at(free, json!({})));
@@ -1083,9 +1075,9 @@ fn the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
         "it drops where it stopped"
     );
 
-    // The selected placement S51 stops at the rail end in the same words (F55's drop undone).
+    // The selected placement -101G1 stops at the rail end in the same words (-102F1's drop undone).
     done(&mut shell, "edit.undo", json!({}));
-    select_placement(&mut shell, "S51");
+    select_placement(&mut shell, "-101G1");
     assert!(press_until_refused(&mut shell, "cursor.right") > 0);
     assert_eq!(shell.tool_notice(), Some("At the rail end"));
     assert_eq!(shell.tool_announcement(), Some("At the rail end"));
@@ -1098,7 +1090,7 @@ fn the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
 fn escape_drops_the_layout_ghost_and_returns_to_select() {
     let tmp = Tmp::new("layout-ft993");
     let mut shell = writable(&tmp);
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -1113,7 +1105,7 @@ fn escape_drops_the_layout_ghost_and_returns_to_select() {
     assert!(ghost(&shell).is_null());
     assert!(shell.tool_overlay().items.is_empty());
     assert_eq!(shell.revision(), revision, "nothing placed");
-    assert_eq!(unplaced(&shell, "F55"), f55);
+    assert_eq!(unplaced(&shell, "-102F1"), f55);
     // The text after the behaviour, so a changed hint does not hide it.
     assert_eq!(
         ew_viewmodel::strings::format(key!("hint-layout-place"), &["Esc"]),
@@ -1123,16 +1115,16 @@ fn escape_drops_the_layout_ghost_and_returns_to_select() {
 }
 
 /// At grid 1 mm an arrow moves a plate ghost exactly one grid step from where it is drawn, at every
-/// turn: E55 floating 30 mm right of -201U7's, -102G1's and -X1032's footprints, level with their tops, where an edge
-/// of a neighbour snaps it off the grid (a step from the pointer re-snapped it 0.5 mm further, or short).
+/// turn: the screwed device floating 30 mm right of -101G1's and -201X3's footprints, level with their tops, where an
+/// edge of a neighbour snaps it off the grid (a step from the pointer re-snapped it 0.5 mm further, or short).
 #[test]
 fn an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
     let tmp = Tmp::new("layout-ft994");
-    let mut shell = writable(&tmp);
+    let (mut shell, e55) = with_a_screwed_device(&tmp);
     done(&mut shell, "layout.options", json!({"grid": 1}));
-    let e55 = unplaced(&shell, "E55");
+    let e55 = unplaced(&shell, &e55);
     let t = panel(&shell);
-    for tag in ["-201U7", "-102G1", "-X1032"] {
+    for tag in ["-101G1", "-201X3"] {
         let fp = t.placements.iter().find(|p| p.tag == tag).unwrap().footprint;
         let start = (
             i128::from(fp.max().x.0) + i128::from(30 * MM),
@@ -1182,7 +1174,7 @@ fn an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
 fn after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     let tmp = Tmp::new("layout-ft995");
     let mut shell = writable(&tmp);
-    let f55 = unplaced(&shell, "F55");
+    let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
         "tool.place_layout",
@@ -1198,14 +1190,14 @@ fn after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     let near = on_rail(&shell, "Rail 1", 401 * MM);
     done(&mut shell, "canvas.pointer", at(near, json!({})));
     let h = hud(&shell);
-    assert_eq!(h.stack, 2, "F55 and Rail 1");
+    assert_eq!(h.stack, 2, "-102F1 and Rail 1");
     assert_eq!(
         h.prompt,
         "2 objects overlap here · click again to select the next"
     );
 
-    // Select's drag of F55 (selected: from a spot off its label) further along the rail.
-    let from = off_label(&shell, "F55");
+    // Select's drag of -102F1 (selected: from a spot off its label) further along the rail.
+    let from = off_label(&shell, "-102F1");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 450 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));
@@ -1224,25 +1216,25 @@ fn after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
 #[test]
 fn the_selected_placements_hud_names_only_its_keys() {
     let tmp = Tmp::new("layout-ft996");
-    let mut shell = writable(&tmp);
-    select_placement(&mut shell, "S51");
+    let (mut shell, label) = with_a_screwed_device(&tmp);
+    select_placement(&mut shell, "-101G1");
     rest_away(&mut shell);
     assert_eq!(
         hud(&shell).prompt,
         "1 selected · arrows nudge · X flips · Del deletes"
     );
     let surface = panel(&shell).surface.to_string();
-    let e55 = unplaced(&shell, "E55");
+    let e55 = unplaced(&shell, &label);
     done(
         &mut shell,
         "command.run",
         json!({"cmd": "layout.place", "params": {
             "device": e55.to_string(),
             "carrier": {"surface": surface},
-            "pose": {"t": [520 * MM, 300 * MM, 0], "q": [1_000_000_000, 0, 0, 0]},
+            "pose": {"t": [420 * MM, 100 * MM, 0], "q": [1_000_000_000, 0, 0, 0]},
         }}),
     );
-    select_placement(&mut shell, "E55");
+    select_placement(&mut shell, &label);
     rest_away(&mut shell);
     assert_eq!(
         hud(&shell).prompt,
@@ -1255,12 +1247,12 @@ fn the_selected_placements_hud_names_only_its_keys() {
     shell.shutdown();
 }
 
-/// A nudge's "Blocked by T55" ends with the next action: Lock, Unlock and Enter each clear it.
+/// A nudge's "Blocked by -101G1" ends with the next action: Lock, Unlock and Enter each clear it.
 #[test]
 fn blocked_by_clears_on_lock_unlock_and_enter() {
     let tmp = Tmp::new("layout-ft997");
     let mut shell = writable(&tmp);
-    select_placement(&mut shell, "-102F2");
+    select_placement(&mut shell, "-101F1");
     rest_away(&mut shell);
     let selected = "1 selected · arrows nudge · X flips · Del deletes";
     let blocked = |shell: &mut ShellModel| {
@@ -1270,8 +1262,8 @@ fn blocked_by_clears_on_lock_unlock_and_enter() {
                 reason_key: key!("reason-layout-blocked")
             }
         );
-        assert_eq!(shell.tool_notice(), Some("Blocked by T55"));
-        assert_eq!(hud(shell).prompt, "Blocked by T55");
+        assert_eq!(shell.tool_notice(), Some("Blocked by -101G1"));
+        assert_eq!(hud(shell).prompt, "Blocked by -101G1");
     };
     // The behaviour first: each action clears the notice and the HUD's "Blocked by"; the HUD's text after it,
     // so a changed HUD text does not hide it.
@@ -1285,7 +1277,8 @@ fn blocked_by_clears_on_lock_unlock_and_enter() {
         done(&mut shell, cmd, json!({}));
         assert_eq!(shell.tool_notice(), None, "{cmd}");
         let prompt = hud(&shell).prompt;
-        assert_ne!(prompt, "Blocked by T55", "{cmd}");
+        assert_ne!(prompt, "Blocked by -101G1", "{cmd}");
+
         prompts.push(prompt);
     }
     assert_eq!(prompts, [selected; 3]);
