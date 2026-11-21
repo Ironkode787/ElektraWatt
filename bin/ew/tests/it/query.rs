@@ -96,6 +96,33 @@ fn device_tag_prints_its_text_and_its_json_result() {
     );
 }
 
+/// QU-3 and QU-5 through the program: every entry of `ew queries --json` answers its example on the sample with exit
+/// 0, and the `output` of its `--json` result validates against the entry's own output schema. An example that names a
+/// record the sample no longer holds fails here.
+#[test]
+fn every_example_validates_against_its_output_schema() {
+    let t = Tmp::new("ew-query");
+    let p = t.sample("sample.ew");
+    let o = t.ew(&args([&"queries", &"--json"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let list: Value = serde_json::from_str(&stdout(&o)).unwrap();
+    for q in list["queries"].as_array().unwrap() {
+        let name = q["name"].as_str().unwrap();
+        let example = q["example"].as_str().unwrap();
+        let o = t.ew(&args([&"query", &p, &name, &example, &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{name}: {}", stderr(&o));
+        let r = assert_query_result(&stdout(&o));
+        assert_eq!((r.query.as_str(), r.key.as_str()), (name, example));
+        let (schemas, index) = compile(&format!("urn:ew:query:{name}"), q["output"].clone());
+        if let Err(e) = schemas.validate(&r.output, index) {
+            panic!(
+                "{name}: the output does not validate against its schema: {e:#}\n{}",
+                r.output
+            );
+        }
+    }
+}
+
 /// The failure paths exit 2 with `error: ` and the message on stderr, nothing on stdout. An unknown query is refused
 /// before the project is opened; a key that names no record prints the replay's message (QU-3); a record of another
 /// kind is named in words ("Every adapter checks the resolved record's kind").

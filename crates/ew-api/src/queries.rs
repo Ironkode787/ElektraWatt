@@ -5,8 +5,8 @@
 //!
 //! [`REGISTRY`] is the closed set of named queries: the twelve of the MVP and the fluid queries `medium_zones` and
 //! `tube_props` (doc 11 §8.3). Each entry has a name, the grammar of its key, an
-//! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and a golden
-//! example key on Golden A. A key is a reference of the `.ewcmd` grammar (`tag:`, `id:`, `folio:`, a bare tag),
+//! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and an
+//! example key on the sample project. A key is a reference of the `.ewcmd` grammar (`tag:`, `id:`, `folio:`, a bare tag),
 //! resolved by [`Session::resolve_reference`], or `-` for a query without a key. Every adapter checks the kind of
 //! the record its key resolves to and maps the user's key onto the memo family's key:
 //! `cell_of`, `xref_text_of` and `plc_address_text` go through the device's main representation or main
@@ -56,7 +56,7 @@ pub struct QueryDef {
     pub key: &'static str,
     /// What it answers.
     pub description: &'static str,
-    /// Its golden example: a key on Golden A (`golden/J-E-2416.ew`).
+    /// Its example: a key on the sample project (`fixtures/sample/sample.ew`, the release's `samples/`).
     pub example: &'static str,
     /// The version of its output type.
     pub output_version: u32,
@@ -123,7 +123,7 @@ pub const REGISTRY: &[QueryDef] = &[
         name: "channel_addresses",
         key: "tag:<tag> | id:<uuid> (a PLC module)",
         description: "The address of each channel of a PLC module, in channel-number order.",
-        example: "tag:-201U5",
+        example: "tag:-104A1-A2",
         output_version: OUTPUT_VERSION,
         takes: "a PLC module (`tag:-201U5`)",
         output: schema_of::<ChannelAddressesOutput>,
@@ -175,7 +175,7 @@ pub const REGISTRY: &[QueryDef] = &[
         name: "plc_address_text",
         key: "id:<uuid> (a function) | tag:<tag> (a device: its main function)",
         description: "The PLC addresses a function's representation prints beside it.",
-        example: "tag:-201U3-Q1",
+        example: "tag:-201K1-Q2",
         output_version: OUTPUT_VERSION,
         takes: "a function (`id:<uuid>`) or a device (`tag:-201U3-Q1`, its main function)",
         output: schema_of::<PlcAddressTextOutput>,
@@ -185,7 +185,7 @@ pub const REGISTRY: &[QueryDef] = &[
         name: "potential_name",
         key: "id:<uuid> (a wire or a junction) | tag:<tag> (a terminal)",
         description: "The name of the potential a wire, a junction or a terminal belongs to, with its aliases.",
-        example: "id:5945bf6c-b3b1-5964-8651-59a4b48396d3",
+        example: "tag:-X1011:L1",
         output_version: OUTPUT_VERSION,
         takes: "a wire or a junction (`id:<uuid>`) or a terminal (`tag:-X1031:1`)",
         output: schema_of::<PotentialNameOutput>,
@@ -206,7 +206,7 @@ pub const REGISTRY: &[QueryDef] = &[
         key: "id:<uuid> (a fluid line)",
         description: "The effective tube values of a fluid line, each with where it comes from: the project's \
                       default tube, the medium of its net, its tube part, or the line's own override (doc 11 §5.4).",
-        example: "id:bf6e5853-bbb2-56cc-a931-fc6bd12a31e9",
+        example: "id:019b76da-a91c-7000-8000-00000000011c",
         output_version: OUTPUT_VERSION,
         takes: "a fluid line (`id:<uuid>`)",
         output: schema_of::<TubePropsOutput>,
@@ -228,7 +228,7 @@ pub const REGISTRY: &[QueryDef] = &[
         key: "id:<uuid> (a wire)",
         description: "The cross-section and colour of each physical wire of a connection, each with where it comes \
                       from.",
-        example: "id:13c75a2c-b8f2-5b51-8e22-4cb6522139b0",
+        example: "id:019b76da-a840-7000-8000-000000000040",
         output_version: OUTPUT_VERSION,
         takes: "a wire (`id:<uuid>`)",
         output: schema_of::<WirePropsOutput>,
@@ -238,7 +238,7 @@ pub const REGISTRY: &[QueryDef] = &[
         name: "xref_text_of",
         key: "tag:<tag> | id:<uuid> (a device)",
         description: "The cross-reference text printed at a device's main representation.",
-        example: "tag:-201U1",
+        example: "tag:-102Q1",
         output_version: OUTPUT_VERSION,
         takes: DEVICE,
         output: schema_of::<XrefTextOutput>,

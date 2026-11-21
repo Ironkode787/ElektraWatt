@@ -29,3 +29,6 @@ change here.
 - behaviour-change: on a page of the QElectroTech grid a text's box keeps its size wherever its symbol stands, so a
   second press of Arrange and route finds the page the first stored; texts on such pages may stand a sixth of a
   millimetre from where they stood, and a wire beside such a text may take another route (06a §2.1, FT-1848)
+- text-change: the example keys of `ew queries` and the guide's query reference name records of the new sample
+  project (`-104A1-A2`, `-201K1-Q2`, `-X1011:L1`, `-102Q1` and two of its IDs), as the reference project's records
+  are gone; every example answers on the sample

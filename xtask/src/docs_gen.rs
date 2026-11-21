@@ -1437,7 +1437,7 @@ fn queries_text(snapshot: &Value) -> Result<String> {
          reader: it takes no lock and writes nothing. `--explain` adds the memo policy, the dependencies and the \
          provenance; `--json` prints the object `ew.query-result/1` whose `output` is the query's output below. This \
          reference lists the {} queries of the registry, as `ew queries --json` prints them. A key uses the reference grammar of command logs (`tag:`, `id:`, `folio:`); `-` stands for no key. \
-         The examples run on the golden project ([doc 17 §3.4]({})).\n\n\
+         The examples run on the sample project ([doc 17 §3.4]({})).\n\n\
          | Query | Key | Summary |\n|---|---|---|\n{rows}\n{sections}",
         header("the query registry"),
         queries.len(),
