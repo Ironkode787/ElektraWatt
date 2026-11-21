@@ -58,6 +58,25 @@ fn ip_supply_in_takes_an_address_alone_or_a_far_end_not_known() {
     );
 }
 
+/// A location written with its sign (`+UP`) is the node `UP`, the one a mark without the sign finds (FT-1901); the
+/// sign alone is refused.
+#[test]
+fn ip_supply_in_takes_a_location_with_or_without_its_sign() {
+    let mut e = engine(mini_model());
+    let r = e
+        .execute(&mark(vec![FN_IP_101], Some("+UP"), None))
+        .expect("a location with its sign");
+    let node = row(&e, primary::<ExternalRef>(&r))
+        .location
+        .expect("a location node");
+    assert_eq!(row(&e, node).code, ident("UP"));
+    let r = e
+        .execute(&mark(vec![FN_IP_102], Some("UP"), None))
+        .expect("the same location without its sign");
+    assert_eq!(row(&e, primary::<ExternalRef>(&r)).location, Some(node));
+    assert!(e.execute(&mark(vec![FN_IP_101], Some("+"), None)).is_err());
+}
+
 /// `external_ref.create` takes a location alone, or nothing at all.
 #[test]
 fn external_ref_create_takes_what_is_known() {

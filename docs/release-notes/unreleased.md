@@ -378,3 +378,5 @@ change here.
 - format-variant: page_item LayoutLabels tags_or_numbers
 - behaviour-change: a project made without its template's pages takes its first page's ID from the session's ID source,
   so two runs of one script make the same project; it took it from the clock (FT-1900)
+- behaviour-change: `supply.place` and `ip.supply_in` take a location with or without its sign: `+UP` is the node `UP`;
+  it made a node `+UP` that printed `++UP` (doc 06 §3.5, FT-1901)

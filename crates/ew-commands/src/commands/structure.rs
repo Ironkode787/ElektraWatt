@@ -466,7 +466,7 @@ pub struct MarkSupplyIn {
     /// The interruption points' functions.
     #[schemars(with = "Vec<UuidS>")]
     pub points: Vec<Id<Function>>,
-    /// The code of the location the points come from; none where it is not known.
+    /// The code of the location the points come from, with or without its sign; none where it is not known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub location: Option<Ident>,
@@ -528,7 +528,17 @@ impl Command for MarkSupplyIn {
             return group_points(tx, &self.points, join);
         }
         let location = Open::Known(Aspect::Location);
-        let node = match &self.location {
+        // A code is taken with or without its sign (`+UP` is the node `UP`), as the other commands take it.
+        let code = match &self.location {
+            None => None,
+            Some(c) => match c.as_str().strip_prefix('+') {
+                None => Some(c.clone()),
+                Some(bare) => Some(Ident::from_input(bare).map_err(|_| {
+                    CmdError::invalid_params(Self::NAME, "/location", text!("refusal-ident-empty"))
+                })?),
+            },
+        };
+        let node = match &code {
             None => None,
             Some(code) => Some(
                 match tx

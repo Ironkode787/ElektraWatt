@@ -739,7 +739,8 @@ installed library's symbol by its key as well as by its address, before its firs
     connection prints in the wire list's end, as before. The person chooses what prints by what the reference holds.
   - *Making one.* Supply comes in here… (`ip.supply_in`) keeps its two fields, the location and the device there; a
     field left empty is not known, so the device alone is an address and two empty fields a far end not known (a
-    script that leaves a field out takes the proposal, as before). `external_ref.create` takes any of them or none.
+    script that leaves a field out takes the proposal, as before). The location is taken with or without its sign
+    (`+UP` and `UP` are one node, FT-1901). `external_ref.create` takes any of them or none.
     The Interruption tool's external field names a reference by its printed device (and connection); one without a
     device is named by its ID.
   - *What the checks ask.* EW-CORE-034 still asks that the wires of an external point be a cable's cores; its finding
