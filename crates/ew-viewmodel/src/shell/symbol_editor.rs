@@ -1305,7 +1305,11 @@ impl ShellModel {
         // words of the function category the browser files a symbol under, Other last, then by name.
         editor.sources.sort_by_cached_key(|s| {
             let filed = crate::tools::category_words(&s.category);
-            (filed.is_none(), filed.unwrap_or_default().to_lowercase(), s.words().0.to_lowercase())
+            (
+                filed.is_none(),
+                filed.unwrap_or_default().to_lowercase(),
+                s.words().0.to_lowercase(),
+            )
         });
         Ok(())
     }

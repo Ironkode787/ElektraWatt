@@ -56,7 +56,10 @@ fn normally_open_contact_ranks_the_parts_whose_main_function_is_one_first() {
     let list = offered(&s);
     let contactor = position(&list, "EW-GEN-CON-1");
     for pn in ["EW-GEN-PB-1", "EW-GEN-POS-1", "EW-GEN-SEL-1"] {
-        assert!(position(&list, pn) < contactor, "{pn} before the contactor: {list:?}");
+        assert!(
+            position(&list, pn) < contactor,
+            "{pn} before the contactor: {list:?}"
+        );
     }
 }
 
@@ -76,9 +79,6 @@ fn no_row_is_chosen_until_the_person_chooses_one() {
         spec(dialog, &s).primary.disabled.is_some(),
         "Choose waits for a row"
     );
-    assert_eq!(
-        refused(&mut s, "part.pick", json!({})),
-        "reason-part-choose-none"
-    );
+    assert_eq!(refused(&mut s, "part.pick", json!({})), "reason-part-choose-none");
     done(&mut s, "part.pick", json!({ "index": 1 }));
 }

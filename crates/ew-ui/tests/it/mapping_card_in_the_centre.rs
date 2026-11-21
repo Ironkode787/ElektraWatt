@@ -29,7 +29,8 @@ fn the_mapping_card_stands_in_the_windows_centre() {
             .expect("the mapping card");
         let window = h.ctx.content_rect();
         assert!(
-            (card.center().y - window.center().y).abs() < 2.0 && (card.center().x - window.center().x).abs() < 2.0,
+            (card.center().y - window.center().y).abs() < 2.0
+                && (card.center().x - window.center().x).abs() < 2.0,
             "{size:?}: the card {card:?} in the window {window:?}"
         );
         h.state_mut().shell_mut().shutdown();

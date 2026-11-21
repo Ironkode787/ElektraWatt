@@ -101,7 +101,10 @@ pub(crate) struct EditorView {
     start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
     /// The symbol the Copy page's preview shows (the row the pointer is on, else the first) and its shape, read once
     /// per symbol (FT-1810).
-    copy_preview: Option<(String, Option<std::rc::Rc<ew_viewmodel::ew_api::output::SymbolShape>>)>,
+    copy_preview: Option<(
+        String,
+        Option<std::rc::Rc<ew_viewmodel::ew_api::output::SymbolShape>>,
+    )>,
 }
 
 /// What the outline is made for: the draft's generation and revision, the language and the discipline.
@@ -1262,7 +1265,13 @@ impl EditorView {
     }
 
     /// The library's symbols, to copy one: the original stays as it is.
-    fn start_copy(&mut self, ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &mut Vec<Event>) {
+    fn start_copy(
+        &mut self,
+        ui: &mut Ui,
+        shell: &ShellModel,
+        editor: &SymbolEditor,
+        events: &mut Vec<Event>,
+    ) {
         let t = theme::current(ui.ctx());
         ui.horizontal(|ui| {
             if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
@@ -1332,7 +1341,11 @@ impl EditorView {
             });
             let shown = hovered.or_else(|| rows.first().map(|r| r.0));
             if let Some(source) = shown.and_then(|i| editor.sources.get(i)) {
-                if self.copy_preview.as_ref().is_none_or(|(s, _)| *s != source.source) {
+                if self
+                    .copy_preview
+                    .as_ref()
+                    .is_none_or(|(s, _)| *s != source.source)
+                {
                     let shape = shell.symbol_source_shape(source).map(std::rc::Rc::new);
                     self.copy_preview = Some((source.source.clone(), shape));
                 }

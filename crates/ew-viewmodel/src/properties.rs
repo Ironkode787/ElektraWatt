@@ -1829,8 +1829,14 @@ pub fn fix_line(card: &Card) -> String {
 /// left out (FT-1761: a card read "0 tags, 0 cross-reference texts"), the changes always said.
 fn change_counts(card: &Card, changes: Option<usize>) -> String {
     let counts = [
-        (crate::count_key!("preview-tags-count"), card.preview.derived.tags.len()),
-        (crate::count_key!("preview-xrefs-count"), card.preview.derived.xrefs.len()),
+        (
+            crate::count_key!("preview-tags-count"),
+            card.preview.derived.tags.len(),
+        ),
+        (
+            crate::count_key!("preview-xrefs-count"),
+            card.preview.derived.xrefs.len(),
+        ),
     ];
     match changes {
         Some(n) => crate::preview::counted(

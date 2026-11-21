@@ -955,20 +955,13 @@ fn a_medium_set_on_two_tubes_at_once_holds_on_both() {
     for l in &lines[1..] {
         assert_eq!(tube_cell(&mut d, *l, "medium"), "Compressed air");
     }
-    let carried = lines
-        .iter()
-        .filter(|l| tube_cell(&mut d, **l, "medium") == "Compressed air")
-        .count();
     let badge = fluid_nodes(&mut d)
         .into_iter()
         .find(|n| n.label == "Compressed air")
         .and_then(|n| n.badges.first().cloned())
         .expect("the medium's row");
-    assert_eq!(
-        badge,
-        format!("{carried} lines"),
-        "the Media row counts the tubes that carry it"
-    );
+    // The Media row counts the medium's consumers, as the medium table does (FT-1761); it counted its tubes.
+    assert!(badge.ends_with(" consumers"), "{badge}");
     d.shell_mut().shutdown();
 }
 

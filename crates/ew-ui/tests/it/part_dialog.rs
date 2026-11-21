@@ -50,7 +50,10 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     let first = rows[0].accesskit_node();
     assert_eq!(first.data().position_in_set(), Some(1));
     assert_eq!(first.data().size_of_set(), Some(rows.len()));
-    assert!(first.is_selected() != Some(true), "no row is chosen for the person (FT-1845)");
+    assert!(
+        first.is_selected() != Some(true),
+        "no row is chosen for the person (FT-1845)"
+    );
     assert!(
         first
             .label()

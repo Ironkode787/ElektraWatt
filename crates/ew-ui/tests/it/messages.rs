@@ -858,14 +858,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
 fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
     use ew_viewmodel::{key, strings};
     for (lang, line) in [
-        (
-            "en",
-            "Preview open: Quick fix EW-CORE-023 · 1 change",
-        ),
-        (
-            "nl",
-            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 wijziging",
-        ),
+        ("en", "Preview open: Quick fix EW-CORE-023 · 1 change"),
+        ("nl", "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 wijziging"),
     ] {
         let tmp = Tmp::new();
         let mut h = on_sample(&tmp, Scripted::default());

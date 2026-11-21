@@ -50,7 +50,11 @@ fn a_mediums_badge_counts_what_the_medium_table_counts() {
             .iter()
             .position(|c| c.key == "consumer_count")
             .expect("the Count column");
-        let node = t.nodes.iter().find(|n| n.label == "Air").expect("the medium's row");
+        let node = t
+            .nodes
+            .iter()
+            .find(|n| n.label == "Air")
+            .expect("the medium's row");
         cell_text(t, node, col)
     };
     done(&mut s, "navigator.show", json!({"kind": "fluid", "on": true}));

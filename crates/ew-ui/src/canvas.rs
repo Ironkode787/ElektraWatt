@@ -2779,7 +2779,11 @@ impl CanvasHost {
                 crate::theme::radius(t.radius_pill),
                 colour.color32(),
             );
-            let d = if vertical { r.drag_delta().y } else { r.drag_delta().x };
+            let d = if vertical {
+                r.drag_delta().y
+            } else {
+                r.drag_delta().x
+            };
             if r.dragged() && d != 0.0 {
                 // The thumb moved `d` points along its track: the view moves as far across the page.
                 let points = -f64::from(d * extent / len) * k;

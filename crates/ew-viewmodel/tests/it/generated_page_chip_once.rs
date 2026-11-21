@@ -7,9 +7,9 @@
 use crate::common;
 
 use common::Tmp;
+use ew_viewmodel::ew_api::output::Provenance;
 use ew_viewmodel::properties::shared_provenance;
 use ew_viewmodel::shell::Mode;
-use ew_viewmodel::ew_api::output::Provenance;
 
 #[test]
 fn a_report_pages_rows_share_one_generated_chip() {

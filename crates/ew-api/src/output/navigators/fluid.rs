@@ -255,7 +255,10 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         // lines, "1 lines", beside a Count of 2).
         let rows = q.get::<ew_derive::MediumRows>(());
         for (_, id, name) in ranked_m {
-            let count = rows.iter().find(|r| r.medium == id).map_or(0, |r| r.consumers.len());
+            let count = rows
+                .iter()
+                .find(|r| r.medium == id)
+                .map_or(0, |r| r.consumers.len());
             let n = b.push(
                 Some(g),
                 NavRole::Medium,

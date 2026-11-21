@@ -255,7 +255,8 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     assert!(
         row.badges
             .iter()
-            .any(|b| b.ends_with("tube") || b.ends_with("tubes")),
+            // Its consumers, as the medium table counts them (FT-1761).
+            .any(|b| b.ends_with("consumer") || b.ends_with("consumers")),
         "{:?}",
         row.badges
     );

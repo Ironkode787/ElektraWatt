@@ -7,7 +7,7 @@
 
 use crate::support;
 
-use egui_kittest::kittest::{NodeT as _, Queryable};
+use egui_kittest::kittest::Queryable;
 use serde_json::json;
 use support::{Tmp, dispatch, on_sample, settle};
 
@@ -35,6 +35,9 @@ fn the_devices_table_fills_its_panel_at_2560() {
     settle(&mut h);
     let (cells, grid) = edges(&h, "Devices table");
     // The room left is at most a scroll bar's and a gap's.
-    assert!(grid - cells < 40.0, "the columns end at {cells}, the grid at {grid}");
+    assert!(
+        grid - cells < 40.0,
+        "the columns end at {cells}, the grid at {grid}"
+    );
     h.state_mut().shell_mut().shutdown();
 }

@@ -6,7 +6,7 @@
 
 use crate::support;
 
-use egui_kittest::kittest::{NodeT as _, Queryable};
+use egui_kittest::kittest::Queryable;
 use ew_viewmodel::navigators::NavKind;
 use serde_json::json;
 use support::{Tmp, dispatch, menu_node, on_sample, settle};

@@ -989,7 +989,11 @@ impl Delegate<'_> {
     /// less the columns' fitted widths ([`Self::others_width`]) and a scroll bar's room, shared evenly; none for a
     /// table with a filling or capped column (it takes that room itself) or one whose columns do not fit.
     fn share(&mut self, ui: &Ui) -> f32 {
-        if self.shown.iter().any(|c| capped(self.kind, &self.table.columns[*c].key)) {
+        if self
+            .shown
+            .iter()
+            .any(|c| capped(self.kind, &self.table.columns[*c].key))
+        {
             return 0.0;
         }
         let others = match self.others {

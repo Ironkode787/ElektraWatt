@@ -48,7 +48,11 @@ fn the_ways_in_keep_their_places_with_a_draft_in_hand() {
         .find(|(l, _)| l.starts_with("Carry on with "))
         .map(|(_, at)| at)
         .unwrap_or_else(|| panic!("Carry on with the draft: {:?}", d.labels()));
-    assert_eq!(d.find("New symbol"), Some(before), "New symbol stays where it stood");
+    assert_eq!(
+        d.find("New symbol"),
+        Some(before),
+        "New symbol stays where it stood"
+    );
     let import = d.find("Import a file\u{2026}").expect("Import a file…");
     assert!(carry.1 > import.1, "Carry on with… after the ways in");
     d.shell_mut().shutdown();

@@ -474,7 +474,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
             "row level 2 conductor \"BN\"",
             "row level 2 conductor \"BU\"",
             "row level 2 conductor \"GNYE\"",
-            "toast \"Check: 0 errors, 9 warnings, 2 infos.\"",
+            "toast \"Check: 0 errors, 9 warnings, 2 infos.\" show_messages",
         ]
     );
     let items = items(&tmp);
@@ -844,7 +844,7 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
             "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\" cursor \"Address\"",
             // The lines to the drive have no cable yet, which a toast offers to choose.
             "toast \"Bus line drawn: it has no cable yet.\" choose_cable",
-            "toast \"Check: 0 errors, 0 warnings, 5 infos.\"",
+            "toast \"Check: 0 errors, 0 warnings, 5 infos.\" show_messages",
         ]
     );
     assert!(tmp.path("bus-network.ew/project.jsonl").is_file());

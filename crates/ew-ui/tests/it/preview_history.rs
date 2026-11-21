@@ -89,10 +89,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     assert!(has_text(&h, "Preview: Renumber · as of rev 2"), "the header");
     // The two breakers, and the push buttons of 102, which the sample's script placed the lower one first: in position
     // order (column first) -102S2 stands above -102S1, so closing the gaps swaps them. Three pages.
-    assert!(has_text(
-        &h,
-        "4 items · 4 tags · 3 pages"
-    ));
+    assert!(has_text(&h, "4 items · 4 tags · 3 pages"));
     assert!(
         has_text(&h, "-101F9 → -101F1"),
         "the first tag change, virtualised rows"

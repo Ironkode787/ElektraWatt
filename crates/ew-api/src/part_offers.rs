@@ -333,7 +333,11 @@ impl Session {
             return false;
         }
         let named = |c: &str| query.purpose_categories.iter().any(|p| p == c);
-        if part.category.as_ref().is_some_and(|(c0, _, _)| named(c0.as_str())) {
+        if part
+            .category
+            .as_ref()
+            .is_some_and(|(c0, _, _)| named(c0.as_str()))
+        {
             return true;
         }
         part.function_template

@@ -173,7 +173,10 @@ fn a_breaker_offers_the_same_function_first() {
     // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
     assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
-        [format!("detail \"{}\"", s.part_offer_detail(0).unwrap_or_default())],
+        [format!(
+            "detail \"{}\"",
+            s.part_offer_detail(0).unwrap_or_default()
+        )],
         [format!(
             "detail \"ElektraWatt starter parts (System) · version {version} · released · functions 1P+N MCB 1-2-N-N\""
         )]
@@ -202,7 +205,10 @@ fn a_breaker_offers_the_same_function_first() {
     // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
     assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
-        [format!("detail \"{}\"", s.part_offer_detail(0).unwrap_or_default())],
+        [format!(
+            "detail \"{}\"",
+            s.part_offer_detail(0).unwrap_or_default()
+        )],
         [format!(
             "detail \"ElektraWatt starter parts (System) · version {version} · released · functions Feed-through \
              terminal 1-2\""

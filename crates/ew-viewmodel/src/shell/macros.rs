@@ -344,7 +344,10 @@ pub(super) fn badge_word(code: &str) -> String {
             {
                 return strings::format(key!("nav-badge-spares"), &[n]);
             }
-            if let Some(n) = other.strip_suffix(" consumers").and_then(|n| n.parse::<usize>().ok()) {
+            if let Some(n) = other
+                .strip_suffix(" consumers")
+                .and_then(|n| n.parse::<usize>().ok())
+            {
                 return strings::format_count(crate::count_key!("nav-badge-consumers"), n);
             }
             // A station's role among them (`I/O device` is `nav-badge-io-device`).
