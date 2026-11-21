@@ -4,7 +4,7 @@
 //! In the view model: the
 //! picker and the starter embedding, the Place tool, moving by drag and by keys, transform and delete on a
 //! selection, change symbol, the transcript members and the describe lines with their 28 words, and the exact
-//! `Session` counts of pointer and cursor moves. Every test works on a writable temporary copy of Golden A.
+//! `Session` counts of pointer and cursor moves. Every test works on a writable temporary copy of the sample.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -15,7 +15,7 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
 use serde_json::{Value, json};
 
-/// A headless shell with a writable copy of Golden A on `folio`.
+/// A headless shell with a writable copy of the sample on `folio`.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.sample_in(Mode::Headless, true, folio)
 }
@@ -40,9 +40,12 @@ fn steps_from(shell: &ShellModel, p: (i64, i64), k: (i64, i64)) -> (i64, i64) {
     )
 }
 
-/// A free grid point of folio 101's empty lower right area.
+/// The grid indices of a free point of folio 101's empty lower left area.
+const FREE: (i64, i64) = (24, 60);
+
+/// A free grid point of folio 101's empty lower left area.
 fn free_point(shell: &ShellModel) -> (i64, i64) {
-    grid_point(shell, (60, 30))
+    grid_point(shell, FREE)
 }
 
 fn ghost(shell: &ShellModel) -> Value {
@@ -108,13 +111,13 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
         Outcome::Failed { message } => assert!(message.contains("`to`"), "{message}"),
         other => panic!("{other:?}"),
     }
-    // A starter symbol (Golden A has no NO contact): choosing it commits nothing, the tool floats it (FT-656).
-    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
-    assert!(describe_line(&s, "  row symbol \"contact-no\"").contains("starter"));
+    // A starter symbol (the sample has no heater): choosing it commits nothing, the tool floats it (FT-656).
+    done(&mut s, "picker.filter", json!({"text": "heater@"}));
+    assert!(describe_line(&s, "  row symbol \"heater\"").contains("starter"));
     let undo_before = s.can_undo();
     let calls = s.session_calls();
     let rev = s.revision();
-    done(&mut s, "picker.choose", json!({"letter": "K"}));
+    done(&mut s, "picker.choose", json!({"letter": "E"}));
     assert!(s.picker().is_none());
     assert_eq!(s.tool().name(), "place");
     assert_eq!(s.tool().state(), "floating");
@@ -150,8 +153,8 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     done(&mut s, "edit.undo", json!({}));
     assert!(!s.can_undo(), "two placements, two undo steps");
     done(&mut s, "tool.place", json!({}));
-    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
-    assert!(describe_line(&s, "  row symbol \"contact-no\"").contains("starter"));
+    done(&mut s, "picker.filter", json!({"text": "heater@"}));
+    assert!(describe_line(&s, "  row symbol \"heater\"").contains("starter"));
     done(&mut s, "ui.dismiss", json!({}));
 }
 
@@ -225,7 +228,7 @@ fn placing_a_contact_cycles_the_variants_and_commits_the_chosen_orientation() {
     // Sticky: the tool keeps floating; a dwell previews the next placement and the ghost shows its tag.
     assert_eq!(s.tool().name(), "place");
     let q = (p.0 + 7_937_500 * 2, p.1);
-    let q = grid_point(&s, (60 + 6, 30)).max(q);
+    let q = grid_point(&s, (FREE.0 + 6, FREE.1)).max(q);
     let pt3 = sheet(&s, q);
     done(&mut s, "canvas.pointer", at(pt3, json!({})));
     let calls = s.session_calls();
@@ -254,7 +257,7 @@ fn placing_a_contact_cycles_the_variants_and_commits_the_chosen_orientation() {
 #[test]
 fn a_contact_dropped_inside_a_black_box_joins_its_device() {
     let tmp = Tmp::new("join");
-    let mut s = shell(&tmp, "102");
+    let mut s = shell(&tmp, "101");
     let t = tables(&s);
     let bx = t
         .reps
@@ -263,9 +266,9 @@ fn a_contact_dropped_inside_a_black_box_joins_its_device() {
         .find(|r| {
             t.cps
                 .iter()
-                .any(|c| c.rep == r.id && c.label.starts_with("-102F2:"))
+                .any(|c| c.rep == r.id && c.label.starts_with("-101G1:"))
         })
-        .expect("-102F2's box")
+        .expect("-101G1's box")
         .clone();
     let outline = &bx.black_box.as_ref().unwrap().outline;
     let (x0, x1) = (
@@ -286,7 +289,7 @@ fn a_contact_dropped_inside_a_black_box_joins_its_device() {
     done(&mut s, "canvas.pointer", at(pt4, json!({})));
     assert_eq!(ghost(&s)["target"], "join");
     assert!(
-        s.tool_overlay().labels().any(|l| l.contains("join -102F2")),
+        s.tool_overlay().labels().any(|l| l.contains("join -101G1")),
         "{:?}",
         s.tool_overlay()
     );
@@ -298,15 +301,15 @@ fn a_contact_dropped_inside_a_black_box_joins_its_device() {
         .iter()
         .find(|r| r.symbol_key == "ew.iec.contact-no@qet10")
         .expect("placed");
-    assert_eq!(new.device, bx.device, "an auxiliary function of -102F2");
+    assert_eq!(new.device, bx.device, "an auxiliary function of -101G1");
 }
 
 #[test]
 fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() {
     let tmp = Tmp::new("move");
-    let mut s = shell(&tmp, "101");
+    let mut s = shell(&tmp, "102");
     let (a, b) = (
-        rep_with(&s, "ew.iec.heater@qet10"),
+        rep_with(&s, "ew.iec.pushbutton-no@qet10"),
         rep_with(&s, "ew.iec.lamp@qet10"),
     );
     // A click selects E55, Shift+click adds E56.
@@ -318,7 +321,7 @@ fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() 
     assert_eq!(s.selection().items.len(), 2);
     let mut pos = (a.pos, b.pos);
     for k in 1..=3i64 {
-        let ca = centre(&rep_with(&s, "ew.iec.heater@qet10"));
+        let ca = centre(&rep_with(&s, "ew.iec.pushbutton-no@qet10"));
         let from = sheet(&s, ca);
         let to = steps_from(&s, ca, (k, 0));
         done(&mut s, "canvas.press", at(from, json!({})));
@@ -347,7 +350,7 @@ fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() 
         let snap = s.canvas().unwrap().page().snapper.clone();
         let exact = |p: (i64, i64)| (snap.page_of_index(snap.grid_index_of(p.0) + k), p.1);
         let (na, nb) = (
-            rep_with(&s, "ew.iec.heater@qet10"),
+            rep_with(&s, "ew.iec.pushbutton-no@qet10"),
             rep_with(&s, "ew.iec.lamp@qet10"),
         );
         assert_eq!(na.pos, exact(pos.0), "E55 by {k}");
@@ -358,7 +361,7 @@ fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() 
         assert_eq!(s.tool().state(), "idle");
     }
     // Escape during a drag cancels it.
-    let ca = centre(&rep_with(&s, "ew.iec.heater@qet10"));
+    let ca = centre(&rep_with(&s, "ew.iec.pushbutton-no@qet10"));
     let pt7 = sheet(&s, ca);
     done(&mut s, "canvas.press", at(pt7, json!({})));
     let pt8 = steps_from(&s, ca, (2, 1));
@@ -378,20 +381,20 @@ fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() 
     assert_eq!(state(&s)["canvas"]["preview"]["command"], "rep.move");
     done(&mut s, "canvas.activate", json!({}));
     let snap = s.canvas().unwrap().page().snapper.clone();
-    let na = rep_with(&s, "ew.iec.heater@qet10");
+    let na = rep_with(&s, "ew.iec.pushbutton-no@qet10");
     assert_eq!(
         na.pos,
         (pos.0.0, snap.page_of_index(snap.grid_index_of(pos.0.1) + 2))
     );
     // Undo takes back one step at a time.
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").pos, pos.0);
+    assert_eq!(rep_with(&s, "ew.iec.pushbutton-no@qet10").pos, pos.0);
 }
 
 #[test]
 fn transform_keys_and_delete_act_on_the_selection_with_their_refusals() {
     let tmp = Tmp::new("transform");
-    let mut s = shell(&tmp, "101");
+    let mut s = shell(&tmp, "102");
     // Nothing selected: M and Delete are refused.
     assert_eq!(refused(&mut s, "tool.move", json!({})), "reason-nothing-to-move");
     assert_eq!(
@@ -403,7 +406,7 @@ fn transform_keys_and_delete_act_on_the_selection_with_their_refusals() {
         "reason-place-only"
     );
     let (a, b) = (
-        rep_with(&s, "ew.iec.heater@qet10"),
+        rep_with(&s, "ew.iec.pushbutton-no@qet10"),
         rep_with(&s, "ew.iec.lamp@qet10"),
     );
     let centre = |r: &TableRep| ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2);
@@ -411,10 +414,10 @@ fn transform_keys_and_delete_act_on_the_selection_with_their_refusals() {
     click(&mut s, pt9, json!({}));
     // R on one representation: a quarter turn.
     done(&mut s, "tool.rotate_cw", json!({}));
-    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").orient, 1);
+    assert_eq!(rep_with(&s, "ew.iec.pushbutton-no@qet10").orient, 1);
     // V: the next letter (B → C).
     done(&mut s, "tool.next_variant", json!({}));
-    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").orient, 2);
+    assert_eq!(rep_with(&s, "ew.iec.pushbutton-no@qet10").orient, 2);
     let pt10 = sheet(&s, centre(&rep_with(&s, "ew.iec.lamp@qet10")));
     click(&mut s, pt10, json!({"shift": true}));
     assert_eq!(refused(&mut s, "tool.next_variant", json!({})), "reason-one-rep");
@@ -433,7 +436,7 @@ fn transform_keys_and_delete_act_on_the_selection_with_their_refusals() {
 #[test]
 fn change_symbol_previews_and_commits_on_one_representation() {
     let tmp = Tmp::new("exchange");
-    let mut s = shell(&tmp, "101");
+    let mut s = shell(&tmp, "102");
     let e56 = rep_with(&s, "ew.iec.lamp@qet10");
     let centre = ((e56.body[0] + e56.body[2]) / 2, (e56.body[1] + e56.body[3]) / 2);
     assert_eq!(
@@ -449,7 +452,7 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     // A symbol of another function definition with no CP matching by designation: the preview is refused because a
     // symbol CP would draw a function CP by no decision of the map's, which leaves no CP unmapped: the
     // ghost names none, before the dwell too: the map comes from the two shapes.
-    done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
+    done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.pushbutton-no@qet10"}));
     assert_eq!(s.tool().name(), "exchange");
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(ghost(&s)["unmapped"], json!([]));
@@ -457,11 +460,11 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     assert_eq!(state(&s)["canvas"]["preview"]["state"], "failed");
     let g = ghost(&s);
     assert_eq!(g["kind"], "exchange");
-    assert_eq!(g["symbol"], "ew.iec.heater@qet10");
+    assert_eq!(g["symbol"], "ew.iec.pushbutton-no@qet10");
     assert_eq!(g["unmapped"], json!([]));
     assert_eq!(
         describe_line(&s, "canvas ghost exchange"),
-        "canvas ghost exchange symbol \"ew.iec.heater@qet10\" unmapped none"
+        "canvas ghost exchange symbol \"ew.iec.pushbutton-no@qet10\" unmapped none"
     );
     done(&mut s, "ui.dismiss", json!({}));
     // Its own symbol again: mapped by index, nothing unmapped; the commit keeps both connections.
@@ -477,7 +480,7 @@ fn change_symbol_previews_and_commits_on_one_representation() {
 #[test]
 fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_session() {
     let tmp = Tmp::new("counts");
-    let mut s = shell(&tmp, "101");
+    let mut s = shell(&tmp, "102");
     // The first frame of the page has fetched its content.
     done(&mut s, "tool.place", json!({}));
     let calls = s.session_calls();
@@ -539,7 +542,7 @@ fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_sessi
     );
     // A drag of a representation with Select: pointer moves call no Session; the release commits once.
     done(&mut s, "ui.dismiss", json!({}));
-    let e55 = rep_with(&s, "ew.iec.heater@qet10");
+    let e55 = rep_with(&s, "ew.iec.pushbutton-no@qet10");
     let centre = ((e55.body[0] + e55.body[2]) / 2, (e55.body[1] + e55.body[3]) / 2);
     let from = sheet(&s, centre);
     done(&mut s, "canvas.press", at(from, json!({})));
@@ -688,14 +691,14 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
 #[test]
 fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     let tmp = Tmp::new("designation");
-    let mut s = shell(&tmp, "103");
+    let mut s = shell(&tmp, "102");
     let p = grid_point(&s, (70, 40));
     let here = sheet(&s, p);
-    // Designation 1 is used in -X1031: the commit is refused and the designation stays 1.
+    // Designation 1 is used in -X1021: the commit is refused and the designation stays 1.
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "1"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021", "designation": "1"}),
     );
     done(&mut s, "canvas.pointer", at(here, json!({})));
     let before = tables(&s).reps.len();
@@ -705,7 +708,7 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     ));
     assert_eq!(tables(&s).reps.len(), before);
     assert!(
-        describe_line(&s, "canvas ghost place").contains("strip \"-X1031:1\""),
+        describe_line(&s, "canvas ghost place").contains("strip \"-X1021:1\""),
         "kept"
     );
     done(&mut s, "ui.dismiss", json!({}));
@@ -713,22 +716,22 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "30"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021", "designation": "30"}),
     );
     done(&mut s, "canvas.press", at(here, json!({})));
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:31\""));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1021:31\""));
     done(&mut s, "ui.dismiss", json!({}));
     // A designation that is not decimal digits: after the commit the tool asks again; a click is refused until
     // `text.input` gives the next one.
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "PE7"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021", "designation": "PE7"}),
     );
     let q = grid_point(&s, (76, 40));
     let there = sheet(&s, q);
     done(&mut s, "canvas.press", at(there, json!({})));
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:?\""));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1021:?\""));
     let count = tables(&s).reps.len();
     assert_eq!(
         refused(&mut s, "canvas.press", at(there, json!({}))),
@@ -742,32 +745,33 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     assert_eq!(tables(&s).reps.len(), count + 1);
 }
 
-/// FT-1546: the counter fills a gap and then skips the designations in use. -X1031's lowest free designation is 21;
-/// with 22 placed first, the tool proposes 21, and after placing it proposes 23, not 22 (which the command refuses).
+/// FT-1546: the counter fills a gap and then skips the designations in use. -X1021's lowest free designation is 9
+/// (the sample's script numbers it 1 to 8); with 10 placed first, the tool proposes 9, and after placing it proposes
+/// 11, not 10 (which the command refuses).
 #[test]
 fn the_terminal_counter_skips_a_designation_in_use_after_filling_a_gap() {
     let tmp = Tmp::new("gap");
-    let mut s = shell(&tmp, "103");
+    let mut s = shell(&tmp, "102");
     let first = sheet(&s, grid_point(&s, (70, 40)));
     let second = sheet(&s, grid_point(&s, (76, 40)));
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "22"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021", "designation": "10"}),
     );
     done(&mut s, "canvas.press", at(first, json!({})));
     done(&mut s, "ui.dismiss", json!({}));
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021"}),
     );
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:21\""));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1021:9\""));
     let count = tables(&s).reps.len();
     done(&mut s, "canvas.press", at(second, json!({})));
     assert_eq!(tables(&s).reps.len(), count + 1);
     let line = describe_line(&s, "canvas ghost place");
-    assert!(line.contains("strip \"-X1031:23\""), "{line}");
+    assert!(line.contains("strip \"-X1021:11\""), "{line}");
 }
 
 /// A terminal symbol without a strip opens the picker's strip chooser (every strip of the project by tag, the
@@ -775,14 +779,14 @@ fn the_terminal_counter_skips_a_designation_in_use_after_filling_a_gap() {
 #[test]
 fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let tmp = Tmp::new("strips");
-    let mut s = shell(&tmp, "103");
+    let mut s = shell(&tmp, "102");
     done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
     let picker = state(&s)["canvas"]["picker"].clone();
     assert_eq!(picker["mode"], "strip");
     let text = s.describe();
-    assert!(text.contains("  row strip \"-X1031\" terminal \"21\""), "{text}");
-    assert!(text.contains("  row strip \"-X1032\" terminal \"6\""), "{text}");
-    done(&mut s, "picker.filter", json!({"text": "1032"}));
+    assert!(text.contains("  row strip \"-X1011\" terminal \"1\""), "{text}");
+    assert!(text.contains("  row strip \"-X1021\" terminal \"9\""), "{text}");
+    done(&mut s, "picker.filter", json!({"text": "1021"}));
     assert_eq!(s.picker().unwrap().rows.len(), 1);
     done(&mut s, "picker.choose", json!({}));
     assert!(s.picker().is_none());
@@ -790,7 +794,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let here = sheet(&s, grid_point(&s, (82, 40)));
     done(&mut s, "canvas.pointer", at(here, json!({})));
     let line = describe_line(&s, "canvas ghost place");
-    assert!(line.contains("strip \"-X1032:6\""), "{line}");
+    assert!(line.contains("strip \"-X1021:9\""), "{line}");
     done(&mut s, "ui.dismiss", json!({}));
     // A new strip while the chooser is open: listed, current, and its tag is the model's.
     done(
@@ -804,7 +808,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
     assert_eq!(
         toast,
-        "New terminal strip; its first terminal tags it, such as -X1033: Draw ▸ Terminal… places its terminals."
+        "New terminal strip; its first terminal tags it, such as -X1022: Draw ▸ Terminal… places its terminals."
     );
     let p = s.picker().expect("the chooser stays open");
     assert_eq!(p.rows.len(), before + 1);
@@ -835,7 +839,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let (numbered, rest) = label.split_once(':').expect("tag:designation");
     assert!(rest.starts_with('1'), "{label}");
     assert_ne!(numbered, tag, "numbered by its first terminal");
-    assert_eq!(numbered, "-X1033", "the toast's example");
+    assert_eq!(numbered, "-X1022", "the toast's example");
     let line = describe_line(&s, "canvas ghost place");
     assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
@@ -845,11 +849,11 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
 #[test]
 fn after_an_undo_the_place_tool_proposes_the_number_it_freed() {
     let tmp = Tmp::new("terminal-undo");
-    let mut s = shell(&tmp, "103");
+    let mut s = shell(&tmp, "102");
     done(
         &mut s,
         "place.pick",
-        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1032"}),
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1021"}),
     );
     let (a, b) = (
         sheet(&s, grid_point(&s, (82, 40))),
@@ -858,50 +862,49 @@ fn after_an_undo_the_place_tool_proposes_the_number_it_freed() {
     click(&mut s, a, json!({}));
     click(&mut s, b, json!({}));
     done(&mut s, "canvas.pointer", at(a, json!({})));
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1032:8\""));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1021:11\""));
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(s.tool().name(), "place");
     done(&mut s, "canvas.pointer", at(b, json!({})));
     assert_eq!(
         describe_line(&s, "canvas ghost place"),
         "canvas ghost place symbol \"ew.iec.terminal@qet10\" variant \"A\" rep \"multi_line\" at 227.542 105.833 mm \
-         target terminal strip \"-X1032:7\""
+         target terminal strip \"-X1021:10\""
     );
     done(&mut s, "edit.redo", json!({}));
     done(&mut s, "canvas.pointer", at(a, json!({})));
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1032:8\""));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1021:11\""));
 }
 
 /// A terminal placed from a part whose template names no clamps (EW-GEN-TRM-1) is named
-/// by its own tag, the strip's and its designation (`-X1032:7`), in the page text and the placement's toast, not by the
-/// strip's tag alone; a clamped terminal of Golden A keeps `-X1031:<n>`.
+/// by its own tag, the strip's and its designation (`-X1021:9`), in the page text and the placement's toast, not by the
+/// strip's tag alone, as the sample's own terminals of that part are (`-X1021:1`).
 #[test]
 fn a_terminal_placed_from_a_part_is_named_by_its_own_tag() {
     let tmp = Tmp::new("terminal-part");
-    let mut s = shell(&tmp, "103");
+    let mut s = shell(&tmp, "102");
     done(
         &mut s,
         "place.pick",
-        json!({"part": "EW-GEN-TRM-1", "strip": "-X1032", "designation": "7"}),
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X1021", "designation": "9"}),
     );
     let here = sheet(&s, grid_point(&s, (82, 40)));
     click(&mut s, here, json!({}));
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
-    assert!(toast.starts_with("Placed -X1032 terminal 7 at "), "{toast}");
-    done(&mut s, "page.describe", json!({"folio": "103"}));
+    assert!(toast.starts_with("Placed -X1021 terminal 9 at "), "{toast}");
+    done(&mut s, "page.describe", json!({"folio": "102"}));
     let text = s.take_page_text().expect("page.describe leaves its text");
     let reps: Vec<&str> = text.lines().filter(|l| l.starts_with("  rep ")).collect();
     assert!(
-        reps.iter().any(|l| l.starts_with("  rep \"-X1032:7\" ")),
+        reps.iter().any(|l| l.starts_with("  rep \"-X1021:9\" ")),
         "{reps:#?}"
     );
     assert!(
-        !reps.iter().any(|l| l.starts_with("  rep \"-X1032\" ")),
+        !reps.iter().any(|l| l.starts_with("  rep \"-X1021\" ")),
         "{reps:#?}"
     );
-    // Golden A's clamped terminals are named as before (its devices: `page_describe`'s expected texts).
     assert!(
-        reps.iter().any(|l| l.starts_with("  rep \"-X1031:11\" ")),
+        reps.iter().any(|l| l.starts_with("  rep \"-X1021:1\" ")),
         "{reps:#?}"
     );
 }
@@ -974,8 +977,8 @@ fn the_chooser_keeps_its_order_after_a_placement_embeds_a_part() {
     done(&mut s, "tool.place_part", json!({}));
     let before = rows(&s);
     let held_before = |n: &str| before.iter().any(|r| r.1 == n && r.3);
-    assert!(!held_before("EW-GEN-TRM-1"), "the library part is not held yet");
-    assert!(before.iter().any(|r| r.1 == "EW-GEN-TRM-1"));
+    assert!(!held_before("EW-GEN-FUS-1"), "the library part is not held yet");
+    assert!(before.iter().any(|r| r.1 == "EW-GEN-FUS-1"));
     let in_order = |v: &[(String, String, u16, bool)]| {
         let keys: Vec<(&str, &str)> = v.iter().map(|r| (r.0.as_str(), r.1.as_str())).collect();
         let mut sorted = keys.clone();
@@ -985,18 +988,14 @@ fn the_chooser_keeps_its_order_after_a_placement_embeds_a_part() {
     assert!(in_order(&before), "maker, then part number");
     done(&mut s, "ui.dismiss", json!({}));
     // The placement embeds the part with its closure.
-    done(
-        &mut s,
-        "place.pick",
-        json!({"part": "EW-GEN-TRM-1", "strip": "-X1032", "designation": "7"}),
-    );
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-FUS-1"}));
     let here = sheet(&s, grid_point(&s, (82, 40)));
     click(&mut s, here, json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.place_part", json!({}));
     let after = rows(&s);
     assert!(
-        after.iter().any(|r| r.1 == "EW-GEN-TRM-1" && r.3),
+        after.iter().any(|r| r.1 == "EW-GEN-FUS-1" && r.3),
         "the part is held after its placement"
     );
     let rows_of = |v: &[(String, String, u16, bool)]| -> Vec<(String, String, u16)> {
@@ -1110,7 +1109,7 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
         let (_, folio) = rows
             .iter()
             .find(|(k, _)| k == kind)
-            .unwrap_or_else(|| panic!("Golden A has a {kind} page: {rows:?}"));
+            .unwrap_or_else(|| panic!("the sample has a {kind} page: {rows:?}"));
         done(&mut s, "page.goto", json!({ "folio": folio }));
         let reason = (wire.enabled)(&s).expect_err(kind);
         assert_eq!(ew_viewmodel::strings::text(reason), text, "{kind} {folio}");
@@ -1122,8 +1121,8 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
 #[test]
 fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {
     let tmp = Tmp::new("pending");
-    let mut s = shell(&tmp, "101");
-    let e55 = rep_with(&s, "ew.iec.heater@qet10");
+    let mut s = shell(&tmp, "102");
+    let e55 = rep_with(&s, "ew.iec.pushbutton-no@qet10");
     let centre = ((e55.body[0] + e55.body[2]) / 2, (e55.body[1] + e55.body[3]) / 2);
     let c = sheet(&s, centre);
     click(&mut s, c, json!({}));
@@ -1167,8 +1166,8 @@ fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {
     assert!(s.tool_overlay().is_empty());
 }
 
-/// A numbering scheme whose tags print the anchor cell's column (`-101F1.8`), set on a copy of Golden A, so that a
-/// move of an existing device changes its tag (Golden A's own page-based tags change neither with a move on
+/// A numbering scheme whose tags print the anchor cell's column (`-101F1.8`), set on a copy of the sample, so that a
+/// move of an existing device changes its tag (the sample's own page-based tags change neither with a move on
 /// the page nor with a structure box, whose location the displayed tag omits).
 fn column_numbering(s: &mut ShellModel) {
     let numbering = json!({"default": "page-based", "schemes": [
@@ -1188,7 +1187,8 @@ fn moving_an_existing_device_changes_its_tag_in_the_preview() {
     let tmp = Tmp::new("ft502");
     let mut s = shell(&tmp, "101");
     column_numbering(&mut s);
-    let before = rep_with(&s, "ew.iec.mcb-1pn@qet10");
+    let before = rep_with(&s, "ew.iec.mcb-2p@qet10");
+
     let centre = (
         (before.body[0] + before.body[2]) / 2,
         (before.body[1] + before.body[3]) / 2,
