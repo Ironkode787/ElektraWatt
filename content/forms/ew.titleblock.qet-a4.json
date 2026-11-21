@@ -3,8 +3,8 @@
   "id": "496e5258-a93b-5354-84af-c2c185e84d54",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d38c6aef-caca-5f8f-bca6-b885a286739e",
-  "version": "1.0.0",
-  "sha256": "sha256:f4cacf8dbcde3441d4d5aac9cebb7099f48cb25302a915c630ea911b79afc78a",
+  "version": "1.1.0",
+  "sha256": "sha256:600a9c2977e9c7fb8d723e83a0ce4b3fc016e87a9065cb221b7e972940ccedbd",
   "kind": "title_block",
   "sheet": {
     "width": 275166667,
@@ -248,7 +248,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Project:"
+        "en-GB": "Project:",
+        "nl-NL": "Project:"
       },
       "value": "{project.reference}",
       "style": "data.small",
@@ -271,7 +272,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Description:"
+        "en-GB": "Description:",
+        "nl-NL": "Omschrijving:"
       },
       "value": "{page.description}",
       "style": "data.small",
@@ -294,7 +296,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Drawing:"
+        "en-GB": "Drawing:",
+        "nl-NL": "Tekening:"
       },
       "value": "{project.drawing_id}",
       "style": "data.small",
@@ -317,7 +320,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Revision:"
+        "en-GB": "Revision:",
+        "nl-NL": "Revisie:"
       },
       "value": "{revision.current.label}",
       "style": "data.small",
@@ -380,7 +384,8 @@
         ]
       ],
       "label": {
-        "en-GB": "End user:"
+        "en-GB": "End user:",
+        "nl-NL": "Eindgebruiker:"
       },
       "value": "{party.end_user.name}",
       "style": "data.small",
@@ -403,7 +408,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Object:"
+        "en-GB": "Object:",
+        "nl-NL": "Object:"
       },
       "value": "{project.object}",
       "style": "data.small",
@@ -426,7 +432,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Checked:"
+        "en-GB": "Checked:",
+        "nl-NL": "Gecontroleerd:"
       },
       "value": "{revision.current.checker.name}",
       "style": "data.small",
@@ -449,7 +456,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Author:"
+        "en-GB": "Author:",
+        "nl-NL": "Getekend:"
       },
       "value": "{revision.current.author.name}",
       "style": "data.small",
@@ -472,7 +480,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Creation:"
+        "en-GB": "Creation:",
+        "nl-NL": "Aangemaakt:"
       },
       "value": "{project.created | date}",
       "style": "pin",
@@ -495,7 +504,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Saved:"
+        "en-GB": "Saved:",
+        "nl-NL": "Opgeslagen:"
       },
       "value": "{project.edited | date}",
       "style": "pin",
@@ -518,7 +528,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Page:"
+        "en-GB": "Page:",
+        "nl-NL": "Blad:"
       },
       "value": "{page.folio}",
       "style": "text.normal",
@@ -541,7 +552,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Prev:"
+        "en-GB": "Prev:",
+        "nl-NL": "Vorige:"
       },
       "value": "{page.prev}",
       "style": "pin",
@@ -564,7 +576,8 @@
         ]
       ],
       "label": {
-        "en-GB": "Next:"
+        "en-GB": "Next:",
+        "nl-NL": "Volgende:"
       },
       "value": "{page.next}",
       "style": "pin",

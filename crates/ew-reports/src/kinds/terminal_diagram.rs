@@ -21,7 +21,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// Row ID: `(strip, terminal, level)`, the level being 1 (multi-level terminals get a row per level with
 /// their level terminals, not modelled yet).
 ///
-/// `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
+/// `strip` is the strip's tag, so that two strips' terminals of one number read apart (FT-1805). `label` is the
+/// terminal's function text (the "1+" of the reference), `group` the caption of the strip
 /// group that holds its `seq`. `side1` and `side2` list what is wired to the terminal's CPs of that side
 /// (a CP without a side lists on side 1): the far end of
 /// each wire, `via` the cable and core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).
@@ -39,15 +40,16 @@ impl ReportKindDef for TerminalDiagram {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("terminal", CellType::Ident, "Terminal").weighted(7),
-            ColumnDef::new("label", CellType::Text, "Function text").weighted(8),
-            ColumnDef::new("group", CellType::Text, "Group").weighted(9),
-            ColumnDef::new("part", CellType::Ident, "Part").weighted(11),
-            ColumnDef::new("potential", CellType::Ident, "Potential").weighted(9),
-            ColumnDef::new("side1", CellType::Text, "Side 1 (clamp a)").weighted(21),
-            ColumnDef::new("side2", CellType::Text, "Side 2 (clamp b)").weighted(24),
-            ColumnDef::new("bridge", CellType::Ident, "Bridge").weighted(6),
-            ColumnDef::new("state", CellType::Text, "State").weighted(7),
+            ColumnDef::new("strip", CellType::Tag, "Strip", "Klemmenstrook").weighted(8),
+            ColumnDef::new("terminal", CellType::Ident, "Terminal", "Klem").weighted(7),
+            ColumnDef::new("label", CellType::Text, "Function text", "Functietekst").weighted(8),
+            ColumnDef::new("group", CellType::Text, "Group", "Groep").weighted(9),
+            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(11),
+            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(9),
+            ColumnDef::new("side1", CellType::Text, "Side 1 (clamp a)", "Zijde 1 (aansluiting a)").weighted(21),
+            ColumnDef::new("side2", CellType::Text, "Side 2 (clamp b)", "Zijde 2 (aansluiting b)").weighted(24),
+            ColumnDef::new("bridge", CellType::Ident, "Bridge", "Brug").weighted(6),
+            ColumnDef::new("state", CellType::Text, "State", "Status").weighted(7),
         ]
     }
 
@@ -117,6 +119,7 @@ impl ReportKindDef for TerminalDiagram {
                         RowKey::Index(1),
                     ]),
                     vec![
+                        Cell::Tag(strip),
                         Cell::Ident(term.designation.as_str().to_owned()),
                         if dev.function_text.is_empty() {
                             Cell::Empty
@@ -129,7 +132,11 @@ impl ReportKindDef for TerminalDiagram {
                         text_cell(side1.join(", ")),
                         text_cell(side2.join(", ")),
                         bridge.map_or(Cell::Empty, |b| Cell::Ident(b.label.clone())),
-                        Cell::Text(MlText::neutral(state)),
+                        Cell::Text(MlText::from_langs(
+                            [("en-GB", state.0), ("nl-NL", state.1)]
+                                .into_iter()
+                                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
+                        )),
                     ],
                 );
                 r.sources = vec![t.cast(), strip.cast()];

@@ -52,7 +52,7 @@ pub fn rows_csv(q: &Q, set: &RowSet) -> String {
         .chain(
             set.columns
                 .iter()
-                .map(|c| csv_field(c.label.as_neutral().unwrap_or(&c.key))),
+                .map(|c| csv_field(c.english())),
         )
         .collect();
     out.push_str(&header.join(","));

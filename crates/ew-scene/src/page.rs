@@ -23,7 +23,7 @@
 //! | [`Layer::Symbols`] | `reps`, `break_marks`, `items`, `structure_boxes` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path; then the CP destinations; then the graphics and structure-box outlines ([`crate::items`]) |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes`, `strip_tags` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then the pin texts; then per strip tag (by representation ID): the strip's tag at its terminal ([`StripTagView`]); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
-//! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables, or the boxed report table of any other kind: PART DATA, the layout legend) |
+//! | [`Layer::Tables`] | `frame`, `table`, `embedded` | [`crate::table::lower_table`]: the report table of a generated page in its frame's list area; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables, or the boxed report table of any other kind: PART DATA, the layout legend) |
 //! | [`Layer::Surface`], [`Layer::Carriers`], [`Layer::Placements`] | `panel` | the surface view of a panel-layout page ([`crate::panel`]); the labels layer adds its placement labels after the texts above |
 //! | others | — | empty: revision marks, highlights, features and dimensions arrive with their work packages |
 //!
@@ -128,7 +128,7 @@ use ew_dl::{
 use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
-    Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind,
+    Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind, ListArea,
     Page, Representation, SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, LineSpan, Shaped, TextStyle, TextStyleTable, VerticalMetrics};
@@ -971,7 +971,12 @@ impl Builder<'_> {
             .as_ref()
             .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
         if let Some(table) = &view.table {
-            let lowered = lower_table(table, sheet, self.fonts, self.styles);
+            let (caption, legend) = (table.caption.is_some(), table.legend.is_some());
+            let area = view.frame.as_ref().map_or_else(
+                || ListArea::house(caption, legend),
+                |f| f.form.list_area(f.title_block.as_deref(), caption, legend),
+            );
+            let lowered = lower_table(table, &area, sheet, self.fonts, self.styles);
             for item in lowered.items {
                 self.push(item);
             }

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The built-in QET A4 frames and title block under `content/forms`: strict parse, canonical text, identities,
-//! geometry and cell layout.
+//! The built-in QET frames and title blocks under `content/forms` (A4, and the A3 pair of FT-1826): strict parse,
+//! canonical text, identities, geometry and cell layout.
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
 #![allow(clippy::disallowed_methods)]
@@ -18,10 +18,14 @@ use sha2::Digest;
 const TITLE_BLOCK: &str = include_str!("../../../../content/forms/ew.titleblock.qet-a4.json");
 const FRAME_GRID: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-grid.json");
 const FRAME_NOGRID: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
+const TITLE_BLOCK_A3: &str = include_str!("../../../../content/forms/ew.titleblock.qet-a3.json");
+const FRAME_A3: &str = include_str!("../../../../content/forms/ew.frame.qet-a3-landscape-grid.json");
 
 const TITLE_BLOCK_KEY: &str = "ew.titleblock.qet-a4";
 const FRAME_GRID_KEY: &str = "ew.frame.qet-a4-landscape-grid";
 const FRAME_NOGRID_KEY: &str = "ew.frame.qet-a4-landscape-nogrid";
+const TITLE_BLOCK_A3_KEY: &str = "ew.titleblock.qet-a3";
+const FRAME_A3_KEY: &str = "ew.frame.qet-a3-landscape-grid";
 
 /// The provisional built-in library (decision), as in `ew-import-qet`.
 const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
@@ -115,12 +119,14 @@ macro_rules! to_value {
     };
 }
 
-fn documents() -> [(&'static str, &'static str, &'static str); 4] {
+fn documents() -> [(&'static str, &'static str, &'static str); 6] {
     [
         (TITLE_BLOCK_KEY, TITLE_BLOCK, "title_block"),
         (FRAME_GRID_KEY, FRAME_GRID, "frame"),
         (FRAME_NOGRID_KEY, FRAME_NOGRID, "frame"),
         (FRAME_COVER_KEY, FRAME_COVER, "frame"),
+        (TITLE_BLOCK_A3_KEY, TITLE_BLOCK_A3, "title_block"),
+        (FRAME_A3_KEY, FRAME_A3, "frame"),
     ]
 }
 
@@ -149,7 +155,9 @@ fn identities_hash_and_meta() {
         assert_eq!(copy.library_id.as_uuid(), BUILTIN_LIBRARY, "{key}");
         assert_eq!(copy.item_id.as_uuid(), item, "{key}");
         assert_eq!(copy.id, id, "{key}");
-        assert_eq!(copy.version, "1.0.0", "{key}");
+        // The A4 title block took its Dutch labels in 1.1.0 (FT-1874).
+        let version = if key == TITLE_BLOCK_KEY { "1.1.0" } else { "1.0.0" };
+        assert_eq!(copy.version, version, "{key}");
         let digest = sha2::Sha256::digest(serde_json::to_string(&copy.item).unwrap().as_bytes());
         assert_eq!(copy.sha256, Sha256(digest.into()), "{key}: stale sha256");
         assert_eq!(to_value!(copy.item.kind), json!(kind), "{key}");
@@ -247,8 +255,11 @@ fn title_block_cells() {
             (px(x0), px(y0), px(x1), px(y1)),
             "cell {n}"
         );
-        let expect_label = label.map_or(Value::Null, |l| json!({"en-GB": l}));
-        assert_eq!(to_value!(cell.label), expect_label, "cell {n}");
+        // Every label in English as before, and in Dutch (FT-1874).
+        let english = to_value!(cell.label).get("en-GB").cloned().unwrap_or(Value::Null);
+        assert_eq!(english, label.map_or(Value::Null, |l| json!(l)), "cell {n}");
+        let dutch = to_value!(cell.label).get("nl-NL").cloned();
+        assert_eq!(dutch.is_some(), label.is_some(), "cell {n}");
         assert_eq!(cell.value.as_deref(), Some(value), "cell {n}");
         assert_eq!(to_value!(cell.style), json!(style), "cell {n}");
         assert_eq!(to_value!(cell.align), json!(align), "cell {n}");

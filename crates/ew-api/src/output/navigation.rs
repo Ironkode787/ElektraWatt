@@ -789,16 +789,21 @@ impl Session {
         let entry = order.by_folio(folio)?;
         let table = q.get::<PageTableOf>(entry.page);
         let t = table.as_ref().as_ref()?;
-        // The house table's rows (`ew_scene::table`): the header, then the rows drawn, or the note's one row.
-        use ew_scene::table::{LEFT, MAX_ROWS, RIGHT, ROW_HEIGHT, TOP};
+        // The table's rows in its frame's list area (`ew_scene::table`): the header, then the rows drawn, or the note's
+        // one row, then the legend's; the foot is the row under them.
+        let (caption, legend) = (t.caption.is_some(), t.legend.is_some());
+        let area = q.get::<PageFrameOf>(entry.page).as_ref().as_ref().map_or_else(
+            || ew_schema::ListArea::house(caption, legend),
+            |f| f.form.list_area(f.title_block.as_deref(), caption, legend),
+        );
         let drawn = if t.note.is_some() {
             1
         } else {
-            t.rows.len().min(MAX_ROWS)
+            i64::try_from(t.rows.len()).unwrap_or(i64::MAX).min(area.rows)
         };
-        let top = TOP.0 + ROW_HEIGHT.0 * (1 + drawn as i64);
+        let top = area.row_top(drawn + i64::from(legend)).0;
         Some(PageListTable {
-            foot: [LEFT.0, top, RIGHT.0, top + ROW_HEIGHT.0],
+            foot: [area.left.0, top, area.right.0, top + ew_scene::table::ROW_HEIGHT.0],
             columns: t.columns.iter().map(|c| c.header.clone()).collect(),
             rows: t
                 .rows

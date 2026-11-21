@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
-//! §3.2).
+//! §3.2), and the frame a list's pages print on (§3.8).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{
-    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, RowTemplate, WrapPolicy,
+    DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, ReportBlock, RowTemplate, WrapPolicy,
 };
 use ew_derive::ew_units::Nm;
-use ew_derive::{DeriveNote, Q};
+use ew_derive::{DeriveNote, FrameSettings, Q};
 
 use crate::rowset::RowKind;
 
@@ -38,13 +38,20 @@ pub struct PageLayout {
 }
 
 impl PageLayout {
-    /// The house report form's geometry for a form without a data area (the standard layout's blocks name
-    /// the no-grid frame): 23 rows of 6.52 mm, no group templates, no wrapping. Until report layouts join the
-    /// derivation profile (doc 09 §3.7), this fallback lives here.
+    /// The house report form's geometry, for a form copy that is missing or whose data area is invalid: 23 rows
+    /// of 6.52 mm, no group templates, no wrapping. Until report layouts join the derivation profile (doc 09 §3.7),
+    /// this fallback lives here.
     pub fn house(form: Id<FormDef>) -> PageLayout {
+        PageLayout::listed(form, HOUSE_ROWS_PER_PAGE)
+    }
+
+    /// The geometry of a frame without a data area (the standard layout's blocks name the no-grid frame): `rows` rows
+    /// of 6.52 mm, as many as its list area holds ([`FormDef::list_area`], doc 09 §3.8), no group templates, no
+    /// wrapping.
+    pub fn listed(form: Id<FormDef>, rows: i64) -> PageLayout {
         PageLayout {
             form,
-            capacity: Nm(HOUSE_ROW_HEIGHT.0 * HOUSE_ROWS_PER_PAGE),
+            capacity: Nm(HOUSE_ROW_HEIGHT.0.saturating_mul(rows)),
             data: HOUSE_ROW_HEIGHT,
             group_header: None,
             group_footer: None,
@@ -176,11 +183,28 @@ impl Layouts {
         }
     }
 
-    /// The chain of `form` in `q`'s snapshot. A form copy that is missing, or has no data area, uses the
-    /// house geometry ([`PageLayout::house`]; so does one whose data area gives an invalid layout, with a
-    /// [`DeriveNote::MalformedShim`] warning, FR-REP-039); the chain stops at a repeat (cycle-safe) or
-    /// after 16 forms.
+    /// The chain of the pages of `block`: [`Layouts::of_form`] of the frame its pages print on ([`list_frame`]), the
+    /// rows of a frame without a data area less a row for the block's caption and one for its legend (doc 09 §3.8).
+    pub fn of_block(q: &Q, block: &ReportBlock) -> Layouts {
+        Layouts::chain(
+            q,
+            list_frame(q, block.form),
+            !block.caption.is_empty(),
+            !block.legend.is_empty(),
+        )
+    }
+
+    /// The chain of `form` in `q`'s snapshot, without a caption or a legend. A form whose data area gives an invalid
+    /// layout uses the house geometry ([`PageLayout::house`], with a [`DeriveNote::MalformedShim`] warning,
+    /// FR-REP-039); one without a data area holds the rows of its list area ([`PageLayout::listed`]), a form copy that
+    /// is missing those of the house table ([`ListArea::house`]); the chain stops at a repeat (cycle-safe) or after
+    /// 16 forms.
     pub fn of_form(q: &Q, form: Id<FormDef>) -> Layouts {
+        Layouts::chain(q, form, false, false)
+    }
+
+    /// [`Layouts::of_form`] with a caption row and a legend row as asked.
+    fn chain(q: &Q, form: Id<FormDef>, caption: bool, legend: bool) -> Layouts {
         let mut chain: Vec<PageLayout> = Vec::new();
         let mut next = Some(form);
         while let Some(id) = next {
@@ -205,11 +229,39 @@ impl Layouts {
                         }
                     }
                 }
-                None => PageLayout::house(id),
+                None => {
+                    let rows = match copy {
+                        Some(c) => list_rows(q, &c.item, caption, legend),
+                        None => ListArea::house(caption, legend).rows,
+                    };
+                    PageLayout::listed(id, rows)
+                }
             };
             chain.push(layout);
             next = copy.and_then(|c| c.item.continuation);
         }
         Layouts { chain }
+    }
+}
+
+/// The data rows a page of a list holds on `form` (its list area with its title block, doc 09 §3.8).
+pub fn list_rows(q: &Q, form: &FormDef, caption: bool, legend: bool) -> i64 {
+    let title_block = form.title_block.and_then(|t| q.forms().get(t));
+    form.list_area(title_block.map(|c| &c.item), caption, legend).rows
+}
+
+/// The frame the pages of a block on `form` print on (doc 09 §3.8): `form`, on the set's paper. When the set's frame
+/// (the frame defaults' `default`, a form the project holds) has another sheet size than `form`, the set's frame;
+/// so a set made A3 prints its lists on A3. A project without frame defaults, or a form it does not hold, keeps
+/// `form`.
+pub fn list_frame(q: &Q, form: Id<FormDef>) -> Id<FormDef> {
+    let size = |id: Id<FormDef>| {
+        q.forms()
+            .get(id)
+            .map(|c| (c.item.sheet.width, c.item.sheet.height))
+    };
+    match (size(form), q.get::<FrameSettings>(()).default) {
+        (Some(own), Some(set)) if size(set).is_some_and(|s| s != own) => set,
+        _ => form,
     }
 }

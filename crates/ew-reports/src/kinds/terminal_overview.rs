@@ -42,14 +42,14 @@ impl ReportKindDef for TerminalOverview {
     /// "103-A3, 103-A10") at the house cap height, the free-text columns Parts and Segments with the most room.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("strip", CellType::Ident, "Strip").weighted(25),
-            ColumnDef::new("location", CellType::Ident, "Location (+)").weighted(30),
-            ColumnDef::new("terminals", CellType::Number, "Terminals").weighted(22),
-            ColumnDef::new("used", CellType::Number, "Used").weighted(16),
-            ColumnDef::new("spare", CellType::Number, "Spare").weighted(16),
-            ColumnDef::new("other", CellType::Number, "Other").weighted(16),
-            ColumnDef::new("parts", CellType::Text, "Parts").weighted(80),
-            ColumnDef::new("segments", CellType::Text, "Segments").weighted(56),
+            ColumnDef::new("strip", CellType::Ident, "Strip", "Klemmenstrook").weighted(25),
+            ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(30),
+            ColumnDef::new("terminals", CellType::Number, "Terminals", "Klemmen").weighted(22),
+            ColumnDef::new("used", CellType::Number, "Used", "Gebruikt").weighted(16),
+            ColumnDef::new("spare", CellType::Number, "Spare", "Reserve").weighted(16),
+            ColumnDef::new("other", CellType::Number, "Other", "Overig").weighted(16),
+            ColumnDef::new("parts", CellType::Text, "Parts", "Artikelen").weighted(80),
+            ColumnDef::new("segments", CellType::Text, "Segments", "Segmenten").weighted(56),
         ]
     }
 
@@ -71,7 +71,7 @@ impl ReportKindDef for TerminalOverview {
             for (_, t) in &terminals {
                 let Some(dev) = q.devices().get(*t) else { continue };
                 let bridged = bridges.iter().any(|b| b.terminals.contains(t));
-                match terminal_state(&dev.state, terminal_wired(q, *t, &by_cp), bridged) {
+                match terminal_state(&dev.state, terminal_wired(q, *t, &by_cp), bridged).0 {
                     "used" => used += 1,
                     "spare" => spare += 1,
                     _ => other += 1,

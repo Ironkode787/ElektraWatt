@@ -10,20 +10,26 @@
 //!
 //! # Geometry
 //!
-//! The house form of the reference drawing, in printed (sheet) millimetres, converted to page coordinates
-//! with the inverse of the frame form's map ([`SheetMap::unapply`]): table x 16.31 to 277.27 mm, top edge
-//! at 15.01 mm, header and data rows [`ROW_HEIGHT`] (6.52 mm), header fill [`HEADER_FILL`] (#C0C0C0), grid
+//! The table stands where the frame's list area puts it ([`ListArea`], doc 09 §3.8), in printed (sheet)
+//! millimetres, converted to page coordinates with the inverse of the frame form's map ([`SheetMap::unapply`]); on
+//! the starter A4 frame that is the house form of the reference drawing: table x 16.31 to 277.27 mm, top edge at
+//! 15.01 mm. Header and data rows [`ROW_HEIGHT`] (6.52 mm), header fill [`HEADER_FILL`] (#C0C0C0), grid
 //! lines [`LINE_WIDTH`] (0.183 mm), text style `text.normal` (8.88 pt), left aligned and centred on the row's
 //! midline, inset by [`CELL_PADDING`]. Column widths split the table width by the columns' weights
 //! (the integer rounding of a cumulative share, so the edges are exact and the last edge is the right
 //! edge). Where a text of the page would be cut (see "Overflow"), the columns with room to spare give it to the
 //! columns that cut, up to the width their widest text takes at the full size ([`widened`]).
 //!
+//! A caption ([`TableView::caption`]) stands in its own row above the header in style [`CAPTION_STYLE`], a legend
+//! ([`TableView::legend`]) in a row directly under the last row drawn, in the rows' style; both left aligned, without
+//! lines, shrunk, cut and reported as a cell is.
+//!
 //! # Paint order
 //!
 //! The header fill; then the grid, each line once: the outline, the row separators and the column
-//! separators (a heading row, which spans every column, has none); then the header texts and the row texts
-//! in row order. Only the rows given are drawn: the table ends below the last row, as on the reference.
+//! separators (a heading row, which spans every column, has none); then the caption, the header texts, the row
+//! texts in row order and the legend. Only the rows given are drawn: the table ends below the last row, as on the
+//! reference.
 //!
 //! # Overflow
 //!
@@ -43,27 +49,21 @@
 use std::ops::Range;
 
 use ew_dl::{Brush, Color, Destination, Item, Link, Path, Stroke};
-use ew_schema::{Overflow, ShrinkSpec};
+use ew_schema::{ListArea, Overflow, ShrinkSpec};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out};
 use crate::page::span_quads;
 
-/// The left edge of the table, printed.
-pub const LEFT: Nm = Nm(16_310_000);
-/// The right edge of the table, printed.
-pub const RIGHT: Nm = Nm(277_270_000);
-/// The top edge of the table (the top of the header row), printed.
-pub const TOP: Nm = Nm(15_010_000);
 /// The height of the header and of every row, printed (doc 20 §16).
 pub const ROW_HEIGHT: Nm = ew_schema::HOUSE_ROW_HEIGHT;
 /// The grid line width, printed.
 pub const LINE_WIDTH: Nm = Nm(183_000);
 /// The header fill.
 pub const HEADER_FILL: Color = Color::from_rgb8(192, 192, 192);
-/// The most rows below the header the house form holds (doc 20 §16: 23 data rows per page).
-pub const MAX_ROWS: usize = ew_schema::HOUSE_ROWS_PER_PAGE as usize;
+/// The style of a caption: the title style of the embedded boxes.
+pub const CAPTION_STYLE: &str = crate::embedded::BOX_TITLE_STYLE;
 /// The smallest printed cap height of shrink-to-fit (doc 09 §2.5; the 1.8 mm of REF-088).
 pub const MIN_CAP_HEIGHT: Nm = Nm(1_800_000);
 
@@ -129,6 +129,10 @@ pub struct TableView {
     /// A text printed in one row spanning every column instead of `rows` (the placeholder of a row
     /// source that is not derived yet, or an empty block's text).
     pub note: Option<String>,
+    /// The line above the header (the block's caption), `None` for none; drawn where the list area has a caption row.
+    pub caption: Option<String>,
+    /// The line under the last row drawn (the block's legend), `None` for none.
+    pub legend: Option<String>,
 }
 
 /// What lowering a table found.
@@ -145,7 +149,7 @@ pub enum TableFinding {
         /// What happened.
         kind: OverflowKind,
     },
-    /// More rows than the house form holds ([`MAX_ROWS`]): the first `drawn` are drawn.
+    /// More rows than the page's list area holds ([`ListArea::rows`]): the first `drawn` are drawn.
     TooManyRows {
         /// The rows given.
         given: usize,
@@ -170,14 +174,9 @@ pub struct LoweredTable {
     pub findings: Vec<TableFinding>,
 }
 
-/// The column edges, printed: `columns.len() + 1` values from [`LEFT`] to [`RIGHT`], split by weight.
-pub fn column_edges(columns: &[TableColumn]) -> Vec<Nm> {
-    column_edges_in(columns, LEFT, RIGHT)
-}
-
 /// The column edges of a table spanning `left` to `right`: `columns.len() + 1` values split by weight, each edge the
-/// integer rounding of its cumulative share, the last exactly `right` (the house rule of [`column_edges`], shared with
-/// the embedded tables of [`crate::embedded`]).
+/// integer rounding of its cumulative share, the last exactly `right` (the house rule, shared with the embedded tables
+/// of [`crate::embedded`]).
 pub fn column_edges_in(columns: &[TableColumn], left: Nm, right: Nm) -> Vec<Nm> {
     let total: i128 = columns.iter().map(|c| i128::from(c.weight)).sum();
     let width = i128::from(right.0 - left.0);
@@ -292,15 +291,24 @@ pub(crate) fn push_cell(
 /// all fit with room to spare gives some of it, in proportion to its spare room, so that the cut columns get the
 /// width their widest text takes at the full size (in proportion to what they lack, as far as the spare room goes).
 /// Without a cut text the edges stay those of the weights.
-fn widened(view: &TableView, edges: Vec<Nm>, fonts: &FontSet, style: &TextStyle, sheet: SheetMap) -> Vec<Nm> {
+fn widened(
+    view: &TableView,
+    edges: Vec<Nm>,
+    area: &ListArea,
+    fonts: &FontSet,
+    style: &TextStyle,
+    sheet: SheetMap,
+) -> Vec<Nm> {
     if view.note.is_some() || view.columns.len() < 2 {
         return edges;
     }
+    let max_rows = usize::try_from(area.rows).unwrap_or(usize::MAX);
+    let top = area.header_top();
     let texts = |c: usize| {
         std::iter::once(view.columns[c].header.as_str()).chain(
             view.rows
                 .iter()
-                .take(MAX_ROWS)
+                .take(max_rows)
                 .filter(|r| r.kind == TableRowKind::Data)
                 .filter_map(move |r| r.cells.get(c).map(String::as_str)),
         )
@@ -320,8 +328,8 @@ fn widened(view: &TableView, edges: Vec<Nm>, fonts: &FontSet, style: &TextStyle,
         .collect();
     let cut = |c: usize| {
         let rect = Rect::from_points(
-            sheet.unapply(Pt2::new(edges[c], TOP)),
-            sheet.unapply(Pt2::new(edges[c + 1], Nm(TOP.0 + ROW_HEIGHT.0))),
+            sheet.unapply(Pt2::new(edges[c], top)),
+            sheet.unapply(Pt2::new(edges[c + 1], Nm(top.0 + ROW_HEIGHT.0))),
         );
         let shrink = Overflow::ShrinkToFit(ShrinkSpec {
             min_cap_height: MIN_CAP_HEIGHT,
@@ -389,10 +397,11 @@ fn widened(view: &TableView, edges: Vec<Nm>, fonts: &FontSet, style: &TextStyle,
     out
 }
 
-/// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; the rows print in
-/// the default style of `styles`.
+/// Lowers `view` (see the module documentation) into `area`, the list area of the page's frame. `sheet` is the frame
+/// form's page-to-sheet map; the rows print in the default style of `styles`.
 pub fn lower_table(
     view: &TableView,
+    area: &ListArea,
     sheet: SheetMap,
     fonts: &FontSet,
     styles: &TextStyleTable,
@@ -404,19 +413,27 @@ pub fn lower_table(
     let style = styles
         .resolve(DEFAULT_STYLE_KEY)
         .unwrap_or(TextStyle::regular(Nm(3_175_000)));
+    let (left, right, top) = (area.left, area.right, area.header_top());
 
-    let edges: Vec<Nm> = widened(view, column_edges(&view.columns), fonts, &style, sheet);
+    let edges: Vec<Nm> = widened(
+        view,
+        column_edges_in(&view.columns, left, right),
+        area,
+        fonts,
+        &style,
+        sheet,
+    );
     // The table never runs below the form's data area: rows beyond the page's capacity are not drawn and
     // reported, instead of relying on the pagination's row count (FR-REP-039).
     let given = if view.note.is_some() { 1 } else { view.rows.len() };
-    let row_count = given.min(MAX_ROWS);
+    let row_count = given.min(usize::try_from(area.rows).unwrap_or(usize::MAX));
     if given > row_count {
         out.findings.push(TableFinding::TooManyRows {
             given,
             drawn: row_count,
         });
     }
-    let bottom = Nm(TOP.0 + ROW_HEIGHT.0 * (i64::try_from(row_count).unwrap_or(0) + 1));
+    let bottom = Nm(top.0 + ROW_HEIGHT.0 * (i64::try_from(row_count).unwrap_or(0) + 1));
     let to_page = |x: Nm, y: Nm| sheet.unapply(Pt2::new(x, y));
     let rect = |x0: Nm, y0: Nm, x1: Nm, y1: Nm| Rect::from_points(to_page(x0, y0), to_page(x1, y1));
     let stroke = Stroke::solid(sheet.unscale_len(LINE_WIDTH));
@@ -427,21 +444,21 @@ pub fn lower_table(
             None,
         )
     };
-    let row_y = |i: usize| Nm(TOP.0 + ROW_HEIGHT.0 * i64::try_from(i).unwrap_or(0));
+    let row_y = |i: usize| Nm(top.0 + ROW_HEIGHT.0 * i64::try_from(i).unwrap_or(0));
 
     // Header fill, then the grid.
     out.items.push(Item::path(
-        Path::rect(rect(LEFT, TOP, RIGHT, row_y(1))),
+        Path::rect(rect(left, top, right, row_y(1))),
         None,
         Some(Brush::Solid(HEADER_FILL)),
     ));
     out.items.push(Item::path(
-        Path::rect(rect(LEFT, TOP, RIGHT, bottom)),
+        Path::rect(rect(left, top, right, bottom)),
         Some(stroke.clone()),
         None,
     ));
     for i in 1..=row_count {
-        out.items.push(line(LEFT, row_y(i), RIGHT, row_y(i)));
+        out.items.push(line(left, row_y(i), right, row_y(i)));
     }
     let spans: Vec<bool> = (0..=row_count)
         .map(|i| {
@@ -479,17 +496,27 @@ pub fn lower_table(
         }
     }
 
-    // Texts: the header, then the rows (or the note).
+    // Texts: the caption, the header, then the rows (or the note), then the legend.
+    let styled = |out: &mut LoweredTable,
+                  s: &str,
+                  style: &TextStyle,
+                  (x0, x1, y0): (Nm, Nm, Nm),
+                  at: (Option<usize>, usize),
+                  links: &[&TableLink]| {
+        let cell = rect(x0, y0, x1, Nm(y0.0 + ROW_HEIGHT.0));
+        push_cell(out, fonts, style, sheet, cell, s, at, links);
+    };
     let text = |out: &mut LoweredTable,
                 s: &str,
                 x0: Nm,
                 x1: Nm,
                 y0: Nm,
                 at: (Option<usize>, usize),
-                links: &[&TableLink]| {
-        let cell = rect(x0, y0, x1, Nm(y0.0 + ROW_HEIGHT.0));
-        push_cell(out, fonts, &style, sheet, cell, s, at, links);
-    };
+                links: &[&TableLink]| styled(out, s, &style, (x0, x1, y0), at, links);
+    if let Some(caption) = view.caption.as_deref().filter(|_| area.caption) {
+        let caption_style = styles.resolve(CAPTION_STYLE).unwrap_or_else(|| style.clone());
+        styled(&mut out, caption, &caption_style, (left, right, area.top), (None, 0), &[]);
+    }
     for (c, col) in view.columns.iter().enumerate() {
         if col.weight > 0 {
             text(
@@ -504,14 +531,14 @@ pub fn lower_table(
         }
     }
     if let Some(note) = &view.note {
-        text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0), &[]);
+        text(&mut out, note, left, right, row_y(1), (None, 0), &[]);
     } else {
         for (r, row) in view.rows.iter().take(row_count).enumerate() {
             let y = row_y(r + 1);
             match row.kind {
                 TableRowKind::Heading => {
                     let s = row.cells.first().map_or("", String::as_str);
-                    text(&mut out, s, LEFT, RIGHT, y, (Some(r), 0), &[]);
+                    text(&mut out, s, left, right, y, (Some(r), 0), &[]);
                 }
                 TableRowKind::Data => {
                     for (c, col) in view.columns.iter().enumerate() {
@@ -525,6 +552,9 @@ pub fn lower_table(
                 }
             }
         }
+    }
+    if let Some(legend) = &view.legend {
+        text(&mut out, legend, left, right, row_y(row_count + 1), (None, 0), &[]);
     }
     out
 }
@@ -817,10 +847,13 @@ mod tests {
 
     #[test]
     fn column_edges_span_the_table_and_follow_the_weights() {
+        // The house table, 16.31 to 277.27 mm.
+        let (left, right) = (Nm(16_310_000), Nm(277_270_000));
+        let column_edges = |c: &[TableColumn]| column_edges_in(c, left, right);
         let e = column_edges(&cols(&[1, 1, 2]));
-        assert_eq!(e.first(), Some(&LEFT));
-        assert_eq!(e.last(), Some(&RIGHT));
-        let w = RIGHT.0 - LEFT.0;
+        assert_eq!(e.first(), Some(&left));
+        assert_eq!(e.last(), Some(&right));
+        let w = right.0 - left.0;
         assert_eq!(e[1].0 - e[0].0, w / 4);
         assert_eq!(e[3].0 - e[2].0, w - w / 2);
         // Doc 09 §2.5: 16.31 | 79.73 | 214.90 | 277.27 mm.
@@ -828,8 +861,6 @@ mod tests {
         let e = column_edges(&toc);
         assert_eq!(e[1], Nm(79_730_000));
         assert_eq!(e[2], Nm(214_900_000));
-        // In a span the same rule holds.
-        assert_eq!(column_edges_in(&toc, LEFT, RIGHT), column_edges(&toc));
         // D17's first flow column, 108.00 to 191.00 mm at 10 : 22 : 16 : 35: 10, 22, 16 and 35 mm.
         let e = column_edges_in(&cols(&[10, 22, 16, 35]), Nm(108_000_000), Nm(191_000_000));
         assert_eq!(
@@ -837,8 +868,8 @@ mod tests {
             [108_000_000, 118_000_000, 140_000_000, 156_000_000, 191_000_000].map(Nm)
         );
         // Zero weights and no columns do not panic.
-        assert_eq!(column_edges(&[]), vec![LEFT]);
+        assert_eq!(column_edges(&[]), vec![left]);
         let e = column_edges(&cols(&[0, 0]));
-        assert_eq!(e, vec![LEFT, LEFT, LEFT]);
+        assert_eq!(e, vec![left, left, left]);
     }
 }

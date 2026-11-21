@@ -745,12 +745,9 @@ impl ShellModel {
             },
             "columns": columns,
         });
-        if !held {
-            let copies: Vec<Value> = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK]
-                .iter()
-                .filter_map(|k| crate::wizard::shipped_form(k))
-                .collect();
-            params["form_copies"] = Value::Array(copies);
+        if !held && let Some(session) = self.project_session() {
+            let keys = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK];
+            params["form_copies"] = Value::Array(crate::wizard::shipped_forms_lacking(session, &keys));
         }
         let out = self.commit_from_host(&AnyCommand {
             name: "report_block.create".into(),

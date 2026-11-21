@@ -1,5 +1,19 @@
 {
   "$defs": {
+    "AddedRow": {
+      "additionalProperties": true,
+      "description": "One row of a report block that the model does not hold (`ReportBlock.added_rows`, doc 09 §3.8).",
+      "properties": {
+        "cells": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MlText"
+          },
+          "description": "The row's texts by column key (`terminal`, `label`, …); a column it does not name is empty, and a key the\nreport kind does not have prints nowhere.",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "ContinuationPolicy": {
       "description": "Continuation numbering of report pages.",
       "oneOf": [
@@ -179,8 +193,12 @@
     },
     "ReportColumn": {
       "additionalProperties": true,
-      "description": "One printed column of an embedded report block (`ReportBlock.columns`).",
+      "description": "One printed column of a report block (`ReportBlock.columns`).",
       "properties": {
+        "heading": {
+          "$ref": "#/$defs/MlText",
+          "description": "The printed heading; empty: the kind's own heading of the column. Additive."
+        },
         "key": {
           "description": "The column's key in the report kind's row set (`pos`, `tag`, `description`, …); a key the rows do not have\nprints nothing.",
           "type": "string"
@@ -463,8 +481,19 @@
       "minimum": 0,
       "type": "integer"
     },
+    "added_rows": {
+      "description": "Rows the model does not hold, kept in the block and listed with the kind's rows (doc 09 §3.8). Additive: an\nolder build lists the kind's rows only.",
+      "items": {
+        "$ref": "#/$defs/AddedRow"
+      },
+      "type": "array"
+    },
+    "caption": {
+      "$ref": "#/$defs/MlText",
+      "description": "The line printed above the table of each of the block's pages (doc 09 §3.8); empty: none. Additive."
+    },
     "columns": {
-      "description": "The printed columns of an embedded block, in order: each a column of its report kind with its relative width;\nempty: the kind's own layout (doc 09 §2.2). Additive: an older build prints the kind's layout.",
+      "description": "The printed columns, in order: each a column of its report kind with its relative width and, optionally, a\nheading of its own; empty: the kind's own columns (doc 09 §2.2, §3.8). Additive: an older build prints the\nkind's columns (and, on an embedded block, keeps reading these).",
       "items": {
         "$ref": "#/$defs/ReportColumn"
       },
@@ -516,6 +545,10 @@
     "id": {
       "$ref": "#/$defs/Uuid",
       "description": "The record ID; generated pages are `v5(id, page_index)`."
+    },
+    "legend": {
+      "$ref": "#/$defs/MlText",
+      "description": "The line printed under the table of each of the block's pages (doc 09 §3.8); empty: none. Additive."
     },
     "manual": {
       "$ref": "#/$defs/ManualSelection",

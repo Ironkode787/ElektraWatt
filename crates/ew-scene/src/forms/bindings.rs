@@ -476,15 +476,10 @@ fn render(value: &BoundValue, bindings: &dyn Bindings) -> String {
     }
 }
 
-/// The text of `ml` in `lang`: the neutral text, else exactly that language, else the first language in
-/// tag order, else empty.
+/// The text of `ml` in `lang`: the neutral text, else exactly that language, else its language (`nl-NL` for `nl`),
+/// else the first language in tag order, else empty (`ew_derive::text_in`).
 pub fn ml_text<'a>(ml: &'a MlText, lang: Option<&LangTag>) -> &'a str {
-    if let Some(s) = ml.as_neutral() {
-        return s;
-    }
-    lang.and_then(|l| ml.get(l))
-        .or_else(|| ml.languages().next().and_then(|l| ml.get(l)))
-        .unwrap_or("")
+    ew_derive::text_in(ml, lang)
 }
 
 #[cfg(test)]
@@ -676,6 +671,9 @@ mod tests {
         assert_eq!(fill("{page.title}", &x).text, "Hallo");
         x.language = Some(lang("en-GB"));
         assert_eq!(fill("{page.title}", &x).text, "Hello");
+        // A tag of the same language without its region takes that language's text.
+        x.language = Some(lang("nl"));
+        assert_eq!(fill("{page.title}", &x).text, "Hallo");
         // A missing language falls back to the first language in tag order.
         x.language = Some(lang("de-DE"));
         assert_eq!(fill("{page.title}", &x).text, "Hello");

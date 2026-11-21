@@ -1,0 +1,170 @@
+{
+  "$k": "form",
+  "id": "83caeb04-5891-5be1-92f9-4e3a2d48c676",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "9776c33c-a4f5-5e0c-8a1f-73d5c171826e",
+  "version": "1.0.0",
+  "sha256": "sha256:c48252252239aad4a96d6d158a095037413331a019bffd6c6b2b3e4f1af354a1",
+  "kind": "title_block",
+  "sheet": {"width": 402166667, "height": 17991667},
+  "graphics": [
+    {"line": {"from": [12170833, 0], "to": [12170833, 17991667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [292100000, 0], "to": [292100000, 17991667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [319616667, 0], "to": [319616667, 17991667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [347133333, 0], "to": [347133333, 17991667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [374650000, 0], "to": [374650000, 8995833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [250825000, 8995833], "to": [250825000, 17991667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [388408333, 4497917], "to": [388408333, 8995833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [319616667, 4497917], "to": [402166667, 4497917], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [12170833, 8995833], "to": [402166667, 8995833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [12170833, 13493750], "to": [292100000, 13493750], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [319616667, 13493750], "to": [347133333, 13493750], "stroke": {"pen": {"width": 264583}}}}
+  ],
+  "cells": [
+    {
+      "rect": [[0, 0], [12170833, 17991667]],
+      "value": "{project.logo}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": "error"
+    },
+    {
+      "rect": [[12170833, 0], [292100000, 8995833]],
+      "value": "{page.title}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[12170833, 8995833], [250825000, 13493750]],
+      "label": {"en-GB": "Project:", "nl-NL": "Project:"},
+      "value": "{project.reference}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[12170833, 13493750], [250825000, 17991667]],
+      "label": {"en-GB": "Description:", "nl-NL": "Omschrijving:"},
+      "value": "{page.description}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[250825000, 8995833], [292100000, 13493750]],
+      "label": {"en-GB": "Drawing:", "nl-NL": "Tekening:"},
+      "value": "{project.drawing_id}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[250825000, 13493750], [292100000, 17991667]],
+      "label": {"en-GB": "Revision:", "nl-NL": "Revisie:"},
+      "value": "{revision.current.label}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[292100000, 0], [319616667, 8995833]],
+      "value": "{page.function}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[292100000, 8995833], [319616667, 17991667]],
+      "value": "{page.location}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[319616667, 0], [347133333, 4497917]],
+      "label": {"en-GB": "End user:", "nl-NL": "Eindgebruiker:"},
+      "value": "{party.end_user.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[319616667, 4497917], [347133333, 8995833]],
+      "label": {"en-GB": "Object:", "nl-NL": "Object:"},
+      "value": "{project.object}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[319616667, 8995833], [347133333, 13493750]],
+      "label": {"en-GB": "Checked:", "nl-NL": "Gecontroleerd:"},
+      "value": "{revision.current.checker.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[319616667, 13493750], [347133333, 17991667]],
+      "label": {"en-GB": "Author:", "nl-NL": "Getekend:"},
+      "value": "{revision.current.author.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[347133333, 0], [374650000, 4497917]],
+      "label": {"en-GB": "Creation:", "nl-NL": "Aangemaakt:"},
+      "value": "{project.created | date}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[347133333, 4497917], [374650000, 8995833]],
+      "label": {"en-GB": "Saved:", "nl-NL": "Opgeslagen:"},
+      "value": "{project.edited | date}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[374650000, 0], [402166667, 4497917]],
+      "label": {"en-GB": "Page:", "nl-NL": "Blad:"},
+      "value": "{page.folio}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[374650000, 4497917], [388408333, 8995833]],
+      "label": {"en-GB": "Prev:", "nl-NL": "Vorige:"},
+      "value": "{page.prev}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[388408333, 4497917], [402166667, 8995833]],
+      "label": {"en-GB": "Next:", "nl-NL": "Volgende:"},
+      "value": "{page.next}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}}
+    },
+    {
+      "rect": [[347133333, 8995833], [402166667, 17991667]],
+      "value": "{project.notice}",
+      "style": "xref.device",
+      "align": "centre",
+      "overflow": {"shrink_to_fit": {"min_cap_height": 1200000}},
+      "ew.cell.max_lines": 4
+    }
+  ],
+  "meta": {
+    "key": "ew.titleblock.qet-a3",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["docs/design/09-reports-forms-output.md §3.8"]
+  }
+}

@@ -29,9 +29,9 @@ fn model() -> ew_model::Model {
 
 fn columns() -> Vec<ColumnDef> {
     vec![
-        ColumnDef::new("name", CellType::Ident, "Name"),
-        ColumnDef::new("loc", CellType::Ident, "Location"),
-        ColumnDef::new("qty", CellType::Qty, "Quantity"),
+        ColumnDef::new("name", CellType::Ident, "Name", "Name"),
+        ColumnDef::new("loc", CellType::Ident, "Location", "Location"),
+        ColumnDef::new("qty", CellType::Qty, "Quantity", "Quantity"),
     ]
 }
 
@@ -639,8 +639,8 @@ fn grouping_sorts_inside_segments_first() {
 #[test]
 fn group_text_and_header_ids_of_other_key_types() {
     let cols = vec![
-        ColumnDef::new("n", CellType::Number, "N"),
-        ColumnDef::new("d", CellType::Date, "D"),
+        ColumnDef::new("n", CellType::Number, "N", "N"),
+        ColumnDef::new("d", CellType::Date, "D", "D"),
     ];
     let mk = |i: u32, n: i64, d: &str| {
         Row::data(

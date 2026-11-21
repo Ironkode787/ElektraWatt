@@ -26,10 +26,10 @@ impl ReportKindDef for Toc {
         vec![
             // The widths of the reference form (doc 09 §2.5): 63.42 | 135.17 | 62.37 mm; the function column
             // takes a part of the title's.
-            ColumnDef::new("folio", CellType::Folio, "Folio").weighted(6_342),
-            ColumnDef::new("title", CellType::Text, "Title").weighted(9_500),
-            ColumnDef::new("function", CellType::Ident, "Function (=)").weighted(4_017),
-            ColumnDef::new("location", CellType::Ident, "Location (+)").weighted(6_237),
+            ColumnDef::new("folio", CellType::Folio, "Folio", "Folio").weighted(6_342),
+            ColumnDef::new("title", CellType::Text, "Title", "Titel").weighted(9_500),
+            ColumnDef::new("function", CellType::Ident, "Function (=)", "Functie (=)").weighted(4_017),
+            ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(6_237),
         ]
     }
 

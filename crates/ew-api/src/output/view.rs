@@ -29,15 +29,21 @@
 //! - **Frame form**: `Page.form`, else the frame defaults of the project settings (doc 03 §5.1 `FrameDefaults`,
 //!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`), else the
 //!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
-//!   `GeneratedPage::form`, else the no-grid frame; a divider the frame defaults' `section_divider` entry, else the
+//!   `GeneratedPage::form` (its block's form on the set's paper, `ew_reports::layout::list_frame`), else the no-grid
+//!   frame; a divider the frame defaults' `section_divider` entry, else the
 //!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. The
 //!   title block by `FormDef.title_block`.
-//! - **Bindings**: every `title_block(page)` value, the project's date format, no display language (neutral).
+//! - **Bindings**: every `title_block(page)` value, the project's date format, the project's language
+//!   (`ew_derive::print_language`: its source language, doc 09 §4.7), which the multi-language values and the cells'
+//!   labels print in.
 //! - **Report tables**: a generated page's rows are the `GeneratedPage::rows` range of
-//!   `report_rows(block)`, each cell printed by `ew_reports::render::render` for that page (neutral language,
-//!   displayed tags); a page with a `note` prints the note instead; the column widths are the columns' weights. Every
-//!   row link that resolves is drawn (FR-REP-042): a connection point, a page, a device's main
-//!   representation or a representation, over the whole cell or over one listed folio of a `Folios` cell.
+//!   `report_rows(block)`, each cell printed by `ew_reports::render::render` for that page (the project's language,
+//!   displayed tags); a page with a `note` prints the note instead. The printed columns are the block's own
+//!   (`ReportBlock.columns`: those its rows have, in its order, with its widths and its headings or the kind's), else
+//!   every column with its weight; the headings, the caption and the legend print in the project's language (doc 09
+//!   §3.8). Every row link of a printed cell that resolves is drawn (FR-REP-042): a connection point, a page, a
+//!   device's main representation or a representation, over the whole cell or over one listed folio of a `Folios`
+//!   cell.
 //! - **Embedded blocks** (FR-REP-028): every embedded block of a drawn page is drawn into its rectangle.
 //!   A `profile_tables` block draws the cover: the rows split by their `table` column into the colour table, the
 //!   control sizes and the mains sizes; a group-header row is the title of its table, a group-footer row of the
@@ -143,17 +149,21 @@ pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
 pub const GRID_FRAME: &str = "ew.frame.qet-a4-landscape-grid";
 /// The key of the shipped cover frame.
 pub const COVER_FRAME: &str = "ew.frame.qet-a4-landscape-cover";
-/// The key of the shipped title block, which the shipped frames name.
+/// The key of the shipped title block, which the shipped A4 frames name.
 pub const TITLE_BLOCK: &str = "ew.titleblock.qet-a4";
+/// The key of the shipped A3 frame with the grid (FT-1826), which names the A3 title block.
+pub const A3_GRID_FRAME: &str = "ew.frame.qet-a3-landscape-grid";
 
 /// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
-/// and without the grid, the cover frame, and the title block they name), in the `lib/` JSON form that
-/// `library.embed` takes. A new empty project holds them and names them in its frame defaults
-/// (`crate::shipped_frames`); the wizard embeds them into a template.
-pub const SHIPPED_FORMS: [&str; 4] = [
+/// and without the grid, the cover frame and the title block they name; the A3 landscape frame with the grid and its
+/// title block, doc 09 §3.8), in the `lib/` JSON form that `library.embed` takes. A new empty project holds them and
+/// names the A4 ones in its frame defaults (`crate::shipped_frames`); the wizard embeds them into a template.
+pub const SHIPPED_FORMS: [&str; 6] = [
+    include_str!("../../../../content/forms/ew.frame.qet-a3-landscape-grid.json"),
     include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
     include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),
     include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"),
+    include_str!("../../../../content/forms/ew.titleblock.qet-a3.json"),
     include_str!("../../../../content/forms/ew.titleblock.qet-a4.json"),
 ];
 
@@ -324,6 +334,7 @@ impl Query for PageBindingsOf {
     fn run(q: &Q, key: &PageRef) -> Arc<PageBindings> {
         let mut b = PageBindings::new();
         b.date_format = q.project().settings.formatting.date.clone();
+        b.language = ew_derive::print_language(q);
         for (path, value) in &q.get::<TitleBlockValues>(*key).values {
             let v = match value {
                 TbValue::Text(t) => BoundValue::Text(t.clone()),
@@ -1595,60 +1606,97 @@ fn row_links(q: &Q, r: &Row) -> Vec<TableLink> {
 /// The printed table of a generated page (see the module documentation).
 fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
     let set = q.get::<BlockRows>(g.block);
+    let lang = ew_derive::print_language(q);
+    let in_lang = |m: &MlText| ew_derive::text_in(m, lang.as_ref()).to_owned();
     let opts = RenderOptions {
         page: Some(page),
+        lang: lang.clone(),
         ..RenderOptions::default()
     };
-    let columns = set
-        .columns
+    let block = q.report_blocks().get(g.block);
+    // The printed columns (doc 09 §3.8): the block's own, those its rows have, in its order, each with its width and
+    // its heading or the kind's; else every column of the rows.
+    let printed: Vec<(usize, u32, &MlText)> = match block.filter(|b| !b.columns.is_empty()) {
+        Some(b) => b
+            .columns
+            .iter()
+            .filter_map(|c| {
+                let i = set.column(&c.key)?;
+                let heading = if c.heading.is_empty() {
+                    &set.columns[i].label
+                } else {
+                    &c.heading
+                };
+                Some((i, c.weight, heading))
+            })
+            .collect(),
+        None => set
+            .columns
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (i, c.weight, &c.label))
+            .collect(),
+    };
+    let columns = printed
         .iter()
-        .map(|c| TableColumn {
-            header: neutral(&c.label),
-            weight: c.weight,
+        .map(|&(_, weight, heading)| TableColumn {
+            header: in_lang(heading),
+            weight,
         })
         .collect();
+    let line = |m: Option<&MlText>| m.filter(|m| !m.is_empty()).map(in_lang);
+    let caption = line(block.map(|b| &b.caption));
+    let legend = line(block.map(|b| &b.legend));
     if let Some(note) = &g.note {
         return TableView {
             columns,
             rows: Vec::new(),
-            note: Some(neutral(note)),
+            note: Some(in_lang(note)),
+            caption,
+            legend,
         };
     }
     let end = (g.rows.end as usize).min(set.rows.len());
     let start = (g.rows.start as usize).min(end);
-    let overview = q
-        .report_blocks()
-        .get(g.block)
-        .is_some_and(|b| matches!(b.source, ReportSource::Kind(ReportKind::RevisionOverview)));
+    let overview =
+        block.is_some_and(|b| matches!(b.source, ReportSource::Kind(ReportKind::RevisionOverview)));
     let pages_column = set.column("pages").filter(|_| overview);
+    let cell = |r: &Row, i: usize| match pages_column
+        .filter(|p| *p == i)
+        .and_then(|_| revision_pages(q, r))
+    {
+        Some(pages) => render(q, &pages, &opts),
+        None => r.cells.get(i).map(|c| render(q, c, &opts)).unwrap_or_default(),
+    };
     let rows = set.rows[start..end]
         .iter()
-        .map(|r| TableRow {
-            kind: match r.kind {
+        .map(|r| {
+            let kind = match r.kind {
                 RowKind::Data => TableRowKind::Data,
                 RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
-            },
-            cells: r
-                .cells
-                .iter()
-                .enumerate()
-                .map(|(i, c)| {
-                    match pages_column
-                        .filter(|p| *p == i)
-                        .and_then(|_| revision_pages(q, r))
-                    {
-                        Some(pages) => render(q, &pages, &opts),
-                        None => render(q, c, &opts),
-                    }
+            };
+            let cells = match kind {
+                // A heading prints its first cell across the row.
+                TableRowKind::Heading => vec![cell(r, 0)],
+                TableRowKind::Data => printed.iter().map(|&(i, _, _)| cell(r, i)).collect(),
+            };
+            // The links of the printed cells, at their printed column.
+            let links = row_links(q, r)
+                .into_iter()
+                .filter_map(|l| {
+                    let column = printed.iter().position(|&(i, _, _)| i == l.column)?;
+                    Some(TableLink { column, ..l })
                 })
-                .collect(),
-            links: row_links(q, r),
+                .collect();
+            TableRow { kind, cells, links }
         })
         .collect();
     TableView {
         columns,
         rows,
         note: None,
+        caption,
+        legend,
     }
 }
 

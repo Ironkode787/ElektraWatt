@@ -1760,7 +1760,7 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         "the check scheme is not written: {text}"
     );
     assert!(
-        std::fs::read_dir(grid.join("lib/forms")).unwrap().count() == 4,
+        std::fs::read_dir(grid.join("lib/forms")).unwrap().count() == ew_api::output::SHIPPED_FORMS.len(),
         "the shipped forms are embedded"
     );
     let folio_1 = render_folio(&grid, "1");
@@ -1943,7 +1943,10 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
             "{kind} in {blocks}"
         );
     }
-    assert_eq!(std::fs::read_dir(basic.join("lib/forms")).unwrap().count(), 4);
+    assert_eq!(
+        std::fs::read_dir(basic.join("lib/forms")).unwrap().count(),
+        ew_api::output::SHIPPED_FORMS.len()
+    );
     // A report folio renders through the page output: the revision overview lists the first revision.
     let revisions = render_folio(&basic, "911");
     assert_eq!(revisions.pages.len(), 1);

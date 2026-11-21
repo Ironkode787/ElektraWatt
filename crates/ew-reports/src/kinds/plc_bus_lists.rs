@@ -117,18 +117,18 @@ impl ReportKindDef for PlcCardList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("station", CellType::Ident, "Station").weighted(10),
-            ColumnDef::new("slot", CellType::Ident, "Slot").weighted(5),
-            ColumnDef::new("module", CellType::Ident, "Module").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Part").weighted(10),
-            ColumnDef::new("input_start", CellType::Address, "Input start").weighted(8),
-            ColumnDef::new("input_length", CellType::Number, "Input bytes").weighted(7),
-            ColumnDef::new("output_start", CellType::Address, "Output start").weighted(8),
-            ColumnDef::new("output_length", CellType::Number, "Output bytes").weighted(7),
-            ColumnDef::new("used", CellType::Number, "Used").weighted(5),
-            ColumnDef::new("spare", CellType::Number, "Spare").weighted(5),
-            ColumnDef::new("reserved", CellType::Number, "Reserved").weighted(6),
-            ColumnDef::new("deactivated", CellType::Number, "Deactivated").weighted(7),
+            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(10),
+            ColumnDef::new("slot", CellType::Ident, "Slot", "Slot").weighted(5),
+            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
+            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(10),
+            ColumnDef::new("input_start", CellType::Address, "Input start", "Begin ingangen").weighted(8),
+            ColumnDef::new("input_length", CellType::Number, "Input bytes", "Ingangsbytes").weighted(7),
+            ColumnDef::new("output_start", CellType::Address, "Output start", "Begin uitgangen").weighted(8),
+            ColumnDef::new("output_length", CellType::Number, "Output bytes", "Uitgangsbytes").weighted(7),
+            ColumnDef::new("used", CellType::Number, "Used", "Gebruikt").weighted(5),
+            ColumnDef::new("spare", CellType::Number, "Spare", "Reserve").weighted(5),
+            ColumnDef::new("reserved", CellType::Number, "Reserved", "Gereserveerd").weighted(6),
+            ColumnDef::new("deactivated", CellType::Number, "Deactivated", "Gedeactiveerd").weighted(7),
         ]
     }
 
@@ -221,16 +221,16 @@ impl ReportKindDef for NetworkAddressList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("net", CellType::Ident, "Logical net").weighted(10),
-            ColumnDef::new("station", CellType::Ident, "Station").weighted(12),
-            ColumnDef::new("device_type", CellType::Ident, "Device type").weighted(10),
-            ColumnDef::new("address", CellType::Ident, "Address or name").weighted(10),
-            ColumnDef::new("ip", CellType::Ident, "IP address").weighted(9),
-            ColumnDef::new("mask", CellType::Ident, "Subnet mask").weighted(9),
-            ColumnDef::new("master", CellType::Bool, "Master").weighted(5),
-            ColumnDef::new("rate", CellType::Number, "Rate (bit/s)").weighted(8),
-            ColumnDef::new("config_project", CellType::Ident, "Configuration project").weighted(9),
-            ColumnDef::new("tbd", CellType::Bool, "TBD").weighted(4),
+            ColumnDef::new("net", CellType::Ident, "Logical net", "Logisch net").weighted(10),
+            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(12),
+            ColumnDef::new("device_type", CellType::Ident, "Device type", "Apparaattype").weighted(10),
+            ColumnDef::new("address", CellType::Ident, "Address or name", "Adres of naam").weighted(10),
+            ColumnDef::new("ip", CellType::Ident, "IP address", "IP-adres").weighted(9),
+            ColumnDef::new("mask", CellType::Ident, "Subnet mask", "Subnetmasker").weighted(9),
+            ColumnDef::new("master", CellType::Bool, "Master", "Master").weighted(5),
+            ColumnDef::new("rate", CellType::Number, "Rate (bit/s)", "Snelheid (bit/s)").weighted(8),
+            ColumnDef::new("config_project", CellType::Ident, "Configuration project", "Configuratieproject").weighted(9),
+            ColumnDef::new("tbd", CellType::Bool, "TBD", "N.t.b.").weighted(4),
         ]
     }
 
@@ -387,16 +387,16 @@ impl ReportKindDef for BusOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("net", CellType::Ident, "Logical net").weighted(10),
-            ColumnDef::new("position", CellType::Number, "Position").weighted(6),
-            ColumnDef::new("station", CellType::Ident, "Station").weighted(12),
-            ColumnDef::new("port", CellType::Ident, "Port").weighted(8),
-            ColumnDef::new("address", CellType::Ident, "Address").weighted(10),
-            ColumnDef::new("connector", CellType::Ident, "Connector").weighted(9),
-            ColumnDef::new("termination", CellType::Text, "Termination").weighted(8),
-            ColumnDef::new("cable", CellType::Ident, "Cable").weighted(8),
-            ColumnDef::new("length", CellType::Text, "Length").weighted(7),
-            ColumnDef::new("external", CellType::Bool, "External").weighted(6),
+            ColumnDef::new("net", CellType::Ident, "Logical net", "Logisch net").weighted(10),
+            ColumnDef::new("position", CellType::Number, "Position", "Positie").weighted(6),
+            ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(12),
+            ColumnDef::new("port", CellType::Ident, "Port", "Poort").weighted(8),
+            ColumnDef::new("address", CellType::Ident, "Address", "Adres").weighted(10),
+            ColumnDef::new("connector", CellType::Ident, "Connector", "Connector").weighted(9),
+            ColumnDef::new("termination", CellType::Text, "Termination", "Afsluiting").weighted(8),
+            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(8),
+            ColumnDef::new("length", CellType::Text, "Length", "Lengte").weighted(7),
+            ColumnDef::new("external", CellType::Bool, "External", "Extern").weighted(6),
         ]
     }
 
@@ -512,13 +512,13 @@ impl ReportKindDef for BusCableList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("cable", CellType::Ident, "Cable").weighted(9),
-            ColumnDef::new("bus", CellType::Text, "Bus system").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Part").weighted(10),
-            ColumnDef::new("length", CellType::Text, "Length").weighted(7),
-            ColumnDef::new("from", CellType::Ident, "From").weighted(12),
-            ColumnDef::new("to", CellType::Ident, "To").weighted(12),
-            ColumnDef::new("segment", CellType::Ident, "Segment").weighted(9),
+            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(9),
+            ColumnDef::new("bus", CellType::Text, "Bus system", "Bussysteem").weighted(10),
+            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(10),
+            ColumnDef::new("length", CellType::Text, "Length", "Lengte").weighted(7),
+            ColumnDef::new("from", CellType::Ident, "From", "Van").weighted(12),
+            ColumnDef::new("to", CellType::Ident, "To", "Naar").weighted(12),
+            ColumnDef::new("segment", CellType::Ident, "Segment", "Segment").weighted(9),
         ]
     }
 
@@ -605,16 +605,16 @@ impl ReportKindDef for IolinkPortList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("master", CellType::Ident, "Master").weighted(10),
-            ColumnDef::new("port", CellType::Number, "Port").weighted(5),
-            ColumnDef::new("mode", CellType::Text, "Mode").weighted(8),
-            ColumnDef::new("class", CellType::Ident, "Class").weighted(5),
-            ColumnDef::new("device", CellType::Ident, "Device").weighted(10),
-            ColumnDef::new("vendor_id", CellType::Number, "Vendor ID").weighted(7),
-            ColumnDef::new("device_id", CellType::Number, "Device ID").weighted(7),
-            ColumnDef::new("input_bits", CellType::Number, "Input bits").weighted(6),
-            ColumnDef::new("output_bits", CellType::Number, "Output bits").weighted(6),
-            ColumnDef::new("cable", CellType::Ident, "Cable").weighted(8),
+            ColumnDef::new("master", CellType::Ident, "Master", "Master").weighted(10),
+            ColumnDef::new("port", CellType::Number, "Port", "Poort").weighted(5),
+            ColumnDef::new("mode", CellType::Text, "Mode", "Modus").weighted(8),
+            ColumnDef::new("class", CellType::Ident, "Class", "Klasse").weighted(5),
+            ColumnDef::new("device", CellType::Ident, "Device", "Apparaat").weighted(10),
+            ColumnDef::new("vendor_id", CellType::Number, "Vendor ID", "Fabrikant-ID").weighted(7),
+            ColumnDef::new("device_id", CellType::Number, "Device ID", "Apparaat-ID").weighted(7),
+            ColumnDef::new("input_bits", CellType::Number, "Input bits", "Ingangsbits").weighted(6),
+            ColumnDef::new("output_bits", CellType::Number, "Output bits", "Uitgangsbits").weighted(6),
+            ColumnDef::new("cable", CellType::Ident, "Cable", "Kabel").weighted(8),
         ]
     }
 
@@ -709,14 +709,14 @@ impl ReportKindDef for SafetyIoList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("f_dest", CellType::Number, "F-destination").weighted(7),
-            ColumnDef::new("f_source", CellType::Number, "F-source").weighted(7),
-            ColumnDef::new("module", CellType::Ident, "Module").weighted(10),
-            ColumnDef::new("channel", CellType::Number, "Channel").weighted(6),
-            ColumnDef::new("pair", CellType::Number, "Pair").weighted(5),
-            ColumnDef::new("target", CellType::Ident, "Sensor or actuator").weighted(12),
-            ColumnDef::new("requirement", CellType::Ident, "Requirement").weighted(8),
-            ColumnDef::new("test_pulse", CellType::Ident, "Test pulse").weighted(10),
+            ColumnDef::new("f_dest", CellType::Number, "F-destination", "F-bestemming").weighted(7),
+            ColumnDef::new("f_source", CellType::Number, "F-source", "F-bron").weighted(7),
+            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
+            ColumnDef::new("channel", CellType::Number, "Channel", "Kanaal").weighted(6),
+            ColumnDef::new("pair", CellType::Number, "Pair", "Paar").weighted(5),
+            ColumnDef::new("target", CellType::Ident, "Sensor or actuator", "Sensor of actuator").weighted(12),
+            ColumnDef::new("requirement", CellType::Ident, "Requirement", "Eis").weighted(8),
+            ColumnDef::new("test_pulse", CellType::Ident, "Test pulse", "Testpuls").weighted(10),
         ]
     }
 

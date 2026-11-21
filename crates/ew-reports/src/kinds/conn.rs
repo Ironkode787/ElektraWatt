@@ -46,19 +46,20 @@ pub(super) fn is_listed_device(dev: &Device) -> bool {
     dev.aspects.terminal.is_none()
 }
 
-/// The state of a terminal as the terminal reports print it (doc 08 §6.6): `spare`, `reserved` or
-/// `not fitted` as authored, else `used` when the terminal has a wire (`wired`) or belongs to a bridge (`bridged`),
-/// and `unused` otherwise. `terminal_diagram`'s State column and `terminal_overview`'s counts use this one rule.
-pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) -> &'static str {
+/// The state of a terminal as the terminal reports print it (doc 08 §6.6), in English and in Dutch (doc 09 §4.7):
+/// `spare`, `reserved` or `not fitted` as authored, else `used` when the terminal has a wire (`wired`) or belongs to a
+/// bridge (`bridged`), and `unused` otherwise. `terminal_diagram`'s State column and `terminal_overview`'s counts use
+/// this one rule.
+pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) -> (&'static str, &'static str) {
     match state {
-        DeviceState::Spare => "spare",
-        DeviceState::Reserved => "reserved",
-        DeviceState::NotFitted => "not fitted",
+        DeviceState::Spare => ("spare", "reserve"),
+        DeviceState::Reserved => ("reserved", "gereserveerd"),
+        DeviceState::NotFitted => ("not fitted", "niet geplaatst"),
         DeviceState::Used | DeviceState::Unknown(_) => {
             if wired || bridged {
-                "used"
+                ("used", "gebruikt")
             } else {
-                "unused"
+                ("unused", "ongebruikt")
             }
         }
     }

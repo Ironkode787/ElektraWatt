@@ -13,7 +13,7 @@ use crate::arrange::{Arrangement, arrange};
 use crate::kind::{Registry, kind_name};
 use crate::layout::{Layouts, PageLayout};
 use crate::paginate::{BlockSpec, FixedLines, is_toc, number, paginate, toc_slices};
-use crate::rowset::{NotDerived, RowSet};
+use crate::rowset::{Cell, CellType, NotDerived, Row, RowId, RowKey, RowSet};
 
 /// `report_rows(block)`: the rows of a report block in final order, after the kind's row query, manual
 /// selection, filter, sort and grouping (doc 09 §2.3, §3.3). Embedded blocks (PART DATA, cover tables)
@@ -63,14 +63,45 @@ impl Query for BlockRows {
         if is_toc(block) || !rows.is_derived() {
             return Arc::new(rows);
         }
-        Arc::new(arranged(q, block, rows))
+        Arc::new(arranged(q, block, with_added_rows(rows, block)))
     }
+}
+
+/// `rows` with the block's added rows after them (doc 09 §3.8): each a data row of its texts by column key (a column
+/// it does not name empty), keyed `n:added/i:<k>` by its place in the list, linking nowhere. A text in a column of
+/// identifiers or addresses is one of them, a whole number in a column of numbers is that number, so that the block's
+/// sorting places the row among the model's rows; every other text is a text cell.
+fn with_added_rows(mut rows: RowSet, block: &ReportBlock) -> RowSet {
+    for (k, added) in block.added_rows.iter().enumerate() {
+        let cells = rows
+            .columns
+            .iter()
+            .map(|c| {
+                let Some(text) = added.cells.get(&c.key).filter(|t| !t.is_empty()) else {
+                    return Cell::Empty;
+                };
+                let plain = ew_derive::text_in(text, None).trim().to_owned();
+                match c.ty {
+                    CellType::Ident => Cell::Ident(plain),
+                    CellType::Address => Cell::Address(plain),
+                    CellType::Number => plain.parse().map_or_else(|_| Cell::Text(text.clone()), Cell::Number),
+                    _ => Cell::Text(text.clone()),
+                }
+            })
+            .collect();
+        let id = RowId(vec![
+            RowKey::Name("added".to_owned()),
+            RowKey::Index(u32::try_from(k).unwrap_or(u32::MAX)),
+        ]);
+        rows.rows.push(Row::data(id, cells));
+    }
+    rows
 }
 
 /// `rows` after the block's manual selection, filter, sort and grouping: the tail of [`BlockRows`], shared
 /// with the exports that bring their own rows (`ew export bom --mode`).
 pub fn arranged(q: &Q, block: &ReportBlock, rows: RowSet) -> RowSet {
-    let layouts = Layouts::of_form(q, block.form);
+    let layouts = Layouts::of_block(q, block);
     let how = Arrangement::of_block(block, layouts.first()).with_group_context(q, block);
     arrange(q, rows, &how)
 }
@@ -98,7 +129,7 @@ impl Query for BlockPages {
             return Arc::new(Vec::new());
         };
         spec.title = resolve_title(q, block, &spec.title);
-        let layouts = Layouts::of_form(q, block.form);
+        let layouts = Layouts::of_block(q, block);
         if is_toc(block) {
             let slices = toc_slices(toc_pages, toc_rows_per_page(q, block));
             return Arc::new(number(&slices, &RowSet::new(Vec::new()), &spec, &layouts));
@@ -147,18 +178,28 @@ fn resolve_title(
     })
 }
 
-/// The rows one page of a TOC block holds (doc 09 §3.1, decision D3): the TOC form's data area when the
-/// form has a valid one (its capacity over its data-row height), else the profile's `toc.rows_per_page`.
-/// At least 1. `page_order` uses the same value for the TOC page-count fixpoint.
+/// The rows one page of a TOC block holds (doc 09 §3.1, decision D3), on the frame its pages print on
+/// ([`crate::layout::list_frame`]): the form's data area when it has a valid one (its capacity over its data-row
+/// height), else the rows its list area holds with the block's caption and legend (doc 09 §3.8), else (a form the
+/// project does not hold) the profile's `toc.rows_per_page`. At least 1. `page_order` uses the same value for the TOC
+/// page-count fixpoint.
 pub fn toc_rows_per_page(q: &Q, block: &ReportBlock) -> u32 {
-    let from_form = q
-        .forms()
-        .get(block.form)
-        .and_then(|c| c.item.data.as_ref())
-        .map(|area| PageLayout::of_area(block.form, area))
-        .filter(|l| l.data.0 > 0 && l.capacity.0 >= l.data.0)
-        .map(|l| u32::try_from(l.capacity.0 / l.data.0).unwrap_or(u32::MAX));
-    from_form.unwrap_or(q.profile().toc.rows_per_page).max(1)
+    let form = crate::layout::list_frame(q, block.form);
+    let from_form = q.forms().get(form).and_then(|c| match c.item.data.as_ref() {
+        Some(area) => Some(PageLayout::of_area(form, area))
+            .filter(|l| l.data.0 > 0 && l.capacity.0 >= l.data.0)
+            .map(|l| l.capacity.0 / l.data.0),
+        None => Some(crate::layout::list_rows(
+            q,
+            &c.item,
+            !block.caption.is_empty(),
+            !block.legend.is_empty(),
+        )),
+    });
+    from_form
+        .map(|n| u32::try_from(n).unwrap_or(u32::MAX))
+        .unwrap_or(q.profile().toc.rows_per_page)
+        .max(1)
 }
 
 /// An empty, not-derived row set for a query cycle, which is recorded as a note.
@@ -186,7 +227,7 @@ impl ReportPagesProvider for ReportEngine {
             Err(cycle) => match BlockSpec::of_block(block, b) {
                 Some(spec) => {
                     let rows = cycle_rows(q, cycle);
-                    paginate(&rows, &spec, &Layouts::of_form(q, b.form), &FixedLines)
+                    paginate(&rows, &spec, &Layouts::of_block(q, b), &FixedLines)
                 }
                 None => {
                     q.note_cycle(cycle);
@@ -252,6 +293,9 @@ pub fn project_rows(q: &Q, kind: &str, include: Option<ew_derive::ew_ids::Uuid>)
         source_ref: None,
         extra: Default::default(),
         columns: Vec::new(),
+        caption: Default::default(),
+        legend: Default::default(),
+        added_rows: Vec::new(),
     };
     Some(def.rows(q, &block))
 }

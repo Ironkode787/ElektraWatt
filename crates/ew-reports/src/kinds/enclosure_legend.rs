@@ -32,13 +32,13 @@ impl ReportKindDef for EnclosureLegend {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(4),
-            ColumnDef::new("tag", CellType::Tag, "DT").weighted(14),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer").weighted(15),
-            ColumnDef::new("part_number", CellType::Ident, "Part number").weighted(17),
-            ColumnDef::new("description", CellType::Text, "Description").weighted(30),
-            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(6),
-            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(4),
+            ColumnDef::new("pos", CellType::Ident, "Pos", "Pos").weighted(4),
+            ColumnDef::new("tag", CellType::Tag, "DT", "Kenmerk").weighted(14),
+            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant").weighted(15),
+            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer").weighted(17),
+            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(30),
+            ColumnDef::new("qty", CellType::Qty, "Qty", "Aantal").weighted(6),
+            ColumnDef::new("unit", CellType::Ident, "Unit", "Eenheid").weighted(4),
         ]
     }
 

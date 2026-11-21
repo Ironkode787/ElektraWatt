@@ -179,7 +179,7 @@ pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
-    SectionStructure, folio_label, map_ml, report_pages,
+    SectionStructure, folio_label, map_ml, print_language, report_pages, text_in,
 };
 pub use part_text::{
     main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text, unit_symbol,

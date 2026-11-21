@@ -32,11 +32,11 @@ impl ReportKindDef for NumberingReport {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("item", CellType::Tag, "Item").weighted(15),
-            ColumnDef::new("kind", CellType::Text, "Kind").weighted(10),
-            ColumnDef::new("frozen", CellType::Ident, "Frozen").weighted(12),
-            ColumnDef::new("rule", CellType::Ident, "Rule value").weighted(12),
-            ColumnDef::new("status", CellType::Text, "Status").weighted(10),
+            ColumnDef::new("item", CellType::Tag, "Item", "Element").weighted(15),
+            ColumnDef::new("kind", CellType::Text, "Kind", "Soort").weighted(10),
+            ColumnDef::new("frozen", CellType::Ident, "Frozen", "Vastgezet").weighted(12),
+            ColumnDef::new("rule", CellType::Ident, "Rule value", "Waarde volgens regel").weighted(12),
+            ColumnDef::new("status", CellType::Text, "Status", "Status").weighted(10),
         ]
     }
 

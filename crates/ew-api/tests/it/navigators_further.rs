@@ -151,11 +151,12 @@ fn strips_are_the_terminal_diagrams() {
             // The sample's terminals: `pos` is the seq (1-based, gapless), no bridge has a part.
             assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
             assert_eq!(n.cells[bridge_part], "", "{}: bridge part", strip.label);
+            // The printed list names the strip first too (FT-1805).
             rows.push(
                 n.cells
                     .iter()
                     .enumerate()
-                    .filter(|(i, _)| *i != 0 && *i != pos && *i != bridge_part)
+                    .filter(|(i, _)| *i != pos && *i != bridge_part)
                     .map(|(_, c)| c.clone())
                     .collect::<Vec<_>>(),
             );

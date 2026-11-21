@@ -511,6 +511,9 @@ pub(crate) fn emit_report_blocks(cx: &mut Cx<'_>, table: Option<&Table>) {
             embedded,
             source_ref: Some(source_ref("report_blocks", row.key())),
             columns: Vec::new(),
+            caption: Default::default(),
+            legend: Default::default(),
+            added_rows: Vec::new(),
             extra: Default::default(),
         }));
     }

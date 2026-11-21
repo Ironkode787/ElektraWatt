@@ -44,12 +44,12 @@ impl ReportKindDef for OpenItems {
     /// it prints at the floor and is reported as overflow.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("category", CellType::Text, "Category").weighted(38),
-            ColumnDef::new("item", CellType::Text, "Item").weighted(31),
-            ColumnDef::new("description", CellType::Text, "Description").weighted(156),
-            ColumnDef::new("rule", CellType::Ident, "Rule").weighted(18),
-            ColumnDef::new("severity", CellType::Text, "Severity").weighted(11),
-            ColumnDef::new("page", CellType::Folio, "Page").weighted(7),
+            ColumnDef::new("category", CellType::Text, "Category", "Categorie").weighted(38),
+            ColumnDef::new("item", CellType::Text, "Item", "Element").weighted(31),
+            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving").weighted(156),
+            ColumnDef::new("rule", CellType::Ident, "Rule", "Regel").weighted(18),
+            ColumnDef::new("severity", CellType::Text, "Severity", "Ernst").weighted(11),
+            ColumnDef::new("page", CellType::Folio, "Page", "Pagina").weighted(7),
         ]
     }
 

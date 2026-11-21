@@ -15,9 +15,10 @@
 //! like each page (landscape for a sheet wider than high). [`Fit::Actual`] prints at 100 % with the sheet's top-left
 //! corner at the paper's: a sheet larger than the paper is clipped from its top-left and the set's notices name the
 //! page ([`PrintNotice::Clipped`]). [`Fit::ToPaper`] scales each page uniformly to the whole paper,
-//! `min(paper width / sheet width, paper height / sheet height)`, never above 100 %, and centres it; below 100 % the
-//! stamp `scaled <n> %` (`n` rounded half up) is drawn in the house font, black, 2 mm cap height, its baseline 4 mm
-//! above the paper's bottom edge and its end 5 mm from the right edge.
+//! `min(paper width / sheet width, paper height / sheet height)`, up as well as down (an A4 set on A3 at 141 %,
+//! FT-1826), and centres it; at any scale but 100 % the stamp `scaled <n> %` (`n` rounded half up) is drawn in the
+//! house font, black, 2 mm cap height, its baseline 4 mm above the paper's bottom edge and its end 5 mm from the right
+//! edge.
 //!
 //! **The document ID.** A set whose every page lies on its own sheet unscaled with no stamp is the export's
 //! document, byte for byte; any other set adds ` print <paper> <fit>` to the export's document ID text.
@@ -140,7 +141,7 @@ pub enum Fit {
     /// At 100 %, the sheet's top-left corner at the paper's; a larger sheet is clipped (the default).
     #[default]
     Actual,
-    /// Scaled uniformly to the whole paper and centred, never enlarged (`--fit`).
+    /// Scaled uniformly to the whole paper, up or down, and centred (`--fit`).
     ToPaper,
 }
 
@@ -254,18 +255,14 @@ pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacemen
     let positive = |n: Nm| u64::try_from(n.0).ok().filter(|v| *v > 0);
     let scale = match (fit, positive(width), positive(height), positive(pw), positive(ph)) {
         (Fit::ToPaper, Some(sw), Some(sh), Some(pw), Some(ph)) => {
-            // min(pw / sw, ph / sh), compared exactly; never enlarged.
+            // min(pw / sw, ph / sh), compared exactly, up or down.
             let (num, den) = if u128::from(pw) * u128::from(sh) <= u128::from(ph) * u128::from(sw) {
                 (pw, sw)
             } else {
                 (ph, sh)
             };
-            if num >= den {
-                (1, 1)
-            } else {
-                let g = gcd(num, den);
-                (num / g, den / g)
-            }
+            let g = gcd(num, den);
+            (num / g, den / g)
         }
         _ => (1, 1),
     };
@@ -281,7 +278,7 @@ pub fn placement(width: Nm, height: Nm, paper: Paper, fit: Fit) -> (PagePlacemen
         ),
     };
     let clipped = fit == Fit::Actual && (width > pw || height > ph);
-    let overlay = if scale.0 < scale.1 {
+    let overlay = if scale.0 != scale.1 {
         DisplayList {
             items: vec![stamp(&stamp_text(scale), pw, ph)],
         }
@@ -410,7 +407,7 @@ pub fn print_pages(
                 paper,
             });
         }
-        stamps.push((placement.scale.0 < placement.scale.1).then(|| stamp_text(placement.scale)));
+        stamps.push((placement.scale.0 != placement.scale.1).then(|| stamp_text(placement.scale)));
         as_exported &= placement.is_identity()
             && placement.overlay.items.is_empty()
             && (placement.width, placement.height) == (page.width, page.height);
@@ -489,11 +486,13 @@ mod tests {
         let (p, _) = placement(a4.0, a4.1, Paper::A4, Fit::ToPaper);
         assert_eq!((p.scale, p.offset), ((1, 1), Pt2::ORIGIN));
         assert!(p.overlay.items.is_empty());
-        // Never enlarged: an A4 sheet on A3 stays at 100 %, centred.
+        // Enlarged too (FT-1826): an A4 sheet on A3 is min(420/297, 297/210) = 140/99 (141.41 %), stamped, its width
+        // filling the paper and 297 − 210 × 140 / 99 = 0.030 mm left over in its height.
         let (p, _) = placement(a4.0, a4.1, Paper::A3, Fit::ToPaper);
-        assert_eq!(p.scale, (1, 1));
-        assert_eq!(p.offset, Pt2::new(Nm(61_500_000), Nm(43_500_000)));
-        assert!(p.overlay.items.is_empty());
+        assert_eq!(p.scale, (140, 99));
+        assert_eq!(p.offset, Pt2::new(Nm(0), Nm(15_152)));
+        assert_eq!(stamp_text(p.scale), "scaled 141 %");
+        assert_eq!(p.overlay.items.len(), 1);
     }
 
     /// Actual size: the sheet at the paper's top-left corner, a larger sheet clipped; a portrait sheet turns the paper.

@@ -46,18 +46,18 @@ impl ReportKindDef for WireList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("no", CellType::Ident, "No.").weighted(7),
-            ColumnDef::new("from", CellType::Tag, "From").weighted(13),
-            ColumnDef::new("from_cp", CellType::Ident, "CP").weighted(6),
-            ColumnDef::new("to", CellType::Tag, "To").weighted(13),
-            ColumnDef::new("to_cp", CellType::Ident, "CP").weighted(6),
-            ColumnDef::new("potential", CellType::Ident, "Potential").weighted(11),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(6),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}").weighted(6),
-            ColumnDef::new("source", CellType::Ident, "Source").weighted(10),
-            ColumnDef::new("via", CellType::Text, "Via").weighted(22),
-            ColumnDef::new("part", CellType::Ident, "Wire part").weighted(8),
-            ColumnDef::new("pages", CellType::Folios, "Pages").weighted(8),
+            ColumnDef::new("no", CellType::Ident, "No.", "Nr.").weighted(7),
+            ColumnDef::new("from", CellType::Tag, "From", "Van").weighted(13),
+            ColumnDef::new("from_cp", CellType::Ident, "CP", "Aansluitpunt").weighted(6),
+            ColumnDef::new("to", CellType::Tag, "To", "Naar").weighted(13),
+            ColumnDef::new("to_cp", CellType::Ident, "CP", "Aansluitpunt").weighted(6),
+            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(11),
+            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(6),
+            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(6),
+            ColumnDef::new("source", CellType::Ident, "Source", "Bron").weighted(10),
+            ColumnDef::new("via", CellType::Text, "Via", "Via").weighted(22),
+            ColumnDef::new("part", CellType::Ident, "Wire part", "Draadartikel").weighted(8),
+            ColumnDef::new("pages", CellType::Folios, "Pages", "Pagina's").weighted(8),
         ]
     }
 

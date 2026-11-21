@@ -351,6 +351,9 @@ impl Command for CreateReportBlock {
             source_ref: None,
             extra: Extra::new(),
             columns: self.columns.clone(),
+            caption: Default::default(),
+            legend: Default::default(),
+            added_rows: Vec::new(),
         })?;
         Ok(Outcome::primary((Kind::ReportBlock, id.cast())))
     }

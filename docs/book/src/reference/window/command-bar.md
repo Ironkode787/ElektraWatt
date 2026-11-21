@@ -63,6 +63,17 @@ number and description. See [Draw a panel layout](../../how-to/panel-layout.md).
 Puts a list on a page: a parts list, a terminal diagram, a cable list and the others, generated from the project and
 kept up to date. See [Lists on a page](things.md#lists-on-a-page).
 
+### List columns…
+
+On a page of a list (the Output tab's Reports group): which columns the list prints, in what order, with what heading
+and width, a caption above the table and a legend under it. See [Lists on a page](things.md#lists-on-a-page).
+
+### Rows of your own…
+
+On a page of a list (the Output tab's Reports group): rows the model does not hold, such as a spare terminal or a
+note; they stay in the list however often it is made again from the drawing. See
+[Lists on a page](things.md#lists-on-a-page).
+
 ### Open parts list
 
 Shows the project's parts list: every part with its quantity, its description and the tags of its devices.

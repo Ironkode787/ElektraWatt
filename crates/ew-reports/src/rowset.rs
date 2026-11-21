@@ -127,7 +127,8 @@ pub struct ColumnDef {
     pub key: String,
     /// The cell type every data cell of the column has (or one of the absent values).
     pub ty: CellType,
-    /// The header label (English; Fluent keys arrive with the message-list UI).
+    /// The header label in English (`en-GB`) and Dutch (`nl-NL`), the languages the program ships; a list page prints
+    /// it in the project's language (doc 09 §4.7), the CSV and XLSX headers in English ([`ColumnDef::english`]).
     pub label: MlText,
     /// The relative printed width of the column in a paged table: the house report form splits its table
     /// width by these weights ([`ColumnDef::new`] gives [`ColumnDef::DEFAULT_WEIGHT`]). Not data: XLSX and CSV
@@ -139,14 +140,28 @@ impl ColumnDef {
     /// The weight of a column that does not set one.
     pub const DEFAULT_WEIGHT: u32 = 10;
 
-    /// A column with a neutral-text label.
-    pub fn new(key: &str, ty: CellType, label: &str) -> ColumnDef {
+    /// A column with its label in English and in Dutch.
+    pub fn new(key: &str, ty: CellType, english: &str, dutch: &str) -> ColumnDef {
+        let label = MlText::from_langs(
+            [("en-GB", english), ("nl-NL", dutch)]
+                .into_iter()
+                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
+        );
         ColumnDef {
             key: key.to_owned(),
             ty,
-            label: MlText::neutral(label),
+            label,
             weight: ColumnDef::DEFAULT_WEIGHT,
         }
+    }
+
+    /// The English label: the header of the CSV and XLSX tables (data, the same in every project).
+    pub fn english(&self) -> &str {
+        "en-GB"
+            .parse()
+            .ok()
+            .and_then(|en| self.label.get(&en))
+            .unwrap_or_else(|| ew_derive::text_in(&self.label, None))
     }
 
     /// This column with printed-width weight `weight`.

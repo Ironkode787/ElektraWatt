@@ -175,3 +175,10 @@ PLC cards or of tubes. It is filled from the drawing every time, so you do not t
 To make one: **Report** on the Output tab (**Output ▸ Reports ▸ Report block…**) ([Reports and PDF](../../tutorials/reports-and-pdf.md)).
 
 To change one: change the drawing; the Report blocks navigator lists the lists ([Report blocks](panels.md#report-blocks)).
+
+What a list prints, on one of its pages: **Output ▸ List columns…** ticks the columns to print and gives each its order,
+a heading of its own and its width (a share of the table's width), with a caption above the table and a legend under
+it; **Output ▸ Rows of your own…** adds rows the drawing does not hold, which the list keeps and sorts with its own.
+A list prints in the project's language (its Languages row in **Project ▸ Project properties**), and on the set's
+paper: a set whose frame is A3 prints its lists on A3. A script sets the same with `fields.set` on the report block
+(paths `columns`, `caption`, `legend` and `added_rows`).

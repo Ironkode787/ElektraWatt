@@ -36,18 +36,18 @@ impl ReportKindDef for PlcOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("module", CellType::Ident, "Module").weighted(9),
-            ColumnDef::new("part", CellType::Ident, "Part").weighted(8),
-            ColumnDef::new("address", CellType::Address, "Address").weighted(8),
-            ColumnDef::new("channel", CellType::Number, "Channel").weighted(8),
-            ColumnDef::new("designation", CellType::Ident, "Designation").weighted(10),
-            ColumnDef::new("kind", CellType::Text, "Kind").weighted(5),
-            ColumnDef::new("symbol", CellType::Ident, "Symbol").weighted(9),
-            ColumnDef::new("function", CellType::Text, "Function text").weighted(12),
-            ColumnDef::new("process_tag", CellType::Ident, "Process tag").weighted(11),
-            ColumnDef::new("target", CellType::Ident, "Target").weighted(11),
-            ColumnDef::new("state", CellType::Text, "State").weighted(10),
-            ColumnDef::new("page", CellType::CellRef, "Page").weighted(8),
+            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(9),
+            ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(8),
+            ColumnDef::new("address", CellType::Address, "Address", "Adres").weighted(8),
+            ColumnDef::new("channel", CellType::Number, "Channel", "Kanaal").weighted(8),
+            ColumnDef::new("designation", CellType::Ident, "Designation", "Aanduiding").weighted(10),
+            ColumnDef::new("kind", CellType::Text, "Kind", "Soort").weighted(5),
+            ColumnDef::new("symbol", CellType::Ident, "Symbol", "Symbool").weighted(9),
+            ColumnDef::new("function", CellType::Text, "Function text", "Functietekst").weighted(12),
+            ColumnDef::new("process_tag", CellType::Ident, "Process tag", "Proceskenmerk").weighted(11),
+            ColumnDef::new("target", CellType::Ident, "Target", "Doel").weighted(11),
+            ColumnDef::new("state", CellType::Text, "State", "Status").weighted(10),
+            ColumnDef::new("page", CellType::CellRef, "Page", "Pagina").weighted(8),
         ]
     }
 

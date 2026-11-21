@@ -2279,11 +2279,8 @@ impl ShellModel {
             "first_folio": number,
         });
         if !held {
-            let copies: Vec<Value> = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK]
-                .iter()
-                .filter_map(|k| crate::wizard::shipped_form(k))
-                .collect();
-            params["form_copies"] = Value::Array(copies);
+            let keys = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK];
+            params["form_copies"] = Value::Array(crate::wizard::shipped_forms_lacking(&project.session, &keys));
         }
         // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
         // the page tree, not a bare folio (the persona re-test).

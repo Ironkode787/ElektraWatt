@@ -45,10 +45,10 @@ impl ReportKindDef for PartData {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("label", CellType::Text, "Label"),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer"),
-            ColumnDef::new("part_number", CellType::Ident, "Part number"),
-            ColumnDef::new("description", CellType::Text, "Description"),
+            ColumnDef::new("label", CellType::Text, "Label", "Label"),
+            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer", "Fabrikant"),
+            ColumnDef::new("part_number", CellType::Ident, "Part number", "Artikelnummer"),
+            ColumnDef::new("description", CellType::Text, "Description", "Omschrijving"),
         ]
     }
 

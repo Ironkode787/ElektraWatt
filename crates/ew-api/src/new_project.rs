@@ -161,8 +161,9 @@ impl IdSource for ByRef<'_> {
 }
 
 /// The `project.frames.set` parameters that put a project's pages on the shipped frames ([`SHIPPED_FORMS`]): the frame
-/// of key `default` for drawn pages, the cover frame for title pages, the frame without the grid for the table of
-/// contents and the section dividers (doc 03 §5.1); `None` when a shipped form does not parse.
+/// of key `default` for drawn pages, the cover frame for title pages, and for the table of contents and the section
+/// dividers the A4 frame without the grid when `default` is an A4 one, else `default` itself (the A3 frame has no
+/// variant without the grid, doc 09 §3.8); `None` when a shipped form does not parse.
 pub fn shipped_frames(default: &str) -> Option<Value> {
     let id = |key: &str| {
         SHIPPED_FORMS.iter().find_map(|text| {
@@ -171,7 +172,12 @@ pub fn shipped_frames(default: &str) -> Option<Value> {
                 .then(|| form.get("id").cloned())?
         })
     };
-    let (default, cover, nogrid) = (id(default)?, id(COVER_FRAME)?, id(NOGRID_FRAME)?);
+    let plain = if [GRID_FRAME, NOGRID_FRAME].contains(&default) {
+        NOGRID_FRAME
+    } else {
+        default
+    };
+    let (default, cover, nogrid) = (id(default)?, id(COVER_FRAME)?, id(plain)?);
     Some(serde_json::json!({
         "default": default,
         "per_page_type": [

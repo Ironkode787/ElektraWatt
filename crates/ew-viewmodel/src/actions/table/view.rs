@@ -274,6 +274,39 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Output ▸ Reports ▸ List columns… and Rows of your own… of the list on show (doc 09 §3.8), beside Report.
+    with_params(
+        "caption?:text, legend?:text, columns?:json",
+        placed(
+            place(Group::Reports, 2, CommandSize::Small, None),
+            "columns-3",
+            act(
+                "report_block.columns",
+                Command,
+                Menu::Output,
+                &[],
+                writable_list,
+                None,
+                |s, p| s.act_report_block_columns(p),
+            ),
+        ),
+    ),
+    with_params(
+        "rows?:json",
+        placed(
+            place(Group::Reports, 3, CommandSize::Small, None),
+            "list",
+            act(
+                "report_block.rows",
+                Command,
+                Menu::Output,
+                &[],
+                writable_list,
+                None,
+                |s, p| s.act_report_block_rows(p),
+            ),
+        ),
+    ),
     // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
     // else the first `parts_list` block, in page order).
     placed(

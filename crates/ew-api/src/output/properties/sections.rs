@@ -517,26 +517,37 @@ impl Session {
                 Vec::new(),
             ));
         }
-        // An embedded block's printed columns in words, the report's own column names ("Pos, DT, Qty, …").
+        // A block's printed columns in words, the report's own column names ("Pos, DT, Qty, …"), and each row of its
+        // own as its column names with their texts ("Terminal 3; Side 1 (clamp a) spare", doc 09 §3.8).
         if kind == Kind::ReportBlock
             && let [block] = targets.as_slice()
             && let Some(b) = q.report_blocks().get(Id::from_uuid(*block))
             && let ew_schema::ReportSource::Kind(k) = &b.source
             && let Some(def) = ew_reports::Registry::builtin().get(k)
-            && let Some(row) = built.iter_mut().find(|r| r.row.key == "report_block/columns")
-            && let RowValue::One { text, .. } = &mut row.row.value
         {
             let defs = def.columns();
-            let words: Vec<String> = b
-                .columns
-                .iter()
-                .map(|c| {
-                    defs.iter()
-                        .find(|d| d.key == c.key)
-                        .map_or_else(|| c.key.clone(), |d| crate::output::view::neutral(&d.label))
-                })
-                .collect();
-            *text = words.join(", ");
+            let word = |key: &str| {
+                defs.iter()
+                    .find(|d| d.key == key)
+                    .map_or_else(|| key.to_owned(), |d| crate::output::view::neutral(&d.label))
+            };
+            let mut in_words = |key: &str, words: String| {
+                if let Some(row) = built.iter_mut().find(|r| r.row.key == key)
+                    && let RowValue::One { text, .. } = &mut row.row.value
+                {
+                    *text = words;
+                }
+            };
+            let columns: Vec<String> = b.columns.iter().map(|c| word(&c.key)).collect();
+            in_words("report_block/columns", columns.join(", "));
+            for (i, added) in b.added_rows.iter().enumerate() {
+                let cells: Vec<String> = added
+                    .cells
+                    .iter()
+                    .map(|(key, text)| format!("{} {}", word(key), crate::output::view::neutral(text)))
+                    .collect();
+                in_words(&format!("report_block/added_rows[{i}].cells"), cells.join("; "));
+            }
         }
         // A panel layout page's Surface view rows.
         if kind == Kind::Page

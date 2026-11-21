@@ -209,7 +209,8 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                                     egui::pos2(rect.left() + t.space_4, rect.top()),
                                     egui::vec2(t.size_row, t.size_row),
                                 );
-                                let check = ui.put(field, egui::Checkbox::without_text(&mut on));
+                                // Placed, not put: the columns after it keep their place.
+                                let check = ui.place(field, egui::Checkbox::without_text(&mut on));
                                 check.widget_info(|| {
                                     egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name)
                                 });

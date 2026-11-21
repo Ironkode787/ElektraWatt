@@ -94,13 +94,10 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
     }
 }
 
-/// The text in `lang`, else the neutral text, else the first language's text, else "".
+/// The text in `lang` (`ew_derive::text_in`: the neutral text, else that language, else its language, else the first
+/// language's text, else "").
 fn text(ml: &MlText, lang: Option<&LangTag>) -> String {
-    lang.and_then(|l| ml.text_for(l))
-        .or_else(|| ml.as_neutral())
-        .or_else(|| ml.languages().next().and_then(|l| ml.get(l)))
-        .unwrap_or_default()
-        .to_owned()
+    ew_derive::text_in(ml, lang).to_owned()
 }
 
 /// The codes of a colour joined without a separator (`GNYE`); a code of a newer format prints its raw value.
@@ -229,15 +226,19 @@ fn unit_symbol(u: &QtyUnit) -> &'static str {
     }
 }
 
-/// Whether a quantity prints with a decimal comma: the output language decides when there is one, else the
-/// project's `settings.formatting.decimal_separator` (absent or `point`: the point).
+/// Whether a quantity prints with a decimal comma: the project's `settings.formatting.decimal_separator` when it sets
+/// one and the output is in the project's own language (none, or the language of its source language: the list pages
+/// print so, doc 09 §4.7); else the output language's; else the point.
 fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
-    match lang {
-        Some(_) => uses_comma(lang),
-        None => matches!(
-            q.project().settings.formatting.decimal_separator,
-            Some(DecimalSeparator::Comma)
-        ),
+    let project = q.project();
+    let own = match (lang, project.languages.as_ref()) {
+        (None, _) => true,
+        (Some(l), Some(langs)) => l.language().eq_ignore_ascii_case(langs.source.language()),
+        (Some(_), None) => false,
+    };
+    match (&project.settings.formatting.decimal_separator, own) {
+        (Some(separator), true) => matches!(separator, DecimalSeparator::Comma),
+        _ => uses_comma(lang),
     }
 }
 

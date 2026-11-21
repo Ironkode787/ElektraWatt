@@ -89,6 +89,7 @@ mod json;
 mod kind;
 mod layout;
 mod library;
+mod list_area;
 mod medium;
 mod page;
 mod page_item;
@@ -160,10 +161,11 @@ pub use library::{
     SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
     ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy,
 };
+pub use list_area::ListArea;
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
 pub use page::{
     BoxCp, BoxSlots, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
-    ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportColumn, ReportKind, ReportSource,
+    AddedRow, ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportColumn, ReportKind, ReportSource,
     Representation, Scale, SlotOverride, SortKey, SqlQuery,
 };
 pub use page_item::{

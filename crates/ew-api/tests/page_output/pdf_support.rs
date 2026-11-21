@@ -128,7 +128,7 @@ pub fn report_row_links(pages: &[ViewedPage]) -> Vec<(String, usize)> {
             let n: usize = t
                 .rows
                 .iter()
-                .take(ew_scene::table::MAX_ROWS)
+                .take(usize::try_from(ew_schema::HOUSE_ROWS_PER_PAGE).unwrap_or(usize::MAX))
                 .filter(|r| r.kind == ew_scene::table::TableRowKind::Data)
                 .map(|r| {
                     r.links

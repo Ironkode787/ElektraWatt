@@ -40,14 +40,14 @@ impl ReportKindDef for CableOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("cable", CellType::Tag, "Cable").weighted(10),
-            ColumnDef::new("part", CellType::Ident, "Cable type").weighted(16),
-            ColumnDef::new("core", CellType::Ident, "Core").weighted(7),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(7),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}").weighted(7),
-            ColumnDef::new("from", CellType::Text, "From").weighted(18),
-            ColumnDef::new("to", CellType::Text, "To").weighted(18),
-            ColumnDef::new("length", CellType::Qty, "Length").weighted(12),
+            ColumnDef::new("cable", CellType::Tag, "Cable", "Kabel").weighted(10),
+            ColumnDef::new("part", CellType::Ident, "Cable type", "Kabeltype").weighted(16),
+            ColumnDef::new("core", CellType::Ident, "Core", "Ader").weighted(7),
+            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(7),
+            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(7),
+            ColumnDef::new("from", CellType::Text, "From", "Van").weighted(18),
+            ColumnDef::new("to", CellType::Text, "To", "Naar").weighted(18),
+            ColumnDef::new("length", CellType::Qty, "Length", "Lengte").weighted(12),
         ]
     }
 

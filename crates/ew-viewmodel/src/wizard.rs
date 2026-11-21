@@ -35,7 +35,7 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::wizard_data::{
-    COLOUR_PROFILE_SAMPLE, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS,
+    A3_GRID_FRAME, COLOUR_PROFILE_SAMPLE, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS,
     SIZE_PROFILE_SAMPLE, STANDARD_REPORT_LAYOUT, TITLE_BLOCK,
 };
 
@@ -279,7 +279,7 @@ pub static FIELDS: &[FieldMeta] = &[
         Step::Frame,
         "frame",
         key!("wizard-field-frame"),
-        Choice(&["qet-grid", "qet-nogrid"]),
+        Choice(&["qet-grid", "qet-nogrid", "qet-a3-grid"]),
         "qet-grid",
         true,
     ),
@@ -832,11 +832,12 @@ impl Draft {
     }
 
     /// The frame-defaults command (`project.frames.set`): the frame of the `frame` field for drawn pages, the cover
-    /// frame for title pages, the no-grid frame for the table of contents and the section dividers (doc 03 §5.1).
-    /// `None` when a shipped form does not parse.
+    /// frame for title pages, the no-grid frame for the table of contents and the section dividers (doc 03 §5.1; on A3
+    /// the A3 frame, `ew_api::shipped_frames`). `None` when a shipped form does not parse.
     fn frames_command(&self) -> Option<(&'static str, Value)> {
         let default = match self.get("frame") {
             "qet-nogrid" => NOGRID_FRAME,
+            "qet-a3-grid" => A3_GRID_FRAME,
             _ => GRID_FRAME,
         };
         Some(("project.frames.set", ew_api::shipped_frames(default)?))
@@ -1068,6 +1069,21 @@ pub(crate) fn shipped_form(key: &str) -> Option<Value> {
 /// The copy ID of the shipped form with `key` ([`SHIPPED_FORMS`]).
 pub(crate) fn shipped_form_id(key: &str) -> Option<Value> {
     shipped_form(key).and_then(|form| form.get("id").cloned())
+}
+
+/// The shipped forms of `keys` ([`shipped_form`]) that the project of `session` does not hold, the copies a block on
+/// the first embeds: a project that holds another version of one (the A4 title block of 0.3.0) keeps its own.
+pub(crate) fn shipped_forms_lacking(session: &ew_api::Session, keys: &[&str]) -> Vec<Value> {
+    let q = session.query();
+    let held = |form: &Value| {
+        form.get("id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| q.forms().iter().any(|(f, _)| f.as_uuid().to_string() == id))
+    };
+    keys.iter()
+        .filter_map(|key| shipped_form(key))
+        .filter(|form| !held(form))
+        .collect()
 }
 
 /// The cross-reference format of an `xref` choice: the EPLAN style the wizard writes, or for `qet` the `ip` format of

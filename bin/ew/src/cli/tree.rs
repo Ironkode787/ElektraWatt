@@ -101,7 +101,7 @@ enum Top {
     /// shows the Windows print dialog, or prints to the printer `--printer` names without it (the default on
     /// Windows), `--via viewer` opens it in the default PDF application, which asks for the printer (the default
     /// elsewhere). `--paper` prints on a paper size (sheet, the default, or A5, A4, A3, A2, A1, A0, Letter, Legal,
-    /// Tabloid, turned like each page); `--fit` scales each page to the whole paper, never enlarged, and stamps a
+    /// Tabloid, turned like each page); `--fit` scales each page to the whole paper, up or down, and stamps a
     /// scaled page `scaled <n> %` in its bottom margin; without it a larger page is clipped and named in a notice.
     /// `--mono` prints in black and grey. `--out <file.pdf>` writes the print set instead and prints nothing. The
     /// date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 when printed or written, 2 on everything else (usage, open errors, an
@@ -1305,7 +1305,7 @@ struct PrintCli {
     /// The paper (sheet, A5, A4, A3, A2, A1, A0, Letter, Legal, Tabloid; default: each page's sheet).
     #[arg(long, value_name = "size", allow_hyphen_values = true, overrides_with = "paper", value_parser = paper)]
     paper: Option<Paper>,
-    /// Scale each page to the whole paper (never enlarged) and stamp a scaled page.
+    /// Scale each page to the whole paper, up or down, and stamp a scaled page.
     #[arg(long, overrides_with = "fit")]
     fit: bool,
     /// Print in black and grey.

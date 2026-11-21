@@ -23,12 +23,12 @@ impl ReportKindDef for RevisionOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("label", CellType::Ident, "Revision"),
-            ColumnDef::new("date", CellType::Date, "Date"),
-            ColumnDef::new("author", CellType::Text, "Author"),
-            ColumnDef::new("checker", CellType::Text, "Checker"),
-            ColumnDef::new("state", CellType::Text, "State"),
-            ColumnDef::new("pages", CellType::Folios, "Changed pages"),
+            ColumnDef::new("label", CellType::Ident, "Revision", "Revisie"),
+            ColumnDef::new("date", CellType::Date, "Date", "Datum"),
+            ColumnDef::new("author", CellType::Text, "Author", "Auteur"),
+            ColumnDef::new("checker", CellType::Text, "Checker", "Controleur"),
+            ColumnDef::new("state", CellType::Text, "State", "Status"),
+            ColumnDef::new("pages", CellType::Folios, "Changed pages", "Gewijzigde pagina's"),
         ]
     }
 

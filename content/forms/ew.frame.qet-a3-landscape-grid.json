@@ -1,0 +1,49 @@
+{
+  "$k": "form",
+  "id": "7cfb3e56-563f-5160-a961-4be49a033a96",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "4731cd90-6b27-595c-a8e4-25539253aafe",
+  "version": "1.0.0",
+  "sha256": "sha256:858caf63e92e6fb6dfb13e76d450c80a0077644ee19c2f014af17127cdf4a52b",
+  "kind": "frame",
+  "sheet": {
+    "width": 420000000,
+    "height": 297000000
+  },
+  "page_to_sheet": {
+    "scale_ppb": 986282578,
+    "offset": [
+      9790000,
+      9790000
+    ]
+  },
+  "grid": {
+    "header_band": {
+      "num": 15875000,
+      "den": 3
+    },
+    "columns": {
+      "count": 25,
+      "width": {
+        "num": 15875000,
+        "den": 1
+      }
+    },
+    "rows": {
+      "count": 12,
+      "height": {
+        "num": 63500000,
+        "den": 3
+      }
+    },
+    "ew.frame.line_width": 264583
+  },
+  "title_block": "83caeb04-5891-5be1-92f9-4e3a2d48c676",
+  "meta": {
+    "key": "ew.frame.qet-a3-landscape-grid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/09-reports-forms-output.md §3.8"
+    ]
+  }
+}

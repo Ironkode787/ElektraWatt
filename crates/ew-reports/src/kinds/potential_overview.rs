@@ -36,15 +36,15 @@ impl ReportKindDef for PotentialOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("potential", CellType::Ident, "Potential").weighted(14),
-            ColumnDef::new("kind", CellType::Text, "Type").weighted(12),
-            ColumnDef::new("voltage", CellType::Ident, "Voltage").weighted(10),
-            ColumnDef::new("class", CellType::Text, "Class").weighted(10),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(8),
-            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}").weighted(8),
-            ColumnDef::new("aliases", CellType::Number, "Aliases").weighted(8),
-            ColumnDef::new("members", CellType::Number, "Members").weighted(8),
-            ColumnDef::new("pages", CellType::Folios, "Pages").weighted(14),
+            ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(14),
+            ColumnDef::new("kind", CellType::Text, "Type", "Type").weighted(12),
+            ColumnDef::new("voltage", CellType::Ident, "Voltage", "Spanning").weighted(10),
+            ColumnDef::new("class", CellType::Text, "Class", "Klasse").weighted(10),
+            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(8),
+            ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(8),
+            ColumnDef::new("aliases", CellType::Number, "Aliases", "Aliassen").weighted(8),
+            ColumnDef::new("members", CellType::Number, "Members", "Leden").weighted(8),
+            ColumnDef::new("pages", CellType::Folios, "Pages", "Pagina's").weighted(14),
         ]
     }
 

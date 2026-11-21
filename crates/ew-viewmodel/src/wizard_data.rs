@@ -21,7 +21,7 @@ pub const SIZE_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/si
 /// The shipped frame and title-block forms and their keys (one place: `ew_api::output`). The wizard embeds them into
 /// the basic project and names them in its frame defaults (doc 16 section 9.2, step 2); the sample project holds the
 /// same copies.
-pub use ew_api::output::{GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, TITLE_BLOCK};
+pub use ew_api::output::{A3_GRID_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, TITLE_BLOCK};
 
 /// The shipped colour profiles of `content/profiles/colour` (doc 16 section 9.2, step 3), by the choice of
 /// the `colour` field: "EN 60204-1 machine" and "IEC 60445 installation". Each is a value of the settings member

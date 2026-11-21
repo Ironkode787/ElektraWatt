@@ -92,6 +92,8 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `rail.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rail_show` `crates/ew-viewmodel/src/shell/navigators.rs` | `action-rail-show` |
 | `jobs.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_jobs_show` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-jobs-show` |
 | `report_block.new` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_new` `crates/ew-viewmodel/src/shell/creation.rs` | `action-report-block-new`, `report-block-new-title`, `toast-report-block-new` |
+| `report_block.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_columns` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-report-block-columns`, `form-hint-report-block-columns-caption`, `form-hint-report-block-columns-legend` |
+| `report_block.rows` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_rows` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-report-block-rows` |
 | `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-parts`, `bar-lists-parts` |
 | `notifications.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_notifications_show` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-notifications-show` |
 | `messages.migration` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_messages_migration` `crates/ew-viewmodel/src/shell/messages.rs` | `action-messages-migration` |

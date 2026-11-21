@@ -18,7 +18,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
 use ew_schema::{FormDef, Page, PageType, ReportBlock, ReportKind, ReportSource, Section};
 
 use crate::Q;
@@ -42,6 +42,28 @@ pub fn map_ml(src: &MlText, f: impl Fn(&str) -> String) -> MlText {
         src.languages()
             .map(|l| (l.clone(), f(src.get(l).unwrap_or_default()))),
     )
+}
+
+/// The text of `src` printed in `lang` (doc 09 §4.7): the neutral text; else the string of exactly `lang`; else of
+/// its language (`nl-NL` for `nl`, `nl` for `nl-NL`); else the first language in tag order; else empty.
+pub fn text_in<'a>(src: &'a MlText, lang: Option<&LangTag>) -> &'a str {
+    if let Some(n) = src.as_neutral() {
+        return n;
+    }
+    let same_language = |l: &LangTag| {
+        src.languages()
+            .find(|t| t.language().eq_ignore_ascii_case(l.language()))
+            .and_then(|t| src.get(t))
+    };
+    lang.and_then(|l| src.get(l).or_else(|| same_language(l)))
+        .or_else(|| src.languages().next().and_then(|l| src.get(l)))
+        .unwrap_or_default()
+}
+
+/// The language a project's pages print in (doc 09 §4.7): its source language; `None` for a project that names none
+/// (the neutral text and the first language print, as before).
+pub fn print_language(q: &Q) -> Option<LangTag> {
+    q.project().languages.as_ref().map(|l| l.source.clone())
 }
 
 /// `page_title(page)`: the page description printed in the title block's large cell and the TOC

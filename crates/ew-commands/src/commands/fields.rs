@@ -232,6 +232,12 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "form",
             // An embedded block's rectangle: a legend moved or resized on its layout page.
             "embedded.rect",
+            // What its pages print (doc 09 §3.8): its columns with their widths and headings, the line above and
+            // the line under the table, and the rows the model does not hold.
+            "columns",
+            "caption",
+            "legend",
+            "added_rows",
         ],
     ),
     (KindName::ExternalRef, &["project", "device", "connection"]),

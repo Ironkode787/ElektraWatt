@@ -73,7 +73,7 @@ fn table(rows: &[&[&str]]) -> TableView {
                 links: Vec::new(),
             })
             .collect(),
-        note: None,
+        ..TableView::default()
     }
 }
 

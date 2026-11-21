@@ -52,6 +52,8 @@ pub(crate) mod join;
 mod layers;
 // Properties for layout records and the Surface view rows.
 mod layout_edit;
+// What a list page prints: its columns, caption, legend and rows of its own (doc 09 §3.8).
+mod list_look;
 mod navigation;
 // What a device is: its natures.
 mod natures;
@@ -187,11 +189,12 @@ pub use table_io::{
     CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
     TableImportError, guard_table_read,
 };
+pub use list_look::{ListColumn, ListLook};
 pub use title_block_fields::TitleBlockFacts;
 pub use typeface::{DrawingFonts, ProjectFonts, ProjectFontsQ, TypefaceState, font_files, fonts};
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
-    COVER_FRAME, FrameForms, GRID_FRAME, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf,
+    A3_GRID_FRAME, COVER_FRAME, FrameForms, GRID_FRAME, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf,
     PageSlotsOf, PageTableOf, SHIPPED_FORMS, TITLE_BLOCK, page_destination, page_items, page_plug_notes,
     page_uuid, page_valve_cells, page_valve_glyphs,
 };

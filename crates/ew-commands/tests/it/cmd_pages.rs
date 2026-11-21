@@ -810,6 +810,9 @@ fn report_block(block: Id<ReportBlock>, first: u32) -> ReportBlock {
         embedded: None,
         source_ref: None,
         columns: Vec::new(),
+        caption: Default::default(),
+        legend: Default::default(),
+        added_rows: Vec::new(),
         extra: Default::default(),
     }
 }

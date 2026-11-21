@@ -8,6 +8,8 @@
 //! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
 //! pass before typed reading.
 
+use std::collections::BTreeMap;
+
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2};
@@ -354,10 +356,23 @@ pub struct ReportBlock {
     /// Placement on a page for embedded blocks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub embedded: Option<EmbedSpec>,
-    /// The printed columns of an embedded block, in order: each a column of its report kind with its relative width;
-    /// empty: the kind's own layout (doc 09 §2.2). Additive: an older build prints the kind's layout.
+    /// The printed columns, in order: each a column of its report kind with its relative width and, optionally, a
+    /// heading of its own; empty: the kind's own columns (doc 09 §2.2, §3.8). Additive: an older build prints the
+    /// kind's columns (and, on an embedded block, keeps reading these).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub columns: Vec<ReportColumn>,
+    /// The line printed above the table of each of the block's pages (doc 09 §3.8); empty: none. Additive.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub caption: MlText,
+    /// The line printed under the table of each of the block's pages (doc 09 §3.8); empty: none. Additive.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub legend: MlText,
+    /// Rows the model does not hold, kept in the block and listed with the kind's rows (doc 09 §3.8). Additive: an
+    /// older build lists the kind's rows only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_rows: Vec<AddedRow>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
@@ -366,7 +381,7 @@ pub struct ReportBlock {
     pub extra: Extra,
 }
 
-/// One printed column of an embedded report block (`ReportBlock.columns`).
+/// One printed column of a report block (`ReportBlock.columns`).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ReportColumn {
     /// The column's key in the report kind's row set (`pos`, `tag`, `description`, …); a key the rows do not have
@@ -374,6 +389,23 @@ pub struct ReportColumn {
     pub key: String,
     /// The relative width.
     pub weight: u32,
+    /// The printed heading; empty: the kind's own heading of the column. Additive.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub heading: MlText,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One row of a report block that the model does not hold (`ReportBlock.added_rows`, doc 09 §3.8).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct AddedRow {
+    /// The row's texts by column key (`terminal`, `label`, …); a column it does not name is empty, and a key the
+    /// report kind does not have prints nowhere.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(with = "BTreeMap<String, MlTextS>")]
+    pub cells: BTreeMap<String, MlText>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

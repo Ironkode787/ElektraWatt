@@ -91,7 +91,7 @@ impl Table {
                 .iter()
                 .map(|c| TableColumn {
                     key: c.key.clone(),
-                    label: c.label.as_neutral().unwrap_or(&c.key).to_owned(),
+                    label: c.english().to_owned(),
                     cell: c.ty,
                     editable: false,
                 })

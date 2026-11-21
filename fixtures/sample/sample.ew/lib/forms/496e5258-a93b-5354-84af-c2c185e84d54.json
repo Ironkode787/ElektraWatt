@@ -3,8 +3,8 @@
   "id": "496e5258-a93b-5354-84af-c2c185e84d54",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d38c6aef-caca-5f8f-bca6-b885a286739e",
-  "version": "1.0.0",
-  "sha256": "sha256:f4cacf8dbcde3441d4d5aac9cebb7099f48cb25302a915c630ea911b79afc78a",
+  "version": "1.1.0",
+  "sha256": "sha256:600a9c2977e9c7fb8d723e83a0ce4b3fc016e87a9065cb221b7e972940ccedbd",
   "kind": "title_block",
   "sheet": {"width": 275166667, "height": 17991667},
   "graphics": [
@@ -37,7 +37,7 @@
     },
     {
       "rect": [[12170833, 8995833], [123825000, 13493750]],
-      "label": {"en-GB": "Project:"},
+      "label": {"en-GB": "Project:", "nl-NL": "Project:"},
       "value": "{project.reference}",
       "style": "data.small",
       "align": "middle_left",
@@ -45,7 +45,7 @@
     },
     {
       "rect": [[12170833, 13493750], [123825000, 17991667]],
-      "label": {"en-GB": "Description:"},
+      "label": {"en-GB": "Description:", "nl-NL": "Omschrijving:"},
       "value": "{page.description}",
       "style": "data.small",
       "align": "middle_left",
@@ -53,7 +53,7 @@
     },
     {
       "rect": [[123825000, 8995833], [165100000, 13493750]],
-      "label": {"en-GB": "Drawing:"},
+      "label": {"en-GB": "Drawing:", "nl-NL": "Tekening:"},
       "value": "{project.drawing_id}",
       "style": "data.small",
       "align": "middle_left",
@@ -61,7 +61,7 @@
     },
     {
       "rect": [[123825000, 13493750], [165100000, 17991667]],
-      "label": {"en-GB": "Revision:"},
+      "label": {"en-GB": "Revision:", "nl-NL": "Revisie:"},
       "value": "{revision.current.label}",
       "style": "data.small",
       "align": "middle_left",
@@ -83,7 +83,7 @@
     },
     {
       "rect": [[192616667, 0], [220133333, 4497917]],
-      "label": {"en-GB": "End user:"},
+      "label": {"en-GB": "End user:", "nl-NL": "Eindgebruiker:"},
       "value": "{party.end_user.name}",
       "style": "data.small",
       "align": "middle_left",
@@ -91,7 +91,7 @@
     },
     {
       "rect": [[192616667, 4497917], [220133333, 8995833]],
-      "label": {"en-GB": "Object:"},
+      "label": {"en-GB": "Object:", "nl-NL": "Object:"},
       "value": "{project.object}",
       "style": "data.small",
       "align": "middle_left",
@@ -99,7 +99,7 @@
     },
     {
       "rect": [[192616667, 8995833], [220133333, 13493750]],
-      "label": {"en-GB": "Checked:"},
+      "label": {"en-GB": "Checked:", "nl-NL": "Gecontroleerd:"},
       "value": "{revision.current.checker.name}",
       "style": "data.small",
       "align": "middle_left",
@@ -107,7 +107,7 @@
     },
     {
       "rect": [[192616667, 13493750], [220133333, 17991667]],
-      "label": {"en-GB": "Author:"},
+      "label": {"en-GB": "Author:", "nl-NL": "Getekend:"},
       "value": "{revision.current.author.name}",
       "style": "data.small",
       "align": "middle_left",
@@ -115,7 +115,7 @@
     },
     {
       "rect": [[220133333, 0], [247650000, 4497917]],
-      "label": {"en-GB": "Creation:"},
+      "label": {"en-GB": "Creation:", "nl-NL": "Aangemaakt:"},
       "value": "{project.created | date}",
       "style": "pin",
       "align": "centre",
@@ -123,7 +123,7 @@
     },
     {
       "rect": [[220133333, 4497917], [247650000, 8995833]],
-      "label": {"en-GB": "Saved:"},
+      "label": {"en-GB": "Saved:", "nl-NL": "Opgeslagen:"},
       "value": "{project.edited | date}",
       "style": "pin",
       "align": "centre",
@@ -131,7 +131,7 @@
     },
     {
       "rect": [[247650000, 0], [275166667, 4497917]],
-      "label": {"en-GB": "Page:"},
+      "label": {"en-GB": "Page:", "nl-NL": "Blad:"},
       "value": "{page.folio}",
       "style": "text.normal",
       "align": "centre",
@@ -139,7 +139,7 @@
     },
     {
       "rect": [[247650000, 4497917], [261408333, 8995833]],
-      "label": {"en-GB": "Prev:"},
+      "label": {"en-GB": "Prev:", "nl-NL": "Vorige:"},
       "value": "{page.prev}",
       "style": "pin",
       "align": "centre",
@@ -147,7 +147,7 @@
     },
     {
       "rect": [[261408333, 4497917], [275166667, 8995833]],
-      "label": {"en-GB": "Next:"},
+      "label": {"en-GB": "Next:", "nl-NL": "Volgende:"},
       "value": "{page.next}",
       "style": "pin",
       "align": "centre",

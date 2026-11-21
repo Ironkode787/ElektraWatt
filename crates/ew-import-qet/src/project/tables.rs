@@ -178,6 +178,9 @@ pub fn map(project: &QetProject, facts: &[DiagramFacts], ids: &Ids, findings: &m
             source_ref: Some(ids.source_ref(&key)),
             extra: Default::default(),
             columns: Vec::new(),
+            caption: Default::default(),
+            legend: Default::default(),
+            added_rows: Vec::new(),
         };
         if table_only {
             let numbers: Vec<u32> = diagrams

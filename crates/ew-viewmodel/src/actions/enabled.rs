@@ -41,6 +41,16 @@ pub(super) fn writable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)
 }
 
+/// The project can be written and shows a page of a list (List columns…, Rows of your own…).
+pub(super) fn writable_list(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    if m.shows_list() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-list-page"))
+    }
+}
+
 /// The selection is one valve terminal (Generate overview… without a row), else why not in words.
 pub(super) fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;

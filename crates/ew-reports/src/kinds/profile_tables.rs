@@ -65,13 +65,13 @@ impl ReportKindDef for ProfileTables {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("voltage_class", CellType::Text, "Voltage class"),
-            ColumnDef::new("function", CellType::Text, "Function"),
-            ColumnDef::new("potential_type", CellType::Text, "Potential type"),
-            ColumnDef::new("colour", CellType::Text, "Colour"),
-            ColumnDef::new("code", CellType::Colour, "Code"),
-            ColumnDef::new("size", CellType::Qty, "Size"),
-            ColumnDef::new("table", CellType::Ident, "Table"),
+            ColumnDef::new("voltage_class", CellType::Text, "Voltage class", "Spanningsklasse"),
+            ColumnDef::new("function", CellType::Text, "Function", "Functie"),
+            ColumnDef::new("potential_type", CellType::Text, "Potential type", "Potentiaaltype"),
+            ColumnDef::new("colour", CellType::Text, "Colour", "Kleur"),
+            ColumnDef::new("code", CellType::Colour, "Code", "Code"),
+            ColumnDef::new("size", CellType::Qty, "Size", "Maat"),
+            ColumnDef::new("table", CellType::Ident, "Table", "Tabel"),
         ]
     }
 

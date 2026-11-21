@@ -82,23 +82,23 @@ impl ReportKindDef for TubeList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("tag", CellType::Ident, "Tag").weighted(8),
-            ColumnDef::new("from", CellType::Ident, "From").weighted(12),
-            ColumnDef::new("from_role", CellType::Text, "Role").weighted(8),
-            ColumnDef::new("to", CellType::Ident, "To").weighted(12),
-            ColumnDef::new("to_role", CellType::Text, "Role").weighted(8),
-            ColumnDef::new("medium", CellType::Text, "Medium").weighted(12),
-            ColumnDef::new("line_kind", CellType::Text, "Line").weighted(8),
-            ColumnDef::new("size", CellType::Ident, "OD×ID").weighted(7),
-            ColumnDef::new("material", CellType::Ident, "Material").weighted(9),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(7),
-            ColumnDef::new("part", CellType::Ident, "Tube part").weighted(10),
-            ColumnDef::new("length", CellType::Qty, "Length").weighted(6),
-            ColumnDef::new("length_source", CellType::Text, "Source").weighted(8),
-            ColumnDef::new("fitting_a", CellType::Ident, "Fitting A").weighted(9),
-            ColumnDef::new("fitting_b", CellType::Ident, "Fitting B").weighted(9),
-            ColumnDef::new("location", CellType::Ident, "Location change").weighted(16),
-            ColumnDef::new("page", CellType::Folio, "Page").weighted(5),
+            ColumnDef::new("tag", CellType::Ident, "Tag", "Kenmerk").weighted(8),
+            ColumnDef::new("from", CellType::Ident, "From", "Van").weighted(12),
+            ColumnDef::new("from_role", CellType::Text, "Role", "Rol").weighted(8),
+            ColumnDef::new("to", CellType::Ident, "To", "Naar").weighted(12),
+            ColumnDef::new("to_role", CellType::Text, "Role", "Rol").weighted(8),
+            ColumnDef::new("medium", CellType::Text, "Medium", "Medium").weighted(12),
+            ColumnDef::new("line_kind", CellType::Text, "Line", "Leiding").weighted(8),
+            ColumnDef::new("size", CellType::Ident, "OD×ID", "UD×BD").weighted(7),
+            ColumnDef::new("material", CellType::Ident, "Material", "Materiaal").weighted(9),
+            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(7),
+            ColumnDef::new("part", CellType::Ident, "Tube part", "Slangartikel").weighted(10),
+            ColumnDef::new("length", CellType::Qty, "Length", "Lengte").weighted(6),
+            ColumnDef::new("length_source", CellType::Text, "Source", "Bron").weighted(8),
+            ColumnDef::new("fitting_a", CellType::Ident, "Fitting A", "Koppeling A").weighted(9),
+            ColumnDef::new("fitting_b", CellType::Ident, "Fitting B", "Koppeling B").weighted(9),
+            ColumnDef::new("location", CellType::Ident, "Location change", "Locatiewissel").weighted(16),
+            ColumnDef::new("page", CellType::Folio, "Page", "Pagina").weighted(5),
         ]
     }
 
@@ -208,12 +208,12 @@ impl ReportKindDef for TubeCutList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("material", CellType::Ident, "Material").weighted(10),
-            ColumnDef::new("size", CellType::Ident, "OD×ID").weighted(10),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(8),
-            ColumnDef::new("part", CellType::Ident, "Tube part").weighted(16),
-            ColumnDef::new("count", CellType::Number, "Pieces").weighted(8),
-            ColumnDef::new("length", CellType::Qty, "Total length").weighted(12),
+            ColumnDef::new("material", CellType::Ident, "Material", "Materiaal").weighted(10),
+            ColumnDef::new("size", CellType::Ident, "OD×ID", "UD×BD").weighted(10),
+            ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(8),
+            ColumnDef::new("part", CellType::Ident, "Tube part", "Slangartikel").weighted(16),
+            ColumnDef::new("count", CellType::Number, "Pieces", "Stuks").weighted(8),
+            ColumnDef::new("length", CellType::Qty, "Total length", "Totale lengte").weighted(12),
         ]
     }
 
@@ -296,9 +296,9 @@ impl ReportKindDef for TubeLabels {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("tube", CellType::Ident, "Tube").weighted(16),
-            ColumnDef::new("at", CellType::Ident, "At").weighted(14),
-            ColumnDef::new("text", CellType::Ident, "Label text").weighted(14),
+            ColumnDef::new("tube", CellType::Ident, "Tube", "Slang").weighted(16),
+            ColumnDef::new("at", CellType::Ident, "At", "Bij").weighted(14),
+            ColumnDef::new("text", CellType::Ident, "Label text", "Markeringstekst").weighted(14),
         ]
     }
 
@@ -341,17 +341,17 @@ impl ReportKindDef for ValveTerminalConfig {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("module_position", CellType::Number, "Slot").weighted(5),
-            ColumnDef::new("module", CellType::Ident, "Module").weighted(10),
-            ColumnDef::new("module_part", CellType::Ident, "Module part").weighted(10),
-            ColumnDef::new("position", CellType::Number, "Position").weighted(6),
-            ColumnDef::new("valve", CellType::Ident, "Valve").weighted(11),
-            ColumnDef::new("valve_part", CellType::Ident, "Valve part").weighted(10),
-            ColumnDef::new("solenoids", CellType::Ident, "Solenoids").weighted(7),
-            ColumnDef::new("address", CellType::Address, "Address").weighted(9),
-            ColumnDef::new("function", CellType::Text, "Function text").weighted(12),
-            ColumnDef::new("process_tag", CellType::Ident, "Process tag").weighted(11),
-            ColumnDef::new("occupancy", CellType::Text, "Occupancy").weighted(12),
+            ColumnDef::new("module_position", CellType::Number, "Slot", "Slot").weighted(5),
+            ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
+            ColumnDef::new("module_part", CellType::Ident, "Module part", "Moduleartikel").weighted(10),
+            ColumnDef::new("position", CellType::Number, "Position", "Positie").weighted(6),
+            ColumnDef::new("valve", CellType::Ident, "Valve", "Ventiel").weighted(11),
+            ColumnDef::new("valve_part", CellType::Ident, "Valve part", "Ventielartikel").weighted(10),
+            ColumnDef::new("solenoids", CellType::Ident, "Solenoids", "Spoelen").weighted(7),
+            ColumnDef::new("address", CellType::Address, "Address", "Adres").weighted(9),
+            ColumnDef::new("function", CellType::Text, "Function text", "Functietekst").weighted(12),
+            ColumnDef::new("process_tag", CellType::Ident, "Process tag", "Proceskenmerk").weighted(11),
+            ColumnDef::new("occupancy", CellType::Text, "Occupancy", "Bezetting").weighted(12),
         ]
     }
 
@@ -428,13 +428,13 @@ impl ReportKindDef for MediumOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("medium", CellType::Text, "Medium").weighted(16),
-            ColumnDef::new("sources", CellType::Ident, "Sources").weighted(14),
-            ColumnDef::new("p_nom", CellType::Qty, "Pressure").weighted(8),
-            ColumnDef::new("quality", CellType::Ident, "Quality").weighted(8),
-            ColumnDef::new("consumers", CellType::Range, "Consumers").weighted(20),
-            ColumnDef::new("consumer_count", CellType::Number, "Count").weighted(6),
-            ColumnDef::new("default_tube", CellType::Ident, "Default tube").weighted(12),
+            ColumnDef::new("medium", CellType::Text, "Medium", "Medium").weighted(16),
+            ColumnDef::new("sources", CellType::Ident, "Sources", "Bronnen").weighted(14),
+            ColumnDef::new("p_nom", CellType::Qty, "Pressure", "Druk").weighted(8),
+            ColumnDef::new("quality", CellType::Ident, "Quality", "Kwaliteit").weighted(8),
+            ColumnDef::new("consumers", CellType::Range, "Consumers", "Verbruikers").weighted(20),
+            ColumnDef::new("consumer_count", CellType::Number, "Count", "Aantal").weighted(6),
+            ColumnDef::new("default_tube", CellType::Ident, "Default tube", "Standaardslang").weighted(12),
         ]
     }
 
