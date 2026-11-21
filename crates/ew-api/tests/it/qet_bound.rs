@@ -19,7 +19,14 @@ use ew_units::{Nm, Pt2};
 
 /// A definition `name` in category `cat` (`""` for none) of link type `link`, with `kind` (`kindInformation`s) and
 /// `terminals` (`x y orientation name`), numbered `n` for its UUIDs, and a horizontal stroke.
-fn def(cat: &str, name: &str, link: &str, kind: &str, n: u32, terminals: &[(i32, i32, &str, &str)]) -> String {
+fn def(
+    cat: &str,
+    name: &str,
+    link: &str,
+    kind: &str,
+    n: u32,
+    terminals: &[(i32, i32, &str, &str)],
+) -> String {
     let terminals: String = terminals
         .iter()
         .enumerate()
@@ -58,7 +65,16 @@ fn e(id: u32) -> String {
 /// A placed element of definition `path` at `(x, y)` with `terminals` instance terminals, label `label`, its label text
 /// when `label_text`, a user text `user` and links.
 #[allow(clippy::too_many_arguments)]
-fn placed(path: &str, id: u32, (x, y): (u32, u32), terminals: u32, label: &str, label_text: bool, user: &str, links: &[u32]) -> String {
+fn placed(
+    path: &str,
+    id: u32,
+    (x, y): (u32, u32),
+    terminals: u32,
+    label: &str,
+    label_text: bool,
+    user: &str,
+    links: &[u32],
+) -> String {
     let terminals: String = (0..terminals)
         .map(|i| format!(r#"<terminal x="0" y="0" orientation="0" id="{}"/>"#, id * 10 + i))
         .collect();
@@ -70,9 +86,14 @@ fn placed(path: &str, id: u32, (x, y): (u32, u32), terminals: u32, label: &str, 
     let user = if user.is_empty() {
         String::new()
     } else {
-        format!(r#"<dynamic_elmt_text text_from="UserText" x="4" y="-5" font="Sans Serif,7,-1,5,50,0,0,0,0,0"><text>{user}</text></dynamic_elmt_text>"#)
+        format!(
+            r#"<dynamic_elmt_text text_from="UserText" x="4" y="-5" font="Sans Serif,7,-1,5,50,0,0,0,0,0"><text>{user}</text></dynamic_elmt_text>"#
+        )
     };
-    let links: String = links.iter().map(|l| format!(r#"<link_uuid uuid="{}"/>"#, e(*l))).collect();
+    let links: String = links
+        .iter()
+        .map(|l| format!(r#"<link_uuid uuid="{}"/>"#, e(*l)))
+        .collect();
     format!(
         r#"<element type="embed://import/{path}" uuid="{}" x="{x}" y="{y}" orientation="0">
   <terminals>{terminals}</terminals>
@@ -156,8 +177,28 @@ fn project() -> String {
             wire(6, 2, 1, 8, 3, 0, &[]),
             wire(7, 3, 1, 9, 4, 0, &[("vertical", "90"), ("horizontal", "190")]),
             wire(9, 4, 1, 10, 5, 0, &[]),
-            wire(8, 3, 1, 9, 4, 2, &[("vertical", "140"), ("horizontal", "180"), ("vertical", "-50")]),
-            wire(6, 2, 0, 5, 1, 0, &[("vertical", "-26.6667"), ("horizontal", "-30"), ("vertical", "26.6667")]),
+            wire(
+                8,
+                3,
+                1,
+                9,
+                4,
+                2,
+                &[("vertical", "140"), ("horizontal", "180"), ("vertical", "-50")],
+            ),
+            wire(
+                6,
+                2,
+                0,
+                5,
+                1,
+                0,
+                &[
+                    ("vertical", "-26.6667"),
+                    ("horizontal", "-30"),
+                    ("vertical", "26.6667"),
+                ],
+            ),
         ],
     );
     let f2 = diagram(
@@ -169,7 +210,9 @@ fn project() -> String {
         ],
         &[wire(13, 1, 1, 14, 3, 0, &[])],
     );
-    format!(r#"<project version="0.80" title="Bound">{f1}{f2}<collection><category name="import">{defs}</category></collection></project>"#)
+    format!(
+        r#"<project version="0.80" title="Bound">{f1}{f2}<collection><category name="import">{defs}</category></collection></project>"#
+    )
 }
 
 /// The QET file and the symbol map `map` (none when empty) in a folder of their own, named for `name`.
@@ -185,13 +228,15 @@ fn folder(name: &str, map: &str) -> PathBuf {
 }
 
 fn library() -> StarterLibrary {
-    StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content")).expect("the starter content")
+    StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content"))
+        .expect("the starter content")
 }
 
 /// The import of the QET file `file` with the map beside it.
 fn import(file: &Path) -> Imported {
     let lib = library().with_symbol_map_beside(file).expect("the map reads");
-    let imported = import_qet("bound.qet", std::fs::read(file).unwrap(), &lib).expect("an importable project");
+    let imported =
+        import_qet("bound.qet", std::fs::read(file).unwrap(), &lib).expect("an importable project");
     std::fs::remove_dir_all(file.parent().unwrap()).expect("the folder goes");
     assert!(imported.session.is_ok(), "{:?}", imported.session.as_ref().err());
     imported
@@ -209,7 +254,9 @@ fn starter(i: &Imported, key: &str) -> Id<FnDef> {
         .lib
         .iter()
         .find_map(|d| match d {
-            LibDocument::Fndef(c) if c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => Some(c.id),
+            LibDocument::Fndef(c) if c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => {
+                Some(c.id)
+            }
             _ => None,
         })
         .unwrap_or_else(|| panic!("{key} travels with the batch"))
@@ -241,7 +288,11 @@ fn the_symbol_map_binds_coils_contacts_and_terminals_and_keeps_their_drawing() {
     let plain = import(&folder("plain", ""));
     let bound = import(&folder("bound", MAP));
     let (coil, coil_rep) = of(&bound, 5);
-    assert_eq!(coil.def, starter(&bound, "ew.fn.coil"), "the coil is the starter coil");
+    assert_eq!(
+        coil.def,
+        starter(&bound, "ew.fn.coil"),
+        "the coil is the starter coil"
+    );
     let (contact, _) = of(&bound, 6);
     assert_eq!(contact.def, starter(&bound, "ew.fn.contact-no"));
     assert_eq!((contact.device, contact.role.clone()), (coil.device, FnRole::Aux));
@@ -256,7 +307,10 @@ fn the_symbol_map_binds_coils_contacts_and_terminals_and_keeps_their_drawing() {
     };
     assert_eq!(designation(terminal).as_deref(), Some("2"));
     // The terminal's number text prints its designation: a slot shown where the text stands.
-    assert!(terminal_rep.text_slots.iter().any(|o| o.visible == Some(true)), "{terminal_rep:?}");
+    assert!(
+        terminal_rep.text_slots.iter().any(|o| o.visible == Some(true)),
+        "{terminal_rep:?}"
+    );
     // The element keeps its drawing and its place.
     let symbol = |i: &Imported, r: &Representation| {
         i.batch
@@ -269,12 +323,21 @@ fn the_symbol_map_binds_coils_contacts_and_terminals_and_keeps_their_drawing() {
             .expect("the symbol")
     };
     let (_, plain_rep) = of(&plain, 5);
-    assert_eq!(symbol(&bound, coil_rep).graphics, symbol(&plain, plain_rep).graphics);
+    assert_eq!(
+        symbol(&bound, coil_rep).graphics,
+        symbol(&plain, plain_rep).graphics
+    );
     assert_eq!((coil_rep.pos, coil_rep.orient), (plain_rep.pos, plain_rep.orient));
-    assert_ne!(coil_rep.symbol, plain_rep.symbol, "a copy of its own, which a re-import adds");
+    assert_ne!(
+        coil_rep.symbol, plain_rep.symbol,
+        "a copy of its own, which a re-import adds"
+    );
     // The report says what each row bound.
     let report = bound.migration_report().to_csv();
-    assert!(report.contains("symbol-map.csv, line 2: 2 elements bound to `ew.fn.coil`"), "{report}");
+    assert!(
+        report.contains("symbol-map.csv, line 2: 2 elements bound to `ew.fn.coil`"),
+        "{report}"
+    );
     // Without the map the coil draws a function definition of its own.
     let (plain_coil, _) = of(&plain, 5);
     assert_ne!(plain_coil.def, coil.def);
@@ -290,7 +353,10 @@ fn a_wrong_row_refuses_the_map_in_words() {
     };
     let e = refused("element,function\ncoil.elmt,ew.fn.motor-3ph\n");
     assert!(e.starts_with("symbol-map.csv, line 2, column `function`:"), "{e}");
-    assert!(e.contains("the map binds coils, contacts, terminals and interruption points"), "{e}");
+    assert!(
+        e.contains("the map binds coils, contacts, terminals and interruption points"),
+        "{e}"
+    );
     assert!(refused("element,kind\n").contains("unknown column `kind`"));
     assert!(refused("function\new.fn.coil\n").contains("the column `element` is missing"));
     // A row whose connection points do not fit the element refuses the import.
@@ -299,7 +365,10 @@ fn a_wrong_row_refuses_the_map_in_words() {
     let r = import_qet("bound.qet", std::fs::read(&file).unwrap(), &lib);
     std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
     let e = r.err().expect("refused").to_string();
-    assert!(e.contains("symbol-map.csv, line 2: coil.elmt has 2 terminals; the row names 1 connection points"), "{e}");
+    assert!(
+        e.contains("symbol-map.csv, line 2: coil.elmt has 2 terminals; the row names 1 connection points"),
+        "{e}"
+    );
 }
 
 /// The px `v` in nm, as the importer places it.
@@ -316,10 +385,17 @@ fn junctions_earths_strips_and_cable_marks_make_the_wired_cabinet() {
         _ => None,
     });
     assert_eq!(junctions.len(), 1);
-    assert_eq!(junctions[0].at, Pt2::new(px(700), px(300)), "where its strokes meet");
+    assert_eq!(
+        junctions[0].at,
+        Pt2::new(px(700), px(300)),
+        "where its strokes meet"
+    );
     assert_eq!(junctions[0].sequence.len(), 3, "its three wires end at it");
     let (earth, _) = of(&i, 10);
-    assert!(device(&i, earth.device.unwrap()).aspects.terminal.is_none(), "no terminal");
+    assert!(
+        device(&i, earth.device.unwrap()).aspects.terminal.is_none(),
+        "no terminal"
+    );
     let earth_def = i.batch.lib.iter().find_map(|d| match d {
         LibDocument::Fndef(c) if c.id == earth.def => Some(c.item.category.0.as_str().to_owned()),
         _ => None,
@@ -332,7 +408,13 @@ fn junctions_earths_strips_and_cable_marks_make_the_wired_cabinet() {
     });
     let strips: Vec<&&Device> = devices.iter().filter(|d| d.aspects.strip.is_some()).collect();
     assert_eq!(strips.len(), 1, "one strip");
-    let on = |id: u32| device(&i, of(&i, id).0.device.unwrap()).aspects.terminal.clone().unwrap();
+    let on = |id: u32| {
+        device(&i, of(&i, id).0.device.unwrap())
+            .aspects
+            .terminal
+            .clone()
+            .unwrap()
+    };
     assert_eq!(on(14).strip, strips[0].id);
     assert_eq!(on(14).designation.as_str(), "3");
     // The marks make one cable whose cores are the three wires they cross, in their order.
@@ -363,7 +445,11 @@ fn junctions_earths_strips_and_cable_marks_make_the_wired_cabinet() {
     wires.sort();
     assert_eq!(
         wires,
-        [("1".to_owned(), px(500)), ("2".to_owned(), px(530)), ("3".to_owned(), px(300))]
+        [
+            ("1".to_owned(), px(500)),
+            ("2".to_owned(), px(530)),
+            ("3".to_owned(), px(300))
+        ]
     );
     // The route stored with a corner at 63.33 px keeps its way on the half grid: up to 65 px, over, down.
     let kept = records(&i, |r| match r {

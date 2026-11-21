@@ -440,7 +440,10 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         return 2;
     };
     // The symbol map of the folder binds every file of it (doc 14 §4.17).
-    let library = match library.clone().with_symbol_map_beside(&dir.join(ew_api::import::MAP_FILE)) {
+    let library = match library
+        .clone()
+        .with_symbol_map_beside(&dir.join(ew_api::import::MAP_FILE))
+    {
         Ok(l) => l,
         Err(e) => {
             eprintln!("error: {e}");

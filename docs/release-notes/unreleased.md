@@ -45,7 +45,7 @@ change here.
   of the next page's paper ("The handle is invalid"), because the cancel was only read before each band
 - behaviour-change: a device takes a second symbol of its own: a symbol of another kind than a contact (a lamp, a
   supply, an element brought in from QElectroTech) joins any device but a terminal or a strip as an auxiliary
-  function, by J while placing, by `place.pick device=<tag>`, by typing the tag in its Tag row and by
+  function, by J while placing, by J or Join device… on a placed symbol, by `place.pick device=<tag>` and by
   `rep.join_device`; a contact keeps its rule (a device with a coil or a part naming it), and a terminal, an
   interruption point and a graphic join no device (FT-1860)
 - behaviour-change: `place.pick` takes a library symbol's address `library:<library>:<item>` also after its first

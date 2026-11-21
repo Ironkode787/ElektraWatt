@@ -299,7 +299,9 @@ impl StarterLibrary {
             return Ok(self);
         }
         let limits = ew_import_tables::TableLimits::default();
-        let len = std::fs::metadata(&path).map_err(|e| format!("{MAP_FILE}: {e}"))?.len();
+        let len = std::fs::metadata(&path)
+            .map_err(|e| format!("{MAP_FILE}: {e}"))?
+            .len();
         if len > limits.max_file_bytes {
             return Err(format!("{MAP_FILE} is larger than a table may be ({len} bytes)"));
         }
@@ -318,7 +320,9 @@ impl StarterLibrary {
                 return Err(format!("{MAP_FILE}, line 1: the column `{required}` is missing"));
             }
         }
-        let cell = |row: usize, name: &str| col(name).map_or_else(String::new, |c| table.cell(bytes, row, c).to_owned());
+        let cell = |row: usize, name: &str| {
+            col(name).map_or_else(String::new, |c| table.cell(bytes, row, c).to_owned())
+        };
         let rows = (0..table.row_count())
             .map(|r| MapRow {
                 line: table.line(r),
@@ -330,7 +334,8 @@ impl StarterLibrary {
                 xref: cell(r, "xref"),
             })
             .collect();
-        let map = ew_import_qet::SymbolMap::new(rows, self.docs.iter().cloned()).map_err(|e| e.to_string())?;
+        let map =
+            ew_import_qet::SymbolMap::new(rows, self.docs.iter().cloned()).map_err(|e| e.to_string())?;
         Ok(StarterLibrary { map, ..self })
     }
 
@@ -794,7 +799,8 @@ fn qet_batch(
     let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
         message: e.to_string(),
     })?;
-    let importer = QetProjectImporter::with_library(library.docs.iter().cloned()).with_map(library.map.clone());
+    let importer =
+        QetProjectImporter::with_library(library.docs.iter().cloned()).with_map(library.map.clone());
     let limits = ctx.limits;
     let lineage = ctx.lineage;
     let sizes = [input.bytes().len() as u64];
@@ -1257,7 +1263,13 @@ fn template_fndefs(session: &Session) -> ew_import_tables::BuiltinLibrary {
     let own: Vec<LibDocument> = q
         .fndefs()
         .iter()
-        .filter(|(_, c)| c.item.meta.key.as_ref().is_some_and(|k| keys.insert(k.to_string())))
+        .filter(|(_, c)| {
+            c.item
+                .meta
+                .key
+                .as_ref()
+                .is_some_and(|k| keys.insert(k.to_string()))
+        })
         .map(|(_, c)| LibDocument::Fndef((**c).clone()))
         .collect();
     ew_import_tables::BuiltinLibrary::new(starter.into_iter().chain(own)).unwrap_or_default()

@@ -290,7 +290,12 @@ impl QetProjectImporter {
             let message = match mapped.bound.get(&b.line) {
                 Some(n) => {
                     used_builtins.insert(b.key.clone());
-                    format!("{}, line {}: {n} elements bound to `{}`", crate::MAP_FILE, b.line, b.key)
+                    format!(
+                        "{}, line {}: {n} elements bound to `{}`",
+                        crate::MAP_FILE,
+                        b.line,
+                        b.key
+                    )
                 }
                 None => format!(
                     "{}, line {}: no element of this set uses the definition it names",

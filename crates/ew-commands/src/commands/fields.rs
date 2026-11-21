@@ -10,10 +10,10 @@ use std::collections::BTreeSet;
 use ew_model::Entity;
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusMedium, BusSystem, Channel, ChannelState, Conductor, Connection, Device,
-    DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, FormDef, Function, FunctionKind, IpDirection, Kind, LibCopy,
-    LogicalNet, NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject,
-    PlcSize, PortRole, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox,
-    StructureNode,
+    DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, FormDef, Function, FunctionKind, IpDirection, Kind,
+    LibCopy, LogicalNet, NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea,
+    PlcConfigProject, PlcSize, PortRole, PotentialDef, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;

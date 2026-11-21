@@ -219,14 +219,22 @@ fn a_lamp_joins_as_a_second_symbol_and_a_terminal_is_refused() {
     assert_eq!(ghost(&s)["target"], "join");
     place_at(&mut s, (66, 30));
     done(&mut s, "ui.dismiss", json!({}));
-    assert_eq!(rep_at(&s, (66, 30)).unwrap().device, coil.device, "the lamp is the relay's");
+    assert_eq!(
+        rep_at(&s, (66, 30)).unwrap().device,
+        coil.device,
+        "the lamp is the relay's"
+    );
     assert_eq!(
         refused(&mut s, "place.pick", json!({"symbol": TERMINAL, "device": tag})),
         "reason-join-not-auxiliary"
     );
     // A symbol named but not offered is unknown, not a missing parameter.
     assert_eq!(
-        refused(&mut s, "place.pick", json!({"symbol": "no.such.symbol", "device": tag})),
+        refused(
+            &mut s,
+            "place.pick",
+            json!({"symbol": "no.such.symbol", "device": tag})
+        ),
         "reason-unknown-symbol"
     );
     done(&mut s, "place.pick", json!({"symbol": COIL, "letter": "K"}));

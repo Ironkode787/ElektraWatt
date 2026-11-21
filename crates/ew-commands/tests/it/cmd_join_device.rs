@@ -317,7 +317,11 @@ fn each_refusal_names_its_pointer_and_writes_nothing() {
         "/device",
         "takes no auxiliary contacts",
     );
-    invalid_at(e.execute(&join(REP_H1, DEV_T1)), "/device", "takes no further function");
+    invalid_at(
+        e.execute(&join(REP_H1, DEV_T1)),
+        "/device",
+        "takes no further function",
+    );
     invalid_at(
         e.execute(&join(REP_K2, DEV_K5)),
         "/device",

@@ -529,7 +529,10 @@ impl ElementImport {
             .meta
             .sources
             .push(format!("qet.map:{}:{}", b.key, list.join(" ")));
-        let item: Id<LibItem> = v5::imported_id(namespace, &format!("{}#map:{}:{}", self.key, b.key, list.join(" ")));
+        let item: Id<LibItem> = v5::imported_id(
+            namespace,
+            &format!("{}#map:{}:{}", self.key, b.key, list.join(" ")),
+        );
         self.symbol.item_id = item;
         self.symbol.id = v5::lib_copy_id(self.symbol.library_id.as_uuid(), item.as_uuid());
         self.symbol.sha256 = item_sha256(&self.symbol.item);

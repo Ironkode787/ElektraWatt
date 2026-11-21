@@ -88,11 +88,18 @@ fn the_title_block_prints_the_fields_the_import_writes() {
         .records
         .iter()
         .filter_map(|r| match r {
-            Record::StructureNode(n) => Some((serde_json::to_value(&n.aspect).unwrap().to_string(), n.code.to_string())),
+            Record::StructureNode(n) => Some((
+                serde_json::to_value(&n.aspect).unwrap().to_string(),
+                n.code.to_string(),
+            )),
             _ => None,
         })
         .collect();
-    for want in [("\"function\"", "P01"), ("\"location\"", "A1"), ("\"location\"", "A2")] {
+    for want in [
+        ("\"function\"", "P01"),
+        ("\"location\"", "A1"),
+        ("\"location\"", "A2"),
+    ] {
         assert!(
             nodes.iter().any(|(a, c)| (a.as_str(), c.as_str()) == want),
             "{want:?} in {nodes:?}"
@@ -114,12 +121,18 @@ fn the_title_block_prints_the_fields_the_import_writes() {
     let Some(Slot::Node(f)) = page_one.structure.function else {
         panic!("the page's function")
     };
-    assert_eq!(all.iter().find(|n| n.id == f).map(|n| n.code.to_string()), Some("P01".into()));
+    assert_eq!(
+        all.iter().find(|n| n.id == f).map(|n| n.code.to_string()),
+        Some("P01".into())
+    );
     let revision = b.records.iter().find_map(|r| match r {
         Record::Revision(r) => Some(r.clone()),
         _ => None,
     });
-    assert_eq!(revision.map(|r| (r.label.to_string(), r.is_open())), Some(("B".into(), true)));
+    assert_eq!(
+        revision.map(|r| (r.label.to_string(), r.is_open())),
+        Some(("B".into(), true))
+    );
     let project = b
         .records
         .iter()
@@ -128,9 +141,16 @@ fn the_title_block_prints_the_fields_the_import_writes() {
             _ => None,
         })
         .unwrap();
-    assert_eq!(project.master.drawing_id.map(|d| d.to_string()).as_deref(), Some("DWG-1"));
     assert_eq!(
-        project.parties.iter().map(|p| (p.role.clone(), p.name.clone())).collect::<Vec<_>>(),
+        project.master.drawing_id.map(|d| d.to_string()).as_deref(),
+        Some("DWG-1")
+    );
+    assert_eq!(
+        project
+            .parties
+            .iter()
+            .map(|p| (p.role.clone(), p.name.clone()))
+            .collect::<Vec<_>>(),
         [(PartyRole::Author, ew_mltext::MlText::neutral("JD"))]
     );
 }

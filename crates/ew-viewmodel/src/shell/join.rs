@@ -174,9 +174,12 @@ impl ShellModel {
         }
         // FT-1860: a symbol of another kind than a contact joins any device but a terminal or a strip.
         let q = project.session.query();
-        let terminal = id.to_string().parse().ok().and_then(|d| q.devices().get(d)).is_some_and(|d| {
-            d.aspects.terminal.is_some() || d.aspects.strip.is_some()
-        });
+        let terminal = id
+            .to_string()
+            .parse()
+            .ok()
+            .and_then(|d| q.devices().get(d))
+            .is_some_and(|d| d.aspects.terminal.is_some() || d.aspects.strip.is_some());
         if slots.is_empty() && terminal {
             return Err(Outcome::refused(key!("reason-join-terminal")));
         }

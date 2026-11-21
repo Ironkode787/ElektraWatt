@@ -51,7 +51,11 @@ fn session() -> Session {
 fn table(name: &str, fndef: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("ew-parts-own-{name}-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("the folder");
-    std::fs::write(dir.join("parts.csv"), "key,manufacturer,part_number\nLAMP-1,Own,LAMP-1\n").expect("parts.csv");
+    std::fs::write(
+        dir.join("parts.csv"),
+        "key,manufacturer,part_number\nLAMP-1,Own,LAMP-1\n",
+    )
+    .expect("parts.csv");
     std::fs::write(
         dir.join("part_templates.csv"),
         format!("key,part,n,fndef,main,cps\nLAMP-1:0,LAMP-1,0,{fndef},true,\n"),

@@ -93,9 +93,12 @@ pub(crate) fn group(elems: &[Elem<'_>], folio: impl Fn(usize) -> String) -> BTre
 /// Whether the route `route` runs through `p` across a row that runs across (`across`, the wire then vertical) or
 /// down, within one QET px.
 fn crosses(route: &[Pt2], p: Pt2, across: bool) -> bool {
-    const PX: i64 = 264_584;
-    let near = |u: Nm, v: Nm| (u.0 - v.0).abs() <= PX;
-    let within = |v: Nm, a: Nm, b: Nm| a.0.min(b.0) - PX <= v.0 && v.0 <= a.0.max(b.0) + PX;
+    const PX: i128 = 264_584;
+    let near = |u: Nm, v: Nm| (i128::from(u.0) - i128::from(v.0)).abs() <= PX;
+    let within = |v: Nm, a: Nm, b: Nm| {
+        let (v, a, b) = (i128::from(v.0), i128::from(a.0), i128::from(b.0));
+        a.min(b) - PX <= v && v <= a.max(b) + PX
+    };
     route.windows(2).any(|s| {
         if across {
             near(s[0].x, s[1].x) && near(s[0].x, p.x) && within(p.y, s[0].y, s[1].y)

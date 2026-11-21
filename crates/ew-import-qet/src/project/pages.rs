@@ -375,23 +375,29 @@ pub fn map(
                 "function" => s.function = slot,
                 _ => s.location = slot,
             }
-            nodes.entry(node.code.as_str().to_owned() + aspect).or_insert(node);
+            nodes
+                .entry(node.code.as_str().to_owned() + aspect)
+                .or_insert(node);
         }
         structures.push(s);
     }
-    let shared = |name: &str| tb_project.get(name).and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty());
+    let shared = |name: &str| {
+        tb_project
+            .get(name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+    };
     let revision = shared("indexrev").and_then(|l| Ident::from_input(l).ok());
     let designer = shared("author").map(MlText::neutral);
     let drawing_id = shared("filename").and_then(|f| Ident::from_input(f).ok());
-    let edited = ["saveddate", "saveddate-us"]
-        .iter()
-        .find_map(|n| {
-            project
-                .properties
-                .iter()
-                .find(|(k, _)| k.as_str() == *n)
-                .and_then(|(_, v)| iso_date(v))
-        });
+    let edited = ["saveddate", "saveddate-us"].iter().find_map(|n| {
+        project
+            .properties
+            .iter()
+            .find(|(k, _)| k.as_str() == *n)
+            .and_then(|(_, v)| iso_date(v))
+    });
     let titled = project.title.as_deref().is_some_and(|t| !t.trim().is_empty());
     let fielded = |d: usize, name: &str| match name {
         "plant" => structures.get(d).is_some_and(|s| s.function.is_some()),

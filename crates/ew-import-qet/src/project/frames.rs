@@ -391,7 +391,11 @@ const PATHS: [&str; 3] = ["projectpath", "projectfilename", "savedfilepath"];
 
 /// The variables of diagram `d`, by name; the first source that names one wins. A variable of [`FIELDS`] that
 /// `fielded` says the import wrote for the diagram prints its field.
-fn context(project: &QetProject, d: &QetDiagram, fielded: &dyn Fn(usize, &str) -> bool) -> BTreeMap<String, Var> {
+fn context(
+    project: &QetProject,
+    d: &QetDiagram,
+    fielded: &dyn Fn(usize, &str) -> bool,
+) -> BTreeMap<String, Var> {
     let mut ctx: BTreeMap<String, Var> = BTreeMap::new();
     for (name, path) in BOUND {
         ctx.insert(name.to_owned(), Var::Bound(path));

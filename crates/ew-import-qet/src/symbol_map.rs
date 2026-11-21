@@ -55,7 +55,11 @@ pub struct MapError {
 impl fmt::Display for MapError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.column {
-            Some(c) => write!(f, "{MAP_FILE}, line {}, column `{c}`: {}", self.line, self.message),
+            Some(c) => write!(
+                f,
+                "{MAP_FILE}, line {}, column `{c}`: {}",
+                self.line, self.message
+            ),
             None => write!(f, "{MAP_FILE}, line {}: {}", self.line, self.message),
         }
     }
@@ -177,7 +181,10 @@ impl SymbolMap {
     /// has or one the map binds none of (no coil, contact, terminal or interruption point), a CP designation the
     /// FnDef has not or one named twice, a text cell that names no text or a column the row's kind does not take, and
     /// an element named by an earlier row.
-    pub fn new(rows: Vec<MapRow>, docs: impl IntoIterator<Item = LibDocument>) -> Result<SymbolMap, MapError> {
+    pub fn new(
+        rows: Vec<MapRow>,
+        docs: impl IntoIterator<Item = LibDocument>,
+    ) -> Result<SymbolMap, MapError> {
         let builtins = Builtins::new(docs);
         let mut out: Vec<Binding> = Vec::with_capacity(rows.len());
         for row in rows {
@@ -217,10 +224,14 @@ impl SymbolMap {
                     let mut idx = Vec::with_capacity(list.len());
                     for d in list {
                         let Some(cp) = fndef.item.cps.iter().find(|c| c.designation.as_str() == d) else {
-                            let has: Vec<&str> = fndef.item.cps.iter().map(|c| c.designation.as_str()).collect();
+                            let has: Vec<&str> =
+                                fndef.item.cps.iter().map(|c| c.designation.as_str()).collect();
                             return Err(err(
                                 "cps",
-                                format!("`{key}` has no connection point `{d}` (it has {})", has.join(", ")),
+                                format!(
+                                    "`{key}` has no connection point `{d}` (it has {})",
+                                    has.join(", ")
+                                ),
                             ));
                         };
                         if idx.contains(&cp.idx) {
@@ -330,13 +341,19 @@ mod tests {
     }
 
     fn starter() -> Vec<LibDocument> {
-        ["ew.fn.coil", "ew.fn.contact-no", "ew.fn.terminal", "ew.fn.ip", "ew.fn.lamp"]
-            .iter()
-            .map(|k| {
-                let path = format!("{}/../../content/fndefs/{k}.json", env!("CARGO_MANIFEST_DIR"));
-                LibDocument::from_json(&std::fs::read_to_string(path).expect("a starter FnDef")).expect("a FnDef")
-            })
-            .collect()
+        [
+            "ew.fn.coil",
+            "ew.fn.contact-no",
+            "ew.fn.terminal",
+            "ew.fn.ip",
+            "ew.fn.lamp",
+        ]
+        .iter()
+        .map(|k| {
+            let path = format!("{}/../../content/fndefs/{k}.json", env!("CARGO_MANIFEST_DIR"));
+            LibDocument::from_json(&std::fs::read_to_string(path).expect("a starter FnDef")).expect("a FnDef")
+        })
+        .collect()
     }
 
     #[test]
@@ -344,23 +361,43 @@ mod tests {
         let map = SymbolMap::new(
             vec![
                 row(2, "01_coils/coil.elmt", "ew.fn.coil", "A2 A1"),
-                row(3, "{6F9619FF-8B86-D011-B42D-00C04FC964FF}", "ew.fn.contact-no", ""),
+                row(
+                    3,
+                    "{6F9619FF-8B86-D011-B42D-00C04FC964FF}",
+                    "ew.fn.contact-no",
+                    "",
+                ),
                 row(4, "coil.elmt", "ew.fn.terminal", ""),
             ],
             starter(),
         )
         .expect("a map");
-        let b = map.binding("embed://import/a/01_coils/coil.elmt", None).expect("bound");
-        assert_eq!((b.kind, b.cps.clone(), b.line), (BindKind::Coil, Some(vec![1, 0]), 2));
-        assert_eq!(map.binding("embed://import/b/coil.elmt", None).map(|b| b.line), Some(4));
+        let b = map
+            .binding("embed://import/a/01_coils/coil.elmt", None)
+            .expect("bound");
+        assert_eq!(
+            (b.kind, b.cps.clone(), b.line),
+            (BindKind::Coil, Some(vec![1, 0]), 2)
+        );
+        assert_eq!(
+            map.binding("embed://import/b/coil.elmt", None).map(|b| b.line),
+            Some(4)
+        );
         let u = map.binding("x.elmt", Some("6f9619ff-8b86-d011-b42d-00c04fc964ff"));
-        assert_eq!(u.map(|b| (b.kind, b.tag.clone())), Some((BindKind::Contact, TextRef::Label)));
+        assert_eq!(
+            u.map(|b| (b.kind, b.tag.clone())),
+            Some((BindKind::Contact, TextRef::Label))
+        );
         assert!(map.binding("embed://import/a/coil2.elmt", None).is_none());
     }
 
     #[test]
     fn a_wrong_row_is_refused_in_words() {
-        let refused = |r: MapRow| SymbolMap::new(vec![r], starter()).expect_err("refused").to_string();
+        let refused = |r: MapRow| {
+            SymbolMap::new(vec![r], starter())
+                .expect_err("refused")
+                .to_string()
+        };
         assert!(refused(row(2, "", "ew.fn.coil", "")).contains("column `element`"));
         assert!(refused(row(2, "a.elmt", "ew.fn.nowhere", "")).contains("no starter function definition"));
         assert!(refused(row(2, "a.elmt", "ew.fn.lamp", "")).contains("the map binds coils"));
@@ -373,9 +410,17 @@ mod tests {
             "symbol-map.csv, line 5, column `number`: a coil has no number text"
         );
         let twice = SymbolMap::new(
-            vec![row(2, "a.elmt", "ew.fn.coil", ""), row(3, "a.elmt", "ew.fn.coil", "")],
+            vec![
+                row(2, "a.elmt", "ew.fn.coil", ""),
+                row(3, "a.elmt", "ew.fn.coil", ""),
+            ],
             starter(),
         );
-        assert!(twice.expect_err("refused").to_string().contains("by line 2 already"));
+        assert!(
+            twice
+                .expect_err("refused")
+                .to_string()
+                .contains("by line 2 already")
+        );
     }
 }

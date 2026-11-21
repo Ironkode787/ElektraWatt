@@ -9,9 +9,7 @@ use crate::common;
 
 use common::*;
 use ew_commands::CmdError;
-use ew_commands::commands::{
-    CreateReportBlock, EmbedLibraryCopies, KindName, SetFields, library_copy_hash,
-};
+use ew_commands::commands::{CreateReportBlock, EmbedLibraryCopies, KindName, SetFields, library_copy_hash};
 use ew_ids::{Id, Uuid};
 use ew_model::fixture::*;
 use ew_schema::{
@@ -29,7 +27,10 @@ fn own_form() -> (Id<FormDef>, Value) {
     let hash = library_copy_hash(&LibDocument::Form(copy.clone())).expect("a hash");
     copy.sha256 = Sha256(hash);
     let id = copy.id;
-    (id, serde_json::to_value(LibDocument::Form(copy)).expect("its JSON"))
+    (
+        id,
+        serde_json::to_value(LibDocument::Form(copy)).expect("its JSON"),
+    )
 }
 
 /// A table of contents of section 1 at folio 990 on the fixture's frame.
@@ -78,7 +79,10 @@ fn a_form_of_the_projects_own_is_embedded_and_a_report_block_takes_it() {
         e.execute(&set_form(id, id_of(0xdead))),
         Err(CmdError::NotFound { .. })
     ));
-    assert_eq!(e.model().table::<ReportBlock>().get(&id).expect("the block").form, own);
+    assert_eq!(
+        e.model().table::<ReportBlock>().get(&id).expect("the block").form,
+        own
+    );
 }
 
 fn id_of(n: u128) -> Id<FormDef> {

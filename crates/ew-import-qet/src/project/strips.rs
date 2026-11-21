@@ -210,7 +210,9 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
     for (d, (key, n)) in carried {
         let folio = mx.folio(d).to_owned();
         let loc = mx.findings.loc(Some(&folio), None, None);
-        let StripKey::Named { structure, product } = key else { continue };
+        let StripKey::Named { structure, product } = key else {
+            continue;
+        };
         mx.findings.push(
             Code::imp(5),
             Severity::Warning,

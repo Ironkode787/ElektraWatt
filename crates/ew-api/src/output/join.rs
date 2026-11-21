@@ -239,8 +239,8 @@ impl Session {
     /// existing device (the reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has one drawn
     /// function in one representation and nothing else drawn or wired ([`joinable_rep`]), and the named device takes
     /// the function's FnDef by D2's rule (an unplaced function of it, else a contact joining a device whose family
-    /// takes auxiliary functions, or a function of another kind joining any device but a terminal or a strip, FT-1860).
-    /// `None` otherwise: the Tag field then keeps its other behaviour.
+    /// takes auxiliary functions; a function of another kind joins by J or `rep.join_device`, never by typing). `None`
+    /// otherwise: the Tag field then keeps its other behaviour.
     pub fn join_proposal(&self, device: Uuid, text: &str) -> Option<JoinProposal> {
         let target = self.resolve_reference(text.trim()).ok()?;
         let q = self.query();
@@ -258,8 +258,15 @@ impl Session {
                 .get(Id::from_uuid(s))
                 .map(|s| super::navigators::function_kind_text(&q, s))
         });
-        let joins = slot.is_some()
-            || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
+        // Typing a tag proposes a contact's join only: a symbol of another kind takes a device's tag in this row for
+        // what it means there (a valve's solenoid, a taken tag refused), and joins by J or `rep.join_device`.
+        let contact = held_or_starter(&q, def).is_some_and(|d| {
+            matches!(
+                d.contact_kind,
+                ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
+            )
+        });
+        let joins = slot.is_some() || (contact && takes_auxiliary(&q, target_id, target_device, def));
         joins.then(|| JoinProposal {
             rep: rep.as_uuid(),
             device: target,

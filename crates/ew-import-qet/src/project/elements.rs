@@ -27,9 +27,9 @@ use ew_ids::{Id, Uuid};
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Align, Cable, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
-    LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
-    TextAlign, TextSlot,
+    Align, Cable, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec,
+    KeyedList, LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign,
+    TagSpec, TextAlign, TextSlot,
 };
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2};
 use serde_json::Value;
@@ -446,22 +446,34 @@ impl FnSpec {
 
     /// The function CP of each definition terminal of `e`, as its symbol names it.
     pub(crate) fn bound_cps(e: &Elem<'_>) -> Vec<Option<u16>> {
-        e.symbol().item.cps.as_slice().iter().map(|c| Some(c.fn_cp)).collect()
+        e.symbol()
+            .item
+            .cps
+            .as_slice()
+            .iter()
+            .map(|c| Some(c.fn_cp))
+            .collect()
     }
 }
 
 /// What one placed element is.
 enum Class {
     Device,
-    Slave { master: ElementKey },
+    Slave {
+        master: ElementKey,
+    },
     OrphanSlave,
     /// An interruption point: a QET folio report's direction (`next_report` the source), none for another element the
     /// symbol map binds as one.
-    Report { source: Option<bool> },
+    Report {
+        source: Option<bool>,
+    },
     /// A cable mark labelled with the cable's tag: the cable device (doc 14 §4.11).
     CableHead,
     /// Another mark of that cable, by the index of the heading mark.
-    CableMark { head: usize },
+    CableMark {
+        head: usize,
+    },
     Terminal,
     Junction,
     Graphic,
@@ -733,10 +745,10 @@ impl Mx<'_, '_> {
         // (text, where, slot kind, whether the slot shows whatever the text, whether it is the label text, the
         // box's fixed width)
         type Text<'t> = (String, &'t TextAt, Option<SlotKind>, bool, bool, Option<Decimal>);
-        let first_user = e.el
-            .dyn_texts
-            .iter()
-            .position(|t| t.text_from == "UserText" && !t.text.trim().is_empty());
+        let first_user =
+            e.el.dyn_texts
+                .iter()
+                .position(|t| t.text_from == "UserText" && !t.text.trim().is_empty());
         let texts: Vec<Text<'_>> = if e.el.has_dyn_texts {
             e.el.dyn_texts
                 .iter()
@@ -755,7 +767,9 @@ impl Mx<'_, '_> {
                             "UserText" if Some(k) == first_user => Some(TextRef::User),
                             "ElementInfo" if info == "label" => Some(TextRef::Label),
                             "ElementInfo" if !info.is_empty() => Some(TextRef::Info(info.to_owned())),
-                            "CompositeText" if t.composite.as_deref().is_some_and(|c| c.trim() == "%{label}") => {
+                            "CompositeText"
+                                if t.composite.as_deref().is_some_and(|c| c.trim() == "%{label}") =>
+                            {
                                 Some(TextRef::Label)
                             }
                             _ => None,
@@ -773,7 +787,9 @@ impl Mx<'_, '_> {
                         // A master's or slave's cross-reference hangs on its tag text.
                         let tag_text = matches!(b.kind, BindKind::Coil | BindKind::Contact) && named(&b.tag);
                         let (text, kind, derived) = match b.kind {
-                            BindKind::Coil | BindKind::Contact if named(&b.tag) => (value, Some(SlotKind::Tag), false),
+                            BindKind::Coil | BindKind::Contact if named(&b.tag) => {
+                                (value, Some(SlotKind::Tag), false)
+                            }
                             BindKind::Terminal if named(&b.number) => (value, Some(SlotKind::Tag), false),
                             BindKind::Ip if named(&b.xref) => (String::new(), Some(SlotKind::Xref), true),
                             BindKind::Ip if named(&b.tag) && ip_name.is_some_and(|n| n == value.trim()) => {
@@ -880,7 +896,9 @@ impl Mx<'_, '_> {
                         .and_then(|i| u16::try_from(i).ok());
                     // A text a symbol map row names takes a slot of its own style when the symbol has none.
                     match own {
-                        None if e.binding.is_some() => self.slot_for(e, &k, style.clone(), slot_align.clone()),
+                        None if e.binding.is_some() => {
+                            self.slot_for(e, &k, style.clone(), slot_align.clone())
+                        }
                         own => own,
                     }
                 }
@@ -1074,6 +1092,9 @@ pub(crate) fn qet_cell_nudge(link_type: &str, x: Decimal, y: Decimal, b: &Border
     )
 }
 
+/// A cable mark's place in its cable's core order: its folio, its row's place across and its own place along the row.
+type MarkOrder = (usize, i64, i64);
+
 /// Maps the placed elements.
 pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Findings) -> ElementsOut {
     let mut mx = Mx {
@@ -1197,44 +1218,48 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     };
     let classes: Vec<Class> = elems
         .iter()
-        .map(|e| match (e.binding.map(|b| b.kind), e.import.link_type.as_str()) {
-            (Some(BindKind::Coil), _) => Class::Device,
-            (Some(BindKind::Contact), _) => master_of(e).unwrap_or(Class::Device),
-            (Some(BindKind::Terminal), _) => Class::Terminal,
-            (Some(BindKind::Ip), link) => report(link),
-            (None, "slave") => master_of(e).unwrap_or(Class::OrphanSlave),
-            (None, link @ ("next_report" | "previous_report")) => report(link),
-            // A junction element QET files as a terminal (its connections category, doc 14 §4.7) and an earth symbol
-            // (doc 14 §4.11) are no terminals of a strip. A junction joins three wires or more (a junction of fewer
-            // dissolves, normaliser #8): one with fewer stays the element it is drawn as.
-            (None, "terminal")
-                if def_category(e) == Some("Junction")
-                    && inp
-                        .counts
-                        .get(&(e.diagram, e.key.clone()))
-                        .is_some_and(|n| *n >= 3) =>
-            {
-                Class::Junction
-            }
-            (None, "terminal") if matches!(def_category(e), Some("Junction" | "EarthingBar")) => Class::Device,
-            (None, "terminal") => Class::Terminal,
-            (None, "thumbnail") => Class::Graphic,
-            (None, _)
-                if e.terminal_count() == 1
-                && e.el.info_nonempty("label").is_none()
-                && e.import
-                    .fndef
-                    .as_ref()
-                    .is_some_and(|_| e.import.link_type == "simple")
-                && inp
-                    .counts
-                    .get(&(e.diagram, e.key.clone()))
-                    .is_some_and(|n| *n >= 3) =>
-            {
-                Class::Junction
-            }
-            (None, _) => Class::Device,
-        })
+        .map(
+            |e| match (e.binding.map(|b| b.kind), e.import.link_type.as_str()) {
+                (Some(BindKind::Coil), _) => Class::Device,
+                (Some(BindKind::Contact), _) => master_of(e).unwrap_or(Class::Device),
+                (Some(BindKind::Terminal), _) => Class::Terminal,
+                (Some(BindKind::Ip), link) => report(link),
+                (None, "slave") => master_of(e).unwrap_or(Class::OrphanSlave),
+                (None, link @ ("next_report" | "previous_report")) => report(link),
+                // A junction element QET files as a terminal (its connections category, doc 14 §4.7) and an earth symbol
+                // (doc 14 §4.11) are no terminals of a strip. A junction joins three wires or more (a junction of fewer
+                // dissolves, normaliser #8): one with fewer stays the element it is drawn as.
+                (None, "terminal")
+                    if def_category(e) == Some("Junction")
+                        && inp
+                            .counts
+                            .get(&(e.diagram, e.key.clone()))
+                            .is_some_and(|n| *n >= 3) =>
+                {
+                    Class::Junction
+                }
+                (None, "terminal") if matches!(def_category(e), Some("Junction" | "EarthingBar")) => {
+                    Class::Device
+                }
+                (None, "terminal") => Class::Terminal,
+                (None, "thumbnail") => Class::Graphic,
+                (None, _)
+                    if e.terminal_count() == 1
+                        && e.el.info_nonempty("label").is_none()
+                        && e.import
+                            .fndef
+                            .as_ref()
+                            .is_some_and(|_| e.import.link_type == "simple")
+                        && inp
+                            .counts
+                            .get(&(e.diagram, e.key.clone()))
+                            .is_some_and(|n| *n >= 3) =>
+                {
+                    Class::Junction
+                }
+                (None, _) => Class::Device,
+            },
+        )
         .collect();
     // Cable marks (elements without terminals in a row headed by a cable's tag) make cables (doc 14 §4.11).
     let mut classes = classes;
@@ -1305,10 +1330,14 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     let mut device_of: BTreeMap<ElementKey, Id<Device>> = BTreeMap::new();
     // The cables by their heading mark's index, and the marks of each (index, its sort key) for their core order.
     let mut cable_of: BTreeMap<usize, usize> = BTreeMap::new();
-    let mut cable_marks: BTreeMap<usize, Vec<((usize, i64, i64), usize)>> = BTreeMap::new();
-    let along = |e: &Elem<'_>| {
+    let mut cable_marks: BTreeMap<usize, Vec<(MarkOrder, usize)>> = BTreeMap::new();
+    let along = |e: &Elem<'_>| -> MarkOrder {
         let across = e.el.orientation % 2 == 0;
-        let (a, b) = if across { (e.pos.y.0, e.pos.x.0) } else { (e.pos.x.0, e.pos.y.0) };
+        let (a, b) = if across {
+            (e.pos.y.0, e.pos.x.0)
+        } else {
+            (e.pos.x.0, e.pos.y.0)
+        };
         (e.diagram, a, b)
     };
     for (i, (e, c)) in elems.iter().zip(&classes).enumerate() {

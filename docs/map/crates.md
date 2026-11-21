@@ -31,7 +31,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/dxf.rs` |  | `ew import dxf`, `ew import dwg` and `ew import pdf` (doc 14 §13): a drawing into the project as a graphic page or an underlay, its blocks as symbol drafts, its lines as a part's front outline; a DWG through the user's ODA File Converter first; a PDF page as an underlay. |
 | `src/cli/eplan.rs` |  | `ew import edz` and `ew import parts-xml` (doc 14 §5.2, §5.3, §13): the parts of an EDZ or an EPLAN parts XML into a writable library, or the previewed update of a project's part copies from them. |
 | `src/cli/export.rs` |  | `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`. |
-| `src/cli/import.rs` |  | The imports: a table of rows, a parts catalogue, a QElectroTech project, a CSV. |
+| `src/cli/import.rs` | large | The imports: a table of rows, a parts catalogue, a QElectroTech project, a CSV. |
 | `src/cli/layout.rs` |  | `ew layout [<project-dir>] [--page <folio>] [--json]`: the layout measure (docs/design/06a-drafting.md §1.2) of one page or of every schematic page, in text or as `ew.layout-result/1`: its faults, unrouted wires and cost, the figures a reader compares, and each item behind them. |
 | `src/cli/library.rs` |  | `ew lib`: the libraries and their index. |
 | `src/cli/merge_driver.rs` |  | `ew merge-driver %O %A %B %L %P` and `%O %A %B %P`: git's merge driver for project files (doc 05 §11.2; ADR-0012 amendment 2). |

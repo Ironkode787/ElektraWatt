@@ -49,7 +49,11 @@ fn the_import_card_says_the_map_beside_the_file_was_read_and_its_row_binds() {
     let qet = set(&tmp, "element,function,cps\nswitch.elmt,ew.fn.contact-no,13 14\n");
     let mut s = shell(&tmp);
     let dir = tmp.0.join("imported.ew");
-    done(&mut s, "file.import_qet", json!({ "file": path(&qet), "dir": path(&dir) }));
+    done(
+        &mut s,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
     let dialog = s.dialog().expect("the import card").clone();
     let spec = ew_viewmodel::dialogs::spec(&dialog, &s);
     assert!(
@@ -66,7 +70,13 @@ fn the_import_card_says_the_map_beside_the_file_was_read_and_its_row_binds() {
     let contact = q
         .fndefs()
         .iter()
-        .find(|(_, c)| c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == "ew.fn.contact-no"))
+        .find(|(_, c)| {
+            c.item
+                .meta
+                .key
+                .as_ref()
+                .is_some_and(|k| k.as_str() == "ew.fn.contact-no")
+        })
         .map(|(id, _)| id)
         .expect("the starter contact travels with the import");
     assert!(
@@ -81,9 +91,15 @@ fn a_wrong_row_refuses_the_import_in_words() {
     let qet = set(&tmp, "element,function\nswitch.elmt,ew.fn.lamp\n");
     let mut s = shell(&tmp);
     let dir = tmp.0.join("imported.ew");
-    match s.dispatch("file.import_qet", &json!({ "file": path(&qet), "dir": path(&dir) })) {
+    match s.dispatch(
+        "file.import_qet",
+        &json!({ "file": path(&qet), "dir": path(&dir) }),
+    ) {
         Outcome::Failed { message } => {
-            assert!(message.contains("symbol-map.csv, line 2, column `function`"), "{message}");
+            assert!(
+                message.contains("symbol-map.csv, line 2, column `function`"),
+                "{message}"
+            );
             assert!(message.contains("the map binds coils, contacts"), "{message}");
         }
         other => panic!("{other:?}"),

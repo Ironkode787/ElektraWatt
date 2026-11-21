@@ -79,10 +79,10 @@ pub use import::{
     ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, member_text,
     name_rows, plan_reimport,
 };
-pub use join::joins_any_device;
 pub use items::{
     AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
 };
+pub use join::joins_any_device;
 pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
 pub use library::library_copy_hash;
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
