@@ -874,11 +874,13 @@ mod tests {
         assert_eq!(replaced("Cafe-", &hits), "Caf\u{e9}");
     }
 
-    /// §7.1: beyond the cap the hits are the first `cap` in order, `truncated` is set and replace is refused.
+    /// §7.1: beyond the cap the hits are the first `cap` in order, `truncated` is set and replace is refused. The
+    /// sample's two spare valves are named "Spare".
     #[test]
     fn beyond_the_cap_the_results_are_truncated_and_replace_is_refused() {
-        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-        let s = Session::open_read_only(&dir, "ElektraWatt test").unwrap().0;
+        let s = Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "ElektraWatt test")
+            .unwrap()
+            .0;
         let q = FindQuery {
             text: "Spare".into(),
             fields: vec![FindField::FunctionText],
@@ -886,11 +888,11 @@ mod tests {
             ..FindQuery::default()
         };
         let full = s.find(&q);
-        assert!(full.hits.len() > 5 && !full.truncated);
+        assert!(full.hits.len() == 2 && !full.truncated, "{:?}", full.hits);
         assert!(full.replace_command().is_some());
-        let capped = s.find_capped(&q, 5);
+        let capped = s.find_capped(&q, 1);
         assert!(capped.truncated);
-        assert_eq!(capped.hits, full.hits[..5]);
+        assert_eq!(capped.hits, full.hits[..1]);
         assert_eq!(capped.replace_command(), None);
     }
 

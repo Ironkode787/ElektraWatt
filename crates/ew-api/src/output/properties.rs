@@ -1001,9 +1001,11 @@ mod tests {
         assert_eq!(kind_plural("potential_def"), "potential definitions");
     }
 
-    fn golden() -> Session {
-        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-        Session::open_read_only(&dir, "ElektraWatt test").unwrap().0
+    /// The sample project, read-only.
+    fn sample() -> Session {
+        Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "ElektraWatt test")
+            .unwrap()
+            .0
     }
 
     /// Through the model, a wire end of a newer format is unknown, not a junction (before, every end
@@ -1011,7 +1013,7 @@ mod tests {
     /// invariants refuse a dangling function and a function without a device that is no interruption point.
     #[test]
     fn a_wire_end_that_is_no_junction_is_never_called_one() {
-        let session = golden();
+        let session = sample();
         let q = session.query();
         let conn = q
             .connections()
@@ -1057,8 +1059,8 @@ mod tests {
         assert_eq!(number_order(Some("W10"), None), Less, "unnumbered last");
         assert_eq!(number_order(None, Some("W1")), Greater);
         assert_eq!(number_order(None, None), Equal);
-        // Golden A: every connection's wires in that order, and the printed number is the first wire's.
-        let s = golden();
+        // The sample: every connection's wires in that order, and the printed number is the first wire's.
+        let s = sample();
         let q = s.query();
         let numbers = q.get::<WireNumbers>(());
         let mut several = 0;
@@ -1081,14 +1083,17 @@ mod tests {
                 several += 1;
             }
         }
-        assert!(several > 0, "Golden A has connections of several numbered wires");
+        assert!(
+            several > 0,
+            "the sample has connections of several numbered wires"
+        );
     }
 
     /// A function's label is its first connection point's label; a representation's is its first
     /// function's; a device's is its tag.
     #[test]
     fn a_function_and_a_representation_are_labelled_by_their_first_connection_point() {
-        let s = golden();
+        let s = sample();
         let device = s.resolve_reference("tag:-101F1").unwrap();
         let q = s.query();
         let d: Id<Device> = Id::from_uuid(device);
