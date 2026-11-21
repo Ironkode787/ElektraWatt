@@ -437,7 +437,7 @@ fn reserved_kind_is_kept_without_a_finding() {
 // ---------------------------------------------------------------------------------------------------------
 // Migration of the revision kind: typed within format 0.1 (ADR-0011 amendment 4)
 
-/// The two revision lines of the golden fixture as an earlier build wrote them: `revision` was a reserved
+/// Two revision lines as an earlier build wrote them: `revision` was a reserved
 /// kind, kept as an unknown record, so its members were written in byte-wise key order.
 const OLD_REVISIONS: [&str; 2] = [
     r#"{"$k":"revision","date":"2025-03-03","description":"Initial issue","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","source_ref":{"key":"revisions|V1.0","lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929"},"state":"released"}"#,

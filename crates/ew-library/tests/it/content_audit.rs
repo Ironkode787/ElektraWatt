@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The content audit (NFR-LIC-06, NFR-LIC-07): every library document under `content/` and
-//! every copy under `golden/J-E-2416.ew/lib/` (the sample project ships, AC-40) carries an SPDX licence, the licence
-//! of its kind (doc 07 §3.8: CC0-1.0 for part facts, CC-BY-SA-4.0 for drawn content), allowed by its file's row of
-//! `ci/licence-map.toml` under `content/`, and a source. Every map expression and designation pattern of a shipped
-//! part parses, and `content/README.md` lists every content set of `content/` (RC-07's inventory).
+//! every copy under `fixtures/sample/sample.ew/lib/` (the sample project ships, AC-40) carries an SPDX licence, the
+//! licence of its kind (doc 07 §3.8: CC0-1.0 for part facts, CC-BY-SA-4.0 for drawn content), allowed by its file's
+//! row of `ci/licence-map.toml` under `content/`, and a source. Every map expression and designation pattern of a
+//! shipped part parses, and `content/README.md` lists every content set of `content/` (RC-07's inventory).
 //!
-//! The files are read as bytes, never through a store: Golden A is only read.
+//! The files are read as bytes, never through a store: the sample is only read.
 
 use std::path::{Path, PathBuf};
 
@@ -178,13 +178,13 @@ fn listed_sets(root: &Path) -> Vec<String> {
         .collect()
 }
 
-/// The audit of `root`'s `content/` and `golden/J-E-2416.ew/lib/`: one line per failure, in path order (T4).
+/// The audit of `root`'s `content/` and `fixtures/sample/sample.ew/lib/`: one line per failure, in path order (T4).
 fn audit(root: &Path) -> Vec<String> {
     let rows = licence_rows(&std::fs::read_to_string(root.join("ci/licence-map.toml")).unwrap_or_default());
     let mut out = Vec::new();
     let mut all = Vec::new();
     files(&root.join("content"), &mut all);
-    files(&root.join("golden/J-E-2416.ew/lib"), &mut all);
+    files(&root.join("fixtures/sample/sample.ew/lib"), &mut all);
     for path in &all {
         let p = rel(root, path);
         for doc in records(path) {
@@ -259,7 +259,7 @@ fn the_shipped_content_passes_the_audit() {
 fn no_shipped_record_names_a_vendor_file() {
     let mut all = Vec::new();
     files(&repo().join("content"), &mut all);
-    files(&repo().join("golden/J-E-2416.ew/lib"), &mut all);
+    files(&repo().join("fixtures/sample/sample.ew/lib"), &mut all);
     for p in &all {
         for doc in records(p) {
             for s in doc["meta"]["sources"].as_array().into_iter().flatten() {

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The three-way merge core (D2, D13, D14, D16): MD-1 (each row of the record
-//! table and each strategy), MD-2 (the properties), MD-3 (typed inputs merge typed, over Golden A's records), MD-4 (a
-//! side that does not read or is newer), the manifest merge and AC-41's page half on W20. Golden A is only read.
+//! table and each strategy), MD-2 (the properties), MD-3 (typed inputs merge typed, over the sample's records), MD-4
+//! (a side that does not read or is newer), the manifest merge and a page's merge on a wire. The sample is only read.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -850,10 +850,10 @@ proptest! {
     }
 }
 
-// ---- MD-3: typed inputs merge typed, over Golden A ---------------------------------------------------------------
+// ---- MD-3: typed inputs merge typed, over the sample -------------------------------------------------------------
 
-/// Every file of `golden/J-E-2416.ew`, read only, by project-relative path.
-fn golden() -> BTreeMap<String, Vec<u8>> {
+/// Every file of `fixtures/sample/sample.ew`, read only, by project-relative path.
+fn sample() -> BTreeMap<String, Vec<u8>> {
     fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
         for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
             let path = entry.expect("a directory entry").path();
@@ -869,11 +869,20 @@ fn golden() -> BTreeMap<String, Vec<u8>> {
             }
         }
     }
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
     let mut out = BTreeMap::new();
     walk(&dir, &dir, &mut out);
-    assert!(!out.is_empty(), "the golden fixture {} is missing", dir.display());
+    assert!(!out.is_empty(), "the sample project {} is missing", dir.display());
     out
+}
+
+/// The sample's manufacturer copy: its path and its document.
+fn manufacturer() -> (String, Value) {
+    let (path, bytes) = sample()
+        .into_iter()
+        .find(|(path, _)| path.starts_with("lib/manufacturers/"))
+        .expect("a manufacturer copy");
+    (path, serde_json::from_slice(&bytes).expect("JSON"))
 }
 
 fn typed(value: &Value) -> bool {
@@ -905,9 +914,9 @@ fn mix(r: &Value, s: &Value, pick: &dyn Fn(usize) -> bool) -> Value {
 }
 
 #[test]
-fn typed_records_and_documents_of_golden_a_merge_typed() {
+fn typed_records_and_documents_of_the_sample_merge_typed() {
     let mut by_kind: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    for (path, bytes) in golden() {
+    for (path, bytes) in sample() {
         let text = String::from_utf8(bytes).expect("UTF-8");
         let values: Vec<Value> = match classify(&path) {
             PathClass::Records(_) => text
@@ -959,16 +968,19 @@ fn typed_records_and_documents_of_golden_a_merge_typed() {
 
 #[test]
 fn the_project_merges_typed_through_its_strategies() {
-    let files = golden();
+    let files = sample();
     let text = String::from_utf8(files["project.jsonl"].clone()).expect("UTF-8");
     let line = text.lines().next().expect("the project line");
-    let project: Value = serde_json::from_str(line).expect("JSON");
+    let mut project: Value = serde_json::from_str(line).expect("JSON");
+    // The edit date a strategy merges must be in the base (D13); the sample's script sets none.
+    project["master"]["edited"] = json!("2025-04-14");
     let mut a = project.clone();
     a["master"]["edited"] = json!("2025-06-01");
+    // A party of a role the sample has none of.
     a["parties"]
         .as_array_mut()
         .expect("parties")
-        .insert(0, json!({"role": "author", "name": "w"}));
+        .insert(0, json!({"role": "checker", "name": "w"}));
     let mut b = project.clone();
     b["master"]["edited"] = json!("2025-05-02");
     b["master"]["description"] = json!("Expansion");
@@ -979,42 +991,81 @@ fn the_project_merges_typed_through_its_strategies() {
     assert!(typed(&merged));
     assert_eq!(merged["master"]["edited"], json!("2025-06-01"));
     assert_eq!(merged["master"]["description"], json!("Expansion"));
-    assert_eq!(merged["parties"][0], json!({"role": "author", "name": "w"}));
+    assert_eq!(merged["parties"][0], json!({"role": "checker", "name": "w"}));
     assert_eq!(merged["parties"][1]["name"], json!("c2"));
 }
 
-// ---- files: AC-41's page half, MD-4 ----------------------------------------------------------------------------
+// ---- files: a page, MD-4 ---------------------------------------------------------------------------------------
 
-const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-/// `v5(NS_CONFLICT, PAGE)`, computed independently.
-const PAGE_CONFLICT: &str = "c801da2a-0f8c-5452-8203-791712d85dcd";
-const W20_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
+/// The overrides of the sample's shield wire on 103, its only wire with an override.
+const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;
+/// The wire's overrides in the base of these tests.
+const WIRE_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
 
-/// Golden A's page-102 file and the file with W20's overrides replaced.
+/// The page file of the merges below: the sample's page 103, its shield wire given [`WIRE_OVERRIDES`].
+struct WirePage {
+    /// The file's path.
+    path: String,
+    /// The file's text.
+    text: String,
+    /// The shield wire's ID.
+    wire: String,
+}
+
+fn wire_page() -> &'static WirePage {
+    static PAGE: std::sync::OnceLock<WirePage> = std::sync::OnceLock::new();
+    PAGE.get_or_init(|| {
+        let (path, text) = sample()
+            .into_iter()
+            .map(|(path, bytes)| (path, String::from_utf8(bytes).expect("UTF-8")))
+            .find(|(path, text)| path.starts_with("pages/") && text.contains(SHIELD_OVERRIDES))
+            .expect("the shield wire's page");
+        let line = text.lines().find(|l| l.contains(SHIELD_OVERRIDES)).expect("the wire");
+        let wire = serde_json::from_str::<Value>(line).expect("JSON")["id"]
+            .as_str()
+            .expect("an ID")
+            .to_owned();
+        let text = text.replace(line, &line.replace(SHIELD_OVERRIDES, WIRE_OVERRIDES));
+        WirePage { path, text, wire }
+    })
+}
+
+/// Whether `line` is the shield wire's.
+fn is_wire(line: &str) -> bool {
+    line.starts_with(&format!(r#"{{"$k":"connection","id":"{}""#, wire_page().wire))
+}
+
+/// The page file and the file with the wire's overrides replaced.
 fn page_with(overrides: &str) -> (String, String) {
-    let base = String::from_utf8(golden()[PAGE].clone()).expect("UTF-8");
-    assert_eq!(base.matches(W20_OVERRIDES).count(), 6);
-    let w20 = base
-        .lines()
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20")
-        .to_owned();
-    let changed = base.replace(&w20, &w20.replace(W20_OVERRIDES, overrides));
+    let base = wire_page().text.clone();
+    let wire = base.lines().find(|l| is_wire(l)).expect("the wire").to_owned();
+    let changed = base.replace(&wire, &wire.replace(WIRE_OVERRIDES, overrides));
     (base, changed)
 }
 
 fn merge_page(o: &str, a: &str, b: &str) -> (String, usize) {
-    merge_text(PAGE, o, a, b)
+    merge_text(&wire_page().path, o, a, b)
 }
 
 /// The page file loaded alone: its records, kept lines and findings.
 fn load_page(bytes: &str) -> ew_format::Loaded {
-    let files = BTreeMap::from([(FilePath::new(PAGE).expect("a path"), bytes.as_bytes().to_vec())]);
+    let files = BTreeMap::from([(
+        FilePath::new(&wire_page().path).expect("a path"),
+        bytes.as_bytes().to_vec(),
+    )]);
     load(None, &files, &Limits::default())
 }
 
+/// The record-level conflict record on the wire, holding `members` (D14's order: `base`, `ours`, `theirs`).
+fn wire_conflict(members: &str) -> String {
+    format!(
+        r#"{{"$k":"conflict","id":"{}","kind":"connection",{members}}}"#,
+        wire_page().wire
+    )
+}
+
 #[test]
-fn ac41_w20_merges_cleanly_to_csa_2_5_and_colour_bu() {
+fn one_side_s_colour_and_the_other_s_size_of_a_wire_merge_cleanly() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
     let (_, expected) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
@@ -1023,12 +1074,14 @@ fn ac41_w20_merges_cleanly_to_csa_2_5_and_colour_bu() {
 }
 
 #[test]
-fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
+fn both_sides_colouring_a_wire_write_one_conflict_record_and_keep_ours() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
     // D14's member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs`.
-    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    let conflict = wire_conflict(
+        r#""base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}"#,
+    );
     let (merged, conflicts) = merge_page(&base, &ours, &theirs);
     assert_eq!(merged, format!("{kept}{conflict}\n"));
     assert_eq!(conflicts, 1);
@@ -1043,18 +1096,21 @@ fn ac41_w20_conflict_variant_writes_one_conflict_record_and_keeps_bu() {
         .filter(|r| matches!(r, Record::Conflict(_)))
         .map(|r| ew_format::record_line(r).expect("a line"))
         .collect();
-    assert_eq!(conflicts, [conflict.to_owned()]);
+    assert_eq!(conflicts, [conflict]);
     // MD-3: every merged record reads typed.
     for line in merged.lines().filter(|l| !l.starts_with(r#"{"$k":"conflict""#)) {
         assert!(typed(&serde_json::from_str(line).expect("JSON")), "{line}");
     }
 }
 
-/// The file-level conflict line of PAGE holding `side`'s `text` (D14), members in D14's order.
+/// The file-level conflict line of the page holding `side`'s `text` (D14), members in D14's order. Its ID is
+/// `v5(NS_CONFLICT, path)`, which `ew-ids` pins.
 fn file_conflict(side: &str, text: &str) -> String {
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
+    let path = &wire_page().path;
     format!(
-        r#"{{"$k":"conflict","id":"{PAGE_CONFLICT}","kind":"file","path":"{PAGE}","side":"{side}","lines":{}}}"#,
+        r#"{{"$k":"conflict","id":"{}","kind":"file","path":"{path}","side":"{side}","lines":{}}}"#,
+        ew_format::ew_schema::conflict_file_id::<()>(path),
         serde_json::to_string(&lines).expect("JSON")
     )
 }
@@ -1087,26 +1143,22 @@ fn a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict() {
 
 // ---- conflict markers, D18 ---------------------------------------------------
 
-/// Golden A's page-102 file with W20's line replaced by a marker hunk: ours, the diff3 base when `base` is given,
-/// theirs; each side `W20_OVERRIDES` replaced by its own.
+/// The page file with the wire's line replaced by a marker hunk: ours, the diff3 base when `base` is given,
+/// theirs; each side `WIRE_OVERRIDES` replaced by its own.
 fn page_with_hunk(ours: &str, base: Option<&str>, theirs: &str) -> String {
-    let (page, _) = page_with(W20_OVERRIDES);
-    let w20 = page
-        .lines()
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20")
-        .to_owned();
-    let side = |overrides: &str| w20.replace(W20_OVERRIDES, overrides);
+    let (page, _) = page_with(WIRE_OVERRIDES);
+    let wire = page.lines().find(|l| is_wire(l)).expect("the wire").to_owned();
+    let side = |overrides: &str| wire.replace(WIRE_OVERRIDES, overrides);
     let mut hunk = format!("<<<<<<< ours\n{}\n", side(ours));
     if let Some(b) = base {
         hunk.push_str(&format!("||||||| base\n{}\n", side(b)));
     }
     hunk.push_str(&format!("=======\n{}\n>>>>>>> theirs", side(theirs)));
-    page.replace(&w20, &hunk)
+    page.replace(&wire, &hunk)
 }
 
-/// The record lines of the loaded page that are conflict records, and the line of W20.
-fn conflicts_and_w20(loaded: &ew_format::Loaded) -> (Vec<String>, String) {
+/// The record lines of the loaded page that are conflict records, and the line of the wire.
+fn conflicts_and_wire(loaded: &ew_format::Loaded) -> (Vec<String>, String) {
     let line = |r: &Record| ew_format::record_line(r).expect("a line");
     let conflicts = loaded
         .records
@@ -1114,20 +1166,20 @@ fn conflicts_and_w20(loaded: &ew_format::Loaded) -> (Vec<String>, String) {
         .filter(|r| matches!(r, Record::Conflict(_)))
         .map(line)
         .collect();
-    let w20 = loaded
+    let wire = loaded
         .records
         .iter()
         .map(line)
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20");
-    (conflicts, w20)
+        .find(|l| is_wire(l))
+        .expect("the wire");
+    (conflicts, wire)
 }
 
 /// The finding of a file the reader rewrites at the next save.
 fn rewritten() -> ew_format::Finding {
     ew_format::Finding::new(
         ew_format::FindingKind::NonCanonical,
-        Some(FilePath::new(PAGE).expect("a path")),
+        Some(FilePath::new(&wire_page().path).expect("a path")),
         None,
         "not in canonical form; rewritten at the next save",
     )
@@ -1137,23 +1189,25 @@ fn rewritten() -> ew_format::Finding {
 /// cleanly, `colour` (both) keeps ours with one conflict record, the same as the merge driver's (MD-6); the file opens
 /// editable and is rewritten canonically.
 #[test]
-fn markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
+fn markers_on_a_wire_merge_to_one_conflict_record_and_the_clean_parts() {
     let file = page_with_hunk(
         r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
-        Some(W20_OVERRIDES),
+        Some(WIRE_OVERRIDES),
         r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
     );
     let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    let kept_w20 = kept.lines().find(|l| l.contains("connections|W20")).expect("W20");
+    let kept_wire = kept.lines().find(|l| is_wire(l)).expect("the wire");
     let loaded = load_page(&file);
     assert_eq!(loaded.findings, [rewritten()]);
     assert!(!loaded.read_only);
     assert!(loaded.kept.is_empty());
-    assert!(loaded.rewrite.contains(&FilePath::new(PAGE).expect("a path")));
-    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    assert!(loaded.rewrite.contains(&FilePath::new(&wire_page().path).expect("a path")));
+    let conflict = wire_conflict(
+        r#""base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}"#,
+    );
     assert_eq!(
-        conflicts_and_w20(&loaded),
-        (vec![conflict.to_owned()], kept_w20.to_owned())
+        conflicts_and_wire(&loaded),
+        (vec![conflict], kept_wire.to_owned())
     );
 }
 
@@ -1161,7 +1215,7 @@ fn markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
 /// editable.
 #[test]
 fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
-    let (page, _) = page_with(W20_OVERRIDES);
+    let (page, _) = page_with(WIRE_OVERRIDES);
     let conflict = r#"{"$k":"conflict","id":"00000000-0000-7000-8000-00000000c0f1","kind":"connection","base":{},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
     let file = format!("{page}{conflict}\n");
     let loaded = load_page(&file);
@@ -1170,7 +1224,7 @@ fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
         loaded.findings,
         [ew_format::Finding::new(
             ew_format::FindingKind::SchemaViolation,
-            Some(FilePath::new(PAGE).expect("a path")),
+            Some(FilePath::new(&wire_page().path).expect("a path")),
             Some(line),
             "a conflict record whose target, a record of the kind \"connection\", is not in the project; kept verbatim",
         )]
@@ -1192,24 +1246,26 @@ fn markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() 
         r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
     );
     let (_, kept) = page_with(ours);
-    let kept_w20 = kept.lines().find(|l| l.contains("connections|W20")).expect("W20");
+    let kept_wire = kept.lines().find(|l| is_wire(l)).expect("the wire");
     let loaded = load_page(&file);
     assert_eq!(loaded.findings, [rewritten()]);
     assert!(!loaded.read_only);
-    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{},"ours":{"overrides":{"colour":["BU"],"csa":"1.5","show_marker":true}},"theirs":{"overrides":{"colour":["WH"],"csa":"2.5","show_marker":true}}}"#;
+    let conflict = wire_conflict(
+        r#""base":{},"ours":{"overrides":{"colour":["BU"],"csa":"1.5","show_marker":true}},"theirs":{"overrides":{"colour":["WH"],"csa":"2.5","show_marker":true}}"#,
+    );
     assert_eq!(
-        conflicts_and_w20(&loaded),
-        (vec![conflict.to_owned()], kept_w20.to_owned())
+        conflicts_and_wire(&loaded),
+        (vec![conflict], kept_wire.to_owned())
     );
 }
 
 /// CR-2: a side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the
-/// lines read as before (the torn one EW-CORE-005, W20 of both sides EW-CORE-009), read-only.
+/// lines read as before (the torn one EW-CORE-005, the wire of both sides EW-CORE-009), read-only.
 #[test]
 fn a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
     let file = page_with_hunk(
         r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
-        Some(W20_OVERRIDES),
+        Some(WIRE_OVERRIDES),
         r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#,
     )
     .replace(">>>>>>> theirs", "{\"$k\":\"connection\",\n>>>>>>> theirs");
@@ -1243,7 +1299,7 @@ fn a_side_with_a_newer_record_or_format_keeps_the_other_side() {
     // A side of a format above the reader's.
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
     let m = merge_file(
-        PAGE,
+        &wire_page().path,
         MergeSide::current(base.as_bytes()),
         MergeSide::current(ours.as_bytes()),
         MergeSide {
@@ -1279,7 +1335,7 @@ fn a_side_above_a_reader_limit_keeps_the_other_side() {
     // record that would hold theirs is above the line limit too, so it is not written.
     assert_eq!(
         merge_bytes(
-            PAGE,
+            &wire_page().path,
             [
                 base.as_bytes(),
                 ours.as_bytes(),
@@ -1296,7 +1352,7 @@ fn a_side_above_a_reader_limit_keeps_the_other_side() {
 fn neither_side_parsing_keeps_ours_and_holds_theirs() {
     assert_eq!(
         merge_text(
-            PAGE,
+            &wire_page().path,
             "",
             "<<<<<<< ours",
             "not json
@@ -1369,8 +1425,8 @@ fn a_base_that_does_not_read_follows_the_no_base_rule() {
 
     // A library document: theirs deleted a member that ours holds; with no base to tell, ours is kept and `$conflict`
     // holds theirs' document.
-    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let mut a: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let (path, mut a) = manufacturer();
+    let path = path.as_str();
     a["aliases"] = json!(["Schneider"]);
     let mut b = a.clone();
     b.as_object_mut().expect("an object").remove("aliases");
@@ -1425,33 +1481,35 @@ fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
 
 #[test]
 fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
-    // FR-COL-010, doc 05 §10.3: J5.feed's line with `page` before `a` (out of schema order),
+    // FR-COL-010, doc 05 §10.3: a second wire's line with `page` before `a` (out of schema order),
     // untouched on every side, and a record of an unknown kind with its members out of byte order are written as
-    // ours' lines; W11, changed on theirs only (a member of a newer minor, first), as theirs' line.
+    // ours' lines; a third wire, changed on theirs only (a member of a newer minor, first), as theirs' line.
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#);
     let (_, expected) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    let line = |key: &str| {
-        base.lines()
-            .find(|l| l.contains(key))
-            .unwrap_or_else(|| panic!("{key}"))
-            .to_owned()
-    };
-    let (j5, w11) = (line("connections|J5.feed"), line("connections|W11\""));
-    let page = r#","page":"4aa43308-d0d3-57ee-be0c-d9383f429f50""#;
-    let at = j5.find(r#","a":"#).expect("a");
-    let j5_moved = format!("{}{page}{}", &j5[..at], j5[at..].replacen(page, "", 1));
-    let w11_newer = w11.replacen(r#","a":"#, r#","zz_newer":1,"a":"#, 1);
+    let mut wires = base
+        .lines()
+        .filter(|l| l.starts_with(r#"{"$k":"connection""#) && !is_wire(l));
+    let second = wires.next().expect("a second wire").to_owned();
+    let third = wires.next().expect("a third wire").to_owned();
+    let page_row: Value = serde_json::from_str(base.lines().next().expect("the page row")).expect("JSON");
+    let page_member = format!(r#","page":"{}""#, page_row["id"].as_str().expect("the page's ID"));
+    let at = second.find(r#","a":"#).expect("a");
+    let second_moved = format!(
+        "{}{page_member}{}",
+        &second[..at],
+        second[at..].replacen(&page_member, "", 1)
+    );
+    let third_newer = third.replacen(r#","a":"#, r#","zz_newer":1,"a":"#, 1);
     let unknown = r#"{"$k":"frobnicator","id":"0190d8a4-6d3e-7c41-8f00-000000000001","z":1,"a":2}"#;
-    let side = |text: &str, w11: &str| {
+    let side = |text: &str, third_line: &str| {
         format!(
             "{}{unknown}\n",
-            text.replace(&j5, &j5_moved)
-                .replace(&line("connections|W11\""), w11)
+            text.replace(&second, &second_moved).replace(&third, third_line)
         )
     };
-    let m = merge_page(&side(&base, &w11), &side(&ours, &w11), &side(&theirs, &w11_newer));
-    assert_eq!(m, (side(&expected, &w11_newer), 0));
+    let m = merge_page(&side(&base, &third), &side(&ours, &third), &side(&theirs, &third_newer));
+    assert_eq!(m, (side(&expected, &third_newer), 0));
 }
 
 #[test]
@@ -1557,8 +1615,8 @@ fn an_older_side_is_migrated_before_the_merge() {
 
 #[test]
 fn a_library_document_merges_as_one_record_and_a_conflict_holds_theirs_document() {
-    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let (path, base) = manufacturer();
+    let path = path.as_str();
     let side = |aliases: Value, name: &str| {
         let mut v = base.clone();
         v["aliases"] = aliases;
@@ -1735,8 +1793,9 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads()
         merge_bytes("waivers.jsonl", [base.as_bytes(), not_utf8, b"x\n"], &limits),
         (not_utf8.to_vec(), 1)
     );
-    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let doc = golden()[path].clone();
+    let (path, _) = manufacturer();
+    let doc = sample()[&path].clone();
+    let path = path.as_str();
     assert_eq!(
         merge_bytes(path, [b"{}\n", &doc, not_utf8], &limits),
         (doc.clone(), 1)
@@ -1751,8 +1810,8 @@ fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads()
 /// `$conflict`'s chain.
 #[test]
 fn an_unreadable_ours_is_held_below_theirs_conflict() {
-    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let (path, base) = manufacturer();
+    let path = path.as_str();
     let mut b = base.clone();
     b["name"] = json!("Siemens AG");
     let mut earlier = base.clone();
@@ -1876,8 +1935,8 @@ fn a_conflict_record_deleted_on_one_side_keeps_the_changed_one_and_x_s_conflict(
 fn a_library_document_conflict_keeps_the_earlier_conflict_below_theirs() {
     // Ours holds the `$conflict` of an earlier merge; both now change the name. `$conflict` holds theirs'
     // document, and the earlier conflict at the end of its chain.
-    let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let base: Value = serde_json::from_slice(&golden()[path]).expect("JSON");
+    let (path, base) = manufacturer();
+    let path = path.as_str();
     let named = |name: &str| {
         let mut v = base.clone();
         v["name"] = json!(name);

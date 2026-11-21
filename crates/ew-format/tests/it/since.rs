@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The computed `min_reader` on Golden A (SG-1): `"0.1"` with the shipped tables, and the greatest
-//! format of an injected table's rows that Golden A's records use. Golden A is only read.
+//! The computed `min_reader` on the sample project (SG-1): `"0.1"` with the shipped tables, and the greatest
+//! format of an injected table's rows that the sample's records use. The sample is only read.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -12,8 +12,8 @@ use ew_format::{
     FilePath, Limits, MANIFEST, Manifest, SINCE, SinceTables, file_since, manifest_of, min_reader,
 };
 
-/// Every file of `golden/J-E-2416.ew`, read only, by project-relative path.
-fn golden() -> BTreeMap<FilePath, Vec<u8>> {
+/// Every file of `fixtures/sample/sample.ew`, read only, by project-relative path.
+fn sample() -> BTreeMap<FilePath, Vec<u8>> {
     fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<FilePath, Vec<u8>>) {
         for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
             let path = entry.expect("a directory entry").path();
@@ -30,10 +30,10 @@ fn golden() -> BTreeMap<FilePath, Vec<u8>> {
             }
         }
     }
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/sample/sample.ew");
     let mut out = BTreeMap::new();
     walk(&dir, &dir, &mut out);
-    assert!(!out.is_empty(), "the golden fixture {} is missing", dir.display());
+    assert!(!out.is_empty(), "the sample project {} is missing", dir.display());
     out
 }
 
@@ -49,13 +49,13 @@ fn computed(format: &str, files: &BTreeMap<FilePath, Vec<u8>>, tables: &SinceTab
 }
 
 #[test]
-fn golden_a_needs_a_reader_of_its_own_format() {
-    let files = golden();
+fn the_sample_needs_a_reader_of_its_own_format() {
+    let files = sample();
     let manifest = Manifest::parse(
         &files[&FilePath::new(MANIFEST).expect("a path")],
         &Limits::default(),
     )
-    .expect("Golden A's manifest");
+    .expect("the sample's manifest");
     assert_eq!(computed(FORMAT, &files, &SINCE), "0.1");
     assert_eq!(manifest.min_reader, "0.1", "the stamp on disk agrees");
     let mut listed = files.clone();
@@ -68,10 +68,10 @@ fn golden_a_needs_a_reader_of_its_own_format() {
 }
 
 #[test]
-fn an_injected_newer_member_or_variant_that_golden_a_uses_raises_min_reader() {
-    // SG-1, first clause, on Golden A's records: before 1.0 a format's floor is the format itself (doc 05 §10.1), so
-    // the tables name 1.x formats and the manifest is a 1.3 one. Golden A has devices with a function text and junctions
-    // drawn as a bevel; it has no `frobnicate` member.
+fn an_injected_newer_member_or_variant_that_the_sample_uses_raises_min_reader() {
+    // SG-1, first clause, on the sample's records: before 1.0 a format's floor is the format itself (doc 05 §10.1), so
+    // the tables name 1.x formats and the manifest is a 1.3 one. The sample has devices with a function text and
+    // junctions drawn as a bevel; it has no `frobnicate` member.
     const MEMBERS: &[MemberSince] = &[
         MemberSince {
             kind: Kind::Device,
@@ -90,7 +90,7 @@ fn an_injected_newer_member_or_variant_that_golden_a_uses_raises_min_reader() {
         variant: "bevel",
         since: "1.2",
     }];
-    let files = golden();
+    let files = sample();
     let members = SinceTables {
         kinds: &[],
         members: MEMBERS,
