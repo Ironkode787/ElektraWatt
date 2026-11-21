@@ -19,7 +19,7 @@ actions = ["nav.follow", "nav.back"]
 [[item]]
 id = "A3"
 kind = "hard"
-what = "The drawing is unchanged: L-1 still continues from folio 101 to folio 102."
+what = "The drawing is unchanged: 0V still continues from folio 101 to the folios 102 and 104."
 how = "connections"
-query = "SELECT name FROM api_v1_potential WHERE name = 'L-1' AND pages = '[\"101\",\"102\"]'"
+query = "SELECT name FROM api_v1_potential WHERE name = '0V' AND pages = '[\"101\",\"102\",\"104\"]'"
 expect = "== 1"
