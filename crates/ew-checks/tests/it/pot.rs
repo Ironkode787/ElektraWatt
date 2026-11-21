@@ -815,29 +815,45 @@ const PE_FN2: u128 = 0x1004;
 const W30: u128 = 0x2030;
 
 /// 0 V (the M-role CP of `M_FN` on page 1) and PE (the PE-role CPs of `PE_FN` and `PE_FN2` on page 2, joined by wire
-/// W30) joined through an interruption-point pair "0V" and a terminal on page 2: wire W1 from the 0 V CP to the point
-/// on page 1, wire W2 from its partner to the terminal, wire W27 from the terminal to the PE CP. The 0 V comes onto
-/// page 2 through the point, so W27 is not drawn from a 0 V pin: 0 V and PE meet; `bond` adds the bond the fix
-/// declares. `(w1, w27)` are the IDs of W1 and W27.
+/// W30) joined through an interruption-point pair "SUP" and a terminal on page 2: wire W1 from the 0 V CP to the point
+/// on page 1, wire W2 from its partner to the terminal's one side, wire W27 from its other side to the PE CP. The 0 V
+/// reaches W27 only through the terminal's short, which no page's nets hold, so W27 is no drawn bond: 0 V and PE meet
+/// (since FT-1821 a 0 V carried in by the point alone is earthed by W27); `bond` adds the bond the fix declares.
+/// `(w1, w27)` are the IDs of W1 and W27.
 fn zero_volt_through_a_terminal_with(bond: bool, (w1, w27): (u128, u128)) -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
     fx.ip(0x1101, P1, "SUP", "source");
     fx.ip(0x1102, P2, "SUP", "target");
-    fx.func(TERMINAL, P2);
+    shorted(&mut fx, TERMINAL, P2);
     fx.func_pe(PE_FN, P2);
     fx.func_pe(PE_FN2, P2);
     fx.conn(w1, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
     fx.conn(W2, P2, cp(0x1102), cp(TERMINAL), &none());
-    fx.conn(w27, P2, cp(TERMINAL), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(w27, P2, Ep::Cp(TERMINAL, 1), Ep::Cp(PE_FN, 1), &none());
     fx.conn(W30, P2, Ep::Cp(PE_FN, 1), Ep::Cp(PE_FN2, 1), &none());
     if bond {
         fx.push(json!({
-            "$k": "bond", "id": us(0x4001), "a": {"cp": [us(TERMINAL), 0]}, "b": {"cp": [us(PE_FN), 1]},
+            "$k": "bond", "id": us(0x4001), "a": {"cp": [us(TERMINAL), 1]}, "b": {"cp": [us(PE_FN), 1]},
             "kind": "pelv_0v_pe", "via": us(w27),
         }));
     }
     fx.build()
+}
+
+/// A terminal `n` on `page` whose two sides are one signal (a short): the 0 V passes it at the potential's level, which
+/// the page's nets do not hold.
+fn shorted(fx: &mut Fx, n: u128, page: u128) {
+    const FN_SHORT: u128 = 0x5D0;
+    const SYM_SHORT: u128 = 0x5D1;
+    fx.fndef_with(
+        FN_SHORT,
+        SYM_SHORT,
+        &[(0, "1", Value::Null), (1, "2", Value::Null)],
+        &json!([{"a": 0, "b": 1, "kind": "short"}]),
+        &json!({}),
+    );
+    fx.func_of(n, FN_SHORT, SYM_SHORT, page);
 }
 
 fn zero_volt_through_a_terminal(bond: bool) -> Model {
@@ -864,7 +880,7 @@ fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
         assert_eq!(
             fix.params,
             json!({
-                "a": {"cp": {"function": us(TERMINAL), "idx": 0}},
+                "a": {"cp": {"function": us(TERMINAL), "idx": 1}},
                 "b": {"cp": {"function": us(PE_FN), "idx": 1}},
                 "kind": "pelv_0v_pe",
                 "via": us(w27),
@@ -889,18 +905,21 @@ fn the_declared_bond_keeps_0v_and_pe_apart_and_satisfies_pot002() {
     );
 }
 
-/// The 0 V comes in through an interruption point to the PE CP, with two parallel wires on each side of the point:
-/// removing any one splits nothing, so there is no bond carrier.
+/// The 0 V comes in through an interruption point and a terminal's short to the PE CP, with two parallel wires on each
+/// side of the point and of the terminal: removing any one splits nothing, so there is no bond carrier.
 fn zero_volt_meets_pe_without_a_carrier() -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
     fx.ip(0x1101, P1, "SUP", "source");
     fx.ip(0x1102, P2, "SUP", "target");
+    shorted(&mut fx, TERMINAL, P2);
     fx.func_pe(PE_FN, P2);
     fx.conn(0x2003, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
     fx.conn(0x2004, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
-    fx.conn(W1, P2, cp(0x1102), Ep::Cp(PE_FN, 1), &none());
-    fx.conn(W27, P2, cp(0x1102), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(W1, P2, cp(0x1102), cp(TERMINAL), &none());
+    fx.conn(W27, P2, cp(0x1102), cp(TERMINAL), &none());
+    fx.conn(0x2040, P2, Ep::Cp(TERMINAL, 1), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(0x2041, P2, Ep::Cp(TERMINAL, 1), Ep::Cp(PE_FN, 1), &none());
     fx.build()
 }
 
@@ -940,8 +959,8 @@ fn pot001_a_conflict_without_pe_has_no_fix_and_no_hint() {
 }
 
 /// A type-M definition on a terminal on page 1, carried by the interruption points "SUP" to page 2, where the point is
-/// wired to `n` PE-role functions: nothing on page 2 says the point is the 0 V, so each wire merges, one member-CP
-/// conflict each.
+/// wired to one side of a terminal whose other side is wired to `n` PE-role functions: the 0 V reaches those wires only
+/// through the terminal's short, so each wire merges, one member-CP conflict each.
 fn pe_members_against_m(n: u128) -> ew_checks::Finding {
     let mut fx = Fx::base();
     fx.func(TERMINAL, P1);
@@ -949,9 +968,11 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
     fx.ip(0x1201, P1, "SUP", "source");
     fx.ip(0x1202, P2, "SUP", "target");
     fx.conn(0x2001, P1, cp(TERMINAL), cp(0x1201), &none());
+    shorted(&mut fx, 0x1300, P2);
+    fx.conn(0x2050, P2, cp(0x1202), cp(0x1300), &none());
     for i in 0..n {
         fx.func_pe(0x1100 + i, P2);
-        fx.conn(0x2100 + i, P2, cp(0x1202), Ep::Cp(0x1100 + i, 1), &none());
+        fx.conn(0x2100 + i, P2, Ep::Cp(0x1300, 1), Ep::Cp(0x1100 + i, 1), &none());
     }
     attrs_finding(&fx.build())
 }

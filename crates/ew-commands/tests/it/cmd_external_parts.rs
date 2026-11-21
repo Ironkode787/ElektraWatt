@@ -50,10 +50,12 @@ fn ip_supply_in_takes_an_address_alone_or_a_far_end_not_known() {
         .expect("a far end not known");
     let unknown = row(&e, primary::<ExternalRef>(&r));
     assert_eq!((unknown.location, unknown.device.clone()), (None, None));
-    let again = e
-        .execute(&mark(vec![FN_IP_101], None, None))
-        .expect("again");
-    assert_eq!(primary::<ExternalRef>(&again), unknown.id, "one reference for a far end not known");
+    let again = e.execute(&mark(vec![FN_IP_101], None, None)).expect("again");
+    assert_eq!(
+        primary::<ExternalRef>(&again),
+        unknown.id,
+        "one reference for a far end not known"
+    );
 }
 
 /// `external_ref.create` takes a location alone, or nothing at all.

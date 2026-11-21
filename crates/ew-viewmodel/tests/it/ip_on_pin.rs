@@ -524,7 +524,9 @@ fn an_external_point_on_a_pin_connects_to_it() {
         let want = q
             .external_refs()
             .iter()
-            .find(|(_, x)| x.device.as_ref().is_some_and(|d| d.as_str().ends_with("Q0")) && x.connection.is_none())
+            .find(|(_, x)| {
+                x.device.as_ref().is_some_and(|d| d.as_str().ends_with("Q0")) && x.connection.is_none()
+            })
             .map(|(id, _)| id.to_string())
             .expect("-Q0");
         let f = q

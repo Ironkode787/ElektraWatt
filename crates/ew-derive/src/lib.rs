@@ -173,7 +173,8 @@ pub use names::{
     def_text, potential_named, ranked_defs,
 };
 pub use nets::{
-    CpRef, EarthKind, EarthWire, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net,
+    CpRef, EarthKind, EarthWire, IpNet, LocalNet, LocalNets, NetId, NetMember, PageIpNets, PageLocalNets,
+    ZeroVoltIps, joins_net,
 };
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};

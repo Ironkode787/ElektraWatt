@@ -227,6 +227,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
         o,
     );
     check::<PageLocalNets>(memo, cold, keys.pages.iter().copied(), o);
+    // The drawn bond across page links (doc 08 §3.7): each page's nets that hold a point, and the points carrying a 0 V.
+    check::<ew_derive::PageIpNets>(memo, cold, keys.pages.iter().copied(), o);
+    check::<ew_derive::ZeroVoltIps>(memo, cold, [()], o);
     check::<PageOrder>(memo, cold, [()], o);
     check::<PhysicalWiresOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<FlowBfs>(memo, cold, [()], o);

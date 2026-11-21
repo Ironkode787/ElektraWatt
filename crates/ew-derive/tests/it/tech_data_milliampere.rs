@@ -17,8 +17,8 @@ fn a_current_in_milliampere_prints_with_its_unit() {
     fx.push(json!({
         "$k": "device", "id": uid(0x1000), "tag": {"letter": "K", "frozen": {"text": "K1"}},
         "tech_data": [
-            {"key": "coil_voltage", "value": {"value": "24", "unit": "V"}},
             {"key": "coil_current", "value": {"value": "20", "unit": "mA"}},
+            {"key": "coil_voltage", "value": {"value": "24", "unit": "V"}},
         ],
     }));
     let m = fx.build();

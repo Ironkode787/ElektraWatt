@@ -216,15 +216,15 @@ fn push_product(d: &mut Designation, product: &str, cp: Option<&str>) {
 /// `device_tag(device)`: the derived tag (doc 03 §8.2); `None` for a missing device.
 ///
 /// Product designation, first match wins:
-/// 0. an **earth connection** (an earth symbol without a part, `crate::layout::is_earth_connection`): none, frozen
-///    or not; it stands for a connection to earth, not for an object (FT-1820);
 /// 1. a **frozen** tag (wins over every other rule, doc 03 §8.2): its text; the sign is hidden on pages for
 ///    `TagSign::Hidden`;
-/// 2. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
+/// 2. an **earth connection** (an earth symbol without a part, `crate::layout::is_earth_connection`): none; it
+///    stands for a connection to earth, not for an object (FT-1820), so only a frozen tag, typed or imported, names it;
+/// 3. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
 ///    connection point (`X1031` + `:1`), the strip's structure;
-/// 3. scheme **`Child`**: the parent's product designation, the scheme's `child_separator`, the letter and
+/// 4. scheme **`Child`**: the parent's product designation, the scheme's `child_separator`, the letter and
 ///    the counter (`201U3-Q1`, FR-DEV-021); the parent's structure;
-/// 4. otherwise the device's numbering scheme (the project's `settings.numbering`, else the pinned
+/// 5. otherwise the device's numbering scheme (the project's `settings.numbering`, else the pinned
 ///    profile's): the format of the first rule whose selector matches, else the scheme's format, with
 ///    `{letter}`, `{counter}`, `{page}` (folio label of the main representation's page), `{row}` and
 ///    `{column}` (its anchor cell) and `{subcounter}` (empty: no sub-counter exists yet). A value that
@@ -344,9 +344,7 @@ fn applied_scheme<'a>(
 }
 
 fn product_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
-    if let Some(frozen) = &dev.tag.frozen
-        && !crate::layout::is_earth_connection(q, dev)
-    {
+    if let Some(frozen) = &dev.tag.frozen {
         let sign = !matches!(frozen.sign, TagSign::Hidden);
         return (frozen.text.as_str().to_owned(), None, sign, TagSource::Frozen);
     }

@@ -32,7 +32,10 @@ fn assert_bonded(m: &Model, zero: Ep, earth: Ep, what: &str) {
     let (z, z_type) = potential(m, zero);
     let (e, e_type) = potential(m, earth);
     assert!(z.is_some() && e.is_some(), "{what}: both sides are wired");
-    assert_ne!(z, e, "{what}: the wire to earth is the bond, so the two stay apart");
+    assert_ne!(
+        z, e,
+        "{what}: the wire to earth is the bond, so the two stay apart"
+    );
     assert_ne!(z_type, Some(PotentialType::Pe), "{what}: the 0 V stays 0 V");
     assert_eq!(e_type, Some(PotentialType::Pe), "{what}: the earth is PE");
     let f = findings_of(m, "EW-POT-001");

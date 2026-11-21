@@ -228,10 +228,10 @@ change here.
 - api-add: technical data takes a current in milliampere (`mA`), printed "20 mA" on the page and in the lists, typed
   in Properties and read from a parts catalogue; a value typed without a unit is refused with the units listed from
   the one list of units (FT-1867)
-- behaviour-change: an earth symbol without a part has no tag: it takes no number of the cables' letter W (a page's
-  first cable is W1 again), prints none, is named by its pin (`PE`) in the wire list and the messages, and no check
-  asks for its letter, an imported earth point (letter A) included; Properties says why its tag is empty (doc 03
-  §8.2, FT-1820)
+- behaviour-change: an earth symbol without a part has no tag unless a frozen one names it: it takes no number of the
+  cables' letter W (a page's first cable is W1 again), prints none, is named by its pin (`PE`) in the wire list, the
+  messages and Properties, and no check asks for its letter, an imported earth point (letter A) included; its Tag row
+  says why it is empty (doc 03 §8.2, FT-1820)
 - behaviour-change: an external point's reference holds what is known of the far end: the device or an address alone
   ("Q4.1"), a location alone, or nothing for a far end not known; the point prints what it holds under its mark, and
   Supply comes in here… takes an empty field as not known (`ip.supply_in`, `external_ref.create`: `location` and

@@ -1243,8 +1243,8 @@ derived:
 0. **An earth connection has no tag** (0.3.5, FT-1820). An earth symbol (FnDef category `EarthingBar / <kind> /
    Point`: protective, functional, signal earth) drawn for a device without a part stands for a connection to
    earth, not for an object: IEC 81346-2 classes objects, and the object here is the earthing bar or terminal it
-   goes to, which has its own tag. Its device therefore has no product designation, frozen or not: it takes no
-   counter and holds none (online numbering and renumbering leave it out, so the cables of its page keep W1, W2 … ),
+   goes to, which has its own tag. Its device therefore has no product designation unless a frozen tag names it
+   (typed, or a label brought in from QElectroTech, which prints as written): it takes no counter and holds none (online numbering and renumbering leave it out, so the cables of its page keep W1, W2 … ),
    prints nothing on a page, and a text that names one of its pins names the pin alone (`PE` in the wire list and
    the messages); the Devices list names its row so. No letter is asked of it, so neither EW-RDS-001, -003, -004 nor
    EW-NUM-001 looks at it, and an imported earth point (letter `A`) has no finding. *Decided against:* a letter of

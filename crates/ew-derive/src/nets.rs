@@ -467,17 +467,17 @@ fn page_ips(q: &Q, page: Id<Page>) -> BTreeSet<Id<Function>> {
 
 /// One net of a page, as joined without the connections to earth points, that holds an interruption point.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) struct IpNet {
+pub struct IpNet {
     /// Whether the net holds a 0 V point.
-    pub(crate) zero_volt: bool,
+    pub zero_volt: bool,
     /// Its interruption points, in ID order.
-    pub(crate) ips: Vec<Id<Function>>,
+    pub ips: Vec<Id<Function>>,
 }
 
 /// `page_ip_nets(page)`: the nets of the page that hold an interruption point, joined without the connections that end
 /// on an earth point, in the order of their first point: what [`ZeroVoltIps`] reads of a page. Memo, note-free.
 #[derive(Debug)]
-pub(crate) struct PageIpNets;
+pub struct PageIpNets;
 
 impl Query for PageIpNets {
     type Key = Id<Page>;
@@ -522,7 +522,7 @@ impl Query for PageIpNets {
 /// earth wire wherever the 0 V was named. The pairs are the pairing's ([`IpPairingQ`](crate::ip::IpPairingQ)), which
 /// reads no net. Memo, note-free.
 #[derive(Debug)]
-pub(crate) struct ZeroVoltIps;
+pub struct ZeroVoltIps;
 
 impl Query for ZeroVoltIps {
     type Key = ();

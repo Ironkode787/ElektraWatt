@@ -35,8 +35,22 @@ fn marks() -> Model {
     fx.func_tagged(0x1001, 1, P1);
     fx.func_tagged(0x1002, 2, P1);
     fx.func_tagged(0x1003, 3, P1);
-    point(&mut fx, 0x3001, "Valve 1 open", 0x1001, 0x2001, json!({"location": us(0x900), "device": "N1"}));
-    point(&mut fx, 0x3002, "Valve 2 open", 0x1002, 0x2002, json!({"device": "Q4.1"}));
+    point(
+        &mut fx,
+        0x3001,
+        "Valve 1 open",
+        0x1001,
+        0x2001,
+        json!({"location": us(0x900), "device": "N1"}),
+    );
+    point(
+        &mut fx,
+        0x3002,
+        "Valve 2 open",
+        0x1002,
+        0x2002,
+        json!({"device": "Q4.1"}),
+    );
     point(&mut fx, 0x3003, "Valve 3 open", 0x1003, 0x2003, json!({}));
     fx.build()
 }
@@ -44,7 +58,9 @@ fn marks() -> Model {
 /// The cross-reference text a mark `n` prints under it.
 fn printed(m: &Model, n: u128) -> String {
     let q = ew_derive::Q::new(m);
-    q.get::<ew_derive::XrefTextOf>(uid(n + 0x10_000).cast()).text.clone()
+    q.get::<ew_derive::XrefTextOf>(uid(n + 0x10_000).cast())
+        .text
+        .clone()
 }
 
 #[test]
@@ -78,7 +94,10 @@ fn core034_still_asks_for_the_cable_and_names_what_is_known() {
     );
     assert_eq!(ew_checks::messages::render(unknown, "en-GB"), unknown.message);
     let nl = ew_checks::messages::render(unknown, "nl-NL");
-    assert!(nl.starts_with("de externe verbinding van een onbekende plek naar -1K3 heeft geen kabel"), "{nl}");
+    assert!(
+        nl.starts_with("de externe verbinding van een onbekende plek naar -1K3 heeft geen kabel"),
+        "{nl}"
+    );
     assert!(
         unknown
             .targets
