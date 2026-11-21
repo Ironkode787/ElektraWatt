@@ -23,7 +23,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 4. Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above and to the right of the terminals. Choose
    **Draw ▸ Select**.
    The lamp -1E3, the lamp on the machine, is on the page.
-5. Choose **Draw ▸ Connect ▸ Wire** (`W`). Draw the cabinet side: from X1 of -1E2 to the bottom of -1X1:1, and from X2
+5. Choose **Draw ▸ Wire** (`W`). Draw the cabinet side: from X1 of -1E2 to the bottom of -1X1:1, and from X2
    of -1E2 to the bottom of -1X1:2. Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top of
    -1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**.
    The terminal -1X1:1 carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine.

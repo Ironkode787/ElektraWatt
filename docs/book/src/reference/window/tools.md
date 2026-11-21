@@ -149,7 +149,7 @@ its key or double-click where a tool allows it.
 ## Wire
 
 Draws connections between connection points: click a start point, then the end point; corners are placed where you
-click in between. Open it with Draw ▸ Connect ▸ Wire. See [A first schematic page](../../tutorials/first-page.md).
+click in between. Open it with Draw ▸ Wire. See [A first schematic page](../../tutorials/first-page.md).
 A click takes the connection point within about ten screen points of it, at any zoom, and the ring under the pointer
 shows which. A click that misses and lands right beside one is said in the status line at once ("The click placed a
 bend beside a connection point, not on it: …"), as is a start beside one that took nothing and a wire just drawn that

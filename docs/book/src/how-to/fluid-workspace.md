@@ -44,7 +44,7 @@ The Fluid workspace shows the pneumatics beside the page:
    without one. `R` before the click turns it.
 4. Choose **Tube** on the Fluid tab and click from port to port. The bar under the page says the line kind and the
    project's tube, such as "Working line · tube 6/4 mm"; its **Line kind** button changes the kind for the next tubes.
-   **Draw ▸ Connect ▸ Wire** draws working lines.
+   **Draw ▸ Wire** draws working lines.
 5. Right-click a tube to change its line kind (**Line kind: Working**, **Line kind: Pilot** and the others) or its
    medium. A flexible tube is drawn as an arc.
 

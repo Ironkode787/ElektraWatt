@@ -37,7 +37,7 @@ the same devices stay on the schematic pages.
    (EW-GEN-ESW-5) and click two corners between the CPU and the remote I/O station. Press `Esc`, then choose
    **Draw ▸ Select**.
    The switch -2K1 stands as one box with its sockets P1 to P3 at the top and P4 and P5 at the bottom.
-7. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the socket P1 of the CPU's X1 box, then P1 of the switch; click P4 of
+7. Choose **Draw ▸ Wire** (`W`). Click the socket P1 of the CPU's X1 box, then P1 of the switch; click P4 of
    the switch, then the socket P1 of the remote I/O station's X1 box. Choose **Draw ▸ Select**.
    The two bus lines join the CPU, the switch and the remote I/O station into one PROFINET network.
 8. Choose **View ▸ Panels ▸ Navigators ▸ PLC** (the PLC button on the rail at the left).
@@ -64,7 +64,7 @@ the same devices stay on the schematic pages.
 12. Choose **Draw ▸ Place ▸ Device from part…**, type `FC-PN-2` and click two corners to the right of the remote I/O
     station. Press `Esc`, then choose **Draw ▸ Select**.
     The converter -2K2 stands as its X1 box with its sockets P1 and P2.
-13. Choose **Draw ▸ Connect ▸ Wire** (`W`), click P5 of the switch, then P1 of -2K2, and choose **Draw ▸ Select**. In
+13. Choose **Draw ▸ Wire** (`W`), click P5 of the switch, then P1 of -2K2, and choose **Draw ▸ Select**. In
     the Bus panel's table, type `drive1 192.168.0.3` into the **Address** cell of -2K2 X1.
     The converter is a node of the same network:
 
@@ -78,7 +78,7 @@ the same devices stay on the schematic pages.
 
 ## What you learnt
 
-- A bus-topology page holds the network: a device stands as one box per bus interface, and **Draw ▸ Connect ▸ Wire**
+- A bus-topology page holds the network: a device stands as one box per bus interface, and **Draw ▸ Wire**
   draws the bus lines between their sockets. A CPU or a remote I/O head is a station, with its rack.
 - The Bus panel's table takes each node's address; the box prints it.
 - **Cable** on a bus line sets its cable, length and plugs in one form.

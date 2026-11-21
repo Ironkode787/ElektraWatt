@@ -166,14 +166,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_rack_add(p),
         )),
     ),
-    // A configuration project's or a module's previewed addressing command (its row menu, FR-PLC-014/-015).
+    // A configuration project's or a module's previewed addressing command (its row menu, FR-PLC-014/-015). A small
+    // button since Select and Wire lead the tab (FT-1806), so that the tab keeps within 1920 in every language.
     with_params(
         "cmd:text, params?:json",
         needs_parameters(in_navigator(placed(
             place(
                 Group::Addresses,
                 1,
-                CommandSize::Large,
+                CommandSize::Small,
                 Some(key!("bar-addresses")),
             ),
             "hash",

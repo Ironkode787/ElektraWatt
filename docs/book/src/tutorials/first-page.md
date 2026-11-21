@@ -23,7 +23,7 @@ Nothing else: choose **Empty project** in the New project dialog.
 3. Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click twice, to the right of and below the
    transformer, to place two lamps side by side. Choose **Draw ▸ Select**.
    The lamps -1E1 and -1E2 are on the page, each with the pins X1 at the top and X2 at the bottom.
-4. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the transformer's pin 1U2, then the pin X1 of -1E1: the wire is
+4. Choose **Draw ▸ Wire** (`W`). Click the transformer's pin 1U2, then the pin X1 of -1E1: the wire is
    drawn. Draw three more wires the same way: from X1 of -1E1 to X1 of -1E2, from 2U2 to X2 of -1E1, and from X2 of
    -1E1 to X2 of -1E2. Choose **Draw ▸ Select**.
    The two lamps are wired in parallel to the transformer's secondary. Each wire takes a number, such as 1.1.

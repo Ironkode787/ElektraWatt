@@ -484,7 +484,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
     keeps_banner(in_canvas(placed(
-        place(Group::Connect, 1, CommandSize::Large, Some(key!("bar-wire"))),
+        place(Group::Select, 2, CommandSize::Large, Some(key!("bar-wire"))),
         "route-2",
         act(
             "tool.wire",

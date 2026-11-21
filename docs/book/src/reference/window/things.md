@@ -31,7 +31,7 @@ A wire joins two connection points. A junction, where a wire branches with a bev
 joins three. A wire's number, cross-section and colour come from its potential and the project's profile until you
 give it its own.
 
-To make one: **Draw ▸ Connect ▸ Wire** (`W`), then a click on a start point and one on the end point
+To make one: **Draw ▸ Wire** (`W`), then a click on a start point and one on the end point
 ([Wire](tools.md#wire)).
 
 To change one: select it. The selected wire shows a ring at each of its two ends and round handles; drag a handle to

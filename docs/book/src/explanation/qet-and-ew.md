@@ -75,7 +75,7 @@ contacts are functions of the coil's device, and the part says how many it has; 
 
 **The same:** a conductor joins two terminals of elements. **What differs:** a connection belongs to a potential
 and becomes part of a physical wire with a cross-section, colour and number, which the wire list and the terminal
-diagram show. **In the window:** **Draw ▸ Connect ▸ Wire**.
+diagram show. **In the window:** **Draw ▸ Wire**.
 
 ## Terminal strip
 

@@ -181,13 +181,16 @@ fn entry<'h>(h: &'h Harness<'_, App>, at: Pos2, label: &'h str) -> egui_kittest:
         .unwrap_or_else(|| panic!("{label} in the menu"))
 }
 
-/// Types the part number into the open part dialog's search and chooses the first offer by Enter.
+/// Types the part number into the open part dialog's search and chooses the first offer by Down and Enter (no row is
+/// chosen for the person, FT-1845).
 fn choose_part(h: &mut Harness<'static, App>, number: &str) {
     assert!(
         matches!(h.state().shell().dialog(), Some(Dialog::PartChoose(_))),
         "the part dialog"
     );
     h.event(egui::Event::Text(number.to_owned()));
+    settle(h);
+    h.key_press(Key::ArrowDown);
     settle(h);
     h.key_press(Key::Enter);
     settle(h);

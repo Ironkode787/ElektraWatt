@@ -93,9 +93,19 @@ impl Tab {
         self.menu().label_key()
     }
 
-    /// The tab's groups, left to right.
+    /// The tab's own groups, left to right (its app menu's groups).
     pub fn groups(self) -> impl Iterator<Item = Group> {
         Group::ALL.into_iter().filter(move |g| g.tab() == self)
+    }
+
+    /// The groups the tab's command row shows, left to right: the groups it shares with another tab first, at the
+    /// place they have on their own tab (its first), then its own (FT-1806, doc 16a §5.2: a tool on several tabs
+    /// keeps its place).
+    pub fn bar_groups(self) -> impl Iterator<Item = Group> {
+        Group::ALL
+            .into_iter()
+            .filter(move |g| g.tab() != self && g.shared_with().contains(&self))
+            .chain(self.groups())
     }
 
     /// Whether the tab works on a project: without one it is greyed (the start page showed the Draw tab as if
@@ -304,6 +314,17 @@ impl Group {
     /// The key of the group's name: the divider's tooltip, the app menu's submenu, the palette's breadcrumb.
     pub fn label_key(self) -> String {
         format!("group-{}", self.word())
+    }
+
+    /// The other tabs whose command row the group leads as well (FT-1806): Draw's Select group, the tools every
+    /// drawn page is worked with (Select and Wire; Wire draws bus lines on a bus page and lines on a fluid page),
+    /// leads PLC and Fluid too, so a person who changes tab finds them where they were. A shared group is the first
+    /// group of its own tab (a test holds it), so it stands at the same place on every tab.
+    pub fn shared_with(self) -> &'static [Tab] {
+        match self {
+            Group::Select => &[Tab::Plc, Tab::Fluid],
+            _ => &[],
+        }
     }
 
     /// Whether the group stays in the bar when the window is too narrow (doc 16a §5.2: Draw's Select and Place
@@ -575,7 +596,7 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
 /// The command bar of `tab` in the state of `model`: its groups with a command, each command's state, the next step.
 pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
     let groups = tab
-        .groups()
+        .bar_groups()
         .filter_map(|group| {
             let buttons: Vec<CommandButton> = buttons_in(group)
                 .into_iter()

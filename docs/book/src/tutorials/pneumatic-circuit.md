@@ -39,7 +39,7 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
    side, between the cylinder and the valve and a little to the left. Choose **Draw ▸ Select**.
    The flow controls -2R1 and -2R2 stand upright, port 1 at the top. `Alt` places a symbol without joining it with a
    tube to a port it faces.
-8. Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw the tubes, each from one port to the other: A of -2M1 to 1 of
+8. Choose **Draw ▸ Wire** (`W`) and draw the tubes, each from one port to the other: A of -2M1 to 1 of
    -2R1, 2 of -2R1 to 4 of -2Q1; B of -2M1 to 1 of -2R2, 2 of -2R2 to 2 of -2Q1; 1 of -2X1 to 1 of -2V1, and 2 of
    -2V1 to 1 of -2Q1. Choose **Draw ▸ Select**.
    The circuit is joined: supply, service unit, valve, and the two lines to the cylinder through the flow controls.
@@ -63,7 +63,7 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
     (EW-GEN-DO-1); choose **Create**, then **Draw on a page…** in the To do list and pick page **1**.
     Page 1 shows, with the CPU -1A1 and its output module -1A1-A1 under the coil. [A PLC with its
     modules](plc-station.md) shows the station's tab in full.
-14. Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at the top of -1A1-A1, the output Q0.0.
+14. Choose **Draw ▸ Wire** (`W`), click A1 of the coil, then pin 1 at the top of -1A1-A1, the output Q0.0.
     Choose **Draw ▸ Select**.
     The solenoid is wired to the PLC output.
 15. Click page 2 in the Pages navigator and click the valve -2Q1.
@@ -95,7 +95,7 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
 21. Choose **Draw ▸ Place ▸ Device from part…**, choose **Cylinder double-acting, bore 32 mm, stroke 100 mm**
     (EW-GEN-CYL-1) and click above the terminal, to the right of -2Q2. Choose **Draw ▸ Select**.
     The cylinder -2M2 is on the page.
-22. Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw two tubes: 4 of -2Q2 to A of -2M2, and 2 of -2Q2 to B of -2M2.
+22. Choose **Draw ▸ Wire** (`W`) and draw two tubes: 4 of -2Q2 to A of -2M2, and 2 of -2Q2 to B of -2M2.
     Choose **Draw ▸ Select**.
     The tubes leave the valve's working ports upwards. Click -2M2: its rows **Port A** and **Port B** read
     "Compressed air, 6 bar", the air that comes from -2X2 through the terminal and the valve.

@@ -243,7 +243,7 @@ fn the_command_tab_and_the_collapse_reach_the_describe_text() {
         .expect("the commandbar section");
     assert_eq!(lines[head], "commandbar tab \"Draw\"");
     assert!(
-        lines[head + 1].starts_with("  group \"Select\" tool.select \"Select\""),
+        lines[head + 1].starts_with("  group \"Select and wire\" tool.select \"Select\""),
         "{}",
         lines[head + 1]
     );
@@ -449,15 +449,15 @@ fn arming_place_names_the_tool_the_target_and_its_keys() {
     s.shutdown();
 }
 
-/// The Draw tab's Renumber reads "Renumber devices", and Route stands in the Connect group beside Wire, where Reroute
-/// stood (docs/design/06a-drafting.md §7.1).
+/// The Draw tab's Renumber reads "Renumber devices", and Route leads the Connect group, where Reroute stood beside
+/// Wire before Wire joined Select at the tabs' head (docs/design/06a-drafting.md §7.1, FT-1806).
 #[test]
 fn the_draw_tab_names_renumber_devices_and_offers_route_beside_wire() {
     let ids: Vec<&str> = command_bar::placed_in(Group::Connect)
         .iter()
         .map(|m| m.id)
         .collect();
-    assert_eq!(ids[..2], ["tool.wire", "layout.route"]);
+    assert_eq!(ids[0], "layout.route");
     let tmp = Tmp::new("id1497-10");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let renumber = command_bar::action_button(&s, "devices.renumber").unwrap();

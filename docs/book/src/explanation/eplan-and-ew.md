@@ -89,7 +89,7 @@ contacts the part offers are checked against the ones you draw. **In the window:
 
 **The same:** connections join connection points and follow the drawing. **What differs:** EW builds the physical
 wires from the drawn connections, junctions and interruption points, so the wire list follows the drawing without an
-update step. **In the window:** **Draw ▸ Connect ▸ Wire**.
+update step. **In the window:** **Draw ▸ Wire**.
 
 ## Terminal strip
 

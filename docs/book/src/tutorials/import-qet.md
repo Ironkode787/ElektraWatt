@@ -36,7 +36,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 
    The others are live checks of the project, and yours to fix: EW-POT-009 says that the lamp's pin X2 and the
    supply's pin - are not connected; and EW-CORE-041 says that none of the four devices has a part.
-4. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its bottom, then the supply's pin -, at the
+4. Choose **Draw ▸ Wire** (`W`). Click the lamp's pin X2, at its bottom, then the supply's pin -, at the
    bottom of G1: the return wire is drawn. Choose **Draw ▸ Select**.
    The two EW-POT-009 warnings are gone. While you edit, the Messages pane shows the project's own scheme, drafting.
 5. Click the lamp and choose **Edit ▸ Choose part…**. Type `lamp`, choose **EW-GEN-LMP-1**, and confirm with

@@ -42,7 +42,7 @@ The PLC workspace shows the PLC side beside the page:
 | change a start address | type the address in the PLC grid, or choose **Re-address…** |
 | type the PLC tags | type each channel's **Symbol** in the PLC grid |
 | add an IO device in the network view | place its part on a bus-topology page |
-| connect it to the subnet | draw a bus line between the sockets with **Draw ▸ Connect ▸ Wire** |
+| connect it to the subnet | draw a bus line between the sockets with **Draw ▸ Wire** |
 | assign an IO device to a controller | right-click it and choose **Add to** and the PLC |
 | set the PROFINET device name and IP address | type them into the **Address** cell of the Bus panel's table |
 
@@ -142,7 +142,7 @@ Only a module goes into a rack: a device whose part has no PLC data is refused i
 ## Wire a field device to a channel
 
 1. Draw the device (a sensor, a lamp, a coil) on the page beside the module's box.
-2. Choose **Draw ▸ Connect ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is channel 0.
+2. Choose **Draw ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is channel 0.
 3. Or drag a channel's row from the PLC panel onto the device's connection point: the device is attached to the module
    and the channel bound to it in one step, which one Undo takes back.
 
@@ -194,7 +194,7 @@ on the schematic pages.
    device browser, or choosing the Black box tool, on the bus page asks first: **Put -1A1 here** or **A new station**.
    One port box comes from **Place port DP** (or **Place port X1**) on the station's row in the PLC panel; **Ports not
    drawn yet** in the Bus panel lists every interface no page draws yet.
-4. Draw the bus lines with **Draw ▸ Connect ▸ Wire**: the ports become one network, named for its bus, with the CPU's
+4. Draw the bus lines with **Draw ▸ Wire**: the ports become one network, named for its bus, with the CPU's
    port as its controller or master.
 5. Choose **Bus panel** on the PLC tab and switch it to its table. Type each node's address into its **Address** cell
    as the cell says: a PROFIBUS DP station address such as `3`, a PROFINET device name with its IP address such as

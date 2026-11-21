@@ -66,9 +66,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_discipline_panel(crate::navigators::NavKind::PlcGrid)
         }),
     ),
-    // PLC ▸ Workspace: the PLC workspace and the PLC guide.
+    // PLC ▸ Workspace: the PLC workspace and the PLC guide, small: the workspace switch in the tab row does the
+    // same, and Select and Wire lead the tab (FT-1806).
     placed(
-        place(Group::PlcWorkspace, 1, CommandSize::Large, None),
+        place(Group::PlcWorkspace, 1, CommandSize::Small, None),
         "app-window",
         act("plc.workspace", View, Menu::Plc, &[], always, None, |s, _| {
             s.act_discipline_workspace("PLC")
@@ -180,9 +181,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_discipline_panel(crate::navigators::NavKind::Tubes),
         ),
     ),
-    // Fluid ▸ Workspace: the Fluid workspace and the fluid guide.
+    // Fluid ▸ Workspace: the Fluid workspace and the fluid guide, small as PLC's.
     placed(
-        place(Group::FluidWorkspace, 1, CommandSize::Large, None),
+        place(Group::FluidWorkspace, 1, CommandSize::Small, None),
         "app-window",
         act("fluid.workspace", View, Menu::Fluid, &[], always, None, |s, _| {
             s.act_discipline_workspace("Fluid")
