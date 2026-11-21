@@ -4,7 +4,8 @@
 //! The PLC workspace in the window (WP-S2.13, doc 16 §2.6, doc 10 §6), at 1920 × 1080: View ▸ Workspaces ▸ PLC shows
 //! the PLC navigator in the left column and the PLC grid in the bottom dock; the grid's filter takes the bus facet and
 //! the safety flag (FT-738); a sorted Address header keeps its whole word (FT-776); a project with two CPUs lists a
-//! new card under "Modules without a station", and a CPU row's menu attaches it (FT-1672).
+//! new card under "Modules without a station", and a CPU row's menu attaches it (FT-1672). Not here: the channel's
+//! address printed at a terminal of its path (`ew-viewmodel`'s `plc_new_project.rs`).
 
 use crate::support;
 
@@ -1575,129 +1576,6 @@ fn a_module_is_dragged_to_another_slot_in_the_station_view() {
         (first.addresses.as_str(), second.addresses.as_str()),
         "the addresses follow the slots"
     );
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// FT-1734: the shipped terminal symbol has a `PlcAddress` slot. In a new project the digital output card's pin Q0.0
-/// is wired through terminal -X1:1 to a coil; with Project ▸ Channel addresses at terminals on, the terminal prints Q0.0,
-/// and without it nothing.
-#[test]
-fn a_terminal_on_a_traced_path_prints_the_channel_address() {
-    let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), None);
-    settle(&mut h);
-    dispatch(
-        &mut h,
-        "file.new",
-        json!({"dir": tmp.0.join("traced.ew").to_string_lossy(), "template": "builtin"}),
-    );
-    dispatch(
-        &mut h,
-        "page.new",
-        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
-    );
-    settle(&mut h);
-    wait_for_page(&mut h);
-    for (part, a, b) in [
-        ("EW-GEN-CPU-1", (10, 10), (16, 18)),
-        ("EW-GEN-DO-1", (24, 10), (30, 18)),
-    ] {
-        dispatch(&mut h, "tool.black_box", json!({"part": part, "template": 0}));
-        crate::navigators::cursor_k(&mut h, a);
-        dispatch(&mut h, "canvas.activate", json!({}));
-        crate::navigators::cursor_k(&mut h, b);
-        dispatch(&mut h, "canvas.activate", json!({}));
-        dispatch(&mut h, "tool.select", json!({}));
-        // The CPU's view opens when it is placed; Escape goes back to the page.
-        if h.state().shell().station_tab().is_some() {
-            dispatch(&mut h, "ui.dismiss", json!({}));
-        }
-    }
-    dispatch(&mut h, "strip.new", json!({"tag": "-X1"}));
-    for (pick, at) in [
-        (
-            json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1", "designation": "1"}),
-            (40, 26),
-        ),
-        (json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}), (40, 36)),
-    ] {
-        dispatch(&mut h, "tool.place", json!({}));
-        dispatch(&mut h, "place.pick", pick);
-        crate::navigators::cursor_k(&mut h, at);
-        dispatch(&mut h, "canvas.activate", json!({"alt": true}));
-        dispatch(&mut h, "ui.dismiss", json!({}));
-        dispatch(&mut h, "ui.dismiss", json!({}));
-    }
-    settle(&mut h);
-    let (page, card_pin, term, coil) = {
-        let c = h.state().shell().canvas().unwrap();
-        let t = std::sync::Arc::clone(&c.page().tables);
-        let card = t
-            .reps
-            .iter()
-            .find(|r| {
-                r.black_box.is_some()
-                    && t.cps
-                        .iter()
-                        .any(|p| p.rep == r.id && p.plc_address.as_deref() == Some("Q0.0"))
-            })
-            .expect("the card");
-        let pin = t
-            .cps
-            .iter()
-            .find(|p| p.rep == card.id && p.plc_address.as_deref() == Some("Q0.0"))
-            .expect("pin Q0.0")
-            .clone();
-        let of = |key: &str| {
-            let r = t.reps.iter().find(|r| r.symbol_key.starts_with(key)).expect(key);
-            let mut cps: Vec<_> = t.cps.iter().filter(|p| p.rep == r.id).cloned().collect();
-            cps.sort_by_key(|p| p.idx);
-            cps
-        };
-        (t.page, pin, of("ew.iec.terminal"), of("ew.iec.coil"))
-    };
-    let cp = |p: &ew_viewmodel::ew_api::output::TableCp| json!({"cp": {"function": p.function.to_string(), "idx": p.idx}});
-    for (a, b) in [(&card_pin, &term[1]), (&term[0], &coil[0])] {
-        dispatch(
-            &mut h,
-            "command.run",
-            json!({"cmd": "connection.draw", "params": {"page": page.to_string(), "a": cp(a), "b": cp(b)}}),
-        );
-    }
-    settle(&mut h);
-    // The texts "Q0.0" drawn within 10 mm of the terminal's insertion point.
-    let at_terminal = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
-        use ew_dl::{Item, ItemKind};
-        fn runs(items: &[Item], out: &mut Vec<(String, (i64, i64))>) {
-            for item in items {
-                match &item.kind {
-                    ItemKind::Glyphs(run) => out.push((run.text.clone(), (run.origin.x.0, run.origin.y.0))),
-                    ItemKind::Group(g) => runs(&g.items, out),
-                    _ => {}
-                }
-            }
-        }
-        let c = h.state().shell().canvas().unwrap();
-        let page = c.page();
-        let rep = page
-            .tables
-            .reps
-            .iter()
-            .find(|r| r.symbol_key.starts_with("ew.iec.terminal"))
-            .expect("the terminal");
-        let at = page.snapper.page_to_sheet(rep.pos);
-        let mut all = Vec::new();
-        runs(&page.list.items, &mut all);
-        all.into_iter()
-            .filter(|(t, o)| {
-                t == "Q0.0" && (o.0 - at.0).abs() < 10_000_000 && (o.1 - at.1).abs() < 10_000_000
-            })
-            .count()
-    };
-    assert_eq!(at_terminal(&h), 0, "off by default");
-    dispatch(&mut h, "project.plc_addresses_at_terminals", json!({"on": true}));
-    settle(&mut h);
-    assert_eq!(at_terminal(&h), 1, "the terminal prints the channel's address");
     h.state_mut().shell_mut().shutdown();
 }
 

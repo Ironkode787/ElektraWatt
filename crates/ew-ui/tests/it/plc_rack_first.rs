@@ -5,7 +5,7 @@
 //! its head part and its modules from the catalogue, Create, one undo step), and a bus device without PLC data is
 //! given to a PLC from its symbol's menu, whose view then opens and takes a module. The rack is a view in a tab
 //! beside the page tabs (doc 10 §6). Not here: a click on the selection that brings its Properties back, and the Bus
-//! panel brought to the front (`ew-viewmodel`'s `plc_rack_first.rs`).
+//! panel brought to the front (`ew-viewmodel`'s `plc_new_project.rs`).
 
 use crate::support;
 
