@@ -46,8 +46,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let Some(dir) = reader_dir(a.project.as_ref()) else {
             return 2;
         };
-        open_reader(&dir, "route")
-            .map_err(|e| format!("{}: {e}", dir.display()))
+        open_reader(&dir, "route").map_err(|e| format!("{}: {e}", dir.display()))
     } else {
         let Some(dir) = project_dir(a.project.as_ref()) else {
             return 2;

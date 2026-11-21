@@ -33,7 +33,11 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
         "symbol.draw",
         json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
     );
-    done(&mut shell, "symbol.cp", json!({"x": 0, "y": 0, "designation": "1"}));
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x": 0, "y": 0, "designation": "1"}),
+    );
     done(
         &mut shell,
         "symbol.save",
@@ -55,7 +59,11 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
     done(&mut shell, "ui.dismiss", json!({}));
 
     // Before its first placement: by its key.
-    done(&mut shell, "place.pick", json!({"symbol": "example.by-key", "letter": "U"}));
+    done(
+        &mut shell,
+        "place.pick",
+        json!({"symbol": "example.by-key", "letter": "U"}),
+    );
     done(&mut shell, "cursor.set", json!({"x_mm": 40, "y_mm": 40}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));

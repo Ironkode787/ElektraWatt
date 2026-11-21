@@ -13,7 +13,11 @@ use serde_json::json;
 fn kinds(s: &ShellModel) -> Vec<String> {
     state(s)["properties"]["sections"]
         .as_array()
-        .map(|a| a.iter().map(|x| x["kind"].as_str().unwrap_or_default().to_owned()).collect())
+        .map(|a| {
+            a.iter()
+                .map(|x| x["kind"].as_str().unwrap_or_default().to_owned())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -24,7 +28,11 @@ fn the_page_rows_come_back_after_the_project_sheet() {
     done(&mut s, "props.project", json!({}));
     assert_eq!(kinds(&s), ["project"]);
     done(&mut s, "select.set", json!({"ids": []}));
-    assert_eq!(kinds(&s), ["page"], "an empty selection set shows the page's rows");
+    assert_eq!(
+        kinds(&s),
+        ["page"],
+        "an empty selection set shows the page's rows"
+    );
 
     done(&mut s, "props.project", json!({}));
     assert_eq!(kinds(&s), ["project"]);

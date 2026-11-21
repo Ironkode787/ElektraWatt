@@ -24,7 +24,11 @@ fn a_part_on_the_power_supply_function_is_placed_with_its_own_symbol() {
         json!({"cmd": "page.create", "params": {"number": 2, "grid": {"num": 4000000, "den": 1}}}),
     );
     done(&mut shell, "page.goto", json!({"folio": "2"}));
-    done(&mut shell, "symbol.new", json!({"key": "own.psu", "name": "Own supply"}));
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key": "own.psu", "name": "Own supply"}),
+    );
     done(&mut shell, "symbol.function", json!({"key": "ew.fn.psu-ac-dc"}));
     done(
         &mut shell,
@@ -48,7 +52,11 @@ fn a_part_on_the_power_supply_function_is_placed_with_its_own_symbol() {
             json!({"x": x, "y": y, "designation": designation, "direction": direction, "fn_cp": fn_cp}),
         );
     }
-    done(&mut shell, "symbol.slot", json!({"kind": "tag", "x": -30, "y": 10}));
+    done(
+        &mut shell,
+        "symbol.slot",
+        json!({"kind": "tag", "x": -30, "y": 10}),
+    );
     done(
         &mut shell,
         "symbol.save",
@@ -62,5 +70,9 @@ fn a_part_on_the_power_supply_function_is_placed_with_its_own_symbol() {
     done(&mut shell, "cursor.set", json!({"x_mm": 120, "y_mm": 80}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
-    assert_eq!(tables(&shell).reps.len(), before + 1, "the supply is drawn with its own symbol");
+    assert_eq!(
+        tables(&shell).reps.len(),
+        before + 1,
+        "the supply is drawn with its own symbol"
+    );
 }

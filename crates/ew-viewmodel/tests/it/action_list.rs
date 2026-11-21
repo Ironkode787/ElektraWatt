@@ -17,10 +17,16 @@ fn the_action_list_names_each_action_with_its_parameters_and_state() {
     );
     let text = "{\"$schema\":\"ew.uiscript/1\",\"label\":\"actions\"}\n{\"action\":\"ui.actions\"}\n";
     let mut lines = Vec::new();
-    script::run(&mut shell, &mut NoExtension, &script::parse(text).unwrap(), false, &mut |l| {
-        lines.push(l.to_owned());
-        Ok(())
-    })
+    script::run(
+        &mut shell,
+        &mut NoExtension,
+        &script::parse(text).unwrap(),
+        false,
+        &mut |l| {
+            lines.push(l.to_owned());
+            Ok(())
+        },
+    )
     .unwrap();
     let step: serde_json::Value = serde_json::from_str(lines.last().unwrap()).unwrap();
     assert_eq!(step["outcome"], "done");
@@ -37,6 +43,9 @@ fn the_action_list_names_each_action_with_its_parameters_and_state() {
     }
     // With its parameters, and why it cannot run now (no project is open).
     let goto = line("page.goto");
-    assert!(goto.contains(" disabled: ") && goto.ends_with("params: folio:text"), "{goto}");
+    assert!(
+        goto.contains(" disabled: ") && goto.ends_with("params: folio:text"),
+        "{goto}"
+    );
     assert!(line("file.open").contains(" enabled"), "{}", line("file.open"));
 }

@@ -106,8 +106,7 @@ change here.
   symbol
 - api-add: the headless action `ui.actions` prints every action with its label, shortcut, parameters and whether it
   runs now (the reason when not) into the transcript's `describe`, as `ui.describe` prints the window
-- behaviour-change: `report_block.new` takes a report's kind by its name too (`Tube list`, as its refusal lists them,
-  now each with its key)
+- behaviour-change: `report_block.new` takes a report's kind by its name too (`Tube list`), as its refusal lists them
 - behaviour-change: after Project properties (`props.project`) the page's own rows show again on another page, on a
   click on the empty page and on `select.set {"ids": []}`
 - behaviour-change: `ew import qet --out a/b.ew` makes the folder `a` when it does not exist; the import ran and then

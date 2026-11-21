@@ -18,7 +18,11 @@ fn a_strip_emptied_by_the_delete_goes_with_its_terminals() {
     // The mini project's terminals of X1031 drawn on page 102, where the strip is drawn too.
     let model = mini_model_with(|records| {
         for (n, f) in [FN_T1, FN_T2, FN_T3].into_iter().enumerate() {
-            records.push(Record::Representation(rep(id(0x9000 + n as u128), PAGE_102, vec![f])));
+            records.push(Record::Representation(rep(
+                id(0x9000 + n as u128),
+                PAGE_102,
+                vec![f],
+            )));
         }
     });
     let mut e = engine(model);

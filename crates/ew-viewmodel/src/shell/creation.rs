@@ -2241,16 +2241,13 @@ impl ShellModel {
                 return self.form_missing(&REPORT_NEW, p, name);
             }
         }
-        // The kind by its key (`tube_list`) or by its name as the form lists it (`Tube list`); the refusal names both.
+        // The kind by its key (`tube_list`) or by its name as the form and the refusal list it (`Tube list`).
         let kinds = report_kinds();
         let named = kinds
             .iter()
             .find(|k| **k == kind || report_kind_words(k).to_lowercase() == kind.trim().to_lowercase());
         let Some(kind) = named.map(|k| (*k).to_owned()) else {
-            let words: Vec<String> = kinds
-                .iter()
-                .map(|k| format!("{} ({k})", report_kind_words(k)))
-                .collect();
+            let words: Vec<String> = kinds.iter().map(|k| report_kind_words(k)).collect();
             return self.form_failed(
                 REPORT_NEW.action,
                 strings::format(key!("error-report-kind"), &[&kind, &words.join(", ")]),

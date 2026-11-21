@@ -1684,7 +1684,10 @@ fn write_new(
     };
     // A folder of `out` that does not exist yet is made (`--out a/b.ew` without `a`), and taken back with the rest when
     // the write fails: the topmost of them holds only what this call writes.
-    let made = parent.ancestors().take_while(|a| !a.as_os_str().is_empty() && !a.exists()).last();
+    let made = parent
+        .ancestors()
+        .take_while(|a| !a.as_os_str().is_empty() && !a.exists())
+        .last();
     let made = made.map(Path::to_path_buf);
     std::fs::create_dir_all(parent).map_err(|e| write_err(format!("{}: {e}", parent.display())))?;
     // A new directory of ours: `create_dir` fails when anything is at that name.

@@ -47,7 +47,11 @@ fn a_list_of_cores_is_taken_in_the_wires_order() {
     let swapped: Vec<String> = proposed.iter().rev().map(|(_, core)| core.clone()).collect();
     assert_ne!(proposed[0].1, proposed[1].1, "two distinct cores: {proposed:?}");
 
-    done(&mut s, "cable.from_wires", json!({"type": type_text, "cores": swapped}));
+    done(
+        &mut s,
+        "cable.from_wires",
+        json!({"type": type_text, "cores": swapped}),
+    );
 
     select_ids(&mut s, &wires);
     let made = rows(&mut s);

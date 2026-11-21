@@ -20,7 +20,11 @@ fn a_reader_and_a_writer_name_a_library_file_the_manifest_does_not_list() {
     .unwrap();
     let warning = "warning: lib/symbols/00000000-0000-4000-8000-000000000001.json: manifest.json does not list it, \
                    so it is not read";
-    for run in [args([&"layout", &p]), args([&"fmt", &"--check", &p]), args([&"fmt", &p])] {
+    for run in [
+        args([&"layout", &p]),
+        args([&"fmt", &"--check", &p]),
+        args([&"fmt", &p]),
+    ] {
         let o = t.ew(&run);
         assert!(stderr(&o).contains(warning), "{run:?}: {}", stderr(&o));
     }

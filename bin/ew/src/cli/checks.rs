@@ -206,8 +206,7 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
             }
         }
     };
-    let (session, _) = match open_reader(&dir, "verify-migration")
-    {
+    let (session, _) = match open_reader(&dir, "verify-migration") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

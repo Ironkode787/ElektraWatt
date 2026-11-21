@@ -890,7 +890,9 @@ impl Session {
                 .documents(library.id, ew_schema::Kind::Symbol)
                 .into_iter()
                 .find_map(|doc| match doc {
-                    LibDocument::Symbol(copy) if copy.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => {
+                    LibDocument::Symbol(copy)
+                        if copy.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) =>
+                    {
                         Some(format!("library:{}:{}", copy.library_id, copy.item_id))
                     }
                     _ => None,

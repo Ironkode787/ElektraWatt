@@ -11,8 +11,8 @@ use crate::common;
 
 use common::{edit_device, mem_project_of, options, reopen, root, small_fixture};
 use ew_model::AnyKey;
-use ew_store::mem::DirSync;
 use ew_store::Vfs;
+use ew_store::mem::DirSync;
 use ew_store::{Opened, Store};
 
 #[test]
@@ -27,7 +27,10 @@ fn a_project_made_at_the_path_of_a_crashed_one_is_not_offered_its_journal() {
         .expect("the journal accepts the commit");
     store.crash();
     let own = reopen(&vfs, 9);
-    assert!(own.report.recovery.is_some(), "the project itself is offered its journal");
+    assert!(
+        own.report.recovery.is_some(),
+        "the project itself is offered its journal"
+    );
     own.store.close();
 
     // The project is deleted, and a project with the same ID is made at the same path.

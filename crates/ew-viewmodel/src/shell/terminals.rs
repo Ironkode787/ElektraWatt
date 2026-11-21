@@ -160,9 +160,12 @@ impl ShellModel {
         if frozen {
             // A tag another strip prints already would make a second strip of that tag: refused, naming it.
             let bare = |t: &str| t.trim_start_matches('-').to_owned();
-            let taken = self
-                .catalogue()
-                .and_then(|cat| cat.strips.iter().find(|st| bare(&st.tag) == bare(&tag)).map(|st| st.tag.clone()));
+            let taken = self.catalogue().and_then(|cat| {
+                cat.strips
+                    .iter()
+                    .find(|st| bare(&st.tag) == bare(&tag))
+                    .map(|st| st.tag.clone())
+            });
             if let Some(taken) = taken {
                 return self.strip_form_done(failed(key!("error-strip-tag-taken"), &[&taken]));
             }
