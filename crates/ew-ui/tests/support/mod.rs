@@ -39,11 +39,6 @@ impl Tmp {
         Tmp(ew_testdir::Tmp::new("ew-ui-test"))
     }
 
-    /// The directory `dir`, which the caller made fresh, removed on drop.
-    pub fn from_dir(dir: PathBuf) -> Tmp {
-        Tmp(ew_testdir::Tmp(dir))
-    }
-
     pub fn config(&self) -> ShellConfig {
         ShellConfig::in_dir(&self.0.0.join("config"), "0.0.0-test")
     }

@@ -7,8 +7,6 @@
 
 use crate::support;
 
-use std::sync::atomic::AtomicU32;
-
 use egui_kittest::Harness;
 use ew_ui::app::App;
 use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
@@ -253,50 +251,25 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
     assert!(h.state().page_view_ready());
 }
 
-/// `view.cpu_canvas` saves `canvas_backend = "cpu"` at once, so a
-/// run of `b5_an_injected_device_loss…` killed between its two toggles leaves that setting in its directory. A later
-/// test process with the same PID used to adopt the directory, and its WARP adapter then drew on the CPU. A test
-/// directory is now always one this process created; the leftover is skipped and left alone.
+/// `view.cpu_canvas` saves `canvas_backend = "cpu"` at once: the next start draws on the CPU with that setting, though
+/// it finds WARP (which a test of `b5_an_injected_device_loss…` killed between its two toggles left behind, FT-524).
+/// That a test directory is never such a leftover: `ew-testdir`'s `a_leftover_directory_of_the_same_pid_is_not_adopted`.
 #[test]
-fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
-    let parent = Tmp::new();
-    let warp = || AdapterSummary {
+fn a_saved_cpu_canvas_draws_on_the_cpu_although_warp_is_found() {
+    let tmp = Tmp::new();
+    std::fs::create_dir_all(tmp.0.join("config")).unwrap();
+    std::fs::write(
+        tmp.0.join("config").join("settings.toml"),
+        "version = 1\ncanvas_backend = \"cpu\"\n",
+    )
+    .unwrap();
+    let mut h = on_103(&tmp);
+    let warp = AdapterSummary {
         kind: DeviceKind::Cpu,
         api: GpuApi::Dx12,
         name: "Microsoft Basic Render Driver".into(),
     };
-    // The killed run's directory, its CPU canvas setting saved.
-    let killed = Tmp::from_dir(ew_testdir::fresh_dir_in(
-        &parent.0,
-        "ew-ui-test",
-        &AtomicU32::new(0),
-    ));
-    std::fs::create_dir_all(killed.0.join("config")).unwrap();
-    std::fs::write(
-        killed.0.join("config").join("settings.toml"),
-        "version = 1\ncanvas_backend = \"cpu\"\n",
-    )
-    .unwrap();
-    // Adopting it (the old behaviour): WARP is not chosen.
-    let mut adopted = on_103(&killed);
-    adopted.state_mut().gpu_host_mut().simulate(warp(), Ok(()));
-    settle(&mut adopted);
-    assert_eq!(backend(&adopted), "CPU", "the leftover's setting");
-    drop(adopted);
-    // The next process starts its numbers again: the leftover's name is skipped and the new directory is empty.
-    let fresh = Tmp::from_dir(ew_testdir::fresh_dir_in(
-        &parent.0,
-        "ew-ui-test",
-        &AtomicU32::new(0),
-    ));
-    assert_ne!(fresh.0, killed.0);
-    assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
-    let mut h = on_103(&fresh);
-    h.state_mut().gpu_host_mut().simulate(warp(), Ok(()));
+    h.state_mut().gpu_host_mut().simulate(warp, Ok(()));
     settle(&mut h);
-    assert_eq!(backend(&h), "WARP");
-    assert!(
-        killed.0.join("config").join("settings.toml").is_file(),
-        "the leftover is not touched"
-    );
+    assert_eq!(backend(&h), "CPU", "the saved setting");
 }
