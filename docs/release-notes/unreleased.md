@@ -380,3 +380,5 @@ change here.
   so two runs of one script make the same project; it took it from the clock (FT-1900)
 - behaviour-change: `supply.place` and `ip.supply_in` take a location with or without its sign: `+UP` is the node `UP`;
   it made a node `+UP` that printed `++UP` (doc 06 §3.5, FT-1901)
+- behaviour-change: `bus.cable` takes its cable part and its plugs by part number, in any case, as every part parameter
+  does; a plug was found only by its record ID and the cable part only with its description (doc 10 §2.7, FT-1902)

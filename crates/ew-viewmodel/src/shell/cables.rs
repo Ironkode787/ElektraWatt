@@ -820,7 +820,7 @@ impl ShellModel {
         let Some(part) = form
             .cables
             .iter()
-            .find(|o| o.part.to_string() == part || o.words == part)
+            .find(|o| o.is_named(&part))
             .map(|o| o.part)
         else {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
@@ -892,7 +892,7 @@ impl ShellModel {
             let on = or_return!(super::bulk::bool_text_param(p, termination, false));
             let chosen = match given(p, plug) {
                 None => None,
-                Some(text) => match form.plugs.iter().find(|o| o.part.to_string() == text) {
+                Some(text) => match form.plugs.iter().find(|o| o.is_named(&text)) {
                     Some(o) => Some(o.part),
                     None => {
                         let message = strings::format(key!("error-bus-plug"), &[&text, &form.bus]);

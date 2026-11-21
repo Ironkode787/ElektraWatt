@@ -27,6 +27,8 @@ use crate::{AnyCommand, Session};
 pub struct BusPartOffer {
     /// The part copy's ID (its copy has, or will have, it in the project).
     pub part: Uuid,
+    /// The part number, as a script names the part.
+    pub number: String,
     /// The part number and its description, `EW-GEN-CBL-2 · PROFIBUS cable…`.
     pub words: String,
     /// Whether the part is made for the line's bus system (a plug offered always is).
@@ -35,6 +37,14 @@ pub struct BusPartOffer {
     pub switch: bool,
     /// The library documents to embed first; empty for a project copy.
     pub copies: Vec<Value>,
+}
+
+impl BusPartOffer {
+    /// Whether `text` names this part: its copy's ID, its part number (in any case, as every part parameter takes
+    /// it) or its words as the form lists them.
+    pub fn is_named(&self, text: &str) -> bool {
+        self.part.to_string() == text || self.number.eq_ignore_ascii_case(text) || self.words == text
+    }
 }
 
 /// One end of a bus line in the form: the port in words and the plug at it.
@@ -123,6 +133,7 @@ impl Session {
                 };
                 Some(BusPartOffer {
                     part: o.part,
+                    number: o.number,
                     words,
                     made_for,
                     switch,

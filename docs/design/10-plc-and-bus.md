@@ -594,7 +594,8 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
 - **As built (rc.2, F20): a bus line's cable and plugs from the window.** Cable… on selected bus lines (the Draw tab's
   button, the line's menu, the line's Cable and Plugs rows in Properties) opens the bus line's form: the cable's tag,
   its part (the cable parts whose `cable_for` names the line's bus first, the others marked "not made for"), its
-  length, and for one line the plug at each end with its termination. `bus.cable.set` links the lines to the cable,
+  length, and for one line the plug at each end with its termination (a script names the cable part and the plugs
+  by part number, as every part parameter, FT-1902). `bus.cable.set` links the lines to the cable,
   or to a new one made as `cable.create` makes it (its part's cores), in one step; several selected lines take one
   cable. A plug drawn as its own connector device stays the model above; a plug **typed on a line** is the smallest
   model: a part on the line's end, `BusLine.plug_a` / `plug_b` = `BusPlug {part, termination?}` (optional, additive;

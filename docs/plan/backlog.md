@@ -88,7 +88,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
 
-- FT-1902 `ew-commands`: `bus.cable` finds a plug only by its record id; a part number, which every other part parameter takes, is refused with "choose one from the list".
 - FT-1903 `ew-checks`: A breaker with a phase pole and a neutral pole (1P+N) wired with L and N is reported as opening the neutral without the phase (EW-POT-013, an error): the rule does not see that both poles belong to one device and switch together.
 - FT-1907 `ew-viewmodel, ew-commands`: Draw on a page from the station view, for a station whose CPU is not placed yet, puts the CPU's box below the frame, off the sheet. Place it inside the drawing area as the cards are.
 
