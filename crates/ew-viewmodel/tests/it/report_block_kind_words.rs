@@ -12,7 +12,11 @@ use serde_json::json;
 fn a_report_kind_is_taken_by_the_name_the_refusal_offers() {
     let tmp = Tmp::new("report-kind-words");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
-    let message = failed(&mut s, "report_block.new", json!({"kind": "no such report", "folio": "950"}));
+    let message = failed(
+        &mut s,
+        "report_block.new",
+        json!({"kind": "no such report", "folio": "950"}),
+    );
     // "…; use one of: Bus cable list, …": the first kind's name, in the words the refusal offers.
     let name = message
         .split(": ")
@@ -21,8 +25,15 @@ fn a_report_kind_is_taken_by_the_name_the_refusal_offers() {
         .unwrap_or_else(|| panic!("{message}"))
         .trim_end_matches('.')
         .to_owned();
-    assert!(name.contains(' ') || !name.contains('_'), "a name, not a key: {message}");
+    assert!(
+        name.contains(' ') || !name.contains('_'),
+        "a name, not a key: {message}"
+    );
     done(&mut s, "report_block.new", json!({"kind": name, "folio": "950"}));
     // The key goes on as before.
-    done(&mut s, "report_block.new", json!({"kind": "terminal_diagram", "folio": "2950"}));
+    done(
+        &mut s,
+        "report_block.new",
+        json!({"kind": "terminal_diagram", "folio": "2950"}),
+    );
 }
