@@ -37,6 +37,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{BRANCHES, MOVE_PRICE, ROUNDS, TICKS_PER_STEP};
+use crate::marks::{draw_marks, mark_point, move_mark};
 use crate::measure::measure;
 use crate::model::{DraftPage, End, PartId, PinId, Pt, Side, WireId};
 use crate::route::{self, Jobs, Plan, Scope};
@@ -121,10 +122,10 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     }
     for m in &now.marks {
         if let Some(o) = page.marks.iter().find(|x| x.id == m.id)
-            && o.line != m.line
+            && let (Some(a), Some(b)) = (mark_point(o), mark_point(m))
+            && a != b
         {
-            plan.marks
-                .push((m.id, m.line.top_left().minus(o.line.top_left())));
+            plan.marks.push((m.id, b.minus(a)));
         }
     }
     // (In the order of the IDs, whatever the order of the page's lists.)
@@ -561,7 +562,7 @@ fn routed(
     (plan, after)
 }
 
-/// `page` with `plan`'s routes, junctions and marks.
+/// `page` with `plan`'s routes, junctions and marks, its marks drawn where the routes put them (§3.10).
 fn applied(page: &DraftPage, plan: &Plan) -> DraftPage {
     let mut out = page.clone();
     for (w, r) in &plan.routes {
@@ -577,8 +578,9 @@ fn applied(page: &DraftPage, plan: &Plan) -> DraftPage {
     }
     for (m, d) in &plan.marks {
         if let Some(x) = out.marks.iter_mut().find(|x| x.id == *m) {
-            x.line = x.line.moved(*d);
+            move_mark(x, *d);
         }
     }
+    draw_marks(&mut out);
     out
 }

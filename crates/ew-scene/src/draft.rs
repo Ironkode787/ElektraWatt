@@ -15,7 +15,9 @@
 //!   representation that draws a function CP first, by ID, owns it), `frame_only` for a valve terminal drawn as its
 //!   cells, `locked` when the representation is kept in place. Its role is [`Role::Other`](ew_drafting::Role) here.
 //! - **Wires:** every connection whose ends the page draws: its drawn polyline when it has a stored route, else no
-//!   route (unrouted). **Junctions** at their points. **Marks:** each cable mark, by its line, ticks and core names.
+//!   route (unrouted). **Junctions** at their points. **Marks:** each cable mark and wire marker, by its line, ticks,
+//!   core names and texts, each also relative to the crossing or the end of its line it stands at, so that the layout
+//!   draws it where a plan's routes put it ([`ew_drafting::marks::draw_marks`], which sets its line and texts here too).
 //! - **Labels** (doc 06a §5.2): the slot texts that no override moves or turns, by their slot's kind; a drawn box's texts
 //!   (its tag, and its other texts as its data); the strip tags; the wire numbers (along the wire; an unrouted wire's
 //!   beside its dashed line); a cable mark's tag and type line.
@@ -40,8 +42,8 @@ use std::sync::Arc;
 use ew_dl::{EntityRef, Item, Link, Path};
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{
-    DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner, Part,
-    PartId, Pin, PinId, Places, Role, Settled, Side, Tick, Wire, WireClass, WireId,
+    Anchor, DraftPage, End, FixedText, Follow, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkAt,
+    MarkId, Owner, Part, PartId, Piece, Pin, PinId, Places, Role, Settled, Side, Tick, Wire, WireClass, WireId,
 };
 use ew_ids::Id;
 use ew_schema::{Align, ConnectionKind, Dir4, Endpoint, SlotKind};
@@ -442,6 +444,8 @@ impl Builder<'_> {
         self.strip_tags(view, &mut ctx);
         self.connection_texts(view, &polylines, &mut ctx);
         self.item_labels(view, &mut ctx);
+        // The marks as the layout draws them from the routes, so that a plan's page and the page stored agree.
+        ew_drafting::marks::draw_marks(&mut page);
         // One page whatever the order of the view's records.
         page.junctions.sort_by_key(|j| j.id);
         page.labels.sort_by_key(|l| l.id);
@@ -712,7 +716,15 @@ impl Builder<'_> {
                     (MarkerText::Above, at.y)
                 };
                 let wires = [WireId(c.id.as_uuid())];
-                self.wire_marker(view, ctx, (at, &[crossing]), (place, &wires), &text, entity);
+                self.wire_marker(
+                    view,
+                    ctx,
+                    (at, &[crossing]),
+                    (place, &wires),
+                    &text,
+                    entity,
+                    true,
+                );
                 continue;
             }
             // A bus line's number is its cable's tag (it was too small to read).
@@ -740,7 +752,9 @@ impl Builder<'_> {
 
     /// One wire marker (module documentation of [`crate::page`], "Wire markers"): the line through `at` across the
     /// wires it crosses at `crossings` (along the line; `at` itself without one), then `text` beyond the line's end as
-    /// `place` says, a fixed text.
+    /// `place` says, a fixed text. `own`: the marker of its one wire, standing at the middle of the wire's longest
+    /// segment (else a marker's own point).
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn wire_marker(
         &self,
         view: &PageView,
@@ -749,16 +763,25 @@ impl Builder<'_> {
         (place, wires): (MarkerText, &[WireId]),
         text: &str,
         entity: EntityRef,
+        own: bool,
     ) {
+        let point = if own {
+            MarkAt::Middle
+        } else {
+            MarkAt::Point(ctx.ticks.point(at).0)
+        };
         let horizontal = place == MarkerText::Right;
         let mine = if horizontal { at.x } else { at.y };
         let lo = crossings.iter().copied().min().unwrap_or(mine) - MARKER_REACH;
         let hi = crossings.iter().copied().max().unwrap_or(mine) + MARKER_REACH;
-        let (a, b) = if horizontal {
-            (Pt2::new(lo, at.y), Pt2::new(hi, at.y))
-        } else {
-            (Pt2::new(at.x, lo), Pt2::new(at.x, hi))
+        let on_line = |v: Nm| {
+            if horizontal {
+                Pt2::new(v, at.y)
+            } else {
+                Pt2::new(at.x, v)
+            }
         };
+        let (a, b) = (on_line(lo), on_line(hi));
         ctx.ops.push(Op::Path(
             Item::path(Path::line(a, b), Some(wire_stroke(view.grid)), None).with_entity(entity),
         ));
@@ -769,15 +792,30 @@ impl Builder<'_> {
         };
         let text = Text::plain(text, at, angle, align, MARKER_STYLE, entity).of_mark();
         // The marker is a mark across its wires, its text drawn beside its line by the marker rule.
-        let line = self
-            .box_of(&text)
-            .map_or(Rect::from_points(a, b), |t| t.union(Rect::from_points(a, b)));
-        ctx.page.marks.push(Mark {
+        let text_box = self.box_of(&text);
+        let line = text_box.map_or(Rect::from_points(a, b), |t| t.union(Rect::from_points(a, b)));
+        // It follows its wires: its line's ends past the outer crossings, its text beyond the end it stands at.
+        let (first, last) = (on_line(lo + MARKER_REACH), on_line(hi - MARKER_REACH));
+        let mut pieces = vec![
+            (Anchor::First, Rect::from_points(a, first), false),
+            (Anchor::Last, Rect::from_points(last, b), false),
+        ];
+        if let Some(t) = text_box {
+            let end = if place == MarkerText::Right {
+                Anchor::Last
+            } else {
+                Anchor::First
+            };
+            pieces.push((end, t, true));
+        }
+        let mark = Mark {
             id: MarkId(entity.0),
             line: ctx.ticks.outward(line),
             horizontal,
             wires: wires.to_vec(),
-        });
+            follow: None,
+        };
+        follow_mark(ctx, mark, point, &pieces);
         self.fixed(ctx, text, None);
     }
 
@@ -796,18 +834,19 @@ impl Builder<'_> {
         let horizontal = m.angle != Angle2(90_000);
         let cps = crate::page::cp_map(view);
         let page = page_rect(view);
-        let crossings: Vec<(Nm, &str)> = mark
+        let crossings: Vec<(WireId, Nm, &str)> = mark
             .cores
             .iter()
             .filter_map(|(id, core)| {
                 let cv = view.connections.iter().find(|c| c.connection.id == *id)?;
                 let pts = polyline_of(view, &cps, &cv.connection, page)?;
-                Some((crossing_of(&pts, m.at, horizontal)?, core.as_str()))
+                let along = crossing_of(&pts, m.at, horizontal)?;
+                Some((WireId(id.as_uuid()), along, core.as_str()))
             })
             .collect();
         let mine = if horizontal { m.at.x } else { m.at.y };
-        let lo = crossings.iter().map(|c| c.0).min().unwrap_or(mine) - MARKER_REACH;
-        let hi = crossings.iter().map(|c| c.0).max().unwrap_or(mine) + MARKER_REACH;
+        let lo = crossings.iter().map(|c| c.1).min().unwrap_or(mine) - MARKER_REACH;
+        let hi = crossings.iter().map(|c| c.1).max().unwrap_or(mine) + MARKER_REACH;
         let on_line = |along: Nm| {
             if horizontal {
                 Pt2::new(along, m.at.y)
@@ -821,13 +860,19 @@ impl Builder<'_> {
             Item::path(Path::line(start, end), Some(stroke.clone()), None).with_entity(entity),
         ));
         let mut line = Rect::from_points(start, end);
-        for (along, core) in &crossings {
+        // It follows its wires: its line's ends past the outer crossings, a tick and a core name at each crossing.
+        let mut pieces = vec![
+            (Anchor::First, Rect::from_points(start, on_line(lo + MARKER_REACH)), false),
+            (Anchor::Last, Rect::from_points(on_line(hi - MARKER_REACH), end), false),
+        ];
+        for (wire, along, core) in &crossings {
             let p = on_line(*along);
             let (a, b) = (
                 Pt2::new(p.x - CABLE_TICK, p.y + CABLE_TICK),
                 Pt2::new(p.x + CABLE_TICK, p.y - CABLE_TICK),
             );
             line = line.union(Rect::from_points(a, b));
+            pieces.push((Anchor::Crossing(*wire), Rect::from_points(a, b), false));
             ctx.ops.push(Op::Path(
                 Item::path(Path::line(a, b), Some(stroke.clone()), None).with_entity(entity),
             ));
@@ -847,9 +892,11 @@ impl Builder<'_> {
             .of_mark();
             if let Some(b) = self.box_of(&name) {
                 line = line.union(b);
+                pieces.push((Anchor::Crossing(*wire), b, true));
             }
             self.fixed(ctx, name, None);
         }
+        let point = MarkAt::Point(ctx.ticks.point(m.at).0);
         let mark_id = MarkId(entity.0);
         let tag = Text::plain(
             &mark.tag,
@@ -892,23 +939,31 @@ impl Builder<'_> {
                 CABLE_KIND_STYLE,
                 entity,
             );
-            ctx.page.marks.push(Mark {
+            // They stay with the marker's point.
+            for b in [Some(tag_box), self.box_of(&kind)].into_iter().flatten() {
+                pieces.push((Anchor::Point, b, true));
+            }
+            let cable = Mark {
                 id: mark_id,
                 line: ctx.ticks.outward(line),
                 horizontal,
                 wires: mark.cores.iter().map(|(id, _)| WireId(id.as_uuid())).collect(),
-            });
+                follow: None,
+            };
+            follow_mark(ctx, cable, point, &pieces);
             self.fixed(ctx, tag, Some(record));
             self.fixed(ctx, kind, None);
             return;
         }
         let line_ticks = ctx.ticks.outward(line);
-        ctx.page.marks.push(Mark {
+        let cable = Mark {
             id: mark_id,
             line: line_ticks,
             horizontal,
             wires: mark.cores.iter().map(|(id, _)| WireId(id.as_uuid())).collect(),
-        });
+            follow: None,
+        };
+        follow_mark(ctx, cable, point, &pieces);
         let origin = line_ticks.top_left();
         self.label(
             ctx,
@@ -937,6 +992,36 @@ impl Builder<'_> {
             None,
         );
     }
+}
+
+/// Mark `mark` onto the page, drawn from its wires as the layout draws it again where a plan changes their routes
+/// (doc 06a §3.10, [`ew_drafting::marks::draw_marks`]): its line through `at`, and each of `pieces` (a box on the page,
+/// the anchor it stands at, whether it is a text) in ticks relative to where that anchor stands on the page's routes.
+fn follow_mark(ctx: &mut Ctx<'_>, mark: Mark, at: MarkAt, pieces: &[(Anchor, Rect, bool)]) {
+    let mut mark = Mark {
+        follow: Some(Follow {
+            at,
+            pieces: Vec::new(),
+        }),
+        ..mark
+    };
+    let ticks = ctx.ticks;
+    let placed: Option<Vec<Piece>> = ew_drafting::marks::anchors(ctx.page, &mark).map(|anchors| {
+        pieces
+            .iter()
+            .filter_map(|(anchor, r, text)| {
+                let p = anchors.at(*anchor)?;
+                Some(Piece {
+                    anchor: *anchor,
+                    rect: ticks.outward(*r).moved(ew_drafting::Pt::new(-p.x, -p.y)),
+                    text: *text,
+                })
+            })
+            .collect()
+    });
+    // (A mark whose anchors the page cannot tell stands as it is.)
+    mark.follow = placed.map(|pieces| Follow { at, pieces });
+    ctx.page.marks.push(mark);
 }
 
 /// Whether `inner` lies inside `outer`, edges included.

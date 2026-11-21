@@ -417,6 +417,7 @@ Schematic drafting (docs/design/06a-drafting.md, ADR-0034): how a page is judged
 | `src/guides.rs` |  | Placing by hand, helped (docs/design/06a-drafting.md §6): the guides of a part that hangs on the pointer or is dragged, and the light nudge onto an In-line guide's grid line. |
 | `src/labels.rs` | large | The one text placer (docs/design/06a-drafting.md §5): [`settle_labels`] gives every label of a page its place from the places of its kind, against the parts' bodies, the wires, the fixed texts and the labels placed before it. |
 | `src/lib.rs` |  | Schematic drafting (docs/design/06a-drafting.md, ADR-0034): how a page is judged, where its texts stand and where its wires run. |
+| `src/marks.rs` |  | How a mark is drawn from its wires (docs/design/06a-drafting.md §3.10): a cable mark's line reaches past the outer crossings of its cores and carries a tick and a core name at each, a marker's text stands beyond its line's end, and a wire's own marker stands at the middle of the wire's longest segment. |
 | `src/measure.rs` |  | The one measure of a page (docs/design/06a-drafting.md §1.2): [`measure`] says what is a fault, counts what a reader weighs, and reports the figures `ew layout` prints. |
 | `src/model.rs` |  | What the layout sees of a page (docs/design/06a-drafting.md §2.2), in ticks: 1/16 of the page's grid step, a grid position a multiple of 16, a half-grid position a multiple of 8 (§2.1). |
 | `src/nets.rs` |  | Nets, taps and trunks (docs/design/06a-drafting.md §3.4). |
@@ -856,7 +857,7 @@ Model to display lists per page and layer, forms engine (frames, title blocks, r
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/draft.rs` |  | The labels layer of a schematic page: the page as the layout sees it ([`ew_drafting::DraftPage`], built here once from the view, docs/design/06a-drafting.md §2.1 and §2.2) and its texts drawn where [`ew_drafting::settle_labels`] sets them (doc 06a §5). |
+| `src/draft.rs` | large | The labels layer of a schematic page: the page as the layout sees it ([`ew_drafting::DraftPage`], built here once from the view, docs/design/06a-drafting.md §2.1 and §2.2) and its texts drawn where [`ew_drafting::settle_labels`] sets them (doc 06a §5). |
 | `src/embedded.rs` | large | Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size tables (doc 20 §17.3) and, for every other kind, a boxed report table (PART DATA, the layout legend). |
 | `src/forms/bindings.rs` |  | Placeholders and their bindings (doc 09 §2.6): `{scope.path \| filter …}` templates filled from a [`Bindings`] source. |
 | `src/forms/geometry.rs` |  | Frame geometry from a [`FrameGrid`]: the outer rectangle, the drawing area, the column and row edges, the labels and the title-block origin, all in page coordinates (nm, y down). |

@@ -725,6 +725,15 @@ only (its line reaches across to its wires wherever it stands), by
 `layout.apply`'s `markers`, which this step adds with `junctions` and `routes`; `parts` come with step 4. The plan's
 `his` rows are listed in Route's preview card (§7.2); ticking them comes with the preview of §7.3.
 
+*A mark is drawn from its wires (FT-1880).* The page draws a cable mark's line past the outer crossings of its cores,
+with a tick and a core name at each crossing; a marker's text beyond its line's end; a wire's own marker at the middle
+of the wire's longest segment. The layout draws it so as well (`ew_drafting::marks::draw_marks`): the scene's adapter
+gives each mark its point and what it draws relative to the crossing or the end of its line it stands at, and the
+measure and the placer's page after a plan draw it from their routes. So a plan is judged on the page that is stored,
+and a second press of Route or of Arrange and route offers nothing. Before, a plan kept a mark where it stood while
+the page drew it where the new routes crossed it: on the sample, after a strip's earth terminal was moved two steps
+up, the first press moved a cable's core name with its wire and the second routed a wire again.
+
 ---
 
 ## 4. Placing

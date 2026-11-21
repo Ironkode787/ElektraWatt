@@ -338,6 +338,9 @@ change here.
 - behaviour-change: Route lays three potentials or more over one row of poles on trunks side by side; a trunk, or a
   route, more than two steps beyond everything else on the page was not held, so the next trunk took its line and
   its wires were left without a route (doc 06a §3.3, FT-1931)
+- behaviour-change: a second press of Arrange and route, or of Route, offers nothing: a plan is judged with each cable
+  mark and wire marker where its new routes will draw it; a plan kept a cable's core name where the old route crossed
+  the cable's line, and a second press routed a wire again (doc 06a §3.10, FT-1880)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

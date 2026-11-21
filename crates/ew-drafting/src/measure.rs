@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The one measure of a page (docs/design/06a-drafting.md §1.2): [`measure`] says what is a fault, counts what a
-//! reader weighs, and reports the figures `ew layout` prints. It places the labels with [`settle_labels`] first, so it
-//! judges the texts where the page shows them.
+//! reader weighs, and reports the figures `ew layout` prints. It draws the marks from the routes
+//! ([`crate::marks::draw_marks`]) and places the labels with [`settle_labels`] first, so it judges the texts where the
+//! page shows them.
 //!
 //! # Definitions
 //!
@@ -201,6 +202,8 @@ struct Line {
 
 /// The measure of `page` (module documentation).
 pub fn measure(page: &DraftPage) -> Quality {
+    // The page as the scene draws it: its marks where its routes put them.
+    let page = &*crate::marks::with_marks(page);
     let labels = settle_labels(page);
     let mut parts: Vec<_> = page.parts.iter().collect();
     parts.sort_by_key(|p| p.id);

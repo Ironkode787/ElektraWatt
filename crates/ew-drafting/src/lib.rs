@@ -10,6 +10,7 @@
 //! - [`measure`]: the one measure (§1.2): the faults F2 to F7, the unrouted wires, the cost C1 to C7 and the figures
 //!   a reader compares. The checks and `ew layout` read it.
 //! - [`labels`]: the one text placer (§5): [`settle_labels`].
+//! - [`marks`]: a mark drawn from its wires' routes (§3.10): [`marks::draw_marks`].
 //! - [`guides`]: the guides and the light nudge of a part placed by hand (§6): [`guides()`].
 //! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4), [`tracks`] (§3.5) and [`route`] (§3.2, §3.7 to
 //!   §3.10): the router. [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is
@@ -23,6 +24,7 @@ pub mod consts;
 pub mod geom;
 pub mod guides;
 pub mod labels;
+pub mod marks;
 pub mod measure;
 pub mod model;
 pub mod nets;

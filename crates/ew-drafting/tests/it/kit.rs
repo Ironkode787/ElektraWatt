@@ -287,6 +287,7 @@ impl Page {
             line,
             horizontal,
             wires: wires.to_vec(),
+            follow: None,
         });
         m
     }

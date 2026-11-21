@@ -1339,6 +1339,15 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
         }
     }
     plan.marks = marks_follow(&r.page, &changed);
+    if !plan.marks.is_empty() {
+        // The page after the plan has its marks where the plan sets them.
+        for (m, d) in &plan.marks {
+            if let Some(x) = r.page.marks.iter_mut().find(|x| x.id == *m) {
+                crate::marks::move_mark(x, *d);
+            }
+        }
+        after = measure(&r.page);
+    }
     plan.before = before;
     plan.after = after;
     plan
@@ -1386,7 +1395,8 @@ fn marks_follow(page: &DraftPage, changed: &BTreeSet<WireId>) -> Vec<(MarkId, Pt
     let mut marks: Vec<_> = page.marks.iter().collect();
     marks.sort_by_key(|m| m.id);
     for m in marks {
-        if !m.wires.iter().any(|w| changed.contains(w)) {
+        // (A wire's own marker stands where its wire's route sets it.)
+        if !m.wires.iter().any(|w| changed.contains(w)) || crate::marks::mark_point(m).is_none() {
             continue;
         }
         let c = m.line.centre();

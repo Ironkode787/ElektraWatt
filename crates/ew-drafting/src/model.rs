@@ -446,4 +446,52 @@ pub struct Mark {
     pub horizontal: bool,
     /// The wires it names.
     pub wires: Vec<WireId>,
+    /// How it is drawn from its wires' routes ([`crate::marks::draw_marks`] sets `line` and its fixed texts from them);
+    /// `None` for a mark that stands as it is.
+    pub follow: Option<Follow>,
+}
+
+/// How a mark is drawn from its wires' routes (§3.10): its line runs through its point across its wires, from the
+/// first of their crossings to the last (each wire's crossing the one nearest the point along the line), and every
+/// piece stands at its anchor. The page draws it so, and a plan that changes a route sets it there too.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Follow {
+    /// Where its line runs.
+    pub at: MarkAt,
+    /// What it draws, each box relative to its anchor.
+    pub pieces: Vec<Piece>,
+}
+
+/// Where a mark's line runs.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MarkAt {
+    /// Through this point: a marker's own, which a plan moves (§3.10).
+    Point(Pt),
+    /// Through the middle of the longest segment (the first of equal ones) of its one wire: a wire's own marker.
+    Middle,
+}
+
+/// One thing a mark draws: its box relative to its anchor, and whether it is a text (a fixed text of the mark).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Piece {
+    /// Where it stands.
+    pub anchor: Anchor,
+    /// Its box, relative to the anchor.
+    pub rect: Rect,
+    /// Whether it is one of the mark's fixed texts.
+    pub text: bool,
+}
+
+/// What a piece of a mark stands at, on the mark's line.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Anchor {
+    /// The mark's point.
+    Point,
+    /// The crossing of the line with this wire (a cable's tick and core name); the piece is not drawn where the line
+    /// misses the wire.
+    Crossing(WireId),
+    /// The first crossing along the line (the smallest coordinate), or the mark's point where it crosses no wire.
+    First,
+    /// The last crossing along the line, or the mark's point where it crosses no wire.
+    Last,
 }

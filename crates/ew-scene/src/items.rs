@@ -230,7 +230,8 @@ impl Builder<'_> {
                     };
                     let crossings = Builder::marker_crossings(view, &m.connections, m.at, horizontal);
                     let wires: Vec<WireId> = m.connections.iter().map(|c| WireId(c.as_uuid())).collect();
-                    self.wire_marker(view, ctx, (m.at, &crossings), (place, &wires), &iv.text, entity);
+                    let marked = (m.at, &crossings[..]);
+                    self.wire_marker(view, ctx, marked, (place, &wires), &iv.text, entity, false);
                 }
                 _ => {}
             }
