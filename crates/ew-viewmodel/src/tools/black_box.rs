@@ -1630,12 +1630,16 @@ mod tests {
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, (0, 0), 5, (6_000_000, 2_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (0, 0), 5, (6_000_000, 2_000_000))
+                .unwrap()
+                .0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, (0, 0), 6, (3_000_000, 1_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (0, 0), 6, (3_000_000, 1_000_000))
+                .unwrap()
+                .0,
             (3_000_000, 1_000_000)
         );
     }

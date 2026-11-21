@@ -153,7 +153,8 @@ impl FitItem {
         let cps = rep_cps_checked(tx, rep)?;
         let at = cps.first().map_or(rep.pos, |c| c.pos);
         let mut item = FitItem::point(at);
-        let body = rep_body(tx, rep).map(|[x0, y0, x1, y1]| [Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1))]);
+        let body =
+            rep_body(tx, rep).map(|[x0, y0, x1, y1]| [Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1))]);
         for p in cps.iter().map(|c| c.pos).chain(body.into_iter().flatten()) {
             item.lo = Pt2::new(item.lo.x.min(p.x), item.lo.y.min(p.y));
             item.hi = Pt2::new(item.hi.x.max(p.x), item.hi.y.max(p.y));

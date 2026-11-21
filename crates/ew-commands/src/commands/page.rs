@@ -995,7 +995,11 @@ impl Command for SetPageGrid {
         let fitted = reps
             .iter()
             .map(|r| crate::geometry::FitItem::rep(tx, r))
-            .chain(junctions.iter().map(|j| Ok(crate::geometry::FitItem::point(j.at))))
+            .chain(
+                junctions
+                    .iter()
+                    .map(|j| Ok(crate::geometry::FitItem::point(j.at))),
+            )
             .collect::<Result<Vec<_>, _>>()
             .and_then(|items| crate::geometry::fit(grid, &items));
         let Ok(moves) = fitted else {

@@ -27,7 +27,11 @@ fn a_selected_line_rings_its_two_ends() {
         ppp: 1.0,
     };
     let t = view.settled_transform();
-    let line = vec![(100_000_000, 80_000_000), (160_000_000, 80_000_000), (160_000_000, 120_000_000)];
+    let line = vec![
+        (100_000_000, 80_000_000),
+        (160_000_000, 80_000_000),
+        (160_000_000, 120_000_000),
+    ];
     let selected = [line.clone()];
     let overlay = |selected: &[Vec<(i64, i64)>]| {
         build(&OverlayInput {
@@ -59,7 +63,10 @@ fn a_selected_line_rings_its_two_ends() {
     for end in [line[0], line[2]] {
         let c = px(end);
         // The 9-pixel ring of a connection point, open at its centre.
-        assert!(rings.contains(&(c.0 + 4, c.1)) && rings.contains(&(c.0, c.1 - 4)), "{end:?}");
+        assert!(
+            rings.contains(&(c.0 + 4, c.1)) && rings.contains(&(c.0, c.1 - 4)),
+            "{end:?}"
+        );
         assert!(!rings.contains(&c), "{end:?}");
     }
     // The bend is no end.

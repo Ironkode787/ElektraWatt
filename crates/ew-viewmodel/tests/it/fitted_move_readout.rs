@@ -59,5 +59,9 @@ fn the_first_arrow_key_on_a_fitted_symbol_reads_the_step_it_moves() {
         .find(|r| r.id == rep.id)
         .expect("the symbol")
         .pos;
-    assert_eq!((after.0 - rep.pos.0, after.1 - rep.pos.1), (0, 4_000_000), "the move");
+    assert_eq!(
+        (after.0 - rep.pos.0, after.1 - rep.pos.1),
+        (0, 4_000_000),
+        "the move"
+    );
 }

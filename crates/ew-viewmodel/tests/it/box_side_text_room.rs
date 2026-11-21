@@ -79,7 +79,11 @@ fn a_box_goes_no_narrower_than_the_texts_of_its_left_and_right_pins_need() {
     let b = the_box(&s, rep);
     let sides: Vec<i64> = b.cps.iter().map(|c| index_of(&s, c.1).0).collect();
     assert_eq!(sides, [30, 42], "one pin on each side");
-    assert!(b.room.0 > 1, "the two texts need more than a step across: {:?}", b.room);
+    assert!(
+        b.room.0 > 1,
+        "the two texts need more than a step across: {:?}",
+        b.room
+    );
     assert_eq!(b.room.1, 0, "no pin on the top or the bottom");
     // The bottom-right corner dragged left to one step right of the left side.
     select_ids(&mut s, &[rep.to_string()]);
@@ -94,8 +98,15 @@ fn a_box_goes_no_narrower_than_the_texts_of_its_left_and_right_pins_need() {
         s.tool_hint()
     );
     done(&mut s, "canvas.release", at(to, json!({})));
-    let xs: Vec<i64> = the_box(&s, rep).outline.iter().map(|p| index_of(&s, *p).0).collect();
+    let xs: Vec<i64> = the_box(&s, rep)
+        .outline
+        .iter()
+        .map(|p| index_of(&s, *p).0)
+        .collect();
     let width = xs.iter().max().unwrap() - xs.iter().min().unwrap();
     assert!(width >= b.room.0, "{width} {:?}", b.room);
-    assert!(width < 12, "the box got narrower as far as the texts let it: {width}");
+    assert!(
+        width < 12,
+        "the box got narrower as far as the texts let it: {width}"
+    );
 }

@@ -61,7 +61,12 @@ fn a_pin_s_label_drags_alone_without_its_symbol_selected() {
         label.at,
         moved.at
     );
-    let after = now.tables.reps.iter().find(|r| r.id == rep.id).expect("the symbol");
+    let after = now
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.id == rep.id)
+        .expect("the symbol");
     assert_eq!(after.pos, rep.pos, "its symbol stayed");
     shell.shutdown();
 }

@@ -283,12 +283,9 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
                 })
         })
     };
-    cx.page
-        .texts
-        .iter()
-        .rev()
-        .copied()
-        .find(|t| under(t) && (tag(t) || t.pin || caption(t)) && !cx.selection.items.contains(&EntityRef(t.rep)))
+    cx.page.texts.iter().rev().copied().find(|t| {
+        under(t) && (tag(t) || t.pin || caption(t)) && !cx.selection.items.contains(&EntityRef(t.rep))
+    })
 }
 
 /// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.
