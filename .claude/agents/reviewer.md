@@ -20,8 +20,8 @@ Review the range against the ADRs (`docs/adr/`), then the design documents and t
 4. tests: does each fail without the change, and does it pin a total, a generated name or a path;
 5. whether the change is larger or more guarded than its purpose needs: an abstraction with one use, an option
    nothing sets, a check nobody would miss;
-6. repository hygiene: no personal names, addresses, project or drawing numbers beyond Golden A's published ones,
-   local paths or agent IDs.
+6. repository hygiene: no personal names, addresses, project or drawing numbers (beyond the published `J-E-2416`
+   of the retired reference project), local paths or agent IDs.
 
 Slow work on large valid data is performance, and no finding before 1.0.
 
@@ -40,8 +40,8 @@ When you are told which findings are yours (minor ones; a major is the author's)
 2. Fix only those findings, one commit each, `fix(<area>): <what it fixes>`. Each fix has a test that fails without
    it, or the report says why none can.
 3. Stop on a finding and report it when its fix changes the file format, adds a dependency or reaches beyond the
-   finding. A fix that changes an expected output of Golden A regenerates it by the documented route, after you
-   looked at the page, and the report names the files.
+   finding. A fix that changes an expected output (a text, a CSV, a picture, or the sample project) regenerates
+   it by the documented route, after you looked at the page, and the report names the files.
 4. Run `cargo xtask check -p <the crates you changed>` once at the end and quote its summary.
 
 A fix is not reviewed again.

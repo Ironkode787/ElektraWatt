@@ -18,7 +18,7 @@ You check the user-visible changes of ElektraWatt on offscreen renders.
 - **Never drive the desktop:** no real window, no clicks on the screen.
 - **Edit nothing in the repository,** and commit nothing. Write scripts and frames only in your work folder, your
   own subfolder of the scratchpad. Delete only files you created there.
-- **Golden A:** copy `golden/J-E-2416.ew` into your folder and open the copy, never the original.
+- **The sample project:** copy `fixtures/sample/sample.ew` into your folder and open the copy, never the original.
 
 ## Running
 

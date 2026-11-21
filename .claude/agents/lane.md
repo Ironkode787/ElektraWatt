@@ -51,8 +51,9 @@ rules hold here.
   2560 × 1440 (`target/debug/elektrawatt --headless --script <s> --config-dir <fresh dir> --visual --frames <dir>
   --window 1920x1080 --ppp 1`, then `--window 2560x1440 --ppp 1`). Never open a real window. The design rules are in
   `docs/design/16a-design-language.md`.
-- Golden files: re-bless only a change your brief intends, and list every re-blessed file with why. Never open
-  `golden/J-E-2416.ew` for writing.
+- Expected outputs (texts, CSVs, pictures): re-bless only a change your brief intends, and list every re-blessed
+  file with why. Never edit `fixtures/sample/sample.ew` by hand: `cargo xtask gen` writes it from its script, and
+  a test works on a copy.
 
 ## Stop and report
 
