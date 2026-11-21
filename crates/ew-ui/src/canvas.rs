@@ -1512,7 +1512,6 @@ impl CanvasHost {
             events,
         );
         self.context_menu(&response, shell, canvas, group, events);
-        Self::scroll_bars(ui, rect, canvas, group, events);
         Self::potential_offer(&response, shell, canvas, group, events);
         Self::supply_panel(&response, shell, canvas, group, events);
         Self::list_foot(&response, shell, canvas, group, events);
@@ -1666,6 +1665,8 @@ impl CanvasHost {
         if shell.area().map(|a| a.focused) == Some(group) {
             paint_cp_mark(ui, rect, ppp, &transform, canvas, shell);
         }
+        // The page's scroll bars, over the page on either backend (FT-1830).
+        Self::scroll_bars(ui, rect, canvas, group, events);
         let stats = shell
             .frame_stats_shown()
             .then(|| self.statistics_frame(ui, rect, shell));
@@ -2720,7 +2721,7 @@ impl CanvasHost {
         let [x0, y0, x1, y1] = canvas.view_nm();
         let (w, h) = canvas.sheet();
         let k = canvas.points_per_nm();
-        let thick = t.space_2;
+        let thick = t.space_3;
         for vertical in [false, true] {
             let (v0, v1, end) = if vertical { (y0, y1, h) } else { (x0, x1, w) };
             if v0 <= 0 && v1 >= end {
@@ -2768,8 +2769,13 @@ impl CanvasHost {
             } else {
                 t.text_tertiary
             };
-            ui.painter().rect_filled(
-                thumb.shrink(t.border_width * 2.0),
+            // Over the page and its overlays, on a layer of their own (the page's picture is laid over the pane's).
+            let painter = ui
+                .ctx()
+                .layer_painter(egui::LayerId::new(egui::Order::Middle, id))
+                .with_clip_rect(rect);
+            painter.rect_filled(
+                thumb.shrink(t.border_width),
                 crate::theme::radius(t.radius_pill),
                 colour.color32(),
             );

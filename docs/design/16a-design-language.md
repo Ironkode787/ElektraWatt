@@ -768,7 +768,7 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
   vertical stack of three 28-px icon buttons (Zoom in, Zoom out, Fit page) on `color.surface.raised`, `radius.md`,
   `elevation.1`.
 - **Toasts** appear at the canvas's top right (§6.10).
-- **Scroll bars** (FT-1830): along the canvas's right and bottom edges, `space.2` thick, a thumb in
+- **Scroll bars** (FT-1830): along the canvas's right and bottom edges, `space.3` thick, a thumb in
   `color.text.tertiary` (`color.text.secondary` under the pointer and while dragged) with `radius.pill`, standing for
   the part of the page in view against the page and the room beyond it the view shows; shown only while part of the
   page is out of view (P3: a fitted page has none), and a thumb dragged pans the view as far.
