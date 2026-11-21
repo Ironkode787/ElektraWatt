@@ -367,6 +367,30 @@ fn a_cancelled_print_aborts_before_its_first_band() {
     }
 }
 
+/// A page of a print whose signal is set makes no request of the printer: settings that the printer refuses (no size)
+/// end it as [`PrintError::Cancelled`], not as the paper the printer did not take. Skipped as WN-3 is.
+#[test]
+fn a_cancelled_page_asks_the_printer_for_nothing() {
+    let dir = Dir::new("cancel-page");
+    let dc = match Dc::open(PDF_PRINTER) {
+        Ok(dc) => dc,
+        Err(PrintError::Windows { what, reason }) => {
+            println!("skipped: {what}: {reason}");
+            return;
+        }
+        Err(e) => panic!("{e:?}"),
+    };
+    dc.start_doc("cancelled page", Some(&dir.0.join("cancel-page.pdf")))
+        .unwrap();
+    let job = job(PDF_PRINTER, vec![placed_page(1)]);
+    let mut refused = DevMode(vec![0; size_of::<DEVMODEW>().div_ceil(8)]);
+    assert!(!dc.reset(&refused), "the printer takes settings without a size");
+    job.cancel.cancel();
+    let sent = send_page(&dc, &mut refused, &job.pages[0], &job);
+    dc.abort_doc();
+    assert_eq!(sent, Err(PrintError::Cancelled));
+}
+
 /// The first Ctrl+C or Ctrl+Break sets the print's signal and is handled; a second, with the signal
 /// set, goes on to the default handler, which ends the process as before; other console events always go on.
 #[test]

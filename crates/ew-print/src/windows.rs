@@ -13,7 +13,7 @@
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
 //! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent, nor a band that is white
-//! paper alone. The job's cancel signal ([`PrintJob::cancel`]) is read before each band:
+//! paper alone. The job's cancel signal ([`PrintJob::cancel`]) is read before each page and each band:
 //! once it is set, the document is aborted (`AbortDoc`) and the print is [`PrintError::Cancelled`]. With
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
@@ -234,8 +234,12 @@ fn wide(s: &str) -> Vec<u16> {
 }
 
 /// One page: its paper asked for, then its bands between `StartPage` and `EndPage`, white ones not sent; the job's
-/// cancel signal set before a band is [`PrintError::Cancelled`].
+/// cancel signal set before the page or a band is [`PrintError::Cancelled`], so a cancelled print asks the printer for
+/// nothing more and no refusal of the printer stands for the cancel.
 fn send_page(dc: &Dc, mode: &mut DevMode, page: &PdfPage, job: &PrintJob) -> Result<(), PrintError> {
+    if job.cancel.is_set() {
+        return Err(PrintError::Cancelled);
+    }
     let label = page.label.as_str();
     // An export page's paper is its sheet (the window's preview does the same).
     let mut placement = page.placement.clone().unwrap_or_else(|| PagePlacement {
