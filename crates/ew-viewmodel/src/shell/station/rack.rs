@@ -1226,7 +1226,11 @@ impl ShellModel {
             Ok(Some("symbol")) => "symbol",
             Ok(Some("function_text")) => "function_text",
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["column"]),
-            Ok(None) => open.as_ref().map(|o| o.1).or(cursor.map(|c| c.1)).unwrap_or("symbol"),
+            Ok(None) => open
+                .as_ref()
+                .map(|o| o.1)
+                .or(cursor.map(|c| c.1))
+                .unwrap_or("symbol"),
             Err(e) => return e,
         };
         let channel = match (p.get("channel"), &open, cursor) {

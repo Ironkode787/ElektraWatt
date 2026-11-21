@@ -163,7 +163,12 @@ pub fn overview_start_page(q: &Q, head: Id<Device>) -> Option<Id<Page>> {
     let mut at = 0;
     while let Some(d) = devices.get(at).copied() {
         at += 1;
-        devices.extend(q.idx().device_children(d).filter(|c| !devices.contains(c)).collect::<Vec<_>>());
+        devices.extend(
+            q.idx()
+                .device_children(d)
+                .filter(|c| !devices.contains(c))
+                .collect::<Vec<_>>(),
+        );
     }
     let (pages, sections) = (q.pages(), q.sections());
     let fluid = devices
@@ -171,7 +176,12 @@ pub fn overview_start_page(q: &Q, head: Id<Device>) -> Option<Id<Page>> {
         .flat_map(|d| q.idx().functions_of_device(*d).collect::<Vec<_>>())
         .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
         .filter_map(|r| reps.get(r).map(|r| r.page))
-        .filter_map(|p| pages.get(p).filter(|x| x.kind == ew_schema::PageType::Fluid).map(|x| (p, x)))
+        .filter_map(|p| {
+            pages
+                .get(p)
+                .filter(|x| x.kind == ew_schema::PageType::Fluid)
+                .map(|x| (p, x))
+        })
         .min_by_key(|(p, x)| {
             let section = x.folio.section.and_then(|s| sections.get(s)).map(|s| s.number);
             let label = x.folio.label.as_ref().map(|l| natural_key(l.as_str()));

@@ -29,17 +29,19 @@ fn channels(s: &ShellModel) -> Vec<(String, String, String)> {
         .iter()
         .map(|r| &t.nodes[r.node as usize])
         .filter(|node| node.role == NavRole::Channel)
-        .map(|node| (node.key.clone(), node.cells[target].clone(), node.cells[text].clone()))
+        .map(|node| {
+            (
+                node.key.clone(),
+                node.cells[target].clone(),
+                node.cells[text].clone(),
+            )
+        })
         .collect()
 }
 
 /// The Function text cell of the row `key`.
 fn text_of(s: &ShellModel, key: &str) -> String {
-    channels(s)
-        .into_iter()
-        .find(|c| c.0 == key)
-        .expect("the row")
-        .2
+    channels(s).into_iter().find(|c| c.0 == key).expect("the row").2
 }
 
 /// Typing into a wired channel's Function text cell, then a fill down from it over a second wired channel: both
@@ -61,7 +63,11 @@ fn fill_down_sets_the_wired_devices_function_texts() {
         "table.cell",
         json!({"kind": "plc", "row": first, "column": "function_text"}),
     );
-    done(&mut s, "table.input", json!({"kind": "plc", "text": "Conveyor run"}));
+    done(
+        &mut s,
+        "table.input",
+        json!({"kind": "plc", "text": "Conveyor run"}),
+    );
     done(&mut s, "table.commit", json!({"kind": "plc"}));
     assert_eq!(text_of(&s, first), "Conveyor run", "typed");
     done(
@@ -91,14 +97,28 @@ fn paste_sets_a_wired_devices_function_text_and_refuses_a_spare_channel() {
     let tmp = Tmp::new("plc-grid-paste");
     let mut s = grid(&tmp);
     let rows = channels(&s);
-    let wired = rows.iter().find(|c| !c.1.is_empty()).expect("a wired channel").0.clone();
-    let spare = rows.iter().find(|c| c.1.is_empty()).expect("a spare channel").0.clone();
+    let wired = rows
+        .iter()
+        .find(|c| !c.1.is_empty())
+        .expect("a wired channel")
+        .0
+        .clone();
+    let spare = rows
+        .iter()
+        .find(|c| c.1.is_empty())
+        .expect("a spare channel")
+        .0
+        .clone();
     done(
         &mut s,
         "table.cell",
         json!({"kind": "plc", "row": wired, "column": "function_text"}),
     );
-    done(&mut s, "table.paste", json!({"kind": "plc", "text": "Clamp open\r\n"}));
+    done(
+        &mut s,
+        "table.paste",
+        json!({"kind": "plc", "text": "Clamp open\r\n"}),
+    );
     assert!(s.table_gesture().is_none(), "no card: {:?}", s.table_gesture());
     assert_eq!(text_of(&s, &wired), "Clamp open");
     done(
@@ -106,7 +126,11 @@ fn paste_sets_a_wired_devices_function_text_and_refuses_a_spare_channel() {
         "table.cell",
         json!({"kind": "plc", "row": spare, "column": "function_text"}),
     );
-    done(&mut s, "table.paste", json!({"kind": "plc", "text": "Clamp shut\r\n"}));
+    done(
+        &mut s,
+        "table.paste",
+        json!({"kind": "plc", "text": "Clamp shut\r\n"}),
+    );
     let card = s.table_gesture().expect("the card of the refused cell");
     match &card.cells[0].value {
         CellValue::Invalid(why) => assert!(why.starts_with("Nothing is wired to this channel yet"), "{why}"),
