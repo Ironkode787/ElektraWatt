@@ -1428,8 +1428,11 @@ impl ShellModel {
     // The grid cursor
 
     pub(crate) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
-        // In a station's view the arrows go from slot to slot.
+        // In a station's view the arrows go from slot to slot, or from cell to cell of its channel table.
         if self.station_tab().is_some() {
+            if self.step_channel_cursor(dx, dy) {
+                return Outcome::Done;
+            }
             let step = Map::from_iter([("step".to_owned(), Value::from(dx + dy))]);
             return self.act_plc_rack_select(&step);
         }

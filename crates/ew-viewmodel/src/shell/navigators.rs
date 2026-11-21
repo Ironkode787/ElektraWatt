@@ -354,11 +354,15 @@ impl ShellModel {
                 _ => {}
             }
         }
-        // In a made station's view F2 changes the tag under the cursor, the station's on its head.
+        // In a made station's view F2 opens the channel cell the keyboard cursor stands on, else changes the tag
+        // under the cursor, the station's on its head.
         if action == "text.edit"
             && self.focused_navigator().is_none()
             && self.station_tab().is_some_and(|t| t.draft.is_none())
         {
+            if self.station_channel_cursor().is_some() {
+                return ("plc.rack_channel", Value::Null);
+            }
             return ("plc.rack_rename", Value::Null);
         }
         match action {

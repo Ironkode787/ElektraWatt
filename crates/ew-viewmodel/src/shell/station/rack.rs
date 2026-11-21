@@ -337,6 +337,8 @@ impl ShellModel {
             return;
         };
         tab.cursor = place;
+        // The keys are the rack's again, not the channel table's.
+        tab.channel_cursor = None;
         // The view has the keys from here on: the arrows walk its places, Delete empties one.
         self.focus = self.area.as_ref().map(|a| crate::shell::Focus::Canvas(a.focused));
         let station = self
@@ -1209,9 +1211,11 @@ impl ShellModel {
     /// cell; with it the cell takes the text, and with `next` the same cell of the next channel opens, so a card's
     /// channels are typed in one go. The function text is the wired device's (the PLC overview prints that): a channel
     /// nothing is wired to has none, said in a sentence. A refusal is said under the rack, the field staying open on
-    /// the text as typed.
+    /// the text as typed. Without `channel` it acts on the field open, else on the cell the keyboard cursor stands on
+    /// (F2, `StationTab::channel_cursor`), which a cell of the module on show takes.
     pub(crate) fn act_plc_rack_channel(&mut self, p: &Map<String, Value>) -> Outcome {
         let open = self.station_tab().and_then(|t| t.channel.clone());
+        let cursor = self.station_channel_cursor();
         if flag(p, "cancel") {
             if let Some(tab) = self.station_tab_mut() {
                 tab.channel = None;
@@ -1222,13 +1226,14 @@ impl ShellModel {
             Ok(Some("symbol")) => "symbol",
             Ok(Some("function_text")) => "function_text",
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["column"]),
-            Ok(None) => open.as_ref().map_or("symbol", |o| o.1),
+            Ok(None) => open.as_ref().map(|o| o.1).or(cursor.map(|c| c.1)).unwrap_or("symbol"),
             Err(e) => return e,
         };
-        let channel = match (p.get("channel"), &open) {
-            (Some(_), _) => or_return!(self.record_param(p, "channel")),
-            (None, Some(o)) => o.0,
-            (None, None) => return failed(key!("error-missing-param"), &["channel"]),
+        let channel = match (p.get("channel"), &open, cursor) {
+            (Some(_), _, _) => or_return!(self.record_param(p, "channel")),
+            (None, Some(o), _) => o.0,
+            (None, None, Some(c)) => c.0,
+            (None, None, None) => return failed(key!("error-missing-param"), &["channel"]),
         };
         // The channel of the module on show, else any channel of the project (the PLC grid's cell).
         let rows = self
@@ -1247,8 +1252,17 @@ impl ShellModel {
             Ok(t) => t.map(str::to_owned),
             Err(e) => return e,
         };
+        // The keyboard cursor goes with the cell of the module on show that is acted on, and stays there.
+        if at.is_some()
+            && let Some(tab) = self.station_tab_mut()
+        {
+            tab.channel_cursor = Some((channel, column));
+        }
         let set = |s: &mut Self, field: Option<(Uuid, &'static str, String)>| {
             if let Some(tab) = s.station_tab_mut() {
+                if let Some((channel, column, _)) = &field {
+                    tab.channel_cursor = Some((*channel, *column));
+                }
                 tab.channel = field;
             }
         };

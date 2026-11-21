@@ -262,6 +262,9 @@ change here.
   overview…, `valve_terminal.generate_overview`) follows the terminal's first fluid page in that page's section; it
   followed the terminal's own page, which could be a schematic or bus page of the wiring section (doc 10 §6, doc 11
   §5.5, FT-1823)
+- behaviour-change: in a station's view the channel cell last clicked or typed in keeps the keyboard cursor, ringed:
+  F2 opens it and the arrows walk the channel cells, until a place chosen in the rack takes the keys back; F2 changed
+  the card's tag there (doc 10 §6, FT-1838)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

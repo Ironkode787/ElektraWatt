@@ -435,6 +435,43 @@ impl ShellModel {
         self.station_shown()?.device
     }
 
+    /// The channel cell the keyboard cursor of the station view on show stands on (`StationTab::channel_cursor`): the
+    /// channel and its column (`symbol`, `function_text`), while the channel is one the view lists; F2 opens it.
+    pub fn station_channel_cursor(&self) -> Option<(Uuid, &'static str)> {
+        let cursor = self.station_tab()?.channel_cursor?;
+        self.station_shown()?
+            .channels
+            .iter()
+            .any(|c| c.channel == cursor.0)
+            .then_some(cursor)
+    }
+
+    /// The arrows in the channel table: `dy` channels down (up when negative), `dx` to the Function text column
+    /// (right) or the Symbol column (left), within the channels on show. `false` while the cursor stands in no channel
+    /// cell (the arrows walk the rack's places then).
+    pub(super) fn step_channel_cursor(&mut self, dx: i64, dy: i64) -> bool {
+        let Some((channel, column)) = self.station_channel_cursor() else {
+            return false;
+        };
+        let rows: Vec<Uuid> = self
+            .station_shown()
+            .map(|s| s.channels.iter().map(|c| c.channel).collect())
+            .unwrap_or_default();
+        let at = rows.iter().position(|c| *c == channel).unwrap_or(0);
+        let to = at
+            .saturating_add_signed(isize::try_from(dy).unwrap_or(0))
+            .min(rows.len().saturating_sub(1));
+        let column = match dx.signum() {
+            1 => "function_text",
+            -1 => "symbol",
+            _ => column,
+        };
+        if let (Some(tab), Some(c)) = (self.station_tab_mut(), rows.get(to)) {
+            tab.channel_cursor = Some((*c, column));
+        }
+        true
+    }
+
     /// [`ShellModel::station_device`] of the station view of `tab`, whose rack is `view`.
     fn device_of(&self, tab: &StationTab, view: &ew_api::output::RackView) -> Option<Uuid> {
         tab.draft.is_none().then_some(())?;

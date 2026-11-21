@@ -1387,11 +1387,19 @@ fn channels(
                         ui.scope_id().with(("channel-cell", c.channel, column)),
                         Sense::click(),
                     );
-                    if response.hovered() {
+                    // The cell the keyboard cursor stands on (F2 opens it) has a table's cursor ring.
+                    let ring = if tab.channel_cursor == Some((c.channel, column)) {
+                        Some(theme::stroke(t.focus_width, t.table_cursor))
+                    } else {
+                        response
+                            .hovered()
+                            .then(|| theme::stroke(t.border_width, t.border_control))
+                    };
+                    if let Some(ring) = ring {
                         ui.painter().rect_stroke(
                             field.shrink(1.0),
                             theme::radius(t.radius_sm),
-                            theme::stroke(t.border_width, t.border_control),
+                            ring,
                             egui::StrokeKind::Inside,
                         );
                     }

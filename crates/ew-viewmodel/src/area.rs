@@ -67,6 +67,10 @@ pub struct StationTab {
     /// The channel cell being typed in: the channel, its column (`symbol` or `function_text`, the PLC grid's
     /// keys) and the text the field opens with, which is the typed text after a refusal.
     pub channel: Option<(ew_api::output::Uuid, &'static str, String)>,
+    /// The channel cell the keyboard cursor stands on (the channel and its column), as a table's cell cursor: a click
+    /// on a cell or Tab puts it there, and it stays when the field closes; F2 opens it and the arrows walk the cells,
+    /// until a place chosen in the rack takes the keys back.
+    pub channel_cursor: Option<(ew_api::output::Uuid, &'static str)>,
 }
 
 /// A place in a station's rack.

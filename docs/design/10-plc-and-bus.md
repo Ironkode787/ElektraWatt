@@ -1797,7 +1797,10 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   the PLC, else its first part; a module without a part says No part with Choose part…), gives, addresses, drawn on
   (a link to the page, else Draw on a page…);
 - **the channels** of the module under the cursor (`Session::module_channels`: address, symbol name, the device
-  wired to it as a link to its drawing);
+  wired to it as a link to its drawing); a click on a Symbol or Function text cell opens it (`plc.rack_channel`), and
+  the cell keeps the keyboard cursor, ringed as a table's cursor cell, when its field closes: F2 opens the cell the
+  cursor stands on and the arrows walk the cells, as in the window's other tables, until a place chosen in the rack
+  takes the keys back (FT-1838);
 - **To do** (`ShellModel::station_todo`): EW-PLC-011's findings on the station with the error icon and word and Show,
   a module without a part (Choose part…), then each side of the station on no page of its kind (rc.5): the devices no
   electrical page draws (`Session::off_electrical_pages`; a drawing on a bus page or as positions on a fluid page does

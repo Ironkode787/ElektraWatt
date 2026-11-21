@@ -57,7 +57,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
-- FT-1838 `ew-ui, ew-viewmodel`: F2 does not open a channel's cell in the station view's channel table; a click does.
 - FT-1824 `ew-ui`: A toast can cover a To do button of the station view.
 
 #### The window's finish
