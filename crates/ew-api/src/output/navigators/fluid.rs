@@ -251,14 +251,17 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     ranked_m.sort();
     if !ranked_m.is_empty() {
         let g = group(b, None, NavRole::Section, "fluid:media", "Media".to_owned());
+        // A medium's badge counts its consumers, as the medium table's Count does (FT-1761: the badge counted its
+        // lines, "1 lines", beside a Count of 2).
+        let rows = q.get::<ew_derive::MediumRows>(());
         for (_, id, name) in ranked_m {
-            let count = medium_lines(q, id).len();
+            let count = rows.iter().find(|r| r.medium == id).map_or(0, |r| r.consumers.len());
             let n = b.push(
                 Some(g),
                 NavRole::Medium,
                 &format!("medium:{}", id.as_uuid()),
                 name,
-                vec![format!("{count} lines")],
+                vec![format!("{count} consumers")],
                 vec![id.as_uuid()],
                 Vec::new(),
                 None,
