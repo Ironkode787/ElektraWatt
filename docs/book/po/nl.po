@@ -3807,13 +3807,13 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:3
 msgid ""
-"Here you use the `ew` command-line program on the golden project: you check "
+"Here you use the `ew` command-line program on the sample project: you check "
 "the project, write its pages as PDF and SVG, export the cable list and the "
 "bill of materials, and ask the project questions in SQL. Nothing needs the "
 "desktop application, and nothing leaves your machine: `ew` never uses the "
 "network."
 msgstr ""
-"Hier gebruikt u het opdrachtregelprogramma `ew` op het referentieproject: u "
+"Hier gebruikt u het opdrachtregelprogramma `ew` op het voorbeeldproject: u "
 "controleert het project, schrijft de pagina's als PDF en SVG, exporteert de "
 "kabellijst en de stuklijst, en stelt het project vragen in SQL. Niets heeft "
 "de desktopapplicatie nodig, en niets verlaat uw computer: `ew` gebruikt "
@@ -3821,33 +3821,38 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:7
 msgid ""
-"The golden project, `J-E-2416`, is an anonymised control-cabinet project "
-"that EW uses as its acceptance target. Where a real project names a customer "
-"or a person, it holds a placeholder such as `<customer>`. You only read it "
+"The sample project is a small conveyor drive with a pneumatic clamp: a 400 V "
+"supply, a 24 V DC control circuit, a motor starter, a PLC with its cards on "
+"a PROFIBUS DP line, a valve terminal with two cylinders, the panel layout "
+"and the generated reports. Where a real project names a customer or a "
+"person, it holds a placeholder such as `Sample Customer`. You only read it "
 "here; none of the steps changes it."
 msgstr ""
-"Het referentieproject, `J-E-2416`, is een geanonimiseerd "
-"besturingskastproject dat EW als acceptatiedoel gebruikt. Waar een echt "
-"project een klant of een persoon noemt, staat een plaatshouder zoals "
-"`<customer>`. U leest het hier alleen; geen van de stappen verandert het."
+"Het voorbeeldproject is een kleine transportbandaandrijving met een "
+"pneumatische klem: een voeding van 400 V, een stuurstroomkring van 24 V DC, "
+"een motorstarter, een PLC met zijn kaarten op een PROFIBUS DP-lijn, een "
+"ventieleiland met twee cilinders, de montageplaat en de gegenereerde "
+"rapporten. Waar een echt project een klant of een persoon noemt, staat er "
+"een plaatsaanduiding zoals `Sample Customer`. U leest het hier alleen; geen "
+"van de stappen verandert het."
 
-#: src/how-to/headless-workflow.md:11
+#: src/how-to/headless-workflow.md:12
 msgid "Before you start"
 msgstr "Voordat u begint"
 
-#: src/how-to/headless-workflow.md:13
+#: src/how-to/headless-workflow.md:14
 msgid "You need:"
 msgstr "U hebt nodig:"
 
-#: src/how-to/headless-workflow.md:15
+#: src/how-to/headless-workflow.md:16
 msgid ""
 "a checkout of the ElektraWatt repository, which holds the project in "
-"`golden/`;"
+"`fixtures/sample/`;"
 msgstr ""
-"een checkout van de repository van ElektraWatt, die het project in `golden/` "
-"bevat;"
+"een checkout van de repository van ElektraWatt, die het project in "
+"`fixtures/sample/` bevat;"
 
-#: src/how-to/headless-workflow.md:16
+#: src/how-to/headless-workflow.md:17
 msgid ""
 "the `ew` program, built from the checkout with `cargo build --release -p "
 "ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
@@ -3859,7 +3864,7 @@ msgstr ""
 "De voorbeelden schrijven gewoon `ew`; zet het programma in uw `PATH` of typ "
 "het pad ervan."
 
-#: src/how-to/headless-workflow.md:20
+#: src/how-to/headless-workflow.md:21
 msgid ""
 "Run every command from the root of the checkout. Check that `ew` works; it "
 "prints its name and its version:"
@@ -3867,53 +3872,42 @@ msgstr ""
 "Voer elke opdracht uit vanuit de hoofdmap van de checkout. Controleer dat "
 "`ew` werkt; het toont zijn naam en zijn versie:"
 
-#: src/how-to/headless-workflow.md:26
+#: src/how-to/headless-workflow.md:27
 msgid "Then make a directory for the results:"
 msgstr "Maak daarna een map voor de resultaten:"
 
-#: src/how-to/headless-workflow.md:32
+#: src/how-to/headless-workflow.md:33
 msgid "Where the project comes from"
 msgstr "Waar het project vandaan komt"
 
-#: src/how-to/headless-workflow.md:34
+#: src/how-to/headless-workflow.md:35
 msgid ""
-"The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
-"one file per kind of record (devices, terminals, connections, pages and so "
-"on). The importer of the `ew-import-tables` crate turns these tables into "
-"project records, and the checked-in project `golden/J-E-2416.ew` is "
-"generated from the same tables. The [golden "
-"README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
-"describes the tables and their format."
+"EW makes the sample project itself. The script "
+"`fixtures/sample/sample.uiscript` holds the window's own actions in order, "
+"from the new-project wizard to the last tube, as a user chooses them; `cargo "
+"xtask gen` runs it and writes the project `fixtures/sample/sample.ew`, and a "
+"test checks that the checked-in project is what the script makes."
 msgstr ""
-"De map `golden/J-E-2416/tables/` bevat het project als gewone CSV-tabellen: "
-"één bestand per soort record (apparaten, klemmen, verbindingen, pagina's "
-"enzovoort). De importer van de crate `ew-import-tables` zet deze tabellen om "
-"in projectrecords, en het ingecheckte project `golden/J-E-2416.ew` wordt uit "
-"dezelfde tabellen gegenereerd. De [README van het "
-"referentieproject](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
-"beschrijft de tabellen en hun opmaak."
+"EW maakt het voorbeeldproject zelf. Het script "
+"`fixtures/sample/sample.uiscript` bevat de eigen acties van het venster in "
+"volgorde, van de wizard voor een nieuw project tot de laatste slang, zoals "
+"een gebruiker ze kiest; `cargo xtask gen` voert het uit en schrijft het "
+"project `fixtures/sample/sample.ew`, en een test controleert dat het "
+"ingecheckte project is wat het script maakt."
 
-#: src/how-to/headless-workflow.md:40
+#: src/how-to/headless-workflow.md:39
 msgid ""
-"**Not built yet.** The importer of these tables is a library today; no "
-"subcommand runs it from the terminal (`ew import csv` is another command: it "
-"reads a round-trip table back into a project), so this guide starts from the "
-"checked-in project."
+"A project is a directory, here `fixtures/sample/sample.ew`. Every `ew` "
+"command that works on a project takes it as its first argument."
 msgstr ""
+"Een project is een map, hier `fixtures/sample/sample.ew`. Elke opdracht van "
+"`ew` die met een project werkt, neemt het als eerste argument."
 
-#: src/how-to/headless-workflow.md:44
-msgid ""
-"A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that "
-"works on a project takes it as its first argument."
-msgstr ""
-"Een project is een map, hier `golden/J-E-2416.ew`. Elke opdracht van `ew` "
-"die met een project werkt, neemt het als eerste argument."
-
-#: src/how-to/headless-workflow.md:47
+#: src/how-to/headless-workflow.md:42
 msgid "Step 1: check the project"
 msgstr "Stap 1: het project controleren"
 
-#: src/how-to/headless-workflow.md:49
+#: src/how-to/headless-workflow.md:44
 msgid ""
 "`ew check` runs the check rules over the project and prints what it finds, "
 "one finding per line:"
@@ -3921,30 +3915,32 @@ msgstr ""
 "`ew check` voert de controleregels uit op het project en toont wat het "
 "vindt, één bevinding per regel:"
 
-#: src/how-to/headless-workflow.md:58
+#: src/how-to/headless-workflow.md:53
 msgid "The first lines are the findings, for example:"
 msgstr "De eerste regels zijn de bevindingen, bijvoorbeeld:"
 
-#: src/how-to/headless-workflow.md:64
+#: src/how-to/headless-workflow.md:59
 msgid ""
 "Each line gives the severity, the rule ID, the rule's six-digit code, the "
 "thing the finding is about and a message. The last line counts the findings, "
 "and the standard error stream repeats the count with the scheme's name. The "
-"golden project holds deliberate defects, so it reports errors: the cable "
-"`-3W1`, for one, has no length, so a cable list cannot be complete."
+"sample project is clean: it has no error and no warning, only two infos "
+"about the enclosure `UC1` and its mounting plate, whose tags are frozen and "
+"differ from what the numbering scheme would give."
 msgstr ""
 "Elke regel geeft de ernst, de regel-ID, de zescijferige code van de regel, "
 "het onderwerp van de bevinding en een melding. De laatste regel telt de "
 "bevindingen, en de standaardfoutuitvoer herhaalt het aantal met de naam van "
-"het schema. Het referentieproject bevat opzettelijke gebreken, dus het meldt "
-"fouten: de kabel `-3W1` heeft bijvoorbeeld geen lengte, dus een kabellijst "
-"kan niet volledig zijn."
+"het schema. Het voorbeeldproject is schoon: het heeft geen fout en geen "
+"waarschuwing, alleen twee meldingen over de behuizing `UC1` en haar "
+"montageplaat, waarvan de kenmerken vastgezet zijn en afwijken van wat het "
+"nummeringsschema zou geven."
 
-#: src/how-to/headless-workflow.md:69
+#: src/how-to/headless-workflow.md:64
 msgid "Look at the exit code:"
 msgstr "Bekijk de afsluitcode:"
 
-#: src/how-to/headless-workflow.md:76
+#: src/how-to/headless-workflow.md:71
 msgid ""
 "`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
 "some and 2 when it could not run the check at all (a project that cannot be "
@@ -3961,21 +3957,21 @@ msgstr ""
 "[doc 17 "
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 
-#: src/how-to/headless-workflow.md:81
+#: src/how-to/headless-workflow.md:76
 msgid ""
 "Each rule has a page in the reference: "
-"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without a "
-"length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the "
-"information that a frozen device tag differs from what the numbering scheme "
-"would give."
+"[`EW-NUM-001`](../reference/rules/ew-num-001.md) is the information that a "
+"frozen device tag differs from what the numbering scheme would give, and "
+"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the error of a cable "
+"without a length, which the sample does not have."
 msgstr ""
 "Elke regel heeft een pagina in de naslag: "
-"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is de kabel zonder "
-"lengte, en [`EW-NUM-001`](../reference/rules/ew-num-001.md) is de melding "
-"dat een vastgezet kenmerk van een apparaat afwijkt van wat het "
-"nummeringsschema zou geven."
+"[`EW-NUM-001`](../reference/rules/ew-num-001.md) is de melding dat een "
+"vastgezet kenmerk van een apparaat afwijkt van wat het nummeringsschema zou "
+"geven, en [`EW-CORE-033`](../reference/rules/ew-core-033.md) is de fout van "
+"een kabel zonder lengte, die het voorbeeldproject niet heeft."
 
-#: src/how-to/headless-workflow.md:85
+#: src/how-to/headless-workflow.md:80
 msgid ""
 "`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
 "scheme in `release` mode; `--format json` and `--format md` change the "
@@ -3985,11 +3981,11 @@ msgstr ""
 "`pre-delivery` in de modus `release`; `--format json` en `--format md` "
 "veranderen de uitvoer, en `--out <file>` schrijft die naar een bestand."
 
-#: src/how-to/headless-workflow.md:88
+#: src/how-to/headless-workflow.md:83
 msgid "Step 2: write the pages as PDF and SVG"
 msgstr "Stap 2: de pagina's als PDF en SVG schrijven"
 
-#: src/how-to/headless-workflow.md:90
+#: src/how-to/headless-workflow.md:85
 msgid ""
 "`ew export pdf` writes every page of the project into one PDF/A-2b file, "
 "with an outline, page labels and cross-reference links:"
@@ -3998,38 +3994,43 @@ msgstr ""
 "PDF/A-2b-bestand, met een inhoudsopgave, paginalabels en links voor de "
 "kruisverwijzingen:"
 
-#: src/how-to/headless-workflow.md:99
+#: src/how-to/headless-workflow.md:94
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
-"blocks that the project leaves empty. They do not stop the export. The "
-"directory of `--out` must exist, which is why you made `out` first."
+"blocks that the project leaves empty, and on the panel layout 902 a legend "
+"with more rows than its table holds and texts longer than their cells. They "
+"do not stop the export. The directory of `--out` must exist, which is why "
+"you made `out` first."
 msgstr ""
 "De tweede regel, op de standaardfoutuitvoer, telt opmerkingen over het "
 "weergeven van afzonderlijke pagina's en zegt wat ze zijn: hier velden van de "
-"titelblokken die het project leeg laat. Ze houden de export niet tegen. De "
-"map van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
+"titelblokken die het project leeg laat, en op de montageplaat 902 een "
+"legenda met meer regels dan haar tabel bevat en teksten die langer zijn dan "
+"hun cellen. Ze houden de export niet tegen. De map van `--out` moet bestaan; "
+"daarom hebt u eerst `out` gemaakt."
 
-#: src/how-to/headless-workflow.md:103
+#: src/how-to/headless-workflow.md:99
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
-"to select folios; this writes the pages numbered 101 to 106 that exist:"
+"to select folios; this writes the drawn pages 101 to 105:"
 msgstr ""
 "`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies folio's "
-"met `--pages`; dit schrijft de pagina's met de nummers 101 tot en met 106 "
-"die bestaan:"
+"met `--pages`; dit schrijft de getekende pagina's 101 tot en met 105:"
 
-#: src/how-to/headless-workflow.md:112
+#: src/how-to/headless-workflow.md:108
 msgid ""
-"The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
-"replaces the directory as a whole, so it must hold SVG files only; a stale "
-"page of an earlier export cannot remain in it."
+"The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
+"folio labels of the project. `ew` replaces the directory as a whole, so it "
+"must hold SVG files only; a stale page of an earlier export cannot remain in "
+"it."
 msgstr ""
-"De map bevat nu `101.svg`, `102.svg`, `103.svg` en `106.svg`. `ew` vervangt "
-"de map als geheel, dus ze mag alleen SVG-bestanden bevatten; een oude pagina "
-"van een eerdere export kan er niet in achterblijven."
+"De map bevat nu `101.svg` tot en met `105.svg`. Beide einden van een bereik "
+"zijn foliolabels van het project. `ew` vervangt de map als geheel, dus ze "
+"mag alleen SVG-bestanden bevatten; een oude pagina van een eerdere export "
+"kan er niet in achterblijven."
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:111
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -4041,47 +4042,35 @@ msgstr ""
 "die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
 "snelheid en nooit het resultaat."
 
-#: src/how-to/headless-workflow.md:119
+#: src/how-to/headless-workflow.md:115
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr "Stap 3: de kabellijst en de stuklijst exporteren"
 
-#: src/how-to/headless-workflow.md:121
+#: src/how-to/headless-workflow.md:117
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 
-#: src/how-to/headless-workflow.md:130
+#: src/how-to/headless-workflow.md:126
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 "Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
-#: src/how-to/headless-workflow.md:132
+#: src/how-to/headless-workflow.md:136
 msgid ""
-"```text\n"
-"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
-"heading,Cable overview,,,,,,,\n"
-"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
-"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
-"```"
+"The supply cable `-101W1` comes in from outside the cabinet, so it has no "
+"From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
+"motor, and the bus cable `-105W1` from the PLC to the valve terminal. Each "
+"has the length typed in its Properties. Below these rows come the cores of "
+"each cable, one row per core."
 msgstr ""
-"```text\n"
-"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
-"heading,Cable overview,,,,,,,\n"
-"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
-"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
-"```"
+"De voedingskabel `-101W1` komt van buiten de kast, dus hij heeft geen "
+"Van-einde; de motorkabel `-103W1` loopt van de strook `-X1031` naar de "
+"motor, en de buskabel `-105W1` van de PLC naar het ventieleiland. Elke kabel "
+"heeft de lengte die in zijn Eigenschappen is getypt. Onder deze regels "
+"volgen de aders van elke kabel, één regel per ader."
 
-#: src/how-to/headless-workflow.md:139
-msgid ""
-"The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
-"from the other side. The cables `-106W1` and `-106W2` take their length from "
-"their part."
-msgstr ""
-"De kabel `-3W1` zegt \"length missing\": dat is de bevinding van stap 1, van "
-"de andere kant gezien. De kabels `-106W1` en `-106W2` nemen hun lengte van "
-"hun artikel."
-
-#: src/how-to/headless-workflow.md:142
+#: src/how-to/headless-workflow.md:140
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -4094,11 +4083,11 @@ msgstr ""
 "eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
 "tekening afdrukt."
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:144
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/how-to/headless-workflow.md:148
+#: src/how-to/headless-workflow.md:146
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -4106,23 +4095,23 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/how-to/headless-workflow.md:150
+#: src/how-to/headless-workflow.md:148
 msgid ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
+"$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
 "count(*)\n"
-"28\n"
+"18\n"
 "1 rows\n"
 "```"
 msgstr ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
+"$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
 "count(*)\n"
-"28\n"
+"18\n"
 "1 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:157
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -4132,29 +4121,29 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/how-to/headless-workflow.md:160
+#: src/how-to/headless-workflow.md:158
 msgid ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
+"$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
 "api_v1_cable ORDER BY tag\"\n"
 "tag,cores,length_source\n"
-"-106W1,5,part\n"
-"-106W2,5,part\n"
-"-3W1,3,missing\n"
+"-101W1,5,manual\n"
+"-103W1,5,manual\n"
+"-105W1,3,manual\n"
 "3 rows\n"
 "```"
 msgstr ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
+"$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
 "api_v1_cable ORDER BY tag\"\n"
 "tag,cores,length_source\n"
-"-106W1,5,part\n"
-"-106W2,5,part\n"
-"-3W1,3,missing\n"
+"-101W1,5,manual\n"
+"-103W1,5,manual\n"
+"-105W1,3,manual\n"
 "3 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:169
+#: src/how-to/headless-workflow.md:167
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -4164,11 +4153,11 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/how-to/headless-workflow.md:172
+#: src/how-to/headless-workflow.md:170
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:172
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -4182,11 +4171,11 @@ msgstr ""
 "draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
 "te vergrendelen en nooit een beeldscherm nodig hebben."
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:176
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:180
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4196,7 +4185,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:182
+#: src/how-to/headless-workflow.md:180
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4204,7 +4193,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:183
+#: src/how-to/headless-workflow.md:181
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -10308,6 +10297,58 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid ""
+#~ "The golden project, `J-E-2416`, is an anonymised control-cabinet project "
+#~ "that EW uses as its acceptance target. Where a real project names a customer "
+#~ "or a person, it holds a placeholder such as `<customer>`. You only read it "
+#~ "here; none of the steps changes it."
+#~ msgstr ""
+#~ "Het referentieproject, `J-E-2416`, is een geanonimiseerd "
+#~ "besturingskastproject dat EW als acceptatiedoel gebruikt. Waar een echt "
+#~ "project een klant of een persoon noemt, staat een plaatshouder zoals "
+#~ "`<customer>`. U leest het hier alleen; geen van de stappen verandert het."
+
+#~ msgid ""
+#~ "The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
+#~ "one file per kind of record (devices, terminals, connections, pages and so "
+#~ "on). The importer of the `ew-import-tables` crate turns these tables into "
+#~ "project records, and the checked-in project `golden/J-E-2416.ew` is "
+#~ "generated from the same tables. The [golden "
+#~ "README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
+#~ "describes the tables and their format."
+#~ msgstr ""
+#~ "De map `golden/J-E-2416/tables/` bevat het project als gewone CSV-tabellen: "
+#~ "één bestand per soort record (apparaten, klemmen, verbindingen, pagina's "
+#~ "enzovoort). De importer van de crate `ew-import-tables` zet deze tabellen om "
+#~ "in projectrecords, en het ingecheckte project `golden/J-E-2416.ew` wordt uit "
+#~ "dezelfde tabellen gegenereerd. De [README van het "
+#~ "referentieproject](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
+#~ "beschrijft de tabellen en hun opmaak."
+
+#~ msgid ""
+#~ "```text\n"
+#~ "row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
+#~ "heading,Cable overview,,,,,,,\n"
+#~ "data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
+#~ "data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
+#~ "```"
+#~ msgstr ""
+#~ "```text\n"
+#~ "row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
+#~ "heading,Cable overview,,,,,,,\n"
+#~ "data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
+#~ "data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
+#~ "```"
+
+#~ msgid ""
+#~ "The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
+#~ "from the other side. The cables `-106W1` and `-106W2` take their length from "
+#~ "their part."
+#~ msgstr ""
+#~ "De kabel `-3W1` zegt \"length missing\": dat is de bevinding van stap 1, van "
+#~ "de andere kant gezien. De kabels `-106W1` en `-106W2` nemen hun lengte van "
+#~ "hun artikel."
 
 #~ msgid ""
 #~ "![The bus page: CPU, switch, remote I/O station and converter, and the Bus "

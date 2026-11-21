@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The command-line how-to of the user guide runs as its page says (DC-8): every `console` block of
-//! `docs/book/src/how-to/headless-workflow.md` is run in order in a folder that holds a copy of Golden A at
-//! `golden/J-E-2416.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
+//! `docs/book/src/how-to/headless-workflow.md` is run in order in a folder that holds a copy of the sample project at
+//! `fixtures/sample/sample.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared
 //! whole; a line `...` stands for any lines, and a command without lines below it is only run.
 
-use std::path::Path;
-
-use crate::support::{EwTmp as _, GOLDEN_A, Tmp, copy_dir};
+use crate::support::{EwTmp as _, Tmp};
 
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -86,7 +84,7 @@ fn lines(bytes: &[u8]) -> Vec<String> {
 #[test]
 fn the_headless_tutorials_commands_print_what_its_page_shows() {
     let tmp = Tmp::new("ew-headless-tutorial");
-    copy_dir(Path::new(GOLDEN_A), &tmp.path("golden/J-E-2416.ew"));
+    tmp.sample("fixtures/sample/sample.ew");
     let page = std::fs::read_to_string(PAGE).unwrap().replace("\r\n", "\n");
     let commands = commands(&page);
     assert!(commands.iter().any(|(c, _)| c.starts_with("ew ")));

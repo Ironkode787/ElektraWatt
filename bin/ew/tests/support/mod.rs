@@ -11,7 +11,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-pub use ew_testdir::{CONTENT, GOLDEN_A, SAMPLE, Tmp, copy_dir};
+pub use ew_testdir::{CONTENT, SAMPLE, Tmp, copy_dir};
 
 /// The test tables' parts table (`fixtures/tables/`, the importer's test inputs).
 pub const PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables/parts.csv");

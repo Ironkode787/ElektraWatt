@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-21T04:23:42+01:00\n"
+"POT-Creation-Date: 2026-11-21T04:24:07+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3012,7 +3012,7 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:3
 msgid ""
-"Here you use the `ew` command-line program on the golden project: you check "
+"Here you use the `ew` command-line program on the sample project: you check "
 "the project, write its pages as PDF and SVG, export the cable list and the "
 "bill of materials, and ask the project questions in SQL. Nothing needs the "
 "desktop application, and nothing leaves your machine: `ew` never uses the "
@@ -3021,27 +3021,29 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:7
 msgid ""
-"The golden project, `J-E-2416`, is an anonymised control-cabinet project "
-"that EW uses as its acceptance target. Where a real project names a customer "
-"or a person, it holds a placeholder such as `<customer>`. You only read it "
+"The sample project is a small conveyor drive with a pneumatic clamp: a 400 V "
+"supply, a 24 V DC control circuit, a motor starter, a PLC with its cards on "
+"a PROFIBUS DP line, a valve terminal with two cylinders, the panel layout "
+"and the generated reports. Where a real project names a customer or a "
+"person, it holds a placeholder such as `Sample Customer`. You only read it "
 "here; none of the steps changes it."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:11
+#: src/how-to/headless-workflow.md:12
 msgid "Before you start"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:13
+#: src/how-to/headless-workflow.md:14
 msgid "You need:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:15
+#: src/how-to/headless-workflow.md:16
 msgid ""
 "a checkout of the ElektraWatt repository, which holds the project in "
-"`golden/`;"
+"`fixtures/sample/`;"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:16
+#: src/how-to/headless-workflow.md:17
 msgid ""
 "the `ew` program, built from the checkout with `cargo build --release -p "
 "ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
@@ -3049,73 +3051,64 @@ msgid ""
 "path."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:20
+#: src/how-to/headless-workflow.md:21
 msgid ""
 "Run every command from the root of the checkout. Check that `ew` works; it "
 "prints its name and its version:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:26
+#: src/how-to/headless-workflow.md:27
 msgid "Then make a directory for the results:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:32
+#: src/how-to/headless-workflow.md:33
 msgid "Where the project comes from"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:34
+#: src/how-to/headless-workflow.md:35
 msgid ""
-"The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
-"one file per kind of record (devices, terminals, connections, pages and so "
-"on). The importer of the `ew-import-tables` crate turns these tables into "
-"project records, and the checked-in project `golden/J-E-2416.ew` is "
-"generated from the same tables. The [golden "
-"README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
-"describes the tables and their format."
+"EW makes the sample project itself. The script "
+"`fixtures/sample/sample.uiscript` holds the window's own actions in order, "
+"from the new-project wizard to the last tube, as a user chooses them; `cargo "
+"xtask gen` runs it and writes the project `fixtures/sample/sample.ew`, and a "
+"test checks that the checked-in project is what the script makes."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:40
+#: src/how-to/headless-workflow.md:39
 msgid ""
-"**Not built yet.** The importer of these tables is a library today; no "
-"subcommand runs it from the terminal (`ew import csv` is another command: it "
-"reads a round-trip table back into a project), so this guide starts from the "
-"checked-in project."
+"A project is a directory, here `fixtures/sample/sample.ew`. Every `ew` "
+"command that works on a project takes it as its first argument."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:44
-msgid ""
-"A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that "
-"works on a project takes it as its first argument."
-msgstr ""
-
-#: src/how-to/headless-workflow.md:47
+#: src/how-to/headless-workflow.md:42
 msgid "Step 1: check the project"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:49
+#: src/how-to/headless-workflow.md:44
 msgid ""
 "`ew check` runs the check rules over the project and prints what it finds, "
 "one finding per line:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:58
+#: src/how-to/headless-workflow.md:53
 msgid "The first lines are the findings, for example:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:64
+#: src/how-to/headless-workflow.md:59
 msgid ""
 "Each line gives the severity, the rule ID, the rule's six-digit code, the "
 "thing the finding is about and a message. The last line counts the findings, "
 "and the standard error stream repeats the count with the scheme's name. The "
-"golden project holds deliberate defects, so it reports errors: the cable "
-"`-3W1`, for one, has no length, so a cable list cannot be complete."
+"sample project is clean: it has no error and no warning, only two infos "
+"about the enclosure `UC1` and its mounting plate, whose tags are frozen and "
+"differ from what the numbering scheme would give."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:69
+#: src/how-to/headless-workflow.md:64
 msgid "Look at the exit code:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:76
+#: src/how-to/headless-workflow.md:71
 msgid ""
 "`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
 "some and 2 when it could not run the check at all (a project that cannot be "
@@ -3125,54 +3118,57 @@ msgid ""
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:81
+#: src/how-to/headless-workflow.md:76
 msgid ""
 "Each rule has a page in the reference: "
-"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without a "
-"length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the "
-"information that a frozen device tag differs from what the numbering scheme "
-"would give."
+"[`EW-NUM-001`](../reference/rules/ew-num-001.md) is the information that a "
+"frozen device tag differs from what the numbering scheme would give, and "
+"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the error of a cable "
+"without a length, which the sample does not have."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:85
+#: src/how-to/headless-workflow.md:80
 msgid ""
 "`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
 "scheme in `release` mode; `--format json` and `--format md` change the "
 "output, and `--out <file>` writes it to a file."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:88
+#: src/how-to/headless-workflow.md:83
 msgid "Step 2: write the pages as PDF and SVG"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:90
+#: src/how-to/headless-workflow.md:85
 msgid ""
 "`ew export pdf` writes every page of the project into one PDF/A-2b file, "
 "with an outline, page labels and cross-reference links:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:99
+#: src/how-to/headless-workflow.md:94
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
-"blocks that the project leaves empty. They do not stop the export. The "
-"directory of `--out` must exist, which is why you made `out` first."
+"blocks that the project leaves empty, and on the panel layout 902 a legend "
+"with more rows than its table holds and texts longer than their cells. They "
+"do not stop the export. The directory of `--out` must exist, which is why "
+"you made `out` first."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:103
+#: src/how-to/headless-workflow.md:99
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
-"to select folios; this writes the pages numbered 101 to 106 that exist:"
+"to select folios; this writes the drawn pages 101 to 105:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:112
+#: src/how-to/headless-workflow.md:108
 msgid ""
-"The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
-"replaces the directory as a whole, so it must hold SVG files only; a stale "
-"page of an earlier export cannot remain in it."
+"The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
+"folio labels of the project. `ew` replaces the directory as a whole, so it "
+"must hold SVG files only; a stale page of an earlier export cannot remain in "
+"it."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:111
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -3180,37 +3176,29 @@ msgid ""
 "changes the speed and never the result."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:119
+#: src/how-to/headless-workflow.md:115
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:121
+#: src/how-to/headless-workflow.md:117
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:130
+#: src/how-to/headless-workflow.md:126
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:132
+#: src/how-to/headless-workflow.md:136
 msgid ""
-"```text\n"
-"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
-"heading,Cable overview,,,,,,,\n"
-"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
-"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
-"```"
+"The supply cable `-101W1` comes in from outside the cabinet, so it has no "
+"From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
+"motor, and the bus cable `-105W1` from the PLC to the valve terminal. Each "
+"has the length typed in its Properties. Below these rows come the cores of "
+"each cable, one row per core."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:139
-msgid ""
-"The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
-"from the other side. The cables `-106W1` and `-106W2` take their length from "
-"their part."
-msgstr ""
-
-#: src/how-to/headless-workflow.md:142
+#: src/how-to/headless-workflow.md:140
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -3218,58 +3206,58 @@ msgid ""
 "so the CSV equals what the drawing prints."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:144
 msgid "Step 4: ask the project questions with SQL"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:148
+#: src/how-to/headless-workflow.md:146
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:150
+#: src/how-to/headless-workflow.md:148
 msgid ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
+"$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
 "count(*)\n"
-"28\n"
+"18\n"
 "1 rows\n"
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:157
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
 "lengths come from:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:160
+#: src/how-to/headless-workflow.md:158
 msgid ""
 "```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
+"$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
 "api_v1_cable ORDER BY tag\"\n"
 "tag,cores,length_source\n"
-"-106W1,5,part\n"
-"-106W2,5,part\n"
-"-3W1,3,missing\n"
+"-101W1,5,manual\n"
+"-103W1,5,manual\n"
+"-105W1,3,manual\n"
 "3 rows\n"
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:169
+#: src/how-to/headless-workflow.md:167
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
 "the exit code is 2."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:172
+#: src/how-to/headless-workflow.md:170
 msgid "What you have done"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:172
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -3278,24 +3266,24 @@ msgid ""
 "display."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:176
 msgid "Where to go next"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:180
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:182
+#: src/how-to/headless-workflow.md:180
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:183
+#: src/how-to/headless-workflow.md:181
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
