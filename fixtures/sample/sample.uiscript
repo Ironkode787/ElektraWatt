@@ -759,6 +759,9 @@
 {"action":"select.set","params":{"refs":["folio:902"]}}
 {"action":"props.set","params":{"row":"page/structure.location","value":"+CAB"}}
 {"action":"layout.enclosure_new","params":{"location":"+CAB","part":"EW-GEN-ENC-1"}}
+{"action":"select.set","params":{"refs":["folio:902"]}}
+{"action":"props.set","params":{"row":"page/derived.datum","value":"79.530115, 154.284722"}}
+{"action":"page.add_legend","params":{}}
 {"action":"tool.rail_draw","params":{}}
 {"action":"cursor.set","params":{"x_mm":93.3,"y_mm":46.3}}
 {"action":"canvas.activate","params":{}}
