@@ -51,17 +51,12 @@ fn writable(tmp: &Tmp) -> ShellModel {
 /// rail), drawn on 102 and so unplaced in +CAB: the shell and the device's label.
 fn with_a_screwed_device(tmp: &Tmp) -> (ShellModel, String) {
     let mut shell = writable(tmp);
-    let csv = tmp.0.join("screwed.csv");
-    std::fs::write(
-        &csv,
-        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data,width,height,depth,\
-         mount_kind,enclosure,enclosure_plate,plate,rail_profile,solenoids\n\
-         BOX-50,Generic,BOX-50,,,Screw-mounted box,piece,,,50,50,40,screw,,,,,\n",
-    )
-    .unwrap();
-    done(&mut shell, "parts.import", json!({"path": csv.to_string_lossy()}));
-    done(&mut shell, "parts.map_import", json!({}));
-    done(&mut shell, "preview.apply", json!({}));
+    common::import_parts(
+        &mut shell,
+        tmp,
+        "BOX-50,Generic,BOX-50,,,Screw-mounted box,piece,,,50,50,40,screw,,,,,\n",
+    );
+
     let before: Vec<Uuid> = panel(&shell).unplaced.iter().map(|u| u.device).collect();
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));

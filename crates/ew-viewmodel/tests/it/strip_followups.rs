@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, new_project, refused, state, strip_at, strip_row, toast};
+use common::{Tmp, done, new_project, refused, state, strip_at, strip_cursor, strip_row, strip_texts, toast};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerMode;
@@ -112,6 +112,50 @@ fn the_page_description_lists_a_strips_bridges() {
         .find(|l| l.starts_with("  bridge "))
         .unwrap_or_else(|| panic!("{text}"));
     assert!(line.ends_with("\"-X1011:L1\" \"-X1011:L2\""), "{line}");
+    s.shutdown();
+}
+
+/// A writable copy of the sample, headless, with its accessory parts ([`common::ACCESSORY_PARTS`]) and the strip editor
+/// open on `strip` (table mode, filtered).
+fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    common::import_parts(&mut s, tmp, common::ACCESSORY_PARTS);
+    done(&mut s, "strip.edit", json!({ "strip": strip }));
+    s
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+
+/// Table mode reaches the start of a strip: Add accessory with `before` on the first terminal row adds the accessory
+/// at `after_seq` 0 (Pos 0.1), on a later terminal directly before it (after the terminal before it and the accessories
+/// already there); one undo step each. Without `before` it goes after the row as built.
+#[test]
+fn add_accessory_before_the_first_terminal_in_table_mode() {
+    let tmp = Tmp::new("s207p2-600");
+    let mut s = editor(&tmp, "-X1021");
+    let k1 = strip_row(&s, "Terminal", "1");
+    assert_eq!(strip_cursor(&s), k1);
+    let steps = s.recorded_commands().len();
+    done(&mut s, "strip.add_accessory", json!({"before": true}));
+    assert_eq!(s.recorded_commands().len(), steps + 1, "one command");
+    assert_eq!(toast(&s), "Added end bracket before terminal 1 of -X1021.");
+    assert_eq!(strip_texts(&s, "Pos")[..2], ["0.1", "1"]);
+    assert_eq!(strip_cursor(&s), strip_row(&s, "Pos", "0.1"));
+    // Before terminal 5: after terminal 4.
+    let k5 = strip_row(&s, "Terminal", "5");
+    strip_at(&mut s, &k5);
+    done(&mut s, "strip.add_accessory", json!({"before": true}));
+    let pos = strip_texts(&s, "Pos");
+    let i = pos.iter().position(|p| p == "4.1").expect("4.1");
+    assert_eq!(pos[i - 1..=i + 1], ["4", "4.1", "5"]);
+    // An undo removes the last one only.
+    done(&mut s, "edit.undo", json!({}));
+    assert!(!strip_texts(&s, "Pos").contains(&"4.1".to_owned()));
+    assert_eq!(strip_texts(&s, "Pos")[0], "0.1");
+    // Without `before`, after the terminal, named in words.
+    strip_at(&mut s, &k5);
+    done(&mut s, "strip.add_accessory", json!({}));
+    assert_eq!(toast(&s), "Added end bracket after terminal 5 of -X1021.");
     s.shutdown();
 }
 

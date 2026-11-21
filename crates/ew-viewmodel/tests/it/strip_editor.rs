@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor on copies of Golden A, headless: the `Order` sort, the `pos` cells and the
-//! accessory rows, the Group column and the Properties Group row, insert, delete and move, and the
-//! describe lines.
+//! The strip editor on copies of the sample, headless, with an end bracket and a bridge part imported (the sample has
+//! no accessory part): the `Order` sort, the `pos` cells and the accessory rows, the Group column and the Properties
+//! Group row, insert, delete and move, and the describe lines.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -25,9 +25,18 @@ fn last(shell: &ShellModel) -> (String, Value) {
     (s.cmd.clone(), s.params.clone())
 }
 
-/// A writable copy of Golden A, headless, with the strip editor open on `strip`.
-fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
+/// A writable copy of the sample on folio 102, headless, with the accessory parts the sample lacks
+/// ([`common::ACCESSORY_PARTS`]).
+
+fn with_accessory_parts(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    common::import_parts(&mut shell, tmp, common::ACCESSORY_PARTS);
+    shell
+}
+
+/// [`with_accessory_parts`] with the strip editor open on `strip`.
+fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
+    let mut shell = with_accessory_parts(tmp);
     done(&mut shell, "strip.edit", json!({ "strip": strip }));
     shell
 }
@@ -37,19 +46,17 @@ fn mark(shell: &mut ShellModel, keys: &[String]) {
     done(shell, "navigator.select", json!({"kind": "strips", "keys": keys}));
 }
 
-const SEQ_1_TO_20: [&str; 20] = [
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
-    "20",
-];
+/// -X1021's terminals, numbered 1 to 8 by the sample's script (BR1 over 1 to 4, BR2 over 5 to 8).
+const SEQ_1_TO_8: [&str; 8] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
 /// SE7: the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
-/// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1031`, 20 rows) with the cursor
-/// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 20); the read-only reasons
+/// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1021`, 8 rows) with the cursor
+/// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 8); the read-only reasons
 /// of §6.2 refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
 #[test]
 fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let tmp = Tmp::new("se7");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    let mut shell = with_accessory_parts(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     done(
         &mut shell,
@@ -61,32 +68,32 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let mut strips = strip_texts(&shell, "Strip");
     strips.dedup();
     // The as-built natural order of the tags (`ew_mltext::natural_cmp`): `-` sorts before a digit.
-    assert_eq!(strips, ["-X1031", "-X1032", "1X1"]);
-    let x1031: Vec<String> = strip_column(&shell, "Strip")
+    assert_eq!(strips, ["-X1011", "-X1021", "-X1031"]);
+    let x1021: Vec<String> = strip_column(&shell, "Strip")
         .into_iter()
         .zip(strip_texts(&shell, "Pos"))
-        .filter(|((_, s), _)| s == "-X1031")
+        .filter(|((_, s), _)| s == "-X1021")
         .map(|(_, p)| p)
         .collect();
-    assert_eq!(x1031, SEQ_1_TO_20);
+    assert_eq!(x1021, SEQ_1_TO_8);
 
-    // The strip editor on -X1031.
-    done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
+    // The strip editor on -X1021.
+    done(&mut shell, "strip.edit", json!({"strip": "-X1021"}));
     let header = lines_with(&shell, "navigator \"Terminal strips\"");
     assert!(
-        header[0].contains(" sort \"Order\" ascending filter \"strip:-X1031\" rows 20 showing 1 to 20"),
+        header[0].contains(" sort \"Order\" ascending filter \"strip:-X1021\" rows 8 showing 1 to 8"),
         "{header:?}"
     );
-    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_20);
-    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_8);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
     assert_eq!(strip_cursor(&shell), strip_row(&shell, "Terminal", "1"));
 
-    // Accessories: after 20, two after 4 (the second added on the first one's row), and at the start (the strip row,
+    // Accessories: after 8, two after 4 (the second added on the first one's row), and at the start (the strip row,
     // reached in the tree view).
-    let k20 = strip_row(&shell, "Terminal", "20");
-    strip_at(&mut shell, &k20);
+    let k8 = strip_row(&shell, "Terminal", "8");
+    strip_at(&mut shell, &k8);
     done(&mut shell, "strip.add_accessory", json!({}));
-    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Pos", "20.1"));
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Pos", "8.1"));
     let k4 = strip_row(&shell, "Terminal", "4");
     strip_at(&mut shell, &k4);
     done(&mut shell, "strip.add_accessory", json!({}));
@@ -103,38 +110,38 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
         "navigator.filter",
         json!({"kind": "strips", "text": ""}),
     );
-    mark(&mut shell, &["-X1031".to_owned()]);
+    mark(&mut shell, &["-X1021".to_owned()]);
     done(&mut shell, "strip.add_accessory", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Added end bracket at the start of -X1031.\" undo"]
+        ["toast \"Added end bracket at the start of -X1021.\" undo"]
     );
-    done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
+    done(&mut shell, "strip.edit", json!({"strip": "-X1021"}));
     let mut expected: Vec<&str> = vec!["0.1"];
-    expected.extend(&SEQ_1_TO_20[..4]);
+    expected.extend(&SEQ_1_TO_8[..4]);
     expected.extend(["4.1", "4.2"]);
-    expected.extend(&SEQ_1_TO_20[4..]);
-    expected.push("20.1");
+    expected.extend(&SEQ_1_TO_8[4..]);
+    expected.push("8.1");
     assert_eq!(strip_texts(&shell, "Pos"), expected);
     let labels = strip_texts(&shell, "Function text");
     assert_eq!(labels[0], "End bracket");
     assert_eq!(labels[5], "End bracket");
-    assert_eq!(strip_texts(&shell, "Part")[0], "TBD");
+    assert_eq!(strip_texts(&shell, "Part")[0], "EB-1");
     assert_eq!(strip_texts(&shell, "Terminal")[0], "");
 
     // The read-only reasons (§6.2).
-    let k13 = strip_row(&shell, "Terminal", "13");
+    let k6 = strip_row(&shell, "Terminal", "6");
     let pos = strip_col(&shell, "Pos");
     let message = failed(
         &mut shell,
         "table.edit",
-        json!({"kind": "strips", "row": k13, "column": pos}),
+        json!({"kind": "strips", "row": k6, "column": pos}),
     );
     assert!(
         message.contains("move rows with Alt+Up and Alt+Down"),
         "{message}"
     );
-    let acc = strip_row(&shell, "Pos", "20.1");
+    let acc = strip_row(&shell, "Pos", "8.1");
     let label = strip_col(&shell, "Function text");
     let message = failed(
         &mut shell,
@@ -151,12 +158,12 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     );
     assert_eq!(
         lines_with(&shell, "  editing "),
-        ["  editing \"Part\" buffer \"TBD\""]
+        ["  editing \"Part\" buffer \"EB-1\""]
     );
     done(&mut shell, "ui.dismiss", json!({}));
-    // A terminal without a bridge: a new terminal at the end of -X1031.
-    let k20 = strip_row(&shell, "Pos", "20.1");
-    strip_at(&mut shell, &k20);
+    // A terminal without a bridge: a new terminal at the end of -X1021.
+    let k8 = strip_row(&shell, "Pos", "8.1");
+    strip_at(&mut shell, &k8);
     done(&mut shell, "strip.insert", json!({}));
     let new = strip_cursor(&shell);
     let bridge_part = strip_col(&shell, "Bridge part");
@@ -169,14 +176,14 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     shell.shutdown();
 }
 
-/// SE8 (D8, D13): the Group column and the Properties Group row. "Reserve" on -X1031:7 and :8 splits the
-/// spare group 5–10 into 5–6, 7–8, 9–10 with the old labels kept; one `fields.set` of `strip.groups` and one undo step;
+/// SE8 (D8, D13): the Group column and the Properties Group row. "Reserve" on -X1021:7 and :8 gives the two a group
+/// label of their own, the others' labels kept; one `fields.set` of `strip.groups` and one undo step;
 /// the Properties Group row of the two terminals does the same; the Bridge part fill over BR1 is one `fields.set` of
 /// the carrier's part (D6).
 #[test]
 fn group_labels_through_the_table_and_the_properties_row() {
     let tmp = Tmp::new("se8");
-    let mut shell = editor(&tmp, "-X1031");
+    let mut shell = editor(&tmp, "-X1021");
     let before = strip_texts(&shell, "Group");
     let group = strip_col(&shell, "Group");
     let keys: Vec<String> = ["7", "8"]
@@ -205,11 +212,12 @@ fn group_labels_through_the_table_and_the_properties_row() {
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:-X1031:7", "tag:-X1031:8"]}),
+        json!({"refs": ["tag:-X1021:7", "tag:-X1021:8"]}),
     );
     let rows = lines_with(&shell, "    row \"device/derived.group\"");
     assert_eq!(rows.len(), 1, "{rows:?}");
-    assert!(rows[0].contains("\"Group\" \"Spare\""), "{rows:?}");
+    // The sample labels none of -X1021's groups.
+    assert!(rows[0].contains("\"Group\" none"), "{rows:?}");
     let n = steps(&shell);
     done(
         &mut shell,
@@ -242,7 +250,7 @@ fn group_labels_through_the_table_and_the_properties_row() {
     done(
         &mut shell,
         "table.set",
-        json!({"kind": "strips", "column": bridge_part, "value": "TBD", "rows": keys}),
+        json!({"kind": "strips", "column": bridge_part, "value": "BRIDGE-1", "rows": keys}),
     );
     if shell.properties().card().is_some() {
         done(&mut shell, "preview.apply", json!({}));
@@ -254,20 +262,20 @@ fn group_labels_through_the_table_and_the_properties_row() {
     assert_eq!(params["targets"].as_array().map(Vec::len), Some(1), "{params}");
     assert_eq!(
         &strip_texts(&shell, "Bridge part")[..5],
-        ["TBD", "TBD", "TBD", "TBD", ""]
+        ["BRIDGE-1", "BRIDGE-1", "BRIDGE-1", "BRIDGE-1", ""]
     );
     shell.shutdown();
 }
 
-/// SE9 (§6.4, D12, D14, FR-TRM-015): Insert before -X1031:5 (one `terminal.insert`, the toast, the cursor on the new
+/// SE9 (§6.4, D12, D14, FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
 /// row); Ctrl+Delete on two terminal rows opens the card with their bridges and wires and commits nothing; on an
-/// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :15 three times puts it at seq 12's place
-/// in three steps (inside bridge group BR5), undone by three undos; a move that takes :2 out of BR1 fails with
+/// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :8 three times puts it at seq 5's place
+/// in three steps (inside bridge group BR2), undone by three undos; a move that takes :2 out of BR1 fails with
 /// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place, §6.8, is descoped from part 1.)
 #[test]
 fn insert_delete_and_move_rows() {
     let tmp = Tmp::new("se9");
-    let mut shell = editor(&tmp, "-X1031");
+    let mut shell = editor(&tmp, "-X1021");
     // Insert.
     let k5 = strip_row(&shell, "Terminal", "5");
     strip_at(&mut shell, &k5);
@@ -278,15 +286,15 @@ fn insert_delete_and_move_rows() {
     assert_eq!(cmd, "terminal.insert", "{params}");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Inserted 1 terminal before terminal 5 of -X1031.\" undo"]
+        ["toast \"Inserted 1 terminal before terminal 5 of -X1021.\" undo"]
     );
     let terminals = strip_texts(&shell, "Terminal");
-    assert_eq!(terminals[..6], ["1", "2", "3", "4", "21", "5"]);
-    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Terminal", "21"));
-    let pos: Vec<String> = (1..=21).map(|n| n.to_string()).collect();
+    assert_eq!(terminals[..6], ["1", "2", "3", "4", "9", "5"]);
+    assert_eq!(strip_cursor(&shell), strip_row(&shell, "Terminal", "9"));
+    let pos: Vec<String> = (1..=9).map(|n| n.to_string()).collect();
     assert_eq!(strip_texts(&shell, "Pos"), pos);
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
 
     // Delete two terminal rows: the card, nothing committed.
     let keys: Vec<String> = ["5", "6"]
@@ -305,10 +313,10 @@ fn insert_delete_and_move_rows() {
     done(&mut shell, "preview.cancel", json!({}));
 
     // Delete an accessory row: committed with the toast.
-    let k20 = strip_row(&shell, "Terminal", "20");
-    strip_at(&mut shell, &k20);
+    let k8 = strip_row(&shell, "Terminal", "8");
+    strip_at(&mut shell, &k8);
     done(&mut shell, "strip.add_accessory", json!({}));
-    let acc = strip_row(&shell, "Pos", "20.1");
+    let acc = strip_row(&shell, "Pos", "8.1");
     mark(&mut shell, std::slice::from_ref(&acc));
     let n = steps(&shell);
     done(&mut shell, "strip.delete_rows", json!({}));
@@ -320,12 +328,12 @@ fn insert_delete_and_move_rows() {
         lines_with(&shell, "toast "),
         ["toast \"Removed 1 accessory.\" undo"]
     );
-    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_8);
     // A mix: refused.
     done(&mut shell, "edit.undo", json!({}));
-    let acc = strip_row(&shell, "Pos", "20.1");
-    let k20 = strip_row(&shell, "Terminal", "20");
-    mark(&mut shell, &[acc.clone(), k20]);
+    let acc = strip_row(&shell, "Pos", "8.1");
+    let k8 = strip_row(&shell, "Terminal", "8");
+    mark(&mut shell, &[acc.clone(), k8]);
     assert_eq!(
         refused(&mut shell, "strip.delete_rows", json!({})),
         "reason-strip-mixed-rows"
@@ -336,8 +344,8 @@ fn insert_delete_and_move_rows() {
     );
     done(&mut shell, "edit.undo", json!({}));
 
-    // Move :15 up three times: it stays inside BR5 (11 to 20), so every bridge group stays consecutive (CI-06).
-    let k15 = strip_row(&shell, "Terminal", "15");
+    // Move :8 up three times: it stays inside BR2 (5 to 8), so every bridge group stays consecutive (CI-06).
+    let k15 = strip_row(&shell, "Terminal", "8");
     mark(&mut shell, std::slice::from_ref(&k15));
     let n = steps(&shell);
     for k in 1..=3 {
@@ -347,10 +355,10 @@ fn insert_delete_and_move_rows() {
     }
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Moved terminal 15 of -X1031.\" undo"]
+        ["toast \"Moved terminal 8 of -X1021.\" undo"]
     );
     let terminals = strip_texts(&shell, "Terminal");
-    assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
+    assert_eq!(terminals[3..8], ["4", "8", "5", "6", "7"]);
     assert_eq!(strip_cursor(&shell), k15, "the cursor follows the row");
     // The first row cannot move up.
     let k1 = strip_row(&shell, "Terminal", "1");
@@ -362,7 +370,7 @@ fn insert_delete_and_move_rows() {
     for _ in 0..3 {
         done(&mut shell, "edit.undo", json!({}));
     }
-    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20, "three undo steps");
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8, "three undo steps");
     // Down, and before a designation / the end.
     let k2 = strip_row(&shell, "Terminal", "2");
     mark(&mut shell, std::slice::from_ref(&k2));
@@ -430,7 +438,7 @@ fn key(shell: &mut ShellModel, action: &'static str) -> &'static str {
 #[test]
 fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
     let tmp = Tmp::new("se9-alt-arrows");
-    let mut shell = editor(&tmp, "-X1031");
+    let mut shell = editor(&tmp, "-X1021");
     done(
         &mut shell,
         "ui.focus",
@@ -447,7 +455,7 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
     assert_eq!(last(&shell).0, "terminal.move");
     // Alt+Up: back.
     assert_eq!(key(&mut shell, "pages.move_up"), "strip.move");
-    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
     assert_eq!(steps(&shell), n + 2);
     // At the first row Alt+Up is refused as `strip.move` is; nothing changes.
     let k1 = strip_row(&shell, "Terminal", "1");
@@ -455,7 +463,7 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
     let (a, p) = shell.shortcut_action("pages.move_up");
     assert_eq!((a, &p), ("strip.move", &json!({"step": -1})));
     assert_eq!(refused(&mut shell, a, p), "reason-strip-move-none");
-    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
     assert_eq!(steps(&shell), n + 2);
     // The Pages navigator or the canvas focused: the page moves keep the keys.
     for area in [
@@ -485,20 +493,20 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
 #[test]
 fn se14_describe_lines() {
     let tmp = Tmp::new("se14");
-    let mut shell = editor(&tmp, "-X1031");
-    let k20 = strip_row(&shell, "Terminal", "20");
-    strip_at(&mut shell, &k20);
+    let mut shell = editor(&tmp, "-X1021");
+    let k8 = strip_row(&shell, "Terminal", "8");
+    strip_at(&mut shell, &k8);
     done(&mut shell, "strip.add_accessory", json!({}));
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1031\" rows 21 showing 1 to 21\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1031\" \"1\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1021\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );
     assert!(
         d.contains(
-            "\n  accessory \"-X1031\" \"20.1\" \"\" \"End bracket\" \"\" \"TBD\" \"\" \"\" \"\" \"\" \"\" \"\" cursor \"Strip\"\n"
+            "\n  accessory \"-X1021\" \"8.1\" \"\" \"End bracket\" \"\" \"EB-1\" \"\" \"\" \"\" \"\" \"\" \"\" cursor \"Strip\"\n"
         ),
         "{d}"
     );
@@ -510,7 +518,7 @@ fn se14_describe_lines() {
 #[test]
 fn an_untagged_strips_accessory_row_names_it_in_words() {
     let tmp = Tmp::new("strip-untagged-accessory");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    let mut shell = with_accessory_parts(&tmp);
     done(&mut shell, "strip.new", json!({}));
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     let key = shell
@@ -536,7 +544,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     assert_eq!(
         rows,
         [
-            "  accessory \"New terminal strip \u{b7} no tag yet\" \"0.1\" \"\" \"End bracket\" \"\" \"TBD\" \"\" \"\" \"\" \"\" \
+            "  accessory \"New terminal strip \u{b7} no tag yet\" \"0.1\" \"\" \"End bracket\" \"\" \"EB-1\" \"\" \"\" \"\" \"\" \
              \"\" \"\" cursor \"Strip\""
         ]
     );
@@ -550,9 +558,9 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
 #[test]
 fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     let tmp = Tmp::new("ft1289");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    let mut shell = with_accessory_parts(&tmp);
     done(&mut shell, "view.language", json!({"value": "nl"}));
-    done(&mut shell, "strip.edit", json!({"strip": "-X1031"}));
+    done(&mut shell, "strip.edit", json!({"strip": "-X1021"}));
     let labels: Vec<String> = shell
         .nav(NavKind::Strips)
         .and_then(|n| n.table())
@@ -591,7 +599,7 @@ fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     assert_eq!(word, "Eindsteun");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Eindsteun toegevoegd na klem 4 van -X1031.\" undo"]
+        ["toast \"Eindsteun toegevoegd na klem 4 van -X1021.\" undo"]
     );
     // The insert and the move name the terminal in words, in Dutch too.
     let k5 = strip_row(&shell, "Klem", "5");
@@ -599,14 +607,14 @@ fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     done(&mut shell, "strip.insert", json!({}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"1 klem ingevoegd vóór klem 5 van -X1031.\" undo"]
+        ["toast \"1 klem ingevoegd vóór klem 5 van -X1021.\" undo"]
     );
-    let k15 = strip_row(&shell, "Klem", "15");
-    mark(&mut shell, std::slice::from_ref(&k15));
+    let k8 = strip_row(&shell, "Klem", "8");
+    mark(&mut shell, std::slice::from_ref(&k8));
     done(&mut shell, "strip.move", json!({"step": -1}));
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Klem 15 van -X1031 verplaatst.\" undo"]
+        ["toast \"Klem 8 van -X1021 verplaatst.\" undo"]
     );
     shell.shutdown();
 }
@@ -615,7 +623,8 @@ fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
 #[test]
 fn a_strip_gestures_refusal_reads_in_dutch() {
     let tmp = Tmp::new("ft1555-strip");
-    let mut shell = editor(&tmp, "-X1031");
+    let mut shell = editor(&tmp, "-X1021");
+
     let refusal = |shell: &mut ShellModel| match shell.dispatch(
         "strip.add_accessory",
         &json!({"kind": "end_clamp", "part": "4711"}),

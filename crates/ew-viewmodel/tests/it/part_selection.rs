@@ -362,6 +362,8 @@ fn choosing_commits_one_command() {
 fn the_strip_editor_cells_choose_parts() {
     let tmp = Tmp::new("part-sel-4s");
     let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    // The bridge part BRIDGE-1 to pick (the sample holds no accessory part).
+    common::import_parts(&mut s, &tmp, common::ACCESSORY_PARTS);
     done(&mut s, "strip.edit", json!({ "strip": "-X1021" }));
     let nav = s.nav(NavKind::Strips).unwrap();
     let t = nav.table().unwrap();
@@ -408,8 +410,21 @@ fn the_strip_editor_cells_choose_parts() {
     done(&mut s, "part.choose", json!({}));
     let q = lines(&s, "query ");
     assert!(q[0].contains(" kind accessory "), "{q:?}");
-    // The sample and the starter parts hold no bridge part to pick here.
+    let n = steps(&s);
+    done(
+        &mut s,
+        "part.pick",
+        json!({ "part": "BRIDGE-1 (Generic) · Plug-in bridge" }),
+    );
+    if s.properties().card().is_some() {
+        done(&mut s, "preview.apply", json!({}));
+    }
+    assert_eq!(steps(&s), n + 1);
+    let (cmd, params) = last(&s);
+    assert_eq!(cmd, "fields.set", "{params}");
+    assert_eq!(params["path"], "overrides.wire_part", "{params}");
     s.shutdown();
+
 }
 
 /// PS5 in the shell: a field that does not parse prints its message under the field (`invalid`), Save is refused with

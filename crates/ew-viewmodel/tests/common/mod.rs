@@ -142,6 +142,22 @@ pub fn actual_size(tmp: &Tmp, folio: &str) -> ShellModel {
     s
 }
 
+/// Imports `rows` (parts-table CSV rows, without the header) into the project open in `s` and applies them: the parts
+/// a test needs that the sample does not hold (a screw-mounted device, an end bracket, a bridge).
+pub fn import_parts(s: &mut ShellModel, tmp: &Tmp, rows: &str) {
+    let csv = tmp.0.join("parts.csv");
+    let header = "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data,width,\
+                  height,depth,mount_kind,enclosure,enclosure_plate,plate,rail_profile,solenoids";
+    std::fs::write(&csv, format!("{header}\n{rows}")).unwrap();
+    done(s, "parts.import", json!({"path": csv.to_string_lossy()}));
+    done(s, "parts.map_import", json!({}));
+    done(s, "preview.apply", json!({}));
+}
+
+/// The end bracket EB-1 and the bridge BRIDGE-1 as [`import_parts`] rows (the sample holds no accessory part).
+pub const ACCESSORY_PARTS: &str = "EB-1,Generic,EB-1,end_bracket,,End bracket,piece,,,9,45,35,ts35x7_5,,,,,\n\
+                                   BRIDGE-1,Generic,BRIDGE-1,accessory,,Plug-in bridge,piece,,,,,,,,,,,\n";
+
 /// A headless shell with a writable copy of the sample on folio 103 and a second strip made there, -X1032, of one
 /// terminal (1) in the page's empty lower right: the sample draws one strip per page.
 #[allow(dead_code)]
