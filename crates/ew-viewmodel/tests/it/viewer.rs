@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The read-only viewer through the shell on temporary copies of Golden A (acceptance checks V2 to
+//! The read-only viewer through the shell on the sample (acceptance checks V2 to
 //! V5, V9 and the model half of V10): the canvas area, walks, jumps and the per-tab history, the page navigator, the
 //! keyboard grid cursor, links, Go to, the transcript and describe members and the exact counts.
 
@@ -93,7 +93,7 @@ fn the_canvas_area_keeps_its_invariants_under_every_tab_action() {
     done(&mut shell, "view.side_by_side", json!({}));
     assert_eq!(
         (shell.current_folio(), shell.focus()),
-        (Some("106"), Some(Focus::Canvas(1)))
+        (Some("104"), Some(Focus::Canvas(1)))
     );
     done(&mut shell, "tab.focus_other", json!({}));
     assert_eq!(shell.current_folio(), Some("103"));
@@ -117,7 +117,7 @@ fn the_canvas_area_keeps_its_invariants_under_every_tab_action() {
         "tab.move",
         json!({"group": 1, "index": 0, "to_group": 0, "to_index": 0}),
     );
-    assert_eq!(shell.current_folio(), Some("106"));
+    assert_eq!(shell.current_folio(), Some("104"));
     // Off: the right group's tabs move to the end of the left group.
     done(&mut shell, "view.side_by_side", json!({}));
     let a = shell.area().unwrap();
@@ -210,8 +210,8 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
     done(&mut shell, "nav.goto", json!({"text": "103-A1"}));
     assert_eq!(shell.area().unwrap().current().history.back_len(), 2);
     // A fitted entry refits after a resize.
+    done(&mut shell, "page.goto", json!({"folio": "200"}));
     done(&mut shell, "page.goto", json!({"folio": "201"}));
-    done(&mut shell, "page.goto", json!({"folio": "202"}));
     done(
         &mut shell,
         "view.canvas_resize",
@@ -219,7 +219,7 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
     );
     done(&mut shell, "nav.back", json!({}));
     let c = shell.canvas().unwrap();
-    assert_eq!(c.page().folio, "201");
+    assert_eq!(c.page().folio, "200");
     // A page's first view, the whole sheet in this pane.
     let whole = (400.0 - 32.0) / (210.0 / 25.4 * 96.0);
     assert!(c.is_first_view() && (c.zoom() - whole).abs() < 1e-12 && c.pane() == (600.0, 400.0));
@@ -229,7 +229,7 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
         "view.canvas_resize",
         json!({"width": 1200, "height": 800}),
     );
-    done(&mut shell, "nav.goto", json!({"text": "106-E1"}));
+    done(&mut shell, "nav.goto", json!({"text": "104-E1"}));
     let c = shell.canvas().unwrap();
     assert!((c.zoom() - 2.0 * c.fit_zoom()).abs() < 1e-9, "{}", c.zoom());
     done(&mut shell, "view.zoom_to", json!({"percent": 800}));
@@ -239,7 +239,7 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
     let after = shell
         .page_rows()
         .iter()
-        .find(|r| r.folio == "106")
+        .find(|r| r.folio == "105")
         .map(|r| PageId::of(r).uuid_text())
         .unwrap();
     done(
@@ -247,16 +247,16 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
         "command.run",
         json!({"cmd": "page.create", "params": {"after": after}}),
     );
-    done(&mut shell, "page.goto", json!({"folio": "107"}));
+    done(&mut shell, "page.goto", json!({"folio": "106"}));
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "edit.undo", json!({}));
-    assert!(!shell.page_labels().contains(&"107".to_owned()));
+    assert!(!shell.page_labels().contains(&"106".to_owned()));
     // The undo restores the page the step was made on (103) as a jump from 101.
     assert_eq!(shell.current_folio(), Some("103"), "the step's context");
     done(&mut shell, "nav.back", json!({}));
     assert_eq!(shell.current_folio(), Some("101"), "the restore's back entry");
     done(&mut shell, "nav.back", json!({}));
-    assert_eq!(shell.current_folio(), Some("103"), "the entry of 107 was dropped");
+    assert_eq!(shell.current_folio(), Some("103"), "the entry of 106 was dropped");
     // The cap of 50.
     for i in 0..60 {
         let folio = if i % 2 == 0 { "101" } else { "102" };
@@ -267,15 +267,12 @@ fn walks_jumps_back_and_forward_with_the_exact_view() {
 }
 
 #[test]
-fn the_navigator_on_golden_a() {
+fn the_navigator_on_the_sample() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open_sample(false);
     let rows = shell.page_rows().to_vec();
-    assert_eq!(
-        rows.len(),
-        36,
-        "FR-PAG-024: the 36 entries of the derived page order"
-    );
+    // FR-PAG-024: one row per entry of the derived page order.
+    assert_eq!(rows.len(), shell.page_labels().len());
     // Flat by folio: the rows equal the page labels.
     done(&mut shell, "pages.mode", json!({"mode": "flat"}));
     let flat: Vec<String> = shell
@@ -323,7 +320,7 @@ fn the_navigator_on_golden_a() {
     assert_eq!(nodes[0], "s:front");
     assert_eq!(
         v.iter().filter(|r| matches!(r.kind, RowKind::Page(_))).count(),
-        36
+        rows.len()
     );
     // Structure: function, location, section nodes; keys unique; every page once.
     done(&mut shell, "pages.mode", json!({"mode": "structure"}));
@@ -332,14 +329,14 @@ fn the_navigator_on_golden_a() {
     assert_eq!(keys.len(), v.len());
     assert_eq!(
         v.iter().filter(|r| matches!(r.kind, RowKind::Page(_))).count(),
-        36
+        rows.len()
     );
     assert!(v.iter().all(|r| r.level <= 4));
     // The filter keeps ancestors of a match and expands them.
     done(&mut shell, "pages.mode", json!({"mode": "section"}));
     done(&mut shell, "pages.toggle", json!({"key": "s:1"}));
     assert!(shell.navigator_rows().iter().all(|r| !r.key.starts_with("s:1/")));
-    done(&mut shell, "pages.filter", json!({"text": "power supply 2"}));
+    done(&mut shell, "pages.filter", json!({"text": "supply 400"}));
     let v = shell.navigator_rows();
     assert_eq!(v.len(), 2, "{v:?}");
     assert_eq!((v[0].key.as_str(), v[0].expanded), ("s:1", true));
@@ -500,8 +497,8 @@ fn the_grid_cursor() {
     let p = c.cursor().unwrap();
     assert!(on_grid(p));
     assert_eq!(c.page().cell_text(p).as_deref(), Some("103-A1"));
-    // The link and the entity at the cursor: on the "106-E1" text of folio 103.
-    let at = link_to(&shell, "106-E1");
+    // The link and the entity at the cursor: on the "102-E4" text of folio 103.
+    let at = link_to(&shell, "102-E4");
     done(
         &mut shell,
         "cursor.set",
@@ -515,7 +512,7 @@ fn the_grid_cursor() {
     assert!(c.cursor_entity().is_some());
     let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
     assert!(node.description.contains(", cursor 103-"), "{}", node.description);
-    assert!(node.live.contains(", link to 106-E1"), "{}", node.live);
+    assert!(node.live.contains(", link to 102-E4"), "{}", node.live);
     // Without a cursor the live region stays, empty; the description says nothing of a cursor.
     done(&mut shell, "cursor.set", json!({}));
     let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
@@ -540,7 +537,7 @@ fn the_grid_cursor() {
 fn follow_back_forward_and_links_at_the_model() {
     let tmp = Tmp::new("viewer");
     let mut shell = tmp.open_sample(false);
-    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "view.zoom_to", json!({"percent": 200}));
     done(&mut shell, "view.pan", json!({"dx": 40, "dy": -25}));
     let before = view_nm(&shell);
@@ -580,7 +577,7 @@ fn follow_back_forward_and_links_at_the_model() {
     let (arrived, serial) = c.arrival().expect("the arrival is marked");
     assert_eq!(arrived, target);
     done(&mut shell, "nav.back", json!({}));
-    assert_eq!((shell.current_folio(), view_nm(&shell)), (Some("102"), before));
+    assert_eq!((shell.current_folio(), view_nm(&shell)), (Some("101"), before));
     assert_eq!(shell.canvas().unwrap().arrival(), None);
     done(&mut shell, "nav.forward", json!({}));
     assert_eq!(shell.current_folio(), Some("103"));
@@ -612,15 +609,15 @@ fn follow_back_forward_and_links_at_the_model() {
     // No link: refused.
     done(&mut shell, "cursor.set", json!({"x_mm": 20, "y_mm": 20}));
     assert_eq!(refused(&mut shell, "nav.follow", json!({})), "reason-no-link");
-    // Follow at a point: 102-A1 from 101-H16.
-    done(&mut shell, "page.goto", json!({"folio": "101"}));
-    let at = link_to(&shell, "102-A1");
+    // Follow at a point: 101-H16 from folio 102.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    let at = link_to(&shell, "101-H16");
     done(
         &mut shell,
         "nav.follow",
         json!({"x_mm": mm(at.0), "y_mm": mm(at.1)}),
     );
-    assert_eq!(shell.current_folio(), Some("102"));
+    assert_eq!(shell.current_folio(), Some("101"));
     shell.shutdown();
 }
 
@@ -789,7 +786,7 @@ fn exact_counts_and_the_page_content_cache() {
         );
     }
     let after = shell.session_calls();
-    // Every page the steps show (102, 103, and 106 or 103 beside them) was shown before the loop: not one call.
+    // Every page the steps show (102, 103, and 104 or 103 beside them) was shown before the loop: not one call.
     assert_eq!(
         (
             after.page_content,
@@ -821,7 +818,7 @@ fn exact_counts_and_the_page_content_cache() {
     assert_eq!(mid.link_targets, before.link_targets);
     // The cache keeps the tabs' pages plus the 8 most recently shown others.
     for folio in [
-        "1", "2", "3", "100", "101", "106", "200", "201", "202", "203", "204",
+        "1", "2", "2.1", "100", "101", "105", "200", "201", "900", "901", "902",
     ] {
         done(&mut shell, "page.goto", json!({"folio": folio}));
     }
@@ -923,7 +920,8 @@ fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
 #[test]
 fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let parent = Tmp::new("viewer");
-    // The killed run: its copy of Golden A open for editing, then gone without a shutdown (the lock stays).
+    // The killed run: its copy of the sample open for editing, then gone without a shutdown (the lock stays).
+
     let killed = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
     Box::leak(Box::new(killed.open_sample(true)));
     assert!(killed.0.join("sample.ew").join(".~ew.lock").is_file());
