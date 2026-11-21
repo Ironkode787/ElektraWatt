@@ -1464,6 +1464,7 @@ const UNITS: &[(&str, &[&str])] = &[
     ("mm", &["mm"]),
     ("piece", &["piece", "pc"]),
     ("set", &["set"]),
+    ("mA", &["mA"]),
 ];
 
 /// A cross-section: `0.75`, `0.75 mm²`, `AWG 18`, `18 AWG`, `AWG 2/0`, `250 kcmil`.
@@ -1712,7 +1713,9 @@ pub(crate) fn parse_input(
                 if current {
                     return Err(invalid(api_text!("refusal-input-ac-dc", t)));
                 }
-                return Err(invalid(api_text!("refusal-input-no-unit", t)));
+                // The units by their symbols, the last spelling of each.
+                let units: Vec<&str> = UNITS.iter().filter_map(|(_, s)| s.last().copied()).collect();
+                return Err(invalid(api_text!("refusal-input-no-unit", t, units.join(", "))));
             };
             let number = t[..t.len() - spelling.len()].trim();
             parse_dec3(number, &|d| serde_json::json!({ "value": d, "unit": unit })).map(|value| {

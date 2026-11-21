@@ -525,6 +525,7 @@ const UNITS: &[(&str, &str)] = &[
     ("kg", "kg"),
     ("W", "W"),
     ("m", "m"),
+    ("mA", "mA"),
 ];
 
 /// A technical value: `<number> <unit>` (the space optional, `,` or `.` as the separator) as a quantity, else an

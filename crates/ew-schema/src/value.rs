@@ -107,6 +107,9 @@ pub enum Unit {
     /// Set (order unit).
     #[serde(rename = "set")]
     Set,
+    /// Milliampere (a coil's or an input's current; 0.3.5).
+    #[serde(rename = "mA")]
+    Ma,
     /// A unit of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

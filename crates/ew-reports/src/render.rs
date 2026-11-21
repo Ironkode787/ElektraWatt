@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ColourCode, ColourSpec, DecimalSeparator, Device, OrderUnit, Unit};
+use ew_derive::ew_schema::{ColourCode, ColourSpec, DecimalSeparator, Device, OrderUnit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
@@ -202,21 +202,7 @@ pub fn folios_spans(pages: &[(String, Option<usize>)]) -> (String, Vec<Option<Ra
 fn unit_symbol(u: &QtyUnit) -> &'static str {
     match u {
         QtyUnit::None => "",
-        QtyUnit::Unit(u) => match u {
-            Unit::Mm2 => "mm²",
-            Unit::A => "A",
-            Unit::V => "V",
-            Unit::Hz => "Hz",
-            Unit::Bar => "bar",
-            Unit::DegC => "°C",
-            Unit::Kg => "kg",
-            Unit::W => "W",
-            Unit::M => "m",
-            Unit::Mm => "mm",
-            Unit::Piece => "pc",
-            Unit::Set => "set",
-            Unit::Unknown(_) => "",
-        },
+        QtyUnit::Unit(u) => ew_derive::unit_symbol(u),
         QtyUnit::Order(o) => match o {
             OrderUnit::Piece => "pc",
             OrderUnit::Metre => "m",
