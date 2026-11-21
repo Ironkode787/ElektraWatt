@@ -528,7 +528,7 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 | `src/canon.rs` |  | The identity of an element definition: the SHA-256 of its canonical XML (doc 14 §2.3 "QET element definition: content hash of the canonical definition XML", §4.3). |
 | `src/decimal.rs` |  | Exact decimal numbers from QET attributes and their conversion to nanometres and angles (doc 14 §4.2). |
 | `src/element.rs` |  | Reading one element definition into library copies ([`read_element`]), and the importer of standalone `.elmt` files ([`QetElementImporter`]). |
-| `src/fndef.rs` |  | Function semantics of an element definition (doc 14 §4.3 "Function semantics", steps 2–4; step 1, the `symbol-map.csv`, is a later work package). |
+| `src/fndef.rs` |  | Function semantics of an element definition (doc 14 §4.3 "Function semantics", steps 2–4; step 1, the person's `symbol-map.csv`, is [`crate::symbol_map`], which binds a definition to a starter FnDef instead). |
 | `src/lib.rs` |  | QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`. |
 | `src/migration.rs` |  | The migration report of an import (doc 14 §2.4, §2.5): findings grouped by code with counts, as Markdown, CSV or JSON (`ew import … --report md\|csv\|json`). |
 | `src/prims/mod.rs` |  | The children of an element definition's `<description>`: one parser per QET primitive (doc 14 §4.3). |
@@ -536,6 +536,7 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 | `src/prims/terminal.rs` |  | `terminal`: a connection point. |
 | `src/prims/text.rs` |  | Text primitives: static `text`, `dynamic_text` and the legacy `input` (doc 14 §4.3, §4.10). |
 | `src/project/builtins.rs` |  | The built-in starter documents a project import references by key: the interruption-point FnDef `ew.fn.ip` and QET's default title block. |
+| `src/project/cables.rs` |  | Cable marks → cables with cores, for projects without QET 0.200 cable data (doc 14 §4.11 "Cables, older"). |
 | `src/project/cx.rs` |  | What the project mappers share: record IDs from source keys ([`Ids`]), the capped findings collector ([`Findings`]) and the registry of placed elements that the conductor mapper resolves ends against ([`Placed`]). |
 | `src/project/elements.rs` | large | Placed elements → devices, functions and representations (doc 14 §4.4–§4.6). |
 | `src/project/frames.rs` |  | A diagram's border and title block → a frame form and a title-block form of the project's QET import library (doc 14 §4.9). |
@@ -548,6 +549,7 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 | `src/project/tables.rs` |  | QET's tables (`graphics_table`) → report blocks (doc 14 §4.13). |
 | `src/project/wires.rs` | large | Conductors → connections and junctions (doc 14 §4.7). |
 | `src/style.rs` |  | The QET style mini-language (doc 14 §4.3): the `style` attribute of element primitives, such as `line-style:dashed;line-weight:thin;filling:none;color:black`. |
+| `src/symbol_map.rs` |  | The symbol map (doc 14 §4.17): the person's table that binds element definitions of a QElectroTech set to starter functions (coils, contacts, terminals and interruption points), their terminals to the function's connection points and their own texts to the tag, the number and the cross-reference, the element's drawing, place and texts kept. |
 | `src/xml.rs` |  | Hostile-input guards around the XML parser (doc 14 §11, NFR-SEC-02). |
 
 ## ew-import-tables
