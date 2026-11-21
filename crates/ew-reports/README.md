@@ -74,8 +74,7 @@ params.mode`). Declared now: `parts_summary` `mode` ("component", the default, o
 
 `ew-api`'s `row_export(q, &RowExport::Kind(kind), None)` (`ew export report --kind <kind>`) writes `project_rows(q,
 kind, None)`, the kind's whole-project rows in its default order with no block arrangement, in the `ew` CSV dialect
-(WP-S3.06 D4). Golden A's kinds without a folio have their golden rows as `expected/csv/<kind>.csv`: `device_list`,
-`terminal_overview` and `io_list`.
+(WP-S3.06 D4). Every kind's rows on the sample project are `ew-api`'s `tests/expected/kinds/<kind>.csv`.
 
 ## Not yet
 

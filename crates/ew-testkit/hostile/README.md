@@ -134,7 +134,7 @@ Parser: the `.ewz` reader as every reader opens one, `ew_api::Session::open_ewz`
 
 ## `jsonl/`: project files
 
-Parser: the project loader, on Golden A's files with its first page file replaced, opened from memory as `ew diff`'s
+Parser: the project loader, on the sample project's files with its first page file replaced, opened from memory as `ew diff`'s
 revision side opens one (`ew_api::Session::open_in_memory`).
 
 | File | Tries | Verdict |

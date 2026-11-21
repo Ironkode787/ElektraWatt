@@ -73,7 +73,7 @@ else its sequence number (EW-IMP-008).
 Every placed element keeps the graphics of its embedded definition. Its function semantics come from the
 element reader: `kindInformations` (coil, protection, commutator, contacts, terminals), then the shipped
 category-path table, else a generic black box (EW-IMP-119, once per used definition). Exchanging QET-import
-symbols for starter-library `@qet10` symbols (`symbol-map.csv`, Golden C fix step 3) is not part of this
+symbols for starter-library `@qet10` symbols (`symbol-map.csv`) is not part of this
 importer yet.
 
 ### Gaps (spike)

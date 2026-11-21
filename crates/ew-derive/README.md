@@ -53,9 +53,8 @@ where the documents leave the data open:
 - **Built-in defaults.** Without profiles the defaults of doc 08 §4.3 apply (decision log ID-150, the EN 60204-1
   column): an L-family potential of an AC control circuit is RD, and the cross-section is 1.5 mm² for Mains and
   0.75 mm² for every other class.
-- **Aliases.** Doc 08 §3.5 governs over doc 20 §7.3: the aliases are every other distinct IP name of the potential in
-  natural order (bond-path points excluded). §7.3 lists the golden aliases in that same order, so the golden
-  partition matches both; the code follows §3.5.
+- **Aliases.** Doc 08 §3.5: the aliases are every other distinct IP name of the potential in natural order
+  (bond-path points excluded).
 - **PE rule.** A PE wire takes the highest circuit class at its two ends, ranked `Mains > Control > Analogue > Bus`;
   when no end has a ranked class the class is Control.
 - **Cores.** The colour profile never recolours a core: its colour is the conductor's, else the project default or
@@ -93,7 +92,7 @@ where the documents leave the data open:
 `xref_text(rep)` (Memo by policy, cold in phase 1) prints the cross-reference of a representation from
 `xref_relation(rep)` (cold) and `xref_format()` (cold); nothing is stored (FR-XRF-001, ADR-0003 class I).
 
-| Representation (first function) | Relation | Printed (golden) |
+| Representation (first function) | Relation | Printed (example) |
 |---|---|---|
 | interruption point | its `stitch_graph` pair partners (star: the source lists every other point, each other point the source; chain: the one partner) | "102-A1", "101-H16" |
 | external connection point | the `ExternalRef` | "+J-E-206 / JE-N1000-03" (no link) |

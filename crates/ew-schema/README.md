@@ -10,7 +10,7 @@ the per-kind schema versions and the generated JSON Schemas (`schemas/<format>/`
 crate (MIT OR Apache-2.0): third parties read and write EW files with it without linking GPL code
 (FR-COL-012). `ew-model` wraps these structs in tables and never defines a second data type (ADR-0001).
 
-v0 (WP-S1.02) holds the golden subset: `project`, `import_lineage`, `structure_node`, `section`,
+v0 (WP-S1.02) holds the implemented kinds: `project`, `import_lineage`, `structure_node`, `section`,
 `external_ref`, `page`, `device` (aspects `strip`, `terminal`, `cable`), `function`, `representation`,
 `connection`, `junction`, `conductor`, `potential_def`, `bond`, `report_block`, and the library documents
 `part`, `symbol`, `fndef` and `form`. Cycle 13 (FT-111, additive within format 0.1) adds the PLC kinds
@@ -20,7 +20,7 @@ v0 (WP-S1.02) holds the golden subset: `project`, `import_lineage`, `structure_n
 `kind` = `drives` | `linkage`), the device aspects `plc_station` (`config_project`, `role`, `order`) and
 `plc_module` (`slot` = `SlotPath`, `start` = `IoStarts`, `part_use`, `integrated`), and the part section
 `sections.plc` (`role`, `io`, `channels`, `bit_of` = `MapSpec`, `unbound`): the subset of doc 10 §2.2–§2.6
-the golden project needs; the other members of doc 10 stay in `extra` until their work packages. Every other
+the implemented kinds need; the other members of doc 10 stay in `extra` until their work packages. Every other
 kind of doc 05 §2.2 is in the registry as reserved.
 
 Field-level truth: `docs/design/03-domain-model.md`. Encoding: `docs/design/05-project-format-and-persistence.md`
@@ -133,7 +133,7 @@ meaning is a `Set` or a `KeyedList`, never a `Vec`.
 
 ## Format change log
 
-Format 0.1 is unreleased; these entries record what changed since the first golden subset (WP-S1.02).
+Format 0.1 is unreleased; these entries record what changed since the first subset (WP-S1.02).
 
 | Change | Since | Notes |
 |---|---|---|
@@ -163,7 +163,7 @@ two; until they are implemented an untouched record keeps its original line.
 2. Write the struct (`id` first, then `$v`, then the members, `extra` last), add the `Record` or
    `LibDocument` variant, switch the registry row to `Implemented` and add the kind to
    `SCHEMA_VERSIONS` with version 1.
-3. Add its schema to `kind_schema`, regenerate the schemas, and add golden lines and anchor cases.
+3. Add its schema to `kind_schema`, regenerate the schemas, and add example lines (`tests/common/lines.rs`) and anchor cases.
 4. List personal-data members in `PERSONAL_DATA_FIELDS` (NFR-PRIV-06).
 
 ## When `$v` may change
