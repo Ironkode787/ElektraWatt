@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The part dialog's and the part editor's flows, headless, as
-//! `ew.uiscript/1` scripts through the built binary, each on its own copy of Golden A with an empty `EW_DATA_DIR`
+//! `ew.uiscript/1` scripts through the built binary, each on its own copy of the sample with an empty `EW_DATA_DIR`
 //! (the shipped tier only: the compiled-in starter parts and the libraries of `EW_CONTENT_DIR`, the sample parts
 //! library among them) and its own `EW_CONFIG_DIR`. Per gate one run; the deep nightly runs each
 //! twice and compares the transcripts byte for byte. The `--record` log of each editing script, replayed onto a fresh
 //! copy by `Session::run_script` without any library (what `ew apply` runs), gives the saved project's records: the
 //! chosen part travels inside the command. The model half of each flow runs in `ew-viewmodel`'s
-//! `tests/part_selection.rs`. It also runs the paste choice (two copies of Golden A over a user library
+//! `tests/part_selection.rs`. It also runs the paste choice (two copies of the sample over a user library
 //! the test writes; the model half in `ew-viewmodel`'s `tests/paste_choice.rs`). A module of `tests/it/headless.rs`, whose
 //! `bin_exe` it uses.
 
@@ -77,7 +77,7 @@ fn has_line(d: &str, line: &str) -> bool {
     d.lines().any(|l| l.trim_start() == line)
 }
 
-/// Runs `steps` once, or twice when `twice`, each run on its own copy of Golden A at `<side>/g.ew`; checks that every
+/// Runs `steps` once, or twice when `twice`, each run on its own copy of the sample at `<side>/g.ew`; checks that every
 /// step is done (a refusal the flow expects is `script.expect_refused`), that two runs give the same bytes, that no temporary
 /// path reaches the transcript and that the `--record` log replayed onto a fresh copy without a library gives the
 /// saved project's records. Returns the steps of the first run and the number of recorded commands.
@@ -130,9 +130,9 @@ fn run_flow(
     (first.unwrap(), commands)
 }
 
-/// PS1: F55's part dialog lists the 1P+N MCBs of the sample parts and the starter (same FnDef), then the 1P MCBs
-/// (same category), then the others; Only parts that fit keeps the six (the starter's three-pole MCB among them);
-/// Escape commits nothing.
+/// PS1: -102F1's part dialog lists the 1P MCBs of the project and the sample parts (same FnDef), then the other MCBs
+/// (same category, the starter's 1P+N among them), then the others; Only parts that fit keeps the seven MCBs; Escape
+/// commits nothing.
 #[test]
 fn the_part_dialog_script_is_deterministic() {
     ps1_the_part_dialog_script_is_deterministic_case(false);
@@ -142,8 +142,8 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     let (lines, commands) = run_flow("ps1", twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
-            ("page.goto", json!({"folio": "101"})),
-            ("select.set", json!({"refs": ["tag:F55"]})),
+            ("page.goto", json!({"folio": "102"})),
+            ("select.set", json!({"refs": ["tag:-102F1"]})),
             ("part.choose", json!({"use": 0})),
             ("ui.describe", json!({})),
             ("part.search", json!({"fits": true})),
@@ -153,26 +153,31 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     });
     assert_eq!(commands, 0, "the dialog commits nothing");
     let d = describe(&lines[4]);
-    assert!(has_line(d, "dialog \"Choose a part for F55\""), "{d}");
+    assert!(has_line(d, "dialog \"Choose a part for -102F1\""), "{d}");
     assert!(
         d.contains(
-            "result 1 \"5SY4204-7\" \"Siemens\" \"Miniature circuit breaker 1P+N\" library \"Sample project parts\" compatible same-fndef cursor"
+            "result 1 \"EW-GEN-MCB-1\" \"Generic\" \"Miniature circuit breaker, 1 pole\" project compatible same-fndef cursor"
         ),
         "{d}"
     );
     assert!(
         d.contains(
-            "result 3 \"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral\" library \"ElektraWatt starter parts\" compatible same-fndef"
+            "result 2 \"A9F78116\" \"Schneider Electric\" \"Miniature circuit breaker 1P\" library \"Sample project parts\" compatible same-fndef"
         ),
         "{d}"
     );
-    assert!(d.contains("result 5 \"EW-GEN-MCB-1\" "), "{d}");
+    assert!(
+        d.contains(
+            "\"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral\" library \"ElektraWatt starter parts\" compatible same-category"
+        ),
+        "{d}"
+    );
     let d = describe(&lines[6]);
     assert!(has_line(d, "results showing 1 to 7"), "{d}");
 }
 
-/// PS4: F55's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy; the
-/// record replays onto Golden A without a library.
+/// PS4: -102F1's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy
+/// (the project's EW-GEN-MCB-3); the record replays onto the sample without a library.
 #[test]
 fn the_choose_script_is_deterministic_and_replays() {
     ps4_the_choose_script_is_deterministic_and_replays_case(false);
@@ -182,13 +187,12 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
     let (lines, commands) = run_flow("ps4", twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
-            ("page.goto", json!({"folio": "101"})),
-            ("select.set", json!({"refs": ["tag:F55"]})),
+            ("page.goto", json!({"folio": "102"})),
+            ("select.set", json!({"refs": ["tag:-102F1"]})),
             ("part.choose", json!({"use": 0})),
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("part.choose", json!({"add": true})),
-            // The held copy of A9P52610: the sample parts library offers its own, so the number names two.
-            ("part.pick", json!({"index": 22})),
+            ("part.pick", json!({"part": "EW-GEN-MCB-3"})),
             ("ui.describe", json!({})),
             ("file.save", json!({})),
         ]
@@ -198,7 +202,7 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
     assert!(
         d.lines().any(|l| l.contains("row \"device/parts\"")
             && l.contains("EW-GEN-MCB-2")
-            && l.contains("A9P52610")),
+            && l.contains("EW-GEN-MCB-3")),
         "{d}"
     );
 }
@@ -214,8 +218,8 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
     let (lines, commands) = run_flow("ps5", twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
-            ("page.goto", json!({"folio": "101"})),
-            ("select.set", json!({"refs": ["tag:F55"]})),
+            ("page.goto", json!({"folio": "102"})),
+            ("select.set", json!({"refs": ["tag:-102F1"]})),
             ("part.edit", json!({})),
             ("part.field", json!({"field": "manufacturer", "value": ""})),
             ("script.expect_refused", json!({"action": "part.save"})),
@@ -235,8 +239,8 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
     assert!(has_line(d, "error: A part needs a manufacturer"), "{d}");
 }
 
-/// PS7: a library copy forks: EW-GEN-MCB-2 on F55, Edit part…, a new description, Save: the card's fork note,
-/// Apply; the record replays onto Golden A without a library.
+/// PS7: a library copy forks: EW-GEN-MCB-2 on -102F1, Edit part…, a new description, Save: the card's fork note,
+/// Apply; the record replays onto the sample without a library.
 #[test]
 fn the_fork_script_is_deterministic_and_replays() {
     ps7_the_fork_script_is_deterministic_and_replays_case(false);
@@ -246,8 +250,8 @@ pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool)
     let (lines, commands) = run_flow("ps7", twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
-            ("page.goto", json!({"folio": "101"})),
-            ("select.set", json!({"refs": ["tag:F55"]})),
+            ("page.goto", json!({"folio": "102"})),
+            ("select.set", json!({"refs": ["tag:-102F1"]})),
             ("part.choose", json!({"use": 0})),
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("part.edit", json!({})),
@@ -353,12 +357,12 @@ fn run_with_data(dir: &Path, data: &Path, name: &str, steps: &[(&str, Value)]) -
     lines
 }
 
-/// The steps that give F55 of the project at `project` the fixture's FX-MCB-1PN as the library holds it now.
+/// The steps that give -102F1 of the project at `project` the fixture's FX-MCB-1PN as the library holds it now.
 fn choose_fixture(project: &Path) -> Vec<(&'static str, Value)> {
     vec![
         ("file.open", json!({ "dir": path(project) })),
-        ("page.goto", json!({"folio": "101"})),
-        ("select.set", json!({"refs": ["tag:F55"]})),
+        ("page.goto", json!({"folio": "102"})),
+        ("select.set", json!({"refs": ["tag:-102F1"]})),
         ("part.choose", json!({"use": 0})),
         ("part.pick", json!({"part": "FX-MCB-1PN (Fixture)"})),
         ("file.save", json!({})),
@@ -383,9 +387,9 @@ fn tags_and_versions(s: &Session) -> (Vec<String>, Vec<(String, String)>) {
     (tags, versions)
 }
 
-/// Headless (FT-396): P1 (a copy of Golden A) holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.0.1 (a description
+/// Headless (FT-396): P1 (a copy of the sample) holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.0.1 (a description
 /// change, a patch), both chosen through the part dialog by setup scripts over one user library written by the test.
-/// The flow: F55 copied in P1, pasted in P2: `edit.paste_clip` is refused with `reason-paste-versions` and the choice
+/// The flow: -102F1 copied in P1, pasted in P2: `edit.paste_clip` is refused with `reason-paste-versions` and the choice
 /// card lists the copy; Update the project's copy is refused (`reason-paste-update-older`); `paste.resolve` with
 /// `adapt` arms the paste, which commits one `edit.paste` with `adapt`. The `--record` log replayed onto P2 as the
 /// setup left it gives the same tags and part versions (the pasted IDs are minted).
@@ -416,8 +420,8 @@ pub(crate) fn ps8_the_paste_choice_script_is_deterministic_and_replays_case(twic
             "ps8",
             &[
                 ("file.open", json!({ "dir": path(&p1), "read_only": true })),
-                ("page.goto", json!({"folio": "101"})),
-                ("select.set", json!({"refs": ["tag:F55"]})),
+                ("page.goto", json!({"folio": "102"})),
+                ("select.set", json!({"refs": ["tag:-102F1"]})),
                 ("edit.copy", json!({})),
                 ("file.open", json!({ "dir": path(&p2) })),
                 ("page.goto", json!({"folio": "101"})),

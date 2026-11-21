@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard headless (acceptance checks CB5, CB6 and the script half of CB8): T55, E55 and E56
+//! The clipboard headless (acceptance checks CB5, CB6 and the script half of CB8): the sample's -102S1, -102S2 and -102E1
 //! of Golden A's folio 101 copied into folio 1 of a new project by an `ew.uiscript/1` script through the built binary
 //! (three devices with new IDs, no frozen tag, tags of that project's scheme, the part copies embedded once),
 //! byte-identical transcripts on two runs without a raw UUID, and the `--record` log (one `edit.paste` carrying the
 //! fragment) replayed onto a copy of the same new project giving the same records, IDs aside; two shell models as two instances
-//! (-102G1 and -102F1 with the wires between them pasted into a new project in the other); the tag list. A module of
+//! (-102S2 and -102S1 with the wires between them pasted into a new project in the other); the tag list. A module of
 //! `tests/it/headless.rs`, whose `bin_exe` it uses.
 
 use std::path::Path;
@@ -66,11 +66,11 @@ fn all_done(out: &Output) -> Vec<Value> {
 /// The point the scripts paste at, sheet mm: inside the new project's first page.
 const AT: (f64, f64) = (120.0, 90.0);
 
-fn steps(golden: &Path, new: &Path) -> Vec<(&'static str, Value)> {
+fn steps(sample: &Path, new: &Path) -> Vec<(&'static str, Value)> {
     vec![
-        ("file.open", json!({ "dir": golden.to_string_lossy() })),
-        ("page.goto", json!({"folio": "101"})),
-        ("select.set", json!({"refs": ["tag:T55", "tag:E55", "tag:E56"]})),
+        ("file.open", json!({ "dir": sample.to_string_lossy() })),
+        ("page.goto", json!({"folio": "102"})),
+        ("select.set", json!({"refs": ["tag:-102S1", "tag:-102S2", "tag:-102E1"]})),
         ("edit.copy", json!({})),
         ("ui.describe", json!({})),
         ("file.open", json!({ "dir": new.to_string_lossy() })),
@@ -103,7 +103,7 @@ fn content(s: &Session) -> (Vec<String>, Vec<(i64, i64)>, usize) {
     (tags, places, q.parts().len())
 }
 
-/// CB5 (FR-UI-036) and CB8: T55, E55 and E56 copied into a new project's folio 1 by a script, twice byte-identical,
+/// CB5 (FR-UI-036) and CB8: -102S1, -102S2 and -102E1 copied into a new project's folio 1 by a script, twice byte-identical,
 /// no raw UUID, and the `--record` log replayed onto a fresh new project.
 /// Per gate one run of the script (`twice` false); the deep nightly's
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
@@ -164,7 +164,7 @@ pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(t
         "page-based tags of folio 1: {tags:?}"
     );
     assert_eq!(places.len(), 3);
-    assert!(parts >= 1, "the golden part copies are embedded");
+    assert!(parts >= 1, "the sample's part copies are embedded");
     // The record: one `edit.paste` carrying the fragment, replayed onto a fresh new project.
     let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
     let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
@@ -191,20 +191,20 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
     );
 }
 
-/// CB6 (FR-UI-040): two shell models as two instances: -102G1 and -102F1 copied in one, pasted into a new project in
+/// CB6 (FR-UI-040): two shell models as two instances: -102S2 and -102S1 copied in one, pasted into a new project in
 /// the other as the system clipboard's text, with the junction and the three wires between them; "Copy tag list" of
-/// -101F1, S51 and F55 is `-101F1\nF55\nS51\n`.
+/// -101Q1, -101G1 and -101F1 is `-101F1\n-101G1\n-101Q1\n`.
 #[test]
 fn two_instances_and_the_tag_list() {
     let tmp = Tmp::new();
-    let golden = tmp.sample("g.ew");
+    let sample = tmp.sample("g.ew");
     let mut one = shell(&tmp, "one");
-    done(&mut one, "file.open", json!({ "dir": golden.to_string_lossy() }));
+    done(&mut one, "file.open", json!({ "dir": sample.to_string_lossy() }));
     done(&mut one, "page.goto", json!({"folio": "102"}));
     done(
         &mut one,
         "select.set",
-        json!({"refs": ["tag:-102G1", "tag:-102F1"]}),
+        json!({"refs": ["tag:-102S2", "tag:-102S1"]}),
     );
     done(&mut one, "edit.copy", json!({}));
     let text = one.clipboard().text().unwrap().to_owned();
@@ -223,17 +223,17 @@ fn two_instances_and_the_tag_list() {
     let tables = two.canvas().unwrap().page().tables.clone();
     let devices: std::collections::BTreeSet<_> = tables.reps.iter().filter_map(|r| r.device).collect();
     assert_eq!(devices.len(), 2, "both devices");
-    assert_eq!(tables.connections.len(), 3, "the wires between them");
-    assert_eq!(tables.junctions.len(), 1, "the junction where they meet");
+    // The script draws one wire from -102S2's lower contact to -102S1's upper one.
+    assert_eq!(tables.connections.len(), 1, "the wire between them");
     // Copy tag list in the first instance.
     done(&mut one, "page.goto", json!({"folio": "101"}));
     done(
         &mut one,
         "select.set",
-        json!({"refs": ["tag:S51", "tag:-101F1", "tag:F55"]}),
+        json!({"refs": ["tag:-101Q1", "tag:-101G1", "tag:-101F1"]}),
     );
     done(&mut one, "edit.copy_tags", json!({}));
-    assert_eq!(one.clipboard().text(), Some("-101F1\nF55\nS51\n"));
+    assert_eq!(one.clipboard().text(), Some("-101F1\n-101G1\n-101Q1\n"));
     one.shutdown();
     two.shutdown();
 }

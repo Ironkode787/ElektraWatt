@@ -121,21 +121,37 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_a
         assert_eq!(steps[9]["outcome"], "refused");
         assert_eq!(steps[9]["reason"], "reason-file-exists");
         let d = steps[4]["describe"].as_str().unwrap();
+        // The sample's pages: the title page and its 7 drawn pages, the dividers of its sections 1, 2 and 9, and the
+        // generated report pages.
+        let (sample, _) = Session::open_read_only(Path::new(SAMPLE), "test").unwrap();
+        let pages = sample.page_labels().len();
+        sample.close();
         assert!(
-            d.contains("jobs running 0\n  job 1 pdf \"out.pdf\" done pages 36 kib "),
+            d.contains(&format!("jobs running 0\n  job 1 pdf \"out.pdf\" done pages {pages} kib ")),
             "{d}"
         );
         assert!(
-            d.contains("notifications 1\n  notification 1 \"Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, "),
+            d.contains(&format!(
+                "notifications 1\n  notification 1 \"Exported out.pdf: 8 drawing pages, 3 section divider pages and {} \
+                 report pages, ",
+                pages - 11
+            )),
             "{d}"
         );
         assert!(d.contains("\" open"), "{d}");
         assert!(d.contains("| Notifications 1"), "{d}");
         let d = steps[8]["describe"].as_str().unwrap();
-        assert!(d.contains("  job 2 pdf \"out.pdf\" done pages 36 kib "), "{d}");
+        assert!(
+            d.contains(&format!("  job 2 pdf \"out.pdf\" done pages {pages} kib ")),
+            "{d}"
+        );
         // P-2: the second export of the same file says "again".
         assert!(
-            d.contains("notification 2 \"Exported out.pdf again: 13 drawing pages, 3 section divider pages and 20 report pages, "),
+            d.contains(&format!(
+                "notification 2 \"Exported out.pdf again: 8 drawing pages, 3 section divider pages and {} report \
+                 pages, ",
+                pages - 11
+            )),
             "{d}"
         );
         // The second export's toast replaced the first (one key).
