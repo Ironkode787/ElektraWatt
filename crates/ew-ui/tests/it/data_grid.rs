@@ -193,6 +193,37 @@ fn gestures() -> Vec<(&'static str, Input)> {
     ]
 }
 
+/// `log` with every record ID replaced by `<n>`, `n` its place among the IDs in the order they first appear: the log
+/// shows which gestures reach the same row without pinning the IDs the sample's script generates.
+fn ids_numbered(log: &str) -> String {
+    let is_id = |s: &str| {
+        s.bytes().enumerate().all(|(i, b)| match i {
+            8 | 13 | 18 | 23 => b == b'-',
+            _ => b.is_ascii_hexdigit(),
+        })
+    };
+    let mut seen: Vec<&str> = Vec::new();
+    let mut out = String::new();
+    let mut rest = log;
+    while let Some(c) = rest.chars().next() {
+        match rest.get(..36).filter(|s| is_id(s)) {
+            Some(id) => {
+                let n = seen.iter().position(|s| *s == id).unwrap_or_else(|| {
+                    seen.push(id);
+                    seen.len() - 1
+                });
+                write!(out, "<{}>", n + 1).unwrap();
+                rest = &rest[36..];
+            }
+            None => {
+                out.push(c);
+                rest = &rest[c.len_utf8()..];
+            }
+        }
+    }
+    out
+}
+
 /// Every key of doc 16a §6.21 (arrows, Tab, Shift+Tab, Home, End, Ctrl+Home, Ctrl+End, Shift+Up, Shift+Down,
 /// Enter, Ctrl+Enter, a printable character; in the editor Enter, Ctrl+Enter and Escape) and the pointer gestures
 /// (click, Ctrl+click, Shift+click, double click, header clicks) dispatch the same actions with the same parameters as
@@ -234,10 +265,12 @@ fn every_key_dispatches_the_as_built_actions() {
         }
         let calls = h.state().dispatched_calls();
         writeln!(log, "{label}").unwrap();
-        for (action, params) in &calls[before..] {
+        // The canvas's size report follows the layout, not the gesture: it is not the grid's.
+        for (action, params) in calls[before..].iter().filter(|(a, _)| *a != "view.canvas_resize") {
             writeln!(log, "  {action} {params}").unwrap();
         }
     }
+    let log = ids_numbered(&log);
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/table_keys.txt");
     if bless() {
         std::fs::write(&path, &log).unwrap();
