@@ -109,7 +109,8 @@ pub use asset::{
     AssetError, AssetFormat, AssetRef, COMPANY_MEMBER, MAX_LOGO_BYTES, MAX_RASTER_BYTES, MAX_RASTER_PIXELS,
     MAX_SVG_ARC_PIECES, MAX_SVG_BYTES, MAX_SVG_CSS_DECLARATIONS, MAX_SVG_CSS_RULES, MAX_SVG_CSS_WORK,
     MAX_SVG_DEPTH, MAX_SVG_EXPANSION, MAX_SVG_MARKER_WORK, MAX_SVG_NODES, MAX_SVG_NUMBER,
-    MAX_SVG_PATH_SEGMENTS, MAX_SVG_REF_DEPTH, SvgHazard, base64_decode, base64_encode, company_logo,
+    MAX_SVG_PATH_SEGMENTS, MAX_SVG_REF_DEPTH, MAX_TYPEFACE_BYTES, SvgHazard, base64_decode, base64_encode,
+    company_logo,
     pixel_limit, sha256_mentions, sniff, svg_hazard, svg_path_segment_bound, svg_segment_bound,
 };
 pub use bus::{
@@ -169,7 +170,7 @@ pub use page::{
 pub use page_item::{
     BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LayoutLabels, LineDash, MarkerField,
     PageItem, PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox,
-    SurfaceLabelMode, SurfaceView, TextAlign, Underlay, UnderlayFormat, WireMarker,
+    SurfaceLabelMode, SurfaceView, TextAlign, TextAnchor, Underlay, UnderlayFormat, WireMarker,
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,
@@ -184,7 +185,7 @@ pub use project::{
     ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
     MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
     RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
-    StructureNode, SupplyOrigin, SupplySpec, TagCase,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile,
 };
 pub use record::{AnchorRef, LibDocument, Record, Unknowns};
 pub use revision::{

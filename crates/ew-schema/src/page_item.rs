@@ -309,9 +309,28 @@ pub struct FreeText {
     /// The horizontal alignment at `at`; absent: left.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub align: Option<TextAlign>,
+    /// Where `at` lies on the text vertically (doc 09 §4.8); absent: its middle (since 0.3.5; an older build prints
+    /// every text by its middle).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<TextAnchor>,
     /// Unknown members (the role `path_function` of FT-376 among them, until it is typed).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// Where a free text's point lies on it vertically (doc 09 §4.8).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TextAnchor")]
+pub enum TextAnchor {
+    /// The text is centred from its first line's cap height to its last baseline on the point (what absent means).
+    Middle,
+    /// The first line's baseline lies on the point; more lines go down from it.
+    Baseline,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The horizontal alignment of a free text at its anchor point.
@@ -586,6 +605,7 @@ open_enum!(
     GraphicShape,
     LineDash,
     TextAlign,
+    TextAnchor,
     MarkerField,
     BoxStyle,
     SurfaceLabelMode,

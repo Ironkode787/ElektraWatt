@@ -13,7 +13,7 @@ use ew_mltext::{Ident, MlText};
 use ew_schema::{
     BoxStyle, ColourCode, ColourSpec, Connection, Csa, Extra, FreeText, Graphic, GraphicShape, GraphicStroke,
     ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Sha256, ShapeArc, ShapeCircle, ShapeLine,
-    ShapePoints, ShapeRect, StructureBox, TextAlign, WireMarker,
+    ShapePoints, ShapeRect, StructureBox, TextAlign, TextAnchor, WireMarker,
 };
 use ew_units::{Angle2, Nm, Pt2};
 use schemars::JsonSchema;
@@ -147,6 +147,16 @@ pub enum AlignParam {
     Right,
 }
 
+/// Where a free text's point lies on it vertically (doc 09 §4.8).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AnchorParam {
+    /// The text is centred on the point from its cap height to its baseline.
+    Middle,
+    /// The first line's baseline lies on the point.
+    Baseline,
+}
+
 /// A free text of `item.place`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -174,6 +184,9 @@ pub struct FreeTextParam {
     /// The horizontal alignment at `at`; default left.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub align: Option<AlignParam>,
+    /// Where `at` lies on the text vertically; default its middle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<AnchorParam>,
 }
 
 fn is_zero_angle(a: &Angle2) -> bool {
@@ -291,6 +304,9 @@ pub(crate) fn free_text_problem(t: &FreeText) -> Option<Text> {
     if matches!(t.align, Some(TextAlign::Unknown(_))) {
         return Some(text!("refusal-items-align-unknown"));
     }
+    if matches!(t.anchor, Some(TextAnchor::Unknown(_))) {
+        return Some(text!("refusal-items-anchor-unknown"));
+    }
     None
 }
 
@@ -403,13 +419,17 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
             AlignParam::Centre => TextAlign::Centre,
             AlignParam::Right => TextAlign::Right,
         }),
+        anchor: t.anchor.map(|a| match a {
+            AnchorParam::Middle => TextAnchor::Middle,
+            AnchorParam::Baseline => TextAnchor::Baseline,
+        }),
         extra: Extra::new(),
     }
 }
 
 /// `item.place` (`PlaceItem`, FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
 /// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, at, angle?,
-/// style?, align?}}`) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
+/// style?, align?, anchor?}}`) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
 /// image file as base64 `data`, which the command validates and stores as the company logo is stored, in the
 /// rectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is
 /// stored with `min` the smaller coordinates. Rejected: a missing page (not found); a degenerate shape (a zero-length

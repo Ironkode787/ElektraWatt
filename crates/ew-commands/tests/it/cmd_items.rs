@@ -76,6 +76,7 @@ fn text(text: &str, bind: Option<&str>, angle: i32) -> PlaceItem {
             angle: Angle2(angle),
             style: None,
             align: None,
+            anchor: None,
         }),
     }
 }

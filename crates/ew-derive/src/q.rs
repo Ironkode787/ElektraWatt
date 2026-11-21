@@ -600,6 +600,15 @@ impl Q {
         self.model.asset(sha256).map(|a| *a.reference())
     }
 
+    /// The bytes of the held asset with this hash: the font file of the project's typeface (doc 09 §4.8). Recorded as
+    /// a read of the project row (`project.typeface.set` changes the setting the answer is asked for and brings its
+    /// file) and of the asset store ([`DepKey::Assets`]), as [`Q::logo_asset`] is.
+    pub fn typeface_bytes(&self, sha256: &ew_schema::Sha256) -> Option<Arc<[u8]>> {
+        self.read(DepKey::Project, self.model.project_row().changed_at());
+        self.read(DepKey::Assets, self.model.assets_stamp());
+        self.model.asset(sha256).map(|a| Arc::clone(a.bytes()))
+    }
+
     /// The derivation profile the project pins (ADR-0003, ARCH §6.6). A key this build does not ship
     /// falls back to the newest shipped profile; [`Q::profile_status`] says so.
     pub fn profile(&self) -> &'static DerivationProfile {

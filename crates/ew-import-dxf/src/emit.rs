@@ -721,6 +721,7 @@ impl Emit {
                         HAlign::Centre => Some(TextAlign::Centre),
                         HAlign::Right => Some(TextAlign::Right),
                     },
+                    anchor: None,
                     extra: Default::default(),
                 })
             }

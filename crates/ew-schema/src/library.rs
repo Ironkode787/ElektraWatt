@@ -523,7 +523,8 @@ pub struct ImagePrim {
     pub extra: Extra,
 }
 
-/// Text alignment at the anchor point: nine positions.
+/// Text alignment at the anchor point: nine positions of the text's box, and three on its first line's baseline
+/// (doc 09 §4.8; since 0.3.5, an older build prints those three as centred).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -547,6 +548,12 @@ pub enum Align {
     BottomCentre,
     /// Bottom right.
     BottomRight,
+    /// The first line's baseline on the point, the text starting there.
+    BaselineLeft,
+    /// The first line's baseline on the point, the text centred on it.
+    BaselineCentre,
+    /// The first line's baseline on the point, the text ending there.
+    BaselineRight,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

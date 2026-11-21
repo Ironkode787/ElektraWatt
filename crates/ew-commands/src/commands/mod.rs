@@ -59,6 +59,7 @@ mod structure;
 pub(crate) mod structure_box;
 mod supply;
 mod terminal;
+mod typeface;
 
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
@@ -80,7 +81,8 @@ pub use import::{
     name_rows, plan_reimport,
 };
 pub use items::{
-    AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
+    AlignParam, AnchorParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam,
+    StrokeParam,
 };
 pub use join::joins_any_device;
 pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
@@ -208,6 +210,7 @@ commands! {
     // The release's stamp (D13)
     revision::ReleaseRevision,
     company::SetCompany,
+    typeface::SetTypeface,
     frames::SetFrameDefaults,
     languages::SetProjectLanguages,
     checks::SetCheckSchemes,

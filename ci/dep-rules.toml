@@ -220,8 +220,9 @@ clippy_config = "clippy.toml"
 # them is no freshness hazard and sits outside the read gate; whether the model HOLDS an asset can change without a
 # revision, so no memoised query may read it. In the non-test source of `packages` (the crate whose queries can reach
 # the model; the reader crates are scanned too), a call `.asset(`, `.assets(`, `.has_asset(` or a path `::asset`,
-# `::assets`, `::has_asset` is a finding unless the innermost function around it is listed below. A second reader is
-# not added here: asset presence then becomes a tracked input of the memo engine (ADR-0002, ID-575).
+# `::assets`, `::has_asset` is a finding unless the innermost function around it is listed below. Each listed reader
+# records a read of the asset store (`DepKey::Assets`), so the memo engine tracks the presence it answers (ADR-0002,
+# ID-575).
 [raw_read.asset_presence]
 packages = ["ew-derive"]
 accessors = ["asset", "assets", "has_asset"]
@@ -230,3 +231,8 @@ accessors = ["asset", "assets", "has_asset"]
 path = "crates/ew-derive/src/q.rs"
 function = "logo_asset"
 reason = "Q::logo_asset, the one named exception of ID-575: the format and size of a bare-hash logo; recorded as a read of the project row, safe while an asset becomes present only at open or through project.company.set, which changes that row"
+
+[[raw_read.asset_presence.allow]]
+path = "crates/ew-derive/src/q.rs"
+function = "typeface_bytes"
+reason = "Q::typeface_bytes, the font file of the project's typeface (doc 09 §4.8): recorded as a read of the project row and of the asset store (DepKey::Assets), as Q::logo_asset is; its file arrives with project.typeface.set, which changes that row"

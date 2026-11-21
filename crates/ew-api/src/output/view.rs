@@ -356,10 +356,12 @@ impl Query for PageBindingsOf {
 fn asset_ref(r: &ew_schema::AssetRef) -> AssetRef {
     let format = match r.format {
         ew_schema::AssetFormat::Svg => ew_dl::ImageFormat::Svg,
-        // An underlay source named as a logo (a hand-edited file) reads as a PNG that does not decode: reported.
-        ew_schema::AssetFormat::Png | ew_schema::AssetFormat::Pdf | ew_schema::AssetFormat::Dxf => {
-            ew_dl::ImageFormat::Png
-        }
+        // An underlay source or a font named as a logo (a hand-edited file) reads as a PNG that does not decode: reported.
+        ew_schema::AssetFormat::Png
+        | ew_schema::AssetFormat::Pdf
+        | ew_schema::AssetFormat::Dxf
+        | ew_schema::AssetFormat::Ttf
+        | ew_schema::AssetFormat::Otf => ew_dl::ImageFormat::Png,
         ew_schema::AssetFormat::Jpeg => ew_dl::ImageFormat::Jpeg,
     };
     let base = AssetRef::new(r.sha256.0, format);

@@ -145,6 +145,7 @@ fn missing(u: &Underlay, fonts: &ew_text::FontSet, styles: &ew_text::TextStyleTa
         style: None,
         height: None,
         align: None,
+        anchor: None,
         extra: Default::default(),
     });
     out.extend(ew_scene::underlay::dxf_list(&[name], Pt2::ORIGIN, 100, fonts, styles).items);

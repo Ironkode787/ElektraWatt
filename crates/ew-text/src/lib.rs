@@ -11,6 +11,8 @@
 //!   `NOTICE`), compiled in with `include_bytes!` and checked against [`NOTO_SANS_REGULAR_SHA256`],
 //!   [`NOTO_SANS_BOLD_SHA256`] and [`NOTO_SANS_MATH_REGULAR_SHA256`] when the set is first built: font
 //!   versions are pinned (ADR-0028 recommendation 6, NFR-REL-17), so a different file is an error.
+//!   [`typeface_set`] is the set of a project's typeface (doc 09 §4.8): the bundled set with the user's font file as
+//!   the default family's face, built once per file for the process; [`typeface_file`] gives its file back by key.
 //! - [`FontSet::shape`]: a string and a [`TextStyle`] (family role, em height in nm, weight, slope) to a
 //!   [`ShapedRun`](ew_dl::ShapedRun) in integer nm, its lines and the characters without a glyph
 //!   ([`Shaped::missing`], FR-OUT-027) and which face drew which glyphs ([`Shaped::faces`]). Lines break only when a maximum width is given (one paragraph,
@@ -84,6 +86,6 @@ pub use fonts::{
     NOTO_SANS_REGULAR_SHA256, ROUTED_GOTHIC_REGULAR_SHA256,
 };
 #[cfg(feature = "bundled-fonts")]
-pub use fonts::{bundled, bundled_sources};
+pub use fonts::{bundled, bundled_sources, typeface_file, typeface_set};
 pub use shape::{FaceSpan, LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};
 pub use style::{DEFAULT_STYLE_KEY, StyleDef, StyleRow, TextStyleTable, builtin, builtin_rows};

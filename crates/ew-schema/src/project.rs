@@ -311,6 +311,25 @@ pub struct ProjectSettings {
     /// within format 0.1 (ADR-0011 amendment 6).
     #[serde(default, skip_serializing_if = "crate::FluidSettings::is_empty")]
     pub fluid: crate::FluidSettings,
+    /// The project's typeface (doc 09 §4.8): the font file every text of the Standard typeface prints in; absent:
+    /// the bundled Noto Sans. Optional and additive within format 0.1 (since 0.3.5; an older build keeps it in
+    /// `extra` and prints with the bundled faces).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub typeface: Option<TypefaceFile>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A font file of the user's that the project holds (doc 09 §4.8): the asset `assets/<sha256>.ttf` or `.otf` and the
+/// file's name as the person chose it.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct TypefaceFile {
+    /// The asset: the font file's SHA-256.
+    pub asset: Sha256,
+    /// The file's name without its folder (`LiberationSans-Regular.ttf`): what the window shows and what a DXF's text
+    /// style names.
+    pub name: String,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

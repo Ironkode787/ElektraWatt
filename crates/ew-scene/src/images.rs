@@ -365,11 +365,14 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                     match ew_schema::sniff(&bytes).map(|(f, _)| f) {
                         Ok(ew_schema::AssetFormat::Svg) => ImageFormat::Svg,
                         Ok(ew_schema::AssetFormat::Jpeg) => ImageFormat::Jpeg,
-                        // An underlay source is no image: it stays the placeholder's format and does not decode.
+                        // An underlay source or a font is no image: it stays the placeholder's format and does not
+                        // decode.
                         Ok(
                             ew_schema::AssetFormat::Png
                             | ew_schema::AssetFormat::Pdf
-                            | ew_schema::AssetFormat::Dxf,
+                            | ew_schema::AssetFormat::Dxf
+                            | ew_schema::AssetFormat::Ttf
+                            | ew_schema::AssetFormat::Otf,
                         )
                         | Err(_) => img.image.format,
                     }

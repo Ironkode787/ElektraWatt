@@ -1477,6 +1477,16 @@ refusal-frames-not-frame = het formulier is geen kader (de soort moet `frame`, `
 refusal-company-image-too-large = { $p0 } is groter dan { $p1 } KiB (de grens voor { $p2 })
 refusal-company-the-logo = het logo
 refusal-company-a-logo = een bedrijfslogo
+# project.typeface.set (doc 09 §4.8).
+refusal-typeface-too-large = het lettertypebestand is groter dan { $p0 } KiB, het meeste dat een project als lettertype aanneemt
+refusal-typeface-not-a-font = het bestand is geen lettertype van één letterfamilie: kies een TrueType- of OpenType-bestand (.ttf, .otf), geen verzameling (.ttc) en geen weblettertype (.woff)
+refusal-typeface-damaged = het lettertypebestand is niet te lezen: de tabellen zijn beschadigd of het noemt geen lettertype
+refusal-typeface-restricted = de licentie van het lettertype verbiedt het in een document in te sluiten (de insluitrechten zijn "beperkt"), dus een PDF kan het niet bevatten
+refusal-typeface-bitmaps-only = de licentie van het lettertype staat alleen het insluiten van de bitmaps toe, en een PDF drukt de omtrekken van de letters af
+refusal-typeface-no-subset = de licentie van het lettertype staat alleen het insluiten van het hele lettertype toe, en een PDF sluit alleen de letters in die het afdrukt
+refusal-typeface-no-letters = het lettertype mist letters van A tot Z, a tot z of de cijfers 0 tot 9: het is geen lettertype voor de teksten van een tekening
+refusal-typeface-name-missing = geef de naam van het lettertypebestand (`name`)
+refusal-typeface-name = `{ $p0 }` is geen bestandsnaam: geef de naam zonder map, ten hoogste { $p1 } tekens
 # project.languages.set and project.settings.set.
 refusal-languages-source-as-translation = `{ $p0 }` is de brontaal, geen vertaling
 refusal-settings-member-unknown = `{ $p0 }` is geen instelbare projectinstelling; instelbaar: { $p1 }
@@ -1690,6 +1700,7 @@ refusal-items-bind-unknown = `{ $p0 }` is geen koppelbare naam; koppelbaar: { $p
 refusal-items-text-empty = een vrije tekst zonder `bind` heeft een tekst nodig
 refusal-items-text-angle = de hoek van een vrije tekst is 0, 90000, 180000 of 270000 (10⁻³ graad), niet { $p0 }
 refusal-items-align-unknown = een uitlijning die deze versie niet kent
+refusal-items-anchor-unknown = een ankerpunt dat deze versie niet kent (geef middle of baseline)
 refusal-items-image-no-area = een afbeeldingsrechthoek zonder oppervlak
 refusal-items-colour-not-company = `{ $p0 }` is geen IEC 60757-kleurcode en geen bedrijfscode van het kleurprofiel van het project
 refusal-items-colour-foreign = `{ $p0 }` is een vreemde kleurcode; gebruik een IEC 60757-code of een bedrijfscode van het kleurprofiel van het project

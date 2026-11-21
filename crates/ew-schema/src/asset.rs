@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), and the embedded sources of
-//! underlays (a PDF or a DXF the user embedded, WP-S3.19), which no image gate takes ([`pixel_limit`]).
+//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), the embedded sources of
+//! underlays (a PDF or a DXF the user embedded, WP-S3.19) and the project's typeface (a TrueType or OpenType file, doc 09
+//! §4.8), which no image gate takes ([`pixel_limit`]).
 //!
-//! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG; PDF and DXF underlay sources) and their file
-//!   extensions.
+//! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG; PDF and DXF underlay sources; TTF and OTF
+//!   typefaces) and their file extensions.
 //! - [`AssetRef`]: how a record names an asset, `{sha256, format, size}` (decision log ID-61): readers such as the
 //!   forms layer trust it and never sniff the bytes.
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
@@ -63,6 +64,11 @@ pub enum AssetFormat {
     Pdf,
     /// A DXF drawing, the embedded source of an underlay (never an image).
     Dxf,
+    /// A font of one typeface with TrueType outlines (or an sfnt of version `true`): the project's typeface (doc 09
+    /// §4.8; never an image).
+    Ttf,
+    /// A font of one typeface with PostScript outlines (`OTTO`): the project's typeface (never an image).
+    Otf,
 }
 
 impl AssetFormat {
@@ -74,10 +80,12 @@ impl AssetFormat {
             AssetFormat::Jpeg => "jpg",
             AssetFormat::Pdf => "pdf",
             AssetFormat::Dxf => "dxf",
+            AssetFormat::Ttf => "ttf",
+            AssetFormat::Otf => "otf",
         }
     }
 
-    /// The format of a file extension (`svg`, `png`, `jpg`, `pdf`, `dxf`); `None` for any other.
+    /// The format of a file extension (`svg`, `png`, `jpg`, `pdf`, `dxf`, `ttf`, `otf`); `None` for any other.
     pub fn from_ext(ext: &str) -> Option<AssetFormat> {
         match ext {
             "svg" => Some(AssetFormat::Svg),
@@ -85,8 +93,15 @@ impl AssetFormat {
             "jpg" => Some(AssetFormat::Jpeg),
             "pdf" => Some(AssetFormat::Pdf),
             "dxf" => Some(AssetFormat::Dxf),
+            "ttf" => Some(AssetFormat::Ttf),
+            "otf" => Some(AssetFormat::Otf),
             _ => None,
         }
+    }
+
+    /// Whether the format is a font file (the project's typeface).
+    pub const fn is_font(self) -> bool {
+        matches!(self, AssetFormat::Ttf | AssetFormat::Otf)
     }
 
     /// Whether the format is a raster image (it prints rasterised, D-07).
@@ -102,6 +117,10 @@ impl AssetFormat {
 
 /// The largest embedded underlay source (a PDF or a DXF): 64 MiB.
 pub const MAX_UNDERLAY_BYTES: usize = 64 * 1024 * 1024;
+
+/// The largest font file a project takes as its typeface: 768 KiB, the most whose base64 fits the one parameter string
+/// of a command (1 MiB; doc 09 §4.8).
+pub const MAX_TYPEFACE_BYTES: usize = 768 * 1024;
 
 /// How a record names an asset: its content hash, its encoding and, when known, its intrinsic size (width and
 /// height in pixels or SVG user units; only their ratio is used). Encoded as
@@ -297,6 +316,10 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
         (AssetFormat::Pdf, None)
     } else if is_dxf(bytes) {
         (AssetFormat::Dxf, None)
+    } else if bytes.starts_with(&[0, 1, 0, 0]) || bytes.starts_with(b"true") {
+        (AssetFormat::Ttf, None)
+    } else if bytes.starts_with(b"OTTO") {
+        (AssetFormat::Otf, None)
     } else if let Some(attrs) = svg_root(bytes) {
         (AssetFormat::Svg, svg_size(attrs))
     } else {
@@ -306,6 +329,7 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
         AssetFormat::Png | AssetFormat::Jpeg => MAX_RASTER_BYTES,
         AssetFormat::Svg => MAX_SVG_BYTES,
         AssetFormat::Pdf | AssetFormat::Dxf => MAX_UNDERLAY_BYTES,
+        AssetFormat::Ttf | AssetFormat::Otf => MAX_TYPEFACE_BYTES,
     };
     if bytes.len() > limit {
         return Err(AssetError::TooLarge {

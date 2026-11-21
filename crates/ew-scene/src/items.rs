@@ -158,8 +158,8 @@ impl Builder<'_> {
                         AssetFormat::Svg => ImageFormat::Svg,
                         AssetFormat::Png => ImageFormat::Png,
                         AssetFormat::Jpeg => ImageFormat::Jpeg,
-                        // An underlay source named as an image (a hand-edited file) draws nothing.
-                        AssetFormat::Pdf | AssetFormat::Dxf => continue,
+                        // An underlay source or a font named as an image (a hand-edited file) draws nothing.
+                        AssetFormat::Pdf | AssetFormat::Dxf | AssetFormat::Ttf | AssetFormat::Otf => continue,
                     };
                     let data = ImageData {
                         sha256: i.asset.0,

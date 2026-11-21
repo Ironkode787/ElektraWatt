@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The font set: bundled font files only, each identified by its SHA-256 ([`FontKey`]).
+//! The font set: the bundled font files and a project's typeface (doc 09 §4.8), each identified by its SHA-256
+//! ([`FontKey`]).
 
 use std::fmt;
 #[cfg(feature = "bundled-fonts")]
@@ -573,4 +574,58 @@ pub fn bundled_sources() -> Vec<FontSource> {
 pub fn bundled() -> &'static FontSet {
     static SET: OnceLock<FontSet> = OnceLock::new();
     SET.get_or_init(|| FontSet::new(bundled_sources()).expect("bundled fonts match their pinned hashes"))
+}
+
+/// The typeface sets this process built, by the SHA-256 of their file: the set (or why there is none) and the file.
+#[cfg(feature = "bundled-fonts")]
+type Typefaces = std::collections::BTreeMap<[u8; 32], (Result<&'static FontSet, FontError>, Arc<[u8]>)>;
+
+#[cfg(feature = "bundled-fonts")]
+fn typefaces() -> std::sync::MutexGuard<'static, Typefaces> {
+    static SETS: OnceLock<Mutex<Typefaces>> = OnceLock::new();
+    SETS.get_or_init(Mutex::default)
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// The font set of a project's typeface (doc 09 §4.8): the bundled set with the font file `data` as the
+/// [`Family::Default`] face in place of Noto Sans Regular and Bold (one face: a bold style prints in it regular, as
+/// [`FontSet::face_for`] says); the other roles and the symbol fallback stay. Built once per file and kept for the
+/// process, so the same bytes give the same set; the typefaces one process meets are few.
+///
+/// # Errors
+///
+/// [`FontError::NotAFont`] for bytes skrifa cannot read as a font (the same answer for the same bytes).
+#[cfg(feature = "bundled-fonts")]
+pub fn typeface_set(data: &Arc<[u8]>) -> Result<&'static FontSet, FontError> {
+    let sha256: [u8; 32] = Sha256::digest(data).into();
+    let mut sets = typefaces();
+    if let Some((set, _)) = sets.get(&sha256) {
+        return set.clone();
+    }
+    let mut sources: Vec<FontSource> = bundled_sources()
+        .into_iter()
+        .filter(|s| s.family != Family::Default)
+        .collect();
+    sources.push(FontSource {
+        data: Blob::new(Arc::new(Arc::clone(data))),
+        face_index: 0,
+        family: Family::Default,
+        weight: Weight::Regular,
+        italic: false,
+        expected: None,
+    });
+    let set = FontSet::new(sources).map(|s| &*Box::leak(Box::new(s)));
+    sets.insert(sha256, (set.clone(), Arc::clone(data)));
+    set
+}
+
+/// The file of a typeface face this process built a set with ([`typeface_set`]), for the renderers and writers that
+/// draw or embed its glyphs; `None` for any other key (a bundled face is [`FontSet::face_data`] of [`bundled`]).
+#[cfg(feature = "bundled-fonts")]
+pub fn typeface_file(key: FontKey) -> Option<Arc<[u8]>> {
+    typefaces()
+        .get(&key.sha256)
+        .filter(|(set, _)| set.is_ok() && key.face_index == 0)
+        .map(|(_, data)| Arc::clone(data))
 }

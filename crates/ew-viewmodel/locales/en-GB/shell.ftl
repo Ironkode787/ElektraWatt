@@ -1532,6 +1532,16 @@ refusal-frames-not-frame = the form is not a frame (its kind must be `frame`, `c
 refusal-company-image-too-large = { $p0 } is larger than { $p1 } KiB (the limit of { $p2 })
 refusal-company-the-logo = the logo
 refusal-company-a-logo = a company logo
+# project.typeface.set (doc 09 §4.8).
+refusal-typeface-too-large = the font file is larger than { $p0 } KiB, the most a project takes as its typeface
+refusal-typeface-not-a-font = the file is no font of one typeface: choose a TrueType or OpenType file (.ttf, .otf), not a collection (.ttc) or a web font (.woff)
+refusal-typeface-damaged = the font file cannot be read: its tables are damaged or it names no typeface
+refusal-typeface-restricted = the font's licence forbids embedding it in a document (its embedding permission is "restricted"), so a PDF cannot carry it
+refusal-typeface-bitmaps-only = the font's licence allows embedding its bitmaps only, and a PDF prints the outlines of its letters
+refusal-typeface-no-subset = the font's licence allows embedding it only whole, and a PDF embeds only the letters it prints
+refusal-typeface-no-letters = the font lacks some of the letters A to Z, a to z and the digits 0 to 9: it is no typeface for a drawing's texts
+refusal-typeface-name-missing = give the font file's name (`name`)
+refusal-typeface-name = `{ $p0 }` is no file name: give the name without its folder, at most { $p1 } characters
 # project.languages.set and project.settings.set.
 refusal-languages-source-as-translation = `{ $p0 }` is the source language, not a translation
 refusal-settings-member-unknown = `{ $p0 }` is not a settable project setting; settable: { $p1 }
@@ -1745,6 +1755,7 @@ refusal-items-bind-unknown = `{ $p0 }` is not a bindable name; bindable: { $p1 }
 refusal-items-text-empty = a free text without `bind` needs a text
 refusal-items-text-angle = a free text's angle is 0, 90000, 180000 or 270000 (10⁻³ degree), not { $p0 }
 refusal-items-align-unknown = an alignment this build does not know
+refusal-items-anchor-unknown = an anchor this build does not know (give middle or baseline)
 refusal-items-image-no-area = an image rectangle without area
 refusal-items-colour-not-company = `{ $p0 }` is neither an IEC 60757 colour code nor a company code of the project's colour profile
 refusal-items-colour-foreign = `{ $p0 }` is a foreign colour code; use an IEC 60757 code or a company code of the project's colour profile
