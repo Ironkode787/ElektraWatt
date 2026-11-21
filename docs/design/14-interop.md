@@ -913,7 +913,7 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
   stay separate connections, so the topology is right. *As built:* QET files its own junction elements (the T
   junctions of its connections category, `114_connections`) as terminals; such an element with three wires or more
   becomes a junction where its strokes meet, its origin, and the stroke to each of its terminals becomes part of the
-  wire that ends there (FT-1861: they made terminals of inferred strips). One with fewer wires stays the element it
+  wire that ends there. One with fewer wires stays the element it
   is drawn as, because a junction of fewer dissolves (normaliser #8).
 
 **Nets and potentials** are never imported: QET has no such objects. EW derives nets, signals and potentials from
@@ -1012,7 +1012,7 @@ variable has an EW xref-format token (FR-XRF-003):
   translations the `en` one is taken, else the first. `%title`, `%folio`, `%folio-id`, `%folio-total`,
   `%previous-folio-num` and `%next-folio-num` bind to `page.title`, `page.folio`, `doc.page_index`,
   `doc.page_count`, `page.prev` and `page.next`. QET's own variables whose values the import writes into the
-  project's and the page's fields bind to those fields, so a value changed in the program prints (FT-1859): `%plant`
+  project's and the page's fields bind to those fields, so a value changed in the program prints: `%plant`
   and `%locmach` to `page.function` and `page.location`, the page's structure, a node of each code (`=P01`, `+AQ60`;
   one atomic code after the sign, else the value stays text); and, when every folio has one value, `%indexrev` to
   `revision.current.label` (an open revision of that label), `%author` to `revision.current.author.name` (the designer,
@@ -1070,7 +1070,7 @@ variable has an EW xref-format token (FR-XRF-003):
   being an element labelled with a strip designation (optional structure prefix and sign, then digits, letters and
   digits: `X1031`, `-X1031`, `1X1`); lines are per folio, a column per x for elements turned a quarter, else a row
   per y, and the header is itself a terminal of its strip; (3) on a folio without any header or label prefix, the
-  strip the folio before it (in file order) names last: a strip drawn on over a second folio, EW-IMP-005 (FT-1861);
+  strip the folio before it (in file order) names last: a strip drawn on over a second folio, EW-IMP-005;
   (4) the fallback strip `X?{page}` of its folio (§14 item 5, EW-IMP-005). An earth symbol QET files as a terminal
   (one terminal and an earth name in its path: `terre`, `earth`, `ground`) is no terminal: it is an earth point of
   its own, `EarthingBar / ProtectiveEarth / Point` with a PE connection point, as the starter's `ew.fn.pe`; a junction
@@ -1089,7 +1089,7 @@ variable has an EW xref-format token (FR-XRF-003):
 - **Cables, older** (FR-IMP-014): a cable-marker element (label -106W1) crossing conductors becomes a cable whose
   cores are the crossed conductors in crossing order; colours from `conductor_color` or colour texts beside the
   crossing; EW-IMP-005 for review. "BR" is not an IEC 60757 code, so the core keeps the foreign code with the
-  proposal "BN" (§4.12, MF-11). *As built (FT-1861):* a mark is an element without terminals; one labelled with a
+  proposal "BN" (§4.12, MF-11). *As built:* a mark is an element without terminals; one labelled with a
   tag of the letter W heads a cable device (the `Cable` aspect) whose main function it draws, and the unlabelled
   marks of its definition in its row (the same y, for a row across) draw auxiliary functions of it, as do those of
   a folio without a cable mark of its own that continue the cable the folio before it heads last. Each wire a mark
@@ -1269,7 +1269,8 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   the documents compiled into the program (`StarterLibrary::compiled`: the starter symbols and FnDefs and that
   title block), so a folio report, and with it its connections, is never dropped for want of the content.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
- , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
+ , rules R2/R3, the structure nodes of labels and EW-IMP-102 (a page's `=` and `+` of its title block are imported,
+  §4.9), parts from element information,
   text-to-data recognisers, thumbnails, the cables of QET 0.200 (`<cables>`), conductor properties as potential
   definitions and overrides,
   chain mode and external points, `<terminal_strips>` and their bridges, empty terminal

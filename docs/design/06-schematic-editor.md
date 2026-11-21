@@ -617,7 +617,7 @@ the default. The text interface takes `place.pick device=<tag>` and `function=<t
 `rep.join_device` moves a placed symbol's one function to another device, its wires kept, when its own device has that
 function alone, no part and no other symbol. J on one selected symbol, or Join device… in the page's right-click menu,
 opens the Join chooser of the devices it can join, one row per device (its first slot, else "auxiliary"); typing an
-existing device's tag into the Tag row proposes the same join. **A second symbol of a device's own** (FT-1860): a
+existing device's tag into the Tag row proposes the same join. **A second symbol of a device's own:** a
 symbol of another kind than a contact (a lamp, a supply drawn once for its input and once for its outputs, an element
 brought in from another program) joins any device but a terminal or a strip as an auxiliary function, by J, by
 `place.pick device=<tag>`, by the Tag row and by `rep.join_device`; a contact keeps D2's family rule, and a terminal, an
