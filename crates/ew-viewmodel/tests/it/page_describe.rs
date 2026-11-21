@@ -155,9 +155,8 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
 }
 
 /// BD5 (the window host reads the same cache): the first `page.describe` of a folio makes one `page_tables`
-/// call with the page content that carries it, a second makes none, and neither moves a memo counter after the first. On
-/// folio 104: on 102 and 103, which draw -102Q1's coil and contacts, a second description moves the memo totals (a
-/// fault, reported with this step).
+/// call with the page content that carries it, a second makes none and re-executes no memoised query. On folio 102,
+/// which draws a strip: its bridge lines are asked again and answered from the memo (hits, no re-execution; FT-1914).
 #[test]
 fn page_describe_reads_the_cached_page_tables() {
     let tmp = Tmp::new("pagecount");
@@ -175,14 +174,15 @@ fn page_describe_reads_the_cached_page_tables() {
         before.page_content + 1,
         "with the page content that carries it"
     );
-    let memo = shell.memo_totals();
+    let re_executions = |s: &ew_viewmodel::shell::ShellModel| s.memo_totals().map(|(_, re)| re);
+    let memo = re_executions(&shell);
     let again = page_text(&mut shell, Some(FOLIO));
     assert_eq!(
         shell.session_calls(),
         first,
         "a cached page costs no Session call"
     );
-    assert_eq!(shell.memo_totals(), memo, "and no memo re-execution");
+    assert_eq!(re_executions(&shell), memo, "and no memo re-execution");
     assert!(again.starts_with(&format!("page \"{FOLIO}\"")));
     assert_eq!(again, text, "the cached page describes as the first time");
     // The page on show is cached already.
@@ -193,7 +193,7 @@ fn page_describe_reads_the_cached_page_tables() {
 }
 
 /// The folio [`page_describe_reads_the_cached_page_tables`] describes twice.
-const FOLIO: &str = "104";
+const FOLIO: &str = "102";
 
 /// A generated list page prints its table: on the sample's parts list, the `table` line with the column and row
 /// counts, the column headers and one `row` line per printed row, each data row with one quoted cell per column; a
