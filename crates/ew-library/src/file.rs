@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced
-//! and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name.
+//! and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. A set of
+//! files (the SVG, PNG and DXF exports' pages) replaces its directory as a whole the same way ([`write_file_set`]).
 //!
 //! It lives here because `ew-library` is the lowest crate that every writer reaches under `ci/dep-rules.toml` (the
 //! command-line program, the view model and `ew-api` through `ew_api::library`); the crates below it do no file I/O.
@@ -90,6 +91,105 @@ impl Drop for Staged {
     }
 }
 
+/// Why a set of files does not replace a directory ([`write_file_set`]).
+#[derive(Debug)]
+pub enum FileSetError {
+    /// The directory holds this entry (its name), which is no file of the set's extensions: nothing is written or
+    /// removed.
+    Foreign(String),
+    /// Reading or writing `path` failed.
+    Io {
+        /// The file or directory.
+        path: PathBuf,
+        /// The error.
+        error: io::Error,
+    },
+}
+
+/// The first entry of `dir` that is no file with one of the extensions `exts` (its name); `None` for a directory that
+/// holds only such files, or none.
+///
+/// # Errors
+///
+/// [`FileSetError::Io`] when the directory cannot be read.
+pub fn foreign_entry(dir: &Path, exts: &[&str]) -> Result<Option<String>, FileSetError> {
+    let at = |path: &Path| {
+        let path = path.to_path_buf();
+        move |error| FileSetError::Io { path, error }
+    };
+    if !dir.exists() {
+        return Ok(None);
+    }
+    for e in std::fs::read_dir(dir).map_err(at(dir))? {
+        let path = e.map_err(at(dir))?.path();
+        if !path.is_file() || path.extension().is_none_or(|x| !exts.iter().any(|ext| x == *ext)) {
+            return Ok(Some(
+                path.file_name()
+                    .map_or_else(String::new, |n| n.to_string_lossy().into_owned()),
+            ));
+        }
+    }
+    Ok(None)
+}
+
+/// `path` with `suffix` appended to its last component.
+fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
+    let mut s = path.as_os_str().to_owned();
+    s.push(suffix);
+    PathBuf::from(s)
+}
+
+/// Writes the files `files` (name and bytes) into the directory `dir` as a whole: they go to a fresh sibling directory
+/// first, each synced, which then replaces `dir`, so `dir` holds exactly this set (no stale page of an earlier one) and
+/// a failure leaves the earlier set as it was. A directory that holds anything but files with the extensions `exts` is
+/// refused, so no other file is ever removed (`ew export svg|png|dxf`, the window's DXF export).
+///
+/// # Errors
+///
+/// [`FileSetError::Foreign`] for such a directory; [`FileSetError::Io`] for the first step that failed, after which the
+/// sibling directory is removed and `dir` is as it was.
+pub fn write_file_set(dir: &Path, exts: &[&str], files: &[(&str, &[u8])]) -> Result<(), FileSetError> {
+    if let Some(name) = foreign_entry(dir, exts)? {
+        return Err(FileSetError::Foreign(name));
+    }
+    let at = |path: &Path, error: io::Error| FileSetError::Io {
+        path: path.to_path_buf(),
+        error,
+    };
+    let tmp = with_suffix(dir, &format!(".tmp-{}", std::process::id()));
+    let old = with_suffix(dir, &format!(".old-{}", std::process::id()));
+    let written = std::fs::create_dir_all(&tmp)
+        .map_err(|e| at(&tmp, e))
+        .and_then(|()| {
+            files.iter().try_for_each(|(name, bytes)| {
+                let path = tmp.join(name);
+                std::fs::File::create(&path)
+                    .and_then(|mut f| f.write_all(bytes).and_then(|()| f.sync_all()))
+                    .map_err(|e| at(&path, e))
+            })
+        });
+    if let Err(e) = written {
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(e);
+    }
+    let had = dir.exists();
+    if had && let Err(e) = std::fs::rename(dir, &old) {
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(at(dir, e));
+    }
+    if let Err(e) = std::fs::rename(&tmp, dir) {
+        if had {
+            let _ = std::fs::rename(&old, dir);
+        }
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(at(dir, e));
+    }
+    if had {
+        let _ = std::fs::remove_dir_all(&old);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,5 +213,32 @@ mod tests {
             .collect();
         assert_eq!(names, ["out.txt"]);
         assert!(write_replacing(&dir.join("missing/out.txt"), b"x").is_err());
+    }
+
+    /// A set replaces its directory as a whole (no stale file of the earlier set stays), and a directory that holds
+    /// another file is refused and left as it was.
+    #[test]
+    fn a_file_set_replaces_its_directory_and_a_foreign_file_refuses_it() {
+        let root = ew_testdir::Tmp::new("ew-library-file-set");
+        let dir = root.join("set");
+        let names = |d: &Path| {
+            let mut n: Vec<String> = std::fs::read_dir(d)
+                .unwrap()
+                .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+                .collect();
+            n.sort();
+            n
+        };
+        write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"a"), ("2.dxf", b"b"), ("p.png", b"c")]).unwrap();
+        write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"A")]).unwrap();
+        assert_eq!(names(&dir), ["1.dxf"]);
+        assert_eq!(std::fs::read(dir.join("1.dxf")).unwrap(), b"A");
+        std::fs::write(dir.join("notes.txt"), b"mine").unwrap();
+        assert!(matches!(
+            write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"x")]),
+            Err(FileSetError::Foreign(n)) if n == "notes.txt"
+        ));
+        assert_eq!(names(&dir), ["1.dxf", "notes.txt"]);
+        assert_eq!(names(&root), ["set"], "no sibling directory is left");
     }
 }

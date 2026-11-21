@@ -3,7 +3,8 @@
 
 //! The PDF export as a job: a snapshot that crosses to the job's thread and runs
 //! the export's three phases there with a cold `Q`, progress and checkpoints. The print set is built the same way
-//! ([`PrintSetJob`]): the window's print pre-dialog builds it in the background.
+//! ([`PrintSetJob`]): the window's print pre-dialog builds it in the background; so is the DXF set of the window's
+//! Export DXF… ([`DxfExportJob`]).
 
 use std::sync::Arc;
 
@@ -11,7 +12,10 @@ use ew_derive::{Q, ReportPagesProvider};
 use ew_jobs::{JobCtl, JobError};
 
 use super::print::{PrintOptions, PrintSet, print_set_hooked};
-use super::{DrawingFonts, ExportAssets, ExportOptions, Halt, OutputError, PdfExport, export_pages_hooked};
+use super::{
+    DrawingFonts, DxfExport, ExportAssets, ExportOptions, Halt, OutputError, PdfExport, export_dxf_with,
+    export_pages_hooked,
+};
 use crate::{Session, World};
 
 /// An export of the session's current snapshot that runs on another thread ([`Session::export_job`]): the `World`,
@@ -72,7 +76,50 @@ const _: () = {
     const fn send<T: Send>() {}
     send::<ExportJob>();
     send::<PrintSetJob>();
+    send::<DxfExportJob>();
 };
+
+/// The DXF set of the session's current snapshot (doc 09 §4.9), built on another thread ([`Session::export_dxf_job`]):
+/// the `World`, the report engine and the asset bytes, as [`ExportJob`] holds them, with the default layer names.
+pub struct DxfExportJob {
+    world: World,
+    reports: Arc<dyn ReportPagesProvider>,
+    assets: ExportAssets,
+    options: ExportOptions,
+}
+
+impl DxfExportJob {
+    /// Builds the set on the calling thread (the job's): a cold `Q` over the snapshot with the report engine, then
+    /// [`super::export_dxf_with`] (phase `building`, indeterminate) and the checkpoint `written`. The set equals
+    /// [`Session::export_dxf`]'s on the revision the job was made on. Writes no file.
+    ///
+    /// # Errors
+    ///
+    /// [`JobError::Cancelled`] at the checkpoint after [`ew_jobs::Job::cancel`]; [`JobError::Failed`] with the
+    /// [`OutputError`]'s text (no path) for a selection the page order does not have.
+    pub fn run(self, ctl: &JobCtl) -> Result<DxfExport, JobError> {
+        let q = Q::new(&self.world.model).with_report_pages(self.reports);
+        ctl.report(ew_jobs::Progress {
+            done: 0,
+            total: 0,
+            phase: "building",
+        });
+        let set = export_dxf_with(&q, &self.options, &Default::default(), false, &self.assets)
+            .map_err(|e| JobError::Failed(e.to_string()))?;
+        ctl.checkpoint("written")?;
+        Ok(set)
+    }
+}
+
+impl std::fmt::Debug for DxfExportJob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DxfExportJob")
+            .field("rev", &self.world.rev)
+            .field("options", &self.options)
+            .field("assets", &self.assets)
+            .finish_non_exhaustive()
+    }
+}
 
 /// The print set of the session's current snapshot, built on another thread ([`Session::print_set_job`]): the
 /// `World`, the report engine and the asset bytes, as [`ExportJob`] holds them.
@@ -147,6 +194,17 @@ impl Session {
     /// [`Session::export_job`] is. Run it with [`PrintSetJob::run`] on a job's thread.
     pub fn print_set_job(&self, options: &PrintOptions) -> PrintSetJob {
         PrintSetJob {
+            world: self.world(),
+            reports: Arc::clone(&self.reports),
+            assets: self.export_assets(),
+            options: options.clone(),
+        }
+    }
+
+    /// The DXF set of the current snapshot as a job, made as [`Session::export_job`] is. Run it with
+    /// [`DxfExportJob::run`] on a job's thread.
+    pub fn export_dxf_job(&self, options: &ExportOptions) -> DxfExportJob {
+        DxfExportJob {
             world: self.world(),
             reports: Arc::clone(&self.reports),
             assets: self.export_assets(),

@@ -1286,7 +1286,15 @@ user's converter on this DXF, as the DWG import runs it the other way). No font 
 named face, never its outlines. No `MTEXT` and no attribute of more lines. No title block as a block with attributes,
 no named views (a link opens the page and the text names the cell), no external references between the page files,
 no paper-space layout of the sheet, no plot styles. A raster picture is never inside the file, and the rule that
-aligned a text is not written. The window has no DXF export yet: `ew export dxf` writes the set (FT-1960).
+aligned a text is not written. The window's export writes the default layer names and `.dxf` links: `--layer` and
+`--dwg-links` are the command line's.
+
+**In the window** (FT-1960): Export DXF… stands on the Output tab and in the Output menu beside Export PDF… and
+Print…. It asks for a folder and writes the set there as a job (`file.export_dxf {dir}`), as `ew export dxf` does: the
+folder is replaced as a whole, so it must be empty or hold a DXF set only (DXF files and their pictures); a folder
+that holds any other file is refused in words before the job starts and left as it was, and so is a folder inside the
+open project. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
+before the folder is replaced writes nothing.
 
 **Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of
 the sample and on a small project of the test's own (a coil on one page and its contact on another, an input card

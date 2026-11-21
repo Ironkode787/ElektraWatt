@@ -269,6 +269,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Export DXF…, beside Export PDF on the Output tab: the pages as a DXF set in a folder, as a job (doc 09 §4.9).
+    with_params(
+        "dir?:path, wait?:bool",
+        placed(
+            place(Group::Pdf, 3, CommandSize::Small, None),
+            "files",
+            act(
+                "file.export_dxf",
+                Command,
+                Menu::Output,
+                &[],
+                has_pages,
+                None,
+                |s, p| s.act_export_dxf(p),
+            ),
+        ),
+    ),
     // File ▸ Export .ewz…, the saved generation as one file.
     with_params(
         "path?:path, replace?:bool",

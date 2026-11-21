@@ -117,12 +117,14 @@ pub use editing::{
 pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
 pub use ew_derive::ValvePort;
-pub use ew_export::{DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
+pub use ew_export::{
+    DXF_SET_EXTENSIONS, DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, dxf_file_name, svg_file_name,
+};
 pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
     field_catalogue_for, format_field_value,
 };
-pub use job::{ExportJob, PrintSetJob};
+pub use job::{DxfExportJob, ExportJob, PrintSetJob};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
     TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene, page_view,
@@ -518,6 +520,26 @@ pub struct PageKinds {
     pub dividers: usize,
 }
 
+impl PageKinds {
+    /// The kinds of the pages `entries`.
+    fn of<'a>(entries: impl Iterator<Item = &'a PageEntry> + Clone) -> PageKinds {
+        let count = |divider: bool| {
+            entries
+                .clone()
+                .filter(|e| match e.page {
+                    ew_derive::PageRef::Drawn(_) => !divider,
+                    ew_derive::PageRef::Divider(_) => divider,
+                    _ => false,
+                })
+                .count()
+        };
+        PageKinds {
+            drawing: count(false),
+            dividers: count(true),
+        }
+    }
+}
+
 /// A written PDF.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PdfExport {
@@ -553,6 +575,8 @@ pub struct DxfExport {
     pub pictures: Vec<ew_export::DxfPicture>,
     /// The findings of the page scenes, and the images that cannot be drawn.
     pub findings: Vec<PageFindingAt>,
+    /// The drawing pages and the section divider pages among them.
+    pub kinds: PageKinds,
 }
 
 /// The DXF set of an export over `q` (doc 09 §4.4, §4.9, FR-OUT-015): one AutoCAD 2010 file per selected page from its
@@ -670,6 +694,7 @@ pub fn export_dxf_with(
         files: set.files,
         pictures: set.pictures,
         findings,
+        kinds: PageKinds::of(picked.iter().map(|&i| &order.entries[i])),
     })
 }
 
@@ -969,14 +994,7 @@ pub(crate) fn export_pages_hooked(
             ctl.checkpoint("page")?;
         }
     }
-    let kinds = PageKinds {
-        drawing: (phase1.iter())
-            .filter(|p| matches!(p.entry.page, ew_derive::PageRef::Drawn(_)))
-            .count(),
-        dividers: (phase1.iter())
-            .filter(|p| matches!(p.entry.page, ew_derive::PageRef::Divider(_)))
-            .count(),
-    };
+    let kinds = PageKinds::of(phase1.iter().map(|p| &p.entry));
     let mut findings: Vec<PageFindingAt> = phase1
         .iter()
         .flat_map(|p| {

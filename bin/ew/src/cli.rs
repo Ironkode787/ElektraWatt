@@ -818,21 +818,6 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     ew_api::library::file::write_replacing(path, bytes)
 }
 
-/// `path` with `suffix` appended to its last component.
-fn sibling(path: &Path, suffix: &str) -> PathBuf {
-    let mut s = path.as_os_str().to_owned();
-    s.push(suffix);
-    PathBuf::from(s)
-}
-
-/// Writes `bytes` to `path` and flushes them to the disk before returning.
-fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    use std::io::Write;
-    let mut f = std::fs::File::create(path)?;
-    f.write_all(bytes)?;
-    f.sync_all()
-}
-
 fn json_text(v: serde_json::Result<serde_json::Value>) -> String {
     match v {
         Ok(serde_json::Value::String(s)) => s,

@@ -255,6 +255,11 @@ impl RfdPlatform {
                     .add_filter("PDF", &["pdf"]),
                 DialogKind::Save,
             ),
+            // Output ▸ Export DXF…: the folder the set goes into.
+            Prompt::SaveDxf => (
+                base.set_title(strings::text(key!("prompt-export-dxf-title"))),
+                DialogKind::Folder,
+            ),
             // The keymap editor's Import… and Export….
             Prompt::OpenKeymap => (
                 base.set_title(strings::text(key!("prompt-open-keymap-title")))

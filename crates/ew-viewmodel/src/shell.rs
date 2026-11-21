@@ -529,6 +529,8 @@ pub enum Prompt {
     Folder,
     /// A PDF file name (Export).
     SavePdf,
+    /// The folder a DXF set goes into, empty or holding a DXF set only (Output ▸ Export DXF…).
+    SaveDxf,
     /// An existing QElectroTech project file (Import).
     OpenQet,
     /// An existing parts table, `parts.csv` (Import, Parts table).

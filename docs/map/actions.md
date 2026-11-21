@@ -26,6 +26,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `file.save_as` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_save_as` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-save-as` |
 | `file.discard_journal` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_discard_journal` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-discard-journal` |
 | `file.export_pdf` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_export_pdf` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-file-export-pdf` |
+| `file.export_dxf` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_export_dxf` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-file-export-dxf` |
 | `file.export_ewz` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_export_ewz` `crates/ew-viewmodel/src/shell/external.rs` | `action-file-export-ewz` |
 | `project.check_disk` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_check_disk` `crates/ew-viewmodel/src/shell/external.rs` | `action-project-check-disk` |
 | `file.upgrade` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_upgrade` `crates/ew-viewmodel/src/shell/external.rs` | `action-file-upgrade` |

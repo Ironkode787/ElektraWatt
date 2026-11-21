@@ -42,10 +42,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 - FT-1820 `ew-commands, ew-derive`: An earth symbol takes its number from the cables' W counter (its tag is hidden on the page and used in the wire list), so a project's first cable can be W2 and two devices can be tagged W1; changing the symbol's letter is EW-RDS-003. Decide the symbol's own letter, or give it no tag.
 - FT-1821 `ew-derive, ew-checks`: The rule that a wire from 0 V to earth is the bond (`bond_carrier.rs`) looks at one page only: a 0 V that comes in through an interruption point from another page still needs Draw ▸ Connect ▸ Bond.
 
-#### The DXF as the PDF
-
-- FT-1960 `ew-viewmodel, content`: The window has no DXF export: File offers Export PDF only, so the DXF set of doc 09 §4.9 comes from `ew export dxf` alone. An action `file.export_dxf` beside `file.export_pdf` that asks for a folder and writes the pages and the pictures they name as a job, with its texts in both languages. Left out of FT-1877 as a window action of its own, in the crates another fix lane was working in.
-
 #### What the model has no place for
 
 - FT-1878 `ew-model, ew-checks, ew-scene`: A draughtsman's drawing shows what the model cannot hold: two terminal numbers on one two-level terminal block (the job put half a part on each); a part whose type is not known (no placeholder: the device has no part and the check warns). The other three such gaps are FT-1905, M4.

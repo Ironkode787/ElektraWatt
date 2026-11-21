@@ -46,7 +46,7 @@ impl Pictures {
                 let hex: String = image.sha256[..6].iter().map(|b| format!("{b:02x}")).collect();
                 let png = image.format == ImageFormat::Png;
                 Some(Picture {
-                    name: format!("picture-{hex}.{}", if png { "png" } else { "jpg" }),
+                    name: format!("picture-{hex}.{}", if png { super::PNG } else { super::JPG }),
                     pixels: (decoded.width, decoded.height),
                     bytes: Arc::clone(&image.bytes),
                     png,

@@ -843,6 +843,15 @@ action-file-save = Save
 action-file-save-as = Save as…
 action-file-export-pdf = Export PDF…
 
+# FT-1960: the pages as a DXF set (doc 09 §4.9), a folder of page files and the pictures they name.
+action-file-export-dxf = Export DXF…
+prompt-export-dxf-title = Export DXF: choose a folder for the set
+job-kind-dxf = DXF export
+toast-export-dxf = Exported the DXF set to { $p0 }: { $p1 }, { $p2 } KiB.
+toast-export-dxf-again = Exported the DXF set to { $p0 } again: { $p1 }, { $p2 } KiB.
+marker-export-dxf = Exported DXF to { $p0 }
+reason-export-dxf-folder = The folder holds other files than a DXF set; choose an empty folder or one that holds a DXF set only
+
 # WP-S3.07 part 3 (D10, ruling 4 of ID-1180): the print pre-dialog.
 action-file-print = Print…
 action-print-set = Set the print options

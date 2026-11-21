@@ -48,6 +48,15 @@ use text::Placed;
 /// The tolerance Béziers are flattened to: 0.01 mm.
 pub const FLATNESS_NM: f64 = 10_000.0;
 
+/// The extension of a PNG picture beside the pages.
+const PNG: &str = "png";
+
+/// The extension of a JPEG picture beside the pages.
+const JPG: &str = "jpg";
+
+/// The extensions of the files a DXF set holds: its pages' and its pictures' (`picture`).
+pub const DXF_SET_EXTENSIONS: [&str; 3] = ["dxf", PNG, JPG];
+
 /// The characters a DXF layer or block name may not hold, besides control characters.
 const NAME_FORBIDDEN: &str = "<>/\\\":;?*|,='";
 

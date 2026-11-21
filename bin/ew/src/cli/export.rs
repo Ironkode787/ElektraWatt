@@ -652,10 +652,10 @@ pub(super) fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Re
 }
 
 /// Writes a set of files with the extensions `exts` (`svg`; `png`; `dxf` with its pictures; `a_file` names one: `an
-/// SVG`, `only` the directory that holds them alone: `SVG-only`) into the directory `out` as a whole: the files go to a
-/// fresh sibling directory first, which then replaces `out`, so `out` holds exactly this export (no stale page of an
-/// earlier export) and a failure leaves the earlier set as it was. A directory that holds a file of any other extension
-/// is refused, so no other file is ever removed (`ew export svg`, `ew export png`, `ew export dxf`).
+/// SVG`, `only` the directory that holds them alone: `SVG-only`) into the directory `out` as a whole
+/// ([`ew_api::library::file::write_file_set`]): `out` holds exactly this export, a failure leaves the earlier set as it
+/// was, and a directory that holds a file of any other extension is refused (`ew export svg`, `ew export png`, `ew
+/// export dxf`).
 pub(super) fn write_file_set(
     out: &Path,
     exts: &[&str],
@@ -663,51 +663,14 @@ pub(super) fn write_file_set(
     only: &str,
     files: &[(&str, &[u8])],
 ) -> Result<(), String> {
-    let at = |p: &Path, e: std::io::Error| format!("{}: {e}", p.display());
-    if out.exists() {
-        let entries = std::fs::read_dir(out).map_err(|e| at(out, e))?;
-        for e in entries {
-            let path = e.map_err(|e| at(out, e))?.path();
-            if !path.is_file() || path.extension().is_none_or(|x| !exts.iter().any(|ext| x == *ext)) {
-                return Err(format!(
-                    "{}: the directory holds {}, which is not {a_file} file; choose an empty or {only} directory",
-                    out.display(),
-                    path.file_name()
-                        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
-                ));
-            }
-        }
-    }
-    let tmp = sibling(out, &format!(".tmp-{}", std::process::id()));
-    let old = sibling(out, &format!(".old-{}", std::process::id()));
-    let written = std::fs::create_dir_all(&tmp)
-        .map_err(|e| at(&tmp, e))
-        .and_then(|()| {
-            files.iter().try_for_each(|(name, bytes)| {
-                let path = tmp.join(name);
-                write_synced(&path, bytes).map_err(|e| at(&path, e))
-            })
-        });
-    if let Err(e) = written {
-        let _ = std::fs::remove_dir_all(&tmp);
-        return Err(e);
-    }
-    let had = out.exists();
-    if had && let Err(e) = std::fs::rename(out, &old) {
-        let _ = std::fs::remove_dir_all(&tmp);
-        return Err(at(out, e));
-    }
-    if let Err(e) = std::fs::rename(&tmp, out) {
-        if had {
-            let _ = std::fs::rename(&old, out);
-        }
-        let _ = std::fs::remove_dir_all(&tmp);
-        return Err(at(out, e));
-    }
-    if had {
-        let _ = std::fs::remove_dir_all(&old);
-    }
-    Ok(())
+    use ew_api::library::file::FileSetError;
+    ew_api::library::file::write_file_set(out, exts, files).map_err(|e| match e {
+        FileSetError::Foreign(name) => format!(
+            "{}: the directory holds {name}, which is not {a_file} file; choose an empty or {only} directory",
+            out.display()
+        ),
+        FileSetError::Io { path, error } => format!("{}: {error}", path.display()),
+    })
 }
 
 pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
@@ -816,7 +779,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .chain(dxf.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
                 .collect();
             let (a_file, only) = ("a DXF or picture", "DXF-and-picture-only");
-            if let Err(e) = write_file_set(&a.out, &["dxf", "png", "jpg"], a_file, only, &files) {
+            if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, a_file, only, &files) {
                 eprintln!("error: {e}");
                 return 2;
             }

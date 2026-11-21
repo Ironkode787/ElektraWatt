@@ -307,7 +307,8 @@ stays open", "The tab group has one tab", "Only one tab group is shown", "No pag
 *As built.* The **Insert** menu of the table is now the Draw menu. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; it sits in Edit), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The crossings setting is set through `project.crossings`, which commits `project.drawing.set`.
 
 *As built.* The Output menu holds Print… (Ctrl+P, `file.print`) beside Export PDF…, opening the print pre-dialog
-([16a](16a-design-language.md) §6.26), and, in its Lists group, Export table… and Import table…
+([16a](16a-design-language.md) §6.26), and Export DXF… (`file.export_dxf`, FT-1960: a folder, then the DXF set of
+[09](09-reports-forms-output.md) §4.9 written as a job), and, in its Lists group, Export table… and Import table…
 (`navigator.export_table`, `navigator.import_table`), which also stand as a separated block in a navigator table's
 Columns menu; each has a predicate and gives its reason while no table navigator is shown in table mode.
 

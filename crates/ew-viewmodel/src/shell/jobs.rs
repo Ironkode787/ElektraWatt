@@ -678,6 +678,62 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `file.export_dxf {dir?, wait?}` (Output ▸ Export DXF…, doc 09 §4.9): the DXF set as a job writing every page
+    /// and the pictures they name into the folder `dir` as a whole. A folder that holds other files is refused before
+    /// the job starts, so no file of the user's is ever removed.
+    pub(crate) fn act_export_dxf(&mut self, p: &Map<String, Value>) -> Outcome {
+        let dir = match string_param(p, "dir") {
+            Err(e) => return e,
+            Ok(Some(dir)) => absolute_target(PathBuf::from(dir)),
+            Ok(None) => return self.need_path("file.export_dxf", Prompt::SaveDxf, "dir", p),
+        };
+        let wait = match bool_param(p, "wait", true) {
+            Ok(w) => w,
+            Err(e) => return e,
+        };
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(name) = dir.file_name().map(|n| n.to_string_lossy().into_owned()) else {
+            return failed(key!("error-bad-param"), &["dir"]);
+        };
+        if self
+            .jobs
+            .entries()
+            .any(|e| e.is_running() && matches!(e.kind, JobKind::Pdf | JobKind::Table | JobKind::Dxf))
+        {
+            return Outcome::refused(key!("reason-export-running"));
+        }
+        // A set renamed over a folder of the open project would damage it; the project's own folder (or one that holds
+        // it) holds other files, which the next check refuses.
+        if inside(&project.dir, &dir) {
+            return Outcome::refused(key!("reason-export-into-project"));
+        }
+        if !matches!(
+            ew_api::library::file::foreign_entry(&dir, &ew_api::output::DXF_SET_EXTENSIONS),
+            Ok(None)
+        ) {
+            return Outcome::refused(key!("reason-export-dxf-folder"));
+        }
+        let rev = project.session.world().rev.0;
+        let epoch = project.epoch;
+        let job = project.session.export_dxf_job(&ExportOptions::default());
+        self.count(|c| c.export_job += 1);
+        let number = match self.jobs.start_dxf(job, dir, name, rev, epoch) {
+            Ok(n) => n,
+            Err(_) => {
+                let message =
+                    strings::format(key!("error-export"), &[strings::text(key!("error-no-thread"))]);
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
+            }
+        };
+        if self.mode == Mode::Headless && wait {
+            return self.wait_job(number);
+        }
+        Outcome::Done
+    }
+
     /// Takes the ends of the jobs that have finished (the window every frame, the script runner before every step).
     /// Makes no `Session` call.
     pub fn poll_jobs(&mut self) {
@@ -783,17 +839,18 @@ impl ShellModel {
                 });
                 // A table has no pages; its end says the size only.
                 let table = entry.kind == JobKind::Table;
+                // A DXF set's end says that its folder holds DXF files.
+                let (pdf, pdf_again) = if entry.kind == JobKind::Dxf {
+                    (key!("toast-export-dxf"), key!("toast-export-dxf-again"))
+                } else {
+                    (key!("toast-export-pdf"), key!("toast-export-pdf-again"))
+                };
                 // The pages by kind ("1 drawing page and 10 report pages"), each count with its
                 // plural form.
                 let pages = page_words(&done);
                 let text = match (table, again) {
-                    (false, false) => {
-                        strings::format(key!("toast-export-pdf"), &[&entry.name, &pages, &kib.to_string()])
-                    }
-                    (false, true) => strings::format(
-                        key!("toast-export-pdf-again"),
-                        &[&entry.name, &pages, &kib.to_string()],
-                    ),
+                    (false, false) => strings::format(pdf, &[&entry.name, &pages, &kib.to_string()]),
+                    (false, true) => strings::format(pdf_again, &[&entry.name, &pages, &kib.to_string()]),
                     (true, false) => {
                         strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()])
                     }
@@ -847,10 +904,10 @@ impl ShellModel {
                 )
             }
         };
-        let marker_key = if entry.kind == JobKind::Table {
-            key!("marker-export-table")
-        } else {
-            key!("marker-export")
+        let marker_key = match entry.kind {
+            JobKind::Table => key!("marker-export-table"),
+            JobKind::Dxf => key!("marker-export-dxf"),
+            _ => key!("marker-export"),
         };
         let marker = matches!(status, JobStatus::Done { .. })
             .then(|| strings::format(marker_key, &[&entry.name]))

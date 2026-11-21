@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
+  of `ew export dxf` into a folder as a job; a folder that holds other files is refused and left as it was (doc 09
+  §4.9, FT-1960)
 - behaviour-change: a text in many languages that lacks the project's language, or in a project that names none,
   prints in English before falling back to its first language in tag order (an element brought in from QElectroTech
   named in `ar`, `cs`, `de`, `en` … no longer prints, or names its DXF block, in Arabic) (doc 09 §4.7)

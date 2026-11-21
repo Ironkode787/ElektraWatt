@@ -8,7 +8,8 @@
 //! the hidden sibling `.<file name>.ew-part` in the target's folder, syncs it and renames it over the target. A guard
 //! removes the sibling on every other way out of the body, a cancel at the checkpoint before the rename, a failure,
 //! a panic (the guard drops while the panic unwinds), so no partial file remains; after the rename the export is done.
-//! The cause of a failure is a fixed English text by the I/O error's kind, never a path.
+//! The cause of a failure is a fixed English text by the I/O error's kind, never a path. A DXF set (doc 09 §4.9)
+//! replaces its folder as a whole after the same checkpoint ([`ew_api::library::file::write_file_set`]).
 //!
 //! **Determinism.** Nothing here prints a progress number, an elapsed time or a path; the window keeps its own clock
 //! for the elapsed time and the 200 ms rule. The entries are numbered from 1 per shell; the last [`MAX_JOBS`] are kept.
@@ -19,8 +20,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
-use ew_api::library::file::Staged;
-use ew_api::output::{CsvOptions, ExportJob, Table, WorkbookMeta};
+use ew_api::library::file::{FileSetError, Staged, write_file_set};
+use ew_api::output::{CsvOptions, DXF_SET_EXTENSIONS, DxfExportJob, ExportJob, Table, WorkbookMeta};
 
 use crate::key;
 use crate::strings;
@@ -42,6 +43,8 @@ pub enum JobKind {
     /// A drawing read, probed and converted for File ▸ Import… (`file.import_drawing`, FT-1753): it writes no file,
     /// and its end opens the dialog or makes the page or underlay.
     Import,
+    /// The DXF set (`file.export_dxf`, doc 09 §4.9): a folder of page files and the pictures they name.
+    Dxf,
 }
 
 impl JobKind {
@@ -52,6 +55,7 @@ impl JobKind {
             JobKind::Print => "print",
             JobKind::Table => "table",
             JobKind::Import => "import",
+            JobKind::Dxf => "dxf",
         }
     }
 
@@ -62,6 +66,7 @@ impl JobKind {
             JobKind::Print => key!("job-kind-print"),
             JobKind::Table => key!("job-kind-table"),
             JobKind::Import => key!("job-kind-import"),
+            JobKind::Dxf => key!("job-kind-dxf"),
         }
     }
 }
@@ -265,6 +270,21 @@ impl JobsState {
         self.start(JobKind::Table, produce, target, name, rev, epoch)
     }
 
+    /// Starts the DXF set's job: the set built on the job's thread and written into the folder `dir` as a whole
+    /// ([`dxf_body`]); returns its number.
+    pub(crate) fn start_dxf(
+        &mut self,
+        job: DxfExportJob,
+        dir: PathBuf,
+        name: String,
+        rev: u64,
+        epoch: u64,
+    ) -> std::io::Result<u64> {
+        let to = dir.clone();
+        let body = move |ctl: &JobCtl, hooks: &TestHooks| dxf_body(job, ctl, &to, hooks);
+        self.spawn(JobKind::Dxf, body, dir, name, rev, epoch)
+    }
+
     /// Starts a job of `kind` whose body produces the bytes (and pages) with `produce`, then writes them to `target`.
     fn start(
         &mut self,
@@ -276,16 +296,28 @@ impl JobsState {
         epoch: u64,
     ) -> std::io::Result<u64> {
         let sibling = sibling_of(&target, &name);
+        let to = target.clone();
+        let body = move |ctl: &JobCtl, hooks: &TestHooks| export_body(produce, ctl, &to, &sibling, hooks);
+        self.spawn(kind, body, target, name, rev, epoch)
+    }
+
+    /// Spawns the job of `kind` that runs `body` (with the test hooks) and adds its running entry for `target`.
+    fn spawn(
+        &mut self,
+        kind: JobKind,
+        body: impl FnOnce(&JobCtl, &TestHooks) -> Result<ExportDone, JobError> + Send + 'static,
+        target: PathBuf,
+        name: String,
+        rev: u64,
+        epoch: u64,
+    ) -> std::io::Result<u64> {
         let options = JobOptions {
             name: kind.word().to_owned(),
             waker: self.waker.clone(),
             gate: self.hooks.gate(),
         };
         let hooks = self.hooks.clone();
-        let to = target.clone();
-        let handle = Job::spawn(options, move |ctl| {
-            export_body(produce, ctl, &to, &sibling, &hooks)
-        })?;
+        let handle = Job::spawn(options, move |ctl| body(ctl, &hooks))?;
         self.next += 1;
         let number = self.next;
         self.entries.push_back(JobEntry {
@@ -449,6 +481,33 @@ fn export_body(
         pages,
         kinds,
         bytes: bytes.len(),
+    })
+}
+
+/// The DXF set's job body: the set built ([`DxfExportJob::run`]), the checkpoint `rename`, then its pages and the
+/// pictures they name written into `dir` as a whole; a cancel before it writes nothing, a failure leaves the folder as
+/// it was.
+fn dxf_body(job: DxfExportJob, ctl: &JobCtl, dir: &Path, hooks: &TestHooks) -> Result<ExportDone, JobError> {
+    let set = job.run(ctl)?;
+    let files: Vec<(&str, &[u8])> = set
+        .files
+        .iter()
+        .map(|f| (f.name.as_str(), f.text.as_bytes()))
+        .chain(set.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
+        .collect();
+    // A test fault (feature `testkit` only): a panic before the folder is touched.
+    hooks.fault("sibling");
+    ctl.checkpoint("rename")?;
+    write_file_set(dir, &DXF_SET_EXTENSIONS, &files).map_err(|e| {
+        JobError::Failed(match e {
+            FileSetError::Foreign(_) => strings::text(key!("reason-export-dxf-folder")).to_owned(),
+            FileSetError::Io { error, .. } => io_cause(&error),
+        })
+    })?;
+    Ok(ExportDone {
+        pages: set.files.len(),
+        kinds: set.kinds,
+        bytes: files.iter().map(|(_, b)| b.len()).sum(),
     })
 }
 

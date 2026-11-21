@@ -226,7 +226,8 @@ fn hundredths(text: &str) -> Option<u32> {
 }
 
 /// The file dialogs answered without a dialog: bare names in the working directory (the run's `work/`;
-/// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, unless
+/// a test names its own folder): a project `project`, a PDF `project.pdf`, a DXF set `dxf`; an import or an image is
+/// cancelled, unless
 /// an `answer_open` input named the file the next open dialog answers with, and the system browser opens
 /// nothing (the trait's default). An import from PLC software takes the file the run itself exported there
 /// (`plc.aml`, else `plc.xlsx`), so that a run can read the import's preview; without one it is cancelled.
@@ -241,6 +242,7 @@ impl Platform for VisualPlatform {
         match prompt {
             Prompt::OpenFolder | Prompt::NewFolder => Pick::Path(self.base.join("project")),
             Prompt::SavePdf => Pick::Path(self.base.join("project.pdf")),
+            Prompt::SaveDxf => Pick::Path(self.base.join("dxf")),
             Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
