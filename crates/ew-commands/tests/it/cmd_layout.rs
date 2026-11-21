@@ -313,8 +313,8 @@ fn an_enclosure_brings_its_plate() {
     }));
     assert_eq!(
         second,
-        "the layout space already has enclosure -?UC1; a layout space has one enclosure. \
-         Choose another layout space, or edit -?UC1"
+        "the layout space already has enclosure -UC1; a layout space has one enclosure. \
+         Choose another layout space, or edit -UC1"
     );
     assert_eq!(e.history().cursor(), 2, "one step each");
 }
@@ -655,7 +655,7 @@ fn a_placement_never_outlives_its_device() {
     // edit.delete refuses a plan that removes an enclosure's device before the model's forbid
     assert_eq!(
         reason(e.execute(&delete(DEV_UC1))),
-        "-?UC1 carries an enclosure; delete the enclosure first."
+        "-UC1 carries an enclosure; delete the enclosure first."
     );
     let preview = e.preview(&delete(DEV_K1)).unwrap();
     assert!(

@@ -24,7 +24,7 @@ data,22,2,pc,Generic,EW-GEN-SIL-1,Silencer G1/8,"-201X2, -201X3",201
 data,23,2,pc,Generic,EW-GEN-CYL-1,"Cylinder double-acting, bore 32 mm, stroke 100 mm","-201M1, -201M2",201
 data,24,4,pc,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",-201K1-Q1 … -201K1-Q4,201
 data,25,1,pc,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm,-UC1,902
-data,26,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm,-UC1-plate,902
+data,26,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm,-UC1-U1,902
 data,27,0.94,m,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,-UC1,902
 data,28,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm,-UC1,902
 data,29,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,

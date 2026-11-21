@@ -78,8 +78,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The layout page
 
-- FT-1768 `ew-api`: `centred_datum` (`output/layout_edit.rs`, where an enclosure is placed) maps the drawing area, which `drawing_area` (`output/scale_fit.rs`) gives in page coordinates already, through the frame's page-to-sheet map once more: on a frame with an offset the mounting plate stands off-centre. A test on a frame with an offset shows the plate's place.
-- FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
+- FT-2025 `ew-api`: A new layout page at its fitting scale on an A4 frame gets no legend with its view: the layout, centred (FT-1768), leaves 59 mm beside the starter enclosure at 1:5, under Add legend's 60 mm, so Enclosure… and the Surface row add none and Add legend refuses for room (the sample's script sets 902's datum by hand to keep its legend). Goes with the legend's redesign (FT-1920).
 
 #### What a new item takes
 
@@ -91,7 +90,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
 
-- FT-1899 `ew-commands, ew-derive`: A new enclosure and its mounting plate get frozen tags that deviate from the scheme at once: `layout.enclosure_new` on a new panel-layout page, then the check, gives EW-NUM-001 for both ("frozen, deviates from scheme"). Give them the scheme's tags, or do not freeze them.
 - FT-1900 `ew-api`: A project made by `file.new` without the template's pages takes its first page's id from the clock (`new_project.rs`: the scratch session runs with default options), so two runs of one script differ. Take the id from the session's id source.
 - FT-1901 `ew-commands, ew-viewmodel`: `supply.place` with a location written with its sign (`+UP`) prints `++UP` and makes a structure node of that name. Take the name with or without its sign, as the other commands do.
 - FT-1902 `ew-commands`: `bus.cable` finds a plug only by its record id; a part number, which every other part parameter takes, is refused with "choose one from the list".

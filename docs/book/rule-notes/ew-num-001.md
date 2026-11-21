@@ -15,8 +15,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-On the sample, the enclosure -UC1 and its mounting plate keep the frozen tags that Enclosure… gave them: these are its
-two infos.
+A relay -101K1 whose tag is frozen as K1 reports "K1: frozen, deviates from scheme (rule-derived value 101K1)". A tag
+the program gives (Enclosure…'s -UC1 and its plate -UC1-U1) is the scheme's own and is not frozen.
 
 ## How to fix
 

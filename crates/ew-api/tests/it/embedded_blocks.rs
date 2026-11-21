@@ -165,7 +165,7 @@ fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes
     // The legend's first rows: the enclosure and its plate.
     let lines: Vec<&str> = out.csv.lines().collect();
     assert!(lines[1].starts_with("data,1,-UC1,"), "{}", lines[1]);
-    assert!(lines[2].starts_with("data,2,-UC1-plate,"), "{}", lines[2]);
+    assert!(lines[2].starts_with("data,2,-UC1-U1,"), "{}", lines[2]);
     for what in [
         RowExport::Bom(ew_api::BomMode::Component),
         RowExport::Cables,

@@ -304,9 +304,15 @@ fn a_representation_reaches_three_sections_with_derived_rows() {
 
 #[test]
 fn frozen_tags_wire_chips_and_the_page_description() {
-    let s = crate::common::sample();
-    // The enclosure's tag, which Enclosure… freezes.
+    let mut s = crate::common::sample();
+    // The enclosure's tag frozen as it prints (the sample freezes none).
     let uc1 = device(&s, "-UC1");
+    s.execute(&AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "device", "targets": [uc1.to_string()], "path": "tag.frozen",
+            "value": {"text": "UC1"}}),
+    })
+    .expect("the frozen tag");
     let sheet = s.property_sheet(&[uc1]);
     let tag = row(&sheet, "device/derived.tag");
     assert_eq!(

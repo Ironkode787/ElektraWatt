@@ -200,7 +200,7 @@ pub fn carrier_length(q: &Q, carrier: Id<Carrier>) -> Option<i128> {
 pub enum LegendItem {
     /// The enclosure the surface belongs to (its device: -UC1).
     Enclosure(Id<Enclosure>),
-    /// The mounting surface itself (its device: the plate -UC1-plate).
+    /// The mounting surface itself (its device: the plate -UC1-U1).
     Surface(Id<MountingSurface>),
     /// A carrier (a rail or a duct): what a shop cuts, one row each.
     Carrier(Id<Carrier>),

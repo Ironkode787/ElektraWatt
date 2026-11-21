@@ -130,7 +130,7 @@ pub fn primary_part(q: &Q, device: &Device) -> Option<PartRef> {
 /// Why a device is exempt from the layout (D8, doc 12 §2.7).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Exempt {
-    /// Case 2: the device of an enclosure or of a mounting surface: it is the layout (-UC1, -UC1-plate).
+    /// Case 2: the device of an enclosure or of a mounting surface: it is the layout (-UC1, -UC1-U1).
     Layout,
     /// Case 4: a terminal of a strip, placed through its strip.
     Terminal,

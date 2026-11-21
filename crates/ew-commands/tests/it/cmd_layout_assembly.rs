@@ -25,9 +25,9 @@ use ew_model::Model;
 use ew_model::fixture::*;
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, Clearance, Device, Enclosure, FnRole, FrozenTag, Kind, LayoutSpace, LibCopy, LibDocument,
+    Carrier, Clearance, Device, Enclosure, FnRole, Kind, LayoutSpace, LibCopy, LibDocument,
     MountKind, MountingSurface, Part, PartRef, PartUse, Placement, Record, Slot, StructureNode, SurfaceKind,
-    TagScheme, TagSign, TagSpec,
+    TagScheme, TagSpec,
 };
 use ew_units::{Nm, Pose3, Pt2, Quat9};
 use serde_json::{Value, json};
@@ -717,8 +717,8 @@ fn from_part(copies: Vec<Value>) -> CreateEnclosureFromPart {
     }
 }
 
-/// AS-5: from the enclosure part and its plate passed as copies: one space, the enclosure device frozen UC1 with its
-/// part, the plate child frozen UC1-plate, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
+/// AS-5: from the enclosure part and its plate passed as copies: one space, the enclosure device UC1 (the scheme's
+/// tag, not frozen, FT-1899) with its part, the plate its child U1, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
 /// (0, 0)–(650, 900) mm, its device the child); one undo removes all and the embedded copies; a second call refused.
 #[test]
 fn an_enclosure_from_its_part() {
@@ -738,20 +738,13 @@ fn an_enclosure_from_its_part() {
     let encl = get(&e, enclosure).unwrap();
     assert_eq!((encl.space, encl.pose), (spaces[0].id, Pose3::IDENTITY));
     let device = get(&e, encl.device).unwrap();
-    let frozen = |text: &str| {
-        Some(FrozenTag {
-            text: ident(text),
-            sign: TagSign::Shown,
-            extra: Default::default(),
-        })
-    };
     assert_eq!(
         device.tag,
         TagSpec {
-            letter: ident("U"),
+            letter: ident("UC"),
             counter: Some(1),
             scheme: TagScheme::Default,
-            frozen: frozen("UC1"),
+            frozen: None,
             extra: Default::default(),
         }
     );
@@ -767,9 +760,9 @@ fn an_enclosure_from_its_part() {
         child.tag,
         TagSpec {
             letter: ident("U"),
-            counter: None,
+            counter: Some(1),
             scheme: TagScheme::Child,
-            frozen: frozen("UC1-plate"),
+            frozen: None,
             extra: Default::default(),
         }
     );
@@ -1026,22 +1019,22 @@ fn edit_delete_on_layout_kinds() {
             (KindName::Placement, p1.cast()),
             (KindName::Placement, p2.cast()),
         ]))),
-        "The plate of -?UC1 holds 1 placement; remove them first."
+        "The plate of -UC1 holds 1 placement; remove them first."
     );
     assert_eq!(
         reason(f.e.execute(&delete(&[(KindName::Device, DEV_UC1.cast())]))),
-        "-?UC1 carries an enclosure; delete the enclosure first."
+        "-UC1 carries an enclosure; delete the enclosure first."
     );
     assert_eq!(
         reason(f.e.execute(&delete(&[
             (KindName::Device, DEV_UC1.cast()),
             (KindName::Enclosure, f.enclosure.cast()),
         ]))),
-        "-?UC1 carries an enclosure; delete the enclosure first."
+        "-UC1 carries an enclosure; delete the enclosure first."
     );
     assert_eq!(
         reason(f.e.execute(&delete(&[(KindName::MountingSurface, f.surface.cast())]))),
-        "The plate goes with its enclosure; delete the enclosure of -?UC1."
+        "The plate goes with its enclosure; delete the enclosure of -UC1."
     );
     // A placement; an empty carrier; a carrier with all its placements.
     f.e.execute(&delete(&[(KindName::Placement, p3.cast())])).unwrap();

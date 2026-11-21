@@ -441,17 +441,14 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         a0 <= x0 && x1 <= a1 && b0 <= y0 && y1 <= b1,
         "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
     );
-    // On the frame a new project's page prints on, the numbered view takes its legend beside the layout, in the
-    // view's undo step (it was a step of its own after it): one undo takes the legend, the view and the scale
-    // back, one redo brings them again.
-    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::Exists);
+    // One undo takes the view and the scale back, one redo brings them again. (Beside the layout centred on this
+    // frame a legend finds 59 mm, under its 60 mm, so none comes with the view: FT-2025.)
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");
-    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::NoLayout);
     assert_ne!(s.revision(), rev);
     done(&mut s, "edit.redo", json!({}));
-    assert_eq!(s.legend_offer(), ew_api::output::LegendOffer::Exists);
+    assert!(s.panel_tables().is_some(), "the view again");
     // A scale chosen by hand is kept by the next Surface edit.
     done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:20"}));
     done(
@@ -507,11 +504,12 @@ fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
     s.shutdown();
 }
 
-/// The centred datum of the starter's plate on a new project's panel page at 1:5: the built-in frame's drawing-area
-/// centre in page coordinates (131.530115, 82.284722 mm; the page prints on the shipped frame with the grid, whose
-/// page-to-sheet map scales and shifts it) less the 600 × 800 mm enclosure's centre in the plate's frame (offset 40 mm)
-/// at 1:5 (52 mm) in x, plus it (72 mm) in y.
-const NEW_PROJECT_DATUM: &str = "79.530115, 154.284722 mm";
+/// The centred datum of the starter's plate on a new project's panel page at 1:5: the frame's drawing-area centre in
+/// page coordinates (140.229167, 89.958333 mm: a header band of 15.875/3 mm, 17 columns of 15.875 mm, 8 rows of
+/// 63.5/3 mm; FT-1768: not mapped through the frame's page-to-sheet map again) less the 600 × 800 mm enclosure's centre
+/// in the plate's frame (offset 40 mm) at 1:5 (52 mm printed, 52.723227 mm on the page at the map's 0.986282578) in x,
+/// plus it (72 mm printed, 73.001391 mm on the page) in y.
+const NEW_PROJECT_DATUM: &str = "87.50594, 162.959724 mm";
 
 /// PS-1's fitting scale of the new plate on folio 950.
 const PS1_SCALE: &str = "1:5";

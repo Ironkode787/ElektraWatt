@@ -515,7 +515,7 @@ $ ew export machine komax-topconvert-csv --out komax.csv          # 1.0 (lengths
 $ ew export dxf S --pages 101-105 --out dxf/                      # AC1024 with configured layers
 
 $ ew check S --scheme pre-delivery; echo $?
-0                                   # 0 errors, 0 warnings, 2 infos: the sample is clean
+0                                   # 0 errors, 0 warnings, 0 infos: the sample is clean
 
 $ ew sql S "SELECT count(*) FROM api_v1_terminal"
 count(*)

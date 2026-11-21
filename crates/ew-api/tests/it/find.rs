@@ -174,7 +174,15 @@ fn every_string_and_the_cap() {
 /// D11, D16: a derived tag and a part number are found but not replaced, with their reasons.
 #[test]
 fn derived_tags_and_part_numbers_are_found_but_not_replaced() {
-    let s = common::sample();
+    let mut s = common::sample();
+    // The enclosure's tag frozen as it prints (the sample freezes none).
+    let uc1 = s.resolve_reference("-UC1").expect("-UC1");
+    s.execute(&ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({"kind": "device", "targets": [uc1.to_string()], "path": "tag.frozen",
+            "value": {"text": "UC1"}}),
+    })
+    .expect("the frozen tag");
     let mcb = s.find(&FindQuery {
         fields: vec![FindField::PartNumber],
         replace: Some("Other".into()),
@@ -202,7 +210,7 @@ fn derived_tags_and_part_numbers_are_found_but_not_replaced() {
         h.replaceable,
         Err("derived: change the numbering or freeze the tag".into())
     );
-    // A frozen tag (the enclosure's UC1) is replaceable in its text.
+    // A frozen tag (UC1) is replaceable in its text.
     let frozen = s.find(&FindQuery {
         fields: vec![FindField::Tag],
         match_case: true,

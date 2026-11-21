@@ -45,21 +45,19 @@ first argument.
 
 ```console
 $ ew check fixtures/sample/sample.ew
-...
-0 errors, 0 warnings, 2 infos, 0 waived
-pre-delivery: 0 errors, 0 warnings, 2 infos, 0 waived
+0 errors, 0 warnings, 0 infos, 0 waived
+pre-delivery: 0 errors, 0 warnings, 0 infos, 0 waived
 ```
 
-The first lines are the findings, for example:
+The sample project is clean, so only the counts print. In a project with findings each one is a line before them,
+for example a tag that is frozen and differs from what the numbering scheme would give:
 
 ```text
-info EW-NUM-001 017101 +CAB-UC1: UC1: frozen, deviates from scheme (rule-derived value ?U1)
+info EW-NUM-001 017101 +CAB-K1: K1: frozen, deviates from scheme (rule-derived value 101K1)
 ```
 
 Each line gives the severity, the rule ID, the rule's six-digit code, the thing the finding is about and a message. The
-last line counts the findings, and the standard error stream repeats the count with the scheme's name. The sample
-project is clean: it has no error and no warning, only two infos about the enclosure `UC1` and its mounting plate,
-whose tags are frozen and differ from what the numbering scheme would give.
+last line counts the findings, and the standard error stream repeats the count with the scheme's name.
 
 Look at the exit code:
 

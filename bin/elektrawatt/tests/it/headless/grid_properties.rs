@@ -160,11 +160,11 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ),
         ("props.set", json!({"row": "device/state", "value": "spare"})),
         ("ui.describe", json!({})),
-        // -UC1: unfreeze its tag (the enclosure's tag, which Enclosure… freezes).
+        // -UC1: freeze its tag (the enclosure's, the scheme's own).
         ("select.set", json!({"refs": ["tag:-UC1"]})),
         (
             "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+            json!({"row": "device/derived.tag", "action": "freeze"}),
         ),
         // The terminals of -X1021: their part in one command (FR-DEV-031).
         ("page.goto", json!({"folio": "102"})),
@@ -211,7 +211,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             json!({"row": "page/derived.description", "action": "reset"}),
         ),
         // The rest of §6.12: -101F1's part quantity and technical data; -102F1's function text, letter and counter;
-        // the other frozen tag, -UC1-plate; a terminal's designation; the wire's colour and the shield's
+        // -UC1's frozen tag unfrozen again; a terminal's designation; the wire's colour and the shield's
         // cross-section reset; the name of 24V; a representation's arrangement and text slots; an interruption point
         // read-only.
         ("select.set", json!({"refs": ["tag:-101F1"]})),
@@ -227,7 +227,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ),
         ("props.set", json!({"row": "device/tag.letter", "value": "K"})),
         ("props.set", json!({"row": "device/tag.counter", "value": "9"})),
-        ("select.set", json!({"refs": ["tag:-UC1-plate"]})),
+        ("select.set", json!({"refs": ["tag:-UC1"]})),
         (
             "props.action",
             json!({"row": "device/derived.tag", "action": "unfreeze"}),

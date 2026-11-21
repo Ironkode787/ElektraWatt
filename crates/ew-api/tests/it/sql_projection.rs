@@ -142,7 +142,18 @@ fn two_builds_write_the_same_image() {
 
 #[test]
 fn messages_carry_the_check_run() {
-    let p = projection();
+    // The sample is clean; -101F1's tag frozen as F1 deviates from the scheme (EW-NUM-001, an info).
+    let mut session = crate::common::sample();
+    let f1 = session.resolve_reference("-101F1").expect("-101F1");
+    session
+        .execute(&ew_api::AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [f1.to_string()], "path": "tag.frozen",
+                "value": {"text": "F1"}}),
+        })
+        .expect("the frozen tag");
+    let report = session.check(&PRE_DELIVERY, CheckMode::Release);
+    let p = session.sql_projection(Some(&report)).expect("the projection builds");
     let reader = p.reader(Profile::EW_SQL).unwrap();
     let set = reader
         .query(
@@ -150,7 +161,6 @@ fn messages_carry_the_check_run() {
              ORDER BY target_tags",
         )
         .unwrap();
-    // The enclosure's tags, which Enclosure… freezes and the numbering cannot derive (EW-NUM-001, an info).
     let rows: Vec<Vec<String>> = set
         .rows
         .iter()
@@ -158,10 +168,7 @@ fn messages_carry_the_check_run() {
         .collect();
     assert_eq!(
         rows,
-        [
-            ["EW-NUM-001", "info", "open", "+CAB-UC1"],
-            ["EW-NUM-001", "info", "open", "+CAB-UC1-plate"],
-        ]
+[["EW-NUM-001", "info", "open", "+CAB-F1"]]
     );
 }
 

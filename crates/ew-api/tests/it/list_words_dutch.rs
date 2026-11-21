@@ -69,6 +69,13 @@ fn records() -> (ew_schema::Project, Vec<Record>, Vec<ew_schema::LibDocument>, U
 fn sample(dutch: bool) -> (Session, Uuid) {
     let (project, records, lib, terminal) = records();
     let mut s = common::session_of(project, records, lib);
+    // A frozen tag that deviates, for the numbering report's words (the sample freezes none).
+    let uc1 = s.resolve_reference("-UC1").expect("-UC1");
+    common::run_cmd(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [uc1.to_string()], "path": "tag.frozen", "value": {"text": "UC9"}}),
+    );
     if dutch {
         common::run_cmd(
             &mut s,

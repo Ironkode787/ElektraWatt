@@ -236,7 +236,8 @@ fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
     out
 }
 
-/// The sample's plate on a new layout page 980, which gets its legend with the view.
+/// The sample's plate on a new layout page 980 at 1:10, which gets its legend with the view (at the fitting 1:5 the
+/// layout, centred, leaves less than a legend's 60 mm beside it).
 fn new_layout_page(shell: &mut ShellModel) {
     let surface = panel(shell).surface.to_string();
     done(
@@ -245,6 +246,8 @@ fn new_layout_page(shell: &mut ShellModel) {
         json!({"folio": "980", "type": "panel_layout", "title": "Cabinet"}),
     );
     done(shell, "page.goto", json!({"folio": "980"}));
+    done(shell, "select.set", json!({"ids": []}));
+    done(shell, "props.set", json!({"row": "page/scale", "value": "1:10"}));
     done(
         shell,
         "props.set",
@@ -364,18 +367,7 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
         refused(&mut shell, "page.add_legend", json!({})),
         "reason-legend-exists"
     );
-    let surface = panel(&shell).surface.to_string();
-    done(
-        &mut shell,
-        "page.new",
-        json!({"folio": "980", "type": "panel_layout", "title": "Cabinet"}),
-    );
-    done(&mut shell, "page.goto", json!({"folio": "980"}));
-    done(
-        &mut shell,
-        "props.set",
-        json!({"row": "page/derived.surface", "value": surface}),
-    );
+    new_layout_page(&mut shell);
     let t = panel(&shell);
     assert!(t.numbered, "at 1:10 the devices carry item numbers");
     assert_eq!(

@@ -29,7 +29,7 @@ data,+CAB-201X1,Device,,EW-GEN-AIR-1,+CAB
 data,+CAB-201X2,Device,,EW-GEN-SIL-1,+CAB
 data,+CAB-201X3,Device,,EW-GEN-SIL-1,+CAB
 data,+CAB-UC1,Device,,EW-GEN-ENC-1,+CAB
-data,+CAB-UC1-plate,Device,,EW-GEN-PLT-1,+CAB
+data,+CAB-UC1-U1,Device,,EW-GEN-PLT-1,+CAB
 data,+CAB-X1011,Device,,,+CAB
 data,+CAB-X1021,Device,,,+CAB
 data,+CAB-X1031,Device,,,+CAB

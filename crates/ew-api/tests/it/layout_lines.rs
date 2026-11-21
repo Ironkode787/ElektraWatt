@@ -7,7 +7,7 @@
 //!   give the rail at 0.94 m (two rails of 470 mm) and the duct at 0.47 m; the enclosure, plate, rail and duct rows
 //!   print folio 902 and no other row does.
 //! - `the_legend_of_the_plate_lists_its_rows_and_renumbers`: the sample's `enclosure_legend` block embedded on 902:
-//!   -UC1, -UC1-plate, the two rails and the duct, the placements by DT; placing -102F1 (unplaced by the set-up) on
+//!   -UC1, -UC1-U1, the two rails and the duct, the placements by DT; placing -102F1 (unplaced by the set-up) on
 //!   rail 2 adds its row and renumbers the rows after it.
 //! - `a_free_graphic_on_902_is_counted_nowhere`: neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
 //! - `the_carrier_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over a carrier edit.
@@ -160,7 +160,7 @@ fn rails_and_ducts_come_from_the_carriers_and_print_902() {
             (
                 part_of(&q, "EW-GEN-PLT-1"),
                 Dec3::ONE,
-                vec![dev(&s, "-UC1-plate")],
+                vec![dev(&s, "-UC1-U1")],
                 p902.clone()
             ),
             (part_of(&q, "EW-GEN-RAIL-1"), m("0.94"), vec![uc1], p902.clone()),
@@ -243,7 +243,7 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
         (1..=rows.len()).map(|n| n.to_string()).collect::<Vec<_>>()
     );
     assert_eq!(rows[0].1, Some(dev(&s, "-UC1")));
-    assert_eq!(rows[1].1, Some(dev(&s, "-UC1-plate")));
+    assert_eq!(rows[1].1, Some(dev(&s, "-UC1-U1")));
     let carrier_rows: Vec<(Option<Id<Device>>, String)> =
         rows[2..5].iter().map(|r| (r.1, r.2.clone())).collect();
     let want: Vec<(Option<Id<Device>>, String)> =

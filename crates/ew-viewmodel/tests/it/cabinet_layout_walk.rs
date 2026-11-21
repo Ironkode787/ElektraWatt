@@ -5,7 +5,7 @@
 //! is drawn on the layout page afterwards). Off a panel layout page the Create enclosure dialog says that it draws
 //! nothing there and
 //! offers to make the layout page; on the layout page it offers to draw the location's enclosure that exists; then a
-//! rail, a duct, the cabinet's devices placed on the rail, item numbers and a legend.
+//! rail, a duct, the cabinet's devices placed on the rail and item numbers.
 
 use crate::common;
 
@@ -122,22 +122,13 @@ fn an_enclosure_made_elsewhere_is_drawn_on_the_layout_page_and_the_cabinet_is_fi
     done(&mut s, "tool.finish", json!({}));
     done(&mut s, "tool.select", json!({}));
     assert_eq!(panel(&s).carriers.len(), 2, "a rail and a duct");
-    // The devices have no location yet: Auto-fill rail gives them the cabinet's and places them.
+    // The devices have no location yet: Auto-fill rail offers them ticked (their parts go on a rail), and Fill gives
+    // them the cabinet's and places them.
     done(&mut s, "layout.auto_fill_rail", json!({}));
-    let give = spec(s.dialog().unwrap(), &s)
-        .secondary
-        .into_iter()
-        .find(|b| b.label.starts_with("Give the"))
-        .expect("the offer to give the devices the cabinet's location");
-    let DialogAnswer::Action(action, params) = give.answer else {
-        panic!("{:?}", give.answer)
-    };
-    assert_eq!(s.dispatch(action, &params), Outcome::Done);
+    assert_eq!(s.submit_form(), Outcome::Done);
     assert!(panel(&s).placements.len() >= 2, "the breaker and the switch");
-    // The page numbers its items, and the legend that lists them came with the drawing.
-    let t = panel(&s);
-    assert!(t.numbered);
-    assert_eq!(t.blocks.len(), 1, "the legend");
+    // The page numbers its items.
+    assert!(panel(&s).numbered);
     s.shutdown();
 }
 

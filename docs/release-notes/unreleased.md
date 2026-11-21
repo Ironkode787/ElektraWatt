@@ -324,6 +324,17 @@ change here.
   the card's tag there (doc 10 §6, FT-1838)
 - behaviour-change: a station's view shows its To do first, right under the rack, where a toast never covers its
   buttons; it stood at the foot of the lists, where the toasts stand (doc 16a §6.10, doc 10 §6, FT-1824)
+- behaviour-change: a new layout view (Enclosure…, a page's Surface row) stands its enclosure in the middle of the
+  frame's drawing area; on the starter frames it stood about 8 mm up and left of it (FT-1768)
+- behaviour-change: Auto-fill rail… lists the cabinet's unplaced devices and the devices without a location, each with
+  a tick (a first guess: the cabinet's devices and parts that go on a rail ticked, sensors, cylinders, motors and
+  valve terminals without a location not), and places only the ticked ones, a ticked device without a location
+  taking the cabinet's in the same undo step; `layout.auto_fill_rail` takes `devices` (IDs or tags) or the guess. Its
+  button that gave every device without a location the cabinet's and placed them all, field devices too, is gone
+  (doc 12 §3.3, FT-1802)
+- behaviour-change: Enclosure… gives the enclosure and its mounting plate the numbering scheme's tags, `-UC1` and
+  `-UC1-U1`, not frozen ones, so the check no longer reports them as deviating (EW-NUM-001); a project's existing
+  frozen tags stay (doc 03 §8.2, doc 12 §3.1, FT-1899)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

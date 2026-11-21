@@ -220,7 +220,7 @@ fn a_parts_list_links_each_device_to_its_main_representation() {
     }
     unlinked.sort_unstable();
     unlinked.dedup();
-    assert_eq!(unlinked, ["-101W1", "-103W1", "-105W1", "-UC1", "-UC1-plate"]);
+    assert_eq!(unlinked, ["-101W1", "-103W1", "-105W1", "-UC1", "-UC1-U1"]);
     let f1 = rows
         .iter()
         .find(|r| r.cells[0] == "-101F1")
@@ -280,7 +280,7 @@ fn the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
         .collect();
     assert_eq!(
         unlinked,
-        ["-101W1", "-103W1", "-105W1", "+CAB-UC1", "+CAB-UC1-plate"]
+        ["-101W1", "-103W1", "-105W1", "+CAB-UC1", "+CAB-UC1-U1"]
     );
     for r in devices.iter().filter(|r| !r.links.is_empty()) {
         let links = links_of(r, 0);

@@ -4009,18 +4009,26 @@ msgstr ""
 "`ew check` voert de controleregels uit op het project en toont wat het "
 "vindt, één bevinding per regel:"
 
-#: src/how-to/headless-workflow.md:53
-msgid "The first lines are the findings, for example:"
-msgstr "De eerste regels zijn de bevindingen, bijvoorbeeld:"
+#: src/how-to/headless-workflow.md:52
+msgid ""
+"The sample project is clean, so only the counts print. In a project with "
+"findings each one is a line before them, for example a tag that is frozen "
+"and differs from what the numbering scheme would give:"
+msgstr ""
 
 #: src/how-to/headless-workflow.md:59
+#, fuzzy
+#| msgid ""
+#| "Each line gives the severity, the rule ID, the rule's six-digit code, the "
+#| "thing the finding is about and a message. The last line counts the findings, "
+#| "and the standard error stream repeats the count with the scheme's name. The "
+#| "sample project is clean: it has no error and no warning, only two infos "
+#| "about the enclosure `UC1` and its mounting plate, whose tags are frozen and "
+#| "differ from what the numbering scheme would give."
 msgid ""
 "Each line gives the severity, the rule ID, the rule's six-digit code, the "
 "thing the finding is about and a message. The last line counts the findings, "
-"and the standard error stream repeats the count with the scheme's name. The "
-"sample project is clean: it has no error and no warning, only two infos "
-"about the enclosure `UC1` and its mounting plate, whose tags are frozen and "
-"differ from what the numbering scheme would give."
+"and the standard error stream repeats the count with the scheme's name."
 msgstr ""
 "Elke regel geeft de ernst, de regel-ID, de zescijferige code van de regel, "
 "het onderwerp van de bevinding en een melding. De laatste regel telt de "
@@ -4030,11 +4038,11 @@ msgstr ""
 "montageplaat, waarvan de kenmerken vastgezet zijn en afwijken van wat het "
 "nummeringsschema zou geven."
 
-#: src/how-to/headless-workflow.md:64
+#: src/how-to/headless-workflow.md:62
 msgid "Look at the exit code:"
 msgstr "Bekijk de afsluitcode:"
 
-#: src/how-to/headless-workflow.md:71
+#: src/how-to/headless-workflow.md:69
 msgid ""
 "`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
 "some and 2 when it could not run the check at all (a project that cannot be "
@@ -4051,7 +4059,7 @@ msgstr ""
 "[doc 17 "
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 
-#: src/how-to/headless-workflow.md:76
+#: src/how-to/headless-workflow.md:74
 msgid ""
 "Each rule has a page in the reference: "
 "[`EW-NUM-001`](../reference/rules/ew-num-001.md) is the information that a "
@@ -4065,7 +4073,7 @@ msgstr ""
 "geven, en [`EW-CORE-033`](../reference/rules/ew-core-033.md) is de fout van "
 "een kabel zonder lengte, die het voorbeeldproject niet heeft."
 
-#: src/how-to/headless-workflow.md:80
+#: src/how-to/headless-workflow.md:78
 msgid ""
 "`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
 "scheme in `release` mode; `--format json` and `--format md` change the "
@@ -4075,11 +4083,11 @@ msgstr ""
 "`pre-delivery` in de modus `release`; `--format json` en `--format md` "
 "veranderen de uitvoer, en `--out <file>` schrijft die naar een bestand."
 
-#: src/how-to/headless-workflow.md:83
+#: src/how-to/headless-workflow.md:81
 msgid "Step 2: write the pages as PDF and SVG"
 msgstr "Stap 2: de pagina's als PDF en SVG schrijven"
 
-#: src/how-to/headless-workflow.md:85
+#: src/how-to/headless-workflow.md:83
 msgid ""
 "`ew export pdf` writes every page of the project into one PDF/A-2b file, "
 "with an outline, page labels and cross-reference links:"
@@ -4088,7 +4096,7 @@ msgstr ""
 "PDF/A-2b-bestand, met een inhoudsopgave, paginalabels en links voor de "
 "kruisverwijzingen:"
 
-#: src/how-to/headless-workflow.md:94
+#: src/how-to/headless-workflow.md:92
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
@@ -4104,7 +4112,7 @@ msgstr ""
 "hun cellen. Ze houden de export niet tegen. De map van `--out` moet bestaan; "
 "daarom hebt u eerst `out` gemaakt."
 
-#: src/how-to/headless-workflow.md:99
+#: src/how-to/headless-workflow.md:97
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the drawn pages 101 to 105:"
@@ -4112,7 +4120,7 @@ msgstr ""
 "`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies folio's "
 "met `--pages`; dit schrijft de getekende pagina's 101 tot en met 105:"
 
-#: src/how-to/headless-workflow.md:108
+#: src/how-to/headless-workflow.md:106
 msgid ""
 "The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
 "folio labels of the project. `ew` replaces the directory as a whole, so it "
@@ -4124,7 +4132,7 @@ msgstr ""
 "mag alleen SVG-bestanden bevatten; een oude pagina van een eerdere export "
 "kan er niet in achterblijven."
 
-#: src/how-to/headless-workflow.md:111
+#: src/how-to/headless-workflow.md:109
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -4136,21 +4144,21 @@ msgstr ""
 "die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
 "snelheid en nooit het resultaat."
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:113
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr "Stap 3: de kabellijst en de stuklijst exporteren"
 
-#: src/how-to/headless-workflow.md:117
+#: src/how-to/headless-workflow.md:115
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 
-#: src/how-to/headless-workflow.md:126
+#: src/how-to/headless-workflow.md:124
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 "Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
-#: src/how-to/headless-workflow.md:136
+#: src/how-to/headless-workflow.md:134
 msgid ""
 "The supply cable `-101W1` comes in from outside the cabinet, so it has no "
 "From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
@@ -4164,7 +4172,7 @@ msgstr ""
 "heeft de lengte die in zijn Eigenschappen is getypt. Onder deze regels "
 "volgen de aders van elke kabel, één regel per ader."
 
-#: src/how-to/headless-workflow.md:140
+#: src/how-to/headless-workflow.md:138
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -4177,11 +4185,11 @@ msgstr ""
 "eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
 "tekening afdrukt."
 
-#: src/how-to/headless-workflow.md:144
+#: src/how-to/headless-workflow.md:142
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:144
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -4189,7 +4197,7 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/how-to/headless-workflow.md:148
+#: src/how-to/headless-workflow.md:146
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -4205,7 +4213,7 @@ msgstr ""
 "1 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:155
+#: src/how-to/headless-workflow.md:153
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -4215,7 +4223,7 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/how-to/headless-workflow.md:158
+#: src/how-to/headless-workflow.md:156
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -4237,7 +4245,7 @@ msgstr ""
 "3 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:167
+#: src/how-to/headless-workflow.md:165
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -4247,11 +4255,11 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:168
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:172
+#: src/how-to/headless-workflow.md:170
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -4265,11 +4273,11 @@ msgstr ""
 "draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
 "te vergrendelen en nooit een beeldscherm nodig hebben."
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:174
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:176
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4279,7 +4287,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:180
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4287,7 +4295,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:181
+#: src/how-to/headless-workflow.md:179
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -4605,20 +4613,22 @@ msgstr ""
 #: src/how-to/panel-layout.md:46
 msgid ""
 "To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ "
-"Auto-fill rail…**: it places the devices you marked in the list, or every "
-"unplaced device that fits, in the order of the schematic or of their tags, "
-"and a toast says what did not fit. When there is nothing to place, the "
-"dialog says why: every device is placed already, or no device has the "
-"cabinet's location yet. Then **Give the … devices without a location … and "
-"place them** gives them the cabinet's location (one step of Undo) and fills "
-"the rail."
-msgstr ""
-
-#: src/how-to/panel-layout.md:52
-msgid "Labels and the legend"
+"Auto-fill rail…**: it lists the cabinet's unplaced devices and the devices "
+"without a location, each with a tick. The devices you marked in the list "
+"start ticked; else the cabinet's own devices and those whose part goes on a "
+"rail, while sensors, cylinders, motors and valve terminals without a "
+"location start unticked. Untick what stands in the field and choose "
+"**Fill**: the ticked devices are placed in the order of the schematic or of "
+"their tags, a ticked device without a location takes the cabinet's (one step "
+"of Undo), and a toast says what did not fit. When there is nothing to place, "
+"the dialog says why."
 msgstr ""
 
 #: src/how-to/panel-layout.md:54
+msgid "Labels and the legend"
+msgstr ""
+
+#: src/how-to/panel-layout.md:56
 msgid ""
 "The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, "
 "**Labels: Both**) and, with nothing selected, the page's **Labels** row in "
@@ -4629,7 +4639,7 @@ msgid ""
 "layout the tags leave out the cabinet's location."
 msgstr ""
 
-#: src/how-to/panel-layout.md:58
+#: src/how-to/panel-layout.md:60
 msgid ""
 "**Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add "
 "legend**) puts the legend in the free space beside the layout, with the "
@@ -4640,7 +4650,7 @@ msgid ""
 "to move it, and drag one of its corners to make it wider or narrower."
 msgstr ""
 
-#: src/how-to/panel-layout.md:63
+#: src/how-to/panel-layout.md:65
 msgid ""
 "A label or balloon can be dragged on its own: one beside its device at once, "
 "one on its device once the device is selected (the label then shows a dashed "
@@ -4649,7 +4659,7 @@ msgid ""
 "positions** in the page's right-click menu puts every label of the page back."
 msgstr ""
 
-#: src/how-to/panel-layout.md:68
+#: src/how-to/panel-layout.md:70
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
@@ -10457,6 +10467,9 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid "The first lines are the findings, for example:"
+#~ msgstr "De eerste regels zijn de bevindingen, bijvoorbeeld:"
 
 #~ msgid ""
 #~ "The golden project, `J-E-2416`, is an anonymised control-cabinet project "

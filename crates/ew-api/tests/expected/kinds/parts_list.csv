@@ -34,7 +34,7 @@ data,-201X3,1,pc,Generic,EW-GEN-SIL-1,Silencer G1/8
 data,-UC1,1,pc,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm
 data,-UC1,0.94,m,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5
 data,-UC1,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm
-data,-UC1-plate,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm
+data,-UC1-U1,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm
 data,-X1011:L1,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:L2,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:L3,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal

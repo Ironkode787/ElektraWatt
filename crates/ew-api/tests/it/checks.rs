@@ -60,9 +60,8 @@ fn wire(number: &str) -> String {
         .unwrap_or_else(|| panic!("no wire {number}"))
 }
 
-/// The sample under pre-delivery in release mode: no error and no warning, the two infos of EW-NUM-001 on the
-/// enclosure's frozen tags, and in particular nothing of FR-CHK-016 (designations) and FR-CHK-017 (interruption
-/// points).
+/// The sample under pre-delivery in release mode: no finding at all (its enclosure's tags are the scheme's, FT-1899), and
+/// in particular nothing of FR-CHK-016 (designations) and FR-CHK-017 (interruption points).
 #[test]
 fn the_sample_is_clean_under_pre_delivery() {
     let s = common::sample();
@@ -70,7 +69,7 @@ fn the_sample_is_clean_under_pre_delivery() {
     let by_rule = counts(&report);
     assert_eq!(
         by_rule,
-        [("EW-NUM-001", 2)].into_iter().collect(),
+        BTreeMap::new(),
         "{:#?}",
         report.findings
     );
