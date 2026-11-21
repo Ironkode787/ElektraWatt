@@ -79,7 +79,7 @@ For the orchestrator:
   compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--replay check|deep|none]
   replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]
-  rescore <recording> [--bin <dir>] [--write] a recording scored again against its task's current oracle
+  rescore <recording> [--bin <dir>] [--write] a recording scored again with the current scoring
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
   selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
                                               the visual self-test through the keeper and the visual driver
@@ -646,15 +646,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let [name] = args.as_slice() else {
                 bail!("rescore <recording> [--bin <dir>] [--write]");
             };
-            let (score, old) = replay::rescore(root, &bin, name, write)?;
-            let outcome = |json: &str| -> String {
-                serde_json::from_str::<serde_json::Value>(json)
-                    .ok()
-                    .and_then(|v| v["outcome"].as_str().map(str::to_owned))
-                    .unwrap_or_else(|| "none".to_owned())
-            };
-            let new = score::score_json(&score)?;
-            println!("recorded outcome {}, now {}", outcome(&old), outcome(&new));
+            let score = replay::rescore(root, &bin, name, write)?;
             print!("{}", score::score_markdown(&score));
             if write {
                 println!("written: tools/blind/recordings/{name}/out/score.json and out/report.md");

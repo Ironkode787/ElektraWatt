@@ -332,8 +332,8 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         j.clean_before_epilogue = dirty.map(|d| !d);
         j.child_exit = code;
     })?;
-    // The score: a gate run against its oracle, a brief run its acceptance list decided mechanically,
-    // any other run only its protocol; a check run has none.
+    // The score: a brief run its acceptance list decided mechanically, any other run only its protocol; a check run
+    // has none.
     let scored = if check {
         None
     } else {
@@ -536,7 +536,6 @@ mod tests {
         let score: crate::blind::score::Score =
             serde_json::from_str(&std::fs::read_to_string(f.run.path("out/score.json")).unwrap()).unwrap();
         assert_eq!(score.run, "r1");
-        assert_eq!(score.outcome, None);
         assert_eq!(score.protocol.counts.steps, 1);
         assert_eq!(score.protocol.observations.clean_before_epilogue, Some(false));
         assert!(
@@ -613,8 +612,8 @@ mod tests {
         let fake = |args: &[&str]| -> Result<(Option<i32>, String)> {
             Ok((Some(0), if args[0] == "sql" { "n\n1\n" } else { "" }.to_owned()))
         };
-        let ev = crate::blind::score::evidence_of(&f.run, None, crate::blind::score::ExportFacts::default())
-            .unwrap();
+        let ev =
+            crate::blind::score::evidence_of(&f.run, crate::blind::score::ExportFacts::default()).unwrap();
         let b = crate::blind::score::brief_score(&root, &f.run, &ev, &mut { fake }).unwrap();
         let acceptance: crate::blind::brief::Acceptance =
             crate::blind::score::read_toml(&root.join("tools/blind/tasks/brief-ut/acceptance.toml")).unwrap();

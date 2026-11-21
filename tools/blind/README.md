@@ -12,7 +12,7 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `HELP.md` | The protocol as the agent reads it (composed into the prompt, printed by `{blind} help`) |
 | `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
-| `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a gate task also `prelude.toml` (the class of each prelude step), `gaps.toml` (the checks an open follow-up blocks) and `oracle/` |
+| `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a brief also `prelude.toml` (the class of each prelude step) |
 | `tasks/free/` | The free task: no oracle, no score |
 | `recordings/<name>/` | A blessed run: the replay inputs and the evidence, never the full transcript |
 | `ROUND.md` | The usability rounds' prompt (WP-S2.12 D11, front matter `prompt`, `version`): the hint command and the proxy questionnaire; `compose` adds it after the task sheet of a brief whose `task.toml` names `rounds` |

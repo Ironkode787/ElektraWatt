@@ -556,16 +556,15 @@ fn recorded_run_json(rj: &RunJson, replay: &str) -> RunJson {
     recorded
 }
 
-/// `rescore <recording> [--bin <dir>] [--write]`: scores a committed recording again against its task's
-/// current oracle through the harness's own scoring path. The recording is replayed into a scratch run folder (R1 and
-/// R2 must hold), the run's exports are made with the built `ew` as `stop` makes them, and [`score_run`] scores the
-/// folder. With `write` the recording's `out/score.json` and the score section of its `out/report.md` are replaced.
-/// Returns the new score and the recorded `score.json` it replaces.
+/// `rescore <recording> [--bin <dir>] [--write]`: scores a committed recording again through the harness's own
+/// scoring path. The recording is replayed into a scratch run folder (R1 and R2 must hold), the run's exports are made
+/// with the built `ew` as `stop` makes them, and [`score_run`] scores the folder. With `write` the recording's `out/score.json` and the score section of its `out/report.md` are replaced.
+/// Returns the new score.
 ///
 /// # Errors
 ///
 /// A recording that does not load, a replay that fails R1 or R2, a binary that is not built.
-pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<(Score, String)> {
+pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<Score> {
     let rec = recordings_dir(root).join(name);
     let inputs = load_inputs(&rec)?;
     if let Some(stale) = &inputs.stale {
@@ -584,7 +583,7 @@ pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<(Scor
     if dir.exists() {
         std::fs::remove_dir_all(&dir)?;
     }
-    let result = (|| -> Result<(Score, String)> {
+    let result = (|| -> Result<Score> {
         std::fs::create_dir_all(dir.join(".harness/bin"))?;
         std::fs::create_dir_all(dir.join(".harness/empty-sample"))?;
         for rel in ["run.json", "prelude.uiscript", "steps.uiscript", "turns.jsonl"] {
@@ -606,7 +605,6 @@ pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<(Scor
         std::fs::create_dir_all(run.path("out"))?;
         let facts = super::stop::exports_of(&run)?;
         let score = score_run(root, &run, facts)?;
-        let old = std::fs::read_to_string(rec.join("out/score.json")).unwrap_or_default();
         if write {
             let norm = Normaliser::new(&dir);
             let json = norm.text(&score_json(&score)?);
@@ -620,7 +618,7 @@ pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<(Scor
                 .replace("\r\n", "\n");
             std::fs::write(&report_path, with_score_section(&report, &score_markdown(&score)))?;
         }
-        Ok((score, old))
+        Ok(score)
     })();
     let _ = std::fs::remove_dir_all(&dir);
     result

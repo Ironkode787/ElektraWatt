@@ -2,9 +2,6 @@
   "$schema": "ew.blindscore/1",
   "run": "selftest-visual",
   "task": "selftest-visual",
-  "outcome": null,
-  "hard": [],
-  "soft": [],
   "protocol": {
     "counts": {
       "turns": 7,
@@ -21,10 +18,6 @@
       "101"
     ],
     "turns_by_folio": {},
-    "prelude": {
-      "setup": 0,
-      "drawing": 0
-    },
     "observations": {
       "clean_before_epilogue": true,
       "product_exit": 0,

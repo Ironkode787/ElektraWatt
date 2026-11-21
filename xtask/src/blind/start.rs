@@ -219,7 +219,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     } else {
         None
     };
-    let folios = run_folios(root, a, drafter.as_ref())?;
+    let folios = run_folios(a, drafter.as_ref())?;
     // A brief's start project and rounds.
     let toml = if a.kind == Kind::Brief {
         super::brief::task_toml(root, &a.task)?
@@ -439,23 +439,18 @@ fn compose_input<'a>(
     }
 }
 
-/// The folios of a run: those given with `--folios`; else, for a check run, the drafter's; else those of the task's
-/// oracle (`oracle/counts.toml`); a task without an oracle has none (the sheet is shown whole).
+/// The folios of a run: those given with `--folios`; else, for a check run, the drafter's; else none (the sheet is
+/// shown whole).
 ///
 /// # Errors
 ///
-/// A malformed `counts.toml`, or a drafter run that cannot be read.
-pub fn run_folios(root: &Path, a: &StartArgs, drafter: Option<&Run>) -> Result<Vec<String>> {
+/// A drafter run that cannot be read.
+pub fn run_folios(a: &StartArgs, drafter: Option<&Run>) -> Result<Vec<String>> {
     if !a.folios.is_empty() {
         return Ok(a.folios.clone());
     }
     if let Some(d) = drafter {
         return Ok(d.load()?.folios);
-    }
-    let counts = super::score::task_dir(root, &a.task).join("oracle/counts.toml");
-    if counts.is_file() {
-        let file: super::score::CountsFile = super::score::read_toml(&counts)?;
-        return Ok(file.folio.into_iter().map(|c| c.folio).collect());
     }
     Ok(Vec::new())
 }
@@ -747,37 +742,24 @@ mod tests {
         );
     }
 
-    /// The folios of a run: `--folios`, else the drafter's (a check run), else the task's oracle, else none.
+    /// The folios of a run: `--folios`, else the drafter's (a check run), else none.
     #[test]
-    fn the_folios_of_a_run_default_to_the_oracles_or_the_drafters() {
+    fn the_folios_of_a_run_default_to_the_drafters() {
         let tmp = Tmp::new("start-folios");
-        let root = fake_repo(&tmp);
-        let w = |rel: &str, text: &str| {
-            let p = root.join(rel);
-            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            std::fs::write(p, text).unwrap();
-        };
-        w(
-            "tools/blind/tasks/gpp/oracle/counts.toml",
-            "[[folio]]\nfolio = \"101\"\nreps = 1\nconnections = 0\njunctions = 0\nsource = \"t\"\n\n[[folio]]\nfolio = \"102\"\nreps = 1\nconnections = 0\njunctions = 0\nsource = \"t\"\n",
-        );
         let mut a = args(&tmp, "r1");
-        a.task = "gpp".to_owned();
-        a.folios = Vec::new();
-        assert_eq!(run_folios(&root, &a, None).unwrap(), ["101", "102"]);
         a.folios = vec!["102".to_owned()];
-        assert_eq!(run_folios(&root, &a, None).unwrap(), ["102"], "--folios wins");
-        // A task without an oracle has none: the sheet is shown whole.
+        assert_eq!(run_folios(&a, None).unwrap(), ["102"], "--folios wins");
+        // Without them none: the sheet is shown whole.
         a.task = "selftest".to_owned();
         a.folios = Vec::new();
-        assert!(run_folios(&root, &a, None).unwrap().is_empty());
+        assert!(run_folios(&a, None).unwrap().is_empty());
         // A check run takes the drafter's, unless it is given its own.
         let (drafter, _check) = crate::blind::testkit::check_pair(&tmp);
         drafter
             .update(|j| j.folios = vec!["101".to_owned(), "103".to_owned()])
             .unwrap();
         a.task = "gpp".to_owned();
-        assert_eq!(run_folios(&root, &a, Some(&drafter)).unwrap(), ["101", "103"]);
+        assert_eq!(run_folios(&a, Some(&drafter)).unwrap(), ["101", "103"]);
     }
 
     /// A check run gets the drafter's reports in `reports/` (and nothing of its notes), and `report` of the check run
