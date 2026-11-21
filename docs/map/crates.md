@@ -968,14 +968,14 @@ The seeded, reproducible UUIDv7 source of the tests (doc 18 §2.2). A dev-only c
 
 `crates/ew-testkit` · GPL-3.0-or-later · depends on `ew-ids`, `ew-import-tables`, `ew-model`, `ew-schema`, `ew-units` · used by none · in tests by `elektrawatt`, `ew-api`, `ew-viewmodel`
 
-The test kit, a crate only tests depend on: the builders of the reference project ([`golden`]: the CSV bootstrap and the command DSL) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the hostile corpus (`hostile/`).
+The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]), the builders of the reference project over it ([`golden`]: the CSV bootstrap and its translation into commands) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the hostile corpus (`hostile/`).
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/golden/dsl.rs` | large | The builder DSL (doc 20 §3.2 path (b)): typed methods that create one record each through the commands of doc 06 §3.1 and return the IDs the commands minted. |
+| `src/dsl.rs` | large | The builder DSL (doc 20 §3.2 path (b)): typed methods that create one record each through the commands of doc 06 §3.1 and return the IDs the commands minted. |
 | `src/golden/mod.rs` |  | The golden builders of Golden A (doc 20 §3.2): build path (a), the CSV bootstrap, and build path (b), the builder DSL that constructs the same project through commands only. |
 | `src/golden/translate.rs` |  | Path (b) from the bootstrap batch: the batch's records, in dependency order, through the builder DSL. |
-| `src/lib.rs` |  | The test kit, a crate only tests depend on: the builders of the reference project ([`golden`]: the CSV bootstrap and the command DSL) and a synthetic parts library ([`library`]). |
+| `src/lib.rs` |  | The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]), the builders of the reference project over it ([`golden`]: the CSV bootstrap and its translation into commands) and a synthetic parts library ([`library`]). |
 | `src/library.rs` |  | A synthetic parts library (IX-9, NFR-PERF-21): `n` parts and their manufacturers as library documents of one library, deterministic for a given `n` and library ID. |
 
 ## ew-text
