@@ -24,19 +24,19 @@ fn tiers(root: &Path) -> LibraryTiers {
     }
 }
 
-/// The ID of Golden A's configuration project.
+/// The ID of the sample's configuration project.
 fn config_project() -> String {
     let text = std::fs::read_to_string(Path::new(SAMPLE).join("project.jsonl")).unwrap();
     text.lines()
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
         .find(|v| v["$k"] == "plc_config_project")
-        .expect("Golden A has a configuration project")["id"]
+        .expect("The sample has a configuration project")["id"]
         .as_str()
         .unwrap()
         .to_owned()
 }
 
-/// A shell over a writable copy of Golden A in `dir`, with `libraries`.
+/// A shell over a writable copy of the sample in `dir`, with `libraries`.
 fn open(tmp: &Tmp, dir: &Path, libraries: Option<LibraryTiers>) -> ShellModel {
     copy_dir(Path::new(SAMPLE), dir);
     let mut s = ShellModel::new(

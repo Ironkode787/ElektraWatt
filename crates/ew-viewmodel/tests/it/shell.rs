@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shell-model transitions on a temporary copy of Golden A (acceptance checks A2, A3, A9).
+//! Shell-model transitions on a temporary copy of the sample (acceptance checks A2, A3, A9).
 
 use crate::common::refused;
 use ew_testdir::Tmp;
@@ -35,7 +35,7 @@ fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
 #[test]
 fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("sample.ew");
+    let dir = tmp.sample("sample.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert!(!shell.has_project());
     assert_eq!(shell.title(), "ElektraWatt");
@@ -48,7 +48,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
 
     assert_eq!(open(&mut shell, &dir), Outcome::Done);
     assert_eq!(shell.project_name(), Some("sample.ew"));
-    assert_eq!(shell.title(), "J-E-2416.ew - ElektraWatt");
+    assert_eq!(shell.title(), "sample.ew - ElektraWatt");
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.is_dirty());
     // The page list equals the session's own labels.
@@ -75,7 +75,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
 #[test]
 fn page_navigation_has_bounds_and_reasons() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     let labels: Vec<String> = shell.page_labels().to_vec();
@@ -118,7 +118,7 @@ fn page_navigation_has_bounds_and_reasons() {
 #[test]
 fn edits_undo_redo_save_and_close() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     let before = shell.page_labels().to_vec();
@@ -175,7 +175,7 @@ fn edits_undo_redo_save_and_close() {
 #[test]
 fn the_gui_asks_instead_of_failing() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     // Open without a directory is a prompt for the window.
     assert_eq!(shell.dispatch("file.open", &Value::Null), Outcome::Done);
@@ -220,7 +220,7 @@ fn the_gui_asks_instead_of_failing() {
 #[test]
 fn a_second_shell_opens_a_held_project_read_only() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut first = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut first, &dir);
     assert_eq!(first.access(), Some(AccessMode::Edit));
@@ -250,7 +250,7 @@ fn a_second_shell_opens_a_held_project_read_only() {
 #[test]
 fn save_as_writes_a_new_project_directory() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let target = tmp.0.join("copy.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -285,7 +285,7 @@ fn save_as_writes_a_new_project_directory() {
 #[test]
 fn a_failed_open_leaves_no_path_in_the_message_and_drops_a_recent() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     shell.dispatch("file.close", &json!({}));
@@ -438,7 +438,7 @@ fn palette_lists_disabled_entries_last_with_their_reason() {
 #[test]
 fn command_run_refuses_what_a_script_may_not_run() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     let labels = shell.page_labels().to_vec();
@@ -504,7 +504,7 @@ fn recorded(shell: &ShellModel) -> Vec<(String, Value)> {
 #[test]
 fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     let run = json!({"cmd": "page.create", "params": {"number": 990}});
@@ -549,7 +549,7 @@ fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
 #[test]
 fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     let a = json!({"cmd": "page.create", "params": {"number": 991}});
@@ -582,7 +582,7 @@ fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
 #[test]
 fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
     shell.dispatch("file.close", &json!({}));
@@ -615,7 +615,7 @@ fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
 #[test]
 fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("g.ew");
     let run = json!({"cmd": "page.create", "params": {"number": 993}});
 
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
@@ -646,7 +646,7 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
     third.shutdown();
 
     // An explicit Discard is the user's choice: the journal goes (a fresh copy, so nothing is left over).
-    let dir2 = tmp.golden("h.ew");
+    let dir2 = tmp.sample("h.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir2);
     shell.dispatch("command.run", &run);
@@ -705,7 +705,7 @@ fn a_window_exit_merges_only_its_geometry_into_the_settings_on_disk() {
     use ew_viewmodel::settings::{FILE_NAME, Settings};
     use ew_viewmodel::window::WindowGeometry;
     let tmp = Tmp::new(STEM);
-    let dir = tmp.golden("r15.ew");
+    let dir = tmp.sample("r15.ew");
     let mut b = ShellModel::new(Mode::Gui, tmp.config());
     let mut a = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(

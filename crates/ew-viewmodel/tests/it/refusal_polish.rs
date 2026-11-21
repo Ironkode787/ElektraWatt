@@ -110,7 +110,7 @@ fn refuse_ip_on_ip(s: &mut ShellModel) {
     assert_eq!(s.tool_notice(), Some(ON_IP));
 }
 
-/// A headless shell on a writable copy of Golden A, folio 101, with -101F1 selected and the IP tool's refusal in the
+/// A headless shell on a writable copy of the sample, folio 101, with -101F1 selected and the IP tool's refusal in the
 /// canvas hint.
 fn refused(tmp: &Tmp) -> ShellModel {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");

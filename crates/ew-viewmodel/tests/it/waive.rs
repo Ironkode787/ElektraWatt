@@ -236,7 +236,7 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
 /// bond is declared the overlay is empty. The sample itself has no overlay.
 #[test]
 fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_declared() {
-    let tmp = Tmp::new("conflict-golden");
+    let tmp = Tmp::new("conflict-sample");
     let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     assert!(shell.conflict_members().is_empty(), "the sample has its bond");
     assert!(shell.conflict_overlay(0).is_empty());

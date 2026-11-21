@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Window-check findings at shell level, on Golden A: the palette's `:` refusal and the
+//! Window-check findings at shell level, on the sample: the palette's `:` refusal and the
 //! title after a folio, the form's hint, Edit ▸ Delete with nothing selected, the part editor's kind words and the
 //! Place HUD's symbol name.
 
@@ -47,7 +47,7 @@ fn a_folio_row_shows_the_page_title() {
         .iter()
         .find(|r| r.folio == "102")
         .map(|r| r.title.clone())
-        .expect("Golden A has a page 102");
+        .expect("The sample has a page 102");
     assert!(!title.is_empty());
     let rows = query(&mut shell, ":102");
     assert_eq!(rows.len(), 1);

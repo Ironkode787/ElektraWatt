@@ -3,7 +3,7 @@
 
 //! A terminal placed where a terminal of its strip already stands lands two grid steps
 //! to the right. The ghost shows where it lands, not the click, and the "Placed" toast
-//! says why it moved, in en-GB and nl-NL. On a writable copy of Golden A's folio 103: terminal 70 of -X1031 at grid
+//! says why it moved, in en-GB and nl-NL. On a writable copy of the sample's folio 103: terminal 70 of -X1031 at grid
 //! index (60, 28), then terminals 71 and 72 of -X1031 clicked on the same point.
 
 use crate::common;

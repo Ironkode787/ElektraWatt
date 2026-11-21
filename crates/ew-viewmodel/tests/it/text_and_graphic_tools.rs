@@ -3,7 +3,7 @@
 
 //! In the view model: the Text tool with its binding, text edit, the Graphic
 //! tool's six shapes with their Back and finish rules and their arc direction, the two tools' ghost lines and words,
-//! and their exact `Session` counts. Every test works on a writable temporary copy of Golden A.
+//! and their exact `Session` counts. Every test works on a writable temporary copy of the sample.
 
 use crate::common;
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas model through the shell on a temporary copy of Golden A (acceptance checks A1, A2,
+//! The canvas model through the shell on a temporary copy of the sample (acceptance checks A1, A2,
 //! A5, A8 and the model half of A9).
 
 use crate::common::{self, Tmp, done, state};

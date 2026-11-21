@@ -13,7 +13,7 @@ use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
-/// FT-717: on Golden A, Parts list opens the first page of the parts list (the `parts_summary` block at folio 901)
+/// FT-717: on the sample, Parts list opens the first page of the parts list (the `parts_summary` block at folio 901)
 /// in the focused group.
 #[test]
 fn parts_list_opens_the_first_page_of_the_bom_block() {
@@ -23,7 +23,7 @@ fn parts_list_opens_the_first_page_of_the_bom_block() {
     assert_eq!(strings::text(Key::run_time(&meta.label_key())), "Open parts list");
     assert_eq!(strings::text(key!("bar-lists-parts")), "Parts list");
     assert_eq!((meta.enabled)(&shell), Ok(()));
-    let folio = shell.parts_list_folio().expect("Golden A has a parts list");
+    let folio = shell.parts_list_folio().expect("The sample has a parts list");
     assert_eq!(folio, "901");
     done(&mut shell, "lists.parts", json!({}));
     let row = shell

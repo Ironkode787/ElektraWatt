@@ -5,7 +5,7 @@
 //! auxiliary function by `place.pick device=<tag>` in one undo step (D1, D4); a slot filled before a new auxiliary
 //! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals
 //! (D4); a symbol that cannot be an auxiliary function refused (D2, D4); the Join chooser's rows, type-ahead, Escape
-//! and "New device" (D2). Every test works on a writable temporary copy of Golden A, folio 101.
+//! and "New device" (D2). Every test works on a writable temporary copy of the sample, folio 101.
 
 use crate::common;
 

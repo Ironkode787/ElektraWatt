@@ -4,7 +4,7 @@
 //! In the view model: the Image tool places an asset the project holds by two
 //! fine-snapped corners keeping the asset's aspect ratio; `image.pick`'s refusals and failures; Back and Escape;
 //! the ghost's transcript member and describe line; `page.describe`'s `image` item line; one
-//! undo step; and no `Session` read on pointer moves. Every test works on a writable temporary copy of Golden A (the
+//! undo step; and no `Session` read on pointer moves. Every test works on a writable temporary copy of the sample (the
 //! asset is a placeholder SVG written here).
 
 use crate::common;

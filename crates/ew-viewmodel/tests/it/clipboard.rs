@@ -1074,7 +1074,7 @@ fn cut_unknown_page_item_alone_and_with_text_is_refused_without_changes() {
     let dir = tmp.sample_copy();
     let (source, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let project = (**source.query().project()).clone();
-    // Retain Golden A's records and libraries using the existing project's persisted JSONL fixture.
+    // Retain the sample's records and libraries using the existing project's persisted JSONL fixture.
     let mut records = Vec::new();
     fn read_records(dir: &std::path::Path, records: &mut Vec<Value>) {
         for entry in std::fs::read_dir(dir).unwrap() {

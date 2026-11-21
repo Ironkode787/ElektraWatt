@@ -754,9 +754,9 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
         }
     }
     // The sample's size profile, from its project file.
-    let golden =
+    let sample =
         std::fs::read_to_string(std::path::Path::new(common::SAMPLE).join("project.jsonl")).unwrap();
-    let size = golden
+    let size = sample
         .lines()
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
         .find(|r| r["$k"] == "project")

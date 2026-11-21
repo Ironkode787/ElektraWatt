@@ -20,7 +20,7 @@ fn crashes(tmp: &Tmp) -> PathBuf {
     tmp.0.join("config").join("state").join(CRASH_DIR)
 }
 
-/// A copy of Golden A with one unsaved page, left by a session that ended without its shutdown.
+/// A copy of the sample with one unsaved page, left by a session that ended without its shutdown.
 fn crashed_project(tmp: &Tmp) -> PathBuf {
     let dir = tmp.0.join("g.ew");
     copy_dir(Path::new(SAMPLE), &dir);

@@ -16,7 +16,7 @@ use ew_viewmodel::shell::{ConfirmAnswer, Dialog, Mode, Pending, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
-/// Every dialog of the shell: the constructible ones directly, the forms through their actions on Golden A.
+/// Every dialog of the shell: the constructible ones directly, the forms through their actions on the sample.
 fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
     let mut shell = tmp.sample_in(Mode::Gui, true, "101");
     let mut dialogs = vec![

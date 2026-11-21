@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `page.describe` on a temporary copy of Golden A. The header counts of folios
+//! `page.describe` on a temporary copy of the sample. The header counts of folios
 //! 101 to 103, the expected texts (`tests/expected/page_describe_10{1,2,3}.txt`, rewritten by `EW_BLESS=1`), no
 //! record ID anywhere in the text, and the refusals.
-//! Every test works on a read-only temporary copy of Golden A.
+//! Every test works on a read-only temporary copy of the sample.
 
 use crate::common;
 
@@ -166,7 +166,7 @@ fn a_generated_list_page_prints_its_rows() {
         .iter()
         .find(|r| r.generated && r.title.to_lowercase().contains("part"))
         .map(|r| r.folio.clone())
-        .expect("Golden A has a parts list page");
+        .expect("The sample has a parts list page");
     let text = page_text(&mut shell, Some(&parts));
     let lines: Vec<&str> = text.lines().collect();
     let at = lines

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties polish through the shell on temporary copies of Golden A: `props.follow` on a
+//! Properties polish through the shell on temporary copies of the sample: `props.follow` on a
 //! placement's Device row and 902's Placement rows in words.
 
 use crate::common;

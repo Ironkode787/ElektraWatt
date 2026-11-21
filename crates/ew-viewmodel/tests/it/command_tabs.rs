@@ -168,7 +168,7 @@ fn the_rack_button_lists_the_stations() {
         Some(strings::text(ew_viewmodel::key!("reason-no-station")))
     );
     empty.shutdown();
-    let tmp = Tmp::new("tabs-rack-golden");
+    let tmp = Tmp::new("tabs-rack-sample");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     let rack = button(&s, Tab::Plc, "plc.rack_editor");
     let ButtonKind::Menu(items) = rack.kind else {

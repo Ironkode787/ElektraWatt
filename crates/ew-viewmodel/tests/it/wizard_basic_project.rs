@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! NFR-UX-08 (SC-8): the company-standard wizard with the pilot's choices (its defaults) writes a basic project; a
-//! project made from it with `file.new` carries the effective conventions of the sample project (Golden A), member by
+//! project made from it with `file.new` carries the effective conventions of the sample project, member by
 //! member, except the members of [`EXCLUDED`]; its text styles are the readable ones of a new project.
 
 use crate::common;
@@ -177,16 +177,16 @@ fn new_project(tmp: &Tmp, choice: &str) -> PathBuf {
 }
 
 #[test]
-fn golden_from_the_basic_project() {
+fn the_sample_from_the_basic_project() {
     let tmp = Tmp::new("nfr-ux-08");
-    let golden = Path::new(SAMPLE);
-    let types: BTreeSet<String> = records(golden, &["pages"])
+    let sample = Path::new(SAMPLE);
+    let types: BTreeSet<String> = records(sample, &["pages"])
         .into_iter()
         .filter(|r| r["$k"] == "page")
         .filter_map(|p| p["type"].as_str().map(str::to_owned))
         .collect();
     let new = new_project(&tmp, "sample");
-    let (want, got) = (conventions(golden, &types), conventions(&new, &types));
+    let (want, got) = (conventions(sample, &types), conventions(&new, &types));
     let differ: Vec<String> = want
         .iter()
         .zip(&got)

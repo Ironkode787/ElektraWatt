@@ -191,7 +191,7 @@ fn the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
         .external_choices()
         .first()
         .cloned()
-        .expect("Golden A's references")
+        .expect("The sample's references")
         .0;
     done(&mut s, "ip.external", json!({"external": external}));
     assert_eq!(ghost(&s)["direction"], "target");
@@ -237,7 +237,7 @@ fn grid(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
 }
 
 /// A plain commit, an Alt commit (the click's modifier and the keyboard's) and a terminal each say the placed tag and
-/// its frame cell in the toast; on a page without frame cells (Golden A's QET frames) the tag alone.
+/// its frame cell in the toast; on a page without frame cells (the sample's QET frames) the tag alone.
 #[test]
 fn every_place_commit_names_the_tag_and_the_cell() {
     let tmp = Tmp::new("m34-546");
@@ -267,7 +267,7 @@ fn every_place_commit_names_the_tag_and_the_cell() {
         assert!(t.contains('K'), "{action}: {t}");
         assert!(t.ends_with(&format!(" at {cell}.")), "{action}: {t} / {cell}");
     }
-    // A terminal on Golden A's strip names the terminal; Golden A's frames have no cells.
+    // A terminal on the sample's strip names the terminal; the sample's frames have no cells.
     let tmp = Tmp::new("m34-546b");
     let mut s = writable(&tmp, "103");
     done(&mut s, "view.zoom_actual", json!({}));

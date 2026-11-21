@@ -310,7 +310,7 @@ fn a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens_rea
     s.shutdown();
 }
 
-/// A copy of Golden A, the original of a Save As.
+/// A copy of the sample, the original of a Save As.
 fn original(tmp: &Tmp) -> PathBuf {
     let original = tmp.sample_copy();
     copy_dir(Path::new(SAMPLE), &original);

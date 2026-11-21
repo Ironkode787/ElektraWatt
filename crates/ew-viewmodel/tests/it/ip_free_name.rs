@@ -4,7 +4,7 @@
 //! An automatically named interruption point takes the first free name among the project's own
 //! interruption points, read from the model when it is named. A reopen (the session's memory gone), an undo that brings
 //! a point back and a paste of a point never make the next automatic name repeat one, so no automatic name joins two
-//! points: the point of the other page prints no cross-reference to them. Golden A's folios 102 and 103, on copies.
+//! points: the point of the other page prints no cross-reference to them. The sample's folios 102 and 103, on copies.
 
 use crate::common;
 
@@ -13,7 +13,7 @@ use ew_api::output::PageTables;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
+/// A headless shell with a writable copy of the sample on `folio`, at actual size.
 fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
     let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));

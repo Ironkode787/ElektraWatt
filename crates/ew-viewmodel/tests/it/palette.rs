@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The palette (FR-UI-012, NFR-UX-03), on Golden A: ranking with the shortcut,
+//! The palette (FR-UI-012, NFR-UX-03), on the sample: ranking with the shortcut,
 //! determinism and the disabled tail, the glossary aliases (one row per NFR-DOC-05 term), the recents,
 //! the prefixes, the parameter forms, and the describe lines of an open form.
 

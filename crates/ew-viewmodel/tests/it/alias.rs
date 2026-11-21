@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The ID alias `@n` through the headless runner on temporary copies of Golden A: no UUID
+//! The ID alias `@n` through the headless runner on temporary copies of the sample: no UUID
 //! in a transcript line, aliases numbered by first appearance, `@n` accepted where an action parameter takes a UUID
 //! or a reference (`select.set`, a navigator key, a command's `{"ref": "@n"}`), an unknown alias refused naming it,
 //! `--record` holding the resolved UUID, and two runs of one script giving the same bytes.
@@ -24,7 +24,7 @@ fn script_text(steps: &[(&str, Value)]) -> String {
     text
 }
 
-/// A headless shell whose settings live in `tmp`, and a copy of Golden A there.
+/// A headless shell whose settings live in `tmp`, and a copy of the sample there.
 fn shell(tmp: &Tmp) -> (ShellModel, String) {
     let dir = tmp.0.join("sample.ew");
     if !dir.exists() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On a temporary copy of Golden A: a routed wire whose coil end lies off the sheet is
+//! On a temporary copy of the sample: a routed wire whose coil end lies off the sheet is
 //! drawn along the sheet's edge by the scene's clamp, where normaliser 7 does not split it. The page tables name
 //! that stretch; the Place tool proposes no split on it and refuses a drop with a connection point strictly inside
 //! it, in words; a symbol placed there by a command is treated as before (the wire is not split).

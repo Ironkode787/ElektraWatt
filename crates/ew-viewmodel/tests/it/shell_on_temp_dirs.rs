@@ -1102,7 +1102,7 @@ fn crash_with_an_edit(tmp: &Tmp, dir: &Path) {
     // Dropped without `shutdown`: the journal stays, like after a crash.
 }
 
-fn copy_golden(to: &Path) {
+fn copy_sample(to: &Path) {
     ew_testdir::copy_dir(Path::new(SAMPLE), to);
 }
 
@@ -1110,7 +1110,7 @@ fn copy_golden(to: &Path) {
 fn the_journal_of_an_earlier_session_is_discarded_after_a_confirmation() {
     let tmp = Tmp::new(STEM);
     let dir = tmp.0.join("g.ew");
-    copy_golden(&dir);
+    copy_sample(&dir);
     crash_with_an_edit(&tmp, &dir);
 
     // The GUI asks.
