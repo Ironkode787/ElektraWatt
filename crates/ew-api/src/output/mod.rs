@@ -43,6 +43,8 @@
 //! **The print set** ([`mod@print`]): the same pages placed on a paper ([`ew_export::PagePlacement`]),
 //! stamped when scaled, and written by the same writer; [`PageSelection::Sections`] selects pages by section for both.
 
+// The DXF set's attributes and block names (doc 09 §4.9).
+mod dxf_set;
 mod editing;
 mod fields;
 // The export as a job (D4).
@@ -542,17 +544,22 @@ pub struct SvgExport {
     pub findings: Vec<PageFindingAt>,
 }
 
-/// A written DXF set (doc 09 §4.4).
+/// A written DXF set (doc 09 §4.4, §4.9).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DxfExport {
     /// One file per page, in page order.
     pub files: Vec<ew_export::DxfFile>,
-    /// The findings of the page scenes.
+    /// The picture files the pages name, to be written beside them.
+    pub pictures: Vec<ew_export::DxfPicture>,
+    /// The findings of the page scenes, and the images that cannot be drawn.
     pub findings: Vec<PageFindingAt>,
 }
 
-/// The DXF set of an export over `q` (doc 09 §4.4, FR-OUT-015): one AC1015 file per selected page from its exported
-/// layers on the sheet, symbol instances kept for the writer's blocks, the layers named by `layers`.
+/// The DXF set of an export over `q` (doc 09 §4.4, §4.9, FR-OUT-015): one AutoCAD 2010 file per selected page from its
+/// exported layers on the sheet, symbol instances kept for the writer's blocks, a representation's texts as the
+/// attributes of its insert ([`dxf_set`]), the images resolved as for the PDF (an SVG as paths, a PNG or JPEG with its
+/// bytes, one that cannot be drawn a finding), the layers named by `layers`, the hyperlinks to `.dwg` files with
+/// `dwg_links`.
 ///
 /// # Errors
 ///
@@ -561,6 +568,7 @@ pub fn export_dxf_with(
     q: &Q,
     options: &ExportOptions,
     layers: &ew_export::DxfLayers,
+    dwg_links: bool,
     assets: &ExportAssets,
 ) -> Result<DxfExport, OutputError> {
     let order = q.get::<PageOrder>(());
@@ -574,6 +582,8 @@ pub fn export_dxf_with(
     )?;
     let mut sheets = Vec::with_capacity(picked.len());
     let mut findings = Vec::new();
+    let mut symbol_names = BTreeMap::new();
+    let mut decodes: BTreeMap<[u8; 32], bool> = BTreeMap::new();
     for &i in &picked {
         let entry = &order.entries[i];
         let scene = page_scene(q, entry);
@@ -581,35 +591,83 @@ pub fn export_dxf_with(
             folio: entry.folio.clone(),
             finding: f.clone(),
         }));
-        let mut layers: Vec<(ew_dl::Layer, DisplayList)> = Vec::new();
+        // The texts that are the attributes of the inserts, taken out of the labels layer.
+        let (labels, attributes) = match entry.page {
+            ew_derive::PageRef::Drawn(_) => {
+                let view = page_view(q, entry);
+                dxf_set::symbol_names(&view, &mut symbol_names);
+                let labels = page_layer(q, entry.page, ew_dl::Layer::Labels);
+                let (kept, attributes) = dxf_set::split_attributes(&view, &labels.slot_texts, &labels.list);
+                (Some(kept), attributes)
+            }
+            _ => (None, BTreeMap::new()),
+        };
+        let mut lists: Vec<(ew_dl::Layer, DisplayList)> = Vec::new();
         if let ew_derive::PageRef::Drawn(page) = entry.page
             && options.underlays
         {
             let list = underlay::underlay_list(q, page, assets);
-            layers.push((ew_dl::Layer::Underlay, scene.map.apply_display_list(&list, None)));
+            lists.push((ew_dl::Layer::Underlay, scene.map.apply_display_list(&list, None)));
         }
-        layers.extend(
+        lists.extend(
             scene
                 .layers
                 .iter()
                 .filter(|(l, _)| l.is_exported())
-                .map(|(l, list)| (*l, scene.map.apply_display_list(list, None))),
+                .map(|(l, list)| {
+                    let list = match (&labels, l) {
+                        (Some(kept), ew_dl::Layer::Labels) => kept,
+                        _ => &**list,
+                    };
+                    (*l, scene.map.apply_display_list(list, None))
+                }),
         );
+        // The images, as the PDF's page phase resolves them: no silent loss.
+        let mut issues = Vec::new();
+        for (_, list) in &mut lists {
+            let (resolved, report) = ew_scene::images::resolve_images(list, &|sha| assets.get(sha));
+            *list = resolved;
+            issues.extend(report.issues);
+            undecodable_rasters(&mut list.items, &mut decodes, &mut issues);
+        }
+        findings.extend(issues.into_iter().map(|issue| PageFindingAt {
+            folio: entry.folio.clone(),
+            finding: PageFinding::Image(issue),
+        }));
+        let attributes = attributes
+            .into_iter()
+            .map(|(e, lines)| {
+                let (tags, items): (Vec<String>, Vec<ew_dl::Item>) = lines.into_iter().unzip();
+                let on_sheet = scene.map.apply_display_list(&DisplayList { items }, None);
+                let lines = tags
+                    .into_iter()
+                    .zip(on_sheet.items)
+                    .map(|(tag, line)| ew_export::DxfAttribute { tag, line })
+                    .collect();
+                (e, lines)
+            })
+            .collect();
         sheets.push(ew_export::DxfSheet {
             label: entry.folio.clone(),
             width: scene.sheet_width,
             height: scene.sheet_height,
-            layers,
+            destination: page_destination(entry.page),
+            layers: lists,
             geometry: scene.geometry.clone(),
             scale_ppb: scene.map.scale_ppb,
+            attributes,
         });
     }
     let dxf_options = ew_export::DxfOptions {
         layers: layers.clone(),
         faces: dxf_faces(q),
+        symbol_names,
+        dwg_links,
     };
+    let set = ew_export::dxf(&sheets, &dxf_options);
     Ok(DxfExport {
-        files: ew_export::dxf(&sheets, &dxf_options),
+        files: set.files,
+        pictures: set.pictures,
         findings,
     })
 }
@@ -663,8 +721,10 @@ pub fn svg_options(fonts: &ew_text::FontSet, monochrome: bool) -> SvgOptions {
 }
 
 /// The text style of each face of the project's font set as a DXF names it (doc 09 §4.8): its family, its weight, its
-/// font file (the typeface's own name; a bundled face's `<Family>-<Regular|Bold>.ttf`) and its cap height.
+/// font file (the typeface's own name; a bundled face's `<Family>-<Regular|Bold>.ttf`), its cap height, and its bytes
+/// for the texts' width factors (§4.9).
 fn dxf_faces(q: &Q) -> BTreeMap<FontKey, ew_export::DxfFace> {
+    use ew_export::ew_render_cpu::FontResolver as _;
     let project = q.get::<ProjectFontsQ>(());
     let typeface = match &project.state {
         TypefaceState::Loaded { name, .. } => Some(name.as_str()),
@@ -688,6 +748,7 @@ fn dxf_faces(q: &Q) -> BTreeMap<FontKey, ew_export::DxfFace> {
                 bold,
                 file,
                 cap: (f.metrics.cap_height, f.metrics.units_per_em),
+                font: DrawingFonts.font(f.key),
             };
             (f.key, face)
         })
@@ -1145,7 +1206,8 @@ impl Session {
         export_svg_with(&self.query(), options, &self.export_assets())
     }
 
-    /// The DXF set of the current snapshot (`ew export dxf`, doc 09 §4.4), one file per page ([`export_dxf_with`]).
+    /// The DXF set of the current snapshot (`ew export dxf`, doc 09 §4.4, §4.9), one file per page and the picture
+    /// files they name ([`export_dxf_with`]); with `dwg_links` the hyperlinks name the pages' `.dwg` files.
     ///
     /// # Errors
     ///
@@ -1154,8 +1216,9 @@ impl Session {
         &self,
         options: &ExportOptions,
         layers: &ew_export::DxfLayers,
+        dwg_links: bool,
     ) -> Result<DxfExport, OutputError> {
-        export_dxf_with(&self.query(), options, layers, &self.export_assets())
+        export_dxf_with(&self.query(), options, layers, dwg_links, &self.export_assets())
     }
 }
 

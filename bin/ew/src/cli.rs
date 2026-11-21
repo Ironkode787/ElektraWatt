@@ -359,6 +359,8 @@ pub struct ExportPagesArgs {
     pub dpi: u32,
     /// The DXF layer names of `export dxf` (`--layer`); unused for the other formats.
     pub dxf_layers: ew_api::output::DxfLayers,
+    /// Whether the hyperlinks of `export dxf` name the pages' `.dwg` files (`--dwg-links`); unused for the other formats.
+    pub dxf_dwg_links: bool,
     /// Print the pages' underlays (`--underlays`, FR-IMP-030).
     pub underlays: bool,
     /// Print the result as JSON (`--json`).

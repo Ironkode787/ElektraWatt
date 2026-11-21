@@ -648,28 +648,29 @@ pub(super) fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Re
         .iter()
         .map(|f| (f.name.as_str(), f.text.as_bytes()))
         .collect();
-    write_file_set(out, "svg", "an SVG", &files)
+    write_file_set(out, &["svg"], "an SVG", "SVG-only", &files)
 }
 
-/// Writes a set of files with the extension `ext` (`svg`, `png`; `a_file` names one: `an SVG`) into the directory
-/// `out` as a whole: the files go to a fresh sibling directory first, which then replaces `out`, so `out` holds exactly
-/// this export (no stale page of an earlier export) and a failure leaves the earlier set as it was. A directory that
-/// holds anything but `.<ext>` files is refused, so no other file is ever removed (`ew export svg`, `ew export png`).
+/// Writes a set of files with the extensions `exts` (`svg`; `png`; `dxf` with its pictures; `a_file` names one: `an
+/// SVG`, `only` the directory that holds them alone: `SVG-only`) into the directory `out` as a whole: the files go to a
+/// fresh sibling directory first, which then replaces `out`, so `out` holds exactly this export (no stale page of an
+/// earlier export) and a failure leaves the earlier set as it was. A directory that holds a file of any other extension
+/// is refused, so no other file is ever removed (`ew export svg`, `ew export png`, `ew export dxf`).
 pub(super) fn write_file_set(
     out: &Path,
-    ext: &str,
+    exts: &[&str],
     a_file: &str,
+    only: &str,
     files: &[(&str, &[u8])],
 ) -> Result<(), String> {
-    let label = a_file.rsplit(' ').next().unwrap_or(a_file);
     let at = |p: &Path, e: std::io::Error| format!("{}: {e}", p.display());
     if out.exists() {
         let entries = std::fs::read_dir(out).map_err(|e| at(out, e))?;
         for e in entries {
             let path = e.map_err(|e| at(out, e))?.path();
-            if !path.is_file() || path.extension().is_none_or(|x| x != ext) {
+            if !path.is_file() || path.extension().is_none_or(|x| !exts.iter().any(|ext| x == *ext)) {
                 return Err(format!(
-                    "{}: the directory holds {}, which is not {a_file} file; choose an empty or {label}-only directory",
+                    "{}: the directory holds {}, which is not {a_file} file; choose an empty or {only} directory",
                     out.display(),
                     path.file_name()
                         .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
@@ -801,7 +802,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             )
         }
         PageFormat::Dxf => {
-            let dxf = match session.export_dxf(&options, &a.dxf_layers) {
+            let dxf = match session.export_dxf(&options, &a.dxf_layers, a.dxf_dwg_links) {
                 Ok(d) => d,
                 Err(e) => {
                     eprintln!("error: {e}");
@@ -812,8 +813,10 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .files
                 .iter()
                 .map(|f| (f.name.as_str(), f.text.as_bytes()))
+                .chain(dxf.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
                 .collect();
-            if let Err(e) = write_file_set(&a.out, "dxf", "a DXF", &files) {
+            let (a_file, only) = ("a DXF or picture", "DXF-and-picture-only");
+            if let Err(e) = write_file_set(&a.out, &["dxf", "png", "jpg"], a_file, only, &files) {
                 eprintln!("error: {e}");
                 return 2;
             }
@@ -824,12 +827,22 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                         schema: results::EXPORT_DXF.to_owned(),
                         out: a.out.display().to_string(),
                         files: dxf.files.iter().map(|f| f.name.clone()).collect(),
+                        pictures: dxf.pictures.iter().map(|p| p.name.clone()).collect(),
                         findings: dxf.findings.len(),
                     })
                 );
             }
+            let pictures = match dxf.pictures.len() {
+                0 => String::new(),
+                1 => " and the picture they name".to_owned(),
+                n => format!(" and the {n} pictures they name"),
+            };
             (
-                format!("DXF written to {}: {} files", a.out.display(), dxf.files.len()),
+                format!(
+                    "DXF written to {}: {} files{pictures}",
+                    a.out.display(),
+                    dxf.files.len()
+                ),
                 ew_api::output::page_findings_summary(&dxf.findings),
             )
         }
@@ -846,7 +859,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .iter()
                 .map(|f| (f.name.as_str(), f.bytes.as_slice()))
                 .collect();
-            if let Err(e) = write_file_set(&a.out, "png", "a PNG", &files) {
+            if let Err(e) = write_file_set(&a.out, &["png"], "a PNG", "PNG-only", &files) {
                 eprintln!("error: {e}");
                 return 2;
             }

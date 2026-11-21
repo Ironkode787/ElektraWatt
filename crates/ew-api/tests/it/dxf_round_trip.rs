@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1015) of the sample's PLC page
+//! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1024) of the sample's PLC page
 //! and its bus page (104, 105) has the configured layers, its wires on the wires layer and its symbols as inserts, and
 //! re-imports as graphic pages of the sample within 0.01 mm: every corner and curve end the page draws, and every
 //! text's baseline, prints within 0.01 mm of the re-imported page's on the sheet, through the frame's page-to-sheet
 //! map; as an underlay too. The export's bytes do not depend on the run. A symbol insert and a text come back where
-//! they were written, mirrored, turned and with their characters (`Ää°²`), through the file's ASCII. (The pages with
+//! they were written, mirrored, turned and with their characters (`Ää°²`), through the file's UTF-8. (The pages with
 //! terminals are left out: a terminal's texts come back 0.05 mm higher, a fault of the program.)
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -73,12 +73,12 @@ fn folios_104_and_105_export_to_dxf_with_their_layers_and_re_import_within_a_hun
         ..ExportOptions::default()
     };
     let layers = DxfLayers::default();
-    let dxf = session.export_dxf(&options, &layers).unwrap();
+    let dxf = session.export_dxf(&options, &layers, false).unwrap();
     let pages = session.export_pages(&options).unwrap();
     assert!(!dxf.files.is_empty());
     assert_eq!(dxf.files.len(), pages.pages.len());
     assert_eq!(
-        session.export_dxf(&options, &layers).unwrap(),
+        session.export_dxf(&options, &layers, false).unwrap(),
         dxf,
         "the export does not depend on the run"
     );
@@ -88,7 +88,7 @@ fn folios_104_and_105_export_to_dxf_with_their_layers_and_re_import_within_a_hun
     for (file, page) in dxf.files.iter().zip(&pages.pages) {
         assert_eq!(file.name, format!("{}.dxf", page.label));
         let text = &file.text;
-        assert!(text.contains("\n  1\nAC1015\n"), "{}: AC1015", file.name);
+        assert!(text.contains("\n  1\nAC1024\n"), "{}: AC1024", file.name);
         assert!(text.contains("$INSUNITS\n 70\n4\n"), "{}: millimetres", file.name);
         for name in [
             &layers.frame,
@@ -317,11 +317,15 @@ fn an_insert_and_a_text_come_back_where_they_were_written_with_their_characters(
         ],
         geometry,
         scale_ppb: 1_000_000_000,
+        destination: ew_dl::Destination::Page(ew_ids::Uuid::from_u128(1)),
+        attributes: BTreeMap::new(),
     };
-    let file = ew_export::dxf(&[sheet], &ew_export::DxfOptions::default()).remove(0);
+    let file = ew_export::dxf(&[sheet], &ew_export::DxfOptions::default())
+        .files
+        .remove(0);
     assert!(
-        file.text.is_ascii(),
-        "a reader may assume any code page: the file is ASCII"
+        file.text.contains("\n  1\nÄä°²\n"),
+        "an AutoCAD 2010 file is UTF-8: the characters are written as themselves"
     );
     let converted = ew_import_dxf::convert(
         file.text.as_bytes(),

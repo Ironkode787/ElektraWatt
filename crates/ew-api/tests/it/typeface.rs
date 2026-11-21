@@ -100,7 +100,7 @@ fn the_typeface_prints_in_the_pdf_and_is_named_by_the_dxf() {
     );
     // The DXF's style names the file, and the page's texts are written in it.
     let dxf = s
-        .export_dxf(&options(), &ew_export::DxfLayers::default())
+        .export_dxf(&options(), &ew_export::DxfLayers::default(), false)
         .unwrap();
     let text = &dxf.files[0].text;
     assert!(

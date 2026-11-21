@@ -760,6 +760,9 @@ pub struct ExportDxfResult {
     pub out: String,
     /// The files written, one `<folio>.dxf` per page, in page order.
     pub files: Vec<String>,
+    /// The picture files the pages name, written beside them (doc 09 §4.9), in the order of their names.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pictures: Vec<String>,
     /// The page findings.
     pub findings: usize,
 }

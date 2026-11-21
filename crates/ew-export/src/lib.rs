@@ -17,7 +17,10 @@ mod parallel;
 mod pdf;
 mod svg;
 
-pub use dxf::{DxfFace, DxfFile, DxfLayers, DxfOptions, DxfSheet, FLATNESS_NM, dxf, dxf_file_name};
+pub use dxf::{
+    DxfAttribute, DxfFace, DxfFile, DxfLayers, DxfOptions, DxfPicture, DxfSet, DxfSheet, FLATNESS_NM, dxf,
+    dxf_file_name,
+};
 pub use ew_render_cpu;
 pub use font_subset::{MAX_COMPOSITE_DEPTH, MAX_FONT_BYTES, SubsetError, cmap_glyphs, subset_glyf};
 pub use parallel::{Parallelism, par_map};

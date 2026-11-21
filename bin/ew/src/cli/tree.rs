@@ -746,10 +746,13 @@ enum ExportCli {
     Svg(PagesCli),
     /// Write one DXF file per page.
     ///
-    /// Writes one `<folio>.dxf` per page (AutoCAD 2000, AC1015, in millimetres) into the directory `--out` (replaced
-    /// as a whole; it may hold DXF files only): the frame, symbols as blocks and inserts, wires, texts, graphics and
-    /// tables on their layers (`--layer` renames one), curves flattened to 0.01 mm. `--pages` and `--sections` as
-    /// for `export pdf`. Exit 0 on success, 2 on everything else.
+    /// Writes one `<folio>.dxf` per page (AutoCAD 2010, AC1024, in millimetres) and the title block's PNG or JPEG
+    /// picture files they name into the directory `--out` (replaced as a whole; it may hold DXF and picture files
+    /// only): the frame, symbols as blocks named in words and inserts with the device's texts as attributes (`TAG`,
+    /// `FUNCTION_TEXT`, `CROSS_REFERENCE` …), wires, texts, graphics and tables on their layers (`--layer` renames
+    /// one), a cross-reference with a hyperlink to its target's page file (`--dwg-links`: its `.dwg`), curves
+    /// flattened to 0.01 mm. `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything
+    /// else.
     Dxf(DxfCli),
     /// Pack the project's saved generation into an .ewz.
     ///
@@ -1255,6 +1258,10 @@ struct DxfCli {
     /// `EW-UNDERLAY`).
     #[arg(long, value_name = "class=name", allow_hyphen_values = true, value_parser = dxf_layer)]
     layer: Vec<(String, String)>,
+    /// Let the hyperlinks of the cross-references name the pages' `.dwg` files, for a set a converter turns into DWG
+    /// (default: their `.dxf` files).
+    #[arg(long)]
+    dwg_links: bool,
 }
 
 /// `ew export pdf|svg`.
@@ -2892,11 +2899,16 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 threads,
                 dpi,
                 dxf_layers: ew_api::output::DxfLayers::default(),
+                dxf_dwg_links: false,
                 underlays,
                 json,
             })
         }
-        ExportCli::Dxf(DxfCli { pages, layer }) => {
+        ExportCli::Dxf(DxfCli {
+            pages,
+            layer,
+            dwg_links,
+        }) => {
             let mut command = pages_command(PageFormat::Dxf, pages)?;
             if let Command::ExportPages(a) = &mut command {
                 for (class, name) in layer {
@@ -2904,6 +2916,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                         .set(&class, &name)
                         .map_err(|e| usage_error(&["export", "dxf"], e))?;
                 }
+                a.dxf_dwg_links = dwg_links;
             }
             command
         }
@@ -2949,6 +2962,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         threads,
         dpi: ew_api::output::DEFAULT_DPI,
         dxf_layers: ew_api::output::DxfLayers::default(),
+        dxf_dwg_links: false,
         underlays,
         json,
     }))
