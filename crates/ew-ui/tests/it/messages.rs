@@ -7,6 +7,7 @@
 //! are tree items named `<label>, finding, <severity>[, fix][, pending]`; F8 and Shift+F8 walk the findings from the
 //! keyboard; the detail block names the cursor's rule and its Rule page link opens the rule's page in the browser; a
 //! new unpaired interruption point on the editing page is a pending row; the accessible-name walker after every step.
+//! Not here: what a finding row's menu offers (`ew-viewmodel`'s `waive.rs`).
 
 use crate::support;
 
@@ -985,44 +986,4 @@ fn a_group_rows_count_follows_its_name() {
         );
         h.state_mut().shell_mut().shutdown();
     }
-}
-
-/// The persona round of M3: a right-click on a finding's row did nothing. A finding's row offers its quick fix, where
-/// it has one, and Waive…; a waived one offers Unwaive.
-#[test]
-fn a_findings_row_menu_offers_its_fix_and_waive() {
-    let tmp = Tmp::new();
-    let mut h = on_sample(&tmp, Scripted::default());
-    an_overridden_description(&mut h);
-    dispatch(&mut h, "messages.show", json!({"on": true}));
-    settle(&mut h);
-    let nodes = table_nodes(&h);
-    let labels = |n: &NavNode| -> Vec<String> {
-        ew_viewmodel::command_bar::navigator_row_menu(h.state().shell(), NavKind::Messages, n)
-            .into_iter()
-            .map(|i| i.label)
-            .collect()
-    };
-    let with_fix = nodes
-        .iter()
-        .find(|n| n.role == NavRole::Finding && n.badges.iter().any(|b| b == "fix"))
-        .unwrap_or_else(|| {
-            let rules: Vec<&str> = nodes
-                .iter()
-                .filter(|n| n.role == NavRole::Finding)
-                .map(|n| n.cells[1].as_str())
-                .collect();
-            panic!("a finding with a fix among {rules:?}")
-        });
-    let menu: Vec<String> = labels(with_fix)
-        .into_iter()
-        .filter(|l| !l.starts_with("Fix all"))
-        .collect();
-    assert_eq!(menu, ["Fix…", "Waive…"]);
-    let without = nodes
-        .iter()
-        .find(|n| n.role == NavRole::Finding && !n.badges.iter().any(|b| b == "fix" || b == "waived"))
-        .expect("a finding without a fix");
-    assert_eq!(labels(without), ["Waive…"]);
-    h.state_mut().shell_mut().shutdown();
 }

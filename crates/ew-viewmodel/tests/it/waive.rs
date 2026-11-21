@@ -3,7 +3,7 @@
 
 //! Waive… and Unwaive in the Messages pane on copies of the sample (the reason prompt, its optional reason and author,
 //! the author preference, the date the window passes, one `check.waive` or `check.unwaive` per step, the check toast's
-//! waived count). The canvas's conflict overlay of an unbonded merged 0 V/PE potential (the sample without its
+//! waived count), and a finding row's menu with its Fix… and Waive…. The canvas's conflict overlay of an unbonded merged 0 V/PE potential (the sample without its
 //! PELV bond), which never reaches the page's display list.
 
 use crate::common;
@@ -435,5 +435,60 @@ fn a_scripted_window_shows_the_waive_refusal_in_words() {
         panic!("the prompt stays");
     };
     assert_eq!(form.error.as_deref(), Some(message.as_str()));
+    shell.shutdown();
+}
+
+/// The persona round of M3: a right-click on a finding's row did nothing. A finding's row offers its quick fix, where
+/// it has one, and Waive…; a waived one offers Unwaive.
+#[test]
+fn a_findings_row_menu_offers_its_fix_and_waive() {
+    let tmp = Tmp::new("waive-menu");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
+    // Folio 102's description overridden: EW-CORE-023, a finding with a quick fix.
+    let page = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "102")
+        .map(|r| r.id.to_string())
+        .expect("folio 102");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
+            "path": "description_override", "value": "Overridden"}}),
+    );
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let nodes = shell
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .map(|t| t.nodes.clone())
+        .expect("the Messages pane with its table");
+    let labels = |n: &NavNode| -> Vec<String> {
+        ew_viewmodel::command_bar::navigator_row_menu(&shell, NavKind::Messages, n)
+            .into_iter()
+            .map(|i| i.label)
+            .collect()
+    };
+    let with_fix = nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.badges.iter().any(|b| b == "fix"))
+        .unwrap_or_else(|| {
+            let rules: Vec<&str> = nodes
+                .iter()
+                .filter(|n| n.role == NavRole::Finding)
+                .map(|n| n.cells[1].as_str())
+                .collect();
+            panic!("a finding with a fix among {rules:?}")
+        });
+    let menu: Vec<String> = labels(with_fix)
+        .into_iter()
+        .filter(|l| !l.starts_with("Fix all"))
+        .collect();
+    assert_eq!(menu, ["Fix…", "Waive…"]);
+    let without = nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && !n.badges.iter().any(|b| b == "fix" || b == "waived"))
+        .expect("a finding without a fix");
+    assert_eq!(labels(without), ["Waive…"]);
     shell.shutdown();
 }
