@@ -326,10 +326,7 @@ fn the_unconnected_pins_fix_marks_it_unused() {
     let warnings = |fs: &[checks::Finding]| fs.iter().filter(|f| f.fix.is_some()).count();
     let n = warnings(&before);
     assert!(n >= 1, "{before:#?}");
-    let fix = before
-        .iter()
-        .find_map(|f| f.fix.clone())
-        .expect("a fix");
+    let fix = before.iter().find_map(|f| f.fix.clone()).expect("a fix");
     assert_eq!(
         (fix.label.as_str(), fix.command.as_str()),
         ("Mark not used", "fields.set")
@@ -413,10 +410,18 @@ fn the_ew_pot_pack_is_quiet_and_an_undersized_pe_wire_is_pot006() {
         }
     });
     let report = bare.check(&PRE_DELIVERY, CheckMode::Release);
-    let found: Vec<&checks::Finding> = report.findings.iter().filter(|f| f.rule == "EW-POT-006").collect();
+    let found: Vec<&checks::Finding> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-POT-006")
+        .collect();
     assert_eq!(found.len(), 1, "{found:#?}");
     assert_eq!(found[0].severity, checks::Severity::Error);
-    assert_eq!(found[0].targets[0].id.to_string(), shield, "the finding is the shield wire");
+    assert_eq!(
+        found[0].targets[0].id.to_string(),
+        shield,
+        "the finding is the shield wire"
+    );
 }
 
 /// D-21, MVP part: the sample with the PE wire of its power supply -101G1 (the star's branch from -X1011:PE, which the

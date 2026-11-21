@@ -20,8 +20,8 @@
 
 use crate::common::{self, placement_of, rail_at, run_cmd};
 
-use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
 use ew_api::Session;
+use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{GroupAccessories, PlacementGeometry};
@@ -101,7 +101,11 @@ fn owned(v: &[&str]) -> Vec<String> {
 /// Where the footprint of `placement` starts along its rail, in tenths of a millimetre.
 fn s10_of(s: &Session, placement: Id<Placement>) -> i64 {
     let q = s.query();
-    let row = q.table::<Placement>().get(placement).cloned().expect("the placement");
+    let row = q
+        .table::<Placement>()
+        .get(placement)
+        .cloned()
+        .expect("the placement");
     row.pose.t[0].0 * 10 / MM
 }
 
@@ -327,7 +331,11 @@ fn the_run_gives_no_bracket_finding_and_two_moves_give_theirs() {
     let x1031 = placement_of(&s, "-X1031");
 
     // -X1031 5 mm after -X1021 (which ends at 107.6 mm): one run, and the bracket after -X1021 overlaps it.
-    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(1126)}));
+    run_cmd(
+        &mut s,
+        "layout.move",
+        json!({"placement": id_json(x1031), "pose": rail_at(1126)}),
+    );
     assert_eq!(
         bracket_findings(&s),
         pair(
@@ -337,7 +345,11 @@ fn the_run_gives_no_bracket_finding_and_two_moves_give_theirs() {
     );
 
     // -X1031 at s = 444 mm: its own run, brackets [434, 444] and [470, 480] on a 470 mm rail.
-    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(4440)}));
+    run_cmd(
+        &mut s,
+        "layout.move",
+        json!({"placement": id_json(x1031), "pose": rail_at(4440)}),
+    );
     assert_eq!(
         bracket_findings(&s),
         pair(
@@ -379,10 +391,18 @@ fn eb_the_bracket_lines_memoise_as_they_run_cold() {
     );
     check(&s, "X33 placed");
     let x1031 = placement_of(&s, "-X1031");
-    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(4000)}));
+    run_cmd(
+        &mut s,
+        "layout.move",
+        json!({"placement": id_json(x1031), "pose": rail_at(4000)}),
+    );
     check(&s, "-X1031 moved away");
     let x1011 = placement_of(&s, "-X1011");
-    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1011), "pose": rail_at(2500)}));
+    run_cmd(
+        &mut s,
+        "layout.move",
+        json!({"placement": id_json(x1011), "pose": rail_at(2500)}),
+    );
     check(&s, "-X1011 moved");
     let mismatches = s.take_oracle_mismatches();
     assert!(mismatches.is_empty(), "{mismatches:?}");
@@ -486,7 +506,9 @@ fn first_terminal(s: &Session, strip: &str) -> Id<Device> {
 /// The terminal part's copy, and a copy of it twice as wide (10.4 mm) in a test library.
 fn wide_terminal(s: &Session, terminal: Id<Device>, item: u128, key: &str) -> (Id<Part>, Value, Value) {
     let q = s.query();
-    let old = q.devices().get(terminal).expect("the terminal").parts[0].part.copy;
+    let old = q.devices().get(terminal).expect("the terminal").parts[0]
+        .part
+        .copy;
     let copy = ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
     assert_eq!(
         copy.item.mech.as_ref().and_then(|m| m.width),
@@ -504,7 +526,12 @@ fn wide_terminal(s: &Session, terminal: Id<Device>, item: u128, key: &str) -> (I
 fn a_part_change_that_widens_a_strips_terminal_pushes() {
     let (mut s, _) = session();
     let terminal = first_terminal(&s, "-X1021");
-    let (old, copy, part) = wide_terminal(&s, terminal, 0x0190_0000_0000_7000_8000_0000_0000_1497, "FT1497-TWIN");
+    let (old, copy, part) = wide_terminal(
+        &s,
+        terminal,
+        0x0190_0000_0000_7000_8000_0000_0000_1497,
+        "FT1497-TWIN",
+    );
     assert_eq!((s10(&s, "-X1021"), s10(&s, "-X1031")), (660, 1176));
     run_cmd(
         &mut s,
@@ -594,7 +621,12 @@ fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
     };
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
     let terminals = [first_terminal(&s, "-X1021"), first_terminal(&s, "-X1031")];
-    let (_, copy, part) = wide_terminal(&s, terminals[0], 0x0190_0000_0000_7000_8000_0000_0000_1480, "C53P2-TWIN");
+    let (_, copy, part) = wide_terminal(
+        &s,
+        terminals[0],
+        0x0190_0000_0000_7000_8000_0000_0000_1480,
+        "C53P2-TWIN",
+    );
     assert_eq!(
         (s10(&s, "-X1021"), s10(&s, "-X1031"), x33_at(&s)),
         (660, 1176, 1566)

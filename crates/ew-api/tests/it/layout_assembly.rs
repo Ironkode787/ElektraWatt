@@ -29,7 +29,11 @@ fn id_json<T>(id: Id<T>) -> Value {
 
 /// The sample over its records with `unplace`'s placement removed; rail 1 and rail 2.
 fn session_without(unplace: Option<&str>) -> (Session, Id<Carrier>, Id<Carrier>) {
-    let gone = unplace.map(|t| common::sample().resolve_reference(&format!("tag:{t}")).expect("the device"));
+    let gone = unplace.map(|t| {
+        common::sample()
+            .resolve_reference(&format!("tag:{t}"))
+            .expect("the device")
+    });
     let (project, mut records, lib) = common::sample_records();
     records.retain(|r| !matches!(r, Record::Placement(p) if Some(p.device.as_uuid()) == gone));
     let s = common::session_of(project, records, lib);
@@ -135,7 +139,10 @@ fn as2_the_assembly_as_one_block_on_an_empty_rail() {
     assert_eq!(empty(&mut s, r2), 11);
     let station = dev(&s, "-104A1");
     let q = s.query();
-    let order: Vec<String> = member_order(&q, station).into_iter().map(|d| tag(&q, d)).collect();
+    let order: Vec<String> = member_order(&q, station)
+        .into_iter()
+        .map(|d| tag(&q, d))
+        .collect();
     assert_eq!(order, MEMBERS.map(str::to_owned).to_vec());
     drop(q);
     run(
@@ -210,7 +217,12 @@ fn as3_auto_fill_on_an_empty_rail_1() {
     let notices = fill_r1(&mut s, r1);
     assert_eq!(
         clips(&s, r1),
-        owned(&[("-101F1", 180), ("-101Q1", 630), ("-102F1", 990), ("-103F1", 1350)])
+        owned(&[
+            ("-101F1", 180),
+            ("-101Q1", 630),
+            ("-102F1", 990),
+            ("-103F1", 1350)
+        ])
     );
     assert_eq!(notices.len(), 1, "{notices:?}");
     assert!(notices[0].starts_with("-201M1: "), "{notices:?}");
@@ -221,7 +233,12 @@ fn as3_auto_fill_on_an_empty_rail_1() {
     let padded = fill_r1(&mut s, r1);
     assert_eq!(
         clips(&s, r1),
-        owned(&[("-101F1", 180), ("-101Q1", 630), ("-102F1", 1040), ("-103F1", 1450)])
+        owned(&[
+            ("-101F1", 180),
+            ("-101Q1", 630),
+            ("-102F1", 1040),
+            ("-103F1", 1450)
+        ])
     );
     assert_eq!(padded, notices);
 }

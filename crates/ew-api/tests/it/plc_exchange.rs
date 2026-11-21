@@ -195,7 +195,9 @@ fn the_aml_export_of_a_station_is_ar_apc_on_caex_2_15() {
     assert_eq!(st.id, station.to_string(), "the station's ID is its device's");
     assert_eq!(st.iec.designation.as_deref(), Some("-104A1"));
     assert_eq!(st.iec.location.as_deref(), Some("+CAB"));
-    let items: Vec<(&str, u32, Vec<(u32, u32, IoType)>, usize)> = st
+    // Per module: its name, its position, its address ranges (start, bits, direction) and its channel count.
+    type Module<'a> = (&'a str, u32, Vec<(u32, u32, IoType)>, usize);
+    let items: Vec<Module> = st
         .items
         .iter()
         .map(|i| {
@@ -293,11 +295,7 @@ fn the_tag_table_and_the_gvl_hold_the_used_channels() {
     assert_eq!(row[3], "%Q0.0");
     assert_eq!(row[4], "Clamp close", "the comment is the function text");
     assert_eq!(row[5..8], ["True", "True", "True"].map(str::to_owned));
-    assert_eq!(
-        row[10],
-        channel_of(&s, FIRST).to_string(),
-        "the hidden ID column"
-    );
+    assert_eq!(row[10], channel_of(&s, FIRST).to_string(), "the hidden ID column");
 
     let gvl = String::from_utf8(export(&mut s, PlcFormat::Plcopen)).unwrap();
     assert!(gvl.contains("<project xmlns=\"http://www.plcopen.org/xml/tc6_0201\">"));
@@ -590,7 +588,8 @@ fn an_imported_start_is_the_plcs_until_unlocked() {
     let c = cfg(&s.query());
     let refusal = refused(&mut s, "plc.set_start", set_start(a1));
     assert!(
-        refusal.contains("-104A1-A1: the start address is owned by configuration project PLC1 (PLC import of "),
+        refusal
+            .contains("-104A1-A1: the start address is owned by configuration project PLC1 (PLC import of "),
         "{refusal}"
     );
     let refusal = refused(
@@ -1190,7 +1189,10 @@ fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Opt
             json!({"modules": [a2.to_string()], "dir": "output", "spec": spec}),
         );
     }
-    let theirs = file.map_or_else(|| exported.clone(), |to| with_start(&exported, "-104A1-A2", 1, to));
+    let theirs = file.map_or_else(
+        || exported.clone(),
+        |to| with_start(&exported, "-104A1-A2", 1, to),
+    );
     ["ecad", "plc", "shared"]
         .into_iter()
         .map(|owner| {
@@ -1409,7 +1411,8 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
     assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
     bulk(&mut s, &back.apply);
     // The valve terminal's outputs, the input module's inputs and the output module's outputs.
-    let modules = [("-201K1", false), ("-104A1-A1", true), ("-104A1-A2", false)].map(|(t, input)| (device(&s, t), input));
+    let modules = [("-201K1", false), ("-104A1-A1", true), ("-104A1-A2", false)]
+        .map(|(t, input)| (device(&s, t), input));
     for (m, input) in modules {
         let q = s.query();
         let starts = q
@@ -1563,9 +1566,7 @@ fn a_comment_in_one_language_never_replaces_the_others() {
         .plc_export(PlcFormat::TiaXlsx, &german)
         .expect("the German table");
     s.execute(e.record.as_ref().unwrap()).unwrap();
-    let edited = edited_table(&e.bytes, |rows| {
-        row_of(rows, FIRST)[4] = "Zufuhr".to_owned()
-    });
+    let edited = edited_table(&e.bytes, |rows| row_of(rows, FIRST)[4] = "Zufuhr".to_owned());
     let applied = s.plc_import(&edited, &german).unwrap().apply;
     bulk(&mut s, &applied);
     let c = comment(&s);

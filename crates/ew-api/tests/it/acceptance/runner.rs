@@ -30,7 +30,7 @@ use crate::golden_common;
 use crate::golden_files::text_csv;
 use crate::pdf_read::{PageRead, PdfFile};
 use crate::pdf_support::{pdf_options, pdf_pages};
-use crate::view::{ViewedPage, fonts, page_views, golden_session};
+use crate::view::{ViewedPage, fonts, golden_session, page_views};
 
 use super::checks;
 use super::freshness;

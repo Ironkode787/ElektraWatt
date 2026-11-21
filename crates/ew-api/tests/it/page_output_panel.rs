@@ -210,9 +210,7 @@ fn spans(r: Rect, w: i64, h: i64) -> bool {
 
 /// A placement's footprint on 902.
 fn footprint_902(s: &Session, tag: &str) -> Rect {
-    let g = s
-        .query()
-        .get::<PlacementGeometry>(common::placement_of(s, tag));
+    let g = s.query().get::<PlacementGeometry>(common::placement_of(s, tag));
     let g = g
         .as_ref()
         .as_ref()
@@ -298,10 +296,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     )
     .expect("the sample's copy opens");
     let (p902, surface) = (page(&s, "902"), surface(&s));
-    let item = views_on(&s.query(), p902)
-        .first()
-        .expect("902 holds a view")
-        .id;
+    let item = views_on(&s.query(), p902).first().expect("902 holds a view").id;
     assert_eq!(
         views_on(&s.query(), p902)
             .iter()
