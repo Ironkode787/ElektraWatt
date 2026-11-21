@@ -188,6 +188,8 @@ where a real page shows it; each row says whether one is known.
 - FT-1898 `ew-scene, ew-api`: A card drawn in cells with level texts (address and function text per channel), as the pilot's reference set draws it; the pin texts of a drawn box stay turned a quarter until then. The bevel junction's symbol is a quarter step where two wires parting at a pin take half a step: one size. **Page:** known, the pilot's reference set.
 - FT-1831 `ew-scene, ew-derive`: A black box's caption stands above it, left of its first top pin, where the wires and tubes into those pins pass, so they loop round it: place the caption clear of the pins' ways. **Page:** known, the persona runs' pages.
 - FT-1837 `ew-drafting`: Tubes from a wide valve terminal with upward ports to a cylinder below are long, because every clear way is. **Page:** known, the persona runs' fluid pages.
+- FT-1931 `ew-drafting`: The occupancy covers what stands on the page and two steps beyond it, and a third trunk lies six steps out (`TRUNK_GAP` and twice `TRUNK_PITCH`), so that trunk and its junctions are not held for the searches after it. No page is known that shows it (mutation testing, 2026-11-21): build the page with three trunks first, then widen the occupancy or say why two steps are enough.
+- FT-1932 `ew-drafting`: The straights phase of Route never changed a plan that could be built in a test: the search draws the same straight. Show a page where it decides something, or delete the phase (mutation testing, 2026-11-21). No page known.
 
 ## M3.5: what its own steps leave
 
