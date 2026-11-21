@@ -339,11 +339,13 @@ fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: U
 }
 
 /// A station of kind `kind` with head part `head` made in the new-station dialog and put on a bus page from its rack
-/// (a new one, else the first one listed) with two corners of its first box: the station.
+/// (a new one, else the first one listed) with two corners of its first box, the first on grid row `row` (a box never
+/// lands on another device): the station.
 fn station_on_bus_page(
     h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
     kind: &str,
     head: &str,
+    row: i64,
 ) -> Uuid {
     dispatch(h, "plc.new_station", json!({}));
     dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
@@ -361,9 +363,9 @@ fn station_on_bus_page(
         }
     }
     settle(h);
-    crate::navigators::cursor_k(h, (10, 10));
+    crate::navigators::cursor_k(h, (10, row));
     dispatch(h, "canvas.activate", json!({}));
-    crate::navigators::cursor_k(h, (18, 16));
+    crate::navigators::cursor_k(h, (18, row + 6));
     dispatch(h, "canvas.activate", json!({}));
     dispatch(h, "tool.select", json!({}));
     settle(h);
@@ -376,10 +378,10 @@ fn station_on_bus_page(
 fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
-    let terminal = station_on_bus_page(&mut h, "valve_terminal", "EW-GEN-VTM-2");
+    let terminal = station_on_bus_page(&mut h, "valve_terminal", "EW-GEN-VTM-2", 10);
     assert_eq!(topology_boxes(&h, terminal), 1, "the terminal's bus node");
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
-    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
+    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2", 24);
     assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
     let toast = h
         .state()
@@ -398,7 +400,7 @@ fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
     use ew_viewmodel::properties::{RowGroup, group_of, row_label};
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
-    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
+    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2", 10);
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let prompt = ew_viewmodel::command_bar::hud(h.state().shell()).prompt;

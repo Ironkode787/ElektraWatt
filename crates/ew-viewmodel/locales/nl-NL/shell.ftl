@@ -568,6 +568,7 @@ hint-box-armed = Klik op de eerste hoek van het kader en dan op de tegenoverligg
 hint-box-place = Klik om te plaatsen; { $p0 } stopt
 place-target-click = { $p0 }: klik om te plaatsen
 reason-box-occupied = Hier staat al een kader: klik op een vrije plek
+reason-ports-occupied = Hier staat al een apparaat: teken de kaders van de businterfaces op een vrije plek
 reason-box-too-large = Het kader is { $p0 } × { $p1 } mm: het past niet in het tekenvlak van deze pagina ({ $p2 } × { $p3 } mm)
 hint-box-outline = Klik of { $p0 } op de tegenoverliggende hoek; { $p1 } begint opnieuw
 hint-box-dropped = Klik of { $p0 } op de eerste hoek; nogmaals { $p1 } verlaat het gereedschap

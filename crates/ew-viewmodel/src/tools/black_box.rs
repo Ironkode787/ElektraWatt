@@ -29,7 +29,10 @@
 //! terminal's plug** ([`BlackBoxTool::with_pins`]) is placed the same way, sized by its pins down its two sides
 //! ([`pin_layout`]). Such a one-click box stands inside the frame's drawing area, moved there by whole grid steps where
 //! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
-//! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box).
+//! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box). **A device's
+//! interfaces on a bus page** ([`BoxTarget::Ports`], a box each in a row, FT-1766) stand inside the drawing area the
+//! same way, the whole row moved; the row is refused with its size where it is larger than the area, and where a box
+//! of it would cover a device drawn on the page (`reason-ports-occupied`).
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -255,14 +258,7 @@ pub fn pin_layout(grid: PageGridMap, at: (i64, i64), cps: &[(u16, String)]) -> O
 
 /// Whether the box `outline` at `pos` (page nm) overlaps a black box on the page shown.
 fn overlaps_a_box(cx: &ToolCx<'_>, pos: (i64, i64), outline: &[(i64, i64)]) -> bool {
-    let bbox = |pts: &mut dyn Iterator<Item = (i64, i64)>| {
-        pts.fold(None, |acc: Option<[i64; 4]>, (x, y)| {
-            Some(acc.map_or([x, y, x, y], |r| {
-                [r[0].min(x), r[1].min(y), r[2].max(x), r[3].max(y)]
-            }))
-        })
-    };
-    let Some(a) = bbox(&mut outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
+    let Some(a) = bounds(outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
         return false;
     };
     cx.page
@@ -271,7 +267,7 @@ fn overlaps_a_box(cx: &ToolCx<'_>, pos: (i64, i64), outline: &[(i64, i64)]) -> b
         .iter()
         .filter_map(|r| r.black_box.as_ref())
         .any(|b| {
-            bbox(&mut b.outline.iter().copied())
+            bounds(b.outline.iter().copied())
                 .is_some_and(|o| a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3])
         })
 }
@@ -507,16 +503,64 @@ impl BlackBoxTool {
         }
     }
 
-    /// The layouts of the current rectangle: its box, or a box per interface of a ports target.
+    /// The layouts of the current rectangle: its box, or a box per interface of a ports target, the row of boxes moved
+    /// by whole grid steps into the frame's drawing area where it would leave it (FT-1766: the boxes after the first ran
+    /// past the page's edge) and laid out afresh there.
     fn current(&self, cx: &ToolCx<'_>) -> Option<Vec<BoxLayout>> {
         let State::Outline { first, at } = self.state else {
             return None;
         };
         let grid = PageGridMap::new(cx.page.tables.grid);
-        match &self.target {
-            BoxTarget::Ports { interfaces, .. } => port_layouts(grid, first, at, interfaces),
-            _ => layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]),
+        let BoxTarget::Ports { interfaces, .. } = &self.target else {
+            return layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]);
+        };
+        let boxes = port_layouts(grid, first, at, interfaces)?;
+        let (pos, outline) = row_of(&boxes)?;
+        match fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline) {
+            Ok(inside) if inside != pos => {
+                let (kx, ky) = (
+                    grid.index(inside.0) - grid.index(pos.0),
+                    grid.index(inside.1) - grid.index(pos.1),
+                );
+                let shift = |p: (i64, i64)| (grid.coord(grid.index(p.0) + kx), grid.coord(grid.index(p.1) + ky));
+                port_layouts(grid, shift(first), shift(at), interfaces)
+            }
+            _ => Some(boxes),
         }
+    }
+
+    /// Why the boxes of a ports target cannot be drawn where they are (FT-1766): a row larger than the drawing area,
+    /// with its size, or one that covers a device drawn on the page; `None` where they can.
+    fn ports_refusal(&self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
+        if !matches!(self.target, BoxTarget::Ports { .. }) {
+            return None;
+        }
+        let boxes = self.current(cx)?;
+        let (pos, outline) = row_of(&boxes)?;
+        let (area, grid) = (
+            super::ip::drawing_area(cx.page),
+            PageGridMap::new(cx.page.tables.grid),
+        );
+        if let Err(sizes) = fit_in_area(area, grid, pos, &outline) {
+            let mm = |nm: i64| ((nm + 500_000) / 1_000_000).to_string();
+            let [w, h, aw, ah] = sizes.map(mm);
+            let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
+            return Some(ToolOutput::RefusedWith(key!("reason-box-too-large"), words));
+        }
+        let covers = boxes.iter().any(|(pos, outline, _)| {
+            let Some(a) = bounds(outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
+                return false;
+            };
+            cx.page.tables.reps.iter().filter(|r| r.device.is_some()).any(|r| {
+                let o = r
+                    .black_box
+                    .as_ref()
+                    .and_then(|b| bounds(b.outline.iter().copied()))
+                    .unwrap_or(r.body);
+                a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
+            })
+        });
+        covers.then_some(ToolOutput::Refused(key!("reason-ports-occupied")))
     }
 
     /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
@@ -753,15 +797,41 @@ impl BlackBoxTool {
                 self.state = State::Outline { first: at, at };
                 ToolOutput::Transient(self.overlay(cx))
             }
-            State::Outline { at, .. } => match self.command(cx) {
-                Some(cmd) => {
-                    self.state = State::Armed { at: Some(at) };
-                    ToolOutput::Commit(cmd)
+            State::Outline { at, .. } => {
+                // The boxes of a device's interfaces never run past the page's edge or land on another device.
+                if let Some(refused) = self.ports_refusal(cx) {
+                    return refused;
                 }
-                None => ToolOutput::None,
-            },
+                match self.command(cx) {
+                    Some(cmd) => {
+                        self.state = State::Armed { at: Some(at) };
+                        ToolOutput::Commit(cmd)
+                    }
+                    None => ToolOutput::None,
+                }
+            }
         }
     }
+}
+
+/// The bounds `[x0, y0, x1, y1]` of points; `None` without one.
+fn bounds(pts: impl Iterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
+    pts.fold(None, |acc: Option<[i64; 4]>, (x, y)| {
+        Some(acc.map_or([x, y, x, y], |r| {
+            [r[0].min(x), r[1].min(y), r[2].max(x), r[3].max(y)]
+        }))
+    })
+}
+
+/// The row of boxes `boxes` as one box: the top-left corner of their bounds and the bounds' outline relative to it.
+fn row_of(boxes: &[BoxLayout]) -> Option<((i64, i64), Vec<(i64, i64)>)> {
+    let b = bounds(
+        boxes
+            .iter()
+            .flat_map(|(pos, outline, _)| outline.iter().map(move |p| (pos.0 + p.0, pos.1 + p.1))),
+    )?;
+    let (w, h) = (b[2] - b[0], b[3] - b[1]);
+    Some(((b[0], b[1]), vec![(0, 0), (w, 0), (w, h), (0, h)]))
 }
 
 impl Tool for BlackBoxTool {

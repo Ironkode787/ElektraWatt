@@ -25,13 +25,34 @@ pub fn selected_reps(selection: &Selection, page: &CanvasPage) -> Vec<EntityRef>
 }
 
 /// The movable entities of the selection on `page`, in selection order: its representations, page items and
-/// structure boxes (connections and junctions are never moved).
+/// structure boxes (connections and junctions are never moved), with the boxes that go with them ([`with_its_boxes`]).
 pub fn selected_movable(selection: &Selection, page: &CanvasPage) -> Vec<EntityRef> {
-    selection_kinds(selection, &page.tables)
+    let movable = selection_kinds(selection, &page.tables)
         .into_iter()
         .filter(|(_, k)| matches!(k, EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox))
         .map(|(e, _)| e)
-        .collect()
+        .collect();
+    with_its_boxes(&page.tables, movable)
+}
+
+/// `moved` and, after them, the other boxes of each device whose interface's box on a bus-topology page it holds
+/// (doc 10 §2.7, FT-1766): a device with several bus interfaces stands there as a box per interface, and its boxes move
+/// together, as one box for such a device would (FT-1904).
+pub fn with_its_boxes(tables: &ew_api::output::PageTables, mut moved: Vec<EntityRef>) -> Vec<EntityRef> {
+    let port_box = |r: &&ew_api::output::TableRep| r.rep_type == "topology" && r.black_box.is_some();
+    let devices: Vec<_> = tables
+        .reps
+        .iter()
+        .filter(port_box)
+        .filter(|r| moved.contains(&EntityRef(r.id)))
+        .filter_map(|r| r.device)
+        .collect();
+    for r in tables.reps.iter().filter(port_box) {
+        if r.device.is_some_and(|d| devices.contains(&d)) && !moved.contains(&EntityRef(r.id)) {
+            moved.push(EntityRef(r.id));
+        }
+    }
+    moved
 }
 
 /// The rotation and mirror of `rep.transform` that turn orientation `o` into `o + 1` (the next variant letter,

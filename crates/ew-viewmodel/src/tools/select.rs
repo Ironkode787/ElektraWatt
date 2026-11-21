@@ -18,7 +18,7 @@
 //! | idle | press on another entity | pressed (other) | `None` |
 //! | idle | press on empty canvas | rubber-band | `Transient` (the band) |
 //! | pressed (either) | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles |
-//! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's movable entities when the pressed entity is selected, else the pressed entity alone |
+//! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's movable entities when the pressed entity is selected, else the pressed entity alone, each with the other boxes of its device's interfaces on a bus page |
 //! | pressed (other) | move beyond 3 points | rubber-band | `Transient` |
 //! | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed left (touches) |
 //! | rubber-band | release | idle | `Select`: left to right the entities inside the band, right to left those that touch it; Shift adds |

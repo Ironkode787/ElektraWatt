@@ -641,6 +641,13 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   carries it, else a port-less bus-port function of the device, else a new port function of its bus's starter FnDef
   (the PROFINET port's for a bus without one), whose port it gets as N5 gives one. Nothing is added to the format: an
   older 0.1 build reads every box as any black box.
+  *As built (FT-1766, while one box for such a device is FT-1904).* The boxes of one device behave as one box where a
+  person would expect one: a box dragged, or moved by the keyboard, takes the other boxes of its device's interfaces on
+  that page with it, one `rep.move`; the row of boxes being drawn stands inside the frame's drawing area, the whole
+  row moved by whole grid steps where its second corner would let a box run past the edge, and it is refused in words
+  ("Another device stands here: draw the boxes of the bus interfaces on a free place") where a box of it would cover a
+  device drawn on the page, and with its size where it is larger than the area. Each box is still selected, reshaped
+  and deleted on its own.
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

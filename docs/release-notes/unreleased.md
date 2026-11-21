@@ -189,6 +189,9 @@ change here.
   moved along it and the box is sized, saved as the part's layout and drawn so by the Device tool, Place here and
   Draw on a page…; the pins' names and what they carry stay the part's, changed in the part editor (doc 07 §2.5,
   FT-1788)
+- behaviour-change: on a bus page the boxes of a device with several interfaces move together when one is dragged
+  or moved by the keyboard; a row of such boxes drawn near the page's edge stands inside the drawing area, and one
+  that would cover another device is refused in words (doc 10 §2.7, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

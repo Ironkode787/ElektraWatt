@@ -72,21 +72,13 @@ fn cp_shift(tables: &ew_api::output::PageTables, at: (i64, i64), d: (i64, i64)) 
 }
 
 /// The movable entities of a drag that starts on `pressed`: the selection's representations, page items and
-/// structure boxes when the pressed entity is selected, else the pressed entity alone; in selection order.
+/// structure boxes when the pressed entity is selected, else the pressed entity alone; in selection order, each with
+/// the other boxes of its device's interfaces on a bus page ([`super::transform::with_its_boxes`]).
 pub fn moved_set(cx: &ToolCx<'_>, pressed: EntityRef) -> Vec<EntityRef> {
     if cx.selection.contains(pressed) {
-        super::selection_kinds(cx.selection, &cx.page.tables)
-            .into_iter()
-            .filter(|(_, k)| {
-                matches!(
-                    k,
-                    super::EntityKind::Rep | super::EntityKind::Item | super::EntityKind::StructureBox
-                )
-            })
-            .map(|(e, _)| e)
-            .collect()
+        super::transform::selected_movable(cx.selection, cx.page)
     } else {
-        vec![pressed]
+        super::transform::with_its_boxes(&cx.page.tables, vec![pressed])
     }
 }
 
