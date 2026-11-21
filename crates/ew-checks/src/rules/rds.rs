@@ -352,10 +352,10 @@ pub const FROZEN_SEVERITY: Severity = Severity::Warning;
 /// project's identifier set (`IdentifierSet::check_letter`), with the set's letter as
 /// the suggestion (FR-CHK-026, STD RD-03; D-03, EF-18). A frozen tag reports at [`FROZEN_SEVERITY`]. Left out: a
 /// terminal, a device without a main function, a main function of category `Assembly` (the generic black-box and
-/// overview definitions name no function; Golden A's -102F2, -102G1 and the CPX modules) and a category the set does
+/// overview definitions name no function) and a category the set does
 /// not map. The shipped sets are not
 /// verified against the standards (ADR-0026), and the message says so. One finding per device: target the device,
-/// discriminator `letter`. On Golden A exactly T55 (T for a temperature switch; suggestion B, BT under the 2019 set).
+/// discriminator `letter`; a temperature switch with the letter T, for example, is told B (BT under the 2019 set).
 #[derive(Clone, Copy, Debug)]
 pub struct LetterAgainstFunction;
 

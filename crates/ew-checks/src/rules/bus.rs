@@ -93,7 +93,7 @@ pub const BUS_ADDRESS: RuleMeta = RuleMeta {
 };
 
 /// EW-BUS-001: over the ports of the logical net (`net_members(lnet)`), one finding per port whose station address
-/// is the open item `tbd` (an open item that blocks release, D-15; Golden A's EF-03), with the port function as
+/// is the open item `tbd` (an open item that blocks release, D-15), with the port function as
 /// target and discriminator `address`, which supersedes EW-CORE-044's finding for the same port; and one finding
 /// per PROFIBUS address that two or more ports share, with those ports as targets and discriminator `duplicate`. A
 /// port without an address (`not_applicable`) and an address form of a newer format are not checked. An error in
@@ -254,7 +254,7 @@ fn plug_termination(q: &Q, f: Id<Function>) -> Option<OnOff> {
 /// - an end of this project without any terminating element left to claim (`missing`, the end as target), an
 ///   error;
 /// - an external end (an external interruption point: the partner is outside the project, its termination
-///   unknown), one info (`external`, the interruption point as target; Golden A's EF-16);
+///   unknown), one info (`external`, the interruption point as target);
 /// - an element whose state is of a newer format (`unknown`), an info.
 ///
 /// An external end claims no element: the partner terminates its own end. A segment with one end (a lone port) and

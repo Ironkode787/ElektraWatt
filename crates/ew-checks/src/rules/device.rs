@@ -148,9 +148,8 @@ fn missing_part_data(q: &Q, part: &Part) -> Vec<&'static str> {
 /// manufacturer reference names none) (FR-CHK-024, D-04). One finding per device and part copy: targets the device and
 /// the copy, discriminator `part-data`.
 ///
-/// The catalogue's third condition, "no CP pattern", is not checked: Golden A's CPX modules (parts 195740 and 533361,
-/// black boxes) carry no CP pattern, and doc 20 §18.1 expects no EW-CORE-042 finding (which
-/// parts a CP pattern is due for is open).
+/// The catalogue's third condition, "no CP pattern", is not checked: a black-box module's part carries
+/// no CP pattern and is no fault (which parts a CP pattern is due for is open).
 #[derive(Clone, Copy, Debug)]
 pub struct IncompletePartData;
 
@@ -218,8 +217,7 @@ pub const PLACEHOLDER_PART: RuleMeta = RuleMeta {
 const PLACEHOLDER_NUMBER: &str = "TBD";
 
 /// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17). The schema has
-/// no typed placeholder marker on a part; Golden A's four placeholder parts carry the part number `TBD` (doc 20
-/// §14.1). One finding per placeholder copy, as EF-17 counts them: targets the copy and
+/// no typed placeholder marker on a part, so a placeholder part carries the part number `TBD`. One finding per placeholder copy, as EF-17 counts them: targets the copy and
 /// every device that uses it (a part use, or a carrier part line of its enclosure: -UC1's rail
 /// and duct are carriers, not part uses), the fingerprint keyed on the copy, discriminator `placeholder`. It
 /// is reported in the scope of the first of those devices by printed tag, so a further user of the part

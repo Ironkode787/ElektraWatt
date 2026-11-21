@@ -919,7 +919,6 @@ pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
 /// Targets: the potential's (see `potential_targets`) and the bonds counted (a drawn bond by its wire). The bonds and
 /// the potential are read as
 /// their own parts of the partition (`BondsOf`), so a topology change elsewhere does not re-run the rule.
-/// Golden A: 0V is PELV with B1.
 #[derive(Clone, Copy, Debug)]
 pub struct PelvSelvBonding;
 
@@ -1032,8 +1031,7 @@ pub const FE_PIN_ON_PE: RuleMeta = RuleMeta {
 /// EW-POT-003: a connection point with the role FE on a PE (or PEN) potential without an FE–PE bond at it (doc 08
 /// §8.1, FR-CHK-030, D-16). An FE role on a PE potential is compatible as a type (doc 08 §3.7), so it is this
 /// warning, not EW-POT-001: functional earth should reach PE through a declared `fe_pe` bond. One finding per CP,
-/// target its function, discriminator `fe:<idx>`; EW-PLC-013 supersedes it for PLC supply CPs at 1.0. Golden A:
-/// -201U1:3 and -202U1:3 (EF-10).
+/// target its function, discriminator `fe:<idx>`; EW-PLC-013 supersedes it for PLC supply CPs at 1.0.
 #[derive(Clone, Copy, Debug)]
 pub struct FePinOnPe;
 
@@ -1132,7 +1130,7 @@ fn owned_wires(q: &Q, p: PotentialId) -> Vec<(PhysicalWire, ew_derive::Effective
 }
 
 /// EW-POT-004: a wire whose effective colour is GNYE on a potential that is not PE or PEN (doc 08 §8.1, FR-CHK-031,
-/// STD M-09). Bond wires are exempt (W27, the 0 V–PE bond wire of Golden A, takes the bond colour). One finding per
+/// STD M-09). Bond wires are exempt (a 0 V–PE bond wire takes the bond colour). One finding per
 /// wire, target the wire's carrier connection.
 #[derive(Clone, Copy, Debug)]
 pub struct GnyeOnNonPe;
@@ -1198,7 +1196,7 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
 
 /// EW-POT-005: a wire or core whose effective colour is exactly the IEC code BU (not a company code such as DBU) on a
 /// potential that is not N, in a project that has an N potential (doc 08 §8.1, FR-CHK-031, STD M-10). One finding
-/// per wire, target the carrier connection. Golden A: the vendor cores W36 and W41, BU on 0V (EF-11).
+/// per wire, target the carrier connection; a vendor cable's BU core on 0V is one.
 ///
 /// The rule judges a colour the project chose (an override, a core's conductor, a potential definition, a colour
 /// profile row, the project default), not the program's built-in fallback (level 0 of doc 08 §4.1): the built-in
@@ -1419,7 +1417,6 @@ fn mm2(c: &Csa) -> Option<Dec3> {
 ///   (equal up to 16 mm², then 16, then S/2). Cross-sections in AWG or kcmil are not compared.
 /// - **Unverified data** (NFR-COMP-05): while the table is `verified = false`, the message says so.
 /// - One finding per PE wire at the end with the largest requirement, target the wire's carrier connection.
-///   Golden A: W6 (1.5 mm² at 1X1, next to the 2.5 mm² W4; EF-06).
 #[derive(Clone, Copy, Debug)]
 pub struct PeUndersized;
 
@@ -1593,8 +1590,8 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
 ///   the cabinet's earth. Every other PE potential of a location with two or more networks is one finding: it is
 ///   named by its first device CP in printed order and that CP's page, targets the location node and the
 ///   potential's targets, keyed on the node and the potential's identity, discriminator `island` (plus the
-///   potential's suffix). Golden A has none (the rails R1–R3 join every PE CP); clearing `rail_bonded` on -X1032
-///   gives one, naming the PE of -X1032, which reaches no earth (D-21, MVP part).
+///   potential's suffix). Clearing `rail_bonded` on a strip whose PE reaches no earth otherwise gives one, naming
+///   that strip's PE (D-21, MVP part).
 #[derive(Clone, Copy, Debug)]
 pub struct PeIsland;
 
@@ -1767,8 +1764,7 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
 /// declared link joins it). A CP marked `unused` is an info. Each function is checked on the first page of its
 /// representations (page order), so a function drawn twice is reported once; one finding per CP, target the
 /// function, discriminator the CP index, shown on that page. Left out too: the pin of a PLC channel whose effective
-/// state is spare, reserved or deactivated (doc 10 §3.2): the channel's state says that it stays unconnected. Golden
-/// A: -102F2:13 and :14 (EF-09). A pin with an interruption point's unjoined CP within [`MARK_BESIDE_PIN_NM`] of it
+/// state is spare, reserved or deactivated (doc 10 §3.2): the channel's state says that it stays unconnected. A pin with an interruption point's unjoined CP within [`MARK_BESIDE_PIN_NM`] of it
 /// on the page says so, and its quick fix joins the two instead of marking the pin not used (a mark dropped a
 /// grid step beside a supply pin, and the fix offered was "Mark not used").
 #[derive(Clone, Copy, Debug)]
@@ -2142,7 +2138,7 @@ fn opening_pairs(q: &Q, f: Id<Function>) -> Vec<OpeningPair> {
 /// error. The loads are the devices with a CP in the downstream potential whose line CPs lie in a potential the
 /// function does not switch, named in natural order. One finding per pair, target the function, discriminator
 /// `pair:<up>-<down>` (the CP indices). There is no quick fix: the correct wiring is a human decision (▲U-11).
-/// Golden A: T55 (N-55 → N-55T, E55 stays on L-55) and S56 (N-55 → N-55S, E56 stays on L-55) (EF-01).
+/// For example a thermostat that opens N while the lamp it switches stays on L.
 #[derive(Clone, Copy, Debug)]
 pub struct NSwitching;
 
@@ -2371,7 +2367,7 @@ pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
 /// `{page}.{counter}`), and a wire carries one derived number, so the rule checks the first half: a label printed
 /// on two or more wires is one finding, targets those wires' carrier connections. The derivation gives unique
 /// labels; stored and frozen numbers (FR-NUM-011, FR-NUM-022) and the other numbering units arrive with the
-/// numbering schemes of FR-NUM-020, which this rule then covers unchanged. Golden A: none.
+/// numbering schemes of FR-NUM-020, which this rule then covers unchanged.
 #[derive(Clone, Copy, Debug)]
 pub struct WireNumberConflict;
 
@@ -2442,7 +2438,7 @@ pub const REDUNDANT_OVERRIDE: RuleMeta = RuleMeta {
 /// EW-POT-016: a wire override (level 7, CDP) equal to the value below it in the inheritance chain (doc 08 §4.1,
 /// §8.1, FR-CON-025, D-08): removing it changes nothing. One finding per wire and member (cross-section, colour,
 /// wire part, insulation, function, shielded, twisted), target the connection that carries the override,
-/// discriminator the member. Golden A: none (its CDPs set cross-sections the profile does not give).
+/// discriminator the member.
 #[derive(Clone, Copy, Debug)]
 pub struct RedundantOverride;
 

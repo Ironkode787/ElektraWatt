@@ -426,8 +426,7 @@ pub const SPARE_WIRED_ON_FIELD_SIDE: RuleMeta = RuleMeta {
 };
 
 /// EW-TERM-003: a spare terminal (`Device.state = Spare`, FR-TRM-009) with a wire or a cable core at a CP of its
-/// strip's field side (`Strip.field_side`, default side 2) (doc 08 §6.6: a spare may be fed on side 1, as Golden
-/// -X1031's spares 5, 7 and 9 are). Bridges, bus lines and internal links are not wires. One finding per terminal:
+/// strip's field side (`Strip.field_side`, default side 2) (doc 08 §6.6: a spare may be fed on side 1). Bridges, bus lines and internal links are not wires. One finding per terminal:
 /// target the terminal, discriminator `field-side`. Online only.
 #[derive(Clone, Copy, Debug)]
 pub struct SpareWiredOnFieldSide;

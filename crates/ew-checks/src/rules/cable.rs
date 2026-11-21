@@ -748,7 +748,7 @@ impl Rule for ShieldNotConnected {
             })
             .collect();
         // A cable none of whose conductors is assigned is drawn as a whole (single-line, FR-CBL-008): its cores'
-        // connections are not modelled, so its shield is not judged (Golden A's -3W1, doc 08 §8.1: 0).
+        // connections are not modelled, so its shield is not judged (doc 08 §8.1: 0).
         let wired = q.idx().conductors_of_cable(cable).any(|c| used.contains(&c));
         if !wired {
             return Vec::new();

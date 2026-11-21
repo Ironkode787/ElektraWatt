@@ -638,8 +638,8 @@ pub const CARD_SUPPLY: RuleMeta = RuleMeta {
 
 /// EW-PLC-013 over the devices of a station's tree (FR-PLC-048, D-16):
 ///
-/// - **`fe`**: a CP with the potential role FE on a PE or PEN potential without an FE–PE bond, the CPX earth screw of
-///   Golden A (EF-22). It targets the CP's function, so it supersedes EW-POT-003's finding for the same pin.
+/// - **`fe`**: a CP with the potential role FE on a PE or PEN potential without an FE–PE bond, such as a module's earth
+///   screw. It targets the CP's function, so it supersedes EW-POT-003's finding for the same pin.
 /// - **`unconnected`**: an L+ or M pin of a supply group of the device's part (`PlcSection.supply_groups`) that no
 ///   connection reaches. The pins of a function that carries a bus port are never supply pins (the DP port's DGND
 ///   pin "5" beside the load supply's "5").

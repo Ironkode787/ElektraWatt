@@ -779,7 +779,7 @@ pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
 ///   map assigns another channel of the module (`solenoid_positions(module)`): one finding per binding, the bound
 ///   channel and the coil's function as targets. It names the bound channel, the channel the map expects, both
 ///   addresses, and offers the quick fix "Rebind to the map's channel" (`plc.bind_channel` of the map's channel to the
-///   coil CP, which unbinds the other, previewed). On Golden A, map H1 gives 28 findings and H2 none (AC-29); the second
+///   coil CP, which unbinds the other, previewed). The second
 ///   fix of the catalogue, "open the part's PLC section", is a window action, not a command (a finding carries one
 ///   command fix).
 /// - **`manual`**: a channel whose manual address differs from the address A2 derives for it (`auto`); target the

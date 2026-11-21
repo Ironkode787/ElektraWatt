@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # The rule messages in nl-NL (doc 15 §3.8; WP-S1.16 D6). A rule or attribute missing here falls back to en-GB; until
-# 1.0 the message test lists the missing ones as warnings. Shipped first for the rules that report on Golden A
-# (doc 20 §18.1); the other texts follow (the de-scope order of WP-S1.16 §13.1).
+# 1.0 the message test lists the missing ones as warnings.
 
 rule-ew-core-001 =
     .title = Manifest beschadigd

@@ -481,8 +481,8 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
 /// ADR-0032 decision 5). One finding per text style, not per text (FR-CHK-051): no target, discriminator the style's
 /// key, subject the style's name as the Text styles page lists it (`messages::text_style_name`), and the fix Set to
 /// 1.2 mm, which sets the style's cap height to the minimum and keeps every other style. A style no text of the
-/// project prints with is not reported. On Golden A (no overrides: the built-in table) exactly `cp.small` and
-/// `marker` (0.94 mm); a new project overrides both to 7 QET px (1.32 mm), so its markers and pin numbers pass.
+/// project prints with is not reported. Under the built-in table (no overrides) exactly `cp.small` and
+/// `marker` (0.94 mm) are reported; a new project overrides both to 7 QET px (1.32 mm), so its markers and pin numbers pass.
 #[derive(Clone, Copy, Debug)]
 pub struct TextBelowMinimum;
 
