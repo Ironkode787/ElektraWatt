@@ -485,7 +485,10 @@ fn shown_slots(i: &Imported, id: u32) -> Vec<String> {
         .filter(|o| o.visible == Some(true))
         .map(|o| {
             let s = &symbol.text_slots[usize::from(o.slot)];
-            format!("{:?} {:?} {:?} at {:?} turned {:?}", s.kind, s.style, s.align, o.pos, o.angle)
+            format!(
+                "{:?} {:?} {:?} at {:?} turned {:?}",
+                s.kind, s.style, s.align, o.pos, o.angle
+            )
         })
         .collect();
     out.sort();
