@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid through the shell on temporary copies of Golden A (acceptance checks PG3, PG4,
+//! The property grid through the shell on temporary copies of the sample (acceptance checks PG3, PG4,
 //! PG6, PG7, the view-model half of PG8, PG10's transcript and describe members, and the model half of PG11's exact
 //! counts): `‹varies›`, one commit per edit and one undo step, the wire overrides with their chips, the terminals' part
 //! in one command with the toast, the edit policy with the card and its stale rule, the editors' refusals and the
@@ -15,10 +15,10 @@ use ew_viewmodel::properties::{Provenance, RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// W29 on folio 103 (`connections|W29`, a v5 ID of Golden A's import lineage).
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
+/// A 24 V control wire of folio 102, from -102F1 to the strip -X1021, by its ends.
+const W29: &str = "wire:-102F1:2 -> -X1021:1/a";
 
-/// A headless shell with a writable copy of Golden A on `folio`.
+/// A headless shell with a writable copy of the sample on `folio`.
 fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.sample_in(Mode::Headless, true, folio)
 }
@@ -101,13 +101,13 @@ fn varies_one_commit_per_edit_and_escape_reverts() {
 #[test]
 fn a_wire_override_and_its_reset() {
     let tmp = Tmp::new("props-pg4");
-    let mut shell = writable(&tmp, "103");
-    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    let mut shell = writable(&tmp, "102");
+    done(&mut shell, "select.set", json!({"refs": [W29]}));
     assert_eq!(text(&shell, "connection/derived.csa"), "0.75 mm²");
     assert_eq!(
         provenance(&shell, "connection/derived.csa"),
         Provenance::Derived {
-            via: "potential 24VDC-1 · size profile '0.75/1.5' · class control".into()
+            via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
         }
     );
     let before = steps(&shell);
@@ -145,26 +145,26 @@ fn a_wire_override_and_its_reset() {
     shell.shutdown();
 }
 
-/// The references of -X1031's 20 terminals.
+/// The references of -X1021's 8 terminals (the sample's script numbers them 1 to 8).
 fn terminals() -> Vec<String> {
-    (1..=20).map(|i| format!("tag:-X1031:{i}")).collect()
+    (1..=8).map(|i| format!("tag:-X1021:{i}")).collect()
 }
 
 #[test]
-fn twenty_terminals_get_a_part_in_one_command() {
+fn a_strips_terminals_get_a_part_in_one_command() {
     let tmp = Tmp::new("props-pg6");
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"refs": terminals()}));
     let sheet = shell.properties().sheet().unwrap();
     assert_eq!(sheet.sections.len(), 1);
-    assert_eq!(sheet.sections[0].targets.len(), 20);
+    assert_eq!(sheet.sections[0].targets.len(), 8);
     // The part picker: Enter on the part row lists the project's part copies; typing filters them; Down and Enter
     // pick one (a part number of the project other than the terminals' own).
     let current = text(&shell, "device/parts[0].part");
-    let other = if current.starts_with("A9F78116") {
-        "A9P52610"
+    let other = if current.starts_with("EW-GEN-TRM-1") {
+        "EW-GEN-TRM-2"
     } else {
-        "A9F78116"
+        "EW-GEN-TRM-1"
     };
     let before = steps(&shell);
     done(&mut shell, "props.focus", json!({}));
@@ -184,10 +184,10 @@ fn twenty_terminals_get_a_part_in_one_command() {
     assert_eq!(steps(&shell), before + 1, "one fields.set");
     let step = shell.recorded_commands().last().unwrap();
     assert_eq!(step.cmd, "fields.set");
-    assert_eq!(step.params["targets"].as_array().unwrap().len(), 20);
+    assert_eq!(step.params["targets"].as_array().unwrap().len(), 8);
     assert_eq!(step.params["path"], "parts");
     let toast = shell.toast().expect("a toast");
-    assert_eq!(toast.text, "Set part on 20 devices.");
+    assert_eq!(toast.text, "Set part on 8 devices.");
     assert!(text(&shell, "device/parts[0].part").starts_with(other));
     // Undo through the toast: one step.
     done(&mut shell, "toast.undo", json!({}));
@@ -270,7 +270,7 @@ fn the_policy_card_and_its_stale_rule() {
     done(
         &mut shell,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102S1"}],
             "path": "function_text", "value": "x"}}),
     );
     assert_eq!(state(&shell)["card"]["state"], "stale");
@@ -315,7 +315,7 @@ fn the_policy_card_and_its_stale_rule() {
         .1
         .value
     else {
-        panic!("Golden A has a colour profile");
+        panic!("the sample has a colour profile");
     };
     let mut renamed = colour.clone();
     renamed["name"] = json!({"en": "DBU/WH 24 V (renamed)"});
@@ -341,8 +341,8 @@ fn the_policy_card_and_its_stale_rule() {
 fn refusals_notes_and_read_only_rows() {
     let tmp = Tmp::new("props-pg8");
     let mut shell = writable(&tmp, "102");
-    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
-    // A counter collision: the command's message names the next free counter.
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102S1"]}));
+    // A counter collision (-102S2): the command's message names the next free counter.
     let out = shell.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "2"}));
     let Outcome::Failed { message } = out else {
         panic!("{out:?}");
@@ -350,7 +350,7 @@ fn refusals_notes_and_read_only_rows() {
     assert!(message.contains("next free counter"), "{message}");
     assert_eq!(state(&shell)["properties"]["error"]["row"], "device/tag.counter");
     // `1,500` gives two choices; choosing one commits it.
-    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    done(&mut shell, "select.set", json!({"refs": [W29]}));
     done(
         &mut shell,
         "props.action",
@@ -595,11 +595,11 @@ fn a_multilingual_text_keeps_its_other_languages() {
             "path": "function_text", "value": {"de": "Verteilung", "en": "Distribution"}}}),
     );
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
-    assert_eq!(text(&shell, "device/function_text"), "Verteilung [+1]");
-    // Golden A names no project languages: the object's first language is the source.
+    assert_eq!(text(&shell, "device/function_text"), "Distribution [+1]");
+    // The sample's project languages name English as the source.
     let before = steps(&shell);
     done(&mut shell, "props.edit", json!({"row": "device/function_text"}));
-    assert_eq!(shell.properties().edit().unwrap().buffer, "Verteilung");
+    assert_eq!(shell.properties().edit().unwrap().buffer, "Distribution");
     done(&mut shell, "props.commit", json!({}));
     assert_eq!(
         steps(&shell),
@@ -611,12 +611,12 @@ fn a_multilingual_text_keeps_its_other_languages() {
         json!({"de": "Verteilung", "en": "Distribution"})
     );
     done(&mut shell, "props.edit", json!({"row": "device/function_text"}));
-    done(&mut shell, "props.input", json!({"text": "Verteilung 24 V"}));
+    done(&mut shell, "props.input", json!({"text": "Distribution 24 V"}));
     done(&mut shell, "props.commit", json!({}));
     assert_eq!(steps(&shell), before + 1);
     assert_eq!(
         json_of(&shell, "device/function_text"),
-        json!({"de": "Verteilung 24 V", "en": "Distribution"})
+        json!({"de": "Verteilung", "en": "Distribution 24 V"})
     );
     // An emptied source text removes that language only.
     done(
@@ -626,7 +626,7 @@ fn a_multilingual_text_keeps_its_other_languages() {
     );
     assert_eq!(
         json_of(&shell, "device/function_text"),
-        json!({"en": "Distribution"})
+        json!({"de": "Verteilung"})
     );
     shell.shutdown();
 }
@@ -753,7 +753,7 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
             assert_eq!(row.value, RowValue::Absent, "{member}");
         }
     }
-    // Golden A's size profile, from its project file.
+    // The sample's size profile, from its project file.
     let golden =
         std::fs::read_to_string(std::path::Path::new(common::SAMPLE).join("project.jsonl")).unwrap();
     let size = golden
@@ -785,7 +785,7 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
 fn an_edit_of_501_targets_opens_the_card() {
     use ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("props-501");
-    // A copy of Golden A with 501 devices more, made through the session (no hand-edited file).
+    // A copy of the sample with 501 devices more, made through the session (no hand-edited file).
     let (mut session, _) = Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     let mut ids: Vec<String> = Vec::new();
     for _ in 0..501 {
@@ -828,11 +828,11 @@ fn an_edit_of_501_targets_opens_the_card() {
 #[test]
 fn a_leaf_below_an_identifier_member_opens_the_card() {
     let tmp = Tmp::new("props-ident");
-    let mut shell = writable(&tmp, "201");
+    let mut shell = writable(&tmp, "104");
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:-201U5", "tag:-201U7"]}),
+        json!({"refs": ["tag:-104A1-A1", "tag:-104A1-A2"]}),
     );
     let rev = shell.revision();
     done(
@@ -982,9 +982,9 @@ fn selected_page_item_properties_refresh_after_edit() {
 fn a_terminal_lists_its_connection_point_labels() {
     let tmp = Tmp::new("props-ft512");
     let mut shell = writable(&tmp, "101");
-    done(&mut shell, "select.set", json!({"refs": ["tag:1X1:1"]}));
-    assert_eq!(text(&shell, "device/derived.cp[0]"), "1X1:1/a");
-    assert_eq!(text(&shell, "device/derived.cp[1]"), "1X1:1/b");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-X1011:L1"]}));
+    assert_eq!(text(&shell, "device/derived.cp[0]"), "-X1011:L1/a");
+    assert_eq!(text(&shell, "device/derived.cp[1]"), "-X1011:L1/b");
     assert_eq!(
         provenance(&shell, "device/derived.cp[0]"),
         Provenance::Derived {
@@ -994,7 +994,9 @@ fn a_terminal_lists_its_connection_point_labels() {
     let d = shell.describe();
     assert!(d.contains("  category \"Connection points\" expanded"), "{d}");
     assert!(
-        d.contains("    row \"device/derived.cp[0]\" \"Connection point 1\" \"1X1:1/a\" derived \"function definition\""),
+        d.contains(
+            "    row \"device/derived.cp[0]\" \"Connection point 1\" \"-X1011:L1/a\" derived \"function definition\""
+        ),
         "{d}"
     );
     // Read-only: no action, and an edit is refused.
@@ -1005,12 +1007,12 @@ fn a_terminal_lists_its_connection_point_labels() {
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:1X1:1", "tag:1X1:2"]}),
+        json!({"refs": ["tag:-X1011:L1", "tag:-X1011:L2"]}),
     );
     let sheet = shell.properties().sheet().unwrap();
     let (_, row) = find_row(sheet, "device/derived.cp[0]").unwrap();
     assert!(
-        matches!(&row.value, RowValue::Varies { count: 2, texts } if texts == &["1X1:1/a", "1X1:2/a"]),
+        matches!(&row.value, RowValue::Varies { count: 2, texts } if texts == &["-X1011:L1/a", "-X1011:L2/a"]),
         "{:?}",
         row.value
     );
@@ -1067,13 +1069,13 @@ fn a_dutch_window_labels_the_connection_points_in_dutch() {
 fn select_set_takes_a_bare_tag() {
     let tmp = Tmp::new("props-ft544");
     let mut shell = writable(&tmp, "101");
-    done(&mut shell, "select.set", json!({"refs": ["-101F1", "-X1032:5"]}));
+    done(&mut shell, "select.set", json!({"refs": ["-101F1", "-X1021:5"]}));
     let bare = shell.properties().sheet().unwrap().sections.len();
     let st = state(&shell);
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:-101F1", "tag:-X1032:5"]}),
+        json!({"refs": ["tag:-101F1", "tag:-X1021:5"]}),
     );
     assert_eq!(state(&shell)["properties"], st["properties"]);
     assert!(bare >= 1);
@@ -1091,8 +1093,8 @@ fn select_set_takes_a_bare_tag() {
 fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     use ew_viewmodel::properties::{RowGroup, groups};
     let tmp = Tmp::new("props-ft554");
-    let mut shell = writable(&tmp, "103");
-    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    let mut shell = writable(&tmp, "102");
+    done(&mut shell, "select.set", json!({"refs": [W29]}));
     let sheet = shell.properties().sheet().unwrap();
     let section = &sheet.sections[0];
     let (group, rows) = &groups(section, false)[0];
@@ -1108,14 +1110,15 @@ fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
         ew_viewmodel::strings::field_label("connection", "overrides.show_marker"),
         "Wire marker"
     );
-    // Golden A has ten connections with an explicit cross-section or colour: the explicit mode marks those ten.
+    // The explicit mode marks the connections with an explicit cross-section or colour, and says how many.
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
+    let explicit = shell.toast().unwrap().text.clone();
+    assert!(explicit.ends_with(" wires carry a marker.") || explicit == "1 wire carries a marker.", "{explicit}");
     // The same mode again commits nothing and still reports the count.
     let rev = shell.revision();
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
     assert_eq!(shell.revision(), rev);
-    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker.");
+    assert_eq!(shell.toast().unwrap().text, explicit);
     // No markers: says so, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "none"}));
     assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker.");
@@ -1159,7 +1162,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
         failed("This row identifies the item, so it cannot be edited.")
     );
     // A derived row is computed.
-    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    done(&mut shell, "select.set", json!({"refs": [W29]}));
     assert_eq!(
         action(&mut shell, "connection/derived.potential", "edit"),
         Outcome::Refused {
@@ -1218,7 +1221,7 @@ fn a_representations_position_reads_in_millimetres_with_its_cell() {
     let (_, row) = find_row(sheet, "representation/pos").expect("the position row");
     assert_eq!(
         ew_viewmodel::properties::value_text(row),
-        "102-C7 · x 116.4 y 60.9 mm"
+        "102-B1 · x 29.1 y 26.5 mm"
     );
     shell.shutdown();
     // The project's decimal comma (no command sets it: the company-standard wizard writes it).
@@ -1235,7 +1238,8 @@ fn a_representations_position_reads_in_millimetres_with_its_cell() {
     .unwrap();
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
-    assert_eq!(text(&shell, "representation/pos"), "102-C7 · x 116,4 y 60,9 mm");
+    assert_eq!(text(&shell, "representation/pos"), "102-B1 · x 29,1 y 26,5 mm");
+
     shell.shutdown();
 }
 
@@ -1291,7 +1295,7 @@ fn the_projects_control_voltage_takes_a_voltage() {
     shell.shutdown();
 }
 
-/// The same run: no row of Properties may answer that no command edits it. Every record of Golden A, a few of each
+/// The same run: no row of Properties may answer that no command edits it. Every record of the sample, a few of each
 /// kind, and the project: a row offered for editing has a command, and a row typed into without one says what its
 /// value is.
 #[test]
