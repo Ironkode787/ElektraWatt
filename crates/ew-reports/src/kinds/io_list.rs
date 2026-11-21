@@ -43,9 +43,9 @@ impl ReportKindDef for IoList {
         "io_list"
     }
 
-    /// The weights are the printed width, in tenths of a millimetre, that the widest Golden A text of each column
-    /// (the header or a cell of the 56 rows) takes at the 1.8 mm cap-height floor, plus 0.6 mm: the 20 columns fit the
-    /// house table's 260.96 mm without an overflow (the brief's stop 1; 248.3 mm at the floor).
+    /// The weights are the printed width, in tenths of a millimetre, that the widest text of each column
+    /// (the header or a long cell) takes at the 1.8 mm cap-height floor, plus 0.6 mm: the 20 columns fit the
+    /// house table's 260.96 mm without an overflow (248.3 mm at the floor).
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("config_project", CellType::Ident, "Configuration project").weighted(269),

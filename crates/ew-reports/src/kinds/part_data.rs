@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part_data`: the embedded PART DATA box (FR-REP-028; golden 201, 202, 902).
+//! `part_data`: the embedded PART DATA box (FR-REP-028).
 
 use std::collections::BTreeSet;
 

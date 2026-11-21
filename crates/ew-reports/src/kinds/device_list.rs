@@ -37,10 +37,10 @@ impl ReportKindDef for DeviceList {
         "device_list"
     }
 
-    /// The weights are millimetres of the house table's 260.96 mm: each column holds its widest Golden A text (the
-    /// header or a cell of the 68 rows: "=P01+J-E-2416-UC1-plate", "Function text", "NEBU-G78W5-K-2-N-LE5",
-    /// "Technical data", "Location (+)", "Main representation") at the house cap height, about 1.5 mm a character on
-    /// folio 910, with room to spare; no text of Golden A shrinks (the brief's stop 1).
+    /// The weights are millimetres of the house table's 260.96 mm: each column holds the widest text of its kind (the
+    /// header or a cell: "=P01+J-E-2416-UC1-plate", "Function text", "NEBU-G78W5-K-2-N-LE5",
+    /// "Technical data", "Location (+)", "Main representation") at the house cap height, about 1.5 mm a character,
+    /// with room to spare.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("tag", CellType::Ident, "Tag").weighted(52),

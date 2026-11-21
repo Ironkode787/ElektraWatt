@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `toc`: the table of contents (FR-REP-003; golden 2, 2.1).
+//! `toc`: the table of contents (FR-REP-003; folio 2 of the standard layout).
 
 use ew_derive::ew_ids::v5::report_page_id;
 use ew_derive::ew_schema::{AnyId, ReportBlock};

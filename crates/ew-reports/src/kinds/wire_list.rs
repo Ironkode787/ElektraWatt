@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; golden 907, 907.1, 907.2).
+//! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;

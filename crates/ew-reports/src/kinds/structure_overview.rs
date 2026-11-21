@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; golden 910).
+//! `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; folio 910 of the
+//! standard layout).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `parts_summary` and `parts_list` (FR-REP-004 … FR-REP-006; golden 901, 901.1), and the part cells the
-//! other part-based kinds share.
+//! `parts_summary` and `parts_list` (FR-REP-004 … FR-REP-006; folio 901 of the standard layout), and the part
+//! cells the other part-based kinds share.
 
 use std::collections::BTreeMap;
 

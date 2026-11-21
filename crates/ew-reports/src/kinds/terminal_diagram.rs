@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; golden 903, 904, 905).
+//! `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; from folio 903 of the standard layout).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
@@ -23,7 +23,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 ///
 /// `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
 /// group that holds its `seq`. `side1` and `side2` list what is wired to the terminal's CPs of that side
-/// (clamp a is side 1, clamp b side 2 on the golden strips; a CP without a side lists on side 1): the far end of
+/// (a CP without a side lists on side 1): the far end of
 /// each wire, `via` the cable and core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).
 /// `state` is `spare`, `reserved` or `not fitted` as authored, else `used` when the terminal has a wire or
 /// a bridge and `unused` otherwise (doc 08 §6.6).

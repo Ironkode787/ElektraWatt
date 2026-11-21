@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013;
-//! golden 906).
+//! folio 906 of the standard layout).
 
 use std::collections::BTreeMap;
 
@@ -19,8 +19,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowI
 /// The cable overview and the core lists.
 ///
 /// A heading "Cable overview", one row per cable in natural order of its tag (type, ends A and B, length),
-/// then for each cable a heading with its tag and part and one row per core: the golden 3 cables, 4
-/// headings and 13 cores make the 20 rows of doc 20 §16.
+/// then for each cable a heading with its tag and part and one row per core.
 ///
 /// The ends of a cable are the devices at the From and To ends of its cores (doc 08 §7.7, a terminal
 /// standing for its strip), and of a bus cable the devices of its bus line's ports; a core row

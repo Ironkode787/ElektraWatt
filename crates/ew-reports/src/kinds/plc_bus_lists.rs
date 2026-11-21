@@ -210,8 +210,7 @@ impl ReportKindDef for PlcCardList {
 /// `network_address_list` (FR-BUS-008, doc 10 §5): per logical net in name order, an external partner named as its
 /// master first, then every port with an address in ID order; then every port with an address that names no logical
 /// net, in ID order, with an empty net: logical net, station, device type (its part), address or PROFINET name, IP,
-/// mask, master flag, rate, configuration project and the `Tbd` flag. Golden A has two rows: JE-N1000-03 (master,
-/// external) and -201U1 (slave, `Tbd`).
+/// mask, master flag, rate, configuration project and the `Tbd` flag.
 #[derive(Clone, Copy, Debug)]
 pub struct NetworkAddressList;
 

@@ -6,9 +6,9 @@
 //! them, written by the one CSV writer ([`crate::csv::rows_csv`]).
 //!
 //! The block is the project's page-oriented block of the kind with the lowest first folio (ties by ID): the
-//! cable overview (`cable_overview_diagrams`, golden folio 906) for the cable list, the summarised parts list
-//! (`parts_summary`, golden folio 901) for the bill of materials. The block supplies its manual selection,
-//! sort and grouping; the BOM mode is the export's, whatever the block's own `params.mode` says. A project
+//! cable overview (`cable_overview_diagrams`, folio 906 of the standard layout) for the cable list, the
+//! summarised parts list (`parts_summary`, folio 901) for the bill of materials. The block supplies its manual
+//! selection, sort and grouping; the BOM mode is the export's, whatever the block's own `params.mode` says. A project
 //! without such a block cannot export (no second row source exists).
 
 use std::fmt;

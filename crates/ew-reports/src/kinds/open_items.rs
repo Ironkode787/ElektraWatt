@@ -37,11 +37,11 @@ impl ReportKindDef for OpenItems {
         "open_items"
     }
 
-    /// The weights are millimetres of the house table's 260.96 mm. Each short column holds its widest Golden A text at
+    /// The weights are millimetres of the house table's 260.96 mm. Each short column holds its widest text at
     /// the 1.8 mm floor with the cell padding (probed: "Unconnected connection point" 37.46 mm,
     /// "=P01+J-E-2416-201U1:DP" 30.30, "EW-CORE-043" 17.24, "warning" 10.81, "Page" 6.97), and the description takes
-    /// the rest. Two EW-CORE-043 messages of Golden A (184.95 and 164.31 mm at the floor) fit no split of the table:
-    /// they print at the floor and are reported as overflow.
+    /// the rest. A message longer than the description column at the floor fits no split of the table:
+    /// it prints at the floor and is reported as overflow.
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("category", CellType::Text, "Category").weighted(38),

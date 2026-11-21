@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `profile_tables`: the embedded colour and standard-size tables of the cover (FR-REP-028, FR-REP-038; golden
-//! folio 1; doc 08 §4.2, doc 20 §7.1, §7.2, §17.3).
+//! `profile_tables`: the embedded colour and standard-size tables of the cover (FR-REP-028, FR-REP-038; doc
+//! 08 §4.2).
 //!
 //! The rows are generated from the project's colour and size profiles (`ProjectSettings.extra`
 //! `colour_profile` and `size_profile`, doc 03 §5.1), never typed on the cover. They fall into groups, told
@@ -21,7 +21,7 @@
 //!
 //! A project without a colour or size profile has no rows of that part (the built-in defaults of the
 //! derivation profile have no cover table), and no note. The note is derived text of the wire-marker mode
-//! "only explicit overrides", which the golden project has; the mode is not a setting of this format yet, so
+//! "only explicit overrides"; the mode is not a setting of this format yet, so
 //! the note is printed whenever the cover has a table. The row IDs are the group and the index inside it.
 
 use std::collections::BTreeMap;

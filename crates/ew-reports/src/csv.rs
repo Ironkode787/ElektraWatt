@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CSV text of a report block's rows (doc 09 §1.3; `ew export cables|bom`, the golden `expected/csv/`).
+//! The CSV text of a report block's rows (doc 09 §1.3; `ew export cables|bom`).
 //!
-//! One writer for every consumer: the CLI exports, the acceptance runner and the golden files are all this
-//! function over [`RowSet`]. The dialect is the one of the golden README ("CSV dialect"): UTF-8, LF line ends,
+//! One writer for every consumer: the CLI exports and the tests' expected files are all this
+//! function over [`RowSet`]. The `ew` dialect is: UTF-8, LF line ends,
 //! a header line, a field quoted exactly when it contains `,`, `"`, LF or CR or begins or ends with a space,
 //! quotes doubled. The first column is `row`: `data` for a data row and `heading` for every other kind; the
 //! other columns are the block's columns, headed by their neutral labels and holding the printed cells
@@ -221,7 +221,7 @@ pub fn restyle(csv: &str, bom: bool, line_end: LineEnd) -> String {
     out
 }
 
-/// The CSV of `table` in `options`' preset (the module documentation): for [`Preset::Ew`] the golden layout (`row`
+/// The CSV of `table` in `options`' preset (the module documentation): for [`Preset::Ew`] the `ew` layout (`row`
 /// first, `data` or `heading`, the cells' texts), for the others the `id` column first.
 pub fn table_csv(table: &Table, options: &CsvOptions) -> String {
     let preset = options.preset;
@@ -333,7 +333,7 @@ mod tests {
         );
     }
 
-    /// `--bom` and `--line-end` override the preset; `ew` is the golden layout.
+    /// `--bom` and `--line-end` override the preset.
     #[test]
     fn options_override_the_preset() {
         let t = table(vec![TableCell::Text("a;b".into())]);

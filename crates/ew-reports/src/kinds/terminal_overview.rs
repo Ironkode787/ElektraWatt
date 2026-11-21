@@ -27,7 +27,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 ///   joined by ", " (a terminal's part is its first part line, as `terminal_diagram`'s Part column).
 /// - `segments`: the frame cells (`103-A3`) of the strip's segment representations in drawing order (page order,
 ///   then row, then column, then ID), joined by ", "; a strip with no segment representation prints the cell of its
-///   main representation (the strip fallback of `MainRep`, its first placed terminal: Golden A's 1X1 prints
+///   main representation (the strip fallback of `MainRep`, its first placed terminal, such as
 ///   `101-D2`), and a strip with neither prints nothing.
 #[derive(Clone, Copy, Debug)]
 pub struct TerminalOverview;
@@ -37,7 +37,7 @@ impl ReportKindDef for TerminalOverview {
         "terminal_overview"
     }
 
-    /// The weights are millimetres of the house table's 260.96 mm: each column holds its widest Golden A text (the
+    /// The weights are millimetres of the house table's 260.96 mm: each column holds the widest text of its kind (the
     /// header or a cell: "-X1031", "Location (+)", "Terminals", "Used", "Spare", "Other", "2 × UK 5 N, 1 × USLKG 5",
     /// "103-A3, 103-A10") at the house cap height, the free-text columns Parts and Segments with the most room.
     fn columns(&self) -> Vec<ColumnDef> {

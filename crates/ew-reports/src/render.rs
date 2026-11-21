@@ -7,8 +7,8 @@
 //!
 //! # Not modelled yet
 //!
-//! - The project date format (FR-PRJ-023): dates print as `DD-MM-YYYY`, the format of the golden title
-//!   block; the ISO 8601 option arrives with the project setting.
+//! - The project date format (FR-PRJ-023): dates print as `DD-MM-YYYY`; the ISO 8601 option arrives with the
+//!   project setting.
 //! - Number formats beyond the decimal separator: the ICU format of the output language also owns
 //!   grouping; thousands separators are not printed.
 

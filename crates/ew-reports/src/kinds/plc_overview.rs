@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `plc_overview`: the PLC overview, one row per channel of a station (FR-PLC-022, FR-REP-019; doc 10 §5;
-//! golden 908, 908.1, 908.2), and the PLC overview box of a module or station embedded on a page
+//! folio 908 of the standard layout), and the PLC overview box of a module or station embedded on a page
 //! (FR-PLC-052).
 
 use ew_derive::ew_ids::Id;
@@ -69,7 +69,7 @@ impl ReportKindDef for PlcOverview {
     /// The PLC overview box (FR-PLC-052, doc 10 §5): the channel's number, address, symbol, function text and state
     /// and the cross-reference to its coil's representation, under the title "PLC OVERVIEW" and a header row, in one
     /// flow column. The weights are the I/O list's for the same columns (tenths of a millimetre of the widest text at
-    /// the 1.8 mm cap height, plus 0.6 mm); the page column's is estimated the same way from its widest Golden A cell
+    /// the 1.8 mm cap height, plus 0.6 mm); the page column's is estimated the same way from a wide cell
     /// (`203-D7`), since its header is shorter than the I/O list's "Target page".
     fn embedded_layout(&self) -> EmbeddedLayout {
         EmbeddedLayout {

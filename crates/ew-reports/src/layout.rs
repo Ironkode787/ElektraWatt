@@ -38,8 +38,8 @@ pub struct PageLayout {
 }
 
 impl PageLayout {
-    /// The house report form's geometry for a form without a data area (the golden blocks name the
-    /// no-grid frame): 23 rows of 6.52 mm, no group templates, no wrapping. Until report layouts join the
+    /// The house report form's geometry for a form without a data area (the standard layout's blocks name
+    /// the no-grid frame): 23 rows of 6.52 mm, no group templates, no wrapping. Until report layouts join the
     /// derivation profile (doc 09 §3.7), this fallback lives here.
     pub fn house(form: Id<FormDef>) -> PageLayout {
         PageLayout {

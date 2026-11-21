@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `revision_overview`: the revisions and their changed pages (FR-REP-018, golden 911; doc 09 §2.4, doc 15
-//! §5.6).
+//! `revision_overview`: the revisions and their changed pages (FR-REP-018, folio 911 of the standard layout;
+//! doc 09 §2.4, doc 15 §5.6).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, Revision, RevisionState, Section};

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `potential_overview`: the potential overview (FR-REP-016; golden 909).
+//! `potential_overview`: the potential overview (FR-REP-016; folio 909 of the standard layout).
 
 use std::collections::BTreeSet;
 
