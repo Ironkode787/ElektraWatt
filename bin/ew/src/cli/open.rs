@@ -45,6 +45,26 @@ pub(super) fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     }
 }
 
+/// Opens the project in `dir` (or the `.ewz`) read-only for the reader `subcommand`, as
+/// [`ew_api::Session::open_reader`] does, and names on stderr each file it did not read for want of a line in
+/// `manifest.json` ([`warn_unread`]).
+pub(super) fn open_reader(
+    dir: &Path,
+    subcommand: &str,
+) -> Result<(ew_api::Session, ew_api::OpenReport), ew_api::OpenError> {
+    let opened = ew_api::Session::open_reader(dir, env!("CARGO_PKG_VERSION"), subcommand)?;
+    warn_unread(&opened.1, &mut std::io::stderr());
+    Ok(opened)
+}
+
+/// A `warning:` line on `out` for each file of the project that the open did not read because `manifest.json` does
+/// not list it ([`ew_api::unread_files`]): a file added by hand is otherwise silently not there.
+pub(super) fn warn_unread(report: &ew_api::OpenReport, out: &mut dyn std::io::Write) {
+    for file in ew_api::unread_files(report) {
+        let _ = writeln!(out, "warning: {}", printable(&file));
+    }
+}
+
 /// Opens the project read-only and builds its SQL projection (exit code 2 on failure).
 pub(super) fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection, i32> {
     open_projection_and_session(project).map(|(projection, _)| projection)
@@ -55,7 +75,7 @@ pub(super) fn open_projection_and_session(
     project: Option<&PathBuf>,
 ) -> Result<(ew_api::sql::Projection, ew_api::Session), i32> {
     let dir = reader_dir(project).ok_or(2)?;
-    let (session, opened) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "sql") {
+    let (session, opened) = match open_reader(&dir, "sql") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -167,6 +187,7 @@ pub(super) fn open_editing_to(
             return Err(2);
         }
     };
+    warn_unread(&opened, errors);
     // A save with changes stamps the project's edited date: `SOURCE_DATE_EPOCH`'s, the CLI's one date (no wall-clock
     // fallback, so a run gives the same bytes on any day).
     session.set_today(super::export::session_today());

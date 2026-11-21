@@ -33,7 +33,7 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+    let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -268,7 +268,7 @@ pub(super) fn run_export_nav_table(a: &ExportTableArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+    let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -557,7 +557,7 @@ pub(super) fn run_export_ewz(a: &ExportEwzArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export ewz") {
+    let (session, _) = match open_reader(&dir, "export ewz") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -720,7 +720,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             return 2;
         }
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+    let (session, _) = match open_reader(&dir, "export") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -888,7 +888,7 @@ pub(super) fn run_render(a: &RenderArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "render") {
+    let (session, _) = match open_reader(&dir, "render") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

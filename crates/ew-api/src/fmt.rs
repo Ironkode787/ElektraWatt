@@ -38,11 +38,11 @@
 //! # Form and content
 //!
 //! Form, which `ew fmt` may change: the order of the lines and of an object's members, white space, string escapes,
-//! a byte order mark, CR line ends, empty lines, a number's spelling (`1.0` and `1`, `1e2` and `100`) and the Unicode
-//! normalisation of a string (NFC, doc 05 §3.1). Content, which it may never change: anything else, such as a member
-//! dropped or added (`"x":null` and an absent `x` are different content here, so a file holding one is refused rather
-//! than rewritten), a value, or the order of an array's items. A line that is not one JSON value compares by its bytes
-//! (CR line end aside).
+//! a byte order mark, CR line ends, empty lines, a number's spelling (`1.0` and `1`, `1e2` and `100`), the Unicode
+//! normalisation of a string (NFC, doc 05 §3.1) and a member written with the value the canonical form omits as a
+//! default (`"visible":false`, `"x":null`, `[]`, `{}`; doc 05 §3.1 "Defaults omitted"), which reads as its absence.
+//! Content, which it may never change: anything else, such as a member with another value dropped or added, a value,
+//! or the order of an array's items. A line that is not one JSON value compares by its bytes (CR line end aside).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -825,7 +825,9 @@ fn spell(value: &Value, out: &mut String) {
             out.push(']');
         }
         Value::Object(map) => {
-            let mut members: Vec<(&String, &Value)> = map.iter().collect();
+            // A member that holds `null`, `false`, `[]` or `{}` reads as its absence (doc 05 §3.1, "Defaults omitted"):
+            // the canonical form leaves it out, which is form.
+            let mut members: Vec<(&String, &Value)> = map.iter().filter(|(_, v)| !is_zero(v)).collect();
             members.sort_by(|a, b| a.0.cmp(b.0));
             out.push('{');
             for (i, (key, item)) in members.into_iter().enumerate() {
@@ -838,6 +840,17 @@ fn spell(value: &Value, out: &mut String) {
             }
             out.push('}');
         }
+    }
+}
+
+/// Whether `value` is one the canonical form omits as a member's default whatever the member: `null`, `false`, an empty
+/// array or an object of nothing else.
+fn is_zero(value: &Value) -> bool {
+    match value {
+        Value::Null | Value::Bool(false) => true,
+        Value::Array(items) => items.is_empty(),
+        Value::Object(map) => map.values().all(is_zero),
+        _ => false,
     }
 }
 
@@ -864,9 +877,18 @@ mod tests {
             "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[2,1]}",
             "{\"a\":\"\u{e9}\",\"c\":[1,2]}",
             "{\"b\":2,\"a\":\"\u{e9}\",\"c\":[1,2]}",
-            "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"d\":null}",
+            "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"d\":true}",
+            "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2,false]}",
         ] {
             assert_ne!(a[0].1, records("devices/3f.jsonl", other)[0].1, "{other}");
+        }
+        // A member holding a value the canonical form omits as a default reads as its absence: form (a hidden slot's
+        // `"visible":false` in a symbol, FT-1879).
+        for other in [
+            "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"d\":null}",
+            "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"visible\":false,\"e\":[],\"f\":{\"g\":{}}}",
+        ] {
+            assert_eq!(a[0].1, records("devices/3f.jsonl", other)[0].1, "{other}");
         }
         // A line that is not one JSON value compares by its bytes.
         assert_eq!(

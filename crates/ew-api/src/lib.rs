@@ -374,6 +374,21 @@ impl PreventHook for ShippedPrevent {
     }
 }
 
+/// The files of the project that its open did not read because `manifest.json` does not list them (EW-CORE-004: a
+/// file added by hand, an orphan, a conflict copy), each as `<file>: <why>`, in the report's order: what every command
+/// of the `ew` program says when it opens the project, so that such a file is never silently not read.
+pub fn unread_files(report: &OpenReport) -> Vec<String> {
+    report
+        .findings
+        .iter()
+        .filter(|f| f.kind == ew_store::ew_format::FindingKind::Orphan)
+        .map(|f| match &f.file {
+            Some(file) => format!("{file}: {}", f.message),
+            None => f.message.clone(),
+        })
+        .collect()
+}
+
 /// The integrity findings of opening a project as items for [`checks::CheckReport::with_integrity`]: every
 /// store finding with a catalogue ID (EW-CORE-001 … 019 but 011, a registered rule over the model; doc 05 §6.3) at its
 /// severity, located by its project-relative file and line. Notices without an ID (line endings, foreign edits) are

@@ -169,7 +169,7 @@ pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {
 
 /// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
 pub(super) fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool) -> i32 {
-    let (mut session, _) = match ew_api::Session::open_reader(dir, env!("CARGO_PKG_VERSION"), "apply") {
+    let (mut session, _) = match open_reader(dir, "apply") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

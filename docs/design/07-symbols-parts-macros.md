@@ -183,7 +183,8 @@ question 1).
 
 *As built.* `ew-library` opens the four tiers (system: the
 compiled-in libraries of §2.1 and `content/libraries/*.ewlib`; community; company, from the settings' paths and a
-repeatable `--company`; user). The `.ewlib` reader applies the project loader's limits; the writer writes the shards
+repeatable `--company`; user). The `.ewlib` reader applies the project loader's limits and reads only the files `library.json` lists; a records
+file of the directory that it does not list is a note of the library, which `ew lib list` prints. The writer writes the shards
 first and `library.json` last; a library lock follows [05](05-project-format-and-persistence.md) §7.4: a live lock is
 `Locked`, a stale one `Stale`, taken over only on explicit confirmation. The per-user SQLite FTS5 index lives in the
 cache directory. A session opens the tiers at its first library use and falls back to the compiled-in libraries,
@@ -239,6 +240,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   - Tag, FunctionText, TechData, Manufacturer, PartNumber, TypeDesignation;
   - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage;
   - OrderCode: the order code of the device's first assembly config (doc 20 §11.1, D-36).
+
+  A slot prints only with `"visible": true`: `visible` is `false` when absent, and the canonical form leaves `false`
+  out (`ew fmt` rewrites a written `"visible": false` to its absence).
 
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
   text style in the optional member `style`, which replaces that binding for the slot. A

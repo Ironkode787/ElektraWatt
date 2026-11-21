@@ -45,7 +45,7 @@ pub(super) fn run_import_table(a: &ImportTableArgs) -> i32 {
             Err(code) => return code,
         }
     } else {
-        match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "import table") {
+        match open_reader(&dir, "import table") {
             Ok((s, _)) => s,
             Err(e) => {
                 eprintln!("error: {}: {e}", dir.display());

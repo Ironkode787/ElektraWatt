@@ -47,7 +47,7 @@ pub(super) fn run_assets_purge_with(
     // The preview is a reader: no lock, no roll-forward, no journal, nothing written, so it runs beside an open
     // editor. The purge opens for writing with the confirmed origin, used only after the word is typed.
     let opened = if a.preview {
-        ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "project assets purge")
+        open_reader(&dir, "project assets purge")
             .map(|(s, _)| s)
             .map_err(|e| {
                 eprintln!("error: {}: {e}", dir.display());

@@ -8,9 +8,7 @@ use std::path::PathBuf;
 
 use ew_api::cli_results as results;
 
-use super::reader_dir;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+use super::{open_reader, reader_dir};
 
 /// The arguments of `ew query`.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -39,7 +37,7 @@ pub(super) fn run_query(a: &QueryArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
-    let session = match ew_api::Session::open_reader(&dir, VERSION, "query") {
+    let session = match open_reader(&dir, "query") {
         Ok((session, _)) => session,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

@@ -10,7 +10,7 @@ use ew_api::cli_results as results;
 use ew_api::routing::{Reason, RoutePlan, RouteScope};
 use ew_api::{AnyCommand, Session};
 
-use super::{RouteArgs, project_dir, reader_dir};
+use super::{RouteArgs, open_reader, project_dir, reader_dir};
 
 /// The reason's key in the JSON result and its sentence in the text.
 fn reason(why: Reason, wire: &str) -> (&'static str, String) {
@@ -46,7 +46,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let Some(dir) = reader_dir(a.project.as_ref()) else {
             return 2;
         };
-        Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "route")
+        open_reader(&dir, "route")
             .map_err(|e| format!("{}: {e}", dir.display()))
     } else {
         let Some(dir) = project_dir(a.project.as_ref()) else {

@@ -8,7 +8,7 @@
 use ew_api::cli_results as results;
 use ew_api::output::PageLayout;
 
-use super::{LayoutArgs, reader_dir};
+use super::{LayoutArgs, open_reader, reader_dir};
 
 /// `ew layout`: opens the project as a reader (no lock) and prints the layout measures. Exit 0 when measured, 2 on
 /// usage, open errors and a folio that names no drawn page.
@@ -16,7 +16,7 @@ pub(super) fn run_layout(a: &LayoutArgs) -> i32 {
     let Some(dir) = reader_dir(a.project.as_ref()) else {
         return 2;
     };
-    let session = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "layout") {
+    let session = match open_reader(&dir, "layout") {
         Ok((session, _)) => session,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

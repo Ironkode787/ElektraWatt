@@ -18,7 +18,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
             return 2;
         }
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "print") {
+    let (session, _) = match open_reader(&dir, "print") {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

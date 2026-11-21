@@ -227,6 +227,37 @@ fn library_dirs(path: &Path) -> Vec<PathBuf> {
     out
 }
 
+/// A note for each records file of the library directory `dir` (its `*.jsonl` files and those of its kind directories)
+/// that its manifest `m` does not list, in path order: the reader reads only listed files, so a file added by hand is
+/// otherwise silently not there. Temporary files of a write, which the next write removes, are left out.
+fn unlisted_files(dir: &Path, m: &LibManifest) -> Vec<String> {
+    let mut notes = Vec::new();
+    for rel_dir in std::iter::once(None).chain(crate::record::KIND_DIRS.iter().map(|(d, _)| Some(*d))) {
+        let at = rel_dir.map_or_else(|| dir.to_path_buf(), |d| dir.join(d));
+        let Ok(entries) = std::fs::read_dir(&at) else {
+            continue;
+        };
+        let mut names: Vec<String> = entries
+            .flatten()
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|name| name.ends_with(".jsonl") || (rel_dir.is_some() && name.ends_with(".json")))
+            .filter(|name| !name.contains(".tmp-"))
+            .collect();
+        names.sort();
+        for name in names {
+            let rel = rel_dir.map_or_else(|| name.clone(), |d| format!("{d}/{name}"));
+            if !m.files.contains_key(&rel) {
+                notes.push(format!(
+                    "{rel}: library.json does not list it, so it is not read; a file added by hand is read once \
+                     library.json lists it with its SHA-256"
+                ));
+            }
+        }
+    }
+    notes
+}
+
 /// Reads and checks `dir`'s manifest.
 fn open_manifest(dir: &Path, limits: &Limits) -> Result<LibManifest, String> {
     check_manifest(&read_file(dir, MANIFEST, limits.max_manifest_bytes)?, limits)
@@ -596,6 +627,7 @@ impl Registry {
                                 notes.push(e);
                             }
                         }
+                        notes.extend(unlisted_files(&dir, &m));
                         libs.push(Lib {
                             info: LibraryInfo {
                                 id: m.id,

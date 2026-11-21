@@ -242,7 +242,7 @@ pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
             Err(code) => return code,
         }
     } else {
-        match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "import plc") {
+        match open_reader(&dir, "import plc") {
             Ok((s, _)) => s,
             Err(e) => {
                 eprintln!("error: {}: {e}", dir.display());
@@ -368,7 +368,7 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
             }
         },
     };
-    let session = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "plc status") {
+    let session = match open_reader(&dir, "plc status") {
         Ok((s, _)) => s,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());

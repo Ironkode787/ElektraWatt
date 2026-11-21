@@ -12,7 +12,7 @@ use ew_api::fmt::{Backup, DiscardedLine, FmtError, KeptLine, RepairError, Repair
 
 use super::{
     FmtArgs, RecoverAction, RecoverArgs, UpgradeArgs, journal_refusal, older_format, open_editing,
-    open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word,
+    open_editing_to, plural, printable, project_dir, read_only_words, reader_dir, typed_word, warn_unread,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -83,6 +83,10 @@ fn run_fmt_with(
         Ok(r) => r,
         Err(code) => return code,
     };
+    // The editing open named them already.
+    if a.check {
+        warn_unread(&report, err);
+    }
     if let Some(from) = &report.migrated_from {
         session.close();
         let (code, text) = fmt_older(a.check, &dir, from);

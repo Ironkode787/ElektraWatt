@@ -87,6 +87,11 @@ change here.
   0.719 of its em high (it was 0.714, Noto Sans's); the other bundled faces are unchanged
 - behaviour-change: a project made in a folder where a project of the same ID was (an import of the same source again,
   Save As onto its path) is no longer offered that project's leftover crash journal: making it deletes the journal
+- behaviour-change: a file added to a project by hand that `manifest.json` does not list is named on stderr by the
+  `ew` commands that open the project (`warning: <file>: manifest.json does not list it, so it is not read …`), and a
+  records file of a library folder that `library.json` does not list is a note of the library in `ew lib list`
+- behaviour-change: `ew fmt` rewrites a member written with the value the canonical form leaves out (a symbol's hidden
+  text slot with `"visible": false`, a `null`, `[]` or `{}`) instead of refusing the file as a change of content
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
   in the graph
 - format-variant: form Align baseline_centre

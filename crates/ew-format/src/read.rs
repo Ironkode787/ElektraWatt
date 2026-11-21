@@ -123,7 +123,8 @@ fn plan_listed(manifest: &Manifest, present: &BTreeMap<String, EntryKind>, plan:
             plan.findings.push(entry_finding(
                 FindingKind::Orphan,
                 name,
-                "not listed in the manifest (an orphan or a conflict copy); not read",
+                "manifest.json does not list it, so it is not read: a file added by hand is read once manifest.json \
+                 lists it with its SHA-256; else it is an orphan or a conflict copy",
             ));
         }
     }

@@ -820,7 +820,11 @@ flowchart TD
 ```
 
 - **Only listed files are read.** With a manifest present the loader reads exactly the files it lists; any other
-  file in the layout is EW-CORE-004 and is not read (§6.2).
+  file in the layout is EW-CORE-004 and is not read (§6.2). *As built:* the readers of `ew` (export, print, render,
+  query, sql, layout, `fmt --check`) and its writers that take the common editing open (`apply`, `fmt`, the imports
+  into a project) name every such file on stderr (`warning: <file>: manifest.json does not list it, so it is not read …`), so a file
+  added by hand is never silently absent; a library directory's records file that `library.json` does not list is a
+  note of that library in `ew lib list` (doc 07 §2.2).
 - **Read-only openers never roll forward** (ADR-0010 amendment 3). Behind a stale or
   live-looking lock, one that meets an intent above the manifest's generation retries every 200 ms for up to 5 s
   for the save to finish. If the intent is still there after the wait (a writer that crashed or stalls), the

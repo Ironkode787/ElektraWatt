@@ -206,7 +206,7 @@ pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
             }
         }
     };
-    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "verify-migration")
+    let (session, _) = match open_reader(&dir, "verify-migration")
     {
         Ok(r) => r,
         Err(e) => {
