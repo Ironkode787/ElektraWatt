@@ -191,6 +191,14 @@ fn insert_the_psu_macro_on_folio_106_from_the_navigator() {
     assert!(m.conflicts.iter().all(|c| *c != lead.text), "{:?}", m.conflicts);
     let summary = ew_viewmodel::script::card_summary(&shell).expect("the card's line");
     assert!(summary.starts_with(&lead.text), "{summary}");
+    // The transcript's `pending` line names the rule and ends with the conflicts.
+    assert!(summary.contains("EW-CORE-052"), "{summary}");
+    for name in ["24V", "0V"] {
+        assert!(
+            summary.contains(&format!("interruption point {name}: 2 source points")),
+            "{summary}"
+        );
+    }
     // Folio 101's points are sources: each copy is a second source of its name.
     for name in ["1L1", "0V"] {
         assert!(
@@ -235,6 +243,11 @@ fn insert_the_psu_macro_on_folio_106_from_the_navigator() {
         card.preview.result.as_ref().err()
     );
     assert!(m.conflicts.is_empty(), "{:?}", m.conflicts);
+    let summary = ew_viewmodel::script::card_summary(&shell).expect("the card's line");
+    assert!(
+        summary.contains("Insert macro") && summary.contains("No conflicts"),
+        "{summary}"
+    );
     assert!(shell.layout().panes().contains(&PaneKind::Preview));
     let rev = shell.revision().unwrap();
     done(&mut shell, "preview.apply", json!({}));
