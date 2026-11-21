@@ -119,7 +119,7 @@ impl Query for TitleBlockValues {
         revision_scope(&mut out, q, project);
         // While no revision names its author, the Author cell prints the project's designer (the party of the role
         // author): a person names the designer in Project properties, and only a person at the window makes that
-        // party a revision's author (a persona run found no way to fill the cell).
+        // party a revision's author (without this, a person has no way to fill the cell).
         if !out.0.contains_key(AUTHOR_PATH)
             && let Some(designer) = party_of(project, &PartyRole::Author)
         {

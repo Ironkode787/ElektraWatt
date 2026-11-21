@@ -169,7 +169,7 @@ pub(crate) fn box_slot(q: &Q, b: &StructureBox, aspect: ew_rds::Aspect) -> Optio
 
 /// `ip_structure(function)`: the structure of an interruption-point function: its representation's structure
 /// box's slots (a node, or `none`) over its page's structure, per aspect. Empty for a function that is not an
-/// interruption point or has no representation. Policy Memo (§17.5).
+/// interruption point or has no representation. Policy Memo.
 #[derive(Debug)]
 pub struct IpStructure;
 

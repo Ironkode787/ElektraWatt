@@ -908,7 +908,7 @@ fn external_source_ip_names_an_undefined_potential() {
 }
 
 /// Doc 08 §3.5 step 2c: a target point no source feeds still names the potential it carries (a supply drawn at the
-/// page's left edge, whose quarters make it a target: the persona round of 0.2.0-rc.2 named its wire after the
+/// page's left edge, whose quarters make it a target: its wire must not be named after the
 /// device pin), and an external target point (Supply comes in here…) does when no other point does.
 #[test]
 fn an_unpaired_target_or_external_point_names_an_undefined_potential() {

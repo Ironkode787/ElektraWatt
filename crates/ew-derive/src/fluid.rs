@@ -60,7 +60,7 @@ pub fn is_valve_terminal(q: &Q, device: Id<Device>) -> bool {
 /// A valve's port on one side of EW-FL-012's role conflict (FR-FLU-032): a working port (2, 4) or an exhaust port (3,
 /// 5). Joined to each other across two devices' valves with no valve between them, the two conflict; the rule and the
 /// window's autoconnect (which never proposes such a join) read it here. A valve terminal's supply plate taps the
-/// valves' galleries, so its ports are on their sides too (persona round 3: a valve below a loose plate had its working
+/// valves' galleries, so its ports are on their sides too (a valve below a loose plate must not have its working
 /// port 4 joined to the plate's exhaust tap 5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ValvePort {
@@ -178,8 +178,8 @@ pub struct GallerySegment {
 /// position order (a module and its valves). Per gallery, a slot whose part's fluid section has an entry for the gallery with
 /// `separates` closes the segment before it; a slot with a valve function joins that function's ports of the
 /// gallery's role; a slot whose entry has a `tap` joins its port of that designation; the terminal itself, without such
-/// an entry, joins the port of the gallery's role of its supply function ([`crate::is_supply_def`]: its own supply ports,
-/// rc.3); every other slot (a module without fluid data, the CPX block) is transparent. Empty segments are
+/// an entry, joins the port of the gallery's role of its supply function ([`crate::is_supply_def`]: its own supply ports);
+/// every other slot (a module without fluid data, the CPX block) is transparent. Empty segments are
 /// left out. Empty for a device that is no valve terminal ([`is_valve_terminal`]). Policy Memo.
 #[derive(Debug)]
 pub struct Galleries;

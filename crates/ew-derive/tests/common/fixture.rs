@@ -611,7 +611,7 @@ pub fn fixture() -> Fx {
         .expect("title block form"),
     );
 
-    // Project: master data (§4.1), supply, parties (§4.2) with placeholder names, company data,
+    // Project: master data (doc 20 §4.1), supply, parties (§4.2) with placeholder names, company data,
     // numbering settings (§4.4).
     fx.project_set(
         "master",
@@ -654,7 +654,7 @@ pub fn fixture() -> Fx {
             "rules": [{"select": {"aspect": "strip"}, "format": "{letter}{page}{counter}"}]}]}}),
     );
 
-    // Revisions (§4.1): V1.0 released, V2.0 open, checker unset.
+    // Revisions (doc 20 §4.1): V1.0 released, V2.0 open, checker unset.
     fx.push(
         json!({"$k": "revision", "id": uid(REV_1), "label": "V1.0", "date": "2025-03-03",
                    "state": "released", "author": "engineer"}),
@@ -664,7 +664,7 @@ pub fn fixture() -> Fx {
                    "state": "open", "author": "engineer"}),
     );
 
-    // Structure (§4.3).
+    // Structure (doc 20 §4.3).
     fx.node(P01, "function", "P01", None)
         .node(JE2416, "location", "J-E-2416", None);
     fx.record(JE2416)["aliases"] = json!(["JE2416"]);
@@ -676,7 +676,7 @@ pub fn fixture() -> Fx {
         .section(SEC_2, 2, (200, 299), "Pneumatics", true)
         .section(SEC_9, 9, (900, 999), "Nomenclature", true);
 
-    // Pages (§5): every drawn page carries =P01 and +J-E-2416 and sits on the QET 10 px grid; all but the
+    // Pages (doc 20 §5): every drawn page carries =P01 and +J-E-2416 and sits on the QET 10 px grid; all but the
     // title page (no grid, §5) have the grid frame.
     for (folio, section, kind, title) in PAGES {
         let n = page(*folio);
@@ -724,7 +724,7 @@ pub fn fixture() -> Fx {
     place(&mut fx, DEV_3W1, "W", 1, PAGE_3, CLASS_CABLE, ('E', 2));
     uses(&mut fx, DEV_3W1, &[(PART_6XV1830, "10")]);
 
-    // Folio 101 (§6.1 devices 1 to 8): the frozen tags.
+    // Folio 101 (doc 20 §6.1 devices 1 to 8): the frozen tags.
     place(&mut fx, DEV_S51, "S", 1, PAGE_101, CLASS_SWITCH, ('B', 2));
     freeze(&mut fx, DEV_S51, "S51");
     uses(&mut fx, DEV_S51, &[(PART_533356, "1")]);
@@ -823,7 +823,7 @@ pub fn fixture() -> Fx {
     fx.record(DEV_202U1)["parent"] = json!(uid(dev_201u(1)));
     uses(&mut fx, DEV_202U1, &[(PART_550208, "1")]);
 
-    // Valves of folio 203 (§6.2): child tags below their sub-base.
+    // Valves of folio 203 (doc 20 §6.2): child tags below their sub-base.
     for sub in [3, 4] {
         for q in 1..=4u128 {
             let dev = valve(sub, q);
@@ -863,7 +863,7 @@ pub fn fixture() -> Fx {
          "covers": sorted(mpa)},
     ]});
 
-    // Field devices of folio 203 (§6.2) in +FIELD, supplied by others: no parts.
+    // Field devices of folio 203 (doc 20 §6.2) in +FIELD, supplied by others: no parts.
     for n in 1..=8u128 {
         let dev = field_203q(n);
         place(

@@ -124,7 +124,7 @@ pub use index::{
     PagelessLinksV, RailTerminals,
 };
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
-// Page items and structure boxes, derived (§10.2).
+// Page items and structure boxes, derived.
 pub use items::{
     BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, RepStructureBox, bound_text, box_caption,
     cable_mark, cable_size_text, colour_text, connection_marker, connection_number, csa_text,
