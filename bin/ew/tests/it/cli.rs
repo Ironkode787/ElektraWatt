@@ -1724,10 +1724,9 @@ fn revision_commands_are_refused_off_a_terminal() {
 /// The recorded logs replay through `ew apply`: one log on a copy of the sample, applied once, of
 /// - `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
 ///   `marker.place` and `rep.move`;
-/// - the property grid pilot's `--record` log (`pilot_log.rs`, which the headless
-///   test of `elektrawatt` proves is the record of its script and replays in-process to the records it saved);
-/// - the find-and-replace script's `--record` log (`find_log.rs`: three
-///   `fields.set_many` lines, which the headless test of `elektrawatt` proves is the record of its script).
+/// - `fields.set` and `fields.set_many`, the commands the property grid and find and replace record, their targets
+///   named by tag reference (the headless tests of `elektrawatt` replay each script's own `--record` log in-process
+///   and compare it with the records the script saved).
 ///
 /// Every line applies and the saved records are those the same log gives in-process (the spec's replay path), the
 /// minted page items and structure boxes compared by content.
@@ -1760,20 +1759,18 @@ fn the_recorded_logs_replay_through_ew_apply() {
             "kind": {"graphic": {"shape": {"line": {"a": [0, 0], "b": [10_000_000, 0]}}, "dash": "dashed"}}}}),
         serde_json::json!({"cmd": "marker.place", "params": {"page": page, "connections": wires,
             "at": [60_000_000, 40_000_000]}}),
+        serde_json::json!({"cmd": "fields.set", "params": {"kind": "device", "path": "function_text",
+            "targets": [{"ref": "tag:-102F1"}], "value": "Supply 24 V"}}),
+        serde_json::json!({"cmd": "fields.set_many", "params": {"edits": [
+            {"kind": "device", "path": "tag.frozen", "targets": [{"ref": "tag:-102S1"}],
+                "value": {"sign": "shown", "text": "102S1"}},
+            {"kind": "device", "path": "function_text", "targets": [{"ref": "tag:-102S2"}], "value": "Reserve"}]}}),
     ];
     let text = |lines: &[serde_json::Value]| {
         let mut out = String::from(header);
         for l in lines {
             out.push('\n');
             out.push_str(&l.to_string());
-        }
-        // The pilot's and the find-and-replace script's recorded lines follow the page-item lines.
-        for l in crate::pilot_log::PILOT_LOG
-            .lines()
-            .chain(crate::find_log::FIND_LOG.lines())
-        {
-            out.push('\n');
-            out.push_str(l);
         }
         out.push('\n');
         out
@@ -1786,8 +1783,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
     std::fs::write(&log, &text).unwrap();
     let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
-    assert_eq!(crate::find_log::FIND_LOG.lines().count(), 3);
-    let n = 6 + crate::pilot_log::PILOT_LOG.lines().count() + crate::find_log::FIND_LOG.lines().count();
+    let n = lines.len();
     assert!(
         stdout(&applied).contains(&format!("applied {n} of {n} lines; saved")),
         "{}",

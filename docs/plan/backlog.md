@@ -215,8 +215,6 @@ Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 - FT-1787 `elektrawatt`: The deep run's replay of every script twice (`nightly_every_script_transcript_is_byte_identical_twice`, `tests/it/headless.rs`) runs close to its time limit; split it or give it room once step 9 has changed its scripts (step 10). Not measured.
 - FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
 - FT-1890 `ew-api, ew-commands, ew-derive, ew-viewmodel, ew-ui, ew-scene, xtask`: Comments still carry about 650 section references that name no document (a bare `§`) and 154 candidate tags (`rc.3`, `0.3.0-rc.1`); step 7 removed the rest. Name the document, or say the point without the reference.
-- FT-1919 `elektrawatt, ew`: The recorded command logs of the pilot's grid edits and of find and replace (`bin/elektrawatt/tests/grid/pilot_log.rs`, `find_log.rs`) are committed copies that hold the sample's generated IDs, and `ew apply` replays them in another test binary: a change of the sample's script needs both recorded again by hand. Have the replay take the log its own run records, or write the targets as references. For the test pass (step 10).
-
 ## M4
 
 Rows for M4, manufacturing and the 2D/3D panel ([ROADMAP.md](../../ROADMAP.md)). FT-1814 and FT-1815 the owner asked
