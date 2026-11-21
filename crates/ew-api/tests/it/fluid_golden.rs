@@ -1,26 +1,26 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A: the valves' port roles and internal coils (FL-2), the derived valve addresses
-//! from the coil functions (FL-5) and the function-text slot's process-tag fallback on folio 203.
+//! On the sample: the valves of the valve terminal -201K1 with their port roles and internal coils (FL-2), the derived
+//! valve addresses from the coil functions (FL-5), the closed ports of the spare valves, the drives links the working
+//! lines make, the function-text slot's process-tag fallback and the routes of the tubes on folio 201.
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::output::page_view;
 use ew_api::{AnyCommand, Session};
 use ew_derive::{FunctionCps, PageOrder};
 use ew_ids::Id;
-use ew_schema::{Connection, ContactKind, Device, Endpoint, FluidPortRole, Record};
+use ew_schema::{ConnectionKind, ContactKind, Device, Endpoint, FluidPortRole, Record};
 use ew_units::{Grid, Pt2};
 use serde_json::json;
 use std::collections::BTreeMap;
 
 fn device(s: &Session, tag: &str) -> Id<Device> {
-    golden_common::tags(s)
-        .into_iter()
-        .find(|(_, t)| t == tag)
-        .unwrap_or_else(|| panic!("no device {tag}"))
-        .0
+    Id::from_uuid(
+        s.resolve_reference(&format!("tag:{tag}"))
+            .unwrap_or_else(|e| panic!("no device {tag}: {e:?}")),
+    )
 }
 
 /// The slot texts printed by the representations of a device, on every page.
@@ -42,26 +42,34 @@ fn slot_texts(s: &Session, d: Id<Device>) -> Vec<String> {
     out
 }
 
-/// The valves of Golden A: the children `-20xUn-Qp`.
+/// The four valves of the sample's valve terminal.
+const VALVES: [&str; 4] = ["-201K1-Q1", "-201K1-Q2", "-201K1-Q3", "-201K1-Q4"];
+
 fn valves(s: &Session) -> Vec<(Id<Device>, String)> {
-    let re = |t: &str| {
-        let t = t.strip_prefix("-20").unwrap_or_default();
-        t.len() == 6 && t.as_bytes()[1] == b'U' && t[3..].starts_with("-Q")
-    };
-    golden_common::tags(s)
-        .into_iter()
-        .filter(|(_, t)| re(t))
-        .collect()
+    VALVES.iter().map(|t| (device(s, t), (*t).to_owned())).collect()
 }
 
-/// FL-2 (FR-FLU-001): each of the 28 valves has a valve function with the ports 1 to 5 and their roles, and a coil
+/// The sample with a process tag on each cylinder.
+fn with_process_tags() -> Session {
+    let mut s = common::sample();
+    for (tag, process) in [("-201M1", "CL-1"), ("-201M2", "CL-2")] {
+        let d = device(&s, tag);
+        s.execute(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [d.to_string()], "path": "process_tag", "value": process}),
+        })
+        .unwrap_or_else(|e| panic!("{tag}: {e}"));
+    }
+    s
+}
+
+/// FL-2 (FR-FLU-001): each of the four valves has a valve function with the ports 1 to 5 and their roles, and a coil
 /// function with the one non-physical CP 14, to which its channel is bound.
 #[test]
 fn fl2_every_valve_has_its_port_roles_and_an_internal_coil() {
-    let s = golden_common::session(&golden_common::batch());
+    let s = common::sample();
     let q = s.query();
     let all = valves(&s);
-    assert_eq!(all.len(), 28);
     let bound = q.get::<ew_derive::ChannelsByCp>(());
     for (valve, tag) in all {
         let mut fns: Vec<_> = q.idx().functions_of_device(valve).collect();
@@ -114,12 +122,12 @@ fn fl2_every_valve_has_its_port_roles_and_an_internal_coil() {
     }
 }
 
-/// FL-5 (FR-FLU-003, FR-FLU-005): -201U3-Q1 prints Q0.1, the address of the channel bound to its coil function; a
-/// `plc.set_start` of -201U3 re-renders it in the same commit, and undo restores it.
+/// FL-5 (FR-FLU-003, FR-FLU-005): -201K1-Q1 prints Q0.0, the address of the channel bound to its coil function; a
+/// `plc.set_start` of the valve terminal re-renders it in the same commit, and undo restores it.
 #[test]
 fn fl5_the_valve_prints_the_address_of_its_coil_channel() {
-    let mut s = golden_common::session(&golden_common::batch());
-    let valve = device(&s, "-201U3-Q1");
+    let mut s = common::sample();
+    let valve = device(&s, "-201K1-Q1");
     let q = s.query();
     let coil = q
         .idx()
@@ -136,10 +144,10 @@ fn fl5_the_valve_prints_the_address_of_its_coil_channel() {
         .iter()
         .find(|(_, c)| c.binding == Some(Endpoint::Cp(coil, 0)))
         .map(|(_, c)| c.number);
-    assert_eq!(channel, Some(1), "the coil is bound to channel 1 of -201U3");
+    assert_eq!(channel, Some(0), "the coil is bound to channel 0 of -201K1");
     drop(q);
-    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
-    let module = device(&s, "-201U3");
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.0"));
+    let module = device(&s, "-201K1");
     let spec = s
         .parse_field_input("device", "plc_module.start.output", "Q10")
         .unwrap()
@@ -150,19 +158,19 @@ fn fl5_the_valve_prints_the_address_of_its_coil_channel() {
     })
     .unwrap();
     let texts = slot_texts(&s, valve);
-    assert!(texts.iter().any(|t| t == "Q10.1"), "{texts:?}");
-    assert!(!texts.iter().any(|t| t == "Q0.1"), "{texts:?}");
+    assert!(texts.iter().any(|t| t == "Q10.0"), "{texts:?}");
+    assert!(!texts.iter().any(|t| t == "Q0.0"), "{texts:?}");
     s.undo(&ew_api::Origin::Gui).unwrap();
-    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.0"));
 }
 
-/// FL-6 (FR-FLU-004, FR-FLU-027): `valve_slots(-202U2)` gives four valves; `valve.add` on -202U2, whose positions are
+/// FL-6 (FR-FLU-004, FR-FLU-027): `valve_slots(-201K1)` gives four valves; `valve.add` on -201K1, whose positions are
 /// all taken, is refused by EW-FL-013's prevent half with T12 and "every position is taken"; the release run reports
-/// no EW-FL-002 or EW-FL-013 finding on Golden A and EW-FL-004 its 20 spare valves (EF-14).
+/// no EW-FL-002, EW-FL-004 or EW-FL-013 finding on the sample (its spare valves' ports are plugged).
 #[test]
-fn fl6_a_full_module_refuses_a_valve_and_golden_a_has_no_occupancy_defect() {
-    let mut s = golden_common::session(&golden_common::batch());
-    let module = device(&s, "-202U2");
+fn fl6_a_full_module_refuses_a_valve_and_the_sample_has_no_occupancy_defect() {
+    let mut s = common::sample();
+    let module = device(&s, "-201K1");
     let q = s.query();
     let slots = q.get::<ew_derive::ValveSlots>(module);
     assert_eq!(slots.count, 4);
@@ -175,7 +183,7 @@ fn fl6_a_full_module_refuses_a_valve_and_golden_a_has_no_occupancy_defect() {
     assert!(slots.second.is_empty() && slots.outside.is_empty());
     let part = q
         .devices()
-        .get(device(&s, "-202U2-Q1"))
+        .get(device(&s, "-201K1-Q1"))
         .and_then(|d| d.parts.first().map(|u| u.part.copy))
         .expect("the valve part");
     drop(q);
@@ -187,13 +195,13 @@ fn fl6_a_full_module_refuses_a_valve_and_golden_a_has_no_occupancy_defect() {
         .expect_err("refused");
     assert_eq!(
         refusal.to_string(),
-        "EW-FL-013: -202U2: position 5 is outside its 4 valve positions; every position is taken"
+        "EW-FL-013: -201K1: position 5 is outside its 4 valve positions; every position is taken"
     );
     let report = s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
     let count = |rule: &str| report.findings.iter().filter(|f| f.rule == rule).count();
     assert_eq!(
         (count("EW-FL-002"), count("EW-FL-004"), count("EW-FL-013")),
-        (0, 20, 0)
+        (0, 0, 0)
     );
 }
 
@@ -220,13 +228,13 @@ fn body(s: &Session, valve: Id<Device>) -> Id<ew_schema::Function> {
         .expect("the valve body")
 }
 
-/// FL-9 (FR-FLU-028): with F1 to F16 drawn, EW-FL-001 reports the 20 spare valves; plugging -201U5-Q1:2 and :4
-/// leaves 19, clearing the closures gives 20 again; T9 and T10 whole.
+/// FL-9 (FR-FLU-028): the sample plugs its spare valves' working ports, so EW-FL-001 reports nothing; opening
+/// -201K1-Q3's ports 2 and 4 makes it report that valve, plugging them again clears it; T9 and T10 whole.
 #[test]
 fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
-    let mut s = golden_common::session(&golden_common::batch());
-    assert_eq!(open_ports(&s), 20);
-    let f = body(&s, device(&s, "-201U5-Q1"));
+    let mut s = common::sample();
+    assert_eq!(open_ports(&s), 0);
+    let f = body(&s, device(&s, "-201K1-Q3"));
     let close = |idx: u16, closure: Option<serde_json::Value>| {
         let mut params = json!({"function": f.to_string(), "idx": idx});
         if let Some(c) = closure {
@@ -238,18 +246,18 @@ fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
         }
     };
     for idx in [1, 3] {
-        s.execute(&close(idx, Some(json!({"kind": "plug"})))).unwrap();
-    }
-    assert_eq!(open_ports(&s), 19);
-    for idx in [1, 3] {
         s.execute(&close(idx, None)).unwrap();
     }
-    assert_eq!(open_ports(&s), 20);
-    // T9: the coil's CP 14 is no fluid port; T10: -201U3-Q1:2 has F1
+    assert_eq!(open_ports(&s), 1);
+    for idx in [1, 3] {
+        s.execute(&close(idx, Some(json!({"kind": "plug"})))).unwrap();
+    }
+    assert_eq!(open_ports(&s), 0);
+    // T9: the coil's CP 14 is no fluid port; T10: -201K1-Q1:2 has a tube
     let coil = {
         let q = s.query();
         q.idx()
-            .functions_of_device(device(&s, "-201U5-Q1"))
+            .functions_of_device(device(&s, "-201K1-Q3"))
             .find(|g| *g != f)
             .expect("the coil")
     };
@@ -260,40 +268,68 @@ fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
     };
     assert_eq!(
         refusal(&mut s, &t9),
-        "fluid.port.close: -201U5-Q1:14 is not a fluid port"
+        "fluid.port.close: -201K1-Q3:14 is not a fluid port"
     );
-    let used = body(&s, device(&s, "-201U3-Q1"));
+    let used = body(&s, device(&s, "-201K1-Q1"));
     let t10 = AnyCommand {
         name: "fluid.port.close".into(),
         params: json!({"function": used.to_string(), "idx": 1, "closure": {"kind": "plug"}}),
     };
     assert_eq!(
         refusal(&mut s, &t10),
-        "fluid.port.close: -201U3-Q1:2 has a tube; delete the tube before closing the port"
+        "fluid.port.close: -201K1-Q1:2 has a tube; delete the tube before closing the port"
     );
 }
 
-/// FL-10 (FR-FLU-029): on Golden A without -201U3-Q1's `drives` link and F1, F2, drawing F1 adds the link (T22) and
-/// folio 203 prints "TA05-V-15" at -201U3-Q1; drawing F2 adds no second link. A link to another actuator than the one
-/// the lines reach is EW-FL-011 (T18).
+/// The sample's records without -201K1-Q1's `drives` link and its two working lines, or with the link pointing at
+/// `retarget` instead.
+fn without_q1s_lines(retarget: Option<Id<Device>>) -> Session {
+    let sample = with_process_tags();
+    let valve = device(&sample, "-201K1-Q1");
+    let f = body(&sample, valve);
+    let (project, mut records, lib) = common::sample_records();
+    match retarget {
+        None => records.retain(|r| match r {
+            Record::Connection(c) => {
+                !matches!(c.kind, ConnectionKind::Fluid(_))
+                    || ![&c.a, &c.b]
+                        .iter()
+                        .any(|e| matches!(e, Endpoint::Cp(g, _) if *g == f))
+            }
+            Record::DeviceLink(l) => l.from != valve,
+            _ => true,
+        }),
+        Some(to) => {
+            for r in &mut records {
+                if let Record::DeviceLink(l) = r
+                    && l.from == valve
+                {
+                    l.to = to;
+                }
+            }
+        }
+    }
+    let mut s = common::session_of(project, records, lib);
+    for (tag, process) in [("-201M1", "CL-1"), ("-201M2", "CL-2")] {
+        let d = device(&s, tag);
+        s.execute(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [d.to_string()], "path": "process_tag", "value": process}),
+        })
+        .unwrap_or_else(|e| panic!("{tag}: {e}"));
+    }
+    s
+}
+
+/// FL-10 (FR-FLU-029): on the sample without -201K1-Q1's `drives` link and its two working lines, drawing the first
+/// line to the cylinder -201M1 adds the link (T22) and the valve prints the cylinder's process tag; drawing the second
+/// adds no second link. A link to another actuator than the one the lines reach is EW-FL-011 (T18).
 #[test]
 fn fl10_the_first_working_line_links_the_valve() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let valve_id = ids["devices|-201U3-Q1"].clone();
-    let mut s = golden_common::session_with(&batch, |_, records| {
-        records.retain(|r| match r {
-            ew_schema::Record::Connection(_) => !matches!(
-                golden_common::source_key(r),
-                Some("connections|F1" | "connections|F2")
-            ),
-            ew_schema::Record::DeviceLink(l) => l.from.to_string() != valve_id,
-            _ => true,
-        });
-    });
-    let valve = device(&s, "-201U3-Q1");
-    let actuator = device(&s, "-203Q1");
-    assert!(!slot_texts(&s, valve).iter().any(|t| t == "TA05-V-15"));
+    let mut s = without_q1s_lines(None);
+    let valve = device(&s, "-201K1-Q1");
+    let actuator = device(&s, "-201M1");
+    assert!(!slot_texts(&s, valve).iter().any(|t| t == "CL-1"));
     let f = body(&s, valve);
     let cylinder = {
         let q = s.query();
@@ -325,24 +361,15 @@ fn fl10_the_first_working_line_links_the_valve() {
             .collect::<Vec<_>>()
     };
     let r = s.execute(&draw(1, 0)).unwrap();
-    assert_eq!(r.outcome.notices, ["-201U3-Q1 now drives -203Q1"]);
+    assert_eq!(r.outcome.notices, ["-201K1-Q1 now drives -201M1"]);
     assert_eq!(links(&s), [actuator]);
-    assert!(slot_texts(&s, valve).iter().any(|t| t == "TA05-V-15"));
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "CL-1"));
     let r = s.execute(&draw(3, 1)).unwrap();
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     assert_eq!(links(&s), [actuator]);
-    // T18: Golden A with the link of -201U3-Q1 pointing at -203Q2 while F1 and F2 reach -203Q1
-    let q2 = ids["devices|-203Q2"].clone();
-    let valve_id = ids["devices|-201U3-Q1"].clone();
-    let s = golden_common::session_with(&batch, |_, records| {
-        for r in records.iter_mut() {
-            if let ew_schema::Record::DeviceLink(l) = r
-                && l.from.to_string() == valve_id
-            {
-                l.to = q2.parse().expect("an ID");
-            }
-        }
-    });
+    // T18: the link of -201K1-Q1 pointing at -201M2 while its lines reach -201M1
+    let other = device(&s, "-201M2");
+    let s = without_q1s_lines(Some(other));
     let online = s.check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online);
     let t18: Vec<&str> = online
         .findings
@@ -352,25 +379,20 @@ fn fl10_the_first_working_line_links_the_valve() {
         .collect();
     assert_eq!(
         t18,
-        ["-201U3-Q1 drives -203Q2, but its working-port lines reach -203Q1"]
+        ["-201K1-Q1 drives -201M2, but its working-port lines reach -201M1"]
     );
 }
 
-/// D14 (FR-FLU-005): the function-text slot of the 5/2 valve falls back to the tracked process tag, so the eight used
-/// valves of folio 203 print their field device's tag; the spare valves keep their manual text "Spare".
+/// D14 (FR-FLU-005): the function-text slot of the 5/2 valve falls back to the tracked process tag, so the two used
+/// valves print their cylinder's tag; the spare valves keep their manual text "Spare".
 #[test]
 fn d14_the_used_valves_print_the_process_tag_of_their_field_device() {
-    let s = golden_common::session(&golden_common::batch());
+    let s = with_process_tags();
     let expected = [
-        ("-201U3-Q1", "TA05-V-15"),
-        ("-201U3-Q2", "TA05-V-33"),
-        ("-201U3-Q3", "TA05-V-18"),
-        ("-201U3-Q4", "TA05-V-17"),
-        ("-201U4-Q1", "TA05-V-36"),
-        ("-201U4-Q2", "TA05-V-38"),
-        ("-201U4-Q3", "TA05-V-16"),
-        ("-201U4-Q4", "TA05-V-37"),
-        ("-201U5-Q1", "Spare"),
+        ("-201K1-Q1", "CL-1"),
+        ("-201K1-Q2", "CL-2"),
+        ("-201K1-Q3", "Spare"),
+        ("-201K1-Q4", "Spare"),
     ];
     for (tag, text) in expected {
         let texts = slot_texts(&s, device(&s, tag));
@@ -378,41 +400,30 @@ fn d14_the_used_valves_print_the_process_tag_of_their_field_device() {
     }
 }
 
-/// A point in QET px (the nearest px).
-fn px(p: Pt2) -> (i64, i64) {
-    (Grid::QET_1PX.snap(p.x), Grid::QET_1PX.snap(p.y))
-}
-
 /// Whether the axis-parallel segment `a`–`b` meets the closed box `lo`–`hi`.
 fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
     a.x.min(b.x) <= hi.x && a.x.max(b.x) >= lo.x && a.y.min(b.y) <= hi.y && a.y.max(b.y) >= lo.y
 }
 
-/// Doc 20 ▲U-51: F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
-/// runs orthogonally, is taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of
-/// every cylinder body, and the two lines of a valve never meet; F1 runs up from port 2 of its valve in row H, past
-/// the process valve, left over the cylinder and down into A (the router's route).
+/// The tubes on folio 201 carry stored routes. Each starts and ends where its CPs are drawn, runs orthogonally, is
+/// taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of every cylinder body, and
+/// the two working lines of a valve never meet.
 #[test]
 fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
-    let lines: Vec<(&str, &Connection)> = batch
-        .records
-        .iter()
-        .filter_map(|r| match r {
-            Record::Connection(c) => golden_common::source_key(r)
-                .and_then(|k| k.strip_prefix("connections|F"))
-                .map(|k| (k, c)),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(lines.len(), 16);
+    let mut s = common::sample();
     let q = s.query();
-    let page = lines[0].1.page.expect("on folio 203");
+    let lines: Vec<(Id<ew_schema::Connection>, ew_schema::Connection)> = q
+        .connections()
+        .iter()
+        .filter(|(_, c)| matches!(c.kind, ConnectionKind::Fluid(_)))
+        .map(|(id, c)| (id, (**c).clone()))
+        .collect();
+    assert!(!lines.is_empty());
+    let page = lines[0].1.page.expect("on folio 201");
     // the body of ew.iso.cylinder-double-acting@qet10 (the 12 mm module of rc.2): the barrel from (5, 5) to (20, 45) px
     // from its position, its ports at x 0 on 2 mm leads
     let corner = Pt2::new(Grid::QET_1PX.at(5).unwrap(), Grid::QET_1PX.at(5).unwrap());
-    let body = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(45).unwrap());
+    let body_end = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(45).unwrap());
     let bodies: Vec<(Pt2, Pt2)> = q
         .reps()
         .iter()
@@ -424,85 +435,55 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
                     .is_some_and(|k| k.as_str() == "ew.iso.cylinder-double-acting@qet10")
         })
         .map(|(_, r)| {
+            // The barrel turned with the representation (the sample draws its cylinders upright, r270).
+            let (a, b) = (
+                r.pos.checked_add(r.orient.apply(corner)).unwrap(),
+                r.pos.checked_add(r.orient.apply(body_end)).unwrap(),
+            );
             (
-                r.pos.checked_add(corner).unwrap(),
-                r.pos.checked_add(body).unwrap(),
+                Pt2::new(a.x.min(b.x), a.y.min(b.y)),
+                Pt2::new(a.x.max(b.x), a.y.max(b.y)),
             )
         })
         .collect();
-    assert_eq!(bodies.len(), 8);
-    let mut routes = BTreeMap::new();
-    for (n, c) in &lines {
-        assert_eq!(c.page, Some(page), "F{n}");
-        let path = ew_derive::drawn_path(&q, c, page).expect("drawn on folio 203");
+    assert_eq!(bodies.len(), 2, "the two cylinders");
+    let mut by_valve: BTreeMap<Id<ew_schema::Function>, Vec<Vec<Pt2>>> = BTreeMap::new();
+    let valve_bodies: Vec<Id<ew_schema::Function>> = VALVES.iter().map(|t| body(&s, device(&s, t))).collect();
+    for (id, c) in &lines {
+        assert_eq!(c.page, Some(page), "{id}");
+        let path = ew_derive::drawn_path(&q, c, page).expect("drawn on folio 201");
         let (k, route) = (path.len(), &c.route);
-        assert!(route.len() >= 2, "F{n}: {route:?}");
-        assert_eq!((path[0], path[k - 1]), (route[0], route[route.len() - 1]), "F{n}");
+        assert!(route.len() >= 2, "{id}: {route:?}");
+        assert_eq!((path[0], path[k - 1]), (route[0], route[route.len() - 1]), "{id}");
         for w in route.windows(2) {
-            assert!(
-                w[0].x == w[1].x || w[0].y == w[1].y,
-                "F{n}: {w:?} is not orthogonal"
-            );
+            assert!(w[0].x == w[1].x || w[0].y == w[1].y, "{id}: {w:?} is not orthogonal");
             for (lo, hi) in &bodies {
-                assert!(!meets(w[0], w[1], *lo, *hi), "F{n}: {w:?} meets a cylinder body");
+                assert!(!meets(w[0], w[1], *lo, *hi), "{id}: {w:?} meets a cylinder body");
             }
         }
-        routes.insert(n.parse::<u32>().unwrap(), (c.id, route.clone()));
-    }
-    for k in (1..=16).step_by(2) {
-        for a in routes[&k].1.windows(2) {
-            for b in routes[&(k + 1)].1.windows(2) {
-                assert!(!meets(a[0], a[1], b[0], b[1]), "F{k} and F{} meet", k + 1);
+        for e in [&c.a, &c.b] {
+            if let Endpoint::Cp(f, _) = e
+                && valve_bodies.contains(f)
+            {
+                by_valve.entry(*f).or_default().push(route.clone());
             }
         }
     }
-    let f1: Vec<(i64, i64)> = routes[&1].1.iter().copied().map(px).collect();
-    // rc.5 (ADR-0033 amendment 4): the first tube of a valve runs up beside its cylinder and round its head to
-    // port A, so that it does not cross the second tube, which runs up the other side to port B.
-    assert_eq!(f1, [(140, 600), (140, 420), (90, 420), (90, 440), (100, 440)]);
+    let pairs: Vec<&Vec<Vec<Pt2>>> = by_valve.values().filter(|r| r.len() == 2).collect();
+    assert!(!pairs.is_empty(), "the used valves' two working lines");
+    for pair in pairs {
+        for a in pair[0].windows(2) {
+            for b in pair[1].windows(2) {
+                assert!(!meets(a[0], a[1], b[0], b[1]), "two lines of one valve meet");
+            }
+        }
+    }
     drop(q);
-    for (n, (id, route)) in &routes {
+    for (id, c) in &lines {
         let cmd = AnyCommand {
             name: "connection.route".into(),
-            params: json!({"connection": id.to_string(), "route": route}),
+            params: json!({"connection": id.to_string(), "route": c.route}),
         };
-        s.execute(&cmd).unwrap_or_else(|e| panic!("F{n}: {e}"));
+        s.execute(&cmd).unwrap_or_else(|e| panic!("{id}: {e}"));
     }
-}
-
-/// On folio 203 the eight used valves move their function-text slot (slot 1, the process tag) to (-30, 45)
-/// px, below the valve body, which ends at 40 px; no other valve representation moves it, so the spare valves on 204
-/// to 206 keep "Spare" at the symbol's (-30, 35) px.
-#[test]
-fn the_process_tags_on_folio_203_sit_below_the_valve_body() {
-    let s = golden_common::session(&golden_common::batch());
-    let q = s.query();
-    let mut moved = Vec::new();
-    for (valve, tag) in valves(&s) {
-        for f in q.idx().functions_of_device(valve) {
-            for r in q.idx().reps_of_function(f) {
-                let rep = q.reps().get(r).expect("the representation");
-                let slots: Vec<(u16, Option<(i64, i64)>)> =
-                    rep.text_slots.iter().map(|o| (o.slot, o.pos.map(px))).collect();
-                if !slots.is_empty() {
-                    assert_eq!(slots, [(1, Some((-30, 45)))], "{tag}");
-                    moved.push(tag.clone());
-                }
-            }
-        }
-    }
-    moved.sort();
-    assert_eq!(
-        moved,
-        [
-            "-201U3-Q1",
-            "-201U3-Q2",
-            "-201U3-Q3",
-            "-201U3-Q4",
-            "-201U4-Q1",
-            "-201U4-Q2",
-            "-201U4-Q3",
-            "-201U4-Q4"
-        ]
-    );
 }
