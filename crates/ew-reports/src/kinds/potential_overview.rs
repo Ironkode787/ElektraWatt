@@ -10,7 +10,7 @@ use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 
-use super::conn::{Wires, colour_cell, csa_cell, put};
+use super::conn::{Wires, colour_cell, csa_cell, put, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -86,7 +86,7 @@ impl ReportKindDef for PotentialOverview {
                 &set.columns,
                 &mut cells,
                 "kind",
-                Cell::Text(ew_derive::ew_mltext::MlText::neutral("Bond")),
+                words_cell("Bond", "Potentiaalverbinding"),
             );
             if !pages.is_empty() {
                 put(&set.columns, &mut cells, "pages", Cell::Folios(pages));
@@ -149,7 +149,7 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
     // A bus line without a profile value takes colour and size from its cable: "(cable)" (doc 20 §7.3).
     let from_cable = || {
         (!ew_derive::bus_line_cables(q, &wires.partition, p.id).is_empty())
-            .then(|| Cell::Text(ew_derive::ew_mltext::MlText::neutral("(cable)")))
+            .then(|| words_cell("(cable)", "(kabel)"))
     };
     let colour_value = match colour {
         Some(c) => colour_cell(Some(&c.value)),
@@ -160,7 +160,8 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         None => from_cable().unwrap_or_else(|| csa_cell(None)),
     };
     let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| {
-        Cell::Text(ew_derive::ew_mltext::MlText::neutral(type_name(&t.value)))
+        let (english, dutch) = type_name(&t.value);
+        words_cell(english, dutch)
     });
     let voltage = attrs.voltage.as_ref().map_or(Cell::Empty, |v| {
         let ac_dc = match attrs.env.as_ref().and_then(|e| e.value.ac_dc.as_ref()) {
@@ -171,7 +172,8 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         Cell::Ident(format!("{}{ac_dc}", v.value))
     });
     let class = attrs.circuit_class.as_ref().map_or(Cell::Empty, |c| {
-        Cell::Text(ew_derive::ew_mltext::MlText::neutral(class_name(&c.value)))
+        let (english, dutch) = class_name(&c.value);
+        words_cell(english, dutch)
     });
     let mut r = Row::data(
         match p.id {
@@ -199,32 +201,35 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
     r
 }
 
-fn type_name(t: &PotentialType) -> &'static str {
+/// A potential type in English and in Dutch.
+fn type_name(t: &PotentialType) -> (&'static str, &'static str) {
+    let same = |s| (s, s);
     match t {
-        PotentialType::L1 => "L1",
-        PotentialType::L2 => "L2",
-        PotentialType::L3 => "L3",
-        PotentialType::L => "L",
-        PotentialType::N => "N",
-        PotentialType::Pe => "PE",
-        PotentialType::Pen => "PEN",
-        PotentialType::Fe => "FE",
-        PotentialType::LPlus => "L+",
-        PotentialType::LMinus => "L-",
-        PotentialType::M => "M",
-        PotentialType::Signal => "signal",
-        PotentialType::Undefined => "undefined",
-        PotentialType::Unknown(_) => "other",
+        PotentialType::L1 => same("L1"),
+        PotentialType::L2 => same("L2"),
+        PotentialType::L3 => same("L3"),
+        PotentialType::L => same("L"),
+        PotentialType::N => same("N"),
+        PotentialType::Pe => same("PE"),
+        PotentialType::Pen => same("PEN"),
+        PotentialType::Fe => same("FE"),
+        PotentialType::LPlus => same("L+"),
+        PotentialType::LMinus => same("L-"),
+        PotentialType::M => same("M"),
+        PotentialType::Signal => ("signal", "signaal"),
+        PotentialType::Undefined => ("undefined", "onbepaald"),
+        PotentialType::Unknown(_) => ("other", "overig"),
     }
 }
 
-fn class_name(c: &CircuitClass) -> &'static str {
+/// A circuit class in English and in Dutch.
+fn class_name(c: &CircuitClass) -> (&'static str, &'static str) {
     match c {
-        CircuitClass::Mains => "mains",
-        CircuitClass::Control => "control",
-        CircuitClass::Analogue => "analogue",
-        CircuitClass::Bus => "bus",
-        CircuitClass::Pe => "PE",
-        CircuitClass::Unknown(_) => "other",
+        CircuitClass::Mains => ("mains", "net"),
+        CircuitClass::Control => ("control", "sturing"),
+        CircuitClass::Analogue => ("analogue", "analoog"),
+        CircuitClass::Bus => ("bus", "bus"),
+        CircuitClass::Pe => ("PE", "PE"),
+        CircuitClass::Unknown(_) => ("other", "overig"),
     }
 }

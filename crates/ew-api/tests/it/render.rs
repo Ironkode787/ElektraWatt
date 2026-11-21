@@ -89,7 +89,7 @@ fn values_render_by_kind_language_and_form() {
         ..RenderOptions::default()
     };
     let offen = RenderOptions {
-        tbd: "offen".to_owned(),
+        tbd: Some("offen".to_owned()),
         ..RenderOptions::default()
     };
     let mm2 = Cell::Qty(Dec3(750), QtyUnit::Unit(Unit::Mm2));

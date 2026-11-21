@@ -15,6 +15,14 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
+  a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
+  and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit
+  artikel", "lengte ontbreekt", "ja" and "nee", "n.t.b.", "st.", "Bestelcode n" and an open item's category, message
+  and severity; the boxes on a drawn page (LEGENDA, ARTIKELGEGEVENS, PLC-OVERZICHT, the cover's tables) print their
+  titles, headers and cells in the project's language; the CSV and XLSX stay English (doc 09 §3.8, FT-1955)
+- behaviour-change: `ew route` names on stderr a file of the project that `manifest.json` does not list, and refuses a
+  crashed session's unsaved journal and an older format as the other writers do (FT-1930)
 - behaviour-change: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
   of `ew export dxf` into a folder as a job; a folder that holds other files is refused and left as it was (doc 09
   §4.9, FT-1960)

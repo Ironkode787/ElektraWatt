@@ -42,8 +42,8 @@ pub struct RenderOptions {
     pub lang: Option<LangTag>,
     /// The form of tags.
     pub tag_form: TagForm,
-    /// The text of [`Cell::Tbd`].
-    pub tbd: String,
+    /// The text of [`Cell::Tbd`]; `None`: the program's ("TBD", in Dutch "n.t.b.").
+    pub tbd: Option<String>,
     /// The page being drawn, for the displayed form of tags (the structure of that page is omitted).
     pub page: Option<PageRef>,
 }
@@ -53,7 +53,7 @@ impl Default for RenderOptions {
         RenderOptions {
             lang: None,
             tag_form: TagForm::Displayed,
-            tbd: "TBD".to_owned(),
+            tbd: None,
             page: None,
         }
     }
@@ -68,7 +68,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
         Cell::Text(ml) => text(ml, opts.lang.as_ref()),
         Cell::Ident(s) | Cell::Address(s) => s.clone(),
         Cell::Number(n) => n.to_string(),
-        Cell::Bool(b) => if *b { "yes" } else { "no" }.to_owned(),
+        Cell::Bool(b) => words(if *b { ("yes", "ja") } else { ("no", "nee") }, opts),
         Cell::Tag(id) => tag(q, *id, opts),
         Cell::Folio(p) => folio(q, *p),
         Cell::Folios(ps) => folios(q, ps),
@@ -77,21 +77,35 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
             let n = decimal(*v, writes_comma(q, opts.lang.as_ref()));
             match unit_symbol(unit) {
                 "" => n,
+                s if s == PIECE.0 => format!("{n} {}", words(PIECE, opts)),
                 s => format!("{n} {s}"),
             }
         }
         Cell::Colour(c) => colour_text(c),
         Cell::Date(d) => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
         Cell::Range(ds) => compress_range(q, ds),
-        Cell::Tbd => opts.tbd.clone(),
-        Cell::Missing(MissingReason::Length) => "length missing".to_owned(),
-        Cell::Missing(MissingReason::Part) => "part missing".to_owned(),
-        Cell::Missing(MissingReason::CrossSection) => "cross-section missing".to_owned(),
-        Cell::Missing(MissingReason::Colour) => "colour missing".to_owned(),
-        Cell::Missing(MissingReason::Manufacturer) => "manufacturer missing".to_owned(),
+        Cell::Tbd => match &opts.tbd {
+            Some(own) => own.clone(),
+            None => words(("TBD", "n.t.b."), opts),
+        },
+        Cell::Missing(reason) => words(
+            match reason {
+                MissingReason::Length => ("length missing", "lengte ontbreekt"),
+                MissingReason::Part => ("part missing", "artikel ontbreekt"),
+                MissingReason::CrossSection => ("cross-section missing", "doorsnede ontbreekt"),
+                MissingReason::Colour => ("colour missing", "kleur ontbreekt"),
+                MissingReason::Manufacturer => ("manufacturer missing", "fabrikant ontbreekt"),
+            },
+            opts,
+        ),
         Cell::Stale(v, _) => format!("≈ {}", render(q, v, opts)),
         Cell::Empty => String::new(),
     }
+}
+
+/// The program's own word of a cell, `(English, Dutch)`, in the output language (English without one).
+fn words((english, dutch): (&str, &str), opts: &RenderOptions) -> String {
+    text(&ew_derive::langs(english, dutch), opts.lang.as_ref())
 }
 
 /// The text in `lang` (`ew_derive::text_in`: the neutral text, else that language, else its language, else the first
@@ -198,13 +212,16 @@ pub fn folios_spans(pages: &[(String, Option<usize>)]) -> (String, Vec<Option<Ra
     (text, spans)
 }
 
-/// The typographic symbol of a unit; empty for a pure number.
+/// The symbol of a piece, in English and in Dutch: the one unit symbol that is a word.
+pub(crate) const PIECE: (&str, &str) = ("pc", "st.");
+
+/// The typographic symbol of a unit; empty for a pure number. A piece prints in the output language ([`PIECE`]).
 fn unit_symbol(u: &QtyUnit) -> &'static str {
     match u {
         QtyUnit::None => "",
         QtyUnit::Unit(u) => ew_derive::unit_symbol(u),
         QtyUnit::Order(o) => match o {
-            OrderUnit::Piece => "pc",
+            OrderUnit::Piece => PIECE.0,
             OrderUnit::Metre => "m",
             OrderUnit::Set => "set",
             OrderUnit::Unknown(_) => "",

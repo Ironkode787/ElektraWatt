@@ -12,7 +12,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusPort, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
+    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
     NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
@@ -21,7 +21,7 @@ use ew_derive::{
     module_io, module_part, net_address_text, port_windows, profile_of, short_tag, stations,
 };
 
-use super::conn::put;
+use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -93,7 +93,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         Some(LengthSource::Manual(nm)) => {
             text_cell(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000)))
         }
-        Some(LengthSource::FromPart) => text_cell("from part"),
+        Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
         _ => Cell::Empty,
     }
 }
@@ -499,8 +499,8 @@ fn switch_port(q: &Q, d: Id<Device>, p: &ew_derive::ew_schema::BusPort) -> bool 
 
 fn termination(t: &Option<OnOff>) -> Cell {
     match t {
-        Some(OnOff::On) => text("on"),
-        Some(OnOff::Off) => text("off"),
+        Some(OnOff::On) => words_cell("on", "aan"),
+        Some(OnOff::Off) => words_cell("off", "uit"),
         _ => Cell::Empty,
     }
 }
@@ -568,7 +568,11 @@ impl ReportKindDef for BusCableList {
             let c = &set.columns;
             put(c, &mut cells, "cable", ident(&short_tag(q, cable)));
             if let Some(p) = &port {
-                put(c, &mut cells, "bus", text(bus_word(&p.bus)));
+                let bus = match &p.bus {
+                    BusSystem::Unknown(_) => words_cell(bus_word(&p.bus), "overig"),
+                    known => text(bus_word(known)),
+                };
+                put(c, &mut cells, "bus", bus);
                 if let Some(net) = p
                     .physical_net
                     .and_then(|n| q.table::<PhysicalNet>().get(n).map(|n| n.name.to_string()))
@@ -586,12 +590,15 @@ impl ReportKindDef for BusCableList {
             let end = |f: Id<Function>, plug: Option<Id<Part>>| {
                 let words = ew_derive::bus_end_label(q, f);
                 match plug.and_then(|p| q.parts().get(p)) {
-                    Some(p) => format!("{words} \u{b7} plug {}", p.item.part_number),
-                    None => words,
+                    Some(p) => words_cell(
+                        &format!("{words} \u{b7} plug {}", p.item.part_number),
+                        &format!("{words} \u{b7} stekker {}", p.item.part_number),
+                    ),
+                    None => ident(&words),
                 }
             };
-            put(c, &mut cells, "from", ident(&end(a, plug_a)));
-            put(c, &mut cells, "to", ident(&end(b, plug_b)));
+            put(c, &mut cells, "from", end(a, plug_a));
+            put(c, &mut cells, "to", end(b, plug_b));
             set.rows.push(Row::data(
                 RowId::entity(cable).with(RowKey::Name("cable".to_owned())),
                 cells,
@@ -653,13 +660,13 @@ impl ReportKindDef for IolinkPortList {
                     put(c, &mut cells, "master", ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "port", Cell::Number(i64::from(w.number) + 1));
                     let mode = match w.mode {
-                        PortMode::IoLink => "IO-Link",
-                        PortMode::Di => "DI",
-                        PortMode::Dq => "DQ",
-                        PortMode::Deactivated => "deactivated",
-                        PortMode::Unknown(_) => "other",
+                        PortMode::IoLink => text("IO-Link"),
+                        PortMode::Di => text("DI"),
+                        PortMode::Dq => text("DQ"),
+                        PortMode::Deactivated => words_cell("deactivated", "gedeactiveerd"),
+                        PortMode::Unknown(_) => words_cell("other", "overig"),
                     };
-                    put(c, &mut cells, "mode", text(mode));
+                    put(c, &mut cells, "mode", mode);
                     let class_text = match class {
                         Some(PortClass::A) => "A",
                         Some(PortClass::B) => "B",

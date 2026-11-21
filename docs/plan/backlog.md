@@ -26,7 +26,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Lists and frames
 
-- FT-1955 `ew-reports`: A Dutch project's lists still print the program's own words in their cells in English: a channel's or a device's state and kind, "from part", "length missing", "yes" and "no", "Bridges", "Order Code n", and the embedded boxes' titles "PART DATA" and "LEGEND" (`render.rs`, the kinds' cells). The headings, the terminal states and the title block print Dutch since FT-1874 (doc 09 §3.8).
+- FT-1995 `ew-reports`: A list or a box whose rows do not derive prints its reason in English, with a family or kind name in backquotes, also in a Dutch project ("Not derived: query cycle in `page_order`"; `NotDerived`'s `Display`, `paginate.rs`, `view.rs` `boxed_table`).
 
 #### Texts the schematic carries
 
@@ -40,7 +40,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Files and the text interface
 
-- FT-1930 `ew`: Three openings do not yet warn about a file `manifest.json` does not list, as the common open does since FT-1879: the editing open of `ew route`, `ew revision`, and the editing part of `ew project assets purge`.
 - FT-1985 `ew-import-eplan`: A multi-level terminal that the report importer folds (EW-IMP-207) lands every level's connections on level 1; since FT-1878 its listed levels have connection points of their own (doc 08 §6.3), so each level's connections can land on its own.
 
 #### Two drawing faults

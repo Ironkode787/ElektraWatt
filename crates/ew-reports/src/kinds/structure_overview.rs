@@ -5,13 +5,13 @@
 //! standard layout).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, ReportBlock, StructureNode};
 use ew_derive::{
     DevicePartLines, DeviceTag, Q, ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 
-use super::conn::is_listed_device;
+use super::conn::{is_listed_device, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
 
@@ -63,7 +63,7 @@ impl ReportKindDef for StructureOverview {
                 RowId::entity(id),
                 vec![
                     Cell::Ident(designation.clone()),
-                    Cell::Text(MlText::neutral("Structure")),
+                    words_cell("Structure", "Structuur"),
                     Cell::Empty,
                     Cell::Empty,
                     Cell::Empty,
@@ -105,7 +105,7 @@ impl ReportKindDef for StructureOverview {
                 RowId::entity(id),
                 vec![
                     Cell::Ident(full.clone()),
-                    Cell::Text(MlText::neutral("Device")),
+                    words_cell("Device", "Apparaat"),
                     function_text,
                     part,
                     if location.is_empty() {

@@ -3,12 +3,12 @@
 
 //! `open_items`: the open-items list (FR-REP-021).
 
-use ew_checks::{Finding, OPEN_ITEM_RULES, open_item_of, open_items};
+use ew_checks::{Finding, OPEN_ITEM_RULES, OpenItemRule, Severity, open_item_of, open_items};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Kind, ReportBlock};
 use ew_derive::{PageRef, Q};
 
-use super::conn::{put, text_cell};
+use super::conn::{put, text_cell, words_cell};
 use crate::kind::ReportKindDef;
 use crate::queries::cycle_rows;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
@@ -22,9 +22,11 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 ///
 /// - `category`: the open-item category ("TBD value", "Device without part", ...).
 /// - `item`: the finding's subject, as `ew check` prints it.
-/// - `description`: the finding's message in en-GB, as `ew check` prints it (FP-4: the display language later).
+/// - `description`: the finding's message, as `ew check` prints it, and as `ew check --lang nl-NL` does.
 /// - `rule`: the rule ID.
 /// - `severity`: the effective release severity, `error`, `warning` or `info`.
+///
+/// The category, the description and the severity print in the list's language (doc 09 §4.7).
 /// - `page`: the finding's drawn page, empty when it has none.
 ///
 /// A query cycle (a rule that reached the list through the page order, which D8's contract rules out) gives no rows,
@@ -74,7 +76,7 @@ impl ReportKindDef for OpenItems {
                     .unwrap_or(usize::MAX);
                 Some((
                     (category, natural_key(&f.subject), f.fingerprint),
-                    row_of(&columns, f, row.category),
+                    row_of(&columns, f, row),
                 ))
             })
             .collect();
@@ -86,13 +88,20 @@ impl ReportKindDef for OpenItems {
 }
 
 /// The row of one open item.
-fn row_of(columns: &[ColumnDef], f: &Finding, category: &str) -> Row {
+fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
-    put(columns, &mut cells, "category", text_cell(category));
+    put(columns, &mut cells, "category", words_cell(row.category, row.category_nl));
     put(columns, &mut cells, "item", text_cell(&f.subject));
-    put(columns, &mut cells, "description", text_cell(&f.message));
+    // The message as `ew check --lang nl-NL` words it (its en-GB text where the rule has no Dutch pattern).
+    let dutch = ew_checks::messages::render(f, "nl-NL");
+    put(columns, &mut cells, "description", words_cell(&f.message, &dutch));
     put(columns, &mut cells, "rule", Cell::Ident(f.rule.to_owned()));
-    put(columns, &mut cells, "severity", text_cell(f.severity.name()));
+    let severity = match f.severity {
+        Severity::Info => "info",
+        Severity::Warning => "waarschuwing",
+        Severity::Error => "fout",
+    };
+    put(columns, &mut cells, "severity", words_cell(f.severity.name(), severity));
     if let Some(page) = f.page {
         put(columns, &mut cells, "page", Cell::Folio(PageRef::Drawn(page)));
     }

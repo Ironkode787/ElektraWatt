@@ -43,15 +43,18 @@ pub struct ProfileTables;
 /// The groups, in cover order.
 pub const GROUPS: [&str; 4] = ["colours", "control", "mains", "note"];
 
-/// The titles of the three tables.
-const TITLES: [(&str, &str); 3] = [
-    ("colours", "CABLE COLOUR DEFINITIONS"),
-    ("control", "STANDARD SIZES CONTROL"),
-    ("mains", "STANDARD SIZES MAINS"),
+/// The titles of the three tables, in English and in Dutch.
+const TITLES: [(&str, &str, &str); 3] = [
+    ("colours", "CABLE COLOUR DEFINITIONS", "DEFINITIE ADERKLEUREN"),
+    ("control", "STANDARD SIZES CONTROL", "STANDAARDDOORSNEDEN STURING"),
+    ("mains", "STANDARD SIZES MAINS", "STANDAARDDOORSNEDEN NET"),
 ];
 
-/// The note under the size tables.
-const NOTE: &str = "If size or sign is not indicated in diagram, standard size or sign is to be used.";
+/// The note under the size tables, in English and in Dutch.
+const NOTE: (&str, &str) = (
+    "If size or sign is not indicated in diagram, standard size or sign is to be used.",
+    "Staat in het schema geen doorsnede of markering, dan geldt de standaarddoorsnede of -markering.",
+);
 
 impl ReportKindDef for ProfileTables {
     fn name(&self) -> &'static str {
@@ -100,7 +103,7 @@ impl ReportKindDef for ProfileTables {
                 "note",
                 RowKind::GroupFooter,
                 "note",
-                MlText::neutral(NOTE),
+                ew_derive::langs(NOTE.0, NOTE.1),
             ));
         }
         set
@@ -144,8 +147,8 @@ fn text_row(group: &str, kind: RowKind, tag: &str, text: MlText) -> Row {
 fn title_of(group: &str) -> MlText {
     TITLES
         .iter()
-        .find(|(g, _)| *g == group)
-        .map(|(_, t)| MlText::neutral(t))
+        .find(|(g, _, _)| *g == group)
+        .map(|(_, english, dutch)| ew_derive::langs(english, dutch))
         .unwrap_or_default()
 }
 

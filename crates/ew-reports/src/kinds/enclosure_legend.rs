@@ -7,7 +7,7 @@ use ew_derive::Q;
 use ew_derive::ew_schema::{AnyId, OrderUnit, ReportBlock};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 
-use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_symbol};
+use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowSet};
 
@@ -46,7 +46,7 @@ impl ReportKindDef for EnclosureLegend {
         let printed = [("pos", 10), ("tag", 22), ("qty", 16), ("part_number", 35)];
         EmbeddedLayout {
             columns: printed.map(|(k, w)| (k.to_owned(), w)).to_vec(),
-            title: "LEGEND".to_owned(),
+            title: ew_derive::langs("LEGEND", "LEGENDA"),
             headers: true,
             flow_columns: 2,
         }
@@ -97,7 +97,7 @@ impl ReportKindDef for EnclosureLegend {
                     part_number,
                     description,
                     qty,
-                    Cell::Ident(unit_symbol(&unit)),
+                    unit_cell(&unit),
                 ],
             );
             r.sources = std::iter::once(source)

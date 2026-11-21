@@ -4,13 +4,12 @@
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{Device, ReportBlock};
 use ew_derive::{CpRef, Q, WireNumbers, short_tag};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    join_texts, pages_cell, put, source_text, text_cell,
+    join_texts, pages_cell, put, source_text, words_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -54,7 +53,7 @@ impl ReportKindDef for WireList {
             ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(11),
             ColumnDef::new("colour", CellType::Colour, "Colour", "Kleur").weighted(6),
             ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}", "mm\u{00B2}").weighted(6),
-            ColumnDef::new("source", CellType::Ident, "Source", "Bron").weighted(10),
+            ColumnDef::new("source", CellType::Text, "Source", "Bron").weighted(10),
             ColumnDef::new("via", CellType::Text, "Via", "Via").weighted(22),
             ColumnDef::new("part", CellType::Ident, "Wire part", "Draadartikel").weighted(8),
             ColumnDef::new("pages", CellType::Folios, "Pages", "Pagina's").weighted(8),
@@ -82,7 +81,7 @@ impl ReportKindDef for WireList {
         let bridges = bridges(q);
         if !bridges.is_empty() {
             let mut heading = vec![Cell::Empty; set.columns.len()];
-            put(&set.columns, &mut heading, "no", text_cell("Bridges"));
+            put(&set.columns, &mut heading, "no", words_cell("Bridges", "Bruggen"));
             set.rows.push(Row {
                 id: RowId(vec![RowKey::Name("bridges".to_owned())]),
                 kind: RowKind::Heading,
@@ -100,13 +99,19 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
     let w = &rec.wire;
     let (from, from_cp) = end_cells(q, &w.ends[0]);
     let (to, to_cp) = end_cells(q, &w.ends[1]);
-    let mut via: Vec<String> = Vec::new();
+    // In English and in Dutch: only the junction's and the chains' words differ.
+    let mut via: [Vec<String>; 2] = [Vec::new(), Vec::new()];
+    let mut push = |texts: [String; 2]| {
+        for (list, text) in via.iter_mut().zip(texts) {
+            list.push(text);
+        }
+    };
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
-        via.push(format!("{} {}", short_tag(q, core.cable), core.core.as_str()));
+        let text = format!("{} {}", short_tag(q, core.cable), core.core.as_str());
+        push([text.clone(), text]);
     }
     let (junction, daisy) = join_texts(q, w);
-    via.extend(junction);
-    via.extend(daisy);
+    junction.into_iter().chain(daisy).for_each(&mut push);
     // The interruption points the wire passes, by name (the two points of a pair share one), not the
     // external point it ends at.
     let mut ips: Vec<String> = Vec::new();
@@ -121,8 +126,10 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
         }
     }
     if !ips.is_empty() {
-        via.push(format!("IP {}", ips.join(", ")));
+        let text = format!("IP {}", ips.join(", "));
+        push([text.clone(), text]);
     }
+    let [via, via_nl] = via.map(|v| v.join("; "));
     let part = rec
         .props
         .wire_part
@@ -142,8 +149,12 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
             text_ident(wires.potential_text(w)),
             colour_cell(rec.props.colour.as_ref().map(|p| &p.value)),
             csa_cell(rec.props.csa.as_ref().map(|p| &p.value)),
-            text_ident(source_text(&rec.props)),
-            text_cell(via.join("; ")),
+            source_text(&rec.props),
+            if via.is_empty() {
+                Cell::Empty
+            } else {
+                words_cell(&via, &via_nl)
+            },
             part,
             pages_cell(&w.pages),
         ],
@@ -164,7 +175,11 @@ fn text_ident(s: String) -> Cell {
 fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let first = b.terminals.first().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let last = b.terminals.last().map_or(Cell::Empty, |t| Cell::Tag(*t));
-    let via = format!("{} bridge, terminals {}", b.kind, bridge_span(q, b));
+    let span = bridge_span(q, b);
+    let via = words_cell(
+        &format!("{} bridge, terminals {span}", b.kind.0),
+        &format!("{}, klemmen {span}", b.kind.1),
+    );
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));
@@ -175,7 +190,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     set("from", first);
     set("to", last);
     set("potential", bridge_potential(q, b));
-    set("via", Cell::Text(MlText::neutral(&via)));
+    set("via", via);
     set("part", Cell::Tbd);
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
     let mut r = Row::data(id, cells);

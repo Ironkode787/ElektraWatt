@@ -111,7 +111,7 @@ impl PartsSummary {
             let mut cells = vec![
                 Cell::Ident(pos),
                 qty_cell(row.qty),
-                Cell::Ident(unit_symbol(&row.unit)),
+                unit_cell(&row.unit),
                 part_maker_cell(q, &row.manufacturer, &row.part_number),
                 part_number_cell(&row.part_number),
                 Cell::Text(row.description.clone()),
@@ -221,7 +221,7 @@ impl ReportKindDef for PartsList {
                     vec![
                         Cell::Tag(device),
                         qty_cell(line.qty),
-                        Cell::Ident(unit_symbol(&part.unit)),
+                        unit_cell(&part.unit),
                         part_maker_cell(q, &part.manufacturer, part.part_number.as_str()),
                         part_number_cell(part.part_number.as_str()),
                         Cell::Text(part.description.clone()),
@@ -272,13 +272,13 @@ pub(super) fn qty_cell(qty: Dec3) -> Cell {
     Cell::Qty(qty, QtyUnit::None)
 }
 
-/// The symbol of an order unit (`pc`, `m`, `set`).
-pub(super) fn unit_symbol(unit: &OrderUnit) -> String {
+/// The cell of an order unit's symbol (`pc`, in Dutch `st.`; `m`; `set`).
+pub(super) fn unit_cell(unit: &OrderUnit) -> Cell {
     match unit {
-        OrderUnit::Piece => "pc".to_owned(),
-        OrderUnit::Metre => "m".to_owned(),
-        OrderUnit::Set => "set".to_owned(),
-        OrderUnit::Unknown(v) => v.as_str().unwrap_or("?").to_owned(),
+        OrderUnit::Piece => super::conn::words_cell(crate::render::PIECE.0, crate::render::PIECE.1),
+        OrderUnit::Metre => Cell::Ident("m".to_owned()),
+        OrderUnit::Set => Cell::Ident("set".to_owned()),
+        OrderUnit::Unknown(v) => Cell::Ident(v.as_str().unwrap_or("?").to_owned()),
     }
 }
 

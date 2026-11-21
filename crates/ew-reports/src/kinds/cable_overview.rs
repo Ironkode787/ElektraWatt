@@ -12,7 +12,7 @@ use ew_derive::ew_schema::{Conductor, Device, Function, LengthSource, ReportBloc
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DevicePartLines, Q, short_tag};
 
-use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell};
+use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
 
@@ -72,7 +72,8 @@ impl ReportKindDef for CableOverview {
         if cables.is_empty() {
             return set;
         }
-        set.rows.push(heading("overview", "Cable overview"));
+        set.rows
+            .push(heading("overview", ew_derive::langs("Cable overview", "Kabeloverzicht")));
         for (_, cable) in &cables {
             set.rows.push(cable_row(q, *cable, &by_core));
         }
@@ -84,7 +85,7 @@ impl ReportKindDef for CableOverview {
                 format!("{} {part}", short_tag(q, *cable))
             };
             set.rows
-                .push(heading(&format!("cable/{}", cable.as_uuid()), &title));
+                .push(heading(&format!("cable/{}", cable.as_uuid()), MlText::neutral(&title)));
             let mut cores: Vec<(bool, Option<u8>, NaturalKey, Id<Conductor>)> = q
                 .idx()
                 .conductors_of_cable(*cable)
@@ -104,9 +105,9 @@ impl ReportKindDef for CableOverview {
     }
 }
 
-fn heading(key: &str, text: &str) -> Row {
+fn heading(key: &str, text: MlText) -> Row {
     let mut cells = vec![Cell::Empty; 8];
-    cells[0] = Cell::Text(MlText::neutral(text));
+    cells[0] = Cell::Text(text);
     Row {
         id: RowId(vec![
             RowKey::Name("heading".to_owned()),
@@ -135,7 +136,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .map(|c| &c.length)
     {
         Some(LengthSource::Manual(nm)) => Cell::Qty(Dec3(nm.0 / 1_000_000), QtyUnit::Unit(Unit::M)),
-        Some(LengthSource::FromPart) => Cell::Text(MlText::neutral("from part")),
+        Some(LengthSource::FromPart) => words_cell("from part", "uit artikel"),
         Some(LengthSource::Missing) => Cell::Missing(MissingReason::Length),
         Some(LengthSource::Unknown(_)) | None => Cell::Empty,
     }

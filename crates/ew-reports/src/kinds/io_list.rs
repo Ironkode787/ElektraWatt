@@ -4,12 +4,11 @@
 //! `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock};
 use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot, short_tag};
 
 use super::conn::put;
-use super::plc_overview::{address_cell, kind_name, page_cell};
+use super::plc_overview::{address_cell, kind_text, page_cell, state_text};
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -213,12 +212,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         "designation",
         ident(r.text.designation.as_deref().unwrap_or_default()),
     );
-    put(
-        columns,
-        &mut cells,
-        "kind",
-        Cell::Text(MlText::neutral(kind_name(&r.kind))),
-    );
+    put(columns, &mut cells, "kind", kind_text(&r.kind));
     put(columns, &mut cells, "address", address_cell(&r.address));
     put(
         columns,
@@ -259,12 +253,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         put(columns, &mut cells, "target_pin", ident(&pin));
     }
     let links = page_cell(q, columns, &mut cells, r);
-    put(
-        columns,
-        &mut cells,
-        "state",
-        Cell::Text(MlText::neutral(r.state.name())),
-    );
+    put(columns, &mut cells, "state", state_text(r.state));
     let mut row = Row::data(
         RowId::entity(r.channel).with(RowKey::Name("channel".to_owned())),
         cells,

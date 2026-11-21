@@ -9,7 +9,7 @@ use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_schema::{Connection, Device, NumberSpec, ReportBlock};
 use ew_derive::{Q, WireNumbers, rule_product};
 
-use super::conn::{tag_key, text_cell};
+use super::conn::{tag_key, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 
@@ -56,7 +56,7 @@ impl ReportKindDef for NumberingReport {
         for (_, id, frozen) in tags {
             let rule = rule_product(q, id).map(|(p, _)| p).unwrap_or_default();
             set.rows
-                .push(row(RowId::entity(id), Cell::Tag(id), "tag", &frozen, &rule));
+                .push(row(RowId::entity(id), Cell::Tag(id), ("tag", "kenmerk"), &frozen, &rule));
         }
         let numbers = q.get::<WireNumbers>(());
         let mut wires: Vec<(Id<Connection>, String)> = q
@@ -74,26 +74,31 @@ impl ReportKindDef for NumberingReport {
                 .and_then(|n| n.rule.clone())
                 .unwrap_or_default();
             set.rows
-                .push(row(RowId::entity(id), Cell::Empty, "wire number", &frozen, &rule));
+                .push(row(RowId::entity(id), Cell::Empty, ("wire number", "draadnummer"), &frozen, &rule));
         }
         set
     }
 }
 
-fn row(id: RowId, item: Cell, kind: &str, frozen: &str, rule: &str) -> Row {
-    let status = if frozen == rule { "matches" } else { "deviates" };
+/// `kind` is the item's kind in English and in Dutch.
+fn row(id: RowId, item: Cell, kind: (&str, &str), frozen: &str, rule: &str) -> Row {
+    let status = if frozen == rule {
+        words_cell("matches", "komt overeen")
+    } else {
+        words_cell("deviates", "wijkt af")
+    };
     Row::data(
         id,
         vec![
             item,
-            text_cell(kind),
+            words_cell(kind.0, kind.1),
             Cell::Ident(frozen.to_owned()),
             if rule.is_empty() {
                 Cell::Empty
             } else {
                 Cell::Ident(rule.to_owned())
             },
-            text_cell(status),
+            status,
         ],
     )
 }

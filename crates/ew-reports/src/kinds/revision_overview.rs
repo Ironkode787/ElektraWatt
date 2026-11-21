@@ -8,7 +8,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, Revision, RevisionState, Section};
 use ew_derive::{DrawnPageOrder, PageRef, Q, recorded_changed_pages, revision_label_key};
 
-use super::conn::text_cell;
+use super::conn::{text_cell, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 
@@ -97,10 +97,10 @@ fn row(q: &Q, order: &ew_derive::PageOrderV, rev: &Revision) -> Row {
             .map_or(Cell::Empty, |p| Cell::Text(p.name.clone()))
     };
     let state = match &rev.state {
-        RevisionState::Open => "open".to_owned(),
-        RevisionState::Released => "released".to_owned(),
-        RevisionState::Withdrawn => "withdrawn".to_owned(),
-        RevisionState::Unknown(v) => v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string()),
+        RevisionState::Open => words_cell("open", "open"),
+        RevisionState::Released => words_cell("released", "uitgegeven"),
+        RevisionState::Withdrawn => words_cell("withdrawn", "ingetrokken"),
+        RevisionState::Unknown(v) => text_cell(v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string())),
     };
     let mut pages: Vec<(usize, PageRef)> = recorded_changed_pages(rev)
         .into_iter()
@@ -116,7 +116,7 @@ fn row(q: &Q, order: &ew_derive::PageOrderV, rev: &Revision) -> Row {
             rev.date.map_or(Cell::Empty, Cell::Date),
             party(&rev.author),
             party(&rev.checker),
-            text_cell(state),
+            state,
             Cell::Folios(pages.into_iter().map(|(_, p)| p).collect()),
         ],
     )

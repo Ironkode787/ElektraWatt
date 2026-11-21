@@ -31,6 +31,8 @@ pub struct OpenItemRule {
     pub discriminator: Option<&'static str>,
     /// The category, as the `category` column of the list prints it ("TBD value").
     pub category: &'static str,
+    /// The category in Dutch, as a Dutch project's list prints it ("Waarde n.t.b.").
+    pub category_nl: &'static str,
 }
 
 /// The open-item rules, by category in the list's order, then by rule ID.
@@ -39,41 +41,49 @@ pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
         rule: "EW-CORE-043",
         discriminator: None,
         category: "TBD value",
+        category_nl: "Waarde n.t.b.",
     },
     OpenItemRule {
         rule: "EW-CORE-044",
         discriminator: None,
         category: "TBD value",
+        category_nl: "Waarde n.t.b.",
     },
     OpenItemRule {
         rule: "EW-PLC-015",
         discriminator: None,
         category: "TBD value",
+        category_nl: "Waarde n.t.b.",
     },
     OpenItemRule {
         rule: "EW-BUS-001",
         discriminator: Some("address"),
         category: "TBD value",
+        category_nl: "Waarde n.t.b.",
     },
     OpenItemRule {
         rule: "EW-CORE-041",
         discriminator: None,
         category: "Device without part",
+        category_nl: "Apparaat zonder artikel",
     },
     OpenItemRule {
         rule: "EW-LAY-001",
         discriminator: None,
         category: "Unplaced device",
+        category_nl: "Niet geplaatst apparaat",
     },
     OpenItemRule {
         rule: "EW-POT-009",
         discriminator: None,
         category: "Unconnected connection point",
+        category_nl: "Niet aangesloten aansluitpunt",
     },
     OpenItemRule {
         rule: "EW-CORE-033",
         discriminator: None,
         category: "Missing length",
+        category_nl: "Lengte ontbreekt",
     },
 ];
 

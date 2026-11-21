@@ -49,8 +49,9 @@
 //!   control sizes and the mains sizes; a group-header row is the title of its table, a group-footer row of the
 //!   colours its caption and the group-footer row of the group `note` the note under the tables. Every other block
 //!   draws a boxed table ([`EmbeddedContent::Table`]) from its `BlockRows`, each cell printed by
-//!   `ew_reports::render::render` for that page (neutral language, displayed tags), as a generated page's table: the
-//!   printed columns, title, header rows and flow columns are the kind's `ReportKindDef::embedded_layout` (a source
+//!   `ew_reports::render::render` for that page (the project's language, displayed tags; the cover too), as a generated
+//!   page's table: the printed columns, title, header rows and flow columns are the kind's
+//!   `ReportKindDef::embedded_layout` (a source
 //!   without a registered kind prints every column under a header row), the block's own non-empty `title` replaces the
 //!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
 //!   page's placeholder). An embedded block draws no back-links: only a PLC overview box's
@@ -1409,7 +1410,10 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
 /// The three tables of a `profile_tables` block as printed texts.
 fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
     let set = q.get::<BlockRows>(block.id);
-    let opts = RenderOptions::default();
+    let opts = RenderOptions {
+        lang: ew_derive::print_language(q),
+        ..RenderOptions::default()
+    };
     let cell = |row: &Row, key: &str| -> String {
         set.column(key)
             .and_then(|i| row.cells.get(i))
@@ -1418,7 +1422,7 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
     };
     let label = |key: &str| -> String {
         set.column(key)
-            .map(|i| neutral(&set.columns[i].label))
+            .map(|i| ew_derive::text_in(&set.columns[i].label, opts.lang.as_ref()).to_owned())
             .unwrap_or_default()
     };
     let colour_keys = ["voltage_class", "function", "potential_type", "colour"];
@@ -1470,8 +1474,10 @@ pub(crate) fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> Embedde
     };
     let opts = RenderOptions {
         page: Some(PageRef::Drawn(page)),
+        lang: ew_derive::print_language(q),
         ..RenderOptions::default()
     };
+    let in_lang = |m: &MlText| ew_derive::text_in(m, opts.lang.as_ref()).to_owned();
     // The printed columns: the layout's keys that the row set has, in the layout's order.
     let printed: Vec<(usize, u32)> = layout
         .columns
@@ -1481,14 +1487,14 @@ pub(crate) fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> Embedde
     let columns = printed
         .iter()
         .map(|&(i, weight)| TableColumn {
-            header: neutral(&set.columns[i].label),
+            header: in_lang(&set.columns[i].label),
             weight,
         })
         .collect();
     let title = if block.title.is_empty() {
-        layout.title.clone()
+        in_lang(&layout.title)
     } else {
-        neutral(&block.title)
+        in_lang(&block.title)
     };
     let note = match &set.status {
         RowSetStatus::NotDerived(reason) => Some(capitalised(&reason.to_string())),

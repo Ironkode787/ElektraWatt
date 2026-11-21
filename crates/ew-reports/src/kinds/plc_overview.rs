@@ -6,11 +6,11 @@
 //! (FR-PLC-052).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock};
-use ew_derive::{ChannelAddr, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
+use ew_derive::{ChannelAddr, EffectiveState, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
 
-use super::conn::put;
+use super::conn::{put, words_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
 
@@ -84,7 +84,7 @@ impl ReportKindDef for PlcOverview {
             .into_iter()
             .map(|(k, w)| (k.to_owned(), w))
             .collect(),
-            title: "PLC OVERVIEW".to_owned(),
+            title: ew_derive::langs("PLC OVERVIEW", "PLC-OVERZICHT"),
             headers: true,
             flow_columns: 1,
         }
@@ -148,9 +148,30 @@ fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
     keyed.into_iter().map(|(_, s)| s).collect()
 }
 
-/// A channel kind as the PLC overview and the I/O list print it.
-pub(super) fn kind_name(k: &ChannelKind) -> &'static str {
-    ew_derive::channel_kind_word(k)
+/// A channel kind as the PLC overview and the I/O list print it: `ew_derive::channel_kind_word`, in Dutch where it is
+/// a word.
+pub(super) fn kind_text(k: &ChannelKind) -> Cell {
+    let english = ew_derive::channel_kind_word(k);
+    let dutch = match k {
+        ChannelKind::Counter => "teller",
+        ChannelKind::PowerSupply => "voeding",
+        ChannelKind::MultiFunction => "multifunctie",
+        ChannelKind::Unknown(_) => "overig",
+        ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => english,
+    };
+    words_cell(english, dutch)
+}
+
+/// A channel's state as the PLC overview and the I/O list print it: `EffectiveState::name`, and in Dutch.
+pub(super) fn state_text(s: EffectiveState) -> Cell {
+    let dutch = match s {
+        EffectiveState::Used => "gebruikt",
+        EffectiveState::Spare => "reserve",
+        EffectiveState::Reserved => "gereserveerd",
+        EffectiveState::Deactivated => "gedeactiveerd",
+        EffectiveState::Tbd => "n.t.b.",
+    };
+    words_cell(s.name(), dutch)
 }
 
 fn ident(text: Option<&str>) -> Cell {
@@ -183,7 +204,7 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
         columns,
         &mut cells,
         "kind",
-        Cell::Text(MlText::neutral(kind_name(&r.kind))),
+        kind_text(&r.kind),
     );
     put(columns, &mut cells, "symbol", ident(r.text.symbol.as_deref()));
     if let Some(t) = &r.text.function_text {
@@ -198,12 +219,7 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
     if let Some(d) = r.target_device {
         put(columns, &mut cells, "target", Cell::Ident(short_tag(q, d)));
     }
-    put(
-        columns,
-        &mut cells,
-        "state",
-        Cell::Text(MlText::neutral(r.state.name())),
-    );
+    put(columns, &mut cells, "state", state_text(r.state));
     let links = page_cell(q, columns, &mut cells, r);
     let mut row = Row::data(
         RowId::entity(r.channel).with(RowKey::Name("channel".to_owned())),

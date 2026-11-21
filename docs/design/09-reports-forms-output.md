@@ -800,6 +800,17 @@ legend, the rows' texts, the terminal states, the title block's labels and multi
 the language's decimal sign unless the project sets its own separator. A project without a language prints English
 as before. The CSV and XLSX headers stay English.
 
+**The program's own words** (FT-1955). Every word the program writes into a cell itself has its English and its Dutch,
+beside each other where the cell is made (`ew_derive::langs`, as the headings): a channel's state and kind, a
+potential's type and class, a bond, "(cable)", a structure's and a device's kind, a revision's state, a bridge's kind
+and its heading, where a wire's colour and size come from and how it is joined, "from part", a termination's on and
+off, an IO-Link port's mode, a numbering's kind and status, "Order Code n", an open item's category, message (as `ew
+check --lang` words it) and severity, the piece's symbol, "yes" and "no", "TBD" and the missing values
+(`ew_reports::render`). The boxes on a drawn page (the legend, PART DATA, the PLC overview box, the cover's tables)
+print their titles, headers and cells in the project's language too. A value of the project's data (a tag, a part
+number, a description, a colour code) prints as it is; notation (DI, PE, IO-Link, `IP`, `ext.`) is the same in both.
+The CSV and XLSX cells stay English, as their headers.
+
 **The title.** A list's title is the person's or the program's. One a person types is kept as typed (a neutral text,
 printed in every language). The program's own is a multi-language text in every language it ships: Report block…
 without a title writes the report's name ("Terminal diagram", "Klemmenschema"), the template wizard the standard
@@ -829,8 +840,7 @@ prints on A3 at 141 %; a page scaled either way carries the stamp "scaled n %".
 **What it does not do.** Edit a form's drawing in the window (FT-1814). Placeholders in the caption or the legend.
 Rows of a height of the maker's, wrapping cells, a column's alignment. Check a row of the block's own against the
 model, or link it anywhere. Print one list in several languages (one PDF per language is 1.0). An A3 cover, an A3
-frame without the grid, frames A2 to A0. The program's own words in other cells ("from part", "length missing",
-"yes", a channel's state) stay English (FT-1955).
+frame without the grid, frames A2 to A0.
 
 ---
 

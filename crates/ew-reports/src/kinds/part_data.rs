@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey};
+use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock};
 use ew_derive::layout::page_surface;
 use ew_derive::{DevicePartLines, LineSource, MainRep, PartLine, Q};
@@ -55,7 +55,7 @@ impl ReportKindDef for PartData {
     fn embedded_layout(&self) -> EmbeddedLayout {
         EmbeddedLayout {
             columns: vec![("label".to_owned(), 3), ("part_number".to_owned(), 10)],
-            title: "PART DATA".to_owned(),
+            title: ew_derive::langs("PART DATA", "ARTIKELGEGEVENS"),
             headers: false,
             flow_columns: 1,
         }
@@ -95,7 +95,7 @@ fn push_configs(q: &Q, set: &mut RowSet, source: Id<Device>) -> bool {
     };
     for (n, config) in assembly.configs.iter().enumerate() {
         let label = if config.label.is_empty() {
-            MlText::neutral(&format!("Order Code {}", n + 1))
+            ew_derive::langs(&format!("Order Code {}", n + 1), &format!("Bestelcode {}", n + 1))
         } else {
             config.label.clone()
         };

@@ -247,11 +247,11 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
     }
 }
 
-/// How a wire is joined (doc 08 §3.2, FR-CON-005, FR-CON-006; D-20), as the Via column prints it: the
-/// junction it passes by its place and wiring, `"<folio>-<cell> star at <CP>"` or `"… chain on <CP>[, <CP>]"`
-/// (the wiring without CPs when none decides), then its daisy chains, `"chain on <CP>[, <CP>]"`; each `None`
+/// How a wire is joined (doc 08 §3.2, FR-CON-005, FR-CON-006; D-20), as the Via column prints it, in English and in
+/// Dutch: the junction it passes by its place and wiring, `"<folio>-<cell> star at <CP>"` or `"… chain on <CP>[,
+/// <CP>]"` (the wiring without CPs when none decides), then its daisy chains, `"chain on <CP>[, <CP>]"`; each `None`
 /// when absent. The junction's style (dot, bevel) is drawing notation and stays on the page.
-pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<String>, Option<String>) {
+pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<[String; 2]>, Option<[String; 2]>) {
     let join = ew_derive::wire_join(q, w);
     // `#n` where printed designations repeat, so the star centres of J5 and J6 stay apart.
     let cp_text = |cp: &CpRef| ew_derive::cp_label(q, *cp);
@@ -266,19 +266,21 @@ pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<String>, Option<Str
             None => folio,
         };
         let cps: Vec<String> = j.cps.iter().map(cp_text).collect();
-        let mut text = format!("{place} {}", j.wiring.name());
-        if !cps.is_empty() {
-            let word = match j.wiring {
-                ew_derive::JoinWiring::Star => "at",
-                ew_derive::JoinWiring::Chain => "on",
-            };
-            text.push_str(&format!(" {word} {}", cps.join(", ")));
-        }
-        text
+        let words = match j.wiring {
+            ew_derive::JoinWiring::Star => [("star", "at"), ("ster", "bij")],
+            ew_derive::JoinWiring::Chain => [("chain", "on"), ("keten", "op")],
+        };
+        words.map(|(wiring, word)| {
+            let mut text = format!("{place} {wiring}");
+            if !cps.is_empty() {
+                text.push_str(&format!(" {word} {}", cps.join(", ")));
+            }
+            text
+        })
     });
     let daisy = (!join.daisy.is_empty()).then(|| {
-        let cps: Vec<String> = join.daisy.iter().map(cp_text).collect();
-        format!("chain on {}", cps.join(", "))
+        let cps = join.daisy.iter().map(cp_text).collect::<Vec<String>>().join(", ");
+        [format!("chain on {cps}"), format!("keten op {cps}")]
     });
     (junction, daisy)
 }
@@ -322,28 +324,34 @@ pub(super) fn csa_cell(c: Option<&Csa>) -> Cell {
 /// override on the wire), `core` (the cable's conductor), `rule` (a row of the colour or size profile),
 /// `bond` (the bond rule), `potential` (a potential definition), `project` and `built-in` for the project
 /// default and the built-in defaults. The two values are joined, size first, when they differ
-/// (`cdp/rule`).
-pub(super) fn source_text(props: &EffectiveProps) -> String {
+/// (`cdp/rule`). In Dutch: `cdp`, `ader`, `regel`, `potentiaalverbinding`, `potentiaal`, `project`, `ingebouwd`.
+pub(super) fn source_text(props: &EffectiveProps) -> Cell {
     let name = |s: &PropSource| match s {
-        PropSource::Override(_) => "cdp",
-        PropSource::Conductor(_) => "core",
+        PropSource::Override(_) => ("cdp", "cdp"),
+        PropSource::Conductor(_) => ("core", "ader"),
         PropSource::SizeRow {
             rule: ew_derive::SizeRule::Bond,
             ..
-        } => "bond",
-        PropSource::ColourRow { .. } | PropSource::SizeRow { .. } => "rule",
-        PropSource::PotentialDef(_) => "potential",
-        PropSource::ProjectDefault => "project",
-        PropSource::BuiltIn { .. } => "built-in",
+        } => ("bond", "potentiaalverbinding"),
+        PropSource::ColourRow { .. } | PropSource::SizeRow { .. } => ("rule", "regel"),
+        PropSource::PotentialDef(_) => ("potential", "potentiaal"),
+        PropSource::ProjectDefault => ("project", "project"),
+        PropSource::BuiltIn { .. } => ("built-in", "ingebouwd"),
     };
     let size = props.csa.as_ref().map(|p| name(&p.source));
     let colour = props.colour.as_ref().map(|p| name(&p.source));
-    match (size, colour) {
-        (Some(s), Some(c)) if s == c => s.to_owned(),
-        (Some(s), Some(c)) => format!("{s}/{c}"),
-        (Some(s), None) | (None, Some(s)) => s.to_owned(),
-        (None, None) => String::new(),
-    }
+    let (english, dutch) = match (size, colour) {
+        (Some(s), Some(c)) if s == c => (s.0.to_owned(), s.1.to_owned()),
+        (Some(s), Some(c)) => (format!("{}/{}", s.0, c.0), format!("{}/{}", s.1, c.1)),
+        (Some(s), None) | (None, Some(s)) => (s.0.to_owned(), s.1.to_owned()),
+        (None, None) => return Cell::Empty,
+    };
+    Cell::Text(ew_derive::langs(&english, &dutch))
+}
+
+/// A cell of the program's own words, in English and in Dutch: it prints in the list's language (doc 09 §4.7).
+pub(super) fn words_cell(english: &str, dutch: &str) -> Cell {
+    Cell::Text(ew_derive::langs(english, dutch))
 }
 
 /// A neutral text cell.
@@ -363,8 +371,9 @@ pub(super) struct Bridge {
     pub strip: Id<Device>,
     /// The group number on the strip.
     pub group: u16,
-    /// The bridge kind's name (`plug-in`, `saddle`, `wire`, `inter-level`).
-    pub kind: &'static str,
+    /// The bridge kind's name (`plug-in`, `saddle`, `wire`, `inter-level`) and the bridge's name in Dutch
+    /// (`insteekbrug`, `zadelbrug`, `draadbrug`, `brug tussen niveaus`).
+    pub kind: (&'static str, &'static str),
     /// The terminals it joins in `(seq, ID)` order.
     pub terminals: Vec<Id<Device>>,
     /// Its connections, as the group orders them (a level of a block is bridged where they end, doc 08 §6.3).
@@ -384,11 +393,11 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
         .into_iter()
         .map(|(label, strip, g)| {
             let kind = match &g.kind {
-                BridgeKind::PlugIn => "plug-in",
-                BridgeKind::Saddle => "saddle",
-                BridgeKind::Wire => "wire",
-                BridgeKind::InterLevel => "inter-level",
-                BridgeKind::Unknown(_) => "bridge",
+                BridgeKind::PlugIn => ("plug-in", "insteekbrug"),
+                BridgeKind::Saddle => ("saddle", "zadelbrug"),
+                BridgeKind::Wire => ("wire", "draadbrug"),
+                BridgeKind::InterLevel => ("inter-level", "brug tussen niveaus"),
+                BridgeKind::Unknown(_) => ("bridge", "brug"),
             };
             // The page of the group's first drawn connection in ID order.
             let mut ids = g.connections.clone();

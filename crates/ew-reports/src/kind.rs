@@ -7,6 +7,7 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
+use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{Page, ReportBlock, ReportKind};
 use ew_derive::{DeriveNote, Q};
 use serde_json::Value;
@@ -236,8 +237,9 @@ fn block_words(q: &Q, block: &ReportBlock, kind: &str) -> String {
 pub struct EmbeddedLayout {
     /// The printed columns in order: `(column key, relative width)`. A key the row set does not have prints nothing.
     pub columns: Vec<(String, u32)>,
-    /// The box title (neutral text); empty: no title band. A block's own non-empty `title` replaces it.
-    pub title: String,
+    /// The box title, in English and in Dutch (it prints in the project's language); empty: no title band. A block's
+    /// own non-empty `title` replaces it.
+    pub title: MlText,
     /// Whether each flow column starts with a header row of the column labels.
     pub headers: bool,
     /// The number of flow columns the rows fill in turn (at least 1).
@@ -250,7 +252,7 @@ impl EmbeddedLayout {
     pub fn every_column(columns: &[ColumnDef]) -> EmbeddedLayout {
         EmbeddedLayout {
             columns: columns.iter().map(|c| (c.key.clone(), 1)).collect(),
-            title: String::new(),
+            title: MlText::default(),
             headers: true,
             flow_columns: 1,
         }
