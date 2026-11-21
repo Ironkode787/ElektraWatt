@@ -140,6 +140,43 @@ fn core026_reports_a_strip_no_terminal_diagram_covers() {
     assert!(findings_of(&coverage_fx(json!({})).build(), "EW-CORE-026").is_empty());
 }
 
+/// EW-CORE-026: the cable overview covers every cable but those it excludes; a PLC overview covers the stations it
+/// selects.
+#[test]
+fn core026_reports_a_cable_and_a_station_their_overviews_leave_out() {
+    let mut fx = folios_fx(101, 102);
+    fx.cable(0x8200, 1);
+    fx.cable(0x8300, 2);
+    fx.push(json!({"$k": "plc_config_project", "id": us(0x8600), "name": "PLC1", "profile": "siemens-tia-intl@2027.1"}));
+    for (n, counter) in [(0x8610, 1), (0x8620, 2)] {
+        fx.device(n, "A", Some(counter)).with(
+            "plc_station",
+            json!({"config_project": us(0x8600), "role": "cpu"}),
+        );
+    }
+    fx.form(0x8401);
+    for (n, kind, manual) in [
+        (0x8400, "cable_overview_diagrams", json!({"exclude": [us(0x8300)]})),
+        (0x8402, "plc_overview", json!({"include": [us(0x8610)]})),
+    ] {
+        fx.push(json!({
+            "$k": "report_block", "id": us(n), "source": {"kind": kind}, "manual": manual,
+            "form": us(0x8401), "section": us(S1), "first_folio": 150,
+        }));
+    }
+    let f = findings_of(&fx.build(), "EW-CORE-026");
+    let mut got: Vec<(&str, &str)> = f
+        .iter()
+        .map(|f| (f.subject.as_str(), f.discriminator.as_str()))
+        .collect();
+    got.sort_unstable();
+    assert_eq!(
+        got,
+        [("-?A2", "plc_overview"), ("-W2", "cable_overview_diagrams")],
+        "{f:#?}"
+    );
+}
+
 /// EW-CORE-025: a table of contents whose page count settles reports nothing (the unsettled case needs a form whose
 /// rows per page are at most the number of TOC blocks; the derivation's own tests cover the fixpoint).
 #[test]
@@ -460,6 +497,8 @@ fn rds001_reports_a_designation_that_does_not_parse() {
         f[0].message
     );
     assert!(findings_of(&designation_fx("K", Some("A1")).build(), "EW-RDS-001").is_empty());
+    // A structure code with separators parses as the project's known code it is.
+    assert!(findings_of(&designation_fx("K", Some("J-E-206")).build(), "EW-RDS-001").is_empty());
 }
 
 /// EW-RDS-002: a structure code with separator characters is an info on its node; a plain code is not.
@@ -561,6 +600,20 @@ fn rds009_reports_a_confusable_character() {
     assert_eq!(f[0].severity, Severity::Error);
     assert_eq!(targets(&f[0]), [(Kind::Device, uid(0x101))]);
     assert!(findings_of(&designation_fx("K", None).build(), "EW-RDS-009").is_empty());
+    // Every Cyrillic and Greek letter drawn like a Latin one, and the full-width letters and digits, each named with
+    // its Latin look-alike.
+    let table = "АA ВB СC ЕE НH ІI ЈJ КK МM ОO РP ЅS ТT ХX УY аa сc еe іi јj оo рp ѕs хx уy \
+                 ΑA ΒB ΕE ΖZ ΗH ΙI ΚK ΜM ΝN ΟO ΡP ΤT ΥY ΧX οo ＡA ＺZ ａa ｚz ０0 ９9";
+    for pair in table.split_whitespace() {
+        let mut chars = pair.chars();
+        let (c, latin) = (chars.next().unwrap(), chars.next().unwrap());
+        let f = findings_of(&designation_fx(&c.to_string(), None).build(), "EW-RDS-009");
+        let want = format!("(looks like {latin})");
+        assert!(
+            f.len() == 1 && f[0].message.contains(&want),
+            "{c}: {want} in {f:#?}"
+        );
+    }
 }
 
 /// EW-RDS-009 prevent: renaming a letter code to a look-alike is refused; touching a device whose look-alike the

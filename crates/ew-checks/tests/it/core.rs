@@ -221,6 +221,18 @@ fn core052_cases() {
     stars_fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
     stars_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
     let two_stars = stars_fx.build();
+    // Two sources, one of them flagged as the star source: decided.
+    let mut one_star_fx = Fx::base();
+    for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
+        one_star_fx.func(f, page);
+    }
+    one_star_fx.ip_star_source(0x1101, P1, "X");
+    one_star_fx.ip(0x1102, P2, "X", "source");
+    one_star_fx.ip(0x1103, P2, "X", "target");
+    one_star_fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    one_star_fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    one_star_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
+    let one_star = one_star_fx.build();
     rule_table(
         "EW-CORE-052",
         vec![
@@ -263,6 +275,7 @@ fn core052_cases() {
                 );
             }),
             Case::silent("one source is not ambiguous", single),
+            Case::silent("one star flag decides", one_star),
         ],
     );
     assert!(
@@ -541,6 +554,12 @@ fn core065_lint_description_table() {
         ("Wiring duct 40×60", &[], &[]),
         ("PROFIBUS FC standard cable", &[], &[]),
         ("Connecting cable 7/8\", 5-pin, open end", &[], &[]),
+        // A number starts only at a digit that follows no letter, digit or separator, takes one separator only when
+        // a digit follows it, and its unit ends at a character that is neither a letter nor a digit.
+        ("x10A", &[], &[]),
+        ("Item 2.5.1 A", &[], &[]),
+        ("Fig 5. A", &[], &[]),
+        ("Type 10A2", &[], &[]),
     ];
     for (text, ratings, formats) in cases {
         assert_eq!(lint(text), (strs(ratings), strs(formats)), "{text}");

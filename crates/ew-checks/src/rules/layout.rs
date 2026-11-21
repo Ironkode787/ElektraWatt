@@ -1667,4 +1667,69 @@ mod tests {
             "no usable area: nothing to judge"
         );
     }
+
+    /// A rectangle whose four corners lie inside is still outside where an edge of the polygon runs through it (a slot
+    /// from the top, a slot from the side) or a vertex lies inside it (the tip of a V-shaped notch, whose slanted edges
+    /// run through no corner).
+    #[test]
+    fn a_rectangle_across_a_slot_or_round_a_notch_tip_is_outside() {
+        let from_top = [
+            p(0, 0),
+            p(100, 0),
+            p(100, 100),
+            p(60, 100),
+            p(60, 40),
+            p(40, 40),
+            p(40, 100),
+            p(0, 100),
+        ];
+        assert_eq!(inside_usable(&from_top, r((10, 50), (90, 90))), Some(false));
+        assert_eq!(inside_usable(&from_top, r((10, 10), (90, 30))), Some(true));
+        let from_side = [
+            p(0, 0),
+            p(100, 0),
+            p(100, 40),
+            p(40, 40),
+            p(40, 60),
+            p(100, 60),
+            p(100, 100),
+            p(0, 100),
+        ];
+        assert_eq!(inside_usable(&from_side, r((50, 10), (90, 90))), Some(false));
+        assert_eq!(inside_usable(&from_side, r((10, 10), (30, 90))), Some(true));
+        let v = [
+            p(0, 0),
+            p(100, 0),
+            p(100, 100),
+            p(60, 100),
+            p(50, 50),
+            p(40, 100),
+            p(0, 100),
+        ];
+        assert_eq!(inside_usable(&v, r((10, 20), (90, 90))), Some(false));
+        assert_eq!(inside_usable(&v, r((10, 10), (90, 40))), Some(true));
+    }
+
+    /// A point on a slanted edge or at a vertex is inside; beside a slanted edge it is inside or outside by its side.
+    #[test]
+    fn a_point_on_or_beside_a_slanted_edge() {
+        let v = [
+            p(0, 0),
+            p(100, 0),
+            p(100, 100),
+            p(60, 100),
+            p(50, 50),
+            p(40, 100),
+            p(0, 100),
+        ];
+        let at = |x: i64, y: i64| in_polygon(&v, xy(p(x, y)));
+        // On the edge from (40, 100) to (50, 50), at its tip, and at a corner of the plate.
+        assert!(at(44, 80) && at(50, 50) && at(100, 100));
+        // Inside the notch, and on either side of its left edge at y 80.
+        assert!(!at(50, 80) && !at(45, 80) && at(43, 80));
+        // And beside its right edge, which runs down the other way.
+        assert!(!at(55, 80) && at(57, 80));
+        // Outside the plate.
+        assert!(!at(101, 50) && !at(50, -1));
+    }
 }

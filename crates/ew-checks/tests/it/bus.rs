@@ -172,3 +172,40 @@ fn ew_bus_001_reports_a_duplicate_address_once() {
         )
     );
 }
+
+/// EW-BUS-004: a port without a termination switch takes the switch of the plug at its end of the bus line (doc 10
+/// §2.7); the plug at the other end of that line, on the port inside the segment, is not the end's.
+#[test]
+fn ew_bus_004_reads_the_plug_at_a_bus_line_s_end() {
+    for (state, want) in [
+        ("on", Vec::new()),
+        ("off", vec![row(Severity::Error, "end", NAME_C)]),
+    ] {
+        // B and C without a switch of their own.
+        let mut ports = consistent();
+        ports[1].2 = None;
+        ports[2].2 = None;
+        let mut fx = line(ports);
+        let plug = json!({"part": {"copy": us(0x5001)}, "termination": state});
+        fx.rec_mut(&us(0x3002))["kind"] = json!({"bus": {"plug_b": plug}});
+        let f = findings_of(&fx.build(), "EW-BUS-004");
+        assert_eq!(rows(&f), want, "{state}: {f:#?}");
+    }
+}
+
+/// EW-BUS-004: a ring has no end, so only a switch that is on inside it is reported.
+#[test]
+fn ew_bus_004_reports_only_a_switch_on_in_a_ring() {
+    let mut ports = consistent();
+    ports[2].2 = Some("off");
+    let mut fx = line(ports);
+    fx.conn(
+        0x3003,
+        P1,
+        Ep::Cp(C, 1),
+        Ep::Cp(A, 0),
+        &json!({"kind": {"bus": {}}}),
+    );
+    let f = findings_of(&fx.build(), "EW-BUS-004");
+    assert_eq!(rows(&f), [row(Severity::Error, "middle", NAME_A)], "{f:#?}");
+}

@@ -216,6 +216,8 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
     valve(&mut fx, V4, 4, 4, None);
     bind(&mut fx, MODULE, 0, V1);
     bind(&mut fx, MODULE, 1, V1);
+    // V2's coil on one channel: right.
+    bind(&mut fx, MODULE, 2, V2);
     bind(&mut fx, MODULE, 6, V4);
     // V4's coil is a coil 12, which its part does not declare
     fx.rec_mut(&us(coil(V4)))["cp_overrides"] = json!([{"idx": 0, "designation": "12"}]);
@@ -225,10 +227,6 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
             (
                 Severity::Error,
                 "-1Q1: solenoid 14 is bound to 2 channels: channel 0 of -1U3, channel 1 of -1U3".to_owned()
-            ),
-            (
-                Severity::Warning,
-                "-1Q2: no PLC output drives solenoid 14; bind one to it".to_owned()
             ),
             (
                 Severity::Error,
@@ -417,6 +415,33 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     let mut free = fx.clone();
     valve(&mut free, V2, 2, 2, None);
     assert!(messages(&free).is_empty());
+    // a valve moved on its module to a held position is refused; touching one that already stood there is not
+    let free_model = free.build();
+    let mut onto = fx.clone();
+    valve(&mut onto, V2, 2, 1, None);
+    let refused = ew_checks::prevent(&Q::new(&free_model), &Q::new(&onto.build()), &touched);
+    assert_eq!(refused.len(), 1, "{refused:#?}");
+    let stood = onto.build();
+    let v1 = [(ew_derive::ew_schema::Kind::Device, common::uid(V1))];
+    assert!(ew_checks::prevent(&Q::new(&stood), &Q::new(&stood), &v1).is_empty());
+}
+
+/// EW-FL-013's prevent half (FI-07): a module moved to the position another module of the valve terminal holds is
+/// refused.
+#[test]
+fn ew_fl_013_prevents_a_module_at_a_held_position() {
+    use ew_derive::Q;
+    let mut fx = base();
+    module(&mut fx, MODULE_2, 4, 2);
+    let before = fx.build();
+    let mut onto = base();
+    module(&mut onto, MODULE_2, 4, 1);
+    let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(MODULE_2))];
+    let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&onto.build()), &touched)
+        .into_iter()
+        .map(|f| f.message)
+        .collect();
+    assert_eq!(messages, ["-1U1: position 1 holds both -1U3 and -1U4"]);
 }
 
 /// EW-FL-013's prevent half (FL-7): a valve added at a position another valve holds is refused whatever the

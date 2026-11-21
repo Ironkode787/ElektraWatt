@@ -118,3 +118,59 @@ fn ew_core_011_names_a_junction_end_in_words() {
         assert_eq!(ew_checks::render(&found[0], lang), text, "{lang}");
     }
 }
+
+/// EW-CORE-011: a record theirs deleted and ours changed is named so.
+#[test]
+fn ew_core_011_names_a_record_theirs_deleted() {
+    let mut fx = Fx::base();
+    fx.device(DEVICE, "K", Some(1));
+    fx.push(json!({
+        "$k": "conflict", "id": us(DEVICE), "kind": "device", "base": {},
+        "ours": {"function_text": "Relay"}, "theirs": "deleted"
+    }));
+    let m = fx.build();
+    let q = Q::new(&m);
+    let found: Vec<String> = run(&q, &FULL, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-011")
+        .map(|f| f.message)
+        .collect();
+    assert_eq!(found, ["device -?K1: theirs deleted it and ours changed function_text"]);
+}
+
+/// EW-CORE-013 (doc 15 §6.4): after a merge, the model holding a conflict record, two devices that share a tag are one
+/// group: both devices its targets, the uniqueness rule its discriminator. Without merge evidence the rule is silent.
+#[test]
+fn ew_core_013_groups_a_tag_two_devices_share_after_a_merge() {
+    let fx = |merged: bool| {
+        let mut fx = Fx::base();
+        fx.drawn_device(0x2001, "K", Some(1), P1);
+        fx.drawn_device(0x2002, "K", Some(1), P1);
+        if merged {
+            fx.push(json!({
+                "$k": "conflict", "id": us(0x2001), "kind": "device", "base": {},
+                "ours": {"function_text": "Relay"}, "theirs": {"function_text": "Contactor"}
+            }));
+        }
+        fx
+    };
+    assert!(findings_of(&fx(false).build(), "EW-CORE-013").is_empty());
+    let f = findings_of(&fx(true).build(), "EW-CORE-013");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].discriminator, "EW-RDS-004");
+    assert_eq!(f[0].targets.len(), 2);
+    // No tag is frozen: the oldest keeps it, the one other must change, and the fix renumbers it.
+    let arg = |name: &str| f[0].args.iter().find(|(n, _)| *n == name).map(|(_, v)| v.as_str());
+    assert_eq!((arg("keeper"), arg("others")), (Some("oldest"), Some("one")));
+    assert!(f[0].fix.is_some(), "{f:#?}");
+    // The device whose tag is frozen keeps it, though its ID is the newer.
+    let mut frozen = fx(true);
+    frozen.rec_mut(&us(0x2002))["tag"]["frozen"] = json!({"text": "1K1", "sign": "hidden"});
+    let f = findings_of(&frozen.build(), "EW-CORE-013");
+    let arg = |name: &str| f[0].args.iter().find(|(n, _)| *n == name).map(|(_, v)| v.as_str());
+    assert_eq!(arg("keeper"), Some("frozen"));
+    // The fix renumbers the other, the older.
+    let fix = f[0].fix.as_ref().expect("the fix");
+    assert_eq!(fix.params["scope"]["selection"], json!([us(0x2001)]));
+}

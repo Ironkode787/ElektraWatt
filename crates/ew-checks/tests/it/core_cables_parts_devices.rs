@@ -101,6 +101,10 @@ fn core031_prevent_refuses_a_new_invalid_colour_only() {
         &[(Kind::Conductor, uid(0x6001))],
     );
     assert!(v.is_empty(), "{v:#?}");
+    // But one foreign colour changed for another is a new one: refused.
+    let invalid = colours(Value::Null, json!([{"foreign": "YY"}]));
+    let v = prevent(&Q::new(&invalid), &Q::new(&after), &[key]);
+    assert_eq!(v.len(), 1, "{v:#?}");
 }
 
 fn cable_with_part_fx(c1: &Value, extra_core: bool) -> Fx {
@@ -157,6 +161,18 @@ fn core032_reports_cores_that_differ_from_the_cable_part() {
         [(Kind::Conductor, uid(0x6001)), (Kind::Part, uid(0x7200))]
     );
     assert!(findings_of(&cable_with_part(&json!({"colour": ["BK"]}), false), "EW-CORE-032").is_empty());
+    // A pair the part's core does not have.
+    let f = findings_of(
+        &cable_with_part(&json!({"colour": ["BK"], "pair": 1}), false),
+        "EW-CORE-032",
+    );
+    assert_eq!(
+        texts(&f),
+        [(
+            "-W1/1".to_owned(),
+            "core -W1/1 differs from the core 1 of the cable part CAB-3G1.5: pair 1 ≠ none".to_owned()
+        )]
+    );
 }
 
 /// An external interruption point `n` (pairing name `name`) at location `+J-E-206`, wired to CP 0 of the function
@@ -453,6 +469,16 @@ fn core043_reports_each_placeholder_part_once() {
     let g = findings_of(&b, "EW-CORE-043");
     assert_eq!(texts(&g), texts(&f));
     assert_eq!(g[0].fingerprint, f[0].fingerprint, "keyed on the part copy");
+    // A device that uses only the real part is not named; a placeholder with one user is reported once.
+    let mut fx = placeholders_fx([0x301, 0x302]);
+    fx.drawn_device(0x303, "K", Some(3), P1);
+    fx.with_parts(0x303, &[0x7100]);
+    assert_eq!(texts(&findings_of(&fx.build(), "EW-CORE-043")), texts(&f));
+    let mut fx = placeholders_fx([0x301, 0x302]);
+    fx.with_parts(0x302, &[0x7100]);
+    let one = findings_of(&fx.build(), "EW-CORE-043");
+    assert_eq!(one.len(), 1, "{one:#?}");
+    assert!(one[0].message.contains("is used by -1K1;"), "{}", one[0].message);
 }
 
 /// A PLC module `-A1` with its input start `input` and channel 0's address `address`.
@@ -554,8 +580,13 @@ fn core045_reports_contacts_beyond_the_part() {
 /// each change-over at most once; a change-over function needs a change-over contact.
 #[test]
 fn core045_a_change_over_contact_serves_one_no_or_nc_function() {
-    // A relay's change-over contact used as a normally open or a normally closed contact.
+    // A relay's change-over contact used as a normally open or a normally closed contact, or as itself.
     assert!(findings_of(&contacts(&["co"], &["no"]), "EW-CORE-045").is_empty());
+    assert!(findings_of(&contacts(&["co"], &["co"]), "EW-CORE-045").is_empty());
+    // A part used twice has its contacts twice.
+    let mut twice = contacts_fx(&["no"], &["no", "no"]);
+    twice.rec_mut(&us(0x301))["parts"][0]["qty"] = json!("2");
+    assert!(findings_of(&twice.build(), "EW-CORE-045").is_empty());
     assert!(findings_of(&contacts(&["co"], &["nc"]), "EW-CORE-045").is_empty());
     // A four-change-over relay with one normally open and one normally closed contact drawn.
     let relay = ["co", "co", "co", "co"];

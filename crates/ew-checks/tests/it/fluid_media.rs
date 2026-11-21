@@ -245,6 +245,25 @@ fn ew_fl_012_reports_a_real_port_conflict_only() {
     );
 }
 
+/// EW-FL-008 (FR-FLU-021): an exhaust port with no line and no closure is open, one finding per net with the port's
+/// function as target; a silencer (a closure) or a line to a collector closes it.
+#[test]
+fn ew_fl_008_reports_an_open_exhaust_only() {
+    let count = |fx: &Fx| findings_of(&fx.build(), "EW-FL-008").len();
+    let mut fx = base();
+    part_of(&mut fx, V1, "Q", 1, (VALVE_DEF, VALVE_SYM));
+    let f = findings_of(&fx.build(), "EW-FL-008");
+    assert_eq!(f.len(), 2, "exhausts 3 and 5: {f:#?}");
+    assert!(f.iter().all(|f| f.targets.len() == 1), "{f:#?}");
+    // A silencer on port 3.
+    fx.rec_mut(&us(V1 + 0x100))["cp_overrides"] = json!([{"idx": 2, "closure": {"kind": "silencer"}}]);
+    assert_eq!(count(&fx), 1);
+    // Port 5 piped to a collector.
+    part_of(&mut fx, SIL, "R", 1, (ONE_DEF, ONE_SYM));
+    line(&mut fx, 0x4001, at(V1, 4), at(SIL, 0));
+    assert_eq!(count(&fx), 0);
+}
+
 /// EW-FL-005 (FR-FLU-019): two media defined in one net report; a medium defined at a regulator's outlet replaces the
 /// regulated air there (doc 11 §2.5), so the outlet net carries one medium and nothing reports.
 #[test]

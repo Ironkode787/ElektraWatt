@@ -408,6 +408,30 @@ fn pot009_cases() {
     connected.func(0x1002, P1);
     connected.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
     connected.conn(0x2002, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &none());
+    // Free by design: a CP its definition marks optional, a pneumatic port, a terminal's CPs.
+    let mut free = Fx::base();
+    free.fndef_with(
+        0x530,
+        0x531,
+        &[(0, "1", json!({"optional": true})), (1, "2", Value::Null)],
+        &json!([]),
+        &json!({}),
+    );
+    free.fndef_with(
+        0x532,
+        0x533,
+        &[
+            (0, "1", json!({"discipline": "pneumatic", "port_role": "generic"})),
+            (1, "2", Value::Null),
+        ],
+        &json!([]),
+        &json!({}),
+    );
+    free.func_of(0x1001, 0x530, 0x531, P1);
+    free.func_of(0x1002, 0x532, 0x533, P1);
+    free.conn(0x2001, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &none());
+    free.strip(0x8000, 1);
+    free.drawn_terminal(0x8001, 0x8000, "1", 0x1003, P1, [10_000_000, 0]);
     rule_table(
         "EW-POT-009",
         vec![
@@ -441,6 +465,7 @@ fn pot009_cases() {
                 },
             ),
             Case::silent("connected CPs", connected.build()),
+            Case::silent("CPs free by design", free.build()),
         ],
     );
 }

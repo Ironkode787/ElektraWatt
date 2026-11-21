@@ -233,6 +233,12 @@ fn ew_plc_010_data_type_width() {
     assert_eq!(ai.len(), 2, "the part's Bool on both AI channels");
     assert!(!ai[0].unverified_data);
     assert!(found(&plain("di", "no"), "EW-PLC-010").is_empty());
+    // On an analogue channel (a word) every other width of IEC 61131-3 is wrong, in any case.
+    let word = json!({"data_type": "Int"});
+    for (data_type, wrong) in [("Byte", 1), ("dint", 1), ("LReal", 1), ("UINT", 0)] {
+        let m = card("ai", "no", &json!({}), &json!({"data_type": data_type}), &word).build();
+        assert_eq!(found(&m, "EW-PLC-010").len(), wrong, "{data_type}");
+    }
 }
 
 /// EW-PLC-011 (FR-PLC-028): a module in a slot its part does not allow, and a station beyond its module count; its
@@ -434,6 +440,24 @@ fn ew_saf_002_a_channel_paired_with_itself_is_incomplete() {
     )
     .build();
     assert_eq!(forms(&found(&m, "EW-SAF-002")), ["incomplete"]);
+    // A partner that does not name it back (it names itself), or that is no 1oo2 channel, is none either.
+    for spare in [
+        json!({"safety": {"evaluation": "1oo2", "pair": ch(CARD, 1)}}),
+        json!({"safety": {"evaluation": "1oo1", "pair": ch(CARD, 0)}}),
+    ] {
+        let m = card(
+            "di",
+            "no",
+            &json!({}),
+            &json!({"safety": {"evaluation": "1oo2", "pair": ch(CARD, 1)}}),
+            &spare,
+        )
+        .build();
+        assert!(
+            forms(&found(&m, "EW-SAF-002")).contains(&"incomplete".to_owned()),
+            "{spare}"
+        );
+    }
 }
 
 /// EW-SAF-002 and EW-SAF-003 (FR-PLC-043): a 1oo2 channel without its partner; a pair reaching two sensors; a sensor
@@ -696,7 +720,144 @@ fn ew_bus_003_profinet_names_and_addresses() {
         &json!({}),
         None,
     );
-    assert_eq!(forms(&found(&m, "EW-BUS-003")), ["subnet"]);
+    let f = found(&m, "EW-BUS-003");
+    assert_eq!(forms(&f), ["subnet"]);
+    assert_eq!(f[0].subject, "-1A2:X1", "the port outside, not the master");
+    // In the master's subnet it is silent.
+    let m = bus(
+        &json!({"bus": "profinet", "master": {"cp": [us(P_A + 1), 0]}}),
+        &master,
+        &pn("cpx-2", "192.168.0.10"),
+        &json!({}),
+        None,
+    );
+    assert!(found(&m, "EW-BUS-003").is_empty());
+}
+
+/// EW-BUS-006: the longest PROFIBUS copper segment at each rate (1200 m up to 93.75 kbit/s, 1000 m at 187.5 kbit/s,
+/// 400 m at 500 kbit/s, 200 m at 1.5 Mbit/s, 100 m above) is allowed; a millimetre more is not.
+#[test]
+fn ew_bus_006_allows_each_rate_s_longest_segment_and_no_more() {
+    for (rate, metres) in [
+        (93_750, 1200),
+        (187_500, 1000),
+        (500_000, 400),
+        (1_500_000, 200),
+        (12_000_000, 100),
+    ] {
+        for (extra_mm, want) in [(0_i64, &[][..]), (1, &["length"][..])] {
+            let mut fx = bus_fx(
+                &json!({"rate": rate}),
+                &json!({}),
+                &json!({}),
+                &json!({}),
+                Some(&json!({"cable_for": ["profibus_dp"]})),
+                &json!({}),
+            );
+            let nm = metres * 1_000_000_000_i64 + extra_mm * 1_000_000;
+            fx.rec_mut(&us(CABLE))["cable"] = json!({"length": {"manual": nm}});
+            assert_eq!(
+                forms(&found(&fx.build(), "EW-BUS-006")),
+                want,
+                "{rate} bit/s, {metres} m and {extra_mm} mm"
+            );
+        }
+    }
+}
+
+/// A bus port `-A<counter>:X1` (device `n`, function `n + 1`) on [`PNET`] and `lnet`, drawn on page 1.
+fn port_device(fx: &mut Fx, n: u128, counter: u32, role: &str, lnet: Option<u128>) {
+    fx.device(n, "A", Some(counter));
+    let mut p = json!({
+        "interface": "X1", "bus": "profibus_dp", "role": role, "address": "tbd", "physical_net": us(PNET),
+    });
+    if let Some(l) = lnet {
+        p["logical_net"] = json!(us(l));
+    }
+    fx.push(json!({"$k": "function", "id": us(n + 1), "device": us(n), "def": us(PORT_DEF), "bus_port": p}));
+    fx.push(json!({
+        "$k": "representation", "id": us(n + 0x10_001), "functions": [us(n + 1)], "page": us(P1),
+        "symbol": us(PORT_SYM), "pos": [i64::from(counter) * 8_000_000, 0],
+    }));
+}
+
+/// EW-BUS-006: a PROFIBUS segment takes 32 stations; a connector on the line is none.
+#[test]
+fn ew_bus_006_counts_the_stations_of_a_profibus_segment() {
+    for (stations, want) in [(32_u32, &[][..]), (33, &["stations"][..])] {
+        let mut fx = Fx::base();
+        fx.fndef_with(
+            PORT_DEF,
+            PORT_SYM,
+            &[(0, "A", Value::Null), (1, "B", Value::Null)],
+            &json!([]),
+            &json!({"contact_kind": "bus_port"}),
+        );
+        fx.push(json!({"$k": "physical_net", "id": us(PNET), "name": "DP", "medium": "copper"}));
+        // The stations, and a connector at the end of the line.
+        for i in 0..=stations {
+            let n = 0x3000 + u128::from(i) * 0x10;
+            let role = if i == stations { "passive" } else { "slave" };
+            port_device(&mut fx, n, i + 1, role, None);
+            if i > 0 {
+                fx.conn(
+                    n + 2,
+                    P1,
+                    Ep::Cp(n - 0x10 + 1, 1),
+                    Ep::Cp(n + 1, 0),
+                    &json!({"kind": {"bus": {}}}),
+                );
+            }
+        }
+        assert_eq!(forms(&found(&fx.build(), "EW-BUS-006")), want, "{stations}");
+    }
+}
+
+/// EW-BUS-006: a PROFIBUS segment that branches is a fault above 1.5 Mbit/s only.
+#[test]
+fn ew_bus_006_reports_a_branch_above_1_5_mbit_s() {
+    for (rate, want) in [(12_000_000, &["stub"][..]), (1_500_000, &[][..])] {
+        let mut fx = bus_fx(
+            &json!({"rate": rate}),
+            &json!({}),
+            &json!({}),
+            &json!({}),
+            None,
+            &json!({}),
+        );
+        // Two more ports on the first: it has three neighbours.
+        for (n, counter, cp) in [(0x1620, 3, 1), (0x1630, 4, 0)] {
+            port_device(&mut fx, n, counter, "slave", Some(LNET));
+            fx.conn(
+                n + 2,
+                P1,
+                Ep::Cp(P_A + 1, cp),
+                Ep::Cp(n + 1, 0),
+                &json!({"kind": {"bus": {}}}),
+            );
+        }
+        assert_eq!(forms(&found(&fx.build(), "EW-BUS-006")), want, "{rate}");
+    }
+}
+
+/// EW-BUS-009: two ports mated without a cable have one connector type.
+#[test]
+fn ew_bus_009_reports_ports_mated_with_different_connectors() {
+    let part = json!({"connector": "sub-d-9"});
+    let same = bus(&json!({}), &json!({}), &json!({}), &part, None);
+    assert!(found(&same, "EW-BUS-009").is_empty());
+    let mut fx = bus_fx(&json!({}), &json!({}), &json!({}), &part, None, &json!({}));
+    fx.part(
+        0x606,
+        "NODE-2",
+        &json!({"kind": "device", "sections": {"bus": {"ports": [
+            {"interface": "X1", "bus": "profibus_dp", "role": "slave", "connector": "m12-b"},
+        ]}}}),
+    );
+    fx.with_parts(P_B, &[0x606]);
+    let f = found(&fx.build(), "EW-BUS-009");
+    assert_eq!(forms(&f), ["connector"]);
+    assert_eq!(f[0].subject, "-1A1:X1");
 }
 
 /// EW-BUS-006, -009, -010 (FR-BUS-018, FR-BUS-024): a 300 m segment at 1.5 Mbit/s, a cable made for PROFINET, a port
@@ -799,6 +960,18 @@ fn ew_iol_001_and_002_class_mode_window() {
     let m = iolink("b", "io_link");
     assert_eq!(forms(&found(&m, "EW-IOL-001")), ["class"]);
     assert_eq!(forms(&found(&m, "EW-IOL-002")), ["window:input"]);
+    // 64 bits fill the 8-byte window exactly.
+    let mut fx = iolink_fx("a", "io_link", &json!({}));
+    fx.part(
+        0x606,
+        "BNI-64",
+        &json!({"kind": "device", "sections": {"bus": {"ports": [{
+            "interface": "IOL", "bus": "io_link", "role": "device",
+            "iolink": {"class": "a", "input_bits": 64, "data_type": "BNI_IOL_64"},
+        }]}}}),
+    );
+    fx.with_parts(FIELD, &[0x606]);
+    assert!(found(&fx.build(), "EW-IOL-002").is_empty());
     let m = iolink("a", "di");
     assert_eq!(forms(&found(&m, "EW-IOL-001")), ["mode"]);
     assert!(
@@ -827,4 +1000,61 @@ fn a_bus_finding_on_unverified_part_data_is_marked() {
     };
     assert_eq!(rate(json!({"confidence": {"bus": "test"}})), [true, true]);
     assert_eq!(rate(json!({})), [false, false]);
+}
+
+/// EW-PLC-018: a drawn module whose part maps its channels to pins, with none of its channels bound, is reported with
+/// the fix that binds them; one channel bound (the other unbound on purpose) is fine.
+#[test]
+fn ew_plc_018_reports_a_drawn_module_with_no_channel_bound() {
+    let pinned = json!({"pin_of": "{n}"});
+    let bound = card("di", "contact", &pinned, &json!({}), &json!({})).build();
+    assert!(found_in(&bound, "EW-PLC-018", CheckMode::Online).is_empty());
+    let unbound = card("di", "contact", &pinned, &json!({"binding": null}), &json!({})).build();
+    let f = found_in(&unbound, "EW-PLC-018", CheckMode::Online);
+    assert_eq!(forms(&f), ["module"]);
+    assert_eq!(
+        f[0].fix.as_ref().map(|x| x.command.as_str()),
+        Some("plc.bind_pins")
+    );
+}
+
+/// EW-PLC-016: a configuration project whose exchanged objects differ from the model since its last exchange is one
+/// info; a project never exchanged has none.
+#[test]
+fn ew_plc_016_reports_drift_since_the_last_exchange() {
+    let mut fx = card("di", "contact", &json!({}), &json!({}), &json!({}));
+    assert!(found_in(&fx.build(), "EW-PLC-016", CheckMode::Online).is_empty());
+    fx.rec_mut(&us(CFG))["exchange"] = json!({
+        "format": "aml", "version": "1.4.0", "file_sha256": format!("sha256:{}", "ab".repeat(32)),
+        "direction": "import", "date": "2026-01-02",
+    });
+    fx.push(json!({
+        "$k": "exchange_record", "id": us(0x1900), "config_project": us(CFG), "object": "channel",
+        "target": ch(CARD, 0), "fields": {"address": "I99.7", "symbol": "NOT_THE_MODEL_S"},
+    }));
+    let f = found_in(&fx.build(), "EW-PLC-016", CheckMode::Online);
+    assert_eq!(forms(&f), ["drift"], "{f:#?}");
+}
+
+/// EW-PRC-002: an instrument-list tag whose device is gone, or that has no channel, is an info; one with its device
+/// and channel is not.
+#[test]
+fn ew_prc_002_reports_an_instrument_tag_without_device_or_channel() {
+    let mut fx = card("ai", "contact", &json!({}), &json!({}), &json!({}));
+    for (n, target, channel) in [
+        (0x1910, us(0x1999), None),
+        (0x1911, us(FIELD), None),
+        (0x1912, us(OTHER), Some(ch(CARD, 1))),
+    ] {
+        let mut fields = json!({"tag": format!("FT-{n:x}"), "signal": "AI"});
+        if let Some(c) = channel {
+            fields["channel"] = json!(c);
+        }
+        fx.push(json!({
+            "$k": "exchange_record", "id": us(n), "config_project": us(CFG), "object": "instrument",
+            "target": target, "fields": fields,
+        }));
+    }
+    let f = found_in(&fx.build(), "EW-PRC-002", CheckMode::Online);
+    assert_eq!(forms(&f), ["channel:FT-1911", "device:FT-1910"], "{f:#?}");
 }
