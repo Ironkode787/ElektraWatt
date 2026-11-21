@@ -124,9 +124,8 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### The page's drawing
 
-- FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
-- FT-1786 `ew-scene`: A text under a wire on a schematic page is not knocked out: a text that a route crosses and that does not move is drawn under the line, and no renderer clears the line round it (ADR-0033, amendment 2). Only the panel layout's labels have knock-outs.
-- FT-1908 `ew-scene, ew-derive`: A strip's bridges are not drawn on a schematic page: four terminals joined by a bridge stand as four separate terminals, and a reader cannot see that a supply reaches the others (the sample's control page). Draw the bridge between the terminals it joins where they stand in one row on one page.
+- FT-2020 `ew-scene`: A strip segment draws no bridges: doc 08 §6.5 asks for the vertical bus with dots across the terminals a bridge joins, which only terminals drawn alone in a row have (FT-1908).
+- FT-2021 `ew-scene, ew-drafting`: The layout's page does not hold a strip's drawn bridges (doc 08 §6.5): the text placer may set a text on a bridge's line and the router may run a wire across it; neither is reported.
 
 #### A command's words
 

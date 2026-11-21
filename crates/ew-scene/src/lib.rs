@@ -24,6 +24,7 @@ pub mod forms;
 pub mod hops;
 pub mod images;
 pub mod items;
+pub mod knockout;
 pub mod page;
 pub mod panel;
 pub mod pdf_text;

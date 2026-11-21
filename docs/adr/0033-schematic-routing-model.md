@@ -125,7 +125,8 @@ The decision text above is unchanged; these entries refine it. All five are supe
    measures, else the texts block for it; the page solve routes the jobs that cross a text after the text-clear ones,
    so that a text-clear route keeps its way. Bodies, connection points and other wires stay hard. A device tag the
    route crosses moves off the wire where its symbol has a free place (the scene's tag rule, on every drawing of the
-   page); a text that does not move is drawn under the line, which no renderer knocks out on a schematic page.
+   page); a text that does not move is drawn under the line, which no renderer knocks out on a schematic page (since
+   0.3.5 the line is cut round it: [ADR-0034](0034-schematic-drafting.md) amendment 3).
    Golden A's routes are unchanged at this cost. In the same round, a symbol drawn with a connection point on an end's
    point (an interruption point drawn on a pin) is that end's own for rule (c): the wire leaves the pin through it, as
    through the pin's own symbol (the persona's 0 V wire stayed unrouted under such a point).

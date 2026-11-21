@@ -21,7 +21,7 @@
 //! |---|---|---|
 //! | [`Layer::Frame`] | `frame` | [`crate::forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
 //! | [`Layer::Symbols`] | `reps`, `break_marks`, `items`, `structure_boxes` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path; then the CP destinations; then the graphics and structure-box outlines ([`crate::items`]) |
-//! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
+//! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions`, `knockouts`, `bridges` | per connection (by ID): its polyline, cut round the texts it runs through ([`crate::knockout`]); then per junction (by ID): its dot or bevel symbol; then per bridge (in the view's order): its line and dots in each row of its terminals |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes`, `strip_tags` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then the pin texts; then per strip tag (by representation ID): the strip's tag at its terminal ([`StripTagView`]); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
 //! | [`Layer::Tables`] | `frame`, `table`, `embedded` | [`crate::table::lower_table`]: the report table of a generated page in its frame's list area; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables, or the boxed report table of any other kind: PART DATA, the layout legend) |
 //! | [`Layer::Surface`], [`Layer::Carriers`], [`Layer::Placements`] | `panel` | the surface view of a panel-layout page ([`crate::panel`]); the labels layer adds its placement labels after the texts above |
@@ -65,6 +65,15 @@
 //!   A mark whose representation or symbol is not in the view draws nothing.
 //! - **Junctions** draw the caller's junction symbol at `at` in the bevel's orientation; without a symbol a
 //!   dot is a filled black disc of radius [`JUNCTION_DOT_RADIUS`].
+//! - **Bridges** (doc 08 §6.5, FT-1908): the program's drawing of a strip's bridge, no record and nothing to select.
+//!   Each clamp of a [`BridgeView`] that a terminal drawn alone draws on the page (not a strip segment) gives a
+//!   point half way between the terminal's insertion point and the clamp's point, on the lead the bridge joins.
+//!   Points whose clamps leave the same way and that lie on one line across those leads (one height for leads that
+//!   leave up or down, one x for leads that leave left or right) are one row; a row of two or more is drawn as a
+//!   straight line from its first point to its last in the page's [`wire_stroke`], and a dot of
+//!   [`JUNCTION_DOT_RADIUS`] at each of its points, after the junctions. A terminal of the bridge in another row, on
+//!   another page or in a segment joins no line here; a terminal that is no part of the bridge and stands between
+//!   two of the row is crossed without a dot.
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
@@ -518,6 +527,21 @@ pub struct PageView {
     /// The strip tags printed at terminals drawn alone (doc 08 §6.7), drawn into
     /// [`Layer::Labels`] after the slot and pin texts.
     pub strip_tags: Vec<StripTagView>,
+    /// The boxes of the texts a line of the page runs through, which [`Layer::Wires`] cuts its lines round
+    /// ([`crate::knockout`], FT-1786): the labels layer's [`LayerList::knockouts`], filled by the caller; empty draws
+    /// every line whole.
+    pub knockouts: Vec<Rect>,
+    /// The bridges of the strips whose terminals the page draws, drawn into [`Layer::Wires`] after the junctions
+    /// where their terminals stand in one row (module documentation, "Bridges").
+    pub bridges: Vec<BridgeView>,
+}
+
+/// A strip's bridge (doc 08 §6.5, FT-1908): the clamp it joins on each of its terminals, by the function and CP index
+/// its connections name there, in the strip's order (`ew_derive::StripBridges`, one bridge per group).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BridgeView {
+    /// The clamps, one per terminal.
+    pub clamps: Vec<(Id<Function>, u16)>,
 }
 
 /// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7): at the
@@ -622,6 +646,9 @@ pub struct LayerList {
     /// The labels layer's page as the layout sees it ([`crate::draft`]), whose labels it placed; `None` in the other
     /// layers and on a panel-layout page.
     pub draft: Option<Arc<ew_drafting::DraftPage>>,
+    /// The labels layer's boxes of the texts a line of the page runs through, in print order: what the wires layer cuts
+    /// its lines round ([`PageView::knockouts`], [`crate::knockout`]). Empty in the other layers.
+    pub knockouts: Vec<Rect>,
 }
 
 /// A representation's slot text where the labels layer prints it, or a cable mark's tag (`rep` the wire marker, `slot`
@@ -1487,6 +1514,8 @@ impl Builder<'_> {
             .collect();
         let step = Nm(view.grid.at(1).map_or(0, |n| n.0) - view.grid.at(0).map_or(0, |n| n.0));
         crate::route::bevel_partings(&mut lines, &pins, step);
+        // A text a line runs through stays readable: the line is cut round it.
+        let cut = |path: Path| crate::knockout::knock_out(&path, &view.knockouts).unwrap_or(path);
         for (k, (id, _)) in drawn.iter().enumerate() {
             let pts = &lines[k];
             let path = match hopped.get(k) {
@@ -1494,12 +1523,12 @@ impl Builder<'_> {
                 Some(h) if !h.is_empty() => hop_path(&drawn[k].1, h),
                 _ => Path::polyline(pts),
             };
-            self.push(Item::path(path, Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
+            self.push(Item::path(cut(path), Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
         }
         for (id, pts) in &unrouted {
             let dashed = Stroke::pen(Pen::P013).dashed(DashPattern::Dash42);
             self.push(
-                Item::path(Path::polyline(pts), Some(dashed), None).with_entity(EntityRef(id.as_uuid())),
+                Item::path(cut(Path::polyline(pts)), Some(dashed), None).with_entity(EntityRef(id.as_uuid())),
             );
         }
         let mut junctions: Vec<&JunctionView> = view.junctions.iter().collect();
@@ -1521,6 +1550,54 @@ impl Builder<'_> {
                         .with_entity(entity),
                 ),
                 None => {}
+            }
+        }
+        self.bridges(view);
+    }
+
+    /// The bridges of the page's strips (module documentation, "Bridges").
+    fn bridges(&mut self, view: &PageView) {
+        let cps = drawn_cps(view);
+        let reps: BTreeMap<Uuid, &RepView> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
+        let stroke = wire_stroke(view.grid);
+        for bridge in &view.bridges {
+            // Each terminal's point half way along its bridged lead, by the way the lead leaves and the line across it.
+            let mut rows: BTreeMap<(u8, i64), Vec<Pt2>> = BTreeMap::new();
+            for (function, idx) in &bridge.clamps {
+                let Some((at, dir, rep)) = cps.get(&(function.as_uuid(), *idx)) else {
+                    continue;
+                };
+                // A strip segment draws its terminals' clamps, and no bridge.
+                let Some(rv) = reps.get(rep).filter(|r| r.terminals.is_empty()) else {
+                    continue;
+                };
+                let c = rv.rep.pos;
+                let mid = Pt2::new(
+                    Nm(c.x.0 + (at.x.0 - c.x.0).div_euclid(2)),
+                    Nm(c.y.0 + (at.y.0 - c.y.0).div_euclid(2)),
+                );
+                let key = match dir {
+                    Dir4::Up => (0, mid.y.0),
+                    Dir4::Down => (1, mid.y.0),
+                    Dir4::Left => (2, mid.x.0),
+                    Dir4::Right => (3, mid.x.0),
+                    Dir4::Unknown(_) => continue,
+                };
+                rows.entry(key).or_default().push(mid);
+            }
+            for ((side, _), mut points) in rows {
+                points.sort_by_key(|p| if side < 2 { p.x } else { p.y });
+                points.dedup();
+                let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
+                    continue;
+                };
+                if points.len() < 2 {
+                    continue;
+                }
+                self.push(Item::path(Path::line(first, last), Some(stroke.clone()), None));
+                for p in points {
+                    self.push(Item::path(Path::circle(p, JUNCTION_DOT_RADIUS), None, Some(Brush::BLACK)));
+                }
             }
         }
     }
@@ -1669,30 +1746,7 @@ impl Builder<'_> {
             return None;
         }
         let shaped = self.fonts.shape(spec.text, style, None);
-        let lines = self.lay_out(spec, style, &shaped, first_line);
-        let mut out: Option<Rect> = None;
-        for item in &lines {
-            let quad: Vec<Pt2> = match &item.kind {
-                ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
-                ItemKind::Group(g) => {
-                    let t = g.transform.unwrap_or(Transform::IDENTITY);
-                    g.items
-                        .iter()
-                        .filter_map(|i| match &i.kind {
-                            ItemKind::Glyphs(run) => Some(run.layout_quad().map(|q| t.apply(q))),
-                            _ => None,
-                        })
-                        .flatten()
-                        .collect()
-                }
-                _ => Vec::new(),
-            };
-            for q in quad {
-                let r = Rect::from_point(q);
-                out = Some(out.map_or(r, |o| o.union(r)));
-            }
-        }
-        out
+        layout_bounds(&self.lay_out(spec, style, &shaped, first_line))
     }
 
     /// One invisible path item per entry of `spec.items`, over the box of that item's glyph span and
@@ -1723,6 +1777,34 @@ impl Builder<'_> {
         })
         .collect()
     }
+}
+
+/// The bounds of the layout boxes of the glyph runs among `items` as placed (a run of a group under the group's
+/// transform); `None` without a run: a text's box as [`Builder::text_box`] measures it and the labels layer prints it.
+pub(crate) fn layout_bounds(items: &[Item]) -> Option<Rect> {
+    let mut out: Option<Rect> = None;
+    for item in items {
+        let quad: Vec<Pt2> = match &item.kind {
+            ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
+            ItemKind::Group(g) => {
+                let t = g.transform.unwrap_or(Transform::IDENTITY);
+                g.items
+                    .iter()
+                    .filter_map(|i| match &i.kind {
+                        ItemKind::Glyphs(run) => Some(run.layout_quad().map(|q| t.apply(q))),
+                        _ => None,
+                    })
+                    .flatten()
+                    .collect()
+            }
+            _ => Vec::new(),
+        };
+        for q in quad {
+            let r = Rect::from_point(q);
+            out = Some(out.map_or(r, |o| o.union(r)));
+        }
+    }
+    out
 }
 
 /// The boxes of the glyph spans `ranges` of `text` as placed (ADR-0015 amendment 9), one per range in their order: over

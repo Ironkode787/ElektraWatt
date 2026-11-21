@@ -42,6 +42,15 @@ change here.
 - behaviour-change: a legend a person adds keeps its positions, tags, quantities and part numbers whole where its box
   is narrow: its description gives way first, wrapping at its words while the box has the height for every row, else
   cut; it draws no drop shadow and a light grey header (doc 12 §5.4, FT-1782)
+- behaviour-change: a wire that runs through a text it cannot step round (a fixed text, a tag of an imported page)
+  is cut round the text, 0.25 mm clear of it, in the window, the PDF, the PNG, the SVG and the DXF alike; a page
+  where no wire runs through a text is drawn as before (ADR-0034 amendment 3, FT-1786)
+- behaviour-change: a strip's bridge is drawn on a schematic page where the terminals it joins stand in one row: a
+  line across their bridged leads with a dot on each, no record and nothing to select (doc 08 §6.5, FT-1908)
+- behaviour-change: an interruption point dropped on a drawn box's pin no longer lies along or in the box: on the
+  lower side it stands a grid step below the pin and on the upper side two steps above it, joined by a straight wire;
+  a source on the box's left side or a target on its right side, whose arrow would point into the box, is refused in
+  words (doc 06 §3.5, FT-1798)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit

@@ -909,7 +909,11 @@ designation, the function text, the process tag, the cross-reference with its it
 manufacturer, the part number and the type designation. Each part of the view is a query family, and
 each layer is its own Memo + LRU family (`page_display_list_frame`, `_symbols`, `_wires`, `_labels`, `_tables`) over
 the parts it reads, so a wire edit re-runs no frame layer and a renumber re-runs exactly the frames whose title-block
-values change (tested on the golden project; the memo oracle compares every layer with its cold value).
+values change (tested on the golden project; the memo oracle compares every layer with its cold value). The labels
+knock out the wires on a schematic page (0.3.5, ADR-0034 amendment 3): the `wires` layer cuts a line round a text of
+the `labels` layer that it runs through, reading those texts' boxes through a family of their own (`page_knockouts`),
+so a renumber that moves no such text still re-runs no wires layer; it also draws a strip's bridges where their
+terminals stand in one row ([08](08-connections-terminals-cables.md) §6.5).
 
 *As built.* A PanelLayout page draws its
 surface view through the `surface`, `carriers`, `placements` and `labels` layers of `ew-scene`'s `panel` module, each

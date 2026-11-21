@@ -30,7 +30,9 @@
 //! where the text placer set its box: the reference anchor moved by the box's move, in nm. A wire number set turned
 //! prints at 90° from its turned reference. Every other text prints where it stands. The order is the layer's: the
 //! slot texts by representation and slot, the pin texts, the strip tags, the wire numbers and markers by connection,
-//! the free texts, wire markers and cable marks by item, the structure boxes' captions.
+//! the free texts, wire markers and cable marks by item, the structure boxes' captions. The box of every text printed
+//! but a mark's that a line of the page runs through is listed for the wires layer to cut its lines round
+//! ([`crate::page::LayerList::knockouts`], [`crate::knockout`]).
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -50,7 +52,7 @@ use crate::forms::FrameGeometry;
 use crate::page::{
     Builder, CABLE_KIND_STYLE, CABLE_TAG_STYLE, CABLE_TEXT_GAP, CABLE_TICK, ItemLink, MARKER_GAP,
     MARKER_REACH, MARKER_STYLE, MarkerText, PageFinding, PageView, SlotTextBox, TextSpec, bottom_align,
-    cp_owners, crossing_of, drawing_area, marker_point, page_rect, pin_texts, polyline_of,
+    cp_owners, crossing_of, drawing_area, layout_bounds, marker_point, page_rect, pin_texts, polyline_of,
     sorted_connections, sorted_reps, up_by, wire_stroke,
 };
 use crate::symbol;
@@ -72,6 +74,9 @@ pub(crate) struct Text {
     first_line: bool,
     /// The text's own size, where it has one (a free text).
     pub(crate) size: Option<Nm>,
+    /// A wire marker's text or a cable mark's core name: it stands across its wires by the marker's rule, so no line is
+    /// cut round it ([`crate::knockout`]).
+    of_mark: bool,
 }
 
 impl Text {
@@ -94,12 +99,21 @@ impl Text {
             items: Vec::new(),
             first_line: false,
             size: None,
+            of_mark: false,
         }
     }
 
     /// The text in its own size `size`, where it has one.
     pub(crate) fn sized(self, size: Option<Nm>) -> Text {
         Text { size, ..self }
+    }
+
+    /// The text as a mark's (a wire marker's text, a cable mark's core name).
+    fn of_mark(self) -> Text {
+        Text {
+            of_mark: true,
+            ..self
+        }
     }
 
     fn spec(&self) -> TextSpec<'_> {
@@ -203,6 +217,13 @@ impl Builder<'_> {
                 }
             }
         }
+        // Of the texts printed, those a line of the page runs through.
+        let (cps, page) = (crate::page::cp_map(view), page_rect(view));
+        let lines: Vec<Vec<Pt2>> = sorted_connections(view)
+            .into_iter()
+            .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
+            .collect();
+        self.out.knockouts = crate::knockout::crossed(&lines, &self.out.knockouts);
         self.out.draft = Some(Arc::new(g.page));
     }
 
@@ -239,6 +260,7 @@ impl Builder<'_> {
                 });
             }
         }
+        let start = self.out.list.items.len();
         match text.size {
             Some(size) => {
                 let mut own = self.style(&text.style_key, text.entity);
@@ -247,6 +269,12 @@ impl Builder<'_> {
                 self.text_shaped(&text.spec(), &own, &shaped);
             }
             None => self.text_placed(&text.spec(), text.first_line),
+        }
+        // Its box as printed, which the wires are cut round where one runs through it ([`crate::knockout`]).
+        if !text.of_mark
+            && let Some(b) = layout_bounds(&self.out.list.items[start..])
+        {
+            self.out.knockouts.push(b);
         }
     }
 
@@ -553,6 +581,7 @@ impl Builder<'_> {
                     items: value.item_links.clone(),
                     first_line: xref && !moved,
                     size: None,
+                    of_mark: false,
                 };
                 let record = Slot {
                     rep: rep.id.as_uuid(),
@@ -738,7 +767,7 @@ impl Builder<'_> {
             MarkerText::Above => (Pt2::new(at.x, lo - MARKER_GAP), Angle2::ZERO, Align::BottomCentre),
             MarkerText::Up => (Pt2::new(at.x, lo - MARKER_GAP), Angle2(90_000), Align::MiddleLeft),
         };
-        let text = Text::plain(text, at, angle, align, MARKER_STYLE, entity);
+        let text = Text::plain(text, at, angle, align, MARKER_STYLE, entity).of_mark();
         // The marker is a mark across its wires, its text drawn beside its line by the marker rule.
         let line = self
             .box_of(&text)
@@ -814,7 +843,8 @@ impl Builder<'_> {
                 Align::BottomLeft,
                 MARKER_STYLE,
                 entity,
-            );
+            )
+            .of_mark();
             if let Some(b) = self.box_of(&name) {
                 line = line.union(b);
             }

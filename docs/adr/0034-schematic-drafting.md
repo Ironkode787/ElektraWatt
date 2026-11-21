@@ -186,6 +186,31 @@ The decision text above is unchanged; these entries refine it.
      neighbouring wire by a fifth of a step; one more character and it does not.
    - *Not built:* the cards of one page on common columns clear of the controller's column (06a §7.5), and the
      router phase for the wires that go round a card of the older form (06a §4.8).
+3. **A wire is cut round a text it runs through** (2026-11-21, M3.5 fix round, FT-1786; decided by the lane under
+   the owner's delegation). ADR-0033 amendment 2 made a text crossed a cost, so a wire may run through a text that has
+   no other place (a fixed text, a text of an imported page that stays where its author put it, a tag the placer
+   could not move), and said that no renderer knocked such a text out on a schematic page: the line ran through the
+   glyphs, and drawing sets imported from QElectroTech, where wires cross the relays' tags, printed tags that could
+   not be read. The page now clears the line round the text, as the panel layout's labels clear the rails and ducts
+   under them (doc 12 §5.2):
+   - **One rule in the scene** (`ew_scene::knockout`), so the window's canvas, the PDF, the PNG, the SVG and the DXF
+     draw the same cut lines: the labels layer lists the boxes of the texts it prints that a wire runs through (each
+     text's glyph runs as placed, from the ascent to the descent over the advance), the texts of a mark excepted (a
+     wire marker's text and a cable mark's core names stand across their wires by the marker's rule, as C4 counts
+     them); the wires layer leaves out the stretch of each line inside such a box and 0.25 mm on each side of it
+     along the line. The line keeps its item, its entity and its stroke; it becomes subpaths, each of which starts a
+     dash pattern again. A stretch is cut only where it runs strictly through the box: a line along a text's edge, or
+     one that ends where the box begins, is drawn whole, and a line that would be left with nothing is drawn whole.
+     Slanted stretches (a bevel) and curves (a hop, a hose's arc) are drawn whole.
+   - **A cut, not a paper-coloured fill**, as on the panel page: the display list has no brush that is the page's
+     background, a fill would erase a symbol's lines under the text too, and in the DXF a cut line is two lines, which
+     every reader draws, where a wipeout is not read by all.
+   - **What a page shows that has no such text: nothing new.** The wires layer is the one drawn before, byte for
+     byte; on the sample no wire runs through a text, so the cut changes none of its pages. The wires layer reads
+     the boxes through a memo family of its own (`page_knockouts`), so a change of the labels that crosses no wire
+     (a renumber's cross-references) runs no wires layer again.
+   - EW-CORE-070 still reports a wire through a text: the text is readable now, but a drawing where the wire keeps
+     clear of it is still the better one, and Route still prefers it.
 
 ## Related
 

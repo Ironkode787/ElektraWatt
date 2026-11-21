@@ -1013,6 +1013,31 @@ the strip editor proposes bridges between adjacent terminals of one potential (F
 without BR6 it proposes one 5-pole plug-in bridge over 1–5. Strip segments draw the bridges as the familiar vertical
 bus with dots. That drawing is derived from the bridge connections.
 
+**A bridge on a schematic page** (0.3.5, FT-1908). Terminals drawn alone in a row with a bridge between them stood as
+separate terminals: on the sample's control page the supply reaches -X1021:1, and nothing showed that it reaches 2, 3
+and 4 too. The page now draws the bridge as a jumper bar is drawn in IEC 60617 practice: a line across the terminals
+it joins with a connection dot on each.
+
+- *What it is.* The program's drawing of the model's bridge, made from the bridge's connections and the terminals'
+  places on every drawing of the page, like a junction's dot: no record, nothing to select, move or route, no wire
+  number, no row of the wire list (the bridge keeps its bridge row there). The terminal diagram and the Terminal strips
+  navigator name it (BR1); the page shows which terminals it joins and prints no name.
+- *Where it stands.* Each terminal of the bridge that the page draws by a representation of its own gives a point on
+  the lead of the clamp the bridge joins there (the connection point its connections name; on -X1021 clamp 0, the
+  upper lead of 1 to 4, which are mirrored, and the lower lead of 5 to 8; a bridge on the bridge shaft, which no symbol
+  draws, takes the lead of the terminal's lowest side-1 clamp, where `strip.bridge` bridges a terminal without a
+  shaft), half way between the terminal's centre and that clamp. Points whose leads leave the same way and lie on one line across them (one height for upright leads, one
+  x for turned ones) are one row. A row of two or more is one straight line from its first point to its last in the
+  wire pen, with a dot of the junction dot's size at each point. So the bar stands on the side of the clamps it joins,
+  clear of the terminal's circle and of its designation and function text, which stand at the circle's height.
+- *What is not drawn wrong.* A terminal of the bridge on another page, in another row, turned another way or shown by
+  a strip segment joins no line on this page; a row with one terminal of the bridge draws nothing. Every line joins
+  terminals the bridge joins, so a reader never sees a bridge that is not there; a bridge split over pages or rows
+  shows as its parts, and the terminal diagram lists it whole. A terminal that stands between two of the row and is
+  not part of the bridge is crossed without a dot, as a wire crosses a wire.
+- *Not built.* A strip segment's vertical bus (above); the layout's page does not hold the bars, so the text placer
+  may set a text on one and the router may cross one (FT-2021).
+
 ### 6.6 Spares and reserves
 
 - **Spare is authored.** It is the terminal's `Device.state = Spare` (FR-TRM-009). A terminal with no connection at

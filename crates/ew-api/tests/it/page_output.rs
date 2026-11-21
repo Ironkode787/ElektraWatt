@@ -326,6 +326,8 @@ fn hostile_view() -> PageView {
         structure_boxes: Vec::new(),
         panel: None,
         strip_tags: Vec::new(),
+        knockouts: Vec::new(),
+        bridges: Vec::new(),
     }
 }
 
@@ -483,11 +485,12 @@ fn every_page_wire_of_the_sample_is_drawn() {
                 .filter(|f| matches!(f, PageFinding::UnresolvedEnd { .. }))
                 .collect();
             assert!(unresolved.is_empty(), "folio {}: {unresolved:?}", g.entry.folio);
+            // A strip's bridge is drawn in the layer too, but it is no wire: it carries no entity.
             let drawn = wires
                 .list
                 .items
                 .iter()
-                .filter(|i| matches!(i.kind, ItemKind::Path(_)))
+                .filter(|i| matches!(i.kind, ItemKind::Path(_)) && i.entity.is_some())
                 .count();
             if std::env::var_os("EW_WIRE_COUNTS").is_some() {
                 eprintln!(

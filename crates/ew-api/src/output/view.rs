@@ -75,6 +75,8 @@
 //!   (`ew_derive::tag_slot_shown`; none shown, no tag); the scene prints it one connection-grid step above that
 //!   terminal's tag-slot anchor, so an unnumbered strip's terminals name it ("-X101?" on page 101 under a strip rule
 //!   with `{page}`, "-X??" without a page token).
+//! - **Bridges** (doc 08 §6.5, [`page_bridges`]): every bridge group of a strip that has a terminal on the page, with
+//!   the clamp it joins on each terminal; the scene draws it where the terminals stand in one row.
 //! - **Pin texts**: a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
 //!   box CP, the designation of that CP of its first function as stored and, when the function CP is bound to a PLC
 //!   channel, the channel's printed address (`PlcAddressText::pins` of its function) after one space
@@ -118,8 +120,8 @@ use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, Row
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    BreakMarkView, BreakSide, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText,
-    PlugNoteView, RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph,
+    BreakMarkView, BreakSide, BridgeView, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView,
+    PinText, PlugNoteView, RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph,
     ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
@@ -1410,6 +1412,61 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
         .filter(|t| !t.text.is_empty())
         .collect();
     out.sort_by_key(|t| t.rep);
+    out
+}
+
+/// The bridges of the strips whose terminals the drawn page `page` shows (doc 08 §6.5, FT-1908): every bridge group
+/// of such a strip (`ew_derive::StripBridges`, by strip ID, then group) with the clamp its connections name on each of
+/// its terminals, the first in the group's connection order (a bridge shaft, which no symbol draws, as the terminal's
+/// lowest side-1 clamp), in the group's terminal order. The scene draws a group where its terminals stand in one row.
+pub fn page_bridges(q: &Q, page: Id<Page>) -> Vec<BridgeView> {
+    let (reps, functions, devices, connections) = (q.reps(), q.functions(), q.devices(), q.connections());
+    let strips: std::collections::BTreeSet<Id<Device>> = q
+        .idx()
+        .reps_by_page(page)
+        .filter_map(|rid| reps.get(rid))
+        .flat_map(|rep| rep.functions.iter())
+        .filter_map(|f| functions.get(*f)?.device)
+        .filter_map(|d| Some(devices.get(d)?.aspects.terminal.as_ref()?.strip))
+        .collect();
+    let mut out = Vec::new();
+    for strip in strips {
+        for group in q.get::<ew_derive::StripBridges>(strip).iter() {
+            // The clamp of each terminal: the first end of the group's connections on it.
+            let ends: Vec<(Id<Device>, (Id<Function>, u16))> = group
+                .connections
+                .iter()
+                .filter_map(|id| connections.get(*id))
+                .flat_map(|c| [&c.a, &c.b])
+                .filter_map(|e| match e {
+                    ew_schema::Endpoint::Cp(f, idx) => Some((functions.get(*f)?.device?, (*f, *idx))),
+                    _ => None,
+                })
+                .collect();
+            // A bridge on the bridge shaft, which no symbol draws, is drawn on the lead of the terminal's lowest side-1
+            // connection point, where `strip.bridge` bridges a terminal without a shaft.
+            let drawn = |(f, idx): (Id<Function>, u16)| {
+                let cps = q.get::<FunctionCps>(f);
+                match cps.iter().find(|c| c.idx == idx) {
+                    Some(c) if c.side.is_none() => cps
+                        .iter()
+                        .filter(|c| c.side == Some(Side::Side1))
+                        .map(|c| c.idx)
+                        .min()
+                        .map_or((f, idx), |side1| (f, side1)),
+                    _ => (f, idx),
+                }
+            };
+            let clamps: Vec<(Id<Function>, u16)> = group
+                .terminals
+                .iter()
+                .filter_map(|t| ends.iter().find(|(d, _)| d == t).map(|(_, cp)| drawn(*cp)))
+                .collect();
+            if clamps.len() >= 2 {
+                out.push(BridgeView { clamps });
+            }
+        }
+    }
     out
 }
 

@@ -35,8 +35,8 @@ use ew_schema::{
 
 use crate::output::{
     CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageDigest,
-    PageEmbeddedOf, PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, PageSurfaceView, PageTableOf,
-    PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
+    PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf, PageSurfaceView,
+    PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
 
@@ -284,6 +284,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<SymbolsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<LabelsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageKnockoutsOf>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TablesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     // The surface view of a panel-layout page, its three layers and its shaped labels.
     check::<PageSurfaceView>(memo, cold, keys.pages.iter().copied(), o);

@@ -9,7 +9,7 @@
 //! |---|---|---|
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
-//! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
+//! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle), `page_knockouts` (the texts its lines are cut round, [`PageKnockoutsOf`]), the bridges of the strips its terminals belong to (`page_bridges`) |
 //! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the valve cells and the plug notes (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
@@ -40,7 +40,7 @@ use ew_schema::PageType;
 use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
-    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_grid, page_items,
+    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_bridges, page_grid, page_items,
     page_plug_notes, page_strip_tags, page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
@@ -64,6 +64,8 @@ pub struct PageLayer {
     pub slot_texts: Vec<ew_scene::page::SlotTextBox>,
     /// The labels layer's page as the layout sees it (`ew_scene::page::LayerList::draft`).
     pub draft: Option<Arc<ew_drafting::DraftPage>>,
+    /// The labels layer's boxes of the texts a line of the page runs through (`ew_scene::page::LayerList::knockouts`).
+    pub knockouts: Vec<ew_units::Rect>,
 }
 
 /// An empty view of `page`: the parts a layer reads are filled by its family.
@@ -89,6 +91,8 @@ fn base_view(page: PageRef) -> PageView {
         structure_boxes: Vec::new(),
         panel: None,
         strip_tags: Vec::new(),
+        knockouts: Vec::new(),
+        bridges: Vec::new(),
     }
 }
 
@@ -160,6 +164,8 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
             v.crossings = crossings(q);
+            v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();
+            v.bridges = page_bridges(q, p);
         }
         Layer::Labels => {
             let p = drawn?;
@@ -251,7 +257,25 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         panel_labels: l.panel_labels,
         slot_texts: l.slot_texts,
         draft: l.draft,
+        knockouts: l.knockouts,
     })
+}
+
+/// `page_knockouts(page)`: the labels layer's boxes of the texts a line of the page runs through, which the wires layer
+/// cuts its lines round (`ew_scene::knockout`). A family of its own, so that a change of the labels that leaves those
+/// boxes as they were (a renumber's cross-references) runs no wires layer again.
+#[derive(Debug)]
+pub struct PageKnockoutsOf;
+
+impl Query for PageKnockoutsOf {
+    type Key = PageRef;
+    type Value = Vec<ew_units::Rect>;
+    const FAMILY: &'static str = "page_knockouts";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &PageRef) -> Arc<Vec<ew_units::Rect>> {
+        Arc::new(page_layer(q, *key, Layer::Labels).knockouts.clone())
+    }
 }
 
 macro_rules! layer_family {
@@ -376,6 +400,8 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.structure_boxes = page_boxes(q, p, true);
             v.strip_tags = page_strip_tags(q, p);
             v.panel = panel_view(q, p, Parts::ALL);
+            v.knockouts = (*q.get::<PageKnockoutsOf>(page)).clone();
+            v.bridges = page_bridges(q, p);
         }
         _ => v.table = (*q.get::<PageTableOf>(page)).clone(),
     }
