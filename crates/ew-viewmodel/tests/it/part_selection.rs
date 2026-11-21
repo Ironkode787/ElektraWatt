@@ -724,3 +724,27 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
     }
     s.shutdown();
 }
+
+/// FT-819: Choose part's detail line printed the functions' keys ("functions ew.fn.mcb-1pn"). It names them in words,
+/// and no UUID either.
+#[test]
+fn choose_part_names_a_parts_functions_in_words() {
+    let has_uuid = |text: &str| {
+        text.split(|c: char| !c.is_ascii_hexdigit() && c != '-')
+            .any(|w| w.len() == 36 && w.matches('-').count() == 4)
+    };
+    let tmp = Tmp::new("part-sel-words");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F1");
+    done(&mut s, "part.choose", json!({ "use": 0 }));
+    let details: Vec<String> = (0..20)
+        .filter_map(|i| s.part_offer_detail(i))
+        .filter(|l| l.contains("·"))
+        .collect();
+    assert!(!details.is_empty());
+    assert!(
+        details.iter().all(|l| !l.contains("ew.fn.") && !has_uuid(l)),
+        "{details:?}"
+    );
+    s.shutdown();
+}

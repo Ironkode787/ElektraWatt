@@ -3,8 +3,8 @@
 
 //! The window's dead ends of M2.5-Fix's section "The window: feedback and dead ends", each by the pointer and the
 //! keys: a panel found by name in the command search, a PLC card that waits for a CPU, a device selected by its tag
-//! outlined, Ctrl+A on the page, a page's Pending badge that counts what the status bar counts, and references and
-//! functions named in words in Properties and Choose part.
+//! outlined, Ctrl+A on the page, a page's Pending badge that counts what the status bar counts, and references named
+//! in words in Properties. Choose part's functions in words: `ew-viewmodel`'s `part_selection.rs`.
 
 use crate::support;
 
@@ -253,30 +253,4 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
 
 fn state(d: &mut Driver) -> serde_json::Value {
     serde_json::from_str(&ew_viewmodel::script::state_json(d.shell_mut())).unwrap()
-}
-
-/// FT-819: Choose part's detail line printed the functions' keys ("functions ew.fn.mcb-1pn"). It names them in words.
-#[test]
-fn choose_part_names_a_parts_functions_in_words() {
-    let tmp = Tmp::new();
-    let mut d = sample_on_101(&tmp);
-    let _ = d
-        .shell_mut()
-        .dispatch("select.set", &json!({"refs": ["tag:-101F1"]}));
-    d.settle();
-    assert_eq!(
-        d.shell_mut().dispatch("part.choose", &json!({"use": 0})),
-        Outcome::Done
-    );
-    d.settle();
-    let details: Vec<String> = (0..20)
-        .filter_map(|i| d.shell_mut().part_offer_detail(i))
-        .filter(|l| l.contains("·"))
-        .collect();
-    assert!(!details.is_empty());
-    assert!(
-        details.iter().all(|l| !l.contains("ew.fn.") && !has_uuid(l)),
-        "{details:?}"
-    );
-    d.shell_mut().shutdown();
 }
