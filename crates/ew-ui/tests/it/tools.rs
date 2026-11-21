@@ -259,7 +259,11 @@ fn a_press_and_its_release_in_one_frame_still_click() {
         .iter()
         .find(|l| {
             l.target.as_ref().is_some_and(|t| t.folio != "103")
-                && h.state().shell().selected_rects(0).iter().all(|r| !r.intersects(l.rect))
+                && h.state()
+                    .shell()
+                    .selected_rects(0)
+                    .iter()
+                    .all(|r| !r.intersects(l.rect))
         })
         .unwrap()
         .clone();

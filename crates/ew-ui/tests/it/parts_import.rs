@@ -50,10 +50,7 @@ fn table_parts() -> PathBuf {
 fn without_a_project_a_parts_table_opens_no_mapping() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
-    platform
-        .answers
-        .borrow_mut()
-        .push_back(Pick::Path(table_parts()));
+    platform.answers.borrow_mut().push_back(Pick::Path(table_parts()));
     let mut h = harness(&tmp, platform, None);
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
@@ -72,10 +69,7 @@ fn without_a_project_a_parts_table_opens_no_mapping() {
 fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
-    platform
-        .answers
-        .borrow_mut()
-        .push_back(Pick::Path(table_parts()));
+    platform.answers.borrow_mut().push_back(Pick::Path(table_parts()));
     let (shell, dir) = new_project(&tmp);
     let mut h = harness_with(shell, platform.clone(), None);
     settle(&mut h);

@@ -422,6 +422,9 @@ fn the_exported_pdf_is_the_same_with_the_wire_colour_view_on_and_off() {
         settle(&mut h);
         pdfs.push(std::fs::read(&pdf).expect("the PDF is written"));
     }
-    assert!(pdfs[0] == pdfs[1], "the PDF with the view on is the one with it off");
+    assert!(
+        pdfs[0] == pdfs[1],
+        "the PDF with the view on is the one with it off"
+    );
     h.state_mut().shell_mut().shutdown();
 }

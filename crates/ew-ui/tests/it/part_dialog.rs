@@ -160,7 +160,10 @@ fn the_part_editor_by_keyboard() {
     let Some(Dialog::PartEdit(e)) = h.state().shell().dialog() else {
         panic!("the part editor")
     };
-    assert_eq!(e.draft.text("description"), "Miniature circuit breaker, 2 poles C4");
+    assert_eq!(
+        e.draft.text("description"),
+        "Miniature circuit breaker, 2 poles C4"
+    );
     h.key_press(Key::Enter);
     settle(&mut h);
     settle(&mut h);

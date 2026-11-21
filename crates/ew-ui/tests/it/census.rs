@@ -671,7 +671,10 @@ fn census_every_context_menu() {
             .first()
             .map(|i| i.label.clone())
             .expect("a menu");
-        assert!(h.query_all_by_label_contains(&first).next().is_some(), "{surface}: {first}");
+        assert!(
+            h.query_all_by_label_contains(&first).next().is_some(),
+            "{surface}: {first}"
+        );
         census.visit(h, surface);
     };
     // Each menu in a window of its own: a right click elsewhere first closes an open menu.

@@ -65,7 +65,10 @@ fn ctrl_z_puts_away_a_wire_begun_and_takes_back_a_finished_one() {
     let mut h = on_sample(&tmp, "102");
     let before = wires(&h);
     let free = free_cps(&h);
-    assert!(free.len() >= 2, "the sample's page 102 has free connection points");
+    assert!(
+        free.len() >= 2,
+        "the sample's page 102 has free connection points"
+    );
     dispatch(&mut h, "tool.wire", json!({}));
     cursor_at(&mut h, free[0]);
     dispatch(&mut h, "canvas.activate", json!({}));

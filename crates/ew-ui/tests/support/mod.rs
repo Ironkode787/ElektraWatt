@@ -248,11 +248,7 @@ pub fn unplace(harness: &mut Harness<'_, App>, tag: &str) {
         .unwrap_or_else(|| panic!("the placement of {tag}"))
         .id
         .to_string();
-    dispatch(
-        harness,
-        "select.set",
-        serde_json::json!({ "ids": [placement] }),
-    );
+    dispatch(harness, "select.set", serde_json::json!({ "ids": [placement] }));
     dispatch(harness, "edit.delete_selection", serde_json::json!({}));
     settle(harness);
 }

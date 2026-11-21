@@ -62,10 +62,7 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
         .filter(|r| r.parent.as_deref() == Some(terminal.key.as_str()) && r.role == NavRole::Device.word())
         .map(|r| r.label.as_str())
         .collect();
-    assert_eq!(
-        valves,
-        ["-201K1-Q1", "-201K1-Q2", "-201K1-Q3", "-201K1-Q4"]
-    );
+    assert_eq!(valves, ["-201K1-Q1", "-201K1-Q2", "-201K1-Q3", "-201K1-Q4"]);
     assert!(
         rows.iter()
             .any(|r| r.role == NavRole::Connection.word() && r.label.starts_with("→ -201M1:")),
@@ -525,7 +522,11 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
         .find(|r| r.label == "-201K1")
         .expect("the terminal's row")
         .key;
-    dispatch(&mut h, "navigator.select", json!({"kind": "fluid", "keys": [key]}));
+    dispatch(
+        &mut h,
+        "navigator.select",
+        json!({"kind": "fluid", "keys": [key]}),
+    );
     settle(&mut h);
     row_menu(&mut h, "-201K1");
     support::menu_node(&h, "Generate overview…").click();

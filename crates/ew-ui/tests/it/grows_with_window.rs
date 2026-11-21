@@ -144,7 +144,11 @@ fn part_names_are_whole_in_device_from_part() {
     for size in SIZES {
         let tmp = Tmp::new();
         let mut h = on_sample(&tmp, size);
-        support::import_parts(&mut h, &tmp, &[support::table_part("32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS")]);
+        support::import_parts(
+            &mut h,
+            &tmp,
+            &[support::table_part("32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS")],
+        );
         open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
@@ -362,8 +366,7 @@ fn the_parts_mapping_card_grows_with_the_window() {
     std::fs::write(&csv, format!("{head}\nA1,Acme,A1,,,{long},piece,,\n")).unwrap();
     let (main, extension) = at_both_sizes(open_mapping(&csv), mapping_card);
     assert_grows_from("the mapping card", tokens().size_dialog_form, main, extension);
-    let tables =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
+    let tables = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
     let (main, extension) = at_both_sizes(open_mapping(&tables), mapping_card);
     assert!(
         (main - extension).abs() < 0.5 && main < tokens().size_dialog_form + 0.5,

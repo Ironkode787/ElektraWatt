@@ -1201,7 +1201,10 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
             ("props.show", json!({"on": false})),
             ("navigator.show", json!({"kind": "strips"})),
             ("navigator.table", json!({"kind": "strips"})),
-            ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
+            (
+                "navigator.filter",
+                json!({"kind": "strips", "text": "strip:-X1021"}),
+            ),
             ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
         ] {

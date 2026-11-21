@@ -20,10 +20,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
     support::unplace(&mut h, "-101F1");
     dispatch(&mut h, "navigator.show", json!({ "kind": "unplaced" }));
     settle(&mut h);
-    assert!(
-        h.query_by_label_contains("-101F1").is_some(),
-        "the row -101F1"
-    );
+    assert!(h.query_by_label_contains("-101F1").is_some(), "the row -101F1");
     assert!(
         h.query_by_label("Placing mode").is_none(),
         "no card before the tool runs"
@@ -39,7 +36,11 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
         .find(|u| u.label == "-101F1")
         .unwrap()
         .device;
-    dispatch(&mut h, "tool.place_layout", json!({ "device": device.to_string() }));
+    dispatch(
+        &mut h,
+        "tool.place_layout",
+        json!({ "device": device.to_string() }),
+    );
     settle(&mut h);
     assert!(h.query_by_label("Placing mode").is_some(), "the mode's tab list");
     assert!(h.query_by_label("Grid step").is_some(), "the grid's tab list");

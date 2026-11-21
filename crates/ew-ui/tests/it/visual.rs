@@ -287,7 +287,10 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
         ("props.show", json!({"on": false})),
         ("navigator.show", json!({"kind": "strips"})),
         ("navigator.table", json!({"kind": "strips"})),
-        ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
+        (
+            "navigator.filter",
+            json!({"kind": "strips", "text": "strip:-X1021"}),
+        ),
         ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
     ] {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");

@@ -630,7 +630,9 @@ fn the_valve_terminal_shows_its_positions() {
     h.get_by_label("-201K1 · rack");
     for position in 1..=4 {
         assert!(
-            h.query_all_by_label_contains(&format!("Position {position}")).count() >= 1,
+            h.query_all_by_label_contains(&format!("Position {position}"))
+                .count()
+                >= 1,
             "position {position}"
         );
     }

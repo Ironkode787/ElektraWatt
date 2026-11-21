@@ -715,9 +715,10 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
     let junctions: Vec<_> = {
         let tables = &h.state().shell().canvas().unwrap().page().tables;
         let on_0v = |wire: &ew_viewmodel::ew_api::output::Uuid| {
-            tables.cps.iter().any(|p| {
-                p.connections.contains(wire) && p.potential.as_ref().is_some_and(|p| p.name == "0V")
-            })
+            tables
+                .cps
+                .iter()
+                .any(|p| p.connections.contains(wire) && p.potential.as_ref().is_some_and(|p| p.name == "0V"))
         };
         tables
             .junctions
@@ -796,7 +797,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
         let message = row.label.clone();
         assert!(
             message.starts_with("0V: it is unclear which wire feeds the junction at ")
-                && message.contains(" on folio 10") && message.contains(" (wires ")
+                && message.contains(" on folio 10")
+                && message.contains(" (wires ")
                 && message.ends_with("); draw one wire into it from the supply side")
                 && message.matches("0V").count() == 1,
             "{w}×{hgt}: {message}"

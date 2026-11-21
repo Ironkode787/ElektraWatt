@@ -76,7 +76,9 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
         "the dialog's title"
     );
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
-    h.state_mut().shell_mut().set_form_field("only_nonconforming", "false");
+    h.state_mut()
+        .shell_mut()
+        .set_form_field("only_nonconforming", "false");
     settle(&mut h);
     support::off_chrome(&h, "Renumber")
         .expect("the dialog's Renumber")
@@ -246,7 +248,9 @@ fn w31_2_the_first_tag_change_is_on_show() {
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
-    h.state_mut().shell_mut().set_form_field("only_nonconforming", "false");
+    h.state_mut()
+        .shell_mut()
+        .set_form_field("only_nonconforming", "false");
     settle(&mut h);
     support::off_chrome(&h, "Renumber")
         .expect("the dialog's Renumber")

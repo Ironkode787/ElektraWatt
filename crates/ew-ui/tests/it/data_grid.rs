@@ -990,7 +990,10 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
             ("props.show", json!({"on": false})),
             ("navigator.show", json!({"kind": "strips"})),
             ("navigator.table", json!({"kind": "strips"})),
-            ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
+            (
+                "navigator.filter",
+                json!({"kind": "strips", "text": "strip:-X1021"}),
+            ),
         ] {
             done(shell, action, params);
         }

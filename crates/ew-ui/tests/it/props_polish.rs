@@ -322,11 +322,7 @@ fn the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() {
         .find(|r| r.role == ew_viewmodel::navigators::NavRole::ConfigProject.word())
         .expect("the configuration project's row")
         .key;
-    dispatch(
-        &mut h,
-        "navigator.select",
-        json!({"kind": "plc", "keys": [plc1]}),
-    );
+    dispatch(&mut h, "navigator.select", json!({"kind": "plc", "keys": [plc1]}));
     settle(&mut h);
     settle(&mut h);
     assert!(h.query_by_label("siemens-tia-intl@2027.1").is_none());
