@@ -1167,6 +1167,12 @@ text of an element as a text of its symbol; so the page prints them there, a mov
 keep each on its element, and only the texts the program derives are placed. *Not done:* a person who wants a starter
 symbol's texts kept at its slots whatever stands there drags each once; Reset text positions gives them back.
 
+*A data text on its own pin's line (FT-1980, decided 2026-11-22).* A symbol whose author set its make, type or rating
+on the line of one of its pins prints it through that pin's wire only where the text's place is stored. Without one the
+text gives way to the wire as every label does (§5.3: a wire stands at its first place), and nothing is added for it.
+A stored place stays the person's, whatever runs through it (the paragraph above): a script or an import that pins
+every text of a symbol where its author drew it keeps them there, and Reset text positions gives them to the placer.
+
 ### 5.5 Derived, not stored
 
 Label places are computed, not stored, as the tag rule of today is. *Alternative: the layout stores a place for

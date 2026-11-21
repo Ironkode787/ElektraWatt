@@ -35,7 +35,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### External points, earth and 0 V
 
-- FT-1980 `ew-drafting, ew-scene`: A coil's technical data printed through its own wire in the first production job. The program's own coil symbols put it left of the coil, clear of the wire (the sample's -102Q1, also mirrored); the job's coil symbol had its data slot on the pin line, and the placer keeps a slot text at its author's place even across a wire (doc 06a §5.3). Decide whether a data text there gives way to a wire.
 - FT-1981 `ew-api, ew-import-catalog`: The units of technical data are listed by hand three times beside `Unit` (the typed units, a parts catalogue's units, the derive's symbols); the catalogue's list lacks `mm`, `piece` and `set`. One list from `Unit`.
 - FT-1933 `ew-derive`: A protective-earth potential that only an earth symbol names takes that symbol's pin name: an imported earth point's pin is `1`, so the potential is called `1` in the potential list and the SQL view. Call such a potential PE.
 
