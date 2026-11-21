@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 
 pub mod brief;
+pub mod check_task;
 pub mod compose;
 pub mod filter;
 pub mod friction;
@@ -701,7 +702,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let [task] = args.as_slice() else {
                 bail!("check-task <task>");
             };
-            let problems = oracle::check_task(root, task)?;
+            let problems = check_task::check_task(root, task)?;
             if problems.is_empty() {
                 println!("task `{task}` is sound");
                 Ok(true)
