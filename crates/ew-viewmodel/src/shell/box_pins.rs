@@ -18,7 +18,7 @@ use crate::strings;
 use crate::tools::black_box::{BoxCpAt, pin_target, reshape_command};
 use crate::tools::box_pin::PinNameTool;
 use crate::tools::wire::PageGridMap;
-use crate::tools::{Button, CanvasEvent, Mods, Overlay, tool_named};
+use crate::tools::{Button, CanvasEvent, Mods, tool_named};
 
 /// How near a pin a point is to stand on it (nm on the page): half a grid step of the coarsest grid.
 fn on_pin(grid: PageGridMap, pin: (i64, i64), p: (i64, i64)) -> bool {
@@ -212,10 +212,12 @@ impl ShellModel {
     }
 
     /// The Wire tool's click on the edge of a box whose pins are its own where no pin is: the pin's name is asked
-    /// in place; once it is named the wire ends at it, one undo step with the pin. The Wire tool waits meanwhile.
+    /// in place; once it is named the wire ends at it, one undo step with the pin. The Wire tool waits meanwhile, its
+    /// wire's ghost shown until the pin is named or the naming cancelled.
     pub(super) fn pin_for_wire(&mut self, rep: ew_api::output::Uuid, pin: BoxCpAt) -> Outcome {
         let tool = PinNameTool::add(ew_dl::EntityRef(rep), pin);
         let wire = std::mem::replace(&mut self.tools.tool, Box::new(tool));
+        let ghost = self.tools.overlay.clone();
         if let Some(t) = self
             .tools
             .tool
@@ -223,9 +225,9 @@ impl ShellModel {
             .and_then(|a| a.downcast_mut::<PinNameTool>())
         {
             t.resume = Some(wire);
+            t.under = ghost;
         }
         self.tool_epoch = self.tool_epoch.wrapping_add(1);
-        self.tools.overlay = Overlay::default();
         self.tools.preview = None;
         self.announce_tool();
         Outcome::Done

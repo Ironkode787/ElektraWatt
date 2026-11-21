@@ -21,7 +21,8 @@
 //! Two pins of one box may have one name (two 24 V inputs), as a part's pins may.
 //!
 //! Each name is one `box.reshape` with `cps`, one undo step. The host returns to Select once the tool is finished, or,
-//! for a pin named for a wire, hands the Wire tool back to end the wire at the new pin (one undo step with it).
+//! for a pin named for a wire, hands the Wire tool back to end the wire at the new pin (one undo step with it); until
+//! then the wire's ghost stays under the pin's marker.
 
 use crate::key;
 use ew_api::AnyCommand;
@@ -55,6 +56,9 @@ pub struct PinNameTool {
     finished: bool,
     /// The Wire tool whose wire ends at the new pin, handed back by the host once it is named.
     pub(crate) resume: Option<Box<dyn Tool>>,
+    /// The overlay of that Wire tool when it asked (its wire's ghost), drawn under the pin's own marks until the pin is
+    /// named or the naming cancelled.
+    pub(crate) under: Overlay,
 }
 
 impl std::fmt::Debug for PinNameTool {
@@ -81,6 +85,7 @@ impl PinNameTool {
             error: None,
             finished: false,
             resume: None,
+            under: Overlay::default(),
         }
     }
 
@@ -172,10 +177,11 @@ impl PinNameTool {
 
     fn overlay(&self, cx: &ToolCx<'_>) -> Overlay {
         let at = cx.snapper.page_to_sheet(self.pin.1);
-        let mut items = vec![OverlayItem::Marker {
+        let mut items = self.under.items.clone();
+        items.push(OverlayItem::Marker {
             at,
             kind: MarkerKind::Cp,
-        }];
+        });
         let label = if self.armed {
             crate::strings::text(key!("label-box-pin-new")).to_owned()
         } else {

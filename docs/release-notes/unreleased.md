@@ -25,6 +25,8 @@ change here.
   drag at its tag does; it moved the symbol (doc 06 §2.5, FT-1796)
 - behaviour-change: the readout of a move (`dx 0.000 dy 4.000 mm`) says what the move does on the page; on a page
   drawn smaller onto its sheet it read a part of a step short (`dy 3.945`) (FT-1818)
+- behaviour-change: a wire drawn to a drawn box's edge where no pin is keeps its ghost on the page while the new pin's
+  name is asked, until it is given or the naming is cancelled (FT-1836)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit
