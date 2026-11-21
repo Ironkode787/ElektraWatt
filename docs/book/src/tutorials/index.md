@@ -36,7 +36,7 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    solenoid valve and a double-acting cylinder with flow controls, the tubes, the valve's solenoid wired to a PLC
    output, a valve terminal with its positions filled, and the tube list. You need EW installed and an empty folder.
 
-The `ew` command-line program has a how-to of its own: [Use the command line on the golden
+The `ew` command-line program has a how-to of its own: [Use the command line on the sample
 project](../how-to/headless-workflow.md).
 
 ## Planned

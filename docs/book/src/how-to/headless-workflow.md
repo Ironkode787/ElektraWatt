@@ -1,4 +1,4 @@
-# Use the command line on the golden project
+# Use the command line on the sample project
 
 Here you use the `ew` command-line program on the sample project: you check the project, write its pages as PDF and
 SVG, export the cable list and the bill of materials, and ask the project questions in SQL. Nothing needs the desktop

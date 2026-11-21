@@ -16,7 +16,7 @@ pages, start with a tutorial.
   changing and no longer using a template, and the check level.
 - [Draw a page from the text interface](text-interface.md): reading a page as text, placing, autoconnect, frozen tags,
   terminal strips, external points, wires and junctions, delete and export, without a screen.
-- [Use the command line on the golden project](headless-workflow.md): the `ew` program checks a project, writes its
+- [Use the command line on the sample project](headless-workflow.md): the `ew` program checks a project, writes its
   pages as PDF and SVG, exports the cable list and the bill of materials, and queries it in SQL. You need a checkout
   of the repository and the `ew` program.
 - [Define a supply potential](define-supply-potential.md): a potential's name, type and voltage from a selected wire,

@@ -21,7 +21,7 @@
   - [Use the application window](how-to/application-window.md)
   - [Start a project and use templates](how-to/start-a-project.md)
   - [Draw a page from the text interface](how-to/text-interface.md)
-  - [Use the command line on the golden project](how-to/headless-workflow.md)
+  - [Use the command line on the sample project](how-to/headless-workflow.md)
   - [Define a supply potential](how-to/define-supply-potential.md)
   - [Choose parts](how-to/choose-parts.md)
   - [Draw a panel layout](how-to/panel-layout.md)
