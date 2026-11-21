@@ -460,7 +460,7 @@ fn update_refuses_without_an_update_and_badges_are_words() {
     );
 }
 
-/// The owner's test of 0.3.0-rc.1 ("Source missing … No idea what that means"): a copy no installed library holds is
+/// A copy no installed library holds is
 /// "Only in this project" in the State column, in the UI language (Dutch here), with a hover text that says it is no
 /// fault and cannot be updated; with the cursor on it Update… has nothing to update.
 #[test]

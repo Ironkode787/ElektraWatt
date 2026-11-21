@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Text styles in the window (G9 of the owner's test of 0.3.0-rc.2): a person changes the heights, typefaces and bold
+//! Text styles in the window: a person changes the heights, typefaces and bold
 //! of the project's texts on one page, by names he knows; the warning about a text too small to read takes him there;
 //! a new project starts readable.
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! New project, the templates and the template wizard by the window's own path, as a persona round met them: a
+//! New project, the templates and the template wizard by the window's own path: a
 //! template renamed in its list, Browse… that comes back with nothing, Create's reason beside it, the wizard's folder
 //! and its Close.
 
@@ -154,7 +154,7 @@ fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
     };
     assert_eq!(d.folder, "pumpstation");
     // A folder typed without its whole path is read from the projects folder. One that is not there yet is made by
-    // Create, and the line over Create says so (a persona run: the folder to be was refused); a file of that name in
+    // Create, and the line over Create says so; a file of that name in
     // its way is refused in words.
     assert!(reason(&h, "This folder is not there yet: Create makes it."));
     assert!(!h.get_by_label("Create").accesskit_node().is_disabled());
@@ -186,7 +186,7 @@ fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Close with answers in the wizard asks before it goes (a persona run lost ten steps of answers without a word):
+/// Close with answers in the wizard asks before it goes:
 /// Back to the wizard stays, Close keeps the answers for the next time, and Close and drop my answers drops them.
 #[test]
 fn closing_the_wizard_with_answers_asks_and_keeps_them() {
@@ -231,7 +231,7 @@ fn closing_the_wizard_with_answers_asks_and_keeps_them() {
     assert!(!draft.exists(), "the answers are dropped");
 }
 
-/// Sections of a running project, as a persona run needed them: a page put in a section that is not there is refused
+/// Sections of a running project: a page put in a section that is not there is refused
 /// with a sentence that says how to make it; New section… makes it; its row in the Pages list and its link in Project
 /// properties open Edit section…, which renames it and changes its folio range in one step.
 #[test]

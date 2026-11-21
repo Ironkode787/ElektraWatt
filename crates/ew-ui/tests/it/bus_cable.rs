@@ -13,7 +13,7 @@ use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::{Value, json};
 
 /// The value of the option of form field `name` whose words contain `words`.
-/// A persona run read a bus line's kind as `{"bus":{}}`: a connection's Kind reads in words, Bus line.
+/// A connection's Kind reads in words, Bus line, never as `{"bus":{}}`.
 #[test]
 fn a_bus_lines_kind_reads_in_words() {
     let tmp = Tmp::new();
@@ -61,7 +61,7 @@ fn a_bus_lines_kind_reads_in_words() {
     assert_eq!(kind.as_deref(), Some("Bus line"));
 }
 
-/// A persona run met a banner about mdbook where the guide is not beside the program: in the offscreen visual driver
+/// Where the guide is not beside the program no banner about mdbook shows: in the offscreen visual driver
 /// a guide link names the page's file under `book/` in a toast instead, with the section F1 chose.
 #[test]
 fn a_guide_link_names_its_page_in_a_visual_run() {
@@ -607,7 +607,8 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
     assert!(row.ends_with(",-2W2,2"), "{row}");
 }
 
-/// rc.5, a project made before: its bus cable had the project's counter (`-W1`) and now prints its line's page. Where
+/// A project made before the cable printed its line's page: its bus cable had the project's counter (`-W1`) and now
+/// prints its line's page. Where
 /// a cable of that page holds the same counter, both would print `-2W1`: the check reports the duplicate and offers to
 /// renumber the newer, so no tag stands twice unseen.
 #[test]
@@ -698,7 +699,7 @@ fn a_replaced_bus_cable_goes_and_its_tag_is_proposed_again() {
     assert!(!back[0].contains(&other), "the old cable is back: {back:?}");
 }
 
-/// The persona run of rc.5 (PROFIBUS): another cable type chosen for the line's cable and applied was dropped in
+/// On PROFIBUS another cable type chosen for the line's cable and applied was dropped in
 /// silence. Now the cable takes the part, its cores following, in one step.
 #[test]
 fn another_cable_type_for_a_bus_lines_cable_is_the_cables() {
@@ -732,7 +733,7 @@ fn another_cable_type_for_a_bus_lines_cable_is_the_cables() {
     assert_eq!(cores, 9, "the eight-core cable's cores and its shield");
 }
 
-/// The persona run of rc.5 (PROFIBUS): no cable was asked for when a bus line was drawn. Now a toast says so with
+/// On PROFIBUS no cable was asked for when a bus line was drawn. Now a toast says so with
 /// Choose cable…, which opens the line's Cable form, and the line's right-click menu has Cable… first.
 #[test]
 fn a_bus_line_drawn_asks_for_its_cable() {

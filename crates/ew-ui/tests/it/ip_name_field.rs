@@ -177,7 +177,7 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     assert_eq!(name_field_text(&h).as_deref(), Some("0V"));
 }
 
-/// The persona round on rc.3 (FT-1657): "after one placement the tool renames itself L1-1", and D typed into the
+/// FT-1657: "after one placement the tool renames itself L1-1", and D typed into the
 /// name. A name typed once names a pair: the first point is the source, and the tool then floats the same name as
 /// a target, which the second click places. With the name typed and the pointer moved back to the sheet, D turns
 /// the direction and is not typed into the name.
@@ -260,7 +260,7 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
     assert_eq!(ghost_name(&h), "FT1657");
 }
 
-/// The owner's hands-on test of 0.1.0 (FT-1646): "while an interruption point is placed and its name is typed, the
+/// FT-1646: "while an interruption point is placed and its name is typed, the
 /// small name window turns grey as if disabled". The tool's ghost follows the pointer, and the card fades while
 /// the ghost is under it; with the pointer on the name field, and while the name is typed, the card is whole.
 #[test]
@@ -578,7 +578,7 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     );
 }
 
-/// A persona run (entry 14): Source and Target stand beside the name field as two choices, the ghost's direction
+/// Source and Target stand beside the name field as two choices, the ghost's direction
 /// chosen; a click on the other one turns the ghost, as D does.
 #[test]
 fn source_and_target_are_two_choices_beside_the_name() {
@@ -625,7 +625,7 @@ fn pointer_at(h: &mut Harness<'_, App>, fraction: f64) -> egui::Pos2 {
     at
 }
 
-/// rc.5 (a persona carried 24 V to the PLC page): the tool proposed Target at the page's left side, the person
+/// With 24 V carried to the PLC page: the tool proposed Target at the page's left side, the person
 /// clicked Target, and the point he placed further right turned source. A click on the direction the tool only
 /// proposed chooses it: the point placed anywhere is a target, as the button said.
 #[test]

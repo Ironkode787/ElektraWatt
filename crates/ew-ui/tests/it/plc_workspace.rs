@@ -89,7 +89,7 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The persona runs of the third 0.3.0 candidate: a symbol name typed into the PLC grid read "CLAMP_RETR…", with no
+/// A symbol name typed into the PLC grid read "CLAMP_RETR…", with no
 /// way to see it whole. A column that cuts a new text grows to show it.
 #[test]
 fn the_plc_grids_symbol_column_grows_to_a_long_name() {
@@ -160,7 +160,7 @@ fn two_cpus_and_a_card(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::
         ("EW-GEN-CPU-1", (24, 10), (30, 18)),
         ("EW-GEN-DO-1", (38, 10), (44, 18)),
     ] {
-        // The card on a page of its own: beside a station it would join that one (the persona run m3-p4).
+        // The card on a page of its own: beside a station it would join that one.
         if part == "EW-GEN-DO-1" {
             dispatch(
                 &mut h,
@@ -206,7 +206,7 @@ fn click_at(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Pos2, 
     settle(h);
 }
 
-/// The persona round's re-test: a row takes a click across its width, not only on its name (a right-click beside a
+/// A row takes a click across its width, not only on its name (a right-click beside a
 /// short tag did nothing), and a waiting card's own row offers Attach to `<station>` for each station that takes
 /// cards, which attaches that card alone.
 #[test]
@@ -646,8 +646,8 @@ fn the_valve_terminal_shows_its_positions() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The persona round: Freeze addresses was found only through the guide, and after Apply nothing said what it did.
-/// In the PLC workspace of a new project, the PLC panel's Addresses menu holds Freeze addresses…; Apply toasts the
+/// Freeze addresses is not found only through the guide, and after Apply a toast says what it did. In the PLC
+/// workspace of a new project, the PLC panel's Addresses menu holds Freeze addresses…; Apply toasts the
 /// count, and the frozen address carries the manual mark in the panel and in the grid, while a spare channel's does not.
 #[test]
 fn freeze_addresses_is_in_the_plc_panels_addresses_menu_and_marks_what_it_froze() {
@@ -1617,7 +1617,7 @@ fn station_menu(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str, e
     settle(h);
 }
 
-/// The persona round's job from nothing (an EPLAN designer's): two stations, a controller with two cards and a remote
+/// A job from nothing: two stations, a controller with two cards and a remote
 /// I/O head with one, a PROFIBUS line between them, an address on each, the Bus panel showing the net with both, and
 /// the network address list as a page. Every step is the window's: the black box tool, the PLC panel's row menus,
 /// Place port DP on a bus-topology page, the Wire tool between the ports, the Bus table's address cells, Report.

@@ -3,7 +3,7 @@
 
 //! Through the text interface: the part dialog and the part editor on
 //! writable copies of the sample, with the compiled-in starter catalogue (the viewmodel names no schema types, so the
-//! fixture catalogue of §11.3 is written by the `ew-api` tests; these tests assert the starter's named rows). No test
+//! fixture catalogue is written by the `ew-api` tests; these tests assert the starter's named rows). No test
 //! pins the number of offers: they assert named rows and their order.
 
 use crate::common;
@@ -118,8 +118,8 @@ fn a_cable_is_offered_cable_parts_only() {
     );
 }
 
-/// Two persona runs of the third candidate drew a two-pole switch from its symbol and found no part for it: Only parts
-/// that fit said "No part matches", so "Device without part" could not be mended. The starter's two-pole main switch
+/// A two-pole switch drawn from its symbol finds a part: with only parts that fit listed, "No part matches" said so
+/// and "Device without part" could not be mended. The starter's two-pole main switch
 /// fits it first, as its own function.
 #[test]
 fn a_two_pole_switch_has_a_starter_part_that_fits() {
@@ -673,7 +673,7 @@ fn a_library_copy_forks() {
     s.shutdown();
 }
 
-/// §9.4: the Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each
+/// The Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each
 /// opens the part dialog (replace the first use, append) or the part editor.
 #[test]
 fn the_parts_row_menu_opens_the_dialog_and_the_editor() {

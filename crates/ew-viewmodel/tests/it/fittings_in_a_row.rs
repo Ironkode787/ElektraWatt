@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A persona run: four one-way flow controls placed in a row on a fluid page, each beside the last, were joined by
-//! tubes, port 1 of each to port 2 of the one before it, which he did not want. Two fittings set side by side are a
+//! Four one-way flow controls placed in a row on a fluid page, each beside the last, are not joined by tubes, port 1
+//! of each to port 2 of the one before it, which he did not want. Two fittings set side by side are a
 //! row of branches: placing one never joins it to another; a fitting placed facing a cylinder's port still is.
 
 use crate::common;
@@ -49,7 +49,7 @@ fn flow_controls_set_side_by_side_are_not_joined_and_one_facing_a_cylinder_is() 
         json!({"folio": "201", "type": "fluid", "title": "Fluid"}),
     );
     done(&mut s, "page.goto", json!({"folio": "201"}));
-    // The persona's row: four flow controls, eight and fourteen grid steps apart, on one line.
+    // A row: four flow controls, eight and fourteen grid steps apart, on one line.
     let row: Vec<TableRep> = [20, 28, 42, 50]
         .into_iter()
         .map(|x| place(&mut s, "EW-GEN-FCV-1", (x, 30)))

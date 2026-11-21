@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A persona run: with Fluid settings' "Tag tubes by page and counter" on, the tubes carried their tags in the tube
-//! table alone; the setting promises them on the page too. Each tube prints its tag beside it; without the setting,
+//! With Fluid settings' "Tag tubes by page and counter" on, the tubes carry their tags on the page too, not in the
+//! tube table alone. Each tube prints its tag beside it; without the setting,
 //! none.
 
 use crate::common;

@@ -178,7 +178,7 @@ fn plc_row(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Option<String
         .map(|(_, r)| ew_viewmodel::properties::value_text(r))
 }
 
-/// A persona run: a bus device is given to a PLC from where a person looks. A managed switch's Properties show
+/// A bus device is given to a PLC from where a person looks. A managed switch's Properties show
 /// a PLC row "in no PLC"; its Bus panel row says the same; choosing New PLC… in the row makes it belong to a new PLC
 /// without a rack (a toast with Undo says so, the Properties stay on it and name the PLC, its menu has no Rack…). A
 /// generic PROFINET device's row then offers that PLC, and choosing it opens its rack as before.
@@ -259,7 +259,7 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run: in a new station's view a kind no library part is for says why and what to do, and a bus
+/// In a new station's view a kind no library part is for says why and what to do, and a bus
 /// device in no PLC is offered as the station; chosen, it is a station of the view's PLC and its rack is shown.
 #[test]
 fn the_new_station_view_offers_a_device_on_the_bus() {
@@ -283,7 +283,7 @@ fn the_new_station_view_offers_a_device_on_the_bus() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run: in a project without a bus-topology page the station's bus side goes onto a new one, asking
+/// In a project without a bus-topology page the station's bus side goes onto a new one, asking
 /// nothing, which is shown with the station's port on the pointer; with bus pages the button asks which (a
 /// side lands on the page the person picks), and the one chosen is shown.
 #[test]
@@ -370,7 +370,7 @@ fn station_on_bus_page(
     station
 }
 
-/// The rc.2 persona runs: a valve terminal with a PROFINET bus node goes onto a bus page from its rack as the CPU
+/// A valve terminal with a PROFINET bus node goes onto a bus page from its rack as the CPU
 /// does, and a CPU with a PROFIBUS and a PROFINET interface stands there as both boxes, which the toast says.
 #[test]
 fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
@@ -391,7 +391,7 @@ fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A longer persona run found no field for the device name and IP: an empty bus-topology page says its three steps
+/// An empty bus-topology page says its three steps
 /// where the pointer's hint stands, and a CPU's box on it shows its addresses in Main, named as its bus names them.
 #[test]
 fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
@@ -445,7 +445,7 @@ fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: 
     settle(h);
 }
 
-/// A longer persona run: the view of a station drawn nowhere names it by its part, not by a tag of question marks, in
+/// The view of a station drawn nowhere names it by its part, not by a tag of question marks, in
 /// its tab and in its header, and holds still while its slots are filled: its columns and its catalogue stand where
 /// they stood before the first module.
 #[test]
@@ -478,7 +478,7 @@ fn the_station_view_names_its_station_and_holds_still() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run: Draw on this page put the station on page 1 without a word. From a view opened on a page that is no
+/// Draw on this page put the station on page 1 without a word. From a view opened on a page that is no
 /// electrical page, Draw on an electrical page… lists the schematic pages by folio and title, and New page…, which
 /// makes a schematic page and draws there; the page drawn on is shown, and the station's tab stays beside it.
 #[test]
@@ -859,7 +859,7 @@ fn two_corners(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Strin
     h.state().shell().tool().name().to_owned()
 }
 
-/// A persona run re-test: his CPU stood on a schematic page and he wanted it on the bus page. Placing its part
+/// A CPU stands on a schematic page and is wanted on the bus page. Placing its part
 /// from the device browser there asks first, "Put <station> here" chosen, or "A new station"; Put here draws the station
 /// the project has, a box for each interface, and the tool gives way instead of taking it again. The Black box tool on
 /// the bus page then offers the station still missing there, not the one placed last.
@@ -932,7 +932,7 @@ fn place_port_list(
         .expect("Place port's list")
 }
 
-/// A persona run re-test: a bus page's own menu and the PLC tab's Place port list have Put a station on this
+/// A bus page's own menu and the PLC tab's Place port list have Put a station on this
 /// page, listing what the page does not show yet; chosen, the station stands there whole, and the entry is greyed with
 /// its reason once nothing is left to put.
 #[test]
@@ -986,7 +986,7 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run dragged his CPU's row from the PLC panel onto the bus page and nothing happened. The drop puts
+/// A CPU's row dragged from the PLC panel onto the bus page must do something. The drop puts
 /// the station there at the drop point, a box per interface, and the tool gives way; a drop that cannot be taken says
 /// why: the station is there already, or the page takes no stations.
 #[test]
@@ -1053,7 +1053,7 @@ fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run took the chip "Not on this page: 1-A0" for a code, and it only jumped away. With the CPU drawn
+/// The chip "Not on this page: 1-A0" is not taken for a code. With the CPU drawn
 /// on page 101 and its PLC row selected on a bus page, the chip reads as the jump it is, and Put it here beside it puts
 /// the CPU on the bus page.
 #[test]

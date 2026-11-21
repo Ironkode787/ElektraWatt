@@ -171,7 +171,7 @@ fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     shell.shutdown();
 }
 
-/// TB3 (§8.5): `Spare_{n:02}` over -X1021's 8 terminals gives `Spare_01` … `Spare_08` in one
+/// TB3: `Spare_{n:02}` over -X1021's 8 terminals gives `Spare_01` … `Spare_08` in one
 /// `fields.set_many`; the dialog shows the first five values; every pattern error refuses the whole fill, a counter
 /// that overflows or goes negative makes those cells invalid (the card).
 #[test]
@@ -552,7 +552,7 @@ fn two_rows_on_one_record_with_different_values_are_invalid() {
     shell.shutdown();
 }
 
-/// TB5 (§8.3): designations of 2 terminals at once open the card (rule 2); a fill over 569 devices opens it (rule 1);
+/// TB5: designations of 2 terminals at once open the card (rule 2); a fill over 569 devices opens it (rule 1);
 /// a single-cell edit of a potential's name opens none (one target); a clear of an enum is invalid.
 #[test]
 fn tb5_the_policy() {
@@ -727,7 +727,7 @@ Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tS
 -X1031\t2\tV\t\t\tEW-GEN-TRM-1\t1L2/102Q1:4\t-102Q1:4\t-103M1:V1 via -103W1 BK\t\t\tused\r\n\
 -X1031\t3\tW\t\t\tEW-GEN-TRM-1\t1L3/102Q1:6\t-102Q1:6\t-103M1:W1 via -103W1 GY\t\t\tused\r\n";
 
-/// TB8's model half (§8.8): the table's describe lines (header, `columns`, rows with the cursor column, the edit, the
+/// TB8's model half: the table's describe lines (header, `columns`, rows with the cursor column, the edit, the
 /// pattern dialog), Pages in table mode, the refusal outside table mode, the six words and the 239 actions; switching
 /// to the table, moving the cell cursor and typing make no `navigator_table` call.
 #[test]
@@ -972,7 +972,7 @@ fn a_refused_potential_type_names_the_types_in_words() {
     shell.shutdown();
 }
 
-/// TB6 (§8.6): copying -X1031's 5 terminals writes the TSV with the header row, byte-equal to the expected text, and
+/// TB6: copying -X1031's 5 terminals writes the TSV with the header row, byte-equal to the expected text, and
 /// pasting it back into the same rows changes nothing (no command, no preview); a header row is read as a header in
 /// either language: rows copied in en-GB and pasted back in nl-NL change nothing, and copied in nl-NL and pasted back
 /// in en-GB neither.

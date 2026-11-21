@@ -799,7 +799,7 @@ fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
     assert!(d.shell_mut().reduce_motion());
 }
 
-/// The owner's hands-on test of 0.1.0: a click on Wire marker in the Insert symbol list did nothing. By the pointer:
+/// A click on Wire marker in the Insert symbol list must do something. By the pointer:
 /// a double click on the row arms the Wire marker tool, and on the Interruption point row the Interruption tool.
 #[test]
 fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
@@ -841,7 +841,7 @@ fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0: a right click should cancel whatever is active, as Escape does. With a
+/// A right click cancels whatever is active, as Escape does. With a
 /// symbol floating on the pointer and with a wire being drawn, a right click on the page dismisses one step; back at
 /// the Select tool it opens the page's menu and dismisses nothing.
 #[test]
@@ -898,8 +898,8 @@ fn a_right_click_on_the_page_cancels_the_active_tool() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0: a route should be edited with the mouse, by dots on the sections of a wire that
-/// are dragged. A selected wire shows a handle on each segment and bend, and a drag on a straight wire's line moves
+/// A route is edited with the mouse, by dots on the sections of a wire that are dragged. A selected wire shows a
+/// handle on each segment and bend, and a drag on a straight wire's line moves
 /// it sideways: the ends stay on their connection points, a stub leaves each, the route stays right-angled, and one
 /// undo takes it back.
 #[test]
@@ -1089,7 +1089,7 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     d.shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0 (FT-1634): "a project has a button to add a page but no way to add a
+/// FT-1634: "a project has a button to add a page but no way to add a
 /// section". The Pages panel's New section button opens the form with a number and a hundred of folios proposed;
 /// Create makes the section, which the tree then lists; a right click on a row of the tree offers New page… and
 /// New section…, and the entry opens the form again with the next proposal.
@@ -1201,7 +1201,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     d.shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0 (FT-1652, FT-1640): "important parts such as the terminal strip have no
+/// FT-1652, FT-1640: "important parts such as the terminal strip have no
 /// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
 /// named "Symbols". On the Draw tab, at 1920 × 1080: Terminal opens its own form (FT-1695: strip, kind, how many, from
 /// which number), Marker arms the Wire marker, and Symbol editor opens the editor.

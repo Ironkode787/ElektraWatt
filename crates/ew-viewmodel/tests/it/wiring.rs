@@ -1093,8 +1093,8 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     );
 }
 
-/// A persona run of the third candidate: Tab landed on a handle at the wire's far end, and an arrow that could not move
-/// the handle did nothing without a word. A wire drawn from its right end to its left: the first Tab takes the handle
+/// Tab must not land on a handle at the wire's far end, and an arrow that cannot move the handle must say so. A wire
+/// drawn from its right end to its left: the first Tab takes the handle
 /// at the end a person reads first (the left one), the status line names it (its place and the arrows that move it),
 /// and an arrow along its segment moves nothing and says so in the status line.
 #[test]
@@ -1403,7 +1403,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
         dragged,
         "the same route after a save and a reopen"
     );
-    // The first segment drags too (the owner's hands-on test of 0.1.0: a route is edited with the mouse, on every
+    // The first segment drags too (a route is edited with the mouse, on every
     // section of the wire): its end stays on the connection point with a stub of one grid step, and the wire jogs
     // after it. A press that does not move is a click, which selects.
     done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
@@ -1709,8 +1709,8 @@ fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {
     assert_eq!(canvas(&s)["cursor_nm"], cursor_at, "the grid cursor stays");
 }
 
-/// A persona run: a two-pole breaker placed under a two-pole switch whose poles stand closer together had only one
-/// pole wired. Both poles are now joined, the one out of line by a wire that jogs over halfway, and both wires are
+/// A two-pole breaker placed under a two-pole switch whose poles stand closer together must not have only one pole
+/// wired. Both poles are now joined, the one out of line by a wire that jogs over halfway, and both wires are
 /// routed.
 #[test]
 fn a_two_pole_breaker_under_a_narrower_two_pole_switch_gets_both_poles_wired() {
@@ -1826,7 +1826,7 @@ fn coils_out_of_line(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// Arrange and route's lead counts the wires the person drew that get a new route (§7.3); the heading of their rows
+/// Arrange and route's lead counts the wires the person drew that get a new route (doc 06a §7.3); the heading of their rows
 /// unticks them all at once, which plans again with each kept as it runs (a second pair of coils, wired by the
 /// program, still has a move), and ticks them all again.
 #[test]
@@ -1854,7 +1854,7 @@ fn arrange_counts_the_wires_you_drew_and_unticks_them_all_at_once() {
 }
 
 /// When every row of an Arrange and route card is unticked nothing is left to apply: the card closes and the toast
-/// says that, not that the page is already arranged (§7.3), in both languages.
+/// says that, not that the page is already arranged (doc 06a §7.3), in both languages.
 #[test]
 fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
     let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
@@ -1879,7 +1879,7 @@ fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
 }
 
 /// The undo step of Arrange and route is named "Arrange and route" when symbols moved; Route's, which moves none,
-/// "Route wires" (§7.3), in both languages.
+/// "Route wires" (doc 06a §7.3), in both languages.
 #[test]
 fn the_undo_step_says_arrange_and_route_when_symbols_moved_and_route_wires_when_none_did() {
     let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
@@ -1905,7 +1905,7 @@ fn the_undo_step_says_arrange_and_route_when_symbols_moved_and_route_wires_when_
 }
 
 /// The canvas fitted when Arrange and route opens its card fits the page again once the card is gone and its pane
-/// gives the room back, though the person zoomed in while the card was open (§7.3).
+/// gives the room back, though the person zoomed in while the card was open (doc 06a §7.3).
 #[test]
 fn the_canvas_fits_again_after_the_arrange_preview_closes() {
     let tmp = Tmp::new("ar5");

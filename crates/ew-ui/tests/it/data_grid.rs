@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The data grid of doc 16a §6.21 on the sample's Terminal strips navigator in
-//! table mode. Every key and pointer gesture of §6.21 dispatches the actions it dispatched before the restyle (the log
+//! table mode. Every key and pointer gesture of doc 16a §6.21 dispatches the actions it dispatched before the restyle (the log
 //! `tests/expected/table_keys.txt`, recorded from the as-built grid before the restyle; `EW_BLESS=1` rewrites it).
 //! The accessible-name walker runs after every step (`settle`).
 

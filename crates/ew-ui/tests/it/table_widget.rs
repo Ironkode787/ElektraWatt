@@ -3,7 +3,7 @@
 
 //! The navigators' table widget (acceptance check TB7 and the window half of TB2): the key
 //! column stays at the left while the table scrolls right, a header click sorts, the column chooser hides and orders
-//! columns, every cell has the AccessKit name of §8.1, and the flows of TB2 (a cell edit and fill down, one undo
+//! columns, every cell has its AccessKit name, and the flows of TB2 (a cell edit and fill down, one undo
 //! step), TB3 (pattern fill) and TB4 (paste with an ambiguous number resolved on the card) run from the keyboard and
 //! AccessKit actions alone, without a pointer event. The accessible-name walker runs after every step (`settle`).
 

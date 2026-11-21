@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The cabinet layout of a new project, walked as a panel builder does it (the persona round of the third 0.3.0
-//! candidate: the enclosure made from a schematic page could not be drawn on the layout page afterwards, so the
-//! layout stayed empty). Off a panel layout page the Create enclosure dialog says that it draws nothing there and
+//! The cabinet layout of a new project, walked as a panel builder does it (the enclosure made from a schematic page
+//! is drawn on the layout page afterwards). Off a panel layout page the Create enclosure dialog says that it draws
+//! nothing there and
 //! offers to make the layout page; on the layout page it offers to draw the location's enclosure that exists; then a
 //! rail, a duct, the cabinet's devices placed on the rail, item numbers and a legend.
 

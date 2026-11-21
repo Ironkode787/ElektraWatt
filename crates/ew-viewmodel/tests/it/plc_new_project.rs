@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! PLC work through the shell on a new project with page 101, from persona runs: a click on what is selected already
+//! PLC work through the shell on a new project with page 101: a click on what is selected already
 //! brings Properties back to it, the PLC tab's Bus panel brings an open panel to the front, a terminal on a traced
 //! channel's path prints the channel's address with Project ▸ Channel addresses at terminals, Fix all marks a CPU's
 //! unconnected pins not used in one step, and the PLC panel's Place here (on a channel's row, and ended by a Delete of
@@ -57,8 +57,8 @@ fn black_box(s: &mut ShellModel, number: &str, a: (i64, i64), b: (i64, i64)) {
     }
 }
 
-/// A persona run: Properties stayed on the project while the switch was selected, until he selected something else
-/// first. A click on what is selected already brings Properties back to it.
+/// Properties must not stay on the project while the switch is selected. A click on what is selected already brings
+/// Properties back to it.
 #[test]
 fn a_click_on_the_selection_brings_its_properties_back() {
     let tmp = Tmp::new("rack-first-click");
@@ -84,8 +84,8 @@ fn a_click_on_the_selection_brings_its_properties_back() {
     s.shutdown();
 }
 
-/// A small one of a persona run: the PLC tab's Bus panel closed the panel that stood open behind another tab.
-/// Bus panel brings the panel to the front and the status bar says so.
+/// The PLC tab's Bus panel must not close the panel that stands open behind another tab. Bus panel brings the panel
+/// to the front and the status bar says so.
 #[test]
 fn the_bus_panel_comes_to_the_front() {
     use ew_viewmodel::layout::PaneKind;
@@ -201,7 +201,7 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
     s.shutdown();
 }
 
-/// A persona run: twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
+/// Twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
 /// eight unconnected pins: its group's Fix all (n)… makes one card, one Apply marks them all not used (the toast says
 /// how many, with Undo), the warnings are gone, and one Undo brings them all back.
 #[test]
@@ -297,7 +297,7 @@ fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
     s.shutdown();
 }
 
-/// A persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
+/// A channel of a card no page draws offers its card's Place here, and
 /// its row says "not drawn"; the entry puts the card's box on the pointer.
 #[test]
 fn a_channel_of_an_undrawn_card_offers_place_here() {

@@ -249,8 +249,8 @@ fn a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     assert_eq!(rep_positions(&s), before);
 }
 
-/// The persona round of the second 0.3.0 candidate: Place terminals with How many 4 gave sixteen terminals for four
-/// clicks, and Undo took them away one by one. One click places the four, Select takes over, and Undo and Redo take
+/// Place terminals with How many 4 must not give sixteen terminals for four clicks, nor Undo take them away one by
+/// one. One click places the four, Select takes over, and Undo and Redo take
 /// the row whole.
 #[test]
 fn how_many_places_that_many_once_and_undo_takes_the_row_whole() {

@@ -324,7 +324,7 @@ fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::Rg
     }
 }
 
-/// CB7 (§12.2): the command bar alone, cropped to its frame, light Comfortable. Every tab is shown and drawn; the
+/// CB7: the command bar alone, cropped to its frame, light Comfortable. Every tab is shown and drawn; the
 /// Draw tab keeps a picture, as the look of the bar. What a tab holds is tested as data (every command once, nothing
 /// folds at 1920, one icon per concept), not as a picture that every new button changes.
 #[test]
@@ -1438,7 +1438,7 @@ fn the_join_chooser_in_light() {
         assert_eq!(ch.rows[0].name, "New device");
         assert_eq!((ch.row, ch.rows[1].kind.as_str()), (1, "slot 13-14"));
         assert!(ch.rows.iter().any(|r| r.kind == "auxiliary"), "{:?}", ch.rows);
-        // The active row's object, -K2's coil, has the hover outline (§6.22, §7.1).
+        // The active row's object, -K2's coil, has the hover outline (doc 16a §6.22, §7.1).
         let (coil, _) = rep_at(&h, (90, 40));
         let shell = h.state().shell();
         let c = shell.canvas().unwrap();

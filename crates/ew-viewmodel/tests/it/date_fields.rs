@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's test of 0.3.0-rc.1: the project's Created date asked for YYYY-MM-DD while the project printed
+//! The project's Created date asked for YYYY-MM-DD while the project printed
 //! dd-mm-yyyy. A date is shown and typed in the project's format, in the property grid and in the Title block fields
 //! form; ISO is taken too; a wrong date is refused with an example in that format.
 
@@ -77,7 +77,7 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
 
 const EDITED: &str = "project/master.edited";
 
-/// The owner's test of 0.3.0-rc.1: the edited date is the program's. A new project is created on the session's date;
+/// The edited date is the program's. A new project is created on the session's date;
 /// a save with changes takes the session's date as its edited date, a save without a change keeps it; the row is
 /// read-only and says why.
 #[test]

@@ -533,7 +533,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "revision.incomplete", json!({})));
     h.state_mut().shell_mut().shutdown();
 
-    // This is the census of the creation forms (§5 U2).
+    // This is the census of the creation forms.
     assert_eq!(
         crate::census::form_problems(&checked, &listed),
         Vec::<String>::new(),

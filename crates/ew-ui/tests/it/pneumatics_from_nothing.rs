@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona round's pneumatics from nothing (M3, run m3-p2): a QElectroTech user drew a valve terminal, a cylinder,
+//! Pneumatics from nothing: a QElectroTech user drew a valve terminal, a cylinder,
 //! a supply and three tubes on a new project, by the window's own path (clicks, keys, menus) at 1920 × 1080.
 
 use crate::relays_paste_and_ip_wires::{click, key, new_project, starting_with, typed};
@@ -276,7 +276,7 @@ fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     };
     let (v1, v2) = (fluid_device(&mut d, &q1), fluid_device(&mut d, &q2));
     assert!(drawn(&mut d, v1) && drawn(&mut d, v2), "both valves drawn");
-    // A cylinder and the air supply (the persona's supply was greyed for want of a letter code).
+    // A cylinder and the air supply (the supply is not greyed for want of a letter code).
     place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 800));
     d.input(&click(d.find("Symbol").unwrap()));
     d.settle();
@@ -463,7 +463,7 @@ fn cp_end(d: &mut Driver, device: Uuid, designation: &str) -> serde_json::Value 
     json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
 }
 
-/// The persona's page: a valve at position 1 of a valve terminal drawn as a box around it, a cylinder below, and a tube
+/// A page: a valve at position 1 of a valve terminal drawn as a box around it, a cylinder below, and a tube
 /// from the valve's port 4 to the cylinder's port B stored without a route (as the Wire tool stored it when the box
 /// blocked every route); the tube's ID and the window pixel of the middle of its vertical run below the box.
 fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
@@ -498,7 +498,7 @@ fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
 }
 
 /// P2-F: a click on a dashed (unrouted) tube selected nothing, and a right-click there opened the page's menu. A click
-/// on the line an unrouted tube is drawn with selects it, on the persona's page.
+/// on the line an unrouted tube is drawn with selects it, on that page.
 #[test]
 fn a_click_on_an_unrouted_tube_selects_it() {
     let tmp = Tmp::new();
@@ -507,7 +507,7 @@ fn a_click_on_an_unrouted_tube_selects_it() {
     let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0]
         .polyline
         .clone();
-    // At the persona's zoom, 196 %, centred on the line's longest segment.
+    // At a zoom of 196 %, centred on the line's longest segment.
     let (p, q) = polyline
         .windows(2)
         .map(|w| (w[0], w[1]))
@@ -633,7 +633,7 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
         json!("These two points already sit on one line; click a point of another line, or Esc")
     );
     assert_eq!(state["canvas"]["tool"]["state"], json!("routing"));
-    // From a port to a point of its own tube (the persona's second click landed on the supply tube's line).
+    // From a port to a point of its own tube (a second click lands on the supply tube's line).
     d.input(&key("escape"));
     d.settle();
     let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0]
@@ -776,8 +776,8 @@ fn seat(d: &mut Driver, valve: Uuid) -> (String, bool) {
     (text, chip.contains("child of"))
 }
 
-/// R2-A of the re-test: the persona placed valve symbols into the valve terminal's box from the symbol browser, and the
-/// check said all four positions were empty; the Position row stood under Structure and typing into it did nothing.
+/// R2-A: valve symbols placed into the valve terminal's box from the symbol browser must not leave the check saying
+/// all four positions are empty; the Position row stood under Structure and typing into it did nothing.
 /// A valve placed inside the box is the terminal's valve at the position of the cell it is placed in, with a
 /// toast that names it; its Valve position row stands in Main and moves it; a loose valve dragged into a cell joins it
 /// too.
@@ -1030,7 +1030,7 @@ fn new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     d.shell_mut().shutdown();
 }
 
-/// A persona run (friction 3): Fluid ▸ Air supply opened the symbol browser and the supply placed had no part;
+/// Fluid ▸ Air supply opened the symbol browser and the supply placed had no part;
 /// the part was found only under Draw ▸ Device. Air supply opens the device browser at the air supply's parts, and the
 /// supply placed from it has its part, with no "no part" finding.
 #[test]
@@ -1065,7 +1065,7 @@ fn the_fluid_tabs_air_supply_places_the_part() {
     d.shell_mut().shutdown();
 }
 
-/// A persona run (friction 2): in a project without media the supply's Medium offered a menu with one entry,
+/// In a project without media the supply's Medium offered a menu with one entry,
 /// Edit, then a list with New medium… alone. The row's "…" opens its list at once; the list and the tube's menu offer
 /// the usual media, and choosing one makes it and sets it in one undo step; New medium… stays last.
 #[test]
@@ -1418,8 +1418,8 @@ fn route_page_routes_the_tube_across_a_text_and_says_so() {
     d.shell_mut().shutdown();
 }
 
-/// R2-C, the bend clicks: the persona's clicks on free points while drawing a tube landed on another tube (a tee and a
-/// part tube) and beside the start port (nothing), and nothing said so. The hint line says what a click at the point
+/// R2-C, the bend clicks: clicks on free points while drawing a tube land on another tube (a tee and a part tube) and
+/// beside the start port (nothing), and must not go unsaid. The hint line says what a click at the point
 /// does: a tee on a line, nothing on the start, else a bend.
 #[test]
 fn the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
@@ -1664,7 +1664,7 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     let mut d = fluid_page(&tmp);
     place_plate(&mut d, (1000, 300));
     let plate = device_drawn(&mut d, "ew.iso.valve-supply-plate");
-    // The valve's port 4 straight below the plate's port 5, facing it, as the persona dropped it.
+    // The valve's port 4 straight below the plate's port 5, facing it, as dropped by a person.
     let five = port(&mut d, plate, "5");
     place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 500));
     let valve = device_drawn(&mut d, "ew.iso.valve-5-2");
@@ -1834,7 +1834,7 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
     d.shell_mut().shutdown();
 }
 
-/// A persona run (friction 7): the terminal tool took a first and a second click, each made a terminal, the two
+/// The terminal tool took a first and a second click, each made a terminal, the two
 /// tags overprinted and nothing was said. Armed, the hint says a click places it; one click places one terminal, the
 /// tool ends and the toast says what was placed; a terminal clicked onto another is refused in words.
 #[test]
@@ -2054,7 +2054,7 @@ fn place_multipin(d: &mut Driver, a: (i64, i64)) -> String {
         .expect("the terminal's row")
 }
 
-/// A persona run (friction 10, 11): the multipin terminal's plug could be drawn only from the Devices tree's row
+/// The multipin terminal's plug could be drawn only from the Devices tree's row
 /// while an electrical page was open; neither the terminal's menu on the fluid page nor the Fluid tab offered it. From
 /// the fluid page the terminal's menu, its Properties row and the Fluid tab draw it as a valve's solenoid is drawn: the
 /// electrical page shows with the plug's box on the pointer; placed, the menu and the row say where it is.
@@ -2476,7 +2476,7 @@ fn a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
     d.shell_mut().shutdown();
 }
 
-/// A persona run (friction 8, 9) and the tutorials lane: a right click on the multipin terminal's body offered no
+/// A right click on the multipin terminal's body offered no
 /// position (only one exactly in a cell did), its kind's line looked like a command with a key and did nothing, the
 /// browser of an empty cell listed hand-operated valves that fit no position, and a valve's "No medium" line had a key
 /// too. On the body the menu lists every position under a heading, the same for both kinds; the kind's line is a

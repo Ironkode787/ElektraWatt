@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's hands-on test of 0.1.0 by the window's own path (clicks and keys): the device browser opens by its
+//! The window's own path (clicks and keys): the device browser opens by its
 //! button, a category of its tree lists that category alone, a double click on a part places it (FT-1636); the browser
 //! and every other floating overlay close by their close button and by a click beside them (FT-1635).
 
@@ -218,8 +218,8 @@ fn browser_rows(d: &mut Driver) -> (Vec<String>, Vec<Node>) {
     (rows, p.nodes.into_iter().map(|(n, _)| n).collect())
 }
 
-/// The device browser's rows stay where they were once a part is used (the persona's second click hit the row that
-/// had moved into the used part's place): a placed relay keeps its row. The tree has In this project once the project
+/// The device browser's rows stay where they were once a part is used (a click must not hit a row that moved into the
+/// used part's place): a placed relay keeps its row. The tree has In this project once the project
 /// holds a part, and not before (the owner read the library's groups as part of it); the rest stays.
 #[test]
 fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona round of the third 0.3.0 candidate: dragging the part number of a drawn power supply's box, with
+//! Dragging the part number of a drawn power supply's box, with
 //! nothing selected, moved the whole box. The text under the pointer is dragged by itself; the box stays.
 
 use crate::common;

@@ -73,7 +73,7 @@ fn near(a: f32, b: f32, tolerance: f32) -> bool {
     (a - b).abs() <= tolerance
 }
 
-/// DK8 (with G5 to G10 of §12.0): the rails, the rail buttons, the left column, the canvas share, the 50 : 50 split of
+/// DK8 (with G5 to G10): the rails, the rail buttons, the left column, the canvas share, the 50 : 50 split of
 /// the column, the status bar and the property label column at 1920 by 1080; the first five rail entries in the
 /// mockup's order with History at the foot; the Project entry's segmented control.
 #[test]

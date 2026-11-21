@@ -117,7 +117,7 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let tmp = Tmp::new("ps7");
     let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let on = |b: &str| (b.to_owned(), true, None);
-    // The enclosure and the plate stand where the layout tools are (the persona found them by the search only).
+    // The enclosure and the plate stand where the layout tools are (not by the search only).
     assert_eq!(
         layout_group(&s),
         [on("Enclosure"), on("Auto-fill rail"), on("Rail"), on("Duct")]
@@ -463,7 +463,7 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
     s.shutdown();
 }
 
-/// The persona round of the second 0.3.0 candidate: on an empty layout page the bar said only that the page takes no
+/// On an empty layout page the bar said only that the page takes no
 /// symbols, and the enclosure and the plate were found by the command search. The empty page names its first step,
 /// Plate waits for an enclosure with its reason, and once there is one it opens the page's choice of plates.
 #[test]
@@ -655,8 +655,8 @@ fn unplace(s: &mut ShellModel, tags: &[&str]) {
     }
 }
 
-/// The persona round of the second 0.3.0 candidate: "Nothing was placed on rail 1: no device to place" did not say
-/// why. On 902 with the unplaced devices' location taken away, Auto-fill rail's dialog says that no device has the
+/// "Nothing was placed on rail 1: no device to place" must say why. On 902 with the unplaced devices' location taken
+/// away, Auto-fill rail's dialog says that no device has the
 /// cabinet's location and how many have none, and its button gives them the cabinet's location (one undo step) and
 /// fills the rail.
 #[test]
@@ -708,8 +708,8 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     s.shutdown();
 }
 
-/// A longer persona round of the second 0.3.0 candidate gave fifteen devices their cabinet one by one: a click on the
-/// group "(none)" did nothing. Location… on the group in the Devices list gives every device in it the location, in
+/// Fifteen devices need not be given their cabinet one by one: a click on the group "(none)" must do something.
+/// Location… on the group in the Devices list gives every device in it the location, in
 /// one undo step, and the group's menu offers it.
 #[test]
 fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
@@ -1125,7 +1125,7 @@ fn the_draw_tools_texts_read_whole() {
     assert_eq!(overlay_labels(&s), ["570 mm"]);
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));
-    // How the duct ends, from the first click on (the persona pressed Esc after two points).
+    // How the duct ends, from the first click on (Esc pressed after two points).
     assert_eq!(
         s.tool_hint(),
         "Click the duct's first point, then each next point; a double click or Enter finishes; Esc cancels"

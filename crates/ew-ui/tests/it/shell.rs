@@ -544,7 +544,7 @@ fn a_small_dialog_is_as_wide_as_its_buttons() {
     );
 }
 
-/// The owner's test of 0.3.0-rc.1 (F4): Help ▸ Tutorials with a project open asks no folder and keeps the project:
+/// Help ▸ Tutorials with a project open asks no folder and keeps the project:
 /// the practice project is handed to the platform to open in a second window of the program, and the guide's page
 /// opens at once.
 #[test]

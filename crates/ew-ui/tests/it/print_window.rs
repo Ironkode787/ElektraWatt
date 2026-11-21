@@ -229,7 +229,7 @@ fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
 }
 
 /// Doc 16a §6.12: the pre-dialog's first focus is its Primary, Print…, once the set is built. Doc 16a
-/// §6.1, §6.12: that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
+/// Doc 16a §6.1, §6.12: that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
 #[test]
 fn the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();

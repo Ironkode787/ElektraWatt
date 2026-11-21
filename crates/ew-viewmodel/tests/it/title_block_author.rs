@@ -3,8 +3,8 @@
 
 //! The Title block fields form never applies half: in a session that may not name a
 //! revision's author (a script; `revision.set_author` is a person's step at the window), the form leaves Author out
-//! and says why under its fields before Apply; Apply then applies everything the form holds. A project made as the
-//! persona made it: from the company standard, page 101, its open revision naming no author.
+//! and says why under its fields before Apply; Apply then applies everything the form holds. A project made from the
+//! company standard, page 101, its open revision naming no author.
 
 use crate::common;
 
@@ -55,7 +55,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
     assert!(s.dialog().is_none(), "{:?}", s.dialog());
 }
 
-/// The designer as a persona run looked for him: Project properties have a plain row per person the title block can
+/// The designer: Project properties have a plain row per person the title block can
 /// print (Designer, Checker, Customer…) instead of a raw list; the designer typed there prints in the new project's
 /// Author cell while no revision names its author; and Title block fields… says which cell prints each field.
 #[test]

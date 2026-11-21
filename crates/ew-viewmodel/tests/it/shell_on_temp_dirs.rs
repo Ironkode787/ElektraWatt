@@ -1439,7 +1439,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
 }
 
 /// Create without a folder makes the template in a folder of its own, named after it, in the user's templates folder;
-/// a second template of that name gets a number rather than a refusal (a persona run's Create met a full folder);
+/// a second template of that name gets a number rather than a refusal;
 /// Choose another folder… moves it; without a projects folder a script needs the folder and the window asks for it.
 #[test]
 fn the_wizard_makes_a_template_in_a_folder_of_its_own() {
@@ -2831,8 +2831,8 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     shell.shutdown();
 }
 
-/// The owner's test of 0.3.0-rc.1 (F4): a tutorial asked for a folder and closed the open project before its page
-/// opened. Now its page opens at once; the practice project is made without a question in a new numbered folder
+/// A tutorial does not ask for a folder or close the open project before its page opens: its page opens at once; the
+/// practice project is made without a question in a new numbered folder
 /// under Tutorials of the projects folder; the open project stays open and the practice project waits for a second
 /// window; a toast says where it is and offers Show in folder.
 #[test]

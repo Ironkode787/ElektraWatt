@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A play-tester's terminals had no part: Terminal…'s form gave none, so Check project reported every terminal as a
+//! Terminals without a part: Terminal…'s form gave none, so Check project reported every terminal as a
 //! device without a part (EW-CORE-041), and a terminal's menu had no Choose part…. Each test by the pointer and the
 //! keys in the window at 1920 by 1080, on folio 103 of a copy of the sample with a new strip: the form proposes the part
 //! of its kind, a terminal's menu chooses the part of the selected terminals, a strip's row chooses it for its

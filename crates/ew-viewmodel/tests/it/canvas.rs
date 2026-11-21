@@ -621,7 +621,7 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
     shell.shutdown();
 }
 
-/// A persona run (friction 4): the wheel zoomed to 1131 % and nothing said how to pan or get back. The status
+/// The wheel zoomed to 1131 % and nothing said how to pan or get back. The status
 /// bar's zoom says in its tooltip how to move about, as the wheel is set; the first zoom far in says once how the
 /// whole page shows again.
 #[test]

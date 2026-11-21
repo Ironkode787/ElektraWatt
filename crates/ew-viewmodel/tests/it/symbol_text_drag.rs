@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A symbol's text moved on its own on a schematic page (doc 06 §2.5; a known limit of the first 0.3.0 candidate: a
-//! text could not be moved without its symbol), through the shell on a temporary copy of the sample: with the symbol
+//! A symbol's text moved on its own on a schematic page (doc 06 §2.5), through the shell on a temporary copy of the
+//! sample: with the symbol
 //! selected its tag drags alone on the fine grid, the Rotate key turns it while it is dragged, Undo takes the move
 //! back, its menu hides a text, and Put the text back puts the texts back.
 

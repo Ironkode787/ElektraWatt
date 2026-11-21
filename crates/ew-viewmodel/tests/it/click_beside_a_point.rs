@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1800, a persona run: a click a few pixels beside a pin or a port became a free point without a word: a start
+//! FT-1800: a click a few pixels beside a pin or a port became a free point without a word: a start
 //! that took nothing, a bend beside the port, and a tube that then ended on the next port clicked. With the Wire tool
 //! and the Tube tool a click within ten screen points of a connection point takes it at every zoom, and a click that
 //! leaves a free point right beside one says so at once in the status line.

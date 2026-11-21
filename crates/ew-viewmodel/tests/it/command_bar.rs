@@ -467,7 +467,7 @@ fn the_draw_tab_names_renumber_devices_and_offers_route_beside_wire() {
     s.shutdown();
 }
 
-/// The owner's test of 0.3.0-rc.1 (F25): Report, which puts a report block on a page, has a button on the Page tab
+/// Report, which puts a report block on a page, has a button on the Page tab
 /// beside New page, and keeps its place on the Output tab where every list page is made; the app menu lists it once.
 #[test]
 fn report_stands_on_the_page_tab_and_on_the_output_tab() {

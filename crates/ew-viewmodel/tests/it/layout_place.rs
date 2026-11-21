@@ -471,7 +471,7 @@ fn a_device_pushed_onto_rail_1_by_a_drag() {
     shell.shutdown();
 }
 
-/// The persona round of the second 0.3.0 candidate: "The drop is refused; nothing changed" told nothing. A refused drop
+/// "The drop is refused; nothing changed" tells nothing. A refused drop
 /// names its reason and the way in the bar: -101F1 dragged by Select off its rail onto the plate moves along a rail
 /// only (the refusals of a device's drop: `refused_drops_and_a_plate_placement`).
 #[test]

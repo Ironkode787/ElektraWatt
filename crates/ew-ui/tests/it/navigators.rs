@@ -81,7 +81,7 @@ pub(crate) fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
         + egui::vec2(12.0, 0.0)
 }
 
-/// NV5 in the window (FR-UI-007, D16; §6.5, §6.8): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
+/// NV5 in the window (FR-UI-007, D16): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
 /// are tree items named `<label>, <role>[, <badges>]`; a click on the valve terminal -201K1 with 102 shown keeps 102,
 /// selects the device and shows the chips of its representations as buttons: `Go to page 201, E2` (its box, placed at
 /// E2, the main one first), `Go to page 105, C9` (its bus port, drawn there from C9) and its supply ports under the box;
@@ -216,7 +216,7 @@ fn dragging_104_before_103_opens_the_card_and_apply_commits() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// NV9 (§6.7): a device made by `command.run` (`device.create` with a main FnDef, so its function has no
+/// NV9: a device made by `command.run` (`device.create` with a main FnDef, so its function has no
 /// representation) shows its function row with the badge `unplaced`; dragging the row onto the canvas of folio 102
 /// arms the Place tool with that function (`place.pick {function}`).
 #[test]
@@ -409,7 +409,7 @@ fn f2_renames_a_potential_and_delete_opens_the_card() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// NV4 and NV11 in the window (§9 item 4, §11): the Devices pane paints at most the rows in view plus two; opening it
+/// NV4 and NV11 in the window: the Devices pane paints at most the rows in view plus two; opening it
 /// makes one `navigator_table` call; scrolling makes none and builds no rows.
 #[test]
 fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {

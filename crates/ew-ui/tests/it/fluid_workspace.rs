@@ -287,7 +287,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1733, rc.2: Fluid ▸ Tube draws at once; the HUD's Line kind steps to Pilot, and the Wire tool then draws a
+/// FT-1733: Fluid ▸ Tube draws at once; the HUD's Line kind steps to Pilot, and the Wire tool then draws a
 /// pilot line between two free fluid ports of fluid page 201.
 #[test]
 fn the_tube_tools_line_kind_draws_a_pilot_line() {

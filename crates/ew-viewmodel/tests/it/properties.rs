@@ -582,7 +582,7 @@ fn json_of(shell: &ShellModel, key: &str) -> Value {
     }
 }
 
-/// §6.5: a multi-language text edits its source language's text inside the object and keeps the other languages;
+/// A multi-language text edits its source language's text inside the object and keeps the other languages;
 /// an untouched editor commits nothing (the display text `Hallo [+1]` is never written back).
 #[test]
 fn a_multilingual_text_keeps_its_other_languages() {
@@ -632,7 +632,7 @@ fn a_multilingual_text_keeps_its_other_languages() {
 }
 
 /// Enter on an untouched part row (display text `<part number> (<manufacturer>)`) writes nothing; the choice editors
-/// list their options and pick by the keyboard (§6.5).
+/// list their options and pick by the keyboard.
 #[test]
 fn choice_editors_list_options_and_untouched_rows_write_nothing() {
     let tmp = Tmp::new("props-options");
@@ -690,7 +690,7 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
     shell.shutdown();
 }
 
-/// §6.3, §6.8: a read-only project's rows offer no action; `props.set` is refused.
+/// A read-only project's rows offer no action; `props.set` is refused.
 #[test]
 fn a_read_only_project_offers_no_action() {
     let tmp = Tmp::new("props-ro");
@@ -1249,8 +1249,8 @@ fn a_representations_position_reads_in_millimetres_with_its_cell() {
 const NARROWED: &str =
     "This row cannot be edited: stays on its page; delete it and place it on the other page.";
 
-/// A persona run of the third 0.3.0 candidate: the project's Control voltage looked like a row to type in and answered
-/// "No command edits this row yet". It takes a voltage now (and Rated consumption a current), another unit and a
+/// The project's Control voltage is a row to type in, not one answering "No command edits this row yet". It takes a
+/// voltage now (and Rated consumption a current), another unit and a
 /// text without one refused in words.
 #[test]
 fn the_projects_control_voltage_takes_a_voltage() {

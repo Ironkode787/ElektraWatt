@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties explains itself (the owner's hands-on test of 0.1.0, FT-1648 to FT-1651), through the window: a
+//! Properties explains itself (FT-1648 to FT-1651), through the window: a
 //! category folded by a click on its header and by Enter on it; a row's explanation in the tooltip of its label; a
 //! connection point marked not used from its row and from the page's right-click menu; a wire's potential, its
 //! voltage set from the wire, and the source of a derived colour.

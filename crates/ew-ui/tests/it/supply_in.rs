@@ -264,7 +264,7 @@ fn supply_points_that_stand_together_print_their_place_once() {
     d.settle();
     let texts = crate::own_parts::page_texts(&mut d);
     assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
-    // An empty place is refused in the window's language (rc.3 review: it was English in a Dutch window).
+    // An empty place is refused in the window's language.
     assert!(ew_viewmodel::strings::set_locale("nl"));
     let refused = d
         .shell_mut()
@@ -498,7 +498,7 @@ fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
     d.shell_mut().shutdown();
 }
 
-/// rc.5 (two personas could not find where the mains comes in): Supply on the Draw tab asks what comes in, the marks
+/// Supply on the Draw tab asks what comes in, the marks
 /// float as one group, and the click places them as supply marks from the place typed, one under the other, in one
 /// undo step; their Potential panel opens with a row per mark.
 #[test]
@@ -563,7 +563,7 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     d.shell_mut().shutdown();
 }
 
-/// rc.5 (two runs read "Own names (for Own)" and did not know what to do with it): the names field comes with Own,
+/// The names field comes with Own,
 /// in plain words, and goes with another choice.
 #[test]
 fn the_supply_forms_names_field_comes_with_own() {
@@ -587,7 +587,7 @@ fn the_supply_forms_names_field_comes_with_own() {
     d.shell_mut().shutdown();
 }
 
-/// rc.5 (a first-timer's L1, N, PE side by side): marks of one group that stand in a row each print where they come
+/// Marks of one group that stand in a row each print where they come
 /// from; before, the middle one printed nothing and seemed to come from nowhere. The Potential panel lists 0 V near
 /// the top, where a person finds it without scrolling.
 #[test]

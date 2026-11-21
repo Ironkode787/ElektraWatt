@@ -154,7 +154,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
     fresh.shutdown();
 }
 
-/// §6 item 4 (BD5; the window host reads the same cache): the first `page.describe` of a folio makes one `page_tables`
+/// BD5 (the window host reads the same cache): the first `page.describe` of a folio makes one `page_tables`
 /// call with the page content that carries it, a second makes none, and neither moves a memo counter after the first. On
 /// folio 104: on 102 and 103, which draw -102Q1's coil and contacts, a second description moves the memo totals (a
 /// fault, reported with this step).

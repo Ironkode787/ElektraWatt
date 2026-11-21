@@ -71,7 +71,7 @@ fn f1_in_a_dialog_opens_its_section() {
     shell.shutdown();
 }
 
-/// The owner's test of 0.3.0-rc.1 (F5): the guides were found only by scouring the help pages. F1 leads to the guide
+/// F1 leads to the guide
 /// of the thing in front: the PLC panel and the PLC tab to the PLC guide, the Bus panel and a bus-topology page to its
 /// bus part, the Fluid panel, a fluid page and the Fluid tab to the fluid guide, a panel layout page to the panel
 /// layout guide, the part editor to "your own parts"; the guide buttons of the tabs open the same pages.
@@ -149,8 +149,8 @@ fn help_guides_lists_the_how_to_guides_and_opens_one() {
     shell.shutdown();
 }
 
-/// The persona runs of the third 0.3.0 candidate: F1 in the symbol editor opened its general page whatever was in
-/// front. The start card, a selected shape and a selected connection point open their own places; the bar's buttons
+/// F1 in the symbol editor does not open its general page whatever is in front. The start card, a selected shape and
+/// a selected connection point open their own places; the bar's buttons
 /// open theirs (Highlight its own section, not the panels page).
 #[test]
 fn f1_opens_the_own_place_of_the_editors_parts_and_the_bars_buttons() {

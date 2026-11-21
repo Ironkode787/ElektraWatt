@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Preview tab, the renumber dialogs, the history panel and
-//! context restore, the GUI purge step and the exact counts of §9 item 5. Every test works on a copy of the
+//! context restore, the GUI purge step and the exact counts. Every test works on a copy of the
 //! sample or on a new project.
 
 use crate::common;
@@ -663,7 +663,7 @@ fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
 }
 
 /// PV5: the markers of an export and a save sit after the entry of their revision, newest first; the panel fetches
-/// one view per revision while open and none while closed (§9 item 5); moving its cursor calls nothing.
+/// one view per revision while open and none while closed; moving its cursor calls nothing.
 #[test]
 fn markers_sit_at_their_revisions_and_the_counts_are_exact() {
     let tmp = Tmp::new("pv5-markers");

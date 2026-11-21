@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A layout page that can be read (the owner's finding of the first 0.3.0 candidate: at 1:10 the tags ran into each
-//! other; he asked for numbers, a table beside the layout and labels that move), through the shell on temporary copies
+//! A layout page that can be read (at 1:10 the tags must not run into each other: numbers, a table beside the layout
+//! and labels that move), through the shell on temporary copies
 //! of the sample: a balloon off its device drags alone and the device's menu puts it back; a new layout page at 1:10
 //! shows item numbers, gets its legend (with the description) and prints its tags without the cabinet's location; Add
 //! legend is refused where the page holds one.
@@ -131,7 +131,7 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     shell.shutdown();
 }
 
-/// The persona round of the second 0.3.0 candidate: two clicks and three drags on an item number only selected its
+/// Two clicks and three drags on an item number only selected its
 /// device, and the menu had no Reset. With its placement selected, a balloon inside the footprint drags alone (its
 /// handle shows, the device stays); the placement's menu offers Reset label position greyed with its reason until the
 /// label moved, and the page's menu puts every moved label back in one undo step.
@@ -252,7 +252,7 @@ fn new_layout_page(shell: &mut ShellModel) {
     );
 }
 
-/// The persona round of the second 0.3.0 candidate: the legend Add legend made stood over the frame's column ruler
+/// The legend Add legend made stood over the frame's column ruler
 /// as a narrow strip with every cell cut, and could not be clicked. The legend of a new layout page lies inside the
 /// frame's drawing area, is one table across its block, prints every position and every tag whole, and can be
 /// selected, dragged and resized by a corner, each one undo step.
@@ -326,7 +326,7 @@ fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     shell.shutdown();
 }
 
-/// The persona round of the second 0.3.0 candidate: at 1:5 nine small devices printed their tags over each other. A
+/// At 1:5 nine small devices printed their tags over each other. A
 /// new layout view looks at whether the tags of the placements fit their footprints, not only at the scale: the
 /// sample's terminals are about a millimetre wide at 1:5, so the view starts with item numbers.
 #[test]
@@ -398,7 +398,7 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
     shell.shutdown();
 }
 
-/// The persona round of the second 0.3.0 candidate found the Labels choice only far down the page's Properties. The
+/// The Labels choice is not found only far down the page's Properties. The
 /// layout page's menu offers Labels: Tags, Item numbers and Both, the current one checked, each one undo step; a
 /// legend added beside tags offers to show the item numbers it lists.
 #[test]

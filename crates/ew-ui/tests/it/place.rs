@@ -323,7 +323,7 @@ fn a_double_click_with_the_wire_tool_is_its_finish() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run of the third 0.3.0 candidate: in a project without terminal strips, a PE terminal chosen in the
+/// In a project without terminal strips, a PE terminal chosen in the
 /// device browser, Place and a click on the page left nothing and said nothing (the empty strip chooser that had
 /// opened took the click). The terminal now goes on a new strip made for it: Place arms it and the click places it.
 #[test]

@@ -301,7 +301,7 @@ fn a_coils_menu_adds_a_contact_and_a_contacts_menu_goes_to_the_coil() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's test of 0.3.0-rc.1: a click selects a coil and a right click on it, the pointer not moved between, gives
+/// A click selects a coil and a right click on it, the pointer not moved between, gives
 /// the coil's menu (its free contacts) and keeps it selected, not the page's menu (the click had cleared the hover the
 /// menu read).
 #[test]

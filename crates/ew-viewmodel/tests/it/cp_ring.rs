@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona runs of the third 0.3.0 candidate: with the page fitted to the window a connection point is one or two
+//! With the page fitted to the window a connection point is one or two
 //! pixels, and wiring meant zooming in. With Select, a connection point within a few screen points of the pointer
 //! shows its ring and the bar says how a wire starts there; with Wire, the click there starts the wire at that point.
 

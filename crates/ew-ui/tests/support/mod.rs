@@ -342,7 +342,7 @@ pub fn surface_name(harness: &Harness<'_, App>) -> String {
 /// (R2) a check box, switch or radio button its toggled state; (R3) a combo box, a node with a pop-up or a tree item
 /// with children its expanded state; (R4) an option, tab, row or tree item of a selectable container its selected
 /// state; (R5) a text input or spin button a value (empty allowed). Read-only text is no input. Every failing node
-/// is a line (§5 U1), so one run shows them all. R6 needs the action registry: [`availability_problems`].
+/// is a line, so one run shows them all. R6 needs the action registry: [`availability_problems`].
 pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec<String> {
     use egui::accesskit::Role;
     let mut problems = Vec::new();
@@ -411,7 +411,7 @@ pub fn accessibility_problems<S>(harness: &Harness<'_, S>, surface: &str) -> Vec
 }
 
 /// R6 of the walker: a command-bar button or an entry of the open app menu whose action the registry reports
-/// unavailable is shown disabled, not enabled (§5 U1).
+/// unavailable is shown disabled, not enabled.
 pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<String> {
     use egui::accesskit::Role;
     use ew_viewmodel::{actions, command_bar};

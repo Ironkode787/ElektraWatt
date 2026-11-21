@@ -801,7 +801,7 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     );
 }
 
-/// A persona run: a box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
+/// A box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
 /// says so; the box is unchanged.
 #[test]
 fn add_pin_on_a_part_s_box_opens_its_device_box() {
@@ -834,7 +834,7 @@ fn pin_names(s: &ShellModel, rep: ew_api::output::Uuid) -> Vec<String> {
         .collect()
 }
 
-/// rc.5 persona runs (a plain box could not get pins): a box drawn without a part takes pins where it stands. Add pin
+/// A box drawn without a part takes pins where it stands. Add pin
 /// at a point puts a pin on the edge nearest it and asks its name; Tab takes it and asks for the next on the same side;
 /// a double click on a pin renames it; Remove pin takes it away while no wire holds it; a wire drawn to the box's edge
 /// where no pin is asks for a pin there and ends at it. Each is one undo step.
@@ -1128,8 +1128,7 @@ fn g1_box(s: &ShellModel, rep: ew_api::output::Uuid) -> ew_api::output::TableBox
         .unwrap()
 }
 
-/// A persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the
-/// corner): a pin dragged along its side towards a corner stays on its side, one step clear of the corner, on a point
+/// A pin dragged along its side towards a corner stays on its side, one step clear of the corner, on a point
 /// no other pin holds; dragged onto a point another pin holds, it stays where it was.
 #[test]
 fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
@@ -1169,7 +1168,7 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     assert_eq!(unique.len(), pts.len(), "no two pins on one point: {pts:?}");
 }
 
-/// rc.5 (the height of a box collapsed through its pin texts): the sample's power supply -101G1 has pins on its top
+/// The sample's power supply -101G1 has pins on its top
 /// and bottom sides whose texts are turned a quarter and reach into the box; its bottom edge dragged up stops where
 /// the longest top text and the longest bottom text would meet, the status line says why, and the box is no lower
 /// than that.
@@ -1511,7 +1510,7 @@ fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
     assert!(!band, "the hover draws no band");
 }
 
-/// rc.5 (the complete-cabinet persona): a potential could not be named where a device's pins touch terminals and no
+/// A potential could not be named where a device's pins touch terminals and no
 /// wire is there to select. A device's right-click at a pin offers Define potential at that pin…: it opens the form for
 /// that pin, and the name typed defines the potential there.
 #[test]

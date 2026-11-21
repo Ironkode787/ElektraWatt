@@ -741,7 +741,7 @@ fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
     );
 }
 
-/// A persona run, entry 17: a coil dropped far under a switch (beyond the short run) is not wired to it by itself;
+/// A coil dropped far under a switch (beyond the short run) is not wired to it by itself;
 /// the toast offers the wire with Connect, which draws it in a step of its own.
 #[test]
 fn a_far_pin_is_offered_not_wired() {

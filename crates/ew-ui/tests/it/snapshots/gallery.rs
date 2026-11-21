@@ -232,7 +232,7 @@ fn toast(ui: &mut Ui, t: &Tokens) {
 }
 
 fn severities(ui: &mut Ui, t: &Tokens) {
-    // Severity reads without colour: each row has its word next to its colour (§4.5).
+    // Severity reads without colour: each row has its word next to its colour (doc 16a §4.5).
     ui.horizontal(|ui| {
         for (word, colour) in [("error", t.error), ("warning", t.warning_icon), ("info", t.info)] {
             let (rect, _) = ui.allocate_exact_size(Vec2::splat(t.size_severity_icon), Sense::hover());

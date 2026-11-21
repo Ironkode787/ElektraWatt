@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.2, F26 and F27: New medium… suggests what to type, and the fluid and automation forms say what each field
+//! New medium… suggests what to type, and the fluid and automation forms say what each field
 //! changes.
 
 use crate::common;

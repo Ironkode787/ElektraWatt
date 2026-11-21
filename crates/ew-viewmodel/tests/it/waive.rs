@@ -438,7 +438,7 @@ fn a_scripted_window_shows_the_waive_refusal_in_words() {
     shell.shutdown();
 }
 
-/// The persona round of M3: a right-click on a finding's row did nothing. A finding's row offers its quick fix, where
+/// A right-click on a finding's row does something. A finding's row offers its quick fix, where
 /// it has one, and Waive…; a waived one offers Unwaive.
 #[test]
 fn a_findings_row_menu_offers_its_fix_and_waive() {

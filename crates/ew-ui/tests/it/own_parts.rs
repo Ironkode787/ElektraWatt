@@ -574,7 +574,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     fill(d, "Supply L+ pin", "L+");
     fill(d, "Supply M pin", "M");
     fill(d, "Most modules", "32");
-    // The form keeps its height and scrolls (the persona run m3-p4): the bus interfaces are below the fold.
+    // The form keeps its height and scrolls: the bus interfaces are below the fold.
     d.input(&ew_ui::visual::Input::Scroll {
         at: (960, 600),
         dx: 0,

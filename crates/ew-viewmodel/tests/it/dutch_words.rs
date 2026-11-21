@@ -1064,7 +1064,7 @@ fn every_report_kind_has_its_words_in_both_locales() {
         .iter()
         .map(|k| format!("report-kind-{}", k.replace('_', "-")))
         .collect();
-    // What gives a block of a page kind its rows, said when it makes no page yet (persona round 3).
+    // What gives a block of a page kind its rows, said when it makes no page yet.
     wanted.extend(
         ew_api::output::page_report_kinds()
             .iter()

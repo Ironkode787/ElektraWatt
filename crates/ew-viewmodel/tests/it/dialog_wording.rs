@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Headless: every dialog specification has exactly one Primary that is never destructive
-//! and a title that ends with "?" exactly when it asks; the wording lint of §8 item 8 over the registry labels,
+//! and a title that ends with "?" exactly when it asks; the wording lint of doc 16a §8 over the registry labels,
 //! the dialog specifications and the UI strings; the palette lists no action it cannot run from the window and
 //! gives each result its breadcrumb; the outcome words.
 
@@ -155,7 +155,7 @@ fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark(
         // Every dialog has a way out: a button that cancels (Escape does the same, `ui.dismiss`).
         assert!(s.buttons().iter().any(|b| b.cancels()), "{}: no way out", s.title);
     }
-    // The quit prompt and the recovery dialog read as specified (§8 item 1).
+    // The quit prompt and the recovery dialog read as specified.
     let quit = spec(&dialogs[3], &shell);
     assert_eq!(quit.title, "Save changes to sample.ew before closing?");
     let labels: Vec<&str> = quit.buttons().iter().map(|b| b.label.as_str()).collect();
@@ -176,7 +176,7 @@ fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark(
     shell.shutdown();
 }
 
-/// The proper nouns, codes and acronyms that keep their case inside a sentence-case text (§8 item 8, doc 16a §8).
+/// The proper nouns, codes and acronyms that keep their case inside a sentence-case text (doc 16a §8).
 const PROPER: &[&str] = &[
     "PDF",
     "QET",

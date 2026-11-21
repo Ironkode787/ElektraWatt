@@ -5,7 +5,7 @@
 //! Enter on EF-08 (EW-CORE-033 of the supply cable -101W1, made to lack its length) opening -101W1;
 //! the pending rule of FR-UI-041 (a new unpaired interruption point on 101, the tab switch, Run checks, a conflict
 //! that is never pending); the quick fix of EW-CORE-023 as a previewed card with one undo step; F8 and Shift+F8; F1 on
-//! a finding; the exact counts of §7.5.
+//! a finding; the exact counts.
 
 use crate::common;
 use ew_viewmodel::key;

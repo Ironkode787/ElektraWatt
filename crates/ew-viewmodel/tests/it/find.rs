@@ -208,7 +208,7 @@ fn regex_technical_value_and_library_copy() {
     shell.shutdown();
 }
 
-/// FR5 (§7.5): Freeze on three devices of folio 102 is one `fields.set_many` through the card (rule 2); each tag then
+/// FR5: Freeze on three devices of folio 102 is one `fields.set_many` through the card (rule 2); each tag then
 /// reads Frozen with its own text.
 #[test]
 fn freeze_on_three_devices_is_one_set_many_through_the_card() {
@@ -268,7 +268,7 @@ fn freeze_on_three_devices_is_one_set_many_through_the_card() {
     shell.shutdown();
 }
 
-/// PG7 (§7.4): a stale replace card runs the search again with the same query, rebuilds the command and shows a fresh
+/// PG7: a stale replace card runs the search again with the same query, rebuilds the command and shows a fresh
 /// card that needs a second Apply, saying how many hits changed.
 #[test]
 fn a_stale_replace_card_runs_the_search_again() {
@@ -303,7 +303,7 @@ fn a_stale_replace_card_runs_the_search_again() {
     shell.shutdown();
 }
 
-/// §7.3, §9 item 4: typing and toggles make no `Session` call, `find.run` exactly one find call; the cursor moves
+/// Typing and toggles make no `Session` call, `find.run` exactly one find call; the cursor moves
 /// without calls; the jump selects the record and shows its page with the pane keeping the focus; Escape closes the
 /// card first, then gives the focus back to the canvas; errors show in the pane.
 #[test]
@@ -415,7 +415,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     shell.shutdown();
 }
 
-/// FR6: the describe lines of §7.6; Escape on a replace card closes it.
+/// FR6: the describe lines of the find pane; Escape on a replace card closes it.
 #[test]
 fn fr6_describe_lines() {
     let tmp = Tmp::new("find-fr6");

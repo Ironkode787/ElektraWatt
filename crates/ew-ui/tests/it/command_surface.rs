@@ -201,7 +201,7 @@ fn the_command_surface_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 16a §5.5 as rc.3 builds it: the HUD floats over the canvas, nothing but its own pill behind it, so the drawing
+/// Doc 16a §5.5: the HUD floats over the canvas, nothing but its own pill behind it, so the drawing
 /// shows up to its edge: on the sample's 101 at 1920 by 1080 the canvas runs under the HUD to the page view's foot; after a
 /// fit the sheet lies whole in the canvas.
 #[test]
@@ -568,7 +568,7 @@ fn view_show_switches_show_only_their_check() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0 (FT-1639): "the bar on the page shows buttons beside the active tool that
+/// FT-1639: "the bar on the page shows buttons beside the active tool that
 /// cannot be reached, since the bar moves away as the pointer comes near". The HUD stays where it is while the
 /// pointer comes to it, and a click on its Wire button arms the Wire tool.
 #[test]

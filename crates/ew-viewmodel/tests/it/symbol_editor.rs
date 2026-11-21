@@ -1988,7 +1988,7 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     shell.shutdown();
 }
 
-/// The owner's test of 0.3.0-rc.1 (F24): a ready-made function locks the function type; Take off (`symbol.function`
+/// A ready-made function locks the function type; Take off (`symbol.function`
 /// with an empty key) unlocks it and keeps the function's type and connection points; with none used it is refused.
 #[test]
 fn take_off_unlocks_a_ready_made_function_and_keeps_its_pins() {

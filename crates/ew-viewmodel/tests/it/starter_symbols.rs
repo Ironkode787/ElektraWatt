@@ -524,8 +524,8 @@ fn the_aids_are_no_device_symbols() {
     }
 }
 
-/// The owner's hands-on test of 0.1.0: many starter symbols did nothing when clicked in the Insert symbol list (a
-/// choice was refused for want of a letter code, and the window shows no refusal). On a page of each type, every row
+/// Starter symbols clicked in the Insert symbol list must do something (a choice refused for want of a letter code
+/// shows no refusal in the window). On a page of each type, every row
 /// of the list is greyed with its reason in words, never for want of a letter code, or its choice arms a tool or opens
 /// a chooser; and what the program draws itself (a junction's dot, a cable's marker) is no row.
 #[test]
@@ -548,7 +548,7 @@ fn every_row_of_the_insert_symbol_list_arms_a_tool_or_says_why_not() {
                 );
             }
             if let Some(reason) = picker.disabled(*row) {
-                // The persona round: the air supply was greyed for want of a letter code. Every shipped symbol is
+                // The air supply is not greyed for want of a letter code. Every shipped symbol is
                 // placeable: the project's identifier set maps its category to a letter code.
                 assert_ne!(
                     reason,

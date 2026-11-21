@@ -363,7 +363,7 @@ fn incomplete_beside(tmp: &Tmp, dir: &Path, other: &Path) {
     std::fs::copy(archive_of(other), archive_of(dir)).unwrap();
 }
 
-/// The incomplete-release offer at open (§9): an archive of the open revision's label in the archive root (a release
+/// The incomplete-release offer at open: an archive of the open revision's label in the archive root (a release
 /// that stopped before its stamp, here the archive of a released copy) is offered when the project opens: Not now (the
 /// Primary) and Complete release; no Discard archive, since no run record of this folder proves it its own.
 ///

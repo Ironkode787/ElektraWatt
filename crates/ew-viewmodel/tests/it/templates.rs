@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! New project, the templates and the check level in the window (G1, G2 of the owner's test of 0.3.0-rc.2): a new
+//! New project, the templates and the check level in the window: a new
 //! project takes a template's pages only when asked, the templates are a list the person manages, and the check level
 //! is set by a person in the window.
 
@@ -267,8 +267,8 @@ fn shell_bad_param(name: &str) -> String {
     ew_viewmodel::strings::format(ew_viewmodel::key!("error-bad-param"), &[name])
 }
 
-/// Project properties name the template a project was made from, by its name in the list (a persona run read a dash
-/// there), and say so in words for a template the list no longer holds; the ID and generation under it are not rows.
+/// Project properties name the template a project was made from, by its name in the list, and say so in words for a
+/// template the list no longer holds; the ID and generation under it are not rows.
 #[test]
 fn project_properties_name_the_template_the_project_came_from() {
     let tmp = Tmp::new("templates-made-from");

@@ -952,7 +952,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
 
 /// The chooser lists the project's own parts and the libraries' in one order, (maker, part number). Placing a terminal
 /// from a library part embeds the part, which keeps its row: the chooser opened again has the same rows in the same
-/// order (the persona round: a used part jumped to the top and the next click hit another row).
+/// order (a used part must not jump to the top, so that the next click hits another row).
 #[test]
 fn the_chooser_keeps_its_order_after_a_placement_embeds_a_part() {
     use ew_viewmodel::tools::PickerRow;

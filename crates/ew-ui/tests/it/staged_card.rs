@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's test of 0.3.0-rc.1: Update in the Libraries pane and Delete on a page put a card in the Preview tab that
-//! he never saw. A staged card is now said where the action started (the strip with Apply in the Pages pane), on the
+//! Update in the Libraries pane and Delete on a page put a card in the Preview tab that must not go unseen. A staged
+//! card is now said where the action started (the strip with Apply in the Pages pane), on the
 //! Preview tab (its dot, while another tab is in front) and in the status bar ("… wait for Apply", which brings the
 //! Preview forward).
 

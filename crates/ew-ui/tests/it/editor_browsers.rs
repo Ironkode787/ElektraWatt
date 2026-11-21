@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's hands-on test of 0.2.0-rc.1, the symbol editor and the browsers (FT-1690, FT-1691, FT-1694 to FT-1697,
+//! The symbol editor and the browsers (FT-1690, FT-1691, FT-1694 to FT-1697,
 //! FT-1702 to FT-1704), each on the window's own path: the pointer and the keys of the visual driver.
 
 use crate::support;

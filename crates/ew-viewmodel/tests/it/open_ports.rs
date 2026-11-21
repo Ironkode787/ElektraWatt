@@ -134,7 +134,7 @@ fn plug_ports_the_findings_fix_and_set_spare_leave_no_port_open() {
 }
 
 /// A valve with both working ports open is one finding whose fix is two plugs. Fix all counted the plugs against the
-/// findings and went below nought: the program stopped at the click (a persona run lost its session there).
+/// findings and went below nought: the program stopped at the click.
 #[test]
 fn fix_all_plugs_every_valves_open_ports_in_one_step() {
     let tmp = Tmp::new("open-ports-all");

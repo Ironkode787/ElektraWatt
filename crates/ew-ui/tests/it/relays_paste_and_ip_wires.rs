@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona round on rc.3 (FT-1658 to FT-1660), by the window's own path: clicks, drags and keys.
+//! FT-1658 to FT-1660, by the window's own path: clicks, drags and keys.
 
 use crate::support::Tmp;
 
@@ -155,7 +155,7 @@ pub(crate) fn cp_at(d: &mut Driver, label: &str) -> (i64, i64) {
         .at
 }
 
-/// The persona picked a contact of -102K1 from the device browser's "In this project" and got a second relay. The
+/// A contact of -102K1 picked from the device browser's "In this project" must not give a second relay. The
 /// part's contact row names the relay it fills, and placing it fills that relay's free contact: one device.
 #[test]
 fn a_contact_picked_in_the_browser_fills_the_relay_of_the_project() {
@@ -490,8 +490,8 @@ fn a_click_on_an_interruption_points_arrow_ends_the_wire_on_it() {
     wire_to_the_arrow(0);
 }
 
-/// A click two pixels beyond the arrow's tip, in line with a wire coming to it, placed a bend and the wire went on
-/// (the persona round before 0.2.0): the arrow counts with the snap's reach around it, as a connection point does.
+/// A click two pixels beyond the arrow's tip, in line with a wire coming to it, placed a bend and the wire went on:
+/// the arrow counts with the snap's reach around it, as a connection point does.
 #[test]
 fn a_click_just_beyond_the_arrows_tip_ends_the_wire_on_it_too() {
     wire_to_the_arrow(2);
@@ -524,7 +524,7 @@ fn wire_to_the_arrow(beyond: i64) {
         .find(|r| r.ip.is_some())
         .expect("the point")
         .clone();
-    // Zoomed in, as the persona worked: the connection point is then beyond the snap's reach from the tip.
+    // Zoomed in: the connection point is then beyond the snap's reach from the tip.
     for _ in 0..3 {
         d.input(&click(d.find("Zoom in").unwrap()));
         d.settle();
@@ -552,7 +552,7 @@ fn wire_to_the_arrow(beyond: i64) {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The persona round before 0.2.0: interruption points for a newcomer
+// Interruption points for a newcomer
 
 /// The interruption points of the page shown: each one's name, direction and insertion point (page nm).
 fn points(d: &mut Driver) -> Vec<(String, String, (i64, i64))> {

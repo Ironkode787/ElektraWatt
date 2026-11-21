@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's test of 0.2.0-rc.1, his rows about wires (FT-1684, FT-1685, FT-1688, FT-1692), by the window's own
+//! Wires (FT-1684, FT-1685, FT-1688, FT-1692), by the window's own
 //! path: clicks, drags and keys.
 
 use crate::support::Tmp;
@@ -270,7 +270,7 @@ fn the_marker_tool_marks_two_wires_with_a_typed_colour() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's test of the second candidate: two wires drawn, a marker placed over them with 0.75 typed, then the
+/// Two wires drawn, a marker placed over them with 0.75 typed, then the
 /// wires made the cores of a 3G1.5 cable: the wire stayed 0.75 until it was drawn again. A wire that is a cable's core
 /// has its core's cross-section and colour at once, however it got there: Properties shows 1.5 and BN, from the
 /// cable, and offers no override there.
@@ -348,7 +348,7 @@ fn type_in(d: &mut Driver, label: &str, text: &str) {
     d.settle();
 }
 
-/// A play-tester of the second candidate (FT-1684 again): the Marker's cross-section and colours typed and left by a
+/// FT-1684 again: the Marker's cross-section and colours typed and left by a
 /// click on the other field, then the line dragged, then Enter: the marker printed the wires' own 0.75, not the 1.5
 /// typed (a field was taken on Enter only). Every order a person takes keeps the fields: fields then line; line then
 /// fields and a click on the sheet; Tab between the fields; line then fields and Enter in the last one. Each time
@@ -683,7 +683,7 @@ fn form_tag(d: &mut Driver) -> String {
     }
 }
 
-/// A play-tester of the second candidate: two wires from the points N and L1 (N's wire the left one), both selected,
+/// Two wires from the points N and L1 (N's wire the left one), both selected,
 /// Cable…: the form put N on the brown core and L1 on the blue one, and proposed a tag in the strips' format
 /// (`-W11`) while the cable took `-1W1`. The neutral takes the blue core and the phase the brown (HD 308 S2) whatever
 /// their order, retyping the type keeps that, the tag proposed is the tag the cable gets, and the toast says it in

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona runs of rc.5 (a whole cabinet on PROFINET), on the window's own path: the Terminal dialog adds to the
+//! A whole cabinet on PROFINET, on the window's own path: the Terminal dialog adds to the
 //! page's strip and keeps New strip first, a panel layout page says how its devices reach the plate, and a parts list
 //! that runs on says where.
 
@@ -48,7 +48,7 @@ fn strip_field(d: &mut Driver) -> (String, Vec<String>) {
     )
 }
 
-/// rc.5 (the cabinet run, twice): the dialog chose the strip used last on another page, and New strip moved in the
+/// The dialog chose the strip used last on another page, and New strip moved in the
 /// list. Now it chooses the strip of this page's terminals, New strip first, and a page without terminals a new strip.
 #[test]
 fn the_terminal_dialog_adds_to_the_pages_strip_with_new_strip_first() {
@@ -86,7 +86,7 @@ fn the_terminal_dialog_adds_to_the_pages_strip_with_new_strip_first() {
     assert_eq!(chosen, options[0], "a page without terminals: a new strip");
 }
 
-/// rc.5 (the cabinet run): on the layout page with its enclosure he did not find how the devices reach the plate, and
+/// On the layout page with its enclosure it was not clear how the devices reach the plate, and
 /// trying to place one said to draw on a schematic page. Now the page's line says the next step, and the refusal says
 /// what to do instead.
 #[test]
@@ -116,7 +116,7 @@ fn a_panel_layout_page_says_how_the_devices_reach_the_plate() {
     assert!(words.contains("Unplaced devices"), "{words}");
 }
 
-/// rc.5 (the cabinet run, twice): the bus plugs were on the parts list's second page, and the line at the window's foot
+/// The bus plugs were on the parts list's second page, and the line at the window's foot
 /// that said so did not stop him reading the first page as the whole list. Now the page's tab says "page 1 of 2", the
 /// HUD says it with a button to the next page, and under the table's last row a row of the table says that the list
 /// continues there and goes there on a click; the last page has no such row and a button back.
@@ -172,13 +172,13 @@ fn a_parts_list_that_runs_on_says_where() {
     d.shell_mut().shutdown();
 }
 
-/// rc.5 (the cabinet run, again): the layout page's line sent him to "Unplaced devices (left rail)" among icons
+/// The layout page's line sent him to "Unplaced devices (left rail)" among icons
 /// without words, and to Properties for each of thirty devices. Now the line carries its ways on as buttons: Give
 /// location +CAB1… gives the devices drawn on the wiring pages the cabinet's location in one step, after a preview that
 /// leaves a device wired only to the terminals' field side unticked; then Unplaced devices opens the panel, whose rail
 /// icon's tooltip has that very name.
 ///
-/// rc.5 (the cabinet run, a third time): after Give location every tag of the wiring page printed "+Supply-" in front,
+/// After Give location every tag of the wiring page printed "+Supply-" in front,
 /// as the field devices beside them had no location. A drawn tag stays as it was.
 #[test]
 fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {

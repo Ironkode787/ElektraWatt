@@ -254,7 +254,7 @@ fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
     create(&mut h);
 }
 
-/// The persona round of the third 0.3.0 candidate: the enclosure made from a schematic page could not be drawn on the
+/// The enclosure made from a schematic page could not be drawn on the
 /// layout page made afterwards. There the dialog's Primary draws the location's enclosure on the page, and Enter
 /// in the dialog off a layout page presses its Primary, which makes the layout page.
 #[test]
@@ -302,7 +302,7 @@ fn the_create_enclosure_dialog_draws_the_locations_enclosure_on_the_layout_page(
     );
 }
 
-/// A persona run of the third 0.3.0 candidate: on a layout page with an enclosure and its mounting plate, the Duct
+/// On a layout page with an enclosure and its mounting plate, the Duct
 /// tool's two clicks and Enter drew no duct and only named the grid cursor. Enter now finishes the duct the clicks drew;
 /// one click and Enter says in words why there is none.
 #[test]

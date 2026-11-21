@@ -161,7 +161,7 @@ fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
     );
 }
 
-/// NV10 and NV11's model half (§6.10, §9 item 4): the Devices navigator prints a header with its kind, view, sort,
+/// NV10 and NV11's model half: the Devices navigator prints a header with its kind, view, sort,
 /// filter, row count and window, and at most 50 rows around the cursor; the `focus` member is `navigator.devices`;
 /// opening it and a new revision make one table call, filtering, sorting, the view, moving and marking none, and a
 /// closed navigator none.
@@ -300,7 +300,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     shell.shutdown();
 }
 
-/// NV5 (FR-UI-007 as amended by D16; §6.5): with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
+/// NV5 (FR-UI-007 as amended by D16): with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
 /// the device's record (the property grid shows -104A1) and shows the chips 104-B13, 105-C2 and 105-C4; Enter opens
 /// 104 with its representation selected (one back-history entry); a selection made elsewhere marks and reveals its
 /// row, the focus stays where it is, and no change is applied twice.
@@ -500,8 +500,8 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     shell.shutdown();
 }
 
-/// NV8: Page ▸ New page proposes the next free folio after the open page inside its section (a generated page's too,
-/// rc.5) and the section of the marked section node, else of the current page. With a section node marked that the
+/// NV8: Page ▸ New page proposes the next free folio after the open page inside its section (a generated page's too)
+/// and the section of the marked section node, else of the current page. With a section node marked that the
 /// current page is not in, the folio is that section's next free one (FT-1634: a page for a section just made; the folio after the current page lies
 /// outside the marked section's range).
 #[test]
@@ -539,7 +539,7 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     shell.shutdown();
 }
 
-/// NV10 (§6.10): every navigator opens from View ▸ Navigators.
+/// NV10: every navigator opens from View ▸ Navigators.
 #[test]
 fn every_navigator_opens() {
     let tmp = Tmp::new("navigators");

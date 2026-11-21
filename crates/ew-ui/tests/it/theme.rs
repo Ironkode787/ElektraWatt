@@ -96,7 +96,7 @@ fn the_ratios_of_doc_16a_section_4_5_are_recomputed() {
     assert_eq!(r(&light, "color.text.tertiary", "color.surface.chrome"), 4.86);
     assert_eq!(r(&light, "color.border.control", "color.surface.panel"), 3.31);
     assert_eq!(r(&dark, "color.text.on_accent", "color.accent"), 6.65);
-    // Canvas slots on white (§4.6).
+    // Canvas slots on white (doc 16a §4.6).
     assert_eq!(r(&light, "canvas.highlight.1", "canvas.sheet"), 3.27);
     assert_eq!(r(&light, "canvas.highlight.2", "canvas.sheet"), 3.06);
     // The high-contrast themes add the boundary rule and the 7:1 text floor.

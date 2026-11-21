@@ -269,7 +269,7 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
         "Saved the device box of PSU-24. Boxes of it that are drawn the old way: 2."
     );
     done(&mut s, "symbol.close", json!({}));
-    // Redraw them: both boxes in one undo step (rc.3 review: one step per box before).
+    // Redraw them: both boxes in one undo step.
     let rev = s.revision();
     done(&mut s, "part.redraw_boxes", json!({"part": format!("id:{copy}")}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");

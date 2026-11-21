@@ -114,7 +114,7 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     shell.shutdown();
 }
 
-/// A persona run (friction 1): New page proposed folio 3 and kept it when section 2 (pages 200 to 299) was
+/// New page proposed folio 3 and kept it when section 2 (pages 200 to 299) was
 /// chosen; 200, typed, was its divider page. Choosing a section in the form proposes its first free folio past the
 /// divider page.
 #[test]
@@ -144,7 +144,7 @@ fn page_new_proposes_the_first_free_folio_of_the_section_chosen() {
     shell.shutdown();
 }
 
-/// rc.5 (the owner: New page should propose the next free folio after the page right-clicked): New page from a page
+/// New page from a page
 /// row's right-click proposes the next free number after that page inside its section, whichever page is open; from
 /// a section's row, the next free number after the section's last page. The dialog says where the page will stand,
 /// and names the page that has a folio typed that is in use, as the refusal does.
@@ -213,7 +213,7 @@ fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
     shell.shutdown();
 }
 
-/// rc.5 persona runs: New page follows the kind chosen (a first wiring page was proposed into the front matter, a fluid
+/// New page follows the kind chosen (a first wiring page was proposed into the front matter, a fluid
 /// page into the wiring section) and offers the end of the section as a place in words; the line under the folio says
 /// where the number in the field puts the page; a number the person typed stays when the kind changes.
 #[test]
@@ -287,7 +287,7 @@ fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
     shell.shutdown();
 }
 
-/// rc.5 cabinet re-test: a fluid page was numbered into the wiring section, which holds a bus page, while the empty
+/// A fluid page was numbered into the wiring section, which holds a bus page, while the empty
 /// section "Pneumatics" the wizard makes for fluid pages existed. A section the wizard made for the kind takes the
 /// first page of that kind; a section with a title of the person's own is left alone.
 #[test]

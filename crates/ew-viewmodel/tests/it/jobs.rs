@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The PDF export as a job, the notifications and their log, and the exact
-//! counts of §9 item 5. The flows that need a held gate or a fault run with `ShellModel::set_job_gate_for_tests` and
+//! counts. The flows that need a held gate or a fault run with `ShellModel::set_job_gate_for_tests` and
 //! `set_job_panic_for_tests` (feature `testkit`). The byte checks against the sample's digest are `ew-api`'s
 //! `tests/export_job.rs` (JB2) and `bin/elektrawatt`'s headless test; here a one-page project keeps the jobs short.
 
@@ -360,7 +360,7 @@ fn polling_takes_the_end_of_a_job_that_was_not_waited_for() {
     s.shutdown();
 }
 
-/// §9 item 5: an export makes one `export_job` and no other `Session` call; polling, the log and the Jobs pane make
+/// An export makes one `export_job` and no other `Session` call; polling, the log and the Jobs pane make
 /// none.
 #[test]
 fn the_exact_counts_of_an_export() {

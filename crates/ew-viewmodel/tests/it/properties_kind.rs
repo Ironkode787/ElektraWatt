@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.2, the owner's F9 and F12: a device shows what belongs to what it is. Properties says what the selected thing
+//! A device shows what belongs to what it is. Properties says what the selected thing
 //! is in trade words, shows only the rows that belong to it, and its menus offer only what fits it.
 
 use crate::common;
@@ -367,7 +367,7 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     s.shutdown();
 }
 
-/// A persona run, entries 1 and 2: the project's Properties put what a drafter fills first under Main, in the
+/// The project's Properties put what a drafter fills first under Main, in the
 /// order of a title block: the title, the project and drawing numbers, the description, the parties, the dates.
 #[test]
 fn the_project_shows_what_a_drafter_fills_first_under_main() {

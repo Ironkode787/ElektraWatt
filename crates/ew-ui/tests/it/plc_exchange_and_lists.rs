@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! M3's persona round on a new project, by the window's own path: what a first-timer and an EPLAN designer could not
+//! A new project, by the window's own path: what a first-timer and an EPLAN designer could not
 //! find or do when they built a PLC and a fieldbus from nothing.
 
 use crate::support::Tmp;
@@ -44,8 +44,8 @@ fn search(d: &mut Driver, query: &str) -> Vec<String> {
     ids
 }
 
-/// Import from PLC software… on the PLC tab with a file chosen opens its preview; with the file dialog cancelled
-/// (the persona's run answered every open dialog so) nothing changes and nothing opens, as a cancelled dialog does
+/// Import from PLC software… on the PLC tab with a file chosen opens its preview; with the file dialog cancelled,
+/// nothing changes and nothing opens, as a cancelled dialog does
 /// everywhere in the window.
 #[test]
 fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing() {
@@ -84,9 +84,9 @@ fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing(
     d.shell_mut().shutdown();
 }
 
-/// Three of three personas looked for a list page on the Output tab: it holds Report (the report block dialog); the
-/// PLC exchange, which they looked for there too, moved to the PLC tab with the other PLC commands (the owner's test
-/// of 0.3.0-rc.1); the command search finds the report dialog by "report", "list", "tube list" and "card list"; and the
+/// A list page is looked for on the Output tab: it holds Report (the report block dialog); the
+/// PLC exchange, which is looked for there too, moved to the PLC tab with the other PLC commands; the command
+/// search finds the report dialog by "report", "list", "tube list" and "card list"; and the
 /// New page dialog says where lists are made.
 #[test]
 fn lists_are_found_on_the_output_tab_and_the_plc_exchange_on_the_plc_tab() {
@@ -124,7 +124,7 @@ fn lists_are_found_on_the_output_tab_and_the_plc_exchange_on_the_plc_tab() {
     );
     let texts = d.texts();
     assert!(
-        // Under the default type's words (the persona run m3-p4: the line says what the chosen type is for).
+        // Under the default type's words (the line says what the chosen type is for).
         texts
             .iter()
             .any(|t| t.contains("Lists are made with Report on the Output tab")),

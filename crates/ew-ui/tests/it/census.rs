@@ -1136,7 +1136,7 @@ fn the_availability_walk_names_an_enabled_button_of_an_unavailable_action() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// GT-3: the form census's source check names a form action it does not open (§5 U2).
+/// GT-3: the form census's source check names a form action it does not open.
 #[test]
 fn the_form_check_names_a_form_the_census_does_not_open() {
     let built = crate::form_dialog_focus::form_actions();
@@ -1214,8 +1214,8 @@ fn census_the_symbol_editor() {
 }
 
 /// A Save refused off the grid answers above the drawing, where the eye is, and stands in the To do list with a click
-/// to the connection point: twice, and no banner as well. (The owner's hands-on test: with the reason only in a list
-/// at the foot of a panel, Save read as a button that does nothing.)
+/// to the connection point: twice, and no banner as well. (With the reason only in a list at the foot of a panel,
+/// Save would read as a button that does nothing.)
 #[test]
 fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
     let tmp = Tmp::new();

@@ -4,7 +4,7 @@
 //! The strip follow-ups, headless: a terminal chosen with no strip goes on a new strip made for it,
 //! the PE terminal asks for its strip, the page description lists a strip's bridges,
 //! table mode adds an accessory before the first terminal, and Enter on an unplaced terminal row
-//! arms the Place tool with its function (§6.8).
+//! arms the Place tool with its function.
 
 use crate::common;
 
@@ -24,7 +24,7 @@ fn choose(s: &mut ShellModel, filter: &str) {
 // ---------------------------------------------------------------------------------------------------------------
 
 /// A terminal chosen in the picker of a project without strips goes on a new strip, made for it: Place is armed with
-/// the terminal on it (a persona run: the empty strip chooser that opened instead stood between Place and the page).
+/// the terminal on it (no empty strip chooser stands between Place and the page).
 /// With a strip in the project the chooser lists it. A direct `place.pick` still refuses with the sentence that names
 /// Insert ▸ Terminal strip.
 #[test]
@@ -164,7 +164,7 @@ fn add_accessory_before_the_first_terminal_in_table_mode() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// §6.8
+// Enter on an unplaced terminal row
 
 /// A terminal row whose terminal has no representation on a strip without strip segments carries the `unplaced` badge
 /// and is a drag source naming its terminal; Enter (`navigator.open`) on it arms the Place tool with the terminal's

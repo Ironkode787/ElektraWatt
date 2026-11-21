@@ -51,7 +51,7 @@ const SEQ_1_TO_8: [&str; 8] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 /// SE7: the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
 /// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1021`, 8 rows) with the cursor
 /// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 8); the read-only reasons
-/// of §6.2 refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
+/// refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
 #[test]
 fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let tmp = Tmp::new("se7");
@@ -128,7 +128,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     assert_eq!(strip_texts(&shell, "Part")[0], "EB-1");
     assert_eq!(strip_texts(&shell, "Terminal")[0], "");
 
-    // The read-only reasons (§6.2).
+    // The read-only reasons.
     let k6 = strip_row(&shell, "Terminal", "6");
     let pos = strip_col(&shell, "Pos");
     let message = failed(
@@ -266,11 +266,11 @@ fn group_labels_through_the_table_and_the_properties_row() {
     shell.shutdown();
 }
 
-/// SE9 (§6.4, D12, D14, FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
+/// SE9 (D12, D14, FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
 /// row); Ctrl+Delete on two terminal rows opens the card with their bridges and wires and commits nothing; on an
 /// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :8 three times puts it at seq 5's place
 /// in three steps (inside bridge group BR2), undone by three undos; a move that takes :2 out of BR1 fails with
-/// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place, §6.8, is descoped from part 1.)
+/// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place is descoped from part 1.)
 #[test]
 fn insert_delete_and_move_rows() {
     let tmp = Tmp::new("se9");
@@ -394,7 +394,7 @@ fn insert_delete_and_move_rows() {
     shell.shutdown();
 }
 
-/// SE9's context (§6.9): every gesture refuses `reason-not-strip-editor` while the Terminal strips navigator is closed.
+/// SE9's context: every gesture refuses `reason-not-strip-editor` while the Terminal strips navigator is closed.
 #[test]
 fn gestures_need_the_strip_editor() {
     let tmp = Tmp::new("se9-context");
@@ -487,7 +487,7 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
     shell.shutdown();
 }
 
-/// SE14 (§6.10): the describe lines of the strip editor: the header with `sort "Order"` and the `strip:` filter, an
+/// SE14: the describe lines of the strip editor: the header with `sort "Order"` and the `strip:` filter, an
 /// accessory row printed with the row word `accessory` and its cells.
 #[test]
 fn se14_describe_lines() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Ctrl+Z in the window with a tool on the canvas (rc.5 persona runs): with something in flight on the pointer the
+//! Ctrl+Z in the window with a tool on the canvas: with something in flight on the pointer the
 //! first Ctrl+Z puts it away and undoes nothing, and the status line says so; with a tool merely armed it undoes the
 //! last step at once and says what it took back and where; a placement and the wires it connected by itself go back as
 //! one step.
@@ -57,7 +57,7 @@ fn toast(h: &Window) -> String {
         .unwrap_or_default()
 }
 
-/// The cabinet run (rc5-e): a wire begun at its first click is put away by Ctrl+Z, which undoes nothing and says so;
+/// A wire begun at its first click is put away by Ctrl+Z, which undoes nothing and says so;
 /// a finished wire, the Wire tool still armed, is taken back by the first Ctrl+Z, and the toast says what and where.
 #[test]
 fn ctrl_z_puts_away_a_wire_begun_and_takes_back_a_finished_one() {

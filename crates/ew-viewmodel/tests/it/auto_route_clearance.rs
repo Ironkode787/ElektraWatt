@@ -456,7 +456,7 @@ fn a_click_that_places_a_bend_says_so() {
     );
 }
 
-/// A persona run on a cabinet: aiming at the power supply's pin, a click landed on the pin's text inside the box,
+/// Aiming at the power supply's pin, a click landed on the pin's text inside the box,
 /// fixed a bend there, and the wire ran through the box. A click inside a symbol is no bend: it is refused in words,
 /// the wire keeps routing, and ends on the next connection point clear of the box.
 #[test]
@@ -591,7 +591,7 @@ fn through_pins_or_along(s: &mut ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// rc.3 (the owner's case): the two breakers wired cross-over with two clicks per wire, as freshly drawn, cross once
+/// The two breakers wired cross-over with two clicks per wire, as freshly drawn, cross once
 /// and run straight otherwise; Route on the page gives the same.
 #[test]
 fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
@@ -607,8 +607,8 @@ fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "rerouted");
 }
 
-/// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
-/// keeps every hard rule; Route on both, in at most one undo step, leaves them crossing once and running straight
+/// The second wire drawn with a free point on the first wire's corner keeps every hard rule; Route on both, in at
+/// most one undo step, leaves them crossing once and running straight
 /// otherwise, with no more bends than drawn (a reroute starts from the drawing and keeps it where routing the
 /// two from nothing gives more corners, as it did here).
 #[test]

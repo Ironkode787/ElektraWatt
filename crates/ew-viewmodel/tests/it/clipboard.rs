@@ -226,8 +226,8 @@ fn rep_pos(shell: &ShellModel, rep: &str) -> (i64, i64) {
 /// The QET grid step in nm (rounded): a sheet offset that moves the snapped anchor by one step.
 const STEP: i64 = 2_645_833;
 
-/// rc.5 (the owner: copy and paste between grids did not work, and a page's grid could not change once it held items):
-/// the push buttons -102S2 and -102S1 with the wire between them, copied on folio 102 (the QET grid) and pasted on a
+/// Copy and paste between grids, and a grid change on a page that holds items: the push buttons -102S2 and -102S1
+/// with the wire between them, copied on folio 102 (the QET grid) and pasted on a
 /// new page of the 4 mm grid, are fitted to it and their wires routed anew, in one undo step, and a message says so.
 /// That page's grid changed back to the QET grid asks first, saying what will happen; Change and fit fits its items
 /// and routes its wires in one undo step, and says so.
@@ -442,7 +442,7 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     done(shell, "ui.dismiss", json!({}));
 }
 
-/// rc.5 review: a symbol fitted to a page's grid (its pins on the grid, its position between grid points) moves by
+/// A symbol fitted to a page's grid (its pins on the grid, its position between grid points) moves by
 /// drag and by the arrow key, turns and takes a wire, after a fitted paste and after a grid change.
 #[test]
 fn fitted_symbols_move_turn_and_take_a_wire() {
@@ -494,7 +494,7 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
     shell.shutdown();
 }
 
-/// rc.5 review: a page that holds only a free text asks the same question before its grid changes, instead of a
+/// A page that holds only a free text asks the same question before its grid changes, instead of a
 /// refusal that sends the person to the Properties he is in; Change and fit says nothing moved.
 #[test]
 fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
@@ -530,8 +530,7 @@ fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     shell.shutdown();
 }
 
-/// A persona run (he looked for the page's grid on the Page tab, then found it by filtering Properties for "grid",
-/// and the filter word hid the next thing's rows): the Page tab has Connection grid…, which asks and fits as the
+/// The Page tab has Connection grid…, which asks and fits as the
 /// Properties row does; a filter typed for the page clears when a symbol is selected.
 #[test]
 fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
@@ -572,8 +571,7 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     shell.shutdown();
 }
 
-/// A persona run (after Ctrl+V no ghost showed until the pointer moved; the click set the block down partly off the
-/// sheet and nothing said so): the block hangs on the pointer at once, and a click where a part of it would lie outside
+/// The block hangs on the pointer at once, and a click where a part of it would lie outside
 /// the drawing area is refused in the status line, nothing pasted.
 #[test]
 fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {

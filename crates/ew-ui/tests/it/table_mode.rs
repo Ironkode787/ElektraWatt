@@ -52,7 +52,7 @@ fn strips_table(h: &mut Harness<'static, App>) {
     settle(h);
 }
 
-/// §8.6 in the window: with the Terminal strips table focused, the platform's copy event (Ctrl+C) runs `table.copy`
+/// In the window: with the Terminal strips table focused, the platform's copy event (Ctrl+C) runs `table.copy`
 /// and hands the TSV to the system clipboard; its paste event (Ctrl+V) runs `table.paste` with the system clipboard's
 /// text: pasted back onto the same row it changes nothing; a read-only cell opens the table card in the pane, whose
 /// Drop button ends the gesture.

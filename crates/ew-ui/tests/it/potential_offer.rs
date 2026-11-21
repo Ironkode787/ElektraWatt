@@ -159,7 +159,7 @@ fn without_a_named_potential_of_the_type_a_new_one_is_offered() {
     shell.shutdown();
 }
 
-/// A play-tester of the second candidate: the coils fed from the points L1 and N, which name their potentials but give
+/// The coils fed from the points L1 and N, which name their potentials but give
 /// them no type, and the A2 wire selected: no card (the feed's potential had no type). A name that is a type's own
 /// word counts as that type: the A2 wire is offered the existing N, fed from L1; and the L1 wire, clicked, is offered
 /// its type ("Type L1?"), which Accept sets in one step, keeping its name.

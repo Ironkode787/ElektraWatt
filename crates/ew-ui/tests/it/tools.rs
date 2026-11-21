@@ -930,7 +930,7 @@ fn assert_chips_apart(
     chips
 }
 
-/// The owner's hands-on test of 0.1.0 (FT-1637): "while a device is being placed its texts jitter around it as it
+/// FT-1637: "while a device is being placed its texts jitter around it as it
 /// moves, and the ghost reads Preview of Place device". The Place ghost of a terminal on the sample shows one chip,
 /// its own label, and no preview chip; the label keeps its place while the pointer moves about the ghost's point
 /// without moving the ghost, and keeps the same place beside the ghost when the ghost moves a grid step; with the

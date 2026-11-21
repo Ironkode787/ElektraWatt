@@ -6,7 +6,7 @@
 //! `testkit` (`required-features`), which `ShellModel::set_tool_for_tests` needs; `ci/dep-rules.toml` bans the feature
 //! on every non-dev edge, so the binaries never contain the seam.
 //!
-//! **The probe** (§7.6): on a drag of a selected representation it shows the ghost of the selected entities moved by
+//! **The probe**: on a drag of a selected representation it shows the ghost of the selected entities moved by
 //! the snapped grid offset, on `Dwell(80)` it previews `rep.move` by that offset, on release it commits the same
 //! command, on Escape it cancels. The move gesture follows its pattern.
 

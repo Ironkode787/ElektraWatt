@@ -273,7 +273,7 @@ fn w31_2_the_first_tag_change_is_on_show() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// An undone entry offers Redo to here (`history.undo_to` redoes up to it, §8.4), not Undo to here; the applied
+/// An undone entry offers Redo to here (`history.undo_to` redoes up to it), not Undo to here; the applied
 /// entries keep Undo to here. Its row is named `…, undone`.
 #[test]
 fn w31_7_an_undone_entry_offers_redo_to_here() {

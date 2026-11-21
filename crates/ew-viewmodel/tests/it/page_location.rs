@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A location does not crowd the drawing (a longer persona round of the second 0.3.0 candidate: a card given the
-//! location +CAB1 printed "+CAB1-102A1-A1" into the next card's tag): on a page without a location of its own whose
+//! A location does not crowd the drawing (a card given the location +CAB1 must not print "+CAB1-102A1-A1" into the
+//! next card's tag): on a page without a location of its own whose
 //! devices all have one location, the tags leave it out; a device of another location brings it back.
 
 use crate::common;

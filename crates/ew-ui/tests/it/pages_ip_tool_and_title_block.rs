@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The persona round on 0.2.0-rc.2, by the window's own path: the interruption point tool after a first point, New
+//! By the window's own path: the interruption point tool after a first point, New
 //! page's type list, Title block fields…, Enclosure… in a project without a location, and the toasts' room.
 
 use crate::support::{Scripted, Tmp, bar_button, dispatch, harness, hud_value, settle};
@@ -158,7 +158,7 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     let tmp = Tmp::new();
     let mut d = prelude(&tmp, Geometry::DEFAULT);
     press(&mut d, "New page");
-    // The Type list, where the play-tester clicked it (a form's field is named by its label's relation, which the
+    // The Type list, where a person clicks it (a form's field is named by its label's relation, which the
     // driver does not read): its row counted up from the footer's Create, the form's rows `size.control` and
     // `space.3` apart (36 points), the last row's centre 44 points above Create's, and the line under Type that says
     // where lists are made (one `type.small` line and `space.1`, 18 points) between it and the next row.
@@ -242,7 +242,7 @@ fn a_new_strips_toast_is_whole_at_the_floor() {
     d.shell_mut().shutdown();
 }
 
-/// The play-tester typed L1 into the tool's name field and clicked near the page's left edge without Enter: the
+/// L1 typed into the tool's name field and a click near the page's left edge without Enter: the
 /// page's quarters made it a target, and the tool then offered "L1-1 target" ("L1 is taken, so this point is
 /// L1-1"). A point without its partner leaves its name standing and the tool offers the partner; the toast says the
 /// direction the click placed and that the partner is still to come.
@@ -297,8 +297,8 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     d.shell_mut().shutdown();
 }
 
-/// The play-tester's L1 near the left edge came out a target with no source, and its wire's Potential read the device
-/// pin ("-101K1:A1"), so the supply's wires had no name, no colour by name and no offer. A point names the potential
+/// An L1 near the left edge comes out a target with no source, and its wire's Potential must not read the device pin
+/// ("-101K1:A1"), so the supply's wires had no name, no colour by name and no offer. A point names the potential
 /// it carries whichever its direction: the wire from L1 to the relay's A1 reads L1 in Properties.
 #[test]
 fn a_wire_on_a_lone_target_point_carries_its_name() {
@@ -394,7 +394,7 @@ fn a_wire_on_a_lone_target_point_carries_its_name() {
 }
 
 /// While the caret is in the tool's name field, D is a letter of the name: the bar says that Enter ends the name
-/// first, not "D: target" (the play-tester pressed D after typing and read the bar's "D" as live). Tab gives the
+/// first, not "D: target" (D pressed after typing must not read the bar's "D" as live). Tab gives the
 /// keys back at once: the bar names D again, and the first D turns the point the bar shows.
 #[test]
 fn the_bar_names_d_only_while_the_tool_has_the_keys() {
@@ -456,7 +456,7 @@ fn prelude_window(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> 
     h
 }
 
-/// Title block fields… on the prelude's first page, as the play-tester met it (t0051 to t0053): the Revision field
+/// Title block fields… on the prelude's first page: the Revision field
 /// says the project's form and the next free label before Apply; a "B" refused leaves its line under the fields, and
 /// when the field changes and the line goes, the dialog keeps its height, so Apply stays under the pointer; the word on
 /// Checked stands at the foot of the form, under the last field, not over the first.

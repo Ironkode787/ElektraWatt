@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A persona run of the third candidate with cables, by the window's own path: the cable's mark clicked shows the
+//! Cables, by the window's own path: the cable's mark clicked shows the
 //! cable, its Part row takes a catalogue cable whose cores replace the old ones, a cable is made of every selected
 //! wire or the form says which wire cannot, and a wire of a cable says where its cross-section is changed.
 
@@ -61,7 +61,7 @@ fn type_line(d: &mut Driver) -> String {
     texts[at + 1].clone()
 }
 
-/// The persona run: the cable's mark clicked selected a raw "wire marker" with its internals in Properties, and the
+/// The cable's mark clicked selected a raw "wire marker" with its internals in Properties, and the
 /// Devices list called the cable on the page "not drawn". Now the mark is the cable's: Properties shows the cable's
 /// rows under its tag and says it is its mark, and the Devices list counts the cable drawn where its cores run.
 #[test]
@@ -96,7 +96,7 @@ fn the_cables_mark_shows_the_cable_and_the_cable_is_drawn() {
     d.shell_mut().shutdown();
 }
 
-/// The persona run: the cable's Part row refused a catalogue cable's number, and a part swapped there left the old
+/// The cable's Part row refused a catalogue cable's number, and a part swapped there left the old
 /// cores and a mark that read both types at once. Now the Part row takes the catalogue cable: its cores replace the
 /// cable's (the wires stay cores, the neutral's blue core becomes the new type's black one), the mark reads the new type
 /// only, and one Undo takes it all back.
@@ -134,7 +134,7 @@ fn a_cables_part_row_takes_a_catalogue_cable_and_its_cores_follow() {
     d.shell_mut().shutdown();
 }
 
-/// The persona run: three wires selected, the cable's form listed three but its type gave the third no core, the toast
+/// Three wires selected, the cable's form listed three but its type gave the third no core, the toast
 /// said "made from 2 wires" and nothing said why. The form offers only types with a core for every wire; a type
 /// typed that leaves a wire without one says which wire and why before Apply, and Apply makes nothing then. The
 /// cable's Part row refuses a part with fewer cores than its wires in a sentence.
@@ -228,7 +228,7 @@ fn every_selected_wire_becomes_a_core_or_the_form_says_which_cannot() {
     d.shell_mut().shutdown();
 }
 
-/// The persona run: a cable's wire clicked, its cross-section clicked, double-clicked and typed into did nothing and
+/// A cable's wire clicked, its cross-section clicked, double-clicked and typed into did nothing and
 /// said nothing. Now an edit there says that the cable sets it, and its button goes to the cable.
 #[test]
 fn a_wire_of_a_cable_says_its_cross_section_is_changed_at_the_cable() {
@@ -271,7 +271,7 @@ fn a_wire_of_a_cable_says_its_cross_section_is_changed_at_the_cable() {
     d.shell_mut().shutdown();
 }
 
-/// The persona runs of rc.5: Cable… on several wires asked no length and read otherwise than a bus line's form. Now its
+/// Cable… on several wires asked no length and read otherwise than a bus line's form. Now its
 /// rows are the bus line's (tag, cable type, length, then the cores), the Length row says it can wait and what then
 /// reports it, and a length typed is the cable's.
 #[test]

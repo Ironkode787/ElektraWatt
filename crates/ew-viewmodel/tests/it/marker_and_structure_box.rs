@@ -687,7 +687,7 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The page change rule (§6.4 item 5)
+// The page change rule
 
 #[test]
 fn a_page_change_ends_every_part_4b_tool() {

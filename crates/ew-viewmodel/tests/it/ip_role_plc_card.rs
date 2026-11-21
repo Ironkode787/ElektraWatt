@@ -90,7 +90,7 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
     assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("0V", "target"));
 }
 
-/// The persona round on rc.3 (FT-1657): after its source the typed name stays, and the tool floats its target, on
+/// FT-1657: after its source the typed name stays, and the tool floats its target, on
 /// the source's own page too; after the target the name stays for further targets, and with the field erased
 /// the series goes on as before.
 #[test]

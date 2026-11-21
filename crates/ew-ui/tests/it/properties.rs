@@ -70,7 +70,7 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
     settle(h);
 }
 
-/// The owner's hands-on test of 0.1.0: a wire's Wire marker check box had no visible effect. A click on it commits
+/// A wire's Wire marker check box has a visible effect. A click on it commits
 /// the tick as one undo step (that the ticked wire then prints its marker, whatever it states itself, is
 /// `a_ticked_wire_always_prints_a_marker` of `ew-api`).
 #[test]
@@ -353,7 +353,7 @@ fn the_window_fetches_a_sheet_once_per_key() {
     assert!(support::off_chrome(&h, "Undo").is_some(), "the toast's Undo");
 }
 
-/// The checkbox of a boolean row (§6.5) from the keyboard: Space on the focused row sets the other value; undo
+/// The checkbox of a boolean row from the keyboard: Space on the focused row sets the other value; undo
 /// restores it.
 #[test]
 fn a_boolean_row_is_a_checkbox() {
@@ -379,7 +379,7 @@ fn a_boolean_row_is_a_checkbox() {
     assert_eq!(row(&h, "device/terminal.rail_bonded").0, before);
 }
 
-/// An option of a choice editor picked with the mouse (§6.5): the click on `BU` in the colour list chooses it,
+/// An option of a choice editor picked with the mouse: the click on `BU` in the colour list chooses it,
 /// although the field loses the focus to the click.
 #[test]
 fn a_choice_editor_option_is_picked_with_the_mouse() {
@@ -1463,7 +1463,7 @@ fn type_and_enter(h: &mut Harness<'_, App>, text: &str) {
     press(h, Key::Enter);
 }
 
-/// A persona run of the third 0.3.0 candidate: after the project's Created date and Enter, a click on a read-only
+/// After the project's Created date and Enter, a click on a read-only
 /// row below it and "24 V DC" typed went into the date row (the click had not moved the row cursor) and lost a
 /// character. Enter commits and ends the edit for every kind of row (text, number, date, choice), the next row takes
 /// what is typed for it whole, and a click on a read-only row moves the cursor there: what is typed then is refused,

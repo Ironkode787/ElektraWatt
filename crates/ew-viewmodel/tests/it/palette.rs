@@ -85,7 +85,7 @@ fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
     shell.shutdown();
 }
 
-/// A persona run of the third candidate searched "supply" for the electrical supply and found only the air supply. The
+/// Searching "supply" finds the electrical supply too, not only the air supply. The
 /// supply point (Supply comes in here..., and Interruption, which draws the points) is found by the words a panel
 /// builder types, in both languages; with no point selected the search says what it needs.
 #[test]

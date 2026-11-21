@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The owner's test of 0.3.0-rc.1: "If a property has a drop down menu, it should communicate that". In the property
+//! "If a property has a drop down menu, it should communicate that". In the property
 //! grid a row whose value is chosen from a list is a combo box (with a chevron at its value's right end); a row typed
 //! as text stays a button.
 

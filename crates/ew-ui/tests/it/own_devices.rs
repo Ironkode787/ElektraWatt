@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Devices with ports of one's own, as a person met them on a new project (the persona run m3-p4): a station placed
+//! Devices with ports of one's own, as a person met them on a new project: a station placed
 //! on a bus-topology page stands there with its bus ports. The window's own path: clicks and keys at 1920 × 1080.
 
 use crate::own_parts::{
@@ -244,7 +244,7 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
 }
 
 /// Item 6: the New part dialog holds still. The fields stand where they stood after a person types into the first one
-/// (the persona's next clicks hit other fields when the dialog grew and moved up), and an interface row just added
+/// (the next clicks must not hit other fields when the dialog grows and moves up), and an interface row just added
 /// stands whole above the footer, with Add interface under it.
 #[test]
 fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
