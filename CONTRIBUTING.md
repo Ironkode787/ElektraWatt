@@ -50,6 +50,9 @@ There is no continuous integration until 1.0. `check` is the check.
 - A new integration test goes into its crate's one test binary, `tests/it/<name>.rs`. Touch `tests/it/main.rs`
   once after you add the file, since cargo does not see a new file in that folder until `main.rs` changes.
 - No performance tests and no timing assertions during development.
+- Mutation testing says which lines no test guards (`cargo install cargo-mutants --locked`; nothing of it is in the
+  repository). One file: `cargo mutants -p <crate> -f <path> --test-tool nextest -j 2 -o target/mutants -- --fail-fast`.
+  The router's never-worse rule hides a wrong route as an unrouted wire, so a router test asks for the route too.
 - A test that is too slow for every change is `#[ignore = "deep run: …"]`: the oracle on every read, the long
   fuzz, the long recordings. The deep run takes them all, at
   the end of a milestone and before a release:
