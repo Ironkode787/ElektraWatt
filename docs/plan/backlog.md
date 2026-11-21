@@ -58,8 +58,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### Your own PLC and bus parts
 
-- FT-1766 `ew-api, ew-commands, ew-viewmodel, ew-ui`: What is left of "your own PLC and bus parts" (owner, 2026-11-15): the boxes of a device with several interfaces can be dragged apart on a bus page, and one placed near the page's edge runs past it or lands on another device (one box for such a device is FT-1904, M4); a port a corrected part adds appears only when the box is drawn again, and removed sockets can leave marks; a part cannot be removed from My parts; EW-PLC-012 has no quick fix that opens the PLC section; a part cannot hold a card with two channel kinds. A device placed first on a bus page takes its tag from that page, and placing its black box on a schematic page later changes the tag to that page's without a word: say so in the toast, or keep the tag.
-- FT-1788 `ew-viewmodel, ew-ui`: A PLC module's or a bus device's device box opens read-only (`shell/symbol_editor/device_box.rs` locks pins that come from channels or bus interfaces); edit them in the box itself.
+- FT-1970 `ew-api, ew-derive`: A card of two channel kinds that go the same way (inputs with analogue inputs, outputs with analogue outputs) is still two parts; a card of inputs and outputs is one (FT-1766, doc 10 §2.6). A module has one start per direction, so the second kind's place in its direction's range (after the first's bits, a word aligned) and the profile's cursor per class must be settled first.
 
 #### The station view and the PLC grid
 
