@@ -495,8 +495,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
 #[test]
 fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     let tmp = Tmp::new();
-    // The tutorial's page describes the reference project: it moves to the sample with the page (the guide's words).
-    let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::GOLDEN_A));
+    let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::SAMPLE));
     let transcript = all_done(&out);
     let [copied, parts, preview, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
@@ -507,41 +506,36 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     assert_eq!(
         lines_of(&copied, &["row level 2 page \"90", "row level 2 page \"91"]),
         [
-            "row level 2 page \"900\" \"=P01+J-E-2416 - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
+            "row level 2 page \"900\" \"+CAB - Section 9 - Page 900 - 999 - Nomenclature\" changed \"V1.0\"",
             "row level 2 page \"901\" \"Partlist 1\" generated changed \"V1.0\"",
             "row level 2 page \"901.1\" \"Partlist 2\" generated changed \"V1.0\"",
-            "row level 2 page \"902\" \"Cabinet Layout\" badge \"QET 10 px\" changed \"V1.0\"",
-            "row level 2 page \"903\" \"Terminal Diagram 1X1\" generated changed \"V1.0\"",
-            "row level 2 page \"904\" \"Terminal Diagram -X1031\" generated changed \"V1.0\"",
-            "row level 2 page \"905\" \"Terminal Diagram -X1032\" generated changed \"V1.0\"",
+            "row level 2 page \"902\" \"Panel layout\" badge \"QET 10 px\" changed \"V1.0\"",
+            "row level 2 page \"903\" \"Terminal Diagram 1\" generated changed \"V1.0\"",
             "row level 2 page \"906\" \"Cable Overview and Diagrams\" generated changed \"V1.0\"",
             "row level 2 page \"907\" \"Wire List 1\" generated changed \"V1.0\"",
             "row level 2 page \"907.1\" \"Wire List 2\" generated changed \"V1.0\"",
             "row level 2 page \"907.2\" \"Wire List 3\" generated changed \"V1.0\"",
-            "row level 2 page \"908\" \"PLC Overview -201U1 1\" generated changed \"V1.0\"",
-            "row level 2 page \"908.1\" \"PLC Overview -201U1 2\" generated changed \"V1.0\"",
-            "row level 2 page \"908.2\" \"PLC Overview -201U1 3\" generated changed \"V1.0\"",
+            "row level 2 page \"908\" \"PLC Overview 1\" generated changed \"V1.0\"",
+            "row level 2 page \"908.1\" \"PLC Overview 2\" generated changed \"V1.0\"",
             "row level 2 page \"909\" \"Potential Overview\" generated changed \"V1.0\"",
+            "row level 2 page \"909.1\" \"Potential Overview\" generated changed \"V1.0\"",
             "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
             "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
-            "row level 2 page \"910.2\" \"Device Tag Overview 3\" generated changed \"V1.0\"",
-            "row level 2 page \"910.3\" \"Device Tag Overview 4\" generated changed \"V1.0\"",
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
         ]
     );
-    // Step 1's toast, which says where the copy is (F4), and step 3's, with the devices the parts list leaves out.
+    // Step 1's toast, which says where the copy is (F4), and step 3's; every device of the sample has a part, so no
+    // toast names devices the parts list leaves out.
     assert_eq!(
         lines_of(&parts, &["toast"]),
         [
             "toast \"The tutorial's practice project is under Tutorials in your projects folder.\" show_folder",
             "toast \"Added the report block Parts list from folio 912.\" undo",
-            "toast \"10 devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… \
-             gives them one.\" select_unlisted"
         ]
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
-        ["dialog \"Print\"", "preview \"2 of 41\" page 2"]
+        ["dialog \"Print\"", "preview \"2 of 31\" page 2"]
     );
     assert_eq!(
         lines_of(&end, &["row level 2 page \"91", "title:"]),
@@ -549,20 +543,17 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "title: reports.ew - ElektraWatt",
             "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
             "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
-            "row level 2 page \"910.2\" \"Device Tag Overview 3\" generated changed \"V1.0\"",
-            "row level 2 page \"910.3\" \"Device Tag Overview 4\" generated changed \"V1.0\"",
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
             "row level 2 page \"912\" \"Parts list\" generated changed \"V1.0\"",
             "row level 2 page \"912.1\" \"Parts list\" generated changed \"V1.0\"",
             "row level 2 page \"912.2\" \"Parts list\" generated changed \"V1.0\"",
-            "row level 2 page \"912.3\" \"Parts list\" generated changed \"V1.0\"",
             "row level 2 page \"913\" \"Terminal overview\" generated changed \"V1.0\"",
         ]
     );
     let toast = lines_of(&end, &["toast \"Exported"]);
     assert!(
         toast.len() == 1 && toast[0].starts_with(
-                "toast \"Exported reports.pdf: 13 drawing pages, 3 section divider pages and 25 report pages, "
+                "toast \"Exported reports.pdf: 8 drawing pages, 3 section divider pages and 20 report pages, "
             ),
         "{toast:?}"
     );
