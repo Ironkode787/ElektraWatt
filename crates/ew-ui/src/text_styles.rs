@@ -100,7 +100,9 @@ pub(crate) fn text_styles(
                             theme::margin_px(t.space_2),
                             theme::margin_px(t.space_1),
                         ));
-                    let shown = frame.show(ui, |ui| style_row(ui, &t, row, (writable, typeface.as_ref()), events));
+                    let shown = frame.show(ui, |ui| {
+                        style_row(ui, &t, row, (writable, typeface.as_ref()), events)
+                    });
                     if focused && just_opened {
                         shown.response.scroll_to_me(Some(egui::Align::Center));
                     }
@@ -228,7 +230,9 @@ fn style_row(
                             .font(egui::FontId::new(
                                 size,
                                 match (typeface, &row.face) {
-                                    (Some(family), Typeface::Standard | Typeface::Unknown(_)) => family.clone(),
+                                    (Some(family), Typeface::Standard | Typeface::Unknown(_)) => {
+                                        family.clone()
+                                    }
                                     _ => crate::fonts::drawing_family(&row.face, row.bold),
                                 },
                             ))

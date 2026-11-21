@@ -62,7 +62,9 @@ impl Eq for ProjectFonts {}
 
 impl fmt::Debug for ProjectFonts {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ProjectFonts").field("state", &self.state).finish_non_exhaustive()
+        f.debug_struct("ProjectFonts")
+            .field("state", &self.state)
+            .finish_non_exhaustive()
     }
 }
 
@@ -130,9 +132,10 @@ pub struct DrawingFonts;
 
 impl FontResolver for DrawingFonts {
     fn font(&self, key: FontKey) -> Option<FontBytes> {
-        super::font_bytes().get(&key).cloned().or_else(|| {
-            ew_text::typeface_file(key).map(|data| FontBytes { data, index: 0 })
-        })
+        super::font_bytes()
+            .get(&key)
+            .cloned()
+            .or_else(|| ew_text::typeface_file(key).map(|data| FontBytes { data, index: 0 }))
     }
 }
 

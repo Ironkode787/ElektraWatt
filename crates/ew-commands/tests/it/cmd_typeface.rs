@@ -67,7 +67,13 @@ fn a_font_file_becomes_the_typeface_and_undoes() {
     let mut e = engine(mini_model());
     let before = lines(e.model());
     commit(&mut e, &set(FONT, "RoutedGothic-Regular.ttf"));
-    let typeface = e.model().project().settings.typeface.clone().expect("the setting");
+    let typeface = e
+        .model()
+        .project()
+        .settings
+        .typeface
+        .clone()
+        .expect("the setting");
     assert_eq!(typeface.asset.0, <[u8; 32]>::from(sha2::Sha256::digest(FONT)));
     assert_eq!(typeface.name, "RoutedGothic-Regular.ttf");
     let asset = e.model().asset(&typeface.asset).expect("the file is an asset");
@@ -91,8 +97,16 @@ fn what_is_no_usable_typeface_is_refused_in_words() {
     let mut e = engine(mini_model());
     let before = lines(e.model());
     let cases: Vec<(AnyCommand, &str, &str)> = vec![
-        (set(b"%PDF-1.7 not a font", "a.ttf"), "/file", "no font of one typeface"),
-        (set(&[b"ttcf", &FONT[4..]].concat(), "a.ttc"), "/file", "collection"),
+        (
+            set(b"%PDF-1.7 not a font", "a.ttf"),
+            "/file",
+            "no font of one typeface",
+        ),
+        (
+            set(&[b"ttcf", &FONT[4..]].concat(), "a.ttc"),
+            "/file",
+            "collection",
+        ),
         (set(&FONT[..64], "a.ttf"), "/file", "cannot be read"),
         (set(&with_fs_type(0x0002), "a.ttf"), "/file", "forbids embedding"),
         (set(&with_fs_type(0x0200), "a.ttf"), "/file", "bitmaps only"),
@@ -120,7 +134,11 @@ fn what_is_no_usable_typeface_is_refused_in_words() {
         name: Some("a.ttf".to_owned()),
     };
     let (at, message) = refused(&mut e, &large);
-    assert_eq!((at.as_str(), message.contains("768 KiB")), ("/file", true), "{message}");
+    assert_eq!(
+        (at.as_str(), message.contains("768 KiB")),
+        ("/file", true),
+        "{message}"
+    );
     assert_eq!(lines(e.model()), before);
 }
 

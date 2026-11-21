@@ -499,7 +499,12 @@ impl Writer<'_> {
                     let ahead = rt.apply(Pt2::new(Nm(1_000_000), Nm(0)));
                     // The angle on the sheet (y down) as DXF's (y up): the visual angle is the same.
                     let angle = atan2_deg(-((ahead.y.0 - at.y.0) as f64), (ahead.x.0 - at.x.0) as f64);
-                    let face = self.opts.faces.get(&run.font).cloned().unwrap_or_else(DxfFace::noto);
+                    let face = self
+                        .opts
+                        .faces
+                        .get(&run.font)
+                        .cloned()
+                        .unwrap_or_else(DxfFace::noto);
                     let cap = i128::from(run.size.0) * i128::from(face.cap.0) / i128::from(face.cap.1.max(1));
                     let cap = i64::try_from(cap).unwrap_or(i64::MAX);
                     let style = self.style(run.font);
@@ -999,8 +1004,14 @@ mod tests {
         };
         let text = &dxf(&[sheet], &options)[0].text;
         assert!(text.contains("  2\nEW-ROUTED-GOTHIC\n") && text.contains("  3\nrouted-gothic.ttf\n"));
-        assert!(text.contains(" 40\n0.736\n  1\nK1\n 50\n0\n  7\nEW-ROUTED-GOTHIC\n"), "{text}");
-        assert!(text.contains(" 40\n0.731136\n  1\nK1\n 50\n0\n  7\nEW-NOTO-SANS\n"), "{text}");
+        assert!(
+            text.contains(" 40\n0.736\n  1\nK1\n 50\n0\n  7\nEW-ROUTED-GOTHIC\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains(" 40\n0.731136\n  1\nK1\n 50\n0\n  7\nEW-NOTO-SANS\n"),
+            "{text}"
+        );
     }
 
     #[test]

@@ -140,7 +140,11 @@ pub fn typeface_family(ctx: &egui::Context, face: ew_dl::FontKey) -> Option<Font
         FontPriority::Highest,
     ));
     if let Some(symbols) = faces().into_iter().find(|f| f.family.contains("Math")) {
-        ctx.add_font(insert(format!("{name}:symbols"), symbols.data, FontPriority::Lowest));
+        ctx.add_font(insert(
+            format!("{name}:symbols"),
+            symbols.data,
+            FontPriority::Lowest,
+        ));
     }
     None
 }

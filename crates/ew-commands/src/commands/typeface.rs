@@ -102,7 +102,9 @@ fn name_refusal(name: &str) -> Option<Text> {
         return Some(text!("refusal-typeface-name-missing"));
     }
     if name.chars().count() > MAX_TYPEFACE_NAME
-        || name.chars().any(|c| c.is_control() || matches!(c, '/' | '\\' | ':'))
+        || name
+            .chars()
+            .any(|c| c.is_control() || matches!(c, '/' | '\\' | ':'))
     {
         return Some(text!(
             "refusal-typeface-name",

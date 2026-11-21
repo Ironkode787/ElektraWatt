@@ -57,12 +57,18 @@ fn a_file_that_is_no_font_is_refused_in_words() {
         (gone, "Cannot read the font file gone.ttf"),
     ];
     for (path, words) in cases {
-        let out = shell.dispatch("text_styles.typeface", &json!({"path": path.display().to_string()}));
+        let out = shell.dispatch(
+            "text_styles.typeface",
+            &json!({"path": path.display().to_string()}),
+        );
         let Outcome::Failed { message } = out else {
             panic!("{path:?}: {out:?}");
         };
         assert!(message.contains(words), "{message}");
-        assert!(!message.contains(&tmp.0.display().to_string()), "no folder in {message}");
+        assert!(
+            !message.contains(&tmp.0.display().to_string()),
+            "no folder in {message}"
+        );
     }
     assert_eq!(line(&shell), "Noto Sans, which comes with the program");
 }

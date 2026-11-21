@@ -3293,7 +3293,7 @@ mod model_identity_tests {
 #[cfg(test)]
 mod arrival_tests {
     use super::*;
-    use ew_dl::{Brush, DisplayList, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R};
+    use ew_dl::{Brush, DisplayList, FontKey, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R};
     use ew_units::Pt2;
 
     /// The ring runs under a text: no step of it lies in the text's rectangle, and the rest of the

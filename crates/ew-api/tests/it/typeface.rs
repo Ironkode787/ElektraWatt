@@ -65,7 +65,11 @@ fn without_a_typeface_the_sample_prints_with_the_bundled_faces_only() {
     assert_eq!(s.typeface(), TypefaceState::Bundled);
     let pdf = s.export_pdf(&options()).unwrap();
     assert!(!pdf.report.fonts.is_empty());
-    assert!(pdf.report.fonts.iter().all(|k| bundled().contains(k)), "{:?}", pdf.report.fonts);
+    assert!(
+        pdf.report.fonts.iter().all(|k| bundled().contains(k)),
+        "{:?}",
+        pdf.report.fonts
+    );
 }
 
 #[test]
@@ -82,11 +86,18 @@ fn the_typeface_prints_in_the_pdf_and_is_named_by_the_dxf() {
     );
     let pdf = s.export_pdf(&options()).unwrap();
     assert!(pdf.report.missing_fonts.is_empty());
-    assert!(pdf.report.fonts.contains(&typeface_key()), "{:?}", pdf.report.fonts);
+    assert!(
+        pdf.report.fonts.contains(&typeface_key()),
+        "{:?}",
+        pdf.report.fonts
+    );
     let noto = ew_text::bundled()
         .face_for(&ew_text::TextStyle::regular(ew_units::Nm(1)))
         .key;
-    assert!(!pdf.report.fonts.contains(&noto), "the Standard texts left Noto Sans");
+    assert!(
+        !pdf.report.fonts.contains(&noto),
+        "the Standard texts left Noto Sans"
+    );
     // The DXF's style names the file, and the page's texts are written in it.
     let dxf = s
         .export_dxf(&options(), &ew_export::DxfLayers::default())
@@ -96,7 +107,10 @@ fn the_typeface_prints_in_the_pdf_and_is_named_by_the_dxf() {
         text.contains("  2\nEW-ROUTED-GOTHIC\n") && text.contains(&format!("  3\n{NAME}\n")),
         "the style that names the file"
     );
-    assert!(text.contains("  7\nEW-ROUTED-GOTHIC\n"), "texts in the typeface's style");
+    assert!(
+        text.contains("  7\nEW-ROUTED-GOTHIC\n"),
+        "texts in the typeface's style"
+    );
 }
 
 #[test]
@@ -136,9 +150,14 @@ fn a_saved_typeface_travels_with_the_project() {
     set_typeface(&mut s);
     s.save().expect("the save writes the font file");
     s.close();
-    let (r, report) = Session::open(&dir, store(), SessionOptions::default(), Recovery::Keep).expect("it reopens");
+    let (r, report) =
+        Session::open(&dir, store(), SessionOptions::default(), Recovery::Keep).expect("it reopens");
     assert!(report.findings.is_empty(), "{:#?}", report.findings);
-    assert!(matches!(r.typeface(), TypefaceState::Loaded { .. }), "{:?}", r.typeface());
+    assert!(
+        matches!(r.typeface(), TypefaceState::Loaded { .. }),
+        "{:?}",
+        r.typeface()
+    );
     let pdf = r.export_pdf(&options()).unwrap();
     assert!(pdf.report.fonts.contains(&typeface_key()));
 }

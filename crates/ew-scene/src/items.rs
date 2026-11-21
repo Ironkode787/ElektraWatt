@@ -270,7 +270,13 @@ mod tests {
         assert_eq!(text_align(None, Some(&TextAnchor::Middle)), Align::MiddleLeft);
         let baseline = Some(&TextAnchor::Baseline);
         assert_eq!(text_align(None, baseline), Align::BaselineLeft);
-        assert_eq!(text_align(Some(&TextAlign::Centre), baseline), Align::BaselineCentre);
-        assert_eq!(text_align(Some(&TextAlign::Right), baseline), Align::BaselineRight);
+        assert_eq!(
+            text_align(Some(&TextAlign::Centre), baseline),
+            Align::BaselineCentre
+        );
+        assert_eq!(
+            text_align(Some(&TextAlign::Right), baseline),
+            Align::BaselineRight
+        );
     }
 }

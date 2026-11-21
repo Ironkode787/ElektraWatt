@@ -358,7 +358,9 @@ impl ShellModel {
             }
         }
         let mut bytes = Vec::new();
-        if let Err(e) = std::fs::File::open(&path).and_then(|f| f.take(limit as u64 + 1).read_to_end(&mut bytes)) {
+        if let Err(e) =
+            std::fs::File::open(&path).and_then(|f| f.take(limit as u64 + 1).read_to_end(&mut bytes))
+        {
             return self.text_styles_refused(strings::format(
                 key!("error-typeface-file"),
                 &[&name, &e.to_string()],
