@@ -30,7 +30,8 @@ use crate::tx::TxBuilder;
 /// - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
 ///   both" copy belongs to a paste, not to embedding);
 /// - its `library_id` is not the project's: a project-local item is created in the project, not embedded (a
-///   project-local part copy is `parts.import`'s);
+///   project-local part copy is `parts.import`'s), but a form of the project's own (a frame or a title block made
+///   outside the program, FT-1859) is embedded as any other form;
 /// - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014): the copy is consistent
 ///   with the hash it claims (the hash does not prove where the copy came from).
 ///
@@ -91,7 +92,8 @@ fn lineage<T: Serialize>(c: &LibCopy<T>, doc: &LibDocument) -> Lineage {
 
 /// Checks one library document of a command parameter at `at` (the rules of [`EmbedLibraryCopies`]): it reads as
 /// a library document of an implemented kind; its `id` is the copy identity; its `library_id` is not
-/// the project's (`project`); its `sha256` is the hash of its item. Returns the document and its lineage.
+/// the project's (`project`) unless it is a form; its `sha256` is the hash of its item. Returns the document and its
+/// lineage.
 pub(crate) fn check_copy(
     command: &'static str,
     at: &str,
@@ -99,7 +101,9 @@ pub(crate) fn check_copy(
     project: ew_ids::Uuid,
 ) -> Result<(LibDocument, Lineage), CmdError> {
     let (doc, l) = read_copy(command, at, value)?;
-    if l.library == project {
+    // A form of the project's own is embedded as it is (FT-1859): no command makes one yet, so a person's frame or
+    // title block comes in this way.
+    if l.library == project && !matches!(doc, LibDocument::Form(_)) {
         return Err(CmdError::invalid_params(
             command,
             format!("{at}/library_id"),

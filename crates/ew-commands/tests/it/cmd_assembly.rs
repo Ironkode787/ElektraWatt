@@ -819,12 +819,8 @@ fn library_embed_validates_every_copy() {
         invalid_path(e.execute(&embed(vec![bad_sha])), c),
         "/copies/0/sha256"
     );
-    // a project-local item (library = the project)
-    let (_, local) = embeddable(PROJECT.as_uuid().as_u128(), 0xa0003);
-    assert_eq!(
-        invalid_path(e.execute(&embed(vec![local])), c),
-        "/copies/0/library_id"
-    );
+    // A form of the project's own embeds (FT-1859, `own_forms.rs`); another project-local item is refused
+    // (`cmd_library_embed.rs`).
     invalid_path(e.execute(&embed(vec![json!({"$k": "bogus"})])), c);
     assert_eq!(invalid_path(e.execute(&embed(vec![])), c), "/copies");
     assert!(!has_form(&e, copy_id));

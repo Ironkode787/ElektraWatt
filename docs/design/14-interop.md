@@ -1011,7 +1011,15 @@ variable has an EW xref-format token (FR-XRF-003):
   of `pt × 4/3` px em, ADR-0032), shrinking to a 0.5 mm cap height where QET adjusts (`hadjust`). Of the
   translations the `en` one is taken, else the first. `%title`, `%folio`, `%folio-id`, `%folio-total`,
   `%previous-folio-num` and `%next-folio-num` bind to `page.title`, `page.folio`, `doc.page_index`,
-  `doc.page_count`, `page.prev` and `page.next`; every other variable is filled with the diagram's value, from its
+  `doc.page_count`, `page.prev` and `page.next`. QET's own variables whose values the import writes into the
+  project's and the page's fields bind to those fields, so a value changed in the program prints (FT-1859): `%plant`
+  and `%locmach` to `page.function` and `page.location`, the page's structure, a node of each code (`=P01`, `+AQ60`;
+  one atomic code after the sign, else the value stays text); and, when every folio has one value, `%indexrev` to
+  `revision.current.label` (an open revision of that label), `%author` to `revision.current.author.name` (the designer,
+  a party of the role author), `%filename` to `project.drawing_id`; `%projecttitle` binds to `project.description`
+  and `%saveddate` (`-eu`, `-us`) to `project.edited`, set from the ISO `saveddate` or `saveddate-us`. A variable of the
+  person's own (`%{customer}`) and a value the folios do not share stay text: a field of one's own is FT-1814.
+  Every other variable is filled with the diagram's value, from its
   title-block attributes (`date="null"` is empty), then the project's title (`%projecttitle`) and properties, then
   the diagram's properties, and an unknown variable stays as written, as in QET. `%projectpath`,
   `%projectfilename` and `%savedfilepath` print nothing (EW-IMP-004). A logo stored as base64 (QET's form for a

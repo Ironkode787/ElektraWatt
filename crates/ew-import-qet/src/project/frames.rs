@@ -17,7 +17,8 @@
 //!   title-block form as wide as the border: columns in px, `tN%` of the width and `rN%` of the width left
 //!   (rounded to whole px), rows in px; every cell's edges drawn once, the outline left to the frame. A field
 //!   prints its label (`displaylabel`) and its value; the folio variables bind to the page (`%title`,
-//!   `%folio`, `%folio-id`, `%folio-total`, `%previous-folio-num`, `%next-folio-num`), every other variable
+//!   `%folio`, `%folio-id`, `%folio-total`, `%previous-folio-num`, `%next-folio-num`), QET's own variables whose
+//!   values the import wrote into the project's and the page's fields bind to those fields ([`FIELDS`]), every other variable
 //!   is filled with the diagram's value (its title-block attributes, then the project's title and
 //!   properties, then the diagram's own properties), and variables naming a local path print nothing
 //!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo stored as base64 (a PNG) or
@@ -181,7 +182,9 @@ fn size(d: Option<crate::decimal::Decimal>, default: i64) -> (i64, bool) {
     }
 }
 
-/// Builds the frames of `project`'s diagrams; title-block logos join `assets`.
+/// Builds the frames of `project`'s diagrams; title-block logos join `assets`. `fielded(diagram, variable)` says which
+/// of QET's own variables the import wrote into a field for a diagram ([`FIELDS`]).
+#[allow(clippy::too_many_arguments)]
 pub fn build(
     project: &QetProject,
     ids: &Ids,
@@ -190,6 +193,7 @@ pub fn build(
     used: &mut BTreeSet<String>,
     assets: &mut ItemsOut,
     findings: &mut Findings,
+    fielded: &dyn Fn(usize, &str) -> bool,
 ) -> Frames {
     let mut out = Frames::default();
     let mut seen: BTreeSet<Id<FormDef>> = BTreeSet::new();
@@ -245,7 +249,7 @@ pub fn build(
         }
         let tb = match template {
             Some(t) => {
-                let ctx = context(project, d);
+                let ctx = context(project, d, fielded);
                 let made = title_block(t, width, &ctx, &mut out.sizes, assets, &mut |m| {
                     report_once(findings, m)
                 });
@@ -366,14 +370,36 @@ const BOUND: [(&str, &str); 6] = [
     ("next-folio-num", "page.next"),
 ];
 
+/// QET's own variables whose values the import writes into a field of the project or of the page, and the field a
+/// cell prints for them (doc 14 §4.9, FT-1859): the page's structure (`=`, `+`), the open revision's label, the
+/// designer, the drawing number, the project's description and its edited date. [`super::pages`] writes a field only
+/// where it can hold the value (every folio's value one for the project's); elsewhere the cell keeps the text.
+pub(crate) const FIELDS: [(&str, &str); 9] = [
+    ("plant", "page.function"),
+    ("locmach", "page.location"),
+    ("indexrev", "revision.current.label"),
+    ("author", "revision.current.author.name"),
+    ("filename", "project.drawing_id"),
+    ("projecttitle", "project.description"),
+    ("saveddate", "project.edited"),
+    ("saveddate-eu", "project.edited"),
+    ("saveddate-us", "project.edited"),
+];
+
 /// QET's variables that hold a local file path; they print nothing.
 const PATHS: [&str; 3] = ["projectpath", "projectfilename", "savedfilepath"];
 
-/// The variables of diagram `d`, by name; the first source that names one wins.
-fn context(project: &QetProject, d: &QetDiagram) -> BTreeMap<String, Var> {
+/// The variables of diagram `d`, by name; the first source that names one wins. A variable of [`FIELDS`] that
+/// `fielded` says the import wrote for the diagram prints its field.
+fn context(project: &QetProject, d: &QetDiagram, fielded: &dyn Fn(usize, &str) -> bool) -> BTreeMap<String, Var> {
     let mut ctx: BTreeMap<String, Var> = BTreeMap::new();
     for (name, path) in BOUND {
         ctx.insert(name.to_owned(), Var::Bound(path));
+    }
+    for (name, path) in FIELDS {
+        if fielded(d.index, name) {
+            ctx.insert(name.to_owned(), Var::Bound(path));
+        }
     }
     for name in PATHS {
         ctx.insert(name.to_owned(), Var::Text(String::new()));

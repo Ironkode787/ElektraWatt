@@ -193,7 +193,10 @@ without its title block breaks EW-INV-001, so the two travel together. They are 
 `library.embed` (one shared check) and embedded in the same transaction through transaction lookups only, so the
 derivation is never read during the command (kept); a held copy of the same version (the same `sha256`) is
 reused, a copy of another version is refused with "update from library" (FR-PRT-014). One undo step removes the block
-and the copies it embedded; a reused held copy stays. **The wizard's golden layout** (16 §9.2 step 9) is written
+and the copies it embedded; a reused held copy stays. A form of the project's own (its library ID the project's: a
+frame or title block made outside the program) is embedded as any other form, by `library.embed` and here
+(FT-1859); a block's form is set afterwards with `fields.set` path `form` (its Form row in Properties) to a form the
+project holds. Editing a form in the window is FT-1814. **The wizard's golden layout** (16 §9.2 step 9) is written
 through this command: the contents page on folio 2, the parts list on 901, **one** terminal-diagram block at 903
 (over every strip; its pages continue as 903.1, 903.2), the cable overview at 906, the wire list at 907, the PLC
 overview at 908, the potential overview at 909, the device-tag overview at 910 and the revision overview at 911.

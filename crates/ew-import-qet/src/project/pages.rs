@@ -25,9 +25,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Id;
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
-use ew_schema::{Date, Folio, FormDef, LibCopy, MasterData, Page, PageType, Project, Record, Scale};
+use ew_schema::{
+    Date, Folio, FormDef, LibCopy, MasterData, Page, PageType, Party, PartyRole, Project, Record, Revision,
+    RevisionState, Scale, Slot, StructureAssignment, StructureNode,
+};
 use ew_units::Grid;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use super::builtins::Builtins;
 use super::cx::{Findings, Ids};
@@ -143,6 +146,25 @@ fn iso_date(s: &str) -> Option<Date> {
     let m = it.next()?.parse::<u8>().ok()?;
     let d = it.next()?.parse::<u8>().ok()?;
     Date::new(y, m, d).ok()
+}
+
+/// The structure node of the title-block value `value` (`=P01`, `+AQ60`) in `aspect` (`function` for `=`, `location`
+/// for `+`, its `sign`): one atomic code after the sign; `None` for another value, which the cell keeps as text.
+fn structure_node(ids: &Ids, aspect: &str, sign: char, value: &str) -> Option<StructureNode> {
+    let code = value.trim().strip_prefix(sign)?;
+    if code.is_empty() || code.contains(['=', '+', '&', '#', '%']) {
+        return None;
+    }
+    Ident::from_input(code).ok()?;
+    let key = format!("qet:structure:{aspect}:{code}");
+    let id: Id<StructureNode> = ids.id(&key);
+    serde_json::from_value(json!({
+        "id": id.to_string(),
+        "aspect": aspect,
+        "code": code,
+        "source_ref": ids.source_ref(&key),
+    }))
+    .ok()
 }
 
 /// The most folio labels one EW-IMP-104 message lists per value.
@@ -337,6 +359,50 @@ pub fn map(
         ..
     } = lift("folio property", &props, &folios, |_| true, findings);
 
+    // QET's own title-block variables become fields of the project and the pages that the title block prints
+    // (doc 14 §4.9, FT-1859): a page's `=` and `+` its structure, and the values every folio shares the open revision's
+    // label, the designer and the drawing number.
+    let mut nodes: BTreeMap<String, StructureNode> = BTreeMap::new();
+    let mut structures: Vec<StructureAssignment> = Vec::with_capacity(total);
+    for m in &tb {
+        let mut s = StructureAssignment::default();
+        for (var, aspect, sign) in [("plant", "function", '='), ("locmach", "location", '+')] {
+            let Some(node) = m.get(var).and_then(|v| structure_node(ids, aspect, sign, v)) else {
+                continue;
+            };
+            let slot = Some(Slot::Node(node.id));
+            match aspect {
+                "function" => s.function = slot,
+                _ => s.location = slot,
+            }
+            nodes.entry(node.code.as_str().to_owned() + aspect).or_insert(node);
+        }
+        structures.push(s);
+    }
+    let shared = |name: &str| tb_project.get(name).and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty());
+    let revision = shared("indexrev").and_then(|l| Ident::from_input(l).ok());
+    let designer = shared("author").map(MlText::neutral);
+    let drawing_id = shared("filename").and_then(|f| Ident::from_input(f).ok());
+    let edited = ["saveddate", "saveddate-us"]
+        .iter()
+        .find_map(|n| {
+            project
+                .properties
+                .iter()
+                .find(|(k, _)| k.as_str() == *n)
+                .and_then(|(_, v)| iso_date(v))
+        });
+    let titled = project.title.as_deref().is_some_and(|t| !t.trim().is_empty());
+    let fielded = |d: usize, name: &str| match name {
+        "plant" => structures.get(d).is_some_and(|s| s.function.is_some()),
+        "locmach" => structures.get(d).is_some_and(|s| s.location.is_some()),
+        "indexrev" => revision.is_some(),
+        "author" => designer.is_some(),
+        "filename" => drawing_id.is_some(),
+        "projecttitle" => titled,
+        "saveddate" | "saveddate-eu" | "saveddate-us" => edited.is_some(),
+        _ => false,
+    };
     let frames = frames::build(
         project,
         ids,
@@ -345,6 +411,7 @@ pub fn map(
         used,
         assets,
         findings,
+        &fielded,
     );
     let facts: Vec<tables::DiagramFacts> = (0..total)
         .map(|i| tables::DiagramFacts {
@@ -383,7 +450,7 @@ pub fn map(
                 extra: BTreeMap::new(),
             },
             kind: PageType::MultiLine,
-            structure: Default::default(),
+            structure: structures[i].clone(),
             form,
             title: if d.title.trim().is_empty() {
                 MlText::default()
@@ -398,6 +465,27 @@ pub fn map(
         }));
     }
     records.extend(tables.records);
+    records.extend(nodes.into_values().map(Record::StructureNode));
+    if let Some(label) = revision {
+        let key = "qet:revision";
+        records.push(Record::Revision(Revision {
+            id: ids.id(key),
+            v: 1,
+            label,
+            date: None,
+            author: None,
+            checker: None,
+            description: MlText::default(),
+            state: RevisionState::Open,
+            page_notes: Vec::new(),
+            withdraws: None,
+            source_ref: Some(ids.source_ref(key)),
+            reason: MlText::default(),
+            release: None,
+            sign_off: None,
+            extra: BTreeMap::new(),
+        }));
+    }
 
     // The project record.
     let mut pextra = BTreeMap::new();
@@ -407,7 +495,6 @@ pub fn map(
     if !pr_project.is_empty() {
         pextra.insert("qet.properties".to_owned(), Value::Object(pr_project));
     }
-    let mut edited = None;
     let mut kept = serde_json::Map::new();
     for (name, value) in &project.properties {
         match name.as_str() {
@@ -417,10 +504,6 @@ pub fn map(
                 Severity::Info,
                 "project property `savedfilepath` dropped (a local file path)",
             ),
-            "saveddate" => {
-                edited = iso_date(value);
-                kept.insert(name.clone(), Value::String(value.clone()));
-            }
             _ => {
                 kept.insert(name.clone(), Value::String(value.clone()));
             }
@@ -453,9 +536,20 @@ pub fn map(
         master: MasterData {
             description,
             edited,
+            drawing_id,
             ..MasterData::default()
         },
-        parties: Vec::new(),
+        // The designer, whom the Author cell prints while no revision names one.
+        parties: designer
+            .map(|name| Party {
+                role: PartyRole::Author,
+                name,
+                address: None,
+                personal_data: true,
+                extra: BTreeMap::new(),
+            })
+            .into_iter()
+            .collect(),
         supply: None,
         control_voltage: None,
         rated_consumption: None,

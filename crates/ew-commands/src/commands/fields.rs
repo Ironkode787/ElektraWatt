@@ -10,8 +10,8 @@ use std::collections::BTreeSet;
 use ew_model::Entity;
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusMedium, BusSystem, Channel, ChannelState, Conductor, Connection, Device,
-    DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, Function, FunctionKind, IpDirection, Kind, LogicalNet,
-    NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject,
+    DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, FormDef, Function, FunctionKind, IpDirection, Kind, LibCopy,
+    LogicalNet, NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject,
     PlcSize, PortRole, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox,
     StructureNode,
 };
@@ -228,6 +228,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "continuation",
             "empty",
             "manual",
+            // The form its pages print on (FT-1859), one the project holds.
+            "form",
             // An embedded block's rectangle: a legend moved or resized on its layout page.
             "embedded.rect",
         ],
@@ -499,6 +501,11 @@ impl SetFields {
                 }
                 KindName::ReportBlock => {
                     set_one::<ReportBlock>(tx, *t, path, value)?;
+                    // A block's form is one the project holds, as `report_block.create` asks.
+                    if path == "form" {
+                        let form = tx.require::<ReportBlock>(t.cast())?.form;
+                        tx.require::<LibCopy<FormDef>>(form)?;
+                    }
                     // A first folio or a continuation whose generated pages a page of the section
                     // already holds is refused, as `report_block.create` refuses it.
                     if path == "first_folio" || path == "continuation" {

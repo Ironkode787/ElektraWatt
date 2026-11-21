@@ -62,3 +62,10 @@ change here.
   without a header on a second folio go on with the strip of the folio before, cable marks labelled with a W tag
   become a cable whose cores are the wires they cross, and a stored route with a corner between the grid's lines
   keeps its way (the corner moves to the half grid; QET's automatic path replaced it) (FT-1861)
+- behaviour-change: the QElectroTech import writes QET's own title-block variables into the project's and the
+  pages' fields and the title block prints those fields: `%plant` and `%locmach` become the page's structure, and the
+  values every folio shares the open revision's label (`%indexrev`), the designer (`%author`) and the drawing number
+  (`%filename`); a variable of one's own and a value the folios do not share stay text (FT-1859)
+- behaviour-change: `library.embed` and `report_block.create` take a frame or title-block form of the project's own,
+  and a report block's form is set with `fields.set` path `form` (its Form row in Properties) to a form the project
+  holds (FT-1859)
