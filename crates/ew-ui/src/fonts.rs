@@ -112,6 +112,39 @@ pub fn drawing_family(face: &ew_viewmodel::ew_api::Typeface, bold: bool) -> Font
     FontFamily::Name(drawing_name(family, bold && face.has_bold()).into())
 }
 
+/// The egui family that draws the project's typeface `face` (doc 09 §4.8), for the Text styles samples of the Standard
+/// styles: the face's file, then Noto Sans Math for what it lacks, as the drawings print it. Installed into `ctx` on
+/// first use; `None` until it is there (a font added to egui arrives with the next pass) or when its file is not at
+/// hand.
+pub fn typeface_family(ctx: &egui::Context, face: ew_dl::FontKey) -> Option<FontFamily> {
+    use egui::epaint::text::{FontInsert, FontPriority, InsertFontFamily};
+    use ew_render_cpu::FontResolver as _;
+    let hex: String = face.sha256.iter().map(|b| format!("{b:02x}")).collect();
+    let name = format!("drawing:typeface:{hex}");
+    let family = FontFamily::Name(name.clone().into());
+    if ctx.fonts(|f| f.families().contains(&family)) {
+        return Some(family);
+    }
+    let bytes = ew_viewmodel::ew_api::output::DrawingFonts.font(face)?;
+    let insert = |name: String, data: FontData, priority: FontPriority| FontInsert {
+        name,
+        data,
+        families: vec![InsertFontFamily {
+            family: family.clone(),
+            priority,
+        }],
+    };
+    ctx.add_font(insert(
+        name.clone(),
+        FontData::from_blob(Arc::new(bytes.data), bytes.index),
+        FontPriority::Highest,
+    ));
+    if let Some(symbols) = faces().into_iter().find(|f| f.family.contains("Math")) {
+        ctx.add_font(insert(format!("{name}:symbols"), symbols.data, FontPriority::Lowest));
+    }
+    None
+}
+
 /// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (the
 /// non-breaking hyphen of a toast's tags).
 pub fn carries(c: char) -> bool {

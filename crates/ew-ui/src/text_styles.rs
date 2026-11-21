@@ -8,6 +8,7 @@
 //! action: one undo step each, shown on the open page at once.
 
 use egui::{RichText, TextEdit, Ui};
+use ew_viewmodel::ew_api::Typeface;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::text_styles::{
@@ -59,9 +60,14 @@ pub(crate) fn text_styles(
     let t = components::tokens(ui);
     let rows = shell.text_style_rows();
     let writable = shell.is_writable();
-    if let Some(line) = shell.typeface_line() {
-        typeface_line(ui, &t, &line, writable, events);
+    let line = shell.typeface_line();
+    if let Some(line) = &line {
+        typeface_line(ui, &t, line, writable, events);
     }
+    // The samples of the Standard styles in the project's typeface, once egui has it.
+    let typeface = line
+        .and_then(|l| l.face)
+        .and_then(|face| crate::fonts::typeface_family(ui.ctx(), face));
     // The table takes the room the window has: at 2560 × 1440 it shows more rows, not a strip beside empty space.
     let room = ui.ctx().content_rect().height() * 0.62;
     egui::ScrollArea::vertical()
@@ -94,7 +100,7 @@ pub(crate) fn text_styles(
                             theme::margin_px(t.space_2),
                             theme::margin_px(t.space_1),
                         ));
-                    let shown = frame.show(ui, |ui| style_row(ui, &t, row, writable, events));
+                    let shown = frame.show(ui, |ui| style_row(ui, &t, row, (writable, typeface.as_ref()), events));
                     if focused && just_opened {
                         shown.response.scroll_to_me(Some(egui::Align::Center));
                     }
@@ -159,8 +165,14 @@ fn typeface_line(
     );
 }
 
-/// One style: its name and where it prints, its typeface, height, bold, sample and Reset.
-fn style_row(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, writable: bool, events: &mut Vec<Event>) {
+/// One style: its name and where it prints, its typeface, height, bold, sample and Reset; `typeface` is the egui family of the project's typeface, which the samples of the Standard styles are drawn in.
+fn style_row(
+    ui: &mut Ui,
+    t: &theme::Tokens,
+    row: &TextStyleRow,
+    (writable, typeface): (bool, Option<&egui::FontFamily>),
+    events: &mut Vec<Event>,
+) {
     let name_width = (ui.available_width() * 0.34).max(t.size_dialog_label);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
@@ -215,7 +227,10 @@ fn style_row(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, writable: bool,
                         RichText::new(sample(&row.key))
                             .font(egui::FontId::new(
                                 size,
-                                crate::fonts::drawing_family(&row.face, row.bold),
+                                match (typeface, &row.face) {
+                                    (Some(family), Typeface::Standard | Typeface::Unknown(_)) => family.clone(),
+                                    _ => crate::fonts::drawing_family(&row.face, row.bold),
+                                },
                             ))
                             .color(t.text_primary.color32()),
                     )

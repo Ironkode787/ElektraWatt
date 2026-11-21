@@ -29,6 +29,8 @@ pub enum TypefaceState {
         name: String,
         /// The family its name table names (`Liberation Sans`).
         family: String,
+        /// Its face, as the glyph runs name it ([`DrawingFonts`] has its file).
+        face: FontKey,
     },
     /// The setting names a file the project does not hold: the bundled faces print.
     Missing {
@@ -89,13 +91,14 @@ impl Query for ProjectFontsQ {
             },
             Some(bytes) => match ew_text::typeface_set(&bytes) {
                 Ok(set) => {
-                    let family = set
-                        .face_for(&ew_text::TextStyle::regular(ew_units::Nm(1)))
-                        .family_name
-                        .clone();
+                    let face = set.face_for(&ew_text::TextStyle::regular(ew_units::Nm(1)));
                     ProjectFonts {
                         set,
-                        state: TypefaceState::Loaded { name: t.name, family },
+                        state: TypefaceState::Loaded {
+                            name: t.name,
+                            family: face.family_name.clone(),
+                            face: face.key,
+                        },
                     }
                 }
                 Err(_) => ProjectFonts {

@@ -76,7 +76,8 @@ fn the_typeface_prints_in_the_pdf_and_is_named_by_the_dxf() {
         s.typeface(),
         TypefaceState::Loaded {
             name: NAME.to_owned(),
-            family: "Routed Gothic".to_owned()
+            family: "Routed Gothic".to_owned(),
+            face: typeface_key(),
         }
     );
     let pdf = s.export_pdf(&options()).unwrap();

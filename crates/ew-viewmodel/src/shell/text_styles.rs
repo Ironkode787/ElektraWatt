@@ -132,6 +132,8 @@ pub struct TypefaceLine {
     pub words: String,
     /// Whether the project names a font file of its own (Use Noto Sans can be pressed).
     pub own: bool,
+    /// The face of the file when it prints: the samples of the Standard styles are drawn in it.
+    pub face: Option<ew_dl::FontKey>,
 }
 
 /// The Text styles dialog.
@@ -295,20 +297,29 @@ impl ShellModel {
     /// The page's *Standard typeface* line (doc 09 §4.8); `None` without a project.
     pub fn typeface_line(&self) -> Option<TypefaceLine> {
         let p = self.project.as_ref()?;
-        let (words, own) = match p.session.typeface() {
-            TypefaceState::Bundled => (strings::text(key!("text-styles-typeface-bundled")).to_owned(), false),
-            TypefaceState::Loaded { name, family } => (
+        let (words, own, face) = match p.session.typeface() {
+            TypefaceState::Bundled => (
+                strings::text(key!("text-styles-typeface-bundled")).to_owned(),
+                false,
+                None,
+            ),
+            TypefaceState::Loaded { name, family, face } => (
                 strings::format(key!("text-styles-typeface-loaded"), &[&family, &name]),
                 true,
+                Some(face),
             ),
-            TypefaceState::Missing { name } => {
-                (strings::format(key!("text-styles-typeface-missing"), &[&name]), true)
-            }
-            TypefaceState::Unusable { name } => {
-                (strings::format(key!("text-styles-typeface-unusable"), &[&name]), true)
-            }
+            TypefaceState::Missing { name } => (
+                strings::format(key!("text-styles-typeface-missing"), &[&name]),
+                true,
+                None,
+            ),
+            TypefaceState::Unusable { name } => (
+                strings::format(key!("text-styles-typeface-unusable"), &[&name]),
+                true,
+                None,
+            ),
         };
-        Some(TypefaceLine { words, own })
+        Some(TypefaceLine { words, own, face })
     }
 
     /// `text_styles.typeface {path}` (Text styles ▸ Choose a font file…): the project's typeface from a font file, in
