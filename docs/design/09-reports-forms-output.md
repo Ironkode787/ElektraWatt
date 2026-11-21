@@ -70,7 +70,7 @@ flowchart LR
   PO --> DL["page_display_list(page, layer, lang)"]
   TB --> DL
   RS --> EMB["embedded blocks<br/>PART DATA, cover tables"] --> DL
-  DL --> PDF["krilla PDF/A-2b"] & SVG["SVG"] & PNG["PNG (vello_cpu)"] & DXF["DXF AC1015"] & PRN["print adapters"]
+  DL --> PDF["krilla PDF/A-2b"] & SVG["SVG"] & PNG["PNG (vello_cpu)"] & DXF["DXF AC1024"] & PRN["print adapters"]
   RS --> XL["XLSX / CSV"] & EWPP[".ewpp (13)"]
 ```
 
@@ -978,19 +978,16 @@ partial file (FR-UI-024).
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
   to byte identity on the same platform (ADR-0015 amendment 3). *As built (ADR-0015 amendment 6):*
   `ew-render-cpu` runs on vello_cpu's portable `Level::baseline()`, so PNGs are byte-identical per build target.
-- **DXF (1.0, FR-OUT-015).** dxf 0.6.2, AC1015, `$INSUNITS` = mm, layer mapping per scheme (default `EW-FRAME`,
+- **DXF (1.0, FR-OUT-015).** AC1024 (§4.9), `$INSUNITS` = mm, layer mapping per scheme (default `EW-FRAME`,
   `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`); symbols as `BLOCK`/`INSERT` named by symbol and
   variant; Béziers flattened to polylines at 0.01 mm; dash patterns as `LTYPE`; texts as `TEXT` with a `STYLE` per
-  text style. AC1015 stores text in the drawing code page (`$DWGCODEPAGE`); characters outside it ("∞", "⇄") are
-  written as `\U+221E`-style escapes, and "²" (in ANSI_1252) as itself (escape handling of the dxf crate to verify).
-  Re-import as a graphic page within 0.01 mm (AC-37).
-  *As built (WP-S3.19):* `ew_export::dxf` is an own writer (no dxf crate, whose graph brings random GUIDs and
-  clock-stamped headers) from the sheet display lists, one `<label>.dxf` per page, ASCII with `\U+XXXX` for every
-  other character ("²" too, so a reader's code page cannot spoil it; the first sentence's "as itself" was not safe),
-  `$EXTMIN`/`$EXTMAX` the sheet so a re-import puts the drawing back where it was. Blocks are named
-  `EW_<symbol>_<variant>`; a fill is a solid `HATCH`, a colour other than black a true colour; images are not
-  written. A `STYLE` is one per face, not per text style, and names the face's font file; a `TEXT` is as high as its
-  face's capitals (§4.8). The layer names are options (`ew export dxf --layer <class>=<name>`), and printed
+  face. Re-import as a graphic page within 0.01 mm (AC-37).
+  *As built (WP-S3.19, FT-1877):* `ew_export::dxf` is an own writer (no dxf crate, whose graph brings random GUIDs
+  and clock-stamped headers) from the sheet display lists, one `<label>.dxf` per page, AutoCAD 2010 (`AC1024`) in
+  UTF-8 (§4.9: the version, the type, the picture, the blocks and attributes, the links), `$EXTMIN`/`$EXTMAX` the
+  sheet so a re-import puts the drawing back where it was. A fill is a solid `HATCH`, a colour other than black a
+  true colour. A `STYLE` is one per face, not per text style, and names the face's font file; a `TEXT` is as high as
+  its face's capitals (§4.8). The layer names are options (`ew export dxf --layer <class>=<name>`), and printed
   underlays go to `EW-UNDERLAY`. No date, user name or GUID is written: the same pages give the same bytes. AC-37's
   DXF half is `crates/ew-api/tests/it/dxf_round_trip.rs`.
 
@@ -1161,6 +1158,129 @@ file for the bold or italic cut, no typeface for Narrow, Mono or Technical drawi
 of its own. No font over 2.5 MiB. The DXF does not embed or outline the texts. The window's own type is not
 the typeface. A text placed with the Text tool keeps the middle anchor.
 
+### 4.9 The DXF set as the PDF
+
+A person who must deliver the drawing set as CAD files gets from `ew export dxf` one file per page that is the page of
+the PDF: the same texts in the same places and sizes, the title block with its picture, in a format AutoCAD 2010 and
+later open, and with the page's structure, so that the receiver can work with it (FT-1877). The program writes no DWG
+(owner, 2026-11-20): a DWG is made from the DXF by a converter (the ODA File Converter, which the import runs the
+other way, doc 14 §6.5; or the receiver's CAD program), saved in whatever version the converter is told.
+
+**The version: AutoCAD 2010 (`AC1024`).** It is the format AutoCAD 2010 to 2012 write, and every AutoCAD since opens
+it; so do the converters and readers of DXF (the ODA File Converter, BricsCAD, LibreCAD, ezdxf). What it changes
+against the earlier `AC1015` file:
+
+- Strings are UTF-8 (AutoCAD 2007 and later read a file of `AC1021` or later so), so a text is written as itself
+  ("Ä", "∞", "²"), no longer as `\U+XXXX`; `$DWGCODEPAGE` stays `ANSI_1252`, as AutoCAD writes it.
+- The CLASSES section holds the classes of the picture's objects (`IMAGE`, `IMAGEDEF`, `IMAGEDEF_REACTOR`,
+  `RASTERVARIABLES`, with their instance counts) when a page has a raster picture, and is empty otherwise.
+- Attributes are written as AutoCAD 2010 writes them (`ATTDEF`, and `ATTRIB` after its `INSERT` with `66` = 1 and a
+  closing `SEQEND`).
+- The APPID table names `PE_URL`, the application of AutoCAD's hyperlinks.
+
+The rest stays: the sheet in millimetres in the model space, `$EXTMIN`/`$EXTMAX` and the limits the sheet, the tables,
+the model and paper space with their layouts, no date, user name or GUID. The same pages give the same bytes.
+
+**Type.** As §4.8 merged it: a `STYLE` per face that names its font file, a `TEXT` at its run's baseline start, as high
+as its face's capitals, at its run's angle. What a text further needs to stand where the PDF has it:
+
+- *The face by its name.* Each `STYLE` carries its face's family and weight as extended data of application `ACAD`
+  (1000 the family, 1071 the bold flag `0x2000000`), as AutoCAD writes a TrueType style, so a reader finds an
+  installed face by its name whatever its file is called.
+- *Widths.* The PDF's texts are shaped with the face's kerning; a CAD program draws a TrueType text with the face's
+  own advance widths, unkerned (not verified in AutoCAD itself). So each text has the width factor (group 41) that
+  makes its glyphs' advances in its face add up to its width in the PDF; it is written when it differs from 1. A
+  reader with the face draws every text as long as the PDF does.
+- *Alignment.* Every text is written left-aligned at its baseline start, the point the PDF places it at. The rule that
+  placed it (centred in a cell, right of a pin) is not in the page's display list and is not written: a reader without
+  the face draws its own font from the same start and as high, and only the text's end moves.
+- *Turned texts* keep their run's angle (group 50), upright as the PDF draws them.
+- *More lines.* Each line is its own `TEXT` (or attribute) at its own baseline, as the PDF draws it.
+- *Two faces in a line* (a sign from the fallback face: the "∞" before a cross-reference): a `TEXT` per face, each at
+  its own start; as an attribute the line is one `ATTRIB` in the face that draws most of its characters.
+- *What the receiver needs*: the faces the `STYLE`s name, installed: Noto Sans and Noto Sans Math (SIL Open Font
+  Licence: anyone may pass them on) and a project's own typeface (the user's file; whether it may be passed on is the
+  user's licence question, §4.8). Without them a reader substitutes a font of its own: the texts still start where
+  the PDF has them and are as high.
+
+**The picture in the title block.** A DXF cannot hold a raster picture inside it for every reader (AutoCAD's OLE
+object works on Windows only and no converter keeps it), so:
+
+- An SVG picture is written as vectors, its paths as polylines and solid hatches, as the PDF draws it (the same
+  conversion, `ew_scene::images`).
+- A PNG or JPEG picture is an `IMAGE` that names a file the export writes beside the pages, `picture-<the first 12
+  hexadecimal digits of its SHA-256>.png` (or `.jpg`), once for the set and by its name alone, with its `IMAGEDEF` in
+  the drawing's image dictionary (`ACAD_IMAGE_DICT`). AutoCAD finds a picture named so in the drawing's own folder:
+  the receiver keeps the picture files beside the page files, and so beside the DWG files a converter makes (it keeps
+  the reference as it is).
+- A picture that cannot be drawn (its bytes not held, refused or not decodable) is a page finding of the export, as
+  for the PDF.
+
+**Blocks and attributes.**
+
+- *A symbol as placed is a block*: one per symbol and variant, the geometry the page draws (`symbol_geometry(symbol,
+  variant)`, a black box with its own outline a block of its own), inserted where the representation stands at the
+  page-to-sheet scale. The block is named in words: the symbol's name in the export's language and its variant
+  (`Coil R0`, `NO contact M90`), a character a DXF name cannot hold as `_`; a second geometry of the same name takes
+  ` 2`, ` 3`, in the order of its key, alike in every file of the set; a geometry whose symbol has no name keeps the
+  name `EW_<symbol id>_<variant letter>`. The symbol's own fixed texts (the "M" of a motor) are in its block.
+- *A device's texts are attributes of its insert*: every text the page prints for the representation (its slot texts,
+  a black box's pin texts, a terminal's strip tag) is an `ATTRIB` of the insert, where and as large as the PDF has it,
+  on the texts layer. The block has an `ATTDEF` for each name its inserts on the page carry, where the first of them
+  has it, so that a CAD program's attribute tools list them.
+- *The names are an interface*, so they are few, stable and in words: one per kind of slot (doc 07 §2.3), the same in
+  every language.
+
+  | The text prints | Attribute |
+  |---|---|
+  | the device tag | `TAG` |
+  | the function text | `FUNCTION_TEXT` |
+  | the technical data | `TECHNICAL_DATA` |
+  | the manufacturer, part number, type designation | `MANUFACTURER`, `PART_NUMBER`, `TYPE_DESIGNATION` |
+  | the designation of connection point n (a slot, or a black box's pin text) | `DESIGNATION_<n>` |
+  | the cross-reference | `CROSS_REFERENCE` |
+  | the PLC address, the process tag | `PLC_ADDRESS`, `PROCESS_TAG` |
+  | the contact image, the order code | `CONTACT_IMAGE`, `ORDER_CODE` |
+  | the bus address, the bus termination | `BUS_ADDRESS`, `BUS_TERMINATION` |
+  | a user property | `PROPERTY_<its name>` |
+  | a terminal's strip tag | `STRIP` |
+  | a slot of a newer format | `TEXT` |
+
+  The second line of a text, and a second text of one name, take `_2`, `_3` (`CROSS_REFERENCE_2`). n counts a
+  symbol's connection points from 1. A user property's name keeps its letters and digits in capitals, any other
+  character as `_`. No name begins with `PIN`, `CONN`, `TERM` or `X`, which the DXF import reads as connection points
+  (doc 14 §6.2), while `TAG` and `FUNCTION_TEXT` are what it reads as the tag and the function text: a block of this
+  export imports as a symbol with both slots.
+- *A cross-reference says where it leads*: in words, as its text (`103-G6`: the page and the cell), and as a hyperlink
+  (extended data of `PE_URL`, which AutoCAD follows on Ctrl+click) to the file of the page that draws its target, the
+  text its description. Each line of a contact list links to its own contact; a line that lists several targets
+  (`∞ 3-B2, 106-G3`) has no hyperlink: its items name them in words. A target outside the exported pages leaves the
+  text without a link, as a partial PDF does. Every other text that links in the PDF (a row of the contents to its
+  page) links so too. A link names `<label>.dxf`; with `ew export dxf --dwg-links` it names `<label>.dwg`, for a set
+  that a converter turns into DWG.
+- *The frame and the title block* are entities on the frame layer, each page its own: a title block prints its page's
+  values, so as a block it would be one per page. Its texts are `TEXT`s; its picture as above.
+
+**Layers** stay as §4.4 names them and as the options rename them (`--layer`): the frame with the title block and its
+picture, the symbol inserts, the wires, the texts (the attributes among them: an attribute is on the texts layer, its
+insert on the symbols layer), the graphics, the tables and a printed underlay. A block's own content is on layer `0`,
+so it takes its insert's layer.
+
+**What it does not do.** No DWG and no font in the file: a text is a `TEXT` in a named face, never its outlines. No
+`MTEXT` and no attribute of more lines. No title block as a block with attributes, no named views (a link opens the
+page and the text names the cell), no external references between the page files, no paper-space layout of the sheet,
+no plot styles. A raster picture is never inside the file, and the rule that aligned a text is not written. The window
+has no DXF export yet: `ew export dxf` writes the set (FT-1960).
+
+**Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on the sample and
+on a small project of the test's own (a coil and its contact on two pages, a black box, a terminal, a logo), every
+text of the PDF's display list comes back through `ew-import-dxf` where the PDF has it, as high, with its characters;
+a device's texts come back as the attributes of its insert under the names above; a cross-reference's hyperlink names
+the file of its target's page; the title block's picture is an `IMAGE` that names the picture file written beside the
+pages. Measured on 2026-11-21: the largest distance between a text's start in the PDF and in the DXF read back was
+0.000 001 mm, on the sample's pages and the test's own (the writer writes the PDF's coordinates to the nanometre); what
+a CAD program draws from them depends on the faces it has.
+
 ---
 
 ## 5. UI and UX touchpoints
@@ -1191,7 +1311,7 @@ title block, cover, divider and report forms reproduce the golden house style.
 | Tagged set | PDF/A-2b and PDF/UA-1 | same | yes | 1.0 (Should) |
 | Set with attachments | PDF/A-3b or PDF/A-4f | same + CSV/AML/native project | yes | 1.0 (Could) |
 | Page images | SVG, PNG | display lists | SVG yes; PNG within the dify tolerance (§4.4) | MVP |
-| Page drawings | DXF AC1015 | display lists | yes | 1.0 |
+| Page drawings | DXF AC1024, its pictures beside it | display lists | yes | 1.0 |
 | Report tables | XLSX, CSV | `RowSet` | yes | MVP |
 | Print | OS spooler | PDF / display lists | — | MVP |
 | Archive content | PDF, `reports/<block>.csv` | release snapshot | yes | MVP |
