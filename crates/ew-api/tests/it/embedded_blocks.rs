@@ -11,6 +11,7 @@
 //! - `the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `an_embedded_block_draws_no_back_links`
 //! - `the_cover_tables_print_the_profiles_rows_in_their_tables`
+//! - `part_data_lists_an_assemblys_configurations_and_the_parts_list_its_configured_row`
 //!
 //! How a boxed table fills its flow columns, reports the rows beyond its capacity and draws PART DATA's order codes is
 //! `ew-scene`'s `embedded.rs`; the legend's rows are `ew-derive`'s `layout_bom.rs` and `ew-reports`'
@@ -411,4 +412,107 @@ fn the_cover_tables_print_the_profiles_rows_in_their_tables() {
     for title in [&cover.colours.title, &cover.control.title, &cover.mains.title] {
         assert!(!title.is_empty(), "every table has its title");
     }
+}
+
+/// PART DATA of an assembly with configurations (doc 11 §5.5 step 6, D-36), embedded on the pneumatics page 201. The
+/// set-up gives the valve terminal -201K1 two configurations: the first without a label, on the terminal's own part
+/// EW-GEN-VTM-1 and covering its four valves; the second labelled "Valve block", with an order code and no part. The
+/// box lists the terminal's two configurations (its label, else "Order Code n"; the configured part's maker, part
+/// number and description, else the order code alone) and no row of a valve: the valves drawn on 201 stand for their
+/// root, the terminal. The parts list in assembly mode prints the configured row as "A<pos>" with the four valves in
+/// its Covers.
+#[test]
+fn part_data_lists_an_assemblys_configurations_and_the_parts_list_its_configured_row() {
+    let (project, records, lib) = common::sample_records();
+    let mut values: Vec<serde_json::Value> = records
+        .iter()
+        .map(|r| serde_json::to_value(r).expect("a record serialises"))
+        .collect();
+    let terminal = values
+        .iter()
+        .position(|v| v["$k"] == "device" && v["plc_station"]["role"] == "valve_terminal")
+        .expect("the sample's valve terminal");
+    let terminal_id = values[terminal]["id"].as_str().unwrap().to_owned();
+    let mut valves: Vec<String> = values
+        .iter()
+        .filter(|v| v["$k"] == "device" && v["parent"] == terminal_id.as_str())
+        .map(|v| v["id"].as_str().unwrap().to_owned())
+        .collect();
+    valves.sort();
+    assert_eq!(valves.len(), 4, "the terminal's four valves");
+    let copy = values[terminal]["parts"][0]["part"]["copy"].clone();
+    values[terminal]["assembly"] = json!({"configs": [
+        {"order_code": "VT-1", "part": {"copy": copy}, "covers": valves},
+        {"label": {"en-GB": "Valve block"}, "order_code": "VT-BLOCK-2"},
+    ]});
+    let mut records: Vec<Record> = values
+        .into_iter()
+        .map(|v| Record::from_value(v.clone()).unwrap_or_else(|e| panic!("{e}: {v}")))
+        .collect();
+    let block = fixture_block(
+        &records,
+        21,
+        ReportSource::Kind(ReportKind::PartData),
+        page_id(&records, 201),
+        printed_rect(1_631, 2_000, 27_727, 6_000),
+    );
+    let block_id = block.id;
+    records.push(Record::ReportBlock(block));
+    let s = common::session_of(project, records, lib);
+    let q = s.query();
+    let opts = RenderOptions::default();
+    let printed =
+        |row: &ew_reports::Row| -> Vec<String> { row.cells.iter().map(|c| render(&q, c, &opts)).collect() };
+    let source = |row: &ew_reports::Row| -> Vec<String> {
+        row.sources.iter().map(|s| s.as_uuid().to_string()).collect()
+    };
+
+    let set = q.get::<BlockRows>(block_id);
+    assert!(set.is_derived());
+    let of_terminal: Vec<Vec<String>> = set
+        .rows
+        .iter()
+        .filter(|r| source(r) == [terminal_id.clone()])
+        .map(printed)
+        .collect();
+    assert_eq!(
+        of_terminal,
+        [
+            [
+                "Order Code 1",
+                "Generic",
+                "EW-GEN-VTM-1",
+                "Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs"
+            ],
+            ["Valve block", "", "VT-BLOCK-2", ""],
+        ]
+    );
+    assert!(
+        set.rows
+            .iter()
+            .all(|r| !source(r).iter().any(|s| valves.contains(s))),
+        "no row of a valve: they stand for their root"
+    );
+
+    let parts = ew_reports::kinds::PartsSummary.rows_in_mode(&q, ew_derive::BomMode::Assembly);
+    let covers = parts.column("covers").expect("assembly mode's Covers column");
+    let configured: Vec<&ew_reports::Row> = parts
+        .rows
+        .iter()
+        .filter(|r| printed(r)[0].starts_with('A'))
+        .collect();
+    let [row] = configured.as_slice() else {
+        panic!("one configured row: {configured:#?}")
+    };
+    assert!(
+        printed(row).contains(&"EW-GEN-VTM-1".to_owned()),
+        "{:?}",
+        printed(row)
+    );
+    let ew_reports::Cell::Range(covered) = &row.cells[covers] else {
+        panic!("the Covers cell is a range: {:?}", row.cells[covers])
+    };
+    let mut covered: Vec<String> = covered.iter().map(|d| d.as_uuid().to_string()).collect();
+    covered.sort();
+    assert_eq!(covered, valves);
 }

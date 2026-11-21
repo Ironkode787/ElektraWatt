@@ -331,6 +331,56 @@ fn ew_plc_013_skips_bus_port_pins_and_accepts_l_minus_for_m() {
     );
 }
 
+/// EW-PLC-013's FE form (D-16, EF-22): the card's FE pin (a function of the card whose CP has the potential role
+/// `fe`) wired to a point whose potential is defined as PE gives the finding with form `fe` at that function; an FE-PE
+/// bond at the pin clears it.
+#[test]
+fn ew_plc_013_reports_an_fe_pin_fed_from_pe_without_a_bond() {
+    const FE_DEF: u128 = 0x570;
+    const FE_SYM: u128 = 0x571;
+    const FE_FN: u128 = CARD_FN + 3;
+    const PE_FN: u128 = 0x1950;
+    let fe_pin = |bonded: bool| {
+        let mut fx = card("di", "no", &json!({}), &json!({}), &json!({}));
+        fx.fndef_with(
+            FE_DEF,
+            FE_SYM,
+            &[(0, "FE", json!({"potential_role": "fe"}))],
+            &json!([]),
+            &json!({}),
+        );
+        fx.push(
+            json!({"$k": "function", "id": us(FE_FN), "device": us(CARD), "def": us(FE_DEF), "role": "aux"}),
+        );
+        fx.push(json!({
+            "$k": "representation", "id": us(FE_FN + 0x10_000), "functions": [us(FE_FN)], "page": us(P1),
+            "symbol": us(FE_SYM), "pos": [0, 60_000_000],
+        }));
+        fx.func(PE_FN, P1);
+        fx.conn(0x1405, P1, Ep::Cp(FE_FN, 0), cp(PE_FN), &json!({}));
+        fx.def(0x5001, cp(PE_FN), &json!({"ptype": "pe"}));
+        if bonded {
+            fx.func(PE_FN + 1, P1);
+            fx.push(json!({
+                "$k": "bond", "id": us(0x4001), "a": {"cp": [us(FE_FN), 0]}, "b": {"cp": [us(PE_FN + 1), 0]},
+                "kind": "fe_pe",
+            }));
+        }
+        found(&fx.build(), "EW-PLC-013")
+    };
+    let open = fe_pin(false);
+    assert_eq!(forms(&open), ["fe:0"], "{open:#?}");
+    assert_eq!(open[0].targets[0].id, uid(FE_FN));
+    assert!(
+        open[0]
+            .message
+            .contains("is the FE pin of a PLC card and is fed from the PE potential"),
+        "{}",
+        open[0].message
+    );
+    assert!(fe_pin(true).is_empty(), "{:#?}", fe_pin(true));
+}
+
 /// EW-PLC-014 (FR-PLC-048): a 1 A coil on an output rated 500 mA, and the module rated 800 mA.
 #[test]
 fn ew_plc_014_output_load() {

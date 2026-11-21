@@ -3,10 +3,14 @@
 
 //! The SQL projection over the sample project (ADR-0017, doc 17 §6): every `api_v1_*` view is readable through the
 //! sandbox with the columns of `ew_sqlview::schema`; the acceptance criteria of FR-EXT-006 and FR-EXT-007; the row
-//! counts; a deterministic image.
+//! counts; a deterministic image; a module's valve positions (`api_v1_valve_position`) with the derivation's rows.
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::sql::{Profile, Projection, SqlError, schema};
+use ew_derive::ew_ids::Uuid;
+use ew_derive::{ValveTerminalRows, VtSlot};
+use ew_schema::{DeviceState, Record};
+use serde_json::{Value, json};
 
 fn projection() -> Projection {
     let session = crate::common::sample();
@@ -159,4 +163,153 @@ fn messages_carry_the_check_run() {
             ["EW-NUM-001", "info", "open", "+CAB-UC1-plate"],
         ]
     );
+}
+
+/// A modular valve terminal. The sample's -201K1 holds its four valve positions in its head; the set-up puts a module
+/// under it (on the head's own part, four positions), moves the four valves onto the module at their positions and
+/// marks the fourth spare. Each valve carries EW-GEN-VLV-3, which declares solenoid 14, and its coil function is bound
+/// to one of the head's outputs (channels 0, 2, 4 and 6). `valve_terminal_rows()` gives the terminal, the module and
+/// one row per position with the valve, its solenoids, the channel bound to its coil, the address of that output and
+/// the valve's state; `api_v1_valve_position` gives the module's four rows with the same facts.
+#[test]
+fn a_modules_valve_positions_are_rows_of_the_derivation_and_of_the_view() {
+    let (project, records, lib) = crate::common::sample_records();
+    let mut values: Vec<Value> = records
+        .iter()
+        .map(|r| serde_json::to_value(r).expect("a record serialises"))
+        .collect();
+    let terminal = values
+        .iter()
+        .find(|v| v["$k"] == "device" && v["plc_station"]["role"] == "valve_terminal")
+        .expect("the sample's valve terminal")
+        .clone();
+    let terminal_id = terminal["id"].as_str().unwrap().to_owned();
+    let module_id = Uuid::from_u128(0x4d4f_d001).to_string();
+    // The valves by position, each moved onto the module; the fourth is spare.
+    let mut valves: Vec<(u64, String, String)> = Vec::new();
+    for v in values
+        .iter_mut()
+        .filter(|v| v["$k"] == "device" && v["parent"] == terminal_id.as_str())
+    {
+        let position = v["position"].as_u64().expect("a valve's position");
+        v["parent"] = json!(module_id);
+        if position == 4 {
+            v["state"] = json!("spare");
+        }
+        let part = v["parts"][0]["part"]["copy"].as_str().unwrap().to_owned();
+        valves.push((position, v["id"].as_str().unwrap().to_owned(), part));
+    }
+    valves.sort();
+    assert_eq!(valves.iter().map(|v| v.0).collect::<Vec<_>>(), [1, 2, 3, 4]);
+    values.push(json!({
+        "$k": "device", "id": module_id, "tag": {"letter": "A", "counter": 1, "scheme": "child"},
+        "parent": terminal_id, "position": 1, "parts": terminal["parts"].clone(), "plc_module": {},
+    }));
+    // The channel bound to each valve's coil, and its number.
+    let channel_of = |valve: &str| -> (String, u64) {
+        let functions: Vec<&str> = values
+            .iter()
+            .filter(|f| f["$k"] == "function" && f["device"] == valve)
+            .map(|f| f["id"].as_str().unwrap())
+            .collect();
+        let bound: Vec<(String, u64)> = values
+            .iter()
+            .filter(|c| c["$k"] == "channel" && c["module"] == terminal_id.as_str())
+            .filter(|c| {
+                c["binding"]["cp"][0]
+                    .as_str()
+                    .is_some_and(|f| functions.contains(&f))
+            })
+            .map(|c| {
+                (
+                    c["id"].as_str().unwrap().to_owned(),
+                    c["number"].as_u64().unwrap(),
+                )
+            })
+            .collect();
+        let [one] = bound.as_slice() else {
+            panic!("one channel bound to {valve}'s coil: {bound:?}")
+        };
+        one.clone()
+    };
+    let channels: Vec<(String, u64)> = valves.iter().map(|v| channel_of(&v.1)).collect();
+    let records: Vec<Record> = values
+        .into_iter()
+        .map(|v| Record::from_value(v.clone()).unwrap_or_else(|e| panic!("{e}: {v}")))
+        .collect();
+    let s = crate::common::session_of(project, records, lib);
+
+    let q = s.query();
+    let rows: Vec<_> = q
+        .get::<ValveTerminalRows>(())
+        .iter()
+        .filter(|r| r.terminal.to_string() == terminal_id)
+        .cloned()
+        .collect();
+    assert_eq!(
+        rows.len(),
+        2 + 4,
+        "the terminal, the module and its four positions: {rows:#?}"
+    );
+    assert_eq!(
+        (rows[0].module.to_string(), rows[0].slot.clone(), rows[0].position),
+        (terminal_id.clone(), VtSlot::Module, None)
+    );
+    assert_eq!(
+        (
+            rows[1].module.to_string(),
+            rows[1].module_position,
+            rows[1].slot.clone()
+        ),
+        (module_id.clone(), Some(1), VtSlot::Module)
+    );
+    for ((row, (position, valve, _)), (channel, number)) in rows[2..].iter().zip(&valves).zip(&channels) {
+        let state = if *position == 4 {
+            DeviceState::Spare
+        } else {
+            DeviceState::Used
+        };
+        assert_eq!(row.module.to_string(), module_id);
+        assert_eq!(row.position, Some(u32::try_from(*position).unwrap()));
+        assert_eq!(row.slot, VtSlot::Valve);
+        assert_eq!(row.device.map(|d| d.to_string()).as_deref(), Some(valve.as_str()));
+        assert_eq!(row.solenoids, ["14"], "EW-GEN-VLV-3 declares solenoid 14");
+        assert_eq!(
+            row.channels.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            std::slice::from_ref(channel)
+        );
+        assert_eq!(row.addresses.as_deref(), Some(format!("Q0.{number}").as_str()));
+        assert_eq!(row.state.as_ref(), Some(&state));
+    }
+
+    let p = s.sql_projection(None).expect("the projection builds");
+    let reader = p.reader(Profile::EW_SQL).unwrap();
+    let set = reader
+        .query(&format!(
+            "SELECT position, occupancy, valve_id, valve_part, solenoids, channel_ids, addresses, state \
+             FROM api_v1_valve_position WHERE module_id = '{module_id}' ORDER BY position"
+        ))
+        .unwrap();
+    let got: Vec<Vec<String>> = set
+        .rows
+        .iter()
+        .map(|r| r.iter().map(|c| c.text()).collect())
+        .collect();
+    let want: Vec<Vec<String>> = valves
+        .iter()
+        .zip(&channels)
+        .map(|((position, valve, _), (channel, number))| {
+            vec![
+                position.to_string(),
+                "valve".to_owned(),
+                valve.clone(),
+                "EW-GEN-VLV-3".to_owned(),
+                json!(["14"]).to_string(),
+                json!([channel]).to_string(),
+                format!("Q0.{number}"),
+                if *position == 4 { "spare" } else { "used" }.to_owned(),
+            ]
+        })
+        .collect();
+    assert_eq!(got, want);
 }

@@ -6,13 +6,15 @@
 //! FunctionText; the strip's tag prints once per page at the strip's first terminal when the page holds no segment of
 //! the strip; `tag_print` PerPage prints a strip's tag at its first segment on each page. The sample's records, edited
 //! before the session opens: strip -X1011's terminals stand alone on 101; two segments of strip -X1031 are added on
-//! page 103 beside its terminals drawn alone.
+//! page 103 beside its terminals drawn alone. Where a segment draws its terminals' connection points: the page tables
+//! and the page's CPs of a strip drawn by its segments alone.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::common;
 
 use ew_api::Session;
+use ew_api::geometry::Dir;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{Item, ItemKind, Layer, Transform};
@@ -414,4 +416,75 @@ fn no_shown_tag_slot_no_strip_tag() {
     }
     let s = g.session();
     assert_eq!(at(&texts(&s, 101), &reps), strings(&[&[], &[], &[]]));
+}
+
+/// A strip drawn by its segments alone (FR-TRM-011): -X1031's terminals lose their own representations on 103 and
+/// its two segments draw them, the strip's terminals split over the segments in seq order (the first segment the
+/// first half, rounded down). Each terminal's side-1 CPs stand on the segment's top edge and leave up, its side-2 CPs
+/// on the bottom edge below them and leave down, so a wire attaches on both sides; the page's CPs hold every one of
+/// them, which only the segments put on the page.
+#[test]
+fn a_strip_drawn_by_its_segments_draws_its_terminals_cps_on_both_sides() {
+    let mut g = Sample::new();
+    let strip = g.device_mut("-X1031").id;
+    let mut terminals: Vec<(u32, Id<Device>)> = g
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Device(d) => d
+                .aspects
+                .terminal
+                .as_ref()
+                .filter(|t| t.strip == strip)
+                .map(|t| (t.seq, d.id)),
+            _ => None,
+        })
+        .collect();
+    terminals.sort();
+    let main_of = |records: &[Record], device: Id<Device>| -> Id<Function> {
+        records
+            .iter()
+            .find_map(|r| match r {
+                Record::Function(f) if f.device == Some(device) && f.role == ew_schema::FnRole::Main => {
+                    Some(f.id)
+                }
+                _ => None,
+            })
+            .expect("a terminal's main function")
+    };
+    let mains: Vec<Id<Function>> = terminals.iter().map(|(_, d)| main_of(&g.records, *d)).collect();
+    g.records
+        .retain(|r| !matches!(r, Record::Representation(x) if x.functions.iter().any(|f| mains.contains(f))));
+    let segments = g.add_x1031_segments([(10, 10), (20, 10)]);
+    let s = g.session();
+    let tables = s.page_tables("103").expect("page 103");
+    let page_cps: BTreeSet<Uuid> = s.page_cps("103").iter().map(|c| c.id).collect();
+    let first_half = terminals.len() / 2;
+    for (k, main) in mains.iter().enumerate() {
+        let cps: Vec<_> = tables
+            .cps
+            .iter()
+            .filter(|c| c.function == main.as_uuid())
+            .collect();
+        let up: Vec<_> = cps.iter().filter(|c| c.dir == Some(Dir::Up)).collect();
+        let down: Vec<_> = cps.iter().filter(|c| c.dir == Some(Dir::Down)).collect();
+        assert!(
+            !up.is_empty() && !down.is_empty() && up.len() + down.len() == cps.len(),
+            "terminal {k} draws CPs on both sides and no other: {cps:#?}"
+        );
+        let segment = if k < first_half { segments[0] } else { segments[1] };
+        for c in &cps {
+            assert_eq!(c.rep, segment, "terminal {k}'s CP {} is its segment's", c.label);
+            assert!(page_cps.contains(&c.id), "the page's CPs hold {}", c.label);
+        }
+        let (top, bottom) = (up[0].at, down[0].at);
+        assert!(
+            up.iter().all(|c| c.at == top) && down.iter().all(|c| c.at == bottom),
+            "one point per side"
+        );
+        assert!(
+            top.0 == bottom.0 && top.1 < bottom.1,
+            "side 2 below side 1: {top:?} {bottom:?}"
+        );
+    }
 }
