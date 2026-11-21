@@ -388,6 +388,24 @@ pub(super) fn reps_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Function text over its path (doc 06 §3.8): the selection is one symbol of a device.
+pub(super) fn one_device_symbol(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable_page(m)?;
+    match m.selected_rep_rows().as_slice() {
+        [one] if one.device.is_some() => Ok(()),
+        _ => Err(key!("reason-one-device-symbol")),
+    }
+}
+
+/// Name the strip here (doc 06 §3.8): the selection is one terminal's symbol.
+pub(super) fn one_terminal_symbol(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable_page(m)?;
+    match m.selected_rep_rows().as_slice() {
+        [one] if one.terminal => Ok(()),
+        _ => Err(key!("reason-one-terminal-symbol")),
+    }
+}
+
 /// Reset label position: the selected placement's label was moved.
 pub(super) fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_selection(m)?;

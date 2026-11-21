@@ -521,6 +521,77 @@ impl ShellModel {
         outcome
     }
 
+    /// `text.function_over_path` (Function text over its path, in the canvas context menu over one symbol of a device;
+    /// doc 06 §3.8): `item.place` of a text bound to the symbol that prints its device's function text, centred over
+    /// the symbol, its baseline two grid steps above the body; the person drags it to the head of the path. Refused for
+    /// a device without a function text, which would print nothing.
+    pub(crate) fn act_text_function_over_path(&mut self) -> Outcome {
+        let Some((page, rep, step)) = self.one_selected_symbol() else {
+            return Outcome::refused(key!("reason-one-device-symbol"));
+        };
+        let empty = rep.device.is_none_or(|d| {
+            self.project.as_ref().is_none_or(|p| {
+                let q = p.session.query();
+                d.to_string()
+                    .parse()
+                    .ok()
+                    .and_then(|id| q.devices().get(id))
+                    .is_none_or(|d| d.function_text.is_empty())
+            })
+        });
+        if empty {
+            return Outcome::refused(key!("reason-no-function-text"));
+        }
+        let [x0, y0, x1, _] = rep.body;
+        let at = json!([x0 + (x1 - x0) / 2, y0 - 2 * step]);
+        self.place_bound_text(page, rep.id, "device.function_text", at, "centre", "baseline")
+    }
+
+    /// `text.strip_name` (Name the strip here, in the canvas context menu over one terminal's symbol; doc 06 §3.8):
+    /// `item.place` of a text bound to the terminal that prints its strip's tag, right-aligned one grid step left of
+    /// the terminal's body, level with its middle. The program then prints the strip's tag on that page no more.
+    pub(crate) fn act_text_strip_name(&mut self) -> Outcome {
+        let Some((page, rep, step)) = self.one_selected_symbol().filter(|(_, r, _)| r.terminal) else {
+            return Outcome::refused(key!("reason-one-terminal-symbol"));
+        };
+        let [x0, y0, _, y1] = rep.body;
+        let at = json!([x0 - step, y0 + (y1 - y0) / 2]);
+        self.place_bound_text(page, rep.id, "strip.tag", at, "right", "middle")
+    }
+
+    /// The page, the one selected symbol and the page's grid step in nm.
+    fn one_selected_symbol(&self) -> Option<(ew_api::output::Uuid, ew_api::output::TableRep, i64)> {
+        let selected = self.selected_rep_rows();
+        let [rep] = selected.as_slice() else {
+            return None;
+        };
+        let tables = &self.canvas()?.page().tables;
+        let (num, den) = tables.grid;
+        Some((tables.page, (*rep).clone(), num / den.max(1)))
+    }
+
+    /// `item.place` of a text bound to the symbol `rep` that prints `bind`, at `at`, aligned `align` and anchored
+    /// `anchor`.
+    fn place_bound_text(
+        &mut self,
+        page: ew_api::output::Uuid,
+        rep: ew_api::output::Uuid,
+        bind: &str,
+        at: Value,
+        align: &str,
+        anchor: &str,
+    ) -> Outcome {
+        self.commit_from_host(&AnyCommand {
+            name: "item.place".into(),
+            params: json!({
+                "page": page.to_string(),
+                "kind": {"free_text": {
+                    "bind": bind, "of": rep.to_string(), "at": at, "align": align, "anchor": anchor,
+                }},
+            }),
+        })
+    }
+
     /// The toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry a marker`), so a
     /// mode that selects no wire on this project does not look like a mode that did nothing.
     fn notify_marker_count(&mut self, undo: bool) {

@@ -68,7 +68,8 @@
 //!   the first drawn function's `ew_derive::PlcAddressText` text; every other kind has no value. An
 //!   empty text is not listed.
 //! - **Strip tags at terminals drawn alone** (doc 08 §6.7, [`page_strip_tags`]): on a page that shows
-//!   terminals of a strip and no segment of it, the strip's displayed tag for the page, once, at the strip's first
+//!   terminals of a strip, no segment of it and no text bound to its name (doc 06 §3.8), the strip's displayed tag for
+//!   the page, once, at the strip's first
 //!   terminal representation on the page (designation in natural order, then IDs) whose tag slot is shown
 //!   (`ew_derive::tag_slot_shown`; none shown, no tag); the scene prints it one connection-grid step above that
 //!   terminal's tag-slot anchor, so an unnumbered strip's terminals name it ("-X101?" on page 101 under a strip rule
@@ -1344,7 +1345,8 @@ fn prints_segment_tag(q: &Q, device: Id<ew_schema::Device>, rep: &Representation
 }
 
 /// `page_strip_tags(page)`: the strip tags of the terminals drawn alone on a drawn page (doc 08 §6.7), by
-/// representation ID. A strip with a terminal representation on the page and no segment there prints its displayed
+/// representation ID. A strip with a terminal representation on the page, no segment there and no text bound to its
+/// name there (`strip.tag`, doc 06 §3.8) prints its displayed
 /// tag for the page once, at the first terminal representation on the page whose tag slot is shown
 /// (`ew_derive::tag_slot_shown`), in the strip's own order (designation in natural order, then terminal ID, as
 /// `ew_derive::MainRep` takes a strip's terminal; then representation ID); a strip without such a terminal on the page
@@ -1387,9 +1389,11 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
             *first = key;
         }
     }
+    // A strip a text bound to its terminal names on the page (doc 06 §3.8) is named there by that text alone.
+    let named = ew_derive::strips_named_on(q, page);
     let mut out: Vec<StripTagView> = firsts
         .into_iter()
-        .filter(|(strip, _)| !segmented.contains(strip))
+        .filter(|(strip, _)| !segmented.contains(strip) && !named.contains(strip))
         .map(|(strip, (_, _, rep))| StripTagView {
             rep,
             text: (*q.get::<DisplayedTag>((strip, page))).clone(),

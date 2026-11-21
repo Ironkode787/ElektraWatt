@@ -12,7 +12,9 @@
 //!   the cross-reference `{function}` and `{location}` tokens read.
 //! - **Bound texts** (FR-SYM-024): a free text's `bind` names one of [`BINDABLE`]; it prints what the title block
 //!   prints for that placeholder on its page (`title_block`'s resolver); `page.full_name` is the page's structure and
-//!   folio, `=P01+J-E-2416/101` (FR-PAG-012), which the title block's binding set does not carry.
+//!   folio, `=P01+J-E-2416/101` (FR-PAG-012), which the title block's binding set does not carry. A text bound to a
+//!   part names it by `of` and binds one of [`SYMBOL_BINDABLE`]: its device's function text, or the tag of the strip
+//!   whose terminal it draws, which the program then prints no more on that page ([`strips_named_on`]).
 //! - **Marker modes** (FR-CON-024): `settings.extra.drawing.marker_mode` ([`MarkerMode`]); absent, a
 //!   connection shows a marker when its `show_marker` is set and prints its explicit cross-section and colour (the
 //!   as-built rule); in a mode, the mode selects the wires and the marker prints effective values (doc 08 §4.5). A
@@ -259,6 +261,57 @@ pub fn neutral(m: &MlText) -> String {
         .to_owned()
 }
 
+/// The names a text bound to a part may bind to, its `of` the part's representation (doc 06 §3.8), in this order: the
+/// part's device's function text, and the tag of the strip whose terminal the part draws.
+pub const SYMBOL_BINDABLE: [&str; 2] = ["device.function_text", "strip.tag"];
+
+/// What a text bound to the part `rep` prints on `page` for `bind` (one of [`SYMBOL_BINDABLE`]): the function text of
+/// the part's device, or the strip's tag as `page` prints it; `None` for another name, a part that is gone (an older
+/// build deleted it and kept the text) and a part that draws no terminal for `strip.tag`.
+pub fn symbol_bound_text(q: &Q, page: Id<Page>, rep: Id<Representation>, bind: &str) -> Option<String> {
+    let device = q
+        .reps()
+        .get(rep)?
+        .functions
+        .first()
+        .and_then(|f| q.functions().get(*f))?
+        .device?;
+    let d = q.devices().get(device)?;
+    match bind {
+        "device.function_text" => Some(crate::text_in(&d.function_text, None).to_owned()),
+        "strip.tag" => {
+            let strip = d.aspects.terminal.as_ref()?.strip;
+            Some(q.get::<DisplayedTag>((strip, page)).as_ref().clone())
+        }
+        _ => None,
+    }
+}
+
+/// The strips whose tag a text bound to a part names on `page` (`strip.tag`): the program prints such a strip's tag
+/// there no more (doc 06 §3.8, once per strip and page).
+pub fn strips_named_on(q: &Q, page: Id<Page>) -> BTreeSet<Id<Device>> {
+    let items = q.page_items();
+    let mut out = BTreeSet::new();
+    for id in q.idx().page_items_by_page(page) {
+        let Some(PageItemKind::FreeText(t)) = items.get(id).map(|i| &i.kind) else {
+            continue;
+        };
+        if t.bind.as_ref().is_none_or(|b| b.as_str() != "strip.tag") {
+            continue;
+        }
+        let strip = t
+            .of
+            .and_then(|r| q.reps().get(r))
+            .and_then(|r| r.functions.first().copied())
+            .and_then(|f| q.functions().get(f))
+            .and_then(|f| f.device)
+            .and_then(|d| q.devices().get(d))
+            .and_then(|d| d.aspects.terminal.as_ref().map(|t| t.strip));
+        out.extend(strip);
+    }
+    out
+}
+
 /// What a bound free text prints on `page` for the bindable name `bind`: the title block's value of that
 /// placeholder, or for `page.full_name` the page's structure and folio (`=P01+J-E-2416/101`); `None` for another
 /// name or a page outside the page order.
@@ -286,12 +339,13 @@ pub fn bound_text(q: &Q, page: Id<Page>, bind: &str) -> Option<String> {
     })
 }
 
-/// The printed text of a free text on `page`: its bound value (empty when the binding resolves to nothing), else
-/// its text.
+/// The printed text of a free text on `page`: its bound value (a part's for a text with `of`; empty when the binding
+/// resolves to nothing), else its text.
 pub fn free_text(q: &Q, page: Id<Page>, t: &FreeText) -> String {
-    match &t.bind {
-        Some(b) => bound_text(q, page, b.as_str()).unwrap_or_default(),
-        None => neutral(&t.text),
+    match (&t.bind, t.of) {
+        (Some(b), Some(rep)) => symbol_bound_text(q, page, rep, b.as_str()).unwrap_or_default(),
+        (Some(b), None) => bound_text(q, page, b.as_str()).unwrap_or_default(),
+        (None, _) => neutral(&t.text),
     }
 }
 

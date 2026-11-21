@@ -25,7 +25,7 @@ use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{Angle2S, IdentS, MlTextS, NmS, Pt2S, UuidS};
 use crate::track::open_enum;
 use crate::value::{Bounds, Sha256, StructureAssignment};
-use crate::{Connection, ExternalRef, MountingSurface, Page};
+use crate::{Connection, ExternalRef, MountingSurface, Page, Representation};
 
 // ---------------------------------------------------------------------------------------------------------
 // Page item
@@ -313,6 +313,12 @@ pub struct FreeText {
     /// every text by its middle).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<TextAnchor>,
+    /// The symbol (a representation) a text bound to a symbol belongs to (`device.function_text`, `strip.tag`; doc 06
+    /// §3.8): the text prints that symbol's value, moves with it and goes with it; absent: none (since 0.3.5; an older
+    /// build keeps it and prints such a text empty).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub of: Option<Id<Representation>>,
     /// Unknown members (the role `path_function` of FT-376 among them, until it is typed).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

@@ -779,6 +779,14 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
     // Keep in place, checked while every selected symbol is kept (doc 06a §2.4).
     if symbols {
         items.extend(item("rep.keep_in_place"));
+        // A text bound to the one selected symbol (doc 06 §3.8): its function text over its path, a strip's name.
+        if let [one] = model.selected_rep_rows().as_slice() {
+            if one.terminal {
+                items.extend(item("text.strip_name"));
+            } else if one.device.is_some() {
+                items.extend(item("text.function_over_path"));
+            }
+        }
     }
     // Over a text of the one selected symbol, Hide text and Put the text back (greyed with its reason while the texts
     // stand where the symbol puts them); over a symbol with a moved text, Put

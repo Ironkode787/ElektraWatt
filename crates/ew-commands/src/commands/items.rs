@@ -12,8 +12,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     BoxStyle, ColourCode, ColourSpec, Connection, Csa, Extra, FreeText, Graphic, GraphicShape, GraphicStroke,
-    ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Sha256, ShapeArc, ShapeCircle, ShapeLine,
-    ShapePoints, ShapeRect, StructureBox, TextAlign, TextAnchor, WireMarker,
+    ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Representation, Sha256, ShapeArc, ShapeCircle,
+    ShapeLine, ShapePoints, ShapeRect, StructureBox, TextAlign, TextAnchor, WireMarker,
 };
 use ew_units::{Angle2, Nm, Pt2};
 use schemars::JsonSchema;
@@ -166,10 +166,16 @@ pub struct FreeTextParam {
     #[schemars(with = "MlTextS")]
     pub text: MlText,
     /// A bindable name (`project.description`, `project.document_title`, `project.drawing_id`, `page.title`,
-    /// `page.folio`, `page.full_name`): the text prints that value instead.
+    /// `page.folio`, `page.full_name`), or with `of` a part's (`device.function_text`, `strip.tag`): the text prints
+    /// that value instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub bind: Option<Ident>,
+    /// The part (a representation on the page) a text bound to a part belongs to: it prints the part's value, moves
+    /// with it and goes with it (doc 06 §3.8).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub of: Option<Id<Representation>>,
     /// The anchor point.
     #[schemars(with = "Pt2S")]
     pub at: Pt2,
@@ -284,19 +290,37 @@ pub(crate) fn graphic_problem(g: &Graphic) -> Option<Text> {
 /// The free-text angles (10⁻³ degree).
 const TEXT_ANGLES: [i32; 4] = [0, 90_000, 180_000, 270_000];
 
-/// Why a free text is refused (an unknown bindable name, an empty text without `bind`, an angle other than the four
-/// quarter turns, an alignment of a newer format); `None` when it is accepted.
+/// Why a free text is refused (an unknown bindable name, a part's name without its part or a page's with one, an empty
+/// text without `bind`, an angle other than the four quarter turns, an alignment of a newer format); `None` when it is
+/// accepted. Whether its part exists, on its page, is checked by [`symbol_problem`].
 pub(crate) fn free_text_problem(t: &FreeText) -> Option<Text> {
-    if let Some(b) = &t.bind {
-        if !ew_derive::BINDABLE.contains(&b.as_str()) {
+    let part = |b: &str| ew_derive::SYMBOL_BINDABLE.contains(&b);
+    match (&t.bind, t.of) {
+        (Some(b), None) if part(b.as_str()) => {
+            return Some(text!("refusal-items-bind-needs-part", b.to_string()));
+        }
+        (Some(b), Some(_)) if !part(b.as_str()) => {
+            return Some(text!(
+                "refusal-items-part-bind-unknown",
+                b.to_string(),
+                ew_derive::SYMBOL_BINDABLE.join(", ")
+            ));
+        }
+        (None, Some(_)) => {
+            return Some(text!(
+                "refusal-items-part-without-bind",
+                ew_derive::SYMBOL_BINDABLE.join(", ")
+            ));
+        }
+        (Some(b), None) if !ew_derive::BINDABLE.contains(&b.as_str()) => {
             return Some(text!(
                 "refusal-items-bind-unknown",
                 b.to_string(),
                 ew_derive::BINDABLE.join(", ")
             ));
         }
-    } else if t.text.is_empty() {
-        return Some(text!("refusal-items-text-empty"));
+        (None, None) if t.text.is_empty() => return Some(text!("refusal-items-text-empty")),
+        _ => {}
     }
     if !TEXT_ANGLES.contains(&t.angle.0) {
         return Some(text!("refusal-items-text-angle", t.angle.0.to_string()));
@@ -308,6 +332,35 @@ pub(crate) fn free_text_problem(t: &FreeText) -> Option<Text> {
         return Some(text!("refusal-items-anchor-unknown"));
     }
     None
+}
+
+/// Why the part of a text bound to a part (`of`) is refused: a representation that does not exist or stands on
+/// another page than the text, or for `strip.tag` one that draws no terminal of a strip; `None` when it is accepted or
+/// the text names no part.
+pub(crate) fn symbol_problem(tx: &TxBuilder<'_>, page: Id<Page>, t: &FreeText) -> Option<Text> {
+    let id = t.of?;
+    let Some(rep) = tx.get::<Representation>(id) else {
+        return Some(text!("refusal-items-part-gone"));
+    };
+    if rep.page != page {
+        return Some(text!(
+            "refusal-items-part-other-page",
+            crate::words::symbol(tx, id)
+        ));
+    }
+    let terminal = rep
+        .functions
+        .first()
+        .and_then(|f| tx.get::<ew_schema::Function>(*f))
+        .and_then(|f| f.device)
+        .and_then(|d| tx.get::<ew_schema::Device>(d))
+        .is_some_and(|d| d.aspects.terminal.is_some());
+    (t.bind.as_ref().is_some_and(|b| b.as_str() == "strip.tag") && !terminal).then(|| {
+        text!(
+            "refusal-items-part-not-terminal",
+            crate::words::symbol(tx, id)
+        )
+    })
 }
 
 /// Why a wire marker's own members are refused (an angle other than 0 or 90000); its connections are checked by
@@ -423,20 +476,23 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
             AnchorParam::Middle => TextAnchor::Middle,
             AnchorParam::Baseline => TextAnchor::Baseline,
         }),
+        of: t.of,
         extra: Extra::new(),
     }
 }
 
 /// `item.place` (`PlaceItem`, FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
-/// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, at, angle?,
-/// style?, align?, anchor?}}`) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
+/// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, of?, at, angle?,
+/// style?, align?, anchor?}}`; with `of` a text bound to that part, doc 06 §3.8) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
 /// image file as base64 `data`, which the command validates and stores as the company logo is stored, in the
 /// rectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is
 /// stored with `min` the smaller coordinates. Rejected: a missing page (not found); a degenerate shape (a zero-length
 /// line, a polyline or polygon with fewer than two or three distinct points, a rectangle without area, a radius of 0,
 /// an arc without sweep) or a stroke width of 0 or less, at
-/// `/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle
-/// other than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image with both or neither of `asset` and `data`, or
+/// `/kind/graphic`; a `bind` that is not one of the six bindable names (without `of`) or of a part's two (with `of`),
+/// `of` without `bind`, an empty `text` without `bind`, or an angle other than 0, 90000, 180000 or 270000, at
+/// `/kind/free_text`; an `of` that names no representation of the page, or for `strip.tag` none of a terminal, at
+/// `/kind/free_text/of`; an image with both or neither of `asset` and `data`, or
 /// whose rectangle has no area, at `/kind/image`; one whose asset the project does not hold, at `/kind/image/asset`;
 /// one whose `data` is no accepted image file (the logo's checks and texts), at `/kind/image/data`. Interactive.
 /// Outcome: the item.
@@ -467,8 +523,11 @@ impl Command for PlaceItem {
             }
             ItemKindParam::FreeText(t) => {
                 let t = free_text_of(t);
-                let p = free_text_problem(&t);
-                (PageItemKind::FreeText(t), p, "/kind/free_text")
+                if let Some(p) = free_text_problem(&t) {
+                    return Err(CmdError::invalid_params(Self::NAME, "/kind/free_text", p));
+                }
+                let p = symbol_problem(tx, self.page, &t);
+                (PageItemKind::FreeText(t), p, "/kind/free_text/of")
             }
             ItemKindParam::Image(i) => {
                 let asset = match (&i.asset, &i.data) {

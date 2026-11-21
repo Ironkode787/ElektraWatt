@@ -662,6 +662,26 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_rep_keep_in_place(),
     ))),
+    // Texts bound to a part (doc 06 §3.8), in the canvas context menu over one symbol: its device's function text over
+    // its path, and a terminal's strip named once on the page.
+    hidden(in_canvas(act(
+        "text.function_over_path",
+        Command,
+        Menu::Edit,
+        &[],
+        one_device_symbol,
+        None,
+        |s, _| s.act_text_function_over_path(),
+    ))),
+    hidden(in_canvas(act(
+        "text.strip_name",
+        Command,
+        Menu::Edit,
+        &[],
+        one_terminal_symbol,
+        None,
+        |s, _| s.act_text_strip_name(),
+    ))),
     // Reset label position in the canvas context menu over a placement whose label was dragged.
     hidden(in_canvas(act(
         "layout.reset_label",

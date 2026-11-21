@@ -175,6 +175,8 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `rep.hide_text` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_rep_hide_text` `crates/ew-viewmodel/src/shell/layout.rs` | `action-rep-hide-text` |
 | `rep.reset_texts` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_rep_reset_texts` `crates/ew-viewmodel/src/shell/layout.rs` | `action-rep-reset-texts` |
 | `rep.keep_in_place` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_rep_keep_in_place` `crates/ew-viewmodel/src/shell/layout.rs` | `action-rep-keep-in-place` |
+| `text.function_over_path` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_text_function_over_path` `crates/ew-viewmodel/src/shell/drawing.rs` | `action-text-function-over-path` |
+| `text.strip_name` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_text_strip_name` `crates/ew-viewmodel/src/shell/drawing.rs` | `action-text-strip-name` |
 | `layout.reset_label` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_reset_label` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-reset-label` |
 | `layout.labels` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_labels` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-labels` |
 | `layout.reset_labels` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_reset_labels` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-reset-labels` |
@@ -200,6 +202,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `junction.wiring` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_junction_wiring` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-junction-wiring`, `field-help-junction-wiring`, `junction-wiring`, `junction-wiring-chain`, `junction-wiring-default`, `junction-wiring-star` |
 | `project.crossings` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_crossings` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-project-crossings` |
 | `project.wire_numbers` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_wire_numbers` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-project-wire-numbers` |
+| `project.wire_numbering` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_wire_numbering` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-project-wire-numbering` |
 | `supply.place` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_supply_place` `crates/ew-viewmodel/src/shell/supply_place.rs` | `action-supply-place`, `field-function-derived-supply-place`, `field-help-function-derived-supply-place`, `supply-place-names`, `supply-place-no-names`, `supply-place-ok`, `supply-place-system`, `supply-place-title` |
 | `tool.ip` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_ip` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-tool-ip`, `tool-ip` |
 | `tool.black_box` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_black_box` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-tool-black-box` |

@@ -242,7 +242,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/device/box_pivot_tests.rs` |  | The pivot of a black box's turns (finding 1): every box of 1 to 8 by 1 to 8 grid steps, at positive and negative grid positions and away from the origin, from a plain and from a mirrored orientation, on the rational QET grid and on a metric one. |
 | `src/commands/device/port_boxes.rs` |  | `bus.place_ports` (`PlacePortBoxes`, doc 10 §2.7): a device drawn on a bus-topology page as its interfaces. |
 | `src/commands/drafting.rs` |  | `layout.apply` (docs/design/06a-drafting.md §2.6): a drafting plan stored in one transaction. |
-| `src/commands/drawing.rs` |  | `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers` and `plc_address_at_terminals`. |
+| `src/commands/drawing.rs` |  | `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers`, `wire_numbering` and `plc_address_at_terminals`. |
 | `src/commands/edit.rs` |  | `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). |
 | `src/commands/exchange.rs` |  | `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the symbol of a placed representation exchanged, its function and connections kept. |
 | `src/commands/external.rs` |  | `external.apply` (`ApplyExternal`): an external change, merged by the session, committed as one undoable transaction. |
@@ -285,6 +285,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/jsonschema.rs` |  | A JSON Schema 2020-12 validator for the subset of keywords that schemars 1.x emits for command parameters, so that `AnyCommand` parameters are rejected with the JSON Pointer of the offending value (doc 17 §2.1) before they are deserialised. |
 | `src/lib.rs` |  | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`. |
 | `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, stability, confirmation and the origin of a transaction. |
+| `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text bound to a part moves with it. |
 | `src/normalise/bus_nets.rs` |  | Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after row 14a). |
 | `src/normalise/bus_ports.rs` |  | Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15). |
 | `src/normalise/channel_instantiation.rs` |  | Normaliser #3, channel instantiation (N1; doc 06 §3.2, doc 10 §2.4, §3.3). |
@@ -1109,7 +1110,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 |---|---|---|
 | `src/about.rs` |  | The complete About dialog (FR-UI-038, NFR-PRIV-07, NFR-LIC-08, NFR-COMP-04): the text of the dialog and of the third-party notices, shared by the egui frame and `ui.describe`. |
 | `src/actions.rs` |  | The action registry (UX/UI doc 16 section 2.4) in toolkit-neutral form. |
-| `src/actions/enabled.rs` |  | The actions' enable checks: each `fn(&ShellModel) -> Result<(), Key>` that an entry of the action table names as its `enabled` or `enabled_when_named`, the reason key of a refusal in its error, and [`enabled_with`], which decides with the parameters of a call and holds the one rule that is not in the rows (the symbol editor's). |
+| `src/actions/enabled.rs` | large | The actions' enable checks: each `fn(&ShellModel) -> Result<(), Key>` that an entry of the action table names as its `enabled` or `enabled_when_named`, the reason key of a refusal in its error, and [`enabled_with`], which decides with the parameters of a call and holds the one rule that is not in the rows (the symbol editor's). |
 | `src/actions/menu.rs` |  | The menu model built from the action table (doc 16a §9.2): [`menu_model`], the app menu's submenus with their items ([`ActionItem`], [`MenuEntry`]), each item enabled or greyed with its reason; the submenus whose items the project gives (recent projects, workspaces, the station view's module commands); the shortcut text a menu shows. |
 | `src/actions/table.rs` |  | The action table in its sections. |
 | `src/actions/table/automation.rs` |  | The action table, section `automation`: the window's entries of the PLC, bus and fluid commands (WP-S2.13), each building one declared command (`plc.*`, `bus.*`, `fluid.*`, `assembly.attach`) from the row or the selection it is aimed at. |

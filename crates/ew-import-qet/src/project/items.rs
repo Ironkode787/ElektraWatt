@@ -285,6 +285,7 @@ pub(crate) fn free_text(
         height: None,
         align: (align != TextAlign::Left).then_some(align),
         anchor: Some(TextAnchor::Baseline),
+        of: None,
         extra: Default::default(),
     })
 }

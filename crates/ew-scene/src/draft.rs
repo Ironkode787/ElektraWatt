@@ -422,9 +422,15 @@ impl Builder<'_> {
 
     /// A fixed text: its box joins the page, and it prints where it stands.
     pub(crate) fn fixed(&self, ctx: &mut Ctx<'_>, text: Text, slot: Option<Slot>) {
+        let owner = text.entity.0;
+        self.fixed_of(ctx, text, slot, owner);
+    }
+
+    /// A fixed text of `owner`: the record it moves with (a text bound to a part belongs to the part, doc 06 §3.8).
+    pub(crate) fn fixed_of(&self, ctx: &mut Ctx<'_>, text: Text, slot: Option<Slot>, owner: ew_ids::Uuid) {
         if let Some(b) = self.box_of(&text) {
             ctx.page.fixed_texts.push(FixedText {
-                owner: text.entity.0,
+                owner,
                 rect: ctx.ticks.outward(b),
             });
         }

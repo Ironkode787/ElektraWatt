@@ -23,6 +23,7 @@
 //! | 14b | `bus_nets` | N6: a new or changed `Bus` line between two ports of one bus system puts them in one logical net: the net one of them names, else a new net named for the bus system with the master or controller port as its master; it never changes a net a port names |
 //! | 16 | `drives_link` | N-FL-4: a new fluid line whose fluid net holds a valve's working port and the consumer port of exactly one other device outside the valve's parent chain links the valve to that device (`drives`), unless the valve has a `drives` link |
 //! | 18 (doc 06) | `ip_form` | An interruption point drawn with one of EW's arrow forms whose direction changed takes the twin form of its new direction, unturned; a project without the twin refuses the change |
+//! | 18a | `bound_texts` | A text bound to a part (`of`, doc 06 §3.8) that the transaction did not change takes the displacement and the page of its representation when the transaction moved it |
 //! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
@@ -32,6 +33,7 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
+mod bound_texts;
 mod bus_nets;
 pub(crate) mod bus_ports;
 pub(crate) mod channel_instantiation;
@@ -49,6 +51,7 @@ mod tube_tags;
 mod valve_functions;
 mod wire_numbering;
 
+pub use bound_texts::BoundTexts;
 pub use bus_nets::BusNets;
 pub use bus_ports::BusPorts;
 pub use channel_instantiation::ChannelInstantiation;
@@ -80,7 +83,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 16] = [
+pub const ORDER: [&str; 17] = [
     "valve_functions",
     "plc_aspects",
     "cp_instantiation",
@@ -96,6 +99,7 @@ pub const ORDER: [&str; 16] = [
     "bus_nets",
     "drives_link",
     "ip_form",
+    "bound_texts",
     "revision_ensure_open",
 ];
 
@@ -120,6 +124,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(BusNets),
         Box::new(DrivesLink),
         Box::new(IpForm),
+        Box::new(BoundTexts),
         Box::new(RevisionEnsureOpen),
     ]
 }

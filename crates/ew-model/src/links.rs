@@ -877,6 +877,16 @@ pub static LINKS: &[LinkDecl] = &[
     // page_item (EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,
+    // A text bound to a part (doc 06 §3.8) goes with the part. Load-tolerant: an older build keeps `of` in `extra`
+    // and leaves the text when it deletes the part; the text then prints nothing.
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(PageItem."kind.free_text.of" -> Representation, Cascade, None, |v, out| {
+            if let PageItemKind::FreeText(t) = &v.kind {
+                opt(t.of, out);
+            }
+        })
+    },
     // A surface view shows nothing without its surface, so it goes with it.
     link!(PageItem."kind.surface_view.surface" -> MountingSurface, Cascade, None, |v, out| {
         if let PageItemKind::SurfaceView(sv) = &v.kind {

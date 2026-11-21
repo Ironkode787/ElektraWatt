@@ -722,6 +722,7 @@ impl Emit {
                         HAlign::Right => Some(TextAlign::Right),
                     },
                     anchor: None,
+                    of: None,
                     extra: Default::default(),
                 })
             }

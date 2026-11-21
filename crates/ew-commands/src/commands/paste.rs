@@ -1569,6 +1569,8 @@ mod tests {
             // A surface view (left out of a paste whole, but its surface link has its row).
             json!({"$k": "page_item", "id": A, "page": C,
                 "kind": {"surface_view": {"surface": B, "datum_at": [0, 0]}}}),
+            json!({"$k": "page_item", "id": A, "page": C,
+                "kind": {"free_text": {"bind": "strip.tag", "of": B, "at": [0, 0]}}}),
             // last, as the tests above index the samples
             json!({"$k": "function", "id": A, "device": B, "def": D,
                 "bus_port": {"interface": "DP", "bus": "profibus_dp", "role": "slave", "address": "tbd",
@@ -1643,6 +1645,8 @@ mod tests {
         ("page_item.kind.wire_marker.connections[]", Some(false)),
         // A view without its surface shows nothing (the link cascades); a paste leaves views out.
         ("page_item.kind.surface_view.surface", Some(true)),
+        // A text bound to a symbol prints the symbol's value and goes with it (the link cascades, doc 06 §3.8).
+        ("page_item.kind.free_text.of", Some(true)),
         ("page_item.page", Some(true)),
         ("structure_box.assigns.document_kind", Some(false)),
         ("structure_box.assigns.functional_assignment", Some(false)),
