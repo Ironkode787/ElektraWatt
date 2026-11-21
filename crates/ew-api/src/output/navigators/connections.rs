@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Connections navigator (§7.1): the wire list's physical-wire rows under their potential, then the bridges.
+//! The Connections navigator (doc 16 §5.2): the wire list's physical-wire rows under their potential, then the bridges.
 //!
 //! Not here: the Potentials navigator, which reuses the wire rows (`potentials.rs`); a connection's drawables
 //! (`navigators.rs`).
@@ -35,7 +35,7 @@ pub(super) struct WireListRow {
     pub(super) bridge: bool,
 }
 
-/// The wire list's data rows (§7.1, Connections): a physical-wire row stands for the constituent connections of its
+/// The wire list's data rows (Connections): a physical-wire row stands for the constituent connections of its
 /// physical wire (`physical_wires_of` of every potential), a bridge row for the bridge connections of its strip and
 /// group.
 pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
@@ -147,7 +147,7 @@ pub(super) fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table
     )
 }
 
-/// Connections (§7.1): potential → physical-wire rows; a `Bridges` group → the bridge rows.
+/// Connections: potential → physical-wire rows; a `Bridges` group → the bridge rows.
 pub(super) fn connections_table(q: &Q, b: &mut Builder) {
     let rows = wire_list_rows(q);
     let mut groups: BTreeMap<String, u32> = BTreeMap::new();

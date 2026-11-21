@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! One section of the property sheet (§6.3, §6.4): the catalogue's rows in order with their values over the
+//! One section of the property sheet: the catalogue's rows in order with their values over the
 //! targets, the members the schema does not list, and the derived rows merged over several targets.
 //!
 //! Not here: the derived rows of each kind (`device_rows.rs`, `connection_rows.rs`, `page_rows.rs`,
@@ -43,7 +43,7 @@ fn values_at<'v>(jsons: &'v [Value], path: &str) -> Vec<Option<&'v Value>> {
         .collect()
 }
 
-/// The row value of `values` (§6.3).
+/// The row value of `values`.
 pub(super) fn row_value(cx: &SheetCx<'_>, ty: &FieldType, values: &[Option<&Value>]) -> RowValue {
     if values.iter().all(Option::is_none) {
         return RowValue::Absent;
@@ -90,7 +90,7 @@ impl SectionCx<'_, '_> {
     fn emit(&self, spec: &FieldSpec, rpath: &str, depth: u8, out: &mut Vec<Built>) {
         let values = values_at(self.jsons, rpath);
         let value = row_value(self.cx, &spec.ty, &values);
-        // A device's PLC aspect is no value a person types (the persona round: "PLC station" was a raw data editor):
+        // A device's PLC aspect is no value a person types:
         // a station comes with its CPU's part and a card's station is chosen by attaching the card, so the aspect has
         // no row of its own, absent or present, and a present one shows its members (the role and the order in words).
         if depth == 0 && self.kind == "device" && ["plc_station", "plc_module"].contains(&rpath) {
@@ -197,7 +197,7 @@ impl SectionCx<'_, '_> {
         }
     }
 
-    /// The members of the object at `rpath` that the schema does not list, as `Json` rows (§6.1.1), in byte order of
+    /// The members of the object at `rpath` that the schema does not list, as `Json` rows, in byte order of
     /// their names; for the project's `settings` the fixed rows too.
     fn emit_unlisted(
         &self,
@@ -293,7 +293,7 @@ pub(super) fn derived(
             false,
         ),
     };
-    // A derived row offers its partner's writes only where the grid can make them (§6.3: a read-only row has none).
+    // A derived row offers its partner's writes only where the grid can make them (a read-only row has none).
     let actions = if route.is_editable() { actions } else { Vec::new() };
     Built {
         row: PropRow {
@@ -313,7 +313,7 @@ pub(super) fn derived(
     }
 }
 
-/// The merged value and provenance of a derived row over several targets (§6.3): one value and one provenance
+/// The merged value and provenance of a derived row over several targets: one value and one provenance
 /// when every target agrees, else `Varies`.
 pub(super) fn merge(
     cx: &SheetCx<'_>,
@@ -347,7 +347,7 @@ pub(super) fn profile_name(q: &Q, member: &str, key: &str, source: Option<&str>)
 }
 
 impl Session {
-    /// One section's rows (§6.3, §6.4).
+    /// One section's rows.
     pub(super) fn section(
         &self,
         q: &Q,
@@ -560,7 +560,7 @@ impl Session {
         }
     }
 
-    /// The derived rows of a section (§6.4, D9, D15).
+    /// The derived rows of a section (D9, D15).
     fn derived_rows(
         &self,
         q: &Q,

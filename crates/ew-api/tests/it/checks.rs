@@ -306,8 +306,7 @@ fn the_0v_pe_bond_fix_declares_the_bond_on_its_wire_and_undo_restores_the_findin
     );
 }
 
-/// EW-POT-009's message says "connect it or mark it unused", and its quick fix does the second (the persona round of
-/// M3: nobody found where). The sample without the lamp -102E1's 0 V wire (102.9) has that pin unconnected; the fix
+/// EW-POT-009's message says "connect it or mark it unused", and its quick fix does the second. The sample without the lamp -102E1's 0 V wire (102.9) has that pin unconnected; the fix
 /// marks it unused with one `fields.set`; the finding is then an info without a fix.
 #[test]
 fn the_unconnected_pins_fix_marks_it_unused() {

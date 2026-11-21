@@ -19,7 +19,7 @@ use crate::Session;
 use crate::output::fields::{Category, EditRoute, FieldType, InputError, ParsedInput};
 
 /// A channel's binding row and a logical net's master row in words: the pin as the canvas names it (`-1A2:1`), never
-/// the endpoint's JSON (the persona round); a value that names no CP keeps its text.
+/// the endpoint's JSON; a value that names no CP keeps its text.
 pub(super) fn binding_in_words(q: &Q, built: &mut [Built]) {
     for b in built
         .iter_mut()
@@ -51,8 +51,8 @@ pub(super) fn bus_address_in_words(built: &mut [Built]) {
 }
 
 impl Session {
-    /// The text key of the form in which the address of the bus port function `function` is typed, by its bus (the
-    /// persona run m3-p4: nothing said that a PROFINET address is a name and an IP address): `hint-address-profibus`,
+    /// The text key of the form in which the address of the bus port function `function` is typed, by its bus:
+    /// `hint-address-profibus`,
     /// `-profinet`, `-ethercat`, `-io-link`, else `hint-address-other`; `None` for a function without a bus port.
     pub fn bus_address_form(&self, function: Uuid) -> Option<&'static str> {
         let q = self.query();

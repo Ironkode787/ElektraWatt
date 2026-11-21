@@ -46,7 +46,7 @@ impl Session {
     }
 }
 
-/// The columns of the message panel's table rows (§7.1), in order; `rule` is the key column.
+/// The columns of the message panel's table rows, in order; `rule` is the key column.
 pub(super) const MESSAGE_COLUMNS: [&str; 7] = [
     "severity",
     "rule",
@@ -77,7 +77,7 @@ fn rule_kind_word(kind: crate::checks::RuleKind) -> &'static str {
     }
 }
 
-/// The drawables of one finding target (§6.1 item 6): a device the representations of its functions; a
+/// The drawables of one finding target: a device the representations of its functions; a
 /// function its representations; a representation and a connection themselves; a conductor its core connections;
 /// every other record none.
 fn target_drawables(
@@ -172,8 +172,8 @@ impl Session {
                 let findings: Vec<&checks::Finding> =
                     of_severity.iter().copied().filter(|f| f.rule == rule).collect();
                 let meta = checks::rule(rule).map(|r| r.meta());
-                // Every finding of the group has a quick fix of one kind (its key, else its command): Fix all (the
-                // a persona run met 29 fixes to apply one by one).
+                // Every finding of the group has a quick fix of one kind (its key, else its command): Fix all (one step
+                // for what would take one fix after another).
                 let kinds: std::collections::BTreeSet<Option<String>> = findings
                     .iter()
                     .map(|f| {
@@ -237,7 +237,7 @@ pub fn names_subject(subject: &str, message: &str) -> bool {
                 .any(|(i, _)| message[..i].ends_with(' ') && ends(&message[i + subject.len()..])))
 }
 
-/// A finding's page and its primary target's drawables (§7.1): the finding's page, else the page of the primary
+/// A finding's page and its primary target's drawables: the finding's page, else the page of the primary
 /// target's first drawable; the folio as the page prints it.
 pub(crate) fn finding_page(
     q: &Q,
@@ -275,7 +275,7 @@ pub(crate) fn finding_page(
     (page, primary)
 }
 
-/// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
+/// One finding row: its records are the targets, its drawables theirs; its page is the finding's page, else the
 /// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
 fn finding_node(
     q: &Q,

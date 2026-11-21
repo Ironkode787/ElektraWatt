@@ -8,7 +8,7 @@
 //! [`route_wire`] and [`wire_clear`] are the Wire tool's route between two ends, in page nm; [`unrouted_line`] the line
 //! of a wire without a route.
 //!
-//! **Back from ticks** (§2.1): a vertex on the grid takes the grid's own number for its position; a route's first and
+//! **Back from ticks** (doc 06a §2.1): a vertex on the grid takes the grid's own number for its position; a route's first and
 //! last vertex are its ends' stored points (a junction's new place where the plan moves it), and the corner next to an
 //! end takes that end's coordinate across the segment between them, so a route meets a pin that lies 1 nm off the grid.
 
@@ -31,7 +31,7 @@ use crate::output::{PageTables, TableEnd};
 /// What a Route plans.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum RouteScope {
-    /// The page: its unrouted wires, those with a fault as stored, and those the program routed (§3.2).
+    /// The page: its unrouted wires, those with a fault as stored, and those the program routed (doc 06a §3.2).
     Page,
     /// The selection: the wires named, and every wire of the page with an end on a part named, whoever shaped them.
     Selection(Vec<Uuid>),
@@ -372,7 +372,7 @@ fn wire_end(ticks: Ticks, e: ToolEnd) -> WireEnd {
 }
 
 /// The Wire tool's route from `from` (at the page point `a`) to `to` (at `b`) on `draft`, a page of grid `grid`
-/// (§7.4): `ew_drafting::route_wire` back in page nm between the two points, and whether it runs across a text that
+/// (doc 06a §7.4): `ew_drafting::route_wire` back in page nm between the two points, and whether it runs across a text that
 /// cannot step aside; `arrive` the direction a free first end was arrived at with. `None` where no route keeps free
 /// of faults.
 pub fn route_wire(

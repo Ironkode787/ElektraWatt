@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel's rows (§8.4): every entry of the undo stack with its label, its origin as
+//! The history panel's rows (doc 16 §8.1): every entry of the undo stack with its label, its origin as
 //! the panel prints it, whether it is an undo step or a marker line, its revision and the folios of
 //! the pages its changes touch in the current model.
 //!
@@ -29,7 +29,7 @@ const MAX_HISTORY_PAGES: usize = 8;
 /// that moves none keeps its command's, Route's.
 pub const ARRANGE_STEP: &str = "layout.arrange";
 
-/// One entry of the history (§4.2).
+/// One entry of the history.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct HistoryRow {
     /// The entry's index in the stack (0 the oldest kept).
@@ -48,7 +48,7 @@ pub struct HistoryRow {
     pub pages: Vec<String>,
 }
 
-/// The history as the panel shows it (§4.2).
+/// The history as the panel shows it.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct HistoryView {
     /// Every entry, oldest first.
@@ -63,7 +63,7 @@ pub struct HistoryView {
     pub max_steps: usize,
 }
 
-/// The origin text of the panel (§8.4): `GUI`, `script <base name>`, `external change`, `import`, else the label.
+/// The origin text of the panel: `GUI`, `script <base name>`, `external change`, `import`, else the label.
 fn origin_text(origin: &Origin) -> String {
     match origin {
         Origin::Gui => "GUI".to_owned(),
@@ -180,14 +180,13 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
 impl Session {
     /// The history panel's view of the undo stack: every entry, oldest first, with its label, its
     /// origin text, its step and barrier flags, its revision and the folios of the pages its changes
-    /// touch in the current model; the cursor and the bounds. One call per revision while the panel is open (§9
-    /// item 5).
+    /// touch in the current model; the cursor and the bounds. One call per revision while the panel is open.
     pub fn history_view(&self) -> HistoryView {
         view_of(self.history(), &self.query())
     }
 
     /// The records the history entry `index` changes, labelled as [`Session::preview_entities`] labels them, from the
-    /// current model (Show changes, §8.4); empty for an index out of range.
+    /// current model (Show changes); empty for an index out of range.
     pub fn history_entities(&self, index: usize) -> Vec<crate::output::PreviewEntity> {
         let Some(entry) = self.history().entry(index) else {
             return Vec::new();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The place catalogue (§7.1): what can be placed on a page, its symbols, parts, PLC parts, template functions,
+//! The place catalogue: what can be placed on a page, its symbols, parts, PLC parts, template functions,
 //! bus interfaces and terminal strips, and the words their rows print.
 //!
 //! Not here: the `library.embed` parameters that place a catalogue row (`embeds.rs`); a symbol's shape
@@ -23,7 +23,7 @@ use ew_library::starter::StarterKind;
 use crate::Session;
 use crate::output::join::fndef_copy;
 
-/// What can be placed on a page (§7.1): symbols and parts.
+/// What can be placed on a page: symbols and parts.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PlaceCatalogue {
     /// Embedded symbols and available library symbols on the page's stored grid, in key/address order.
@@ -35,7 +35,7 @@ pub struct PlaceCatalogue {
     /// the station view lists them greyed with what to do.
     pub plc_without_functions: Vec<CataloguePart>,
     /// Every terminal strip of the project, by its tag as the page prints it: the strip chooser of a
-    /// terminal placement (§7.1).
+    /// terminal placement.
     pub strips: Vec<CatalogueStrip>,
 }
 
@@ -480,8 +480,8 @@ pub(super) fn part_valve_def(q: &Q, part: &Part) -> Option<Id<FnDef>> {
     })
 }
 
-/// Whether a valve for a valve terminal of part `part` has a fluid symbol to stand in a valve position's cell (rc.3,
-/// [`CataloguePart::cell_symbol`]): one that draws its valve FnDef with graphics ([`box_symbol`], on any grid); a
+/// Whether a valve for a valve terminal of part `part` has a fluid symbol to stand in a valve position's cell
+/// ([`CataloguePart::cell_symbol`]): one that draws its valve FnDef with graphics ([`box_symbol`], on any grid); a
 /// symbol wider than a cell widens its cell (`ew_derive::SlotFrame::with_cells`).
 fn fits_cell(q: &Q, part: &Part) -> bool {
     part_valve_def(q, part)
@@ -872,7 +872,7 @@ pub(super) fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
 }
 
 impl Session {
-    /// What can be placed on the page labelled `folio` (§7.1); `None` for an unknown folio or a page
+    /// What can be placed on the page labelled `folio`; `None` for an unknown folio or a page
     /// that is not drawn (a generated page, a divider).
     ///
     /// `symbols` lists embedded symbols, unembedded starter symbols and installed library masters, filtered by

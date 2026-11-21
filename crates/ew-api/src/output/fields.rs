@@ -12,7 +12,7 @@
 //! do not say is data — the category of a top-level member, the closed table of members other commands own, the
 //! narrowing table and the five project settings rows that exist when absent.
 //!
-//! **Edit routes** (§6.1.3), in this order: identity; the narrowing table (it may make an editable path read-only,
+//! **Edit routes**, in this order: identity; the narrowing table (it may make an editable path read-only,
 //! never the reverse); `fields.set` by the longest settable prefix (`SETTABLE`); the four members of
 //! `project.settings.set`; the table of members other commands own; else no command. A route whose command the
 //! registry does not hold is "no command"; one whose command is `HumanOnly` is read-only with the confirmed step, so
@@ -31,7 +31,7 @@ use serde_json::Value;
 /// The deepest `$ref` nesting the walker follows; below it a node is [`FieldType::Json`].
 const MAX_DEPTH: usize = 8;
 
-/// A field's value type: what its editor parses and how it is displayed (§6.5).
+/// A field's value type: what its editor parses and how it is displayed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FieldType {
     /// One line of text without control characters.
@@ -150,7 +150,7 @@ impl FieldType {
     }
 }
 
-/// The category of a field: its top-level member's (§6.1.2), in display order.
+/// The category of a field: its top-level member's, in display order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Category {
     /// Tags, names, numbers, states.
@@ -298,7 +298,7 @@ impl Category {
     }
 }
 
-/// How a field is edited (§6.1.3).
+/// How a field is edited.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum EditRoute {
     /// `fields.set` with this kind and settable path (the longest settable prefix of the field's path).
@@ -323,7 +323,7 @@ pub enum EditRoute {
     ReadOnly(FieldReadOnly),
 }
 
-/// Why a field is read-only in the grid (§6.8). Named apart from the crate root's `ReadOnlyReason` of a read-only
+/// Why a field is read-only in the grid. Named apart from the crate root's `ReadOnlyReason` of a read-only
 /// project.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FieldReadOnly {
@@ -378,7 +378,7 @@ impl EditRoute {
     }
 }
 
-/// One field of a kind's catalogue (§4.2).
+/// One field of a kind's catalogue.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FieldSpec {
     /// The record kind (`device`).
@@ -408,7 +408,7 @@ pub(crate) fn catalogue_kind(name: &str) -> Option<Kind> {
     catalogue_kinds().find(|k| k.name() == name)
 }
 
-/// The fields of `kind` for the commands of `registry` (§6.1): one entry per node of the kind's field tree in tree
+/// The fields of `kind` for the commands of `registry`: one entry per node of the kind's field tree in tree
 /// order; `None` for a reserved, library or unknown kind. The `HumanOnly` rule reads the registry's metadata, so
 /// the catalogue of a registry in which `fields.set` is `HumanOnly` has no editable `fields.set` row (PG1).
 pub fn field_catalogue_for(registry: &CommandRegistry, kind: &str) -> Option<Arc<[FieldSpec]>> {
@@ -486,7 +486,7 @@ fn is_tagged_enum(root: &Value, node: &Value, depth: usize) -> bool {
         .is_some_and(|b| tagged_variants(root, b, depth, false).is_some())
 }
 
-/// The schema type of `node` (§6.1.1's table).
+/// The schema type of `node`.
 fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
     if depth > MAX_DEPTH {
         return FieldType::Json;
@@ -588,7 +588,7 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
     }
 }
 
-/// The project settings members that are rows even when absent (§6.1.1), in byte order of their names.
+/// The project settings members that are rows even when absent, in byte order of their names.
 pub(crate) const FIXED_SETTINGS: [&str; 5] = [
     "checks",
     "colour_profile",
@@ -625,7 +625,7 @@ const VIEW: &str = "a panel page's view is changed with Set panel view";
 /// Why a page item or a structure box does not move across pages.
 const PAGE: &str = "stays on its page; delete it and place it on the other page";
 
-/// The narrowing table (§6.1.3 step 2): settable paths the grid shows read-only. `below` matches the path and its
+/// The narrowing table: settable paths the grid shows read-only. `below` matches the path and its
 /// members and list items; without it only the path itself matches (its settable members keep their `fields.set`
 /// route).
 const NARROWED: &[(&str, &str, bool, &str)] = &[
@@ -655,7 +655,7 @@ const NARROWED: &[(&str, &str, bool, &str)] = &[
     ("structure_box", "page", false, PAGE),
 ];
 
-/// The members other commands own (§6.1.3 step 5): kind, path (`*`: every member), command, where a person does it.
+/// The members other commands own: kind, path (`*`: every member), command, where a person does it.
 const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     (
         "project",
@@ -737,7 +737,7 @@ fn settable_form(path: &str) -> String {
     path.replace("[]", "")
 }
 
-/// The edit route of the node at `path` of `kind` (§6.1.3); `exposure` reads a command's exposure (`None`:
+/// The edit route of the node at `path` of `kind`; `exposure` reads a command's exposure (`None`:
 /// unregistered).
 pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option<Exposure>) -> EditRoute {
     let human = |command: &str, step: &str| {
@@ -849,7 +849,7 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
         let category = Category::of_member(member, true);
         push_node(name, &segment(member), &ty, category, exposure, &mut out);
         if name == "project" && member == "settings" {
-            // The rows that exist even when absent (§6.1.1), after the listed members of `settings`.
+            // The rows that exist even when absent, after the listed members of `settings`.
             for fixed in FIXED_SETTINGS {
                 let path = format!("settings.{fixed}");
                 out.push(spec(name, &path, FieldType::Json, category, exposure));
@@ -1028,7 +1028,7 @@ struct NoCx;
 
 impl DisplayCx for NoCx {}
 
-/// The display text of `value` as a value of type `ty` (§6.5): total over every type and value.
+/// The display text of `value` as a value of type `ty`: total over every type and value.
 pub fn format_field_value(ty: &FieldType, value: &Value) -> String {
     format_with(&NoCx, ty, value)
 }
@@ -1275,7 +1275,7 @@ fn length_source_text(value: &Value) -> Option<String> {
 // ---------------------------------------------------------------------------------------------------------------
 // Parsing
 
-/// A parsed editor input (§6.5).
+/// A parsed editor input.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ParsedInput {
     /// The value in the field's JSON encoding.
@@ -1484,7 +1484,7 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
 }
 
 /// A length in millimetres (at most six fraction digits, an optional `mm`), or with its unit `cm` or `m` (`2 m`, `35
-/// cm`; the persona round typed a tube's length so), as whole nanometres.
+/// cm`), as whole nanometres.
 fn parse_nm(text: &str) -> Result<Value, InputError> {
     let typed = text.trim();
     let bad = || invalid(api_text!("refusal-input-mm", typed));
@@ -1591,7 +1591,7 @@ fn parse_colour(text: &str, company: &[(String, String)]) -> Result<Value, Input
     Ok(Value::Array(tokens.into_iter().map(Value::String).collect()))
 }
 
-/// Parses `text` as a value of type `ty` (§6.5). `member` is the field's last path member (a slot's aspect).
+/// Parses `text` as a value of type `ty`. `member` is the field's last path member (a slot's aspect).
 pub(crate) fn parse_input(
     cx: &dyn ParseCx,
     ty: &FieldType,
@@ -1948,7 +1948,7 @@ fn script_name(ch: char) -> &'static str {
     }
 }
 
-/// The options of a choice editor matching the case-folded `filter` (§6.5): empty for other types.
+/// The options of a choice editor matching the case-folded `filter`: empty for other types.
 pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &str) -> Vec<FieldChoice> {
     let filter = filter.to_lowercase();
     let keep = |c: &FieldChoice| filter.is_empty() || c.text.to_lowercase().contains(&filter);
@@ -1977,7 +1977,7 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
             }));
             out
         }
-        // A fluid line's tube part is a part that is a tube (the persona round: it offered the valves).
+        // A fluid line's tube part is a part that is a tube (not a valve).
         FieldType::Link { kind } if kind == "part" => {
             let mut all = part_choices(cx, |id| serde_json::json!({ "copy": id }));
             if member == TUBE_PART {
@@ -2158,7 +2158,7 @@ mod tests {
             "0.75 mm²"
         );
         assert_eq!(parse(FieldType::Nm, "12.5 mm").unwrap(), 12_500_000);
-        // A length with its unit (persona round 3: "2 m" was refused).
+        // A length with its unit.
         assert_eq!(parse(FieldType::Nm, "2 m").unwrap(), 2_000_000_000);
         assert_eq!(parse(FieldType::Nm, "35 cm").unwrap(), 350_000_000);
         assert_eq!(parse(FieldType::Nm, "1.5M").unwrap(), 1_500_000_000);
@@ -2271,7 +2271,7 @@ mod tests {
     }
 
     /// PG1: a registry in which `fields.set` is `HumanOnly` makes every `fields.set` row read-only with the
-    /// `HumanOnly` reason, whatever the tables say (§6.1.3).
+    /// `HumanOnly` reason, whatever the tables say.
     #[test]
     fn a_human_only_fields_set_makes_every_row_read_only() {
         let builtin = |n: &str| CommandRegistry::builtin().get(n).map(|e| e.meta().exposure);

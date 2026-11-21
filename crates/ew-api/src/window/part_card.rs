@@ -132,7 +132,7 @@ impl Session {
                     _ => None,
                 });
             // A fluid function (a valve, a service unit) reads as the part's description: its category words read
-            // as code ("Lever onoffvalve", the tutorials lane of rc.2).
+            // as code ("Lever onoffvalve").
             let fluid = def
                 .as_ref()
                 .is_some_and(|d| d.cps.iter().any(|c| ew_derive::is_fluid(&c.discipline)));

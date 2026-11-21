@@ -18,7 +18,7 @@ use super::{Provenance, RowAction, RowValue, SourceLink, device_tag_text, rep_lo
 use crate::Session;
 use crate::output::fields::{Category, EditRoute, FieldType};
 
-/// A fluid line's derived rows (doc 11 §7, the persona round: the medium was found only through the command search):
+/// A fluid line's derived rows (doc 11 §7):
 /// **Medium**, the medium its net carries, with where it is defined, chosen among the project's media (one
 /// `fluid.medium.define` at the line's end through [`Session::layout_edit`]); **Tube**, its effective tube
 /// specification (`6×4 mm PU`) with the source of its values (the project's default tube, its medium's, its tube part's,

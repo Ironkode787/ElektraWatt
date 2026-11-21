@@ -377,7 +377,7 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     assert_eq!(cmd.params["value"][0]["part"]["copy"], json!(bracket));
 }
 
-/// §6.5: no part of the kind refuses `reason-no-accessory-part`; the one copy is taken without a text.
+/// No part of the kind refuses `reason-no-accessory-part`; the one copy is taken without a text.
 #[test]
 fn add_accessory_takes_the_one_copy_or_refuses() {
     let mut s = common::sample();
@@ -583,7 +583,7 @@ fn insert_and_move_compile_to_one_command() {
     assert!(matches!(err, StripEditError::Invalid(_)));
 }
 
-/// §6.3: several cell gestures compile to one `fields.set_many`; a bridge part on a terminal without a bridge refuses.
+/// Several cell gestures compile to one `fields.set_many`; a bridge part on a terminal without a bridge refuses.
 #[test]
 fn several_cells_compile_to_one_set_many() {
     let mut s = common::sample();

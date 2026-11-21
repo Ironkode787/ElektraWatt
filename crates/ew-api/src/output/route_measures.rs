@@ -26,7 +26,7 @@ use super::editing::{PageTables, TableConnection, TableCp, TableEnd};
 use super::layers::page_layer;
 use crate::Session;
 
-/// The order of the supply potentials (§3.4): L1, L2, L3, L, N, PEN, PE, FE, L+, M, L−, as a wire's supply rank.
+/// The order of the supply potentials (doc 06a §2.2): L1, L2, L3, L, N, PEN, PE, FE, L+, M, L−, as a wire's supply rank.
 const SUPPLY_ORDER: [&str; 11] = ["L1", "L2", "L3", "L", "N", "PEN", "PE", "FE", "L+", "M", "L-"];
 
 /// Why a layout report is refused.
@@ -311,7 +311,7 @@ fn cp_text(q: &Q, cp: &TableCp) -> String {
 
 /// `text`, which names a CP or a representation of `device` as the page prints its tag, with the tag's product sign
 /// also where a frozen tag hides it on pages (`G1:+` → `-G1:+`): the layout rules and the route card name a device by
-/// its tag with its prefix, as §12a's `{wire}` and the other rules do (the window check's F4).
+/// its tag with its prefix, as the `{wire}` and the other rules do (the window check's F4).
 fn signed(q: &Q, device: Option<Id<ew_derive::ew_schema::Device>>, text: &str) -> String {
     let tag = device.and_then(|d| q.get::<ew_derive::DeviceTag>(d).as_ref().clone());
     let Some(tag) = tag.filter(|t| !t.sign_on_pages) else {

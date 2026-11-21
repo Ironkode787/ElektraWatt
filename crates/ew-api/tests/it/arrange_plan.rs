@@ -161,7 +161,7 @@ fn every_plan_arrange_offers_is_stored_by_its_command() {
             before,
             "folio {folio}: the stored page's texts and bodies"
         );
-        // The stored page is the plan's own fixed point: a second press offers nothing (§4.8).
+        // The stored page is the plan's own fixed point: a second press offers nothing.
         let again = s.arrange_plan(&folio, &RouteScope::Page, &[]);
         assert!(
             again.is_none_or(|p| p.params.is_none()),

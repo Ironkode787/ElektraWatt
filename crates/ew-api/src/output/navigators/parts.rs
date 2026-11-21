@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Parts in use navigator (§7.1): manufacturer, part, the devices it counts (the parts summary).
+//! The Parts in use navigator (doc 16 §5.2): manufacturer, part, the devices it counts (the parts summary).
 //!
 //! Not here: the other providers (their own files beside this one).
 
@@ -14,7 +14,7 @@ use ew_derive::ew_schema::Device;
 use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, group, row_segment};
 use ew_derive::short_tag;
 
-/// Parts in use (§7.1): manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
+/// Parts in use: manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
 pub(super) fn parts_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, "parts_summary", None) else {
         return;

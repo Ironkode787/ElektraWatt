@@ -654,7 +654,7 @@ fn the_marker_modes_select_the_wires() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The page tables (§4.3)
+// The page tables
 
 #[test]
 fn the_page_tables_list_items_and_boxes_by_position() {
@@ -710,7 +710,7 @@ fn the_page_tables_list_items_and_boxes_by_position() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Part 4b: the page tables' item text and the part-first embedding (§10.7, §7.1)
+// Part 4b: the page tables' item text and the part-first embedding
 
 #[test]
 fn table_items_carry_the_printed_text_and_the_binding() {

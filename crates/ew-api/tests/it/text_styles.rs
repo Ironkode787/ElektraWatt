@@ -22,7 +22,7 @@ const PX7: i64 = 1_852_083;
 const PX13: i64 = 3_439_583;
 
 /// The text the built-in basic project writes into `project.jsonl` (ADR-0032 decision 1's example; the terminal's number
-/// at a cap height of 1.8 mm since rc.3).
+/// at a cap height of 1.8 mm).
 const NEW_PROJECT_MEMBER: &str =
     r#""text_styles":{"cp.small":{"size":1852083},"marker":{"size":1852083},"terminal":{"size":2521009}}"#;
 

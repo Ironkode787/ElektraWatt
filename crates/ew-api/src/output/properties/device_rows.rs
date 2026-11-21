@@ -65,8 +65,7 @@ impl Session {
         if any_frozen {
             actions.push(RowAction::Unfreeze);
         }
-        // Freeze on several devices is one `fields.set_many` with each device's own product designation (part 2,
-        // §7.5).
+        // Freeze on several devices is one `fields.set_many` with each device's own product designation.
         if !all_frozen {
             actions.push(RowAction::Freeze);
         }
@@ -156,9 +155,8 @@ impl Session {
                 actions,
             ));
         }
-        // A valve's position on its valve terminal (the persona round: Position stood under Structure, found only
-        // through the filter, and typing into it did nothing, since `assembly.attach` owns the member and the row was
-        // read-only): one row in Main for valves and the children of a module with valve positions, typed into to move
+        // A valve's position on its valve terminal (`assembly.attach` owns the member, so the
+        // schema's own row under Structure is read-only): one row in Main for valves and the children of a module with valve positions, typed into to move
         // one valve to another position (`assembly.attach` through `Session::layout_edit`).
         // Per device: its module with valve positions (if any) and its position there; `None` for no valve.
         type Seat = (Option<Id<Device>>, Option<u32>);

@@ -420,7 +420,7 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
         .collect();
     assert!(!lines.is_empty());
     let page = lines[0].1.page.expect("on folio 201");
-    // the body of ew.iso.cylinder-double-acting@qet10 (the 12 mm module of rc.2): the barrel from (5, 5) to (20, 45) px
+    // the body of ew.iso.cylinder-double-acting@qet10 (the 12 mm module): the barrel from (5, 5) to (20, 45) px
     // from its position, its ports at x 0 on 2 mm leads
     let corner = Pt2::new(Grid::QET_1PX.at(5).unwrap(), Grid::QET_1PX.at(5).unwrap());
     let body_end = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(45).unwrap());

@@ -59,7 +59,7 @@ pub(crate) mod navigators;
 mod potential_offer;
 // The surface view of a panel-layout page (D9, D10).
 pub(crate) mod panel;
-// The labelled entity list of a preview (§4.2).
+// The labelled entity list of a preview.
 pub(crate) mod preview;
 // The print set (D5 to D7).
 pub mod print;
@@ -77,7 +77,7 @@ mod revisions;
 mod route_measures;
 // The scale a panel page is fitted at.
 mod scale_fit;
-// The strip editor's gestures (§4.2).
+// The strip editor's gestures.
 mod strip_edit;
 // Table mode's pure rule, moved down from the view model.
 pub mod table_edit;
@@ -826,7 +826,7 @@ impl From<ew_jobs::Cancelled> for Halt {
     }
 }
 
-/// Phases 1 and 2 of the export with the job's controller `ctl` (§6.2): before page i of n of the selection
+/// Phases 1 and 2 of the export with the job's controller `ctl`: before page i of n of the selection
 /// `report(i, n, "building")`, after its scene `checkpoint("page")`; in the page phase each page first checks the
 /// cancel flag (`checkpoint("draw")`) and is skipped when cancelled; after the phase `checkpoint("drawn")` and
 /// `report(n, n, "drawing")`. Without `ctl` (`None`) this is [`export_pages_with`] exactly.

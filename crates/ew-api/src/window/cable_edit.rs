@@ -15,7 +15,7 @@ use crate::output::Uuid;
 use crate::{AnyCommand, Session};
 
 impl Session {
-    /// The one command that swaps the cores `a` and `b` (`cable.swap_cores`, §7): one `fields.set_many` setting the
+    /// The one command that swaps the cores `a` and `b` (`cable.swap_cores`): one `fields.set_many` setting the
     /// `kind` of every connection of `a` to `Core(b)` and of every connection of `b` to `Core(a)` (connections in id
     /// order; a core without connections contributes no entry).
     ///

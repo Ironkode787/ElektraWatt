@@ -792,7 +792,7 @@ fn the_refusals_write_nothing() {
     s.close();
 }
 
-/// Spec §10: a release is reachable only from a human path. `revision.release` is refused by `execute` and `preview`
+/// A release is reachable only from a human path. `revision.release` is refused by `execute` and `preview`
 /// (the release writes its stamp itself), with the exposure error for MCP; a command log naming it is refused before
 /// any line runs; a session of a script or MCP origin may not release.
 #[test]

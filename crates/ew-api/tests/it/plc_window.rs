@@ -184,7 +184,7 @@ fn a_second_cpu_joins_plc1() {
 
 /// PW-3: a card placed without a station has no parent, its channels exist and its addresses are not derived; the
 /// notice reads "no PLC station: place a CPU first". With two stations a card placed on their page goes to the one
-/// drawn beside it (the persona run m3-p4), the nearer.
+/// drawn beside it, the nearer.
 #[test]
 fn a_card_without_one_station_stays_unattached() {
     let mut s = fresh(13);
@@ -409,8 +409,8 @@ fn the_channel_members_through_fields_set_and_the_property_sheet() {
     );
 }
 
-/// The persona round: a card's "PLC station" row was a raw data editor ("expected struct PlcStation") and a channel's
-/// binding showed as JSON. A device's PLC aspect has no row of its own, absent or present: the CPU shows its station's
+/// A card's "PLC station" row is no raw data editor ("expected struct PlcStation") and a channel's
+/// binding no JSON. A device's PLC aspect has no row of its own, absent or present: the CPU shows its station's
 /// members (the role, the configuration project), the card none of a station; the channel's binding names the pin and
 /// is set by dragging the channel onto a pin (`plc.bind_channel`), not typed.
 #[test]

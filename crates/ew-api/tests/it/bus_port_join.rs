@@ -319,7 +319,7 @@ fn bus_line(s: &mut Session, a: (Id<Function>, u16), b: (Id<Function>, u16)) {
     .unwrap_or_else(|e| panic!("connection.draw: {e:?}"));
 }
 
-/// The persona round, a bus from nothing: the CPU with PROFINET and PROFIBUS DP is a CPU and the remote I/O head a
+/// A bus from nothing: the CPU with PROFINET and PROFIBUS DP is a CPU and the remote I/O head a
 /// head station (its ports lead no bus); the CPU's row offers both ports, and each port symbol takes its own bus's
 /// port of the part (the PROFINET symbol the PROFINET controller, though the part lists its DP port first); a bus line
 /// drawn between the two DP ports puts them in one new logical net "PROFIBUS DP" whose master is the CPU's port, and a

@@ -50,7 +50,7 @@ type FixturePart = (
     &'static [&'static str],
 );
 
-/// The fixture catalogue of §11.3: the manufacturer "Fixture" and six parts.
+/// The fixture catalogue: the manufacturer "Fixture" and six parts.
 fn fixture_docs(lib: Uuid) -> Vec<LibDocument> {
     let mfr = item(lib, "manufacturer:Fixture");
     let mut docs = vec![

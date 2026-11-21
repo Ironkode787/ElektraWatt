@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Cables navigator (§7.1): the cable overview's cables and their cores.
+//! The Cables navigator (doc 16 §5.2): the cable overview's cables and their cores.
 //!
 //! Not here: the strips (`strips.rs`); the bus nets a cable runs in (`bus.rs`).
 
@@ -14,7 +14,7 @@ use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawables, device_drawables, folios, row_entity,
 };
 
-// Cables (§7.1): the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
+// Cables: the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
 /// the headings are dropped.
 pub(super) fn cables_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Conductor, ConnectionKind};

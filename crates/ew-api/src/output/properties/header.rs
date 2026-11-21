@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property sheet's header (§6.2): what the selection is, its title and count, and a record's short title.
+//! The property sheet's header (doc 16 §6.1): what the selection is, its title and count, and a record's short title.
 //!
 //! Not here: the sections below the header (`sections.rs`); the selection's live description (`selection.rs`).
 
@@ -117,7 +117,7 @@ pub(super) fn marked_cable(q: &Q, item: Id<ew_schema::PageItem>) -> Option<Id<De
 }
 
 impl Session {
-    /// The header (§6.2).
+    /// The header (doc 16 §6.1).
     pub(super) fn header(
         &self,
         q: &Q,

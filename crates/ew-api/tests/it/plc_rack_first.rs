@@ -58,7 +58,7 @@ fn copies(s: &Session, parts: &[Uuid]) -> Vec<Value> {
     out
 }
 
-/// F17: the owner's state, reached as the first candidate let it be reached: a valve terminal's copy kept the
+/// A valve terminal's copy kept the
 /// station's own module without the station (here: the station removed), its part became a bus node's without PLC
 /// data, and it was attached to the CPU. The window no longer offers it as a card; EW-PLC-017 names it; its fix takes
 /// it out of the rack with the eight channels no part gives, and the project is sound again.

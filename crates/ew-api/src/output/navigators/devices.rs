@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Devices navigator's tree (§6.7): functions, locations, devices, their functions and representations.
+//! The Devices navigator's tree (doc 16 §5.2): functions, locations, devices, their functions and representations.
 //!
 //! Not here: the words of a function's kind (`function_kind.rs`); the shared node helpers (`navigators.rs`); the
 //! unplaced devices (`unplaced.rs`).
@@ -26,7 +26,7 @@ struct DeviceRow {
     part: String,
 }
 
-/// The Devices tree (§6.7): function nodes, location nodes inside them, the devices that are not children of another
+/// The Devices tree: function nodes, location nodes inside them, the devices that are not children of another
 /// listed device in natural tag order; child devices under their parent (position, then natural tag); under each
 /// device its functions (main first, FnDef name, ID), under each function its representations. Terminals are not
 /// listed (they are the Terminal strips navigator's rows, as in the structure overview).

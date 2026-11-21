@@ -508,7 +508,7 @@ impl SymbolDraft {
                 );
             }
         }
-        // A member this reader does not know is refused before publication (§6), except the importers' extension keys.
+        // A member this reader does not know is refused before publication, except the importers' extension keys.
         let mut members: Vec<(String, &schema::Extra)> = vec![
             ("/symbol".into(), &self.symbol.extra),
             ("/symbol/meta".into(), &self.symbol.meta.extra),

@@ -868,7 +868,7 @@ fn a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes() {
     assert!(!tables(&s).reps.iter().any(|r| r.device == Some(v)));
 }
 
-/// rc.3: a 5/3 valve is wider than a cell. Put between two 5/2 valves whose ports 2 and 4 take tubes, its position is
+/// A 5/3 valve is wider than a cell. Put between two 5/2 valves whose ports 2 and 4 take tubes, its position is
 /// as wide as it needs: the box keeps its corner and grows to the right, the valve and the cells to its right move,
 /// each valve stands in its own cell with ports 2 and 4 on the top edge, and the tubes still end at their ports.
 #[test]
@@ -1011,7 +1011,7 @@ fn a_project_made_before_draws_its_valves_in_the_terminal() {
     assert!(!s.valves_to_draw(vt), "nothing left to draw");
 }
 
-/// rc.3: a 5/3 valve's two addresses ("Q0.2 / Q0.3") touched its left square. A valve with two solenoids prints each
+/// A 5/3 valve's two addresses ("Q0.2 / Q0.3") touched its left square. A valve with two solenoids prints each
 /// solenoid's address at its own solenoid: in a multipin terminal whose plug pins of the 5/3 valve's solenoids 14 and
 /// 12 are wired to two outputs, the valve's place at its left solenoid prints the output of 14, the one at its right
 /// solenoid the output of 12, and no place prints both.
@@ -1120,7 +1120,7 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
     assert_eq!(printed.len(), 2, "no place prints both: {printed:?}");
 }
 
-/// rc.3: in a valve terminal's cell a valve with one solenoid printed its PLC address across the cell's top line,
+/// In a valve terminal's cell a valve with one solenoid printed its PLC address across the cell's top line,
 /// where the valve stands with its insertion point. There its address place is drawn one grid step under that point,
 /// on the two-solenoid valves' row, inside the cell; the symbol and the record keep their place.
 #[test]

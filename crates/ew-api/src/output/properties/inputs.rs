@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The parse rules of the property sheet's editors (§6.5): a row's typed text read back, the PLC typed editors
+//! The parse rules of the property sheet's editors (doc 16 §6.3): a row's typed text read back, the PLC typed editors
 //! (FT-429), a cable's length, a frozen tag, and the choices of a choice editor.
 //!
 //! Not here: a bus port's address (`bus_rows.rs`); the field types' own parsers (`output/fields.rs`).
@@ -18,7 +18,7 @@ use crate::output::fields::{
 use crate::output::table_edit::{Seg, segments};
 
 impl Session {
-    /// The parse rules of §6.5 for the row `row_path` of `kind` (list indices allowed).
+    /// The parse rules of doc 16 §6.3 for the row `row_path` of `kind` (list indices allowed).
     ///
     /// # Errors
     ///
@@ -62,7 +62,7 @@ impl Session {
         crate::output::fields::parse_input(&cx, &ty, &member, text)
     }
 
-    /// The options of the choice editor of the row `row_path` of `kind` matching the case-folded `filter` (§6.5):
+    /// The options of the choice editor of the row `row_path` of `kind` matching the case-folded `filter`:
     /// an enum's words, the colour codes, the part copies, the structure nodes of a slot's aspect; empty otherwise.
     pub fn field_choices(&self, kind: &str, row_path: &str, filter: &str) -> Vec<FieldChoice> {
         let Some(ty) = row_type(kind, row_path) else {

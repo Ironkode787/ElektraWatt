@@ -884,8 +884,8 @@ impl Session {
             Some(r) => r.page,
             None => q.reps().get((*q.get::<ew_derive::MainRep>(head))?)?.page,
         };
-        // The frame's drawing area is in page coordinates already, where the members are placed (the persona round:
-        // read as sheet millimetres and mapped back, the band started left of the frame on a QET-scaled page).
+        // The frame's drawing area is in page coordinates already, where the members are placed (read as
+        // sheet millimetres and mapped back, the band would start left of the frame on a QET-scaled page).
         let (area, _) = super::scale_fit::drawing_area(&q, page)?;
         let (min, max) = (area.min(), area.max());
         let y = drawn
@@ -897,7 +897,7 @@ impl Session {
         if drawn.len() < members.len() {
             // The wide module: its texts (the part numbers, the valve glyphs' part numbers above it) keep their size on
             // every grid, and the QET edition of the narrow one, two thirds of it, had no room for the starter parts'
-            // numbers (the persona round).
+            // numbers.
             let grid = q.pages().get(page)?.grid;
             let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
                 "ew.ovw.module-wide@qet10"
@@ -1194,8 +1194,8 @@ impl Session {
             .map(|c| (c.position, position_of(&q, &c.slot)))
             .collect()
     }
-    /// The valve part a module's position takes from the libraries while the project has no valve to copy (the
-    /// persona round: Add valve stayed greyed on a new project): of the libraries' parts that name solenoids, carry no
+    /// The valve part a module's position takes from the libraries while the project has no valve to copy (Add
+    /// valve would stay greyed on a new project): of the libraries' parts that name solenoids, carry no
     /// PLC section and no CP pattern (a valve whose coil is internal, as a valve terminal drives it) and whose solenoids
     /// the module's solenoid-position map names, the first by part number; `None` without one.
     fn library_valve_part(&self, q: &ew_derive::Q, module: Id<Device>) -> Option<Uuid> {

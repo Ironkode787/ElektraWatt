@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Terminal strips navigator (§7.1): each strip's terminals in mounting order with the accessories between them.
+//! The Terminal strips navigator (doc 16 §5.2): each strip's terminals in mounting order with the accessories between them.
 //!
 //! Not here: the strip editor's columns (`columns.rs`) and its edits (`output/strip_edit.rs`); cables (`cables.rs`).
 
@@ -27,7 +27,7 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
     v.into_iter().map(|(_, d)| d).collect()
 }
 
-/// Terminal strips (§7.1): strip → its rows in mounting order: the accessories placed before the
+/// Terminal strips: strip → its rows in mounting order: the accessories placed before the
 /// first terminal, then each terminal (from the strip's terminal diagram) followed by the accessories placed after it.
 /// The table has a leading `strip` column, `pos` (the terminal's `seq`, an accessory's `<after_seq>.<k>`) and
 /// `bridge_part` (the part number of the terminal's bridge, D6). Every node of a strip carries the facet `strip` (the
@@ -146,7 +146,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             let mut facets = base_facets(NavRole::Terminal, &drawables);
             facets.push(strip_facet.clone());
             let mut badges = Vec::new();
-            // §6.8: a terminal with no representation of its own on a strip that no strip segment draws is unplaced
+            // A terminal with no representation of its own on a strip that no strip segment draws is unplaced
             // (a strip's segments draw all its terminals).
             if drawables.is_empty() && !strip_drawn {
                 badges.push("unplaced".to_owned());

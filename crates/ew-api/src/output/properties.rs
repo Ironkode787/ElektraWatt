@@ -10,11 +10,11 @@
 //! ([`order_records`], never by ID alone). Section order: device, function, representation, connection,
 //! junction, page, then the other kinds by rank.
 //!
-//! **Values** (§6.3). Equal canonical JSON on every target is one value; else `‹varies›` with the distinct count and
+//! **Values** (doc 16 §6.2). Equal canonical JSON on every target is one value; else `‹varies›` with the distinct count and
 //! up to eight texts in the natural order of the texts (a link lists records by label, not by UUID). A list's items are rows only when the list is equal on every
 //! target; a device aspect's members only when every target has the aspect.
 //!
-//! **Derived rows** (§6.4) come first in their category, each with the authored path its actions write.
+//! **Derived rows** (doc 16 §6.2) come first in their category, each with the authored path its actions write.
 //!
 //! Plain functions over `Q` (D14): no memoised family of its own; the derived values are the memoised queries
 //! `device_tag`, `structure_of`, `wire_props_of`, `wire_numbers`, `potential_partition`, `potential_name`,
@@ -61,7 +61,7 @@ pub(crate) use order::{order_key, order_records};
 use sections::{Built, derived, merge, row_value};
 pub use selection::{CompanyColour, SelectionWords, WireColours, WireEnd};
 
-/// The property sheet of a set of records (§4.2).
+/// The property sheet of a set of records.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PropertySheet {
     /// The revision it was made at.
@@ -78,7 +78,7 @@ pub struct PropertySheet {
     pub languages: Vec<String>,
 }
 
-/// The sheet's header (§6.2).
+/// The sheet's header (doc 16 §6.1).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct SheetHeader {
     /// A record's tag, wire number, folio and title or name; for several `<n> <kind plural>`.
@@ -147,7 +147,7 @@ pub struct SheetSection {
 /// its cores ("Change it at cable -W1").
 pub const CABLE_SOURCE_ROW: &str = "device/parts";
 
-/// One row (§6.3, §6.4).
+/// One row (doc 16 §6.2).
 #[derive(Clone, PartialEq, Debug)]
 pub struct PropRow {
     /// `<kind>/<row path>` (`device/parts[0].qty`) or `<kind>/derived.<name>`.
@@ -409,7 +409,7 @@ fn page_item_kind_words(kind: &Value) -> Option<String> {
     Some(name.replace('_', " "))
 }
 
-/// The provenance of a device's tag row (§6.4, D15): frozen, or derived as a child, a terminal or by a numbering
+/// The provenance of a device's tag row (doc 16 §6.2, D15): frozen, or derived as a child, a terminal or by a numbering
 /// scheme. Shared with `ew query device_tag --explain` ([`Session::tag_provenance`]).
 fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Provenance {
     match tag.map(|t| &t.source) {
@@ -704,7 +704,7 @@ impl Session {
             .map(|l| l.source.to_string())
     }
 
-    /// The property sheet of the records `ids` in the current snapshot (§4.2, §6.2 to §6.4). Deterministic; reads
+    /// The property sheet of the records `ids` in the current snapshot. Deterministic; reads
     /// memoised queries only and adds no memoised family.
     pub fn property_sheet(&self, ids: &[Uuid]) -> PropertySheet {
         let q = self.query();
@@ -828,7 +828,7 @@ impl Session {
         }
         let mut section_kinds: Vec<Kind> = common.unwrap_or_default().into_iter().collect();
         section_kinds.sort_by_key(|k| section_rank(*k));
-        // A port's symbol or box (the persona run m3-p4 found no address field below the device's rows): its function's
+        // A port's symbol or box: its function's
         // section, with the port's address, comes first.
         let ports_only = !picked.is_empty()
             && picked.iter().all(|p| {
@@ -944,7 +944,7 @@ mod tests {
         assert_eq!(json_at(&v, "parts[1]"), None);
     }
 
-    /// §6.3: a derived row whose authored partner the grid cannot write offers no action.
+    /// A derived row whose authored partner the grid cannot write offers no action.
     #[test]
     fn a_derived_row_with_a_read_only_partner_has_no_action() {
         let built = derived(

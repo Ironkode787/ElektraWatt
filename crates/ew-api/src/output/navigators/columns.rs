@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The columns of the navigators' tables (§6.6, §7.1): a column's key and label, the routes of §8.2's table that make
+//! The columns of the navigators' tables (doc 16 §5.2, §7.1): a column's key and label, the routes of the edit mapping (doc 16 §7.2) that make
 //! a cell editable, the derived flags and the strip editor's columns.
 //!
 //! Not here: the rows (each provider's own file beside this one) and the table types (`navigators.rs`).
@@ -13,7 +13,7 @@ use super::plc::PLC_COLUMNS;
 use super::{NavColumn, NavKind};
 
 /// A column of a report kind or of this module: its label, no route, read-only with "no command yet" unless a route
-/// of §8.2 is given.
+/// is given.
 pub(super) fn column(key: &str, label: &str, key_column: bool, route: Option<(&str, &str)>) -> NavColumn {
     NavColumn {
         key: key.to_owned(),
@@ -111,7 +111,7 @@ pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
     ),
 ];
 
-/// The derived columns (§8.2): cells the derivation computes from other records rather than a
+/// The derived columns: cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
 const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
@@ -138,14 +138,14 @@ const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Unplaced, "mount"),
 ];
 
-/// The strip-editor columns of the Terminal strips navigator (§6.3): (column key, its compile).
+/// The strip-editor columns of the Terminal strips navigator: (column key, its compile).
 const STRIP_CELLS: [(&str, crate::output::strip_edit::StripCell); 3] = [
     ("group", crate::output::strip_edit::StripCell::Group),
     ("bridge_part", crate::output::strip_edit::StripCell::BridgePart),
     ("part", crate::output::strip_edit::StripCell::AccessoryPart),
 ];
 
-/// The columns of a navigator (§6.6, §7.1) with the routes of §8.2's table and the derived flags.
+/// The columns of a navigator with the editable-cell routes and the derived flags.
 pub(super) fn columns_of(kind: NavKind) -> Vec<NavColumn> {
     // The PLC grid has the PLC navigator's columns.
     let kind = kind.source();
@@ -171,7 +171,7 @@ pub(super) fn columns_of(kind: NavKind) -> Vec<NavColumn> {
     columns
 }
 
-/// The columns of a navigator before §8.2's routes (§6.6, §7.1).
+/// The columns of a navigator before the editable-cell routes.
 fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
     let own = |keys: &[&str]| -> Vec<NavColumn> {
         keys.iter()

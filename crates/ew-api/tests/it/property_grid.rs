@@ -1171,7 +1171,7 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
     assert!(!keys.contains(&"connection/line_kind"), "{keys:?}");
 }
 
-/// rc.2, F9: what a device is comes from what the model knows of it. On the sample the valve terminal -201K1 is a PLC
+/// What a device is comes from what the model knows of it. On the sample the valve terminal -201K1 is a PLC
 /// station of role valve terminal with a bus port, the MCB -101F1 is electrical and nothing else, a terminal of -X1031
 /// is a terminal; the sheet's header carries the same natures.
 #[test]

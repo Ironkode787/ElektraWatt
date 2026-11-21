@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Interruption points navigator (§7.1): each name with its points, from the interruption-point pairing.
+//! The Interruption points navigator (doc 16 §5.2): each name with its points, from the interruption-point pairing.
 //!
 //! Not here: the other providers (their own files beside this one).
 
@@ -14,7 +14,7 @@ use ew_derive::ew_schema::Representation;
 
 use super::{Builder, NavRole, base_facets, drawable, folios, group, sorted};
 
-/// Interruption points (§7.1): name → point rows, from the interruption-point pairing.
+/// Interruption points: name → point rows, from the interruption-point pairing.
 pub(super) fn ips_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::IpDirection;
     use ew_derive::{IpPairingQ, RepAnchorCell};

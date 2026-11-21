@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A page's geometry and its layout measures on the sample project: its drawn pages break no hard layout rule, a
-//! wire's words name its ends. Named items only, never totals. The layout rules of §9 (EW-CORE-067 to -070, -072 and
+//! wire's words name its ends. Named items only, never totals. The layout rules (EW-CORE-067 to -070, -072 and
 //! -073) on hand-built pages and on the sample (RK1, RK2).
 
 use crate::common;

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode's pure rule (§8.2, §8.3; moved down from the view model), so that the grid and the table round
+//! Table mode's pure rule (doc 16 §7.1, §7.2; moved down from the view model), so that the grid and the table round
 //! trip produce the same command for the same cells.
 //!
-//! **Editable cells** (§8.2): a column with a route of §8.2's table (`NavColumn::route`), on a row with records of the
+//! **Editable cells**: a column with a route (`NavColumn::route`), on a row with records of the
 //! route's kind ([`row_targets`]). Every other cell is read-only with the first reason of: "derived", "generated", "no
 //! record of this kind", "edit in the property grid", "no command yet" ([`cell_reason_key`]).
 //!
@@ -81,7 +81,7 @@ fn cell_of<'n>(table: &NavTable, node: &'n NavNode, key: &str) -> &'n str {
 
 /// The strip editor's read-only reasons, as text keys: `Some(None)` for an editable strip-editor cell,
 /// `Some(reason)` for an accessory row's other cells, the Pos column and a Bridge part cell of a terminal without a
-/// bridge; `None` for every other cell (the rules of §8.2 apply).
+/// bridge; `None` for every other cell (the rules above apply).
 fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<&'static str>> {
     if table.kind != NavKind::Strips {
         return None;
@@ -272,7 +272,7 @@ const TYPED_PLC: [(&str, &str); 5] = [
     ("connection", "tube_part"),
 ];
 
-/// Why a cell is read-only (§8.2's precedence), as a text key, `None` for an editable cell:
+/// Why a cell is read-only (in this order), as a text key, `None` for an editable cell:
 /// "derived", "generated", "no record of this kind", "edit in the property grid", "no command yet" (the view model's
 /// `cell_reason` gives the text). A column without a route reads its [`NavColumn::read_only`](super::NavColumn): the
 /// builder's "derived" is `table-reason-derived`, any other `table-reason-no-command`.
@@ -885,7 +885,7 @@ pub fn segments(path: &str) -> Vec<Seg> {
     out
 }
 
-/// The settable member's new value with the leaf at `row_path` (a path below `member`) replaced by `leaf` (§6.6):
+/// The settable member's new value with the leaf at `row_path` (a path below `member`) replaced by `leaf`:
 /// `base` is the member's current value (`None`: absent, starts from an empty object). A `null` leaf removes the
 /// member. `None` when the path does not lie below the member or crosses a value that is not an object or list.
 pub fn compose(member: &str, row_path: &str, base: Option<&Value>, leaf: &Value) -> Option<Value> {

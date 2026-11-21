@@ -8,7 +8,7 @@
 //! `layout.enclosure.edit`, `layout.space.edit`, `page.surface_view.set`), as `Session::strip_edit` does for a
 //! terminal's Group row. Never `fields.set`: each row writes through the command that checks it (D12).
 //!
-//! Besides, the data the window's set-up dialogs offer (part 4, §8): the layout parts of a kind (the project's copies,
+//! Besides, the data the window's set-up dialogs offer: the layout parts of a kind (the project's copies,
 //! then the libraries' parts with the `copies` that embed them) and the project's locations.
 //!
 //! Every row is `derived.<name>` of its kind; an editable one carries [`EditRoute::Command`] with its command's name.

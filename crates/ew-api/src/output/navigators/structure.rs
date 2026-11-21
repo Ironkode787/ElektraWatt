@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Structure identifiers navigator (§7.1): each aspect with its structure nodes nested by parent.
+//! The Structure identifiers navigator (doc 16 §5.2): each aspect with its structure nodes nested by parent.
 //!
 //! Not here: the Devices tree's function and location groups (`devices.rs`).
 
@@ -14,7 +14,7 @@ use ew_derive::ew_rds::Aspect;
 
 use super::{Builder, NavRole, group, row_entity, tokens};
 
-/// Structure identifiers (§7.1): aspect → structure nodes (nested by `parent`), the structure-node rows of the
+/// Structure identifiers: aspect → structure nodes (nested by `parent`), the structure-node rows of the
 /// structure overview with a `usage` column (the devices and pages that name the node). A node's aliases are filter
 /// tokens (they are never printed, D-03).
 pub(super) fn structure_table(q: &Q, b: &mut Builder) {

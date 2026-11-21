@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Report blocks navigator (§7.1): the project's report blocks in section and page order.
+//! The Report blocks navigator (doc 16 §5.2): the project's report blocks in section and page order.
 //!
 //! Not here: the other providers (their own files beside this one).
 

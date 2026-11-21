@@ -255,7 +255,7 @@ pub struct LibraryImport {
     pub write: Option<library::WriteReport>,
 }
 
-/// Imports a parts table into the writable library `library` (`ew lib import parts`, D11, §7.2): the parts with
+/// Imports a parts table into the writable library `library` (`ew lib import parts`, D11): the parts with
 /// their new manufacturers, through [`library::Registry::write`] (the lock, the shards, the manifest last). A second
 /// import of a changed list updates the items in place (same item IDs); a part whose content changed under its
 /// held version is refused for the whole file ([`CatalogError::NeedsBump`], nothing written) unless `bump`, which

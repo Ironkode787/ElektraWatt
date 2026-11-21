@@ -530,8 +530,8 @@ impl PartDraft {
     }
 
     /// After row `row`'s bus system changed: an interface name that is still a proposal (`X<n>`, `DP`, `DP<n>`) follows
-    /// the bus, `DP` on PROFIBUS DP and `X<n>` on the others, the next free one; a name the person typed stays. (The
-    /// persona round of M3: a PROFIBUS DP interface was saved as "X1".)
+    /// the bus, `DP` on PROFIBUS DP and `X<n>` on the others, the next free one; a name the person typed stays. (A
+    /// PROFIBUS DP interface is not saved as "X1".)
     fn rename_proposed_interface(&mut self, row: usize) {
         let Some(r) = self.bus.get(row) else {
             return;
@@ -1361,9 +1361,9 @@ pub(crate) fn lost_sockets(before: &Q, after: &Q) -> Vec<String> {
 
 /// The component BOM's rows that a change from `before` to `after` takes away and adds, each as its columns ("Qty 1 ·
 /// Unit pc · Part number SW-8P"), and, when as many go as come, instead each pair's columns that differ ("Description:
-/// … 8 ports → … 6 ports"): (removed, added, changed), in BOM order. The persona run m3-p4 read the rows as CSV lines.
+/// … 8 ports → … 6 ports"): (removed, added, changed), in BOM order.
 pub(crate) fn bom_changes(before: &Q, after: &Q) -> (Vec<String>, Vec<String>, Vec<String>) {
-    // The component BOM as its header and rows of cells (the persona run m3-p4 read its CSV lines).
+    // The component BOM as its header and rows of cells.
     let bom = |q: &Q| -> Vec<Vec<String>> {
         let csv = ew_reports::export::export_csv(q, Export::Bom(BomMode::Component)).unwrap_or_default();
         ew_import_catalog::sheet::read_rows(

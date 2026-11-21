@@ -16,14 +16,14 @@
 //! additions such as macros), while a `$node` line's members are closed (`id`, `aspect`, `path`,
 //! `aliases`; any other is refused).
 //!
-//! **Order** (§9 item 3; machine text is not ordered by UUID): records by (kind rank, position,
+//! **Order** (machine text is not ordered by UUID): records by (kind rank, position,
 //! ID): a representation's insertion point (x, then y), a junction's point, a function's and a device's first copied
 //! representation, a connection's and a potential definition's end, a page item's anchor point (a graphic's first
 //! point, a text's or marker's `at`), a structure box's first outline vertex; library copies by (kind, part number or
 //! key, ID); nodes by (aspect, path, ID). `edit.paste` mints the new IDs in (kind rank, fragment order), so the online
 //! numbering, which numbers new devices in ID order, numbers the copies by position.
 //!
-//! **What a copy drops** (§8.2 item 6): an import lineage (`source_ref`: a pasted record is new, not imported), a
+//! **What a copy drops**: an import lineage (`source_ref`: a pasted record is new, not imported), a
 //! PLC station aspect with the station's own module (its configuration project is not copied; the paste is a station
 //! again by normaliser N0, which joins it to the project's configuration project), a cable core (the copy is a plain wire), a bus
 //! line's cable, an assembly cover outside the copy and a junction's sequence entries outside the copy. A page item
@@ -62,7 +62,7 @@ pub const FRAGMENT_MAX_LINE: usize = 1 << 20;
 /// The deepest nesting of arrays and objects in a fragment line.
 pub const FRAGMENT_MAX_DEPTH: usize = 64;
 
-/// A selection written as a fragment (§8.2).
+/// A selection written as a fragment.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CopiedFragment {
     /// The fragment text.
@@ -101,7 +101,7 @@ impl fmt::Display for CopyError {
     }
 }
 
-/// Clipboard text read as a fragment (§8.3).
+/// Clipboard text read as a fragment.
 #[derive(Clone, PartialEq, Debug)]
 pub struct ParsedFragment {
     /// The `fragment` member of `edit.paste`: `{"format", "project", "grid", "page_kind", "anchor", "records",
@@ -115,7 +115,7 @@ pub struct ParsedFragment {
     pub ghost: Vec<[i64; 4]>,
 }
 
-/// Why clipboard text is not pasted (§8.3).
+/// Why clipboard text is not pasted.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FragmentError {
     /// The text does not start with `#ew-fragment v1`.
@@ -213,7 +213,7 @@ fn older_format() -> crate::Text {
     api_text!("refusal-fragment-older")
 }
 
-/// Reads clipboard text as a fragment (§8.3). The text is untrusted: at most 4 MiB, 10,000 record lines, 1 MiB per
+/// Reads clipboard text as a fragment. The text is untrusted: at most 4 MiB, 10,000 record lines, 1 MiB per
 /// line and a nesting of 64; every line strict JSON (repeated member names refused). Within v1 a header member this
 /// version does not know is ignored; a newer `format` or a record of a newer schema version is refused
 /// ([`FragmentError::Newer`]); an older `format`'s records and library copies, and a record of an older schema version,
@@ -369,7 +369,7 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
     })
 }
 
-/// The `$fragment` header: its known members checked, the others ignored (§8.3); with the way of its records through
+/// The `$fragment` header: its known members checked, the others ignored; with the way of its records through
 /// `chain` (none for this version's format).
 fn read_header<'c>(
     h: &Value,
@@ -1113,7 +1113,7 @@ impl Session {
             || q.structure_nodes().contains(Id::from_uuid(u))
     }
 
-    /// The "Copy tag list" text (§8.2, FR-UI-040): the devices `ids` reach (a representation its functions' devices,
+    /// The "Copy tag list" text (FR-UI-040): the devices `ids` reach (a representation its functions' devices,
     /// a function its device, a device itself), each as its tag displayed on its main page, without repeats, in
     /// natural order, one per line with a final LF; empty for none.
     pub fn tag_list(&self, ids: &[Uuid]) -> String {
@@ -1139,7 +1139,7 @@ impl Session {
     }
 }
 
-/// A compact JSON object with its members in the given order (the header and `$node` lines of §8.1).
+/// A compact JSON object with its members in the given order (the header and `$node` lines).
 fn ordered(members: &[(&str, Value)]) -> String {
     let parts: Vec<String> = members
         .iter()

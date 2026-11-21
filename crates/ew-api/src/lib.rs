@@ -122,7 +122,7 @@ pub mod queries;
 mod release;
 // The atomic release and the as-built archive (D11 to D13).
 mod release_run;
-// The router the canvas tools call (§4.3, §8.1).
+// The router the canvas tools call.
 pub mod routing;
 // `.ewz` opened read-only and the export of the saved generation (D8, D9).
 mod transport;

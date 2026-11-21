@@ -5,7 +5,7 @@
 //! panel's Show changes read the records a transaction changes as [`PreviewEntity`] lines, each with the label the
 //! property grid prints for the record (a device's tag, a page's folio and title, a node's path, a name).
 //!
-//! **Order** (§9 item 4): change (`added`, `changed`, `removed`), then the kind word, then the label in natural
+//! **Order**: change (`added`, `changed`, `removed`), then the kind word, then the label in natural
 //! order, then the ID; no hash-map order and no time.
 
 use std::cmp::Ordering;
@@ -106,7 +106,7 @@ pub(super) fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Optio
     }
 }
 
-/// The lines of `diff` in §4.2's order: labels from `current`, an added record's from `candidate` (else from
+/// The lines of `diff` in the order of [`entity_order`]: labels from `current`, an added record's from `candidate` (else from
 /// `current`, where it has none and its label is empty).
 pub(crate) fn entities_of(diff: &ModelDiff, current: &Q, candidate: Option<&Q>) -> Vec<PreviewEntity> {
     let mut out: Vec<PreviewEntity> = diff
@@ -118,7 +118,7 @@ pub(crate) fn entities_of(diff: &ModelDiff, current: &Q, candidate: Option<&Q>) 
     out
 }
 
-/// §4.2's order: change, kind, label in natural order (then bytes), ID.
+/// The order: change, kind, label in natural order (then bytes), ID.
 fn entity_order(a: &PreviewEntity, b: &PreviewEntity) -> Ordering {
     change_rank(a.change)
         .cmp(&change_rank(b.change))
@@ -131,7 +131,7 @@ fn entity_order(a: &PreviewEntity, b: &PreviewEntity) -> Ordering {
 impl Session {
     /// The records `preview` changes, one per `EntityChange` of [`Preview::diff`], labelled by the
     /// property grid's rule (an added record by the candidate model's), in the order change (`added`, `changed`,
-    /// `removed`), kind, label in natural order, ID. One call per card (§9 item 5).
+    /// `removed`), kind, label in natural order, ID. One call per card.
     pub fn preview_entities(&self, preview: &Preview) -> Vec<PreviewEntity> {
         let current = self.query();
         let candidate = preview

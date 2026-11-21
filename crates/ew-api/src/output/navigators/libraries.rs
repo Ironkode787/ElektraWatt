@@ -80,8 +80,8 @@ pub(crate) fn tier_word(t: Tier) -> &'static str {
 
 /// A copy state's code (the badge and the `state` facet; empty for a current copy) and its text (the State cell, in
 /// English here; the shell words it in the UI language from the same text). A copy that no installed library holds is
-/// "Only in this project": an imported frame, a part made in the project, nothing to update it from (the owner's test
-/// of 0.3.0-rc.1 read "Source missing" as a fault).
+/// "Only in this project": an imported frame, a part made in the project, nothing to update it from, and no fault
+/// that "Source missing" would name.
 pub(crate) fn copy_state(s: &CopyState) -> (&'static str, crate::Text) {
     match s {
         CopyState::Current => ("", api_text!("library-state-current")),

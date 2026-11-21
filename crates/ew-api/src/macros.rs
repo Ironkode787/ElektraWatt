@@ -7,7 +7,7 @@
 //! closure documents the project lacks, so the command replays with no library installed (D7);
 //! [`Session::macro_conflicts`] lists on the preview what the user decides on before Apply (FR-MAC-005).
 //!
-//! A library write is a front-end operation (§13.2 item 7): it takes the session by `&mut` and the registry through
+//! A library write is a front-end operation: it takes the session by `&mut` and the registry through
 //! [`Session::libraries_mut`]; no command, command log, script or MCP tool reaches it.
 
 use std::collections::{BTreeMap, BTreeSet};

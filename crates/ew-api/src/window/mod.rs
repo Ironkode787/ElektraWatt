@@ -7,7 +7,7 @@
 
 // The Cable form of a bus line: its cable and its plugs.
 mod bus_cable;
-// The edit-cable table's gestures (§7).
+// The edit-cable table's gestures.
 mod cable_edit;
 // The Cable form: the selected wires as a cable's cores.
 mod cable_form;
@@ -15,7 +15,7 @@ pub(crate) mod clipboard;
 mod find;
 // A part's data at a glance.
 mod part_card;
-// The history panel's rows (§4.2).
+// The history panel's rows.
 mod history;
 // What a PLC channel dropped on a field device can do.
 mod plc_bind;

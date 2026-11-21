@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Potentials navigator (§7.1): the potential overview's rows with the wire rows that carry each potential.
+//! The Potentials navigator (doc 16 §5.2): the potential overview's rows with the wire rows that carry each potential.
 //!
 //! Not here: the wire rows themselves (`connections.rs`); a potential's highlight (`highlight.rs`).
 
@@ -11,7 +11,7 @@ use ew_derive::ew_ids::Id;
 use super::connections::{push_wire_row, wire_list_rows};
 use super::{Builder, NavOpen, NavRole, cell_of, folio_pages, row_entity, row_segment};
 
-/// Potentials (§7.1): the potential overview's rows, each with the physical-wire rows of the wire list whose potential
+/// Potentials: the potential overview's rows, each with the physical-wire rows of the wire list whose potential
 /// cell names it (a bond wire's `A ⇄ B` names both).
 pub(super) fn potentials_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, "potential_overview", None) else {

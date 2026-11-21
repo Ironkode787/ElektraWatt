@@ -31,7 +31,7 @@ impl Session {
     }
 
     /// The stations a card can be attached to (a CPU or a head station) with their short tags, in natural order: a
-    /// waiting card's row offers each (the persona round of M3: a card's own row said nothing of a station).
+    /// waiting card's row offers each.
     pub fn plc_stations_for_cards(&self) -> Vec<(Uuid, String)> {
         use ew_derive::ew_schema::StationRole;
         let q = self.query();

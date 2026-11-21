@@ -10,7 +10,7 @@ use ew_derive::ew_ids::{Id, Uuid};
 use super::fluid::medium_lines;
 use crate::Session;
 
-/// What a highlight shows (§4.2): a potential, named by a potential overview row's record, or the net of a connection.
+/// What a highlight shows: a potential, named by a potential overview row's record, or the net of a connection.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum HighlightTarget {
     /// The potential whose ID (a definition's or a CP's) is this.
@@ -22,7 +22,7 @@ pub enum HighlightTarget {
 }
 
 impl Session {
-    /// The connection IDs a highlight draws (§7.3), sorted: for a potential the connections with an end
+    /// The connection IDs a highlight draws, sorted: for a potential the connections with an end
     /// on it (by the potential partition; a bond's `via` counts for both of its potentials), for a connection the
     /// connections of its page-local net (the connection alone when it joins no net, a bridge). Empty for an unknown
     /// ID. Reads memoised queries only.

@@ -67,7 +67,7 @@ impl std::fmt::Debug for ExportJob {
     }
 }
 
-/// The export job crosses to its thread (§4.2): checked at compile time.
+/// The export job crosses to its thread: checked at compile time.
 const _: () = {
     const fn send<T: Send>() {}
     send::<ExportJob>();

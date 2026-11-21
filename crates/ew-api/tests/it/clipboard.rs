@@ -400,7 +400,7 @@ fn a_fragment_refusal_keeps_its_english_through_its_key() {
     }
 }
 
-/// CB2: every refusal of §8.3 on hostile input.
+/// CB2: every refusal on hostile input.
 #[test]
 fn every_refusal_of_the_parser() {
     let text = valid_text();
@@ -541,7 +541,7 @@ fn random_text_never_panics_the_parser() {
 // ---------------------------------------------------------------------------------------------------------------------
 // CB3: edit.paste
 
-/// rc.5 (the owner: copy and paste between pages of different grids did not work): the sample's breaker and the power
+/// Copy and paste between pages of different grids: the sample's breaker and the power
 /// supply it feeds, drawn on the QET grid, pasted on a page of the 4 mm grid are fitted to it: each symbol's first pin
 /// on a grid point of the page, the wires between them kept and left to the router (unrouted). A page's grid changed
 /// under its items (`page.set_grid`) fits them the same way, and undo takes it back.
@@ -597,7 +597,7 @@ fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
     assert_eq!(after.grid, before.grid);
 }
 
-/// CB3: every rejection of §8.4 at its pointer.
+/// CB3: every rejection at its pointer.
 #[test]
 fn every_rejection_at_its_pointer() {
     let mut s = common::sample();

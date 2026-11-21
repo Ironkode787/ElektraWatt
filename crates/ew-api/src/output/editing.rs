@@ -45,7 +45,7 @@ pub use tables::{
 pub const OUTLINE_TOLERANCE_NM: f64 = 50_000.0;
 
 // -------------------------------------------------------------------------------------------------------------------
-// The physical wires through a junction (§8.5)
+// The physical wires through a junction
 
 /// One physical wire through a junction, as the junction sequence editor lists it.
 #[derive(Clone, PartialEq, Eq, Debug)]

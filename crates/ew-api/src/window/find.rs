@@ -16,7 +16,7 @@
 //! stored: a tag's structure prefix and a technical value's `key=` are shown, not written, so a match that reaches
 //! into them makes the hit not replaceable.
 //!
-//! **Order** (§7.1, §9 item 3): page order (the main representation's page for a device, the page itself for a page
+//! **Order**: page order (the main representation's page for a device, the page itself for a page
 //! field; records without a page last), then the anchor cell (row, column), then the subject in natural order, then
 //! the row path (the language is its last segment), then the record ID. At most 10,000 hits; beyond, `truncated`.
 //!
@@ -40,7 +40,7 @@ const MAX_HITS: usize = 10_000;
 /// The longest regular expression a search compiles, in characters.
 const MAX_PATTERN: usize = 1_000;
 
-/// What a search looks for (§7.1).
+/// What a search looks for.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FindQuery {
     /// The text, or the regular expression when `regex` is set. Empty: no hits.
@@ -77,7 +77,7 @@ pub enum FindField {
     PartNumber,
 }
 
-/// One searched string with at least one match (§7.1).
+/// One searched string with at least one match.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FindHit {
     /// The record.
@@ -108,7 +108,7 @@ pub struct FindHit {
 /// The result of [`Session::find`].
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct FindResults {
-    /// The hits in order (§7.1), at most 10,000.
+    /// The hits in order, at most 10,000.
     pub hits: Vec<FindHit>,
     /// More than 10,000 strings matched: the hits are the first 10,000 and replace is refused.
     pub truncated: bool,
@@ -131,7 +131,7 @@ impl FindResults {
         self.hits.iter().filter(|h| h.changes()).count()
     }
 
-    /// The parameters of the one `fields.set_many` that writes every replaceable hit's `after` (§7.1): one entry per
+    /// The parameters of the one `fields.set_many` that writes every replaceable hit's `after`: one entry per
     /// (kind, path, value) holding every record that gets that value, entries ordered by (kind rank, path, first
     /// target ID); hits on one record and member are merged into one value first. `None` when no hit has `after`,
     /// when the results are truncated or in error, or when the replace would change nothing.
@@ -372,7 +372,7 @@ fn ml_path(member: &str, lang: Option<&str>) -> String {
     }
 }
 
-/// The records `within` names and the records they reach (§6.2): a representation its functions and their devices, a
+/// The records `within` names and the records they reach: a representation its functions and their devices, a
 /// function its device.
 fn reach(q: &Q, within: &[Uuid]) -> BTreeSet<Uuid> {
     let mut out = BTreeSet::new();
@@ -394,7 +394,7 @@ fn reach(q: &Q, within: &[Uuid]) -> BTreeSet<Uuid> {
 }
 
 impl Session {
-    /// Searches the project (§7.1): the hits of `query` in order, at most 10,000, with the replacement of each
+    /// Searches the project: the hits of `query` in order, at most 10,000, with the replacement of each
     /// replaceable hit when the query has one, and the `fields.set_many` parameters of that replace
     /// ([`FindResults::replace_command`]). Deterministic; runs outside any transaction and adds no memoised family.
     pub fn find(&self, query: &FindQuery) -> FindResults {
@@ -699,7 +699,7 @@ impl Session {
             };
             found.push((c, hit));
         }
-        // The order rule (§7.1).
+        // The order rule.
         found.sort_by(|(a, ha), (b, hb)| {
             let pos = |c: &Candidate| c.page.and_then(|p| position.get(&p).copied());
             let page_key = |c: &Candidate| (pos(c).is_none(), pos(c).unwrap_or(0));
@@ -725,7 +725,7 @@ impl Session {
     }
 }
 
-/// The `fields.set_many` parameters of the replaceable hits with `after` (§7.1), or `None` when nothing changes.
+/// The `fields.set_many` parameters of the replaceable hits with `after`, or `None` when nothing changes.
 fn replace_params(q: &Q, found: &[(Candidate, FindHit)]) -> Option<Value> {
     // The new value of each (record, member), starting from the record's current member, hits applied in order.
     let mut members: BTreeMap<(Uuid, &'static str), (Kind, Value, Value)> = BTreeMap::new();
@@ -874,7 +874,7 @@ mod tests {
         assert_eq!(replaced("Cafe-", &hits), "Caf\u{e9}");
     }
 
-    /// §7.1: beyond the cap the hits are the first `cap` in order, `truncated` is set and replace is refused. The
+    /// Beyond the cap the hits are the first `cap` in order, `truncated` is set and replace is refused. The
     /// sample's two spare valves are named "Spare".
     #[test]
     fn beyond_the_cap_the_results_are_truncated_and_replace_is_refused() {

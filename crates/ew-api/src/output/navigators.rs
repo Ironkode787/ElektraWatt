@@ -5,7 +5,7 @@
 //! [`Session::navigator_table`], a plain function over `Q` that the view model fetches once per (kind, revision) for
 //! an open navigator only (no memoised family).
 //!
-//! **The table contract** (§6.1). Nodes come in tree order, a parent before its children, siblings in the provider's
+//! **The table contract**. Nodes come in tree order, a parent before its children, siblings in the provider's
 //! default order. **Keys** are path strings `<parent key>/<role word>:<id or text>` (no leading `/` at the top level):
 //! a record node carries its UUID text, a group node its label (`function:=P01/location:+J-E-2416/device:<uuid>`); the
 //! Pages keys stay as built (`s:<n>`, `s:front`, `…/p:<uuid>`). **Labels** are what the drawing prints (a device's
@@ -16,11 +16,11 @@
 //! node, main first, then page order, cell row, cell column, ID; [`NavTable::index`] maps every record and drawable ID
 //! to the nodes that carry it, in node order.
 //!
-//! Part 1 built Pages and Devices; part 2 the nine further providers (§7.1): Connections and Potentials from the wire
+//! Part 1 built Pages and Devices; part 2 the nine further providers: Connections and Potentials from the wire
 //! list and the potential overview, Terminal strips from each strip's terminal diagram, Cables from the cable
 //! overview, PLC from the PLC overview, Parts in use from the parts summary in component mode, Structure identifiers
 //! from the structure overview's node rows, and Interruption points and Report blocks with their own columns. A data
-//! row without records (a heading) is never a table row. Part 2 also adds [`Session::highlight_members`] (§7.3).
+//! row without records (a heading) is never a table row. Part 2 also adds [`Session::highlight_members`].
 //! PLC is the PLC navigator and grid: configuration project → station → module →
 //! channel from `plc_rows(station)`, with the grid's own columns, typed editors and facets.
 
@@ -180,7 +180,7 @@ impl NavKind {
     }
 
     /// The navigator whose columns this one shows: the PLC grid the PLC navigator's (its rows too), the fluid navigator
-    /// the tube table's (its table mode lists the tubes, the persona round), every other its own.
+    /// the tube table's (its table mode lists the tubes), every other its own.
     pub fn source(self) -> NavKind {
         match self {
             NavKind::PlcGrid => NavKind::Plc,
@@ -328,7 +328,7 @@ pub struct NavColumn {
     pub derived: bool,
     /// Whether it is the key column (frozen at the left in table mode).
     pub key_column: bool,
-    /// The edit route `(kind, path)` of §8.2's table, `None` for a read-only column.
+    /// The edit route `(kind, path)` of the edit mapping (doc 16 §7.2), `None` for a read-only column.
     pub route: Option<(String, String)>,
     /// Why the column is read-only, when it is.
     pub read_only: Option<String>,
@@ -414,7 +414,7 @@ pub struct NavTable {
     pub index: BTreeMap<Uuid, Vec<u32>>,
 }
 
-/// The filter tokens of a text (§6.1 item 4): case-folded and NFC, split at whitespace, at `- . _ : / + = ( ) ,` and
+/// The filter tokens of a text: case-folded and NFC, split at whitespace, at `- . _ : / + = ( ) ,` and
 /// at every letter/digit boundary, empty pieces dropped, in order of appearance (callers sort and deduplicate). The
 /// view model splits a query with the same function, so a node token and a query token are always comparable.
 pub fn tokens(text: &str) -> Vec<String> {
@@ -562,7 +562,7 @@ impl Builder {
 }
 
 impl Session {
-    /// The table of navigator `kind` at the current revision (§6.1): a plain function over `Q`,
+    /// The table of navigator `kind` at the current revision: a plain function over `Q`,
     /// deterministic, reading memoised queries and `ew_reports::project_rows` only, for every kind of [`NavKind`].
     /// The Macros and Libraries tables also read [`Session::libraries`] as it is now: a library write
     /// changes them without a new revision, so the shell refetches them after one. The Messages table also reads the
@@ -709,7 +709,7 @@ fn folio_pages(q: &Q) -> BTreeMap<String, Uuid> {
     out
 }
 
-/// The drawables of a device (§6.1 item 6): the representations of its functions, main first, then page order, cell
+/// The drawables of a device: the representations of its functions, main first, then page order, cell
 /// row, cell column, ID.
 fn device_drawables(
     q: &Q,
@@ -969,10 +969,10 @@ mod tests {
         )
     }
 
-    /// TB1 (D10, §8.2): each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
+    /// TB1 (D10): each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
     /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set exactly for
-    /// §8.2's identifier rows (the terminal designation, the potential's name and the structure node's code); every
-    /// column of every navigator carries the route or the read-only reason of §8.2's precedence at column level
+    /// the identifier rows (the terminal designation, the potential's name and the structure node's code); every
+    /// column of every navigator carries the route or the read-only reason of the precedence at column level
     /// ("derived" before "no command yet").
     #[test]
     fn the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {

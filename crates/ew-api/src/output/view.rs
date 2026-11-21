@@ -370,8 +370,8 @@ fn asset_ref(r: &ew_schema::AssetRef) -> AssetRef {
 }
 
 /// A valve standing in a cell of a valve terminal's box drawn on `page` stands with its insertion point on the cell's
-/// top line, so a PLC address place of its symbol higher than one grid step under that point ran across the line (rc.3:
-/// the valves with one solenoid). There each such place is drawn one step of the symbol's grid under it, the row of the
+/// top line, so a PLC address place of its symbol higher than one grid step under that point ran across the line (the
+/// valves with one solenoid). There each such place is drawn one step of the symbol's grid under it, the row of the
 /// two-solenoid valves' places, inside the cell; a place a person moved, a turned valve and a valve drawn anywhere else
 /// keep the symbol's place. Drawn only: the record is not changed.
 fn addresses_in_cell(

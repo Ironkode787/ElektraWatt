@@ -31,7 +31,7 @@ use super::navigators::Uuid;
 use super::properties::SheetCx;
 use crate::{AnyCommand, Session};
 
-/// The strip-editor columns whose cells compile through [`Session::strip_edit`] (§6.2).
+/// The strip-editor columns whose cells compile through [`Session::strip_edit`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum StripCell {
     /// A terminal's group label (D8).
@@ -42,7 +42,7 @@ pub enum StripCell {
     AccessoryPart,
 }
 
-/// One strip gesture (§4.2).
+/// One strip gesture.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StripEdit {
     /// The group label `label` on `terminals` (D8); `""` removes them from every group.
@@ -109,7 +109,7 @@ pub enum StripEdit {
 /// Why a strip gesture does not compile.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StripEditError {
-    /// A reason key of §6.10 (`reason-no-accessory-part`, `table-no-bridge`).
+    /// A reason key (`reason-no-accessory-part`, `table-no-bridge`).
     Refused(&'static str),
     /// A sentence by key, for the error line or the card, in the window's language (FT-1555).
     Invalid(crate::Text),
@@ -240,7 +240,7 @@ impl Session {
         Some((main.as_uuid(), key))
     }
 
-    /// The one command of a strip gesture (§4.2): the door through which the view model compiles every strip gesture.
+    /// The one command of a strip gesture: the door through which the view model compiles every strip gesture.
     ///
     /// # Errors
     ///
@@ -249,7 +249,7 @@ impl Session {
         self.strip_edits(std::slice::from_ref(edit))
     }
 
-    /// The one command of several cell gestures (§6.3): field edits applied in order, one `fields.set` or one
+    /// The one command of several cell gestures: field edits applied in order, one `fields.set` or one
     /// `fields.set_many`. An `Insert` or a `Move` stands alone.
     ///
     /// # Errors
@@ -443,7 +443,7 @@ fn choices(hits: Vec<PartCopyText>) -> Vec<FieldChoice> {
         .collect()
 }
 
-/// The one project part copy of `kinds` (§6.5): none refuses `reason-no-accessory-part`, several are ambiguous.
+/// The one project part copy of `kinds`: none refuses `reason-no-accessory-part`, several are ambiguous.
 fn only_part(cx: &dyn ParseCx, kinds: &[&str]) -> Result<String, StripEditError> {
     let mut fits: Vec<PartCopyText> = cx
         .part_copies()
