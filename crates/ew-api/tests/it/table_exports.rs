@@ -1,19 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over Golden A in `ew-api`: the table writers behind the row exports (`row_output`), where the model
-//! can be changed or reloaded: a fixture whose -101F1 function text is a formula, the records
-//! shuffled (AC-14's seed), and the golden dialect through the table model.
-
-use crate::golden_common;
+//! Over the sample in `ew-api`: the table writers behind the row exports (`row_output`), where the model can be
+//! changed or reloaded: -101F1's function text set to a formula, the records shuffled, and the `ew` dialect through
+//! the table model.
 
 use ew_api::output::sheet::read_sheet;
 use ew_api::output::{
     CsvOptions, PdfDate, Preset, RowExport, RowsFormat, RowsOutput, Table, TableCell, row_export, row_output,
 };
-use ew_import_tables::ew_interop_api::ImportMode;
 
-/// The seed of the record shuffle of AC-14 (`tests/acceptance/checks.rs`).
+/// The seed of the record shuffle.
 const SHUFFLE_SEED: u64 = 0x5eed_ac14;
 
 /// The workbook of `what` over `session` with a fixed date.
@@ -36,24 +33,12 @@ fn csv(session: &ew_api::Session, what: &RowExport, preset: Preset) -> String {
     text
 }
 
-/// TX-5: the workbooks of a model loaded with its records shuffled (AC-14's seed) equal the file-order ones, byte
-/// for byte, for a block's rows, the bill of materials and every strip of the terminal diagrams.
+/// TX-5: the workbooks of a model loaded with its records shuffled equal the file-order ones, byte for byte, for a
+/// block's rows, the bill of materials and every strip of the terminal diagrams.
 #[test]
 fn the_workbooks_do_not_depend_on_record_order() {
-    let batch = golden_common::batch();
-    let plain = golden_common::session_with_profiles(&batch);
-    let shuffled = golden_common::session_with(&batch, |p, r| {
-        golden_common::with_profiles(p);
-        // Fisher-Yates with a fixed-seed LCG.
-        let mut state = SHUFFLE_SEED;
-        for i in (1..r.len()).rev() {
-            state = state
-                .wrapping_mul(6364136223846793005)
-                .wrapping_add(1442695040888963407);
-            let j = ((state >> 33) as usize) % (i + 1);
-            r.swap(i, j);
-        }
-    });
+    let plain = crate::view::sample_session(None);
+    let shuffled = crate::view::sample_session(Some(SHUFFLE_SEED));
     for what in [
         RowExport::Wires,
         RowExport::Bom(ew_api::BomMode::Component),
@@ -69,19 +54,24 @@ fn the_workbooks_do_not_depend_on_record_order() {
     }
 }
 
-/// TX-4 (NFR-SEC-17) with the fixture of the acceptance: -101F1's function text is `=HYPERLINK("x")`. The workbook
-/// holds it as an inline string and no part has an `<f>` element; `excel-nl` writes it guarded and quoted as RFC
-/// 4180 asks, `rfc4180` verbatim; a tag that starts with `-` or `=` is guarded in the Excel presets only.
+/// TX-4 (NFR-SEC-17): -101F1's function text is `=HYPERLINK("x")`. The workbook holds it as an inline string and no
+/// part has an `<f>` element; `excel-nl` writes it guarded and quoted as RFC 4180 asks, `rfc4180` verbatim; a tag
+/// that starts with `+` is guarded in the Excel presets only.
 #[test]
 fn a_formula_function_text_stays_text() {
-    let batch = golden_common::batch_with(
-        "devices.csv",
-        "-101F1,F,1,,,,,,=P01,+J-E-2416,,A9P52610,,",
-        "-101F1,F,1,,,,,,=P01,+J-E-2416,,A9P52610,\"=HYPERLINK(\"\"x\"\")\",",
-        ImportMode::Strict,
-    )
-    .expect("the fixture imports");
-    let session = golden_common::session_with_profiles(&batch);
+    let mut session = crate::common::sample();
+    let f1 = session.resolve_reference("tag:-101F1").expect("the breaker");
+    session
+        .execute(&ew_api::AnyCommand {
+            name: "fields.set".into(),
+            params: serde_json::json!({
+                "kind": "device",
+                "targets": [f1.to_string()],
+                "path": "function_text",
+                "value": {"en": "=HYPERLINK(\"x\")"},
+            }),
+        })
+        .expect("the function text is set");
     let what = RowExport::Kind("device_list".to_owned());
     let bytes = workbook(&session, &what);
     let entries = ew_api::zip::read(&bytes, &ew_api::zip::ZipLimits::default()).unwrap();
@@ -108,7 +98,7 @@ fn a_formula_function_text_stays_text() {
     let row = table
         .rows
         .iter()
-        .find(|r| r[1] == "=P01+J-E-2416-101F1")
+        .find(|r| r[1] == "+CAB-101F1")
         .expect("the -101F1 row");
     assert_eq!(row[2], "=HYPERLINK(\"x\")");
 
@@ -120,27 +110,26 @@ fn a_formula_function_text_stays_text() {
     };
     let nl = line(&csv(&session, &what, Preset::ExcelNl));
     assert!(
-        nl.contains(";'=P01+J-E-2416-101F1;\"'=HYPERLINK(\"\"x\"\")\";A9P52610;"),
+        nl.contains(";'+CAB-101F1;\"'=HYPERLINK(\"\"x\"\")\";EW-GEN-MCB-4;"),
         "{nl}"
     );
     let en = line(&csv(&session, &what, Preset::ExcelEn));
     assert!(
-        en.contains(",'=P01+J-E-2416-101F1,\"'=HYPERLINK(\"\"x\"\")\",A9P52610,"),
+        en.contains(",'+CAB-101F1,\"'=HYPERLINK(\"\"x\"\")\",EW-GEN-MCB-4,"),
         "{en}"
     );
     let rfc = line(&csv(&session, &what, Preset::Rfc4180));
     assert!(
-        rfc.contains(",=P01+J-E-2416-101F1,\"=HYPERLINK(\"\"x\"\")\",A9P52610,"),
+        rfc.contains(",+CAB-101F1,\"=HYPERLINK(\"\"x\"\")\",EW-GEN-MCB-4,"),
         "{rfc}"
     );
 }
 
-/// D6: the default preset `ew` is the golden dialect of `row_export` byte for byte, and the table model written in
-/// `ew` is the same text where the project writes a decimal point (Golden A).
+/// D6: the default preset `ew` is the dialect of `row_export` byte for byte, and the table model written in `ew` is
+/// the same text where the project writes a decimal point (the sample).
 #[test]
-fn the_ew_preset_is_the_golden_dialect() {
-    let batch = golden_common::batch();
-    let session = golden_common::session_with_profiles(&batch);
+fn the_ew_preset_is_the_row_export_dialect() {
+    let session = crate::common::sample();
     let q = session.query();
     for what in [RowExport::Wires, RowExport::Bom(ew_api::BomMode::Component)] {
         let golden = row_export(&q, &what, None).unwrap().csv;

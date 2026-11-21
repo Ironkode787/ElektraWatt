@@ -1,21 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The SQL projection over the golden project (ADR-0017, doc 17 §6): every `api_v1_*` view is
-//! readable through the sandbox with the columns of `ew_sqlview::schema`; the acceptance criteria of FR-EXT-006 and
-//! FR-EXT-007; the row counts; a deterministic image. The acceptance runner (`tests/acceptance`) evaluates the
-//! acceptance SQL/CSV pairs.
-
-#![allow(dead_code)]
-
-use crate::golden_common;
+//! The SQL projection over the sample project (ADR-0017, doc 17 §6): every `api_v1_*` view is readable through the
+//! sandbox with the columns of `ew_sqlview::schema`; the acceptance criteria of FR-EXT-006 and FR-EXT-007; the row
+//! counts; a deterministic image.
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::sql::{Profile, Projection, SqlError, schema};
 
 fn projection() -> Projection {
-    let batch = golden_common::batch();
-    let session = golden_common::session_with_profiles(&batch);
+    let session = crate::common::sample();
     let report = session.check(&PRE_DELIVERY, CheckMode::Release);
     session
         .sql_projection(Some(&report))
@@ -23,7 +17,7 @@ fn projection() -> Projection {
 }
 
 #[test]
-fn every_view_has_its_documented_columns_and_the_golden_counts() {
+fn every_view_has_its_documented_columns_and_the_sample_counts() {
     let p = projection();
     let reader = p.reader(Profile::EW_SQL).unwrap();
     for v in schema::VIEWS {
@@ -56,50 +50,45 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
             .rows[0][0]
             .text()
     };
-    // Doc 17 §6.1 "Golden rows" and doc 20: 28 terminals, 3 cables, 13 conductors, 44 wires and 6 bridges,
-    // the 27 rows of folio 901, one bond (B1). 18 of the 19 potentials of §7.3 (the DP bus potential needs
-    // the Bus connections) and 34 of the 36 pages of §5 (908.1 and 908.2 need PLC channel records):
-    // the M1 gap list of the acceptance report.
-    let rows = |table: &str| golden_common::table(table).len().to_string();
-    assert_eq!(count("api_v1_terminal"), rows("terminals.csv"));
+    // The sample's script: 18 terminals on the strips -X1011, -X1021 and -X1031, 3 cables with 13 cores (5, 4 and a
+    // shield, 2 and a shield), the two bridge groups of -X1021, the one bond
+    // (0 V to PE), the 27 pages, 7 tubes, no medium.
+    assert_eq!(count("api_v1_terminal"), "18");
     assert_eq!(count("api_v1_cable"), "3");
-    assert_eq!(count("api_v1_conductor"), rows("conductors.csv"));
-    assert_eq!(count("api_v1_wire"), "50");
+    assert_eq!(count("api_v1_conductor"), "13");
     assert_eq!(
         reader
             .query("SELECT count(*) FROM api_v1_wire WHERE kind = 'bridge'")
             .unwrap()
             .rows[0][0]
             .text(),
-        "6"
+        "2"
     );
-    assert_eq!(count("api_v1_bom_component"), "27");
-    assert_eq!(count("api_v1_bond"), rows("bonds.csv"));
-    assert_eq!(count("api_v1_potential"), rows("potentials.csv"));
-    assert_eq!(count("api_v1_page"), "36");
+    assert_eq!(count("api_v1_bond"), "1");
+    assert_eq!(count("api_v1_page"), "27");
     assert_eq!(count("api_v1_meta"), "1");
-    // Doc 11 §8.3: the 16 tubes F1 to F16, the 28 valve positions of -201U1, no medium.
-    assert_eq!(count("api_v1_fluid_line"), "16");
-    assert_eq!(count("api_v1_valve_position"), "28");
+    assert_eq!(count("api_v1_fluid_line"), "7");
     assert_eq!(count("api_v1_medium"), "0");
-    // doc 17 §6.1: the 56 channels of folio 908, 8 of them used
-    assert_eq!(count("api_v1_plc_channel"), rows("channels.csv"));
+    // The 24 channels of the two cards and the valve terminal; 6 outputs used: two lamps and four valves.
+    assert_eq!(count("api_v1_plc_channel"), "24");
     assert_eq!(
         reader
             .query("SELECT count(*) FROM api_v1_plc_channel WHERE state = 'used' AND address LIKE 'Q%'")
             .unwrap()
             .rows[0][0]
             .text(),
-        "8"
+        "6"
     );
     // doc 10 §5: the channel view carries the I/O list's station bus address, CPU, passed terminals and F-address;
-    // Golden A's -201U1 is at the open item, has no CPU, no traced target and no F-module
+    // the valve terminal -201K1 is at DP address 3 under the CPU -104A1, its outputs pass no terminal, no F-module.
     let first = reader
-        .query("SELECT bus_address, cpu, passed_terminals, f_address FROM api_v1_plc_channel LIMIT 1")
+        .query(
+            "SELECT bus_address, cpu, passed_terminals, f_address FROM api_v1_plc_channel \
+             WHERE module = '-201K1' LIMIT 1",
+        )
         .unwrap();
     let first: Vec<String> = first.rows[0].iter().map(|v| v.text()).collect();
-    assert_eq!(first[0], "TBD");
-    assert_eq!(first[2], "[]");
+    assert_eq!(first, ["3", "-104A1", "[]", ""]);
     // The counts the projection reports equal the views'.
     for (view, n) in p.counts() {
         assert_eq!(count(view), n.to_string(), "{view}");
@@ -111,7 +100,7 @@ fn fr_ext_006_counts_terminals_and_denies_attach() {
     let p = projection();
     let reader = p.reader(Profile::EW_SQL).unwrap();
     let set = reader.query("SELECT count(*) FROM api_v1_terminal").unwrap();
-    assert_eq!(set.rows[0][0].text(), "28", "1X1: 3, -X1031: 20, -X1032: 5");
+    assert_eq!(set.rows[0][0].text(), "18", "-X1011: 5, -X1021: 8, -X1031: 5");
     assert!(matches!(
         reader.query("ATTACH 'other.db' AS x"),
         Err(SqlError::NotAQuery(_))
@@ -128,13 +117,12 @@ fn fr_ext_007_sorts_designations_naturally_and_reads_multilingual_text() {
     let reader = p.reader(Profile::EW_SQL).unwrap();
     let set = reader
         .query(
-            "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1031' \
-             ORDER BY designation COLLATE ew_natural",
+            "SELECT d FROM (SELECT 'X10' AS d UNION ALL SELECT 'X2' UNION ALL SELECT 'X1') \
+             ORDER BY d COLLATE ew_natural",
         )
         .unwrap();
     let got: Vec<String> = set.rows.iter().map(|r| r[0].text()).collect();
-    let want: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
-    assert_eq!(got, want, "X2 before X10");
+    assert_eq!(got, ["X1", "X2", "X10"], "X2 before X10");
     let set = reader
         .query("SELECT ew_ml(title_ml, 'en'), title FROM api_v1_page WHERE folio = '101'")
         .unwrap();
@@ -153,10 +141,18 @@ fn messages_carry_the_check_run() {
     let p = projection();
     let reader = p.reader(Profile::EW_SQL).unwrap();
     let set = reader
-        .query("SELECT rule, severity, state, target_tags FROM api_v1_message WHERE rule = 'EW-CORE-033'")
+        .query(
+            "SELECT rule, severity, state, target_tags FROM api_v1_message WHERE rule = 'EW-NUM-001' \
+             ORDER BY target_tags",
+        )
         .unwrap();
-    // -3W1 has no length (doc 20 §10, EW-CORE-033).
-    assert_eq!(set.rows.len(), 1);
-    assert_eq!(set.rows[0][1].text(), "error");
-    assert!(set.rows[0][3].text().ends_with("-3W1"));
+    // The enclosure's tags, which Enclosure… freezes and the numbering cannot derive (EW-NUM-001, an info).
+    let rows: Vec<Vec<String>> = set.rows.iter().map(|r| r.iter().map(|v| v.text()).collect()).collect();
+    assert_eq!(
+        rows,
+        [
+            ["EW-NUM-001", "info", "open", "+CAB-UC1"],
+            ["EW-NUM-001", "info", "open", "+CAB-UC1-plate"],
+        ]
+    );
 }

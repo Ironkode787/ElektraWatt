@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden parts table read through `read_parts_tables` and dispatched as `parts.import` into a new
-//! project: the golden project's 29 part copies, project-local, the starter FnDefs resolved; a second import skips
+//! The test tables' parts table (`fixtures/tables/`) read through `read_parts_tables` and dispatched as `parts.import`
+//! into a new project: its 29 part copies, project-local, the starter FnDefs resolved; a second import skips
 //! every key; the picker lists the parts with a function template.
 
 use std::path::Path;
@@ -24,13 +24,13 @@ fn session() -> Session {
     s
 }
 
-fn golden_parts() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv")
+fn table_parts() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
 fn import(s: &mut Session) -> ew_api::Receipt {
     let project = s.query().project().id.as_uuid();
-    let parts = read_parts_tables(&golden_parts(), project).expect("the golden parts table reads");
+    let parts = read_parts_tables(&table_parts(), project).expect("the parts table reads");
     assert_eq!(parts.source, "parts.csv");
     assert_eq!(parts.siblings.len(), 4, "every sibling table lies beside it");
     let cmd = AnyCommand {
@@ -44,7 +44,7 @@ fn import(s: &mut Session) -> ew_api::Receipt {
 }
 
 #[test]
-fn the_golden_parts_table_imports_into_a_new_project_once() {
+fn the_parts_table_imports_into_a_new_project_once() {
     let mut s = session();
     let r = import(&mut s);
     assert_eq!(r.outcome.note.as_deref(), Some("created 29, skipped 0"));
@@ -107,8 +107,8 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
 #[test]
 fn a_bom_prefixed_parts_table_imports_the_same_copies() {
     let dir = ew_testdir::Tmp::new("ew-parts-bom");
-    let golden = golden_parts();
-    let tables = golden.parent().unwrap();
+    let plain_path = table_parts();
+    let tables = plain_path.parent().unwrap();
     for file in [
         "parts.csv",
         "part_cps.csv",
@@ -121,7 +121,7 @@ fn a_bom_prefixed_parts_table_imports_the_same_copies() {
         std::fs::write(dir.join(file), format!("\u{feff}{text}")).unwrap();
     }
     let project = session().query().project().id.as_uuid();
-    let plain = read_parts_tables(&golden, project).expect("the golden tables read");
+    let plain = read_parts_tables(&plain_path, project).expect("the tables read");
     let marked = read_parts_tables(&dir.join("parts.csv"), project);
     std::fs::remove_dir_all(&dir).unwrap();
     let marked = marked.expect("the BOM-prefixed tables read");

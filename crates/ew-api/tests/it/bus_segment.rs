@@ -73,6 +73,30 @@ fn with_physical_net(s: &mut Session) -> Id<PhysicalNet> {
     pnet
 }
 
+/// FR-BUS-007: the bus overview walks the DP segment from the master end: the CPU's port, the cable -105W1 and the
+/// valve terminal's port.
+#[test]
+fn the_bus_overview_walks_the_segment_from_the_master() {
+    let mut s = common::sample();
+    with_physical_net(&mut s);
+    let q = s.query();
+    let block = q
+        .report_blocks()
+        .iter()
+        .next()
+        .map(|(_, b)| (**b).clone())
+        .expect("a report block");
+    let def = ew_reports::Registry::builtin()
+        .by_name("bus_overview")
+        .expect("a registered kind");
+    let csv = ew_reports::csv::rows_csv(&q, &def.rows(&q, &block));
+    let rows: Vec<&str> = csv.lines().skip(1).collect();
+    assert_eq!(rows.len(), 3, "{rows:#?}");
+    assert!(rows[0].contains("-104A1"), "{}", rows[0]);
+    assert!(rows[1].contains("-105W1"), "{}", rows[1]);
+    assert!(rows[2].contains("-201K1"), "{}", rows[2]);
+}
+
 /// BU-2 (D11, A5): the DP line is one segment, ordered from the master end: the CPU's port, the cable -105W1 and the
 /// valve terminal's port; both ports are its ends, neither is external, and it is on a logical net.
 #[test]

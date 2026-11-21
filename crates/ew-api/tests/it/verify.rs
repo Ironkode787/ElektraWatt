@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `ew verify-derived` at the library level (`ew_api::verify`, FR-EXT-005): the memoised values of every
-//! family equal their cold recomputation over an empty model, over the golden project and after an edit; a
+//! family equal their cold recomputation over an empty model, over the sample project and after an edit; a
 //! session that does not memoise cannot be verified.
-
-use crate::golden_common;
 
 use ew_api::verify::{VerifyError, verify_derived};
 use ew_api::{MemoMode, Session, SessionOptions};
@@ -56,21 +54,20 @@ fn a_session_without_a_memo_store_is_refused() {
 }
 
 #[test]
-fn the_golden_project_has_no_difference_before_and_after_an_edit() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+fn the_sample_project_has_no_difference_before_and_after_an_edit() {
+    let mut s = crate::common::sample();
     let before = verify_derived(&s).expect("a memoising session");
     assert!(before.is_clean(), "{:?}", before.differences);
-    assert!(before.keys["report_rows"] >= 11, "every report block is read");
-    assert!(before.total_keys() > 1000, "{}", before.total_keys());
+    let blocks = s.query().report_blocks().iter().count();
+    assert!(before.keys["report_rows"] >= blocks, "every report block is read");
     // One command through the commit pipeline; the memo store follows it by push invalidation.
     let rename = serde_json::json!({
         "cmd": "fields.set",
         "params": {
             "kind": "device",
-            "targets": [{"ref": "tag:T55"}],
+            "targets": [{"ref": "tag:-102S1"}],
             "path": "tag.frozen",
-            "value": {"text": "T57", "sign": "hidden"},
+            "value": {"text": "-102S9", "sign": "hidden"},
         },
     });
     let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{rename}\n"))

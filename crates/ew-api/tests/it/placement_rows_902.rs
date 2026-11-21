@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A: the rows of panel page 902's Placement category in Properties read in the user's words, and
+//! On the sample: the rows of panel page 902's Placement category in Properties read in the user's words, and
 //! the scale is typed as it shows.
-
-use crate::golden_common;
 
 use ew_api::Session;
 use ew_api::output::{Category, InputError, RowValue};
@@ -20,11 +18,11 @@ fn page_of(s: &Session, folio: &str) -> Uuid {
 }
 
 /// "a placement's rows show labels and values in the user's words, and the members with no meaning
-/// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: the scale reads "1:10", not its JSON; the form's
+/// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: the scale reads "1:5", not its JSON; the form's
 /// UUID and the connection grid's fraction are the Advanced rows (`ew_viewmodel::properties::is_advanced`).
 #[test]
 fn the_placement_rows_of_902_read_in_words() {
-    let s = golden_common::session(&golden_common::batch());
+    let s = crate::common::sample();
     let sheet = s.property_sheet(&[page_of(&s, "902")]);
     let rows: Vec<(String, String)> = sheet
         .sections
@@ -40,11 +38,12 @@ fn the_placement_rows_of_902_read_in_words() {
         })
         .collect();
     let want: Vec<(String, String)> = [
-        ("page/form", "Frame QET A4 landscape grid"),
+        // The sample's 902 names no form of its own: it takes the project's.
+        ("page/form", "Absent"),
         ("page/grid", ""),
         ("page/grid.den", "3"),
         ("page/grid.num", "7937500"),
-        ("page/scale", "1:10"),
+        ("page/scale", "1:5"),
     ]
     .iter()
     .map(|(k, t)| ((*k).to_owned(), (*t).to_owned()))
@@ -56,7 +55,7 @@ fn the_placement_rows_of_902_read_in_words() {
 /// words.
 #[test]
 fn the_scale_is_typed_as_it_shows() {
-    let s = golden_common::session(&golden_common::batch());
+    let s = crate::common::sample();
     let value = |text: &str| s.parse_field_input("page", "scale", text).map(|p| p.value);
     assert_eq!(value("1:5").unwrap(), json!({"one_to": 5}));
     assert_eq!(value(" 1 : 20 ").unwrap(), json!({"one_to": 20}));

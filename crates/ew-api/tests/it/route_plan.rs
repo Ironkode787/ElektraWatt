@@ -5,8 +5,6 @@
 //! `layout.apply`, which a replay stores again without routing; a drawing made before keeps every junction's form, its
 //! sequence and the wires it produces.
 
-use crate::golden_common;
-
 use ew_api::AnyCommand;
 use ew_api::routing::RouteScope;
 
@@ -57,13 +55,12 @@ fn junctions(
     out
 }
 
-/// Golden A's folio 101 with every wire routed by Route: the plan is one `layout.apply`; the same command run again on
+/// The sample's folio 101 with every wire routed by Route: the plan is one `layout.apply`; the same command run again on
 /// the project as it was stores the same routes (a replay stores, it does not route); and no junction of the project
 /// changes its form, its sequence or the wires it produces.
 #[test]
 fn a_plan_is_stored_by_one_command_that_a_replay_repeats_and_no_junction_changes() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let folios = s.schematic_folios();
     let before = junctions(&s, &folios);
     let ids: Vec<ew_api::output::Uuid> = s
@@ -99,7 +96,7 @@ fn a_plan_is_stored_by_one_command_that_a_replay_repeats_and_no_junction_changes
     assert!(routed.iter().all(|(_, r)| !r.is_empty()), "every wire routed");
     assert_eq!(junctions(&s, &folios), before, "no junction changes");
     // The same commands on the project as it was store the same routes: a replay stores, it does not route.
-    let mut again = golden_common::session(&batch);
+    let mut again = crate::common::sample();
     for c in unroute.iter().chain([&cmd]) {
         again.execute(c).expect("replayed");
     }
