@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The column mapping step of File, Import, Parts table…: a card floating at the top centre
-//! while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`).
+//! The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog
+//! stands (FT-1761: at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open,
+//! before the import card (doc 16a §6.9, `elevation.1`).
 //!
 //! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved
 //! under) with the "Saved map" caption when the members came from it, then the column table: Column, Sample (in
@@ -31,10 +32,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
     };
     let t = crate::theme::current(ctx);
     egui::Area::new(Id::unique("parts-map-card"))
-        .anchor(
-            Align2::CENTER_TOP,
-            [0.0, t.size_tab_row + t.size_command_row + t.space_4],
-        )
+        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
             // A form that grows with the window when its samples need the room: as wide as the column
