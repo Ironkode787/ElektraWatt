@@ -32,6 +32,10 @@ change here.
 - text-change: the example keys of `ew queries` and the guide's query reference name records of the new sample
   project (`-104A1-A2`, `-201K1-Q2`, `-X1011:L1`, `-102Q1` and two of its IDs), as the reference project's records
   are gone; every example answers on the sample
+- text-change: the words that named the retired reference project say what is meant: the help of `ew import` and
+  `ew export` speaks of the `ew` dialect (it said "golden dialect"), `ew sql schema` no longer cites a deleted design
+  document, the argument texts of `ew queries` name the sample's records, and the guide's command-line how-to is "Use
+  the command line on the sample project"
 - text-change: the company-standard wizard's `report_blocks` value `golden` is `standard` (every list and overview,
   the default); a script that sets `golden` is refused and must set `standard`; there is no alias
 - behaviour-change: File ▸ Open sample project and Help ▸ Tutorials open the new sample project, a smaller control
