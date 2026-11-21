@@ -180,9 +180,14 @@ pub(super) fn split_attributes(
     (DisplayList { items: kept }, attributes)
 }
 
-/// The name in words of each symbol the page's representations and junctions draw, in the view's language: the names
-/// of its blocks.
-pub(super) fn symbol_names(view: &PageView, out: &mut BTreeMap<Uuid, String>) {
+/// The name in words of each symbol the page's representations and junctions draw, in the project's language `lang`
+/// as every output prints a text (`ew_derive::text_in`: that language, else English, else the first): the names of its
+/// blocks.
+pub(super) fn symbol_names(
+    view: &PageView,
+    lang: Option<&ew_mltext::LangTag>,
+    out: &mut BTreeMap<Uuid, String>,
+) {
     let reps = view
         .reps
         .iter()
@@ -193,7 +198,7 @@ pub(super) fn symbol_names(view: &PageView, out: &mut BTreeMap<Uuid, String>) {
         .filter_map(|j| j.symbol.as_ref().map(|s| (s.id.as_uuid(), &*s.def)));
     for (id, def) in reps.chain(junctions) {
         out.entry(id)
-            .or_insert_with(|| ew_scene::forms::ml_text(&def.name, view.language.as_ref()).to_owned());
+            .or_insert_with(|| ew_derive::text_in(&def.name, lang).to_owned());
     }
 }
 

@@ -372,9 +372,7 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
             .get(Id::from_uuid(coil_symbol))
             .expect("the coil's copy")
             .clone();
-        let entry = q.get::<ew_derive::PageOrder>(()).entries[0].clone();
-        let language = ew_api::output::page_view(&q, &entry).language;
-        ew_scene::forms::ml_text(&copy.item.name, language.as_ref()).to_owned()
+        ew_derive::text_in(&copy.item.name, ew_derive::print_language(&q).as_ref()).to_owned()
     };
     // The symbol's name in words, a character a DXF name cannot hold as `_`, and its variant.
     let held: String = name
@@ -442,4 +440,40 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
         .find(|b| b.name == coil_insert.block)
         .expect("the coil's block");
     assert!(coil_block.tag.is_some(), "the TAG definition is the tag slot");
+}
+
+/// A symbol named in many languages, as a QElectroTech element is (`ar`, `en`, `nl`), names its block in the project's
+/// language: an English project's in English, a Dutch one's in Dutch, and a project that names no language in English,
+/// not in the first language of the name.
+#[test]
+fn a_block_is_named_in_the_projects_language_else_in_english() {
+    let names = |language: Option<&str>| -> BTreeSet<String> {
+        let (mut project, records, mut lib) = common::sample_records();
+        project.languages = language.map(|l| serde_json::from_value(json!({"source": l})).expect("languages"));
+        for doc in &mut lib {
+            if let ew_schema::LibDocument::Symbol(s) = doc {
+                s.item.name = serde_json::from_value(json!({"ar": "رمز", "en": "Symbol", "nl": "Symbool"}))
+                    .expect("a name");
+            }
+        }
+        let s = common::session_of(project, records, lib);
+        let options = ExportOptions {
+            pages: ew_api::output::PageSelection::parse("101").expect("a folio"),
+            ..ExportOptions::default()
+        };
+        let dxf = s.export_dxf(&options, &DxfLayers::default(), false).expect("the DXF set");
+        entities(&dxf.files[0].text)
+            .iter()
+            .filter(|e| get(e, 0) == Some("BLOCK"))
+            .filter_map(|e| get(e, 2))
+            .filter(|n| !n.starts_with('*'))
+            .map(|n| n.split(' ').next().unwrap_or_default().to_owned())
+            // The blocks of the renamed symbols (a junction's symbol is no copy of the project's).
+            .filter(|w| ["رمز", "Symbol", "Symbool"].contains(&w.as_str()))
+            .collect()
+    };
+    let words = |w: &str| BTreeSet::from([w.to_owned()]);
+    assert_eq!(names(Some("en")), words("Symbol"));
+    assert_eq!(names(Some("nl")), words("Symbool"));
+    assert_eq!(names(None), words("Symbol"));
 }

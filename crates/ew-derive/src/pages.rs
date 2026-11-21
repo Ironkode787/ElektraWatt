@@ -45,17 +45,23 @@ pub fn map_ml(src: &MlText, f: impl Fn(&str) -> String) -> MlText {
 }
 
 /// The text of `src` printed in `lang` (doc 09 §4.7): the neutral text; else the string of exactly `lang`; else of
-/// its language (`nl-NL` for `nl`, `nl` for `nl-NL`); else the first language in tag order; else empty.
+/// its language (`nl-NL` for `nl`, `nl` for `nl-NL`); else English's, by the same rule; else the first language in
+/// tag order; else empty. A text in many languages (a QElectroTech element's name: `ar`, `cs`, `de`, `en` …) thus
+/// prints in English, not in the first of them, where `lang` is absent or not among its languages.
 pub fn text_in<'a>(src: &'a MlText, lang: Option<&LangTag>) -> &'a str {
     if let Some(n) = src.as_neutral() {
         return n;
     }
-    let same_language = |l: &LangTag| {
-        src.languages()
-            .find(|t| t.language().eq_ignore_ascii_case(l.language()))
-            .and_then(|t| src.get(t))
+    let in_language = |l: &LangTag| {
+        src.get(l).or_else(|| {
+            src.languages()
+                .find(|t| t.language().eq_ignore_ascii_case(l.language()))
+                .and_then(|t| src.get(t))
+        })
     };
-    lang.and_then(|l| src.get(l).or_else(|| same_language(l)))
+    let english = "en".parse::<LangTag>().ok();
+    lang.and_then(in_language)
+        .or_else(|| english.as_ref().and_then(in_language))
         .or_else(|| src.languages().next().and_then(|l| src.get(l)))
         .unwrap_or_default()
 }
@@ -707,5 +713,28 @@ impl Query for DrawnPageOrder {
         let mut fixed = Base::new(q).fixed;
         fixed.sort_by(|a, b| a.0.cmp(&b.0));
         Arc::new(PageOrderV::new(fixed, 0, true, BTreeMap::new()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tag(s: &str) -> LangTag {
+        s.parse().expect("a language tag")
+    }
+
+    /// A text in many languages prints in the asked one (or its language), else in English, else in the first.
+    #[test]
+    fn a_text_prints_in_its_language_else_in_english_else_in_the_first() {
+        let name = MlText::from_langs([(tag("ar"), "رمز"), (tag("en"), "Coil"), (tag("nl"), "Spoel")]);
+        assert_eq!(text_in(&name, Some(&tag("en"))), "Coil");
+        assert_eq!(text_in(&name, Some(&tag("nl"))), "Spoel");
+        assert_eq!(text_in(&name, Some(&tag("nl-BE"))), "Spoel");
+        assert_eq!(text_in(&name, Some(&tag("de"))), "Coil");
+        assert_eq!(text_in(&name, None), "Coil");
+        let no_english = MlText::from_langs([(tag("cs"), "Cívka"), (tag("de"), "Spule")]);
+        assert_eq!(text_in(&no_english, None), "Cívka");
+        assert_eq!(text_in(&MlText::neutral("K"), Some(&tag("nl"))), "K");
     }
 }

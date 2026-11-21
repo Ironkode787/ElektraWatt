@@ -1054,6 +1054,10 @@ Every report block and navigator table exports from its `RowSet` with exactly th
   `RowSet` formatting with another display language (FR-I18N-005, 1.0). Identifiers never change (FR-I18N-002).
 - **Stacked texts.** Function texts may print "NL / EN" in one field via `ml(stacked: …)` (FR-I18N-004).
 - **Fallback.** A missing translation prints the source text and appears in the `untranslated` report.
+  *As built (`ew_derive::text_in`, every output's one rule):* a text prints in the project's language: its neutral
+  text, else the string of that language (or of its language, `nl` for `nl-NL`), else English's, else the first
+  language's in tag order. A text in many languages (a QElectroTech element's name: `ar`, `cs`, `de`, `en` …) thus
+  prints in English where the project names no language or the text lacks it, not in the first of them (FT-1877).
 - **Language-independent pagination.** With the default fixed-height rows (§3.2), every language yields the same
   page set, folios, TOC and links, so AC-42 holds: only translated texts differ. A block with wrapping enabled may
   paginate differently per language; the export then warns and lists the page-count differences (FR-REP-049).
@@ -1227,8 +1231,9 @@ object works on Windows only and no converter keeps it), so:
 
 - *A symbol as placed is a block*: one per symbol and variant, the geometry the page draws (`symbol_geometry(symbol,
   variant)`, a black box with its own outline a block of its own), inserted where the representation stands at the
-  page-to-sheet scale; a junction's symbol likewise. The block is named in words: the symbol's name in the export's
-  language and its variant (`Coil R0`, `NO contact M90`), a character a DXF name cannot hold as `_`; a second geometry
+  page-to-sheet scale; a junction's symbol likewise. The block is named in words: the symbol's name in the project's
+  language as §4.7 prints a text (else English, else the first language of the name) and its variant (`Coil R0`,
+  `NO contact M90`), a character a DXF name cannot hold as `_`; a second geometry
   of the same name takes ` 2`, ` 3`, in the order of its key, alike in every file of the set; a geometry whose symbol
   the page names nowhere keeps the name `EW_<symbol id>_<variant letter>`. The symbol's own fixed texts (the "M" of a
   motor) are in its block, as its first insert on the page draws them; an insert whose own texts differ from them by

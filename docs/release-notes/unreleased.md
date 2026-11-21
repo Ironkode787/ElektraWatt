@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a text in many languages that lacks the project's language, or in a project that names none,
+  prints in English before falling back to its first language in tag order (an element brought in from QElectroTech
+  named in `ar`, `cs`, `de`, `en` … no longer prints, or names its DXF block, in Arabic) (doc 09 §4.7)
 - behaviour-change: `ew export dxf` writes AutoCAD 2010 (AC1024, UTF-8) files that are the PDF's pages: a symbol is a
   block named in words (`Coil R0`) holding its own texts, a device's texts are the attributes of its insert (`TAG`,
   `FUNCTION_TEXT`, `CROSS_REFERENCE`, `DESIGNATION_1` …), a cross-reference links to its target's page file

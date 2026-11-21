@@ -583,6 +583,7 @@ pub fn export_dxf_with(
     let mut sheets = Vec::with_capacity(picked.len());
     let mut findings = Vec::new();
     let mut symbol_names = BTreeMap::new();
+    let language = ew_derive::print_language(q);
     let mut decodes: BTreeMap<[u8; 32], bool> = BTreeMap::new();
     for &i in &picked {
         let entry = &order.entries[i];
@@ -595,7 +596,7 @@ pub fn export_dxf_with(
         let (labels, attributes) = match entry.page {
             ew_derive::PageRef::Drawn(_) => {
                 let view = page_view(q, entry);
-                dxf_set::symbol_names(&view, &mut symbol_names);
+                dxf_set::symbol_names(&view, language.as_ref(), &mut symbol_names);
                 let labels = page_layer(q, entry.page, ew_dl::Layer::Labels);
                 let (kept, attributes) = dxf_set::split_attributes(&view, &labels.slot_texts, &labels.list);
                 (Some(kept), attributes)
