@@ -23,6 +23,8 @@ change here.
   lower than those of its top and bottom sides: a grip stops there (doc 06 §8 item 13, FT-1839)
 - behaviour-change: a drag that starts on a pin's label of a symbol that is not selected moves the label alone, as a
   drag at its tag does; it moved the symbol (doc 06 §2.5, FT-1796)
+- behaviour-change: the readout of a move (`dx 0.000 dy 4.000 mm`) says what the move does on the page; on a page
+  drawn smaller onto its sheet it read a part of a step short (`dy 3.945`) (FT-1818)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit

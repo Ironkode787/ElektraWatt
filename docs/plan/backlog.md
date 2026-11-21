@@ -80,7 +80,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The grid fit and moves
 
-- FT-1818 `ew-viewmodel`: With a fitted symbol (its first pin on the grid, its position between grid points) the first arrow key moves the ghost a part of a step in the readout, while the move itself is whole steps.
 - FT-1836 `ew-viewmodel, ew-scene`: While a wire's pin name is asked (a wire drawn to a box's edge where no pin is), the wire's ghost is hidden; show it until the name is given.
 - FT-1780 `ew-scene, ew-viewmodel`: A selected wire does not mark its two ends.
 

@@ -46,9 +46,10 @@ pub fn sheet_offset(cx: &ToolCx<'_>, steps: (i64, i64)) -> (i64, i64) {
     )
 }
 
-/// The readout of a move: `dx 7.938 dy 0.000 mm`, the sheet displacement of the steps.
+/// The readout of a move: `dx 7.938 dy 0.000 mm`, what the move does on the page: the page displacement of the steps
+/// as [`rep_delta`] gives it (the sheet's would read a page drawn smaller onto its sheet a part of a step short).
 pub fn readout(cx: &ToolCx<'_>, steps: (i64, i64)) -> String {
-    let (dx, dy) = sheet_offset(cx, steps);
+    let (dx, dy) = rep_delta(cx, (0, 0), steps);
     strings::format(key!("move-readout"), &[&mm3(dx), &mm3(dy)])
 }
 
