@@ -34,8 +34,10 @@ use ew_mltext::Ident;
 use ew_schema::{ImportLineage, LibDocument, LineageAnchor, Project, Record, Sha256};
 
 use crate::element::{ElementImport, ElementSource, LINEAGE_KEY, read_on_stack};
+use crate::symbol_map::{Binding, SymbolMap};
 
 pub(crate) mod builtins;
+pub(crate) mod cables;
 pub(crate) mod cx;
 pub(crate) mod elements;
 pub(crate) mod frames;
@@ -71,6 +73,8 @@ pub fn new_project_context() -> ImportContext {
 #[derive(Clone, Debug, Default)]
 pub struct QetProjectImporter {
     builtins: Builtins,
+    /// The person's symbol map (doc 14 §4.17); empty without one.
+    map: SymbolMap,
 }
 
 impl QetProjectImporter {
@@ -84,7 +88,13 @@ impl QetProjectImporter {
     pub fn with_library(docs: impl IntoIterator<Item = LibDocument>) -> QetProjectImporter {
         QetProjectImporter {
             builtins: Builtins::new(docs),
+            map: SymbolMap::default(),
         }
+    }
+
+    /// The importer that binds the element definitions `map` names (doc 14 §4.17).
+    pub fn with_map(self, map: SymbolMap) -> QetProjectImporter {
+        QetProjectImporter { map, ..self }
     }
 }
 
@@ -120,6 +130,8 @@ impl QetProjectImporter {
 pub(crate) struct Def {
     /// The reader's result; `None` when the definition was refused (reported).
     pub import: Option<ElementImport>,
+    /// The symbol map's row that bound it (doc 14 §4.17).
+    pub binding: Option<Binding>,
 }
 
 impl QetProjectImporter {
@@ -219,7 +231,34 @@ impl QetProjectImporter {
                 }
                 None => None,
             };
-            defs.insert(d.path.clone(), Def { import });
+            // The symbol map's row of the definition binds it (doc 14 §4.17); a row that does not fit refuses the
+            // import in words.
+            let mut import = import;
+            let binding = import.as_mut().and_then(|el| {
+                let uuid = el
+                    .symbol
+                    .item
+                    .meta
+                    .sources
+                    .iter()
+                    .find_map(|s| s.strip_prefix("qet.uuid:"))
+                    .map(str::to_owned);
+                let b = self.map.binding(&d.path, uuid.as_deref())?;
+                Some((el, b.clone()))
+            });
+            let binding = match binding {
+                Some((el, b)) => {
+                    let name = d.path.rsplit('/').next().unwrap_or(&d.path);
+                    el.bind(&b, lineage.namespace, name)
+                        .map_err(|message| ImportError::Malformed {
+                            message: format!("{}, line {}: {message}", crate::MAP_FILE, b.line),
+                            line: None,
+                        })?;
+                    Some(b)
+                }
+                None => None,
+            };
+            defs.insert(d.path.clone(), Def { import, binding });
         }
 
         let mut used_builtins: BTreeSet<String> = BTreeSet::new();
@@ -246,6 +285,21 @@ impl QetProjectImporter {
             &mut used_builtins,
             &mut findings,
         );
+        // The symbol map's rows (doc 14 §4.17): the starter FnDefs they bind travel with the batch.
+        for b in self.map.rows() {
+            let message = match mapped.bound.get(&b.line) {
+                Some(n) => {
+                    used_builtins.insert(b.key.clone());
+                    format!("{}, line {}: {n} elements bound to `{}`", crate::MAP_FILE, b.line, b.key)
+                }
+                None => format!(
+                    "{}, line {}: no element of this set uses the definition it names",
+                    crate::MAP_FILE,
+                    b.line
+                ),
+            };
+            findings.file_level(Code::ALIAS_MAPPED, Severity::Info, message);
+        }
         if mapped.chain_pairs {
             pages.project.settings.ip_pairing = Some(ew_schema::IpPairing {
                 mode: ew_schema::IpPairingMode::Chain,
@@ -281,11 +335,14 @@ impl QetProjectImporter {
                 items::map(d, p.id, page, &ids, &mut fonts_seen, &mut findings, &mut items);
             }
         }
-        let wired = wires::map_conductors(&project, &mapped.registry, &ids, &mut findings);
+        let mut wired = wires::map_conductors(&project, &mapped.registry, &ids, &mut findings);
+        // The wires a cable's marks cross become its cores (doc 14 §4.11).
+        let cores = cables::cores(&mapped.cables, &mut wired.connections, &ids);
 
         records.extend(pages.records.iter().cloned());
         records.extend(mapped.records);
         records.extend(items.records);
+        records.extend(cores.into_iter().map(Record::Conductor));
         records.extend(wired.connections.into_iter().map(Record::Connection));
         records.extend(wired.junctions.into_iter().map(Record::Junction));
 

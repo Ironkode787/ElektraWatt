@@ -1,14 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Function semantics of an element definition (doc 14 §4.3 "Function semantics", steps 2–4; step 1, the
-//! `symbol-map.csv`, is a later work package).
+//! Function semantics of an element definition (doc 14 §4.3 "Function semantics", steps 2–4; step 1, the person's
+//! `symbol-map.csv`, is [`crate::symbol_map`], which binds a definition to a starter FnDef instead).
 //!
 //! [`resolve`] decides, in this order:
 //!
 //! 0. **Link type.** `next_report` and `previous_report` reference the built-in interruption-point FnDef
 //!    ([`crate::IP_FNDEF_KEY`]); nothing is generated. `thumbnail` is a graphic: category
-//!    `Graphic / QET / Thumbnail`, black box, no finding.
+//!    `Graphic / QET / Thumbnail`, black box, no finding. A `terminal` that is no terminal of a strip: in a
+//!    connections category (`114_connections`, QET's T junctions) `Junction / QET / Connection`, which the project
+//!    importer makes a junction; with one terminal and an earth name in its path (`terre`, `earth`, `ground`) an
+//!    earth point `EarthingBar / ProtectiveEarth / Point`, its CP of potential role PE, a device of its own (doc 14
+//!    §4.7, §4.11).
 //! 1. **`kindInformations`** (by the `type`, `state` and `function` entries) for the link types that carry
 //!    them:
 //!
@@ -292,6 +296,31 @@ pub fn resolve(
             terminals,
         ));
     }
+    // A terminal of QET's that is no terminal of a strip (doc 14 §4.7, §4.11): a junction element of the connections
+    // category (`114_connections`: the T junctions `thruright` …) joins its wires; an earth symbol (one terminal, an
+    // earth name: `terre`, `earth`, `ground`) is a protective earth point.
+    if link_type == "terminal" && path.is_some_and(|p| path_names(p, &["connections"])) {
+        return Resolution::Generated(generated(
+            ["Junction", "QET", "Connection"],
+            ContactKindName::Terminal,
+            InternalRule::ShortChain,
+            None,
+            terminals,
+        ));
+    }
+    if link_type == "terminal"
+        && terminals == 1
+        && path.is_some_and(|p| path_names(p, &["terre", "earth", "ground"]))
+    {
+        // The category of an earth point (`EarthingBar / <kind> / Point`, as the starter's `ew.fn.pe`).
+        return Resolution::Generated(generated(
+            ["EarthingBar", "ProtectiveEarth", "Point"],
+            ContactKindName::Terminal,
+            InternalRule::None,
+            Some(PotentialType::Pe),
+            terminals,
+        ));
+    }
     if let Some(r) = from_kind_informations(link_type, kind, terminals) {
         return Resolution::Generated(r);
     }
@@ -389,11 +418,12 @@ fn from_kind_informations(
     }
 }
 
-/// Step 2: the first table row matching a segment of `path`.
-pub fn category_row(path: &str) -> Option<&'static CategoryRow> {
+/// The segments of a collection path as the keywords are matched in them: lower-cased, a leading `nn_` order prefix
+/// removed, from the last (the file name) to the first.
+fn segments(path: &str) -> Vec<String> {
     let path = path.strip_prefix("embed://").unwrap_or(path);
-    let segments: Vec<String> = path
-        .split('/')
+    path.split('/')
+        .rev()
         .filter(|s| !s.is_empty())
         .map(|s| {
             let s = s.to_lowercase();
@@ -403,10 +433,20 @@ pub fn category_row(path: &str) -> Option<&'static CategoryRow> {
                 _ => s,
             }
         })
-        .collect();
-    segments
+        .collect()
+}
+
+/// Whether a segment of `path` contains one of `keywords`.
+fn path_names(path: &str, keywords: &[&str]) -> bool {
+    segments(path)
         .iter()
-        .rev()
+        .any(|seg| keywords.iter().any(|k| seg.contains(k)))
+}
+
+/// Step 2: the first table row matching a segment of `path`.
+pub fn category_row(path: &str) -> Option<&'static CategoryRow> {
+    segments(path)
+        .iter()
         .find_map(|seg| CATEGORY_TABLE.iter().find(|row| seg.contains(row.keyword)))
 }
 

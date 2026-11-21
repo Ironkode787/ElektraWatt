@@ -52,3 +52,13 @@ change here.
   placement, and a symbol it does not find is refused as unknown, no longer as a missing parameter (FT-1860)
 - behaviour-change: `ew import parts` and File ▸ Import ▸ Parts table… take a function template that names a function
   definition of the project's own by its key; it was refused as an unknown FnDef (FT-1860)
+- behaviour-change: a `symbol-map.csv` beside a QElectroTech file binds its element definitions to starter coils,
+  contacts, terminals and interruption points (columns `element`, `function`, `cps`, `tag`, `number`, `xref`): the
+  element keeps its drawing, place and texts, its terminals become the function's connection points, its tag and a
+  terminal's number text follow the project, so a device of the set can take a part; File ▸ Import…, Re-import and
+  `ew import qet` read it, and a wrong row refuses the import in words (doc 14 §4.17, FT-1869)
+- behaviour-change: the QElectroTech import makes the wired cabinet a person would draw: a T junction element joins
+  its wires as a junction and an earth symbol is an earth point (both were terminals of inferred strips), terminals
+  without a header on a second folio go on with the strip of the folio before, cable marks labelled with a W tag
+  become a cable whose cores are the wires they cross, and a stored route with a corner between the grid's lines
+  keeps its way (the corner moves to the half grid; QET's automatic path replaced it) (FT-1861)

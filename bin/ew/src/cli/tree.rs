@@ -384,7 +384,9 @@ enum Import {
     /// earlier import of the project. With `--batch <dir> --out <dir>` every `.qet` of the first directory is
     /// imported as a new project `<out>/<name>/` with its migration report `<out>/<name>.report.md`, and the summary
     /// `<out>/summary.md`; a file that cannot be imported is a row of the summary, and `--strict` exits 1 when any
-    /// project lost a connection or has an error finding.
+    /// project lost a connection or has an error finding. A `symbol-map.csv` beside the file (columns `element`,
+    /// `function`, `cps`, `tag`, `number`, `xref`) binds its element definitions to starter coils, contacts, terminals
+    /// and interruption points, keeping their drawing, place and texts; a wrong row exits 2 and imports nothing.
     Qet(ImportQetArgs),
     /// Copy the parts of a parts table into the project.
     ///

@@ -467,6 +467,77 @@ impl ElementImport {
         self.symbol.item.text_slots.extend(slots);
         self.symbol.sha256 = item_sha256(&self.symbol.item);
     }
+
+    /// The definition bound by the symbol map's row `b` (doc 14 §4.17): its symbol names the row's starter FnDef, each
+    /// terminal the CP the row gives it, and no FnDef is generated; the symbol is another item than the unmapped one
+    /// (its key carries the row's FnDef and CPs), so a re-import adds it beside the copy the project holds.
+    ///
+    /// # Errors
+    ///
+    /// The refusal in words when the row's CPs do not fit the definition's terminals.
+    pub(crate) fn bind(
+        &mut self,
+        b: &crate::symbol_map::Binding,
+        namespace: Uuid,
+        name: &str,
+    ) -> Result<(), String> {
+        let terminals = self.symbol.item.cps.as_slice().len();
+        let fn_cps: Vec<u16> = match &b.cps {
+            Some(cps) if cps.len() == terminals => cps.clone(),
+            Some(cps) => {
+                return Err(format!(
+                    "{name} has {terminals} terminals; the row names {} connection points",
+                    cps.len()
+                ));
+            }
+            None => {
+                let own: Vec<u16> = b.fndef.item.cps.iter().map(|c| c.idx).collect();
+                if terminals > own.len() {
+                    return Err(format!(
+                        "{name} has {terminals} terminals and `{}` {} connection points: name them in `cps`",
+                        b.key,
+                        own.len()
+                    ));
+                }
+                own[..terminals].to_vec()
+            }
+        };
+        let cps: Vec<SymbolCp> = self
+            .symbol
+            .item
+            .cps
+            .as_slice()
+            .iter()
+            .zip(&fn_cps)
+            .map(|(cp, f)| SymbolCp {
+                fn_cp: *f,
+                ..cp.clone()
+            })
+            .collect();
+        self.symbol.item.cps = KeyedList::from_vec(cps).map_err(|e| e.to_string())?;
+        let mut extra = BTreeMap::new();
+        extra.insert("key".to_owned(), Value::String(b.key.clone()));
+        self.symbol.item.fndef = LibRef {
+            library: Id::from_uuid(b.fndef.library_id.as_uuid()),
+            item: Id::from_uuid(b.fndef.item_id.as_uuid()),
+            version_req: crate::BUILTIN_VERSION_REQ.to_owned(),
+            extra,
+        };
+        let list: Vec<String> = fn_cps.iter().map(u16::to_string).collect();
+        self.symbol
+            .item
+            .meta
+            .sources
+            .push(format!("qet.map:{}:{}", b.key, list.join(" ")));
+        let item: Id<LibItem> = v5::imported_id(namespace, &format!("{}#map:{}:{}", self.key, b.key, list.join(" ")));
+        self.symbol.item_id = item;
+        self.symbol.id = v5::lib_copy_id(self.symbol.library_id.as_uuid(), item.as_uuid());
+        self.symbol.sha256 = item_sha256(&self.symbol.item);
+        self.fndef = None;
+        // No generic black box stands for it any more.
+        self.entries.retain(|e| e.code != ew_interop_api::Code::BLACK_BOX);
+        Ok(())
+    }
 }
 
 /// The importer of standalone `.elmt` element definition files.

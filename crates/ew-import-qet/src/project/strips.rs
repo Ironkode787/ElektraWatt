@@ -13,8 +13,12 @@
 //!    following elements of the line join it. Lines are per folio: elements turned a quarter (orientation 1
 //!    or 3) stack vertically and form a column per x, the others a row per y. The header itself is a
 //!    terminal of its strip.
-//! 3. **Fallback**: every other terminal element of a folio joins the strip `X?<page>` of that folio
+//! 3. **The folio before**: on a folio without any header or label prefix, a terminal joins the strip the folio
+//!    before it (in file order) names last: a strip drawn on over a second folio (EW-IMP-005, for review).
+//! 4. **Fallback**: every other terminal element of a folio joins the strip `X?<page>` of that folio
 //!    (EW-IMP-005, for review).
+//!
+//! A junction element and an earth symbol, which QET files as terminals too, are no terminals ([`crate::fndef`]).
 //!
 //! A strip is identified by its own designation **including the structure prefix** (`+A-X1` and `+B-X1`
 //! are two strips; source key `qet:strip:<structure>-<product>`), the fallback strip by its folio key
@@ -112,14 +116,39 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
         let cross = if vertical { e.pos.x.0 } else { e.pos.y.0 };
         lines.entry((e.diagram, vertical, cross)).or_default().push(e);
     }
-    let mut order: Vec<StripKey> = Vec::new();
-    let mut strips: BTreeMap<StripKey, StripInfo<'_, '_>> = BTreeMap::new();
-    for (line, mut members) in lines {
-        let vertical = line.1;
+    for ((_, vertical, _), members) in &mut lines {
+        let vertical = *vertical;
         members.sort_by_key(|e| {
             let along = if vertical { e.pos.y.0 } else { e.pos.x.0 };
             (along, e.key.clone())
         });
+    }
+    // The strip a folio's lines name last (by header or label prefix), per folio: a folio without one continues the
+    // strip the folio before it named last (a strip drawn on over a second folio, FT-1861).
+    let mut named_last: BTreeMap<usize, StripKey> = BTreeMap::new();
+    for ((diagram, _, _), members) in &lines {
+        for e in members {
+            match e.el.info_nonempty("label") {
+                Some(l) if l.contains(':') => {
+                    named_last.insert(*diagram, named(l.split_once(':').map_or(l, |(s, _)| s)));
+                }
+                Some(l) if is_strip_label(l) => {
+                    named_last.insert(*diagram, named(l));
+                }
+                _ => {}
+            }
+        }
+    }
+    let continued = |d: usize| {
+        (!named_last.contains_key(&d))
+            .then(|| d.checked_sub(1).and_then(|p| named_last.get(&p)))
+            .flatten()
+            .cloned()
+    };
+    let mut carried: BTreeMap<usize, (StripKey, u32)> = BTreeMap::new();
+    let mut order: Vec<StripKey> = Vec::new();
+    let mut strips: BTreeMap<StripKey, StripInfo<'_, '_>> = BTreeMap::new();
+    for (line, members) in lines {
         let mut header: Option<StripKey> = None;
         for e in members {
             let label = e.el.info_nonempty("label");
@@ -155,7 +184,14 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
                     );
                 }
                 _ => {
-                    let key = header.clone().unwrap_or(StripKey::Fallback(e.diagram));
+                    let key = match (&header, continued(e.diagram)) {
+                        (Some(h), _) => h.clone(),
+                        (None, Some(on)) => {
+                            carried.entry(e.diagram).or_insert((on.clone(), 0)).1 += 1;
+                            on
+                        }
+                        (None, None) => StripKey::Fallback(e.diagram),
+                    };
                     add(
                         &mut strips,
                         &mut order,
@@ -170,6 +206,20 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
                 }
             }
         }
+    }
+    for (d, (key, n)) in carried {
+        let folio = mx.folio(d).to_owned();
+        let loc = mx.findings.loc(Some(&folio), None, None);
+        let StripKey::Named { structure, product } = key else { continue };
+        mx.findings.push(
+            Code::imp(5),
+            Severity::Warning,
+            loc,
+            format!(
+                "{n} terminal elements without a strip header on this folio continue strip {structure}-{product} of \
+                 the folio before"
+            ),
+        );
     }
 
     for key in order {
@@ -243,8 +293,10 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
             seq += 1;
             let mut textra = BTreeMap::new();
             let label = e.el.info_nonempty("label");
-            let found = m
-                .designation
+            // A terminal the symbol map binds takes its number from the text its row names (doc 14 §4.17).
+            let number = e.binding.and_then(|b| e.text_of(&b.number));
+            let found = number
+                .or(m.designation)
                 .or_else(|| user_text(e.el))
                 .or(label.filter(|l| !is_strip_label(l) && !l.contains(':')));
             let designation = match found.map(|d| (d, Ident::from_input(d))) {
@@ -260,13 +312,17 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
                     seq_ident(seq)
                 }
             };
-            let Some(def) = e.import.fndef.as_ref().map(|f| f.id) else {
+            let Some(def) = e.def() else {
                 mx.drop_element(
                     e,
                     "the terminal definition references a built-in function definition",
                 );
                 continue;
             };
+            // Its number text prints the terminal's number from now on, as the terminal's tag.
+            if number.is_some_and(|n| n.trim() == designation.as_str()) {
+                mx.live.insert(e.ek.clone());
+            }
             let dkey = format!("qet:el:{}", e.ek);
             let device = mx.device(
                 &dkey,

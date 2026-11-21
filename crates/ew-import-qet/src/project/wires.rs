@@ -277,10 +277,32 @@ fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry, ix: &CopyIndex
 
 /// The page position of a resolved end, if known.
 fn end_pos(r: &Resolved<'_>) -> Option<Pt2> {
+    let terminal = r.placed.terminals.get(r.index).and_then(|t| t.page_pos);
     match &r.placed.target {
-        Target::Junction { at, .. } => Some(*at),
-        _ => r.placed.terminals.get(r.index).and_then(|t| t.page_pos),
+        Target::Junction { at, .. } => terminal.or(Some(*at)),
+        _ => terminal,
     }
+}
+
+/// `route` (between the ends' terminals) run on to the junction's point where an end is a junction element of several
+/// terminals whose terminal stands apart from it: the stroke QET's element draws from its middle to that terminal
+/// becomes the wire's (doc 14 §4.7). An unrouted wire stays unrouted.
+fn to_junctions(route: Vec<Pt2>, ends: [&Resolved<'_>; 2]) -> Vec<Pt2> {
+    let stub = |r: &Resolved<'_>| match &r.placed.target {
+        Target::Junction { at, .. } => end_pos(r).filter(|p| p != at).map(|_| *at),
+        _ => None,
+    };
+    let (a, b) = (stub(ends[0]), stub(ends[1]));
+    if a.is_none() && b.is_none() {
+        return route;
+    }
+    // Two terminals that touch have no route of their own; the strokes to the junction are one.
+    let route = match (route.is_empty(), end_pos(ends[0]), end_pos(ends[1])) {
+        (false, _, _) => route,
+        (true, Some(p), Some(q)) if whole(p) == whole(q) => vec![p, q],
+        (true, _, _) => return route,
+    };
+    tidy(a.into_iter().chain(route).chain(b))
 }
 
 /// The page position of a resolved end with the direction a wire leaves it (a junction's: its terminal's).
@@ -337,10 +359,17 @@ fn finish(points: impl IntoIterator<Item = Pt2>, a: Pt2, b: Pt2) -> Vec<Pt2> {
     route
 }
 
+/// The half step of the QET page grid, 5 px: where `connection.route` takes a corner (`ew_commands::geometry::
+/// on_half_grid`).
+fn half_grid() -> Grid {
+    Grid::new(Grid::QET_10PX.num(), Grid::QET_10PX.den() * 2).unwrap_or(Grid::QET_10PX)
+}
+
 /// The stored path of a conductor drawn from end 1 at `a` through `segments` to end 2 at `b`, both ends
 /// included: `a`, the point after each segment but the last, then `b`. A corner coordinate that names the same
 /// QET px as an end's coordinate takes that end's [`whole_px`] value (the tables importer's rule), any other the
-/// whole QET px nearest to it, and the route is [`finish`]ed. `None` (QET draws its automatic path) without segments,
+/// position of the half grid (5 px) nearest to it, so that a path QET stores between the grid's lines keeps its way
+/// (FT-1861: such corners moved at most 2.5 px), and the route is [`finish`]ed. `None` (QET draws its automatic path) without segments,
 /// when the segments do not end within 1 px of `b` on both axes (QET's own coherence test,
 /// `Conductor::pathFromXml`), a length does not convert or the arithmetic overflows.
 fn stored_route(a: Pt2, b: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
@@ -356,7 +385,7 @@ fn stored_route(a: Pt2, b: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
     let snap = |v: Nm, ends: [Nm; 2]| {
         ends.into_iter()
             .find(|e| px(*e) == px(v))
-            .or_else(|| Grid::QET_1PX.snap_point(v))
+            .or_else(|| half_grid().snap_point(v))
             .unwrap_or(v)
     };
     let corners = points
@@ -387,7 +416,7 @@ fn tidy(points: impl IntoIterator<Item = Pt2>) -> Vec<Pt2> {
 
 /// Why `route` (from `a` to `b`, [`tidy`]) is no route `connection.route` accepts on a QET page
 /// (`ew_commands::geometry::require_route`), in words, and is not drawn right-angled; `None` when it is one: every
-/// segment horizontal or vertical (within [`ROUNDING`]), every coordinate on the 10 px grid or equal to that
+/// segment horizontal or vertical (within [`ROUNDING`]), every coordinate on the half grid (5 px) or equal to that
 /// coordinate of an end, and no segment running over another.
 fn route_problem(route: &[Pt2], a: Pt2, b: Pt2) -> Option<&'static str> {
     let level = |u: Nm, v: Nm| (i128::from(u.0) - i128::from(v.0)).abs() <= i128::from(ROUNDING);
@@ -397,13 +426,13 @@ fn route_problem(route: &[Pt2], a: Pt2, b: Pt2) -> Option<&'static str> {
     {
         return Some("a segment is neither horizontal nor vertical");
     }
-    let g = Grid::QET_10PX;
+    let g = half_grid();
     let fits = |v: Nm, ends: [Nm; 2]| ends.contains(&v) || g.snap_point(v) == Some(v);
     if !route
         .iter()
         .all(|p| fits(p.x, [a.x, b.x]) && fits(p.y, [a.y, b.y]))
     {
-        return Some("a corner is off the 10 px grid");
+        return Some("a corner is off the 5 px grid");
     }
     // Per line (horizontal or not, its constant coordinate at the whole px), the segments' intervals in order: one
     // that starts before the furthest end so far runs over an earlier one.
@@ -907,6 +936,7 @@ fn map_conductors_counted(
                 },
             };
             let (route, note) = wire_route(end_at(&e1), end_at(&e2), &c.segments);
+            let route = to_junctions(route, [&e1, &e2]);
             if let Some(note) = note {
                 let loc = findings.loc(folio, item(), Some(c.line));
                 findings.push(Code::imp(9), Severity::Warning, loc, note);
@@ -1378,8 +1408,10 @@ mod tests {
             route_problem(&[a, b], a, b),
             Some("a segment is neither horizontal nor vertical")
         );
-        let off = [a, at(55, 0), at(55, 50), b];
-        assert_eq!(route_problem(&off, a, b), Some("a corner is off the 10 px grid"));
+        // A corner on the half grid (5 px) is one `connection.route` takes; one between its lines is not.
+        assert_eq!(route_problem(&[a, at(55, 0), at(55, 50), b], a, b), None);
+        let off = [a, at(53, 0), at(53, 50), b];
+        assert_eq!(route_problem(&off, a, b), Some("a corner is off the 5 px grid"));
         // Out along y = 0, down, back along y = 50 past the start, up, and over the first segment again.
         let around = [
             at(0, 0),
@@ -1467,20 +1499,39 @@ mod tests {
             ),
             (l_shape.clone(), None)
         );
-        // A stored corner off the 10 px grid: the automatic path, with a finding.
-        let off = [seg(false, "25"), seg(true, "100"), seg(false, "35")];
-        let (route, note) = wire_route(Some((a, down.clone())), Some((b, left.clone())), &off);
+        // FT-1861: a stored corner between the grid's lines keeps the stored way, on the half grid (5 px): at 125 px as
+        // stored, and from 126.67 px moved to 125 px; no finding.
+        let kept = vec![a, at(100, 125), at(200, 125), b];
+        for (down_by, rest) in [("25", "35"), ("26.6667", "33.3333")] {
+            let off = [seg(false, down_by), seg(true, "100"), seg(false, rest)];
+            assert_eq!(
+                wire_route(Some((a, down.clone())), Some((b, left.clone())), &off),
+                (kept.clone(), None),
+                "{down_by}"
+            );
+        }
+        // A stored path that runs over itself: the automatic path, with a finding.
+        let over = [
+            seg(false, "20"),
+            seg(true, "150"),
+            seg(false, "20"),
+            seg(true, "-100"),
+            seg(false, "-20"),
+            seg(true, "50"),
+            seg(false, "40"),
+        ];
+        let (route, note) = wire_route(Some((a, down.clone())), Some((b, left.clone())), &over);
         assert_eq!(route, l_shape);
         assert_eq!(
             note.as_deref(),
-            Some("stored path not kept (a corner is off the 10 px grid); QET's automatic path used")
+            Some("stored path not kept (a segment runs over another); QET's automatic path used")
         );
         // Neither: unrouted, with the reason.
-        let (route, note) = wire_route(Some((a, None)), Some((b, left.clone())), &off);
+        let (route, note) = wire_route(Some((a, None)), Some((b, left.clone())), &over);
         assert!(route.is_empty());
         assert_eq!(
             note.as_deref(),
-            Some("wire left unrouted: a corner is off the 10 px grid")
+            Some("wire left unrouted: a segment runs over another")
         );
         let (route, note) = wire_route(Some((a, None)), Some((b, left.clone())), &[]);
         assert!(route.is_empty());

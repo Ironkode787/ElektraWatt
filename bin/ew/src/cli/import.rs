@@ -439,6 +439,15 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         eprintln!("error: `--batch` needs `--out <dir>` for the projects and reports");
         return 2;
     };
+    // The symbol map of the folder binds every file of it (doc 14 §4.17).
+    let library = match library.clone().with_symbol_map_beside(&dir.join(ew_api::import::MAP_FILE)) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let library = &library;
     let mut files: Vec<PathBuf> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
             .filter_map(Result::ok)
@@ -598,6 +607,14 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         || file.to_string_lossy().into_owned(),
         |n| n.to_string_lossy().into_owned(),
     );
+    // The symbol map beside the file binds its element definitions (doc 14 §4.17).
+    let library = match library.with_symbol_map_beside(file) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
     if let Some(project) = &a.into {
         return run_reimport_qet(a, project, &name, bytes, &library);
     }
@@ -627,6 +644,13 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         "report: {} findings, {} lost connections",
         report.total, report.lost_connections
     ));
+    if library.symbol_map_rows() > 0 {
+        say(format!(
+            "map: {} beside the file, {} rows; the report says what each row bound",
+            ew_api::import::MAP_FILE,
+            library.symbol_map_rows()
+        ));
+    }
     if !report.live.is_empty() {
         let n: u32 = report.live.iter().map(|g| g.count).sum();
         say(format!("checks: {n} lenient findings"));

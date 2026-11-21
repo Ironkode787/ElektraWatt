@@ -224,10 +224,12 @@ pub fn check_contract(batch: &ImportBatch, lineage: Option<&LineageInfo>) -> Res
     Ok(())
 }
 
-/// The built-in starter documents (symbols, FnDefs, forms) an import may reference.
+/// The built-in starter documents (symbols, FnDefs, forms) an import may reference, and the person's symbol map that a
+/// QElectroTech import binds element definitions by (doc 14 §4.17; empty without one).
 #[derive(Clone, Debug, Default)]
 pub struct StarterLibrary {
     docs: Vec<LibDocument>,
+    map: ew_import_qet::SymbolMap,
 }
 
 impl StarterLibrary {
@@ -243,7 +245,10 @@ impl StarterLibrary {
             .chain([QET_TITLE_BLOCK])
             .filter_map(|json| LibDocument::from_json(json).ok())
             .collect();
-        StarterLibrary { docs }
+        StarterLibrary {
+            docs,
+            map: ew_import_qet::SymbolMap::default(),
+        }
     }
 
     /// The documents of a starter content directory: every `*.json` of `fndefs`, `forms` and
@@ -272,7 +277,66 @@ impl StarterLibrary {
                 docs.push(doc);
             }
         }
-        Ok(StarterLibrary { docs })
+        Ok(StarterLibrary {
+            docs,
+            map: ew_import_qet::SymbolMap::default(),
+        })
+    }
+
+    /// The library with the symbol map `symbol-map.csv` that lies beside the QElectroTech file `file`, when there is one
+    /// (doc 14 §4.17): read in the `ew` CSV dialect (a leading byte-order mark is dropped, as the parts import drops it)
+    /// and checked against the starter FnDefs.
+    ///
+    /// # Errors
+    ///
+    /// The refusal in words, naming the file, the line and the column: a file that cannot be read or is larger than a
+    /// table may be, a table outside the dialect, a missing `element` or `function` column or an unknown one, and every
+    /// wrong row ([`ew_import_qet::SymbolMap::new`]).
+    pub fn with_symbol_map_beside(self, file: &Path) -> Result<StarterLibrary, String> {
+        use ew_import_qet::{MAP_FILE, MapRow, symbol_map::COLUMNS};
+        let path = file.parent().unwrap_or_else(|| Path::new(".")).join(MAP_FILE);
+        if !path.is_file() {
+            return Ok(self);
+        }
+        let limits = ew_import_tables::TableLimits::default();
+        let len = std::fs::metadata(&path).map_err(|e| format!("{MAP_FILE}: {e}"))?.len();
+        if len > limits.max_file_bytes {
+            return Err(format!("{MAP_FILE} is larger than a table may be ({len} bytes)"));
+        }
+        let text = std::fs::read_to_string(&path).map_err(|e| format!("{MAP_FILE}: {e}"))?;
+        let bytes = text.strip_prefix('\u{feff}').unwrap_or(&text).as_bytes();
+        let table = ew_import_tables::csv::parse(bytes, &limits).map_err(|e| format!("{MAP_FILE}: {e}"))?;
+        if let Some(unknown) = table.header.iter().find(|h| !COLUMNS.contains(&h.as_str())) {
+            return Err(format!(
+                "{MAP_FILE}, line 1: unknown column `{unknown}` (the columns are {})",
+                COLUMNS.join(", ")
+            ));
+        }
+        let col = |name: &str| table.header.iter().position(|h| h == name);
+        for required in ["element", "function"] {
+            if col(required).is_none() {
+                return Err(format!("{MAP_FILE}, line 1: the column `{required}` is missing"));
+            }
+        }
+        let cell = |row: usize, name: &str| col(name).map_or_else(String::new, |c| table.cell(bytes, row, c).to_owned());
+        let rows = (0..table.row_count())
+            .map(|r| MapRow {
+                line: table.line(r),
+                element: cell(r, "element"),
+                function: cell(r, "function"),
+                cps: cell(r, "cps"),
+                tag: cell(r, "tag"),
+                number: cell(r, "number"),
+                xref: cell(r, "xref"),
+            })
+            .collect();
+        let map = ew_import_qet::SymbolMap::new(rows, self.docs.iter().cloned()).map_err(|e| e.to_string())?;
+        Ok(StarterLibrary { map, ..self })
+    }
+
+    /// The rows of the symbol map an import binds by; 0 without one.
+    pub fn symbol_map_rows(&self) -> usize {
+        self.map.len()
     }
 
     /// The number of documents.
@@ -730,7 +794,7 @@ fn qet_batch(
     let input = ImportInput::new(name, bytes).map_err(|e| ImportError::Unsupported {
         message: e.to_string(),
     })?;
-    let importer = QetProjectImporter::with_library(library.docs.iter().cloned());
+    let importer = QetProjectImporter::with_library(library.docs.iter().cloned()).with_map(library.map.clone());
     let limits = ctx.limits;
     let lineage = ctx.lineage;
     let sizes = [input.bytes().len() as u64];
@@ -1324,6 +1388,7 @@ pub fn read_parts_tables(path: &Path, session: &Session) -> Result<PartsImport, 
 // -------------------------------------------------------------------------------------------------------------------
 // Tables of the `ew` dialect (`ew import csv`, FR-IMP-022)
 
+pub use ew_import_qet::MAP_FILE;
 pub use ew_import_tables::LibraryError;
 pub use ew_import_tables::csv::CsvError;
 pub use ew_import_tables::ew_interop_api::ImportMode;

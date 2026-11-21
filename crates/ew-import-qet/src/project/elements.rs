@@ -27,7 +27,7 @@ use ew_ids::{Id, Uuid};
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Align, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
+    Align, Cable, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
     LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
     TextAlign, TextSlot,
 };
@@ -36,6 +36,7 @@ use serde_json::Value;
 
 use super::Def;
 use super::builtins::Builtins;
+use super::cables::CableMarks;
 use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys, turned};
 use super::items;
 use super::model::{Border, QetElement, QetProject, TextAt, norm_uuid};
@@ -44,6 +45,7 @@ use super::strips;
 use crate::decimal::Decimal;
 use crate::element::ElementImport;
 use crate::prims::text::INSTANCE_ALIGN;
+use crate::symbol_map::{BindKind, Binding, TextRef};
 
 /// The inputs of the element mapper.
 pub struct Inputs<'a> {
@@ -83,6 +85,10 @@ pub struct ElementsOut {
     /// Whether several explicit QET pairs share a name, so that the project must pair in chain mode to keep
     /// them (doc 14 §4.6).
     pub chain_pairs: bool,
+    /// The placed elements each symbol map row bound, by the row's line (doc 14 §4.17).
+    pub bound: BTreeMap<u32, u32>,
+    /// The cables the cable marks make, whose cores the conductors give ([`super::cables`]).
+    pub cables: Vec<CableMarks>,
 }
 
 /// Where a master or a slave prints its cross-reference against its label text (QET's `<xref>` of the
@@ -122,6 +128,11 @@ fn shown(slot: u16, pos: Pt2, angle: Angle2) -> SlotOverride {
         visible: Some(true),
         extra: BTreeMap::new(),
     }
+}
+
+/// The first level of the category of the FnDef generated for `e`'s definition (`Junction`, `EarthingBar`, …).
+fn def_category<'e>(e: &Elem<'e>) -> Option<&'e str> {
+    e.import.fndef.as_ref().map(|f| f.item.category.0.as_str())
 }
 
 /// The master type of `e`: its definition's `kindInformation` `type` ("" when it has none).
@@ -167,11 +178,32 @@ pub(crate) struct Elem<'a> {
     pub(crate) el: &'a QetElement,
     pub(crate) path: &'a str,
     pub(crate) import: &'a ElementImport,
+    /// The symbol map's row that binds its definition (doc 14 §4.17).
+    pub(crate) binding: Option<&'a Binding>,
     pub(crate) pos: Pt2,
     pub(crate) orient: Orient2,
 }
 
 impl Elem<'_> {
+    /// The FnDef copy its function draws: the starter FnDef its symbol map row names, else the generated one; `None`
+    /// for a definition that references a built-in FnDef without a row.
+    pub(crate) fn def(&self) -> Option<Id<ew_schema::FnDef>> {
+        self.binding
+            .map(|b| b.fndef.id)
+            .or_else(|| self.import.fndef.as_ref().map(|f| f.id))
+    }
+
+    /// The value of its own text `r` names (doc 14 §4.17): the label information, the first user text, another
+    /// information; `None` for no text or an empty one.
+    pub(crate) fn text_of(&self, r: &TextRef) -> Option<&str> {
+        match r {
+            TextRef::Label => self.el.info_nonempty("label"),
+            TextRef::User => user_text(self.el),
+            TextRef::Info(n) => self.el.info_nonempty(n),
+            TextRef::None => None,
+        }
+    }
+
     /// The symbol copy.
     pub(crate) fn symbol(&self) -> &LibCopy<SymbolDef> {
         &self.import.symbol
@@ -394,7 +426,8 @@ pub(crate) struct FnSpec {
 }
 
 impl FnSpec {
-    /// A normal function of `device` with `role`, one CP per definition terminal of `e`.
+    /// A normal function of `device` with `role`, one CP per definition terminal of `e` (the CP its symbol gives it:
+    /// the terminal's own index, or the one a symbol map row names).
     pub(crate) fn normal(
         e: &Elem<'_>,
         def: Id<ew_schema::FnDef>,
@@ -406,9 +439,14 @@ impl FnSpec {
             device: Some(device),
             role,
             kind: FunctionKind::Normal,
-            cps: (0..e.terminal_count()).map(|i| u16::try_from(i).ok()).collect(),
+            cps: Self::bound_cps(e),
             extra: BTreeMap::new(),
         }
+    }
+
+    /// The function CP of each definition terminal of `e`, as its symbol names it.
+    pub(crate) fn bound_cps(e: &Elem<'_>) -> Vec<Option<u16>> {
+        e.symbol().item.cps.as_slice().iter().map(|c| Some(c.fn_cp)).collect()
     }
 }
 
@@ -417,7 +455,13 @@ enum Class {
     Device,
     Slave { master: ElementKey },
     OrphanSlave,
-    Report { source: bool },
+    /// An interruption point: a QET folio report's direction (`next_report` the source), none for another element the
+    /// symbol map binds as one.
+    Report { source: Option<bool> },
+    /// A cable mark labelled with the cable's tag: the cable device (doc 14 §4.11).
+    CableHead,
+    /// Another mark of that cable, by the index of the heading mark.
+    CableMark { head: usize },
     Terminal,
     Junction,
     Graphic,
@@ -576,19 +620,24 @@ impl Mx<'_, '_> {
         id
     }
 
-    /// The generated FnDef copy of `e` (`None` for a definition that references a built-in FnDef).
-    fn generated_def(e: &Elem<'_>) -> Option<Id<ew_schema::FnDef>> {
-        e.import.fndef.as_ref().map(|f| f.id)
-    }
-
-    /// A device with its main function and representation.
-    fn plain_device(&mut self, e: &Elem<'_>, unlabeled: &mut BTreeMap<usize, u32>, orphan: bool) {
-        let Some(def) = Self::generated_def(e) else {
+    /// A device with `aspects` (a cable's, doc 14 §4.11), its main function and representation.
+    fn plain_device(
+        &mut self,
+        e: &Elem<'_>,
+        unlabeled: &mut BTreeMap<usize, u32>,
+        orphan: bool,
+        aspects: DeviceAspects,
+    ) {
+        let Some(def) = e.def() else {
             self.drop_element(e, "the definition references a built-in function definition");
             return;
         };
         let folio = self.folio(e.diagram).to_owned();
-        let label = e.el.info("label").unwrap_or("");
+        // The tag is read from the label, or from the text the symbol map names for it (doc 14 §4.17).
+        let label = match e.binding {
+            Some(b) => e.text_of(&b.tag).unwrap_or(""),
+            None => e.el.info("label").unwrap_or(""),
+        };
         let (mut tag, mut structure, mut outcome) = infer_tag(label, &folio, &e.el.prefix);
         let shared = outcome == TagOutcome::Derived && self.shared_labels.contains(label.trim());
         if shared {
@@ -651,7 +700,7 @@ impl Mx<'_, '_> {
         if matches!(outcome, TagOutcome::Derived | TagOutcome::Frozen) && structure.is_none() {
             self.live.insert(e.ek.clone());
         }
-        let device = self.device(&dkey, tag, function_text, None, DeviceAspects::default(), extra);
+        let device = self.device(&dkey, tag, function_text, None, aspects, extra);
         self.function_and_rep(e, FnSpec::normal(e, def, device, FnRole::Main));
         if orphan {
             self.at_device(
@@ -684,16 +733,56 @@ impl Mx<'_, '_> {
         // (text, where, slot kind, whether the slot shows whatever the text, whether it is the label text, the
         // box's fixed width)
         type Text<'t> = (String, &'t TextAt, Option<SlotKind>, bool, bool, Option<Decimal>);
+        let first_user = e.el
+            .dyn_texts
+            .iter()
+            .position(|t| t.text_from == "UserText" && !t.text.trim().is_empty());
         let texts: Vec<Text<'_>> = if e.el.has_dyn_texts {
             e.el.dyn_texts
                 .iter()
-                .filter_map(|t| {
+                .enumerate()
+                .filter_map(|(k, t)| {
                     let info = t.info_name.as_deref().unwrap_or("");
                     let label = match t.text_from.as_str() {
                         "ElementInfo" => info == "label",
                         "CompositeText" => t.composite.as_deref().is_some_and(|c| c.contains("%{label}")),
                         _ => false,
                     };
+                    // An element the symbol map binds shows a slot only where a text its row names stands (doc 14
+                    // §4.17): the tag, a terminal's number, an interruption point's name and cross-reference.
+                    if let Some(b) = e.binding {
+                        let source = match t.text_from.as_str() {
+                            "UserText" if Some(k) == first_user => Some(TextRef::User),
+                            "ElementInfo" if info == "label" => Some(TextRef::Label),
+                            "ElementInfo" if !info.is_empty() => Some(TextRef::Info(info.to_owned())),
+                            "CompositeText" if t.composite.as_deref().is_some_and(|c| c.trim() == "%{label}") => {
+                                Some(TextRef::Label)
+                            }
+                            _ => None,
+                        };
+                        let value = match t.text_from.as_str() {
+                            "UserText" => t.text.clone(),
+                            "ElementInfo" => match (info, self.master_label.get(&e.ek)) {
+                                ("label", Some(m)) if e.el.info_nonempty("label").is_none() => m.clone(),
+                                _ => e.el.info(info).unwrap_or("").to_owned(),
+                            },
+                            "CompositeText" => composite(t.composite.as_deref().unwrap_or(""), e.el),
+                            _ => return None,
+                        };
+                        let named = |r: &TextRef| source.as_ref() == Some(r) && *r != TextRef::None;
+                        // A master's or slave's cross-reference hangs on its tag text.
+                        let tag_text = matches!(b.kind, BindKind::Coil | BindKind::Contact) && named(&b.tag);
+                        let (text, kind, derived) = match b.kind {
+                            BindKind::Coil | BindKind::Contact if named(&b.tag) => (value, Some(SlotKind::Tag), false),
+                            BindKind::Terminal if named(&b.number) => (value, Some(SlotKind::Tag), false),
+                            BindKind::Ip if named(&b.xref) => (String::new(), Some(SlotKind::Xref), true),
+                            BindKind::Ip if named(&b.tag) && ip_name.is_some_and(|n| n == value.trim()) => {
+                                (value, Some(SlotKind::FunctionText), true)
+                            }
+                            _ => (value, None, false),
+                        };
+                        return Some((text, &t.at, kind, derived, tag_text, t.width));
+                    }
                     let (text, kind, derived) = match t.text_from.as_str() {
                         "UserText" if ip_name.is_some_and(|n| n == t.text.trim()) => {
                             (t.text.clone(), Some(SlotKind::FunctionText), true)
@@ -781,13 +870,20 @@ impl Mx<'_, '_> {
             // A slot prints one line in its own style, so only a one-line text of that style shows it; a line
             // aligned otherwise than the symbol's slots takes a slot of its own alignment.
             let slot = match kind.filter(|_| live && text.lines().count() == 1) {
-                Some(k) if slot_align == INSTANCE_ALIGN => e
-                    .symbol()
-                    .item
-                    .text_slots
-                    .iter()
-                    .position(|s| s.kind == k && s.style == style)
-                    .and_then(|i| u16::try_from(i).ok()),
+                Some(k) if slot_align == INSTANCE_ALIGN => {
+                    let own = e
+                        .symbol()
+                        .item
+                        .text_slots
+                        .iter()
+                        .position(|s| s.kind == k && s.style == style)
+                        .and_then(|i| u16::try_from(i).ok());
+                    // A text a symbol map row names takes a slot of its own style when the symbol has none.
+                    match own {
+                        None if e.binding.is_some() => self.slot_for(e, &k, style.clone(), slot_align.clone()),
+                        own => own,
+                    }
+                }
                 Some(k) => self.slot_for(e, &k, style.clone(), slot_align.clone()),
                 None => None,
             }
@@ -1023,10 +1119,9 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                     ek
                 }
             };
-            let import = inp
-                .defs
-                .get(el.type_path.as_str())
-                .and_then(|def| def.import.as_ref());
+            let def = inp.defs.get(el.type_path.as_str());
+            let import = def.and_then(|def| def.import.as_ref());
+            let binding = def.and_then(|def| def.binding.as_ref());
             let link_type = import.map_or("", |i| i.link_type.as_str());
             let (dx, dy) = qet_cell_nudge(link_type, el.x, el.y, &d.border);
             let pos =
@@ -1065,6 +1160,9 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             if let Some(u) = &el.uuid {
                 by_uuid.entry(u.as_str()).or_default().push(elems.len());
             }
+            if let Some(b) = binding {
+                *mx.out.bound.entry(b.line).or_default() += 1;
+            }
             elems.push(Elem {
                 diagram: d.index,
                 key,
@@ -1072,30 +1170,57 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 el,
                 path: el.type_path.as_str(),
                 import,
+                binding,
                 pos,
                 orient: orientation(el.orientation),
             });
         }
     }
 
-    // Classification.
+    // Classification: a definition the symbol map binds by its row's kind (doc 14 §4.17), every other one by its link
+    // type.
+    let master_of = |e: &Elem<'_>| {
+        e.el.links
+            .iter()
+            .filter_map(|u| linked(&elems, &by_uuid, e, u))
+            .find(|m| matches!(m.import.link_type.as_str(), "master" | "simple"))
+            .map(|m| Class::Slave {
+                master: (m.diagram, m.key.clone()),
+            })
+    };
+    let report = |link: &str| Class::Report {
+        source: match link {
+            "next_report" => Some(true),
+            "previous_report" => Some(false),
+            _ => None,
+        },
+    };
     let classes: Vec<Class> = elems
         .iter()
-        .map(|e| match e.import.link_type.as_str() {
-            "slave" => {
-                e.el.links
-                    .iter()
-                    .filter_map(|u| linked(&elems, &by_uuid, e, u))
-                    .find(|m| matches!(m.import.link_type.as_str(), "master" | "simple"))
-                    .map_or(Class::OrphanSlave, |m| Class::Slave {
-                        master: (m.diagram, m.key.clone()),
-                    })
+        .map(|e| match (e.binding.map(|b| b.kind), e.import.link_type.as_str()) {
+            (Some(BindKind::Coil), _) => Class::Device,
+            (Some(BindKind::Contact), _) => master_of(e).unwrap_or(Class::Device),
+            (Some(BindKind::Terminal), _) => Class::Terminal,
+            (Some(BindKind::Ip), link) => report(link),
+            (None, "slave") => master_of(e).unwrap_or(Class::OrphanSlave),
+            (None, link @ ("next_report" | "previous_report")) => report(link),
+            // A junction element QET files as a terminal (its connections category, doc 14 §4.7) and an earth symbol
+            // (doc 14 §4.11) are no terminals of a strip. A junction joins three wires or more (a junction of fewer
+            // dissolves, normaliser #8): one with fewer stays the element it is drawn as.
+            (None, "terminal")
+                if def_category(e) == Some("Junction")
+                    && inp
+                        .counts
+                        .get(&(e.diagram, e.key.clone()))
+                        .is_some_and(|n| *n >= 3) =>
+            {
+                Class::Junction
             }
-            "next_report" => Class::Report { source: true },
-            "previous_report" => Class::Report { source: false },
-            "terminal" => Class::Terminal,
-            "thumbnail" => Class::Graphic,
-            _ if e.terminal_count() == 1
+            (None, "terminal") if matches!(def_category(e), Some("Junction" | "EarthingBar")) => Class::Device,
+            (None, "terminal") => Class::Terminal,
+            (None, "thumbnail") => Class::Graphic,
+            (None, _)
+                if e.terminal_count() == 1
                 && e.el.info_nonempty("label").is_none()
                 && e.import
                     .fndef
@@ -1108,9 +1233,20 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             {
                 Class::Junction
             }
-            _ => Class::Device,
+            (None, _) => Class::Device,
         })
         .collect();
+    // Cable marks (elements without terminals in a row headed by a cable's tag) make cables (doc 14 §4.11).
+    let mut classes = classes;
+    for (i, head) in super::cables::group(&elems, |d| mx.folio(d).to_owned()) {
+        if matches!(classes[i], Class::Device) && elems[i].binding.is_none() {
+            classes[i] = if i == head {
+                Class::CableHead
+            } else {
+                Class::CableMark { head }
+            };
+        }
+    }
 
     // Where masters and linked slaves print their cross-references: a master directly under its label, a
     // slave as the `<xref>` of its master's type says (QET's defaults when the project has none for it).
@@ -1152,7 +1288,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     // The labels several devices carry.
     let mut label_count: BTreeMap<&str, u32> = BTreeMap::new();
     for (e, c) in elems.iter().zip(&classes) {
-        if matches!(c, Class::Device | Class::OrphanSlave)
+        if matches!(c, Class::Device | Class::OrphanSlave | Class::CableHead)
             && let Some(l) = e.el.info_nonempty("label")
         {
             *label_count.entry(l.trim()).or_default() += 1;
@@ -1167,21 +1303,45 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     // Pass 2: devices (masters first, so slaves find their device).
     let mut unlabeled: BTreeMap<usize, u32> = BTreeMap::new();
     let mut device_of: BTreeMap<ElementKey, Id<Device>> = BTreeMap::new();
-    for (e, c) in elems.iter().zip(&classes) {
+    // The cables by their heading mark's index, and the marks of each (index, its sort key) for their core order.
+    let mut cable_of: BTreeMap<usize, usize> = BTreeMap::new();
+    let mut cable_marks: BTreeMap<usize, Vec<((usize, i64, i64), usize)>> = BTreeMap::new();
+    let along = |e: &Elem<'_>| {
+        let across = e.el.orientation % 2 == 0;
+        let (a, b) = if across { (e.pos.y.0, e.pos.x.0) } else { (e.pos.x.0, e.pos.y.0) };
+        (e.diagram, a, b)
+    };
+    for (i, (e, c)) in elems.iter().zip(&classes).enumerate() {
         match c {
-            Class::Device | Class::OrphanSlave => {
-                mx.plain_device(e, &mut unlabeled, matches!(c, Class::OrphanSlave));
+            Class::Device | Class::OrphanSlave | Class::CableHead => {
+                let aspects = DeviceAspects {
+                    cable: matches!(c, Class::CableHead).then(Cable::default),
+                    ..DeviceAspects::default()
+                };
+                mx.plain_device(e, &mut unlabeled, matches!(c, Class::OrphanSlave), aspects);
+                let device = inp.ids.id(&format!("qet:el:{}", e.ek));
                 if matches!(c, Class::Device) {
-                    device_of.insert(
-                        (e.diagram, e.key.clone()),
-                        inp.ids.id(&format!("qet:el:{}", e.ek)),
-                    );
+                    device_of.insert((e.diagram, e.key.clone()), device);
+                }
+                if matches!(c, Class::CableHead) {
+                    cable_of.insert(i, mx.out.cables.len());
+                    cable_marks.entry(i).or_default().push((along(e), i));
+                    mx.out.cables.push(CableMarks {
+                        device,
+                        key: e.ek.clone(),
+                        marks: Vec::new(),
+                    });
                 }
             }
             Class::Junction => {
                 let jkey = format!("qet:junction:{}", e.ek);
                 let terminals = e.terminals();
-                let at = terminals.first().and_then(|t| t.page_pos).unwrap_or(e.pos);
+                // A junction element of several terminals (a T) joins its wires where its strokes meet, its origin;
+                // one of one terminal at that terminal.
+                let at = match terminals.as_slice() {
+                    [one] => one.page_pos.unwrap_or(e.pos),
+                    _ => e.pos,
+                };
                 mx.out.registry.insert(
                     (e.diagram, e.key.clone()),
                     Placed {
@@ -1222,6 +1382,29 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         }
     }
 
+    // The other marks of each cable draw auxiliary functions of it; its marks in order give its cores (doc 14 §4.11).
+    for (i, (e, c)) in elems.iter().zip(&classes).enumerate() {
+        let Class::CableMark { head } = c else { continue };
+        let (Some(&k), Some(def)) = (cable_of.get(head), e.def()) else {
+            mx.drop_element(e, "its cable or its function definition was not imported");
+            continue;
+        };
+        let device = mx.out.cables[k].device;
+        mx.function_and_rep(e, FnSpec::normal(e, def, device, FnRole::Aux));
+        cable_marks.entry(*head).or_default().push((along(e), i));
+    }
+    for (head, mut marks) in cable_marks {
+        marks.sort();
+        let Some(&k) = cable_of.get(&head) else { continue };
+        mx.out.cables[k].marks = marks
+            .into_iter()
+            .map(|(_, i)| {
+                let e = &elems[i];
+                (inp.pages.pages[e.diagram].id, e.pos, e.el.orientation % 2 == 0)
+            })
+            .collect();
+    }
+
     // Pass 3: slaves.
     let label_of: BTreeMap<ElementKey, &str> = elems
         .iter()
@@ -1232,10 +1415,18 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         if let Some(l) = label_of.get(master) {
             mx.master_label.insert(e.ek.clone(), (*l).to_owned());
         }
-        let (Some(device), Some(def)) = (device_of.get(master).copied(), Mx::generated_def(e)) else {
+        let (Some(device), Some(def)) = (device_of.get(master).copied(), e.def()) else {
             mx.drop_element(e, "its master or its function definition was not imported");
             continue;
         };
+        // A contact the symbol map binds prints its device's tag where its tag text stands, when the master's tag prints
+        // its label as QET does (doc 14 §4.17).
+        if e.binding.is_some()
+            && let Some(&m) = index_of.get(master)
+            && mx.live.contains(&elems[m].ek)
+        {
+            mx.live.insert(e.ek.clone());
+        }
         let mut extra = BTreeMap::new();
         if let Some(v) = info_extra(e.el, &mut mx.infos_seen) {
             extra.insert("qet.info".to_owned(), v);
@@ -1303,7 +1494,7 @@ fn map_reports(
     by_uuid: &BTreeMap<&str, Vec<usize>>,
     used: &mut BTreeSet<String>,
 ) {
-    let reports: Vec<(usize, bool)> = classes
+    let reports: Vec<(usize, Option<bool>)> = classes
         .iter()
         .enumerate()
         .filter_map(|(i, c)| match c {
@@ -1324,11 +1515,11 @@ fn map_reports(
         return;
     };
     used.insert(crate::IP_FNDEF_KEY.to_owned());
-    let is_source: BTreeMap<usize, bool> = reports.iter().copied().collect();
+    let is_source: BTreeMap<usize, Option<bool>> = reports.iter().copied().collect();
     // 1. Pairs, each report in at most one.
     let mut partner: BTreeMap<usize, usize> = BTreeMap::new();
     for &(s, source) in &reports {
-        if !source || partner.contains_key(&s) {
+        if source != Some(true) || partner.contains_key(&s) {
             continue;
         }
         let t = elems[s]
@@ -1344,7 +1535,7 @@ fn map_reports(
                     .collect();
                 if same.is_empty() { idxs.clone() } else { same }
             })
-            .find(|i| is_source.get(i) == Some(&false) && !partner.contains_key(i));
+            .find(|i| is_source.get(i) == Some(&Some(false)) && !partner.contains_key(i));
         if let Some(t) = t {
             partner.insert(s, t);
             partner.insert(t, s);
@@ -1353,8 +1544,11 @@ fn map_reports(
     let label = |i: usize| elems[i].el.info_nonempty("label").map(str::to_owned);
     let utext = |i: usize| user_text(elems[i].el).map(str::to_owned);
     // The name QET prints is a report's text; its label text prints the partner's position, so the label
-    // information names a report only when it has no text.
-    let own = |i: usize| utext(i).or_else(|| label(i));
+    // information names a report only when it has no text. A row of the symbol map names its own text for it.
+    let own = |i: usize| match elems[i].binding.map(|b| &b.tag) {
+        Some(r) if *r != TextRef::User => elems[i].text_of(r).map(str::to_owned),
+        _ => utext(i).or_else(|| label(i)),
+    };
     let valid = |n: Option<String>| n.and_then(|n| Ident::from_input(&n).ok());
 
     // 2. Names.
@@ -1373,7 +1567,7 @@ fn map_reports(
     };
     let mut pair_order: Vec<(usize, usize)> = Vec::new();
     for &(s, source) in &reports {
-        if !source {
+        if source != Some(true) {
             continue;
         }
         let Some(&t) = partner.get(&s) else { continue };
@@ -1484,18 +1678,22 @@ fn map_reports(
         if let Some(first) = cps.first_mut() {
             *first = Some(0);
         }
+        // A symbol map row gives each terminal its CP and its FnDef (doc 14 §4.17).
+        if e.binding.is_some() {
+            cps = FnSpec::bound_cps(e);
+        }
         mx.function_and_rep(
             e,
             FnSpec {
-                def: ip,
+                def: e.binding.map_or(ip, |b| b.fndef.id),
                 device: None,
                 role: FnRole::Main,
                 kind: FunctionKind::Ip(IpSpec {
                     name: name_of[&i].clone(),
-                    direction: if source {
-                        IpDirection::Source
-                    } else {
-                        IpDirection::Target
+                    direction: match source {
+                        Some(true) => IpDirection::Source,
+                        Some(false) => IpDirection::Target,
+                        None => IpDirection::Undirected,
                     },
                     star_source: false,
                     sort: sort_of.get(&i).copied(),

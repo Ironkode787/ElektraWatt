@@ -696,7 +696,8 @@ map one to one:
   texts equal QET's, "3-B0" included (FR-IMP-038; [07](07-symbols-parts-macros.md) §3.6). The MF-13 quick fix sets
   the anchor policy "graphics" (a named anchor on the bus-port graphics), which gives "3-B2".
 - **Function semantics.** The generated FnDef is resolved in this order:
-  1. a `symbol-map.csv` row (element UUID or path → EW FnDef and CP map; generalises FR-IMP-018);
+  1. a `symbol-map.csv` row (element UUID or path → EW FnDef and CP map; generalises FR-IMP-018), as built for
+     coils, contacts, terminals and interruption points (§4.17);
   2. `kindInformations`: master `coil|protection|commutator|plc`; slave `simple|power|delayOn|delayOff|delayOnOff`
      with `state` NO, NC or SW → a contact FnDef with `PassThrough{opens: true}` between its two terminals; terminal
      `generic|fuse|sectional|diode|ground` with function `phase|neutral|PE`;
@@ -895,8 +896,10 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
   an end's coordinate when it lies in the same QET px as that end, else it takes the nearest whole px. A stretch
   that runs out and back over itself, and a vertex in the middle of a straight run, are removed. A terminal's page
   position can be up to 2 nm off its whole px (§4.2), so the segment at an end may slant by that much. A
-  connection keeps a route only when that route is one `connection.route` accepts: every coordinate on the 10 px
-  grid or equal to an end's, and no segment over another. A stored path that fails this is replaced by the
+  connection keeps a route only when that route is one `connection.route` accepts: every coordinate on the half
+  grid (5 px) or equal to an end's, and no segment over another. A stored corner between the half grid's lines (QET
+  stores corners at any px, and at fractions of one) moves to the nearest of them, at most 2.5 px, so the stored path
+  keeps its way. A stored path that fails this is replaced by the
   automatic path with EW-IMP-009. When the automatic path fails too, the connection stays unrouted with
   EW-IMP-009 and the reason. Two terminals that touch get the segment between them, or no route at one point.
 - **Properties.** A non-empty `num` → `NumberSpec::Frozen` (FR-IMP-012, 08 §5.3), an empty one → `Unassigned`; `conductor_color` and `conductor_section` →
@@ -907,7 +910,11 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 - **Junctions.** QET has no conductor-to-conductor joints. A junction element (one terminal, three or more
   conductors) becomes `Junction{style: Dot, wiring: Star}` with the conductors in document order and EW-IMP-118
   (08 §12 item 14). Bevelled corners where conductors overlap (D-20) are separate terminal-to-terminal conductors and
-  stay separate connections, so the topology is right.
+  stay separate connections, so the topology is right. *As built:* QET files its own junction elements (the T
+  junctions of its connections category, `114_connections`) as terminals; such an element with three wires or more
+  becomes a junction where its strokes meet, its origin, and the stroke to each of its terminals becomes part of the
+  wire that ends there (FT-1861: they made terminals of inferred strips). One with fewer wires stays the element it
+  is drawn as, because a junction of fewer dissolves (normaliser #8).
 
 **Nets and potentials** are never imported: QET has no such objects. EW derives nets, signals and potentials from
 the imported connections, IP pairs and bridges (03 §9.3). Wire properties then come from the profile chosen in the
@@ -1054,8 +1061,12 @@ variable has an EW xref-format token (FR-XRF-003):
   prefix, with an optional structure prefix (`+JE2416-X1031:1+`); (2) the strip header that heads its line, a header
   being an element labelled with a strip designation (optional structure prefix and sign, then digits, letters and
   digits: `X1031`, `-X1031`, `1X1`); lines are per folio, a column per x for elements turned a quarter, else a row
-  per y, and the header is itself a terminal of its strip; (3) the fallback strip `X?{page}` of its folio (§14 item 5,
-  EW-IMP-005). A strip is identified by its own designation including the structure prefix (`+A-X1` and `+B-X1` are
+  per y, and the header is itself a terminal of its strip; (3) on a folio without any header or label prefix, the
+  strip the folio before it (in file order) names last: a strip drawn on over a second folio, EW-IMP-005 (FT-1861);
+  (4) the fallback strip `X?{page}` of its folio (§14 item 5, EW-IMP-005). An earth symbol QET files as a terminal
+  (one terminal and an earth name in its path: `terre`, `earth`, `ground`) is no terminal: it is an earth point of
+  its own, `EarthingBar / ProtectiveEarth / Point` with a PE connection point, as the starter's `ew.fn.pe`; a junction
+  element is a junction (§4.7). A strip is identified by its own designation including the structure prefix (`+A-X1` and `+B-X1` are
   two strips), the fallback by its folio, never by a line number, so its key (§2.3) is stable under re-import
   (FR-IMP-040). One designation drawn in several lines or folios is one strip (EW-IMP-109). A terminal's designation
   is its label suffix, else its first `UserText` dynamic text (where the reference set writes "1+" and "PE"), else a
@@ -1070,7 +1081,13 @@ variable has an EW xref-format token (FR-XRF-003):
 - **Cables, older** (FR-IMP-014): a cable-marker element (label -106W1) crossing conductors becomes a cable whose
   cores are the crossed conductors in crossing order; colours from `conductor_color` or colour texts beside the
   crossing; EW-IMP-005 for review. "BR" is not an IEC 60757 code, so the core keeps the foreign code with the
-  proposal "BN" (§4.12, MF-11).
+  proposal "BN" (§4.12, MF-11). *As built (FT-1861):* a mark is an element without terminals; one labelled with a
+  tag of the letter W heads a cable device (the `Cable` aspect) whose main function it draws, and the unlabelled
+  marks of its definition in its row (the same y, for a row across) draw auxiliary functions of it, as do those of
+  a folio without a cable mark of its own that continue the cable the folio before it heads last. Each wire a mark
+  crosses (its stored route runs through the mark's insertion point, across the row) becomes a core, numbered from
+  1 in the order of the marks, folio by folio; a wire two marks cross is one core. Colours and the cable's part
+  (the mark's element information) are not read: they stay in `Device.extra["qet.info"]`.
 
 ### 4.12 Text to data
 
@@ -1245,7 +1262,8 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   title block), so a folio report, and with it its connections, is never dropped for want of the content.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
  , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
-  text-to-data recognisers, thumbnails, cables, conductor properties as potential definitions and overrides,
+  text-to-data recognisers, thumbnails, the cables of QET 0.200 (`<cables>`), conductor properties as potential
+  definitions and overrides,
   chain mode and external points, `<terminal_strips>` and their bridges, empty terminal
   designations, and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
   ([23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). The import detections EW-IMP-105, EW-IMP-106, EW-IMP-110 and EW-IMP-112,
@@ -1265,6 +1283,64 @@ gone: `import_qet` is the front door (§2.1's note) plus `ApplyImport` into an e
 run and its migration report is the check run of §2.5's note. Golden C's corpus-gated tests run that
 path, and `c-migration-report.csv`'s counts are the run's counts per code. The "not imported yet" list above stands
 for the detections it names.
+
+### 4.17 The symbol map: elements bound to functions
+
+A set brought in from QElectroTech keeps its look while it becomes a project: the symbol map says which of the set's
+element definitions is which EW function, which of its terminals is which connection point and which of its texts
+prints the tag, the number and the cross-reference. The element keeps its own drawing, place and texts; only what
+they stand for changes. It is §4.3's step 1, for four kinds: coils, contacts, terminals and interruption points.
+
+**Where it lives.** A table `symbol-map.csv` in the folder of the `.qet` file. File ▸ Import… and File ▸ Re-import
+QElectroTech… in the window, and `ew import qet` (with or without `--into`, and each file of `--batch`), read it when
+it is there; one map serves every set of its folder. The import card and the command's summary say that it was read
+and how many rows it has; the migration report says what each row bound.
+
+**Its form** (the `ew` CSV dialect of §8.4: UTF-8, a header row, comma, quotes):
+
+```csv
+element,function,cps,tag,number,xref
+bobine3.elmt,ew.fn.coil,A1 A2,,,
+con_simple.elmt,ew.fn.contact-no,13 14,,,
+borne_continuite.elmt,ew.fn.terminal,1 2,,,
+```
+
+| Column | Holds | Empty |
+|---|---|---|
+| `element` | the element definition: its collection path or the end of it after a `/` (`01_coils/bobine3.elmt`, `bobine3.elmt`; `embed://import/` may be left off), or the UUID of its `<uuid>` (braces may be left off). Of two rows whose paths both end a definition's, the longer wins | refused |
+| `function` | the key of a starter FnDef that is a coil (contact kind coil), a contact (NO, NC, change-over), a terminal (category `Terminal` or `TerminalEarth`) or an interruption point (category `InterruptionPoint`) | refused |
+| `cps` | the FnDef's CP designations, one for each terminal of the element in definition order, separated by spaces | terminal *i* is the FnDef's CP of index *i* |
+| `tag` | the element's own text that prints a coil's or contact's tag, an interruption point's name | `label` (an interruption point: `user`) |
+| `number` | the text that prints a terminal's number (its designation, which a terminal prints as its tag) | `user` |
+| `xref` | the text that prints an interruption point's cross-reference | `label` |
+
+A text is named by what QET binds it to: `label` (the label information, also a composite text of it alone), `user`
+(the first user text), the name of another element information (`function`, `designation`, …), or `-` (none).
+
+**What a row does.** The element's symbol becomes a copy of its own (another item than the unmapped symbol, so a
+re-import adds it) that names the row's FnDef, each terminal the CP the row gives it; no FnDef is generated. A coil is
+its device's main function, and a `master`'s linked slaves stay its auxiliary functions; a contact linked to a master
+(`slave`) is an auxiliary function of that device, any other one a device of its own; a terminal is a terminal of a
+strip (§4.11), its designation read from its number text; an interruption point drawn as a folio report keeps its
+pairing (§4.6), any other one is an interruption point of its own, named by its tag text, without direction, which
+pairs by name. The named texts show the symbol's slots where they stand (§4.4.2): the tag, the terminal's number and
+the cross-reference follow the project from then on.
+
+**A set already imported** takes the map by its re-import (D12): the same file re-imported into its import with the
+map beside it. The bound records are changes of the source; a record a person changed since the import is kept and
+listed, as every re-import keeps it.
+
+**Refused in words, nothing imported:** a table outside the dialect; a missing `element` or `function` column or an
+unknown one; an empty element or function; a function no starter FnDef has, or one of another kind ("`ew.fn.motor-3ph`
+is a motor: the map binds coils, contacts, terminals and interruption points"); a CP designation the FnDef does not
+have, or one named twice; a `cps` list longer or shorter than the element's terminals; a text column the row's kind
+does not take (a number on a coil); two rows of one element. Each refusal names the file, the line and the column.
+**Reported** (EW-IMP-007, info): each row used, with the number of elements it bound; a row that no element of the
+set uses.
+
+**What it does not do:** change the drawing; make parts, or exchange the symbol for a starter symbol (the "C" rows of
+[23](23-symbol-coverage-pilot-corpus.md)); bind other kinds (motors, breakers, black boxes, cables); map element
+information or title-block values to fields.
 
 ---
 

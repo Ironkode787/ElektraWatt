@@ -80,8 +80,8 @@ pub(crate) struct ImportJob {
     pub(super) name: String,
     /// The folder the user chose.
     pub(super) dir: PathBuf,
-    /// The banner's note when there is no starter content.
-    pub(super) library_note: Option<&'static str>,
+    /// The banner's and the card's note: no starter content, a symbol map read (doc 14 §4.17).
+    pub(super) library_note: Option<String>,
 }
 
 /// A running re-import job of the window: the importer on its own thread, with what its end needs.
@@ -549,7 +549,10 @@ impl ShellModel {
         let Ok(bytes) = std::fs::read(&file) else {
             return failed(key!("error-import-read"), &[&name]);
         };
-        let (library, library_note) = self.import_library();
+        let (library, library_note) = match self.mapped_library(&file) {
+            Ok(l) => l,
+            Err(why) => return failed(key!("error-import"), &[&name, &why]),
+        };
         // The importer runs as a job (its own thread and `catch_unwind`), so the window stays responsive;
         // the import's transaction follows on this thread, since a session is not `Send`.
         let options = JobOptions {
@@ -628,7 +631,7 @@ impl ShellModel {
         end: JobEnd<Result<ew_api::import::ImportBatch, Refusal>>,
         name: String,
         dir: PathBuf,
-        library_note: Option<&'static str>,
+        library_note: Option<String>,
     ) -> Outcome {
         let batch = match end {
             JobEnd::Done(Ok(batch)) => Ok(batch),
@@ -675,7 +678,7 @@ impl ShellModel {
                 ),
             ],
         );
-        if let Some(note) = library_note {
+        if let Some(note) = &library_note {
             banner.push(' ');
             banner.push_str(note);
         }
@@ -735,7 +738,7 @@ impl ShellModel {
             file: name.clone(),
             summary,
             verdict,
-            note: library_note.map(str::to_owned),
+            note: library_note,
             groups,
         };
         // A dialog open when the job ends stays; the card waits until it closes (`poll_import`).
@@ -813,6 +816,28 @@ impl ShellModel {
         }
     }
 
+    /// [`Self::import_library`] with the symbol map beside the QElectroTech file `file` (doc 14 §4.17), and the note of
+    /// the banner and the card: no starter content, the map read. Err: why the map is refused, in its words.
+    fn mapped_library(&self, file: &std::path::Path) -> Result<(StarterLibrary, Option<String>), String> {
+        let (library, note) = self.import_library();
+        let library = library.with_symbol_map_beside(file)?;
+        let rows = library.symbol_map_rows();
+        let map = (rows > 0).then(|| {
+            strings::format(
+                key!("banner-import-map"),
+                &[
+                    ew_api::import::MAP_FILE,
+                    &strings::format_count(crate::count_key!("import-map-rows"), rows),
+                ],
+            )
+        });
+        let note = match (note, map) {
+            (Some(a), Some(b)) => Some(format!("{a} {b}")),
+            (a, b) => a.map(str::to_owned).or(b),
+        };
+        Ok((library, note))
+    }
+
     /// `file.reimport_qet {file?, accept?}`: the QElectroTech file re-imported into its earlier
     /// import in the open project. A file matched by its items asks T6 first (`accept: true` answers it); a file of
     /// another project is refused with T7; else the re-import card shows T8 and its rows. Nothing changes until Apply.
@@ -832,7 +857,11 @@ impl ShellModel {
         let Ok(bytes) = std::fs::read(&file) else {
             return failed(key!("error-import-read"), &[&name]);
         };
-        let (library, _) = self.import_library();
+        // A symbol map beside the file binds the re-import too (doc 14 §4.17).
+        let (library, _) = match self.mapped_library(&file) {
+            Ok(l) => l,
+            Err(why) => return failed(key!("error-import"), &[&name, &why]),
+        };
         let accept = flag(p, "accept");
         let Some(project) = self.project.as_ref() else {
             return Outcome::refused(key!("reason-no-project"));

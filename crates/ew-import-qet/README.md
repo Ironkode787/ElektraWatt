@@ -33,12 +33,12 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | `graphics_table` | `ReportBlock` (summary → TOC, nomenclature → parts list, wiring list → wire list): page-oriented in place of folios holding only the table chain, else embedded in the head's rectangle | other queries and continuations elsewhere: EW-IMP-004 (doc 14 §4.13) |
 | `author`, `date`, `indexrev`, other title-block attributes, folio properties | a value equal on **all** folios goes to `Project.extra["qet.titleblock"]` / `["qet.properties"]`; every other value stays in `Page.extra` (one pass, doc 14 §4.9) | differing `author`, `date`, `indexrev` and properties: EW-IMP-104 (D-05) |
 | free texts, shapes, images | page items: free text, graphic, image (`project/items.rs`, doc 14 §4.13) | image bytes as project assets; what an item cannot carry (pen colour, dash-dot-dot, brush pattern, image rotation) EW-IMP-004 |
-| embedded `<definition>` | `SymbolDef` + generated `FnDef` in the per-project "QET import" library | by the element reader; only definitions that placed elements use are embedded and reported |
+| embedded `<definition>` | `SymbolDef` + generated `FnDef` in the per-project "QET import" library | by the element reader; only definitions that placed elements use are embedded and reported. A row of `symbol-map.csv` beside the file binds the definition to a starter coil, contact, terminal or interruption point instead: its symbol names that FnDef and the row's CPs, no FnDef is generated (EW-IMP-007; doc 14 §4.17) |
 | element of link type `simple`, `master` | `Device` + main `Function` + `Representation` | keys `qet:el:<key>`, `…#fn`, `…#rep`; `<key>` is the UUID, `<uuid>#<folio key>#<n>` for a UUID repeated by copy-paste (EW-IMP-120; links prefer the copy on the same folio), `<folio key>#el#<n>` without UUID |
 | element of link type `thumbnail` | not imported (a graphic, doc 14 §4.3) | EW-IMP-004 |
 | element of link type `slave` linked to a master | auxiliary `Function` of the master's device + `Representation` | no master: own device, promoted to main (EW-IMP-116); a master and a linked slave print their cross-reference centred under the label text (doc 14 §4.5) |
 | `next_report` / `previous_report` | interruption point (`ew.fn.ip`, `Source` / `Target`) + `Representation` | a linked pair gets one name: source `UserText`, target `UserText` (the name QET prints), source label, target label; differing end names: EW-IMP-115 with both texts; no name: one `IP-<folio>-<n>` per pair (EW-IMP-115); several pairs of one name: `IpSpec.sort` 2i / 2i + 1, the project in chain mode and EW-IMP-115; an unlinked report whose name other reports share: its own `IP-<folio>-<n>` (EW-IMP-115), so it stays unpaired. The label text (or a composite `%{label}`) shows a cross-reference slot, the name text the function-text slot (doc 14 §4.6) |
-| element of link type `terminal` | terminal `Device` (`kind: terminal`, `Terminal { strip, seq, designation }`) in a strip `Device` (`Strip` aspect) | see "Strips" |
+| element of link type `terminal` | terminal `Device` (`kind: terminal`, `Terminal { strip, seq, designation }`) in a strip `Device` (`Strip` aspect) | see "Strips"; a junction element of the connections category with ≥ 3 conductors is a `Junction` at its origin, the strokes to its terminals part of the wires; an earth symbol (one terminal, `terre`/`earth`/`ground`) a device of its own (`EarthingBar / ProtectiveEarth / Point`) |
 | element with one terminal, no label, ≥ 3 conductors | `Junction { style: dot, wiring: star }` | EW-IMP-118 |
 | element without definition or position | dropped (EW-IMP-003) | its wires are lost connections |
 | element position `x`, `y` | `Representation.pos`, exact (`793 750 / 3` nm per px) | on QET's default border, an element whose cell a cross-reference prints (an **interruption point** `next_report`/`previous_report`, a **master** or a **slave**) exactly on an inner column or row line (`x = 25 + k × 60`, `y = 25 + k × 80` px; the border sits 5 px from the scene origin) moves 2 nm left or up: QET's `convertPosition` puts a line point into the left column or upper row (ceiling), EW's cell rule into the right column or lower row, and 2 nm leave the cell rule's 1 nm snap window, so the cells its cross-references print are QET's (owner rulings, reviews of cycle 12). Every other element (terminals, simple elements) keeps its exact position, so its connection points stay on the 10 px grid (FR-IMP-008, 0 nm deviation). A cell-boundary policy for imported projects is the proper home of this rule (ADR-0027 open item, FT-179) |
@@ -52,7 +52,8 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | instance dynamic texts, old-style `<inputs>` | each where QET draws it: the tag or function-text slot shown by a slot override where the tag prints the label unchanged, else a free text (doc 14 §4.4.2) | the symbol's own dynamic texts print nothing in a project; text groups not read |
 | conductor | `Connection { kind: wire }` between function CPs or junctions | ends by UUID, else per-folio terminal ID; a UUID repeated on the folio is decided by the route geometry, else the first copy (EW-IMP-120); unresolved or identical ends dropped (EW-IMP-003, lost) |
 | the imported model | lenient check findings of the `migration` scheme (EW-RDS-004, EW-TERM-002 and every other `pre-delivery` rule of `ew-checks`) in the migration report | `ew_api::import::lenient_findings` |
-| `<segment>`s | `Connection.route` (interior points) | conductors without usable segments get QET's automatic path; a route `connection.route` would refuse is not stored (EW-IMP-009; doc 14 §4.7) |
+| `<segment>`s | `Connection.route` (interior points) | a corner between the half grid's lines (5 px) moves to the nearest; conductors without usable segments get QET's automatic path; a route `connection.route` would refuse is not stored (EW-IMP-009; doc 14 §4.7) |
+| element without terminals labelled with a W tag, the unlabelled ones of its row | a cable `Device` (`Cable` aspect) drawn by its marks; each crossed wire a `Conductor` and `Connection { kind: core }` | doc 14 §4.11 |
 | `num` | `NumberSpec::Frozen` (non-empty), else `Unassigned` | |
 | `function`, `tension_protocol`, `conductor_color`, `conductor_section` | `Connection.extra["qet.*"]` | EW-IMP-008 per field; no potential definitions or wire overrides yet |
 | `titleblocktemplates`, `terminal_strips` (QET 0.100+ strips and bridges) and other top-level members | not imported | EW-IMP-004; bridges stored in `<terminal_strips>` are dropped (the pilot files have none) |
@@ -61,8 +62,9 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 
 A terminal element joins a strip by (doc 14 §4.11, §14 item 5): its label prefix (`X1031:1+`, optional
 structure prefix); else the strip header heading its line (an element labelled with a strip designation;
-lines are per folio, a column per x for elements turned a quarter, else a row per y); else the folio's
-fallback strip `X?<page>` (EW-IMP-005). Strips are keyed by their own designation including the structure
+lines are per folio, a column per x for elements turned a quarter, else a row per y); on a folio without any
+header or prefix, the strip the folio before names last (a strip drawn on over a second folio, EW-IMP-005); else
+the folio's fallback strip `X?<page>` (EW-IMP-005). Strips are keyed by their own designation including the structure
 prefix (`qet:strip:<structure>-<product>`; `+A-X1` and `+B-X1` differ), the fallback by its folio key, never by a
 line number, so re-imports keep strip IDs. One designation drawn in several lines is one strip (EW-IMP-109).
 A terminal's designation is its label suffix, else its first `UserText` dynamic text, else a non-strip label,
@@ -72,15 +74,16 @@ else its sequence number (EW-IMP-008).
 
 Every placed element keeps the graphics of its embedded definition. Its function semantics come from the
 element reader: `kindInformations` (coil, protection, commutator, contacts, terminals), then the shipped
-category-path table, else a generic black box (EW-IMP-119, once per used definition). Exchanging QET-import
-symbols for starter-library `@qet10` symbols (`symbol-map.csv`) is not part of this
-importer yet.
+category-path table, else a generic black box (EW-IMP-119, once per used definition). A row of the person's
+`symbol-map.csv` binds a definition to a starter coil, contact, terminal or interruption point, keeping its
+graphics (`src/symbol_map.rs`, doc 14 §4.17); exchanging QET-import symbols for starter-library `@qet10` symbols is
+not part of this importer yet.
 
 ### Gaps (spike)
 
 Formula evaluation and EW-IMP-101; rule inference R2/R3 and `AdoptRule`; structure nodes and EW-IMP-102;
 parts from element information; text-to-data recognisers (EW-IMP-107/108); `graphics_table` → report blocks;
-thumbnails; cables; conductor properties → potential definitions and overrides; external connection points; title-block template forms; QET 0.100
+thumbnails; QET 0.200 `<cables>`; conductor properties → potential definitions and overrides; external connection points; title-block template forms; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.
 
