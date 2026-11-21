@@ -1539,6 +1539,8 @@ answers to the pointer only within 4 points of its own path, and its hover and s
 4 points to each side and round at its bends. The hover's band is `canvas.hover` at 22 %; the selection's is
 `canvas.selection` at 28 % inside a solid 1s-px edge. The one selected line carries round handles, 10 points across
 (14 under the pointer): an accent disc with a white 1.5-point ring on the middle of every segment and on every bend.
+*As built (FT-1780).* Every selected line marks its two ends with the connection point's ring of §7.2 (8s + 1 px, open,
+in the accent), so where it ends reads at a glance; a ring is no handle and promises no drag.
 
 ### 7.2 Connection points, snap and the grid cursor
 

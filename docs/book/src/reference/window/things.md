@@ -34,7 +34,8 @@ give it its own.
 To make one: **Draw ▸ Connect ▸ Wire** (`W`), then a click on a start point and one on the end point
 ([Wire](tools.md#wire)).
 
-To change one: select it. The selected wire shows round handles; drag one to change its route
+To change one: select it. The selected wire shows a ring at each of its two ends and round handles; drag a handle to
+change its route
 ([Change a wire's route by hand](tools.md#change-a-wires-route-by-hand)), or choose **Route** to route it again
 ([Route](tools.md#route)). Its number, colour and cross-section are its rows in Properties, explained under
 [Connection](../properties.md#connection).

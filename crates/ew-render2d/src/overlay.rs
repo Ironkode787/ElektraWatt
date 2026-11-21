@@ -12,7 +12,8 @@
 //! ring (connection point) or a filled square (junction), a free connection point a small hollow square, a
 //! rubber band solid while it encloses and dashed while it touches. A line (a wire, a fluid line) is hovered and
 //! selected as a band along its path ([`Bands`]: the line thickened, round at its bends), the hover's filled lightly,
-//! the selection's stronger inside a solid edge; a selected line's handles are round ([`ToolMark::Grip`]). The paint
+//! the selection's stronger inside a solid edge, its two ends each marked by the connection point's ring; a selected
+//! line's handles are round ([`ToolMark::Grip`]). The paint
 //! order is the surround, the page bounds, the grid dots, the hover, the bands, the selection, the open markers of the
 //! free connection points, the tool's lines and ghosts, its round handles, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
 //! window draws them as chips in its own font, and the headless snapshot leaves them out.
@@ -360,7 +361,7 @@ pub struct Overlay {
     pub cursor: Vec<PxRect>,
     /// The tool's lines, rectangles and ghosts, each pixel run with its colour token, in the tool's order.
     pub tool: Vec<(PxRect, ToolToken)>,
-    /// The tool's snap markers.
+    /// The tool's snap markers, and the rings on the two ends of each selected line.
     pub markers: Vec<PxRect>,
     /// The rims of the open markers of the free connection points, under the tool's lines.
     pub open_cps: Vec<PxRect>,
@@ -591,6 +592,14 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
     let inner = band_rows(&selected_lines, radius - s as f64, &pane);
     let selected_band_edge = rects_of(&subtract_rows(&outer, &inner));
     let selected_band = rects_of(&inner);
+    // A selected line marks its two ends with the connection point's ring.
+    for line in input.bands.selected {
+        if let (Some(a), Some(b)) = (line.first(), line.last()) {
+            for end in [a, b] {
+                marker_px(screen(*end), MarkerKind::Cp, s, &pane, &mut markers);
+            }
+        }
+    }
     let mut grips = Vec::new();
     let mut grip_rings = Vec::new();
     for mark in input.tool {

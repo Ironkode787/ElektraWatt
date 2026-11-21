@@ -78,10 +78,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.
 - FT-1809 `docs/book`: A property's help page often repeats the row's label (the project's Control voltage); say what the program does with the value, its unit and an example.
 
-#### The grid fit and moves
-
-- FT-1780 `ew-scene, ew-viewmodel`: A selected wire does not mark its two ends.
-
 #### The layout page
 
 - FT-1768 `ew-api`: `centred_datum` (`output/layout_edit.rs`, where an enclosure is placed) maps the drawing area, which `drawing_area` (`output/scale_fit.rs`) gives in page coordinates already, through the frame's page-to-sheet map once more: on a frame with an offset the mounting plate stands off-centre. A test on a frame with an offset shows the plate's place.
