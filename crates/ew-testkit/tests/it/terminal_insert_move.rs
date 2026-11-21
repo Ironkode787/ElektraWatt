@@ -14,7 +14,7 @@ use ew_commands::Cost;
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_schema::{ConnectionKind, Device, Endpoint, FnDef};
-use ew_testkit::golden::dsl::{Builder, CommandSink, Done};
+use ew_testkit::dsl::{Builder, CommandSink, Done};
 use serde_json::{Value, json};
 
 /// The strip of these checks.

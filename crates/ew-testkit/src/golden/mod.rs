@@ -7,7 +7,7 @@
 //! - **Path (a)**, [`bootstrap`]: `ew-import-tables` over `golden/J-E-2416/tables/` with the built-in
 //!   library of `content/` (the recipe of `ew import csv`). Its records carry the v5 IDs of the fixed import
 //!   lineage, so the result is reproducible; path (c), the checked-in fixture, is its committed output.
-//! - **Path (b)**, [`build`]: the [`dsl::Builder`] issues one command per step (`structure.create_node`,
+//! - **Path (b)**, [`build`]: the [`crate::dsl::Builder`] issues one command per step (`structure.create_node`,
 //!   `page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`,
 //!   `ip.place`, `connection.draw`, `junction.edit`, `potential.define`, `bond.create`,
 //!   `report_block.create`, `fields.set`, `assembly.attach`, `valve.add`, `plc.bind_channel`,
@@ -23,12 +23,14 @@
 //! it (`unwritten`), so the acceptance entry can say exactly what path (b) leaves out.
 //!
 //! The builder does not depend on `ew-api` or `ew-commands` (both are dev-only edges of this crate, doc 04
-//! §3): it speaks to a [`dsl::CommandSink`], a function from a command name and its JSON parameters to the
+//! §3): it speaks to a [`crate::dsl::CommandSink`], a function from a command name and its JSON parameters to the
 //! keys the command created, which the caller implements over its `Session` (the parameters are the JSON
 //! form of the command log, doc 17 §3.5, so [`Built::script`] replays with `ew apply`).
 
-pub mod dsl;
 mod translate;
+
+/// The builder DSL under its former path, for the acceptance runner of `ew-api` alone, which goes with this module.
+pub use crate::dsl;
 
 use std::path::{Path, PathBuf};
 

@@ -897,14 +897,14 @@ fn the_paste_choice_below_the_shell() {
 /// The golden builder DSL's sink over a session: every command runs directly.
 struct Sink<'s>(&'s mut Session);
 
-impl ew_testkit::golden::dsl::CommandSink for Sink<'_> {
-    fn run(&mut self, name: &str, params: Value) -> Result<ew_testkit::golden::dsl::Done, String> {
+impl ew_testkit::dsl::CommandSink for Sink<'_> {
+    fn run(&mut self, name: &str, params: Value) -> Result<ew_testkit::dsl::Done, String> {
         self.0
             .execute(&AnyCommand {
                 name: name.to_owned(),
                 params,
             })
-            .map(|r| ew_testkit::golden::dsl::Done {
+            .map(|r| ew_testkit::dsl::Done {
                 primary: r.outcome.primary,
                 created: r.created,
             })
@@ -947,7 +947,7 @@ fn a_strip_without_terminals_is_offered_the_end_bracket() {
     strip.parts.clear();
     let made = {
         let mut sink = Sink(&mut s);
-        let mut b = ew_testkit::golden::dsl::Builder::new(&mut sink);
+        let mut b = ew_testkit::dsl::Builder::new(&mut sink);
         b.device(&strip, Some(&main)).unwrap().0
     };
     {

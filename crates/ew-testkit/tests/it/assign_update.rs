@@ -10,7 +10,7 @@ use std::path::Path;
 use ew_api::{AnyCommand, Cost, Session};
 use ew_ids::{Id, Uuid};
 use ew_schema::{Device, LibDocument, Part};
-use ew_testkit::golden::dsl::{Builder, CommandSink, Done};
+use ew_testkit::dsl::{Builder, CommandSink, Done};
 use serde_json::{Value, json};
 
 fn sample() -> Session {

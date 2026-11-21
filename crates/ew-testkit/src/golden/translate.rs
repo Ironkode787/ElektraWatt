@@ -49,7 +49,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::SETTINGS_BY_COMMAND;
-use super::dsl::{BuildError, Builder, CommandSink, End, Placement, Result};
+use crate::dsl::{BuildError, Builder, CommandSink, End, Placement, Result};
 
 /// What path (b) built.
 #[derive(Clone, Debug, Default)]

@@ -22,7 +22,7 @@ use ew_schema::{
     Kind, LibDocument, Page, Part, PartUse, Representation, Sha256, TemplateFn,
 };
 use ew_testdir::{CONTENT, Tmp};
-use ew_testkit::golden::dsl::{Builder, Done, End, IpEnd};
+use ew_testkit::dsl::{Builder, Done, End, IpEnd};
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
 

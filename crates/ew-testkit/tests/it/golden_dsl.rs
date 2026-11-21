@@ -14,7 +14,7 @@ use std::sync::atomic::AtomicU32;
 
 use ew_api::{AnyCommand, CmdLog, HistoryLimits, Session, SessionOptions};
 use ew_commands::Cost;
-use ew_testkit::golden::dsl::Done;
+use ew_testkit::dsl::Done;
 use ew_testkit::golden::{self, Built};
 
 fn repo() -> PathBuf {
@@ -267,7 +267,7 @@ fn the_logo_and_library_form_verbs_send_their_command_parameters() {
             ..Done::default()
         })
     };
-    let mut b = golden::dsl::Builder::new(&mut sink);
+    let mut b = ew_testkit::dsl::Builder::new(&mut sink);
     b.company_logo(b"<svg/>").unwrap();
     let block = ReportBlock {
         id: block_id,
