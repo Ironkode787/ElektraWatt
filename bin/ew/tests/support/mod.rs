@@ -10,7 +10,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-pub use ew_testdir::{CONTENT, GOLDEN_A, Tmp, copy_dir};
+pub use ew_testdir::{CONTENT, GOLDEN_A, SAMPLE, Tmp, copy_dir};
 
 /// Golden A's parts table.
 pub const GOLDEN_PARTS: &str = concat!(
@@ -53,6 +53,24 @@ pub fn isolate(cmd: &mut Command, root: &Path) {
         std::fs::create_dir_all(&dir).unwrap();
         cmd.env(d, &dir);
     }
+}
+
+/// The file of the page with the folio number `folio` in the project `dir`, relative to it (`pages/<id>.jsonl`): the
+/// sample's page IDs are made by its script, so a test finds a page by its folio.
+pub fn page_file(dir: &Path, folio: u32) -> String {
+    let number = format!("\"number\":{folio}}}");
+    std::fs::read_dir(dir.join("pages"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| {
+            std::fs::read_to_string(p)
+                .unwrap()
+                .lines()
+                .next()
+                .is_some_and(|l| l.contains(&number))
+        })
+        .map(|p| format!("pages/{}", p.file_name().unwrap().to_string_lossy()))
+        .unwrap_or_else(|| panic!("no page with the folio {folio} in {}", dir.display()))
 }
 
 /// Every file of a directory tree with its bytes, by relative path.

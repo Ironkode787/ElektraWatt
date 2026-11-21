@@ -1,28 +1,52 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the `ew` binary: `ew merge-driver` in a working tree that
-//! holds a copy of Golden A, as git runs it. The exits 0 and 1, the four-argument form, an internal error's 129
-//! with `%A` byte-identical; AC-41's driver half on W20 of page 102 and the manifest merge. Golden A is only
-//! read and copied.
+//! Through the `ew` binary: `ew merge-driver` in a working tree that holds a copy of the sample, as git runs it. The
+//! exits 0 and 1, the four-argument form, an internal error's 129 with `%A` byte-identical; AC-41's driver half on
+//! the wire of page 103 with an override (the shield of -103W1, 2.5 mm²) and the manifest merge.
 
 use std::path::Path;
 use std::process::Output;
 
-use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
+use crate::support::{EwTmp as _, SAMPLE, Tmp, page_file};
 
-/// Page 102 in the project, and in the working tree (the project in `proj/`).
-const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-const REPO_PAGE: &str = "proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-const W20_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
+/// The shield wire's overrides in the sample: its one wire with an override.
+pub(crate) const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;
 
-/// A working tree with a copy of Golden A in `proj/J-E-2416.ew`, removed on drop.
+/// Page 103 in the project.
+pub(crate) fn page() -> String {
+    page_file(Path::new(SAMPLE), 103)
+}
+
+/// Page 103 in the working tree (the project in `proj/`).
+fn repo_page() -> String {
+    format!("proj/sample.ew/{}", page())
+}
+
+/// The sample's page-103 file and its shield wire's line.
+pub(crate) fn shield_line() -> (String, String) {
+    let base = std::fs::read_to_string(Path::new(SAMPLE).join(page())).unwrap();
+    let line = base
+        .lines()
+        .find(|l| l.contains(SHIELD_OVERRIDES))
+        .expect("the shield wire")
+        .to_owned();
+    (base, line)
+}
+
+/// The shield wire's ID.
+pub(crate) fn shield_id() -> String {
+    let line: serde_json::Value = serde_json::from_str(&shield_line().1).unwrap();
+    line["id"].as_str().unwrap().to_owned()
+}
+
+/// A working tree with a copy of the sample in `proj/sample.ew`, removed on drop.
 struct Tree(Tmp);
 
 impl Tree {
     fn new() -> Tree {
         let root = Tmp::new("ew-merge-driver");
-        crate::support::copy_dir(Path::new(GOLDEN_A), &root.path("proj/J-E-2416.ew"));
+        crate::support::copy_dir(Path::new(SAMPLE), &root.path("proj/sample.ew"));
         Tree(root)
     }
 
@@ -51,13 +75,14 @@ fn s(p: &Path) -> String {
 }
 
 /// The canonical five-argument form `%O %A %B %L %P` (`five`), else the older `%O %A %B %P`.
-fn form(five: bool, path: &'static str) -> impl Fn(&Path, &Path, &Path) -> Vec<String> {
+fn form(five: bool, path: &str) -> impl Fn(&Path, &Path, &Path) -> Vec<String> {
+    let path = path.to_owned();
     move |o, a, b| {
         let mut args = vec![s(o), s(a), s(b)];
         if five {
             args.push("7".to_owned());
         }
-        args.push(path.to_owned());
+        args.push(path.clone());
         args
     }
 }
@@ -71,40 +96,35 @@ fn result(o: &Output) -> (Option<i32>, String, String) {
     )
 }
 
-/// Golden A's page-102 file with W20's overrides replaced (as part 4a's `ac41_w20_*` tests).
-fn page_with(overrides: &str) -> String {
-    let base = std::fs::read_to_string(Path::new(GOLDEN_A).join(PAGE)).unwrap();
-    let w20 = base
-        .lines()
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20")
-        .to_owned();
-    assert!(w20.contains(W20_OVERRIDES), "{w20}");
-    base.replace(&w20, &w20.replace(W20_OVERRIDES, overrides))
+/// The sample's page-103 file with the shield wire's overrides replaced (as part 4a's `ac41_w20_*` tests).
+pub(crate) fn page_with(overrides: &str) -> String {
+    let (base, line) = shield_line();
+    base.replace(&line, &line.replace(SHIELD_OVERRIDES, overrides))
 }
 
-/// W20's page of the common ancestor, of branch A (adds `colour` BU) and of branch B (sets `csa` "2.5").
+/// The shield wire's page of the common ancestor, of branch A (adds `colour` BU) and of branch B (sets `csa` "4").
 fn clean_sides() -> (String, String, String) {
     (
-        page_with(W20_OVERRIDES),
-        page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#),
-        page_with(r#""overrides":{"csa":"2.5","show_marker":true}"#),
+        page_with(SHIELD_OVERRIDES),
+        page_with(r#""overrides":{"csa":"2.5","colour":["BU"]}"#),
+        page_with(r#""overrides":{"csa":"4"}"#),
     )
 }
 
 /// The page the two branches of [`clean_sides`] merge to.
 fn merged_sides() -> String {
-    page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#)
+    page_with(r#""overrides":{"csa":"4","colour":["BU"]}"#)
 }
 
-/// MD-5, MD-6: branch A adds W20's `colour` BU, branch B sets `csa` "2.5": exit 0 and the merged page, in both forms.
+/// MD-5, MD-6: branch A adds the shield wire's `colour` BU, branch B sets `csa` "4": exit 0 and the merged page, in
+/// both forms.
 #[test]
-fn w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
+fn a_wire_merges_cleanly_to_csa_4_and_colour_bu_and_exits_0() {
     let t = Tree::new();
     let (base, ours, theirs) = clean_sides();
     let expected = merged_sides();
     for five in [true, false] {
-        let (out, merged) = t.merge([&base, &ours, &theirs], form(five, REPO_PAGE));
+        let (out, merged) = t.merge([&base, &ours, &theirs], form(five, &repo_page()));
         assert_eq!(result(&out), (Some(0), String::new(), String::new()));
         assert_eq!(merged, expected);
     }
@@ -116,18 +136,26 @@ fn w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
     assert!(names.iter().all(|n| !n.contains(".tmp")), "{names:?}");
 }
 
+/// The conflict record on the shield wire's colour, ours BU and theirs WH, in D14's member order: the merge driver's
+/// result of the conflict variant.
+pub(crate) fn colour_conflict() -> String {
+    format!(
+        r#"{{"$k":"conflict","id":"{}","kind":"connection","base":{{"overrides":{{}}}},"ours":{{"overrides":{{"colour":["BU"]}}}},"theirs":{{"overrides":{{"colour":["WH"]}}}}}}"#,
+        shield_id()
+    )
+}
+
 /// MD-5, MD-6: the conflict variant (B also adds `colour` WH) writes one conflict record on `overrides.colour`, keeps
 /// BU in place and exits 1, in both forms.
 #[test]
-fn the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
+fn the_conflict_variant_writes_one_conflict_record_and_exits_1() {
     let t = Tree::new();
     let (base, ours, _) = clean_sides();
-    let theirs = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
+    let theirs = page_with(r#""overrides":{"csa":"4","colour":["WH"]}"#);
     let kept = merged_sides();
-    // D14's member order.
-    let conflict = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
+    let conflict = colour_conflict();
     for five in [true, false] {
-        let (out, merged) = t.merge([&base, &ours, &theirs], form(five, REPO_PAGE));
+        let (out, merged) = t.merge([&base, &ours, &theirs], form(five, &repo_page()));
         assert_eq!(result(&out), (Some(1), String::new(), String::new()));
         assert_eq!(merged, format!("{kept}{conflict}\n"));
     }
@@ -138,18 +166,31 @@ fn the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
 #[test]
 fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     let t = Tree::new();
-    let base = std::fs::read_to_string(Path::new(GOLDEN_A).join("manifest.json")).unwrap();
-    // A page's hash as the committed manifest holds it (it changes whenever Golden A's fixture is regenerated).
-    let page_hash = base
+    // The manifest as ours and theirs saw it: generation 1 and no `base` (the sample's own generation is that of its
+    // script's saves).
+    let committed = std::fs::read_to_string(Path::new(SAMPLE).join("manifest.json")).unwrap();
+    let generation = committed
         .lines()
-        .find(|l| l.contains("\"pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl\""))
-        .and_then(|l| l.split('"').nth(3))
-        .expect("the page in the manifest")
+        .find(|l| l.contains("\"generation\": "))
+        .unwrap()
         .to_owned();
-    let page_hash = page_hash.as_str();
-    let device_hash = "sha256:e82c564a97ba572b71c077519883188930ab7b94f975b3567d2cea9f1dad8d66";
+    let mut base = committed.replace(&generation, "  \"generation\": 1,");
     let end = "\n  }\n}\n";
-    assert!(base.contains("\"generation\": 1,") && base.contains(page_hash) && base.contains(device_hash));
+    if let Some(i) = base.find("\n  },\n  \"base\": ") {
+        base.replace_range(i.., end);
+    }
+    // A page's hash and a device file's hash as the committed manifest holds them (they change whenever the
+    // sample is regenerated).
+    let hash_of = |prefix: &str| {
+        base.lines()
+            .find(|l| l.trim_start().starts_with(prefix))
+            .and_then(|l| l.split('"').nth(3))
+            .expect("the file in the manifest")
+            .to_owned()
+    };
+    let page_hash = hash_of(&format!("\"{}\"", page()));
+    let device_hash = hash_of("\"devices/");
+    let (page_hash, device_hash) = (page_hash.as_str(), device_hash.as_str());
     assert!(base.ends_with(end));
     let hash = |n: &str| format!("sha256:{}", n.repeat(64));
     let ours = base
@@ -168,7 +209,7 @@ fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {
         .replace(end, "\n  },\n  \"merged\": true\n}\n");
     let (out, merged) = t.merge(
         [&base, &ours, &theirs],
-        form(true, "proj/J-E-2416.ew/manifest.json"),
+        form(true, "proj/sample.ew/manifest.json"),
     );
     assert_eq!(result(&out), (Some(0), String::new(), String::new()));
     assert_eq!(merged, expected);
@@ -180,14 +221,19 @@ fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {
 #[test]
 fn a_side_newer_than_the_reader_is_left_as_ours() {
     let t = Tree::new();
-    let base = std::fs::read_to_string(Path::new(GOLDEN_A).join("manifest.json")).unwrap();
+    let base = std::fs::read_to_string(Path::new(SAMPLE).join("manifest.json")).unwrap();
     let format = format!("\"format\": \"{}\"", ew_api::FORMAT);
     assert!(base.contains(&format));
-    let ours = base.replace("\"generation\": 1,", "\"generation\": 2,");
+    let generation = base
+        .lines()
+        .find(|l| l.contains("\"generation\": "))
+        .unwrap()
+        .to_owned();
+    let ours = base.replace(&generation, "  \"generation\": 90,");
     let theirs = base
-        .replace("\"generation\": 1,", "\"generation\": 3,")
+        .replace(&generation, "  \"generation\": 91,")
         .replace(&format, "\"format\": \"9.0\"");
-    let manifest = "proj/J-E-2416.ew/manifest.json";
+    let manifest = "proj/sample.ew/manifest.json";
     let (out, merged) = t.merge([&base, &ours, &theirs], form(true, manifest));
     let said = |path: &str| {
         format!(
@@ -201,38 +247,39 @@ fn a_side_newer_than_the_reader_is_left_as_ours() {
 
     std::fs::write(t.0.path(manifest), &theirs).unwrap();
     let (base, ours, theirs) = clean_sides();
-    let (out, merged) = t.merge([&base, &ours, &theirs], form(false, REPO_PAGE));
-    assert_eq!(result(&out), (Some(1), String::new(), said(REPO_PAGE)));
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(false, &repo_page()));
+    assert_eq!(result(&out), (Some(1), String::new(), said(&repo_page())));
     assert_eq!(merged, ours);
 }
 
-/// Theirs holds W20 one `$v` above this reader's version of a connection (1): nothing is merged
-/// in the page, `%A` stays ours byte for byte, the driver says so and exits 1. Theirs holding a member this reader does
-/// not know merges cleanly, the member kept.
+/// Theirs holds the shield wire one `$v` above this reader's version of a connection (1): nothing is merged in the
+/// page, `%A` stays ours byte for byte, the driver says so and exits 1. Theirs holding a member this reader does not
+/// know merges cleanly, the member kept.
 #[test]
 fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
     let t = Tree::new();
-    let id = r#""id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711""#;
-    let w20 = |page: String, from: &str, to: &str| -> String {
-        let line = page.lines().find(|l| l.contains(id)).expect("W20").to_owned();
-        page.replace(&line, &line.replacen(from, to, 1))
+    let id = format!(r#""id":"{}""#, shield_id());
+    let shield = |page: String, change: &dyn Fn(&str) -> String| -> String {
+        let line = page.lines().find(|l| l.contains(&id)).expect("the shield wire").to_owned();
+        page.replace(&line, &change(&line))
     };
     let (base, ours, theirs) = clean_sides();
-    let newer = w20(theirs.clone(), id, &format!("{id},\"$v\":2"));
+    let newer = shield(theirs.clone(), &|l| l.replacen(&id, &format!("{id},\"$v\":2"), 1));
     assert_ne!(newer, theirs);
-    let (out, merged) = t.merge([&base, &ours, &newer], form(true, REPO_PAGE));
+    let repo_page = repo_page();
+    let (out, merged) = t.merge([&base, &ours, &newer], form(true, &repo_page));
     let said = format!(
-        "merge-driver: {REPO_PAGE}: holds records this ElektraWatt cannot read (this one reads format {}); left as \
+        "merge-driver: {repo_page}: holds records this ElektraWatt cannot read (this one reads format {}); left as \
          ours: merge it with a newer version\n",
         ew_api::FORMAT
     );
     assert_eq!(result(&out), (Some(1), String::new(), said));
     assert_eq!(merged, ours);
 
-    let end = r#""key":"connections|W20"}}"#;
-    let later = w20(theirs, end, r#""key":"connections|W20"},"later":"kept"}"#);
-    let expected = w20(merged_sides(), end, r#""key":"connections|W20"},"later":"kept"}"#);
-    let (out, merged) = t.merge([&base, &ours, &later], form(true, REPO_PAGE));
+    let later = |l: &str| format!("{},\"later\":\"kept\"}}", l.strip_suffix('}').unwrap());
+    let expected = shield(merged_sides(), &later);
+    let later = shield(theirs, &later);
+    let (out, merged) = t.merge([&base, &ours, &later], form(true, &repo_page));
     assert_eq!(result(&out), (Some(0), String::new(), String::new()));
     assert_eq!(merged, expected);
 }
@@ -241,15 +288,23 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
 /// manufacturer (1) is not merged either: `%A` stays ours byte for byte, the driver prints S3b and exits 1.
 #[test]
 fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
-    const DOC: &str = "proj/J-E-2416.ew/lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let t = Tree::new();
-    let base = std::fs::read_to_string(t.0.path(DOC)).unwrap();
-    let ours = base.replace(r#""name": "Siemens""#, r#""name": "Siemens AG""#);
+    // The sample's one manufacturer, Generic.
+    let file = std::fs::read_dir(t.0.path("proj/sample.ew/lib/manufacturers"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .file_name();
+    let doc = format!("proj/sample.ew/lib/manufacturers/{}", file.to_string_lossy());
+    let doc = doc.as_str();
+    let base = std::fs::read_to_string(t.0.path(doc)).unwrap();
+    let ours = base.replace(r#""name": {"en": "Generic"}"#, r#""name": {"en": "Generic parts"}"#);
     let theirs = base.replace(r#""$k": "manufacturer","#, r#""$k": "manufacturer", "$v": 2,"#);
     assert!(ours != base && theirs != base);
-    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, DOC));
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, doc));
     let said = format!(
-        "merge-driver: {DOC}: holds records this ElektraWatt cannot read (this one reads format {}); left as ours: \
+        "merge-driver: {doc}: holds records this ElektraWatt cannot read (this one reads format {}); left as ours: \
          merge it with a newer version\n",
         ew_api::FORMAT
     );
@@ -270,14 +325,15 @@ fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
         std::fs::write(path, text).unwrap();
     }
     let os_error = std::fs::File::create(t.0.path(&format!("{name}.tmp-0"))).unwrap_err();
-    let out = t.run(&form(true, REPO_PAGE)(&o, &a, &b));
+    let repo_page = repo_page();
+    let out = t.run(&form(true, &repo_page)(&o, &a, &b));
     assert_eq!(
         result(&out),
         (
             Some(129),
             String::new(),
             format!(
-                "ew merge-driver: the merged {REPO_PAGE} cannot be written to {}: {os_error}; it is left as it was\n",
+                "ew merge-driver: the merged {repo_page} cannot be written to {}: {os_error}; it is left as it was\n",
                 a.display()
             )
         )
@@ -291,8 +347,9 @@ fn a_side_that_cannot_be_read_exits_129() {
     let t = Tree::new();
     let missing = t.0.path("gone");
     let os_error = std::fs::File::open(&missing).unwrap_err();
+    let repo_page = repo_page();
     let (out, merged) = t.merge(["o\n", "a\n", "b\n"], |o, a, _| {
-        vec![s(o), s(a), s(&missing), "7".to_owned(), REPO_PAGE.to_owned()]
+        vec![s(o), s(a), s(&missing), "7".to_owned(), repo_page.clone()]
     });
     assert_eq!(
         result(&out),
@@ -300,7 +357,7 @@ fn a_side_that_cannot_be_read_exits_129() {
             Some(129),
             String::new(),
             format!(
-                "ew merge-driver: {} cannot be read: {os_error}; {REPO_PAGE} is left as it was\n",
+                "ew merge-driver: {} cannot be read: {os_error}; {repo_page} is left as it was\n",
                 missing.display()
             )
         )
@@ -334,8 +391,8 @@ fn a_path_beginning_with_a_hyphen_merges() {
     std::fs::rename(t.0.path("proj"), t.0.path("-proj")).unwrap();
     let (base, ours, theirs) = clean_sides();
     let expected = merged_sides();
-    let path = "-proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, path));
+    let path = format!("-{}", repo_page());
+    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, &path));
     assert_eq!(result(&out), (Some(0), String::new(), String::new()));
     assert_eq!(merged, expected);
 }

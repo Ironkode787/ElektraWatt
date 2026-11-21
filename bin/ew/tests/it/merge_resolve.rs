@@ -1,63 +1,45 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the `ew` binary: a copy of Golden A whose page 102 holds
-//! a conflict record on W20's colour, ours BU and theirs WH, set on the copy by the test (Golden A's W20 has no
-//! colour). `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate;
-//! CR-3: `ew merge resolve` takes theirs or ours and saves the page canonically; in a session it is one undo step.
-//! Golden A is only read and copied.
+//! Through the `ew` binary: a copy of the sample whose page 103 holds a conflict record on the shield wire's colour
+//! (the shield of -103W1), ours BU and theirs WH, set on the copy by the test (the sample's wires have no colour).
+//! `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate; CR-3: `ew merge
+//! resolve` takes theirs or ours and saves the page canonically; in a session it is one undo step.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Output;
 
 use ew_api::Conflict;
 
-use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
-
-/// Page 102.
-const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-const W20_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
-/// MD-6's conflict record, as `ew merge-driver` writes it (bin/ew/tests/it/merge_driver.rs).
-const CONFLICT: &str = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
-
-/// Golden A's page-102 file with W20's overrides replaced.
-fn page_with(overrides: &str) -> String {
-    let base = std::fs::read_to_string(Path::new(GOLDEN_A).join(PAGE)).unwrap();
-    let w20 = base
-        .lines()
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20")
-        .to_owned();
-    base.replace(&w20, &w20.replace(W20_OVERRIDES, overrides))
-}
+use crate::merge_driver::{colour_conflict, page, page_with, shield_id};
+use crate::support::{EwTmp as _, Tmp};
 
 fn colour(c: &str) -> String {
-    format!(r#""overrides":{{"csa":"2.5","colour":["{c}"],"show_marker":true}}"#)
+    format!(r#""overrides":{{"csa":"2.5","colour":["{c}"]}}"#)
 }
 
-/// A copy of Golden A in a fresh folder whose page 102 is the merge driver's result of MD-6's conflict variant: W20
-/// with csa 2.5 and BU in place, and the conflict record. Removed on drop.
+/// A copy of the sample in a fresh folder whose page 103 is the merge driver's result of MD-6's conflict variant: the
+/// shield wire with BU in place, and the conflict record. Removed on drop.
 struct Copy(Tmp);
 
 impl Copy {
     fn new() -> Copy {
         let root = Tmp::new("ew-merge-resolve");
-        let project = root.path("J-E-2416.ew");
-        crate::support::copy_dir(Path::new(GOLDEN_A), &project);
+        let project = root.sample("sample.ew");
         std::fs::write(
-            project.join(PAGE),
-            format!("{}{CONFLICT}\n", page_with(&colour("BU"))),
+            project.join(page()),
+            format!("{}{}\n", page_with(&colour("BU")), colour_conflict()),
         )
         .unwrap();
         Copy(root)
     }
 
     fn project(&self) -> PathBuf {
-        self.0.path("J-E-2416.ew")
+        self.0.path("sample.ew")
     }
 
     fn page(&self) -> String {
-        std::fs::read_to_string(self.project().join(PAGE)).unwrap()
+        std::fs::read_to_string(self.project().join(page())).unwrap()
     }
 
     fn ew(&self, args: &[&str]) -> Output {
@@ -96,20 +78,20 @@ fn ew_check_release_reports_ew_core_011_once_as_an_open_error() {
         [(
             "error".to_owned(),
             "open".to_owned(),
-            "connection from a junction to -102F1:1 on folio 102: ours and theirs differ in overrides.colour"
+            "connection from -X1031:SH/b to -103M1:PE on folio 103: ours and theirs differ in overrides.colour"
                 .to_owned()
         )]
     );
     assert_eq!(o.status.code(), Some(1));
 }
 
-/// CR-4: the release gate of Golden A's open revision counts the EW-CORE-011 finding among its blockers.
+/// CR-4: the release gate of the sample's open revision counts the EW-CORE-011 finding among its blockers.
 #[test]
 fn the_release_gate_is_blocked_by_ew_core_011() {
     let c = Copy::new();
     let (session, report) = ew_api::Session::open_read_only(&c.project(), "test").expect("the copy opens");
     let gate = session
-        .release_gate("V2.0", &ew_api::integrity_items(&report))
+        .release_gate("V1.0", &ew_api::integrity_items(&report))
         .expect("the gate runs");
     let blockers: Vec<&str> = gate
         .blockers()
@@ -122,8 +104,8 @@ fn the_release_gate_is_blocked_by_ew_core_011() {
 }
 
 /// CR-3: `ew merge resolve` takes theirs (WH, with `--kind` and `--field`, and with `--json`, which prints
-/// `ew.merge-resolve-result/1`) or ours (BU), removes the conflict and saves page 102 canonically: Golden A's file with
-/// W20's csa 2.5 and the colour taken.
+/// `ew.merge-resolve-result/1`) or ours (BU), removes the conflict and saves page 103 canonically: the sample's file
+/// with the shield wire's csa 2.5 and the colour taken.
 #[test]
 fn merge_resolve_takes_a_side_and_saves_the_page_canonically() {
     let cases: [(&[&str], &str, &str, &str); 3] = [
@@ -215,7 +197,7 @@ fn merge_resolve_in_a_session_is_one_undo_step() {
     session
         .execute(&ew_api::AnyCommand {
             name: "merge.resolve".into(),
-            params: serde_json::json!({"choices": [{"conflict": "1c5963b7-6c34-53d6-8fa6-9d02d4629711", "take": "theirs"}]}),
+            params: serde_json::json!({"choices": [{"conflict": shield_id(), "take": "theirs"}]}),
         })
         .expect("theirs is taken");
     assert_eq!(conflicts(&session), 0);
