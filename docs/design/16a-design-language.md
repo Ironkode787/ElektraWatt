@@ -1315,6 +1315,12 @@ no zebra, columns `size.table_column` wide and resizable): text in `color.text.p
 `color.text.secondary` (the header icon and the cell's accessible name ", read-only" carry the meaning; italics go,
 since no italic face is bundled, §4.8); a read-only cell shows no edit affordance and its reason as tooltip, as built.
 
+**The columns fill the grid** (FT-1761: at 2560 × 1440 the Bus, Devices and Medium tables kept their columns at their
+start width and left the panel's right half empty). Each column is sized to its widest cell on show, at least its start
+width; a table with a filling column (the Pages Title, the Unplaced devices' Part, the Libraries Name) gives that
+column the room the others leave, and every other table shares that room evenly among its columns, less a scroll bar's
+room. A resize of the grid sizes the columns again (a width dragged by hand gives way to it).
+
 | State | Drawing |
 |---|---|
 | Rest | As above |

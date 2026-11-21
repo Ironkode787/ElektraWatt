@@ -50,6 +50,8 @@ change here.
   titles, headers and cells in the project's language; the CSV and XLSX stay English (doc 09 §3.8, FT-1955)
 - behaviour-change: `ew route` names on stderr a file of the project that `manifest.json` does not list, and refuses a
   crashed session's unsaved journal and an older format as the other writers do (FT-1930)
+- behaviour-change: a table's columns fill its grid: a table without a column that takes the rest shares the room its
+  columns leave among them, at 2560 × 1440 as at 1920 (the Bus, Devices and Medium tables) (doc 16a §6.21, FT-1761)
 - behaviour-change: Select and Wire lead the Draw, PLC and Fluid tabs alike, so a tool keeps its place when the
   tab changes (Wire left Draw's Connect group, its menu path is Draw ▸ Wire); PLC workspace, Fluid workspace and
   Addresses are small buttons (doc 16a §5.2, FT-1806)

@@ -193,6 +193,9 @@ impl TableUi {
         // A resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
         // new room, and a column's range scales with the grid: `size.table_column.max` or the grid's width.
         let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
+        // A table without a filling column shares the room its columns leave among them (FT-1761), so a resize
+        // sizes every column again.
+        let shares = !shown.iter().any(|c| capped(kind, &table.columns[*c].key));
         self.pane_width = Some(area.width());
         let max = column_max(&tokens, area.width());
         let sorted_by = match &nav.sort {
@@ -214,7 +217,7 @@ impl TableUi {
                 Column::new(tokens.size_table_column)
                     .range(tokens.size_table_column_min..=max)
                     .id(column_id(key))
-                    .auto_size_this_frame((resized && capped(kind, key)) || sort_changed || grows)
+                    .auto_size_this_frame((resized && (shares || capped(kind, key))) || sort_changed || grows)
             })
             .collect();
         let mut t = Table::new()
@@ -825,18 +828,20 @@ fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f3
 /// A cell's rect: the whole cell, or in egui_table's sizing pass (the first frame) `size.table_column` wide or as
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
-/// shrank to its 40-px minimum). A column with a cap ([`fill_cap`]) does not grow past it: its cells elide.
+/// shrank to its 40-px minimum). A column with a cap ([`fill_cap`]) does not grow past it: its cells elide. `share` is
+/// the column's part of the room the columns leave ([`Delegate::share`]).
 fn cell_rect(
     ui: &Ui,
     t: &Tokens,
     kind: NavKind,
     key: &str,
     cap: impl FnOnce() -> Option<f32>,
+    share: f32,
     content: impl FnOnce() -> f32,
 ) -> Rect {
     let rect = ui.max_rect();
     if ui.is_sizing_pass() {
-        let mut width = (content() + 2.0 * t.space_4).max(start_width(t, kind, key));
+        let mut width = (content() + 2.0 * t.space_4).max(start_width(t, kind, key)) + share;
         if let Some(cap) = cap() {
             width = width.min(cap);
         }
@@ -979,6 +984,26 @@ impl Delegate<'_> {
         Some(fill_cap(&self.tokens, self.area.width(), others))
     }
 
+    /// Each column's part of the room the columns leave in the grid (FT-1761: at 2560 × 1440 the Bus, Devices and
+    /// Medium tables kept their columns at their start width and left the panel's right half empty): the grid's width
+    /// less the columns' fitted widths ([`Self::others_width`]) and a scroll bar's room, shared evenly; none for a
+    /// table with a filling or capped column (it takes that room itself) or one whose columns do not fit.
+    fn share(&mut self, ui: &Ui) -> f32 {
+        if self.shown.iter().any(|c| capped(self.kind, &self.table.columns[*c].key)) {
+            return 0.0;
+        }
+        let others = match self.others {
+            Some(w) => w,
+            None => {
+                let w = self.others_width(ui);
+                self.others = Some(w);
+                w
+            }
+        };
+        let room = self.area.width() - others - ui.spacing().scroll.allocated_width() - self.tokens.space_2;
+        (room / self.shown.len().max(1) as f32).max(0.0)
+    }
+
     /// The widths the shown columns other than the filling one size to (as [`cell_rect`] sizes them: the widest of
     /// the header and the cells on show plus `space.4` on either side, at least the column's start width), summed.
     fn others_width(&self, ui: &Ui) -> f32 {
@@ -1111,11 +1136,11 @@ impl TableDelegate for Delegate<'_> {
             return;
         };
         let t = self.tokens.clone();
-        let cap = if ui.is_sizing_pass() {
+        let (cap, share) = if ui.is_sizing_pass() {
             let table = self.table;
-            self.cap(ui, &table.columns[c].key)
+            (self.cap(ui, &table.columns[c].key), self.share(ui))
         } else {
-            None
+            (None, 0.0)
         };
         let column = &self.table.columns[c];
         let sorted = self.sort.filter(|(i, _)| *i == cell.col_range.start);
@@ -1136,6 +1161,7 @@ impl TableDelegate for Delegate<'_> {
             self.kind,
             &column.key,
             || cap,
+            share,
             || text_width(ui, &column.label, small_strong(&t)) + icon_room,
         );
         let response = ui.allocate_rect(rect, Sense::click());
@@ -1231,11 +1257,11 @@ impl TableDelegate for Delegate<'_> {
         };
         self.painted += 1;
         let t = self.tokens.clone();
-        let cap = if ui.is_sizing_pass() {
+        let (cap, share) = if ui.is_sizing_pass() {
             let table = self.table;
-            self.cap(ui, &table.columns[c].key)
+            (self.cap(ui, &table.columns[c].key), self.share(ui))
         } else {
-            None
+            (None, 0.0)
         };
         let node = &self.table.nodes[row.node as usize];
         let column = &self.table.columns[c];
@@ -1280,6 +1306,7 @@ impl TableDelegate for Delegate<'_> {
             self.kind,
             &column.key,
             || cap,
+            share,
             || text_width(ui, &text, theme::font(&t.type_small)),
         );
         // An unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
