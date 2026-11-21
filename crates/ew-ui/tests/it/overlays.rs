@@ -31,7 +31,7 @@ use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::pick_stack;
 use serde_json::{Value, json};
-use support::{Tmp, dispatch, done, on_golden, settle};
+use support::{Tmp, dispatch, done, on_sample, settle};
 
 const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 const WHITE: [u8; 3] = [0xFF, 0xFF, 0xFF];
@@ -42,9 +42,9 @@ fn at(p: (i64, i64)) -> Value {
     json!({"x_mm": p.0 as f64 / 1e6, "y_mm": p.1 as f64 / 1e6})
 }
 
-/// A copy of Golden A open on folio 101 in a headless shell, the pane 800 × 560 points at ppp 1.
+/// A copy of the sample open on folio 101 in a headless shell, the pane 800 × 560 points at ppp 1.
 fn headless_101(tmp: &Tmp) -> ShellModel {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     done(
         &mut shell,
@@ -74,7 +74,7 @@ fn row_key(shell: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> Str
 }
 
 /// The four potentials of folio 101 highlighted from the Potentials navigator (slots 0 to 3).
-const HIGHLIGHTED: [&str; 4] = ["L", "N", "PE", "L-55"];
+const HIGHLIGHTED: [&str; 4] = ["L1", "N", "PE", "24V"];
 
 fn highlight_four(shell: &mut ShellModel) {
     done(shell, "navigator.show", json!({"kind": "potentials"}));
@@ -267,17 +267,21 @@ fn a_short_tag_is_a_crowded_tile() {
 fn the_overlay_snapshots_of_folio_101() {
     let tmp = Tmp::new();
     let mut shell = headless_101(&tmp);
-    // The first representation of the page tables whose selection is one rectangle.
-    let reps = shell.canvas().unwrap().page().tables.reps.clone();
-    let mut selected = Vec::new();
-    for rep in &reps {
-        done(&mut shell, "select.set", json!({"ids": [rep.id.to_string()]}));
-        selected = shell.selected_rects(0);
-        if selected.len() == 1 {
-            break;
-        }
-    }
-    assert_eq!(selected.len(), 1, "a representation selected as one rectangle");
+    // The page's first terminal selected (every representation of the sample's 101 is outlined with its texts, so the
+    // selection is a few rectangles; the top band is probed).
+    let rep = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.terminal)
+        .expect("a terminal on 101")
+        .id;
+    done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
+    let selected = shell.selected_rects(0);
+    assert!(!selected.is_empty(), "the terminal is outlined");
     let image = snapshot(&shell);
     assert_eq!(image.pixels, snapshot(&shell).pixels, "stable");
     let o = overlay_of(&shell, None, &selected);
@@ -375,7 +379,8 @@ fn the_pick_stacks_hover_outline_and_walk() {
     let c = shell.canvas().unwrap();
     let page = Arc::clone(c.page());
     let reach = HOVER_SLOP_PT / c.points_per_nm();
-    // The middle of the first wire segment whose pick stack holds two entities or more, off every link.
+    // The middle of the first wire segment whose pick stack holds two entities or more with the wire first, off every
+    // link.
     let p = page
         .tables
         .connections
@@ -384,12 +389,18 @@ fn the_pick_stacks_hover_outline_and_walk() {
             t.polyline
                 .windows(2)
                 .map(|w| {
-                    page.snapper
-                        .page_to_sheet(((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2))
+                    let p = page
+                        .snapper
+                        .page_to_sheet(((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2));
+                    (t.id, p)
                 })
                 .collect::<Vec<_>>()
         })
-        .find(|p| c.link_at(*p).is_none() && pick_stack(&page, &page.snapper, *p, reach).len() >= 2)
+        .find(|(wire, p)| {
+            let stack = pick_stack(&page, &page.snapper, *p, reach);
+            c.link_at(*p).is_none() && stack.len() >= 2 && stack[0].0 == *wire
+        })
+        .map(|(_, p)| p)
         .expect("a point where entities overlap");
     let stack = pick_stack(&page, &page.snapper, p, reach);
     let rect_of = |e| {
@@ -548,7 +559,7 @@ fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
 #[test]
 fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
     settle(&mut h);
     for name in HIGHLIGHTED {
@@ -604,10 +615,10 @@ fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
 #[test]
 fn the_highlight_chips_stay_clear_with_and_without_the_find_pane() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
     settle(&mut h);
-    for name in ["24VDC-1", "0V", "PE", "24VDC-2"] {
+    for name in ["1L1", "1L2", "1L3", "PE"] {
         let key = row_key(h.state().shell(), NavKind::Potentials, NavRole::Potential, name);
         dispatch(
             &mut h,
@@ -661,7 +672,7 @@ fn the_highlight_chips_stay_clear_with_and_without_the_find_pane() {
 #[test]
 fn the_link_preview_has_a_named_region() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let link = h
         .state()
         .shell()
@@ -730,7 +741,7 @@ fn the_link_preview_has_a_named_region() {
 #[test]
 fn the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     // The label ("Variant A · new F") is wider than the variant letter alone was; a wider window keeps
     // room for it above left of the HUD, where the test expects a free spot.
     h.set_size(egui::Vec2::new(1400.0, 800.0));
@@ -818,7 +829,7 @@ fn the_chips_keep_off_the_hud_and_the_zoom_control() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The free connection points of Golden A's first multi-line page that has some (spare terminals are unwired by
+/// The free connection points of the sample's first multi-line page that has some (spare terminals are unwired by
 /// design) marked open in the canvas snapshot at 100 % (a hollow square in `canvas.open_cp`, a neutral grey:
 /// its corners grey, no accent on the plain page), none at
 /// 25 % (a grid step under 4 points), and only in the session overlay: the page's display list, which print and PDF

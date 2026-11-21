@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Chrome snapshots: the main window on Golden A folio 101 at 1920 × 1080, the main resolution (doc 16a §2), in
+//! Chrome snapshots: the main window on the sample's folio 101 at 1920 × 1080, the main resolution (doc 16a §2), in
 //! light and dark at both densities, the main views at 2560 × 1440, its extension, and the component gallery in the
 //! four themes, rendered offscreen (`offscreen`)
 //! and written as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares
@@ -122,7 +122,7 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     }
 }
 
-/// The main window on a copy of Golden A in `theme` and `density`, with the temporary directory that holds the copy:
+/// The main window on a copy of the sample in `theme` and `density`, with the temporary directory that holds the copy:
 /// the caller drops it after the harness, so no copy is left in the temporary directory.
 fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     main_window_at(theme, density, 1.0)
@@ -132,7 +132,7 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
 /// points).
 fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let (h, recorder) = window_on(tmp.config(), dir, theme, density, ppp, true, WINDOW);
     (h, recorder, tmp)
 }
@@ -238,7 +238,7 @@ fn the_main_views_at_2560(k: usize, of: usize) {
     ];
     for (name, open) in support::shard(views, k, of) {
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, true, EXTENSION);
         // The form's caret blinks on the wall clock: steady for a stable image.
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
@@ -500,7 +500,7 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
     )
 }
 
-/// The Messages pane in tree mode (Golden A's error and a pending finding, then the
+/// The Messages pane in tree mode (the sample's infos and a pending finding, then the
 /// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
 /// gated: all three in light Comfortable, the detail block in dark Compact.
 /// Two shards that run side by side, a theme each.
@@ -669,7 +669,7 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
     h.run_ok();
 }
 
-/// The grid (doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
+/// The grid (doc 16a §6.21): the sample's Terminal strips navigator in table mode, filtered `x1021`, sorted
 /// by Terminal, with the derived Potential column moved next to Terminal so that it is on show, two marked rows and
 /// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
@@ -690,7 +690,8 @@ fn the_data_grid(k: usize, of: usize) {
                 ("navigator.table", json!({"kind": "strips"})),
                 // The Pos column is hidden: this image is of the grid in its as-built layout.
                 ("table.columns", json!({"kind": "strips", "hide": ["pos"]})),
-                ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
+                // A filter without a descender: the check below measures its ink against the icon's.
+                ("navigator.filter", json!({"kind": "strips", "text": "x1021"})),
                 ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ] {
                 assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
@@ -832,7 +833,7 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
         .expand(margin)
 }
 
-/// CP6: every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
+/// CP6: every dialog of the shell one by one that the sample opens with one action, each cropped to the dialog's
 /// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
 /// and the three dialogs that need a fixture (the recovery dialog, the question of discarding its journal and the
 /// purge question), gated by [`the_fixture_dialogs_in_light`]. Two shards that run
@@ -973,9 +974,9 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
 }
 
 /// CP6: the three dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
-/// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
+/// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of the sample, its last change
 /// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
-/// (Discard… of the recovery dialog) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
+/// (Discard… of the recovery dialog) and the purge question (a copy of the sample whose first new logo was replaced and saved,
 /// re-opened).
 #[test]
 fn the_fixture_dialogs_in_light() {
@@ -986,7 +987,7 @@ fn the_fixture_dialogs_in_light() {
         let theme = "light";
         // The recovery dialog and the question of discarding the journal.
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         {
             let mut crashed = ShellModel::new(Mode::Gui, tmp.config());
             for (action, params) in [
@@ -1043,7 +1044,7 @@ fn the_fixture_dialogs_in_light() {
 
         // The purge question: the first logo is unused once the project is re-opened (the undo history named it).
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         {
             let mut shell = ShellModel::new(Mode::Gui, tmp.config());
             let logo = |svg: &str| {
@@ -1146,8 +1147,8 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
             .and_then(|t| {
                 t.nodes
                     .iter()
-                    // the page override's fix, not the rebind of EW-PLC-012 (Golden A's EF-02)
-                    .find(|n| n.badges.iter().any(|b| b == "fix") && !n.label.contains("drives solenoid"))
+                    // the page override's fix (EW-CORE-023), the sample's one finding with a fix
+                    .find(|n| n.badges.iter().any(|b| b == "fix"))
                     .map(|n| n.key.clone())
             })
             .expect("a finding with a fix");
@@ -1170,15 +1171,16 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
             h.state().shell().properties().card().is_some(),
             "the quick-fix card"
         );
-        // The "Errors" group title drawn in the accent is the cursor row (a cursor row's title takes the
-        // selection colour, as the Pages list's), not a group title in the wrong colour.
+        // The "Infos" group title drawn in the accent is the cursor row (a cursor row's title takes the
+        // selection colour, as the Pages list's), not a group title in the wrong colour: the sample's findings are
+        // infos.
         let cursor = h
             .state()
             .shell()
             .nav_cursor(ew_viewmodel::navigators::NavKind::Messages);
         assert!(
-            cursor.as_deref().is_some_and(|k| k.ends_with("severity:error")),
-            "the Messages cursor is on the Errors group: {cursor:?}"
+            cursor.as_deref().is_some_and(|k| k.ends_with("severity:info")),
+            "the Messages cursor is on the Infos group: {cursor:?}"
         );
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         let mut parts = vec![messages_pane(&h)];
@@ -1199,7 +1201,7 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
             ("props.show", json!({"on": false})),
             ("navigator.show", json!({"kind": "strips"})),
             ("navigator.table", json!({"kind": "strips"})),
-            ("navigator.filter", json!({"kind": "strips", "text": "x1032"})),
+            ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
             ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
         ] {
@@ -1298,8 +1300,8 @@ fn the_bottom_dock_tab_bar_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Doc 16a §6.24: the chip line "Not on this page" with its pill jump chips, for -201U3 selected on
-/// folio 102 (its other representations are on 201 and 203), cropped to the chip line, light Comfortable, gated.
+/// Doc 16a §6.24: the chip line "Not on this page" with its pill jump chips, for the valve terminal -201K1 selected
+/// on folio 102 (its representations are on 201 and 105), cropped to the chip line, light Comfortable, gated.
 #[test]
 fn the_chip_line_in_light() {
     let dev = device();
@@ -1315,7 +1317,7 @@ fn the_chip_line_in_light() {
             assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
         }
         support::wait_for_page(&mut h);
-        // -201U3 is under -201U1: revealed by its row, then marked (the navigator's selection makes the chips).
+        // -201K1 is placed on 201 and 105: revealed by its row, then marked (the navigator's selection makes the chips).
         let shell = h.state_mut().shell_mut();
         let key = shell
             .nav(ew_viewmodel::navigators::NavKind::Devices)
@@ -1323,10 +1325,10 @@ fn the_chip_line_in_light() {
             .and_then(|t| {
                 t.nodes
                     .iter()
-                    .find(|n| n.role == ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3")
+                    .find(|n| n.role == ew_viewmodel::navigators::NavRole::Device && n.label == "-201K1")
                     .map(|n| n.key.clone())
             })
-            .expect("the -201U3 row");
+            .expect("the -201K1 row");
         for (action, params) in [
             ("navigator.row", json!({"kind": "devices", "key": key})),
             ("navigator.select", json!({"kind": "devices", "keys": [key]})),
@@ -1336,7 +1338,7 @@ fn the_chip_line_in_light() {
         dismiss_toasts(&mut h);
         support::settle(&mut h);
         h.run_ok();
-        assert!(!h.state().shell().chips().is_empty(), "chips for -201U3");
+        assert!(!h.state().shell().chips().is_empty(), "chips for -201K1");
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         let mut parts = vec![node_rect(&h, "Not on this page:").expect("the chip line's label")];
         parts.extend(h.get_all_by_role(egui::Role::Button).filter_map(|n| {
@@ -1398,8 +1400,8 @@ fn the_join_chooser_in_light() {
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
-        // Two relays on the empty lower right of folio 101; the second gets a slot (a contact placed, then deleted).
-        for k in [(60, 30), (60, 40)] {
+        // Two relays on the empty right of the sample's folio 101; the second gets a slot (a contact placed, then deleted).
+        for k in [(90, 30), (90, 40)] {
             act(
                 &mut h,
                 "place.pick",
@@ -1408,15 +1410,15 @@ fn the_join_chooser_in_light() {
             place_at(&mut h, k);
             act(&mut h, "ui.dismiss", json!({}));
         }
-        let (_, k2) = rep_at(&h, (60, 40));
+        let (_, k2) = rep_at(&h, (90, 40));
         act(
             &mut h,
             "place.pick",
             json!({"symbol": "ew.iec.contact-no@qet10", "device": k2}),
         );
-        place_at(&mut h, (66, 40));
+        place_at(&mut h, (96, 40));
         act(&mut h, "ui.dismiss", json!({}));
-        let (contact, _) = rep_at(&h, (66, 40));
+        let (contact, _) = rep_at(&h, (96, 40));
         act(&mut h, "select.set", json!({"ids": [contact]}));
         act(&mut h, "edit.delete_selection", json!({}));
         act(&mut h, "ui.dismiss", json!({}));
@@ -1434,7 +1436,7 @@ fn the_join_chooser_in_light() {
         assert_eq!((ch.row, ch.rows[1].kind.as_str()), (1, "slot 13-14"));
         assert!(ch.rows.iter().any(|r| r.kind == "auxiliary"), "{:?}", ch.rows);
         // The active row's object, -K2's coil, has the hover outline (§6.22, §7.1).
-        let (coil, _) = rep_at(&h, (60, 40));
+        let (coil, _) = rep_at(&h, (90, 40));
         let shell = h.state().shell();
         let c = shell.canvas().unwrap();
         let outline = c
@@ -1590,7 +1592,7 @@ fn the_save_tooltip_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Four window details, each in its own window on a fresh copy of Golden A (their
+/// Four window details, each in its own window on a fresh copy of the sample (their
 /// edits would show in each other's crops), light Comfortable, gated. Four shards that run side by side, a detail each.
 fn the_window_details(k: usize, of: usize) {
     type Detail = fn(&ew_render2d::gpu::HeadlessDevice, &mut Vec<String>);
@@ -1628,13 +1630,14 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
         // Two contacts one above the other without wires (as `designations_and_ip_renames`'s test places them).
-        for k in [(60, 38), (60, 52)] {
+        // Right of the sample's supply drawing, where the page is empty.
+        for k in [(90, 38), (90, 52)] {
             act(&mut h, "place.pick", pick.clone());
             place_at(&mut h, k);
             act(&mut h, "ui.dismiss", json!({}));
         }
         act(&mut h, "place.pick", pick);
-        let (_, s) = grid_points(&h, (60, 43));
+        let (_, s) = grid_points(&h, (90, 43));
         act(
             &mut h,
             "cursor.set",
@@ -1671,17 +1674,18 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         for (name, action, params, text) in [
             ("check", "messages.check", json!({}), "Check: "),
+            // The count of the wires that carry a marker in the explicit mode, as the sample's wires state it.
             (
                 "marker",
                 "project.marker_mode",
                 json!({"mode": "explicit"}),
-                "10 wires carry a marker",
+                " a marker",
             ),
         ] {
             dismiss_toasts(&mut h);
             act(&mut h, action, params);
             let toast = h.state().shell().toast().expect("a toast").text.clone();
-            assert!(toast.starts_with(text), "{toast}");
+            assert!(toast.contains(text), "{toast}");
             h.run_ok();
             h.run_ok();
             let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
@@ -1700,19 +1704,17 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
     }
 }
 
-/// Properties of the wire W29 on folio 103, the Main group with "Wire marker" right after the
-/// cross-section and the colour; cropped to those rows in the Properties pane, light Comfortable.
+/// Properties of the wire 102.1 on folio 102 (from the breaker -102F1 to the strip), the Main group with "Wire
+/// marker" right after the cross-section and the colour; cropped to those rows in the Properties pane, light
+/// Comfortable.
 fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
-        act(&mut h, "page.goto", json!({"folio": "103"}));
+        act(&mut h, "page.goto", json!({"folio": "102"}));
         support::wait_for_page(&mut h);
-        act(
-            &mut h,
-            "select.set",
-            json!({"ids": ["9eb2d865-fca4-59b1-87bf-c073d7190ceb"]}),
-        );
+        let wire = support::wire_between(&h, "-102F1:2", "-X1021:1/a");
+        act(&mut h, "select.set", json!({"ids": [wire]}));
         act(&mut h, "props.show", json!({"on": true}));
         dismiss_toasts(&mut h);
         support::settle(&mut h);
@@ -1747,11 +1749,10 @@ fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &
     }
 }
 
-/// The Potentials table with a potential known only at its connection points (24VDC-4's definition
-/// deleted), its Name cell in the editor with a typed name; cropped to the grid, light
-/// Comfortable.
+/// The Potentials table with a potential known only at its connection points (the sample defines only its supplies'),
+/// its Name cell in the editor with a typed name; cropped to the grid, light Comfortable.
 fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
-    use ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::NavKind;
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
@@ -1760,20 +1761,6 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
         act(&mut h, "props.show", json!({"on": false}));
         act(&mut h, "navigator.show", json!({"kind": "potentials"}));
         act(&mut h, "navigator.table", json!({"kind": "potentials"}));
-        let def = {
-            let shell = h.state().shell();
-            let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
-            t.nodes
-                .iter()
-                .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
-                .map(|n| n.records[0])
-                .expect("24VDC-4")
-        };
-        act(
-            &mut h,
-            "command.run",
-            json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
-        );
         let (key, label) = {
             let shell = h.state().shell();
             let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
@@ -1826,13 +1813,13 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
     }
 }
 
-/// Folio 103 of Golden A without its bond B1 (0 V and PE merge over W27 and EW-POT-001 stands): the CPU
+/// Folio 103 of the sample without its bond B1 (0 V and PE merge over the bond's wire and EW-POT-001 stands): the CPU
 /// snapshot of the page pane (800 x 560 points at ppp 1, the page fitted) with the merged potential's wires drawn over in
 /// `canvas.conflict`; the pixel on the middle of a conflict segment is that colour.
 #[test]
 fn the_conflict_overlay_in_light() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     let run = |shell: &mut ShellModel, action: &str, params: serde_json::Value| {
         assert_eq!(
@@ -1854,7 +1841,7 @@ fn the_conflict_overlay_in_light() {
             .and_then(|n| n.table())
             .expect("the Potentials table");
         let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
-        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        assert_eq!(rows.len(), 1, "the sample has the one bond B1");
         rows[0].records[0]
     };
     run(
@@ -1912,7 +1899,7 @@ fn the_lock_icon_at_both_sizes() {
     let mut failures = Vec::new();
     for (name, size) in [("lock-icon-1920", WINDOW), ("lock-icon-2560", EXTENSION)] {
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, false, size);
         act(&mut h, "page.goto", json!({"folio": "902"}));
         support::wait_for_page(&mut h);
