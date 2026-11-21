@@ -1675,11 +1675,9 @@ impl ShellModel {
             .or_insert(json!([]))
             .as_array_mut()
             .ok_or_else(damaged)?;
-        let mut cp = points
-            .iter()
-            .find(|v| v["idx"] == index)
-            .cloned()
-            .unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left","discipline":discipline}));
+        let old = points.iter().find(|v| v["idx"] == index).cloned();
+        let new = old.is_none();
+        let mut cp = old.unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left","discipline":discipline}));
         if let Some(mapping) = p.get("fn_cp") {
             cp["fn_cp"] = mapping.clone();
         }
@@ -1698,6 +1696,7 @@ impl ShellModel {
         let fn_cp = cp["fn_cp"]
             .as_u64()
             .ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;
+        let dir = cp["dir"].clone();
         points.retain(|v| v["idx"] != index);
         points.push(cp);
         points.sort_by_key(|v| v["idx"].as_u64());
@@ -1720,6 +1719,29 @@ impl ShellModel {
             fpoints.retain(|v| v["idx"] != fn_cp);
             fpoints.push(fcp);
             fpoints.sort_by_key(|v| v["idx"].as_u64());
+        }
+        // A new point's number is written by a text of its own, inside the body at the point, turned by the edge it
+        // stands on: where a device box prints a pin's name (doc 07 §2.5), so the drawing shows what the page prints.
+        if new {
+            let name = d["function"]["cps"]
+                .as_array()
+                .and_then(|a| a.iter().find(|v| v["idx"] == fn_cp))
+                .and_then(|v| v["designation"].as_str())
+                .unwrap_or_default()
+                .to_owned();
+            let dir: symbols::schema::Dir4 = serde_json::from_value(dir).map_err(|e| e.to_string())?;
+            if let Some((off, rot, align)) = symbols::pin_text_place(&dir, &name) {
+                let slot = json!({"kind":{"cp_designation":index},"pos":[pos[0] + off.x.0, pos[1] + off.y.0],
+                    "rot":rot,"align":align,"visible":true});
+                d["symbol"]
+                    .as_object_mut()
+                    .ok_or_else(damaged)?
+                    .entry("text_slots")
+                    .or_insert(json!([]))
+                    .as_array_mut()
+                    .ok_or_else(damaged)?
+                    .push(slot);
+            }
         }
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,

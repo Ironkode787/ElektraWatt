@@ -10,6 +10,7 @@ use std::path::Path;
 
 use ew_derive::ew_ids::{Id, Uuid, v5};
 pub use ew_mltext::{MlText, MlTextView};
+pub use ew_scene::page::pin_text_place;
 pub use ew_scene::symbol::{SymbolGeometry, TextSource, lower};
 pub use ew_schema as schema;
 use ew_schema::{FnDef, LibCopy, LibDocument, LibRef, Sha256, SymbolDef};

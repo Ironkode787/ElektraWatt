@@ -1158,7 +1158,12 @@ and duplicate, Escape ends a gesture, then returns to Select, then clears the se
 editor's own history. A drag on a thing moves the selection with a ghost of where it lands; the one selected shape's
 handles drag its ends and corners (`symbol.grip`); Line up puts several things on one edge (`symbol.align`). The
 highlight and the handles are the page's (doc 16a §7.1). The tools draw as on a page: a shape by a drag or two clicks,
-a text typed where it was clicked, a connection point on the connection grid with the next number; a tool's options
+a text typed where it was clicked, a connection point on the connection grid with the next number and the text that
+writes that number (FT-1871): inside the body one millimetre from the point, turned a quarter on an upper or lower edge
+and level on a left or right one, where a device box prints a pin's name (§2.5; one rule,
+`ew_scene::page::pin_text_place`), so a point on the lower edge has its number above it inside the box, not across
+it, and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
+no page printed, and a number text clicked onto a lower point hung across it); a tool's options
 stand on a card at the drawing's top left. The live A–H strip is drawn through the placement's own lowering. To do is
 the editor's validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for

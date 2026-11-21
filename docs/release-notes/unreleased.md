@@ -215,6 +215,9 @@ change here.
   drawn one step over a row of coils stays as drawn (it went round their pins, and the taps then clicked onto the line
   found no wire); where something stands on the line the wire goes round and the tool's hint says so (doc 06a §7.4,
   FT-1864)
+- behaviour-change: a connection point drawn in the symbol editor brings the text that writes its number, inside the
+  box at the point and turned by its edge as a device box prints a pin's name, so a point on the lower edge is named
+  above it, not across it, and the drawing shows what the page prints (doc 07 §5, FT-1871)
 - api-add: a part holds a card of two channel kinds, inputs and outputs (`PlcSection.more_channels`, an optional
   member after `ratings`): the part editor's PLC form has a second channel kind and its count, the outputs numbered on
   after the inputs and each kind addressed from bit 0 of its own range (doc 10 §2.6, FT-1766)

@@ -2038,11 +2038,7 @@ fn with_things(tmp: &Tmp) -> ShellModel {
         "symbol.cp",
         json!({"x":0,"y":4,"designation":"1","direction":"left"}),
     );
-    done(
-        &mut shell,
-        "symbol.slot",
-        json!({"kind":{"cp_designation":1},"x":1,"y":2}),
-    );
+    // The point brings the text that writes its number.
     shell
 }
 
@@ -2068,7 +2064,7 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
     let tmp = Tmp::new("symbol-selection");
     let mut shell = with_things(&tmp);
     // A drawn thing is the one selected, so its rows show.
-    assert_eq!(selection(&shell), ["slot:0"]);
+    assert_eq!(selection(&shell), ["cp:0"]);
     done(&mut shell, "symbol.select", json!({"items": "all"}));
     assert_eq!(selection(&shell), ["cp:0", "slot:0", "graphic:0", "graphic:1"]);
     // With a connection point selected an arrow moves everything one step of the connection grid.

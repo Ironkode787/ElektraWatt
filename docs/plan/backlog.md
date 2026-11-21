@@ -49,7 +49,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Two drawing faults
 
-- FT-1871 `ew-ui, ew-scene`: A symbol drawn in the symbol editor with pins on its lower edge prints the pin texts across the pins, and a text of the inner drawing above its box; the editor shows neither before the symbol stands on a page.
+- FT-1990 `ew-viewmodel`: A connection point moved alone in the symbol editor, or given another edge in Properties, leaves the text that writes its number where it stood; since FT-1871 every new point has one.
 
 ### What a person at the window meets
 

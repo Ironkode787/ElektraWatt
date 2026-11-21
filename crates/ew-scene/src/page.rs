@@ -94,7 +94,8 @@
 //!   digit: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
 //!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
 //!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
-//!   leaving right). They print after the slot texts and never move: they are fixed texts. An entry without its box
+//!   leaving right); [`pin_text_place`], which the symbol editor also gives a new connection point's number text. They
+//!   print after the slot texts and never move: they are fixed texts. An entry without its box
 //!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
 //!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
@@ -1863,6 +1864,25 @@ pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 /// A placed pin text: its entity, text, point, angle and alignment.
 pub(crate) type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
 
+/// Where the text `text` of a pin that a wire leaves along `dir` stands (module documentation, "Pin texts"): its
+/// anchor from the pin, its angle and its alignment, inside the body [`PIN_TEXT_GAP`] from the pin. The one rule for a
+/// black box's pin texts and for the number text the symbol editor gives a new connection point; `None` for a pin of
+/// an unknown direction.
+pub fn pin_text_place(dir: &Dir4, text: &str) -> Option<(Pt2, Angle2, Align)> {
+    let g = PIN_TEXT_GAP;
+    // A text of signs only ("+", "−") reads the same horizontally, and turned a minus would read as a tick.
+    let signs = !text.chars().any(char::is_alphanumeric);
+    Some(match dir {
+        Dir4::Up if signs => (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre),
+        Dir4::Down if signs => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2::ZERO, Align::BottomCentre),
+        Dir4::Up => (Pt2::new(Nm::ZERO, g), Angle2(90_000), Align::MiddleRight),
+        Dir4::Down => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2(90_000), Align::MiddleLeft),
+        Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
+        Dir4::Right => (Pt2::new(Nm(-g.0), Nm::ZERO), Angle2::ZERO, Align::MiddleRight),
+        Dir4::Unknown(_) => return None,
+    })
+}
+
 /// The pin texts of the page's black boxes, by representation ID then box-CP order (module documentation, "Pin
 /// texts").
 pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
@@ -1883,17 +1903,10 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
                 continue;
             }
             let at = rep.pos + rep.orient.apply(cp.pos);
-            let g = PIN_TEXT_GAP;
-            // A text of signs only ("+", "−") reads the same horizontally, and turned a minus would read as a tick.
-            let signs = !pin.text.chars().any(char::is_alphanumeric);
-            let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
-                Dir4::Up if signs => (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre),
-                Dir4::Down if signs => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2::ZERO, Align::BottomCentre),
-                Dir4::Up => (Pt2::new(Nm::ZERO, g), Angle2(90_000), Align::MiddleRight),
-                Dir4::Down => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2(90_000), Align::MiddleLeft),
-                Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
-                Dir4::Right => (Pt2::new(Nm(-g.0), Nm::ZERO), Angle2::ZERO, Align::MiddleRight),
-                Dir4::Unknown(_) => continue,
+            let Some((offset, angle, align)) =
+                pin_text_place(&symbol::transform_dir(&cp.dir, rep.orient), &pin.text)
+            else {
+                continue;
             };
             out.push((
                 EntityRef(rep.id.as_uuid()),
