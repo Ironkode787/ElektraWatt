@@ -10,6 +10,7 @@
 //!   `a_block_whose_rows_do_not_derive_draws_its_reason`, `the_tables_layer_does_not_depend_on_record_order`
 //! - `the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `an_embedded_block_draws_no_back_links`
+//! - `the_cover_tables_print_the_profiles_rows_in_their_tables`
 //!
 //! How a boxed table fills its flow columns, reports the rows beyond its capacity and draws PART DATA's order codes is
 //! `ew-scene`'s `embedded.rs`; the legend's rows are `ew-derive`'s `layout_bom.rs` and `ew-reports`'
@@ -24,6 +25,8 @@ use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_reports::BlockRows;
+use ew_reports::render::{RenderOptions, render};
+use ew_reports::RowKind;
 use ew_scene::embedded::{EmbeddedContent, EmbeddedTable};
 use ew_scene::forms::SheetMap;
 use ew_scene::page::PageFinding;
@@ -333,4 +336,76 @@ fn an_embedded_block_draws_no_back_links() {
         .filter(|(_, links)| !links.is_empty())
         .collect();
     assert_eq!(links, []);
+}
+
+/// The cover tables (`profile_tables`) embedded on the title page: the block's rows go to their tables by the block's
+/// `table` column, the colour table under its four column labels with the profile's basis as its caption, the control
+/// and the mains sizes as colour and size, and the note. The sample's title page has no such block; the test adds one.
+#[test]
+fn the_cover_tables_print_the_profiles_rows_in_their_tables() {
+    let id = Id::from_uuid(Uuid::from_u128(0x4b42_0000 + 20));
+    let s = sample_with(|records| {
+        let page = page_id(records, 1);
+        let block = fixture_block(
+            records,
+            20,
+            ReportSource::Kind(ReportKind::ProfileTables),
+            page,
+            printed_rect(1_631, 2_000, 27_727, 18_000),
+        );
+        records.push(Record::ReportBlock(block));
+    });
+    let q = s.query();
+    let set = q.get::<BlockRows>(id);
+    assert!(set.is_derived());
+    let opts = RenderOptions::default();
+    let cell = |row: &ew_reports::Row, key: &str| {
+        set.column(key)
+            .and_then(|i| row.cells.get(i))
+            .map(|c| render(&q, c, &opts))
+            .unwrap_or_default()
+    };
+    let rows_of = |table: &str, keys: &[&str]| -> Vec<Vec<String>> {
+        set.rows
+            .iter()
+            .filter(|r| r.kind == RowKind::Data && cell(r, "table") == table)
+            .map(|r| keys.iter().map(|k| cell(r, k)).collect())
+            .collect()
+    };
+    let colours = rows_of("colours", &["voltage_class", "function", "potential_type", "colour"]);
+    let control = rows_of("control", &["colour", "size"]);
+    let mains = rows_of("mains", &["colour", "size"]);
+    assert!(
+        !colours.is_empty() && !control.is_empty() && !mains.is_empty(),
+        "the sample has a colour and a size profile"
+    );
+    let entry = q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .find(|e| e.folio == "1")
+        .expect("folio 1")
+        .clone();
+    let view = page_view(&q, &entry);
+    let covers: Vec<_> = view
+        .embedded
+        .iter()
+        .filter_map(|e| match &e.content {
+            EmbeddedContent::Cover(c) => Some(c),
+            EmbeddedContent::Table(_) => None,
+        })
+        .collect();
+    let [cover] = covers.as_slice() else {
+        panic!("one cover on folio 1: {}", covers.len())
+    };
+    assert_eq!(
+        cover.colours.header,
+        ["Voltage class", "Function", "Potential type", "Colour"]
+    );
+    assert_eq!(cover.colours.rows, colours);
+    assert_eq!(cover.control.rows, control);
+    assert_eq!(cover.mains.rows, mains);
+    for title in [&cover.colours.title, &cover.control.title, &cover.mains.title] {
+        assert!(!title.is_empty(), "every table has its title");
+    }
 }

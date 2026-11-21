@@ -301,10 +301,9 @@ fn output_is_deterministic_and_independent_of_the_thread_count() {
 #[test]
 fn errors_no_pages_duplicate_names_page_size() {
     let opts = options();
-    assert_eq!(
-        svg(&[], &opts, None, Parallelism::Serial).unwrap_err(),
-        SvgError::NoPages
-    );
+    let none = svg(&[], &opts, None, Parallelism::Serial).unwrap_err();
+    assert_eq!(none, SvgError::NoPages);
+    assert_eq!(none.to_string(), "the export has no pages");
     let dup = [page(1, "1", vec![]), page(2, "1", vec![])];
     assert_eq!(
         svg(&dup, &opts, None, Parallelism::Serial).unwrap_err(),
