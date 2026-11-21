@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Find and replace headless (acceptance checks FR3 to FR6 through the built binary): "Spare" on 204
-//! to 206 replaced by "Reserve" through the card, the regular expression `(Reserve)` → `$1 (unused)`, and the freeze
+//! Find and replace headless (acceptance checks FR3 to FR6 through the built binary): "Spare" on 201
+//! (the sample's two spare valves) replaced by "Reserve" through the card, the regular expression `(Reserve)` → `$1 (unused)`, and the freeze
 //! of three tags on 102, as an `ew.uiscript/1` script; byte-identical transcripts on two runs; the `--record` log
 //! (three `fields.set_many` lines) replayed onto a fresh copy giving the records the script saved, and committed as
 //! `tests/grid/find_log.rs`, which `bin/ew/tests/it/cli.rs` applies with `ew apply`. No UUID in the `find` member or the
@@ -79,13 +79,13 @@ fn has_uuid(text: &str) -> bool {
 fn steps(dir: &Path) -> Vec<(&'static str, Value)> {
     vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
-        ("page.goto", json!({"folio": "204"})),
-        // FR3: "Spare" on 204 to 206, 20 results, replaced by "Reserve" through the card.
+        ("page.goto", json!({"folio": "201"})),
+        // FR3: "Spare" on 201, the 2 spare valves the sample's script makes, replaced by "Reserve" through the card.
         ("find.open_replace", json!({})),
         ("find.text", json!({"text": "Spare"})),
         ("find.replacement", json!({"text": "Reserve"})),
         ("find.fields", json!({"fields": ["function_text"]})),
-        ("find.folios", json!({"folios": ["204", "205", "206"]})),
+        ("find.folios", json!({"folios": ["201"]})),
         ("find.run", json!({})),
         ("ui.describe", json!({})),
         ("find.replace_all", json!({})),
@@ -104,7 +104,7 @@ fn steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ("page.goto", json!({"folio": "102"})),
         (
             "select.set",
-            json!({"refs": ["tag:-102F1", "tag:-102G1", "tag:-102F2"]}),
+            json!({"refs": ["tag:-102F1", "tag:-102S1", "tag:-102S2"]}),
         ),
         (
             "props.action",
@@ -133,24 +133,24 @@ pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice
     let d = |i: usize| t[i]["describe"].as_str().unwrap().to_owned();
     assert!(
         d(8).contains(
-            "find \"Spare\" replace \"Reserve\" regex off case off word off scope function_text folios \"204\" \"205\" \"206\" results 20"
+            "find \"Spare\" replace \"Reserve\" regex off case off word off scope function_text folios \"201\" results 2"
         ),
         "{}",
         d(8)
     );
-    assert_eq!(t[7]["state"]["find"]["results"], 20);
+    assert_eq!(t[7]["state"]["find"]["results"], 2);
     assert!(
-        d(10).contains("card ready \"fields.set_many\" targets 20 changes 20"),
+        d(10).contains("card ready \"fields.set_many\" targets 2 changes 2"),
         "{}",
         d(10)
     );
     assert_eq!(t[9]["state"]["card"]["origin"], "find");
     assert!(
-        d(12).contains("find status \"Replaced 20; run again to refresh\""),
+        d(12).contains("find status \"Replaced 2; run again to refresh\""),
         "{}",
         d(12)
     );
-    assert!(d(19).contains("results 20"), "{}", d(19));
+    assert!(d(19).contains("results 2"), "{}", d(19));
     assert!(d(19).contains("\"Reserve (unused)\""), "{}", d(19));
     assert!(
         d(23).contains("card ready \"fields.set_many\" targets 3"),

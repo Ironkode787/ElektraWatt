@@ -1737,6 +1737,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
         .map(|c| c.id.to_string())
         .collect();
     let rep = tables.reps[0].id.to_string();
+    let (items_before, boxes_before) = (tables.items.len(), tables.structure_boxes.len());
     drop(sample);
     let header = "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"logs\"}";
     let mut lines = vec![
@@ -1838,8 +1839,9 @@ fn the_recorded_logs_replay_through_ew_apply() {
         "the page items and structure boxes by content, IDs aside"
     );
     let saved_tables = saved.page_tables("101").unwrap();
-    assert_eq!(saved_tables.items.len(), 3);
-    assert_eq!(saved_tables.structure_boxes.len(), 1);
+    // The log places a free text, a line and a marker on 101, beside the items the sample holds there.
+    assert_eq!(saved_tables.items.len(), items_before + 3);
+    assert_eq!(saved_tables.structure_boxes.len(), boxes_before + 1);
 }
 
 /// A fresh saved project without parts (the import target).

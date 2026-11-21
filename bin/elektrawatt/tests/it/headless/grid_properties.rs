@@ -5,7 +5,7 @@
 //! 101 to 103 (§6.12) as an `ew.uiscript/1` script through the built binary, byte-identical transcripts on two runs,
 //! the `--record` log replayed onto a fresh copy giving equal records, and D-06's property-grid entry (the description
 //! override of folio 101 with its finding, reset, undo) read back through the transcript and `ui.describe`. No window,
-//! no GPU, no display; every run on a temporary copy of Golden A. A module of `tests/it/headless.rs`, whose `bin_exe` it
+//! no GPU, no display; every run on a temporary copy of the sample. A module of `tests/it/headless.rs`, whose `bin_exe` it
 //! uses.
 
 use std::path::Path;
@@ -16,13 +16,70 @@ use serde_json::{Value, json};
 
 use crate::support::Tmp;
 
-/// W29 on folio 103 and W20 on 102 (`connections|W29`, `connections|W20`), the potential definition 24VDC-1.
-const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
-const DEF_24VDC_1: &str = "51b0b676-8978-50af-91cc-cde58ea478d9";
-/// W20 on folio 102 (`connections|W20`), -101F1's representation, the interruption point PE-1.2 on 102.
-const W20: &str = "1c5963b7-6c34-53d6-8fa6-9d02d4629711";
-const REP_101F1: &str = "7b76f7a3-8966-50ed-a194-36d38ac1c0a1";
-const IP_PE_1_2: &str = "6198cbd3-a6a2-569c-8284-2d39ba05bfae";
+/// The ID of the first record of the sample's page `folio` (its file, `pages/<id>.jsonl`) whose line holds every one of
+/// `needles`: the sample's IDs are made by its script, so the pilot finds its records by content.
+fn record_id(folio: u32, needles: &[&str]) -> String {
+    let number = format!("\"number\":{folio}}}");
+    let dir = std::path::Path::new(crate::support::SAMPLE).join("pages");
+    for e in std::fs::read_dir(dir).unwrap() {
+        let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
+        if !text.lines().next().is_some_and(|l| l.contains(&number)) {
+            continue;
+        }
+        if let Some(line) = text.lines().find(|l| needles.iter().all(|n| l.contains(n))) {
+            let v: Value = serde_json::from_str(line).unwrap();
+            return v["id"].as_str().unwrap().to_owned();
+        }
+    }
+    panic!("no record {needles:?} on folio {folio}");
+}
+
+/// A plain wire on folio 103 (no cable core, no override): its cross-section and colour are overridden.
+fn wire_103() -> String {
+    let id = record_id(103, &["\"$k\":\"connection\""]);
+    let text = page_text(103);
+    let plain = text
+        .lines()
+        .find(|l| l.contains("\"$k\":\"connection\"") && !l.contains("\"kind\"") && !l.contains("\"overrides\""))
+        .map(|l| serde_json::from_str::<Value>(l).unwrap()["id"].as_str().unwrap().to_owned());
+    plain.unwrap_or(id)
+}
+
+/// The text of the sample's page `folio`.
+fn page_text(folio: u32) -> String {
+    let number = format!("\"number\":{folio}}}");
+    let dir = std::path::Path::new(crate::support::SAMPLE).join("pages");
+    std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+        .find(|t| t.lines().next().is_some_and(|l| l.contains(&number)))
+        .unwrap()
+}
+
+/// The shield wire of -103W1 on folio 103, the one wire with a cross-section override (2.5 mm²): it is reset.
+fn shield_103() -> String {
+    record_id(103, &["\"overrides\":{\"csa\":\"2.5\"}"])
+}
+
+/// The potential definition 24V at the power supply on folio 101 (a device file holds it, beside its device).
+fn def_24v() -> String {
+    let dir = std::path::Path::new(crate::support::SAMPLE).join("devices");
+    std::fs::read_dir(dir)
+        .unwrap()
+        .find_map(|e| {
+            let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
+            let line = text
+                .lines()
+                .find(|l| l.contains("\"$k\":\"potential_def\"") && l.contains("\"name\":\"24V\""))?;
+            Some(serde_json::from_str::<Value>(line).unwrap()["id"].as_str().unwrap().to_owned())
+        })
+        .expect("the potential definition 24V")
+}
+
+/// The interruption point PE on folio 102, where the PE comes in from 101.
+fn ip_pe_102() -> String {
+    record_id(102, &["\"ip\":{\"name\":\"PE\""])
+}
 
 /// The pilot's command log as `--record` writes it after its header: the constant `PILOT_LOG` of
 /// `tests/grid/pilot_log.rs`, which `bin/ew/tests/it/cli.rs` includes and replays through `ew apply`.
@@ -81,7 +138,8 @@ fn all_done(out: &Output) -> Vec<Value> {
 
 /// The pilot's edits on folios 101 to 103 (§6.12), saved at the end.
 fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
-    let terminals: Vec<String> = (1..=20).map(|i| format!("tag:-X1031:{i}")).collect();
+    let terminals: Vec<String> = (1..=8).map(|i| format!("tag:-X1021:{i}")).collect();
+    let (wire, shield, def, ip) = (wire_103(), shield_103(), def_24v(), ip_pe_102());
     vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("page.goto", json!({"folio": "101"})),
@@ -94,21 +152,21 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ),
         ("props.set", json!({"row": "device/state", "value": "spare"})),
         ("ui.describe", json!({})),
-        // S51: unfreeze its tag (EF-15).
-        ("select.set", json!({"refs": ["tag:S51"]})),
+        // -UC1: unfreeze its tag (the enclosure's tag, which Enclosure… freezes).
+        ("select.set", json!({"refs": ["tag:-UC1"]})),
         (
             "props.action",
             json!({"row": "device/derived.tag", "action": "unfreeze"}),
         ),
-        // The terminals of -X1031: their part in one command (FR-DEV-031).
+        // The terminals of -X1021: their part in one command (FR-DEV-031).
         ("page.goto", json!({"folio": "102"})),
         ("select.set", json!({"refs": terminals})),
         ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),
         ("ui.describe", json!({})),
         ("toast.dismiss", json!({})),
-        // W29: cross-section and colour overridden (AC-28).
+        // A wire on 103: cross-section and colour overridden (AC-28).
         ("page.goto", json!({"folio": "103"})),
-        ("select.set", json!({"ids": [W29]})),
+        ("select.set", json!({"ids": [wire]})),
         (
             "props.action",
             json!({"row": "connection/derived.csa", "action": "override"}),
@@ -122,8 +180,8 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ("props.input", json!({"text": "BU"})),
         ("props.commit", json!({})),
         ("ui.describe", json!({})),
-        // 24VDC-1: name and voltage.
-        ("select.set", json!({"ids": [DEF_24VDC_1]})),
+        // 24V: name and voltage.
+        ("select.set", json!({"ids": [def]})),
         (
             "props.set",
             json!({"row": "potential_def/voltage", "value": "26.4"}),
@@ -145,8 +203,9 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             json!({"row": "page/derived.description", "action": "reset"}),
         ),
         // The rest of §6.12: -101F1's part quantity and technical data; -102F1's function text, letter and counter;
-        // the other frozen tags of EF-15; a terminal's designation; W29's colour and W20's cross-section reset; the
-        // name of 24VDC-1; a representation's arrangement and text slots; an interruption point read-only.
+        // the other frozen tag, -UC1-plate; a terminal's designation; the wire's colour and the shield's
+        // cross-section reset; the name of 24V; a representation's arrangement and text slots; an interruption point
+        // read-only.
         ("select.set", json!({"refs": ["tag:-101F1"]})),
         ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),
         (
@@ -158,59 +217,38 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             "props.set",
             json!({"row": "device/function_text", "value": "Supply 24 V"}),
         ),
-        ("props.set", json!({"row": "device/tag.letter", "value": "Q"})),
+        ("props.set", json!({"row": "device/tag.letter", "value": "K"})),
         ("props.set", json!({"row": "device/tag.counter", "value": "9"})),
-        ("select.set", json!({"refs": ["tag:F55"]})),
+        ("select.set", json!({"refs": ["tag:-UC1-plate"]})),
         (
             "props.action",
             json!({"row": "device/derived.tag", "action": "unfreeze"}),
         ),
-        ("select.set", json!({"refs": ["tag:T55"]})),
-        (
-            "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
-        ),
-        ("select.set", json!({"refs": ["tag:E55"]})),
-        (
-            "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
-        ),
-        ("select.set", json!({"refs": ["tag:S56"]})),
-        (
-            "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
-        ),
-        ("select.set", json!({"refs": ["tag:E56"]})),
-        (
-            "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
-        ),
-        ("select.set", json!({"refs": ["tag:1X1"]})),
-        (
-            "props.action",
-            json!({"row": "device/derived.tag", "action": "unfreeze"}),
-        ),
-        ("select.set", json!({"refs": ["tag:-X1031:20"]})),
+        ("select.set", json!({"refs": ["tag:-X1021:8"]})),
         (
             "props.set",
-            json!({"row": "device/terminal.designation", "value": "20A"}),
+            json!({"row": "device/terminal.designation", "value": "8A"}),
         ),
-        ("select.set", json!({"ids": [W29]})),
+        ("select.set", json!({"ids": [wire]})),
         (
             "props.action",
             json!({"row": "connection/derived.colour", "action": "reset"}),
         ),
-        ("select.set", json!({"ids": [W20]})),
+        ("select.set", json!({"ids": [shield]})),
         (
             "props.action",
             json!({"row": "connection/derived.csa", "action": "reset"}),
         ),
-        ("select.set", json!({"ids": [DEF_24VDC_1]})),
+        ("select.set", json!({"ids": [def]})),
         (
             "props.set",
-            json!({"row": "potential_def/name", "value": "24VDC-1A"}),
+            json!({"row": "potential_def/name", "value": "24VA"}),
         ),
-        ("select.set", json!({"ids": [REP_101F1]})),
+        ("page.goto", json!({"folio": "101"})),
+        // -101F1's representation, clicked on its symbol (the script placed it at 101-E8).
+        ("tool.select", json!({})),
+        ("canvas.press", json!({"x_mm": 145.486, "y_mm": 114.0})),
+        ("canvas.release", json!({"x_mm": 145.486, "y_mm": 114.0})),
         (
             "props.set",
             json!({"row": "representation/arrangement", "value": "B"}),
@@ -219,7 +257,8 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             "props.set",
             json!({"row": "representation/text_slots", "value": "[{\"slot\":0,\"visible\":false}]"}),
         ),
-        ("select.set", json!({"ids": [IP_PE_1_2]})),
+        ("page.goto", json!({"folio": "102"})),
+        ("select.set", json!({"ids": [ip]})),
         ("ui.describe", json!({})),
         ("select.set", json!({"ids": []})),
         ("file.save", json!({})),
@@ -268,8 +307,8 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
                 aliased.push(id);
             }
         }
-        assert!(aliased.contains(&W29.to_owned()), "{aliased:?}");
-        assert!(aliased.contains(&DEF_24VDC_1.to_owned()), "{aliased:?}");
+        assert!(aliased.contains(&wire_103()), "{aliased:?}");
+        assert!(aliased.contains(&def_24v()), "{aliased:?}");
         let record_b = tmp.path("pilot-b.ewcmd");
         let out_b = run(&tmp, "b.jsonl", &script(&steps_b), Some(&record_b));
         all_done(&out_b);
@@ -297,7 +336,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
         "{d}"
     );
     let d = describe(12);
-    assert!(d.contains("toast \"Set quantity on 20 devices.\" undo"), "{d}");
+    assert!(d.contains("toast \"Set quantity on 8 devices.\" undo"), "{d}");
     let d = describe(22);
     assert!(
         d.contains(
@@ -316,7 +355,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     );
     let d = describe(32);
     assert!(
-        d.contains("row \"page/derived.description\" \"Description\" \"Control Cabinet Expansion\" overridden \"override · project description is 'Expansion Control Cabinets'\""),
+        d.contains("row \"page/derived.description\" \"Description\" \"Control Cabinet Expansion\" overridden \"override · project description is 'Conveyor drive with a pneumatic clamp'\""),
         "{d}"
     );
     assert!(d.contains("properties finding info \"EW-CORE-023\""), "{d}");
@@ -324,7 +363,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     for s in &steps {
         for member in ["properties", "card", "toast"] {
             let text = s["state"][member].to_string();
-            assert!(!text.contains(W29) && !text.contains(DEF_24VDC_1), "{text}");
+            assert!(!text.contains(&wire_103()) && !text.contains(&def_24v()), "{text}");
         }
     }
     // The record replayed onto a fresh copy: the same records as the saved project.
@@ -406,14 +445,14 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     );
 }
 
-/// §6.12: a counter collision on -102F1 is refused with the next free counter; the run stops at that step.
+/// §6.12: a counter collision on -102S1 (with -102S2) is refused with the next free counter; the run stops at that step.
 #[test]
 fn a_counter_collision_stops_the_script_with_its_remedy() {
     let tmp = Tmp::new();
     let dir = tmp.sample("collision.ew");
     let steps = vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
-        ("select.set", json!({"refs": ["tag:-102F1"]})),
+        ("select.set", json!({"refs": ["tag:-102S1"]})),
         ("props.set", json!({"row": "device/tag.counter", "value": "2"})),
     ];
     let out = run(&tmp, "collision.jsonl", &script(&steps), None);
@@ -424,7 +463,7 @@ fn a_counter_collision_stops_the_script_with_its_remedy() {
     let message = last["message"].as_str().unwrap();
     assert!(message.contains("next free counter"), "{message}");
     assert!(
-        !message.contains('-') || !message.contains("4aa43308"),
+        crate::support::first_uuid(message).is_none(),
         "no page ID: {message}"
     );
     assert_eq!(last["state"]["properties"]["error"]["row"], "device/tag.counter");
@@ -463,8 +502,8 @@ pub(crate) fn pg9_d06_headless_case(twice: bool) {
     let out = run(&tmp, "d06.jsonl", &script(&steps), None);
     let t = all_done(&out);
     let d = |i: usize| t[i]["describe"].as_str().unwrap().to_owned();
-    let inherited = "row \"page/derived.description\" \"Description\" \"Expansion Control Cabinets\" inherited \"project description\" actions override";
-    let overridden = "row \"page/derived.description\" \"Description\" \"Control Cabinet Expansion\" overridden \"override · project description is 'Expansion Control Cabinets'\" actions override reset";
+    let inherited = "row \"page/derived.description\" \"Description\" \"Conveyor drive with a pneumatic clamp\" inherited \"project description\" actions override";
+    let overridden = "row \"page/derived.description\" \"Description\" \"Control Cabinet Expansion\" overridden \"override · project description is 'Conveyor drive with a pneumatic clamp'\" actions override reset";
     assert!(d(2).contains(inherited), "{}", d(2));
     assert!(!d(2).contains("EW-CORE-023"));
     assert!(d(8).contains(overridden), "{}", d(8));

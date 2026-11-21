@@ -6,30 +6,26 @@
 
 /// The command log's lines after the header.
 #[allow(dead_code)]
-pub const PILOT_LOG: &str = r##"{"cmd":"fields.set","params":{"kind":"device","path":"function_text","targets":["a4383bbd-d783-5a93-9bc2-215a77787e19"],"value":"24 V distribution"}}
-{"cmd":"fields.set","params":{"kind":"device","path":"state","targets":["a4383bbd-d783-5a93-9bc2-215a77787e19"],"value":"spare"}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["3ded384e-8f16-5bec-8bc5-59708b9ee843"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"parts","targets":["78532d37-2122-56c2-a92c-cf3340ef93a8","46e82110-0737-5547-b146-aac63d618b30","b571c572-3d0d-5170-acdd-ee6a855d4056","14ba2699-bec9-51eb-9530-0bf191bafdde","57641700-ad7a-5186-a026-bb03d2c33c91","1ca8cdbe-c400-5662-8ada-c316c225e733","cfe9de31-1f66-50e6-a949-6771255059af","c4ac6b68-5a96-5ed8-a3ed-854b1f0445df","b7545ae9-cfe2-572d-83eb-5b6532ca99d2","9d0be982-25b9-5cd7-a42b-52afd393621e","e238f025-b171-5406-9512-c11d11530071","99102c93-968e-54d0-949f-6b3e942848fd","425b4dd3-9265-53a0-bc90-46d12c43fafb","5617905a-2cec-5ca0-9ec1-4f1a9bc1b011","e201d7c9-f53c-51f6-a09d-115aa59d70ad","78056ae0-3eea-5333-9319-74046fc4bebd","578ea242-2eb2-5b5b-8844-40bc46f629a9","d484720e-8091-573e-9a88-90f1059bf367","80b45d7a-cbdd-5e2c-9f59-f001648d6ad3","31cc8007-66f2-575e-af87-ef92ccde2a71"],"value":[{"part":{"copy":"14908083-618d-55c0-b20d-4810fbc5a350"},"qty":"2"}]}}
-{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.csa","targets":["9eb2d865-fca4-59b1-87bf-c073d7190ceb"],"value":"1"}}
-{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.colour","targets":["9eb2d865-fca4-59b1-87bf-c073d7190ceb"],"value":["BU"]}}
-{"cmd":"fields.set","params":{"kind":"potential_def","path":"voltage","targets":["51b0b676-8978-50af-91cc-cde58ea478d9"],"value":"26.4"}}
-{"cmd":"fields.set","params":{"kind":"page","path":"title","targets":["71260e59-ea02-5e16-8678-401d4044d9d7"],"value":"Power supply"}}
-{"cmd":"fields.set","params":{"kind":"page","path":"description_override","targets":["71260e59-ea02-5e16-8678-401d4044d9d7"],"value":"Control Cabinet Expansion"}}
-{"cmd":"fields.set","params":{"kind":"page","path":"description_override","targets":["71260e59-ea02-5e16-8678-401d4044d9d7"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"parts","targets":["a4383bbd-d783-5a93-9bc2-215a77787e19"],"value":[{"part":{"copy":"c93f4464-c792-5ba7-b55e-e62493e5730f"},"qty":"2"}]}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tech_data","targets":["a4383bbd-d783-5a93-9bc2-215a77787e19"],"value":[{"key":"curve","value":"C"}]}}
-{"cmd":"fields.set","params":{"kind":"device","path":"function_text","targets":["ff321999-9715-51d0-8eb6-9b93acae6158"],"value":"Supply 24 V"}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.letter","targets":["ff321999-9715-51d0-8eb6-9b93acae6158"],"value":"Q"}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.counter","targets":["ff321999-9715-51d0-8eb6-9b93acae6158"],"value":9}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["594f6043-5d61-51b2-8f57-db20fe74a517"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["c28d1493-418c-56c5-9549-6ec91aae6866"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["85760c34-951e-5b8a-bbe2-3253c69e3db2"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["4774297e-b89f-5739-9ef2-2715227020bd"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["2e937cb7-2349-5fcc-a6d9-1b19f0c616b3"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"device","path":"terminal.designation","targets":["31cc8007-66f2-575e-af87-ef92ccde2a71"],"value":"20A"}}
-{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.colour","targets":["9eb2d865-fca4-59b1-87bf-c073d7190ceb"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.csa","targets":["1c5963b7-6c34-53d6-8fa6-9d02d4629711"],"value":null}}
-{"cmd":"fields.set","params":{"kind":"potential_def","path":"name","targets":["51b0b676-8978-50af-91cc-cde58ea478d9"],"value":"24VDC-1A"}}
-{"cmd":"fields.set","params":{"kind":"representation","path":"arrangement","targets":["7b76f7a3-8966-50ed-a194-36d38ac1c0a1"],"value":"B"}}
-{"cmd":"fields.set","params":{"kind":"representation","path":"text_slots","targets":["7b76f7a3-8966-50ed-a194-36d38ac1c0a1"],"value":[{"slot":0,"visible":false}]}}
+pub const PILOT_LOG: &str = r##"{"cmd":"fields.set","params":{"kind":"device","path":"function_text","targets":["019b76da-a828-7000-8000-000000000028"],"value":"24 V distribution"}}
+{"cmd":"fields.set","params":{"kind":"device","path":"state","targets":["019b76da-a828-7000-8000-000000000028"],"value":"spare"}}
+{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["019b76da-a965-7000-8000-000000000165"],"value":null}}
+{"cmd":"fields.set","params":{"kind":"device","path":"parts","targets":["019b76da-a877-7000-8000-000000000077","019b76da-a87a-7000-8000-00000000007a","019b76da-a87d-7000-8000-00000000007d","019b76da-a880-7000-8000-000000000080","019b76da-a883-7000-8000-000000000083","019b76da-a886-7000-8000-000000000086","019b76da-a889-7000-8000-000000000089","019b76da-a88c-7000-8000-00000000008c"],"value":[{"part":{"copy":"a6c45e26-ccfe-5015-b5a2-cca67d92f600"},"qty":"2"}]}}
+{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.csa","targets":["019b76da-a8db-7000-8000-0000000000db"],"value":"1"}}
+{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.colour","targets":["019b76da-a8db-7000-8000-0000000000db"],"value":["BU"]}}
+{"cmd":"fields.set","params":{"kind":"potential_def","path":"voltage","targets":["019b76da-a85c-7000-8000-00000000005c"],"value":"26.4"}}
+{"cmd":"fields.set","params":{"kind":"page","path":"title","targets":["019b76da-a809-7000-8000-000000000009"],"value":"Power supply"}}
+{"cmd":"fields.set","params":{"kind":"page","path":"description_override","targets":["019b76da-a809-7000-8000-000000000009"],"value":"Control Cabinet Expansion"}}
+{"cmd":"fields.set","params":{"kind":"page","path":"description_override","targets":["019b76da-a809-7000-8000-000000000009"],"value":null}}
+{"cmd":"fields.set","params":{"kind":"device","path":"parts","targets":["019b76da-a828-7000-8000-000000000028"],"value":[{"part":{"copy":"7f57b77a-6a32-5397-93e4-66e35de395d0"},"qty":"2"}]}}
+{"cmd":"fields.set","params":{"kind":"device","path":"tech_data","targets":["019b76da-a828-7000-8000-000000000028"],"value":[{"key":"curve","value":"C"}]}}
+{"cmd":"fields.set","params":{"kind":"device","path":"function_text","targets":["019b76da-a873-7000-8000-000000000073"],"value":"Supply 24 V"}}
+{"cmd":"fields.set","params":{"kind":"device","path":"tag.letter","targets":["019b76da-a873-7000-8000-000000000073"],"value":"K"}}
+{"cmd":"fields.set","params":{"kind":"device","path":"tag.counter","targets":["019b76da-a873-7000-8000-000000000073"],"value":9}}
+{"cmd":"fields.set","params":{"kind":"device","path":"tag.frozen","targets":["019b76da-a966-7000-8000-000000000166"],"value":null}}
+{"cmd":"fields.set","params":{"kind":"device","path":"terminal.designation","targets":["019b76da-a88c-7000-8000-00000000008c"],"value":"8A"}}
+{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.colour","targets":["019b76da-a8db-7000-8000-0000000000db"],"value":null}}
+{"cmd":"fields.set","params":{"kind":"connection","path":"overrides.csa","targets":["019b76da-a8f6-7000-8000-0000000000f6"],"value":null}}
+{"cmd":"fields.set","params":{"kind":"potential_def","path":"name","targets":["019b76da-a85c-7000-8000-00000000005c"],"value":"24VA"}}
+{"cmd":"fields.set","params":{"kind":"representation","path":"arrangement","targets":["019b76da-a82a-7000-8000-00000000002a"],"value":"B"}}
+{"cmd":"fields.set","params":{"kind":"representation","path":"text_slots","targets":["019b76da-a82a-7000-8000-00000000002a"],"value":[{"slot":0,"visible":false}]}}
 "##;
