@@ -494,6 +494,28 @@ impl Session {
         Ok(plan)
     }
 
+    /// The part number of part `item` when My parts, the person's own writable library, is `library` and holds it:
+    /// what [`Session::remove_own_part`] can take out; `None` for any other.
+    pub fn own_part_number(&self, library: Uuid, item: Uuid) -> Option<String> {
+        let registry = self.libraries();
+        registry
+            .libraries()
+            .iter()
+            .any(|l| l.id == library && l.key == crate::eplan::USER_PARTS_KEY && l.writable)
+            .then(|| {
+                registry
+                    .documents(library, Kind::Part)
+                    .into_iter()
+                    .find_map(|d| match d {
+                        LibDocument::Part(c) if c.item_id.as_uuid() == item => {
+                            Some(c.item.part_number.as_str().to_owned())
+                        }
+                        _ => None,
+                    })
+            })
+            .flatten()
+    }
+
     /// Takes part `item` out of My parts, the person's own library `library` (`part.remove_own`, FT-1766, doc 07
     /// §2.5): the next projects no longer offer it. A project that holds a copy of it keeps the copy, and its devices
     /// keep their part: each project embeds the parts it uses, so no project loses a part this way. The devices of
@@ -509,17 +531,7 @@ impl Session {
             .libraries()
             .into_iter()
             .find(|l| l.id == library && l.key == crate::eplan::USER_PARTS_KEY && l.writable);
-        let number = self
-            .libraries()
-            .documents(library, Kind::Part)
-            .into_iter()
-            .find_map(|d| match d {
-                LibDocument::Part(c) if c.item_id.as_uuid() == item => {
-                    Some(c.item.part_number.as_str().to_owned())
-                }
-                _ => None,
-            });
-        let (Some(mine), Some(number)) = (mine, number) else {
+        let (Some(mine), Some(number)) = (mine, self.own_part_number(library, item)) else {
             return Err(PartDraftError::Refused(ew_commands::text_key!(
                 "reason-part-not-own"
             )));

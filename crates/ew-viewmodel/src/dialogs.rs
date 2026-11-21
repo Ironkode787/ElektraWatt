@@ -165,6 +165,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::TextStyles(_) => text_styles_spec(model),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
+        Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
@@ -559,6 +560,23 @@ fn purge_spec(files: &[String]) -> DialogSpec {
         ..small(
             strings::text(key!("confirm-purge-title")).to_owned(),
             body,
+            cancel(),
+        )
+    }
+}
+
+/// Taking part `number` (`part` as `part.remove_own` takes it) out of My parts (FT-1766): Cancel the Primary, Remove
+/// apart; what goes and what stays in one sentence.
+fn remove_part_spec(part: &str, number: &str) -> DialogSpec {
+    DialogSpec {
+        danger: Some(DialogButton::new(
+            key!("dialog-remove"),
+            DialogAnswer::Action("part.remove_own", json!({ "part": part, "confirm": true })),
+        )),
+        asks: true,
+        ..small(
+            strings::format(key!("confirm-part-remove-title"), &[number]),
+            vec![strings::text(key!("confirm-part-remove-text")).to_owned()],
             cancel(),
         )
     }

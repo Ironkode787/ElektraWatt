@@ -994,9 +994,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_save(p),
         )),
     ),
-    // A part of My parts taken out of it (FT-1766): the part editor's Remove from My parts.
+    // A part of My parts taken out of it (FT-1766): the part editor's Remove from my parts library…, confirmed.
     with_params(
-        "part?:text",
+        "part?:text, confirm?:bool",
         hidden(act(
             "part.remove_own",
             Command,

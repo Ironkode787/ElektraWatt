@@ -2104,7 +2104,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(format!("  pending {}", pending.action));
         }
-        Dialog::ConfirmJournalDiscard => {
+        Dialog::ConfirmJournalDiscard | Dialog::ConfirmRemovePart { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
             }

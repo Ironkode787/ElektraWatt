@@ -931,8 +931,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::PartChoose(_) => "dialog-part-choose",
         // New cable type… makes a cable part: the cables' section.
         Dialog::PartEdit(e) if e.cable_type => Thing::Cable.topic(),
-        // The part editor makes your own parts: the guide that walks through it.
-        Dialog::PartEdit(_) => "guide-own-parts",
+        // The part editor makes your own parts, and takes one out of My parts: the guide that walks through it.
+        Dialog::PartEdit(_) | Dialog::ConfirmRemovePart { .. } => "guide-own-parts",
         Dialog::Print(_) => "dialog-print",
         Dialog::ExternalChange { .. } => "dialog-external-change",
         Dialog::ConfirmUpgrade { .. } => "dialog-upgrade",
@@ -1264,6 +1264,10 @@ mod tests {
             Dialog::ConfirmPurge {
                 files: Vec::new(),
                 assets: Vec::new(),
+            },
+            Dialog::ConfirmRemovePart {
+                part: text(),
+                number: text(),
             },
             Dialog::ExternalChange { rows: Vec::new() },
             Dialog::ConfirmUpgrade { from: text() },

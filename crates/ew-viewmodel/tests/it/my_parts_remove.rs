@@ -70,17 +70,26 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         done(&mut s, "canvas.activate", json!({}));
     }
     done(&mut s, "ui.dismiss", json!({}));
-    // Its part editor offers the removal, apart from Save.
+    // Its part editor offers the removal, apart from Save; it asks first, and its Remove takes the part out.
     done(&mut s, "part.edit", json!({"part": "DI-4"}));
-    let dialog = s.dialog().cloned().expect("the part editor");
-    let danger = spec(&dialog, &s).danger.expect("Remove from my parts library");
-    assert_eq!(danger.label, "Remove from my parts library");
-    let DialogAnswer::Action(action, params) = danger.answer else {
-        panic!("an action: {:?}", danger.answer);
+    let danger = |s: &ShellModel| {
+        let dialog = s.dialog().cloned().expect("a dialog");
+        let b = spec(&dialog, s).danger.expect("its danger button");
+        let DialogAnswer::Action(action, params) = b.answer else {
+            panic!("an action: {:?}", b.answer);
+        };
+        (b.label, action, params)
     };
-    assert_eq!(action, "part.remove_own");
-    done(&mut s, action, params.clone());
-    assert!(s.dialog().is_none(), "the part editor gives way");
+    let (label, action, params) = danger(&s);
+    assert_eq!(
+        (label.as_str(), action),
+        ("Remove from my parts library…", "part.remove_own")
+    );
+    done(&mut s, action, params);
+    let (label, action, params) = danger(&s);
+    assert_eq!((label.as_str(), action), ("Remove", "part.remove_own"));
+    done(&mut s, action, params);
+    assert!(s.dialog().is_none(), "the confirmation and the part editor give way");
     let said = toast(&s);
     assert!(
         said.starts_with("Removed DI-4 from your parts library")

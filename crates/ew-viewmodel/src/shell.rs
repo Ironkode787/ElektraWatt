@@ -393,6 +393,15 @@ pub enum Dialog {
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
     },
+    /// Remove from my parts library… (FT-1766): the part taken out of My parts, which undo does not bring back;
+    /// Remove (`part.remove_own` with `confirm`) or Cancel (Escape), which returns to the part editor it was asked
+    /// from.
+    ConfirmRemovePart {
+        /// The part as `part.remove_own` takes it (`id:<copy>`).
+        part: String,
+        /// Its part number.
+        number: String,
+    },
     /// Choose part… (D19): the part selection dialog, a 640-px form with the search, the filters, the result list
     /// and Choose.
     PartChoose(Box<part_dialog::PartChooser>),
@@ -766,8 +775,9 @@ pub struct ShellModel {
     notes: crate::notifications::NotificationLog,
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
     markers: Vec<HistoryMarker>,
-    /// The recovery dialog that Discard… replaced with its confirmation, or the import card that the unsaved-changes
-    /// question of its Apply replaced: Cancel returns to it.
+    /// The recovery dialog that Discard… replaced with its confirmation, the import card that the unsaved-changes
+    /// question of its Apply replaced, or the part editor that Remove from my parts library… replaced: Cancel returns
+    /// to it.
     recovery_stash: Option<Dialog>,
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
     messages: crate::navigators::messages::MessagesState,
@@ -2211,9 +2221,14 @@ impl ShellModel {
         }
         // Escape in the confirmation that Discard… opened returns to the recovery dialog.
         // And Escape in the unsaved-changes question of the import card's Apply returns to the card.
+        // And Escape and Cancel in the confirmation of Remove from my parts library… return to the part editor.
         if matches!(
             self.dialog,
-            Some(Dialog::ConfirmJournalDiscard | Dialog::ConfirmDiscard { .. })
+            Some(
+                Dialog::ConfirmJournalDiscard
+                    | Dialog::ConfirmDiscard { .. }
+                    | Dialog::ConfirmRemovePart { .. }
+            )
         ) && let Some(stashed) = self.recovery_stash.take()
         {
             self.dialog_gen += 1;

@@ -277,6 +277,7 @@ enum DialogKind {
     ConfirmPurge,
     PartChoose,
     PartEdit,
+    ConfirmRemovePart,
     Print,
     ExternalChange,
     ConfirmUpgrade,
@@ -311,7 +312,8 @@ impl DialogKind {
             Self::Recovery => Self::ConfirmPurge,
             Self::ConfirmPurge => Self::PartChoose,
             Self::PartChoose => Self::PartEdit,
-            Self::PartEdit => Self::Print,
+            Self::PartEdit => Self::ConfirmRemovePart,
+            Self::ConfirmRemovePart => Self::Print,
             Self::Print => Self::ExternalChange,
             Self::ExternalChange => Self::ConfirmUpgrade,
             Self::ConfirmUpgrade => Self::OpenEwz,
@@ -351,6 +353,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ConfirmPurge { .. } => DialogKind::ConfirmPurge,
         Dialog::PartChoose(_) => DialogKind::PartChoose,
         Dialog::PartEdit(_) => DialogKind::PartEdit,
+        Dialog::ConfirmRemovePart { .. } => DialogKind::ConfirmRemovePart,
         Dialog::Print(_) => DialogKind::Print,
         Dialog::ExternalChange { .. } => DialogKind::ExternalChange,
         Dialog::ConfirmUpgrade { .. } => DialogKind::ConfirmUpgrade,
@@ -465,6 +468,32 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                 ("part.edit", json!({}))
             };
             dispatch(&mut h, action.0, action.1);
+            h
+        }
+        // A part of My parts, made here, whose part editor asks before it is taken out.
+        DialogKind::ConfirmRemovePart => {
+            let tiers = ew_viewmodel::ew_api::library::LibraryTiers::under(
+                &tmp.0.join("data"),
+                &tmp.0.join("cache"),
+                Vec::new(),
+                Vec::new(),
+            );
+            let dir = tmp.sample("remove.ew");
+            let mut shell = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(tiers)));
+            for (action, params) in [
+                ("file.open", json!({ "dir": dir.to_string_lossy() })),
+                ("part.new", json!({})),
+                ("part.field", json!({"field": "manufacturer", "value": "Example"})),
+                ("part.field", json!({"field": "part_number", "value": "SW-6"})),
+                ("part.save", json!({})),
+                ("part.edit", json!({"part": "SW-6"})),
+                ("part.remove_own", json!({})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            let mut h = harness_with(shell, Scripted::default(), None);
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
+            h.run_ok();
             h
         }
         DialogKind::Recovery | DialogKind::ConfirmJournalDiscard => {

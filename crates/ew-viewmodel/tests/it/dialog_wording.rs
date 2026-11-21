@@ -59,6 +59,11 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             },
             symbol: true,
         },
+        // Removing a part from My parts.
+        Dialog::ConfirmRemovePart {
+            part: "id:0".into(),
+            number: "SW-6".into(),
+        },
     ];
     // Every action whose label ends with "…" asks before it acts (doc 16a §8 item 8), so with no parameters it changes
     // nothing: the registry is walked, each such action is dispatched bare, the dialog it opens is taken for the
@@ -173,6 +178,11 @@ fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark(
     let purge = spec(&dialogs[7], &shell);
     assert!(purge.confirms_destruction());
     assert_eq!(purge.danger.as_ref().map(|b| b.label.as_str()), Some("Purge"));
+    // So does taking a part out of My parts (FT-1766): Cancel the Primary, Remove the danger button.
+    let remove = spec(&dialogs[11], &shell);
+    assert!(remove.confirms_destruction());
+    assert_eq!(remove.title, "Remove SW-6 from your parts library?");
+    assert_eq!(remove.danger.as_ref().map(|b| b.label.as_str()), Some("Remove"));
     shell.shutdown();
 }
 
