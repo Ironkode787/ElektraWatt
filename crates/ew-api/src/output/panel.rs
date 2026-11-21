@@ -994,13 +994,15 @@ fn blocks_of(q: &Q, page: Id<Page>) -> Vec<PanelBlock> {
         .as_ref()
         .as_ref()
         .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
+    let styles = text_style_table(q);
     let mut out: Vec<PanelBlock> = q
         .table::<ew_schema::ReportBlock>()
         .iter()
         .filter_map(|(id, b)| {
             let e = b.embedded.as_ref().filter(|e| e.page == page)?;
             let rect = e.rect.0;
-            let drawn = ew_scene::embedded::boxed_box(rect, &super::view::boxed_table(q, b, page), sheet);
+            let table = super::view::boxed_table(q, b, page);
+            let drawn = ew_scene::embedded::boxed_box(rect, &table, sheet, super::fonts(q), &styles);
             Some(PanelBlock {
                 id: id.as_uuid(),
                 rect,

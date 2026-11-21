@@ -115,7 +115,7 @@ use ew_derive::{
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, folios_printed, render};
 use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSetStatus};
-use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView};
+use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText,
@@ -1540,18 +1540,21 @@ pub(crate) fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> Embedde
             })
             .collect()
     };
-    // A block with its own printed columns (Add legend's, doc 09 §2.2) is a lookup table: the position and the tag
-    // give way last, the description before them, every other column first.
+    // A block with its own printed columns (Add legend's, doc 09 §2.2) is a lookup table (doc 12 §5.4): a column of
+    // text (the description) is prose and wraps; of the identifiers the position and the tag give way last, every
+    // other first.
     let lookup = (!block.columns.is_empty()).then(|| {
         let rank = |i: usize| match set.columns[i].key.as_str() {
-            "pos" => 3,
-            "tag" => 2,
-            "description" => 1,
+            "pos" => 2,
+            "tag" => 1,
             _ => 0,
         };
         let mut order: Vec<usize> = (0..printed.len()).collect();
         order.sort_by_key(|&c| rank(printed[c].0));
-        order
+        let prose = (0..printed.len())
+            .filter(|&c| set.columns[printed[c].0].ty == ew_reports::CellType::Text)
+            .collect();
+        Lookup { order, prose }
     });
     EmbeddedTable {
         title,

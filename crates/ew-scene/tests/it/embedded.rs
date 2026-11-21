@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use ew_dl::{ItemKind, Layer};
 use ew_scene::embedded::{
-    CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, RegionTable, boxed_capacity,
+    CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup, RegionTable, boxed_capacity,
 };
 use ew_scene::forms::{PageBindings, SheetMap};
 use ew_scene::page::{FrameView, PageFinding, PageView, page_display_list};
@@ -410,11 +410,10 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason_without_a_header() {
 }
 
 /// A legend a person added (a lookup table) with the starter's texts, as the persona's cabinet listed them: one flow
-/// column whose box (and shadow) ends under its last row, far above the bottom of its rectangle. 100 mm wide printed,
-/// every text is whole; 60 mm wide, every position and tag stays whole, the part number and the quantity give way
-/// first and the description last.
+/// column whose box ends under its last row, far above the bottom of its rectangle. 100 mm wide printed, every text is
+/// whole; 60 mm wide, every position, tag, quantity and part number stays whole, and only the description gives way.
 #[test]
-fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last() {
+fn a_lookup_table_keeps_its_identifiers_whole() {
     let columns = [
         ("Pos", 8),
         ("DT", 18),
@@ -454,9 +453,18 @@ fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last()
             flow_columns: 2,
             rows: rows.iter().map(|r| data_row(r)).collect(),
             note: None,
-            lookup: Some(vec![3, 2, 4, 1, 0]),
+            lookup: Some(Lookup {
+                order: vec![3, 2, 1, 0],
+                prose: vec![4],
+            }),
         };
-        let b = SHEET.apply_rect(ew_scene::embedded::boxed_box(rect, &t, SHEET));
+        let b = SHEET.apply_rect(ew_scene::embedded::boxed_box(
+            rect,
+            &t,
+            SHEET,
+            bundled(),
+            builtin(),
+        ));
         let v = EmbeddedView {
             rect,
             content: EmbeddedContent::Table(t),
@@ -484,19 +492,16 @@ fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last()
             assert!(texts.iter().any(|t| t == cell), "{cell}: {texts:?}");
         }
     }
-    // The box: the title band and five rows (9.78 + 5 × 6.52 mm printed), its shadow 2.61 mm below.
+    // The box: the title band and five rows (9.78 + 5 × 6.52 mm printed), without a shadow.
     assert_eq!(b.height().0, 9_780_000 + 5 * 6_520_000, "{b:?}");
     let drawn = drawn.expect("items");
-    assert!(drawn.max().y.0 <= b.max().y.0 + 2_610_000 + 1_000, "{drawn:?}");
+    assert!(drawn.max().y.0 <= b.max().y.0 + 1_000, "{drawn:?}");
+    // 60 mm wide, every identifier stays whole and the description gives way (doc 12 §5.4).
     let (texts, cut, _, _) = lowered(6_000);
-    for whole in ["Pos", "DT", "10", "-UC1-plate", "-101F1", "Mounting plate"] {
-        assert!(texts.iter().any(|t| t == whole), "60 mm, {whole}: {texts:?}");
+    for row in rows {
+        for whole in row[..4].iter().filter(|c| !c.is_empty()) {
+            assert!(texts.iter().any(|t| t == whole), "60 mm, {whole}: {texts:?}");
+        }
     }
-    assert!(!cut.contains(&0) && !cut.contains(&1), "60 mm: {cut:?}");
-    if cut.contains(&4) {
-        assert!(
-            !texts.iter().any(|t| t.starts_with("EW-")),
-            "the part number gives way before the description: {texts:?}"
-        );
-    }
+    assert!(cut.iter().all(|c| *c == 4), "60 mm: {cut:?}");
 }

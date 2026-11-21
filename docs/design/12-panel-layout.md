@@ -624,10 +624,22 @@ words. Such a legend prints position, DT, quantity, part number and description 
 columns (`ReportBlock.columns`, added in 0.3: `{key, weight}` per column, absent means the kind's layout, which an older
 build prints). A block with its own columns is a **lookup table** (rc.2, the persona round: the legend stood over the
 frame's ruler as a narrow strip with every cell cut): one flow column across the block; each column as wide as its
-widest text, the last taking the rest; where the block is narrower, the part number and the quantity give way first,
-then the description, the tag and the position last, each first by shrinking its text to the 1.8 mm cap height and only
-then by being cut (a column cut to nothing prints nothing); the box ends under its last row, so the block's rectangle is
-the room it may take. 100 mm wide, the starter's texts print whole; 60 mm wide, the positions and tags stay whole. On
+widest text, the last taking the rest; the box ends under its last row, so the block's rectangle is the room it may
+take. **Where the block is narrower, the legend keeps its identifiers whole and wraps its prose** (FT-1782, 0.3.5): a
+part number cut to "…" is worth nothing on paper, where no tooltip reads the rest, and a reader of a panel layout looks
+an item up by its position, its tag and its part number; the description only says what the item is. A column of text
+(the description) is prose, every other one (position, tag, quantity, part number, manufacturer) an identifier. In
+this order, until the columns fit: every column shrinks its text to the 1.8 mm cap height, the prose first, then the
+quantity and the part number, the tag and the position last; the prose narrows to its widest word, a description that
+no longer fits wrapping at its words onto further lines at that size, its row growing by a line pitch for each further
+line; the prose narrows further and is cut; last, an identifier is cut (a column cut to nothing prints nothing), which
+only a box narrower than its identifiers at the smallest size meets. Where the wrapped rows need more height than the
+block has, no description wraps and each is cut in its row instead: the box keeps every row before whole descriptions.
+The legend does not ask for a wider box: the room beside a layout is the frame's, and a legend that waits for a person
+prints cut texts until then. A legend a person adds draws no drop shadow and fills its header row a light grey
+(`LOOKUP_HEADER_FILL`, 232 of 255), where the house box (PART DATA, a legend without its own columns) keeps the
+reference's 2.61 mm shadow and its grey header. 100 mm wide, the starter's texts print whole; 60 mm wide, every
+position, tag, quantity and part number stays whole. On
 its page Select picks the legend by its box, a drag moves it and, with the legend selected, a drag of one of its corners
 resizes it (`fields.set` of `embedded.rect`, on whole millimetres, at least 30 × 20 mm; a bottom corner sets where its
 room ends); Delete removes it. Golden A's block has no `columns` and prints its four columns in two flow columns as

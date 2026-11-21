@@ -161,7 +161,13 @@ description and the unit stay in the rows and the CSV. Golden A's legend is the 
 §17.3's "Legend box"). An embedded block has no first folio, so `ew export report --block` names it by its ID
 (WP-S4.01 D18); the default block of a kind-specific export is never an embedded one. A block with its own printed
 columns (`ReportBlock.columns`, the legend Add legend makes) prints as a lookup table: one flow column, columns sized
-to their texts and its box ending under its last row ([12](12-panel-layout.md) §5.4).
+to their texts and its box ending under its last row ([12](12-panel-layout.md) §5.4). **Where it has no room, a
+legend wraps; it does not ask for a wider box** (FT-1782): its identifiers (position, tag, quantity, part number)
+print whole, shrunk to the 1.8 mm cap height where they must be, and its description gives way first, wrapping at its
+words onto further lines while the block has the height for every row so grown, else cut in its row; only a block
+narrower than its identifiers at that size cuts one. The rule and its order are 12 §5.4's. A legend without its own
+columns (made before 0.3) prints the kind's four columns in two flow columns as before, until a person chooses its
+columns (§3.8, "In the window").
 
 **Encodings and deferred members**:
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or

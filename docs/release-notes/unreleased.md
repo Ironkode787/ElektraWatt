@@ -30,6 +30,9 @@ change here.
   name is asked, until it is given or the naming is cancelled (FT-1836)
 - behaviour-change: a selected wire or fluid line marks its two ends with the connection point's ring (doc 16a §7.1,
   FT-1780)
+- behaviour-change: a legend a person adds keeps its positions, tags, quantities and part numbers whole where its box
+  is narrow: its description gives way first, wrapping at its words while the box has the height for every row, else
+  cut; it draws no drop shadow and a light grey header (doc 12 §5.4, FT-1782)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit

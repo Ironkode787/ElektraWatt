@@ -27,7 +27,9 @@
 //!   column; rows beyond the capacity ([`boxed_capacity`]: whole rows of the space under the title band, less a header
 //!   row, per flow column) are not drawn and are reported ([`TableFinding::TooManyRows`], FR-REP-039);
 //! - a lookup table ([`EmbeddedTable::lookup`], the legend a person adds) draws one flow column with its columns sized
-//!   to their texts and its box (and shadow) ending under its last row ([`boxed_box`]).
+//!   to their texts, its identifiers whole and its prose wrapped where the box is narrow ([`Lookup`]), and its box
+//!   ending under its last row ([`boxed_box`]); it draws no drop shadow, and its header row is filled
+//!   [`LOOKUP_HEADER_FILL`], lighter than the house's.
 //!
 //! # The cover ([`EmbeddedContent::Cover`])
 //!
@@ -51,11 +53,11 @@
 //! shrinks to the printed cap height [`MIN_CAP_HEIGHT`](crate::table::MIN_CAP_HEIGHT) and is then reported, never clipped (FR-REP-039).
 //! Only the rows given are drawn, so the table ends below its last row.
 
-use ew_dl::{Brush, Item, Path, Stroke};
+use ew_dl::{Brush, Color, Item, Link, Path, Stroke};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
-use crate::forms::{CELL_PADDING, SheetMap, min_size};
+use crate::forms::{BoxSpec, CELL_PADDING, SheetMap, lay_out, min_size};
 use crate::table::{
     HEADER_FILL, LINE_WIDTH, LoweredTable, ROW_HEIGHT, TableColumn, TableFinding, TableLink, TableRow,
     TableRowKind, column_edges_in, push_cell,
@@ -72,6 +74,10 @@ pub const BOX_TITLE_STYLE: &str = "box.title";
 
 /// The drop shadow of a boxed table, printed (doc 20 §17.3: "shadow 2.61").
 pub const SHADOW: Nm = Nm(2_610_000);
+
+/// The header fill of a lookup table (the legend a person adds): a light grey, so the header reads as the table's head
+/// and not as its heaviest part.
+pub const LOOKUP_HEADER_FILL: Color = Color::from_rgb8(232, 232, 232);
 
 /// The gutter between two flow columns of a boxed table, printed.
 pub const GUTTER: Nm = Nm(4_000_000);
@@ -132,12 +138,32 @@ pub struct EmbeddedTable {
     pub rows: Vec<TableRow>,
     /// Printed in one spanning row instead of `rows`: why the block's rows do not derive.
     pub note: Option<String>,
-    /// A lookup table (the legend a person adds beside a layout, doc 09 §2.2): `Some(order)` prints the rows in one
-    /// flow column whose columns are as wide as their widest texts, the last taking what is left, and ends the box
-    /// under its last row ([`boxed_box`]); where the box is narrower than the texts, the columns give way in the
-    /// order of `order` (indices of `columns`), first by shrinking their texts to the smallest size, then by cutting
-    /// them. `None`: the house layout (the weights, [`EmbeddedTable::flow_columns`], the whole rectangle).
-    pub lookup: Option<Vec<usize>>,
+    /// A lookup table (the legend a person adds beside a layout, doc 09 §2.2): `Some` prints the rows in one flow
+    /// column whose columns are as wide as their widest texts, the last taking what is left, and ends the box under
+    /// its last row ([`boxed_box`]); where the box is narrower than the texts, the columns give way as [`Lookup`]
+    /// says. `None`: the house layout (the weights, [`EmbeddedTable::flow_columns`], the whole rectangle).
+    pub lookup: Option<Lookup>,
+}
+
+/// How the columns of a lookup table give way where its box is narrower than its texts (doc 12 §5.4): an identifier (a
+/// position, a tag, a quantity, a part number) prints whole, a text of prose (a description) wraps.
+///
+/// 1. Each column shrinks its texts down to the smallest size (the 1.8 mm cap height), the prose first, then the
+///    identifiers in the order of `order`.
+/// 2. Each prose column narrows down to its widest word at that size, a text that no longer fits wrapping at its words
+///    onto further lines.
+/// 3. Each prose column narrows further, its texts cut.
+/// 4. Last, each identifier column, in the order of `order`, is cut, down to nothing.
+///
+/// A row whose prose wraps grows by a line for each further line. Where the rows, so grown, need more height than the
+/// box has, no text wraps and each prose text is cut in its row instead: the box holds its rows before their whole
+/// descriptions.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Lookup {
+    /// The order in which the identifier columns give way (indices of [`EmbeddedTable::columns`]).
+    pub order: Vec<usize>,
+    /// The columns of prose (indices of [`EmbeddedTable::columns`]); every other column is an identifier.
+    pub prose: Vec<usize>,
 }
 
 /// What an embedded block draws.
@@ -188,31 +214,153 @@ pub fn boxed_capacity(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> (us
 }
 
 /// The box a boxed table draws in `rect` (page coordinates) under the map `sheet`, its shadow left out: the rectangle,
-/// or for a lookup table its top part down to its last row (the title band, the header and the rows it draws), never
-/// below the rectangle. What a click on the block hits.
-pub fn boxed_box(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> Rect {
+/// or for a lookup table its top part down to its last row (the title band, the header and the rows it draws, a
+/// wrapped row as high as its lines), never below the rectangle. What a click on the block hits.
+pub fn boxed_box(
+    rect: Rect,
+    table: &EmbeddedTable,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> Rect {
     let rect = bounded(rect);
     if table.lookup.is_none() {
         return rect;
     }
-    let (_, per_flow) = boxed_capacity(rect, table, sheet);
-    let given = if table.note.is_some() { 1 } else { table.rows.len() };
-    let rows = i64::try_from(given.min(per_flow) + usize::from(draws_header(table))).unwrap_or(0);
     let r = sheet.apply_rect(rect);
-    let bottom = (r.min().y.0 + title_band(table).0 + ROW_HEIGHT.0.saturating_mul(rows)).min(r.max().y.0);
+    let header = i64::from(draws_header(table));
+    let rows: i64 = match lookup_plan(rect, table, sheet, fonts, &text_style(styles)) {
+        Some(plan) => plan.heights.iter().sum(),
+        None => {
+            let (_, per_flow) = boxed_capacity(rect, table, sheet);
+            let given = if table.note.is_some() { 1 } else { table.rows.len() };
+            ROW_HEIGHT.0.saturating_mul(i64::try_from(given.min(per_flow)).unwrap_or(0))
+        }
+    };
+    let bottom = (r.min().y.0 + title_band(table).0 + ROW_HEIGHT.0 * header)
+        .saturating_add(rows)
+        .min(r.max().y.0);
     Rect::from_points(rect.min(), sheet.unapply(Pt2::new(r.max().x, Nm(bottom))))
+}
+
+/// The style of a boxed table's header and rows.
+fn text_style(styles: &TextStyleTable) -> TextStyle {
+    styles
+        .resolve(DEFAULT_STYLE_KEY)
+        .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+}
+
+/// How a lookup table stands in its box: its column edges and the rows it draws, each with its lines and its height.
+struct Plan {
+    /// The column edges, printed.
+    edges: Vec<Nm>,
+    /// The lines of each row drawn: more than 1 where its prose wraps.
+    lines: Vec<usize>,
+    /// The height of each row drawn, printed.
+    heights: Vec<i64>,
+}
+
+/// The plan of a lookup table in `rect` (page coordinates, clamped) whose rows derive ([`Lookup`]); `None` for the house
+/// layout and for a block whose rows do not derive (its note prints in one row of the house height).
+fn lookup_plan(
+    rect: Rect,
+    t: &EmbeddedTable,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    style: &TextStyle,
+) -> Option<Plan> {
+    let lookup = t.lookup.as_ref().filter(|_| t.note.is_none())?;
+    let r = sheet.apply_rect(rect);
+    let (_, per_flow) = boxed_capacity(rect, t, sheet);
+    let uniform = t.rows.len().min(per_flow);
+    let edges = lookup_edges(
+        t,
+        &t.rows[..uniform],
+        lookup,
+        (r.min().x, r.max().x),
+        fonts,
+        style,
+        sheet,
+    );
+    // The room under the title band and the header.
+    let top = r.min().y.0 + title_band(t).0 + ROW_HEIGHT.0 * i64::from(draws_header(t));
+    let room = r.max().y.0 - top;
+    let small = smallest(fonts, style, sheet);
+    let pitch = sheet.scale_len(fonts.vertical_metrics(&small).line_pitch).0;
+    let height = |n: usize| ROW_HEIGHT.0 + pitch * i64::try_from(n - 1).unwrap_or(0);
+    let lines: Vec<usize> = t
+        .rows
+        .iter()
+        .map(|row| {
+            lookup
+                .prose
+                .iter()
+                .filter_map(|&c| wrapped(row, c, &edges, fonts, &small, sheet).map(|s| s.lines.len()))
+                .max()
+                .unwrap_or(1)
+                .max(1)
+        })
+        .collect();
+    let wrapped_height = lines.iter().fold(0i64, |a, n| a.saturating_add(height(*n)));
+    // Wrapped where every row then fits the box; else every row in one line, as many as fit.
+    let lines = if lines.iter().any(|n| *n > 1) && wrapped_height <= room {
+        lines
+    } else {
+        vec![1; uniform]
+    };
+    let heights = lines.iter().map(|n| height(*n)).collect();
+    Some(Plan {
+        edges,
+        lines,
+        heights,
+    })
+}
+
+/// `style` at the smallest size a cell shrinks to (the printed cap height [`MIN_CAP_HEIGHT`](crate::table::MIN_CAP_HEIGHT)),
+/// the size a wrapped text prints in.
+fn smallest(fonts: &FontSet, style: &TextStyle, sheet: SheetMap) -> TextStyle {
+    style.with_size(min_size(fonts, style, crate::table::MIN_CAP_HEIGHT, sheet).min(style.size))
+}
+
+/// The text of `row`'s cell in column `c` shaped in `small` (the smallest size), wrapped at its words within the
+/// column between `edges` (printed), when it does not fit the column in one line at that size; `None` for a heading
+/// row, an empty cell, a column without width, a text that fits in one line (and prints as a cell does), and a text
+/// with a word wider than the column (which cannot wrap and is cut as a cell is).
+fn wrapped(
+    row: &TableRow,
+    c: usize,
+    edges: &[Nm],
+    fonts: &FontSet,
+    small: &TextStyle,
+    sheet: SheetMap,
+) -> Option<ew_text::Shaped> {
+    if row.kind != TableRowKind::Data {
+        return None;
+    }
+    let s = row.cells.get(c).filter(|s| !s.is_empty())?;
+    let (a, b) = (*edges.get(c)?, *edges.get(c + 1)?);
+    // The width a cell's text has inside its insets, in page coordinates, as `lay_out` measures it.
+    let page = |x: Nm| sheet.unapply(Pt2::new(x, Nm(0))).x;
+    let avail = Nm(page(b).0 - page(a).0 - 2 * CELL_PADDING.0);
+    // Wrapped only where one line does not fit and no word is wider than the column (a line's advance counts the space
+    // it ends with, so the words are measured, not the lines).
+    if avail <= Nm::ZERO
+        || fonts.shape(s, small, None).advance() <= avail
+        || fonts.shape(s, small, Some(Nm::ZERO)).advance() > avail
+    {
+        return None;
+    }
+    Some(fonts.shape(s, small, Some(avail)))
 }
 
 /// The column edges of a lookup table between `left` and `right` (printed): each column as wide as its widest text
 /// (the header and the rows `rows`) with its padding, the last taking what is left; where that is more than the
-/// width, the columns give way in the order of `order`: each in turn shrinks to the width of its texts at the
-/// smallest size, and then, in the same order, each is cut, down to nothing (a column with no width prints
-/// nothing), until the columns fit.
+/// width, the columns give way as [`Lookup`] says (a column with no width prints nothing), until the columns fit.
 #[allow(clippy::too_many_arguments)]
 fn lookup_edges(
     t: &EmbeddedTable,
     rows: &[TableRow],
-    order: &[usize],
+    lookup: &Lookup,
     (left, right): (Nm, Nm),
     fonts: &FontSet,
     style: &TextStyle,
@@ -222,26 +370,30 @@ fn lookup_edges(
     // Both insets, and a quarter of a millimetre for the rounding of the shaping at a smaller size.
     let pad = sheet.scale_len(CELL_PADDING).0.saturating_mul(2) + 250_000;
     let floor = min_size(fonts, style, crate::table::MIN_CAP_HEIGHT, sheet).min(style.size);
-    // The printed advance of the widest text of each column, at the style's size.
-    let widest: Vec<i64> = (0..n)
-        .map(|c| {
-            let header = draws_header(t).then(|| t.columns[c].header.as_str());
-            let cells = rows
-                .iter()
-                .filter(|r| r.kind == TableRowKind::Data)
-                .filter_map(|r| r.cells.get(c).map(String::as_str));
-            header
-                .into_iter()
-                .chain(cells)
-                .map(|s| sheet.scale_len(fonts.shape(s, style, None).advance()).0)
-                .max()
-                .unwrap_or(0)
-        })
-        .collect();
+    // The texts of column `c`: its header and its rows' cells.
+    let texts = |c: usize| {
+        let header = draws_header(t).then(|| t.columns[c].header.as_str());
+        let cells = rows
+            .iter()
+            .filter(|r| r.kind == TableRowKind::Data)
+            .filter_map(move |r| r.cells.get(c).map(String::as_str));
+        header.into_iter().chain(cells)
+    };
+    // The printed advance of the widest text of each column at the style's size, and of its widest word at the
+    // smallest size (the widest line of its texts broken at every place a line may break).
+    let widest_at = |c: usize, style: &TextStyle, wrap: Option<Nm>| {
+        texts(c)
+            .map(|s| sheet.scale_len(fonts.shape(s, style, wrap).advance()).0)
+            .max()
+            .unwrap_or(0)
+    };
+    let widest: Vec<i64> = (0..n).map(|c| widest_at(c, style, None)).collect();
     let shrunk = |c: usize| {
         let w = i128::from(widest[c]) * i128::from(floor.0) / i128::from(style.size.0.max(1));
         i64::try_from(w).unwrap_or(widest[c]).saturating_add(pad)
     };
+    let small = style.with_size(floor);
+    let word = |c: usize| widest_at(c, &small, Some(Nm::ZERO)).saturating_add(pad);
     let mut width: Vec<i64> = widest.iter().map(|w| w.saturating_add(pad)).collect();
     for (c, col) in t.columns.iter().enumerate() {
         if col.weight == 0 {
@@ -250,8 +402,15 @@ fn lookup_edges(
     }
     let total = right.0 - left.0;
     let mut excess = width.iter().fold(0i64, |a, w| a.saturating_add(*w)) - total;
-    let mut give = |width: &mut Vec<i64>, to: &dyn Fn(usize) -> i64| {
-        for &c in order.iter().filter(|c| **c < n) {
+    let prose: Vec<usize> = lookup.prose.iter().copied().filter(|c| *c < n).collect();
+    let identifiers: Vec<usize> = lookup
+        .order
+        .iter()
+        .copied()
+        .filter(|c| *c < n && !prose.contains(c))
+        .collect();
+    let mut give = |width: &mut Vec<i64>, columns: &[usize], to: &dyn Fn(usize) -> i64| {
+        for &c in columns {
             if excess <= 0 {
                 break;
             }
@@ -260,8 +419,11 @@ fn lookup_edges(
             excess -= r;
         }
     };
-    give(&mut width, &shrunk);
-    give(&mut width, &|_| 0);
+    give(&mut width, &prose, &shrunk);
+    give(&mut width, &identifiers, &shrunk);
+    give(&mut width, &prose, &word);
+    give(&mut width, &prose, &|_| 0);
+    give(&mut width, &identifiers, &|_| 0);
     let mut edges = Vec::with_capacity(n + 1);
     edges.push(left);
     let mut x = left.0;
@@ -299,22 +461,28 @@ fn lower_boxed(
     styles: &TextStyleTable,
 ) -> LoweredTable {
     let mut out = LoweredTable::default();
+    let style = |key: &str| styles.resolve(key).unwrap_or(TextStyle::regular(Nm(3_175_000)));
+    let text_style = style(DEFAULT_STYLE_KEY);
     // Printed coordinates of the box.
-    let r = sheet.apply_rect(boxed_box(rect, t, sheet));
+    let r = sheet.apply_rect(boxed_box(rect, t, sheet, fonts, styles));
     let (x0, y0, x1, y1) = (r.min().x, r.min().y, r.max().x, r.max().y);
     let to_page = |x: Nm, y: Nm| sheet.unapply(Pt2::new(x, y));
     let page_rect = |ax: Nm, ay: Nm, bx: Nm, by: Nm| Rect::from_points(to_page(ax, ay), to_page(bx, by));
-    let style = |key: &str| styles.resolve(key).unwrap_or(TextStyle::regular(Nm(3_175_000)));
 
     // The rows given and drawn.
     let (flows, per_flow) = boxed_capacity(rect, t, sheet);
+    let plan = lookup_plan(rect, t, sheet, fonts, &text_style);
     let given = if t.note.is_some() { 1 } else { t.rows.len() };
-    let drawn = given.min(flows.saturating_mul(per_flow));
+    let drawn = plan
+        .as_ref()
+        .map_or(given.min(flows.saturating_mul(per_flow)), |p| p.lines.len());
+    let per_flow = if plan.is_some() { drawn } else { per_flow };
     if given > drawn {
         out.findings.push(TableFinding::TooManyRows { given, drawn });
     }
 
-    // The drop shadow: the visible L of the box offset by the shadow, under the box (the project data box's shape).
+    // The drop shadow: the visible L of the box offset by the shadow, under the box (the project data box's shape). A
+    // lookup table has none.
     let s = SHADOW.0;
     let shadow = if s < r.width().0 && s < r.height().0 {
         Path::polygon(&[
@@ -328,7 +496,9 @@ fn lower_boxed(
     } else {
         Path::rect(page_rect(Nm(x0.0 + s), Nm(y0.0 + s), Nm(x1.0 + s), Nm(y1.0 + s)))
     };
-    out.items.push(Item::path(shadow, None, Some(Brush::BLACK)));
+    if t.lookup.is_none() {
+        out.items.push(Item::path(shadow, None, Some(Brush::BLACK)));
+    }
     out.items.push(Item::path(
         Path::rect(page_rect(x0, y0, x1, y1)),
         Some(Stroke::solid(sheet.unscale_len(GRID_WIDTH))),
@@ -353,9 +523,13 @@ fn lower_boxed(
     // The flow columns.
     let flows_i = i64::try_from(flows).unwrap_or(1);
     let width = (x1.0 - x0.0 - GUTTER.0 * (flows_i - 1)).max(0) / flows_i;
-    let text_style = style(DEFAULT_STYLE_KEY);
     let header = usize::from(draws_header(t));
-    let row_y = |i: usize| Nm(top.0 + ROW_HEIGHT.0 * i64::try_from(i).unwrap_or(0));
+    let small = smallest(fonts, &text_style, sheet);
+    let header_fill = if t.lookup.is_some() {
+        LOOKUP_HEADER_FILL
+    } else {
+        HEADER_FILL
+    };
     let stroke = Stroke::solid(sheet.unscale_len(LINE_WIDTH));
     let line = |ax: Nm, ay: Nm, bx: Nm, by: Nm| {
         Item::path(
@@ -380,18 +554,21 @@ fn lower_boxed(
         } else {
             Nm((left.0 + width).min(x1.0))
         };
-        let edges = match &t.lookup {
-            Some(order) if t.note.is_none() => lookup_edges(
-                t,
-                &t.rows[start..end],
-                order,
-                (left, right),
-                fonts,
-                &text_style,
-                sheet,
-            ),
-            _ => column_edges_in(&t.columns, left, right),
+        let edges = match &plan {
+            Some(p) => p.edges.clone(),
+            None => column_edges_in(&t.columns, left, right),
         };
+        // The tops of the flow column's rows (0 the header's, when drawn), then its bottom: a wrapped row is as high as
+        // its lines, every other row one house row.
+        let mut tops = vec![top.0];
+        for i in 0..header + count {
+            let h = match (&plan, i.checked_sub(header)) {
+                (Some(p), Some(j)) => p.heights[start + j],
+                _ => ROW_HEIGHT.0,
+            };
+            tops.push(tops[i].saturating_add(h));
+        }
+        let row_y = |i: usize| Nm(tops[i]);
         if draws_header(t) {
             // Whether row `i` of this flow column (0 the header) spans every column.
             let spans = |i: usize| -> bool {
@@ -405,7 +582,7 @@ fn lower_boxed(
             out.items.push(Item::path(
                 Path::rect(page_rect(left, top, right, row_y(1))),
                 None,
-                Some(Brush::Solid(HEADER_FILL)),
+                Some(Brush::Solid(header_fill)),
             ));
             out.items.push(Item::path(
                 Path::rect(page_rect(left, top, right, row_y(rows))),
@@ -478,6 +655,16 @@ fn lower_boxed(
                         let s = row.cells.get(c).map_or("", String::as_str);
                         let links: Vec<&TableLink> = row.links.iter().filter(|l| l.column == c).collect();
                         let cell = page_rect(edges[c], ya, edges[c + 1], yb);
+                        // A prose text of a wrapped row prints its lines (doc 12 §5.4).
+                        let lines = plan.as_ref().map_or(1, |p| p.lines[at]);
+                        let prose = t.lookup.as_ref().is_some_and(|l| l.prose.contains(&c));
+                        if lines > 1
+                            && prose
+                            && wrapped(row, c, &edges, fonts, &small, sheet).is_some()
+                        {
+                            push_wrapped(&mut out, fonts, &small, sheet, cell, s, lines, &links);
+                            continue;
+                        }
                         push_cell(
                             &mut out,
                             fonts,
@@ -494,6 +681,44 @@ fn lower_boxed(
         }
     }
     out
+}
+
+/// A text of prose wrapped at its words in `rect` (page coordinates; at most `lines` lines, which [`lookup_plan`] made
+/// the row high enough for), left aligned and centred on the row's midline as a cell is; characters without a glyph are
+/// reported, and the cell's link without a span is set on every line.
+#[allow(clippy::too_many_arguments)]
+fn push_wrapped(
+    out: &mut LoweredTable,
+    fonts: &FontSet,
+    style: &TextStyle,
+    sheet: SheetMap,
+    rect: Rect,
+    s: &str,
+    lines: usize,
+    links: &[&TableLink],
+) {
+    let spec = BoxSpec {
+        rect,
+        halign: -1,
+        valign: 0,
+        padding: CELL_PADDING,
+        overflow: None,
+        max_lines: lines,
+        sheet,
+    };
+    let laid = lay_out(fonts, s, style, &spec);
+    if !laid.shaped.missing.is_empty() {
+        out.findings.push(TableFinding::MissingGlyphs {
+            text: s.to_owned(),
+            chars: laid.shaped.missing.clone(),
+        });
+    }
+    match links.iter().find(|l| l.span.is_none()) {
+        Some(l) => out
+            .items
+            .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(l.dest)))),
+        None => out.items.extend(laid.items),
+    }
 }
 
 /// The coordinate at `num / den` of `len` from `lo`.
