@@ -77,6 +77,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-1812 `ew-viewmodel`: F1 on a selected connection point in the symbol editor opens the outline's section although the guide has a section for a connection point.
 - FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.
 - FT-1809 `docs/book`: A property's help page often repeats the row's label (the project's Control voltage); say what the program does with the value, its unit and an example.
+- FT-1936 `ew-viewmodel`: A legend's Properties prints its Rectangle row as the stored value in nanometres (raw JSON); show its place and size in millimetres, as a drawn box's rows do.
 
 #### The layout page
 
