@@ -513,6 +513,12 @@ the card says that no part moves.
 Every other routed wire is **fixed**: an obstacle with its own right of way. A junction may move when every wire
 at it is a job.
 
+*A route that misses its end (FT-1975, decided 2026-11-22).* No command stores one: every command that moves a symbol,
+a pin or a mark takes the routes at it along, and `connection.route` and `layout.apply` refuse a route that does not meet
+its ends. A file written outside the program can hold one (a script set a mark beside its wire's line), and the page
+draws the end joined to the route by one straight stretch: a hook. Such a route is broken as stored, so a page-wide
+Route takes it, flagged as the person's when it is, and draws it to its end.
+
 ### 3.3 The occupancy
 
 One structure, built once per run over the half grid of the drawing area and updated as wires are laid and

@@ -2383,6 +2383,7 @@ impl<'a> Sketch<'a> {
                 ends: [End::Pin(*f), End::Pin(*h)],
                 route,
                 computed: true,
+                stale: false,
                 class: crate::model::WireClass::Wire,
                 supply: None,
             });
@@ -2413,6 +2414,7 @@ impl<'a> Sketch<'a> {
                     ends: [End::Pin(pin.id), End::Junction(j)],
                     route: vec![at, end],
                     computed: true,
+                    stale: false,
                     class: crate::model::WireClass::Wire,
                     supply: None,
                 });

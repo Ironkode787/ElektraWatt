@@ -74,7 +74,8 @@ pub struct Jobs {
 }
 
 /// The jobs of a Route on `scope` (§3.2): a page-wide Route takes every wire that is unrouted, has a fault as stored
-/// (a slanted segment or a vertex off the half grid, or one of F2 to F6) or is `computed`, and flags the person's among
+/// (a slanted segment, a vertex off the half grid, a route that misses an end, or one of F2 to F6) or is `computed`,
+/// and flags the person's among
 /// them; a Route of a selection takes the wires named and every wire with an end on a part named.
 pub fn jobs(page: &DraftPage, scope: Scope<'_>) -> Jobs {
     let mut wires: Vec<WireId> = Vec::new();
@@ -101,7 +102,7 @@ pub fn jobs(page: &DraftPage, scope: Scope<'_>) -> Jobs {
             }
             for w in &page.wires {
                 let unrouted = f.unrouted.contains(&w.id);
-                let bent = !w.route.is_empty() && f1(&w.route);
+                let bent = !w.route.is_empty() && (f1(&w.route) || w.stale);
                 let broken = faulty.contains(&w.id) || bent;
                 if unrouted || broken || (w.computed && !w.route.is_empty()) {
                     wires.push(w.id);

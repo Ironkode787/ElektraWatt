@@ -344,6 +344,9 @@ change here.
 - behaviour-change: a wire between two pins that stand nearly in line, one of them off the grid (after a grid change),
   steps across square at the grid line nearest its middle; Route and the Wire tool drew it as one slanted segment
   (doc 06a §3.6, FT-2010)
+- behaviour-change: a stored route that misses an end it names (written outside the program, drawn with a hook to its
+  pin) is broken to Route: a page-wide Route offers to draw it to its end, ticked in the preview as a wire you drew
+  (doc 06a §3.2, FT-1975)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

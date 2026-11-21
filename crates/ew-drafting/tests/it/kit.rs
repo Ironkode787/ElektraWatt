@@ -245,6 +245,7 @@ impl Page {
             ends: [a, b],
             route: route.to_vec(),
             computed: false,
+            stale: false,
             class: WireClass::Wire,
             supply: None,
         });

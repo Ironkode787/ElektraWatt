@@ -29,10 +29,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 - FT-1995 `ew-reports`: A list or a box whose rows do not derive prints its reason in English, with a family or kind name in backquotes, also in a Dutch project ("Not derived: query cycle in `page_order`"; `NotDerived`'s `Display`, `paginate.rs`, `view.rs` `boxed_table`).
 - FT-1934 `content`: The starter library's parts and symbols carry their descriptions in English only (134 texts), so a Dutch project's parts list prints "Feed-through terminal" beside Dutch headings and units. Give the generic parts and symbols a Dutch description; the lists already print the project's language first.
 
-#### Texts the schematic carries
-
-- FT-1975 `ew-scene, ew-drafting`: A mark set at a wire's head leaves a small hook where the mark's pin is not on the wire's line (FT-1870's last part): seen on the first production job's pages, which a script wrote, where a stored route's end stood off its pin and is drawn joined to it by one straight stretch (`ew_derive::stored_path`). Not reproduced from the window or the import: the import of that job's source, and Arrange and route on it, showed no hook. The repeat steps are the work; then the command that leaves the end off its pin is the place of the fix.
-
 #### External points, earth and 0 V
 
 - FT-1981 `ew-api, ew-import-catalog`: The units of technical data are listed by hand three times beside `Unit` (the typed units, a parts catalogue's units, the derive's symbols); the catalogue's list lacks `mm`, `piece` and `set`. One list from `Unit`.

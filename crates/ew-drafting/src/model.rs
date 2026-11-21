@@ -333,6 +333,9 @@ pub struct Wire {
     pub route: Vec<Pt>,
     /// The stored route was computed by the program.
     pub computed: bool,
+    /// The stored route does not meet an end it names: the page joins that end to it by one straight stretch (a
+    /// record written outside the program). Such a route is broken (§3.2).
+    pub stale: bool,
     /// What it carries.
     pub class: WireClass,
     /// Its potential's rank in L1, L2, L3, L, N, PEN, PE, FE, L+, M, L-; `None` for a signal.

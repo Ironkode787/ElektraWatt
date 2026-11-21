@@ -386,6 +386,9 @@ impl Builder<'_> {
                     pts.iter().map(|p| ticks.point(*p).0).collect()
                 },
                 computed: c.computed,
+                // A stored route that misses an end: the drawn path joins it by one straight stretch.
+                stale: !c.route.is_empty()
+                    && (pts.first() != c.route.first() || pts.last() != c.route.last()),
                 class: match &c.kind {
                     ConnectionKind::Fluid(_) => WireClass::Tube,
                     ConnectionKind::Bus(_) => WireClass::Bus,
