@@ -5,6 +5,7 @@
 //! which opens a copy of Golden A with the built binaries, is the lane's command and is run by hand.
 
 use super::*;
+use crate::blind::score::SOFT;
 
 fn row(fields: &[&str]) -> Vec<String> {
     fields.iter().map(|s| (*s).to_owned()).collect()

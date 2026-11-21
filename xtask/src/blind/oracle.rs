@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 
 use super::run::{copy_dir, script_header, step_line, tree_sha};
 use super::score::{
-    CountsFile, FolioCount, MarkerRow, SOFT, cell_rows, finding_rows, header_counts, junction_rows, parse_csv,
+    CountsFile, FolioCount, MarkerRow, cell_rows, finding_rows, header_counts, junction_rows, parse_csv,
     parse_queries, parse_sql_json, read_toml, task_dir, write_csv,
 };
 use super::session::Sent;
@@ -25,7 +25,7 @@ use super::session::Sent;
 /// The golden project's folder, relative to the repository root.
 pub const GOLDEN_PROJECT: &str = "golden/J-E-2416.ew";
 
-/// The header line of each row set's CSV, in the order of [`SOFT`].
+/// The header line of each row set's CSV, in the order of [`SOFT`](super::score::SOFT).
 pub fn header_of(set: &str) -> &'static [&'static str] {
     match set {
         "cells" => &["folio", "label", "symbol", "cell"],
