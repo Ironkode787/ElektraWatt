@@ -380,7 +380,7 @@ pub struct RunJson {
     /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
     #[serde(default)]
     pub golden_changed: bool,
-    /// A brief's start project (`gp-ut` or `golden-a`): `work/project` is a copy of the project `start`
+    /// A brief's start project (`sample`): `work/project` is a copy of the project `start`
     /// made in `.harness/start-project`; absent for a run that starts from its prelude alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub start: Option<String>,
