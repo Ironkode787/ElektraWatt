@@ -118,7 +118,8 @@ pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
 pub use ew_derive::ValvePort;
 pub use ew_export::{
-    DXF_SET_EXTENSIONS, DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, dxf_file_name, svg_file_name,
+    DXF_SET_EXTENSIONS, DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, dxf_file_name,
+    svg_file_name,
 };
 pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,

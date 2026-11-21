@@ -273,6 +273,14 @@ Marks the thing of the selected row of a list (a potential, a wire, a medium) on
 
 Removes every highlight from the pages.
 
+## Output
+
+### Export DXF…
+
+Writes every page as an AutoCAD 2010 DXF file into a folder you choose, with the title block's picture as a file
+beside them: a symbol is a block, and a device's tag and other texts are attributes of it. The folder must be empty or
+hold such a set already, which the new one replaces. For a DWG, open the files in your CAD program or a converter.
+
 ## View
 
 ### Back

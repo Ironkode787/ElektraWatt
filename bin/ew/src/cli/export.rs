@@ -779,7 +779,8 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .chain(dxf.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
                 .collect();
             let (a_file, only) = ("a DXF or picture", "DXF-and-picture-only");
-            if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, a_file, only, &files) {
+            if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, a_file, only, &files)
+            {
                 eprintln!("error: {e}");
                 return 2;
             }

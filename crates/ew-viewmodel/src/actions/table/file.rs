@@ -274,7 +274,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "dir?:path, wait?:bool",
         placed(
             place(Group::Pdf, 3, CommandSize::Small, None),
-            "files",
+            // A folder: the set is a folder of files (a sheet of files is the project's pages pane).
+            "folder",
             act(
                 "file.export_dxf",
                 Command,

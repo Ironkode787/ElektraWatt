@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-21T14:25:12+01:00\n"
+"POT-Creation-Date: 2026-11-21T15:58:17+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6707,124 +6707,141 @@ msgid "Removes every highlight from the pages."
 msgstr ""
 
 #: src/reference/window/command-bar.md:276
-msgid "View"
+msgid "Output"
 msgstr ""
 
 #: src/reference/window/command-bar.md:278
-msgid "Back"
+msgid "Export DXF…"
 msgstr ""
 
 #: src/reference/window/command-bar.md:280
+msgid ""
+"Writes every page as an AutoCAD 2010 DXF file into a folder you choose, with "
+"the title block's picture as a file beside them: a symbol is a block, and a "
+"device's tag and other texts are attributes of it. The folder must be empty "
+"or hold such a set already, which the new one replaces. For a DWG, open the "
+"files in your CAD program or a converter."
+msgstr ""
+
+#: src/reference/window/command-bar.md:284
+msgid "View"
+msgstr ""
+
+#: src/reference/window/command-bar.md:286
+msgid "Back"
+msgstr ""
+
+#: src/reference/window/command-bar.md:288
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:282
+#: src/reference/window/command-bar.md:290
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:284
+#: src/reference/window/command-bar.md:292
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:286
+#: src/reference/window/command-bar.md:294
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:288
+#: src/reference/window/command-bar.md:296
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:290
+#: src/reference/window/command-bar.md:298
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:292
+#: src/reference/window/command-bar.md:300
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:294
+#: src/reference/window/command-bar.md:302
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:296
+#: src/reference/window/command-bar.md:304
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:298
+#: src/reference/window/command-bar.md:306
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:300
+#: src/reference/window/command-bar.md:308
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:302
+#: src/reference/window/command-bar.md:310
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:304
+#: src/reference/window/command-bar.md:312
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:306
+#: src/reference/window/command-bar.md:314
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:308
+#: src/reference/window/command-bar.md:316
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:310
+#: src/reference/window/command-bar.md:318
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:312
+#: src/reference/window/command-bar.md:320
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:314
+#: src/reference/window/command-bar.md:322
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:316
+#: src/reference/window/command-bar.md:324
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:318
+#: src/reference/window/command-bar.md:326
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:320
+#: src/reference/window/command-bar.md:328
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:322
+#: src/reference/window/command-bar.md:330
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:324
+#: src/reference/window/command-bar.md:332
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:326
+#: src/reference/window/command-bar.md:334
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:328
+#: src/reference/window/command-bar.md:336
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:330
+#: src/reference/window/command-bar.md:338
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:332
+#: src/reference/window/command-bar.md:340
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."

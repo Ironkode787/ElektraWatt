@@ -449,7 +449,8 @@ fn a_small_projects_dxf_carries_its_devices_texts_links_and_logo() {
 fn a_block_is_named_in_the_projects_language_else_in_english() {
     let names = |language: Option<&str>| -> BTreeSet<String> {
         let (mut project, records, mut lib) = common::sample_records();
-        project.languages = language.map(|l| serde_json::from_value(json!({"source": l})).expect("languages"));
+        project.languages =
+            language.map(|l| serde_json::from_value(json!({"source": l})).expect("languages"));
         for doc in &mut lib {
             if let ew_schema::LibDocument::Symbol(s) = doc {
                 s.item.name = serde_json::from_value(json!({"ar": "رمز", "en": "Symbol", "nl": "Symbool"}))
@@ -461,7 +462,9 @@ fn a_block_is_named_in_the_projects_language_else_in_english() {
             pages: ew_api::output::PageSelection::parse("101").expect("a folio"),
             ..ExportOptions::default()
         };
-        let dxf = s.export_dxf(&options, &DxfLayers::default(), false).expect("the DXF set");
+        let dxf = s
+            .export_dxf(&options, &DxfLayers::default(), false)
+            .expect("the DXF set");
         entities(&dxf.files[0].text)
             .iter()
             .filter(|e| get(e, 0) == Some("BLOCK"))

@@ -50,7 +50,8 @@ fn the_dxf_set_goes_into_its_folder_and_a_folder_of_other_files_is_refused() {
     let toast = s.toast().expect("a toast").text.clone();
     assert!(toast.starts_with("Exported the DXF set to set: "), "{toast}");
     assert!(
-        s.describe().contains("item file.export_dxf \"Export DXF…\" enabled"),
+        s.describe()
+            .contains("item file.export_dxf \"Export DXF…\" enabled"),
         "in the Output menu beside Export PDF"
     );
     // Again into the same folder: the set replaces itself, and the toast says "again".

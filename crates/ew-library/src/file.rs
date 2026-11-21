@@ -229,7 +229,12 @@ mod tests {
             n.sort();
             n
         };
-        write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"a"), ("2.dxf", b"b"), ("p.png", b"c")]).unwrap();
+        write_file_set(
+            &dir,
+            &["dxf", "png"],
+            &[("1.dxf", b"a"), ("2.dxf", b"b"), ("p.png", b"c")],
+        )
+        .unwrap();
         write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"A")]).unwrap();
         assert_eq!(names(&dir), ["1.dxf"]);
         assert_eq!(std::fs::read(dir.join("1.dxf")).unwrap(), b"A");
