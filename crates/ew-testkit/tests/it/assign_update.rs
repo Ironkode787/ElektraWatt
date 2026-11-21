@@ -1,36 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A checks of the builder DSL's verbs `assign_part` and `update_library` (`part.assign` and
-//! `library.update`) against a session over path (a)'s batch (the committed directory is never opened). The
-//! acceptance tests with a library run in `ew-api` (`tests/library_ops.rs`).
+//! Checks of the builder DSL's verbs `assign_part`, `update_library` and `part_edit_copy` (`part.assign`,
+//! `library.update` and `part.edit_copy`) against a session over the sample read in place (the committed directory
+//! is never written). The acceptance tests with a library run in `ew-api` (`tests/library_ops.rs`).
 
 use std::path::Path;
 
-use ew_api::{AnyCommand, Cost, Session, SessionOptions};
+use ew_api::{AnyCommand, Cost, Session};
 use ew_ids::{Id, Uuid};
-use ew_schema::{Device, LibDocument, Part, Record};
+use ew_schema::{Device, LibDocument, Part};
 use ew_testkit::golden::dsl::{Builder, CommandSink, Done};
 use serde_json::{Value, json};
 
-fn golden_a() -> Session {
-    let batch = ew_testkit::golden::bootstrap(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
-        .expect("path (a) imports");
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in batch.records {
-        match r {
-            Record::Project(p) => project = Some(p),
-            other => records.push(other),
-        }
-    }
-    Session::from_records(
-        project.expect("the project row"),
-        records,
-        batch.lib,
-        SessionOptions::default(),
-    )
-    .expect("Golden A is a valid model")
+fn sample() -> Session {
+    Session::open_read_only(Path::new(ew_testdir::SAMPLE), "test")
+        .expect("the sample opens")
+        .0
 }
 
 /// The DSL's sink over a session: an interactive command runs directly, a bulk one through a preview.
@@ -65,7 +51,7 @@ fn part(s: &Session, number: &str) -> LibDocument {
         .iter()
         .find(|(_, c)| c.item.part_number.as_str() == number)
         .map(|(_, c)| (**c).clone())
-        .expect("a golden part");
+        .expect("a part of the sample");
     LibDocument::Part(c)
 }
 
@@ -87,12 +73,13 @@ fn device_using(s: &Session, part: Id<Part>) -> Id<Device> {
 
 #[test]
 fn the_assign_and_update_verbs_change_part_uses_and_copies() {
-    let mut s = golden_a();
-    let mcb = part(&s, "A9P52610");
-    let psu = part(&s, "2904602");
+    let mut s = sample();
+    let mcb = part(&s, "EW-GEN-MCB-1");
+    let psu = part(&s, "EW-GEN-PSU-1");
     let f1 = device_using(&s, copy_id(&mcb));
     let g1 = device_using(&s, copy_id(&psu));
-    // A second part use of the PSU on -101F1, then the MCB replaced by the PSU there: two uses of one part.
+    // A second part use of the PSU on the 1-pole breaker, then the breaker's part replaced by the PSU there: two
+    // uses of one part.
     {
         let mut sink = Sink(&mut s);
         let mut b = Builder::new(&mut sink);
@@ -160,29 +147,39 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
     );
 }
 
-/// The DSL verb `part_edit_copy`: on Golden A, 5SY4204-7's copy is project-local, so the edit is in
-/// place (the same copy ID, the new description, the hash of the new item); a fork for it is refused at `/fork`.
+/// The DSL verb `part_edit_copy`: the sample's copies come from the starter library, so the 1-pole breaker's copy is
+/// first forked (a project-local copy); the fork's edit is then in place (the same copy ID, the new description, the
+/// hash of the new item), and a fork of it is refused at `/fork`.
 #[test]
 fn part_edit_copy_edits_a_project_local_copy_in_place() {
-    let mut s = golden_a();
-    let mcb = part(&s, "5SY4204-7");
+    let mut s = sample();
+    let mcb = part(&s, "EW-GEN-MCB-1");
     let LibDocument::Part(c) = &mcb else {
         unreachable!()
     };
     let mut edited = serde_json::to_value(&c.item).unwrap();
-    edited["description"] = json!("MCB 1P+N C4");
+    edited["description"] = json!("MCB 1P C4");
+    let local = {
+        let mut sink = Sink(&mut s);
+        let mut b = Builder::new(&mut sink);
+        b.part_edit_copy(c.id, edited.clone(), Some(Uuid::from_u128(7)), &[])
+            .expect("the library copy forks")
+    };
+    assert_ne!(local, c.id, "the fork is a copy of its own");
+    let mut edited = serde_json::to_value(&s.query().parts().get(local).unwrap().item).unwrap();
+    edited["description"] = json!("MCB 1P C6");
     {
         let mut sink = Sink(&mut s);
         let mut b = Builder::new(&mut sink);
         let e = b
-            .part_edit_copy(c.id, edited.clone(), Some(Uuid::from_u128(7)), &[])
+            .part_edit_copy(local, edited.clone(), Some(Uuid::from_u128(8)), &[])
             .unwrap_err();
         assert!(e.message.contains("/fork"), "{e}");
-        assert_eq!(b.part_edit_copy(c.id, edited, None, &[]).unwrap(), c.id);
+        assert_eq!(b.part_edit_copy(local, edited, None, &[]).unwrap(), local);
     }
     let q = s.query();
-    let held = q.parts().get(c.id).unwrap();
-    assert_eq!(held.item.description.as_neutral(), Some("MCB 1P+N C4"));
+    let held = q.parts().get(local).unwrap();
+    assert_eq!(held.item.description.as_neutral(), Some("MCB 1P C6"));
     assert_eq!(
         Some(held.sha256.0),
         ew_commands::commands::library_copy_hash(&LibDocument::Part((**held).clone()))

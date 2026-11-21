@@ -216,7 +216,7 @@ pub struct Fixture {
     pub symbol_json: Vec<(Value, Value)>,
     /// The function-definition copies, likewise.
     pub fndef_json: Vec<(Value, Value)>,
-    /// The part copies, likewise (project-local in the golden project).
+    /// The part copies, likewise (from the starter library in the sample, one project-local).
     pub part_json: Vec<(Value, Value)>,
     pub project_id: Value,
 }

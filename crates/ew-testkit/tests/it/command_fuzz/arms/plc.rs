@@ -318,7 +318,7 @@ pub(super) fn plc_set_start(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 /// `plc.set_module_part` (Bulk: the runner previews and commits it). A well-formed step sets a module's
 /// part to any part copy (or keeps it) and leaves no channel of the module at or above the new part's
-/// channel count: a part without channels removes all eight channels of a golden module with their bindings.
+/// channel count: a part without channels removes all eight channels of a module with their bindings.
 pub(super) fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let m = rng.pick(&live.modules)?.clone();
     match rng.below(8) {

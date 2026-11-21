@@ -43,8 +43,8 @@ pub fn placements_have_devices(q: &ew_derive::Q) -> Result<(), String> {
     }
 }
 
-/// `part.assign` of a new part copy with an enclosure section (a golden template with a new lineage and a 750 × 1000
-/// × 420 mm enclosure, no plate) to a plain device, appended to its part uses: what Golden A lacks for
+/// `part.assign` of a new part copy with an enclosure section (a template with a new lineage and a 750 × 1000
+/// × 420 mm enclosure, no plate) to a plain device, appended to its part uses: what the sample lacks for
 /// `layout.enclosure.create`.
 pub(super) fn assign_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let device = rng.pick(&live.plain_devices)?.clone();
@@ -164,7 +164,7 @@ pub(super) fn layout_space_delete(live: &Live, rng: &mut SplitMix64) -> Option<S
 
 /// `layout.enclosure.create`: an enclosure device in a space without an enclosure (accepted, with its plate surface);
 /// refused: a space that does not exist, a device without an enclosure part, a space that has an enclosure. While no
-/// device has an enclosure part (Golden A), the arm first gives one to a plain device (`part.assign` with a copy that
+/// device has an enclosure part (the sample), the arm first gives one to a plain device (`part.assign` with a copy that
 /// carries an enclosure section), so that the layout arms find something to build on.
 pub(super) fn layout_enclosure_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
@@ -586,7 +586,7 @@ pub(super) fn assembly_member(live: &Live, rng: &mut SplitMix64) -> Option<(Valu
 }
 
 /// A placement on a rail of an assembly member goes (`layout.remove`), so that the member is unplaced and its
-/// assembly has a member on a rail: what `layout.place_assembly` and `layout.auto_fill` act on in Golden A.
+/// assembly has a member on a rail: what `layout.place_assembly` and `layout.auto_fill` act on in the sample.
 pub(super) fn setup_unplace_member(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let on_rails: Vec<&super::super::live::PlacementInfo> = live
         .layout

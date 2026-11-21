@@ -44,7 +44,7 @@ pub use revision::*;
 use sheet::*;
 use wiring::*;
 
-/// The unit of a move: three steps of the page grid in nm (7 937 500 nm, a multiple of the grid of the golden
+/// The unit of a move: three steps of the page grid in nm (7 937 500 nm, a multiple of the grid of the sample's
 /// pages).
 pub const MOVE_UNIT: i64 = 7_937_500;
 
@@ -531,7 +531,7 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_surface_edit,
     },
-    // Last, so that the arms before it keep their seeds in `every_arm_commits_on_golden_a`
+    // Last, so that the arms before it keep their seeds in `every_arm_commits_on_the_sample`
     Arm {
         command: "layout.apply",
         weight: 2,
@@ -572,7 +572,7 @@ fn small_idx(rng: &mut SplitMix64) -> u16 {
     u16::try_from(rng.below(4)).unwrap_or(0)
 }
 
-/// A letter of the identifier sets of the golden project.
+/// A letter of the identifier sets of the sample.
 fn letter(rng: &mut SplitMix64) -> &'static str {
     ["K", "Q", "F", "S", "X", "A", "M"][rng.below(7)]
 }
@@ -580,12 +580,12 @@ fn letter(rng: &mut SplitMix64) -> &'static str {
 /// The builder of an arm's setup steps ([`setup_of`]).
 pub type Setup = fn(&Live, &mut SplitMix64) -> Option<Vec<Step>>;
 
-/// The setup steps of an arm whose command finds nothing to act on in Golden A, for
-/// `every_arm_commits_on_golden_a` (the fuzz loop reaches such states by itself): committed in order
+/// The setup steps of an arm whose command finds nothing to act on in the sample, for
+/// `every_arm_commits_on_the_sample` (the fuzz loop reaches such states by itself): committed in order
 /// before the arm's step is built and undone after it. `None` for every other command.
 pub fn setup_of(command: &str) -> Option<Setup> {
     match command {
-        // Golden A has no D3-eligible contact and no device that takes one: a contact placed as a new device is the
+        // The sample has no D3-eligible contact and no device that takes one: a contact placed as a new device is the
         // source, a device created with an unplaced function of the contact's FnDef the slot it fills.
         "rep.join_device" => Some(join_setup),
         _ => None,
@@ -595,8 +595,8 @@ pub fn setup_of(command: &str) -> Option<Setup> {
 /// One step of a setup chain ([`setup_chain_of`]), built from the live records once the previous step committed.
 pub type ChainStep = fn(&Live, &mut SplitMix64) -> Option<Step>;
 
-/// The setup chain of an arm whose command needs records that Golden A lacks and that earlier setup steps create (so
-/// each step is built only after the previous one committed), for `every_arm_commits_on_golden_a`:
+/// The setup chain of an arm whose command needs records that the sample lacks and that earlier setup steps create (so
+/// each step is built only after the previous one committed), for `every_arm_commits_on_the_sample`:
 /// committed in order before the arm's step is built and undone after it. A step that finds its record already there
 /// returns `None` and is skipped. `None` for every other command.
 pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
@@ -618,7 +618,7 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         "layout.enclosure.delete" | "layout.carrier.add" => Some(ENCLOSURE),
         "layout.carrier.edit" | "layout.carrier.delete" | "layout.place" => Some(RAIL),
         "layout.move" | "layout.remove" | "layout.lock" => Some(PLACED),
-        // Golden A's assemblies are placed; one member is taken off its rail first.
+        // The sample's assemblies are placed; one member is taken off its rail first.
         "layout.place_assembly" | "layout.auto_fill" => Some(UNPLACED),
         _ => None,
     }

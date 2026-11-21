@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command-sequence fuzzer (doc 18 §3.6): random command sequences over the golden project from
+//! The command-sequence fuzzer (doc 18 §3.6): random command sequences over the sample project from
 //! a seeded RNG, with the invariants, the memo oracle and the validity oracle of every command checked after
 //! every step. A run is reproducible from its seed.
 //!
-//! The session opens the golden import batch (path (a)) in oracle mode ([`ew_api::MemoMode::Oracle`]), with the
-//! shipped prevent rules and a seeded ID source. Each step is one of
+//! The session opens the sample with a few records more ([`fuzz_base`]) in oracle mode
+//! ([`ew_api::MemoMode::Oracle`]), with the shipped prevent rules and a seeded ID source. Each step is one of
 //!
 //! - a command step of a hand arm ([`arms::ARMS`]): a generator of well-formed steps and deep states built from
 //!   the live records of the current snapshot, with the checks of what a commit created ([`step`]);
@@ -16,7 +16,7 @@
 //! - an undo or a redo;
 //! - a **save and reload** ([`roundtrip`]): the project is written to a scratch directory (created once, then
 //!   saved incrementally), opened again by a reader, and the model and the derived families are compared;
-//! - a **CSV table import** ([`import`]): the golden tables, intact or damaged, imported strict and lenient
+//! - a **CSV table import** ([`import`]): the test tables, intact or damaged, imported strict and lenient
 //!   and loaded.
 //!
 //! The command decides whether a step is accepted; the fuzzer asserts invariants. A step carries
@@ -42,7 +42,7 @@
 //! - (e) at the end, undo until it refuses: the model equals the initial model (`Model::content_eq`), and a run
 //!   that saved saves once more and reloads the initial model. The `library.embed` arm builds this shape
 //!   ("embed then undo": a symbol whose function definition is not embedded, then that function definition),
-//!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_golden_a` runs
+//!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_the_sample` runs
 //!   it deterministically;
 //! - (f) the step's own verdict, the undo law and the checks of what it created ([`step::Verdict`], [`step::Post`]).
 //!
@@ -52,9 +52,9 @@
 //! Tests:
 //! - `fuzz_smoke`: one seed, 30 steps.
 //! - `every_hand_arm_names_a_registered_command`, `the_default_arm_builds_a_valid_step_for_every_registered_command`,
-//!   `the_default_arm_steps_hold_the_invariants_on_golden_a`, `every_arm_commits_on_golden_a`,
+//!   `the_default_arm_steps_hold_the_invariants_on_the_sample`, `every_arm_commits_on_the_sample`,
 //!   `a_whole_run_is_deterministic`, the regressions of `fuzz/regressions/command_sequence` as step sequences,
-//!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
+//!   `save_and_reload_of_the_sample_round_trips`, `embed_then_undo_of_a_named_fndef_restores_the_sample`,
 //!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (LM-1).
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
 //!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
@@ -88,7 +88,7 @@ use ew_api::{AnyCommand, CmdError, HistoryLimits, MemoMode, Session, SessionOpti
 use ew_commands::{Cost, Exposure};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition, Q, WirePropsOf};
 use ew_model::Model;
-use ew_schema::Record;
+
 
 use arms::ARMS;
 use live::{Fixture, Live};
@@ -182,24 +182,96 @@ fn gen_step(
 // ---------------------------------------------------------------------------------------------------------
 // The session and the oracles
 
-/// The repository root: the nearest ancestor of this package's manifest directory that holds the golden
+/// The repository root: the nearest ancestor of this package's manifest directory that holds the sample
 /// project. The test crate sits two levels below it (`crates/ew-testkit`), the cargo-fuzz crate (`fuzz/`),
 /// which includes these modules, one level below it.
 pub fn repo() -> std::path::PathBuf {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     manifest
         .ancestors()
-        .find(|dir| dir.join(ew_testkit::golden::GOLDEN_A).is_dir())
+        .find(|dir| dir.join(SAMPLE).is_dir())
         .unwrap_or(manifest)
         .to_path_buf()
 }
 
-/// The import batch of path (a), made once per process: a session is opened per seed (and, in the cargo-fuzz
-/// target, per input), and the import of the golden tables is the same every time.
-fn golden_batch() -> &'static ew_import_tables::ew_interop_api::ImportBatch {
-    static BATCH: std::sync::OnceLock<ew_import_tables::ew_interop_api::ImportBatch> =
-        std::sync::OnceLock::new();
-    BATCH.get_or_init(|| ew_testkit::golden::bootstrap(&repo()).expect("path (a) imports"))
+/// The sample project below the repository root.
+const SAMPLE: &str = "fixtures/sample/sample.ew";
+
+/// The sample project's model, read once per process: a session is opened per seed (and, in the cargo-fuzz
+/// target, per input), and the sample is the same every time.
+fn sample_model() -> &'static Model {
+    static MODEL: std::sync::OnceLock<Model> = std::sync::OnceLock::new();
+    MODEL.get_or_init(|| {
+        Session::open_read_only(&repo().join(SAMPLE), "command fuzz")
+            .expect("the sample opens")
+            .0
+            .world()
+            .model
+    })
+}
+
+/// The fuzz runs' project: the sample with the records some arms act on that the sample lacks and no command makes,
+/// made once per process.
+///
+/// - One waiver, so that `check.unwaive` has a record to remove from the first step on. Its fingerprint matches no
+///   finding.
+/// - The project's supply (400 V, three phases with N and PE, as 101 draws it), which `project.supply.set` edits: a new
+///   project has none.
+/// - A released revision before the open one, which `revision.withdraw` withdraws: a release is the person's.
+/// - A project-local part copy, which `part.edit_copy` edits in place: the sample's copies come from the starter
+///   library (a copy of its 1-pole breaker under the project's library).
+fn fuzz_base() -> &'static Model {
+    static MODEL: std::sync::OnceLock<Model> = std::sync::OnceLock::new();
+    MODEL.get_or_init(|| {
+        use ew_model::{AnyRow, Op, Rev};
+        use std::sync::Arc;
+        let model = sample_model();
+        let waiver: ew_schema::Waiver = serde_json::from_value(serde_json::json!({
+            "id": "0c5e5b2a-7d1f-5e3a-9b6c-4f2a1d8e7c90", "rule": "EW-CORE-041",
+            "target": {"finding": "00000000000000000000000000000001"},
+            "reason": {"en-GB": "a waiver for the command fuzzer"}, "author": "engineer", "date": "2025-04-14"
+        }))
+        .expect("a waiver record");
+        let before = Arc::clone(model.project());
+        let mut project = (*before).clone();
+        project.supply = Some(
+            serde_json::from_value(serde_json::json!({
+                "phases": 3, "neutral": true, "pe": true, "earthing": "tn_s", "u_nom": "400", "frequency": "50"
+            }))
+            .expect("a supply"),
+        );
+        let Ok(ew_schema::Record::Revision(released)) = ew_schema::Record::from_value(serde_json::json!({
+            "$k": "revision", "id": "0c5e5b2a-7d1f-5e3a-9b6c-4f2a1d8e7c91", "label": "V0.9", "date": "2025-03-03",
+            "description": "Initial issue", "state": "released"
+        })) else {
+            panic!("a released revision");
+        };
+        let mut local = model
+            .table::<ew_schema::LibCopy<ew_schema::Part>>()
+            .iter()
+            .map(|(_, c)| (**c).clone())
+            .find(|c| c.item.part_number.as_str() == "EW-GEN-MCB-1")
+            .expect("the 1-pole breaker's copy");
+        let item = ew_ids::Uuid::from_u128(0x0c5e_5b2a_7d1f_5e3a_9b6c_4f2a_1d8e_7c92);
+        local.library_id = ew_ids::Id::from_uuid(project.id.as_uuid());
+        local.item_id = ew_ids::Id::from_uuid(item);
+        local.id = ew_ids::v5::lib_copy_id(project.id.as_uuid(), item);
+        local.sha256 = ew_schema::Sha256(
+            ew_commands::commands::library_copy_hash(&ew_schema::LibDocument::Part(local.clone()))
+                .expect("a part copy has a hash"),
+        );
+        model
+            .apply_history(
+                &[
+                    Op::insert(AnyRow::of(waiver)),
+                    Op::update(AnyRow::Project(before), AnyRow::Project(Arc::new(project))),
+                    Op::insert(AnyRow::of(released)),
+                    Op::insert(AnyRow::of(local)),
+                ],
+                Rev(model.rev().0 + 1),
+            )
+            .expect("the records the arms need insert")
+    })
 }
 
 fn open_session(seed: u64) -> Session {
@@ -207,34 +279,12 @@ fn open_session(seed: u64) -> Session {
 }
 
 /// [`open_session`] with another memo mode. The validity tests (every arm commits what it calls well-formed, refuses
-/// what it calls malformed and leaves the model unchanged, and undoes to the golden project) read no memoised value
+/// what it calls malformed and leaves the model unchanged, and undoes to the sample) read no memoised value
 /// that an oracle would check, so they open with [`MemoMode::On`]: the oracle's cold re-runs were most of their cost.
 /// The memo oracle in the fuzz loop stays in `fuzz_smoke` and `fuzz_long`.
 fn open_session_with(seed: u64, memo: MemoMode) -> Session {
-    let batch = golden_batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    let project = project.expect("the batch holds the project");
-    // One waiver, so that `check.unwaive` has a record to remove from the first step on: Golden A
-    // itself holds none (W-1 is a test fixture, `ew-api/tests/it/check_messages_waivers.rs`). Its fingerprint matches no finding.
-    records.push(Record::Waiver(
-        serde_json::from_value(serde_json::json!({
-            "id": "0c5e5b2a-7d1f-5e3a-9b6c-4f2a1d8e7c90", "rule": "EW-CORE-041",
-            "target": {"finding": "00000000000000000000000000000001"},
-            "reason": {"en-GB": "a waiver for the command fuzzer"}, "author": "engineer", "date": "2025-04-14"
-        }))
-        .expect("a waiver record"),
-    ));
-    Session::from_records(
-        project,
-        records,
-        batch.lib.clone(),
+    Session::new(
+        fuzz_base().clone(),
         SessionOptions {
             memo,
             ids: Some(ew_testids::seeded_ids(seed)),
@@ -245,7 +295,6 @@ fn open_session_with(seed: u64, memo: MemoMode) -> Session {
             ..SessionOptions::default()
         },
     )
-    .expect("the golden batch passes the model's integrity check")
 }
 
 /// What a fuzz run did.
@@ -1029,7 +1078,7 @@ fn every_hand_arm_names_a_registered_command() {
 /// The seeds per command of the default-arm tests.
 const DEFAULT_SEEDS: u64 = 32;
 
-/// The default arm over every registered command, on Golden A's records: for each command, some seed yields a step
+/// The default arm over every registered command, on the sample's records: for each command, some seed yields a step
 /// that passes the registry's schema check and parse (`CommandRegistry::resolve`), and a seed always yields the
 /// same step. The share of valid steps per command is printed (informational).
 #[test]
@@ -1073,11 +1122,11 @@ fn the_default_arm_builds_a_valid_step_for_every_registered_command() {
     );
 }
 
-/// The default arm's steps on Golden A, a few per registered command: the invariants hold for every one of them
+/// The default arm's steps on the sample, a few per registered command: the invariants hold for every one of them
 /// ([`apply`]: no panic, no internal error, all or nothing, the undo law), and each committed step is undone, so
-/// that every step starts from Golden A. The commits per command are printed (informational).
+/// that every step starts from the sample. The commits per command are printed (informational).
 #[test]
-fn the_default_arm_steps_hold_the_invariants_on_golden_a() {
+fn the_default_arm_steps_hold_the_invariants_on_the_sample() {
     let mut session = open_session_with(8, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
     let live = Live::read(&session.query(), &fixture);
@@ -1102,7 +1151,7 @@ fn the_default_arm_steps_hold_the_invariants_on_golden_a() {
     }
     assert!(
         session.world().model.content_eq(&initial),
-        "the default steps, each undone, leave Golden A"
+        "the default steps, each undone, leave the sample"
     );
     eprintln!("{}", report("default arm", &stats));
 }
@@ -1224,12 +1273,12 @@ fn the_determinism_check_fails_on_equal_outcomes_with_different_final_models() {
     );
 }
 
-/// Every hand arm builds steps on Golden A that the model commits (a dead arm covers nothing), at several seeds,
+/// Every hand arm builds steps on the sample that the model commits (a dead arm covers nothing), at several seeds,
 /// without the fuzz loop around it; the invariants and the remaining verdicts hold for every step ([`apply`]). Each
-/// committed step is undone, so every attempt starts from the golden project. An arm of [`arms::SESSION_REFUSES`]
+/// committed step is undone, so every attempt starts from the sample. An arm of [`arms::SESSION_REFUSES`]
 /// must see every step refused instead.
 #[test]
-fn every_arm_commits_on_golden_a() {
+fn every_arm_commits_on_the_sample() {
     let mut session = open_session_with(7, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
@@ -1240,7 +1289,7 @@ fn every_arm_commits_on_golden_a() {
         let (mut committed, mut refused, mut tried) = (0, 0, 0);
         for attempt in 0..60u64 {
             let mut rng = SplitMix64::new(1_000 * (i as u64 + 1) + attempt);
-            // An arm whose command finds nothing to act on in Golden A gets its setup step first (`arms::setup_of`),
+            // An arm whose command finds nothing to act on in the sample gets its setup step first (`arms::setup_of`),
             // undone after the attempt.
             let mut set_up = 0;
             if let Some(setup) = arms::setup_of(arm.command) {
@@ -1303,7 +1352,7 @@ fn every_arm_commits_on_golden_a() {
                     .expect("a committed step undoes");
                 assert!(
                     session.world().model.content_eq(&base),
-                    "arm `{}`: undo did not restore the golden project\nstep: {line}",
+                    "arm `{}`: undo did not restore the sample\nstep: {line}",
                     arm.command
                 );
             } else if !applied.ok {
@@ -1313,7 +1362,7 @@ fn every_arm_commits_on_golden_a() {
                 undo_setup(&mut session, set_up);
                 assert!(
                     session.world().model.content_eq(&initial),
-                    "arm `{}`: undoing the setup did not restore the golden project",
+                    "arm `{}`: undoing the setup did not restore the sample",
                     arm.command
                 );
             }
@@ -1335,12 +1384,12 @@ fn every_arm_commits_on_golden_a() {
     }
     assert!(
         dead.is_empty(),
-        "arms whose steps never commit on the golden project (a dead arm covers nothing): {dead:?}"
+        "arms whose steps never commit on the sample (a dead arm covers nothing): {dead:?}"
     );
     eprintln!("{}", report("every arm", &stats));
 }
 
-/// On Golden A, the `connection.draw_to_ip` arm reaches both star refusals (a starred point that is
+/// On the sample, the `connection.draw_to_ip` arm reaches both star refusals (a starred point that is
 /// no source, a starred external point with a live external reference), each with the "either" verdict a rule's
 /// refusal takes, and the `page.surface_view.set` arm reaches the schema's minimum of a scale, with the "refuse"
 /// verdict. Each refusal is asserted whole; a committed step is undone.
@@ -1385,7 +1434,7 @@ fn the_star_and_scale_arms_reach_their_refusals() {
     }
     assert!(
         session.world().model.content_eq(&initial),
-        "the steps, each undone, leave Golden A"
+        "the steps, each undone, leave the sample"
     );
     for (text, refuse) in [
         (
@@ -1482,12 +1531,12 @@ fn conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
     let mut session = open_session_with(469, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
     let live = Live::read(&session.query(), &fixture);
-    let cable = live.cables.first().expect("Golden A has a cable");
+    let cable = live.cables.first().expect("the sample has a cable");
     let other = live
         .plain_devices
         .iter()
         .find(|d| !live.cables.iter().any(|c| c.id == **d))
-        .expect("Golden A has a device that is no cable");
+        .expect("the sample has a device that is no cable");
     let core = (1..)
         .map(|n| format!("C{n}"))
         .find(|c| !cable.cores.contains(c))
@@ -1521,7 +1570,7 @@ fn a_route_that_repeats_a_vertex_is_refused_and_the_tidy_route_commits() {
         .routes
         .iter()
         .find(|r| r.a.0 != r.b.0 && r.a.1 != r.b.1)
-        .expect("Golden A has a connection between CPs on two lines");
+        .expect("the sample has a connection between CPs on two lines");
     let (a, b) = (r.a, r.b);
     let route = |points: &[(i64, i64)]| -> serde_json::Value {
         points.iter().map(|(x, y)| serde_json::json!([x, y])).collect()
@@ -1546,10 +1595,10 @@ fn a_route_that_repeats_a_vertex_is_refused_and_the_tidy_route_commits() {
 }
 
 /// A `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-move-surface-view`, CI run 41255625529):
-/// the run moved the surface view of a panel-layout page of Golden A with `rep.move`'s `items`, which the product
+/// the run moved the surface view of a panel-layout page of the sample with `rep.move`'s `items`, which the product
 /// refuses (a surface view is set by `page.surface_view.set`, never moved with a selection), and expected a commit.
 /// The arm no longer restates the rule (the step is `Either`). The step sequence: the move of the surface view is
-/// refused and changes nothing, and the move of a free text placed first (Golden A's page items are surface views)
+/// refused and changes nothing, and the move of a free text placed first (the sample's page items are surface views)
 /// commits.
 #[test]
 fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
@@ -1561,7 +1610,7 @@ fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
         .page_info
         .iter()
         .find(|p| p.kind == "multi_line")
-        .expect("Golden A has a multi-line page");
+        .expect("the sample has a multi-line page");
     let at = Live::grid_pos(page, 4, 4);
     let placed = run_steps(
         &mut session,
@@ -1578,7 +1627,7 @@ fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
             .find(|(_, i)| pick(&i.kind))
             .map(|(id, _)| live::id_json(id))
     };
-    let view = item_of(|k| matches!(k, PageItemKind::SurfaceView(_))).expect("Golden A has a surface view");
+    let view = item_of(|k| matches!(k, PageItemKind::SurfaceView(_))).expect("the sample has a surface view");
     let text = item_of(|k| matches!(k, PageItemKind::FreeText(_))).expect("the free text placed");
     drop(q);
     let delta = [arms::MOVE_UNIT, 0];
@@ -1598,26 +1647,40 @@ fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
     assert_eq!(done, [false, true]);
 }
 
+/// The parameters of the finding's `box.structure` on the sample: a dotted structure box on 101 that assigns the
+/// field location +FLD and names the sample's external reference (the upstream cabinet's supply).
+fn structure_box(session: &Session) -> serde_json::Value {
+    let q = session.query();
+    let page = q
+        .pages()
+        .iter()
+        .find(|(_, p)| p.folio.number == 101)
+        .map(|(id, _)| id)
+        .expect("101");
+    let location = q
+        .structure_nodes()
+        .iter()
+        .find(|(_, n)| n.code.as_str() == "FLD")
+        .map(|(id, _)| id)
+        .expect("+FLD");
+    let (external, _) = q.external_refs().iter().next().expect("an external reference");
+    serde_json::json!({"assigns": {"location": location}, "external": external,
+        "outline": [[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]],
+        "page": page, "style": "dotted"})
+}
+
 /// The regression `fuzz/regressions/command_sequence/structure-box-dropped-by-save`: a save dropped
 /// the page items and structure boxes, so the round trip after a `box.structure` lost the box. The step sequence of
 /// the finding: the dotted structure box with a location and an external reference commits, a save and reload gives
-/// the same model, and after the undo a save and reload gives Golden A.
+/// the same model, and after the undo a save and reload gives the sample.
 #[test]
 fn a_structure_box_survives_a_save_and_reload() {
     let mut session = open_session(7);
     let initial = session.world().model.clone();
     let mut disk = roundtrip::Disk::new(468);
     let boxes = session.query().structure_boxes().len();
-    let done = run_steps(
-        &mut session,
-        &[(
-            "box.structure",
-            serde_json::json!({"assigns": {"location": "d6137d06-68c5-5e53-abe2-c728d203b03d"},
-                "external": "97ccee03-a693-5fbc-9d61-5f5ce37ec8e6",
-                "outline": [[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]],
-                "page": "64b79654-66b4-5243-9cfc-fd7c0878c4f3", "style": "dotted"}),
-        )],
-    );
+    let params = structure_box(&session);
+    let done = run_steps(&mut session, &[("box.structure", params)]);
     assert_eq!(done, [true]);
     assert_eq!(session.query().structure_boxes().len(), boxes + 1);
     disk.round_trip(&mut session, roundtrip::Depth::Sample)
@@ -1627,137 +1690,113 @@ fn a_structure_box_survives_a_save_and_reload() {
         .unwrap_or_else(|e| panic!("after the undo: {e}"));
 }
 
+/// Commits up to two of the steps that the arm of `command` builds from the live records at seeds 0 to 2 999 and that
+/// `pick` takes, each through [`apply`] (so the step's own oracle runs) and undone; returns how many committed.
+fn commit_picked(session: &mut Session, command: &str, pick: impl Fn(&Live, &CmdStep) -> bool) -> usize {
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let arm = ARMS
+        .iter()
+        .find(|a| a.command == command)
+        .unwrap_or_else(|| panic!("the {command} arm"));
+    // Each commit is undone, so every step is built from the fuzz runs' project.
+    let live = Live::read(&session.query(), &fixture);
+    let mut committed = 0;
+    for seed in 0..3_000 {
+        let Some(Step::Cmd(c)) = (arm.build)(&live, &mut SplitMix64::new(seed)) else {
+            continue;
+        };
+        if c.posts.is_empty() || !pick(&live, &c) {
+            continue;
+        }
+        let applied = apply(session, &c, &mut FuzzStats::default())
+            .unwrap_or_else(|e| panic!("{e}\nstep: {}", Step::Cmd(c).line()));
+        assert!(applied.ok);
+        session.undo(&ew_api::Origin::Gui).expect("the step undoes");
+        committed += 1;
+        if committed == 2 {
+            break;
+        }
+    }
+    committed
+}
+
+/// The ID of the sample's part copy `number`, as a step's parameters name it.
+fn part_copy(session: &Session, number: &str) -> serde_json::Value {
+    session
+        .query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == number)
+        .map(|(id, _)| live::id_json(id))
+        .unwrap_or_else(|| panic!("the copy of {number}"))
+}
+
 /// A `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-transform-black-box-pivot`, CI run
-/// 42069007538, seed 382 692 297 722 036 225): `rep.transform` turned and mirrored Golden A's black box -102G1, which
-/// turns about the centre of its bounding box and so moves its insertion point by rule (`rep.transform`, "The
-/// pivot"), and the arm's oracle expected the insertion point to stay. The input replays with the cadence of the
-/// fuzz target and passes the oracle that checks the centre instead.
+/// 42069007538): `rep.transform` turned and mirrored the reference project's black box -102G1, which turns about the
+/// centre of its bounding box and so moves its insertion point by rule (`rep.transform`, "The pivot"), and the arm's
+/// oracle expected the insertion point to stay. The arm's steps that turn or mirror one of the sample's black boxes
+/// (the power supply, the PLC cards) commit and pass the oracle that checks the centre instead.
 #[test]
 fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
-    let input: &[u8] = include_bytes!("../fixtures/command_fuzz/rep-transform-black-box-pivot");
-    let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
-    let (&steps, tape) = rest.split_first().expect("a step count");
-    let cadence = Cadence {
-        sample_every: 0,
-        check_every: 0,
-        verify_every: 0,
-        full_end: false,
-        save_weight: 1,
-        import_weight: 0,
-        deep: false,
-    };
-    run_fuzz_tape(
-        u64::from_le_bytes(*seed),
-        tape,
-        1 + usize::from(steps) % 8,
-        &cadence,
-    );
+    let mut session = open_session_with(1636, MemoMode::On);
+    let boxes: BTreeSet<String> = session
+        .query()
+        .reps()
+        .iter()
+        .filter(|(_, r)| r.box_.is_some())
+        .map(|(id, _)| live::id_json(id).to_string())
+        .collect();
+    assert!(!boxes.is_empty(), "the sample draws black boxes");
+    let committed = commit_picked(&mut session, "rep.transform", |_, c| {
+        let turns = c.params["rotate"].as_u64().is_some_and(|r| (1..4).contains(&r))
+            || c.params["mirror"] == serde_json::json!(true);
+        turns && c.params["reps"].as_array().is_some_and(|r| r.len() == 1 && boxes.contains(&r[0].to_string()))
+    });
+    assert!(committed > 0, "the arm turned a black box");
 }
 
 /// Deep nightly finding (`fuzz/regressions/command_sequence/device-create-valve-part-functions`, seed
-/// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
-/// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
-/// part, and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
-/// step, and again whenever the command registry grew) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
-/// counts N-FL-1's functions.
+/// 13 901 746 652 117 265 409, step 0): `device.create` with the reference project's valve part and a main FnDef of
+/// another kind commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the
+/// valve part, and the arm expected one. The arm's steps with the sample's valve part (EW-GEN-VLV-3) and a main FnDef
+/// commit and pass the arm's oracle, which counts N-FL-1's functions.
 #[test]
 fn device_create_with_a_valve_part_counts_its_valve_functions() {
-    replay_drawing(
-        include_bytes!("../fixtures/command_fuzz/device-create-valve-part-functions"),
-        r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#,
-    );
+    let mut session = open_session_with(1664, MemoMode::On);
+    let valve = part_copy(&session, "EW-GEN-VLV-3");
+    let committed = commit_picked(&mut session, "device.create", |_, c| {
+        c.params["parts"][0]["part"]["copy"] == valve && c.params.get("main_fndef").is_some()
+    });
+    assert!(committed > 0, "the arm built a device.create step with the valve part and a main FnDef");
 }
 
-/// Replays a `command_sequence` input with the cadence of the fuzz target, on a tape whose first step is `first`.
-/// The generator draws its command from a total that counts the registry's commands, so a recorded tape stops
-/// drawing its step whenever a command joins the registry: the tape's first word is then found again here (the
-/// first word under which the step is drawn as recorded), instead of a file remade by hand at every new command.
-fn replay_drawing(input: &[u8], first: &str) {
-    let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
-    let (&steps, tape) = rest.split_first().expect("a step count");
-    let seed = u64::from_le_bytes(*seed);
-    let session = open_session_with(seed, MemoMode::On);
-    let fixture = Rc::new(Fixture::of(&session.query()));
-    let draws = |tape: &[u8]| {
-        gen_step(
-            &session,
-            &fixture,
-            &mut SplitMix64::with_tape(seed, tape),
-            false,
-            Mix::default(),
-        )
-        .line()
-            == first
-    };
-    let mut tape = tape.to_vec();
-    if !draws(&tape) {
-        let with_word = |word: u64| {
-            let mut t = tape.clone();
-            t[..8].copy_from_slice(&word.to_le_bytes());
-            t
-        };
-        let word = (0..1u64 << 16)
-            .find(|w| draws(&with_word(*w)))
-            .expect("a first word under which the recorded step is drawn");
-        tape = with_word(word);
-    }
-    let tape = tape.as_slice();
-    let cadence = Cadence {
-        sample_every: 0,
-        check_every: 0,
-        verify_every: 0,
-        full_end: false,
-        save_weight: 1,
-        import_weight: 0,
-        deep: false,
-    };
-    run_fuzz_tape(seed, tape, 1 + usize::from(steps) % 8, &cadence);
-}
-
-/// The same cause in the `valve.add` arm: with Golden A's valve part the command ignores `fndef`
+/// The same cause in the `valve.add` arm: with the sample's valve part the command ignores `fndef`
 ///  and N-FL-1 makes the valve and coil functions (D6). The arm's well-formed steps on that part, with
 /// `fndef` and without, commit and pass its oracle.
 #[test]
 fn valve_add_with_a_valve_part_counts_its_valve_functions() {
     let mut session = open_session_with(1493, MemoMode::On);
-    let fixture = Rc::new(Fixture::of(&session.query()));
-    let arm = ARMS
-        .iter()
-        .find(|a| a.command == "valve.add")
-        .expect("the valve.add arm");
-    // Each commit is undone, so every step is built from Golden A.
-    let live = Live::read(&session.query(), &fixture);
-    let mut seen = BTreeSet::new();
-    for seed in 0..3_000 {
-        let Some(Step::Cmd(c)) = (arm.build)(&live, &mut SplitMix64::new(seed)) else {
-            continue;
-        };
-        if c.params["part"]["part"]["copy"] != "2b23f42b-b502-5f8b-aab9-6200eb76adcf"
-            || c.posts.is_empty()
-            || !seen.insert(c.params.get("fndef").is_some())
-        {
-            continue;
-        }
-        let applied = apply(&mut session, &c, &mut FuzzStats::default())
-            .unwrap_or_else(|e| panic!("{e}\nstep: {}", Step::Cmd(c).line()));
-        assert!(applied.ok);
-        session.undo(&ew_api::Origin::Gui).expect("the valve undoes");
+    let valve = part_copy(&session, "EW-GEN-VLV-3");
+    for with_fndef in [true, false] {
+        let committed = commit_picked(&mut session, "valve.add", |_, c| {
+            c.params["part"]["part"]["copy"] == valve && c.params.get("fndef").is_some() == with_fndef
+        });
+        assert!(
+            committed > 0,
+            "the arm built the valve part's step {} `fndef`",
+            if with_fndef { "with" } else { "without" }
+        );
     }
-    assert_eq!(
-        seen.len(),
-        2,
-        "the arm built the valve part's steps with and without `fndef`"
-    );
 }
 
-/// The placement and arrangement steps on Golden A: the `from_part` and `new_terminal` targets of
+// The placement and arrangement steps on the sample: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
 /// commits at least once and is refused at least once where the arm builds refusals (the invariants are checked by
-/// `apply`; each committed step is undone, and the undo restores Golden A, so every attempt starts from Golden A).
+/// `apply`; each committed step is undone, and the undo restores the sample, so every attempt starts from the sample).
 ///
 /// The commands, their attempts (seeded `50_000 + attempt`) and the kinds each must commit and refuse, in the
-/// three groups that nextest runs in parallel (`..._golden_a_<k>_of_3`): every attempt of the former single test
+/// three groups that nextest runs in parallel (`..._the_sample_<k>_of_3`): every attempt of the former single test
 /// is in exactly one group (`the_placement_groups_hold_every_command_and_kind_once`).
 type PlacementGroup = &'static [(&'static str, u64, &'static [&'static str])];
 
@@ -1821,21 +1860,21 @@ fn the_placement_groups_hold_every_command_and_kind_once() {
 }
 
 #[test]
-fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_1_of_3() {
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_the_sample_1_of_3() {
     placement_steps(PLACEMENT_GROUPS[0]);
 }
 
 #[test]
-fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_2_of_3() {
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_the_sample_2_of_3() {
     placement_steps(PLACEMENT_GROUPS[1]);
 }
 
 #[test]
-fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_3_of_3() {
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_the_sample_3_of_3() {
     placement_steps(PLACEMENT_GROUPS[2]);
 }
 
-/// One group of [`PLACEMENT_GROUPS`] on a fresh Golden A session.
+/// One group of [`PLACEMENT_GROUPS`] on a fresh session over the sample.
 fn placement_steps(group: PlacementGroup) {
     let mut session = open_session_with(13, MemoMode::On);
     session.take_oracle_mismatches();
@@ -1893,7 +1932,7 @@ fn placement_steps(group: PlacementGroup) {
                     .expect("a committed step undoes");
                 assert!(
                     session.world().model.content_eq(&initial),
-                    "undo restores Golden A: {kind}"
+                    "undo restores the sample: {kind}"
                 );
             } else if !applied.ok {
                 *refused.entry(kind).or_default() += 1;
@@ -1913,11 +1952,11 @@ fn placement_steps(group: PlacementGroup) {
     }
 }
 
-/// The revision steps (`revision.create`, `fields.set` and `edit.delete` on a revision) on Golden A, many
+/// The revision steps (`revision.create`, `fields.set` and `edit.delete` on a revision) on the sample, many
 /// attempts with the deletions of the open revision among them: the revision rules (EW-INV-016 to EW-INV-020,
 /// FR-REV-009) both commit and refuse steps, the invariants hold for every step, and the title block follows.
 #[test]
-fn the_revision_steps_hold_on_golden_a() {
+fn the_revision_steps_hold_on_the_sample() {
     let mut session = open_session_with(11, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
@@ -1973,7 +2012,7 @@ step: {line}"
     while session.undo(&ew_api::Origin::Gui).is_ok() {}
     assert!(
         session.world().model.content_eq(&initial),
-        "undo-all restores Golden A"
+        "undo-all restores the sample"
     );
     eprintln!("{}", report("revision steps", &stats));
     assert!(
@@ -1996,10 +2035,10 @@ fn the_generator_is_reproducible_from_the_seed() {
     assert_ne!(steps(7), steps(8));
 }
 
-/// The save-and-reload step on the golden project itself: create, reload, compare; change, save, reload,
+/// The save-and-reload step on the sample itself: create, reload, compare; change, save, reload,
 /// compare; undo everything, save, reload: the initial project.
 #[test]
-fn save_and_reload_of_golden_a_round_trips() {
+fn save_and_reload_of_the_sample_round_trips() {
     let mut session = open_session_with(3, MemoMode::On);
     let initial = session.world().model.clone();
     let mut disk = roundtrip::Disk::new(3);
@@ -2157,21 +2196,20 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
 }
 
 /// The round-trip oracle names a differing row of any kind from the model's own tables, also a kind that
-/// `model_lines` does not render: Golden A with the structure box of the `fuzz-smoke` finding against Golden A.
+/// `model_lines` does not render: the sample with the structure box of the `fuzz-smoke` finding against the sample.
 #[test]
 fn the_round_trip_oracle_names_a_row_of_any_kind() {
     let mut session = open_session(7);
     let initial = session.world().model.clone();
-    let log = ew_api::CmdLog::parse(concat!(
+    let log = ew_api::CmdLog::parse(&format!(
+        "{}\n{}\n",
         r#"{"$schema":"ew.cmdlog/1","label":"FT-468"}"#,
-        "\n",
-        r#"{"cmd":"box.structure","params":{"assigns":{"location":"d6137d06-68c5-5e53-abe2-c728d203b03d"},"external":"97ccee03-a693-5fbc-9d61-5f5ce37ec8e6","outline":[[0,0],[50000000,0],[50000000,30000000],[0,30000000]],"page":"64b79654-66b4-5243-9cfc-fd7c0878c4f3","style":"dotted"}}"#,
-        "\n",
+        serde_json::json!({"cmd": "box.structure", "params": structure_box(&session)})
     ))
     .expect("the log parses");
     session
         .run_script(&log, "FT-468")
-        .expect("box.structure commits on Golden A");
+        .expect("box.structure commits on the sample");
     let err = roundtrip::same_model("live", &session.world().model, &initial)
         .expect_err("a structure box more is a difference");
     assert!(
@@ -2185,21 +2223,19 @@ fn the_round_trip_oracle_names_a_row_of_any_kind() {
 /// When only the project row differs, the oracle names it and prints both project lines.
 #[test]
 fn the_round_trip_oracle_prints_the_project_row_lines() {
-    let batch = golden_batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    let project = project.expect("the batch holds the project");
-    let mut changed = project.clone();
+    let initial = sample_model().clone();
+    let project = std::sync::Arc::clone(initial.project());
+    let mut changed = (*project).clone();
     changed.master.description = ew_mltext::MlText::neutral("FT-468");
-    let initial = Model::from_records(project, records.clone(), batch.lib.clone()).expect("Golden A loads");
-    let live =
-        Model::from_records(changed, records, batch.lib.clone()).expect("Golden A with a description loads");
+    let live = initial
+        .apply_history(
+            &[ew_model::Op::update(
+                ew_model::AnyRow::Project(project),
+                ew_model::AnyRow::Project(std::sync::Arc::new(changed)),
+            )],
+            ew_model::Rev(initial.rev().0 + 1),
+        )
+        .expect("the sample with a description loads");
     let err = roundtrip::same_model("live", &live, &initial).expect_err("the project rows differ");
     assert!(
         err.starts_with(
@@ -2213,10 +2249,10 @@ fn the_round_trip_oracle_prints_the_project_row_lines() {
 
 /// On the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
 /// is not embedded, then that function definition, both commit as the arm says, with a save in between; undoing
-/// both restores Golden A (the undo-all oracle (e)), although the second undo removes a copy that the symbol
-/// names, and a save after the undo reloads Golden A.
+/// both restores the sample (the undo-all oracle (e)), although the second undo removes a copy that the symbol
+/// names, and a save after the undo reloads the sample.
 #[test]
-fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
+fn embed_then_undo_of_a_named_fndef_restores_the_sample() {
     let mut session = open_session(13);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
@@ -2259,7 +2295,7 @@ fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
         .undo(&ew_api::Origin::Gui)
         .expect("the undo of the symbol's embedding");
     let model = session.world().model;
-    assert!(model.content_eq(&initial), "undo-all restores Golden A");
+    assert!(model.content_eq(&initial), "undo-all restores the sample");
     model
         .integrity_check()
         .unwrap_or_else(|e| panic!("after undo-all: {e:?}"));

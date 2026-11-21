@@ -118,7 +118,7 @@ pub enum Step {
     /// A save, a reload from disk and the comparison of the model and the derived families
     /// ([`super::roundtrip`]).
     SaveReload,
-    /// A CSV table import, strict and lenient, over (possibly damaged) golden tables ([`super::import`]).
+    /// A CSV table import, strict and lenient, over (possibly damaged) test tables ([`super::import`]).
     Import(super::import::Damage),
     Cmd(CmdStep),
 }

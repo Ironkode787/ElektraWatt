@@ -405,8 +405,8 @@ fn ewz_archives() {
     );
 }
 
-/// Golden A's files, read once.
-fn golden_files() -> &'static BTreeMap<String, Vec<u8>> {
+/// The sample project's files, read once.
+fn sample_files() -> &'static BTreeMap<String, Vec<u8>> {
     static FILES: OnceLock<BTreeMap<String, Vec<u8>>> = OnceLock::new();
     FILES.get_or_init(|| {
         fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
@@ -420,19 +420,19 @@ fn golden_files() -> &'static BTreeMap<String, Vec<u8>> {
                 }
             }
         }
-        let dir = repo().join("golden/J-E-2416.ew");
+        let dir = Path::new(ew_testdir::SAMPLE);
         let mut out = BTreeMap::new();
-        walk(&dir, &dir, &mut out);
+        walk(dir, dir, &mut out);
         out
     })
 }
 
-/// Golden A's first page file.
+/// The sample's first page file.
 fn first_page() -> String {
-    golden_files()
+    sample_files()
         .keys()
         .find(|p| p.starts_with("pages/"))
-        .expect("Golden A has page files")
+        .expect("the sample has page files")
         .clone()
 }
 
@@ -447,30 +447,30 @@ fn open_verdict(report: &ew_api::OpenReport, page: &str) -> String {
     format!("{:?}; {}", report.access, findings.join(" | "))
 }
 
-/// A JSONL line in place of Golden A's first page file, opened from memory as `ew diff`'s revision side opens one.
+/// A JSONL line in place of the sample's first page file, opened from memory as `ew diff`'s revision side opens one.
 #[test]
 fn jsonl_lines() {
     let page = first_page();
-    golden_files();
+    sample_files();
+    let changed = format!(
+        "ReadOnly(Requested); {page}: changed outside ElektraWatt (the hash differs from the manifest)"
+    );
     class(
         "jsonl",
         &[
             (
                 "line-over-16-mib.jsonl",
-                "ReadOnly(Requested); pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl: changed outside \
-                 ElektraWatt (the hash differs from the manifest) | EW-CORE-019 \
-                 pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl:1: line of 16777217 bytes, more than the \
-                 limit of 16777216",
+                &format!(
+                    "{changed} | EW-CORE-019 {page}:1: line of 16777217 bytes, more than the limit of 16777216"
+                ),
             ),
             (
                 "nested-past-depth-64.jsonl",
-                "ReadOnly(Requested); pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl: changed outside \
-                 ElektraWatt (the hash differs from the manifest) | EW-CORE-019 \
-                 pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl:1: nesting deeper than 64",
+                &format!("{changed} | EW-CORE-019 {page}:1: nesting deeper than 64"),
             ),
         ],
         |_, bytes| {
-            let mut files = golden_files().clone();
+            let mut files = sample_files().clone();
             files.insert(page.clone(), bytes.to_vec());
             match Session::open_in_memory(&files, StoreOptions::new(APP), "open", MemoMode::default()) {
                 Ok((_, report)) => open_verdict(&report, &page),
@@ -560,15 +560,15 @@ fn raster_assets() {
 #[test]
 fn a_page_file_that_is_a_symbolic_link_is_not_followed() {
     let root = ew_testdir::Tmp::new("ew-hostile-link");
-    let dir = root.join("J-E-2416.ew");
-    for (rel, bytes) in golden_files() {
+    let dir = root.join("sample.ew");
+    for (rel, bytes) in sample_files() {
         let path = dir.join(rel);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, bytes).unwrap();
     }
     let page = first_page();
     let target = root.join("elsewhere.jsonl");
-    std::fs::write(&target, &golden_files()[&page]).unwrap();
+    std::fs::write(&target, &sample_files()[&page]).unwrap();
     std::fs::remove_file(dir.join(&page)).unwrap();
     std::os::unix::fs::symlink(&target, dir.join(&page)).unwrap();
     let mut store = StoreOptions::new(APP);

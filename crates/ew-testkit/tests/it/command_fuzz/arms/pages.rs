@@ -194,7 +194,7 @@ pub(super) fn page_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => Some(Step::cmd("page.delete", json!({"pages": [rng.uuid()]})).refuse()),
         1 => Some(Step::cmd("page.delete", json!({"pages": []}))),
         _ => {
-            // The golden project keeps most of its pages: the run deletes while there are enough.
+            // The sample keeps most of its pages: the run deletes while there are enough.
             if live.pages.len() < 6 {
                 return None;
             }
@@ -338,7 +338,7 @@ pub(super) fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<S
     let form = rng.pick(&live.forms)?;
     let kind = *rng.pick(kinds)?;
     match rng.below(12) {
-        // The form from the library with its closure; the golden project holds the same items, so the
+        // The form from the library with its closure; the sample holds the same items, so the
         // held copies are used and only the block is new.
         10 => {
             let (nogrid, title_block) = shipped_report_forms();

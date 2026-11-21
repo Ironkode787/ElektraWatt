@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A checks of the placement and arrangement commands: `rep.move` by grid steps,
-//! `rep.exchange_symbol`, the `new_terminal` and `from_part` targets, and the DSL verbs for them.
+//! Checks of the placement and arrangement commands on a whole project, the sample: `rep.move` by grid steps,
+//! `rep.exchange_symbol`, the `new_terminal` and `from_part` targets, and the DSL verbs for them; and the
+//! two-function part fixtures that the `ew-api` and `ew-viewmodel` tests read.
 //!
-//! Every test edits a temporary COPY of `golden/J-E-2416.ew`; the committed directory is never opened for
-//! writing. The golden fixture holds no wire routes (the bootstrap writes connectivity only), so the tests that
-//! follow routes give the wires of the representations they move a route first, with `connection.route`.
+//! Every test edits a temporary COPY of `fixtures/sample/sample.ew`; the committed directory is never opened for
+//! writing. The tests that follow routes give the wires of the representations they move a route of their own
+//! first, with `connection.route`.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -25,33 +26,7 @@ use ew_testkit::golden::dsl::{Builder, Done, End, IpEnd};
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
 
-// ---------------------------------------------------------------------------------------------------------
-// Golden A: the records the checks name (folios 101, 102 and 103; UUIDs of the committed fixture)
-
-const PAGE_101: &str = "71260e59-ea02-5e16-8678-401d4044d9d7";
-const PAGE_102: &str = "4aa43308-d0d3-57ee-be0c-d9383f429f50";
-const PAGE_103: &str = "f239a42a-2ec8-574b-8086-d0fe72d1da6a";
-/// Terminal -X1031 (strip device, 20 terminals), letter X, structure of folio 103.
-const STRIP_X1031: &str = "d8221507-61e8-5141-a2cb-95300ef8a242";
-/// -XPE (`ew.iec.pe@qet10`) on folio 101: x index 33 (33 mod 3 = 0).
-const REP_XPE: &str = "ec75639e-891f-58fd-8e73-3a43743f8573";
-/// F55 (`ew.iec.mcb-1pn@qet10`): x index 76 (mod 3 = 1).
-const REP_F55: &str = "8c4dbb72-b2ea-5ae7-9f5c-a84358d4f9fa";
-/// S51 (`ew.iec.switch-2p-manual@qet10`): x index 14 (mod 3 = 2).
-const REP_S51: &str = "57543b91-fc2a-54ed-9420-0c0e30135653";
-/// E56 (`ew.iec.lamp@qet10`) on folio 101, two connections.
-const REP_E56: &str = "6112da7c-cc90-592a-916a-48bbda475c86";
-const FN_E56: &str = "a702f956-8a54-5643-9087-430201368907";
-/// The copy `ew.iec.terminal@qet10`.
-const SYMBOL_TERMINAL: &str = "13704217-e6f6-56c5-951b-0552447345b7";
-/// The copy `ew.fn.terminal`.
-const FNDEF_TERMINAL: &str = "4a2f9ef1-5675-5510-9b47-ca86a6a84cce";
-/// The copy `ew.gen.blackbox@qet10`.
-const SYMBOL_BLACKBOX: &str = "faf09b45-ec6e-57d8-8be6-faf4c1596ddb";
-/// The part copy MICO 4.10: a black box with a 10-CP pattern ("13" and "14" are pattern CPs 4 and 5).
-const PART_MICO: &str = "6b848305-0ec3-5ef1-9d84-7277eb168d2a";
-
-/// The grid of every page of Golden A: the QET grid.
+/// The grid of every page of the sample: the QET grid.
 fn grid() -> Grid {
     Grid::new(7_937_500, 3).expect("the QET grid")
 }
@@ -64,16 +39,13 @@ fn gp(kx: i64, ky: i64) -> Pt2 {
     Pt2::new(grid_at(kx), grid_at(ky))
 }
 
-fn id<T>(s: &str) -> Id<T> {
-    s.parse().expect("a UUID")
-}
-
 // ---------------------------------------------------------------------------------------------------------
-// A temporary copy of Golden A
+// A temporary copy of the sample, and the records the checks use, found by what they are (the sample's IDs come
+// from its script)
 
-/// A session over a copy of Golden A in `work`.
+/// A session over a copy of the sample in `work`.
 fn open_copy(work: &Tmp, seed: u64) -> Session {
-    let dir = work.golden("golden.ew");
+    let dir = work.sample("sample.ew");
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = Some(work.path("state"));
     let options = SessionOptions {
@@ -81,8 +53,53 @@ fn open_copy(work: &Tmp, seed: u64) -> Session {
         ..SessionOptions::default()
     };
     Session::open(&dir, store, options, Recovery::Keep)
-        .expect("the copy of Golden A opens")
+        .expect("the copy of the sample opens")
         .0
+}
+
+/// The page of folio `number`.
+fn page_of(s: &Session, number: u32) -> Id<Page> {
+    s.query()
+        .pages()
+        .iter()
+        .find(|(_, p)| p.folio.number == number)
+        .map(|(id, _)| id)
+        .expect("the folio")
+}
+
+/// The copy of the part `number` the sample holds.
+fn part_copy(s: &Session, number: &str) -> Arc<ew_schema::LibCopy<Part>> {
+    s.query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == number)
+        .map(|(_, c)| Arc::clone(c))
+        .unwrap_or_else(|| panic!("the sample holds {number}"))
+}
+
+/// The representations on `page` of the devices that use the part `number`.
+fn reps_of_part(s: &Session, page: Id<Page>, number: &str) -> Vec<Id<Representation>> {
+    let copy = part_copy(s, number).id;
+    let q = s.query();
+    q.reps()
+        .iter()
+        .filter(|(_, r)| r.page == page)
+        .filter(|(_, r)| {
+            r.functions.iter().any(|f| {
+                q.functions()
+                    .get(*f)
+                    .and_then(|f| f.device)
+                    .and_then(|d| q.devices().get(d))
+                    .is_some_and(|d| d.parts.iter().any(|u| u.part.copy == copy))
+            })
+        })
+        .map(|(id, _)| id)
+        .collect()
+}
+
+/// -X1021, the sample's 24 V / 0 V strip on 102 (terminals 1 to 8).
+fn strip_x1021(s: &Session) -> Id<Device> {
+    Id::from_uuid(s.resolve_reference("tag:-X1021").expect("-X1021"))
 }
 
 fn run(s: &mut Session, name: &str, params: Value) -> Result<Receipt, CmdError> {
@@ -235,11 +252,56 @@ fn stepped(pos: Pt2, steps: [i64; 2]) -> Pt2 {
 fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
     let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 1);
-    let page: Id<Page> = id(PAGE_101);
-    let reps: Vec<Id<Representation>> = [REP_XPE, REP_F55, REP_S51].map(id).to_vec();
-    // The three representations have x grid indices with three different residues modulo 3 (so any uniform nm
-    // delta leaves at least one off the grid), and all sit on the grid.
+    let page = page_of(&s, 101);
     let g = grid();
+    // Three representations on 101 whose x grid indices have three different residues modulo 3 (so any uniform nm
+    // delta leaves at least one off the grid), each on the grid and with a wire. The sample's script places on the
+    // cells' centres (residue 2), so three of residue 2 are taken and two of them first moved right by the nm delta of
+    // one and of two steps. Each one's wires have their other ends 0 or at least 3 grid steps away in x and 0 or at
+    // least 2 in y (after its first move): the test's moves (at most 2 steps right and 1 down) then never put a bend
+    // on its neighbour, which `follow_end` would merge.
+    let clear = |s: &Session, f: Id<Function>, shift: i64| -> bool {
+        let q = s.query();
+        connections_at(s, page, &[f]).iter().all(|c| {
+            let w = q.connections().get(*c).expect("the connection");
+            let k = |e: &Endpoint| {
+                let p = end_pos(&q, e, page);
+                let moved = matches!(e, Endpoint::Cp(at, _) if *at == f);
+                (g.snap(p.x) + if moved { shift } else { 0 }, g.snap(p.y))
+            };
+            let ((ax, ay), (bx, by)) = (k(&w.a), k(&w.b));
+            let (dx, dy) = ((ax - bx).abs(), (ay - by).abs());
+            (dx == 0 || dx >= 3) && (dy == 0 || dy >= 2)
+        })
+    };
+    let wired = |s: &Session, residue: i64, shift: i64| -> Vec<Id<Representation>> {
+        let q = s.query();
+        q.reps()
+            .iter()
+            .filter(|(_, r)| r.page == page && !r.functions.is_empty())
+            .filter(|(_, r)| g.snap_point(r.pos.x) == Some(r.pos.x) && g.snap_point(r.pos.y) == Some(r.pos.y))
+            .filter(|(_, r)| g.snap(r.pos.x).rem_euclid(3) == residue)
+            .filter(|(_, r)| !connections_at(s, page, &r.functions[..1]).is_empty())
+            .filter(|(_, r)| clear(s, r.functions[0], shift))
+            .map(|(id, _)| id)
+            .collect()
+    };
+    let mut reps: Vec<Id<Representation>> = Vec::new();
+    for shift in [1, 2, 0] {
+        let r = wired(&s, 2, shift)
+            .into_iter()
+            .find(|r| !reps.contains(r))
+            .expect("a wired representation of residue 2 on 101");
+        // One step's nm delta from residue 2 lands on residue 0, two steps' on residue 1 (both on the grid).
+        if shift > 0 {
+            must(
+                &mut s,
+                "rep.move",
+                json!({"reps": [r], "delta": [grid_at(1).0 * shift, 0]}),
+            );
+        }
+        reps.push(r);
+    }
     let mods: Vec<i64> = reps
         .iter()
         .map(|r| g.snap(rep(&s, *r).pos.x).rem_euclid(3))
@@ -250,10 +312,10 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         assert_eq!(g.snap_point(pos.x), Some(pos.x));
         assert_eq!(g.snap_point(pos.y), Some(pos.y));
     }
-    // Give the wires at these functions a route of the test's own (Golden A's routes are the router's).
+    // Give the wires at these functions a route of the test's own (the sample's routes are drawn ones).
     let functions: Vec<Id<Function>> = reps.iter().map(|r| rep(&s, *r).functions[0]).collect();
     let wires = connections_at(&s, page, &functions);
-    assert!(wires.len() >= 6, "{} wires at the three functions", wires.len());
+    assert!(!wires.is_empty(), "wires at the three functions");
     route_all(&mut s, page, &wires);
     let routed = assert_routes_meet_their_ends(&s, page);
     assert!(routed >= wires.len(), "{routed}");
@@ -263,9 +325,12 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         .collect();
     let vertices: Vec<usize> = wires.iter().map(|w| connection(&s, *w).route.len()).collect();
 
-    // One nm delta of one step (7_937_500 / 3 = 2_645_833.33 nm, rounded) is refused: F55 would land 1 nm off.
+    // One nm delta of one step (7_937_500 / 3 = 2_645_833.33 nm, rounded) is refused: the representation of
+    // residue 1 would land 1 nm off.
     let one_step = grid_at(1);
     assert_eq!(one_step.0, 2_645_833);
+    let off = rep(&s, reps[1]).pos;
+    let mm = |n: Nm| n.0 as f64 / 1e6;
     let before = lines(&s);
     match run(
         &mut s,
@@ -275,7 +340,11 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         Err(CmdError::Rejected { reason, .. }) => {
             assert_eq!(
                 reason,
-                "the position at x 203.7, y 31.8 mm on page 101 is not on the drawing grid; move it onto the grid"
+                format!(
+                    "the position at x {:.1}, y {:.1} mm on page 101 is not on the drawing grid; move it onto the grid",
+                    mm(Nm(off.x.0 + one_step.0)),
+                    mm(off.y)
+                )
             );
         }
         other => panic!("the nm delta must be refused, got {other:?}"),
@@ -312,10 +381,18 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
 fn rep_move_by_steps_refuses_a_delta_or_a_page_beside_it() {
     let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 2);
+    let (page_101, page_102) = (page_of(&s, 101), page_of(&s, 102));
+    let any = s
+        .query()
+        .reps()
+        .iter()
+        .find(|(_, r)| r.page == page_101)
+        .map(|(id, _)| id)
+        .expect("a representation on 101");
     let before = lines(&s);
     for params in [
-        json!({"reps": [REP_F55], "steps": [1, 0], "delta": [7_937_500, 0]}),
-        json!({"reps": [REP_F55], "steps": [1, 0], "page": PAGE_102}),
+        json!({"reps": [any], "steps": [1, 0], "delta": [7_937_500, 0]}),
+        json!({"reps": [any], "steps": [1, 0], "page": page_102}),
     ] {
         match run(&mut s, "rep.move", params) {
             Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/steps"),
@@ -400,13 +477,17 @@ fn symbol_json(item: Uuid, key: &str, fndef_item: Uuid, cps: &[(u16, u16, [i64; 
 }
 
 #[test]
-fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
+fn exchange_symbol_on_a_lamp_keeps_its_connections_and_follows_the_new_cps() {
     const G: i64 = 7_937_500;
     let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 3);
-    let page: Id<Page> = id(PAGE_101);
-    let (rep_id, function_id): (Id<Representation>, Id<Function>) = (id(REP_E56), id(FN_E56));
-    // E56's lamp has the FnDef CPs X1 (0) and X2 (1), drawn at the insertion point and 7.9375 mm below it.
+    // The pilot lamp on 102, in parallel with the contactor's coil.
+    let page = page_of(&s, 102);
+    let [rep_id] = reps_of_part(&s, page, "EW-GEN-LMP-1")[..] else {
+        panic!("one pilot lamp on 102");
+    };
+    let function_id = rep(&s, rep_id).functions[0];
+    // The lamp has the FnDef CPs X1 (0) and X2 (1), drawn at the insertion point and 7.9375 mm below it.
     let before = rep(&s, rep_id);
     let at = before.pos;
     assert_eq!(before.functions, vec![function_id]);
@@ -418,9 +499,9 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     assert_eq!((old_x1, old_x2), (at, Pt2::new(at.x, Nm(at.y.0 + G))));
     // Its two connections, given routes.
     let wires = connections_at(&s, page, &[function_id]);
-    assert_eq!(wires.len(), 2, "E56 has two connections");
+    assert_eq!(wires.len(), 2, "the lamp has two connections");
     route_all(&mut s, page, &wires);
-    // Every routed wire of the page meets its ends (Golden A's routes are the router's).
+    // Every routed wire of the page meets its ends.
     let routed = assert_routes_meet_their_ends(&s, page);
     let ends: Vec<(Endpoint, Endpoint)> = wires
         .iter()
@@ -513,14 +594,26 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// c. new_terminal on strip -X1031
+// c. new_terminal on strip -X1021
 
 #[test]
-fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number() {
+fn new_terminal_adds_one_terminal_to_strip_x1021_with_the_next_sequence_number() {
     let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 4);
-    let strip_id: Id<Device> = id(STRIP_X1031);
+    let page = page_of(&s, 102);
+    let strip_id = strip_x1021(&s);
     let strip = device(&s, strip_id);
+    // The symbol and the definition the strip's terminals are drawn with (`ew.iec.terminal@qet10`, `ew.fn.terminal`).
+    let (symbol_terminal, fndef_terminal) = {
+        let q = s.query();
+        let terminal = q.idx().terminals_of_strip(strip_id).next().expect("a terminal");
+        let f = q.idx().functions_of_device(terminal).next().expect("its function");
+        let r = q.idx().reps_of_function(f).next().expect("its representation");
+        (
+            q.reps().get(r).expect("the representation").symbol,
+            q.functions().get(f).expect("the function").def,
+        )
+    };
     let terminals = |s: &Session| -> Vec<(u32, String)> {
         let q = s.query();
         let mut v: Vec<(u32, String)> = q
@@ -534,14 +627,15 @@ fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number()
         v
     };
     let before = terminals(&s);
-    assert_eq!(before.len(), 20);
-    assert_eq!(before.last(), Some(&(20, "20".to_owned())));
+    // The sample's script places the terminals 1 to 8 on -X1021.
+    assert_eq!(before.len(), 8);
+    assert_eq!(before.last(), Some(&(8, "8".to_owned())));
 
     let r = must(
         &mut s,
         "device.place",
-        json!({"page": PAGE_103, "symbol": SYMBOL_TERMINAL, "pos": gp(10, 20),
-            "target": {"new_terminal": {"strip": STRIP_X1031, "designation": "21"}}}),
+        json!({"page": page, "symbol": symbol_terminal, "pos": gp(10, 20),
+            "target": {"new_terminal": {"strip": strip_id, "designation": "9"}}}),
     );
     let devices: Vec<Id<Device>> = created(&r, Kind::Device);
     let functions: Vec<Id<Function>> = created(&r, Kind::Function);
@@ -551,8 +645,8 @@ fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number()
         "one new terminal with its main function"
     );
     let after = terminals(&s);
-    assert_eq!(after.len(), 21);
-    assert_eq!(after.last(), Some(&(21, "21".to_owned())), "seq = max + 1");
+    assert_eq!(after.len(), 9);
+    assert_eq!(after.last(), Some(&(9, "9".to_owned())), "seq = max + 1");
     let t = device(&s, devices[0]);
     assert_eq!(t.tag.letter, strip.tag.letter, "letter X");
     assert_eq!(t.tag.letter.as_str(), "X");
@@ -561,27 +655,27 @@ fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number()
     let aspect = t.aspects.terminal.clone().expect("the terminal aspect");
     assert_eq!(
         (aspect.strip, aspect.seq, aspect.rail_bonded),
-        (strip_id, 21, false)
+        (strip_id, 9, false)
     );
     let f = function(&s, functions[0]);
     assert_eq!(
         (f.device, f.def, f.role.clone()),
-        (Some(devices[0]), id(FNDEF_TERMINAL), FnRole::Main),
+        (Some(devices[0]), fndef_terminal, FnRole::Main),
         "the main function has the symbol's FnDef"
     );
     let placed = rep(&s, r.outcome.primary.expect("the representation").1.cast());
     assert_eq!(
         (placed.page, placed.functions.clone(), placed.pos, placed.symbol),
-        (id(PAGE_103), vec![functions[0]], gp(10, 20), id(SYMBOL_TERMINAL))
+        (page, vec![functions[0]], gp(10, 20), symbol_terminal)
     );
     // A used designation, a used sequence number and a non-strip are refused.
     let unchanged = lines(&s);
     for target in [
-        json!({"new_terminal": {"strip": STRIP_X1031, "designation": "21"}}),
-        json!({"new_terminal": {"strip": STRIP_X1031, "designation": "22", "seq": 21}}),
+        json!({"new_terminal": {"strip": strip_id, "designation": "9"}}),
+        json!({"new_terminal": {"strip": strip_id, "designation": "10", "seq": 9}}),
     ] {
         let params =
-            json!({"page": PAGE_103, "symbol": SYMBOL_TERMINAL, "pos": gp(12, 20), "target": target});
+            json!({"page": page, "symbol": symbol_terminal, "pos": gp(12, 20), "target": target});
         assert!(matches!(
             run(&mut s, "device.place", params),
             Err(CmdError::Rejected { .. })
@@ -597,31 +691,27 @@ fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number()
 fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
     let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 5);
-    // The copy of MICO 4.10 with a second template entry: the black box, then a normally open contact
-    // (`ew.fn.contact-no`) on the pattern CPs "13" and "14" (4 and 5). The starter content holds the FnDef; the
-    // golden project does not embed it.
-    let mut contact_no: Value = serde_json::from_str(
-        &std::fs::read_to_string(Path::new(CONTENT).join("fndefs/ew.fn.contact-no.json"))
-            .expect("the starter FnDef"),
-    )
-    .expect("JSON");
-    contact_no = embeddable(contact_no);
-    let contact_def = LibDocument::from_value(contact_no.clone()).expect("a FnDef");
+    // The copy of the sample's PLC output card with a second template entry: the black box, then a normally open
+    // contact (`ew.fn.contact-no`) on the pattern CPs "5" and "6" (4 and 5). The sample holds the FnDef (its
+    // contactor's and push button's contacts).
+    let contact_no: Value = embeddable(
+        serde_json::from_str(
+            &std::fs::read_to_string(Path::new(CONTENT).join("fndefs/ew.fn.contact-no.json"))
+                .expect("the starter FnDef"),
+        )
+        .expect("JSON"),
+    );
+    let contact_def = LibDocument::from_value(contact_no).expect("a FnDef");
     let LibDocument::Fndef(contact_copy) = &contact_def else {
         panic!("a FnDef");
     };
     assert!(
-        !s.query().fndefs().contains(contact_copy.id),
-        "Golden A lacks ew.fn.contact-no"
+        s.query().fndefs().contains(contact_copy.id),
+        "the sample holds ew.fn.contact-no"
     );
 
-    let mico: Arc<ew_schema::LibCopy<Part>> = s
-        .query()
-        .parts()
-        .get(id(PART_MICO))
-        .cloned()
-        .expect("the MICO 4.10 part copy");
-    let mut part = (*mico).clone();
+    let card = part_copy(&s, "EW-GEN-DO-1");
+    let mut part = (*card).clone();
     let blackbox = part.item.function_template[0].clone();
     assert_eq!(blackbox.cps, (0..10).collect::<Vec<u16>>());
     part.library_id = Id::from_uuid(LIB_TEST);
@@ -648,16 +738,19 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
     let part_doc = LibDocument::Part(part.clone());
     part.sha256 = Sha256(library_copy_hash(&part_doc).expect("hashable"));
     let part_json = serde_json::to_value(LibDocument::Part(part.clone())).expect("JSON");
-    must(
-        &mut s,
-        "library.embed",
-        json!({"copies": [contact_no, part_json]}),
-    );
+    must(&mut s, "library.embed", json!({"copies": [part_json]}));
+    // The black-box symbol the sample's cards are drawn with.
+    let symbol_blackbox = {
+        let q = s.query();
+        let drawn = reps_of_part(&s, page_of(&s, 104), "EW-GEN-DO-1");
+        q.reps().get(drawn[0]).expect("the card's representation").symbol
+    };
 
+    let page = page_of(&s, 102);
     let r = must(
         &mut s,
         "box.black",
-        json!({"page": PAGE_102, "symbol": SYMBOL_BLACKBOX, "pos": gp(30, 30),
+        json!({"page": page, "symbol": symbol_blackbox, "pos": gp(30, 30),
             "target": {"from_part": {"part": part.id, "template": 0, "letter": "A"}}}),
     );
     let devices: Vec<Id<Device>> = created(&r, Kind::Device);
@@ -711,8 +804,8 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
     };
     assert_eq!(
         cps(functions[1]),
-        vec![(0, "13".to_owned()), (1, "14".to_owned())],
-        "the contact's CPs are the pattern's 13 and 14"
+        vec![(0, "5".to_owned()), (1, "6".to_owned())],
+        "the contact's CPs are the pattern's 5 and 6"
     );
     assert_eq!(cps(functions[0]).len(), 8);
 }
@@ -720,41 +813,58 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
 // ---------------------------------------------------------------------------------------------------------
 // The two-function part fixtures (`crates/ew-api/tests/expected/`, read by the ew-api and ew-viewmodel tests)
 
-/// Whether `EW_BLESS=1` asks the fixture test to rewrite its expected files.
+/// Whether `EW_BLESS=1` asks the fixture test to rewrite its expected files in this build's form.
 // Allowed: the program boundary of a test, read once; the value never reaches a result.
 #[allow(clippy::disallowed_methods)]
 fn bless() -> bool {
     std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
 }
 
-/// Compares the fixture `name` under `crates/ew-api/tests/expected/` with `doc`; `EW_BLESS=1` rewrites it.
+/// The fixture `name` under `crates/ew-api/tests/expected/` as a part copy of the test library holding `item`, after
+/// checking that it is in this build's form byte for byte (`EW_BLESS=1` rewrites it so) and that its hash is its
+/// item's.
 #[track_caller]
-fn check_fixture(name: &str, doc: &LibDocument) {
+fn fixture_part(name: &str, item: Uuid) -> ew_schema::LibCopy<Part> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../ew-api/tests/expected")
         .join(name);
+    let committed =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let doc = LibDocument::from_json(&committed).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let text = format!(
         "{}\n",
-        serde_json::to_string_pretty(doc).expect("a serialisable library document")
+        serde_json::to_string_pretty(&doc).expect("a serialisable library document")
     );
     if bless() {
-        std::fs::create_dir_all(path.parent().expect("a directory")).expect("the expected directory");
         std::fs::write(&path, &text).expect("the fixture");
     }
-    let committed =
-        std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}; EW_BLESS=1 rewrites it", path.display()));
     assert_eq!(
-        committed.as_slice(),
-        text.as_bytes(),
-        "{} is not the fixture this build generates byte for byte; EW_BLESS=1 rewrites it",
+        committed,
+        text,
+        "{} is not in this build's form byte for byte; EW_BLESS=1 rewrites it",
         path.display()
     );
+    let LibDocument::Part(part) = doc else {
+        panic!("{} holds a part", path.display());
+    };
+    assert_eq!(
+        (part.library_id, part.item_id, part.id),
+        (Id::from_uuid(LIB_TEST), Id::from_uuid(item), copy_id(item)),
+        "{name}: a copy of the test library"
+    );
+    assert_eq!(
+        Some(part.sha256.0),
+        library_copy_hash(&LibDocument::Part(part.clone())),
+        "{name}: the hash of its item"
+    );
+    part
 }
 
+/// The fixtures are test inputs of their own: a ten-CP black-box part (MICO 4.10, `24VDC` ×2, `GND` ×2, `13`, `14`,
+/// `Out1` to `Out4`) with the template entries their users rely on. Each is in this build's form, with the hash of its
+/// item ([`fixture_part`]).
 #[test]
 fn the_two_fndef_part_fixtures_are_current() {
-    let work = Tmp::new("ew-testkit-place-arrange");
-    let s = open_copy(&work, 6);
     // The starter FnDefs the fixtures' template entries name, as `library.embed` takes one.
     let starter_ref = |key: &str| -> ew_schema::LibRef {
         let json = embeddable(
@@ -775,86 +885,59 @@ fn the_two_fndef_part_fixtures_are_current() {
             extra: Extra::from([("key".to_owned(), Value::from(key))]),
         }
     };
-    let contact_no = starter_ref("ew.fn.contact-no");
-    let contact_nc = starter_ref("ew.fn.contact-nc");
-    // Golden A's MICO 4.10 part copy: its black-box template entry and its ten-CP pattern.
-    let mico: Arc<ew_schema::LibCopy<Part>> = s
-        .query()
-        .parts()
-        .get(id(PART_MICO))
-        .cloned()
-        .expect("the MICO 4.10 part copy");
-    let blackbox = mico.item.function_template[0].clone();
-    assert_eq!(blackbox.cps, (0..10).collect::<Vec<u16>>());
-    let blackbox_entry = TemplateFn {
-        // The black box keeps the pattern CPs that are not the contact's.
-        cps: vec![0, 1, 2, 3, 6, 7, 8, 9],
-        ..blackbox
+    let entries = |part: &ew_schema::LibCopy<Part>| -> Vec<(Option<String>, bool, Vec<u16>)> {
+        part.item
+            .function_template
+            .iter()
+            .map(|t| {
+                let key = t.fndef.extra.get("key").and_then(Value::as_str).map(str::to_owned);
+                (key, t.main, t.cps.clone())
+            })
+            .collect()
     };
-    let build = |item: Uuid, part_number: &str, template: Vec<TemplateFn>| -> LibDocument {
-        let mut part = (*mico).clone();
-        part.library_id = Id::from_uuid(LIB_TEST);
-        part.item_id = Id::from_uuid(item);
-        part.id = copy_id(item);
-        part.item.part_number = part_number.parse().expect("a part number");
-        part.item.function_template = template;
-        let doc = LibDocument::Part(part.clone());
-        part.sha256 = Sha256(library_copy_hash(&doc).expect("hashable"));
-        LibDocument::Part(part)
-    };
-    let two = build(
-        ITEM_PART_TWO_FX,
-        "MICO 4.10 TWO",
-        vec![
-            blackbox_entry.clone(),
-            TemplateFn {
-                fndef: contact_no.clone(),
-                main: false,
-                cps: vec![4, 5],
-                extra: Extra::new(),
-            },
-        ],
+    let entry = |key: &str, main: bool, cps: &[u16]| (Some(key.to_owned()), main, cps.to_vec());
+    let black_box = [0, 1, 2, 3, 6, 7, 8, 9];
+
+    let two = fixture_part("two_fndef_part.json", ITEM_PART_TWO_FX);
+    assert_eq!(
+        entries(&two),
+        [
+            entry("ew.fn.blackbox", true, &black_box),
+            entry("ew.fn.contact-no", false, &[4, 5])
+        ]
     );
-    let missing = build(
-        ITEM_PART_MISSING_FX,
-        "MICO 4.10 MISSING",
-        vec![
-            blackbox_entry,
-            TemplateFn {
-                fndef: ew_schema::LibRef {
-                    library: Id::from_uuid(LIB_TEST),
-                    item: Id::from_uuid(ITEM_FN_UNKNOWN),
-                    version_req: "^0.1".into(),
-                    extra: Extra::from([("key".to_owned(), Value::from("test.fn.unknown"))]),
-                },
-                main: false,
-                cps: vec![4, 5],
-                extra: Extra::new(),
-            },
-        ],
+    assert_eq!(two.item.function_template[1].fndef, starter_ref("ew.fn.contact-no"));
+
+    // A contact whose FnDef no library holds.
+    let missing = fixture_part("missing_fndef_part.json", ITEM_PART_MISSING_FX);
+    assert_eq!(
+        entries(&missing),
+        [
+            entry("ew.fn.blackbox", true, &black_box),
+            entry("test.fn.unknown", false, &[4, 5])
+        ]
     );
+    let unknown = &missing.item.function_template[1].fndef;
+    assert_eq!(
+        (unknown.library, unknown.item),
+        (Id::from_uuid(LIB_TEST), Id::from_uuid(ITEM_FN_UNKNOWN))
+    );
+
     // Two starter FnDefs and no black box: the part-first arm reaches both.
-    let starter = build(
-        ITEM_PART_STARTER_FX,
-        "MICO 4.10 STARTER",
-        vec![
-            TemplateFn {
-                fndef: contact_no,
-                main: true,
-                cps: vec![4, 5],
-                extra: Extra::new(),
-            },
-            TemplateFn {
-                fndef: contact_nc,
-                main: false,
-                cps: vec![6, 7],
-                extra: Extra::new(),
-            },
-        ],
+    let starter = fixture_part("two_starter_fndef_part.json", ITEM_PART_STARTER_FX);
+    assert_eq!(
+        entries(&starter),
+        [
+            entry("ew.fn.contact-no", true, &[4, 5]),
+            entry("ew.fn.contact-nc", false, &[6, 7])
+        ]
     );
-    check_fixture("two_fndef_part.json", &two);
-    check_fixture("missing_fndef_part.json", &missing);
-    check_fixture("two_starter_fndef_part.json", &starter);
+    assert_eq!(
+        [&starter.item.function_template[0].fndef, &starter.item.function_template[1].fndef],
+        [&starter_ref("ew.fn.contact-no"), &starter_ref("ew.fn.contact-nc")]
+    );
+    let designations: Vec<&str> = two.item.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    assert_eq!(designations[4..6], ["13", "14"], "the contact's pattern CPs");
 }
 
 // ---------------------------------------------------------------------------------------------------------

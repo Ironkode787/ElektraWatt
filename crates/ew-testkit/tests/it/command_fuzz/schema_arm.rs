@@ -40,7 +40,7 @@ const MAX_DEPTH: usize = 24;
 /// One in this many IDs is a fresh UUID that names no record.
 const FRESH_ID: usize = 16;
 
-/// The page-grid unit of the golden pages in nm (three steps of the QET grid); integers are drawn as its multiples
+/// The page-grid unit of the sample's pages in nm (three steps of the QET grid); integers are drawn as its multiples
 /// part of the time, so that positions land on the grid.
 const GRID_UNIT: i64 = 7_937_500;
 

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CSV table import step: the golden tables, intact or damaged, through the importer in strict and in
-//! lenient mode (`ew-import-tables`, doc 14 §8.4), loaded into a model.
+//! The CSV table import step: the test tables `fixtures/tables/`, intact or damaged, through the importer in strict
+//! and in lenient mode (`ew-import-tables`, doc 14 §8.4), loaded into a model.
 //!
 //! The step runs beside the session (an import creates a project, it is not a command on the open one):
 //! it does not touch the session's history. Oracles, per damage:
@@ -16,8 +16,7 @@
 //! - **lenient differs from strict only in foreign colour codes**: without one, both batches are equal; with
 //!   one, strict drops the row (EW-IMP-002) and lenient keeps it with a warning (EW-IMP-008), so the lenient
 //!   batch holds every record of the strict one and at least one more;
-//! - intact tables import without findings above information and give the records of the bootstrap
-//!   (path (a)) of the golden builders.
+//! - intact tables import without findings above information.
 
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -25,12 +24,13 @@ use std::sync::OnceLock;
 use ew_api::{MemoMode, SessionOptions};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportError, ImportInput, ImportMode, Severity};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
+use ew_schema::LibDocument;
 use serde_json::{Value, json};
 
 use super::repo;
 use super::rng::SplitMix64;
 
-/// A damage to the golden tables.
+/// A damage to the test tables.
 #[derive(Clone, Debug)]
 pub enum Damage {
     /// The tables as they are.
@@ -80,13 +80,13 @@ impl Damage {
     }
 }
 
-/// The golden tables, read once: (file name, text).
+/// The test tables, read once: (file name, text).
 fn tables() -> &'static [(String, String)] {
     static TABLES: OnceLock<Vec<(String, String)>> = OnceLock::new();
     TABLES.get_or_init(|| {
-        let dir = repo().join(ew_testkit::golden::GOLDEN_A).join("tables");
+        let dir = repo().join("fixtures/tables");
         let mut out = Vec::new();
-        for entry in std::fs::read_dir(&dir).expect("the golden tables directory reads") {
+        for entry in std::fs::read_dir(&dir).expect("the test tables directory reads") {
             let path = entry.expect("a directory entry").path();
             if path.extension().is_some_and(|e| e == "csv") {
                 let name = path
@@ -102,9 +102,27 @@ fn tables() -> &'static [(String, String)] {
     })
 }
 
+/// The built-in library the tables name: the `@qet10` symbol edition, the function definitions and the forms of
+/// `content/` (the recipe of `ew import csv`), read once.
 fn library() -> &'static BuiltinLibrary {
     static LIB: OnceLock<BuiltinLibrary> = OnceLock::new();
-    LIB.get_or_init(|| ew_testkit::golden::builtin_library(&repo()).expect("the built-in library reads"))
+    LIB.get_or_init(|| {
+        let mut docs = Vec::new();
+        for sub in ["symbols/qet10", "fndefs", "forms"] {
+            let dir = repo().join("content").join(sub);
+            let mut paths: Vec<_> = std::fs::read_dir(&dir)
+                .unwrap_or_else(|e| panic!("{}: {e}", dir.display()))
+                .map(|e| e.expect("a directory entry").path())
+                .filter(|p| p.extension().is_some_and(|e| e == "json"))
+                .collect();
+            paths.sort();
+            for path in paths {
+                let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+                docs.push(LibDocument::from_json(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display())));
+            }
+        }
+        BuiltinLibrary::new(docs).expect("the built-in library reads")
+    })
 }
 
 /// The tables after `damage`, with a sentence about what was done.
@@ -354,14 +372,8 @@ pub fn check(damage: &Damage, deep: bool, stats: &mut ImportStats) -> Result<(),
             .collect();
         if !bad.is_empty() {
             return Err(at(format!(
-                "the intact golden tables import with findings: {bad:?}"
+                "the intact test tables import with findings: {bad:?}"
             )));
-        }
-        let path_a = ew_testkit::golden::bootstrap(&repo()).map_err(at)?;
-        if strict.records != path_a.records || strict.lib != path_a.lib {
-            return Err(at(
-                "the intact tables do not give the records of path (a)".to_owned()
-            ));
         }
     }
     Ok(())
