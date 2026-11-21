@@ -96,6 +96,23 @@ fn spec(s: &Session, rename: Vec<(String, String)>) -> PageCopySpec {
 #[test]
 fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     let mut s = sample();
+    // A text that belongs to -102Q1's coil (`of`), as an imported element's own texts do.
+    let coil = {
+        let q = s.query();
+        let q1: Id<Device> = Id::from_uuid(s.resolve_reference("tag:-102Q1").expect("-102Q1"));
+        let page102 = page(&s, "102");
+        q.idx()
+            .functions_of_device(q1)
+            .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+            .find(|r| q.reps().get(*r).is_some_and(|r| r.page == page102))
+            .expect("-102Q1's coil on 102")
+    };
+    s.execute(&ew_api::AnyCommand {
+        name: "item.place".into(),
+        params: serde_json::json!({"page": page(&s, "102").to_string(), "kind": {"free_text": {
+            "text": "Belt motor", "at": [50_000_000, 50_000_000], "of": coil.to_string()}}}),
+    })
+    .expect("the coil's text");
     let before_rules = rules(&s);
     let plan = s.copy_pages(&spec(&s, rename())).expect("the copy composes");
     assert!(
@@ -151,6 +168,19 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     };
     assert_eq!(pages_of(q1), ["102", "103"].map(String::from).into());
     assert_eq!(pages_of(q1_copy), ["112", "113"].map(String::from).into());
+    // The text that belongs to the coil belongs to the copy's coil on 112.
+    let belongs = |folio: &str| -> Option<Id<Device>> {
+        let p = page(&s, folio);
+        q.page_items().iter().find_map(|(_, i)| match &i.kind {
+            ew_schema::PageItemKind::FreeText(t) if i.page == p && t.text.as_neutral() == Some("Belt motor") => {
+                let rep = q.reps().get(t.of?)?;
+                q.functions().get(*rep.functions.first()?)?.device
+            }
+            _ => None,
+        })
+    };
+    assert_eq!(belongs("102"), Some(q1));
+    assert_eq!(belongs("112"), Some(q1_copy));
     // The strip -X1011's terminals on 101 are the copy strip's, with their designations.
     let strip: Id<Device> = Id::from_uuid(s.resolve_reference("tag:-X1011").expect("-X1011"));
     let terminals = |st: Id<Device>| -> BTreeSet<String> {
