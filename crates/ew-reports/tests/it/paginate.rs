@@ -142,8 +142,9 @@ fn house_layout_page_counts() {
             titles: None, numbers: Some(&[901]) },
         PageCount { name: "23 rows make one page", rows: 23, first: 901, labels: &["901"], ranges: &[(0, 23)],
             titles: None, numbers: Some(&[901]) },
+        // The last page takes rows from the page before, so it holds three (FT-1842).
         PageCount { name: "24 rows make two pages", rows: 24, first: 901, labels: &["901", "901.1"],
-            ranges: &[(0, 23), (23, 24)], titles: None, numbers: None },
+            ranges: &[(0, 21), (21, 24)], titles: None, numbers: None },
         // Both pages carry the folio number of the run.
         PageCount { name: "27 rows with titles", rows: 27, first: 901, labels: &["901", "901.1"],
             ranges: &[(0, 23), (23, 27)], titles: Some(&["Partlist 1", "Partlist 2"]), numbers: Some(&[901, 901]) },

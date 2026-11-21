@@ -30,6 +30,12 @@ change here.
   name is asked, until it is given or the naming is cancelled (FT-1836)
 - behaviour-change: a selected wire or fluid line marks its two ends with the connection point's ring (doc 16a §7.1,
   FT-1780)
+- behaviour-change: a list never ends on a page of one or two rows: the last page of a run holds at least three, the
+  page before ending that many rows earlier, so 24 rows on the 23-row form print 21 and 3; the page count stays the
+  same (doc 09 §3.2, FT-1842)
+- behaviour-change: the potential overview numbers its declared bonds first (B1, B2 … in the order they were made),
+  then the drawn ones (an earth wire), so an earth wire drawn before a bond was declared no longer takes its number
+  (doc 09 §2.4, FT-1827)
 - behaviour-change: List columns… (`report_block.columns`) chooses a legend's printed columns too, with the legend
   selected on its panel page or from its context menu: a legend made before 0.3 shows its four columns ticked and the
   description among the others (doc 09 §3.8, FT-1772)

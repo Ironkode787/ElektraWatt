@@ -17,6 +17,7 @@
 //!         if the form has a group-header template and the group began with an emitted header row:
 //!           reserve the "(cont.)" header and mark the page `continued_group`
 //!       place(row)
+//!   a run's last page under LAST_PAGE_ROWS data rows: the page before ends as many rows earlier, where it keeps as many
 //!   no data rows: OmitPages → no pages, OnePage(text) → one page with that note
 //!   source not derived yet → one placeholder page with the reason as its note
 //!   number: first_folio, then SubPage (907.1, 907.2 …) or NextFolio (908, 909 …)
@@ -168,10 +169,18 @@ pub fn paginate(
     number(&slices, set, spec, layouts)
 }
 
+/// The fewest data rows the last page of a run of pages holds where the page before it can give them (doc 09 §3.2).
+pub const LAST_PAGE_ROWS: usize = 3;
+
 /// The pages of a row set, before numbering (see the module documentation).
 ///
 /// An invalid layout of the chain ([`PageLayout::is_valid`]) is replaced by the house geometry
 /// ([`Layouts::validated`]), so the page count is bounded by the row count at any geometry.
+///
+/// **The last page of a run** (the list's last page, or the last before a group that starts a page or a folio of its
+/// own) holds at least [`LAST_PAGE_ROWS`] data rows where the page before it in the run can give them and keep as many:
+/// that page then ends that many data rows earlier, so a list never ends on a page of one or two rows. The page count
+/// stays the same.
 pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowLines) -> Vec<Slice> {
     let layouts = &layouts.validated();
     if let RowSetStatus::NotDerived(reason) = &set.status {
@@ -183,7 +192,40 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
             None => Vec::new(),
         };
     }
+    let data = |s: &Slice| {
+        set.rows[idx(s.rows.start)..idx(s.rows.end)]
+            .iter()
+            .filter(|r| r.kind == RowKind::Data)
+            .count()
+    };
+    // The pages whose room is lowered, by page index, and by how much.
+    let mut short: Vec<(usize, Nm)> = Vec::new();
+    loop {
+        let (slices, ends) = fill(set, spec, layouts, lines, &short);
+        // The first short last page of a run whose page before, in the same run, can give it rows and keep as many.
+        let found = (1..slices.len()).find_map(|k| {
+            let (last, before) = (data(&slices[k]), data(&slices[k - 1]));
+            let want = LAST_PAGE_ROWS.checked_sub(last).filter(|w| *w > 0)?;
+            (ends[k] && !ends[k - 1] && before >= LAST_PAGE_ROWS + want && !short.iter().any(|(p, _)| *p == k - 1))
+                .then_some((k - 1, want))
+        });
+        let Some((page, want)) = found else {
+            return slices;
+        };
+        let height = layouts.page(idx(slices[page].sub)).data;
+        short.push((page, Nm(height.0.saturating_mul(i64::try_from(want).unwrap_or(0)))));
+    }
+}
 
+/// The pages of a row set filled in order, each page's room lowered by `short` (by page index), and for each page
+/// whether it ends a run (the last page, or the last before a group break).
+fn fill(
+    set: &RowSet,
+    spec: &BlockSpec,
+    layouts: &Layouts,
+    lines: &dyn RowLines,
+    short: &[(usize, Nm)],
+) -> (Vec<Slice>, Vec<bool>) {
     let n = len_u32(set.rows.len());
     let groups: Vec<(Option<usize>, Range<u32>)> = if set.groups.is_empty() {
         vec![(None, 0..n)]
@@ -196,6 +238,7 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
     };
 
     let mut out: Vec<Slice> = Vec::new();
+    let mut ends: Vec<bool> = Vec::new();
     let mut page = Open::new(0, 0, groups.first().map_or(0, |g| g.1.start));
     for (gi, (group, range)) in groups.iter().enumerate() {
         if range.is_empty() {
@@ -207,6 +250,8 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
                 Break::NewPage => page = page.close_into(&mut out, Next::Page, range.start),
                 Break::NewFolio => page = page.close_into(&mut out, Next::Folio, range.start),
             }
+            // A page closed by the break ends its run.
+            ends.resize(out.len(), true);
         }
         if !page.has_rows() {
             page.rows = range.start..range.start;
@@ -232,8 +277,13 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
                     }
                 }
             }
-            if page.used.0.saturating_add(need.0) > layout.capacity.0 && page.has_rows() {
+            let room = short
+                .iter()
+                .filter(|(p, _)| *p == out.len())
+                .fold(layout.capacity.0, |c, (_, s)| c.saturating_sub(s.0));
+            if page.used.0.saturating_add(need.0) > room && page.has_rows() {
                 page = page.close_into(&mut out, Next::Page, i);
+                ends.resize(out.len(), false);
                 let next_layout = layouts.page(idx(page.sub));
                 if group.is_some()
                     && next_layout.repeats_group_header()
@@ -255,7 +305,8 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
     if page.has_rows() {
         out.push(page.into_slice());
     }
-    out
+    ends.resize(out.len(), true);
+    (out, ends)
 }
 
 /// The pages of a table of contents with `toc_pages` pages of `rows_per_page` rows each (the row count is

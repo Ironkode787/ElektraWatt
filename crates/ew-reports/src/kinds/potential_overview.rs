@@ -16,7 +16,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
 /// The potential overview.
 ///
-/// One row per potential of the partition in natural order of its name, then one row per bond. Member
+/// One row per potential of the partition in natural order of its name, then one row per bond, numbered B1, B2 …:
+/// the declared bonds by ID, then the drawn ones (an earth wire) by their wire's ID. Member
 /// counts, not member lists, so that rows never wrap (doc 20 §16): `aliases` counts the interruption-point
 /// names on the potential besides its own name, `members` its device connection points (a terminal once,
 /// whatever its clamps and sides) and its external points. `colour` and
@@ -67,7 +68,11 @@ impl ReportKindDef for PotentialOverview {
         let mut set = RowSet::new(columns);
         set.rows = keyed.into_iter().map(|(_, r)| r).collect();
 
-        for (i, bond) in wires.partition.bonds().iter().enumerate() {
+        // The declared bonds first, in the order they were made (their IDs), then the drawn ones, in the order their
+        // wires were drawn: a drawn bond never moves a declared one's number (doc 09 §2.4).
+        let mut bonds: Vec<&ew_derive::BondLink> = wires.partition.bonds().iter().collect();
+        bonds.sort_by_key(|b| (b.drawn, b.bond));
+        for (i, bond) in bonds.into_iter().enumerate() {
             let name = |p: Option<PotentialId>| p.map_or("?", |p| wires.potential_name(p)).to_owned();
             let label = format!("B{} ({} \u{21C4} {})", i + 1, name(bond.a), name(bond.b));
             let pages: Vec<PageRef> = bond

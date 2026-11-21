@@ -309,6 +309,13 @@ on; its folio column still lists the folios of its devices. Until layout placeme
 devices' representations instead of the layout page (the golden BOM printed 902). On Golden A the folio-3 rows
 (-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23.
 
+**Bond numbers in the potential overview** (FT-1827). The bond rows follow the potentials and are numbered B1, B2 …:
+first the declared bonds (bond records, doc 03 §9.6), in the order they were made (their IDs, which grow with time),
+then the drawn ones (a wire from a 0 V point to earth, 08 §3.7), in the order their wires were drawn. A bond drawn on a
+page never moves a declared bond's number, and a new bond of either kind takes the next number of its group; a new
+declared bond moves the drawn ones by one. Before, the two were numbered together by ID, so an earth wire drawn
+before a bond was declared took B1 from it.
+
 EPLAN report types without a kind of their own: the cable connection diagram (`.f07`) and the cable assignment
 diagram (`.f08`) are alternative forms of `cable_overview_diagrams` over the same `cable_rows`, shipped at 1.0
 (no extra row source, FR-REP-012); the PLC diagram per card is `plc_overview` filtered to one module; the symbol
@@ -580,6 +587,7 @@ report_pages(block):
       place(row)
     place(group.footer)                       # subtotals, e.g. Σ current per potential
   out.push(page)
+  a run's last page under 3 data rows: the page before ends as many rows earlier (it keeps 3)
   apply block.empty when there are no data rows
   number pages: first_folio, then SubPage (first_folio.1, .2 …) or NextFolio
   title(page n) = block.title with {n}, {count}, {group}   # "Partlist 1", "Partlist 2" (FR-PAG-011)
@@ -588,6 +596,13 @@ report_pages(block):
 - **Fixed-height rows are the default.** With the golden form a page holds 23 rows, so pages = ⌈rows / 23⌉: the wire
   list's 50 rows (44 wires and the separate 6-row bridge block) give 907, 907.1, 907.2; the PLC overview's 56 rows
   give 908, 908.1, 908.2 (sub-page continuation, FR-PAG-030).
+- **A list never ends on a page of one or two rows** (FT-1842). The last page of a run (the list's last page, or the
+  last before a group that starts a page or a folio of its own) holds at least three data rows: where it would hold
+  fewer, the page before it in the run ends that many data rows earlier, if it keeps three itself (a form of fewer rows
+  is left as it is), so the rows move back; the page count stays ⌈rows / capacity⌉. Of 24 rows on the 23-row form, 21
+  and 3. The page before has no room to take them: it closed because it was full, and the row kept free under a list's
+  table (§3.8) is where the window marks that the list runs on, not a data row. `ew_reports::paginate::slice`
+  (`LAST_PAGE_ROWS`).
 - **Wrapping is opt-in per row template.** It makes pagination depend on text measurement (`shaped_text` in
   `ew-text`) and therefore on the display language (§4.7, FR-REP-049).
 - **Page counts.** `{block.page_count}` is filled after the block is paginated, since row heights do not depend on
