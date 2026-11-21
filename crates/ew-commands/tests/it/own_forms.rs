@@ -4,6 +4,8 @@
 //! FT-1859: a frame or title-block form of the project's own (its library ID the project's) is embedded by
 //! `library.embed`, and a report block's form is set with `fields.set` to a form the project holds; before, the first
 //! was refused as a project-local item and the second was no settable path.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 use crate::common;
 
