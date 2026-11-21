@@ -117,8 +117,11 @@ fn library() -> &'static BuiltinLibrary {
                 .collect();
             paths.sort();
             for path in paths {
-                let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-                docs.push(LibDocument::from_json(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display())));
+                let text =
+                    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+                docs.push(
+                    LibDocument::from_json(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
+                );
             }
         }
         BuiltinLibrary::new(docs).expect("the built-in library reads")

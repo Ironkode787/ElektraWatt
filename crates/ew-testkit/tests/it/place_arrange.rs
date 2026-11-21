@@ -607,7 +607,11 @@ fn new_terminal_adds_one_terminal_to_strip_x1021_with_the_next_sequence_number()
     let (symbol_terminal, fndef_terminal) = {
         let q = s.query();
         let terminal = q.idx().terminals_of_strip(strip_id).next().expect("a terminal");
-        let f = q.idx().functions_of_device(terminal).next().expect("its function");
+        let f = q
+            .idx()
+            .functions_of_device(terminal)
+            .next()
+            .expect("its function");
         let r = q.idx().reps_of_function(f).next().expect("its representation");
         (
             q.reps().get(r).expect("the representation").symbol,
@@ -674,8 +678,7 @@ fn new_terminal_adds_one_terminal_to_strip_x1021_with_the_next_sequence_number()
         json!({"new_terminal": {"strip": strip_id, "designation": "9"}}),
         json!({"new_terminal": {"strip": strip_id, "designation": "10", "seq": 9}}),
     ] {
-        let params =
-            json!({"page": page, "symbol": symbol_terminal, "pos": gp(12, 20), "target": target});
+        let params = json!({"page": page, "symbol": symbol_terminal, "pos": gp(12, 20), "target": target});
         assert!(matches!(
             run(&mut s, "device.place", params),
             Err(CmdError::Rejected { .. })
@@ -828,8 +831,7 @@ fn fixture_part(name: &str, item: Uuid) -> ew_schema::LibCopy<Part> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../ew-api/tests/expected")
         .join(name);
-    let committed =
-        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let committed = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let doc = LibDocument::from_json(&committed).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let text = format!(
         "{}\n",
@@ -890,7 +892,12 @@ fn the_two_fndef_part_fixtures_are_current() {
             .function_template
             .iter()
             .map(|t| {
-                let key = t.fndef.extra.get("key").and_then(Value::as_str).map(str::to_owned);
+                let key = t
+                    .fndef
+                    .extra
+                    .get("key")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
                 (key, t.main, t.cps.clone())
             })
             .collect()
@@ -906,7 +913,10 @@ fn the_two_fndef_part_fixtures_are_current() {
             entry("ew.fn.contact-no", false, &[4, 5])
         ]
     );
-    assert_eq!(two.item.function_template[1].fndef, starter_ref("ew.fn.contact-no"));
+    assert_eq!(
+        two.item.function_template[1].fndef,
+        starter_ref("ew.fn.contact-no")
+    );
 
     // A contact whose FnDef no library holds.
     let missing = fixture_part("missing_fndef_part.json", ITEM_PART_MISSING_FX);
@@ -933,10 +943,18 @@ fn the_two_fndef_part_fixtures_are_current() {
         ]
     );
     assert_eq!(
-        [&starter.item.function_template[0].fndef, &starter.item.function_template[1].fndef],
+        [
+            &starter.item.function_template[0].fndef,
+            &starter.item.function_template[1].fndef
+        ],
         [&starter_ref("ew.fn.contact-no"), &starter_ref("ew.fn.contact-nc")]
     );
-    let designations: Vec<&str> = two.item.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    let designations: Vec<&str> = two
+        .item
+        .cp_pattern
+        .iter()
+        .map(|c| c.designation.as_str())
+        .collect();
     assert_eq!(designations[4..6], ["13", "14"], "the contact's pattern CPs");
 }
 

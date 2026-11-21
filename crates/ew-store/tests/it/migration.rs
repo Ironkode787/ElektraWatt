@@ -147,7 +147,11 @@ fn a_library_copy_with_a_bom_opens_and_the_next_save_rewrites_it() {
         .expect("saves");
     assert_eq!(saved.written.len(), 1, "{:?}", saved.written);
     let written = vfs.read(&join(&root, &lib_copy())).expect("the copy exists");
-    assert_eq!(written, fixture()[&lib_copy()], "the copy is in its canonical form");
+    assert_eq!(
+        written,
+        fixture()[&lib_copy()],
+        "the copy is in its canonical form"
+    );
     drop(store);
 
     let again = reopen(&vfs, 2);

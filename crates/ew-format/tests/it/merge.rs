@@ -1020,7 +1020,10 @@ fn wire_page() -> &'static WirePage {
             .map(|(path, bytes)| (path, String::from_utf8(bytes).expect("UTF-8")))
             .find(|(path, text)| path.starts_with("pages/") && text.contains(SHIELD_OVERRIDES))
             .expect("the shield wire's page");
-        let line = text.lines().find(|l| l.contains(SHIELD_OVERRIDES)).expect("the wire");
+        let line = text
+            .lines()
+            .find(|l| l.contains(SHIELD_OVERRIDES))
+            .expect("the wire");
         let wire = serde_json::from_str::<Value>(line).expect("JSON")["id"]
             .as_str()
             .expect("an ID")
@@ -1201,7 +1204,11 @@ fn markers_on_a_wire_merge_to_one_conflict_record_and_the_clean_parts() {
     assert_eq!(loaded.findings, [rewritten()]);
     assert!(!loaded.read_only);
     assert!(loaded.kept.is_empty());
-    assert!(loaded.rewrite.contains(&FilePath::new(&wire_page().path).expect("a path")));
+    assert!(
+        loaded
+            .rewrite
+            .contains(&FilePath::new(&wire_page().path).expect("a path"))
+    );
     let conflict = wire_conflict(
         r#""base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}"#,
     );
@@ -1508,7 +1515,11 @@ fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
             text.replace(&second, &second_moved).replace(&third, third_line)
         )
     };
-    let m = merge_page(&side(&base, &third), &side(&ours, &third), &side(&theirs, &third_newer));
+    let m = merge_page(
+        &side(&base, &third),
+        &side(&ours, &third),
+        &side(&theirs, &third_newer),
+    );
     assert_eq!(m, (side(&expected, &third_newer), 0));
 }
 

@@ -526,7 +526,11 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
         .iter()
         .filter(|(name, _)| name.starts_with("pages/"))
         .map(|(name, bytes)| (name.as_str(), String::from_utf8(bytes.clone()).unwrap()))
-        .find(|(_, text)| text.lines().next().is_some_and(|l| l.contains("\"kind\":\"fluid\"")))
+        .find(|(_, text)| {
+            text.lines()
+                .next()
+                .is_some_and(|l| l.contains("\"kind\":\"fluid\""))
+        })
         .expect("the fluid page");
     let row: serde_json::Value = serde_json::from_str(text.lines().next().unwrap()).unwrap();
     let (page_id, location) = (

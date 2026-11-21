@@ -89,7 +89,6 @@ use ew_commands::{Cost, Exposure};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition, Q, WirePropsOf};
 use ew_model::Model;
 
-
 use arms::ARMS;
 use live::{Fixture, Live};
 use rng::SplitMix64;
@@ -1750,7 +1749,10 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
     let committed = commit_picked(&mut session, "rep.transform", |_, c| {
         let turns = c.params["rotate"].as_u64().is_some_and(|r| (1..4).contains(&r))
             || c.params["mirror"] == serde_json::json!(true);
-        turns && c.params["reps"].as_array().is_some_and(|r| r.len() == 1 && boxes.contains(&r[0].to_string()))
+        turns
+            && c.params["reps"]
+                .as_array()
+                .is_some_and(|r| r.len() == 1 && boxes.contains(&r[0].to_string()))
     });
     assert!(committed > 0, "the arm turned a black box");
 }
@@ -1767,7 +1769,10 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
     let committed = commit_picked(&mut session, "device.create", |_, c| {
         c.params["parts"][0]["part"]["copy"] == valve && c.params.get("main_fndef").is_some()
     });
-    assert!(committed > 0, "the arm built a device.create step with the valve part and a main FnDef");
+    assert!(
+        committed > 0,
+        "the arm built a device.create step with the valve part and a main FnDef"
+    );
 }
 
 /// The same cause in the `valve.add` arm: with the sample's valve part the command ignores `fndef`

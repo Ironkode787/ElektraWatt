@@ -120,8 +120,7 @@ fn an_old_part_copy_opens_typed_and_the_next_save_rewrites_it_canonically() {
         .save(&model, Changes::Keys(&BTreeSet::new()))
         .expect("saves");
     assert_eq!(saved.written.len(), 1, "{:?}", saved.written);
-    let written =
-        String::from_utf8(vfs.read(&join(&root, &path)).expect("the copy exists")).expect("UTF-8");
+    let written = String::from_utf8(vfs.read(&join(&root, &path)).expect("the copy exists")).expect("UTF-8");
     assert_ne!(written, old_text);
     assert_eq!(
         written,

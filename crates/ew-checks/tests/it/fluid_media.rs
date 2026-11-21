@@ -447,7 +447,9 @@ fn ew_fl_010_reports_a_gallery_or_a_port_1_that_nothing_feeds() {
     };
     assert_eq!(
         messages(&valve(None), "EW-FL-010"),
-        ["-1Q1: no compressed air reaches port 1. Draw the supply line to it, or use Define medium at port there."]
+        [
+            "-1Q1: no compressed air reaches port 1. Draw the supply line to it, or use Define medium at port there."
+        ]
     );
     let mut fx = valve(None);
     medium_def(&mut fx, 0x5001, at(V1, 0), AIR);
