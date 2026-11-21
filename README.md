@@ -8,9 +8,9 @@ in Rust. It aims at the functionality of EPLAN Electric P8 class tools: schemati
 cables, PLC and fluid power, panel layout, reports, manufacturing outputs and checks, in a plain-text project format
 that works with Git.
 
-![The ElektraWatt window with the reference project open: the page list and the properties on the left, a
-main-current schematic on the canvas, and the findings of a project check in the Messages panel below
-it](docs/images/screenshot-schematic-checks.png)
+![The ElektraWatt window with the sample project open: the page list and the properties on the left, the 400 V supply
+page on the canvas, and the findings of a project check in the Messages panel below it: no error, no warning, six
+infos](docs/images/screenshot-schematic-checks.png)
 
 ## Download
 
@@ -33,14 +33,15 @@ and what is known not to work yet.
 
 | The right-click menu | Cable… |
 |---|---|
-| ![A wire of the reference project right-clicked: its menu offers Edit route, Wire marker, Define potential, Cable and Print wire numbers first, then the general entries](docs/images/screenshot-right-click.png) | ![The Cable form over three selected supply wires: the proposed tag -101W1, the type 3G1.5 and each wire's core, N on blue, PE on green-yellow, L on brown](docs/images/screenshot-cable-form.png) |
+| ![A wire of the sample's 24 V control page right-clicked: its menu offers Route, Wire marker, Define potential, Cable and Print wire numbers first, then the general entries](docs/images/screenshot-right-click.png) | ![The Cable form over the two selected wires of a position switch in the field: the proposed tag -104W1, the two-core cable type and each wire's core, brown and blue](docs/images/screenshot-cable-form.png) |
 | **The symbol editor** | **The panel layout** |
-| ![The symbol editor with a copy of the starter coil: its drawing with the connection points A1 and A2, the category Relays, the snap grid, the eight variants and a tool's tooltip](docs/images/screenshot-symbol-editor.png) | ![The cabinet layout page of the reference project: the mounting plate with its rails, ducts and devices, and the parts legend beside it](docs/images/screenshot-panel-layout.png) |
+| ![The symbol editor with a copy of the starter coil: its drawing with the connection points A1 and A2, the category Relays, the snap grid, the eight variants and a tool's tooltip](docs/images/screenshot-symbol-editor.png) | ![The panel layout page of the sample project: the enclosure and its mounting plate with two rails, a duct and the devices, and the legend beside it](docs/images/screenshot-panel-layout.png) |
 | **The dark theme** | |
-| ![A fluid-power page of the reference project in the dark theme: a valve manifold with its solenoid valves and cylinders](docs/images/screenshot-dark-theme.png) | |
+| ![The pneumatics page of the sample project in the dark theme: a valve terminal with four solenoid valves, two of them spare, driving two cylinders](docs/images/screenshot-dark-theme.png) | |
 
-The screenshots show the reference project `golden/J-E-2416.ew` at 1920 × 1080. The application drew them itself,
-with its offscreen renderer (`elektrawatt --headless --visual`), the same one its window tests use.
+The screenshots show a copy of the sample project `fixtures/sample/sample.ew` at 1920 × 1080; the symbol editor's
+is older and shows release 0.2.0. The application drew them itself, with its offscreen renderer
+(`elektrawatt --headless --visual`), the same one its window tests use.
 
 ## Status
 
@@ -82,13 +83,14 @@ What works today:
   applying recorded command files, revisions and verification of the derived data. Run `ew help` for the full usage.
 - **Outputs**: reports (parts list, terminal and cable lists, cover tables and back-links) drawn on report pages and
   written as PDF/A-2b and SVG.
-- **The reference project** `golden/J-E-2416.ew` (36 pages, anonymised) with its expected outputs, and the acceptance
-  tests that check the acceptance criteria of the design against them.
+- **The sample project** `fixtures/sample/sample.ew`, a small conveyor drive with a pneumatic clamp that the program
+  draws itself from a script of its own actions (`fixtures/sample/sample.uiscript`); the tests, the guide and the
+  release use it.
 - **Headless operation**: the window runs the same actions from a UI script without a display
   (`elektrawatt --headless --script <file>`), which is how the UI is tested.
 - **Tests**: about 7,000 across the workspace, with determinism lints (no wall clock, no environment reads and no
   hash-ordered collections in the model, derivation, format and export paths), window tests driven by the pointer
-  and the keys, property tests, a command fuzzer and the golden project as oracle.
+  and the keys, property tests and a command fuzzer with the memo oracle.
 
 ## Building and running
 
@@ -101,13 +103,13 @@ cargo xtask check -p <crate>   # format, clippy, that crate's tests and the repo
 cargo xtask check              # the same over the whole workspace, several minutes
 ```
 
-To look at the reference project, work on a copy of it, because the application and the tool keep a lock and a
+To look at the sample project, work on a copy of it, because the application and the tool keep a lock and a
 journal beside an open project:
 
 ```sh
-cp -r golden/J-E-2416.ew /tmp/J-E-2416.ew
-cargo run -p ew -- export pdf /tmp/J-E-2416.ew --out /tmp/J-E-2416.pdf
-cargo run -p elektrawatt -- /tmp/J-E-2416.ew
+cp -r fixtures/sample/sample.ew /tmp/sample.ew
+cargo run -p ew -- export pdf /tmp/sample.ew --out /tmp/sample.pdf
+cargo run -p elektrawatt -- /tmp/sample.ew
 ```
 
 The window needs a graphics adapter; without one it exits with code 3 and names the headless mode. `--no-gpu` draws
@@ -142,7 +144,6 @@ checked by `cargo xtask rules`. The architecture decision records are listed in 
 
 - [Documentation map](docs/README.md): what to read for which task.
 - [ADR index](docs/adr/README.md) and the [plan](docs/plan/README.md).
-- The [reference project](docs/design/20-golden-project.md), which defines what the acceptance tests prove.
 - [CLAUDE.md](CLAUDE.md), [.claude/orchestration.md](.claude/orchestration.md) and [.claude/agents](.claude/agents):
   the setup for AI-assisted work.
 
