@@ -1272,14 +1272,16 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/anonymise.rs` |  | The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09 (docs/design/20-golden-project.md §3.5, 19 LR-12). |
 | `src/api_guard.rs` | large | `api-guard`: the guard of the published file-format surface (ADR-0011 amendment 6). |
 | `src/blind/brief.rs` | large | The open design brief (visual spec §6.1 and §6.2) and `check-brief <task>`. |
+| `src/blind/check_task.rs` |  | `check-task <task>`: checks a task folder without a product. |
+| `src/blind/check_task/tests.rs` |  | Tests of `check-task`: the committed task is checked against doc 20 without a product. |
 | `src/blind/compose.rs` |  | `compose` (D10): the prompt of a run as the concatenation of its versioned files, deterministically. |
 | `src/blind/filter.rs` |  | The harness filter and the typed `key=value` arguments (§5.2.1). |
 | `src/blind/friction.rs` |  | The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. |
 | `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
 | `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
 | `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
-| `src/blind/oracle.rs` |  | `bless-oracle` and `check-task`. |
-| `src/blind/oracle/tests.rs` |  | Tests of `check-task` and of the pure parts of `bless-oracle`. |
+| `src/blind/oracle.rs` |  | `bless-oracle`; `check-task` is [`super::check_task`]. |
+| `src/blind/oracle/tests.rs` |  | Tests of the pure parts of `bless-oracle` (`check-task`'s are in `check_task/tests.rs`): `bless-oracle` itself, which opens a copy of Golden A with the built binaries, is the lane's command and is run by hand. |
 | `src/blind/protocol.rs` | large | The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |
 | `src/blind/round.rs` |  | The usability rounds' additions to a run: hints on request and the proxy questionnaire. |
@@ -1290,7 +1292,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/session.rs` |  | The product as a session the harness feeds: one step in, one transcript line out (§6 item 1). |
 | `src/blind/start.rs` | large | `start` (§5.4): a run folder outside the repository with the copies the run needs, the composed prompt, the prelude and, unless `--stateless`, a keeper. |
 | `src/blind/stateless.rs` |  | `--stateless` (D6): no keeper and no socket, for agent shells that block loopback or kill detached processes. |
-| `src/blind/stop.rs` |  | `stop`: the epilogue, the product's exit, the exports of the copied `ew`, the second hash of `golden/` and the report. |
+| `src/blind/stop.rs` |  | `stop`: the epilogue, the product's exit, the exports of the copied `ew` and the report. |
 | `src/blind/testkit.rs` |  | Helpers of the harness's unit tests: temporary folders and a run folder with a fake world. |
 | `src/blind/visual.rs` | large | The visual run's side of the protocol (visual spec §3 and §4): `do` sends mouse and key inputs and answers with one frame, `look` paints the current frame again (or a zoom of it), and nothing textual reaches the agent. |
 | `src/book_po.rs` |  | `book-po`: the user guide's translation catalogue, made from the pages and never kept by hand. |
@@ -1312,4 +1314,4 @@ The development commands of ElektraWatt: one command that checks a change, one t
 
 The files whose head is missing or says too little to tell what they hold.
 
-- `xtask/src/blind/oracle.rs`
+None.
