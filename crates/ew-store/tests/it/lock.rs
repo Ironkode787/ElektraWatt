@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The lock file `.~ew.lock` of doc 05 §7 (ADR-0010 amendment 1; FR-COL-006, FR-COL-026), end to end on
-//! the real file system with a copy of the golden fixture: acquisition, read-only fallback, heartbeat,
+//! the real file system with a copy of the sample project: acquisition, read-only fallback, heartbeat,
 //! lock loss, stale detection, takeover, release and the pruning of `.~ew.lock.stale-*` files.
 
 // Test target: scratch-directory names from the clock, and the lock record's start time from the clock in whole seconds; every compared time is derived from that start (the lock logic itself takes the time as an argument).
@@ -50,10 +50,10 @@ struct Scratch {
 impl Scratch {
     fn new() -> Scratch {
         let base = ew_testdir::Tmp::new("ew-store-lock");
-        let project = base.join("J-E-2416.ew");
+        let project = base.join("sample.ew");
         let state = base.join("state");
         std::fs::create_dir_all(&state).unwrap();
-        ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &project);
+        ew_testdir::copy_dir(Path::new(ew_testdir::SAMPLE), &project);
         // Whole seconds: the lock record and file times are compared at second precision.
         // The start of the test's manual clock; every compared time is derived from it.
         let whole = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -397,7 +397,7 @@ fn one_project_through_two_paths_has_one_journal() {
         .expect("a journal with a state dir")
         .to_path_buf();
     a.store.close();
-    let other = s.base.join(".").join("J-E-2416.ew");
+    let other = s.base.join(".").join("sample.ew");
     assert_ne!(other.as_os_str(), s.project.as_os_str(), "a different text");
     let b = Store::open(&other, s.opts(1002, "<host>", &[])).unwrap();
     assert_eq!(b.store.journal_dir(), Some(dir.as_path()));

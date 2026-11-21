@@ -488,8 +488,8 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
     opened.store.close();
 }
 
-/// The damaged definition copy of Golden A's pneumatic cylinders, whose functions end the fluid
-/// lines of folio 203, opens read-only with the EW-INV-001 that names the copy; the lines' ports, whose definition is
+/// The damaged definition copy of the sample's double-acting cylinders, whose functions end the tubes
+/// of folio 201, opens read-only with the EW-INV-001 that names the copy; the tubes' ports, whose definition is
 /// gone, are not judged by EW-INV-024 (FT-1569: a port without its definition is exempt, so the update of another
 /// damaged copy is no misfit). The same damage beside a violation unrelated to it, a page whose location is not in the
 /// project, is still refused by that violation.
@@ -497,7 +497,15 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
 fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
     use ew_model::{ModelError, REFS_RESOLVE};
     use ew_store::ew_format::ew_schema::{AnyId, Kind};
-    let damaged = "lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json";
+    let files = fixture();
+    let damaged = files
+        .iter()
+        .find(|(name, bytes)| {
+            name.starts_with("lib/fndefs/")
+                && String::from_utf8_lossy(bytes).contains("\"key\": \"ew.fn.cylinder-double-acting\"")
+        })
+        .map(|(name, _)| name.as_str())
+        .expect("the cylinder's definition copy");
     let (vfs, root) = mem_project(DirSync::Explicit);
     vfs.put(&join(&root, damaged), b"{\"$k\": \"fndef\",\n");
     let Opened { model, report, store } = Store::open(&root, options(&vfs, 1)).expect("opens");
@@ -513,13 +521,19 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
     assert_eq!(rules, BTreeSet::from([REFS_RESOLVE]));
     store.close();
 
-    let page = "pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl";
-    let (location, elsewhere) = (
-        "101a2f5d-a009-511b-a9a9-8068d1624101",
-        "00000000-0000-4000-8000-000000000001",
+    // The fluid page 201 and its location.
+    let (page, text) = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("pages/"))
+        .map(|(name, bytes)| (name.as_str(), String::from_utf8(bytes.clone()).unwrap()))
+        .find(|(_, text)| text.lines().next().is_some_and(|l| l.contains("\"kind\":\"fluid\"")))
+        .expect("the fluid page");
+    let row: serde_json::Value = serde_json::from_str(text.lines().next().unwrap()).unwrap();
+    let (page_id, location) = (
+        row["id"].as_str().unwrap(),
+        row["structure"]["location"].as_str().expect("a location"),
     );
-    let text = String::from_utf8(fixture()[page].clone()).unwrap();
-    assert!(text.contains(location), "{page}");
+    let elsewhere = "00000000-0000-4000-8000-000000000001";
     let (vfs, root) = mem_project(DirSync::Explicit);
     vfs.put(&join(&root, damaged), b"{\"$k\": \"fndef\",\n");
     vfs.put(
@@ -535,10 +549,7 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
             assert_eq!(rule, REFS_RESOLVE);
             assert_eq!(
                 keys,
-                [
-                    (Kind::Page, id("1d6aab0f-e47b-5da2-9d75-d3eb428e8c48")),
-                    (Kind::StructureNode, id(elsewhere)),
-                ]
+                [(Kind::Page, id(page_id)), (Kind::StructureNode, id(elsewhere))]
             );
         }
         Err(other) => panic!("{other:?}"),
@@ -546,7 +557,7 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
     }
 }
 
-/// A fresh project of Golden A whose first part copy a device names is cut short: the project and the copy's file.
+/// A fresh project of the sample whose first part copy a device names is cut short: the project and the copy's file.
 fn damaged_part_copy() -> (Arc<MemVfs>, PathBuf, String) {
     let copy = fixture()
         .iter()
@@ -563,10 +574,10 @@ fn damaged_part_copy() -> (Arc<MemVfs>, PathBuf, String) {
     (vfs, root, path)
 }
 
-/// `model` with the part copy of `path` as Golden A holds it (a library's document of it), and its key.
+/// `model` with the part copy of `path` as the sample holds it (a library's document of it), and its key.
 fn with_copy(model: &ew_model::Model, path: &str) -> (ew_model::Model, BTreeSet<ew_model::AnyKey>) {
     use ew_store::ew_format::ew_schema::LibDocument;
-    let LibDocument::Part(copy) = serde_json::from_slice(&fixture()[path]).expect("Golden A's copy reads")
+    let LibDocument::Part(copy) = serde_json::from_slice(&fixture()[path]).expect("the sample's copy reads")
     else {
         panic!("{path} holds a part");
     };
@@ -620,10 +631,12 @@ fn update_damaged_copies_writes_the_copy_and_the_project_opens_for_editing() {
 #[test]
 fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_lock() {
     let (vfs, root, path) = damaged_part_copy();
-    let page = "pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl";
-    let mut edited = fixture()[page].clone();
+    let (page, mut edited) = fixture()
+        .into_iter()
+        .find(|(name, _)| name.starts_with("pages/"))
+        .expect("a page file");
     edited.extend_from_slice(b"\n");
-    vfs.put(&join(&root, page), &edited);
+    vfs.put(&join(&root, &page), &edited);
     let Opened { model, store, .. } = Store::open(&root, options(&vfs, 1)).expect("opens");
     let mut store = store;
     let (next, keys) = with_copy(&model, &path);
@@ -668,7 +681,8 @@ fn update_damaged_copies_is_refused_beside_another_finding_and_under_another_loc
 fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_damaged() {
     use ew_store::Vfs;
     let (vfs, root, path) = damaged_part_copy();
-    // Golden A's second part copy a device names, whose file is gone, and a manufacturer copy no record names, cut short.
+    // The sample's second part copy a device names, whose file is gone, and its manufacturer copy, which no record
+    // names, cut short.
     let gone = fixture()
         .iter()
         .filter(|(name, _)| name.starts_with("devices/"))
@@ -681,7 +695,11 @@ fn update_damaged_copies_keeps_the_manifest_entries_of_the_copies_it_leaves_dama
         .map(|copy| format!("lib/parts/{copy}.json"))
         .find(|p| *p != path && fixture().contains_key(p))
         .expect("a second part copy");
-    let cut = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
+    let cut = fixture()
+        .into_keys()
+        .find(|name| name.starts_with("lib/manufacturers/"))
+        .expect("a manufacturer copy");
+    let cut = cut.as_str();
     vfs.remove_file(&join(&root, &gone)).expect("removed");
     vfs.put(&join(&root, cut), b"{\"$k\": \"manufacturer\",\n");
     let entries = |files: &std::collections::BTreeMap<String, Vec<u8>>| {

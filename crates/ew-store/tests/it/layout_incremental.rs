@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Incremental saves of the layout files equal full saves (NFR-REL-16; LM-1): the golden project gains two
+//! Incremental saves of the layout files equal full saves (NFR-REL-16; LM-1): the sample project gains two
 //! layout spaces, then random sequences of the edits the eleven `layout.*` commands make (place, move, remove, lock,
 //! carrier add, edit and delete with either `then`, space and enclosure delete through the delete plan, a device
 //! delete that cascades its placements) and the moves of the follow relations of doc 05 §2.2 (a carrier to another
@@ -76,14 +76,14 @@ fn rail(id: &str, surface: &str, v: u32) -> Record {
     }))
 }
 
-/// Two layout spaces, on the locations +J-E-2416 and +J-E-206, each with an enclosure (on the first and the second
-/// device), a plate and two rails.
+/// Two layout spaces, on the sample's locations +UP and +FLD (the cabinet +CAB has its own), each with an enclosure
+/// (on the first and the second device), a plate and two rails.
 fn seed(model: &Model, fresh: &mut u64) -> Vec<Op> {
     let locations: Vec<_> = rows::<StructureNode>(model)
         .into_iter()
-        .filter(|n| matches!(n.code.as_str(), "J-E-2416" | "J-E-206"))
+        .filter(|n| matches!(n.code.as_str(), "UP" | "FLD"))
         .collect();
-    assert_eq!(locations.len(), 2, "the golden locations");
+    assert_eq!(locations.len(), 2, "the sample's locations without a layout");
     let devices = rows::<Device>(model);
     let mut ops = Vec::new();
     for (i, loc) in locations.iter().enumerate() {
@@ -290,7 +290,7 @@ fn compare(vfs: &MemVfs, store: &Store, model: &Model, what: &str) -> Result<(),
     ))
 }
 
-/// Opens the golden fixture, applies and saves the seed; returns the store, the model and the ID counter.
+/// Opens the sample, applies and saves the seed; returns the store, the model and the ID counter.
 fn seeded() -> (Arc<MemVfs>, Store, Model, u64) {
     let (vfs, root) = mem_project(DirSync::Explicit);
     let opened = Store::open(&root, options(&vfs, 1)).expect("opens");

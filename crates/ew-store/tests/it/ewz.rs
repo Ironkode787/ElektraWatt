@@ -16,7 +16,7 @@ use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
 
 use crate::common::{fixture, small_fixture, tree};
 
-/// The git files the pack test adds to its copy of Golden A (Golden A has none).
+/// The git files the pack test adds to its copy of the sample (the sample has none).
 fn git_files() -> BTreeMap<String, Vec<u8>> {
     BTreeMap::from([
         (
@@ -35,6 +35,13 @@ fn open_read_only(dir: &Path) -> Store {
     Store::open(dir, o).expect("the project opens").store
 }
 
+/// The generation of the manifest among `files`.
+fn generation(files: &BTreeMap<String, Vec<u8>>) -> u64 {
+    ew_store::ew_format::Manifest::parse(&files["manifest.json"], &Default::default())
+        .expect("a manifest")
+        .generation
+}
+
 /// The `.ewz` of a project given as its files (`manifest.json` among them) and the git files.
 fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>) -> Vec<u8> {
     let mut listed = files.clone();
@@ -42,25 +49,25 @@ fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>
     ewz::pack(&manifest, &listed, git).expect("the project packs")
 }
 
-/// EZ-1 (FR-COL-009's acceptance): a copy of Golden A with git files packs twice, from two opens, to the same bytes;
+/// EZ-1 (FR-COL-009's acceptance): a copy of the sample with git files packs twice, from two opens, to the same bytes;
 /// `mimetype` is the first entry, stored, `manifest.json` the second, the rest in byte order; a stray, a foreign
 /// file, `.ew/`, a lock, a temp and `.git/` change nothing; extracting gives a directory byte-equal to the source.
 #[test]
-fn golden_a_packs_deterministically_and_extracts_to_its_source() {
+fn the_sample_packs_deterministically_and_extracts_to_its_source() {
     let base = ew_testdir::Tmp::new("ew-ewz-ez1");
-    let source = base.join("J-E-2416.ew");
-    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
+    let source = base.join("sample.ew");
+    ew_testdir::copy_dir(Path::new(ew_testdir::SAMPLE), &source);
     for (name, data) in git_files() {
         std::fs::write(source.join(name), data).unwrap();
     }
     let expected = tree(&source);
-    let first = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs");
-    let second = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs again");
+    let first = ewz::pack_store(&open_read_only(&source)).expect("the sample packs");
+    let second = ewz::pack_store(&open_read_only(&source)).expect("the sample packs again");
     assert_eq!(
         first, second,
         "two packs of the same generation are byte-identical"
     );
-    assert_eq!(first.generation, 1);
+    assert_eq!(first.generation, generation(&expected));
     assert_eq!(first.files, expected.len());
 
     // Nothing but the generation and the git files enters.
@@ -72,7 +79,7 @@ fn golden_a_packs_deterministically_and_extracts_to_its_source() {
     std::fs::write(source.join(".git").join("config"), b"[core]\n").unwrap();
     std::fs::write(source.join("project.jsonl.tmp-9"), b"a temp").unwrap();
     std::fs::write(source.join(".~ew.lock.stale-1"), b"a stale lock").unwrap();
-    let third = ewz::pack_store(&open_read_only(&source)).expect("Golden A packs with clutter");
+    let third = ewz::pack_store(&open_read_only(&source)).expect("the sample packs with clutter");
     assert_eq!(
         third, first,
         "strays, foreign files, .ew/, temps, locks and .git/ never enter"
@@ -103,9 +110,9 @@ fn golden_a_packs_deterministically_and_extracts_to_its_source() {
     assert_eq!(rest, sorted, "the rest in byte order");
     assert!(entries[1..].iter().all(|e| e.method == Method::Deflated));
 
-    let target = base.join("out").join("J-E-2416.ew");
+    let target = base.join("out").join("sample.ew");
     std::fs::create_dir_all(target.parent().unwrap()).unwrap();
-    let archive = base.join("J-E-2416.ewz");
+    let archive = base.join("sample.ewz");
     std::fs::write(&archive, &first.bytes).unwrap();
     let read = ewz::read_file(&OsVfs, &archive).expect("the archive reads");
     ewz::extract(&OsVfs, &read, &target).expect("the archive extracts");
@@ -121,39 +128,42 @@ fn golden_a_packs_deterministically_and_extracts_to_its_source() {
     );
 }
 
-/// The repair's pack as found: on a copy of Golden A with git files, whose files match
+/// The repair's pack as found: on a copy of the sample with git files, whose files match
 /// its manifest, it is `pack_store`'s archive byte for byte and counts no edited file; after a file is edited outside
 /// ElektraWatt, `pack_store` still refuses the generation, and the pack as found holds the file as it is, the manifest
 /// hashed to it, the other files and the git files as they are, and counts it.
 #[test]
 fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
     let base = ew_testdir::Tmp::new("ew-ewz-as-found");
-    let source = base.join("J-E-2416.ew");
-    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
+    let source = base.join("sample.ew");
+    ew_testdir::copy_dir(Path::new(ew_testdir::SAMPLE), &source);
     for (name, data) in git_files() {
         std::fs::write(source.join(name), data).unwrap();
     }
     let store = open_read_only(&source);
-    let verified = ewz::pack_store(&store).expect("Golden A packs");
+    let verified = ewz::pack_store(&store).expect("the sample packs");
     assert_eq!(
-        ewz::pack_as_found(&store).expect("Golden A packs as found"),
+        ewz::pack_as_found(&store).expect("the sample packs as found"),
         AsFound {
             packed: verified,
             edited: 0
         }
     );
 
-    let rel = "devices/02.jsonl";
-    let before = std::fs::read(source.join(rel)).unwrap();
+    let rel = tree(&source)
+        .into_keys()
+        .find(|name| name.starts_with("devices/"))
+        .expect("a device shard");
+    let before = std::fs::read(source.join(&rel)).unwrap();
     let mut edited = before.clone();
     edited.push(b'\n');
-    std::fs::write(source.join(rel), &edited).unwrap();
+    std::fs::write(source.join(&rel), &edited).unwrap();
     let store = open_read_only(&source);
     assert_eq!(
         ewz::pack_store(&store).unwrap_err().to_string(),
-        "devices/02.jsonl changed on disk since it was saved (an external change)"
+        format!("{rel} changed on disk since it was saved (an external change)")
     );
-    let found = ewz::pack_as_found(&store).expect("Golden A packs as found after the edit");
+    let found = ewz::pack_as_found(&store).expect("the sample packs as found after the edit");
     let mut expected = tree(&source);
     let manifest = String::from_utf8(expected["manifest.json"].clone())
         .unwrap()
@@ -161,7 +171,7 @@ fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
     expected.insert("manifest.json".to_owned(), manifest.into_bytes());
     assert_eq!(
         (found.packed.generation, found.packed.files, found.edited),
-        (1, expected.len(), 1)
+        (generation(&expected), expected.len(), 1)
     );
     let read = ewz::read(&found.packed.bytes).expect("the pack as found verifies");
     assert_eq!(
@@ -645,13 +655,13 @@ fn a_file_that_is_no_archive_is_refused() {
     assert!(!ewz::is_ewz(&vfs, Path::new("/w/p.ew")));
 }
 
-/// The golden fixture's own archive in memory reads to its files (the reader's happy path on Golden A's bytes).
+/// The sample's own archive in memory reads to its files (the reader's happy path on the sample's bytes).
 #[test]
-fn golden_a_in_memory_reads_back_to_its_files() {
+fn the_sample_in_memory_reads_back_to_its_files() {
     let bytes = pack_files(&fixture(), &BTreeMap::new());
     let read = ewz::read(&bytes).unwrap();
     assert_eq!(read.entries, fixture());
     let vfs = workdir();
-    ewz::extract(&vfs, &read, &PathBuf::from("/w/J-E-2416.ew")).unwrap();
-    assert_eq!(vfs.files(Path::new("/w/J-E-2416.ew")), fixture());
+    ewz::extract(&vfs, &read, &PathBuf::from("/w/sample.ew")).unwrap();
+    assert_eq!(vfs.files(Path::new("/w/sample.ew")), fixture());
 }

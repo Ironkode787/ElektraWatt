@@ -43,7 +43,7 @@ fn hex(asset: &Asset) -> String {
     asset.sha256().to_string()["sha256:".len()..].to_owned()
 }
 
-/// The golden project with the logo saved as A, then C, then B (pid 1, closed): three listed asset files, B named.
+/// The sample project with the logo saved as A, then C, then B (pid 1, closed): three listed asset files, B named.
 /// Then a foreign file mentions C and a kept unknown-kind line in `structure.jsonl` mentions D, a fourth asset saved
 /// before A.
 fn four_assets(mode: DirSync) -> (Arc<MemVfs>, [Asset; 4]) {
@@ -52,7 +52,7 @@ fn four_assets(mode: DirSync) -> (Arc<MemVfs>, [Asset; 4]) {
 
 /// [`four_assets`] over the project in `vfs` at `root`.
 fn four_assets_in((vfs, root): (Arc<MemVfs>, std::path::PathBuf)) -> (Arc<MemVfs>, [Asset; 4]) {
-    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let o = Store::open(&root, options(&vfs, 1)).expect("the sample project opens");
     let (mut store, mut model) = (o.store, o.model);
     let assets = [logo(10), logo(20), logo(30), logo(40)];
     let [a, b, c, d] = &assets;
@@ -231,7 +231,7 @@ fn a_purge_is_refused_while_lines_are_quarantined() {
 #[test]
 fn a_kill_at_every_call_of_a_purge_leaves_the_old_or_the_new_generation() {
     for mode in MODES {
-        // The four saves run once per mode, on the sweeps' small fixture (a file of every kind Golden A has; test
+        // The four saves run once per mode, on the sweeps' small fixture (a file of every kind the sample has; test
         // audit g7); every case starts from a copy of the files they left (the project and the state directory).
         let (built, assets) = four_assets_in(mem_project_of(mode, small_fixture()));
         let state = std::path::Path::new("/state");

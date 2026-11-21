@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the `ew-store` integration tests: the golden project in a [`MemVfs`], store options
+//! Shared helpers of the `ew-store` integration tests: the sample project in a [`MemVfs`], store options
 //! with a fixed identity, reopening after a crash, and a deterministic edit batch.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -66,20 +66,25 @@ pub fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// Every file of the golden project `golden/J-E-2416.ew/`, by relative path with `/`.
+/// Every file of the sample project ([`ew_testdir::SAMPLE`]), by relative path with `/`, its manifest at generation 1:
+/// the tests count the saves from a project's first generation.
 pub fn fixture() -> BTreeMap<String, Vec<u8>> {
     static FIXTURE: std::sync::OnceLock<BTreeMap<String, Vec<u8>>> = std::sync::OnceLock::new();
     FIXTURE
         .get_or_init(|| {
-            let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-            let out = tree(&dir);
-            assert!(!out.is_empty(), "the golden fixture {} is missing", dir.display());
+            let dir = Path::new(ew_testdir::SAMPLE);
+            let mut out = tree(dir);
+            assert!(!out.is_empty(), "the sample project {} is missing", dir.display());
+            let mut manifest =
+                Manifest::parse(&out["manifest.json"], &Default::default()).expect("the sample's manifest");
+            manifest.generation = 1;
+            out.insert("manifest.json".to_owned(), manifest.to_text().into_bytes());
             out
         })
         .clone()
 }
 
-/// A [`MemVfs`] holding the golden project under `/p`, durable, and an empty state directory `/state`.
+/// A [`MemVfs`] holding the sample project under `/p`, durable, and an empty state directory `/state`.
 pub fn mem_project(dir_sync: DirSync) -> (Arc<MemVfs>, PathBuf) {
     mem_project_of(dir_sync, fixture())
 }
@@ -120,10 +125,10 @@ fn thin<T: ew_model::Entity>(model: &mut Model, keep: usize, kept: &[Kind]) {
     }
 }
 
-/// A small project for the fault-injection sweeps, whose every case opens the project and saves it once: Golden A
+/// A small project for the fault-injection sweeps, whose every case opens the project and saves it once: the sample
 /// thinned to its first 2 pages and its last one, the devices drawn on them plus 5 others, and 2 library copies of each kind (and
-/// those the kept records name), written by `Store::create`. It has at least one file of every kind Golden A has
-/// (asserted), and a save of the edit batch ([`edit`]) makes the same sequence of `Vfs` calls as on Golden A (two
+/// those the kept records name), written by `Store::create`. It has at least one file of every kind the sample has
+/// (asserted), and a save of the edit batch ([`edit`]) makes the same sequence of `Vfs` calls as on the sample (two
 /// device shards and a page written, a page removed), at a fraction of the open's parse cost.
 pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
     use ew_store::ew_format::ew_schema::{FnDef, FormDef, LibCopy, Manufacturer, Part, SymbolDef};
@@ -131,7 +136,7 @@ pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
     SMALL
         .get_or_init(|| {
             let (vfs, root) = mem_project(DirSync::Explicit);
-            let Opened { store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("Golden A opens");
+            let Opened { store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("the sample opens");
             store.close();
             let mut m = model;
             thin::<Page>(&mut m, 2, &[]);
@@ -151,11 +156,11 @@ pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
             assert_eq!(
                 file_kinds(&files),
                 file_kinds(&fixture()),
-                "the small fixture has a file of every kind Golden A has, and no other kind"
+                "the small fixture has a file of every kind the sample has, and no other kind"
             );
             assert!(
-                files.len() * 2 < fixture().len(),
-                "the small fixture is small: {} files against Golden A's {}",
+                files.len() < fixture().len(),
+                "the small fixture is small: {} files against the sample's {}",
                 files.len(),
                 fixture().len()
             );
@@ -175,10 +180,10 @@ pub fn mem_project_of(dir_sync: DirSync, files: BTreeMap<String, Vec<u8>>) -> (A
     (vfs, root)
 }
 
-/// The golden project in a durable [`MemVfs`] opened for editing as process 1.
-pub fn open_golden() -> (Arc<MemVfs>, PathBuf, Opened) {
+/// The sample project in a durable [`MemVfs`] opened for editing as process 1.
+pub fn open_sample() -> (Arc<MemVfs>, PathBuf, Opened) {
     let (vfs, root) = mem_project(DirSync::Explicit);
-    let opened = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let opened = Store::open(&root, options(&vfs, 1)).expect("the sample project opens");
     (vfs, root, opened)
 }
 

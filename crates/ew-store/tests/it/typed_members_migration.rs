@@ -22,18 +22,30 @@ use ew_store::ew_format::{FindingKind, Severity, hash_text, lib_document_text, s
 use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Opened, Store, Vfs, join};
 
-/// A part copy of the golden project (the configured product 51E-F13GCQP-D+H2GG): no sections, no new members (the
-/// copies of mounted parts carry `mech` since doc 20 §13's test geometry).
-const PART_COPY: &str = "lib/parts/1d4f67c2-712f-539f-888b-2a6ec30629aa.json";
+/// A part copy of the sample without sections and without the new members (the copies of mounted parts carry
+/// `mech`): its path.
+fn part_copy() -> String {
+    fixture()
+        .into_iter()
+        .find(|(name, bytes)| {
+            let text = String::from_utf8_lossy(bytes);
+            name.starts_with("lib/parts/")
+                && ["\"sections\"", "\"mech\"", "\"alternatives\""]
+                    .iter()
+                    .all(|member| !text.contains(member))
+        })
+        .map(|(name, _)| name)
+        .expect("a part copy without sections, mech and alternatives")
+}
 
 /// The new members as an older build kept them: unknown, so JSON values in `extra`.
 const MECH: &str = r#"{"width":45000000,"height":90000000,"depth":60000000,"mount_kind":"ts35x7_5","rail_offset":[22500000,45000000],"clearance":{"top":20000000,"bottom":20000000},"mass":120}"#;
 const ALTERNATIVES: &str = r#"[{"part":{"library":"d76f5765-c456-5393-935c-4cec32a87b01","item":"0f7b2c94-5d3a-5e81-a6f9-2b8c0e4d7a13","version_req":"*"},"kind":"equivalent"}]"#;
 
-/// The golden copy as a build before part 1 wrote it with `mech` and `alternatives`: the text and its document.
+/// The sample's copy as a build before part 1 wrote it with `mech` and `alternatives`: the text and its document.
 fn written_before_part_one() -> (String, LibDocument) {
-    let golden = String::from_utf8(fixture()[PART_COPY].clone()).expect("UTF-8");
-    let mut doc = LibDocument::from_json(&golden).expect("the golden part copy");
+    let sample = String::from_utf8(fixture()[&part_copy()].clone()).expect("UTF-8");
+    let mut doc = LibDocument::from_json(&sample).expect("the sample's part copy");
     let LibDocument::Part(copy) = &mut doc else {
         panic!("a part copy");
     };
@@ -53,6 +65,7 @@ fn written_before_part_one() -> (String, LibDocument) {
 fn an_old_part_copy_opens_typed_and_the_next_save_rewrites_it_canonically() {
     let (vfs, root) = mem_project(DirSync::Explicit);
     let files = fixture();
+    let path = part_copy();
     let (old_text, old_doc) = written_before_part_one();
     // Byte-wise: `alternatives` before `mech`, and inside an alternative `kind` before `part`.
     let alternatives = &old_text[old_text.find("\"alternatives\"").expect("alternatives")..];
@@ -64,10 +77,10 @@ fn an_old_part_copy_opens_typed_and_the_next_save_rewrites_it_canonically() {
     // The project as the older build saved it: the copy and the manifest's hash of it.
     let manifest = String::from_utf8(files["manifest.json"].clone()).expect("UTF-8");
     let manifest = manifest.replace(
-        &hash_text(&sha256(&files[PART_COPY])),
+        &hash_text(&sha256(&files[&path])),
         &hash_text(&sha256(old_text.as_bytes())),
     );
-    vfs.put(&join(&root, PART_COPY), old_text.as_bytes());
+    vfs.put(&join(&root, &path), old_text.as_bytes());
     vfs.put(&join(&root, "manifest.json"), manifest.as_bytes());
 
     let Opened {
@@ -108,7 +121,7 @@ fn an_old_part_copy_opens_typed_and_the_next_save_rewrites_it_canonically() {
         .expect("saves");
     assert_eq!(saved.written.len(), 1, "{:?}", saved.written);
     let written =
-        String::from_utf8(vfs.read(&join(&root, PART_COPY)).expect("the copy exists")).expect("UTF-8");
+        String::from_utf8(vfs.read(&join(&root, &path)).expect("the copy exists")).expect("UTF-8");
     assert_ne!(written, old_text);
     assert_eq!(
         written,

@@ -35,12 +35,12 @@ struct Setup {
     keys: BTreeSet<AnyKey>,
 }
 
-/// The golden project opened as pid 1, and the edit batch.
+/// The sample project opened as pid 1, and the edit batch.
 fn setup(mode: DirSync) -> Setup {
     setup_of(mode, fixture())
 }
 
-/// The small fixture ([`small_fixture`]: a file of every kind Golden A has) opened as pid 1, and the edit batch:
+/// The small fixture ([`small_fixture`]: a file of every kind the sample has) opened as pid 1, and the edit batch:
 /// the per-case setup of the kill, power-loss and error sweeps, which open the project once per case.
 /// Every call of the save is still swept, in both directory-sync modes.
 fn sweep_setup(mode: DirSync) -> Setup {
@@ -116,12 +116,12 @@ fn first_written(mode: DirSync) -> String {
         .to_owned()
 }
 
-/// The sweeps' fixture has a file of every kind Golden A has (and is small; `small_fixture` asserts the same when it
-/// builds it), and the save of the edit batch on it makes the same sequence of `Vfs` operations as on Golden A, in
+/// The sweeps' fixture has a file of every kind the sample has (and is small; `small_fixture` asserts the same when it
+/// builds it), and the save of the edit batch on it makes the same sequence of `Vfs` operations as on the sample, in
 /// both directory-sync modes (the same files written and removed: two device shards and a page written, a page
-/// removed): the sweeps over it reach every call that a sweep over Golden A would.
+/// removed): the sweeps over it reach every call that a sweep over the sample would.
 #[test]
-fn the_sweep_fixture_has_every_file_kind_and_save_call_of_golden_a() {
+fn the_sweep_fixture_has_every_file_kind_and_save_call_of_the_sample() {
     let small = small_fixture();
     assert_eq!(file_kinds(&small), file_kinds(&fixture()));
     assert!(small.len() < fixture().len());
@@ -133,13 +133,13 @@ fn the_sweep_fixture_has_every_file_kind_and_save_call_of_golden_a() {
             .collect()
     };
     for mode in MODES {
-        let (n_golden, _, golden_report, golden) = dry_run_traced(mode);
+        let (n_sample, _, sample_report, sample) = dry_run_traced(mode);
         let (n_small, _, small_report, small) = sweep_dry_run(mode);
-        assert_eq!(n_small, n_golden, "{mode:?}: the number of calls");
-        assert_eq!(operations(small), operations(golden), "{mode:?}: the operations");
+        assert_eq!(n_small, n_sample, "{mode:?}: the number of calls");
+        assert_eq!(operations(small), operations(sample), "{mode:?}: the operations");
         assert_eq!(
             (small_report.written, small_report.removed),
-            (golden_report.written, golden_report.removed),
+            (sample_report.written, sample_report.removed),
             "{mode:?}: the files written and removed"
         );
     }
@@ -690,7 +690,7 @@ fn stale_lock_of_a_crashed_save_opens_read_only_not_as_an_error() {
     }
 }
 
-/// The golden project after save 1 of the edit batch was interrupted past its commit point (a held rename)
+/// The sample project after save 1 of the edit batch was interrupted past its commit point (a held rename)
 /// and the session (pid 1) crashed with its lock in place: `manifest.json.tmp-2` and the temps on disk,
 /// the manifest at generation 1. Returns the file system and the models of generations 1 and 2.
 struct Crashed {

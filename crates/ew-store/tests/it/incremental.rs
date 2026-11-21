@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Incremental saves equal full saves (NFR-REL-16, FR-COL-002): random edit sequences over the golden
+//! Incremental saves equal full saves (NFR-REL-16, FR-COL-002): random edit sequences over the sample
 //! project, each step saved from its dirty key set, with the disk compared to a from-scratch rendering.
 
 use crate::common;

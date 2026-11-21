@@ -15,7 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use common::{
-    apply, device_copy, edit, edit_device, fixture, manifest, mem_project, mem_project_of, open_golden,
+    apply, device_copy, edit, edit_device, fixture, manifest, mem_project, mem_project_of, open_sample,
     options, project_files, reopen, unused_folio, with_logo,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
@@ -85,7 +85,7 @@ fn hand_edited(bytes: &[u8]) -> Vec<u8> {
 fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
     // SG-3: a hand edit of a page file that the next save replaces refuses the save with the file named, and writes
     // nothing: every file, the manifest included, is byte-identical afterwards. Restored, the file saves.
-    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
+    let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
     let original = project_files(&vfs, &root)[page.as_str()].clone();
     vfs.put(&join(&root, page.as_str()), &hand_edited(&original));
@@ -118,7 +118,7 @@ fn a_save_refuses_to_replace_a_file_changed_outside_the_session() {
 #[test]
 fn a_crlf_only_change_does_not_refuse_the_save() {
     // SG-3: a checkout with `core.autocrlf` turns LF into CRLF; the content is the same (doc 05 §6.2).
-    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
+    let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
     let original = project_files(&vfs, &root)[page.as_str()].clone();
     let crlf = String::from_utf8(original.clone())
@@ -178,7 +178,7 @@ fn a_save_refuses_to_remove_a_file_changed_outside_the_session_and_names_every_f
 #[test]
 fn a_file_deleted_outside_the_session_is_written_again() {
     // D5 compares the bytes a save would overwrite; a file that is gone holds none, so the save writes it.
-    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
+    let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys, page) = renumber_first_page(&model);
     vfs.remove_file(&join(&root, page.as_str())).expect("removed");
     let saved = store.save(&edited, Changes::Keys(&keys)).expect("the save");
@@ -188,7 +188,7 @@ fn a_file_deleted_outside_the_session_is_written_again() {
 
 #[test]
 fn a_changed_manifest_refuses_the_save_and_names_it() {
-    let (vfs, root, Opened { mut store, model, .. }) = open_golden();
+    let (vfs, root, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys) = edit_device(&model, 0, "edited");
     let mut manifest = project_files(&vfs, &root)[MANIFEST].clone();
     manifest.push(b'\n');
@@ -601,8 +601,8 @@ fn a_roll_forward_removes_a_duplicate_stray_too() {
 #[test]
 fn a_save_stamps_the_computed_min_reader() {
     // With the shipped tables every file of a 0.1 project is at the floor, so a save writes "0.1"; the
-    // golden bytes do not move.
-    let (vfs, _, Opened { mut store, model, .. }) = open_golden();
+    // sample's bytes do not move.
+    let (vfs, _, Opened { mut store, model, .. }) = open_sample();
     let (edited, keys) = edit(&model);
     store.save(&edited, Changes::Keys(&keys)).expect("the save");
     let manifest = manifest(&vfs);
@@ -614,7 +614,7 @@ fn a_save_stamps_the_computed_min_reader() {
 
 /// The file of the fixture's first page, which [`renumber_first_page`] replaces.
 fn first_page_file() -> FilePath {
-    let (_, _, Opened { model, .. }) = open_golden();
+    let (_, _, Opened { model, .. }) = open_sample();
     renumber_first_page(&model).2
 }
 

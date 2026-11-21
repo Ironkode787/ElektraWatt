@@ -14,7 +14,7 @@ use crate::common;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use common::{apply, manifest, mem_project, open_golden, options, project_files, reopen, with_logo};
+use common::{apply, manifest, mem_project, open_sample, options, project_files, reopen, with_logo};
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
 use ew_store::ew_format::ew_schema::{AssetFormat, AssetRef, COMPANY_MEMBER, Sha256, sniff};
 use ew_store::ew_format::sha256;
@@ -39,7 +39,7 @@ fn logo_asset(bytes: &[u8]) -> Asset {
 
 #[test]
 fn a_save_writes_the_named_asset_and_an_open_loads_it() {
-    let (vfs, root, o) = open_golden();
+    let (vfs, root, o) = open_sample();
     let mut store = o.store;
     let asset = logo_asset(LOGO);
     let path = asset.reference().path();
@@ -93,7 +93,7 @@ fn a_save_writes_the_named_asset_and_an_open_loads_it() {
 
 #[test]
 fn an_asset_no_record_names_is_not_written() {
-    let (vfs, root, o) = open_golden();
+    let (vfs, root, o) = open_sample();
     let mut store = o.store;
     let mut model = o.model.clone();
     let asset = logo_asset(LOGO);
@@ -107,7 +107,7 @@ fn an_asset_no_record_names_is_not_written() {
 
 #[test]
 fn the_journal_restores_the_assets_of_a_transaction() {
-    let (vfs, root, o) = open_golden();
+    let (vfs, root, o) = open_sample();
     let mut store = o.store;
     let asset = logo_asset(LOGO);
     let (model, keys) = with_logo(&o.model, &asset);
@@ -146,7 +146,7 @@ fn an_image_over_the_pixel_limit_is_kept_by_the_open_and_the_journal() {
     let asset = logo_asset(&big);
     assert_eq!(asset.reference().size, Some((65536, 32768)));
     // The open.
-    let (vfs, _, o) = open_golden();
+    let (vfs, _, o) = open_sample();
     let mut store = o.store;
     let (model, keys) = with_logo(&o.model, &asset);
     store.save(&model, Changes::Keys(&keys)).expect("the save");
@@ -154,7 +154,7 @@ fn an_image_over_the_pixel_limit_is_kept_by_the_open_and_the_journal() {
     let o = reopen(&vfs, 2);
     assert_eq!(o.model.asset(asset.sha256()), Some(&asset), "the open keeps it");
     // The journal.
-    let (vfs, _, o) = open_golden();
+    let (vfs, _, o) = open_sample();
     let mut store = o.store;
     let (model, keys) = with_logo(&o.model, &asset);
     let keys: Vec<AnyKey> = keys.into_iter().collect();
@@ -194,7 +194,7 @@ fn with_row(model: &Model, row: &Arc<ew_store::ew_format::ew_schema::Project>) -
 /// again), crash: the recovery restores X's bytes, which the new segment carries although the model held them before.
 #[test]
 fn an_older_asset_that_an_undo_names_after_a_save_is_journalled() {
-    let (vfs, root, o) = open_golden();
+    let (vfs, root, o) = open_sample();
     let mut store = o.store;
     let (x, y) = (logo_asset(LOGO), logo_asset(LOGO_Y));
     let (m1, k1) = with_logo(&o.model, &x);
@@ -236,7 +236,7 @@ fn an_older_asset_that_an_undo_names_after_a_save_is_journalled() {
 /// Fix round, item 3: a transaction without row changes that brings the bytes of a named asset is journalled.
 #[test]
 fn an_asset_without_row_changes_is_journalled() {
-    let (vfs, root, o) = open_golden();
+    let (vfs, root, o) = open_sample();
     let mut store = o.store;
     let x = logo_asset(LOGO);
     // The logo is named, its bytes are not held (lost), and that state is saved.
@@ -268,7 +268,7 @@ fn an_asset_without_row_changes_is_journalled() {
 #[test]
 fn a_damaged_journal_asset_is_a_recovery_finding() {
     use ew_store::Vfs;
-    let (vfs, _, o) = open_golden();
+    let (vfs, _, o) = open_sample();
     let mut store = o.store;
     let x = logo_asset(LOGO);
     let (m1, k1) = with_logo(&o.model, &x);
@@ -316,7 +316,7 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
 #[test]
 fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
     use ew_store::Vfs;
-    let (vfs, _, o) = open_golden();
+    let (vfs, _, o) = open_sample();
     let mut store = o.store;
     let x = logo_asset(LOGO);
     let (m1, k1) = with_logo(&o.model, &x);
@@ -351,7 +351,7 @@ fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
 
 #[test]
 fn a_new_project_writes_its_assets() {
-    let (vfs, _, o) = open_golden();
+    let (vfs, _, o) = open_sample();
     let asset = logo_asset(LOGO);
     let (mut model, _) = with_logo(&o.model, &asset);
     // Fix round, item 6: Save As also writes an asset no known record names (a kept line may name it).
