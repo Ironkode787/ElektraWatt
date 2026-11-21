@@ -1593,8 +1593,8 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
 #[test]
 fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
     // NFR-UX-08 in miniature: the preview is the sample project's folio 102 under the draft's settings. A template
-    // always starts with the readable text styles of a new project, so the preview differs from the sample's
-    // page, whose pin numbers and wire markers print as QElectroTech's small ones.
+    // always starts with the readable text styles of a new project, and so does the sample (its script starts from a
+    // new project with the pilot's choices): the preview under the draft's defaults is the sample's page.
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();
     done(&mut shell, "file.open_sample", json!({}));
@@ -1602,7 +1602,7 @@ fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
     let sample = shell.page_content(&folio).expect("the sample's folio 102");
     done(&mut shell, "tools.company_standard", json!({}));
     let readable = shell.wizard_preview_content().expect("the preview");
-    assert_ne!(
+    assert_eq!(
         format!(
             "{:?}",
             readable.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
@@ -1611,7 +1611,7 @@ fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
             "{:?}",
             sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
         ),
-        "the readable text styles of a new project reach the page"
+        "the draft's defaults draw the sample's page"
     );
     // A different numbering format changes the page: the preview shows the current choices.
     done(
@@ -1673,8 +1673,25 @@ fn render_folio(dir: &Path, folio: &str) -> ew_api::output::ExportPages {
 fn the_wizard_writes_the_company_the_frame_and_the_formats() {
     const NOTICE: &str = "Property of Example Panels";
     let tmp = Tmp::new(STEM);
+    // The sample prints no date: the preview's project is a copy of it created on 14 April 2025.
+    let dated = tmp.0.join("dated.ew");
+    copy_sample(&dated);
     let mut shell = tmp.shell();
+    done(&mut shell, "file.open", json!({ "dir": path(&dated) }));
+    done(
+        &mut shell,
+        "page.title_block",
+        json!({"project.created": "14-04-2025"}),
+    );
+    done(&mut shell, "file.save", json!({}));
+    shell.shutdown();
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), VERSION).with_resources(Resources {
+        sample_dir: Some(dated.clone()),
+        ..resources()
+    });
+    let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "tools.company_standard", json!({}));
+
     // The sample's own dates print in the sample's format, dd-mm-yyyy.
     done(
         &mut shell,
@@ -2615,12 +2632,13 @@ fn no_uuid_reaches_the_describe_text_and_a_selection_prints_an_alias() {
     );
     done(&mut sample, "props.focus", json!({}));
     texts.push(sample.describe());
-    done(&mut sample, "select.set", json!({"refs": ["tag:S51"]}));
+    done(&mut sample, "select.set", json!({"refs": ["tag:-101Q1"]}));
     texts.push(sample.describe());
+    done(&mut sample, "page.goto", json!({"folio": "103"}));
     done(
         &mut sample,
         "select.set",
-        json!({"ids": ["9eb2d865-fca4-59b1-87bf-c073d7190ceb"]}),
+        json!({"refs": ["wire:-103F1:2 -> -102Q1:1"]}),
     );
     texts.push(sample.describe());
     done(
@@ -2685,7 +2703,7 @@ fn no_uuid_reaches_the_describe_text_and_a_selection_prints_an_alias() {
     done(
         &mut sample,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102S1"}],
             "path": "function_text", "value": "x"}}),
     );
     texts.push(sample.describe());
