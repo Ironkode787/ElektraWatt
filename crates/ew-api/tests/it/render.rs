@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Value rendering of report cells (doc 09 §3.6) over the golden project: tag-range compression against
-//! doc 20 §14.1, the Folios column, quantities, dates and the absent values.
+//! Value rendering of report cells (doc 09 §3.6) over the sample project: tag-range compression of its parts list,
+//! the Folios column, quantities, dates and the absent values.
 
 use crate::common;
 
@@ -25,17 +25,17 @@ fn lang(s: &str) -> LangTag {
     s.parse().unwrap()
 }
 
-/// Tag-range compression (doc 20 §14.1): a run of one kind, a run interrupted by other devices, a list, a terminal run
-/// that drops the strip prefix, and no devices.
+/// Tag-range compression (doc 09 §3.6): a run of one kind (the four valves), terminal runs of three strips that drop
+/// the strip prefix, a list of terminals and a list of two devices, and no devices.
 #[test]
 fn tag_ranges_compress_runs_and_list_the_rest() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     for (part_number, want) in [
-        ("571334", "-201U3-Q1 … -202U2-Q4"),
-        ("533361", "-201U3 … -201U8, -202U2"),
-        ("UK 5 N", "1X1:1, 1X1:2"),
-        ("PT 2.5-TWIN", "-X1031:1 … 20"),
+        ("EW-GEN-VLV-3", "-201K1-Q1 … -201K1-Q4"),
+        ("EW-GEN-TRM-1", "-X1011:L1 … N, -X1021:1 … 8, -X1031:U … W"),
+        ("EW-GEN-TRM-2", "-X1011:PE, -X1031:PE, -X1031:SH"),
+        ("EW-GEN-CYL-1", "-201M1, -201M2"),
     ] {
         let row = bom_row(&q, part_number);
         assert_eq!(compress_range(&q, &row.devices), want, "row {part_number}");
@@ -43,20 +43,21 @@ fn tag_ranges_compress_runs_and_list_the_rest() {
     assert_eq!(compress_range(&q, &[]), "");
 }
 
+/// The feed-through terminals stand on 101, 102 and 103: a range; the earth terminals on 101 and 103: a list.
 #[test]
-fn folios_of_the_valve_row_print_as_a_range() {
-    let s = common::golden_session();
+fn folios_of_the_terminal_rows_print_as_a_range_and_a_list() {
+    let s = common::sample();
     let q = s.query();
-    let row = bom_row(&q, "571334");
+    let row = bom_row(&q, "EW-GEN-TRM-1");
     let opts = RenderOptions::default();
-    assert_eq!(render(&q, &Cell::Folios(row.pages.clone()), &opts), "203–206");
-    let two = bom_row(&q, "533361");
-    assert_eq!(render(&q, &Cell::Folios(two.pages.clone()), &opts), "201, 202");
+    assert_eq!(render(&q, &Cell::Folios(row.pages.clone()), &opts), "101–103");
+    let two = bom_row(&q, "EW-GEN-TRM-2");
+    assert_eq!(render(&q, &Cell::Folios(two.pages.clone()), &opts), "101, 103");
 }
 
 #[test]
 fn folio_and_cell_ref_print_the_folio_label() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let order = q.get::<PageOrder>(());
     let first = order
@@ -80,7 +81,7 @@ fn folio_and_cell_ref_print_the_folio_label() {
 /// and the full and displayed tag forms. One case per value; the case name is in every failure message.
 #[test]
 fn values_render_by_kind_language_and_form() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let d = RenderOptions::default();
     let in_lang = |l: &str| RenderOptions {
@@ -175,15 +176,14 @@ fn values_render_by_kind_language_and_form() {
         assert_eq!(got, want, "case {name}");
     }
     // The tag forms: the displayed tag, and the full tag that ends with it.
-    let dev = bom_row(&q, "571334").devices[0];
+    let dev = bom_row(&q, "EW-GEN-VLV-3").devices[0];
     let full = RenderOptions {
         tag_form: TagForm::Full,
         ..RenderOptions::default()
     };
     let short_text = render(&q, &Cell::Tag(dev), &d);
     let full_text = render(&q, &Cell::Tag(dev), &full);
-    assert_eq!(short_text, "-201U3-Q1", "case tag displayed");
-    assert!(full_text.starts_with('='), "case tag full: {full_text}");
-    assert!(full_text.ends_with(&short_text), "case tag full: {full_text}");
-    assert_ne!(full_text, short_text, "case tag full");
+    assert_eq!(short_text, "-201K1-Q1", "case tag displayed");
+    // The full tag adds the location the valve stands in.
+    assert_eq!(full_text, "+CAB-201K1-Q1", "case tag full");
 }

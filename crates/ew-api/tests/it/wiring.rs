@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Below the shell: crossings drawn as hops. `project.drawing.set
-//! {crossings: hops}` changes folio 103's display list only by the hop arcs of the rule (`ew_scene::hops`), the
-//! derived diff is empty and no connection changes; absent and `plain` draw Golden A's bytes.
+//! {crossings: hops}` changes folio 101's display list only by the hop arcs of the rule (`ew_scene::hops`), the
+//! derived diff is empty and no connection changes; absent and `plain` draw the sample's bytes.
 
 use crate::common;
 
-use common::golden_session;
+use common::sample;
 use ew_api::output::page_layer;
 use ew_api::{AnyCommand, Session};
 use ew_derive::ew_units::Pt2;
@@ -79,16 +79,16 @@ fn polyline(item: &Item) -> Option<Vec<Pt2>> {
 
 #[test]
 fn crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
-    let mut s = golden_session();
-    let page = page_of(&s, "103");
+    let mut s = sample();
+    let page = page_of(&s, "101");
     let before = layers(&s, page);
     let records = connections(&s);
-    // `plain` draws Golden A's bytes.
+    // `plain` draws the sample's bytes.
     let preview = s.preview(&drawing("plain")).unwrap();
     let diff = s.derived_diff(&preview);
     assert!(diff.tags.is_empty() && diff.xrefs.is_empty(), "{diff:?}");
     s.commit(preview).unwrap();
-    assert_eq!(layers(&s, page), before, "plain draws the golden bytes");
+    assert_eq!(layers(&s, page), before, "plain draws the same bytes");
     // `hops`: the derived diff is empty, no connection changes.
     let preview = s.preview(&drawing("hops")).unwrap();
     let diff = s.derived_diff(&preview);
@@ -127,8 +127,8 @@ fn crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
             assert_eq!(&new[i], item, "a junction or other item is unchanged");
         }
     }
-    assert!(hopped > 0, "folio 103 has crossings of the rule");
-    // Back to absent (`null`): the golden bytes again.
+    assert!(hopped > 0, "folio 101 has crossings of the rule");
+    // Back to absent (`null`): the same bytes again.
     s.execute(&AnyCommand {
         name: "project.drawing.set".into(),
         params: json!({ "crossings": null }),
@@ -141,24 +141,24 @@ fn crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
 /// `06`, not `6`).
 #[test]
 fn the_next_designation_keeps_the_width_of_a_padded_one() {
-    let mut s = golden_session();
-    let terminal = s.resolve_reference("tag:-X1032:5").expect("-X1032:5");
+    let mut s = sample();
+    let terminal = s.resolve_reference("tag:-X1021:8").expect("-X1021:8");
     s.execute(&AnyCommand {
         name: "terminal.designate".into(),
-        params: json!({"assignments": [{"terminal": terminal.to_string(), "designation": "05"}]}),
+        params: json!({"assignments": [{"terminal": terminal.to_string(), "designation": "08"}]}),
     })
     .unwrap();
-    let cat = s.place_catalogue("103").unwrap();
-    let x1032 = cat.strips.iter().find(|r| r.tag == "-X1032").unwrap();
-    assert_eq!(x1032.next_designation, "06");
+    let cat = s.place_catalogue("102").unwrap();
+    let x1021 = cat.strips.iter().find(|r| r.tag == "-X1021").unwrap();
+    assert_eq!(x1021.next_designation, "09");
 }
 
 /// The next designation is the lowest number free in the strip, not the largest plus one: with
-/// terminals 1 and 3 (2 renamed PE) the catalogue proposes 2; once 2 is back it proposes 6 again.
+/// terminals 1 and 3 (2 renamed PE) the catalogue proposes 2; once 2 is back it proposes 9 again (-X1021 has 1 to 8).
 #[test]
 fn the_next_designation_is_the_lowest_number_free() {
-    let mut s = golden_session();
-    let terminal = s.resolve_reference("tag:-X1032:2").expect("-X1032:2");
+    let mut s = sample();
+    let terminal = s.resolve_reference("tag:-X1021:2").expect("-X1021:2");
     let designate = |s: &mut Session, d: &str| {
         s.execute(&AnyCommand {
             name: "terminal.designate".into(),
@@ -167,10 +167,10 @@ fn the_next_designation_is_the_lowest_number_free() {
         .unwrap();
     };
     let next = |s: &Session| {
-        let cat = s.place_catalogue("103").unwrap();
+        let cat = s.place_catalogue("102").unwrap();
         cat.strips
             .iter()
-            .find(|r| r.tag == "-X1032")
+            .find(|r| r.tag == "-X1021")
             .unwrap()
             .next_designation
             .clone()
@@ -178,5 +178,5 @@ fn the_next_designation_is_the_lowest_number_free() {
     designate(&mut s, "PE");
     assert_eq!(next(&s), "2");
     designate(&mut s, "2");
-    assert_eq!(next(&s), "6");
+    assert_eq!(next(&s), "9");
 }

@@ -1,20 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over Golden A in `ew-api`: the round trip's session calls (`table_export`, `table_import`,
+//! Over the sample in `ew-api`: the round trip's session calls (`table_export`, `table_import`,
 //! `apply_table_import`), where the undo step and the reader's bounds can be seen.
-
-use crate::golden_common;
 
 use ew_api::output::{
     CellOutcome, CsvOptions, ImportTableOptions, Preset, TableCell, TableError, TableImportError, table_csv,
 };
 use ew_api::{Origin, Submit};
 
-/// The key of -X1031's table and the table, in a fresh session over Golden A.
-fn x1031() -> (ew_api::Session, String, ew_api::output::Table) {
-    let session = golden_common::session_with_profiles(&golden_common::batch());
-    let key = session.navigator_table_key("strips", Some("-X1031")).unwrap();
+/// The key of -X1021's table and the table, in a fresh session over the sample.
+fn x1021() -> (ew_api::Session, String, ew_api::output::Table) {
+    let session = crate::common::sample();
+    let key = session.navigator_table_key("strips", Some("-X1021")).unwrap();
     let table = session.table_export(&key).unwrap();
     (session, key, table)
 }
@@ -29,8 +27,8 @@ fn column(table: &ew_api::output::Table, key: &str) -> Vec<String> {
 /// compile to one `fields.set_many`, change exactly those five labels when applied, and one undo restores the table.
 #[test]
 fn a_round_trip_applies_in_one_undo_step() {
-    let (mut session, key, table) = x1031();
-    assert_eq!(table.rows.len(), 20);
+    let (mut session, key, table) = x1021();
+    assert_eq!(table.rows.len(), 8);
     let editable: Vec<&str> = table
         .columns
         .iter()
@@ -97,7 +95,7 @@ fn a_round_trip_applies_in_one_undo_step() {
 /// D8, D11 and RT-6: the refusals of a round trip as whole texts; a file over the reader's limit is refused unread.
 #[test]
 fn the_round_trip_refuses_in_words() {
-    let (session, key, table) = x1031();
+    let (session, key, table) = x1021();
     let csv = table_csv(&table, &CsvOptions::preset(Preset::ExcelEn));
     let refusal = |bytes: &[u8], table: Option<&str>| {
         let options = ImportTableOptions {
@@ -139,7 +137,7 @@ fn the_round_trip_refuses_in_words() {
     );
     assert_eq!(
         session
-            .navigator_table_key("devices", Some("-X1031"))
+            .navigator_table_key("devices", Some("-X1021"))
             .unwrap_err()
             .to_string(),
         "`--strip` applies to `export table strips`"
@@ -148,7 +146,7 @@ fn the_round_trip_refuses_in_words() {
         session.navigator_table_key("strips", Some("-X9")).unwrap_err(),
         TableError::UnknownStrip(
             "-X9".to_owned(),
-            vec!["-X1031".to_owned(), "-X1032".to_owned(), "1X1".to_owned()]
+            vec!["-X1011".to_owned(), "-X1021".to_owned(), "-X1031".to_owned()]
         )
     );
     assert_eq!(
@@ -156,7 +154,7 @@ fn the_round_trip_refuses_in_words() {
             .navigator_table_key("strips", Some("-X9"))
             .unwrap_err()
             .to_string(),
-        "no terminal strip `-X9` (the strips are: -X1031, -X1032, 1X1)"
+        "no terminal strip `-X9` (the strips are: -X1011, -X1021, -X1031)"
     );
 }
 
@@ -164,23 +162,23 @@ fn the_round_trip_refuses_in_words() {
 /// the project, is S2 whole with the file's name, and the session's model is unchanged; a refusal keeps its own text.
 #[test]
 fn a_panicking_read_gives_s2_and_changes_nothing() {
-    let (session, key, table) = x1031();
+    let (session, key, table) = x1021();
     let model = session.world().model.clone();
     let csv = table_csv(&table, &CsvOptions::preset(Preset::ExcelEn));
     let options = ImportTableOptions {
         table: Some(key),
         ..ImportTableOptions::default()
     };
-    let e = ew_api::output::guard_table_read::<()>("x1031.csv", || {
+    let e = ew_api::output::guard_table_read::<()>("x1021.csv", || {
         session.table_import(csv.as_bytes(), &options)?;
         panic!("a read that panics")
     })
     .unwrap_err();
     assert_eq!(
         e.to_string(),
-        "The table import stopped on an internal error while reading x1031.csv; nothing was changed."
+        "The table import stopped on an internal error while reading x1021.csv; nothing was changed."
     );
-    let e = ew_api::output::guard_table_read("x1031.csv", || {
+    let e = ew_api::output::guard_table_read("x1021.csv", || {
         session.table_import(csv.as_bytes(), &ImportTableOptions::default())
     })
     .unwrap_err();

@@ -4,12 +4,10 @@
 //! The export job's page display lists are memoised per layer and incremental (ARCH §6.4, doc 09 §4.1: "a
 //! wire edit never rebuilds the title block").
 //!
-//! Each test exports the golden project once through the session's memo store, commits one edit and exports
+//! Each test exports the sample project once through the session's memo store, commits one edit and exports
 //! again; the commit statistics of the memo store say which layer families ran again, and the second export
 //! equals a cold export of the edited model. The memo oracle (`tests/it/memo_oracle.rs`, the sweep of
 //! `ew_api::verify`) compares every layer with its cold value at every state of its edit sequence.
-
-use crate::golden_common;
 
 use std::collections::BTreeMap;
 
@@ -68,12 +66,11 @@ fn assert_equals_cold(s: &Session) -> Vec<u8> {
     memo.bytes
 }
 
-/// A colour override on a wire of folio 101: the wires and labels of that page may run again, the generated wire
+/// A colour override on a wire of folio 102: the wires and labels of that page may run again, the generated wire
 /// list prints the new colour, and no frame (title block) and no symbol layer runs again.
 #[test]
 fn a_wire_edit_rebuilds_no_title_block() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let before = s
         .export_pdf(&ExportOptions::default())
         .expect("the first export")
@@ -84,15 +81,15 @@ fn a_wire_edit_rebuilds_no_title_block() {
         .entries
         .iter()
         .find_map(|e| match e.page {
-            PageRef::Drawn(p) if e.folio == "101" => Some(p),
+            PageRef::Drawn(p) if e.folio == "102" => Some(p),
             _ => None,
         })
-        .expect("folio 101 is drawn");
+        .expect("folio 102 is drawn");
     let wire = q
         .idx()
         .connections_by_page(page)
         .next()
-        .expect("folio 101 has a wire");
+        .expect("folio 102 has a wire");
     drop(q);
     let candidates: Vec<AnyCommand> = [json!(["RD"]), json!("RD")]
         .into_iter()
@@ -118,13 +115,13 @@ fn a_wire_edit_rebuilds_no_title_block() {
     assert!(before != after, "the wire list prints the new colour");
 }
 
-/// `page.renumber` of section 1 (folio 106 becomes 104, Golden B step B2): exactly the frames whose title-block
-/// values change (Prev/Next, the folio) and exactly the tables layers whose printed table, embedded blocks or frame
-/// form change (the TOC rows, the report cells that print a folio) run again; no symbol and no wire layer does.
+/// `page.renumber` of section 1 in steps of two (102 becomes 103, 103 becomes 105, …): exactly the frames whose
+/// title-block values change (Prev/Next, the folio) and exactly the tables layers whose printed table, embedded blocks
+/// or frame form change (the TOC rows, the report cells that print a folio) run again; no symbol and no wire layer
+/// does.
 #[test]
 fn a_renumber_rebuilds_only_the_title_blocks_and_tables_that_change() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     s.export_pdf(&ExportOptions::default()).expect("the first export");
     // The cold inputs of the frame and the tables layers, by page.
     let inputs = |s: &Session| {
@@ -145,7 +142,12 @@ fn a_renumber_rebuilds_only_the_title_blocks_and_tables_that_change() {
             .collect::<BTreeMap<_, _>>()
     };
     let old = inputs(&s);
-    golden_common::run(&mut s, "b2-renumber-pages.ewcmd");
+    let renumber = json!({
+        "cmd": "page.renumber",
+        "params": {"scope": {"section": {"ref": "section:1"}}, "start": 101, "step": 2, "keep_gaps": false},
+    });
+    let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{renumber}\n")).expect("a command log");
+    s.run_script(&log, "renumber.ewcmd").expect("the renumber commits");
     let new = inputs(&s);
     let changed = |pick: &dyn Fn(&(TitleBlock, Tables)) -> String| {
         new.iter()

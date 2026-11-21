@@ -1,26 +1,25 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over Golden A: the PLC overview box of a module embedded on an overview page (FR-PLC-052;
-//! doc 10 §5), drawn through the embedded path.
+//! Over the sample: the PLC overview box of a module embedded on a page (FR-PLC-052; doc 10 §5), drawn through the
+//! embedded path.
 //!
-//! FR-PLC-052's acceptance: "The overview box of -201U3 shows Q0.0 … Q0.7; its four bound rows print the cells of their
-//! valves on folio 203; drawing on it changes no potential." Golden A has no such box (forbids adding one),
-//! so the tests add a `plc_overview` block selecting -201U3 to the session.
+//! FR-PLC-052's acceptance: "The overview box of a module shows its channels; its bound rows print the cells of what
+//! they drive; drawing on it changes no potential." The sample has no such box, so the tests add a `plc_overview`
+//! block on folio 201 selecting the valve terminal -201K1 (eight outputs, four of them driving the valves on 201).
 //!
 //! Tests:
-//! - `the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203`
-//! - `a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged`
+//! - `the_box_of_201k1_on_201_lists_its_eight_channels_with_the_cells_of_its_valves`
+//! - `a_module_selection_lists_that_module_only_and_a_station_selection_its_cards`
 //! - `the_box_changes_no_potential`
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::Session;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, PotentialPartition, Q};
 use ew_dl::{ItemKind, Layer};
-use ew_import_tables::ids::record_id;
 use ew_reports::BlockRows;
 use ew_scene::forms::SheetMap;
 use ew_schema::{AnyId, Bounds, Record, ReportBlock, ReportKind, ReportSource};
@@ -49,38 +48,39 @@ fn printed_rect(x0: i64, y0: i64, x1: i64, y1: i64) -> Bounds {
     Bounds(Rect::from_points(p(x0, y0), p(x1, y1)))
 }
 
-/// A `plc_overview` block embedded on folio 201 beside its PART DATA (printed 100.00–230.00 × 16.31–93.00 mm: a
-/// title band, a header row and eight rows of 6.52 mm), selecting `include`; built like 201's PART DATA block.
+/// A `plc_overview` block embedded on folio 201 (printed 100.00–230.00 × 16.31–93.00 mm: a title band, a header row
+/// and eight rows of 6.52 mm), selecting the devices `include`; built from the sample's embedded legend block.
 fn overview_box(include: &[&str]) -> ReportBlock {
-    let batch = golden_common::batch();
-    let mut b = batch
-        .records
+    let s = common::sample();
+    let (_, records, _) = common::sample_records();
+    let mut b = records
         .iter()
         .find_map(|r| match r {
-            Record::ReportBlock(b) if golden_common::source_key(r) == Some("report_blocks|part-data-201") => {
-                Some(b.clone())
-            }
+            Record::ReportBlock(b) if b.embedded.is_some() => Some(b.clone()),
             _ => None,
         })
-        .expect("201's PART DATA block");
+        .expect("the sample's embedded legend");
     b.id = Id::from_uuid(Uuid::from_u128(0x4c42_0000_0001));
     b.source = ReportSource::Kind(ReportKind::PlcOverview);
     b.source_ref = None;
+    // The kind's own printed columns, not the legend's.
+    b.columns = Vec::new();
     b.manual.include = include
         .iter()
-        .map(|tag| AnyId::from_uuid(record_id::<ew_schema::Device>("devices", tag).as_uuid()))
+        .map(|tag| AnyId::from_uuid(s.resolve_reference(&format!("tag:{tag}")).expect("the device")))
         .collect::<Vec<_>>()
         .into();
+    let page = s.page_rows().into_iter().find(|r| r.folio == "201").expect("folio 201").id;
     let embed = b.embedded.as_mut().expect("embedded");
-    embed.page = record_id("pages", "201");
+    embed.page = Id::from_uuid(page);
     embed.rect = printed_rect(10_000, 1_631, 23_000, 9_300);
     b
 }
 
 fn session_with(block: ReportBlock) -> Session {
-    golden_common::session_with(&golden_common::batch(), |_, records| {
-        records.push(Record::ReportBlock(block))
-    })
+    let (project, mut records, lib) = common::sample_records();
+    records.push(Record::ReportBlock(block));
+    common::session_of(project, records, lib)
 }
 
 /// The block's rows as rendered texts, one vector per row.
@@ -91,12 +91,12 @@ fn rows(q: &Q, id: Id<ReportBlock>) -> Vec<Vec<String>> {
         .collect()
 }
 
-/// PX-3: the box of -201U3 on 201 draws "PLC OVERVIEW", the six headers and the eight channels Q0.0 … Q0.7 with their
-/// numbers, symbols, function texts and states; the bound rows print the frame cells of their valves' coils on folio
-/// 203; the cells link to the bound CPs; nothing overflows and PART DATA still draws.
+/// PX-3: the box of -201K1 on 201 draws "PLC OVERVIEW", the six headers and the eight channels Q0.0 … Q0.7 with their
+/// numbers, symbols, function texts and states; the bound rows print the frame cells of their valves on folio 201; the
+/// cells link to the bound CPs; nothing overflows.
 #[test]
-fn the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203() {
-    let block = overview_box(&["-201U3"]);
+fn the_box_of_201k1_on_201_lists_its_eight_channels_with_the_cells_of_its_valves() {
+    let block = overview_box(&["-201K1"]);
     let id = block.id;
     let s = session_with(block);
     let q = s.query();
@@ -111,14 +111,6 @@ fn the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203(
             _ => None,
         })
         .collect();
-    let expected: Vec<&str> = vec![
-        "PART DATA",
-        "Order Code 1",
-        "51E-F13GCQP-D+H2GG",
-        "Order Code 2",
-        "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
-    ];
-    assert_eq!(texts[..expected.len()], expected[..], "PART DATA first");
     let rows = rows(&q, id);
     assert_eq!(rows.len(), 8);
     // the printed columns of each row: channel, address, symbol, function, state, page
@@ -139,53 +131,64 @@ fn the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203(
     for r in &EXPECTED_ROWS {
         box_texts.extend(r.iter().filter(|t| !t.is_empty()));
     }
-    assert_eq!(texts[expected.len()..], box_texts[..]);
-    // the bound rows link their page cell to the coil's CP (doc 10 §5)
+    assert_eq!(texts, box_texts, "the box is the page's only table");
+    // the bound rows link their page cell to the valve's CP (doc 10 §5)
     let set = q.get::<BlockRows>(id);
     let linked = set.rows.iter().filter(|r| !r.links.is_empty()).count();
     let bound = EXPECTED_ROWS.iter().filter(|r| !r[5].is_empty()).count();
     assert_eq!(linked, bound);
 }
 
-/// The printed cells of -201U3's eight rows on Golden A: channel, address, symbol, function text, state, page.
+/// The printed cells of -201K1's eight rows: channel, address, symbol, function text, state, page. The sample's
+/// script puts the valves on the even outputs and names the two spare valves "Spare"; the odd outputs are
+/// deactivated.
 const EXPECTED_ROWS: [[&str; 6]; 8] = [
-    ["0", "Q0.0", "", "", "deactivated", ""],
-    ["1", "Q0.1", "", "TA05-V-15", "used", "203-H1"],
-    ["2", "Q0.2", "", "", "deactivated", ""],
-    ["3", "Q0.3", "", "TA05-V-33", "used", "203-H3"],
-    ["4", "Q0.4", "", "", "deactivated", ""],
-    ["5", "Q0.5", "", "TA05-V-18", "used", "203-H5"],
-    ["6", "Q0.6", "", "", "deactivated", ""],
-    ["7", "Q0.7", "", "TA05-V-17", "used", "203-H7"],
+    ["0", "Q0.0", "", "", "used", "201-E4"],
+    ["1", "Q0.1", "", "", "deactivated", ""],
+    ["2", "Q0.2", "", "", "used", "201-E6"],
+    ["3", "Q0.3", "", "", "deactivated", ""],
+    ["4", "Q0.4", "", "Spare", "used", "201-E8"],
+    ["5", "Q0.5", "", "", "deactivated", ""],
+    ["6", "Q0.6", "", "Spare", "used", "201-E9"],
+    ["7", "Q0.7", "", "", "deactivated", ""],
 ];
 
-/// PX-3: a selection naming a module lists that module's rows only; one naming the station lists all 56 (folio 908's
-/// block, unchanged).
+/// PX-3: a selection naming a module lists that module's rows only; one naming the CPU's station lists the rows of
+/// its two cards, as folio 908's block lists them.
 #[test]
-fn a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged() {
-    let module = overview_box(&["-201U3"]);
-    let station = overview_box(&["-201U1"]);
-    let both = overview_box(&["-201U3", "-202U2"]);
+fn a_module_selection_lists_that_module_only_and_a_station_selection_its_cards() {
+    let module = overview_box(&["-104A1-A1"]);
+    let station = overview_box(&["-104A1"]);
+    let both = overview_box(&["-104A1-A1", "-201K1"]);
     let q = session_with(module.clone()).query();
     let modules: Vec<String> = rows(&q, module.id).into_iter().map(|r| r[0].clone()).collect();
-    assert_eq!(modules, vec!["-201U3".to_owned(); 8]);
+    assert_eq!(modules, vec!["-104A1-A1".to_owned(); 8]);
     let q = session_with(station.clone()).query();
-    let golden = golden_common::block(&golden_common::batch(), "908");
-    assert_eq!(rows(&q, station.id), rows(&q, golden));
-    assert_eq!(rows(&q, station.id).len(), 56);
+    let page_908 = q
+        .report_blocks()
+        .iter()
+        .find(|(_, b)| b.first_folio == Some(908))
+        .map(|(id, _)| id)
+        .expect("the PLC overview");
+    let cards: Vec<Vec<String>> = rows(&q, page_908)
+        .into_iter()
+        .filter(|r| r[0].starts_with("-104A1-"))
+        .collect();
+    assert_eq!(cards.len(), 16, "two cards of eight channels");
+    assert_eq!(rows(&q, station.id), cards);
     let q = session_with(both.clone()).query();
     let modules: Vec<String> = rows(&q, both.id).into_iter().map(|r| r[0].clone()).collect();
-    let mut expected = vec!["-201U3".to_owned(); 8];
-    expected.extend(vec!["-202U2".to_owned(); 8]);
+    let mut expected = vec!["-104A1-A1".to_owned(); 8];
+    expected.extend(vec!["-201K1".to_owned(); 8]);
     assert_eq!(modules, expected, "in plc_rows order");
 }
 
-/// PX-3: "drawing on it changes no potential": the box has no connection points, so Golden A's potential partition is
-/// the same with and without it.
+/// PX-3: "drawing on it changes no potential": the box has no connection points, so the sample's potential partition
+/// is the same with and without it.
 #[test]
 fn the_box_changes_no_potential() {
-    let without = crate::common::golden_session();
-    let with = session_with(overview_box(&["-201U3"]));
+    let without = common::sample();
+    let with = session_with(overview_box(&["-201K1"]));
     let a = without.query().get::<PotentialPartition>(());
     let b = with.query().get::<PotentialPartition>(());
     assert_eq!(*a, *b);
