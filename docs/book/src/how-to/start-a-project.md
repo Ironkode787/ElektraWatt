@@ -113,6 +113,13 @@ says where the style prints and has:
 - A sample in the style, in proportion to the others, and **Reset**, which brings the style back to what a new
   project has.
 
+Above the styles, **Standard typeface** says what prints the Standard typeface. **Choose a font file…** takes a
+TrueType or OpenType file (`.ttf`, `.otf`, at most 768 KiB) into the project, and every text in the Standard typeface
+then prints in it: on screen, in the PDF and the print, and as the font the DXF names. Use it to match a drawing set
+printed in another typeface, such as Liberation Sans. The project carries the whole file, so give the project only to
+those the font's licence allows; a font whose licence forbids embedding it in a document is refused. **Use Noto Sans**
+takes it back.
+
 A change shows on the open page at once and is one step of **Undo**. **Standard sizes** gives every style the height a
 new project has and keeps typefaces and bold; **Reset all** brings back every style. A new project, and every template
 the wizard makes, starts readable; the styles are the project's, and a template carries its own to the projects made

@@ -3529,6 +3529,19 @@ msgstr ""
 
 #: src/how-to/start-a-project.md:116
 msgid ""
+"Above the styles, **Standard typeface** says what prints the Standard "
+"typeface. **Choose a font file…** takes a TrueType or OpenType file (`.ttf`, "
+"`.otf`, at most 768 KiB) into the project, and every text in the Standard "
+"typeface then prints in it: on screen, in the PDF and the print, and as the "
+"font the DXF names. Use it to match a drawing set printed in another "
+"typeface, such as Liberation Sans. The project carries the whole file, so "
+"give the project only to those the font's licence allows; a font whose "
+"licence forbids embedding it in a document is refused. **Use Noto Sans** "
+"takes it back."
+msgstr ""
+
+#: src/how-to/start-a-project.md:123
+msgid ""
 "A change shows on the open page at once and is one step of **Undo**. "
 "**Standard sizes** gives every style the height a new project has and keeps "
 "typefaces and bold; **Reset all** brings back every style. A new project, "
@@ -3536,7 +3549,7 @@ msgid ""
 "project's, and a template carries its own to the projects made from it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:121
+#: src/how-to/start-a-project.md:128
 msgid ""
 "The warning \"Wire marker prints 0.94 mm high, too small to read on paper\" "
 "opens **Text styles** at that style when you open it in Messages "
@@ -3544,35 +3557,35 @@ msgid ""
 "step."
 msgstr ""
 
-#: src/how-to/start-a-project.md:124
+#: src/how-to/start-a-project.md:131
 msgid ""
 "A free text has its own **Style** in its Properties, chosen by name, and its "
 "own **Height** for that one text. The Properties of a text or a device also "
 "say which style it prints in, with **Change styles…** beside it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:127
+#: src/how-to/start-a-project.md:134
 msgid "The check level"
 msgstr ""
 
-#: src/how-to/start-a-project.md:129
+#: src/how-to/start-a-project.md:136
 msgid ""
 "Before drawings go out, the program checks them. The check level says how "
 "strict that check is:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:131
+#: src/how-to/start-a-project.md:138
 msgid ""
 "**Pre-delivery**: what must be right before drawings go out, such as an "
 "interruption point without its partner on another page. A few tidiness "
 "checks are left out, such as a structure code with a separator in it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:133
+#: src/how-to/start-a-project.md:140
 msgid "**Full**: every check, the tidiness checks too."
 msgstr ""
 
-#: src/how-to/start-a-project.md:135
+#: src/how-to/start-a-project.md:142
 msgid ""
 "While you draw, the Messages panel shows every check whatever the level. A "
 "project made with an earlier version may have the level **Drafting**: it "
@@ -3580,7 +3593,7 @@ msgid ""
 "Full."
 msgstr ""
 
-#: src/how-to/start-a-project.md:138
+#: src/how-to/start-a-project.md:145
 msgid ""
 "The wizard's step **Reports and checks** sets it for a template, and "
 "**Create the template** writes it. In a project (or an open template), "

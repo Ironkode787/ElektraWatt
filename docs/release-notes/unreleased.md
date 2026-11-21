@@ -80,6 +80,8 @@ change here.
 - behaviour-change: the QElectroTech import stands a page's free texts and an element's texts on QET's own baseline,
   so they lie where QET's own PDF has them in any typeface (an element's static text stood a descent lower in a face
   other than Noto Sans)
+- behaviour-change: a QElectroTech title block's cell text stands on the cell's edges, as QET draws it, not 0.5 mm in
+  from them (the cell's `ew.cell.inset`, FT-1765)
 - behaviour-change: the DXF export writes a text as high as the capitals of its own face: a Technical drawing text is
   0.719 of its em high (it was 0.714, Noto Sans's); the other bundled faces are unchanged
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already

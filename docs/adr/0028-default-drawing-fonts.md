@@ -126,6 +126,14 @@ entry records what is already built and in force.
      character neither has (the euro sign, some Polish, Czech and Hungarian letters) prints as `.notdef` and is
      reported as amendment 1 says.
 
+4. **A project's own typeface in place of recommendation 5** (2026-11-21, 0.3.5; FT-1872, the first production job).
+   A set that must match an existing print needs that print's typeface. In place of a system font, the project holds
+   one font file of the user's (`ProjectSettings.typeface`, an asset of the project), which prints every text of the
+   Standard typeface in the PDF, the SVG, the PNG, the print and on screen; the DXF names it. The program ships no
+   such font and system fonts stay out, so a project still exports the same on every machine (NFR-REL-11): the file
+   travels with the project. A font whose embedding permission forbids what the PDF does is refused. The design is
+   [09](../design/09-reports-forms-output.md) §4.8.
+
 ## Consequences
 
 If the recommendation is accepted:

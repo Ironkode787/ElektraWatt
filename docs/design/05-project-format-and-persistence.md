@@ -201,7 +201,7 @@ rule**. Ranks are never reused or renumbered.
 | — | `machine_profile`, `label_profile` (library copies, 1.0) | `lib/profiles/<id>.toml`, the TOML source form; the `schema` key tells the kinds apart | own ID |
 | 255 | `conflict` | file of its target | target |
 
-**The project record's text styles** (as built, [ADR-0032](../adr/0032-per-project-text-styles.md)). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): `schemas/0.1` re-blessed, no version step, an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them.
+**The project record's text styles** (as built, [ADR-0032](../adr/0032-per-project-text-styles.md)). `ProjectSettings.text_styles` is an optional member of the `project` record in `project.jsonl`: an object keyed by style key, each value `{"size": <em height in nm>, "weight": "regular" | "bold"}` (weight optional) plus unknown members kept verbatim, written in key order. It is additive within format 0.1 (ADR-0011 amendment 4): `schemas/0.1` re-blessed, no version step, an older 0.1 build keeps it in `settings.extra`. An absent or empty member means the built-in table; nothing writes it into a file that lacks it except `Session::new_project`, which writes `cp.small` and `marker` at 1,852,083 nm (7 QET px). On reading, an override whose size lies outside 500,000 … 50,000,000 nm is ignored (the built-in row stays) and a weight of a newer format reads as absent; `project.settings.set` refuses both at `/text_styles/<key>/size` or the member's path. `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so a line that held both as unknown members stays canonical when a newer build types them. `ProjectSettings.typeface` (since 0.3.5, [09](09-reports-forms-output.md) §4.8), `{"asset": "sha256:<64 hex>", "name": "<file name>"}`, is the last declared member, additive in the same way: an older build keeps it in `settings.extra` and its file as an opaque asset file.
 
 **`page_item` and `structure_box`** (specified 2026-10-23). Both kinds have had
 their rank and ownership since the registry was written: `page_item` is rank 43 and `structure_box` rank 44, each
@@ -1620,7 +1620,10 @@ writes to the system and community tiers are refused.
   `jpeg`) and `glb` from 1.0 (opt-in embeddable meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster
   images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. *As built* the limits are applied by the
   sniffer (below), which counts SVG elements textually; an SVG is also parsed by `ew_schema::svg_hazard`
-  inside the sniff and drawn through usvg with external references refused ([14](14-interop.md) §11).
+  inside the sniff and drawn through usvg with external references refused ([14](14-interop.md) §11). The underlay
+  sources `pdf` and `dxf` are at most 64 MiB, and the project's typeface is a `ttf` or `otf` file (by its sfnt magic)
+  of at most 768 KiB, which `project.typeface.set` reads further ([09](09-reports-forms-output.md) §4.8). The
+  extensions are `AssetFormat`'s, which the path classification of `ew-format` reads too (with `glb`).
 - **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
   (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model
   already holds does nothing, and no revision is made. A transaction brings its assets through
@@ -1629,13 +1632,15 @@ writes to the system and community tiers are refused.
   stores; the bytes join the model with the transaction's ops at its commit. **Undo and redo keep assets:** the model
   keeps every asset it was given for the session, so undoing a logo change brings the reference back with its bytes.
   Bytes under a hash never change, so reading them by hash is no freshness hazard and sits outside the raw-read gate;
-  the **presence** of an asset can change without a revision, so no memoised query may read it, with one named
-  exception, `Q::logo_asset`, which is safe today only because an asset becomes present at open or through
-  `project.company.set`, which also changes the project row. The rule is mechanical:
-  the raw-read rule's `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
-  source, with that query as its one allowlisted site.
-- **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: today the company logo
-  of the project row, §10.3) that have no file on disk with that hash, through the **full save protocol** of §5: a temp
+  the **presence** of an asset can change without a revision, so no memoised query may read it, with two named
+  exceptions, `Q::logo_asset` and `Q::typeface_bytes` (the font file of the project's typeface), each recorded as a
+  read of the project row and of the asset store (`DepKey::Assets`); an asset becomes present at open or with the
+  command that names it (`project.company.set`, `project.typeface.set`), which also changes the project row. The rule
+  is mechanical: the raw-read rule's `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
+  source, with those two as its allowlisted sites.
+- **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: the company logo and
+  the typeface of the project row, §10.3, and the files of image and underlay page items) that have no file on disk
+  with that hash, through the **full save protocol** of §5: a temp
   `assets/<sha256>.<ext>.tmp-<g>` (`create_new`, `sync_all`), named in the intent manifest, the directory syncs, the
   renames after the commit point; a roll-forward (§5.3) completes asset renames like any other. The manifest lists each
   asset as a `FileHash::Sha256` in its sorted `files` map (§4). A file under an asset's name whose bytes differ

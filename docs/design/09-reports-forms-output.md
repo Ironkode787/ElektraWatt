@@ -341,7 +341,8 @@ v0 has no tab stops. `ShrinkToFit` reduces the style size down to `min_cap_heigh
 page-to-sheet transform (§2.8); text that still does not fit is drawn at that size and overflows the cell, and the
 form finding `Overflow` reports it, because clipping is forbidden. `Ellipsis` cuts the text, appends "…" and reports
 it; `Error` draws the text unshrunk and reports it. Cell text is inset 2 QET px (0.529 mm) from the left and right
-edges, and middle alignment centres the cap height. A cell with no room at all (inset width ≤ 0, or shrinking that
+edges, or by the cell's own `ew.cell.inset` extra member in nm (0 to 10 mm; a QElectroTech title block's cells
+have 0, [14](14-interop.md) §4.10), and middle alignment centres the cap height. A cell with no room at all (inset width ≤ 0, or shrinking that
 reaches size 0) draws nothing and reports the finding of its own policy (`ShrinkLimit`, `Truncated` or `Error`); v0
 has no separate finding kind for it. An asset cell draws the image of its `AssetRef`, fitted by the
 recorded intrinsic size, or filling the inset area when the size is unknown ([05](05-project-format-and-persistence.md)
@@ -905,7 +906,8 @@ partial file (FR-UI-024).
   other character ("²" too, so a reader's code page cannot spoil it; the first sentence's "as itself" was not safe),
   `$EXTMIN`/`$EXTMAX` the sheet so a re-import puts the drawing back where it was. Blocks are named
   `EW_<symbol>_<variant>`; a fill is a solid `HATCH`, a colour other than black a true colour; images are not
-  written. The layer names are options (`ew export dxf --layer <class>=<name>`), and printed
+  written. A `STYLE` is one per face, not per text style, and names the face's font file; a `TEXT` is as high as its
+  face's capitals (§4.8). The layer names are options (`ew export dxf --layer <class>=<name>`), and printed
   underlays go to `EW-UNDERLAY`. No date, user name or GUID is written: the same pages give the same bytes. AC-37's
   DXF half is `crates/ew-api/tests/it/dxf_round_trip.rs`.
 
@@ -1057,7 +1059,8 @@ keep Noto Sans.
 - The QElectroTech import writes it ([14](14-interop.md) §4.4.2, §4.10): a free text and an element's texts stand on
   QET's own baseline, so they keep their place in any typeface.
 - A project made by 0.3.0 has neither the member nor the alignments: every text prints where it did, to the
-  nanometre, and the sample's pages print byte for byte as before (`tests/it/typeface.rs`).
+  nanometre. Measured when it was built, the sample's PDF and DXF were byte for byte the build's before; a project
+  without the setting prints with the bundled faces only (`crates/ew-api/tests/it/typeface.rs`).
 
 **What it does not do.** No system fonts (NFR-REL-11 holds: the file is in the project). One file only: no second
 file for the bold or italic cut, no typeface for Narrow, Mono or Technical drawing, no font of a frame or title block

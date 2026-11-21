@@ -771,17 +771,19 @@ and an older one `<inputs>` with the values of the definition's texts. The defin
 templates new elements copy.
 
 *As built.* A definition read for a project gives a symbol whose texts from `dynamic_text` and `input` print
-nothing: user texts and untagged inputs are left out, and every text slot is hidden, aligned middle-left and named
+nothing: user texts and untagged inputs are left out, and every text slot is hidden, aligned `baseline_left` and named
 by its import style (§4.10). Each placed element then prints its own texts, each where QET draws it:
 
-- **Where.** QET places a text item's box by its top-left corner and turns it about that corner. EW anchors the
-  text on the left end of a line's middle: the corner plus QET's 4 px text margin, plus 0.547 em down to the
-  middle of the first line (the ascent less half the cap height of the substituted families), plus 1.15 em per
-  further line (Qt's line spacing). A text of several lines becomes one text per line, so that its lines keep
-  QET's spacing. The offset turns with the text's rotation rounded to a quarter turn, then with the element. A
-  text with a fixed width (`text_width` above 0) QET 0.100 lays out centred in its box, whatever its
-  `Halignment` (which only keeps the box's anchor when the text changes), so its lines are centred on the box's
-  middle: a centred free text, or a centred slot of its kind that the import adds to the symbol.
+- **Where.** QET places a text item's box by its top-left corner and turns it about that corner. EW stands the
+  text on the baseline of a line's left end ([09](09-reports-forms-output.md) §4.8), so it keeps its place in any
+  typeface: the corner plus QET's 4 px text margin, plus 0.905 em down to the first line's baseline (Qt's ascent of
+  Arial and Liberation Sans), plus 1.15 em per further line (Qt's line spacing). A text of several lines becomes one
+  text per line, so that its lines keep QET's spacing. The offset turns with the text's rotation rounded to a
+  quarter turn, then with the element. A text with a fixed width (`text_width` above 0) QET 0.100 lays out centred
+  in its box, whatever its `Halignment` (which only keeps the box's anchor when the text changes), so its lines are
+  centred on the box's middle: a centred free text, or a slot aligned `baseline_centre` that the import adds to the
+  symbol. An element's static text (`text`), which QET writes by its baseline, is aligned `baseline_left` at QET's
+  point.
 - **What.** A user text prints as written, an element information its value (a slave's label is its master's,
   as QET links them), a composite text its format with each `%{name}` replaced by that information. Qt rich text
   prints its plain text, one line per paragraph, in the size of its first span or body (§4.13).
@@ -1040,7 +1042,8 @@ variable has an EW xref-format token (FR-XRF-003):
 - Families map through the font table of the hints: Tahoma, "Sans Serif", "MS Shell Dlg 2", Arial, Helvetica and
   Liberation Sans → the bundled default family (Noto Sans, proposed ADR-0028). Bundled families map to themselves.
   Each substitution is recorded once per family (EW-IMP-006), in the migration report and the PDF XMP (FR-IMP-020,
-  FR-OUT-009), with a warning that line breaks may change.
+  FR-OUT-009), with a warning that line breaks may change. To print a set in QET's own face, the project's typeface
+  takes that face's file ([09](09-reports-forms-output.md) §4.8).
 - One import text style per distinct (family, size, weight, italic) is created, named `qet.<size>[.b][.i]`. These
   styles are not bound to slot kinds (EW-IMP-114); "apply `tag.main`" restores one tag height (D-29).
 - Sizes stay in native points: QET 12 px → 9.00 pt native → 8.88 pt printed through the frame transform (20 §17.5).
@@ -1049,12 +1052,18 @@ variable has an EW xref-format token (FR-XRF-003):
   that many points, `size × 3,175,000 / 9` nm (QET draws a point as 4/3 px), bold for `.b`; italic is not a
   text-style property and is dropped. Without them every import style was unknown and printed in `text.normal`,
   so texts of 4 to 6 pt printed at 9 pt.
-- *Measured (FT-1746).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), an element's static
-  text drawn from its baseline but placed by the bottom of its box stood a descent (0.31 em measured, 0.293 em of
-  Noto Sans) too high; placed a descent lower it matches within 0.1 mm. Dynamic texts and a page's free texts stand
-  within 0.3 mm of QET's for the sizes of 4 to 9 pt (the rest is Qt's ascent and line pitch rounded up to whole pixels
-  at its screen size, about 0.1 em, not modelled); free texts of 12 pt and more stand 0.7 to 1.2 mm higher, and a
-  title block's cell texts 0.5 to 2.7 mm across, both open.
+- *Measured (FT-1746, FT-1765).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
+  imported text stands on QET's baseline (a free text with `anchor: baseline`, an element's texts `baseline_left`),
+  so a project whose typeface is QET's face prints it where QET does; the dynamic texts and free texts of 4 to 9 pt
+  stand within 0.3 mm (Qt's ascent and line pitch rounded up to whole pixels at its screen size, about 0.1 em, are
+  not modelled). A title block's cell text has no inset (`ew.cell.inset` 0, [09](09-reports-forms-output.md) §2.5):
+  QET draws it on the cell's edges. With both, the texts in place went from 3,929 to 4,166 of about 4,800 and the
+  moved ones from 730 to 493 (4,174 and 485 with Liberation Sans, the face of that PDF, as the typeface). What
+  stands apart is FT-1941: QET's `hadjust` scales a cell's text that is too wide without a floor and never for its
+  height, where EW shrinks a cell's lines to fit its height and stops at 0.5 mm (title-block cells 1 to 2 mm across);
+  rich-text free texts that QET's computer printed in Tahoma, whose ascent is 1.0 em (0.7 to 1.6 mm higher; which
+  face QET prints is its computer's font substitution, which the file does not say); and the tables of contents,
+  which EW draws as its own report pages.
 
 ### 4.11 Strips, terminals and cables
 
