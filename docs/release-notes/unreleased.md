@@ -15,6 +15,13 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: `ew export dxf` writes AutoCAD 2010 (AC1024, UTF-8) files that are the PDF's pages: a symbol is a
+  block named in words (`Coil R0`) holding its own texts, a device's texts are the attributes of its insert (`TAG`,
+  `FUNCTION_TEXT`, `CROSS_REFERENCE`, `DESIGNATION_1` …), a cross-reference links to its target's page file
+  (`--dwg-links` names the `.dwg`), each text has the width factor of its kerned width in the PDF and a style that
+  names its face's family, a line of two faces no longer stacks its parts at the line's start, and the title block's
+  PNG or JPEG picture is an `IMAGE` of a file written beside the pages (an SVG one is drawn as paths); `--json` lists
+  the pictures (doc 09 §4.9, FT-1877)
 - behaviour-change: a dash pattern with a zero entry (as an SVG asset may give one) is dashed on the screen as it is
   in the PDF, the SVG and the DXF; one with a negative entry or no positive one is solid everywhere (the PDF and SVG
   rule)

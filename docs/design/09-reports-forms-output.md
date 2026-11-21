@@ -1227,10 +1227,12 @@ object works on Windows only and no converter keeps it), so:
 
 - *A symbol as placed is a block*: one per symbol and variant, the geometry the page draws (`symbol_geometry(symbol,
   variant)`, a black box with its own outline a block of its own), inserted where the representation stands at the
-  page-to-sheet scale. The block is named in words: the symbol's name in the export's language and its variant
-  (`Coil R0`, `NO contact M90`), a character a DXF name cannot hold as `_`; a second geometry of the same name takes
-  ` 2`, ` 3`, in the order of its key, alike in every file of the set; a geometry whose symbol has no name keeps the
-  name `EW_<symbol id>_<variant letter>`. The symbol's own fixed texts (the "M" of a motor) are in its block.
+  page-to-sheet scale; a junction's symbol likewise. The block is named in words: the symbol's name in the export's
+  language and its variant (`Coil R0`, `NO contact M90`), a character a DXF name cannot hold as `_`; a second geometry
+  of the same name takes ` 2`, ` 3`, in the order of its key, alike in every file of the set; a geometry whose symbol
+  the page names nowhere keeps the name `EW_<symbol id>_<variant letter>`. The symbol's own fixed texts (the "M" of a
+  motor) are in its block, as its first insert on the page draws them; an insert whose own texts differ from them by
+  more than a micrometre keeps its own as `TEXT`s beside it.
 - *A device's texts are attributes of its insert*: every text the page prints for the representation (its slot texts,
   a black box's pin texts, a terminal's strip tag) is an `ATTRIB` of the insert, where and as large as the PDF has it,
   on the texts layer. The block has an `ATTDEF` for each name its inserts on the page carry, where the first of them
@@ -1255,8 +1257,8 @@ object works on Windows only and no converter keeps it), so:
   | a slot of a newer format | `TEXT` |
 
   The second line of a text, and a second text of one name, take `_2`, `_3` (`CROSS_REFERENCE_2`). n counts a
-  symbol's connection points from 1. A user property's name keeps its letters and digits in capitals, any other
-  character as `_`. No name begins with `PIN`, `CONN`, `TERM` or `X`, which the DXF import reads as connection points
+  symbol's connection points from 1. A user property's name keeps its letters a to z and its digits in capitals, any
+  other character as `_`. No name begins with `PIN`, `CONN`, `TERM` or `X`, which the DXF import reads as connection points
   (doc 14 §6.2), while `TAG` and `FUNCTION_TEXT` are what it reads as the tag and the function text: a block of this
   export imports as a symbol with both slots.
 - *A cross-reference says where it leads*: in words, as its text (`103-G6`: the page and the cell), and as a hyperlink
@@ -1276,20 +1278,22 @@ so it takes its insert's layer.
 
 **What it does not do.** It writes no DWG: that is FT-1745 of the later backlog, after this row (the export runs the
 user's converter on this DXF, as the DWG import runs it the other way). No font in the file: a text is a `TEXT` in a
-named face, never its outlines. No
-`MTEXT` and no attribute of more lines. No title block as a block with attributes, no named views (a link opens the
-page and the text names the cell), no external references between the page files, no paper-space layout of the sheet,
-no plot styles. A raster picture is never inside the file, and the rule that aligned a text is not written. The window
-has no DXF export yet: `ew export dxf` writes the set (FT-1960).
+named face, never its outlines. No `MTEXT` and no attribute of more lines. No title block as a block with attributes,
+no named views (a link opens the page and the text names the cell), no external references between the page files,
+no paper-space layout of the sheet, no plot styles. A raster picture is never inside the file, and the rule that
+aligned a text is not written. The window has no DXF export yet: `ew export dxf` writes the set (FT-1960).
 
-**Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on the sample and
-on a small project of the test's own (a coil and its contact on two pages, a black box, a terminal, a logo), every
-text of the PDF's display list comes back through `ew-import-dxf` where the PDF has it, as high, with its characters;
-a device's texts come back as the attributes of its insert under the names above; a cross-reference's hyperlink names
-the file of its target's page; the title block's picture is an `IMAGE` that names the picture file written beside the
-pages. Measured on 2026-11-21: the largest distance between a text's start in the PDF and in the DXF read back was
-0.000 001 mm, on the sample's pages and the test's own (the writer writes the PDF's coordinates to the nanometre); what
-a CAD program draws from them depends on the faces it has.
+**Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of
+the sample and on a small project of the test's own (a coil on one page and its contact on another, an input card
+drawn as a black box, a terminal of a strip, a logo), every text of the PDF's display list comes back through
+`ew-import-dxf` where the PDF has it, as high and with its characters; there a device's texts are the attributes of
+its insert under the names above, the coil's block is named by its symbol, each cross-reference links to the file of
+the other page, the logo is an `IMAGE` of the picture file written beside the pages, and the symbol wizard reads the
+coil's block with its tag slot. Measured on 2026-11-21: the largest distance between where the PDF starts a text and
+where the DXF read back has it was 1 nm, on the sample's pages and on the test's own, the importer's rounding (the
+writer writes the PDF's coordinates to the nanometre); how long a CAD program draws a text depends on the faces it
+has. ezdxf 1.4.5 reads every page of the sample without an error and repairs nothing; drawn by its matplotlib add-on,
+pages 101 and 104 show the PDF's drawing, texts and logo.
 
 ---
 

@@ -44,7 +44,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### The DXF as the PDF
 
-- FT-1877 `ew-export`: The DXF export does not equal the PDF: other type metrics, no picture in the title block, no AutoCAD 2010 format, and none of the page's structure (blocks with attributes, cross-reference links). The job's DWG files were made from the PDF's geometry: faithful as a plot, with no blocks and no attributes. Not in this row: writing a DWG. Until FT-1745 (backlog-later) a DWG is made from the DXF by a converter, as the import reads one (owner, 2026-11-20 and 2026-11-21: the program's own DWG output stays wanted, for later).
+- FT-1960 `ew-viewmodel, content`: The window has no DXF export: File offers Export PDF only, so the DXF set of doc 09 §4.9 comes from `ew export dxf` alone. An action `file.export_dxf` beside `file.export_pdf` that asks for a folder and writes the pages and the pictures they name as a job, with its texts in both languages. Left out of FT-1877 as a window action of its own, in the crates another fix lane was working in.
 
 #### What the model has no place for
 

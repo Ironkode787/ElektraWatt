@@ -62,7 +62,7 @@ C-15 `%f` versus `%F`).
 | PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency since WP-S3.19 (ARCH §3) | 1.0 | FR-IMP-030 |
 | EPLAN `.epj` project XML | read | experimental, behind a flag | Later | FR-IMP-031 |
 | DXF R12–2018 | read | `ew-import-dxf` (own reader, §6.1) | 1.0 | FR-IMP-032 … FR-IMP-035 |
-| DXF AC1015 pages | write | `ew-export` (own writer, §6.4) | 1.0 | FR-OUT-015 (09) |
+| DXF AC1024 pages | write | `ew-export` (own writer, §6.4) | 1.0 | FR-OUT-015 (09) |
 | DWG | read | ODA File Converter (user-installed); acadrust 0.6.4 behind a feature | 1.0 / 1.x | FR-IMP-036, FR-IMP-037 |
 | XLSX/CSV tables | read/write | written by `ew-reports` (rust_xlsxwriter 0.100.0, csv 1.4.0); read by `ew-import-tables` (calamine 0.36.1, csv) | MVP | FR-EXP-002 … FR-EXP-005 |
 | XLIFF 2.1, translation CSV | read/write | quick-xml, csv; the translation tables of `ew-import-tables`, next to the table round trip (ARCH §3) | 1.0 | FR-I18N-006, FR-I18N-007 |
@@ -1609,22 +1609,22 @@ import. No width factor is applied: the factors are unverified (Open question 11
 
 ### 6.4 Writing
 
-DXF page export is specified in [09](09-reports-forms-output.md) §4.4: AC1015, `$INSUNITS` = mm, layers per
+DXF page export is specified in [09](09-reports-forms-output.md) §4.4 and §4.9: AC1024, `$INSUNITS` = mm, layers per
 export scheme (`EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`), symbols as BLOCK/INSERT
 per symbol and variant, Béziers flattened at 0.01 mm. The interop requirement is the **round trip**: EW's own DXF of
 folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DXF per surface is FR-MFG-028.
-*As built (WP-S3.19):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 records it. The file is
-ASCII: a character outside ASCII is written as `\U+XXXX` (a character beyond the first plane as two surrogate units),
-because a reader decodes an AC1015 file in the code page its header names (Windows-1252), not as UTF-8; the importer
-reads it back as written (AC-37's test compares symbol inserts, turned and mirrored, and a text of `Ää°²` with its
-position). The drawing is in sheet millimetres, so a page made of it takes its items through the inverse of the new
+*As built (WP-S3.19, FT-1877):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 and §4.9 record
+it. The file is AutoCAD 2010's, UTF-8: a character is written as itself, and the importer reads it back as written
+(AC-37's test compares symbol inserts, turned and mirrored, and a text of `Ää°²` with its position). A device's texts
+are the attributes of its symbol's insert, which the importer draws where they stand, and a block's attribute
+definitions `TAG` and `FUNCTION_TEXT` are what the symbol wizard (§6.2) reads as the tag and function-text slots. The drawing is in sheet millimetres, so a page made of it takes its items through the inverse of the new
 page's page-to-sheet map (Golden A's frame and a QElectroTech import's fit their page to the sheet) and prints where it
 was drawn; AC-37's test re-imports folios 101 to 106 into Golden A and compares the printed drawn points and text
 baselines, and those of folio 101 as an underlay of 102, within 0.01 mm. A text keeps the nearest built-in style, so
 its size may differ by a style step. A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
 a control character or one of `< > / \ " : ; ? * | , = '`; two classes that share a name, or one named `0`, are one
-LAYER record. The AC1015 file has been read back by this importer only; no CAD program or independent reader has
-confirmed that it is valid (open).
+LAYER record. The AC1024 file has been read back by this importer and by ezdxf 1.4.5 (its audit finds no error and
+repairs nothing on the sample's pages, 2026-11-21); no CAD program has opened it yet (open).
 
 ### 6.5 DWG
 

@@ -183,7 +183,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Drilling data** | DXF per mounting surface with the hole and cut-out geometry from placed devices. | Drilling data (Pro Panel) | — | [13 §9.1](13-manufacturing-outputs.md) |
 | **Duct fill** | A derived measure of how much of a wiring duct's cross-section the routed wires use. | Duct fill (Pro Panel) | — | [12 §8.6](12-panel-layout.md) |
 | **DWG** | AutoCAD binary drawing format; read through a user-installed converter. | DWG import | — | [14 §6.5](14-interop.md) |
-| **DXF** | Drawing exchange format: read for underlays and drawings (R12–2018), written as AC1015 for pages and drilling data. | DXF/DWG import and export | DXF export of folios | [14 §6](14-interop.md) |
+| **DXF** | Drawing exchange format: read for underlays and drawings (R12–2018), written as AC1024 for pages and AC1015 for drilling data. | DXF/DWG import and export | DXF export of folios | [14 §6](14-interop.md) |
 
 ### E
 

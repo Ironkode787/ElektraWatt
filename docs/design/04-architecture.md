@@ -1331,7 +1331,7 @@ display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the 
   - tagged PDF (PDF/UA-1) as an option (G8).
 
   krilla has no optional content (layers, C-11), and v1 does not offer layers.
-- **SVG, DXF and PNG.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
+- **SVG, DXF and PNG.** An own SVG writer; DXF (AC1024, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
   `ew-render-cpu` (vello_cpu). PNGs are byte-identical per build target (vello_cpu `Level::baseline()`) and compare within the dify tolerance across targets (ADR-0015 amendment 6); PDF, SVG, XLSX, CSV, JSONL
   and `.ewpp` stay byte-identical (ADR-0015). *As built:* `ew export pdf|svg` write through the export job; PNG export is FT-254.
 - **Printing.** PDF is the print master. Small adapters in `ew-print` hand it to the OS: the xdg Print portal or CUPS

@@ -512,7 +512,7 @@ $ ew export terminals S --out terminals.csv                       # -X1011, -X10
 $ ew export cables S --out cables.csv                             # -101W1, -103W1, -105W1
 $ ew export plc-aml --config PLC1 --apc 1.4.0 --out PLC1.aml      # CAEX 2.15
 $ ew export machine komax-topconvert-csv --out komax.csv          # 1.0 (lengths required)
-$ ew export dxf S --pages 101-105 --out dxf/                      # AC1015 with configured layers
+$ ew export dxf S --pages 101-105 --out dxf/                      # AC1024 with configured layers
 
 $ ew check S --scheme pre-delivery; echo $?
 0                                   # 0 errors, 0 warnings, 2 infos: the sample is clean

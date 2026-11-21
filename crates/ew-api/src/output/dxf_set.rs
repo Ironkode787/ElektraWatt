@@ -174,13 +174,20 @@ pub(super) fn split_attributes(
     (DisplayList { items: kept }, attributes)
 }
 
-/// The name in words of each symbol the page's representations draw, in the view's language: the names of its blocks.
+/// The name in words of each symbol the page's representations and junctions draw, in the view's language: the names
+/// of its blocks.
 pub(super) fn symbol_names(view: &PageView, out: &mut BTreeMap<Uuid, String>) {
-    for rv in &view.reps {
-        if let Some(def) = &rv.symbol {
-            out.entry(rv.rep.symbol.as_uuid())
-                .or_insert_with(|| ew_scene::forms::ml_text(&def.name, view.language.as_ref()).to_owned());
-        }
+    let reps = view
+        .reps
+        .iter()
+        .filter_map(|rv| Some((rv.rep.symbol.as_uuid(), rv.symbol.as_deref()?)));
+    let junctions = view
+        .junctions
+        .iter()
+        .filter_map(|j| j.symbol.as_ref().map(|s| (s.id.as_uuid(), &*s.def)));
+    for (id, def) in reps.chain(junctions) {
+        out.entry(id)
+            .or_insert_with(|| ew_scene::forms::ml_text(&def.name, view.language.as_ref()).to_owned());
     }
 }
 
