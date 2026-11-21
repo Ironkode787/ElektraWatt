@@ -61,7 +61,7 @@
     },
     "device": {
       "$ref": "#/$defs/Ident",
-      "description": "The device there (\"JE-N1000-03\")."
+      "description": "The device there (\"JE-N1000-03\"), or an address there (\"Q4.1\"); none where it is not known (0.3.5). A\nreference without a location and a device is a far end that is not known."
     },
     "id": {
       "$ref": "#/$defs/Uuid",
@@ -69,7 +69,7 @@
     },
     "location": {
       "$ref": "#/$defs/Uuid",
-      "description": "Its location node (+J-E-206)."
+      "description": "Its location node (+J-E-206); none where it is not known (0.3.5)."
     },
     "project": {
       "anyOf": [
@@ -96,9 +96,7 @@
   },
   "required": [
     "$k",
-    "id",
-    "location",
-    "device"
+    "id"
   ],
   "title": "external_ref",
   "type": "object"

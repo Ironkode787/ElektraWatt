@@ -93,8 +93,8 @@ impl Session {
     }
 
     /// Where the interruption points `points` (their functions) come from when every one names the same external
-    /// reference: its location's code and the device there (`+Supply`, `-X0`); `None` otherwise (Where the
-    /// supply comes from… shows it to change it).
+    /// reference: its location's code and the device there (`+Supply`, `-X0`), each empty where the reference holds
+    /// none; `None` otherwise (Where the supply comes from… shows it to change it).
     pub fn supply_source(&self, points: &[Uuid]) -> Option<(String, String)> {
         let q = self.query();
         let mut shared = None;
@@ -108,8 +108,17 @@ impl Session {
             }
         }
         let x = q.external_refs().get(shared?).cloned()?;
-        let location = q.structure_nodes().get(x.location)?.code.as_str().to_owned();
-        Some((location, x.device.as_str().to_owned()))
+        let location = match x.location {
+            Some(l) => q.structure_nodes().get(l)?.code.as_str().to_owned(),
+            None => String::new(),
+        };
+        Some((
+            location,
+            x.device
+                .as_ref()
+                .map(|d| d.as_str().to_owned())
+                .unwrap_or_default(),
+        ))
     }
 
     /// The other points of the group of the marked supply point `point` (`IpSpec::group`): the points of its

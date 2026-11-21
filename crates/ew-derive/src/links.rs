@@ -196,7 +196,8 @@ pub enum RailLocation {
 /// own devices or pages is own, so that a terminal without a location does not see two own rails where there is
 /// one). Reads the structure nodes, the external references, the devices and the pages whole.
 fn own_locations(q: &Q) -> Vec<Id<StructureNode>> {
-    let external: BTreeSet<Id<StructureNode>> = q.external_refs().iter().map(|(_, x)| x.location).collect();
+    let external: BTreeSet<Id<StructureNode>> =
+        q.external_refs().iter().filter_map(|(_, x)| x.location).collect();
     let assigned = |slot: &Option<Slot>| match slot {
         Some(Slot::Node(n)) => Some(*n),
         _ => None,

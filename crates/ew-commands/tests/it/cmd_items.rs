@@ -787,8 +787,8 @@ fn box_structure_creates_a_box_and_refuses_bad_members() {
     let mut e = engine(mini_model());
     let ext = e
         .execute(&CreateExternalRef {
-            location: LOC,
-            device: Ident::from_input("JE-N1000-03").unwrap(),
+            location: Some(LOC),
+            device: Some(Ident::from_input("JE-N1000-03").unwrap()),
             connection: None,
             project: None,
         })

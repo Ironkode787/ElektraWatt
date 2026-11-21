@@ -221,6 +221,22 @@ change here.
 - api-add: a part holds a card of two channel kinds, inputs and outputs (`PlcSection.more_channels`, an optional
   member after `ratings`): the part editor's PLC form has a second channel kind and its count, the outputs numbered on
   after the inputs and each kind addressed from bit 0 of its own range (doc 10 §2.6, FT-1766)
+- behaviour-change: a wire from a 0 V to an earth symbol is the bond also when the 0 V comes in through interruption
+  points from another page, and when only its name says 0 V (`0VDC-6`, an imported supply whose pins say nothing):
+  the 0 V stays 0 V and is no longer typed PE as a whole, and Draw ▸ Connect ▸ Bond is not needed (doc 08 §3.7,
+  FT-1821, FT-1867); the supply marks' panel proposes such a mark as 0 V (M), where it proposed a plus of 0 V
+- api-add: technical data takes a current in milliampere (`mA`), printed "20 mA" on the page and in the lists, typed
+  in Properties and read from a parts catalogue; a value typed without a unit is refused with the units listed from
+  the one list of units (FT-1867)
+- behaviour-change: an earth symbol without a part has no tag: it takes no number of the cables' letter W (a page's
+  first cable is W1 again), prints none, is named by its pin (`PE`) in the wire list and the messages, and no check
+  asks for its letter, an imported earth point (letter A) included; Properties says why its tag is empty (doc 03
+  §8.2, FT-1820)
+- behaviour-change: an external point's reference holds what is known of the far end: the device or an address alone
+  ("Q4.1"), a location alone, or nothing for a far end not known; the point prints what it holds under its mark, and
+  Supply comes in here… takes an empty field as not known (`ip.supply_in`, `external_ref.create`: `location` and
+  `device` optional); EW-CORE-034 still asks for the cable and names the place by what is known (doc 06 §3.5,
+  FT-1876)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
@@ -230,3 +246,6 @@ change here.
 - format-variant: symbol Align baseline_centre
 - format-variant: symbol Align baseline_left
 - format-variant: symbol Align baseline_right
+- format-variant: device Unit mA
+- format-variant: part Unit mA
+- format-variant: project Unit mA

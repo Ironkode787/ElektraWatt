@@ -1330,8 +1330,8 @@ fn external_location() -> String {
     let id = q
         .external_refs()
         .iter()
-        .next()
-        .map(|(_, x)| x.location.to_string())
+        .find_map(|(_, x)| x.location)
+        .map(|l| l.to_string())
         .expect("the sample has external references");
     drop(q);
     id

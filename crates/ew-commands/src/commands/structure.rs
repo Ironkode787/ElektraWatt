@@ -363,18 +363,21 @@ impl Command for CreateReportBlock {
 /// a structure box can name (doc 03 §6, FR-XRF-011): a device, and optionally its connection, at a
 /// location node, optionally in another project ("JE-N1000-03", connection "L", at +J-E-206).
 ///
-/// Creates `ExternalRef {project, location, device, connection}`. The location node must exist and be of
-/// the location aspect (else rejected). Its fields are edited with `fields.set`; it is named by
+/// Creates `ExternalRef {project, location, device, connection}`, each part only where it is known (doc 06 §3.5: a
+/// device or an address alone, a location alone, or nothing for a far end not known). A given location node must exist
+/// and be of the location aspect (else rejected). Its fields are edited with `fields.set`; it is named by
 /// `ip.place`'s `external`. Outcome: the new reference.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateExternalRef {
     /// The location node.
-    #[schemars(with = "UuidS")]
-    pub location: Id<StructureNode>,
-    /// The device there.
-    #[schemars(with = "IdentS")]
-    pub device: Ident,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub location: Option<Id<StructureNode>>,
+    /// The device there, or an address there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub device: Option<Ident>,
     /// The connection there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
@@ -393,9 +396,11 @@ impl Command for CreateExternalRef {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        let node = tx.require::<StructureNode>(self.location)?;
-        if node.aspect != Open::Known(Aspect::Location) {
-            return tx.reject(text!("refusal-external-ref-not-location", node.code.as_str()));
+        if let Some(location) = self.location {
+            let node = tx.require::<StructureNode>(location)?;
+            if node.aspect != Open::Known(Aspect::Location) {
+                return tx.reject(text!("refusal-external-ref-not-location", node.code.as_str()));
+            }
         }
         let id: Id<ExternalRef> = tx.mint();
         tx.insert(ExternalRef {
@@ -413,16 +418,18 @@ impl Command for CreateExternalRef {
 }
 
 /// `ip.supply_in` (`MarkSupplyIn`, FT-1699): the interruption points `points` are where the supply comes into the
-/// drawing set from another one (L1, L2, L3, N, PE from another drawing): each becomes an external point of one
-/// external reference, the device `device` at the location node coded `location`, in one transaction.
+/// drawing set from another one (L1, L2, L3, N, PE from another drawing), or signals from another cabinet: each
+/// becomes an external point of one external reference, the device (or address) `device` at the location node coded
+/// `location`, in one transaction. Either may be left out where it is not known, both for a far end not known (doc 06
+/// §3.5, FT-1876).
 ///
 /// The location node is the first location node of that code, else a new top-level one; the reference is the first of
-/// that location and device without a connection or another project, else a new one. The project's supply takes it as
-/// its origin (`supply.origin.source`) when the project has a supply without one. With `remove`, the points lose
-/// their external reference instead (the node and the reference stay). Nothing is stored that the format did not
-/// hold: an external point is `ip.external` naming an `ExternalRef` (doc 03 §6, FR-XRF-012). Rejected: a target that
-/// is no interruption point; a starred point (an external point takes no star); `location` or `device` missing
-/// without `remove` or `group`. Outcome: the reference (none with `remove`).
+/// that location and device (each given or not) without a connection or another project, else a new one. The
+/// project's supply takes it as its origin (`supply.origin.source`) when the project has a supply without one. With
+/// `remove`, the points lose their external reference instead (the node and the reference stay). Nothing is stored
+/// that the format did not hold: an external point is `ip.external` naming an `ExternalRef` (doc 03 §6, FR-XRF-012).
+/// Rejected: a target that is no interruption point; a starred point (an external point takes no star). Outcome: the
+/// reference (none with `remove`).
 ///
 /// **Groups** (`IpSpec::group`): points that stand together print where they come from once. Several points
 /// marked at once become one group; one point marked joins the group of a marked point of the same reference in its
@@ -435,11 +442,11 @@ pub struct MarkSupplyIn {
     /// The interruption points' functions.
     #[schemars(with = "Vec<UuidS>")]
     pub points: Vec<Id<Function>>,
-    /// The code of the location the supply comes from.
+    /// The code of the location the points come from; none where it is not known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub location: Option<Ident>,
-    /// The device there that feeds the points.
+    /// The device there that feeds the points, or an address there; none where it is not known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub device: Option<Ident>,
@@ -493,51 +500,44 @@ impl Command for MarkSupplyIn {
             }
             return Ok(Outcome::default());
         }
-        if let (Some(join), None) = (self.group, &self.location) {
+        if let (Some(join), None, None) = (self.group, &self.location, &self.device) {
             return group_points(tx, &self.points, join);
         }
-        let (Some(code), Some(device)) = (&self.location, &self.device) else {
-            let path = if self.location.is_none() {
-                "/location"
-            } else {
-                "/device"
-            };
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                path,
-                text!("refusal-supply-in-missing"),
-            ));
-        };
         let location = Open::Known(Aspect::Location);
-        let found = tx
-            .iter::<StructureNode>()
-            .iter()
-            .find(|n| n.aspect == location && n.code == *code)
-            .map(|n| n.id);
-        let node = match found {
-            Some(id) => id,
-            None => {
-                let id: Id<StructureNode> = tx.mint();
-                tx.insert(StructureNode {
-                    id,
-                    v: 1,
-                    aspect: location,
-                    code: code.clone(),
-                    aliases: Set::default(),
-                    parent: None,
-                    description: MlText::default(),
-                    order: 0,
-                    source_ref: None,
-                    extra: Extra::new(),
-                })?;
-                id
-            }
+        let node = match &self.location {
+            None => None,
+            Some(code) => Some(
+                match tx
+                    .iter::<StructureNode>()
+                    .iter()
+                    .find(|n| n.aspect == location && n.code == *code)
+                    .map(|n| n.id)
+                {
+                    Some(id) => id,
+                    None => {
+                        let id: Id<StructureNode> = tx.mint();
+                        tx.insert(StructureNode {
+                            id,
+                            v: 1,
+                            aspect: location,
+                            code: code.clone(),
+                            aliases: Set::default(),
+                            parent: None,
+                            description: MlText::default(),
+                            order: 0,
+                            source_ref: None,
+                            extra: Extra::new(),
+                        })?;
+                        id
+                    }
+                },
+            ),
         };
         let found = tx
             .iter::<ExternalRef>()
             .iter()
             .find(|x| {
-                x.location == node && x.device == *device && x.connection.is_none() && x.project.is_none()
+                x.location == node && x.device == self.device && x.connection.is_none() && x.project.is_none()
             })
             .map(|x| x.id);
         let external = match found {
@@ -549,7 +549,7 @@ impl Command for MarkSupplyIn {
                     v: 1,
                     project: None,
                     location: node,
-                    device: device.clone(),
+                    device: self.device.clone(),
                     connection: None,
                     source_ref: None,
                     extra: Extra::new(),

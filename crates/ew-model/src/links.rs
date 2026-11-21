@@ -478,7 +478,7 @@ pub static LINKS: &[LinkDecl] = &[
     // section
     lineage_link!(Section),
     // external_ref
-    link!(ExternalRef."location" -> StructureNode, Forbid, None, |v, out| id(v.location, out)),
+    link!(ExternalRef."location" -> StructureNode, Forbid, None, |v, out| opt(v.location, out)),
     lineage_link!(ExternalRef),
     // page
     link!(Page."folio.section" -> Section, Forbid, Some(I::PagesBySection), |v, out| opt(v.folio.section, out)),

@@ -529,8 +529,8 @@ fn saved_structure(
         .iter()
         .map(|(_, e)| {
             (
-                code_of(e.location).unwrap(),
-                e.device.as_str().to_owned(),
+                e.location.and_then(code_of).unwrap(),
+                e.device.as_ref().map(|d| d.as_str().to_owned()).unwrap(),
                 e.connection.as_ref().map(|c| c.as_str().to_owned()),
                 e.project.as_ref().map(|c| c.as_str().to_owned()),
             )

@@ -1038,8 +1038,8 @@ fn an_external_points_row_names_its_reference() {
         .map(|(_, x)| x.clone())
         .expect("its reference");
     assert_eq!(
-        (x.device.as_str(), x.connection.as_ref().map(|c| c.as_str())),
-        ("-Q0", None)
+        (x.device.as_ref().map(|d| d.as_str()), x.connection.as_ref().map(|c| c.as_str())),
+        (Some("-Q0"), None)
     );
     let text = |s: &Session| match &s
         .property_sheet(&[point])

@@ -4,7 +4,8 @@
 //! Supply comes in here… (`ip.supply_in`, FT-1699): the selected interruption points are where the supply enters the
 //! drawing set from another one (L1, L2, L3, N, PE from another drawing). The supply that comes in is an external
 //! reference: the action's form proposes where it comes from (the project supply's origin, else a location named
-//! after the supply) and the device there (the feeder's strip), and Apply is one `ip.supply_in`: the location node
+//! after the supply) and the device there (the feeder's strip), a field left empty being not known (an address alone,
+//! or a far end not known: signals from another cabinet, FT-1876), and Apply is one `ip.supply_in`: the location node
 //! where the project lacks it, the reference, the points' `ip.external`, and the supply's origin where it has none.
 //! The points then print what an external point prints, and pair with nothing, so the unpaired point's finding is
 //! gone. On points that all have the mark it is Where the supply comes from…, whose form shows where they come from
@@ -114,19 +115,26 @@ impl ShellModel {
             .and_then(|x| q.external_refs().get(x).cloned());
         match origin {
             Some(x) => {
-                let location = q
-                    .structure_nodes()
-                    .get(x.location)
+                let location = x
+                    .location
+                    .and_then(|l| q.structure_nodes().get(l))
                     .map(|n| n.code.as_str().to_owned())
                     .unwrap_or_default();
-                (location, x.device.as_str().to_owned())
+                (
+                    location,
+                    x.device
+                        .as_ref()
+                        .map(|d| d.as_str().to_owned())
+                        .unwrap_or_default(),
+                )
             }
             None => proposal(),
         }
     }
 
     /// `ip.supply_in {location?, device?, remove?}` (see the module documentation). In the window without `location`
-    /// and `device` its form opens with the proposals; headless they take the proposals. A selection of anything but
+    /// and `device` its form opens with the proposals; headless a field not given takes its proposal. A field given
+    /// empty is not known (doc 06 §3.5): the device alone is an address, neither is a far end not known. A selection of anything but
     /// interruption points is refused in words.
     pub(crate) fn act_supply_in(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some((points, _)) = self.selected_supply_points() else {
@@ -144,22 +152,20 @@ impl ShellModel {
             };
             return self.commit_from_host(&cmd);
         }
+        // A field given empty (or null) is not known (doc 06 §3.5: an address alone, or a far end not known); a field
+        // not given takes the proposal.
         let given = |name: &str| {
-            p.get(name)
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|t| !t.is_empty())
-                .map(str::to_owned)
+            p.get(name).map(|v| {
+                v.as_str()
+                    .map(str::trim)
+                    .filter(|t| !t.is_empty())
+                    .map(str::to_owned)
+            })
         };
         let (mut location, mut device) = (given("location"), given("device"));
         if !remove && (location.is_none() || device.is_none()) {
             let (place, feeder) = self.supply_in_proposal();
-            if self.in_form_of(SUPPLY_IN) {
-                let missing = if location.is_none() { "location" } else { "device" };
-                let message = self.missing_text(missing);
-                return self.form_failed(SUPPLY_IN, message);
-            }
-            if self.mode == Mode::Gui {
+            if self.mode == Mode::Gui && !self.in_form_of(SUPPLY_IN) {
                 let field = |name, label_key, value: String| FormField {
                     name,
                     label_key,
@@ -180,16 +186,16 @@ impl ShellModel {
                 };
                 return self.open_dialog(Dialog::Form(dialog));
             }
-            location = location.or(Some(place));
-            device = device.or(Some(feeder));
+            location = location.or(Some(Some(place)));
+            device = device.or(Some(Some(feeder)));
         }
         let mut params = json!({
             "points": points.iter().map(Uuid::to_string).collect::<Vec<_>>(),
             "remove": remove,
         });
         if !remove {
-            params["location"] = Value::from(location);
-            params["device"] = Value::from(device);
+            params["location"] = Value::from(location.flatten());
+            params["device"] = Value::from(device.flatten());
         }
         let cmd = AnyCommand {
             name: SUPPLY_IN.into(),

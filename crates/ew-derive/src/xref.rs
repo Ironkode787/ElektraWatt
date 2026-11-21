@@ -52,7 +52,8 @@
 //! - **Page index** (`{page_index}`, QET `%f`): the 1-based position in `page_order` counting every page
 //!   record (drawn pages, section dividers and the base page of each report block, such as the table of
 //!   contents) but not the continuation pages the report engine generates ("2.1"), as QET numbers its folios.
-//! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"),
+//! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"), each part
+//!   only when the reference holds it ("Q4.1" alone, nothing for a far end not known, doc 06 §3.5),
 //!   preceded by the other project's name and a space when it names one; no link. Points of one reference in one
 //!   group (`IpSpec::group`) print it once, at the group's last point on the page (the lowest, then the
 //!   rightmost); the others print nothing.
@@ -923,7 +924,9 @@ fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bo
     })
 }
 
-/// The printed external target: "+J-E-206 / JE-N1000-03" (FR-XRF-012).
+/// The printed external target (FR-XRF-012, doc 06 §3.5): the parts the reference holds, "+J-E-206 / JE-N1000-03",
+/// the device or address alone ("Q4.1"), the location alone ("+MCC2"), and nothing for a far end not known; the other
+/// project's name and a space in front when it names one (the name alone without a location and a device).
 pub(crate) fn external_text(q: &Q, e: Id<ExternalRef>) -> String {
     let Some(x) = q.external_refs().get(e) else {
         q.note(DeriveNote::Xref {
@@ -934,24 +937,25 @@ pub(crate) fn external_text(q: &Q, e: Id<ExternalRef>) -> String {
         });
         return String::new();
     };
-    let path = q.get::<StructurePath>(x.location);
-    let mut d = Designation::new();
-    if let Some(aspect) = path.aspect {
-        for code in &path.codes {
-            // A stored code is a non-empty `Ident`, so `push` cannot fail.
-            let _ = d.push(aspect, code);
+    let location = x.location.map_or_else(String::new, |node| {
+        let path = q.get::<StructurePath>(node);
+        let mut d = Designation::new();
+        if let Some(aspect) = path.aspect {
+            for code in &path.codes {
+                // A stored code is a non-empty `Ident`, so `push` cannot fail.
+                let _ = d.push(aspect, code);
+            }
         }
+        d.format(&RdsSyntax::default())
+    });
+    let place = [location.as_str(), x.device.as_ref().map_or("", |d| d.as_str())]
+        .into_iter()
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join(" / ");
+    match &x.project {
+        Some(p) if place.is_empty() => p.as_str().to_owned(),
+        Some(p) => format!("{} {place}", p.as_str()),
+        None => place,
     }
-    let location = d.format(&RdsSyntax::default());
-    let mut out = String::new();
-    if let Some(p) = &x.project {
-        out.push_str(p.as_str());
-        out.push(' ');
-    }
-    if !location.is_empty() {
-        out.push_str(&location);
-        out.push_str(" / ");
-    }
-    out.push_str(x.device.as_str());
-    out
 }

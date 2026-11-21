@@ -2186,7 +2186,6 @@ refusal-report-block-first-folio = a page-oriented report block needs `first_fol
 refusal-external-ref-not-location = node { $p0 } is not a location; an external reference sits at a location node
 refusal-supply-in-no-point = name at least one interruption point where the supply comes in
 refusal-supply-in-not-ip = only an interruption point can be where the supply comes in
-refusal-supply-in-missing = name where the supply comes from and the device there
 refusal-report-block-form-not-given = `form` is { $p0 }, which none of `form_copies` is
 refusal-report-block-not-form = not a library document of kind form
 # project.supply.set.

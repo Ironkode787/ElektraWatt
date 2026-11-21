@@ -235,8 +235,8 @@ fn bond_create_refusals_write_nothing() {
 
 fn xref(location: Id<ew_schema::StructureNode>) -> CreateExternalRef {
     CreateExternalRef {
-        location,
-        device: ident("JE-N1000-03"),
+        location: Some(location),
+        device: Some(ident("JE-N1000-03")),
         connection: Some(ident("L")),
         project: Some(ident("OTHER")),
     }
@@ -247,8 +247,8 @@ fn external_ref_create_inserts_the_reference() {
     let mut e = engine(mini_model());
     let r = e.execute(&xref(LOC)).expect("external_ref.create");
     let x = row(&e, primary::<ExternalRef>(&r));
-    assert_eq!(x.location, LOC);
-    assert_eq!(x.device, ident("JE-N1000-03"));
+    assert_eq!(x.location, Some(LOC));
+    assert_eq!(x.device, Some(ident("JE-N1000-03")));
     assert_eq!(x.connection, Some(ident("L")));
     assert_eq!(x.project, Some(ident("OTHER")));
 }
@@ -273,7 +273,7 @@ fn external_ref_device_is_editable_with_fields_set() {
         copies: Vec::new(),
     })
     .expect("fields.set device");
-    assert_eq!(row(&e, x).device, ident("JE-N2000-01"));
+    assert_eq!(row(&e, x).device, Some(ident("JE-N2000-01")));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -304,8 +304,8 @@ fn ip_supply_in_marks_the_points_with_one_external_reference() {
         .execute(&mark(vec![FN_IP_101, FN_IP_102]))
         .expect("ip.supply_in");
     let x = row(&e, primary::<ExternalRef>(&r));
-    assert_eq!(x.device, ident("-X0"));
-    assert_eq!(row(&e, x.location).code, ident("Supply"));
+    assert_eq!(x.device, Some(ident("-X0")));
+    assert_eq!(row(&e, x.location.expect("a location")).code, ident("Supply"));
     assert_eq!(external_of(&e, FN_IP_101), Some(x.id));
     assert_eq!(external_of(&e, FN_IP_102), Some(x.id));
     // The same place again: the same reference (and nothing changes).

@@ -1092,6 +1092,11 @@
           "const": "set",
           "description": "Set (order unit).",
           "type": "string"
+        },
+        {
+          "const": "mA",
+          "description": "Milliampere (a coil's or an input's current; 0.3.5).",
+          "type": "string"
         }
       ]
     },

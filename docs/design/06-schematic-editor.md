@@ -335,7 +335,7 @@ BoxSpec`, and the placement target of `device.place`; the created function is of
 be; an outline has at least three points, box CP indexes are distinct and on the grid; the containment gesture of
 §2.7 is the place tool's, not this command's), `bond.create` (`CreateBond`: a, b as CP or junction, kind, optional
 `via`; the label is derived; the PELV and type rules stay checks) and `external_ref.create` (`CreateExternalRef`:
-location node of the location aspect, device, optional connection and project). 29 commands are registered. The
+an optional location node of the location aspect, an optional device, connection and project, §3.5). 29 commands are registered. The
 page-type admission of §2.2 also lets MultiLine and BusTopology pages take
 graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
 the reference drawings show (`allowed_rep_types`; AC-15 path (b)).
@@ -446,7 +446,7 @@ command reference are the exact form.
 | `cable.create`, `conductor.add` | tag, parts, cable aspect, conductors (core, colour, csa, shield, pair) | Interactive | cores unique per cable ([08](08-connections-terminals-cables.md) §7) |
 | `project.settings.set` | member, value | Bulk | one settable member per command, previewed (ADR-0008 amendment 3; [17](17-extensibility.md) §2.1) |
 | `bond.create` (`CreateBond`) | a, b (CP or junction), kind, via? | Interactive | label derived; the PELV and type rules are checks (FR-CON-014) |
-| `external_ref.create` (`CreateExternalRef`) | location node, device, connection?, project? | Interactive | a location-aspect node (FR-XRF-011) |
+| `external_ref.create` (`CreateExternalRef`) | location node?, device?, connection?, project? (§3.5: what is known of the far end) | Interactive | a location-aspect node (FR-XRF-011) |
 | `assembly.attach` (`AttachChildren`) | parent, children (device, position?) | Interactive | sets `parent` and `position` of existing devices; no push insert, no detach (FT-273); a child-scheme counter that equalled the old position follows the new one (N-FL-2's rule) |
 | `valve.add` (`AddValve`) | module, position?, part, letter? (default Q), fndef? (interim), structure? | Interactive | [11](11-fluid-power.md) §4.3; child tag with counter = position; `fndef` and `letter` are interim until N-FL-1 |
 | `device.link` (`LinkDevices`) | from, to, kind | Interactive | [11](11-fluid-power.md) §4.3; no self-link, no duplicate of the same kind |
@@ -725,6 +725,27 @@ installed library's symbol by its key as well as by its address, before its firs
   and the external arrow keep a free orientation.
 - **External connection points** are IPs with `external = Some(ExternalRef)`. They never pair and print the external
   target ("+J-E-206 / JE-N1000-03") in the xref slot (FR-XRF-012).
+- **What an external point's reference holds** (0.3.5, FT-1876). A drawing set whose signals come from another
+  cabinet names each mark at the head of a current path for its signal ("Valve 1 open") and prints under it where the
+  signal comes from: often an address alone ("Q4.1"), sometimes nothing, because the far end is not known yet.
+  - *Fields.* `ExternalRef.location` and `ExternalRef.device` are optional, as `project` and `connection` were: a
+    reference holds what is known of the far end, the device or an address in `device`. One that holds neither is a
+    far end not known. The format grows additively: a project of 0.3.0 reads unchanged.
+  - *What prints* (the point's xref slot, a structure box's caption, a bus partner): the parts the reference holds,
+    the location and the device joined by " / " ("+J-E-206 / JE-N1000-03"), the device or address alone ("Q4.1"),
+    the location alone ("+MCC2"), and nothing for a far end not known; another project's name in front as before. The
+    connection prints in the wire list's end, as before. The person chooses what prints by what the reference holds.
+  - *Making one.* Supply comes in here… (`ip.supply_in`) keeps its two fields, the location and the device there; a
+    field left empty is not known, so the device alone is an address and two empty fields a far end not known (a
+    script that leaves a field out takes the proposal, as before). `external_ref.create` takes any of them or none.
+    The Interruption tool's external field names a reference by its printed device (and connection); one without a
+    device is named by its ID.
+  - *What the checks ask.* EW-CORE-034 still asks that the wires of an external point be a cable's cores; its finding
+    names the place by the reference's location, else by what the reference prints ("Q4.1 → -1K2"), else says the
+    connection comes from a place not known. EW-CORE-051 never asks to pair an external point. Nothing asks for a
+    location or a device.
+  - *Not built:* a reference that holds a location but prints only its device (the person leaves the location out of
+    it instead); the stale check against the other project (FR-PRJ-022, 1.0).
 - **Potential definition points** name and type a potential at an endpoint, a CP or a junction (FR-CON-010); they
   may be drawn as a flag symbol or kept undrawn and edited in the potential navigator, which lists each potential's
   CPs, devices, pages and IP aliases (FR-CON-012, FR-CON-027).

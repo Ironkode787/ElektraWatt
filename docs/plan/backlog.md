@@ -34,10 +34,8 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### External points, earth and 0 V
 
-- FT-1876 `ew-derive, ew-scene, ew-checks`: An external point must have a location and a device and prints both, not the connection it stands for. A set whose signals come from another cabinet needs the reference's parts chosen (an address alone), a mark named for its signal, and a point whose far end is not known.
-- FT-1867 `ew-scene, ew-derive`: Technical data has no unit `mA`; a coil's data prints through the coil's wire; a 0 V potential bonded to an earth symbol is typed PE as a whole.
-- FT-1820 `ew-commands, ew-derive`: An earth symbol takes its number from the cables' W counter (its tag is hidden on the page and used in the wire list), so a project's first cable can be W2 and two devices can be tagged W1; changing the symbol's letter is EW-RDS-003. Decide the symbol's own letter, or give it no tag.
-- FT-1821 `ew-derive, ew-checks`: The rule that a wire from 0 V to earth is the bond (`bond_carrier.rs`) looks at one page only: a 0 V that comes in through an interruption point from another page still needs Draw ▸ Connect ▸ Bond.
+- FT-1980 `ew-drafting, ew-scene`: A coil's technical data printed through its own wire in the first production job. The program's own coil symbols put it left of the coil, clear of the wire (the sample's -102Q1, also mirrored); the job's coil symbol had its data slot on the pin line, and the placer keeps a slot text at its author's place even across a wire (doc 06a §5.3). Decide whether a data text there gives way to a wire.
+- FT-1981 `ew-api, ew-import-catalog`: The units of technical data are listed by hand three times beside `Unit` (the typed units, a parts catalogue's units, the derive's symbols); the catalogue's list lacks `mm`, `piece` and `set`. One list from `Unit`.
 
 #### What the model has no place for
 

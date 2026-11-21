@@ -84,10 +84,13 @@ points that stand together, one under the other, print that place once.
 To make one: **Supply** on the Draw tab, beside Interruption, asks what comes in (single phase L, N, PE; three phase
 with or without N; 24 V DC; your own names) and where it comes from, and the marks follow the pointer as one group
 until you click. Or draw the points with Interruption, select them, right-click and choose **Supply comes in here…**;
-its form proposes where the supply comes from and the device there. When the marks are placed, a small panel opens at them and asks what comes
+its form proposes where the supply comes from and the device there. The same marks bring in signals from another
+cabinet: name each mark for its signal and leave a field empty where it is not known. A mark prints what is known:
+the place and the device (`+MCC2 / -A1`), an address alone when only the device field holds it (`Q4.1`), or nothing
+when the far end is not known yet. When the marks are placed, a small panel opens at them and asks what comes
 in: a row per mark, with the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and the voltage with AC or DC
 (`230 V AC`), filled in from the mark's name where the name tells it (`L1-EXT` is a phase at the project supply's
-voltage, `N` the neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V` or `M` its minus). Enter defines every
+voltage, `N` the neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V`, `0VDC` or `M` its minus). Enter defines every
 row's potential in one step; Escape places the marks without one. A mark on a potential that has its type already is
 not asked. **Potential…** on the marks' right-click menu opens the panel again to change it.
 

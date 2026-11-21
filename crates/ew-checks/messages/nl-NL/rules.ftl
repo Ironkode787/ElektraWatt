@@ -170,7 +170,10 @@ rule-ew-core-033 = { WORD($cable) } heeft nog geen lengte: typ die in de eigensc
     .title = Kabel zonder lengte
     .hint = Typ de lengte in de eigenschappen van de kabel, routeer de kabel in de layout of kies een kabelartikel met een vaste lengte. Alleen in de controle voor oplevering is het een fout.
 
-rule-ew-core-034 = de externe verbinding { $connection } heeft geen kabel: { $count ->
+rule-ew-core-034 = de externe verbinding { $far ->
+        [unknown] van een onbekende plek naar { $inside }
+       *[known] { $connection }
+    } heeft geen kabel: { $count ->
         [one] draad { $wires } is
        *[many] draden { $wires } zijn
     } geen kabelader; voeg de kabel toe en wijs de aders toe

@@ -14,8 +14,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    CableCore, ColourCode, ColourSpec, Conductor, Connection, ConnectionKind, Device, Function, FunctionKind,
-    Kind, LibCopy, Part, StructureNode,
+    CableCore, ColourCode, ColourSpec, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
+    FunctionKind, Kind, LibCopy, Part, StructureNode,
 };
 use ew_derive::{
     CpRef, DeviceTag, EndKind, EndpointKey, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf,
@@ -421,11 +421,21 @@ fn inside_device(q: &Q, cp: CpRef) -> Option<Id<Device>> {
 /// EW-CORE-034: a wired external connection point (an interruption point with `IpSpec.external`, FR-CBL-015) whose
 /// wire is not a cable core (FR-CHK-033, D-19, EF-07, MF-27). The external points of one page are grouped by the
 /// external reference's location: one finding per page and location, "+J-E-206 → 1X1", listing the inside devices
-/// (a terminal by its strip) and the wires in natural order. An external point without a connection point or a
-/// connection is not wired and not reported (EW-CORE-051 owns pairing). Targets: the location node and the points'
-/// functions; discriminator `external`; shown on the page.
+/// (a terminal by its strip) and the wires in natural order; the points of a reference without a location (an address
+/// alone, or a far end not known, doc 06 §3.5) by their reference, named by what it prints ("Q4.1 → 1X1") or, printing
+/// nothing, as coming from a place not known. An external point without a connection point or a
+/// connection is not wired and not reported (EW-CORE-051 owns pairing). Targets: the location node (else the
+/// reference) and the points' functions; discriminator `external`; shown on the page.
 #[derive(Clone, Copy, Debug)]
 pub struct ExternalWithoutCable;
+
+/// Where the external points of one finding of [`ExternalWithoutCable`] come from: their reference's location, else
+/// their reference.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+enum Place {
+    Location(Id<StructureNode>),
+    Reference(Id<ExternalRef>),
+}
 
 impl Rule for ExternalWithoutCable {
     fn meta(&self) -> &'static RuleMeta {
@@ -444,9 +454,9 @@ impl Rule for ExternalWithoutCable {
         }
         let partition = q.get::<PotentialPartition>(());
         let external_refs = q.external_refs();
-        // location → (point functions, inside devices, wire labels)
+        // place → (point functions, inside devices, wire labels)
         type Group = (BTreeSet<Id<Function>>, BTreeSet<Id<Device>>, Vec<String>);
-        let mut groups: BTreeMap<Id<StructureNode>, Group> = BTreeMap::new();
+        let mut groups: BTreeMap<Place, Group> = BTreeMap::new();
         for f in ips {
             let Some(function) = q.functions().get(f) else {
                 continue;
@@ -454,10 +464,10 @@ impl Rule for ExternalWithoutCable {
             let FunctionKind::Ip(spec) = &function.kind else {
                 continue;
             };
-            let Some(location) = spec
-                .external
-                .and_then(|x| external_refs.get(x).map(|r| r.location))
-            else {
+            let Some(location) = spec.external.and_then(|x| {
+                let r = external_refs.get(x)?;
+                Some(r.location.map_or(Place::Reference(x), Place::Location))
+            }) else {
                 continue;
             };
             // Only the point's home page reports it (its first representation's page).
@@ -490,15 +500,32 @@ impl Rule for ExternalWithoutCable {
             }
         }
         let mut out = Vec::new();
-        for (location, (functions, devices, mut wires)) in groups {
-            let at = location_text(q, location);
+        for (place, (functions, devices, mut wires)) in groups {
+            let (at, target) = match place {
+                Place::Location(l) => (location_text(q, l), Target::new(Kind::StructureNode, l)),
+                Place::Reference(r) => (
+                    ew_derive::external_partner_text(q, r),
+                    Target::new(Kind::ExternalRef, r),
+                ),
+            };
             let mut inside: Vec<String> = devices.into_iter().map(|d| cable_text(q, d)).collect();
             sort_natural(&mut inside);
             sort_natural(&mut wires);
             wires.dedup();
-            let subject = format!("{at} → {}", inside.join(", "));
+            let inside = inside.join(", ");
+            // A far end that is not known prints nothing: the connection is named by where it goes.
+            let (subject, connection, far) = if at.is_empty() {
+                (
+                    inside.clone(),
+                    format!("from a place not known to {inside}"),
+                    "unknown",
+                )
+            } else {
+                let subject = format!("{at} → {inside}");
+                (subject.clone(), subject, "known")
+            };
             let message = format!(
-                "the external connection {subject} has no cable: {} {} not a cable core; add the cable and assign its cores",
+                "the external connection {connection} has no cable: {} {} not a cable core; add the cable and assign its cores",
                 if wires.len() == 1 { "wire" } else { "wires" },
                 and_list(&wires, if wires.len() == 1 { "is" } else { "are" }),
             );
@@ -506,16 +533,17 @@ impl Rule for ExternalWithoutCable {
             out.push(
                 Finding::new(
                     &EXTERNAL_WITHOUT_CABLE,
-                    std::iter::once(Target::new(Kind::StructureNode, location))
-                        .chain(functions.iter().map(|f| Target::new(Kind::Function, *f))),
+                    std::iter::once(target).chain(functions.iter().map(|f| Target::new(Kind::Function, *f))),
                     "external",
                     subject.clone(),
                     message,
                 )
                 .arg("connection", subject)
+                .arg("inside", inside)
+                .arg("far", far)
                 .arg("wires", wires.join(", "))
                 .arg("count", count)
-                .keyed_on(&[Target::new(Kind::StructureNode, location)])
+                .keyed_on(&[target])
                 .on_page(page),
             );
         }

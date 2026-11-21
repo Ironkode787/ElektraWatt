@@ -169,7 +169,10 @@ rule-ew-core-033 = { $cable } has no length yet: type it in its Properties, or r
     .title = Cable without length
     .hint = Type the length in the cable's Properties, route the cable in the layout, or choose a cable part with a fixed length. It is an error only in the check for delivery.
 
-rule-ew-core-034 = the external connection { $connection } has no cable: { $count ->
+rule-ew-core-034 = the external connection { $far ->
+        [unknown] from a place not known to { $inside }
+       *[known] { $connection }
+    } has no cable: { $count ->
         [one] wire { $wires } is
        *[many] wires { $wires } are
     } not a cable core; add the cable and assign its cores

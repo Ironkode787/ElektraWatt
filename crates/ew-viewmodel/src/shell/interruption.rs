@@ -113,7 +113,8 @@ impl ShellModel {
     }
 
     /// The project's external references as the IP tool's field offers them: (ID text, printed text
-    /// `<device>:<connection>`), in printed-text order.
+    /// `<device>:<connection>`, each part the reference holds; empty for one without both, which only its ID names), in
+    /// printed-text order.
     pub fn external_choices(&self) -> Vec<(String, String)> {
         let Some(p) = &self.project else {
             return Vec::new();
@@ -123,9 +124,10 @@ impl ShellModel {
             .external_refs()
             .iter()
             .map(|(id, x)| {
+                let device = x.device.as_ref().map_or("", |d| d.as_str());
                 let label = match &x.connection {
-                    Some(c) => format!("{}:{}", x.device.as_str(), c.as_str()),
-                    None => x.device.as_str().to_owned(),
+                    Some(c) if !device.is_empty() => format!("{device}:{}", c.as_str()),
+                    _ => device.to_owned(),
                 };
                 (id.to_string(), label)
             })
@@ -479,7 +481,7 @@ impl ShellModel {
         let q = p.session.query();
         q.external_refs()
             .iter()
-            .map(|(id, x)| (id.to_string(), x.location.as_uuid().to_string()))
+            .filter_map(|(id, x)| Some((id.to_string(), x.location?.as_uuid().to_string())))
             .collect()
     }
 

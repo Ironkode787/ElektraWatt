@@ -2129,7 +2129,6 @@ refusal-report-block-first-folio = een paginagericht rapportblok heeft `first_fo
 refusal-external-ref-not-location = knooppunt { $p0 } is geen locatie; een externe verwijzing staat op een locatieknooppunt
 refusal-supply-in-no-point = noem ten minste één onderbrekingspunt waar de voeding binnenkomt
 refusal-supply-in-not-ip = alleen een onderbrekingspunt kan de plek zijn waar de voeding binnenkomt
-refusal-supply-in-missing = noem waar de voeding vandaan komt en het apparaat daar
 refusal-report-block-form-not-given = `form` is { $p0 }, en dat is geen van de `form_copies`
 refusal-report-block-not-form = geen bibliotheekdocument van de soort form
 # project.supply.set.
