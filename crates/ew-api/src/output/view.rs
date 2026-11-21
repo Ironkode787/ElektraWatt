@@ -120,9 +120,9 @@ use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, Row
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    BreakMarkView, BreakSide, BridgeView, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView,
-    PinText, PlugNoteView, RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph,
-    ValveGlyphsView,
+    BreakMarkView, BreakSide, BridgeView, CellView, ConnectionView, CpTarget, FrameView, ItemLink,
+    JunctionView, PinText, PlugNoteView, RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef,
+    ValveCellsView, ValveGlyph, ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
@@ -1433,7 +1433,7 @@ pub fn page_bridges(q: &Q, page: Id<Page>) -> Vec<BridgeView> {
     for strip in strips {
         for group in q.get::<ew_derive::StripBridges>(strip).iter() {
             // The clamp of each terminal: the first end of the group's connections on it.
-            let ends: Vec<(Id<Device>, (Id<Function>, u16))> = group
+            let ends: Vec<_> = group
                 .connections
                 .iter()
                 .filter_map(|id| connections.get(*id))

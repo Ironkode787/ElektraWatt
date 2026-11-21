@@ -93,7 +93,11 @@ fn placed(s: &ShellModel, name: &str, from: &TableCp) -> ((i64, i64), Vec<(i64, 
         .iter()
         .find(|r| r.ip.as_ref().is_some_and(|i| i.name == name))
         .unwrap_or_else(|| panic!("the point {name}"));
-    let cp = t.cps.iter().find(|c| c.rep == rep.id).expect("its connection point");
+    let cp = t
+        .cps
+        .iter()
+        .find(|c| c.rep == rep.id)
+        .expect("its connection point");
     let wire = t
         .connections
         .iter()

@@ -1523,7 +1523,9 @@ impl Builder<'_> {
                 Some(h) if !h.is_empty() => hop_path(&drawn[k].1, h),
                 _ => Path::polyline(pts),
             };
-            self.push(Item::path(cut(path), Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())));
+            self.push(
+                Item::path(cut(path), Some(strokes[k].clone()), None).with_entity(EntityRef(id.as_uuid())),
+            );
         }
         for (id, pts) in &unrouted {
             let dashed = Stroke::pen(Pen::P013).dashed(DashPattern::Dash42);
@@ -1596,7 +1598,11 @@ impl Builder<'_> {
                 }
                 self.push(Item::path(Path::line(first, last), Some(stroke.clone()), None));
                 for p in points {
-                    self.push(Item::path(Path::circle(p, JUNCTION_DOT_RADIUS), None, Some(Brush::BLACK)));
+                    self.push(Item::path(
+                        Path::circle(p, JUNCTION_DOT_RADIUS),
+                        None,
+                        Some(Brush::BLACK),
+                    ));
                 }
             }
         }

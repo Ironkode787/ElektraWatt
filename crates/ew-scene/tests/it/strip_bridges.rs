@@ -78,7 +78,11 @@ fn drawn(v: &PageView) -> (Vec<(Pt2, Pt2)>, Vec<Pt2>) {
             ([PathEl::MoveTo(a), PathEl::LineTo(b)], None) => lines.push((*a, *b)),
             (_, Some(fill)) if *fill == Brush::BLACK => {
                 let b = p.path.bounds().expect("a dot");
-                assert_eq!(b.width(), Nm(2 * JUNCTION_DOT_RADIUS.0), "a dot of the junction's size");
+                assert_eq!(
+                    b.width(),
+                    Nm(2 * JUNCTION_DOT_RADIUS.0),
+                    "a dot of the junction's size"
+                );
                 dots.push(Pt2::new(
                     b.min().x + Nm(JUNCTION_DOT_RADIUS.0),
                     b.min().y + Nm(JUNCTION_DOT_RADIUS.0),

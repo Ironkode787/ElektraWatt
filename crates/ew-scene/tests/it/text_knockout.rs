@@ -119,7 +119,11 @@ fn a_wire_through_a_fixed_text_is_cut_round_it() {
         "the text spans the wire: {b:?}"
     );
     let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
-    assert_eq!(labels.knockouts, [b], "the labels layer names the text the wire runs through");
+    assert_eq!(
+        labels.knockouts,
+        [b],
+        "the labels layer names the text the wire runs through"
+    );
     let x = Nm(110 * MM);
     assert_eq!(
         wire_path(&wires(&v)),
