@@ -150,6 +150,14 @@ Faults met while `fixtures/sample/sample.uiscript` was written; each has its ste
 - FT-1903 `ew-checks`: A breaker with a phase pole and a neutral pole (1P+N) wired with L and N is reported as opening the neutral without the phase (EW-POT-013, an error): the rule does not see that both poles belong to one device and switch together.
 - FT-1907 `ew-viewmodel, ew-commands`: Draw on a page from the station view, for a station whose CPU is not placed yet, puts the CPU's box below the frame, off the sheet. Place it inside the drawing area as the cards are.
 
+#### What the tests met on the sample
+
+Faults met while the tests moved from the reference project to the sample (M3.5, step 9); each test took another way round its fault, so a fix adds the test that goes straight.
+
+- FT-1910 `ew-ui`: Supply comes in here… on the sample's page 102, with the incoming 24 V mark selected and Enter pressed: the potentials panel's Conductor list and its Voltage field have no accessible name (`canvas.rs`). The same on page 103's mark names them.
+- FT-1911 `ew-viewmodel, ew-ui`: A tap on a mark's own cross-reference text does not follow it while that mark is selected (the sample's page 103, the incoming PE mark, its text 101-C10); with nothing selected it does.
+- FT-1912 `ew-viewmodel`: A wire selected on the page does not always mark its row in Connections: on the sample's page 104 the wire numbered 101.16 does not, on page 102 the wire 101.15 does. The cause is not known.
+
 #### The page's drawing
 
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
