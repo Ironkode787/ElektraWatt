@@ -623,8 +623,12 @@ impl Picker {
             }
         }
         self.nodes = nodes;
-        self.row = usize::from(blank && rows.len() > 1);
         self.rows = rows;
+        // The current row is the first that can be placed (FT-1761: the browser opened on a greyed bus symbol).
+        let start = usize::from(blank && self.rows.len() > 1);
+        self.row = (start..self.rows.len())
+            .find(|&i| self.disabled(self.rows[i]).is_none())
+            .unwrap_or(start);
     }
 
     /// Chooses the tree's node `node`; the current row goes back to the first. A trade chosen opens; chosen again it

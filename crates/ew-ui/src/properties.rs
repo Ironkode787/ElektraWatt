@@ -631,6 +631,10 @@ impl PropertiesPane {
                         events.extend(findings_events(&sheet.header));
                     }
                 }
+                // Where every value shares its source (a report page's, generated), the header says it once.
+                if let Some(p) = ew_viewmodel::properties::shared_provenance(sheet) {
+                    crate::components::caption_chip(ui, chip_word(p)).on_hover_text(chip_text(p));
+                }
                 ui.add_space(t.space_2);
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                     ui.add(
@@ -748,8 +752,11 @@ impl PropertiesPane {
         } else {
             chip_text(&row.provenance)
         };
-        // D11: the chip stands only by a value that is not authored.
-        let show_chip = !header && !matches!(row.provenance, Provenance::Authored);
+        // D11: the chip stands only by a value that is not authored; where every row shares it, the header says it
+        // once (FT-1761).
+        let show_chip = !header
+            && !matches!(row.provenance, Provenance::Authored)
+            && ew_viewmodel::properties::shared_provenance(sheet).is_none();
         let error = props
             .error()
             .filter(|(r, _)| *r == row.key)

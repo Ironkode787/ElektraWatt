@@ -1003,7 +1003,7 @@ the `size.property_label` column with ellipsis and tooltip; the value in a `size
 1-px accent ring while editing) in `color.text.primary`; unit as suffix; at the cell's right end a **provenance chip
 only when the value is not authored**: a pill in `type.caption` and `color.text.tertiary` with a 1-px
 `color.border.default` naming the source in one word, "inherited", "varies", "page", "derived", "override", "frozen",
-"library" or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description.
+"library" or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description. Where every value row of the sheet shares one such source (a report page's rows, all generated), the header shows that chip once after the title and the rows show none (FT-1761).
 An authored value shows nothing, so the eye finds the exceptions. An empty authored value shows an em dash in
 `color.text.tertiary`. *As built (0.3.0-rc.2).* A value chosen from a list (an enumeration, a colour, a structure
 node, the connection grid) shows a 16-px `chevron-down` in `color.text.secondary` at the cell's right end, always,

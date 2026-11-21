@@ -69,8 +69,10 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     let picker = state(&s)["canvas"]["picker"].clone();
     assert_eq!(picker["mode"], "place");
     assert_eq!(picker["filter"], "");
-    assert_eq!(picker["row"], 0);
     let p = s.picker().unwrap();
+    // The current row is the first that can be placed (FT-1761).
+    assert_eq!(picker["row"], p.row);
+    assert!(p.disabled(p.rows[p.row]).is_none());
     assert!(
         p.catalogue.symbols.iter().all(|r| r.key.ends_with("@qet10")),
         "the page's grid family"

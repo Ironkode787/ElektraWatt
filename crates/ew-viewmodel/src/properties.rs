@@ -1338,6 +1338,19 @@ pub fn row_help(section: &SheetSection, row: &PropRow) -> Option<&'static str> {
     strings::field_help(&section.kind, &row.path_for_label())
 }
 
+/// The provenance every value row of `sheet` shares when it is not authored (FT-1761: a report page's Properties
+/// showed a "generated" chip on each of its rows): the header says it once and the rows show none (doc 16a §6.8).
+/// `None` when a row is authored or two rows differ.
+pub fn shared_provenance(sheet: &PropertySheet) -> Option<&Provenance> {
+    let mut rows = sheet
+        .sections
+        .iter()
+        .flat_map(|s| s.rows.iter().filter(move |r| !is_header(s, r)))
+        .map(|r| &r.provenance);
+    let first = rows.next()?;
+    (!matches!(first, Provenance::Authored) && rows.all(|p| p == first)).then_some(first)
+}
+
 /// Whether a row is a group header: a group or list without a route of its own whose members are editable.
 pub fn is_header(section: &SheetSection, row: &PropRow) -> bool {
     if !row.ty.is_container() || row.route.is_editable() || is_derived(row) {
