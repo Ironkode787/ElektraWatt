@@ -4,10 +4,12 @@
 //! The router (docs/design/06a-drafting.md §3, §9.3 row 2): nets with trunks, shared runs, his routes left alone,
 //! the same plan whatever the order of the page's lists, and the fixtures of §9.1.
 
+use std::collections::BTreeMap;
+
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    DraftPage, End, LabelKind, Owner, Places, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route,
-    route_wire,
+    DraftPage, End, FixedText, LabelKind, MarkId, Owner, Places, Pt, Reason, Rect, Scope, Side, WireEnd, WireId, geom,
+    jobs, measure, route, route_wire,
 };
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
@@ -103,6 +105,10 @@ fn a_t_junction_moves_onto_the_trunk_and_keeps_its_three_wires() {
         assert_eq!(x.ends, *e, "the wire ends where it did");
         assert_eq!(corners(&x.route), 0, "straight");
     }
+    // A move's re-solve keeps every junction where it stands.
+    let mut kept = jobs(&b.page, Scope::Page);
+    kept.keep_junctions = true;
+    assert!(route(&b.page, &kept).junctions.is_empty());
 }
 
 #[test]
@@ -132,6 +138,40 @@ fn a_route_the_person_shaped_is_in_no_page_wide_plan_and_a_broken_one_is_flagged
     let plan = route(&b.page, &jobs);
     assert!(plan.routes.iter().all(|(w, _)| *w != his));
     assert_eq!(plan.his, vec![broken]);
+}
+
+/// §3.2: a page-wide Route takes the wires that are unrouted, have a fault as stored (F1: a slanted segment, or a corner
+/// off the half grid) or are the program's; the person's among the broken ones are flagged his.
+#[test]
+fn a_page_wide_route_takes_the_unrouted_the_slanted_the_off_grid_and_the_computed_wires() {
+    let mut b = Page::new(60, 30);
+    for k in 0..5 {
+        b.device(&format!("K{k}"), p(6 + 10 * k, 4));
+        b.device(&format!("L{k}"), p(6 + 10 * k, 16));
+    }
+    let wire = |b: &mut Page, k: usize, via: &[Pt]| {
+        b.run(&format!("w{k}"), b.pin(&format!("K{k}"), "2"), b.pin(&format!("L{k}"), "1"), via)
+    };
+    let fine = wire(&mut b, 0, &[]);
+    let slanted = wire(&mut b, 1, &[p(16, 10), p(17, 12), p(16, 14)]);
+    // Two corners a quarter step off the grid, across only.
+    let off = Pt::new(s(26) + 4, s(10));
+    let off_grid = wire(&mut b, 2, &[p(26, 10), off, Pt::new(off.x, s(12)), p(26, 12)]);
+    let computed = wire(&mut b, 3, &[]);
+    let unrouted = b.wire("w4", b.pin("K4", "2"), b.pin("L4", "1"), &[]);
+    b.page
+        .wires
+        .iter_mut()
+        .find(|w| w.id == computed)
+        .expect("w3")
+        .computed = true;
+    let jobs = jobs(&b.page, Scope::Page);
+    let mut want = vec![slanted, off_grid, computed, unrouted];
+    want.sort();
+    assert_eq!(jobs.wires, want, "{fine:?} is no job");
+    let mut his = vec![slanted, off_grid];
+    his.sort();
+    assert_eq!(jobs.his, his);
 }
 
 #[test]
@@ -182,6 +222,9 @@ fn every_fixture_as_wired_by_hand_gives_an_empty_plan() {
     for f in fixtures() {
         let plan = route(&f.hand, &jobs(&f.hand, Scope::Page));
         assert!(plan.is_empty(), "{}: {:?}", f.name, plan.routes);
+        // The empty plan still says how the page stands.
+        assert_eq!(plan.before, measure(&f.hand), "{}", f.name);
+        assert_eq!(plan.after, plan.before, "{}", f.name);
         // Marked as the program's, they are weighed against what is drawn: never worse.
         let mut computed = f.hand.clone();
         for w in &mut computed.wires {
@@ -455,4 +498,163 @@ fn a_tap_may_stand_on_a_line_across_between_a_pin_and_the_pins_that_face_it() {
     for want in [p(10, 12), p(16, 12), p(16, 15), p(10, 18), p(16, 18)] {
         assert!(taps.contains(&want), "{want:?} of {taps:?}");
     }
+}
+
+/// §3.8: a job that would be a fourth arm at a junction the other wires leave in three directions keeps its stored
+/// route, and the plan names that as what is in its way; the plan's other job is routed.
+#[test]
+fn a_job_that_would_be_a_fourth_arm_keeps_its_route_and_is_named_so() {
+    let mut b = Page::new(30, 24);
+    let j = b.junction("J", p(10, 10));
+    b.device("above", p(10, 4));
+    b.device("below", p(10, 12));
+    b.mark_in("in", p(4, 10));
+    b.mark_out("out", p(16, 10));
+    b.run("up", b.pin("above", "2"), j, &[]);
+    b.run("down", j, b.pin("below", "1"), &[]);
+    b.run("left", b.pin("in", "1"), j, &[]);
+    // Drawn by the person as a fourth arm.
+    let fourth = b.run("fourth", j, b.pin("out", "1"), &[]);
+    // And a wire without a route that has a free way. A Route of the two: the other three wires at the junction stay.
+    b.device("K1", p(24, 2));
+    b.device("K2", p(24, 12));
+    let free = b.wire("free", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
+    let selected = [fourth.0, free.0];
+    let plan = route(&b.page, &jobs(&b.page, Scope::Selection(&selected)));
+    assert!(!plan.is_empty());
+    assert_eq!(plan.routes.iter().map(|(w, _)| *w).collect::<Vec<_>>(), [free]);
+    assert_eq!(plan.unrouted, [(fourth, Reason::FourArms)]);
+}
+
+/// §3.9: a net whose stored routes cost no more than the new ones keeps them. The program's wire between two junctions
+/// runs down, then right; the search would take right, then down, at the same price: the plan, which routes another
+/// wire, leaves it as it runs.
+#[test]
+fn a_wire_that_runs_as_well_as_the_search_would_draw_it_is_not_redrawn() {
+    let mut b = Page::new(30, 24);
+    b.mark_in("in", p(4, 4));
+    b.device("K", p(12, 12));
+    let (j1, j2) = (b.junction("J1", p(6, 4)), b.junction("J2", p(12, 10)));
+    b.run("feed", b.pin("in", "1"), j1, &[]);
+    b.run("drop", j2, b.pin("K", "1"), &[]);
+    let kept = b.run("kept", j1, j2, &[p(6, 10)]);
+    b.page.wires.iter_mut().find(|w| w.id == kept).expect("kept").computed = true;
+    b.device("K1", p(24, 2));
+    b.device("K2", p(24, 12));
+    let free = b.wire("free", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
+    let jobs = jobs(&b.page, Scope::Page);
+    assert!(jobs.wires.contains(&kept) && jobs.wires.contains(&free));
+    let plan = route(&b.page, &jobs);
+    assert_eq!(plan.routes.iter().map(|(w, _)| *w).collect::<Vec<_>>(), [free]);
+}
+
+/// §3.10: a mark whose wires are routed anew is set on the stretch nearest its place where they run side by side within
+/// two steps, across them; with no such stretch on its first wire alone; a mark that lies across them stays.
+#[test]
+fn a_mark_follows_its_wires_to_the_nearest_stretch_they_share() {
+    let mut b = Page::new(30, 30);
+    b.three_pole("K", p(10, 2), 4);
+    b.three_pole("M", p(10, 14), 4);
+    b.device("D1", p(20, 2));
+    b.device("D2", p(20, 14));
+    // Three straight wires down from y 6 to y 14, at x 10, 12 and 20.
+    let w1 = b.wire("w1", b.pin("K", "2"), b.pin("M", "1"), &[]);
+    let w2 = b.wire("w2", b.pin("K", "4"), b.pin("M", "3"), &[]);
+    let w3 = b.wire("w3", b.pin("D1", "2"), b.pin("D2", "1"), &[]);
+    let line = |x0, x1, y| Rect::new(p(x0, y), p(x1, y));
+    let pair = b.mark("pair", line(9, 13, 20), true, &[w1, w2]);
+    let apart = b.mark("apart", line(9, 21, 22), true, &[w1, w3]);
+    b.mark("across", line(9, 13, 10), true, &[w1, w2]);
+    let plan = route(&b.page, &jobs(&b.page, Scope::Page));
+    assert_eq!(plan.routes.len(), 3, "{:?}", plan.unrouted);
+    let moved: BTreeMap<MarkId, Pt> = plan.marks.iter().copied().collect();
+    // Both onto y 13, the line nearest to them within the wires' run from y 6 to y 14.
+    assert_eq!(
+        moved,
+        BTreeMap::from([(pair, Pt::new(0, -s(7))), (apart, Pt::new(0, -s(9)))])
+    );
+}
+
+/// §7.4: the Wire tool's direct route through a free terminal in line is clear with that terminal left out (its body,
+/// pins and texts), and not with it.
+#[test]
+fn the_direct_route_through_a_terminal_left_out_is_clear() {
+    let mut b = Page::new(30, 30);
+    b.device("K", p(10, 2));
+    b.device("L", p(10, 14));
+    let t = b.terminal("T", p(10, 10));
+    b.page.fixed_texts.push(FixedText {
+        owner: t.0,
+        rect: Rect::new(Pt::new(s(10) - 4, s(10) - 4), Pt::new(s(10) + 4, s(10) + 4)),
+    });
+    let ends = (
+        WireEnd::Pin(b.pin_id("K", "2")),
+        WireEnd::Pin(b.pin_id("L", "1")),
+    );
+    let direct = [p(10, 6), p(10, 14)];
+    assert!(ew_drafting::wire_clear(&b.page, ends, None, &[t], &direct));
+    assert!(!ew_drafting::wire_clear(&b.page, ends, None, &[], &direct));
+}
+
+/// §3.4: a rail whose taps are wired in another order than their parts stand gets no trunk, and the plan names its net.
+#[test]
+fn a_rail_wired_against_the_order_of_its_parts_is_named() {
+    let mut b = Page::new(50, 30);
+    b.mark_in("in", p(4, 6));
+    b.mark_out("out", p(44, 6));
+    for (k, x) in [(1, 12), (2, 22), (3, 32)] {
+        b.device(&format!("K{k}"), p(x, 14));
+    }
+    // In, K1, K3, K2, out: K3 before K2, though K2 stands first.
+    let net = [
+        b.wire("a", b.pin("in", "1"), b.pin("K1", "1"), &[]),
+        b.wire("b", b.pin("K1", "1"), b.pin("K3", "1"), &[]),
+        b.wire("c", b.pin("K3", "1"), b.pin("K2", "1"), &[]),
+        b.wire("d", b.pin("K2", "1"), b.pin("out", "1"), &[]),
+    ];
+    let plan = route(&b.page, &jobs(&b.page, Scope::Page));
+    assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
+    assert!(net.contains(&plan.notes[0][0]), "{:?}", plan.notes);
+}
+
+/// §3.3: the occupancy holds the wires that stay. A job whose straight way runs along a route the person drew goes round
+/// it and is routed.
+#[test]
+fn a_job_goes_round_a_route_that_stays() {
+    let mut b = Page::new(24, 20);
+    b.mark_in("in", p(4, 10));
+    b.mark_out("out", p(18, 10));
+    b.device("C", p(8, 2));
+    b.device("D", p(12, 2));
+    // His U from C down to the line and up to D.
+    b.run("his", b.pin("C", "2"), b.pin("D", "2"), &[p(8, 10), p(12, 10)]);
+    let job = b.wire("job", b.pin("in", "1"), b.pin("out", "1"), &[]);
+    assert_eq!(jobs(&b.page, Scope::Page).wires, [job]);
+    let done = routed(&b.page);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    let r = &done.wires.iter().find(|w| w.id == job).expect("the job").route;
+    assert!(corners(r) > 0, "round his route: {r:?}");
+}
+
+/// §1.2 C4 and §3.6: a text that cannot move is priced, so a job takes a way round it with two bends more rather than
+/// across it.
+#[test]
+fn a_job_goes_round_a_text_that_cannot_move() {
+    let mut b = Page::new(24, 20);
+    b.device("K", p(4, 0));
+    b.mark_out("out", p(14, 12));
+    // A note: a part without pins whose text stands across the way down from K to the line of the mark.
+    let note = b.part("N", p(4, 8), (p(0, 0), p(0, 0)), &[]);
+    b.page.fixed_texts.push(FixedText {
+        owner: note.0,
+        rect: Rect::new(p(3, 7), p(5, 9)),
+    });
+    let job = b.wire("job", b.pin("K", "2"), b.pin("out", "1"), &[]);
+    let done = routed(&b.page);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    assert!(q.findings.across_texts.is_empty(), "{:?}", q.findings.across_texts);
+    let r = &done.wires.iter().find(|w| w.id == job).expect("the job").route;
+    assert_eq!(corners(r), 3, "{r:?}");
 }

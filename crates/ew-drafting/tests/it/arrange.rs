@@ -41,11 +41,13 @@ fn after(page: &DraftPage, a: &Arranged) -> DraftPage {
     out
 }
 
-/// Arrange and route over the page, checked: `rules_kept` holds and the page is no worse.
+/// Arrange and route over the page, checked: `rules_kept` holds, the page is no worse, and the quality the plan
+/// reports is that of the page it leaves (§4.9).
 fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
     let a = arrange(page, Scope::Page, fixed);
     let done = after(page, &a);
     assert_eq!(rules_kept(page, &done), Ok(()), "the plan keeps the rules");
+    assert_eq!(a.plan.after, measure(&done), "the plan's quality after");
     if !a.is_empty() {
         assert!(
             measure(&done).better_than(&measure(page)),
@@ -314,11 +316,26 @@ fn a_second_run_gives_an_empty_plan() {
     let mut b = inputs();
     put(&mut b, "B1", p(18, 18));
     let (a, done) = run(&b.page, &[]);
-    assert!(!a.moves.is_empty());
+    assert!(!a.moves.is_empty() && !a.is_empty());
     assert!(
         arrange(&done, Scope::Page, &[]).moves.is_empty(),
         "a second run moves nothing"
     );
+}
+
+/// §3.2: a route the person shaped that the plan redraws is flagged his; a wire without a route that it routes is not.
+#[test]
+fn a_route_the_person_shaped_that_the_plan_redraws_is_flagged() {
+    let mut b = inputs();
+    // B1 one step right of its pin, its wire drawn by hand with a step to the left.
+    put(&mut b, "B1", p(18, 18));
+    let w1 = b.page.wires.iter().position(|w| w.id.0 == crate::kit::id("w1")).expect("w1");
+    b.page.wires[w1].route = vec![p(18, 22), p(18, 26), p(17, 26), p(17, 30)];
+    let (a, _) = run(&b.page, &[]);
+    assert!(a.moves.iter().any(|(x, _)| *x == id("B1")), "{:?}", a.moves);
+    let routed: Vec<_> = a.plan.routes.iter().map(|(w, _)| *w).collect();
+    assert!(routed.len() > 1, "the other wires are routed too: {routed:?}");
+    assert_eq!(a.plan.his, [b.page.wires[w1].id]);
 }
 
 #[test]
@@ -371,7 +388,13 @@ fn a_page_whose_parts_do_not_fit_names_each_part_it_leaves_and_has_no_part_on_a_
         let x = at(&b.page, n).x;
         put(&mut b, n, Pt::new(x, s(38)));
     }
+    // Beside them a contact one step off the line of the one above it: it moves, and the sensors are named all the
+    // same.
+    b.device("K1", p(45, 30));
+    b.device("K2", p(46, 36));
+    b.wire("k", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
     let a = arrange(&b.page, Scope::Page, &[]);
+    assert!(!a.moves.is_empty());
     let done = after(&b.page, &a);
     assert!(measure(&done).findings.parts_on_parts.is_empty());
     for n in ["B0", "B1", "B2"] {
