@@ -235,8 +235,9 @@ fn local_kinds(f: &Fragment) -> BTreeMap<Uuid, Kind> {
 impl Session {
     /// The project's records of a window selection or of whole pages, as a macro fragment (doc 07 §3.5): the
     /// fragment Copy writes, widened by the PLC channels of its modules and the device links between its devices
-    /// (ADR-0011 amendment 5); a page macro adds its page records. Returns the fragment and the source pages.
-    fn macro_fragment(&self, scope: &MacroScope) -> Result<(Fragment, Vec<Page>), MacroError> {
+    /// (ADR-0011 amendment 5); a page macro adds its page records. Returns the fragment and the source pages. A copy
+    /// of pages starts from it (`Session::copy_pages`).
+    pub(crate) fn macro_fragment(&self, scope: &MacroScope) -> Result<(Fragment, Vec<Page>), MacroError> {
         let q = self.query();
         let parse = |ids: &[Uuid]| -> Result<Fragment, MacroError> {
             let copied = self.copy_fragment(ids).map_err(MacroError::Copy)?;

@@ -237,7 +237,7 @@ pub(super) fn occurrences(v: &Value, field: &str) -> Vec<(Vec<Step>, Uuid)> {
 }
 
 /// The value at `path`.
-fn at_path<'v>(v: &'v mut Value, path: &[Step]) -> Option<&'v mut Value> {
+pub(super) fn at_path<'v>(v: &'v mut Value, path: &[Step]) -> Option<&'v mut Value> {
     let mut cur = v;
     for s in path {
         cur = match s {
@@ -539,7 +539,8 @@ type RecordAt = (usize, Kind, Uuid);
 /// How the insertion engine gives the records their new IDs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum NewIds {
-    /// `edit.paste`: a minted UUIDv7 per record, in (kind rank, fragment order).
+    /// `edit.paste` and `page.copy`: a minted UUIDv7 per record, in (kind rank, fragment order), and a PLC channel
+    /// `plc_channel_id(new module, number)`.
     Mint,
     /// `macro.insert`: `v5(instance, local ID)`, and a PLC channel `plc_channel_id(new module,
     /// number)` (ADR-0004 amendment 2), so a replay reproduces every ID.
@@ -561,8 +562,8 @@ pub(crate) fn instance_member_id(instance: Uuid, local: Uuid) -> Uuid {
     Uuid::new_v5(&instance, local.hyphenated().to_string().as_bytes())
 }
 
-/// The insertion engine of `edit.paste` and `macro.insert`: the effects 1 to 7 of
-/// [`PasteFragment`] on one fragment, with the differences a macro needs.
+/// The insertion engine of `edit.paste`, `macro.insert` and `page.copy`: the effects 1 to 7 of
+/// [`PasteFragment`] on one fragment, with the differences a macro and a copy of pages need.
 pub(crate) struct Insertion<'f> {
     /// The command, for its errors.
     pub(crate) name: &'static str,
@@ -593,6 +594,9 @@ pub(crate) struct Insertion<'f> {
     /// Project records a reference to which stays when the project holds them (the devices a macro's `device_ref`
     /// variables name); any other reference outside the fragment resolves as effect 3 says.
     pub(crate) keep_refs: BTreeSet<Uuid>,
+    /// The folio of each page record by its source ID (`page.copy` with an offset); `None` proposes the folios after
+    /// [`Insertion::page`] (a page macro, `page.copy` with `after`).
+    pub(crate) folios: Option<&'f BTreeMap<Uuid, ew_schema::Folio>>,
 }
 
 /// What an insertion wrote.
@@ -1134,8 +1138,10 @@ impl Insertion<'_> {
         let mut ids = BTreeMap::new();
         for &i in order {
             let (index, kind, old) = keys[i];
+            // A PLC channel's ID is its new module's and number's in either way (a paste carries none; `page.copy`
+            // mints the others).
             let new = match (self.ids, kind) {
-                (NewIds::Instance(_), Kind::Channel) => {
+                (_, Kind::Channel) => {
                     let v = self.record_value(index);
                     let module = v
                         .get("module")
@@ -1393,11 +1399,15 @@ impl Insertion<'_> {
         for (_, old, record) in typed {
             let key = match record {
                 Record::Page(mut p) => {
-                    // FR-MAC-002: the folio proposed after the target page, then after each new page in turn.
-                    let (number, label) = super::page::propose_folio(tx, &after)?;
-                    p.folio.section = after.folio.section;
-                    p.folio.number = number;
-                    p.folio.label = label;
+                    if let Some(folio) = self.folios.and_then(|f| f.get(&old)) {
+                        p.folio.clone_from(folio);
+                    } else {
+                        // FR-MAC-002: the folio proposed after the target page, then after each new page in turn.
+                        let (number, label) = super::page::propose_folio(tx, &after)?;
+                        p.folio.section = after.folio.section;
+                        p.folio.number = number;
+                        p.folio.label = label;
+                    }
                     let id = tx.insert(p)?;
                     out.pages.push(id.cast());
                     after = tx.require::<Page>(id.cast())?;
@@ -1413,6 +1423,10 @@ impl Insertion<'_> {
                 Record::DeviceLink(r) => (Kind::DeviceLink, tx.insert(r)?.cast()),
                 Record::PageItem(r) => (Kind::PageItem, tx.insert(r)?.cast()),
                 Record::StructureBox(r) => (Kind::StructureBox, tx.insert(r)?.cast()),
+                // `page.copy`'s cables, bonds and embedded report blocks.
+                Record::Conductor(r) => (Kind::Conductor, tx.insert(r)?.cast()),
+                Record::Bond(r) => (Kind::Bond, tx.insert(r)?.cast()),
+                Record::ReportBlock(r) => (Kind::ReportBlock, tx.insert(r)?.cast()),
                 _ => unreachable!("refused by the kind check"),
             };
             out.members.push((old, key.1.as_uuid()));
@@ -1491,6 +1505,7 @@ impl Command for PasteFragment {
             keep_frozen: false,
             keep_counter: BTreeSet::new(),
             keep_refs: BTreeSet::new(),
+            folios: None,
         };
         let out = insertion.run(tx)?;
         Ok(Outcome {

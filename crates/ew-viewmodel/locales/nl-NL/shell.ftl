@@ -1700,6 +1700,27 @@ refusal-paste-kinds = wordt niet geplakt (alleen apparaten, functies, symbolen, 
 refusal-paste-adapt-major = de versie van { $p0 } in het project verschilt sterk van de geplakte ({ $p1 }); werk in plaats daarvan bij
 refusal-paste-held-other-version = het project bevat een andere versie van { $p0 }; werk eerst bij vanuit de bibliotheek
 refusal-paste-reference-missing = het veld { $p1 } van de { $p0 } noemt een { $p2 } die niet in het fragment en niet in dit project staat; kopieer ze samen
+# page.copy (een kopie van pagina's, doc 06 §3.6).
+refusal-page-copy-other-project = de pagina's komen uit een ander project; een kopie van pagina's blijft in haar project
+refusal-page-copy-no-page = noem ten minste één pagina om te kopiëren
+refusal-page-copy-kind = folio { $p0 } is { $p1 } en wordt niet gekopieerd: een kopie van pagina's neemt schemapagina's
+refusal-page-copy-kinds = wordt niet gekopieerd (alleen apparaten, functies, symbolen, verbindingen, aftakkingen, aders, kanalen, potentiaaldefinities, potentiaalverbindingen, apparaatkoppelingen, pagina-elementen, structuurkaders en ingebedde rapportblokken)
+refusal-page-copy-offset-and-after = geef een foliosprong of de pagina waarna de kopieën komen, niet beide
+refusal-page-copy-no-folios = geef een foliosprong of de pagina waarna de kopieën komen
+refusal-page-copy-folio-too-large = folio { $p0 } plus { $p1 } ligt voorbij het grootste folionummer
+refusal-page-copy-no-section = geen sectie heeft folio { $p0 } in haar bereik; maak eerst een sectie voor de kopieën, of kies een andere sprong
+refusal-page-copy-folio-held = folio { $p0 } is bezet; kies een andere sprong
+refusal-page-copy-node-not-named = de gekopieerde pagina's noemen zo'n structuurknoop niet
+refusal-page-copy-node-twice = de structuurknoop staat er twee keer
+refusal-page-copy-node-same = { $p0 } is de eigen code van de knoop; geef de kopie een andere
+refusal-page-copy-node-aspect = de structuurknoop hoort bij een aspect dat deze versie niet kent
+refusal-page-copy-rename-empty = de te vervangen tekst is leeg
+refusal-page-copy-rename-twice = { $p0 } wordt twee keer vervangen; geef het één nieuwe tekst
+refusal-page-copy-rename-not-a-name = het hernoemen maakt { $p1 } van { $p0 }, en dat is geen naam
+refusal-page-copy-page-twice = de pagina staat er twee keer
+refusal-page-copy-grids = de gekopieerde pagina's hebben verschillende verbindingsrasters; kopieer de pagina's van elk raster apart
+refusal-page-copy-code = { $p0 } is geen structuurcode
+refusal-page-copy-ip-join = de onderbrekingspunten { $p0 } van de kopie zouden samengaan met de punten waarvan ze gekopieerd zijn; geef ze andere namen bij Hernoemen (bijvoorbeeld { $p1 } = { $p1 }.2)
 # item.place and marker.place, and a page item's members.
 refusal-items-image-asset-missing = het project bevat geen bestand { $p0 }; een afbeelding plaatst een bestand dat het project al bevat, of geeft haar bestand als `data`
 refusal-items-marker-wire-other-page = de draad is niet getekend op { $p0 }

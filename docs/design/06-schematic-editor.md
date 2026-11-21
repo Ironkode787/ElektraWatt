@@ -415,7 +415,8 @@ command reference are the exact form.
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
 | `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6; refuses an explicit folio per FR-PAG-012 |
-| `page.copy`, `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025); with `delete_devices` a strip whose terminals all go goes too |
+| `page.copy` (`CopyPages`) | the pages as a fragment, `offset` or `after`, `structure`, `rename` | Bulk | §3.6, "A copy of pages": one transaction; the session builds the fragment |
+| `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025); with `delete_devices` a strip whose terminals all go goes too |
 | `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
 | `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
 | `rep.move`, `rep.transform` | reps, delta or page, or `steps`; rotate, mirror, variant | Interactive | routes follow (FR-CON-004); `steps` moves by whole grid steps and is refused with `page` or a non-zero `delta` |
@@ -778,6 +779,89 @@ devices, for example to draw an existing device on an overview page.
 *As built.* Copy, Cut, Paste, Duplicate and Copy tag list exist on the canvas (Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D; Copy tag list on the Edit menu), with the fragment as built in [05](05-project-format-and-persistence.md) §12. Items 1, 3, 5 and 6 hold as written; item 2's copies are numbered by online numbering in the order of their anchor cells (FR-NUM-028); item 4's three-way choice is a follow-up, and a copy the project holds in another version is refused ("update from library first"). **Cut leaves the device unplaced** (decided): Cut is Copy and then the deletion of the selected representations, so the device and its functions stay in the project, unplaced (FR-DEV-003), and a cut and paste gives a new device; the identity-keeping move across pages is `rep.move` (§3.4). Trade-off: no device data (parts, frozen tags, technical data) is lost by a cut, at the price of an unplaced device that the user deletes from the navigator. On Windows, Shift+Delete also cuts (egui-winit turns it into the Cut event, §6). A fragment representation off its own grid is refused, a fragment of another grid than the page's is fitted to it (§8 item 3, rc.5), and a paste on a page that takes no symbols is refused with its reason. The pasted fragment floats with its middle at the pointer, its anchor snapped to the grid (it hung from its top-left corner, so it landed below and right of the click, FT-1659); Duplicate starts two grid steps from the copied anchor. The clipboard is text through egui's clipboard (arboard), whose Wayland and X11 behaviour is a manual check.
 
 The fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects. `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule. The existing translated `reason-cut-incomplete-items` text is displayed through banner-if-none, preserving Failed precedence, other Refused behavior and the side-effect-free guard. The shipped clipboard feature is enabled and guarded: on the Windows build, keyboard Ctrl+C and Edit ▸ Cut each publish the fragment to the OS clipboard, and Ctrl+V plus placement renders changed external fragment text. An incomplete Ctrl+X or Edit ▸ Cut shows the exact reason and preserves the marker, selection and OS clipboard; ordinary-text Ctrl+V stays quiet.
+
+#### Paste in place (FT-1862)
+
+Edit ▸ Paste in place (`edit.paste_in_place`) puts the clipboard's block down with its anchor where the copy's anchor
+was: at the same page coordinates, so a block copied from one page lands on another page of the same frame exactly
+where it stood. It is one `edit.paste` with `at` the fragment's anchor, one undo step, and Select takes over with the
+pasted symbols selected, as after a paste. On a page of another connection grid the block is fitted to that grid as
+every paste is (§8 item 3). On a page of another size the block keeps its coordinates; where a part of it would then
+lie outside the page's drawing area it is refused in words, as Paste refuses it, and the block hangs on the pointer by
+its middle to be placed by hand. It has no shortcut: Ctrl+Shift+V is kept for paste as representation.
+
+**What may lie outside the drawing area.** A block's free texts and graphics may lie anywhere on the sheet, the frame's
+bands included, as the Text tool puts them; only its symbols, wire markers and structure boxes must lie inside the
+drawing area, and Paste is refused only for them (it was refused for a text in the header band). The fragment's header
+names the ghost rectangles of free texts and graphics (`free`, doc 05 §12); a fragment without it keeps every rectangle
+inside the drawing area.
+
+#### A copy of pages (FT-1862)
+
+A second, identical installation is the same pages again with new folios, new tags and, where the set uses one, a new
+structure node. Page ▸ Copy pages… makes it in one step that keeps together what belongs together. It is the page
+macro's fragment of the pages ([07](07-symbols-parts-macros.md) §3.5), widened by what an installation needs and
+pasted by `edit.paste`'s engine with the pages' positions kept: no second machine.
+
+**What a person does.** Mark the pages in the Pages navigator (else the page under its cursor) and choose Copy pages…
+(Page tab; the page row's right-click menu). The form asks for the rule:
+- **Folio offset**: a whole number added to each copied page's folio number (1000 makes 6001 into 7001; a label that
+  begins with the folio number follows it, 6001.1 becomes 7001.1). The copy goes into the section whose folio range
+  holds its new folio; a page of no section stays in none. Without an offset, **After** names the page after which the
+  copies go, default the last copied page, and the folios are proposed after it as a page macro's are (§5.6).
+- **Structure**: a structure node the copied pages or their devices name, and the code of the copy's node (CAB and
+  CAB2): the copy names the node of that code beside it (same aspect, same parent), which is created in the same step
+  when there is none.
+- **Rename**: pairs of an old and a new text for frozen tags and interruption-point names (6 and 7; 24V and 24V.2).
+  Every occurrence is replaced, at each place the longest old text first, in one pass: 26 → 27 and 6 → 7 together
+  turn 26K6 into 27K7.
+
+The Preview card names the new pages and tags and what the copy leaves out; Apply makes the copy, one undo step, and a
+toast names the new folios. A script runs `pages.copy {pages, offset | after, node, code, rename: {old: new}}`; the
+command it commits is `page.copy` (`CopyPages`), whose parameters are the pages as a fragment (built by
+`Session::copy_pages`) and the rule, so a command log replays it exactly.
+
+**What the copy keeps together.**
+- A **device** drawn on a copied page comes whole: all its functions, its part and its data, and every representation
+  of it on a copied page. A coil and its contacts on copied pages are one device in the copy, and their
+  cross-references point between the copies. A function drawn only on pages that are not copied is in the copy without
+  a place: the card names those devices (decided: not refused, since an installation may share a page with another; the
+  person sees which copies to complete).
+- A **strip** comes with its terminals on the copied pages, which keep their designations, order and bridges; its
+  terminals on other pages stay with the original strip only.
+- A **cable** with a core on a copied page comes whole with all its conductors; its cores on the copied pages are the
+  copy's cores, its cores elsewhere stay the original's. A bus line keeps its cable the same way.
+- A **bond** whose two ends are copied comes along, and so do PLC channels and device links between copied devices, as
+  a page macro takes them.
+- **Interruption points** keep their names unless Rename changes them; external points keep their name and their
+  reference, since they never pair. The copy is refused, naming the points, where a copied point would join the points
+  it was copied from: a name whose points all lie on the copied pages, or whose copied points include a source, that
+  neither Rename nor the structure rule (a new node in the aspect the project's pairing is scoped by) gives a pairing of
+  its own. A copied target of a name whose source stays outside the copy (a supply both installations share) continues
+  it, and the card says so.
+- **Parts** stay the project's copies. **Texts**, graphics and wire markers come at their places; a text bound to the
+  folio or the title shows the copy's. A **report block** embedded on a copied page comes with it; report blocks that
+  make pages of their own are not copied: they list the whole project, the copy included.
+
+**How tags are made new.** Every numbered device keeps its counter, so its tag follows the project's numbering scheme
+from its new page (-6001K2 becomes -7001K2); online numbering gives the next free counter only where two copies would
+meet on one page. A frozen tag is renamed by Rename and stays frozen; one that Rename leaves as it was is cleared, so the
+copy takes the scheme's tag from its new page (a copy never prints its original's tag) and the card counts them. A
+terminal prints its strip's tag and its designation, a child its parent's tag, a cable the page of its first core: a tag
+that carries no page is therefore a frozen one.
+
+**Refused in words**, nothing copied: no page; a page named twice; a page that takes no symbols (title page, panel
+layout, model view, external document) or a generated one; pages of different connection grids; a new folio that a
+page, a section's divider or a report block holds, or one that no section's range holds where the page had a section;
+an offset and After together; a structure node the copied pages do not name, or a code that is no identifier; the
+interruption points above; whatever a prevent rule refuses.
+
+**What it does not do.** Copy into another project (copy and paste a page's content, or save and insert a page macro);
+give the copies other counters (Tools ▸ Renumber devices… afterwards); a folio rule other than an offset or After;
+change texts other than frozen tags and interruption-point names (titles and free texts: Find and replace afterwards);
+copy a panel layout (the second cabinet is laid out on its own); give the copy its own PLC configuration project or bus
+net (a copied PLC station joins the project's as a pasted one does, doc 10, and a copied bus port is on no net until it
+is joined to one).
 
 ### 3.7 Selection, multi-select and bulk edit
 

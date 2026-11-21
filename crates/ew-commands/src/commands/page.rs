@@ -204,7 +204,7 @@ fn explicit_folio_problem(
 /// this order: the printed folio of the section's divider page (its range's first folio); the printed folio of a
 /// generated page of a page-oriented report block of the same section (its first folio, and with sub-page continuation
 /// any `<first>.<k>`). `None` when the folio is free of them.
-fn held_folio_problem(
+pub(super) fn held_folio_problem(
     tx: &TxBuilder<'_>,
     sec: Option<&Section>,
     section: Option<Id<Section>>,

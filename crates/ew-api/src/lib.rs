@@ -106,6 +106,8 @@ mod macros;
 pub mod migration;
 mod new_project;
 pub mod output;
+// A copy of pages for a second installation (doc 06 §3.6).
+mod page_copy;
 pub mod part_box;
 mod part_cable;
 mod part_editor;
@@ -141,6 +143,7 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_commands::commands::{ChangeClass, FieldChange, classify_update};
 pub use library_ops::{ApiError, AssignMode, CopyState, CpMap, VersionConflict, unreadable_profiles};
 pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro};
+pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
     BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, SIZE_FIELDS,

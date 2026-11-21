@@ -47,6 +47,7 @@ mod macro_insert;
 mod merge;
 mod overview;
 mod page;
+mod page_copy;
 mod part_edit;
 mod parts;
 mod paste;
@@ -93,6 +94,7 @@ pub use merge::Take;
 #[cfg(feature = "testkit")]
 pub use merge::record_file_of;
 pub use page::{LabelModeParam, LabelsParam, PageScope};
+pub use page_copy::{NodeSwap, PAGE_COPY_KINDS, Rename, renamed};
 pub use parts::import_counts;
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};
 pub use plc::is_on_module;
@@ -125,6 +127,8 @@ commands! {
     page::ReorderPages,
     page::SetSurfaceView,
     page::SetPageGrid,
+    // A copy of pages for a second installation (FT-1862)
+    page_copy::CopyPages,
     structure::CreateStructureNode,
     structure::CreateSection,
     structure::CreateReportBlock,

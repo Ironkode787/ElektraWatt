@@ -1757,6 +1757,27 @@ refusal-paste-kinds = is not pasted (only devices, functions, representations, c
 refusal-paste-adapt-major = the project's version of { $p0 } differs from the pasted one in a major way ({ $p1 }); update instead
 refusal-paste-held-other-version = the project holds another version of { $p0 }; update from library first
 refusal-paste-reference-missing = the { $p0 }'s { $p1 } names a { $p2 } that is neither in the fragment nor in this project; copy them together
+# page.copy (a copy of pages, doc 06 §3.6).
+refusal-page-copy-other-project = the pages come from another project; a copy of pages stays in its project
+refusal-page-copy-no-page = name at least one page to copy
+refusal-page-copy-kind = folio { $p0 } is { $p1 }, which is not copied: a copy of pages takes schematic pages
+refusal-page-copy-kinds = is not copied (only devices, functions, representations, connections, junctions, conductors, channels, potential definitions, bonds, device links, page items, structure boxes and report blocks on a page)
+refusal-page-copy-offset-and-after = give a folio offset or the page after which the copies go, not both
+refusal-page-copy-no-folios = give a folio offset or the page after which the copies go
+refusal-page-copy-folio-too-large = folio { $p0 } plus { $p1 } is beyond the largest folio number
+refusal-page-copy-no-section = no section's folio range holds folio { $p0 }; make a section for the copies first, or choose another offset
+refusal-page-copy-folio-held = folio { $p0 } is taken; choose another offset
+refusal-page-copy-node-not-named = the copied pages name no such structure node
+refusal-page-copy-node-twice = the structure node is named twice
+refusal-page-copy-node-same = { $p0 } is the node's own code; give the copy another one
+refusal-page-copy-node-aspect = the structure node is of an aspect this version does not know
+refusal-page-copy-rename-empty = the text to replace is empty
+refusal-page-copy-rename-twice = { $p0 } is replaced twice; give it one new text
+refusal-page-copy-rename-not-a-name = the rename makes { $p1 } of { $p0 }, which is not a name
+refusal-page-copy-page-twice = the page is named twice
+refusal-page-copy-grids = the copied pages use different connection grids; copy the pages of each grid on their own
+refusal-page-copy-code = { $p0 } is not a structure code
+refusal-page-copy-ip-join = the copy's interruption points { $p0 } would join the points they were copied from; give them other names under Rename (for example { $p1 } = { $p1 }.2)
 # item.place and marker.place, and a page item's members.
 refusal-items-image-asset-missing = the project holds no asset { $p0 }; an image places an asset the project already holds, or gives its file as `data`
 refusal-items-marker-wire-other-page = the wire is not drawn on { $p0 }
