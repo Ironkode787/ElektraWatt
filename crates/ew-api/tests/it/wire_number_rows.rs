@@ -91,10 +91,10 @@ fn the_number_row_takes_a_typed_number() {
 #[test]
 fn a_wire_without_a_number_is_titled_in_words() {
     let s = sample_with(|project, _| {
-        project.settings.extra.insert(
-            "drawing".to_owned(),
-            json!({"wire_numbering": "per_potential"}),
-        );
+        project
+            .settings
+            .extra
+            .insert("drawing".to_owned(), json!({"wire_numbering": "per_potential"}));
     });
     let numbers = s.query().get::<WireNumbers>(());
     let bare = numbers

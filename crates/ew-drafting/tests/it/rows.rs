@@ -49,12 +49,7 @@ fn a_row_of_like_parts_takes_one_place_for_its_tags() {
         "w",
         a,
         c,
-        &[
-            p(17, 30),
-            Pt::new(s(17), y),
-            Pt::new(s(18), y),
-            p(18, 30),
-        ],
+        &[p(17, 30), Pt::new(s(17), y), Pt::new(s(18), y), p(18, 30)],
     );
     let settled = settle_labels(&b.page);
     let places = offsets(&settled, &row);

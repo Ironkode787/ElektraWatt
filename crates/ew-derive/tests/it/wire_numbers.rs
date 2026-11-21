@@ -1036,7 +1036,10 @@ fn a_frozen_number_prints_and_keeps_its_place_in_the_count() {
     let rows = order(&m);
     let labels: Vec<Option<String>> = rows.iter().map(|r| r.1.clone()).collect();
     let want = ["101.1", "6A03", "101.3"].map(|s| Some(s.to_owned()));
-    assert_eq!(labels, want, "the frozen number prints, the next wire keeps 101.3");
+    assert_eq!(
+        labels, want,
+        "the frozen number prints, the next wire keeps 101.3"
+    );
     assert_eq!(
         rule(&m, 0x2002).as_deref(),
         Some("101.2"),
@@ -1077,7 +1080,11 @@ fn per_potential_every_wire_of_a_potential_prints_its_code() {
     let m = fx.build();
     let rows = order(&m);
     assert_eq!(label(&rows, 0x2001).as_deref(), Some("D02"));
-    assert_eq!(label(&rows, 0x2002).as_deref(), Some("D02"), "one code per potential");
+    assert_eq!(
+        label(&rows, 0x2002).as_deref(),
+        Some("D02"),
+        "one code per potential"
+    );
     assert_eq!(label(&rows, 0x2003), None, "a protective earth is not coded");
     assert_eq!(label(&rows, 0x2004), None, "a fallback name is no code");
     assert_eq!(label(&rows, 0x2005).as_deref(), Some("X9"));

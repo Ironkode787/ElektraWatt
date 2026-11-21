@@ -63,9 +63,9 @@ impl Normaliser for BoundTexts {
                 if touched.contains(&item) {
                     continue;
                 }
-                let bound = tx.get::<PageItem>(item).is_some_and(|i| {
-                    matches!(&i.kind, PageItemKind::FreeText(t) if t.of == Some(rep))
-                });
+                let bound = tx
+                    .get::<PageItem>(item)
+                    .is_some_and(|i| matches!(&i.kind, PageItemKind::FreeText(t) if t.of == Some(rep)));
                 if !bound {
                     continue;
                 }

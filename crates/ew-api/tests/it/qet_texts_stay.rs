@@ -22,7 +22,9 @@ use serde_json::json;
 /// A definition `name` of link type `link` with `kind`, numbered `n`, its terminals up and down.
 fn def(name: &str, link: &str, kind: &str, n: u32) -> String {
     let t = |i: u32, y: i32, o: &str| {
-        format!(r#"<terminal x="0" y="{y}" orientation="{o}" name="" uuid="{{00000000-0000-4000-9000-0000{n:04}{i:04}}}"/>"#)
+        format!(
+            r#"<terminal x="0" y="{y}" orientation="{o}" name="" uuid="{{00000000-0000-4000-9000-0000{n:04}{i:04}}}"/>"#
+        )
     };
     format!(
         r#"<element name="{name}.elmt"><definition type="element" version="0.80" link_type="{link}" width="20" height="20" hotspot_x="10" hotspot_y="10">
@@ -80,7 +82,11 @@ fn wire(a: u32, da: u32, ta: u32, b: u32, db: u32, tb: u32) -> String {
 fn project() -> String {
     let coil = r#"<kindInformation name="type">coil</kindInformation>"#;
     let contact = r#"<kindInformation name="type">simple</kindInformation><kindInformation name="state">NO</kindInformation>"#;
-    let defs = [def("coil", "master", coil, 1), def("contact", "slave", contact, 2)].concat();
+    let defs = [
+        def("coil", "master", coil, 1),
+        def("contact", "slave", contact, 2),
+    ]
+    .concat();
     let elements = [
         placed("coil.elmt", 1, (100, 300), "-1K1", &[4]),
         placed("coil.elmt", 2, (160, 300), "-1K2", &[]),
@@ -90,7 +96,12 @@ fn project() -> String {
         placed("contact.elmt", 6, (220, 160), "-1S3", &[]),
     ]
     .concat();
-    let wires = [wire(4, 2, 1, 1, 1, 0), wire(5, 2, 1, 2, 1, 0), wire(6, 2, 1, 3, 1, 0)].concat();
+    let wires = [
+        wire(4, 2, 1, 1, 1, 0),
+        wire(5, 2, 1, 2, 1, 0),
+        wire(6, 2, 1, 3, 1, 0),
+    ]
+    .concat();
     let xrefs = r#"<newdiagrams><xrefs><xref type="coil" master_label="%f-%l%c" slave_label="(%f-%l%c)" displayhas="contacts" snapto="label" xrefpos="AlignTop" slave_offset="7"/></xrefs></newdiagrams>"#;
     format!(
         r#"<project version="0.80" title="Stay">{xrefs}<diagram order="1" folio="1" title="F1" cols="17" colsize="60" rows="8" rowsize="80" height="660" displaycols="true" displayrows="true"><elements>{elements}</elements><conductors>{wires}</conductors></diagram><collection><category name="import">{defs}</category></collection></project>"#
@@ -184,14 +195,21 @@ fn stays(map: &str) {
         "the page prints only the slots the drawing places: {printed:?} of {placed:?}"
     );
     let layer = ew_api::output::page_layer(&q, PageRef::Drawn(p), Layer::Labels);
-    assert!(layer.slot_texts.iter().all(|t| t.moved), "no slot text is the placer's");
+    assert!(
+        layer.slot_texts.iter().all(|t| t.moved),
+        "no slot text is the placer's"
+    );
     for t in &layer.slot_texts {
         let o = q
             .reps()
             .get(Id::from_uuid(t.rep))
             .and_then(|r| r.text_slots.iter().find(|o| o.slot == t.slot).and_then(|o| o.pos))
             .expect("its place");
-        assert_eq!(t.at, t.frame.origin + t.frame.orient.apply(o), "printed where the drawing has it");
+        assert_eq!(
+            t.at,
+            t.frame.origin + t.frame.orient.apply(o),
+            "printed where the drawing has it"
+        );
     }
     let before = texts(&q, p);
     assert!(!before.is_empty());
@@ -201,7 +219,12 @@ fn stays(map: &str) {
         .query()
         .reps()
         .iter()
-        .find(|(_, r)| r.page == p && r.source_ref.as_ref().is_some_and(|x| x.key.contains("000000000002#rep")))
+        .find(|(_, r)| {
+            r.page == p
+                && r.source_ref
+                    .as_ref()
+                    .is_some_and(|x| x.key.contains("000000000002#rep"))
+        })
         .map(|(id, _)| id)
         .expect("-1K2's symbol");
     s.execute(&ew_api::AnyCommand {
@@ -209,7 +232,11 @@ fn stays(map: &str) {
         params: json!({"reps": [coil.to_string()], "steps": [2, 0]}),
     })
     .expect("moved");
-    assert_eq!(texts(&s.query(), p), before, "each text keeps its place on its element");
+    assert_eq!(
+        texts(&s.query(), p),
+        before,
+        "each text keeps its place on its element"
+    );
     // Arrange and route: whatever it moves, each text keeps its place on its element.
     let folio = s.page_rows()[0].folio.clone();
     if let Some(params) = s

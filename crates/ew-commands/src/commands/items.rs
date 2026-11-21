@@ -12,8 +12,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     BoxStyle, ColourCode, ColourSpec, Connection, Csa, Extra, FreeText, Graphic, GraphicShape, GraphicStroke,
-    ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Representation, Sha256, ShapeArc, ShapeCircle,
-    ShapeLine, ShapePoints, ShapeRect, StructureBox, TextAlign, TextAnchor, WireMarker,
+    ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Representation, Sha256, ShapeArc,
+    ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, TextAlign, TextAnchor, WireMarker,
 };
 use ew_units::{Angle2, Nm, Pt2};
 use schemars::JsonSchema;
@@ -349,12 +349,8 @@ pub(crate) fn symbol_problem(tx: &TxBuilder<'_>, page: Id<Page>, t: &FreeText) -
         .and_then(|f| f.device)
         .and_then(|d| tx.get::<ew_schema::Device>(d))
         .is_some_and(|d| d.aspects.terminal.is_some());
-    (t.bind.as_ref().is_some_and(|b| b.as_str() == "strip.tag") && !terminal).then(|| {
-        text!(
-            "refusal-items-part-not-terminal",
-            crate::words::symbol(tx, id)
-        )
-    })
+    (t.bind.as_ref().is_some_and(|b| b.as_str() == "strip.tag") && !terminal)
+        .then(|| text!("refusal-items-part-not-terminal", crate::words::symbol(tx, id)))
 }
 
 /// Why a wire marker's own members are refused (an angle other than 0 or 90000); its connections are checked by

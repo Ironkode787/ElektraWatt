@@ -96,7 +96,10 @@ fn a_bound_text_moves_with_its_symbol_once_and_goes_with_it() {
         }],
     })
     .expect("deleted");
-    assert!(e.model().table::<PageItem>().get(&text).is_none(), "the text went with its symbol");
+    assert!(
+        e.model().table::<PageItem>().get(&text).is_none(),
+        "the text went with its symbol"
+    );
 }
 
 #[test]

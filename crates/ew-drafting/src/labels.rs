@@ -812,8 +812,9 @@ fn list_of(
 /// same body and pins) whose origins stand level, two or more, left to right. A pin's number, a text along a wire and
 /// a text of the two-rows rule (wider than its row's pitch: staggered) are no row's.
 fn like_rows(ground: &Ground<'_>, units: &[Unit]) -> Vec<Vec<usize>> {
-    type Shape = (Rect, Vec<(Pt, Option<Side>)>);
-    let mut rows: BTreeMap<(LabelKind, u32, usize, Tick, Shape), Vec<(Tick, usize)>> = BTreeMap::new();
+    // A row's key: the kind, the label number, the block's size in labels, the line its parts stand on, their shape.
+    type Key = (LabelKind, u32, usize, Tick, (Rect, Vec<(Pt, Option<Side>)>));
+    let mut rows: BTreeMap<Key, Vec<(Tick, usize)>> = BTreeMap::new();
     for (u, unit) in units.iter().enumerate() {
         let Owner::Part(p) = unit.owner else { continue };
         if unit.along || unit.stagger || matches!(unit.kind, LabelKind::PinNumber(_)) {
@@ -847,7 +848,11 @@ fn place_row(
     units: &[Unit],
     row: &[usize],
     (firsts, numbers): (&Buckets, &[(Rect, bool, Seg)]),
-    (placed, grid, lists): &mut (&mut [Option<(Rect, u32, bool)>], &mut Buckets, &mut [Vec<(Rect, bool)>]),
+    (placed, grid, lists): &mut (
+        &mut [Option<(Rect, u32, bool)>],
+        &mut Buckets,
+        &mut [Vec<(Rect, bool)>],
+    ),
 ) -> bool {
     let row_lists: Vec<Vec<(Rect, bool)>> = row
         .iter()

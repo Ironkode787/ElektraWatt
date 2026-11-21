@@ -100,7 +100,11 @@ fn a_strip_named_by_its_terminal_is_named_there_once() {
     let mut s = crate::view::sample_session(None);
     let page = page_id(&s, "102");
     let count = |s: &Session| texts(&s.query(), page).iter().filter(|t| *t == "-X1021").count();
-    assert_eq!(count(&s), 1, "the program names the strip once at its first terminal");
+    assert_eq!(
+        count(&s),
+        1,
+        "the program names the strip once at its first terminal"
+    );
     let terminal = {
         let q = s.query();
         let mut reps: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();

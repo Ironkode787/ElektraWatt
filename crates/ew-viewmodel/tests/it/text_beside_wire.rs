@@ -45,10 +45,18 @@ fn a_text_clicked_on_a_wire_stands_beside_it() {
     done(&mut s, "tool.text", json!({}));
     let (x, y) = stretch(&s, true);
     let (snapped, free) = write_at(&mut s, (x, y), "6A03");
-    assert_eq!(free["at"], json!([snapped.0, y - 1_000_000]), "above the line: {free}");
+    assert_eq!(
+        free["at"],
+        json!([snapped.0, y - 1_000_000]),
+        "above the line: {free}"
+    );
     assert_eq!(free["anchor"], "baseline", "on its baseline: {free}");
     let (x, y) = stretch(&s, false);
     let (snapped, free) = write_at(&mut s, (x, y), "6N");
-    assert_eq!(free["at"], json!([x + 1_000_000, snapped.1]), "right of the line: {free}");
+    assert_eq!(
+        free["at"],
+        json!([x + 1_000_000, snapped.1]),
+        "right of the line: {free}"
+    );
     assert_eq!(free.get("anchor"), None);
 }

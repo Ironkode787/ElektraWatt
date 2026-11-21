@@ -418,7 +418,9 @@ fn family_topic(action: &str) -> Option<&'static str> {
             _ => pane_topic(PaneKind::PageView),
         },
         "project" => match action {
-            "project.wire_numbers" | "project.wire_numbering" | "project.marker_mode" => Thing::WireMarker.topic(),
+            "project.wire_numbers" | "project.wire_numbering" | "project.marker_mode" => {
+                Thing::WireMarker.topic()
+            }
             "project.crossings" => Thing::Wire.topic(),
             _ => "project-view",
         },

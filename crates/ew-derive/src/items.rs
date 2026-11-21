@@ -299,14 +299,13 @@ pub fn strips_named_on(q: &Q, page: Id<Page>) -> BTreeSet<Id<Device>> {
         if t.bind.as_ref().is_none_or(|b| b.as_str() != "strip.tag") {
             continue;
         }
-        let strip = t
-            .of
-            .and_then(|r| q.reps().get(r))
-            .and_then(|r| r.functions.first().copied())
-            .and_then(|f| q.functions().get(f))
-            .and_then(|f| f.device)
-            .and_then(|d| q.devices().get(d))
-            .and_then(|d| d.aspects.terminal.as_ref().map(|t| t.strip));
+        let strip =
+            t.of.and_then(|r| q.reps().get(r))
+                .and_then(|r| r.functions.first().copied())
+                .and_then(|f| q.functions().get(f))
+                .and_then(|f| f.device)
+                .and_then(|d| q.devices().get(d))
+                .and_then(|d| d.aspects.terminal.as_ref().map(|t| t.strip));
         out.extend(strip);
     }
     out

@@ -126,11 +126,11 @@ pub use index::{
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 // Page items and structure boxes, derived.
 pub use items::{
-    BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, SYMBOL_BINDABLE, RepStructureBox, bound_text,
+    BINDABLE, CableMark, GroupMarker, IpStructure, MarkerMode, RepStructureBox, SYMBOL_BINDABLE, bound_text,
     box_caption, cable_mark, cable_size_text, colour_text, connection_marker, connection_number, csa_text,
     effective_marker_text, explicit_marker_text, free_text, group_marker, grouped_connections,
-    live_connections, marker_mode, neutral, outline_area2, outline_contains, symbol_bound_text, shows_marker,
-    stale_marker_notes, strips_named_on,
+    live_connections, marker_mode, neutral, outline_area2, outline_contains, shows_marker,
+    stale_marker_notes, strips_named_on, symbol_bound_text,
 };
 pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{

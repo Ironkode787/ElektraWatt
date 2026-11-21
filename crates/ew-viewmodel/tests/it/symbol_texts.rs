@@ -52,10 +52,26 @@ fn a_function_text_over_its_path_and_a_strips_name_are_placed_from_the_canvas_me
     let coil = select_symbol(&mut s, "-102Q1");
     done(&mut s, "text.function_over_path", json!({}));
     let free = placed(&s);
-    assert_eq!((free["bind"].as_str(), free["of"].as_str()), (Some("device.function_text"), Some(coil.as_str())));
-    let body = tables(&s).reps.iter().find(|r| r.id.to_string() == coil).unwrap().body;
-    assert!(free["at"][1].as_i64().unwrap() < body[1], "over the symbol: {free}");
-    assert!(tables(&s).items.iter().any(|i| i.bind.as_deref() == Some("device.function_text")));
+    assert_eq!(
+        (free["bind"].as_str(), free["of"].as_str()),
+        (Some("device.function_text"), Some(coil.as_str()))
+    );
+    let body = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.id.to_string() == coil)
+        .unwrap()
+        .body;
+    assert!(
+        free["at"][1].as_i64().unwrap() < body[1],
+        "over the symbol: {free}"
+    );
+    assert!(
+        tables(&s)
+            .items
+            .iter()
+            .any(|i| i.bind.as_deref() == Some("device.function_text"))
+    );
     // A terminal names its strip.
     let terminal = tables(&s)
         .reps
@@ -67,5 +83,8 @@ fn a_function_text_over_its_path_and_a_strips_name_are_placed_from_the_canvas_me
     select_ids(&mut s, std::slice::from_ref(&terminal));
     done(&mut s, "text.strip_name", json!({}));
     let free = placed(&s);
-    assert_eq!((free["bind"].as_str(), free["of"].as_str()), (Some("strip.tag"), Some(terminal.as_str())));
+    assert_eq!(
+        (free["bind"].as_str(), free["of"].as_str()),
+        (Some("strip.tag"), Some(terminal.as_str()))
+    );
 }
