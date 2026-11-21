@@ -20,6 +20,7 @@
 mod assembly;
 mod assets;
 mod assign;
+mod box_follow;
 mod box_reshape;
 mod bus;
 mod cable_mark;

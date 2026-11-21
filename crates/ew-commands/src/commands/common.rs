@@ -192,12 +192,14 @@ pub(crate) fn one() -> u32 {
     1
 }
 
-/// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7): a
-/// template-origin function's from its part's pattern (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, which
-/// yields pattern entries only, so no filter follows); else, for a black box, the CP pattern of the device's first part
-/// use that has one (the generic black-box FnDef defines no CPs, the card's part does); else its FnDef copy's.
-/// The one accessor the commands use (join, `plc.bind_channel`), so their CP checks agree with the CPs the pages draw;
-/// the join refuses a black box before it reads CPs, so only `plc.bind_channel` reaches the black-box branch.
+/// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7): the sockets
+/// `0 … n − 1` of a bus port whose interface a part of the device declares with `n` ports (doc 10 §2.7, when its FnDef
+/// has a CP); else a template-origin function's from its part's pattern (`ew_schema::template_entry_of`,
+/// `TemplateFn::function_cps`, which yields pattern entries only, so no filter follows); else, for a black box, the CP
+/// pattern of the device's first part use that has one (the generic black-box FnDef defines no CPs, the card's part
+/// does); else its FnDef copy's. The one accessor the commands use (join, `plc.bind_channel`, the boxes that follow a
+/// corrected part), so their CP checks agree with the CPs the pages draw; the join refuses a black box before it reads
+/// CPs, so only `plc.bind_channel` reaches the black-box branch.
 pub(crate) fn function_cp_indices(
     tx: &TxBuilder<'_>,
     func: &Function,
@@ -213,6 +215,19 @@ pub(crate) fn function_cp_indices(
         .iter()
         .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy).map(|c| (u.part.copy, c)))
         .collect();
+    if let Some(port) = &func.bus_port
+        && !def.is_empty()
+        && let Some(n) = parts.iter().find_map(|(_, c)| {
+            let bus = c.item.sections.bus.as_ref()?;
+            bus.ports
+                .iter()
+                .find(|p| p.interface == port.interface && p.port_label == port.port_label)?
+                .ports
+                .filter(|n| *n > 0)
+        })
+    {
+        return (0..n).collect();
+    }
     let names_def = |t: &TemplateFn| {
         let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
         copy == func.def

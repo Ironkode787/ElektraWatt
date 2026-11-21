@@ -199,6 +199,9 @@ change here.
 - api-add: Remove from my parts library in the part editor of a part of My parts (`part.remove_own`) takes the part
   out of My parts; the next projects no longer offer it, and a project that uses it keeps its copy, which the toast
   says (doc 10 §2.6, FT-1766)
+- behaviour-change: a drawn box follows its corrected part at once: a socket or pin the part adds stands on the box
+  after the last one of its edge, the box growing where it needs to, and one the part no longer has leaves the box
+  unless a bus line ends there (doc 10 §2.6, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

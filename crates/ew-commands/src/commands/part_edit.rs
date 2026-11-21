@@ -379,6 +379,8 @@ impl Command for EditPartCopy {
                 id
             }
         };
+        // The drawn boxes of its devices take the pins and sockets the part has now (FT-1766).
+        crate::commands::box_follow::follow_part_boxes(tx, primary, &Default::default())?;
         Ok(Outcome::primary((Kind::Part, primary.cast())))
     }
 }

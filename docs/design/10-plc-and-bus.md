@@ -520,11 +520,14 @@ pub struct PartBusPort {
   a project-local copy changes in place by `part.edit_copy`, which takes its `sections`, `cp_pattern` and
   `function_template`. Members the forms do not show are kept; the pins and the template are made again only when
   the channels, the pin pattern or the supply pins changed. *As built (persona run m3-p4):* a device already drawn
-  follows the correction by either route, as its CPs are derived (`function_cps`, `port_cps`): its box shows the
-  stored box CPs the part still has; a box CP whose CP the part no longer has is not drawn, and a bus line ending
-  there keeps its end, which the card names before Apply (`lost_sockets`, "A bus line ends at a socket the part no
-  longer has"); a CP the part adds is drawn when the box is drawn again; the ports its functions carry keep their
-  values (N5 never rewrites one). The card lists the changes in words: each interface that changes ("Interface X1:
+  follows the correction by either route, as its CPs are derived (`function_cps`, `port_cps`), and its drawn boxes
+  follow in the same step (FT-1766, `follow_part_boxes` of `part.edit_copy` and `library.update`): a box keeps the
+  CPs the part still has where they stand (a pin the update pairs with another index by its designation under that
+  index); a box CP whose CP the part no longer has leaves the box, so no mark of it stays, unless a bus line ends
+  there, which keeps its end and which the card names before Apply (`lost_sockets`, "A bus line ends at a socket the
+  part no longer has"); a CP the part adds stands after the last CP of the edge of the highest-numbered one, one pitch
+  on, the box growing past its far end where it needs to (a turned box, or one that is no rectangle, takes it when it
+  is redrawn); the ports its functions carry keep their values (N5 never rewrites one). The card lists the changes in words: each interface that changes ("Interface X1:
   8 ports → 6 ports"), each PLC field the forms show, the pins made again as their designations, and a parts-list
   row that changes as its columns that differ. A starter part or another
   library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the

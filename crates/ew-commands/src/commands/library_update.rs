@@ -839,12 +839,16 @@ impl Command for UpdateLibraryCopies {
             })
             .collect();
         apply_remap(tx, &remap)?;
+        let mut parts: Vec<Id<ew_schema::Part>> = Vec::new();
         for (_, new, _, changed) in updates {
             if !changed {
                 continue;
             }
             match new {
-                LibDocument::Part(c) => tx.put(c),
+                LibDocument::Part(c) => {
+                    parts.push(c.id);
+                    tx.put(c);
+                }
                 LibDocument::Symbol(c) => tx.put(c),
                 LibDocument::Fndef(c) => tx.put(c),
                 LibDocument::Form(c) => tx.put(c),
@@ -853,6 +857,11 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::PlcProfile(c) => tx.put(c),
                 LibDocument::Unknown(_) => unreachable!("read_copy refuses an unknown kind"),
             }
+        }
+        // The drawn boxes of an updated part's devices take its pins and sockets, each kept pin under its new index
+        // (FT-1766).
+        for part in parts {
+            crate::commands::box_follow::follow_part_boxes(tx, part, &remap)?;
         }
         for (rep, before) in drawn {
             let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
