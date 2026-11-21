@@ -85,6 +85,9 @@ pub struct BlockSpec {
     pub empty: Option<MlText>,
     /// The group break.
     pub group_break: Break,
+    /// The sub-page of the first page: 0 numbers it `first_folio` itself; a legend list starts after its layout page
+    /// (`first_folio.k`, doc 09 §3.2).
+    pub first_sub: u32,
 }
 
 impl BlockSpec {
@@ -95,7 +98,8 @@ impl BlockSpec {
         if block.embedded.is_some() {
             return None;
         }
-        let first_folio = block.first_folio?;
+        // A legend list's folio is its layout page's ([`legend_first_sub`]), which the caller sets.
+        let first_folio = block.first_folio.or(block.layout_page.map(|_| 0))?;
         Some(BlockSpec {
             block: id,
             section: block.section,
@@ -114,8 +118,25 @@ impl BlockSpec {
                 Some(GroupBreak::NewFolio) => Break::NewFolio,
                 Some(GroupBreak::None | GroupBreak::Unknown(_)) | None => Break::None,
             },
+            first_sub: 0,
         })
     }
+}
+
+/// The first sub-page of a legend list's run of `count` pages after its layout page, printed `layout` (`N` or `N.j`)
+/// in a section whose drawn pages print `held` (doc 09 §3.2): the least k from 1 (from j + 1) at which none of `N.k` …
+/// `N.(k + count − 1)` is held, so that no drawn page splits the run.
+pub fn legend_first_sub(number: u32, layout: &str, held: &[String], count: u32) -> u32 {
+    let head = number.to_string();
+    let after = layout
+        .strip_prefix(&head)
+        .and_then(|rest| rest.strip_prefix('.'))
+        .and_then(|j| j.parse::<u32>().ok())
+        .map_or(1, |j| j.saturating_add(1));
+    let taken = |k: u32| held.iter().any(|h| *h == format!("{head}.{k}"));
+    (after..=u32::MAX)
+        .find(|&k| (0..count.max(1)).all(|i| !taken(k.saturating_add(i))))
+        .unwrap_or(after)
 }
 
 /// Whether a block is a table of contents (its page count comes from the `page_order` fixpoint).
@@ -341,10 +362,11 @@ pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layout
             let (number, label) = match spec.continuation {
                 Continuation::SubPage => {
                     let number = spec.first_folio.saturating_add(s.folio);
-                    let label = if s.sub == 0 {
+                    let sub = s.sub.saturating_add(spec.first_sub);
+                    let label = if sub == 0 {
                         number.to_string()
                     } else {
-                        format!("{number}.{}", s.sub)
+                        format!("{number}.{sub}")
                     };
                     (number, label)
                 }

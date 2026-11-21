@@ -357,14 +357,24 @@ pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// A placement is selected on a panel page that can be changed.
-/// Add legend: a panel page that shows a surface, holds no legend and leaves room beside the layout.
+/// Add legend: a panel page that shows a surface whose layout has no legend yet, on the page or as its page (where
+/// the room beside the layout does not hold it whole, the legend gets its page).
 pub(super) fn legend_addable(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     match m.legend_offer() {
-        ew_api::output::LegendOffer::At(_) => Ok(()),
-        ew_api::output::LegendOffer::Exists => Err(key!("reason-legend-exists")),
-        ew_api::output::LegendOffer::NoRoom => Err(key!("reason-legend-no-room")),
+        ew_api::output::LegendOffer::At(_) | ew_api::output::LegendOffer::NoRoom => Ok(()),
+        ew_api::output::LegendOffer::Exists(_) => Err(key!("reason-legend-exists")),
+        ew_api::output::LegendOffer::Paged => Err(key!("reason-legend-paged")),
         ew_api::output::LegendOffer::NoLayout => Err(key!("reason-legend-no-layout")),
+    }
+}
+
+/// Move the legend to its own page: a panel page that holds a legend box.
+pub(super) fn legend_movable(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_page(m)?;
+    match m.legend_offer() {
+        ew_api::output::LegendOffer::Exists(_) => Ok(()),
+        _ => Err(key!("reason-legend-no-box")),
     }
 }
 

@@ -813,6 +813,7 @@ fn report_block(block: Id<ReportBlock>, first: u32) -> ReportBlock {
         caption: Default::default(),
         legend: Default::default(),
         added_rows: Vec::new(),
+        layout_page: None,
         extra: Default::default(),
     }
 }

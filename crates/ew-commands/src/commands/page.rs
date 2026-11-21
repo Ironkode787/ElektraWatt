@@ -220,7 +220,8 @@ pub(super) fn held_folio_problem(
         }
     }
     for b in tx.iter::<ReportBlock>() {
-        if b.section != section || b.embedded.is_some() {
+        // A legend list's pages follow its layout page to a free folio (doc 09 §3.2): they hold none.
+        if b.section != section || b.embedded.is_some() || b.layout_page.is_some() {
             continue;
         }
         let Some(first) = b.first_folio else { continue };
@@ -822,6 +823,8 @@ pub enum LabelsParam {
     ItemNumbers,
     /// The balloon and the tag.
     Both,
+    /// The tag where it fits inside the footprint, else the balloon (doc 12 §5.3).
+    TagsOrNumbers,
 }
 
 /// `page.surface_view.set` (`SetSurfaceView`, FR-LAY-010): sets the view of one mounting surface on a
@@ -897,6 +900,7 @@ impl Command for SetSurfaceView {
             LabelsParam::Tags => LayoutLabels::Tags,
             LabelsParam::ItemNumbers => LayoutLabels::ItemNumbers,
             LabelsParam::Both => LayoutLabels::Both,
+            LabelsParam::TagsOrNumbers => LayoutLabels::TagsOrNumbers,
         });
         // The page's view: the first by ID (a file may hold more; the page draws the first, D9).
         let existing = tx

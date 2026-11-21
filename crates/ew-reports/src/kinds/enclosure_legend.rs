@@ -9,15 +9,19 @@ use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 
 use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
-use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowSet};
+use crate::rowset::{
+    Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, Row, RowId, RowKey, RowSet,
+};
 
-/// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page
-/// (the surface its `surface_view` shows): the enclosure, the plate, one row per carrier (rails, then ducts, the
-/// designation empty, the length in metres as the quantity), then the placements by designation, then one row per
-/// end-bracket part (the designation empty, the number of derived brackets as the quantity; row ID
-/// `entity(surface)` then the part copy and its variant, source the part copy); positions 1 … n.
+/// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page,
+/// or of the layout page a legend list names (`layout_page`; the surface its `surface_view` shows): the enclosure, the
+/// plate, one row per carrier (rails, then ducts, the designation empty, the length in metres as the quantity), then
+/// the placements by designation, then one row per end-bracket part (the designation empty, the number of derived
+/// brackets as the quantity; row ID `entity(surface)` then the part copy and its variant, source the part copy);
+/// positions 1 … n. A placement's row links its tag to the placement ([`LinkTarget::Placement`]): to the device on the
+/// layout, and back from its label to the row (doc 12 §5.4).
 ///
-/// A block that is not embedded, or embedded on a page without a surface view, has no rows.
+/// A block on no page, or on a page without a surface view, has no rows.
 ///
 /// Printed: the title "LEGEND", two flow columns, each with a header
 /// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. The quantity prints without its unit,
@@ -54,9 +58,11 @@ impl ReportKindDef for EnclosureLegend {
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
-        let Some(surface) = block.embedded.as_ref().and_then(|e| page_surface(q, e.page)) else {
+        let page = block.embedded.as_ref().map(|e| e.page).or(block.layout_page);
+        let Some(surface) = page.and_then(|p| page_surface(q, p)) else {
             return set;
         };
+        let tag = set.column("tag");
         for row in layout_legend(q, surface) {
             let (id, source): (RowId, AnyId) = match row.item {
                 LegendItem::Enclosure(e) => (RowId::entity(e), e.cast()),
@@ -103,6 +109,9 @@ impl ReportKindDef for EnclosureLegend {
             r.sources = std::iter::once(source)
                 .chain(row.device.map(|d| d.cast()))
                 .collect();
+            if let (LegendItem::Placement(p), Some(tag)) = (&row.item, tag) {
+                r.links.push(LinkRef::whole(tag, LinkTarget::Placement(*p)));
+            }
             set.rows.push(r);
         }
         set

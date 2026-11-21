@@ -106,6 +106,9 @@ pub struct TableLink {
     pub span: Option<Range<usize>>,
     /// Where the link goes.
     pub dest: Destination,
+    /// The cell is where links to `dest` land ([`Link::Target`]: a legend row its device's label links to, doc 12
+    /// §5.4), not a link itself.
+    pub target: bool,
 }
 
 impl TableLink {
@@ -115,6 +118,7 @@ impl TableLink {
             column,
             span: None,
             dest,
+            target: false,
         }
     }
 }
@@ -277,9 +281,15 @@ pub(crate) fn push_cell(
     })
     .collect();
     match links.iter().find(|l| l.span.is_none()) {
-        Some(l) => out
-            .items
-            .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(l.dest)))),
+        Some(l) => {
+            let link = if l.target {
+                Link::Target(l.dest)
+            } else {
+                Link::Source(l.dest)
+            };
+            out.items
+                .extend(laid.items.into_iter().map(|i| i.with_link(link)));
+        }
         None => out.items.extend(laid.items),
     }
     out.items.extend(carriers);

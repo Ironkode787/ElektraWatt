@@ -673,6 +673,7 @@ impl ShellModel {
             Some("tags") => "Tags",
             Some("item_numbers") => "Item numbers",
             Some("both") => "Both",
+            Some("tags_or_numbers") => "Tags or numbers",
             Some(_) => return failed(key!("error-bad-param"), &["show"]),
             None => return failed(key!("error-missing-param"), &["show"]),
         };
@@ -705,13 +706,27 @@ impl ShellModel {
         self.commit_layout("layout.labels_reset", json!({ "placements": ids }))
     }
 
-    /// `page.add_legend` (Page ▸ Add legend): an embedded legend block (`report_block.create` of kind
-    /// `enclosure_legend`, the no-grid frame's form as Report… takes it) on the focused panel page, in the free part of
-    /// the drawing area beside the layout that `Session::legend_offer` finds. One undo step.
+    /// `page.add_legend` (Page ▸ Add legend): the legend of the focused panel page's layout. Where it prints every row
+    /// and every text whole beside the layout (`Session::legend_offer`), an embedded legend block there
+    /// (`report_block.create` of kind `enclosure_legend`, the no-grid frame's form as Report… takes it); else its legend
+    /// page, and a toast that says why (doc 12 §5.4). One undo step.
     pub(crate) fn act_page_add_legend(&mut self) -> Outcome {
-        let (Some(page), ew_api::output::LegendOffer::At(r)) = (self.focused_page_id(), self.legend_offer())
-        else {
-            return Outcome::refused(key!("reason-legend-no-room"));
+        let Some(page) = self.focused_page_id() else {
+            return Outcome::refused(key!("reason-legend-no-layout"));
+        };
+        let r = match self.legend_offer() {
+            ew_api::output::LegendOffer::At(r) => r,
+            ew_api::output::LegendOffer::NoRoom => {
+                let out = self.add_legend_page(page);
+                if out == Outcome::Done {
+                    let folio = self.legend_page_folio(page);
+                    self.notify(strings::format(key!("toast-legend-own-page"), &[&folio]), false);
+                }
+                return out;
+            }
+            ew_api::output::LegendOffer::Exists(_) => return Outcome::refused(key!("reason-legend-exists")),
+            ew_api::output::LegendOffer::Paged => return Outcome::refused(key!("reason-legend-paged")),
+            ew_api::output::LegendOffer::NoLayout => return Outcome::refused(key!("reason-legend-no-layout")),
         };
         let Some(form) = crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME) else {
             return Outcome::refused(key!("reason-no-project"));
@@ -724,18 +739,6 @@ impl ShellModel {
                     .any(|(f, _)| f.as_uuid().to_string() == id)
             })
         });
-        // The legend a person adds prints the description too; a
-        // long description is cut with an ellipsis at its column's width, as every table cell is.
-        let columns: Vec<Value> = [
-            ("pos", 8),
-            ("tag", 18),
-            ("qty", 10),
-            ("part_number", 24),
-            ("description", 40),
-        ]
-        .iter()
-        .map(|(key, weight)| json!({"key": key, "weight": weight}))
-        .collect();
         let mut params = json!({
             "source": { "kind": "enclosure_legend" },
             "form": form,
@@ -743,7 +746,7 @@ impl ShellModel {
                 "page": page.to_string(),
                 "rect": [[r.min().x.0, r.min().y.0], [r.max().x.0, r.max().y.0]],
             },
-            "columns": columns,
+            "columns": legend_columns(),
         });
         if !held && let Some(session) = self.project_session() {
             let keys = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK];
@@ -760,19 +763,107 @@ impl ShellModel {
         out
     }
 
-    /// The legend a new layout view that shows item numbers gets (F21), when the page has room for it: in the undo step
-    /// of the act that made the view, so that one undo takes back both (it was a step of its own after it).
+    /// The legend page of the panel page `page`'s layout (doc 12 §5.4): a page block of kind `enclosure_legend` that
+    /// names `page` (`layout_page`; its folio and section follow the page), on the set's own frame as Report… makes a
+    /// list, with the legend's five columns and the title that names its layout. One undo step.
+    fn add_legend_page(&mut self, page: Uuid) -> Outcome {
+        self.add_legend_list(page, legend_columns())
+    }
+
+    /// [`ShellModel::add_legend_page`] with the printed `columns`.
+    fn add_legend_list(&mut self, page: Uuid, columns: Value) -> Outcome {
+        let Some((form, copies)) = self.list_form() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let mut params = json!({
+            "source": { "kind": "enclosure_legend" },
+            "form": form,
+            "layout_page": page.to_string(),
+            "columns": columns,
+            "title": { "en": LEGEND_TITLE.0, "nl": LEGEND_TITLE.1 },
+        });
+        if let Some(copies) = copies {
+            params["form_copies"] = copies;
+        }
+        self.commit_from_host(&AnyCommand {
+            name: "report_block.create".into(),
+            params,
+        })
+    }
+
+    /// The printed folio of the first legend page of the panel page `page`'s layout; empty without one.
+    fn legend_page_folio(&self, page: Uuid) -> String {
+        self.project_session()
+            .and_then(|s| s.legend_page_folio(page))
+            .unwrap_or_default()
+    }
+
+    /// The legend page a new layout view gets (doc 12 §5.4), in the undo step of the act that made the view, so that
+    /// one undo takes back both.
     pub(super) fn add_view_legend(&mut self) {
-        if !matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_)) {
+        let Some(page) = self.focused_page_id() else {
+            return;
+        };
+        if matches!(
+            self.legend_offer(),
+            ew_api::output::LegendOffer::NoLayout
+                | ew_api::output::LegendOffer::Exists(_)
+                | ew_api::output::LegendOffer::Paged
+        ) {
             return;
         }
         let rev = self.revision();
-        if self.act_page_add_legend() == Outcome::Done
+        if self.add_legend_page(page) == Outcome::Done
             && self.revision() != rev
             && let Some(p) = &mut self.project
         {
             p.session.fold_last_step();
         }
+    }
+
+    /// `report_block.legend_to_page` (Move the legend to its own page, in the legend's menu and Page ▸ Order): the
+    /// embedded legend of the focused panel page becomes its legend page (doc 12 §5.4): the page block is made, with
+    /// the box's own printed columns (else the legend's five), and the box removed, in one undo step.
+    pub(crate) fn act_report_block_legend_to_page(&mut self) -> Outcome {
+        let (Some(page), ew_api::output::LegendOffer::Exists(block)) = (self.focused_page_id(), self.legend_offer())
+        else {
+            return Outcome::refused(key!("reason-legend-no-box"));
+        };
+        let own: Vec<Value> = self
+            .project_session()
+            .and_then(|s| {
+                let q = s.query();
+                let (_, b) = q.report_blocks().iter().find(|(id, _)| id.as_uuid() == block)?;
+                Some(b.columns.iter().filter_map(|c| serde_json::to_value(c).ok()).collect())
+            })
+            .unwrap_or_default();
+        let columns = if own.is_empty() {
+            legend_columns()
+        } else {
+            Value::Array(own)
+        };
+        let rev = self.revision();
+        let out = self.add_legend_list(page, columns);
+        if out != Outcome::Done {
+            return out;
+        }
+        let gone = self.commit_from_host(&AnyCommand {
+            name: "edit.delete".into(),
+            params: json!({ "targets": [{"kind": "report_block", "id": block.to_string()}] }),
+        });
+        if gone != Outcome::Done {
+            let _ = self.act_undo();
+            return gone;
+        }
+        if self.revision() != rev
+            && let Some(p) = &mut self.project
+        {
+            p.session.fold_last_step();
+        }
+        self.tools.selection.clear();
+        let folio = self.legend_page_folio(page);
+        self.notify(strings::format(key!("toast-legend-moved"), &[&folio]), true);
+        Outcome::Done
     }
 
     /// `layout.options {mode?, grid?}` (the tool options card's segmented controls): the sticky mode (`free`, `push`,
@@ -827,6 +918,19 @@ impl ShellModel {
             self.tools.announcement = Some(text);
         }
     }
+}
+
+/// The title of a legend page, in the languages the program ships (doc 12 §5.4): `{layout}` prints the layout page's
+/// folio, so a renumbered layout renames its legend.
+const LEGEND_TITLE: (&str, &str) = ("Legend of layout {layout}", "Legenda bij layout {layout}");
+
+/// The printed columns of a legend a person makes ([`ew_api::output::LEGEND_COLUMNS`]) as `report_block.create`
+/// takes them.
+fn legend_columns() -> Value {
+    ew_api::output::LEGEND_COLUMNS
+        .iter()
+        .map(|(key, weight)| json!({"key": key, "weight": weight}))
+        .collect()
 }
 
 /// The words of a stopped nudge: "Blocked by -102F2" for a neighbour's placement, "At the rail end" for the end.
@@ -1244,7 +1348,7 @@ impl ShellModel {
         if out == Outcome::Done {
             let shown = self.show_new_surface(page, &before);
             if shown {
-                self.add_numbered_legend();
+                self.add_view_legend();
             }
             // One toast for the step (FT-1719); it replaces the toast of an earlier step. Its Undo takes back the
             // enclosure, so it is offered only when the plate shown on the page is not the newer step.
@@ -1262,13 +1366,6 @@ impl ShellModel {
             self.notify(text, !shown);
         }
         out
-    }
-
-    /// A layout page that shows its items by number gets the legend that lists them (F21), in the act's undo step.
-    fn add_numbered_legend(&mut self) {
-        if self.panel_view_shows_numbers() {
-            self.add_view_legend();
-        }
     }
 
     /// Whether the page shown is a panel layout page.
@@ -1328,7 +1425,7 @@ impl ShellModel {
             }
             return self.layout_form_done(action, Outcome::refused(key!("reason-no-panel-page")));
         }
-        self.add_numbered_legend();
+        self.add_view_legend();
         let folio = self.current_folio().unwrap_or_default().to_owned();
         self.notify(
             strings::format(key!("toast-enclosure-drawn"), &[tag, code, &folio]),

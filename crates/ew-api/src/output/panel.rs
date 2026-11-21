@@ -121,6 +121,7 @@ impl Query for PageSurfaceView {
                 show: match v.labels {
                     LayoutLabels::ItemNumbers => LabelShow::ItemNumbers,
                     LayoutLabels::Both => LabelShow::Both,
+                    LayoutLabels::TagsOrNumbers => LabelShow::TagsOrNumbers,
                     LayoutLabels::Tags | LayoutLabels::Unknown(_) => LabelShow::Tags,
                 },
                 projection: Projection::on_sheet(v.datum_at, &page.scale, sheet_ppb),
@@ -429,7 +430,52 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
             Vec::new()
         },
         show: view.show,
+        linked: (parts.placements || parts.labels) && !legend_blocks(q, surface.id).is_empty(),
     })
+}
+
+/// The legend lists of `surface` (doc 12 §5.4): the page blocks of kind `enclosure_legend` whose layout page shows it,
+/// by ID.
+pub(crate) fn legend_blocks(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<ew_schema::ReportBlock>> {
+    q.report_blocks()
+        .iter()
+        .filter(|(_, b)| {
+            b.embedded.is_none()
+                && matches!(
+                    b.source,
+                    ew_schema::ReportSource::Kind(ew_schema::ReportKind::EnclosureLegend)
+                )
+                && b.layout_page
+                    .is_some_and(|p| ew_derive::layout::page_surface(q, p) == Some(surface))
+        })
+        .map(|(id, _)| id)
+        .collect()
+}
+
+/// The panel page a placement's legend row links back to: the first panel page, in page order, that shows the surface
+/// the placement sits on.
+pub(crate) fn placement_page(q: &Q, placement: Id<Placement>) -> Option<Id<Page>> {
+    let on = q.table::<Placement>().get(placement)?.carrier.clone();
+    super::layout_edit::showing_page(q, &on)
+}
+
+/// The pages of the legend lists of the surface `placement` sits on ([`legend_blocks`]), in page order: where its
+/// label links to.
+pub(crate) fn legend_pages(q: &Q, placement: Id<Placement>) -> Vec<PageRef> {
+    let Some(surface) = q
+        .table::<Placement>()
+        .get(placement)
+        .and_then(|p| super::layout_edit::surface_of(q, &p.carrier))
+    else {
+        return Vec::new();
+    };
+    let blocks = legend_blocks(q, surface);
+    q.get::<ew_derive::PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| e.page)
+        .filter(|p| matches!(p, PageRef::Generated { block, .. } if blocks.contains(block)))
+        .collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -608,10 +654,10 @@ pub struct PanelTables {
     pub placements: Vec<PanelPlacement>,
     /// The unplaced devices of the surface's layout space, in `unplaced` order.
     pub unplaced: Vec<UnplacedDevice>,
-    /// Whether the view labels its placements with item numbers (alone or with their tags).
+    /// Whether the view labels its placements with item numbers (alone, with their tags, or where a tag does not fit).
     pub numbered: bool,
-    /// Whether the view labels its placements with their tags (alone or with item numbers).
-    pub tagged: bool,
+    /// What the view labels its placements with.
+    pub show: LabelShow,
     /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the tools' texts
     /// print millimetres as the project's other millimetre texts do.
     pub decimal_comma: bool,
@@ -981,7 +1027,7 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         placements,
         unplaced,
         numbered: view.show != LabelShow::Tags,
-        tagged: view.show != LabelShow::ItemNumbers,
+        show: view.show,
         decimal_comma: comma(q),
         blocks: blocks_of(q, page),
     })
@@ -1019,12 +1065,103 @@ fn blocks_of(q: &Q, page: Id<Page>) -> Vec<PanelBlock> {
 pub enum LegendOffer {
     /// The page is no panel-layout page, or it shows no surface yet.
     NoLayout,
-    /// The page holds a legend already (an embedded `enclosure_legend` block).
-    Exists,
-    /// No side of the layout leaves the room a legend needs in the drawing area.
+    /// The page holds a legend already: this embedded `enclosure_legend` block (the first by ID).
+    Exists(Uuid),
+    /// The surface the page shows has its legend page (a legend list, doc 12 §5.4).
+    Paged,
+    /// No side of the layout leaves the room in which the legend prints every row and every text whole: Add legend
+    /// makes its legend page.
     NoRoom,
-    /// The rectangle beside the layout on the page (page nm) where the legend goes.
+    /// The rectangle beside the layout on the page (page nm) where the legend goes and prints whole.
     At(Rect),
+}
+
+/// The printed columns of a legend a person makes, beside the layout or as its page (doc 12 §5.4): `(key, weight)`,
+/// the position, the tag, the quantity, the part number and the description.
+pub const LEGEND_COLUMNS: [(&str, u32); 5] = [
+    ("pos", 8),
+    ("tag", 18),
+    ("qty", 10),
+    ("part_number", 24),
+    ("description", 40),
+];
+
+/// `legend_offer(page)`: [`LegendOffer`] of a panel page, memoised, since the window asks it every frame for the menus
+/// and the hint while the fit of the legend shapes its texts.
+#[derive(Debug)]
+pub struct LegendOfferOf;
+
+impl Query for LegendOfferOf {
+    type Key = Id<Page>;
+    type Value = LegendOffer;
+    const FAMILY: &'static str = "legend_offer";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Id<Page>) -> Arc<LegendOffer> {
+        Arc::new(legend_offer_of(q, *key))
+    }
+}
+
+/// Whether the legend Add legend would make in `rect` on `page` prints every row and every text whole there: as its
+/// box draws it, no row left out and no text cut (a description may wrap, an identifier shrink).
+fn prints_whole(q: &Q, page: Id<Page>, rect: Rect) -> bool {
+    let kind = ew_schema::ReportKind::EnclosureLegend;
+    let Some(def) = ew_reports::Registry::builtin().get(&kind) else {
+        return false;
+    };
+    let nil = Uuid::nil();
+    let block = ew_schema::ReportBlock {
+        id: Id::from_uuid(nil),
+        v: 1,
+        source: ew_schema::ReportSource::Kind(kind),
+        manual: Default::default(),
+        sort: Vec::new(),
+        group: None,
+        form: Id::from_uuid(nil),
+        section: None,
+        first_folio: None,
+        continuation: Default::default(),
+        title: Default::default(),
+        empty: Default::default(),
+        embedded: Some(ew_schema::EmbedSpec {
+            page,
+            rect: ew_schema::Bounds(rect),
+            extra: Default::default(),
+        }),
+        source_ref: None,
+        extra: Default::default(),
+        columns: LEGEND_COLUMNS
+            .iter()
+            .map(|(key, weight)| ew_schema::ReportColumn {
+                key: (*key).to_owned(),
+                weight: *weight,
+                heading: Default::default(),
+                extra: Default::default(),
+            })
+            .collect(),
+        caption: Default::default(),
+        legend: Default::default(),
+        added_rows: Vec::new(),
+        layout_page: None,
+    };
+    let set = ew_reports::arranged(q, &block, def.rows(q, &block));
+    let table = super::view::boxed_table_of(q, &block, &set, page);
+    let sheet = q
+        .get::<PageFrameOf>(PageRef::Drawn(page))
+        .as_ref()
+        .as_ref()
+        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
+    let view = ew_scene::embedded::EmbeddedView {
+        rect,
+        content: ew_scene::embedded::EmbeddedContent::Table(table),
+    };
+    let lowered = ew_scene::embedded::lower_embedded(&view, sheet, super::fonts(q), &text_style_table(q));
+    !lowered.findings.iter().any(|f| {
+        matches!(
+            f,
+            ew_scene::table::TableFinding::TooManyRows { .. } | ew_scene::table::TableFinding::Overflow { .. }
+        )
+    })
 }
 
 /// The least room a legend takes beside the layout: 60 mm wide, 40 mm high (page nm).
@@ -1036,8 +1173,9 @@ const LEGEND_GAP: (i64, i64) = (10_000_000, 5_000_000);
 /// [`LegendOffer`] of the panel page `page`: the layout's extent on the page is its enclosure's outline (else its
 /// plate's, else its usable polygon's bounds) as the page projects it; the legend takes the largest free part of the
 /// frame's drawing area right of it, left of it, below it or above it (in that order on a tie), [`LEGEND_GAP`] off
-/// the layout and the area's edge, when that part is at least [`LEGEND_MIN`].
-pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
+/// the layout and the area's edge, when that part is at least [`LEGEND_MIN`] and the legend prints whole there
+/// ([`prints_whole`]). A surface with a legend page is offered no second legend.
+fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
     let Some(view) = panel_view(
         q,
         page,
@@ -1048,15 +1186,23 @@ pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
     ) else {
         return LegendOffer::NoLayout;
     };
-    let held = q.table::<ew_schema::ReportBlock>().iter().any(|(_, b)| {
-        b.embedded.as_ref().is_some_and(|e| e.page == page)
+    let held = q.table::<ew_schema::ReportBlock>().iter().find_map(|(id, b)| {
+        (b.embedded.as_ref().is_some_and(|e| e.page == page)
             && matches!(
                 b.source,
                 ew_schema::ReportSource::Kind(ew_schema::ReportKind::EnclosureLegend)
-            )
+            ))
+        .then_some(id)
     });
-    if held {
-        return LegendOffer::Exists;
+    if let Some(block) = held {
+        return LegendOffer::Exists(block.as_uuid());
+    }
+    if view
+        .surface
+        .as_ref()
+        .is_some_and(|s| !legend_blocks(q, s.surface).is_empty())
+    {
+        return LegendOffer::Paged;
     }
     let p = view.projection;
     let Some(layout) = view.surface.as_ref().and_then(|s| {
@@ -1105,7 +1251,10 @@ pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
             ));
         }
     }
-    best.map_or(LegendOffer::NoRoom, |(_, r)| LegendOffer::At(r))
+    match best {
+        Some((_, r)) if prints_whole(q, page, r) => LegendOffer::At(r),
+        _ => LegendOffer::NoRoom,
+    }
 }
 
 impl crate::Session {
@@ -1125,7 +1274,25 @@ impl crate::Session {
     /// Where Add legend would put the legend of the panel page `page` ([`LegendOffer`]); `NoLayout` for a page the
     /// project does not hold.
     pub fn legend_offer(&self, page: Uuid) -> LegendOffer {
-        legend_offer_of(&self.query(), Id::from_uuid(page))
+        *self.query().get::<LegendOfferOf>(Id::from_uuid(page))
+    }
+
+    /// The printed folio of the first page, in page order, of a legend list that follows the panel page `page` (doc 12
+    /// §5.4); `None` without one.
+    pub fn legend_page_folio(&self, page: Uuid) -> Option<String> {
+        let q = self.query();
+        let blocks = q.report_blocks();
+        let order = q.get::<ew_derive::PageOrder>(());
+        order
+            .entries
+            .iter()
+            .find(|e| match e.page {
+                PageRef::Generated { block, .. } => blocks
+                    .get(block)
+                    .is_some_and(|b| b.layout_page.is_some_and(|l| l.as_uuid() == page)),
+                _ => false,
+            })
+            .map(|e| e.folio.clone())
     }
 
     /// `panel_tables(folio)`: the panel data of the panel-layout page labelled `folio` for the layout

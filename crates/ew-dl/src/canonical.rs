@@ -241,6 +241,8 @@ impl Canonical {
                 Destination::Page(u) => (0, u),
                 Destination::Representation(u) => (1, u),
                 Destination::Cp(u) => (2, u),
+                Destination::Placement(u) => (3, u),
+                Destination::LegendRow(u) => (4, u),
             };
             self.u8(tag);
             self.uuid(&id);

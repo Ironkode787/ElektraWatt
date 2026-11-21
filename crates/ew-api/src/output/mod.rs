@@ -159,9 +159,10 @@ pub use navigators::{
     nav_natural_key, tokens as nav_tokens,
 };
 pub use panel::{
-    LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice,
+    LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice,
     surface_of_page,
 };
+pub use ew_scene::panel::LabelShow;
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;
@@ -205,7 +206,7 @@ pub use view::{
     page_plug_notes, page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
-pub(crate) use panel::{PageSurfaceView, ShapedText};
+pub(crate) use panel::{LegendOfferOf, PageSurfaceView, ShapedText};
 pub(crate) use properties::folio_of;
 pub(crate) use view::{
     CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageRepsOf, new_page_map,

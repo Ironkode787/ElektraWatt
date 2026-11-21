@@ -9,8 +9,8 @@ use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, Function, FunctionKind,
-    GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, ReportBlock, ReportColumn,
-    ReportSource, Representation, Section, Set, SortKey, StructureNode,
+    GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, PageType, ReportBlock, ReportColumn,
+    ReportKind, ReportSource, Representation, Section, Set, SortKey, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -161,8 +161,11 @@ impl Command for CreateSection {
 /// Creates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`
 /// default). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`
 /// (EW-INV-014): `first_folio` is required unless `embedded` is set; a first folio whose generated pages a page of the
-/// section, its divider page included, already holds (see `held_folio`). The form copy, the section and the
-/// embedding page must exist (else not found). Outcome: the new block.
+/// section, its divider page included, already holds (see `held_folio`); a `layout_page` on a block that is not a page
+/// block of kind `enclosure_legend`, or that names a page of another kind than a panel layout. A legend list
+/// (`layout_page`) takes that page's folio number and section where none is given, and its folio is not checked: its
+/// pages follow the layout page (doc 09 §3.2). The form copy, the section and the embedding or layout page must exist
+/// (else not found). Outcome: the new block.
 ///
 /// **The form from the library**. The block's form is a library item; a project holds it as an embedded
 /// copy (doc 05 §13.2). `form_copies`, when given, are the library documents of that item and of its closure (the
@@ -214,6 +217,11 @@ pub struct CreateReportBlock {
     /// absent: the kind's own layout.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub columns: Vec<ReportColumn>,
+    /// The panel layout page a page block of kind `enclosure_legend` lists and follows (doc 09 §2.2): `first_folio`
+    /// and `section` default to that page's, and no folio of its pages is checked, since they follow the page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub layout_page: Option<Id<Page>>,
     /// The library documents of the form and of its closure (`lib/` JSON form, kind form), embedded with the block
     /// where the project does not hold them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -301,6 +309,7 @@ pub(super) fn held_folio(
                 Some(b.id) != own
                     && b.section == section
                     && b.embedded.is_none()
+                    && b.layout_page.is_none()
                     && b.first_folio == Some(first)
             })
             .then_some(head.clone())
@@ -315,21 +324,35 @@ impl Command for CreateReportBlock {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.embedded.is_none() && self.first_folio.is_none() {
+        // A legend list follows its layout page: its first folio and section are that page's.
+        let layout = match self.layout_page {
+            Some(page) => {
+                let p = tx.require::<Page>(page)?;
+                let legend = matches!(self.source, ReportSource::Kind(ReportKind::EnclosureLegend));
+                if !legend || self.embedded.is_some() || p.kind != PageType::PanelLayout {
+                    return tx.reject(text!("refusal-report-block-layout-page"));
+                }
+                Some((p.folio.number, p.folio.section))
+            }
+            None => None,
+        };
+        let first_folio = self.first_folio.or(layout.map(|(n, _)| n));
+        let section = self.section.or(layout.and_then(|(_, s)| s));
+        if self.embedded.is_none() && first_folio.is_none() {
             return tx.reject(text!("refusal-report-block-first-folio"));
         }
         if !self.form_copies.is_empty() {
             self.embed_forms(tx)?;
         }
         tx.require::<LibCopy<FormDef>>(self.form)?;
-        if let Some(section) = self.section {
+        if let Some(section) = section {
             tx.require::<Section>(section)?;
         }
         if let Some(embed) = &self.embedded {
             tx.require::<Page>(embed.page)?;
         }
-        if let (None, Some(first)) = (&self.embedded, self.first_folio) {
-            if let Some(held) = held_folio(tx, self.section, first, &self.continuation, None) {
+        if let (None, None, Some(first)) = (&self.embedded, layout, first_folio) {
+            if let Some(held) = held_folio(tx, section, first, &self.continuation, None) {
                 return tx.reject(text!("refusal-page-create-exists", held));
             }
         }
@@ -342,8 +365,8 @@ impl Command for CreateReportBlock {
             sort: self.sort.clone(),
             group: self.group.clone(),
             form: self.form,
-            section: self.section,
-            first_folio: self.first_folio,
+            section,
+            first_folio,
             continuation: self.continuation.clone(),
             title: self.title.clone(),
             empty: self.empty.clone(),
@@ -354,6 +377,7 @@ impl Command for CreateReportBlock {
             caption: Default::default(),
             legend: Default::default(),
             added_rows: Vec::new(),
+            layout_page: self.layout_page,
         })?;
         Ok(Outcome::primary((Kind::ReportBlock, id.cast())))
     }

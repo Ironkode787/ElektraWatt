@@ -18,7 +18,9 @@ use std::ops::Range;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Representation, Unit};
+use ew_derive::ew_schema::{
+    AnyId, ColourSpec, Date, Device, Function, OrderUnit, Placement, Representation, Unit,
+};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{PageRef, Rev};
 
@@ -563,4 +565,7 @@ pub enum LinkTarget {
     Page(PageRef),
     /// One representation (a device's placement on a given page).
     Rep(Id<Representation>),
+    /// A device as placed on a panel layout page, its footprint there; the row that links to it is where that device's
+    /// label on the layout links back to (a legend list's row, doc 12 §5.4).
+    Placement(Id<Placement>),
 }

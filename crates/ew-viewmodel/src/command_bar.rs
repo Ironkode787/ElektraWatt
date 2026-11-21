@@ -20,6 +20,7 @@ use crate::shell::ShellModel;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{self, Ghost};
+use ew_api::output::LabelShow;
 
 /// The tabs of the command bar, in the order of work (doc 16a §9.1).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
@@ -708,18 +709,14 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             // A panel page offers its legend beside the layout (F21), what its devices are labelled with and
             // puts its moved labels back.
             items.extend(item("page.add_legend"));
-            let numbered = model.panel_tables().map(|p| (p.numbered, p.tagged));
-            for (show, label) in [
-                ("tags", key!("canvas-labels-tags")),
-                ("item_numbers", key!("canvas-labels-item-numbers")),
-                ("both", key!("canvas-labels-both")),
+            let shown = model.panel_tables().map(|p| p.show);
+            for (show, label, labels) in [
+                ("tags", key!("canvas-labels-tags"), LabelShow::Tags),
+                ("item_numbers", key!("canvas-labels-item-numbers"), LabelShow::ItemNumbers),
+                ("both", key!("canvas-labels-both"), LabelShow::Both),
+                ("tags_or_numbers", key!("canvas-labels-tags-or-numbers"), LabelShow::TagsOrNumbers),
             ] {
-                let checked = matches!(
-                    (show, numbered),
-                    ("tags", Some((false, _)))
-                        | ("item_numbers", Some((true, false)))
-                        | ("both", Some((true, true)))
-                );
+                let checked = shown == Some(labels);
                 items.extend(model.menu_item("layout.labels").map(|mut i| {
                     i.params = serde_json::json!({ "show": show });
                     i.label = strings::text(label).to_owned();
@@ -826,6 +823,8 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
     // A legend chooses its printed columns as a list does (doc 09 §3.8).
     if model.selected_legend().is_some() {
         items.extend(item("report_block.columns"));
+        // An embedded legend becomes its layout's legend page (doc 12 §5.4).
+        items.extend(item("report_block.legend_to_page"));
     }
     for id in [
         "edit.cut",

@@ -479,6 +479,9 @@ pub enum LayoutLabels {
     ItemNumbers,
     /// The balloon and the tag beside it.
     Both,
+    /// The tag inside the footprint where it fits whole at the label size, else the item number in a balloon (doc 12
+    /// §5.3, 0.3.5). An older build draws tags.
+    TagsOrNumbers,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

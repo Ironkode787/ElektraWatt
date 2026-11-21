@@ -678,9 +678,9 @@ enclosure_legend`) writes it as CSV or XLSX. Its pages follow the layout page, 9
 where those are taken). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
 `Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it). Deleting the layout
 page deletes its legend list.
-- **Enclosure…** makes the legend page with the view: the view on the layout page and its legend page are one undo
-  step, and so are a new layout page the act makes, its view and its legend page. A page's Surface row that gives a
-  page its first view makes the legend page the same way.
+- **Enclosure…** makes the legend page with the view: the plate drawn on the layout page and its legend page are one
+  undo step (a location, a layout page and an enclosure the act makes stay steps of their own before it). A page's
+  Surface row that gives a page its first view makes the legend page the same way.
 - **Add legend** puts the legend on the layout page itself only where it prints every row and every text whole there
   (above); otherwise a toast says so in words ("The legend does not fit beside the layout whole, so it has a page of
   its own: 902.1") and Add legend makes the legend page. A layout with a legend, on the page or as a page, is offered

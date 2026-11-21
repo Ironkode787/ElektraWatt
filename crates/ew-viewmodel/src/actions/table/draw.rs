@@ -695,7 +695,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Labels: Tags, Item numbers or Both in the canvas context menu over an empty spot of a panel page (the persona
     // found the choice only far down the page's Properties).
     with_params(
-        "show:enum(tags|item_numbers|both)",
+        "show:enum(tags|item_numbers|both|tags_or_numbers)",
         hidden(in_canvas(act(
             "layout.labels",
             Command,

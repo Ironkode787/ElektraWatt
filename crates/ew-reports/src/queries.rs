@@ -7,12 +7,16 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
-use ew_derive::{Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider, map_ml, short_tag};
+use ew_derive::{
+    Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider, folio_label, map_ml, short_tag,
+};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::{Registry, kind_name};
 use crate::layout::{Layouts, PageLayout};
-use crate::paginate::{BlockSpec, FixedLines, is_toc, number, paginate, toc_slices};
+use crate::paginate::{
+    BlockSpec, Continuation, FixedLines, is_toc, legend_first_sub, number, slice, toc_slices,
+};
 use crate::rowset::{Cell, CellType, NotDerived, Row, RowId, RowKey, RowSet};
 
 /// `report_rows(block)`: the rows of a report block in final order, after the kind's row query, manual
@@ -127,7 +131,7 @@ impl Query for BlockPages {
         let Some(block) = q.report_blocks().get(id) else {
             return Arc::new(Vec::new());
         };
-        let Some(mut spec) = BlockSpec::of_block(id, block) else {
+        let Some(mut spec) = spec_of(q, id, block) else {
             return Arc::new(Vec::new());
         };
         spec.title = resolve_title(q, block, &spec.title);
@@ -142,13 +146,50 @@ impl Query for BlockPages {
             Ok(rows) => rows,
             Err(cycle) => Arc::new(cycle_rows(q, cycle)),
         };
-        Arc::new(paginate(&rows, &spec, &layouts, &FixedLines))
+        Arc::new(paginate_block(q, block, spec, &rows, &layouts))
     }
 }
 
-/// The page-title format with `{strip}` and `{device}` resolved: the short tag of the first device of the block's
-/// manual selection (the first strip for `{strip}`), so that renaming or renumbering the device renames the pages
-/// ("Terminal Diagram {strip}"). A placeholder without such a device stays as written.
+/// The pagination parameters of `block` ([`BlockSpec::of_block`]); a legend list (`layout_page`, doc 09 §3.2) takes
+/// its layout page's folio number and section, its pages sub-pages of it. A legend whose layout page is gone has none.
+fn spec_of(q: &Q, id: Id<ReportBlock>, block: &ReportBlock) -> Option<BlockSpec> {
+    let mut spec = BlockSpec::of_block(id, block)?;
+    if let Some(layout) = block.layout_page {
+        let page = q.pages().get(layout)?;
+        spec.first_folio = page.folio.number;
+        spec.section = page.folio.section;
+        spec.continuation = Continuation::SubPage;
+    }
+    Some(spec)
+}
+
+/// [`paginate`] of `rows`, a legend list's pages numbered after its layout page at the first run of sub-pages no drawn
+/// page of its section holds ([`legend_first_sub`]).
+fn paginate_block(
+    q: &Q,
+    block: &ReportBlock,
+    mut spec: BlockSpec,
+    rows: &RowSet,
+    layouts: &Layouts,
+) -> Vec<GeneratedPage> {
+    let slices = slice(rows, &spec, layouts, &FixedLines);
+    if let Some(layout) = block.layout_page.and_then(|p| q.pages().get(p)) {
+        let held: Vec<String> = q
+            .pages()
+            .iter()
+            .filter(|(_, p)| p.folio.section == spec.section)
+            .map(|(_, p)| folio_label(p))
+            .collect();
+        let count = u32::try_from(slices.len()).unwrap_or(u32::MAX);
+        spec.first_sub = legend_first_sub(spec.first_folio, &folio_label(layout), &held, count);
+    }
+    number(&slices, rows, &spec, layouts)
+}
+
+/// The page-title format with `{strip}`, `{device}` and `{layout}` resolved: the short tag of the first device of the
+/// block's manual selection (the first strip for `{strip}`), so that renaming or renumbering the device renames the
+/// pages ("Terminal Diagram {strip}"), and a legend list's layout page's folio ("Legend of layout {layout}"). A
+/// placeholder without such a device or page stays as written.
 fn resolve_title(
     q: &Q,
     block: &ReportBlock,
@@ -168,6 +209,10 @@ fn resolve_title(
         .find(|d| q.devices().get(**d).is_some_and(|x| x.aspects.strip.is_some()))
         .map(|d| tag(*d));
     let device = devices.first().map(|d| tag(*d));
+    let layout = block
+        .layout_page
+        .and_then(|p| q.pages().get(p))
+        .map(|p| folio_label(p));
     map_ml(title, |t| {
         let mut t = t.to_owned();
         if let Some(s) = &strip {
@@ -175,6 +220,9 @@ fn resolve_title(
         }
         if let Some(d) = &device {
             t = t.replace("{device}", d);
+        }
+        if let Some(l) = &layout {
+            t = t.replace("{layout}", l);
         }
         t
     })
@@ -226,10 +274,10 @@ impl ReportPagesProvider for ReportEngine {
             Ok(pages) => (*pages).clone(),
             // The block's pages are already being computed: a row source reached the page order from
             // inside the pagination. One placeholder page keeps the folio, never a panic.
-            Err(cycle) => match BlockSpec::of_block(block, b) {
+            Err(cycle) => match spec_of(q, block, b) {
                 Some(spec) => {
                     let rows = cycle_rows(q, cycle);
-                    paginate(&rows, &spec, &Layouts::of_block(q, b), &FixedLines)
+                    paginate_block(q, b, spec, &rows, &Layouts::of_block(q, b))
                 }
                 None => {
                     q.note_cycle(cycle);
@@ -298,6 +346,7 @@ pub fn project_rows(q: &Q, kind: &str, include: Option<ew_derive::ew_ids::Uuid>)
         caption: Default::default(),
         legend: Default::default(),
         added_rows: Vec::new(),
+        layout_page: None,
     };
     Some(def.rows(q, &block))
 }

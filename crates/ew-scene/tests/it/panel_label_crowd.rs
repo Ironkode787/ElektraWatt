@@ -57,6 +57,7 @@ fn row(show: LabelShow, moved: Option<Pt2>) -> PageView {
                 })
                 .collect(),
             show,
+            linked: false,
         }),
         ..blank_page(0x01)
     }

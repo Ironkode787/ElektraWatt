@@ -85,6 +85,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_page_add_legend(),
         ),
     ),
+    // Move the legend to its own page: an older legend box becomes its layout's legend page (doc 12 §5.4); in Page ▸
+    // Order and the legend's context menu, no button.
+    act(
+        "report_block.legend_to_page",
+        Command,
+        Menu::Page,
+        &[],
+        legend_movable,
+        grp(Group::Order),
+        |s, _| s.act_report_block_legend_to_page(),
+    ),
     // Page, New section…
     with_params(
         "title?:text, first:uint, last:uint, number?:uint",

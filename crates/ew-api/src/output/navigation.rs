@@ -948,6 +948,22 @@ impl Session {
                     let cell = printed_cell(&q, &order, pos, &tokens, cell.as_ref());
                     Some(t.row(pos, Some(at), cell))
                 }
+                // A placed device (its footprint on the first panel page that shows its surface) and its row on the
+                // legend page of that surface (doc 12 §5.4): the page and the point, no cell.
+                Destination::Placement(id) => {
+                    let page = super::panel::placement_page(&q, Id::from_uuid(id))?;
+                    let pos = order.position(PageRef::Drawn(page))?;
+                    let (pos, at) = t.locate(d, &[pos])?;
+                    Some(t.row(pos, Some(at), None))
+                }
+                Destination::LegendRow(id) => {
+                    let pages: Vec<usize> = super::panel::legend_pages(&q, Id::from_uuid(id))
+                        .into_iter()
+                        .filter_map(|p| order.position(p))
+                        .collect();
+                    let (pos, at) = t.locate(d, &pages)?;
+                    Some(t.row(pos, Some(at), None))
+                }
             })
             .collect()
     }

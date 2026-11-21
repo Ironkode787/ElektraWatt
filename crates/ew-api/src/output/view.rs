@@ -116,7 +116,9 @@ use ew_derive::{
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, folios_printed, render};
-use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSetStatus};
+use ew_reports::{
+    BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSet, RowSetStatus,
+};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
@@ -1520,7 +1522,12 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
 /// The boxed table of an embedded block other than the cover, as printed texts on `page` (see the module
 /// documentation).
 pub(crate) fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
-    let set = q.get::<BlockRows>(block.id);
+    boxed_table_of(q, block, &q.get::<BlockRows>(block.id), page)
+}
+
+/// [`boxed_table`] of `block` with the rows `set` (a block the project does not hold yet: the legend Add legend would
+/// make, whose fit it tries).
+pub(crate) fn boxed_table_of(q: &Q, block: &ReportBlock, set: &RowSet, page: Id<Page>) -> EmbeddedTable {
     let layout = match &block.source {
         ReportSource::Kind(kind) => Registry::builtin().get(kind).map(|k| k.embedded_layout()),
         _ => None,
@@ -1639,7 +1646,10 @@ fn capitalised(s: &str) -> String {
 /// - `Cp`: the connection point, which the PLC overview sets to the coil of each bound channel (doc 10 §5);
 /// - `Page(p)`: the page, when the page order holds it;
 /// - `MainRep(d)`: the device's main representation, when it has one;
-/// - `Rep(r)`: the representation, when it exists.
+/// - `Rep(r)`: the representation, when it exists;
+/// - `Placement(p)`: the device's footprint on the first panel page that shows its surface; the row is then also where
+///   the device's label links to (`Destination::LegendRow`), on its first printed cell without a link of its own
+///   (doc 12 §5.4).
 ///
 /// A link with an `item` covers that page's printed span of a `Folios` cell ([`folios_printed`], the function the
 /// printer uses); a page inside a printed run has no span and no link. A link that would not resolve is not drawn:
@@ -1665,6 +1675,9 @@ fn row_links(q: &Q, r: &Row) -> Vec<TableLink> {
                 LinkTarget::Page(p) => order.position(p).map(|_| page_destination(p)),
                 LinkTarget::MainRep(d) => (*q.get::<MainRep>(d)).and_then(rep),
                 LinkTarget::Rep(rid) => rep(rid),
+                LinkTarget::Placement(p) => super::panel::placement_page(q, p)
+                    .filter(|page| order.position(PageRef::Drawn(*page)).is_some())
+                    .map(|_| Destination::Placement(p.as_uuid())),
             }?;
             let span = match l.item {
                 None => None,
@@ -1676,7 +1689,12 @@ fn row_links(q: &Q, r: &Row) -> Vec<TableLink> {
                     Some(items.get(usize::from(n))?.clone()?)
                 }
             };
-            Some(TableLink { column, span, dest })
+            Some(TableLink {
+                column,
+                span,
+                dest,
+                target: false,
+            })
         })
         .collect()
 }
@@ -1759,13 +1777,28 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                 TableRowKind::Data => printed.iter().map(|&(i, _, _)| cell(r, i)).collect(),
             };
             // The links of the printed cells, at their printed column.
-            let links = row_links(q, r)
+            let mut links: Vec<TableLink> = row_links(q, r)
                 .into_iter()
                 .filter_map(|l| {
                     let column = printed.iter().position(|&(i, _, _)| i == l.column)?;
                     Some(TableLink { column, ..l })
                 })
                 .collect();
+            // A row that links to a placement is where that device's label links to (doc 12 §5.4): its first
+            // printed cell without a link of its own.
+            let placement = r.links.iter().find_map(|l| match l.target {
+                LinkTarget::Placement(p) => Some(p),
+                _ => None,
+            });
+            let free = (0..printed.len()).find(|c| !links.iter().any(|l| l.column == *c && l.span.is_none()));
+            if let (Some(p), Some(column)) = (placement, free) {
+                links.push(TableLink {
+                    column,
+                    span: None,
+                    dest: Destination::LegendRow(p.as_uuid()),
+                    target: true,
+                });
+            }
             TableRow { kind, cells, links }
         })
         .collect();

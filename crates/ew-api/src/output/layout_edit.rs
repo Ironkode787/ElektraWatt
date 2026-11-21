@@ -627,7 +627,7 @@ fn mountable_uses(q: &Q, device: &Device, on: &CarrierRef) -> Vec<Id<Part>> {
 }
 
 /// The surface a placement on `on` sits on: its carrier's, or the surface itself.
-fn surface_of(q: &Q, on: &CarrierRef) -> Option<Id<MountingSurface>> {
+pub(crate) fn surface_of(q: &Q, on: &CarrierRef) -> Option<Id<MountingSurface>> {
     match on {
         CarrierRef::Carrier(c) => q.table::<Carrier>().get(*c).map(|c| c.surface),
         CarrierRef::Surface(s) => Some(*s),
@@ -636,7 +636,7 @@ fn surface_of(q: &Q, on: &CarrierRef) -> Option<Id<MountingSurface>> {
 }
 
 /// The first panel page, in page order, whose surface view shows the surface of a placement on `on` (D12).
-fn showing_page(q: &Q, on: &CarrierRef) -> Option<Id<Page>> {
+pub(crate) fn showing_page(q: &Q, on: &CarrierRef) -> Option<Id<Page>> {
     let surface = surface_of(q, on)?;
     let order = q.get::<DrawnPageOrder>(());
     q.pages()
@@ -832,10 +832,11 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
 }
 
 /// What a surface view labels its placements with: the command's value and the row's word, in the row's order.
-const LABELS: [(LabelShow, &str); 3] = [
+const LABELS: [(LabelShow, &str); 4] = [
     (LabelShow::Tags, "Tags"),
     (LabelShow::ItemNumbers, "Item numbers"),
     (LabelShow::Both, "Both"),
+    (LabelShow::TagsOrNumbers, "Tags or numbers"),
 ];
 
 /// The row's word of `show`.
@@ -849,58 +850,7 @@ fn labels_param(show: LabelShow) -> &'static str {
         LabelShow::Tags => "tags",
         LabelShow::ItemNumbers => "item_numbers",
         LabelShow::Both => "both",
-    }
-}
-
-/// What a new surface view of `surface` on `page` labels its placements with at `scale` (the window's rule, doc 12
-/// §5.3): tags on a page not to scale; on a scaled page, item numbers when the tag of a placement already on the
-/// surface fits its footprint on paper neither across nor turned (the scene's own fit test), and tags when every tag
-/// fits; on a surface without placements, item numbers at 1:5 and smaller, where a 6 mm terminal is not much more
-/// than a millimetre on paper and the tags of a row run into each other.
-pub(crate) fn new_view_labels(
-    q: &Q,
-    page: Id<Page>,
-    surface: Id<MountingSurface>,
-    scale: &Scale,
-) -> LabelShow {
-    let Scale::OneTo(n) = scale else {
-        return LabelShow::Tags;
-    };
-    let sheet_ppb = q
-        .get::<super::view::PageFrameOf>(PageRef::Drawn(page))
-        .as_ref()
-        .as_ref()
-        .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| {
-            ew_scene::forms::SheetMap::of(&f.form)
-        })
-        .scale_ppb;
-    let projection = Projection::on_sheet(ew_derive::ew_units::Pt2::ORIGIN, scale, sheet_ppb);
-    let style = super::panel::label_style(q);
-    let paper =
-        |l: i64| ew_derive::ew_units::Nm(i64::try_from(projection.length(i128::from(l))).unwrap_or(i64::MAX));
-    let fits: Vec<bool> = super::panel::placements_on(q, surface)
-        .into_iter()
-        .filter_map(|p| {
-            let g = q.get::<PlacementGeometry>(p);
-            let fp = g.as_ref().as_ref()?.footprint;
-            let text = q
-                .get::<LayoutLabel>((p, page, LabelMode::Abbreviated))
-                .as_ref()
-                .clone();
-            let shaped = q.get::<super::panel::ShapedText>((text.clone(), style));
-            let (fw, fh) = (paper(fp.width().0), paper(fp.height().0));
-            Some(ew_scene::panel::label_fit(super::fonts(q), &style, &text, &shaped, fw, fh).is_some())
-        })
-        .collect();
-    let numbers = if fits.is_empty() {
-        *n >= 5
-    } else {
-        fits.contains(&false)
-    };
-    if numbers {
-        LabelShow::ItemNumbers
-    } else {
-        LabelShow::Tags
+        LabelShow::TagsOrNumbers => "tags_or_numbers",
     }
 }
 
@@ -1358,8 +1308,10 @@ impl Session {
                                 q.pages().get(page).map(|p| p.scale.clone()).unwrap_or_default()
                             });
                             datum = centred_datum(&q, page, id, &at).or(datum);
+                            // A new view labels a device with its tag where it fits, else its balloon (doc 12
+                            // §5.3).
                             if view.is_none() {
-                                labels = Some(new_view_labels(&q, page, id, &at));
+                                labels = Some(LabelShow::TagsOrNumbers);
                             }
                         }
                         surface = Some(id);
@@ -1368,7 +1320,7 @@ impl Session {
                         let Some((show, _)) =
                             LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim()))
                         else {
-                            return invalid("Choose Tags, Item numbers or Both.");
+                            return invalid("Choose Tags, Item numbers, Both or Tags or numbers.");
                         };
                         labels = Some(*show);
                     }

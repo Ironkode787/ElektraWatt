@@ -181,6 +181,7 @@ pub fn map(project: &QetProject, facts: &[DiagramFacts], ids: &Ids, findings: &m
             caption: Default::default(),
             legend: Default::default(),
             added_rows: Vec::new(),
+            layout_page: None,
         };
         if table_only {
             let numbers: Vec<u32> = diagrams

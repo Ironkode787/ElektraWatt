@@ -514,6 +514,7 @@ pub(crate) fn emit_report_blocks(cx: &mut Cx<'_>, table: Option<&Table>) {
             caption: Default::default(),
             legend: Default::default(),
             added_rows: Vec::new(),
+            layout_page: None,
             extra: Default::default(),
         }));
     }

@@ -29,6 +29,7 @@ fn spec() -> BlockSpec {
         title: MlText::neutral("Partlist {n}"),
         empty: None,
         group_break: Break::None,
+        first_sub: 0,
     }
 }
 

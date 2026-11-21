@@ -2211,6 +2211,30 @@ impl ShellModel {
         self.form_done(EXTERNAL_REF_NEW.action, out)
     }
 
+    /// The form a new list prints on and the library copies to embed with it (`form_copies`, absent where the project
+    /// holds the form): the set's own frame when it has one (`Session::new_list_form`, doc 09 §3.8), else the shipped
+    /// frame without the grid with its title block. `None` without a project.
+    pub(super) fn list_form(&self) -> Option<(Value, Option<Value>)> {
+        let project = self.project.as_ref()?;
+        let own = project.session.new_list_form();
+        let form = own
+            .map(|id| Value::String(id.to_string()))
+            .or_else(|| crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME))?;
+        let held = own.is_some()
+            || form.as_str().is_some_and(|id| {
+                project
+                    .session
+                    .query()
+                    .forms()
+                    .iter()
+                    .any(|(f, _)| f.as_uuid().to_string() == id)
+            });
+        let keys = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK];
+        let copies =
+            (!held).then(|| Value::Array(crate::wizard::shipped_forms_lacking(&project.session, &keys)));
+        Some((form, copies))
+    }
+
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
     /// of the report kind `kind` (its key, `tube_list`, or its name, `Tube list`) from folio `folio` on, titled `title` (else
     /// the report's name in every shipped language), on the set's own frame (`Session::new_list_form`, doc 09 §3.8), else
@@ -2276,33 +2300,16 @@ impl ShellModel {
                 strings::format(key!("error-first-folio"), &[&folio]),
             );
         };
-        // The set's own frame when it has one (doc 09 §3.8), else the shipped frame without the grid.
-        let own = self.project.as_ref().and_then(|p| p.session.new_list_form());
-        let (Some(form), Some(project)) = (
-            own.map(|id| Value::String(id.to_string()))
-                .or_else(|| crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME)),
-            &self.project,
-        ) else {
+        let Some((form, copies)) = self.list_form() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let held = own.is_some()
-            || form.as_str().is_some_and(|id| {
-                project
-                    .session
-                    .query()
-                    .forms()
-                    .iter()
-                    .any(|(f, _)| f.as_uuid().to_string() == id)
-            });
         let mut params = json!({
             "source": { "kind": kind },
             "form": form,
             "first_folio": number,
         });
-        if !held {
-            let keys = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK];
-            params["form_copies"] =
-                Value::Array(crate::wizard::shipped_forms_lacking(&project.session, &keys));
+        if let Some(copies) = copies {
+            params["form_copies"] = copies;
         }
         // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
         // the page tree, not a bare folio (the persona re-test): in every language the program ships, so that its pages

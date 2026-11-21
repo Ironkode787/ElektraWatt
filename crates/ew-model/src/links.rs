@@ -915,6 +915,7 @@ pub static LINKS: &[LinkDecl] = &[
     link!(ReportBlock."form" -> Form, Forbid, None, |v, out| id(v.form, out)),
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),
     link!(ReportBlock."embedded.page" -> Page, Cascade, None, |v, out| opt(v.embedded.as_ref().map(|e| e.page), out)),
+    link!(ReportBlock."layout_page" -> Page, Cascade, None, |v, out| opt(v.layout_page, out)),
     lineage_link!(ReportBlock),
     // macro_instance (doc 03 §7): the macro copy is a stored copy ID (structural forbid, as
     // `representation.symbol`), the members a kind-erased unlink, the anchor page a cascade

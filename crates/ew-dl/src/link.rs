@@ -21,11 +21,15 @@ pub enum Destination {
     Representation(Uuid),
     /// A connection point, by its v5 id `v5(function, idx)`.
     Cp(Uuid),
+    /// A device placed on a panel layout page, by its placement's id: its footprint there.
+    Placement(Uuid),
+    /// A placed device's row on its layout's legend page, by its placement's id.
+    LegendRow(Uuid),
 }
 
 impl Destination {
-    /// The PDF destination name of doc 09 §4.2: `ew:p:<uuid>`, `ew:r:<uuid>` or `ew:cp:<uuid>`, with the
-    /// UUID in lower-case hyphenated form.
+    /// The PDF destination name of doc 09 §4.2: `ew:p:<uuid>`, `ew:r:<uuid>`, `ew:cp:<uuid>`, `ew:pl:<uuid>` or
+    /// `ew:lr:<uuid>`, with the UUID in lower-case hyphenated form.
     ///
     /// ```
     /// use ew_dl::Destination;
@@ -39,6 +43,8 @@ impl Destination {
             Destination::Page(id) => ("p", id),
             Destination::Representation(id) => ("r", id),
             Destination::Cp(id) => ("cp", id),
+            Destination::Placement(id) => ("pl", id),
+            Destination::LegendRow(id) => ("lr", id),
         };
         format!("ew:{prefix}:{}", id.hyphenated())
     }

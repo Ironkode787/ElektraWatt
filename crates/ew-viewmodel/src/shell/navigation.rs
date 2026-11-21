@@ -990,8 +990,24 @@ impl ShellModel {
             // Follow reference did nothing visible).
             None => match self.selected_coil_valve() {
                 Some(params) => self.dispatch("nav.show", &params),
-                None => Outcome::refused(key!("reason-no-link")),
+                None => self.follow_placement_row(g),
             },
+        }
+    }
+
+    /// The one selected device of a panel page goes to its row on its layout's legend page, where its label's link
+    /// goes (doc 12 §5.4); refused without such a device or row.
+    fn follow_placement_row(&mut self, g: usize) -> Outcome {
+        let target = self.selected_placement().and_then(|(_, row)| {
+            let dest = Destination::LegendRow(row.id);
+            self.project_session()?.link_targets(&[dest]).pop().flatten()
+        });
+        match target {
+            Some(target) => {
+                self.jump_to_target(g, target);
+                Outcome::Done
+            }
+            None => Outcome::refused(key!("reason-no-link")),
         }
     }
 
@@ -1019,12 +1035,17 @@ impl ShellModel {
         let Some(target) = link.target.clone() else {
             return Outcome::refused(key!("reason-link-external"));
         };
+        self.jump_to_target(g, target);
+        Outcome::Done
+    }
+
+    /// A jump of group `g` to a link's target, the cursor at the target point.
+    fn jump_to_target(&mut self, g: usize, target: ew_api::output::LinkTarget) {
         let page = PageId::of_target(&target);
         match target.at_nm {
             Some(at) => self.jump(g, page, Some(at), CursorAt::Exact(at)),
             None => self.jump(g, page, None, CursorAt::None),
         }
-        Outcome::Done
     }
 
     /// `props.follow {row?}` (F or a click on a link row of the grid): follows the device link of

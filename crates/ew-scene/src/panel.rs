@@ -51,6 +51,11 @@
 //!
 //! Balloons are 1.0 (doc 12 §5.2), so FR-LAY-062's last step is not built.
 //!
+//! With [`LabelShow::TagsOrNumbers`] (doc 12 §5.3) a label is its tag where step 1 or 2 places it, else the item
+//! number's balloon. With [`PanelView::linked`] (the surface has a legend page, doc 12 §5.4) each footprint is the
+//! target of its placement's [`Destination::Placement`] and each part of its label links to
+//! [`Destination::LegendRow`].
+//!
 //! # The knockout
 //!
 //! Every placement label, inside its footprint or outside with a leader, clears the carriers under it: its
@@ -69,7 +74,7 @@
 
 use std::sync::Arc;
 
-use ew_dl::{DashPattern, EntityRef, Item, Path, Pen, Stroke};
+use ew_dl::{DashPattern, Destination, EntityRef, Item, Link, Path, Pen, Stroke};
 use ew_ids::Id;
 use ew_schema::{Align, Carrier, Enclosure, MountingSurface, PageItem, Placement, Scale};
 use ew_text::{Shaped, TextStyle};
@@ -194,6 +199,10 @@ pub struct PanelView {
     pub labels: Vec<PanelLabel>,
     /// What each placement is labelled with.
     pub show: LabelShow,
+    /// Whether the surface has a legend page (doc 12 §5.4): each footprint is then the target of
+    /// [`Destination::Placement`](ew_dl::Destination::Placement) and each label links to the placement's row there
+    /// ([`Destination::LegendRow`](ew_dl::Destination::LegendRow)); without one nothing links.
+    pub linked: bool,
 }
 
 /// What a surface view labels each placement with (doc 12 §5.3, the view's `labels`).
@@ -206,6 +215,8 @@ pub enum LabelShow {
     ItemNumbers,
     /// The balloon with the tag beside it.
     Both,
+    /// The tag where it fits inside the footprint (across or turned), else the item number in a balloon.
+    TagsOrNumbers,
 }
 
 /// The outlines of the shown surface.
@@ -719,15 +730,15 @@ impl Builder<'_> {
         let (show_tag, show_number) = match panel.show {
             LabelShow::Tags => (true, false),
             LabelShow::ItemNumbers => (false, true),
-            LabelShow::Both => (true, true),
+            LabelShow::Both | LabelShow::TagsOrNumbers => (true, true),
         };
         let mut out: Vec<PlacedOnPage<'p>> = Vec::with_capacity(labels.len());
         // Per label: its footprint on the page and, for one placed outside it by the rules, its first place on
         // either side (above, below).
         let mut outside: Vec<(Rect, Option<[PlacedLabel; 2]>)> = Vec::with_capacity(labels.len());
         for l in labels {
-            let text: &str = if show_tag { &l.text } else { "" };
-            let item = l.item.filter(|_| show_number);
+            let mut text: &str = if show_tag { &l.text } else { "" };
+            let mut item = l.item.filter(|_| show_number);
             if text.is_empty() && item.is_none() {
                 continue;
             }
@@ -738,10 +749,25 @@ impl Builder<'_> {
             } else {
                 self.style_quiet(LAYOUT_LABEL_STYLE)
             };
-            let shaped = match &l.shaped {
+            let mut shaped = match &l.shaped {
                 Some(s) if !text.is_empty() => Arc::clone(s),
                 _ => Arc::new(self.fonts.shape(text, &style, None)),
             };
+            // Tags or numbers: the tag where it fits inside the footprint (the fit test's first two steps), else the
+            // item number in its balloon; a placement without an item number keeps its tag.
+            if panel.show == LabelShow::TagsOrNumbers {
+                let inside = !text.is_empty()
+                    && matches!(
+                        place_label(self.fonts, &style, text, &shaped, fp, bounds).fit,
+                        LabelFit::Horizontal | LabelFit::Turned
+                    );
+                if inside || item.is_none() {
+                    item = None;
+                } else {
+                    text = "";
+                    shaped = Arc::new(self.fonts.shape(text, &style, None));
+                }
+            }
             let m = self.fonts.vertical_metrics(&style);
             let desc = if has_descender(text) { m.descent } else { Nm::ZERO };
             let tag =
@@ -936,14 +962,22 @@ impl Builder<'_> {
         placements.sort_by_key(|d| d.placement);
         for d in placements {
             let entity = EntityRef(d.placement.as_uuid());
+            // With a legend page, the device is where its row's link lands (doc 12 §5.4).
+            let linked = |item: Item| {
+                if panel.linked {
+                    item.with_link(Link::Target(Destination::Placement(entity.0)))
+                } else {
+                    item
+                }
+            };
             let outline: Option<Vec<Vec<Pt2>>> = d.outline.iter().map(|l| p.points(l)).collect();
             match outline {
                 Some(lines) if !lines.is_empty() => {
                     for line in lines.iter().filter(|l| l.len() >= 2) {
-                        self.push(
+                        self.push(linked(
                             Item::path(Path::polyline(line), Some(Stroke::pen(Pen::P026)), None)
                                 .with_entity(entity),
-                        );
+                        ));
                     }
                 }
                 _ => {
@@ -953,7 +987,9 @@ impl Builder<'_> {
                     } else {
                         Stroke::pen(Pen::P026)
                     };
-                    self.push(Item::path(Path::rect(r), Some(stroke), None).with_entity(entity));
+                    self.push(linked(
+                        Item::path(Path::rect(r), Some(stroke), None).with_entity(entity),
+                    ));
                 }
             }
         }
@@ -981,15 +1017,23 @@ impl Builder<'_> {
         let Some(panel) = &view.panel else { return };
         for o in self.placed_labels(panel, true) {
             let (l, entity) = (&o.placed, o.entity);
+            // With a legend page, every part of the label goes to the placement's row there (doc 12 §5.4).
+            let link = panel
+                .linked
+                .then_some(Link::Source(Destination::LegendRow(entity.0)));
+            let linked = |item: Item| match link {
+                Some(k) => item.with_link(k),
+                None => item,
+            };
             if let Some((a, b)) = l.leader {
-                self.push(
+                self.push(linked(
                     Item::path(Path::line(a, b), Some(Stroke::pen(Pen::P013)), None).with_entity(entity),
-                );
+                ));
             }
             if let (Some((c, r)), Some((number, shaped))) = (l.balloon, &o.number) {
-                self.push(
+                self.push(linked(
                     Item::path(Path::circle(c, r), Some(Stroke::pen(Pen::P018)), None).with_entity(entity),
-                );
+                ));
                 self.text_shaped(
                     &TextSpec {
                         text: number,
@@ -998,7 +1042,7 @@ impl Builder<'_> {
                         align: &Align::Centre,
                         style_key: LAYOUT_LABEL_STYLE,
                         entity,
-                        link: None,
+                        link,
                         items: &[],
                     },
                     &o.style,
@@ -1013,7 +1057,7 @@ impl Builder<'_> {
                     align: &l.align,
                     style_key: LAYOUT_LABEL_STYLE,
                     entity,
-                    link: None,
+                    link,
                     items: &[],
                 },
                 &o.style,

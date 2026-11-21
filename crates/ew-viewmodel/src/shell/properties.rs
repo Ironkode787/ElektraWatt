@@ -1690,10 +1690,8 @@ impl ShellModel {
             self.notify_swap(text, target, holder);
             return Outcome::Done;
         }
-        // A new layout view that shows item numbers gets the legend that lists them (F21).
-        let numbered_view = row.path.ends_with("surface")
-            && matches!(row.value, RowValue::Absent)
-            && cmd.params.get("labels").and_then(Value::as_str) == Some("item_numbers");
+        // A new layout view gets its legend page (doc 12 §5.4).
+        let new_view = row.path.ends_with("surface") && matches!(row.value, RowValue::Absent);
         let pending = PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),
@@ -1708,7 +1706,7 @@ impl ShellModel {
             label: crate::properties::row_label(section, row),
         };
         let out = self.run_edit(pending, false);
-        if out == Outcome::Done && numbered_view {
+        if out == Outcome::Done && new_view {
             self.add_view_legend();
         }
         out
@@ -1753,10 +1751,8 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        // A new layout view that shows item numbers gets the legend that lists them (F21).
-        let numbered_view = row.path.ends_with("surface")
-            && matches!(row.value, RowValue::Absent)
-            && cmd.params.get("labels").and_then(Value::as_str) == Some("item_numbers");
+        // A new layout view gets its legend page (doc 12 §5.4).
+        let new_view = row.path.ends_with("surface") && matches!(row.value, RowValue::Absent);
         let pending = PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),
@@ -1771,7 +1767,7 @@ impl ShellModel {
             label: crate::properties::row_label(section, row),
         };
         let out = self.run_edit(pending, false);
-        if out == Outcome::Done && numbered_view {
+        if out == Outcome::Done && new_view {
             self.add_view_legend();
         }
         out

@@ -292,11 +292,13 @@ fn a_span_link_covers_its_item_only() {
             column: 1,
             span: Some(0..3),
             dest: d1,
+            target: false,
         },
         TableLink {
             column: 1,
             span: Some(5..8),
             dest: d2,
+            target: false,
         },
     ];
     let l = drawn(t);
@@ -350,11 +352,13 @@ fn the_span_boxes_of_a_shrunk_cell_follow_the_shrunk_text() {
             column: 0,
             span: Some(0..3),
             dest: d1,
+            target: false,
         },
         TableLink {
             column: 0,
             span: Some(last),
             dest: d2,
+            target: false,
         },
     ];
     let l = drawn(t);

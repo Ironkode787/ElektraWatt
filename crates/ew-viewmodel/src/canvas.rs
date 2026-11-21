@@ -64,7 +64,11 @@ impl PageId {
     /// The page's UUID as text (hyphenated, lower case).
     pub fn uuid_text(&self) -> String {
         match self.0 {
-            Destination::Page(u) | Destination::Representation(u) | Destination::Cp(u) => u.to_string(),
+            Destination::Page(u)
+            | Destination::Representation(u)
+            | Destination::Cp(u)
+            | Destination::Placement(u)
+            | Destination::LegendRow(u) => u.to_string(),
         }
     }
 }

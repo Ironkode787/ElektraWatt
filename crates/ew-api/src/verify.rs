@@ -34,8 +34,8 @@ use ew_schema::{
 };
 
 use crate::output::{
-    CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageDigest,
-    PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf, PageSurfaceView,
+    CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, LegendOfferOf, PageBindingsOf, PageCpTargetsOf,
+    PageDigest, PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf, PageSurfaceView,
     PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
@@ -291,6 +291,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<SurfaceLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<CarriersLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<PlacementsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<LegendOfferOf>(memo, cold, keys.pages.iter().copied(), o);
     let shaped: BTreeSet<(String, ew_text::TextStyle)> = keys
         .pages
         .iter()

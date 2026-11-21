@@ -373,6 +373,12 @@ pub struct ReportBlock {
     /// older build lists the kind's rows only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub added_rows: Vec<AddedRow>,
+    /// The panel layout page a page block of kind `enclosure_legend` lists and follows: its rows are the surface that
+    /// page shows, its pages are numbered after that page (doc 09 §2.2, §3.2; doc 12 §5.4). Additive: an older build
+    /// keeps it and lists no rows for such a block, so prints no legend page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub layout_page: Option<Id<Page>>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
