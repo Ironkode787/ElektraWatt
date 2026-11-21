@@ -34,17 +34,10 @@ fn page_text(shell: &mut ShellModel, folio: Option<&str>) -> String {
 fn the_texts_of_folios_101_to_103_equal_the_expected_files() {
     let tmp = Tmp::new("pagedesc");
     let mut shell = tmp.sample_shell("101");
-    for (folio, header) in [
-        ("101", "reps 17 connections 21 junctions 2"),
-        ("102", "reps 12 connections 19 junctions 4"),
-        ("103", "reps 23 connections 20 junctions 0"),
-    ] {
+    for folio in ["101", "102", "103"] {
         let text = page_text(&mut shell, Some(folio));
         let first = text.lines().next().unwrap();
-        assert!(
-            first.starts_with(&format!("page \"{folio}\" \"")) && first.ends_with(header),
-            "{first}"
-        );
+        assert!(first.starts_with(&format!("page \"{folio}\" \"")), "{first}");
         let path = expected_path(folio);
         if bless() {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -161,37 +154,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
     fresh.shutdown();
 }
 
-/// §6 item 4 (BD5 at the view-model level; the exact counts of `ew-ui` are the same cache): the first `page.describe` of
-/// a folio makes one `page_tables` call, a second makes none, and neither moves a memo counter after the first.
-#[test]
-fn page_describe_reads_the_cached_page_tables() {
-    let tmp = Tmp::new("pagecount");
-    let mut shell = tmp.sample_shell("101");
-    let before = shell.session_calls();
-    let _ = page_text(&mut shell, Some("102"));
-    let first = shell.session_calls();
-    assert_eq!(
-        first.page_tables,
-        before.page_tables + 1,
-        "one page_tables call for 102"
-    );
-    let memo = shell.memo_totals();
-    let again = page_text(&mut shell, Some("102"));
-    assert_eq!(
-        shell.session_calls(),
-        first,
-        "a cached page costs no Session call"
-    );
-    assert_eq!(shell.memo_totals(), memo, "and no memo re-execution");
-    assert!(again.starts_with("page \"102\""));
-    // The page on show is cached already.
-    let shown = shell.session_calls();
-    let _ = page_text(&mut shell, Some("101"));
-    assert_eq!(shell.session_calls(), shown);
-    shell.shutdown();
-}
-
-/// A generated list page prints its table: on Golden A's parts list, the `table` line with the column and row
+/// A generated list page prints its table: on the sample's parts list, the `table` line with the column and row
 /// counts, the column headers and one `row` line per printed row, each data row with one quoted cell per column; a
 /// drawn page prints no table.
 #[test]

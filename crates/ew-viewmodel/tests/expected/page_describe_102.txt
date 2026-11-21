@@ -1,64 +1,67 @@
-page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
-  rep ip "N-1" direction target continues "101-H16" cell "102-A1" symbol "ew.gen.ip-target@qet10" variant "A" at 38.495 20.228 mm
-    cp "N-1" at 38.495 20.228 mm wires 1 potential "N-1"
-  rep ip "L-1" direction target continues "101-H16" cell "102-A1" symbol "ew.gen.ip-target@qet10" variant "A" at 38.495 30.666 mm
-    cp "L-1" at 38.495 30.666 mm wires 1 potential "L-1"
-  rep ip "PE-1.2" direction source continues "103-G6" cell "102-A15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 25.447 mm
-    cp "PE-1.2" at 255.087 25.447 mm wires 1 potential "PE"
-  rep "-102G1" cell "102-B6" symbol "ew.gen.blackbox@qet10" variant "A" at 122.000 46.324 mm
-    cp "-102G1:L" at 124.610 46.324 mm wires 1 potential "L-1"
-    cp "-102G1:N" at 129.829 46.324 mm wires 1 potential "N-1"
-    cp "-102G1:PE" at 135.048 46.324 mm wires 1 potential "PE"
-    cp "-102G1:+#1" at 124.610 61.981 mm wires 1 potential "+24V"
-    cp "-102G1:+#2" at 129.829 61.981 mm wires 1 potential "+24V"
-    cp "-102G1:−#1" at 135.048 61.981 mm wires 1 potential "0V"
-    cp "-102G1:−#2" at 140.267 61.981 mm wires 1 potential "0V"
-  rep "-102F1" cell "102-C7" symbol "ew.iec.mcb-1p@qet10" variant "A" at 124.610 69.809 mm
-    cp "-102F1:1" at 124.610 69.809 mm wires 1 potential "+24V"
-    cp "-102F1:2" at 124.610 80.248 mm wires 1 potential "+24V-F"
-  rep ip "0VDC" direction source continues "103-A1" cell "102-C15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 67.200 mm
-    cp "0VDC" at 255.087 67.200 mm wires 1 potential "0V"
-  rep ip "PE-0VDC" direction source continues "103-G1" cell "102-D15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 88.076 mm
-    cp "PE-0VDC" at 255.087 88.076 mm wires 1 potential "0V"
-  rep "-102F2" cell "102-E7" symbol "ew.gen.blackbox@qet10" variant "A" at 137.657 108.952 mm
-    cp "-102F2:24VDC#1" at 140.267 108.952 mm wires 1 potential "+24V-F"
-    cp "-102F2:24VDC#2" at 145.486 108.952 mm wires 1 potential "+24V-F"
-    cp "-102F2:GND#1" at 150.705 108.952 mm wires 1 potential "0V"
-    cp "-102F2:GND#2" at 155.924 108.952 mm wires 1 potential "0V"
-    cp "-102F2:13" at 161.143 108.952 mm wires 0
-    cp "-102F2:14" at 140.267 124.610 mm wires 0
-    cp "-102F2:Out1" at 145.486 124.610 mm wires 1 potential "24VDC-1"
-    cp "-102F2:Out2" at 150.705 124.610 mm wires 1 potential "24VDC-2"
-    cp "-102F2:Out3" at 155.924 124.610 mm wires 1 potential "24VDC-3"
-    cp "-102F2:Out4" at 161.143 124.610 mm wires 1 potential "24VDC-4"
-  rep ip "24VDC-4" direction source continues "103-F1" cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 145.486 mm
-    cp "24VDC-4" at 255.087 145.486 mm wires 1 potential "24VDC-4"
-  rep ip "24VDC-3" direction source continues "103-D1" cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 155.924 mm
-    cp "24VDC-3" at 255.087 155.924 mm wires 1 potential "24VDC-3"
-  rep ip "24VDC-2" direction source continues "103-C1" cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 166.362 mm
-    cp "24VDC-2" at 255.087 166.362 mm wires 1 potential "24VDC-2"
-  rep ip "24VDC-1" direction source continues "103-A1" cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 176.801 mm
-    cp "24VDC-1" at 255.087 176.801 mm wires 1 potential "24VDC-1"
-  wire "-102F1:2" -> junction 4 route stored bends 1 via 124.610,90.686 mm at 132.438 90.686 mm
-  wire "-102F2:Out1" -> "24VDC-1" route stored bends 1 via 145.486,176.801 mm at 200.286 176.801 mm
-  wire "-102F2:Out2" -> "24VDC-2" route stored bends 1 via 150.705,166.362 mm at 202.896 166.362 mm
-  wire "-102F2:Out3" -> "24VDC-3" route stored bends 1 via 155.924,155.924 mm at 205.505 155.924 mm
-  wire "-102F2:Out4" -> "24VDC-4" route stored bends 1 via 161.143,145.486 mm at 208.115 145.486 mm
-  wire "-102G1:+#1" -> junction 1 route stored bends 0 at 124.610 62.959 mm
-  wire "-102G1:+#2" -> junction 1 route stored bends 1 via 129.829,64.590 mm at 127.545 64.590 mm
-  wire "-102G1:PE" -> "PE-1.2" route stored bends 1 via 135.048,25.447 mm at 195.067 25.447 mm
-  wire "-102G1:−#1" -> junction 3 route stored bends 2 via 135.048,67.200 150.705,67.200 mm at 150.705 77.638 mm
-  wire "-102G1:−#2" -> junction 2 route stored bends 2 via 140.267,64.590 155.924,64.590 mm at 152.010 64.590 mm
-  wire "L-1" -> "-102G1:L" route stored bends 1 via 124.610,30.666 mm at 81.552 30.666 mm
-  wire "N-1" -> "-102G1:N" route stored bends 1 via 129.829,20.228 mm at 84.162 20.228 mm
-  wire junction 1 -> "-102F1:1" route stored bends 0 at 124.610 68.178 mm
-  wire junction 2 -> "-102F2:GND#2" route stored bends 0 at 155.924 84.162 mm
-  wire junction 2 -> "0VDC" route stored bends 0 at 205.505 67.200 mm
-  wire junction 3 -> "-102F2:GND#1" route stored bends 0 at 150.705 98.514 mm
-  wire junction 3 -> "PE-0VDC" route stored bends 0 at 202.896 88.076 mm
-  wire junction 4 -> "-102F2:24VDC#1" route stored bends 0 at 140.267 99.819 mm
-  wire junction 4 -> "-102F2:24VDC#2" route stored bends 1 via 145.486,90.686 mm at 145.486 99.819 mm
-  junction 1 cell "102-C7" at 124.610 64.590 mm style bevel wiring chain sequence "-102G1:+#1" "-102F1:1" "-102G1:+#2"
-  junction 2 cell "102-C9" at 155.924 67.200 mm style bevel wiring star sequence "-102G1:−#2" "-102F2:GND#2" "0VDC"
-  junction 3 cell "102-D8" at 150.705 88.076 mm style bevel wiring star sequence "-102G1:−#1" "-102F2:GND#1" "PE-0VDC"
-  junction 4 cell "102-D8" at 140.267 90.686 mm style bevel wiring chain sequence "-102F2:24VDC#1" "-102F1:2" "-102F2:24VDC#2"
+page "102" "Control 24 V DC" reps 17 connections 14 junctions 2
+  rep ip "24V" direction target continues "101-H16" cell "102-B0" symbol "ew.gen.ip-target@qet10" variant "A" at 22.838 35.885 mm
+    cp "24V" at 22.838 35.885 mm wires 1 potential "24V"
+  rep "-102F1" cell "102-B1" symbol "ew.iec.mcb-1p@qet10" variant "H" at 38.495 35.885 mm
+    cp "-102F1:1" at 38.495 35.885 mm wires 1 potential "24V"
+    cp "-102F1:2" at 48.933 35.885 mm wires 1 potential "24V/102F1:2"
+  rep "-X1021:1" cell "102-B4" symbol "ew.iec.terminal@qet10" variant "G" at 85.467 46.324 mm
+    cp "-X1021:1/a" internal at 85.467 43.714 mm wires 1 potential "24V/102F1:2"
+    cp "-X1021:1/b" field at 85.467 48.933 mm wires 1 potential "24V/102F1:2"
+  rep "-X1021:2" cell "102-B5" symbol "ew.iec.terminal@qet10" variant "G" at 101.124 46.324 mm
+    cp "-X1021:2/a" internal at 101.124 43.714 mm wires 0 potential "24V/102F1:2"
+    cp "-X1021:2/b" field at 101.124 48.933 mm wires 0
+  rep "-X1021:3" cell "102-B6" symbol "ew.iec.terminal@qet10" variant "G" at 116.781 46.324 mm
+    cp "-X1021:3/a" internal at 116.781 43.714 mm wires 0 potential "24V/102F1:2"
+    cp "-X1021:3/b" field at 116.781 48.933 mm wires 0
+  rep "-X1021:4" cell "102-B7" symbol "ew.iec.terminal@qet10" variant "G" at 132.438 46.324 mm
+    cp "-X1021:4/a" internal at 132.438 43.714 mm wires 0 potential "24V/102F1:2"
+    cp "-X1021:4/b" field at 132.438 48.933 mm wires 0
+  rep "-102S2" cell "102-C4" symbol "ew.iec.pushbutton-nc@qet10" variant "A" at 85.467 67.200 mm
+    cp "-102S2:11" at 85.467 67.200 mm wires 1 potential "24V/102F1:2"
+    cp "-102S2:12" at 85.467 75.028 mm wires 1 potential "24V/102S2:12"
+  rep "-102S1" cell "102-D4" symbol "ew.iec.pushbutton-no@qet10" variant "A" at 85.467 88.076 mm
+    cp "-102S1:13" at 85.467 88.076 mm wires 1 potential "24V/102S2:12"
+    cp "-102S1:14" at 85.467 95.905 mm wires 1 potential "24V/102Q1:14"
+  rep "-102Q1" cell "102-D5" symbol "ew.iec.contact-no@qet10" variant "A" at 101.124 88.076 mm
+    cp "-102Q1:13" at 101.124 88.076 mm wires 1 potential "24V/102S2:12"
+    cp "-102Q1:14" at 101.124 95.905 mm wires 2 potential "24V/102Q1:14"
+  rep "-102Q1" cell "102-E4" symbol "ew.iec.coil@qet10" variant "A" at 85.467 108.952 mm
+    cp "-102Q1:A1" at 85.467 108.952 mm wires 1 potential "24V/102Q1:14"
+    cp "-102Q1:A2" at 85.467 119.391 mm wires 1 potential "0V"
+  rep "-102E1" cell "102-E5" symbol "ew.iec.lamp@qet10" variant "A" at 101.124 108.952 mm
+    cp "-102E1:X1" at 101.124 108.952 mm wires 1 potential "24V/102Q1:14"
+    cp "-102E1:X2" at 101.124 116.781 mm wires 1 potential "0V"
+  rep "-X1021:5" cell "102-G3" symbol "ew.iec.terminal@qet10" variant "A" at 69.809 140.267 mm
+    cp "-X1021:5/a" internal at 69.809 142.877 mm wires 1 potential "0V"
+    cp "-X1021:5/b" field at 69.809 137.657 mm wires 0
+  rep "-X1021:6" cell "102-G4" symbol "ew.iec.terminal@qet10" variant "A" at 85.467 140.267 mm
+    cp "-X1021:6/a" internal at 85.467 142.877 mm wires 0 potential "0V"
+    cp "-X1021:6/b" field at 85.467 137.657 mm wires 1 potential "0V"
+  rep "-X1021:7" cell "102-G5" symbol "ew.iec.terminal@qet10" variant "A" at 101.124 140.267 mm
+    cp "-X1021:7/a" internal at 101.124 142.877 mm wires 0 potential "0V"
+    cp "-X1021:7/b" field at 101.124 137.657 mm wires 1 potential "0V"
+  rep "-X1021:8" cell "102-G6" symbol "ew.iec.terminal@qet10" variant "A" at 116.781 140.267 mm
+    cp "-X1021:8/a" internal at 116.781 142.877 mm wires 1 potential "0V"
+    cp "-X1021:8/b" field at 116.781 137.657 mm wires 0
+  rep ip "0V" direction target continues "101-H16" cell "102-H0" symbol "ew.gen.ip-target@qet10" variant "A" at 22.838 161.143 mm
+    cp "0V" at 22.838 161.143 mm wires 1 potential "0V"
+  rep ip "PE" direction target continues "101-C10" cell "102-H0" symbol "ew.gen.ip-target@qet10" variant "A" at 22.838 171.581 mm
+    cp "PE" at 22.838 171.581 mm wires 1 potential "PE"
+  wire "-102E1:X2" -> "-X1021:7/b" route stored bends 0 at 101.124 127.219 mm
+  wire "-102F1:2" -> "-X1021:1/a" route stored bends 1 via 85.467,35.885 mm at 67.200 35.885 mm
+  wire "-102Q1:13" -> junction 1 route stored bends 1 via 101.124,80.248 mm at 93.295 80.248 mm
+  wire "-102Q1:14" -> "-102E1:X1" route stored bends 0 at 101.124 104.060 mm
+  wire "-102Q1:14" -> junction 2 route stored bends 1 via 101.124,101.124 mm at 93.295 101.124 mm
+  wire "-102Q1:A2" -> "-X1021:6/b" route stored bends 0 at 85.467 128.524 mm
+  wire "-102S1:14" -> junction 2 route stored bends 0 at 85.467 98.188 mm
+  wire "-102S2:12" -> junction 1 route stored bends 0 at 85.467 77.312 mm
+  wire "-X1021:1/b" -> "-102S2:11" route stored bends 0 at 85.467 58.066 mm
+  wire "-X1021:8/a" -> "PE" route stored bends 1 via 116.781,171.581 mm at 69.809 171.581 mm
+  wire "0V" -> "-X1021:5/a" route stored bends 1 via 69.809,161.143 mm at 46.324 161.143 mm
+  wire "24V" -> "-102F1:1" route stored bends 0 at 33.113 35.885 mm
+  wire junction 1 -> "-102S1:13" route stored bends 0 at 85.467 84.162 mm
+  wire junction 2 -> "-102Q1:A1" route stored bends 0 at 85.467 105.038 mm
+  junction 1 cell "102-D4" at 85.467 80.248 mm style bevel wiring chain sequence "-102S2:12" "-102S1:13" "-102Q1:13"
+  junction 2 cell "102-E4" at 85.467 101.124 mm style bevel wiring chain sequence "-102S1:14" "-102Q1:A1" "-102Q1:14"
+  bridge "BR1" "-X1021:1" "-X1021:2" "-X1021:3" "-X1021:4"
+  bridge "BR2" "-X1021:5" "-X1021:6" "-X1021:7" "-X1021:8"

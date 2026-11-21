@@ -3,7 +3,7 @@
 
 //! The G-PP blind-drafter run's part findings, through the text interface: the minimal part
 //! chooser of the Parts row (draft FT row 1), part-first terminal placement into a strip (row 2) and no orphan device
-//! after deleting its last representation (row 5). Each test repeats the run's step on a writable copy of Golden A and
+//! after deleting its last representation (row 5). Each test repeats the run's step on a writable copy of the sample and
 //! reads the bill of materials of the saved project.
 
 use crate::common;
@@ -16,8 +16,8 @@ use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
-/// A headless shell with a writable copy of Golden A on `folio`.
-fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
+/// A headless shell with a writable copy of the sample on `folio`.
+fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.sample_in(Mode::Headless, true, folio)
 }
 
@@ -52,48 +52,48 @@ fn choices(s: &ShellModel) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Finding 1: S51, -101F1 and a strip terminal take their part by part number through `props.set` and through the
+/// Finding 1: -102S1, -101F1 and a strip terminal take their part by part number through `props.set` and through the
 /// chooser's options (`props.edit`, `props.input`, `props.choose`); the BOM lists them; a number that matches no
 /// copy answers with a sentence, never serde text.
 #[test]
 fn parts_are_chosen_by_part_number_and_reach_the_bom() {
     let tmp = Tmp::new("gpp-parts-1");
-    let mut s = golden(&tmp, "101");
+    let mut s = writable(&tmp, "101");
     // Clear the three devices' parts first (an empty text is the empty list).
-    for tag in ["S51", "-101F1", "-X1031:1"] {
+    for tag in ["-102S1", "-101F1", "-X1031:U"] {
         done(&mut s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
         done(&mut s, "props.set", json!({"row": "device/parts", "value": ""}));
     }
     let cleared = bom(&tmp, &mut s);
     assert!(
-        line_of(&cleared, "533356").is_none(),
-        "S51's part is gone: {cleared:?}"
+        line_of(&cleared, "EW-GEN-PB-1").is_none(),
+        "-102S1's part is gone: {cleared:?}"
     );
-    // The run's step: a bare number. Before the chooser this answered "invalid type: integer `533356`, expected a
-    // sequence".
-    done(&mut s, "select.set", json!({"refs": ["tag:S51"]}));
+    // The run's step was a bare number, which before the chooser answered "invalid type: integer `533356`, expected
+    // a sequence": a part number alone. The sample's push button -102S1 takes its own, EW-GEN-PB-1.
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
     done(
         &mut s,
         "props.set",
-        json!({"row": "device/parts", "value": "533356"}),
+        json!({"row": "device/parts", "value": "EW-GEN-PB-1"}),
     );
     // -101F1 through the options: the editor lists the project's part copies, the typed text filters them.
     done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
     done(&mut s, "props.edit", json!({"row": "device/parts"}));
     let all = choices(&s);
     assert!(all.len() >= 10, "the project's part copies: {all:?}");
-    assert!(all.iter().any(|c| c == "533356 (Eaton)"), "{all:?}");
-    done(&mut s, "props.input", json!({"text": "A9P5"}));
-    assert_eq!(choices(&s), ["A9P52610 (Schneider Electric)"]);
+    assert!(all.iter().any(|c| c == "EW-GEN-PB-1 (Generic)"), "{all:?}");
+    done(&mut s, "props.input", json!({"text": "MCB-4"}));
+    assert_eq!(choices(&s), ["EW-GEN-MCB-4 (Generic)"]);
     done(&mut s, "props.choose", json!({"index": 0}));
     // A strip terminal through the text, in the row's display form.
-    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:U"]}));
     done(
         &mut s,
         "props.set",
-        json!({"row": "device/parts", "value": "PT 2.5-TWIN (Phoenix Contact)"}),
+        json!({"row": "device/parts", "value": "EW-GEN-TRM-1 (Generic)"}),
     );
-    assert_eq!(parts_text(&s), "PT 2.5-TWIN × 1");
+    assert_eq!(parts_text(&s), "EW-GEN-TRM-1 × 1");
     // A number no copy has: a sentence of the strings table.
     let m = failed(
         &mut s,
@@ -105,44 +105,42 @@ fn parts_are_chosen_by_part_number_and_reach_the_bom() {
         "The project has no part with the part number 4711: choose one of the project's parts from the list"
     );
     let bom = bom(&tmp, &mut s);
-    let s51 = line_of(&bom, "533356").expect("533356 in the BOM");
-    assert!(s51.contains("S51"), "{s51}");
-    let f1 = line_of(&bom, "A9P52610").expect("A9P52610 in the BOM");
+    let s51 = line_of(&bom, "EW-GEN-PB-1").expect("EW-GEN-PB-1 in the BOM");
+    assert!(s51.contains("-102S1"), "{s51}");
+    let f1 = line_of(&bom, "EW-GEN-MCB-4").expect("EW-GEN-MCB-4 in the BOM");
     assert!(f1.contains("-101F1"), "{f1}");
-    let x = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
-    assert!(x.contains("-X1031:1"), "{x}");
+    let x = line_of(&bom, "EW-GEN-TRM-1").expect("EW-GEN-TRM-1 in the BOM");
+    assert!(x.contains("-X1031:U"), "{x}");
 }
 
-/// Finding 2: `place.pick part="PT 2.5-TWIN" strip=… designation=…` places a terminal of that strip with that
-/// designation, and the terminal carries the part (the run made a free device -103X1 and said nothing). Golden A's
-/// -X1031:1 is deleted and placed again from its part; a strip that does not exist fails and lists the strips.
+/// Finding 2: `place.pick part="EW-GEN-TRM-1" strip=… designation=…` places a terminal of that strip with that
+/// designation, and the terminal carries the part (the run made a free device -103X1 and said nothing). A ninth
+/// terminal of the sample's -X1021 is placed from its part; a strip that does not exist fails and lists the strips.
 #[test]
 fn a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
     let tmp = Tmp::new("gpp-parts-2");
-    let mut s = golden(&tmp, "103");
-    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
-    done(&mut s, "edit.delete_selection", json!({}));
+    let mut s = writable(&tmp, "102");
     assert!(
-        s.dispatch("select.set", &json!({"refs": ["tag:-X1031:1"]})) != Outcome::Done,
-        "-X1031:1 is gone"
+        s.dispatch("select.set", &json!({"refs": ["tag:-X1021:9"]})) != Outcome::Done,
+        "-X1021 has no terminal 9"
     );
     done(
         &mut s,
         "place.pick",
-        json!({"part": "PT 2.5-TWIN", "strip": "-X1031", "designation": "1"}),
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X1021", "designation": "9"}),
     );
     let ghost = state(&s)["canvas"]["ghost"].clone();
     assert_eq!(ghost["target"], "terminal", "{ghost}");
     let p = empty_point(s.canvas().unwrap());
     click(&mut s, p, json!({}));
     done(&mut s, "tool.select", json!({}));
-    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
-    assert_eq!(parts_text(&s), "PT 2.5-TWIN × 1");
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1021:9"]}));
+    assert_eq!(parts_text(&s), "EW-GEN-TRM-1 × 1");
     // A strip that does not exist fails and lists the project's strips, not turned into a free device.
     let message = failed(
         &mut s,
         "place.pick",
-        json!({"part": "PT 2.5-TWIN", "strip": "-X9999", "designation": "1"}),
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X9999", "designation": "9"}),
     );
     assert!(
         message.starts_with("No terminal strip -X9999 in the project; its strips are "),
@@ -150,9 +148,10 @@ fn a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
     );
     assert!(s.picker().is_none(), "nothing is armed");
     let bom = bom(&tmp, &mut s);
-    let line = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
-    assert!(line.contains("-X1031:1"), "{line}");
-    assert!(!line.contains("-103X"), "no free device: {line}");
+    let line = line_of(&bom, "EW-GEN-TRM-1").expect("EW-GEN-TRM-1 in the BOM");
+    // The parts list names the strip's terminals as one range, -X1021:1 to 9, the new one included.
+    assert!(line.contains("-X1021:1 ") && line.contains(" 9,"), "{line}");
+    assert!(!line.contains("-102X"), "no free device: {line}");
 }
 
 /// The device of the only selected item (a `tag:` reference selects the device).
@@ -188,42 +187,42 @@ fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// The device E55 of folio 101 (the cabinet light, part SK 3102.000): one representation, a part, and no potential
-/// definition, bond, page-less or off-page connection at its CPs.
-const E55: &str = "85760c34-951e-5b8a-bbe2-3253c69e3db2";
 
 /// Finding 5: deleting the only representation of a device deletes the device and its part use in the same command,
 /// so the parts list has no phantom `-?G1`; one undo restores both. A device left without a representation by a
-/// delete of its representation alone is EW-CORE-047. (The run's -102G1 is kept now, as it
-/// carries the +24V and 0V definitions and a bond; this row runs on E55, which carries no such intent.)
+/// delete of its representation alone is EW-CORE-047. (The run's -101G1 is kept now, as it
+/// carries the 24 V and 0 V definitions; this row runs on the lamp -102E1 of folio 102, part EW-GEN-LMP-1: one
+/// representation, a part, and no potential definition, bond, page-less or off-page connection at its CPs.)
 #[test]
 fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
     let tmp = Tmp::new("gpp-parts-5");
-    let mut s = golden(&tmp, "101");
+    let mut s = writable(&tmp, "102");
     let g = core047(&tmp, &mut s);
-    assert!(g.is_empty(), "Golden A draws every device: {g:#?}");
-    let device: Uuid = E55.parse().unwrap();
+    assert!(g.is_empty(), "the sample draws every device: {g:#?}");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102E1"]}));
+    let device = selected_device(&s);
     let reps = reps_of(&s, device);
-    assert_eq!(reps.len(), 1, "E55 is one symbol");
+    assert_eq!(reps.len(), 1, "-102E1 is one symbol");
     done(&mut s, "select.set", json!({ "ids": [reps[0].to_string()] }));
     let before = bom(&tmp, &mut s);
-    let light = line_of(&before, "SK 3102.000")
-        .expect("SK 3102.000 in the BOM")
+    let light = line_of(&before, "EW-GEN-LMP-1")
+        .expect("EW-GEN-LMP-1 in the BOM")
         .clone();
-    assert!(light.contains("E55"), "{light}");
+    assert!(light.contains("-102E1"), "{light}");
     let commands = s.recorded_commands().len();
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(s.recorded_commands().len(), commands + 1, "one command");
     // The device went too, so the toast names no device left without a symbol.
     assert_eq!(unplaced_toast(&s), None);
     assert!(
-        format!("{:?}", s.recorded_commands()[commands]).contains(E55),
+        format!("{:?}", s.recorded_commands()[commands]).contains(&device.to_string()),
         "the device went with its last representation"
     );
     let after = bom(&tmp, &mut s);
     assert!(
-        line_of(&after, "SK 3102.000").is_none_or(|l| !l.contains("E55")),
-        "no phantom E55: {after:?}"
+        line_of(&after, "EW-GEN-LMP-1").is_none_or(|l| !l.contains("-102E1")),
+        "no phantom -102E1: {after:?}"
+
     );
     assert!(core047(&tmp, &mut s).is_empty());
     // One undo step restores the device, its part and its symbol.
@@ -270,59 +269,58 @@ fn connect_intent(tmp: &Tmp, s: &mut ShellModel) -> (Vec<String>, usize, Vec<Uui
     (names, q.bonds().iter().count(), devices)
 }
 
-/// Deleting the only box of -102G1 on folio 102 keeps the device, because its CPs carry
-/// the +24V and 0V definitions and the 0V-PE bond, which a delete of the drawing must not drop unseen. The device is
-/// left to EW-CORE-047.
+/// Deleting the only box of the power supply -101G1 on folio 101 keeps the device, because its CPs carry the 24V and
+/// 0V definitions, which a delete of the drawing must not drop unseen. The device is left to EW-CORE-047.
 #[test]
 fn a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     let tmp = Tmp::new("gpp-parts-5c");
-    let mut s = golden(&tmp, "102");
+    let mut s = writable(&tmp, "101");
     let (names_before, bonds_before, _) = connect_intent(&tmp, &mut s);
-    assert!(names_before.iter().any(|n| n == "+24V"), "{names_before:?}");
+    assert!(names_before.iter().any(|n| n == "24V"), "{names_before:?}");
     assert!(names_before.iter().any(|n| n == "0V"), "{names_before:?}");
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-101G1"]}));
     let device = selected_device(&s);
-    assert_eq!(reps_of(&s, device).len(), 1, "-102G1 is one black box");
+    assert_eq!(reps_of(&s, device).len(), 1, "-101G1 is one black box");
     done(&mut s, "edit.delete_selection", json!({}));
     assert!(reps_of(&s, device).is_empty(), "the box is deleted");
     // The kept device is named in the delete's toast, with where it stays.
     assert_eq!(
         unplaced_toast(&s).as_deref(),
         Some(
-            "-102G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list."
+            "-101G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list."
         )
     );
     let (names_after, bonds_after, devices) = connect_intent(&tmp, &mut s);
     assert!(devices.contains(&device), "the device remains");
-    assert_eq!(names_after, names_before, "+24V and 0V are still defined");
+    assert_eq!(names_after, names_before, "24V and 0V are still defined");
     assert_eq!(bonds_after, bonds_before, "the bond still exists");
     let found = core047(&tmp, &mut s);
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(found[0].contains("G1"), "{found:?}");
 }
 
-/// One delete of an interruption point with its wire and of -102G1's only box joins the two
+/// One delete of an interruption point with its wire and of -101G1's only box joins the two
 /// sentences of its toast with one space, each ending with its own full stop, in both languages.
 #[test]
 fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
     for (lang, want) in [
         (
             "en",
-            "Deleted the interruption point {name} and the wire connected to it. -102G1 (now -?G1) has no symbol on a \
+            "Deleted the interruption point {name} and the wire connected to it. -101G1 (now -?G1) has no symbol on a \
              page now; it stays in the Devices navigator and the parts list.",
         ),
         (
             "nl",
-            "Onderbrekingspunt {name} en de draad die erop aansloot verwijderd. -102G1 (nu -?G1) heeft nu geen symbool \
+            "Onderbrekingspunt {name} en de draad die erop aansloot verwijderd. -101G1 (nu -?G1) heeft nu geen symbool \
              op een pagina; het blijft in de navigator Apparaten en de stuklijst.",
         ),
     ] {
         let tmp = Tmp::new("gpp-parts-c53p2-1");
-        let mut s = golden(&tmp, "102");
+        let mut s = writable(&tmp, "101");
         done(&mut s, "view.language", json!({"value": lang}));
-        done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+        done(&mut s, "select.set", json!({"refs": ["tag:-101G1"]}));
         let g1 = reps_of(&s, selected_device(&s));
-        assert_eq!(g1.len(), 1, "-102G1 is one black box");
+        assert_eq!(g1.len(), 1, "-101G1 is one black box");
         let (ip, name) = {
             let t = &s.canvas().unwrap().page().tables;
             t.reps
@@ -332,7 +330,8 @@ fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
                     t.cps.iter().find(|c| c.rep == r.id && c.connections.len() == 1)?;
                     Some((r.id.to_string(), r.ip.as_ref()?.name.clone()))
                 })
-                .expect("an IP of 102 with one wire")
+                .expect("an IP of 101 with one wire")
+
         };
         done(&mut s, "select.set", json!({"ids": [g1[0].to_string(), ip]}));
         done(&mut s, "edit.delete_selection", json!({}));
@@ -349,8 +348,8 @@ fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
 #[test]
 fn a_device_with_another_representation_is_kept() {
     let tmp = Tmp::new("gpp-parts-5b");
-    let mut s = golden(&tmp, "101");
-    // A device that a page of Golden A draws more than once.
+    let mut s = writable(&tmp, "101");
+    // A device that a page of the sample draws more than once.
     let mut found = None;
     for folio in ["101", "102", "103", "104", "105", "106"] {
         if s.dispatch("page.goto", &json!({ "folio": folio })) != Outcome::Done {
@@ -383,9 +382,9 @@ fn a_device_with_another_representation_is_kept() {
 #[test]
 fn the_first_terminal_of_a_new_strip_from_its_part() {
     let tmp = Tmp::new("gpp-parts-2b");
-    let mut s = golden(&tmp, "103");
+    let mut s = writable(&tmp, "103");
     let qty = |bom: &[String]| -> String {
-        let line = line_of(bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
+        let line = line_of(bom, "EW-GEN-TRM-1").expect("EW-GEN-TRM-1 in the BOM");
         line.split(',').nth(2).unwrap_or_default().to_owned()
     };
     let before = qty(&bom(&tmp, &mut s));
@@ -393,7 +392,7 @@ fn the_first_terminal_of_a_new_strip_from_its_part() {
     done(
         &mut s,
         "place.pick",
-        json!({"part": "PT 2.5-TWIN", "strip": "-X??", "designation": "1"}),
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X??", "designation": "U"}),
     );
     assert_eq!(state(&s)["canvas"]["ghost"]["target"], "terminal");
     let p = empty_point(s.canvas().unwrap());
@@ -407,6 +406,6 @@ fn the_first_terminal_of_a_new_strip_from_its_part() {
     assert_eq!(
         after.parse::<u32>().unwrap(),
         before.parse::<u32>().unwrap() + 1,
-        "the new terminal carries PT 2.5-TWIN ({before} -> {after})"
+        "the new terminal carries EW-GEN-TRM-1 ({before} -> {after})"
     );
 }

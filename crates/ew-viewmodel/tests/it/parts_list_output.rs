@@ -99,6 +99,7 @@ fn parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
         })
         .collect();
     assert_eq!(marked, ["901"]);
-    // The export's toast is gone; Golden A's devices without a part are said (`parts_unlisted`).
-    assert_eq!(toasts(&shell), ["unlisted"]);
+    // The export's toast is gone; every device of the sample has a part, so no toast says one is unlisted
+    // (`parts_unlisted`).
+    assert_eq!(toasts(&shell), Vec::<&str>::new());
 }

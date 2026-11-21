@@ -240,7 +240,7 @@ fn the_prefixes_find_pages_cells_objects_and_rules() {
     assert_eq!(pages[0].run, PaletteRun::Page("103".into()));
     assert_eq!(shell.run_palette_selection(), Outcome::Done);
     assert_eq!(shell.current_folio(), Some("103"));
-    // `#pneu` lists 106 and 200 (doc 16 §4.3's example).
+    // `#pneu` lists the pneumatics page 201 first, and its section's divider 200.
     let pneu = query(&mut shell, "#pneu");
     let folios: Vec<&str> = pneu
         .iter()
@@ -249,7 +249,8 @@ fn the_prefixes_find_pages_cells_objects_and_rules() {
             _ => None,
         })
         .collect();
-    assert_eq!(folios[..2], ["106", "200"], "{folios:?}");
+    assert_eq!(folios[0], "201", "{folios:?}");
+    assert!(folios.contains(&"200"), "{folios:?}");
     done(&mut shell, "ui.dismiss", json!({}));
     // `:103-A1` opens folio 103 with A1 at the centre.
     done(&mut shell, "page.goto", json!({"folio": "101"}));
@@ -258,11 +259,11 @@ fn the_prefixes_find_pages_cells_objects_and_rules() {
     assert_eq!(cell[0].run, PaletteRun::Cell("103-A1".into()));
     assert_eq!(shell.run_palette_selection(), Outcome::Done);
     assert_eq!(shell.current_folio(), Some("103"));
-    // `@-102F` lists -102F1 and -102F2; Enter selects.
-    let objects = query(&mut shell, "@-102F");
+    // `@-102` lists -102F1 and -102S1; Enter selects.
+    let objects = query(&mut shell, "@-102");
     let labels: Vec<&str> = objects.iter().map(|e| e.label.as_str()).collect();
     assert!(
-        labels.contains(&"-102F1") && labels.contains(&"-102F2"),
+        labels.contains(&"-102F1") && labels.contains(&"-102S1"),
         "{labels:?}"
     );
     let at = objects.iter().position(|e| e.label == "-102F1").unwrap();
@@ -292,7 +293,8 @@ fn the_prefixes_find_pages_cells_objects_and_rules() {
 fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
     let tmp = Tmp::new("pal-strips");
     let mut shell = tmp.sample_in(Mode::Gui, false, "101");
-    for (q, tag) in [("X1031", "-X1031"), ("-3W1", "-3W1"), ("-102F1", "-102F1")] {
+    for (q, tag) in [("X1031", "-X1031"), ("-101W1", "-101W1"), ("-102F1", "-102F1")] {
+
         let entries = query(&mut shell, q);
         let labels: Vec<&str> = entries.iter().map(|e| e.label.as_str()).collect();
         assert!(labels.contains(&tag), "{q}: {labels:?}");

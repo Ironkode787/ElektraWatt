@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JB6 (FR-UI-042): after a direct grid commit on 20 devices the toast's Undo still works
+//! JB6 (FR-UI-042): after a direct grid commit on 8 devices the toast's Undo still works
 //! from the notifications log once the toast is gone, and is expired after another commit; toasts of one key replace
 //! each other. The log's caps (three visible, 100 kept) are the unit tests of `ew_viewmodel::notifications`.
 
@@ -13,7 +13,7 @@ use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 fn terminals() -> Vec<String> {
-    (1..=20).map(|i| format!("tag:-X1031:{i}")).collect()
+    (1..=8).map(|i| format!("tag:-X1021:{i}")).collect()
 }
 
 fn qty(shell: &ShellModel) -> String {
@@ -37,11 +37,11 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
         json!({"row": "device/parts[0].qty", "value": "2"}),
     );
     assert_eq!(qty(&s), "2");
-    let toast = s.toast().expect("the toast of a commit on 20 devices");
-    assert_eq!(toast.text, "Set quantity on 20 devices.");
+    let toast = s.toast().expect("the toast of a commit on 8 devices");
+    assert_eq!(toast.text, "Set quantity on 8 devices.");
     assert!(
         s.describe()
-            .contains("toast \"Set quantity on 20 devices.\" undo")
+            .contains("toast \"Set quantity on 8 devices.\" undo")
     );
     assert_eq!(state(&s)["toast"]["undo"], true);
     // The toast goes (the window's 8 seconds, or Close); the log keeps it with its Undo.
@@ -50,14 +50,14 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     done(&mut s, "notifications.show", json!({}));
     let d = s.describe();
     assert!(
-        d.contains("notifications 1\n  notification 1 \"Set quantity on 20 devices.\" undo"),
+        d.contains("notifications 1\n  notification 1 \"Set quantity on 8 devices.\" undo"),
         "{d}"
     );
     done(&mut s, "notifications.run", json!({"entry": 1, "action": "undo"}));
     assert_eq!(qty(&s), before, "the log's Undo undid the step");
     assert!(
         s.describe()
-            .contains("  notification 1 \"Set quantity on 20 devices.\" undo expired"),
+            .contains("  notification 1 \"Set quantity on 8 devices.\" undo expired"),
         "spent once it ran"
     );
     // Two more commits: the newer toast replaces the older (one key), and the older one's Undo expires.
@@ -74,7 +74,7 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     assert_eq!(s.notifications().visible().len(), 1, "one key, one toast");
     let d = s.describe();
     assert!(
-        d.contains("  notification 3 \"Set quantity on 20 devices.\" undo\n  notification 2 \"Set quantity on 20 devices.\" undo expired"),
+        d.contains("  notification 3 \"Set quantity on 8 devices.\" undo\n  notification 2 \"Set quantity on 8 devices.\" undo expired"),
         "{d}"
     );
     assert_eq!(
