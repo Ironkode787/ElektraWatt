@@ -50,8 +50,8 @@ pub struct SupplyPanel {
 
 /// The kind of conductor and the voltage a mark's name tells (H9): the part before a dash (`L1-EXT` is `L1`), read as
 /// `L1`, `L2`, `L3` (a phase, at `phase`, the project supply's voltage), `L` (a phase), `N`, `PE`, `PEN`, `L+`, `L-`,
-/// `M` or `0V` (the 0 V), or `<n>V` (`24V`: a plus of that voltage, DC; `<n>VAC`: a phase of it); anything else tells
-/// nothing (empty texts).
+/// `M`, `0V` or `0VDC` (the 0 V), or `<n>V` (`24V`: a plus of that voltage, DC; `<n>VAC`: a phase of it); anything
+/// else tells nothing (empty texts).
 pub fn from_name(name: &str, phase: Option<&str>) -> (String, String) {
     let upper = name.trim().to_uppercase().replace('\u{2212}', "-");
     // The part before a dash that has something after it ("L-" is the minus itself).
@@ -70,7 +70,8 @@ pub fn from_name(name: &str, phase: Option<&str>) -> (String, String) {
         "PEN" => ("pen", String::new()),
         "L+" => ("l_plus", String::new()),
         "L-" => ("l_minus", String::new()),
-        "M" | "0V" => ("m", String::new()),
+        // A 0 V of a DC supply is its M, not a plus of 0 V (`0VDC-6`).
+        "M" | "0V" | "0VDC" => ("m", String::new()),
         other => {
             let digits: String = other
                 .chars()
@@ -382,6 +383,7 @@ mod tests {
             ("PE-EXT", "pe", ""),
             ("24V", "l_plus", "24 V DC"),
             ("0V", "m", ""),
+            ("0VDC-6", "m", ""),
             ("M", "m", ""),
             ("L-", "l_minus", ""),
             ("230VAC", "l", "230 V AC"),

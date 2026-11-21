@@ -448,11 +448,18 @@ potential_flow(potential):                              // memo per potential; t
   is reported). *rc.5:* a point says what it is by a pin's role, else a potential definition's type there, else (no
   type) a definition or an interruption point named by the type's word (`0V`, `M`, `L-`; `PE`, `FE`), so a 0 V
   typed from the list, a potential named 0V and a 0 V carried in by an interruption point named 0V are earthed alike.
+  *0.3.5 (FT-1821, FT-1867).* A 0 V point is also a definition or an interruption point whose name's head (the part
+  before a dash with something after it, spaces aside) is `0V`, `0VDC`, `M` or `L-` (`0VDC-6`, `0 V DC`; the supply
+  marks' panel proposes the kind M for such a name, where it proposed a plus of 0 V): an imported supply whose pins say nothing, its 0 V named by its mark, stays 0 V when it
+  is earthed, where it was typed PE as a whole. And the rule follows the potential over the page links: the derived
+  `zero_volt_ips` holds every interruption point whose net, joined without the connections to earth points, holds a
+  0 V point, or reaches one through the pairs of interruption points, net by net and page by page; such a point is a
+  0 V point of its own page, so the wire from it to an earth point is the bond wherever the 0 V was named.
   A wire to **functional earth** (an FE pin or the functional earth symbol) is the 0 V earthed for function: the two
   stay apart (`BondLink` kind `Equipotential`), it is no PELV bond, and EW-POT-002 tells a PELV 0 V that goes to
   functional earth only that its bond belongs on protective earth. Only a 0 V that reaches the earth wire through a
-  point that says nothing (an interruption point of another name, a terminal's other side) still meets PE, and the
-  declared bond below is the way to say which wire bonds it.
+  point that says nothing and joins no page (a terminal's other side), or that nothing names 0 V anywhere, still
+  meets PE, and the declared bond below is the way to say which wire bonds it.
 - **PELV and SELV.** An M-type potential is PELV when it has a `Pelv0vPe` bond or `env.earthing = Pelv`.
   EW-POT-002 requires exactly one such bond. A potential declared `Selv` must have none (FR-CHK-028).
 - *As built.* **The 0 V–PE quick fix.** When a potential's member CPs
