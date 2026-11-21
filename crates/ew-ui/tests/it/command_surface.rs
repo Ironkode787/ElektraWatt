@@ -666,11 +666,13 @@ fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
     assert!(folded.is_empty(), "folded at 1920: {folded:#?}");
 }
 
-/// FT-1730 (doc 16a §2, §5.10): a smaller window than the main resolution stays usable. At 1280 × 800 nothing panics,
-/// every command of every tab is reached, in the bar or through the menu of its folded group (in the More menu when
-/// the group went there), and the page view keeps at least half the window's width and height.
+/// FT-1730 (doc 16a §2, §5.10): a window smaller than the main resolution stays usable, which is all 1280 × 800 asks
+/// (the sizes the design is judged at are 1920 × 1080 and 2560 × 1440). At 1280 × 800 nothing panics, every command of
+/// every tab is reached, in the bar or as an entry of the open menu of its folded group (in the More menu when the
+/// group went there) that lies whole inside the window, and the page view keeps at least half the window's width and
+/// height.
 #[test]
-fn a_smaller_window_stays_usable() {
+fn at_1280_by_800_every_command_is_reached_and_the_page_keeps_half_the_window() {
     use ew_viewmodel::{key, strings};
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
@@ -678,6 +680,26 @@ fn a_smaller_window_stays_usable() {
     settle(&mut h);
     wait_for_page(&mut h);
     settle(&mut h);
+    let screen = h.ctx.content_rect();
+    // The buttons named by the command's full label, alone or with its key after it ("Rotate clockwise R"): where
+    // they stand. A text that only holds the label (a page's text, a pane's row, a tooltip) is none of them.
+    let entries = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| -> Vec<egui::Rect> {
+        h.query_all_by_label_contains(label)
+            .filter(|n| {
+                n.accesskit_node().role() == egui::Role::Button
+                    && n.accesskit_node()
+                        .label()
+                        .is_some_and(|l| l == label || l.starts_with(&format!("{label} ")))
+            })
+            .filter_map(|n| n.accesskit_node().raw_bounds())
+            .map(|b| {
+                egui::Rect::from_min_max(
+                    egui::pos2(b.x0 as f32, b.y0 as f32),
+                    egui::pos2(b.x1 as f32, b.y1 as f32),
+                )
+            })
+            .collect()
+    };
     let more = strings::text(key!("commandbar-more")).to_owned();
     let mut folded = 0;
     for tab in Tab::ALL {
@@ -689,6 +711,7 @@ fn a_smaller_window_stays_usable() {
                     continue;
                 }
                 folded += 1;
+                let before = entries(&h, &b.label);
                 // The group's own button, else the More menu's submenu of the group.
                 if let Some(group) = bar_node(&h, &g.label) {
                     group.click();
@@ -698,13 +721,25 @@ fn a_smaller_window_stays_usable() {
                     support::menu_node(&h, &g.label).click();
                 }
                 settle(&mut h);
-                // The open menu holds the command under its full label, its key after it (the bar shows it nowhere).
+                // The open menu holds the command as a button of its full label, its key after it (the bar shows it
+                // nowhere): one the click brought on show, whole inside the window.
+                let opened: Vec<egui::Rect> = entries(&h, &b.label)
+                    .into_iter()
+                    .filter(|r| !before.contains(r))
+                    .collect();
                 assert!(
-                    h.query_all_by_label_contains(&b.label).next().is_some(),
+                    !opened.is_empty(),
                     "{tab:?}: {} in the menu of {}",
                     b.label,
                     g.label
                 );
+                for r in &opened {
+                    assert!(
+                        screen.contains_rect(*r),
+                        "{tab:?}: {} at {r:?}, outside the window {screen:?}",
+                        b.label
+                    );
+                }
                 h.key_press(Key::Escape);
                 settle(&mut h);
             }

@@ -678,7 +678,8 @@ and learning them from the failures costs an afternoon):
    tab is full, its next step already in its icon form: a new button there must make room, so say where and look at
    the picture. Below 1920 the groups fold in this order, from the right: Connect last, and Annotate (Text, the Wire
    marker) just before it, so that the panel pages' Layout group gives way first (FT-1685); every command stays
-   reachable through its group's menu or More (`command_surface::a_smaller_window_stays_usable`, at 1280 × 800).
+   reachable through its group's menu or More
+   (`command_surface::at_1280_by_800_every_command_is_reached_and_the_page_keeps_half_the_window`).
 4. *A bar label is settled.* "Renumber devices" stays whole (it was confused with Renumber pages); do not shorten
    a bar label to gain width.
 5. *One icon per concept.* An icon key serves one command or pane; two entries share one only when they are one
