@@ -787,11 +787,6 @@ impl Tmp {
         self.0.golden(&format!("{sub}/J-E-2416.ew"))
     }
 
-    /// A copy of Golden A at `name` in the directory.
-    pub fn golden_dir(&self, name: &str) -> PathBuf {
-        self.0.golden(name)
-    }
-
     /// A copy of the sample project at `name` in the directory (the program writes to what it opens).
     pub fn sample(&self, name: &str) -> PathBuf {
         self.0.sample(name)

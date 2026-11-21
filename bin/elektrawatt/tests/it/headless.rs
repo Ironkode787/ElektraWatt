@@ -700,8 +700,8 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             jobs_scripts::jb7_the_recovery_script_is_byte_identical_twice_case,
         ),
         (
-            "headless::messages_scripts::view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice",
-            messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case,
+            "headless::messages_scripts::view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice",
+            messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case,
         ),
         (
             "headless::messages_scripts::messages_check_ends_pending_byte_identical_twice_and_replays",

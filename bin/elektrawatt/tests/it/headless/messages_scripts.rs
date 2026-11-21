@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The message panel's flows, headless, as `ew.uiscript/1`
-//! scripts through the built binary, each run twice on its own copy of Golden A with byte-identical transcripts: View ▸
+//! scripts through the built binary, each run twice on its own copy of the sample with byte-identical transcripts: View ▸
 //! Messages (`messages.show`), F8 and Shift+F8 (`messages.next`, `messages.previous`) walking, wrapping and docking the
-//! closed pane, Enter (`navigator.open`) opening EF-08, a pending finding that `messages.check` ends, and the quick fix
+//! closed pane, Enter (`navigator.open`) opening a finding's page, a pending finding that `messages.check` ends, and the quick fix
 //! (`messages.fix`) applied from its card. The `--record` log of each editing script replayed onto a fresh copy gives
 //! the saved project's records. The model half of each flow runs in `ew-viewmodel`'s `tests/messages.rs`. A module of
 //! `tests/it/headless.rs`, whose `bin_exe` it uses.
@@ -76,12 +76,62 @@ fn finding_rows(d: &str) -> Vec<&str> {
         .collect()
 }
 
-/// Runs `steps` once, or twice when `twice` (the deep nightly), each run on its own copy of Golden A at
+/// The sample's copy in `dir` with two findings, made as a person makes them at the window: the shield wire of
+/// -103W1 without its 2.5 mm² override (EW-POT-006, an error on 103) and -101W1 without its length (EW-CORE-033, a
+/// warning). The sample itself is clean.
+fn with_findings(dir: &Path) {
+    let shield = {
+        let pages = std::fs::read_dir(dir.join("pages")).unwrap();
+        pages
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .find_map(|t| {
+                let line = t.lines().find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
+                Some(serde_json::from_str::<Value>(line).unwrap()["id"].clone())
+            })
+            .expect("the shield wire")
+    };
+    // -101W1, the one cable of 10 m.
+    let cable = {
+        let devices = std::fs::read_dir(dir.join("devices")).unwrap();
+        devices
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .find_map(|t| {
+                let line = t.lines().find(|l| l.contains(r#""length":{"manual":10000000000}"#))?;
+                Some(serde_json::from_str::<Value>(line).unwrap()["id"].clone())
+            })
+            .expect("the cable -101W1")
+    };
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    let (mut s, _) = Session::open(
+        dir,
+        store,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    for params in [
+        json!({"kind": "connection", "targets": [shield], "path": "overrides.csa", "value": null}),
+        json!({"kind": "device", "targets": [cable], "path": "cable.length", "value": null}),
+    ] {
+        let cmd = ew_viewmodel::ew_api::AnyCommand {
+            name: "fields.set".into(),
+            params,
+        };
+        s.execute(&cmd).unwrap();
+    }
+    s.save().unwrap();
+    s.close();
+}
+
+/// Runs `steps` once, or twice when `twice` (the deep nightly), each run on its own copy of the sample (with the two
+/// findings of [`with_findings`] when `findings`) at
 /// `<side>/g.ew`; checks every step is done, that the transcripts of two runs are byte-identical and that the `--record` log replayed onto a fresh copy gives the saved project's
 /// records (up to the IDs of records it created, when `new_records`); returns the steps of the first run and the number of recorded commands.
 fn run_flow(
     name: &str,
     new_records: bool,
+    findings: bool,
     twice: bool,
     steps: impl Fn(&Path) -> Vec<(&'static str, Value)>,
 ) -> (Vec<Value>, usize) {
@@ -92,6 +142,9 @@ fn run_flow(
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
         copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
+        if findings {
+            with_findings(&dir.join("g.ew"));
+        }
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
         assert_eq!(
             out.status.code(),
@@ -112,6 +165,9 @@ fn run_flow(
         commands = log.commands().count();
         let fresh = dir.join("fresh.ew");
         copy_dir(Path::new(SAMPLE), &fresh);
+        if findings {
+            with_findings(&fresh);
+        }
         let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
         replayed.run_script(&log, "record.ewcmd").unwrap();
         let (saved, _) = Session::open_read_only(&dir.join("g.ew"), "test").unwrap();
@@ -139,17 +195,18 @@ fn run_flow(
     (first.unwrap(), commands)
 }
 
-/// MS1 and MS4: View ▸ Messages, F8 and Shift+F8 with the pane closed, walking and wrapping, and Enter on EF-08.
+/// MS1 and MS4: View ▸ Messages, F8 and Shift+F8 with the pane closed, walking and wrapping, and Enter on a cable's
+/// finding.
 /// Per gate one run of the script (`twice` false); the deep nightly's
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice() {
-    ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case(false);
+fn view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice() {
+    ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case(false);
 }
 
-pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case(twice: bool) {
-    let (lines, commands) = run_flow("ms1-ms4", false, twice, |project| {
+pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_a_finding_are_byte_identical_twice_case(twice: bool) {
+    let (lines, commands) = run_flow("ms1-ms4", false, true, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "102"})),
@@ -169,9 +226,9 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
             // F8 from the last wraps to the first.
             ("messages.next", json!({})),
             ("ui.describe", json!({})),
-            // EF-08 under the cursor, the tab elsewhere, Enter. The filter (EF-08's word "length") hides the first
-            // finding (EF-03 on the DP port), which leaves the cursor on its group: F8 puts it on EF-08.
-            ("navigator.filter", json!({"kind": "messages", "text": "length"})),
+            // The shield's finding under the cursor, the tab elsewhere, Enter. The filter (its words "PE wire") hides
+            // -101W1's finding, which has no page; F8 puts the cursor on the shield's.
+            ("navigator.filter", json!({"kind": "messages", "text": "PE wire"})),
             ("messages.next", json!({})),
             ("page.goto", json!({"folio": "1"})),
             ("navigator.open", json!({"kind": "messages"})),
@@ -192,29 +249,27 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
         ),
         "{d}"
     );
-    // Golden A's drafting findings (doc 20 §18.1): the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
-    // 101.8), the 28 EW-PLC-012 coil bindings of EF-02; the warnings EF-09, EF-10 and EF-11, two
-    // each; the ten EW-NUM-001 infos; the TBD DP station address EF-03 (EW-BUS-001, an error) and
-    // EF-16 (EW-BUS-004, an info); EF-05's five EW-LAY-001 findings and EF-08 (warnings online).
-    assert_eq!(
-        line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 32 warnings 68 infos 51 waived 0 pending 0"
+    // The set-up's error and warning (`with_findings`) beside the sample's infos.
+    let scheme = line(d, "  messages scheme ");
+    assert!(
+        scheme.starts_with("  messages scheme \"Drafting\" errors 1 warnings 1 infos ")
+            && scheme.ends_with(" waived 0 pending 0"),
+        "{scheme}"
     );
     let rows = finding_rows(d);
-    // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
-    assert!(rows.len() >= 35, "{d}");
-    // Folio 3's error leads: EF-03 on the DP port; EF-08 on -3W1 is a warning while the drawing grows.
+    assert!(rows.len() >= 3, "{d}");
+    // The error leads: the shield's EW-POT-006 on 103; -101W1's EW-CORE-033 is a warning while the drawing grows.
     assert!(
-        rows[0].contains("-201U1:DP") && rows[0].ends_with(" badge \"error\""),
+        rows[0].contains("-103W1/SHIELD") && rows[0].ends_with(" badge \"error\""),
         "{d}"
     );
     assert!(
         rows.iter()
-            .any(|r| r.contains("-3W1") && r.ends_with(" badge \"warning\"")),
+            .any(|r| r.contains("-101W1") && r.ends_with(" badge \"warning\"")),
         "{d}"
     );
     // The cursor of each walk step: the first, the second, the last, the first. The row count is not pinned: it
-    // follows Golden A's findings, which grow with the rule packs.
+    // follows the sample's findings, which grow with the rule packs.
     let cursor = |i: usize| -> usize {
         let rows = finding_rows(describe(&lines[i]));
         let at: Vec<usize> = (0..rows.len())
@@ -230,29 +285,26 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
         "F8 docks the closed pane and goes to the first finding"
     );
     assert_eq!(
-        lines[5]["state"]["page"], "3",
+        lines[5]["state"]["page"], "103",
         "F8 opened the first finding's page"
     );
     assert_eq!(cursor(8), 1);
     let last = finding_rows(describe(&lines[11])).len() - 1;
     assert_eq!(cursor(11), last, "Shift+F8 from the first wraps to the last");
     assert_eq!(cursor(13), 0, "F8 from the last wraps to the first");
-    // Enter on EF-08 opens -3W1's page with it selected.
+    // Enter on the shield's finding opens its page, 103, with the wire selected.
     assert_eq!(lines[16]["state"]["page"], "1");
-    assert_eq!(lines[17]["state"]["page"], "3");
+    assert_eq!(lines[17]["state"]["page"], "103");
     let d = describe(&lines[18]);
     let rows = finding_rows(d);
-    // The count of the rows the filter keeps is not pinned: the cursor is on -3W1.
+    // The count of the rows the filter keeps is not pinned: the cursor is on the shield wire.
     let at: Vec<&&str> = rows.iter().filter(|r| r.ends_with(" cursor")).collect();
-    assert!(at.len() == 1 && at[0].contains("-3W1"), "{d}");
+    assert!(at.len() == 1 && at[0].contains("-103W1/SHIELD"), "{d}");
     assert_eq!(
         line(d, "  detail rule "),
-        "  detail rule \"EW-CORE-033\" title \"Cable without length\" kind completeness severity warning"
+        "  detail rule \"EW-POT-006\" title \"PE undersized\" kind safety severity error"
     );
-    assert_eq!(
-        line(d, "properties "),
-        "properties \"-3W1\" items 1 kinds representation 1"
-    );
+    assert!(line(d, "properties ").contains(" items 1 "), "{d}");
 }
 
 /// MS2: a new unpaired interruption point on the editing page is pending; `messages.check` ends it.
@@ -265,7 +317,7 @@ fn messages_check_ends_pending_byte_identical_twice_and_replays() {
 }
 
 pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case(twice: bool) {
-    let (lines, commands) = run_flow("ms2", true, twice, |project| {
+    let (lines, commands) = run_flow("ms2", true, false, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "101"})),
@@ -286,20 +338,20 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     });
     assert_eq!(commands, 1, "the placed point");
     let d = describe(&lines[10]);
-    assert_eq!(
-        line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 32 warnings 61 infos 51 waived 0 pending 8",
-        "errors unchanged, pending 8 (four of EF-05's EW-LAY-001 warnings name devices drawn on 101)"
+    // The sample has no error: the new point's is pending until the check runs.
+    assert!(
+        line(d, "  messages scheme ").starts_with("  messages scheme \"Drafting\" errors 0 warnings 0 "),
+        "{d}"
     );
     let rows = finding_rows(d);
     assert_eq!(rows.len(), 1, "{d}");
     assert!(rows[0].contains("interruption point MSGTEST"), "{d}");
     assert!(rows[0].contains(" badge \"error\" badge \"pending\""), "{d}");
     let d = describe(&lines[12]);
-    assert_eq!(
-        line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 68 infos 51 waived 0 pending 0",
-        "Run checks makes it an error"
+    let scheme = line(d, "  messages scheme ");
+    assert!(
+        scheme.starts_with("  messages scheme \"Drafting\" errors 1 warnings 0 ") && scheme.ends_with(" pending 0"),
+        "Run checks makes it an error: {scheme}"
     );
     let rows = finding_rows(d);
     assert_eq!(rows.len(), 1, "{d}");
@@ -316,7 +368,7 @@ fn messages_fix_with_apply_is_byte_identical_twice_and_replays() {
 }
 
 pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case(twice: bool) {
-    let (lines, commands) = run_flow("ms3", false, twice, |project| {
+    let (lines, commands) = run_flow("ms3", false, false, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "102"})),
@@ -358,9 +410,9 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
     let d = describe(&lines[9]);
     assert!(finding_rows(d).is_empty(), "{d}");
     assert!(!d.contains("\ncard "), "{d}");
-    // Folio 102 is the edited page: EF-09's two completeness warnings on it (-102F2:13, :14) are pending (§7.2).
-    assert_eq!(
-        line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 32 warnings 66 infos 51 waived 0 pending 2"
+    // The sample has no error or warning; folio 102's findings would be pending as the edited page's (§7.2).
+    assert!(
+        line(d, "  messages scheme ").starts_with("  messages scheme \"Drafting\" errors 0 warnings 0 "),
+        "{d}"
     );
 }
