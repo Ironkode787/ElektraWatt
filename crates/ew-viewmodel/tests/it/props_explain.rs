@@ -87,8 +87,7 @@ fn every_row_of_the_sample_explains_itself_in_both_languages() {
         .map(|(kind, path, label)| format!("{kind} {path} ({label})"))
         .collect();
     assert_eq!(
-        missing,
-        UNEXPLAINED,
+        missing, UNEXPLAINED,
         "the rows without an explanation in both languages are exactly the known ones"
     );
 }
@@ -101,4 +100,3 @@ const UNEXPLAINED: [&str; 5] = [
     "project languages.translations (Translations)",
     "project settings.frames (Frames)",
 ];
-

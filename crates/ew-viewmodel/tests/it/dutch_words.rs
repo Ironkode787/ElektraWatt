@@ -400,11 +400,8 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
 /// The kind words the Dutch Devices tree gets wrong (FT-1913): a generic segment without words of its own, which
 /// should stay as written ("3P manualswitch", as "2P mcb" does), gets a stray "- " after its pole count. The English
 /// kind and what the Dutch tree prints.
-const WRONG_KIND_WORDS: [(&str, &str); 2] = [
-    ("3P manualswitch ", "3P- manualswitch "),
-    ("3P mcb ", "3P- mcb "),
-];
-
+const WRONG_KIND_WORDS: [(&str, &str); 2] =
+    [("3P manualswitch ", "3P- manualswitch "), ("3P mcb ", "3P- mcb ")];
 
 /// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.

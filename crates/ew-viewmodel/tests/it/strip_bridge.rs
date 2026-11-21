@@ -669,7 +669,6 @@ fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
             &mut s,
             "props.set",
             json!({"row": "device/parts", "value": "TRM-TWIN"}),
-
         );
     }
     // The pair: bridged already (terminal identity, not the CP).
