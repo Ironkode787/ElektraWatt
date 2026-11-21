@@ -41,7 +41,7 @@ fn a_new_point_s_number_stands_inside_the_box_at_the_point_turned_by_its_edge() 
     }
     let draft = &shell.symbol_editor().unwrap().draft;
     for (k, (_, name, _, ((x, y), degrees, align))) in points.iter().enumerate() {
-        let idx = draft.symbol.cps.iter().nth(k).unwrap().idx;
+        let idx = draft.symbol.cps[k].idx;
         let slots: Vec<_> = draft
             .symbol
             .text_slots

@@ -41,7 +41,11 @@ fn a_wire_drawn_one_step_over_a_row_of_pins_stays_straight_and_its_taps_drop_ont
             None,
         )
         .expect("a tap");
-        assert_eq!(tap.route, [pin, on_rail], "{k}'s tap drops straight onto the rail");
+        assert_eq!(
+            tap.route,
+            [pin, on_rail],
+            "{k}'s tap drops straight onto the rail"
+        );
     }
 }
 
