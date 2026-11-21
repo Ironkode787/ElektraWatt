@@ -28,7 +28,7 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
     let tmp = Tmp::new();
     let dxf = tmp.0.join("plan.dxf");
     std::fs::write(&dxf, PLAN).unwrap();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     let pages = h.state().shell().page_rows().len();
     let gate = ew_viewmodel::ew_api::ew_jobs::Gate::new();
     gate.hold("drawing");
@@ -68,14 +68,14 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
     );
 }
 
-/// On Golden A, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
+/// On the sample, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
 /// no page has, after every page of its section.
 #[test]
 fn a_drawing_page_takes_a_folio_no_page_has() {
     let tmp = Tmp::new();
     let dxf = tmp.0.join("plan.dxf");
     std::fs::write(&dxf, PLAN).unwrap();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     let before: Vec<String> = h
         .state()
         .shell()

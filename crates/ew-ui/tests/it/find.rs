@@ -3,7 +3,7 @@
 
 //! The find pane in the window without rendering (acceptance checks FR3 in kittest and the window
 //! half of FR6's exact counts): Ctrl+H opens find and replace with the text field focused, typing makes no search,
-//! Enter runs it once, the 20 results are a named list box, Ctrl+Enter previews the replace in the card and a second
+//! Enter runs it once, the results are a named list box, Ctrl+Enter previews the replace in the card and a second
 //! Ctrl+Enter applies it (one undo step), Ctrl+Z undoes it; Escape closes the card, then gives the focus back to the
 //! canvas; the accessible-name walker after every step. Keyboard only.
 
@@ -15,7 +15,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_viewmodel::shell::Focus;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 fn results(h: &Harness<'_, App>) -> usize {
     h.state()
@@ -28,7 +28,7 @@ fn results(h: &Harness<'_, App>) -> usize {
 #[test]
 fn find_and_replace_from_the_keyboard() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     // Ctrl+H: find and replace below the page view, the focus in the pane and its text field.
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
@@ -42,7 +42,7 @@ fn find_and_replace_from_the_keyboard() {
     );
     // The scope through the pane's own actions (its checkboxes and filter field are named; see the walker).
     dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
-    dispatch(&mut h, "find.folios", json!({"folios": ["204", "205", "206"]}));
+    dispatch(&mut h, "find.folios", json!({"folios": ["201"]}));
     settle(&mut h);
     // Typing makes no search.
     let calls = h.state().shell().session_calls();
@@ -75,19 +75,19 @@ fn find_and_replace_from_the_keyboard() {
         calls.find + 1,
         "Enter runs it once"
     );
-    assert_eq!(results(&h), 20);
+    assert_eq!(results(&h), 2, "the two spare valves");
     let options: Vec<String> = h
         .get_all_by_role(egui::Role::ListBoxOption)
         .filter_map(|n| n.accesskit_node().label())
         .filter(|l| l.contains("Function text"))
         .collect();
-    // The list box holds the 20; only the rows on show are built.
+    // The list box holds the 2; only the rows on show are built.
     assert!(
         h.get_all_by_role(egui::Role::ListBox)
-            .any(|n| n.accesskit_node().label().as_deref() == Some("20 results")),
-        "the list box of the 20 results"
+            .any(|n| n.accesskit_node().label().as_deref() == Some("2 results")),
+        "the list box of the 2 results"
     );
-    assert!((1..=20).contains(&options.len()), "{options:?}");
+    assert!((1..=2).contains(&options.len()), "{options:?}");
     assert!(
         options
             .iter()
@@ -103,7 +103,7 @@ fn find_and_replace_from_the_keyboard() {
     h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
     settle(&mut h);
     let card = h.state().shell().properties().card().expect("the replace card");
-    assert_eq!(card.changes, 20);
+    assert_eq!(card.changes, 2);
     assert!(
         h.get_all_by_role(egui::Role::Button)
             .any(|n| n.accesskit_node().label().as_deref() == Some("Apply")),
@@ -115,14 +115,14 @@ fn find_and_replace_from_the_keyboard() {
     assert_eq!(h.state().shell().recorded_commands().len(), steps + 1);
     assert_eq!(
         h.state().shell().find_state().note(),
-        Some("Replaced 20; run again to refresh")
+        Some("Replaced 2; run again to refresh")
     );
     // Ctrl+Z undoes the replace.
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
     settle(&mut h);
     dispatch(&mut h, "find.run", json!({}));
     settle(&mut h);
-    assert_eq!(results(&h), 20, "undo restores all 20");
+    assert_eq!(results(&h), 2, "undo restores both");
     // Escape: the card first, then the focus back to the canvas.
     h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
     settle(&mut h);
@@ -141,11 +141,11 @@ fn find_and_replace_from_the_keyboard() {
 #[test]
 fn ctrl_enter_in_a_focused_field_builds_then_applies() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
-    dispatch(&mut h, "find.folios", json!({"folios": ["204", "205", "206"]}));
+    dispatch(&mut h, "find.folios", json!({"folios": ["201"]}));
     dispatch(&mut h, "find.replacement", json!({"text": "Reserve"}));
     settle(&mut h);
     let field = h
@@ -164,7 +164,7 @@ fn ctrl_enter_in_a_focused_field_builds_then_applies() {
         .properties()
         .card()
         .expect("the first builds the card");
-    assert_eq!(card.changes, 20);
+    assert_eq!(card.changes, 2);
     assert_eq!(
         h.state().shell().recorded_commands().len(),
         steps,
@@ -195,7 +195,7 @@ fn type_keys(h: &mut Harness<'_, App>, text: &str) {
 #[test]
 fn tab_and_shift_tab_move_between_the_find_fields() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     type_keys(&mut h, "Spare");
@@ -218,7 +218,7 @@ fn tab_and_shift_tab_move_between_the_find_fields() {
 #[test]
 fn tab_after_a_click_into_the_field_stays_in_the_pane() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     // Leave the field (egui's focus on a button), then give the canvas the shell's focus: the canvas takes egui's.
@@ -256,11 +256,11 @@ fn options<'t>(h: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
 #[test]
 fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::F);
     settle(&mut h);
     dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
-    dispatch(&mut h, "find.folios", json!({"folios": ["204", "205", "206"]}));
+    dispatch(&mut h, "find.folios", json!({"folios": ["201"]}));
     dispatch(&mut h, "find.text", json!({"text": "Spare"}));
     dispatch(&mut h, "find.run", json!({}));
     settle(&mut h);
@@ -325,7 +325,21 @@ fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
 #[test]
 fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
+    // The sample's function texts are its two spare valves': its strips' eighteen terminals get one with an "e" each,
+    // a list longer than the pane.
+    let terminals: Vec<serde_json::Value> = (1..=8)
+        .map(|n| format!("-X1021:{n}"))
+        .chain(["U", "V", "W", "PE", "SH"].map(|t| format!("-X1031:{t}")))
+        .chain(["L1", "L2", "L3", "N", "PE"].map(|t| format!("-X1011:{t}")))
+        .map(|t| json!({ "ref": format!("tag:{t}") }))
+        .collect();
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": terminals,
+            "path": "function_text", "value": "Terminal feed"}}),
+    );
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     let pane_name = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-find")).to_owned();
@@ -412,7 +426,7 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
 #[test]
 fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "find.open_replace", json!({}));
     dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
     dispatch(&mut h, "find.option", json!({"option": "regex", "on": true}));
@@ -452,7 +466,7 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
 #[test]
 fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
@@ -505,7 +519,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
 #[test]
 fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     dispatch(&mut h, "find.text", json!({ "text": "e" }));
@@ -576,7 +590,7 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
 #[test]
 fn the_empty_state_shows_whole() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     let text = |k| ew_viewmodel::strings::text(k).to_owned();
     let pane_name = text(ew_viewmodel::key!("pane-find"));
     let lines = [

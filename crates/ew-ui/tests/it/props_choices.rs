@@ -10,12 +10,12 @@ use crate::support;
 use egui_kittest::kittest::Queryable;
 use ew_viewmodel::properties::{ValueChooser, find_row, value_chooser};
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 #[test]
 fn a_row_chosen_from_a_list_is_a_combo_box() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
     dispatch(&mut h, "props.show", json!({"on": true}));
     settle(&mut h);

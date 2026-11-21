@@ -1,5 +1,5 @@
 Ctrl+Home
-  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8"}
+  table.cell {"kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a877-7000-8000-000000000077"}
 Down
   table.cell {"kind":"strips","step":1}
 Right
@@ -17,11 +17,12 @@ End
 Home
   table.cell {"column":"strip","kind":"strips"}
 Ctrl+End
-  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:31cc8007-66f2-575e-af87-ef92ccde2a71"}
+  table.cell {"kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a88c-7000-8000-00000000008c"}
 Ctrl+Home
-  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8"}
+  table.cell {"kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a877-7000-8000-000000000077"}
 Shift+Down
   navigator.row {"extend":true,"kind":"strips","step":1}
+  view.canvas_resize {"group":0,"height":669.0,"ppp":1.0,"width":295.65625}
 Shift+Down
   navigator.row {"extend":true,"kind":"strips","step":1}
 Shift+Up
@@ -49,18 +50,20 @@ editor: Ctrl+Enter
   table.commit {"all":true,"kind":"strips"}
 click
   ui.focus {"area":"navigator","kind":"strips"}
-  navigator.select {"keys":["strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056"],"kind":"strips"}
-  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056"}
+  navigator.select {"keys":["strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a87d-7000-8000-00000000007d"],"kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a87d-7000-8000-00000000007d"}
+  view.canvas_resize {"group":0,"height":701.0,"ppp":1.0,"width":295.65625}
 Ctrl+click
   ui.focus {"area":"navigator","kind":"strips"}
-  navigator.mark {"key":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91","kind":"strips"}
-  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91"}
+  navigator.mark {"key":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a883-7000-8000-000000000083","kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a883-7000-8000-000000000083"}
+  view.canvas_resize {"group":0,"height":669.0,"ppp":1.0,"width":295.65625}
 Shift+click
   ui.focus {"area":"navigator","kind":"strips"}
-  navigator.row {"extend":true,"key":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af","kind":"strips"}
-  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af"}
+  navigator.row {"extend":true,"key":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a889-7000-8000-000000000089","kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a889-7000-8000-000000000089"}
 double click
-  table.edit {"column":"label","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:46e82110-0737-5547-b146-aac63d618b30"}
+  table.edit {"column":"label","kind":"strips","row":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a87a-7000-8000-00000000007a"}
 editor: Escape
   ui.dismiss null
 header click
@@ -69,3 +72,5 @@ header click again
   navigator.sort {"by":"terminal","descending":false,"kind":"strips"}
 refocus
 Enter
+  navigator.open {"key":"strip:019b76da-a876-7000-8000-000000000076/terminal:019b76da-a87a-7000-8000-00000000007a","kind":"strips"}
+  view.canvas_resize {"group":0,"height":733.0,"ppp":1.0,"width":295.65625}

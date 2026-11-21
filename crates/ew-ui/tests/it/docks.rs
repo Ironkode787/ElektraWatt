@@ -18,9 +18,9 @@ use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
-/// The main window on a copy of Golden A at 1920 by 1080, folio 101 on show.
+/// The main window on a copy of the sample at 1920 by 1080, folio 101 on show.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let mut h = harness_with(shell, Scripted::default(), Some(dir));
     h.set_size(Vec2::new(1920.0, 1080.0));
@@ -232,7 +232,7 @@ fn page_rows_carry_badge_nodes_not_bracketed_words() {
     let h = window(&tmp);
     let shell = h.state().shell();
     let qet = shell.page_rows().iter().filter(|r| r.qet_grid).count();
-    assert!(qet > 0, "Golden A has QET-grid pages");
+    assert!(qet > 0, "the sample has QET-grid pages");
     for n in h.get_all_by_role(egui::Role::TreeItem) {
         let label = n.accesskit_node().label().unwrap_or_default();
         assert!(!label.contains('['), "{label}");
@@ -444,7 +444,7 @@ fn a_jobs_entry_is_inset_from_the_panes_edge() {
     let mut h = harness_with(
         ShellModel::new(Mode::Gui, tmp.config()),
         platform,
-        Some(tmp.golden("g.ew")),
+        Some(tmp.sample("s.ew")),
     );
     h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
@@ -465,8 +465,8 @@ fn a_jobs_entry_is_inset_from_the_panes_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1920 × 1080 the Messages dock grows with its list, so at least five rows of Golden
-/// A's findings are on show, and it stays within 40 % of the window's height.
+/// At 1920 × 1080 the Messages dock grows with its list, so at least five rows of the
+/// sample's findings (its infos) are on show, and it stays within 40 % of the window's height.
 #[test]
 fn messages_shows_five_rows_at_the_floor() {
     let tmp = Tmp::new();

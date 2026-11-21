@@ -5,7 +5,7 @@
 //! Function text cell is typed in place as the station view's is, a cell that takes no text keeps the keys from the
 //! canvas's shortcuts, and Tab in Properties takes the value and moves to the next field.
 
-use crate::support::{Tmp, dispatch, on_golden, settle};
+use crate::support::{Tmp, dispatch, on_sample, settle};
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_viewmodel::navigators::{NavKind, NavRole};
@@ -84,7 +84,7 @@ fn click_function_text(h: &mut Window, row: usize) {
 #[test]
 fn the_plc_grids_function_text_is_typed_and_its_keys_stay_in_the_grid() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
     settle(&mut h);
     let rows = channel_rows(&h);
@@ -161,7 +161,7 @@ fn editing(h: &Window) -> Option<String> {
 #[test]
 fn tab_in_properties_takes_the_value_and_opens_the_next_field() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "props.project", json!({}));
     settle(&mut h);
     settle(&mut h);

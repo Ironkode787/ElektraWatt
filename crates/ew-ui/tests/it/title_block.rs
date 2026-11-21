@@ -145,13 +145,13 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     shell.shutdown();
 }
 
-/// FT-1718: the title block's Author and Checked come from the current revision. On a copy of Golden A, whose
-/// current revision names its author and no checker, the form offers Author, which names the author's party, and says
+/// FT-1718: the title block's Author and Checked come from the current revision. On a copy of the sample, whose
+/// current revision names no checker, the form offers Author, which names the author's party, and says
 /// where Checked comes from (the approval), offering no field for it.
 #[test]
 fn the_title_block_form_names_the_revision_s_author_and_where_checked_comes_from() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     // Properties of the page links the form.
     h.get_by_label("Title block fields…").click();
     settle(&mut h);

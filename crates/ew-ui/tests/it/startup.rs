@@ -94,9 +94,9 @@ fn delete_log_deletes_the_log_and_closes_the_dialog() {
     assert!(h.query_by_label("ElektraWatt stopped unexpectedly").is_none());
 }
 
-/// A copy of Golden A named `name` with one unsaved page, left by a session that ended without its shutdown.
+/// A copy of the sample named `name` with one unsaved page, left by a session that ended without its shutdown.
 fn crashed_project(tmp: &Tmp, name: &str) -> std::path::PathBuf {
-    let dir = tmp.golden(name);
+    let dir = tmp.sample(name);
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     for (action, params) in [
         ("file.open", serde_json::json!({ "dir": dir.to_string_lossy() })),

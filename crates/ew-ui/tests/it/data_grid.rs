@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The data grid of doc 16a §6.21 on Golden A's Terminal strips navigator in
+//! The data grid of doc 16a §6.21 on the sample's Terminal strips navigator in
 //! table mode. Every key and pointer gesture of §6.21 dispatches the actions it dispatched before the restyle (the log
 //! `tests/expected/table_keys.txt`, recorded from the as-built grid before the restyle; `EW_BLESS=1` rewrites it).
 //! The accessible-name walker runs after every step (`settle`).
@@ -27,15 +27,15 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
     );
 }
 
-/// The window on a writable copy of Golden A, folio 102 shown, the Terminal strips navigator in table mode filtered
-/// `x1031` and sorted by Terminal, with the focus; Properties hidden so that the grid has the whole column.
+/// The window on a writable copy of the sample, folio 102 shown, the Terminal strips navigator in table mode filtered
+/// to the strip -X1021 (`strip:-X1021`) and sorted by Terminal, with the focus; Properties hidden so that the grid has the whole column.
 fn strips(tmp: &Tmp) -> Harness<'static, App> {
     strips_in(tmp, None)
 }
 
 /// [`strips`] in `density` (the setting's default when `None`).
 fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     if let Some(d) = density {
         done(&mut shell, "settings.set", json!({"key": "density", "value": d}));
@@ -53,7 +53,7 @@ fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
     done(
         shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "x1031"}),
+        json!({"kind": "strips", "text": "strip:-X1021"}),
     );
     done(
         shell,
@@ -87,17 +87,17 @@ enum Input {
     ShowColumn(&'static str),
 }
 
-/// The centre of the node named `target`; `<column>@<row>` is the cell of that column in that row, whatever its text.
+/// The centre of the node named `target`; `<column>@<row>` is the cell of that column in that row, whatever its text
+/// (an empty cell is named `<column>, row <row> of <n>`).
 fn node<'t>(h: &'t Harness<'static, App>, target: &'t str) -> egui_kittest::Node<'t> {
     match target.split_once('@') {
         Some((column, row)) => {
             let row = format!(", row {row} of ");
-            let column = format!("{column} ");
             h.get_all_by_role(egui::Role::Cell)
                 .find(|n| {
                     n.accesskit_node()
                         .label()
-                        .is_some_and(|l| l.starts_with(&column) && l.contains(&row))
+                        .is_some_and(|l| names_cell(&l, column, &row))
                 })
                 .unwrap_or_else(|| panic!("the cell {target}"))
         }
@@ -369,21 +369,29 @@ fn icon_in(
 /// The rect of the cell of `column` in row `row` (1-based).
 fn cell(h: &Harness<'static, App>, column: &str, row: usize) -> egui::Rect {
     let row = format!(", row {row} of ");
-    let column = format!("{column} ");
     h.get_all_by_role(egui::Role::Cell)
         .find(|n| {
             n.accesskit_node()
                 .label()
-                .is_some_and(|l| l.starts_with(&column) && l.contains(&row))
+                .is_some_and(|l| names_cell(&l, column, &row))
         })
         .unwrap_or_else(|| {
             let cells: Vec<String> = h
                 .get_all_by_role(egui::Role::Cell)
                 .filter_map(|n| n.accesskit_node().label())
                 .collect();
-            panic!("the cell {column}{row} among {cells:?}")
+            panic!("the cell {column} {row} among {cells:?}")
         })
         .rect()
+}
+
+/// Whether the accessible name `label` is a cell's of `column` in the row that `row` (`, row <n> of `) names: the
+/// column, then its text after a space or, for an empty cell, the row at once.
+fn names_cell(label: &str, column: &str, row: &str) -> bool {
+    label
+        .strip_prefix(column)
+        .is_some_and(|rest| rest.starts_with(' ') || rest.starts_with(row))
+        && label.contains(row)
 }
 
 /// Whether `a` and `b` are the same rect within half a point.
@@ -910,6 +918,14 @@ fn text_origin(shapes: &[egui::Shape], region: egui::Rect, text: &str) -> Option
 fn the_editor_text_sits_on_the_cell_text_baseline() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
+    // The sample's terminals have no function text: the second one gets one to show.
+    done(
+        h.state_mut().shell_mut(),
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-X1021:2"}],
+            "path": "function_text", "value": "Feed"}}),
+    );
+    settle(&mut h);
     show_column(&mut h, "Function text");
     let target = cell(&h, "Function text", 2);
     let text = {
@@ -958,7 +974,7 @@ fn the_editor_text_sits_on_the_cell_text_baseline() {
 fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
     for theme in ["light", "dark"] {
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         let mut shell = ShellModel::new(Mode::Gui, tmp.config());
         done(
             &mut shell,
@@ -974,7 +990,7 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
             ("props.show", json!({"on": false})),
             ("navigator.show", json!({"kind": "strips"})),
             ("navigator.table", json!({"kind": "strips"})),
-            ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
+            ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
         ] {
             done(shell, action, params);
         }

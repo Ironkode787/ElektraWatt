@@ -86,8 +86,8 @@ fn change(before: (f64, (i64, i64)), after: (f64, (i64, i64))) -> Change {
     }
 }
 
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -124,7 +124,7 @@ fn canvas_centre(h: &Harness<'_, App>) -> egui::Pos2 {
 #[test]
 fn the_wheel_table_by_egui_events() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let mut table = Vec::new();
     for m in ["none", "ctrl", "shift"] {
         for step in STEPS {
@@ -163,12 +163,12 @@ fn the_wheel_table_by_egui_events() {
 #[test]
 fn the_wheel_table_by_the_visual_driver() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
@@ -205,7 +205,7 @@ fn the_wheel_table_by_the_visual_driver() {
 #[test]
 fn the_wheel_scrolls_by_the_preference() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let out = h
         .state_mut()
         .shell_mut()

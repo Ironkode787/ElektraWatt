@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! NFR-A11Y-01: the five core tasks on a copy of Golden A with key events
+//! NFR-A11Y-01: the five core tasks on a copy of the sample with key events
 //! only: place a symbol (I, the picker by typing and arrows, Enter, Enter at the grid cursor), draw a
 //! wire (W, `]`, Enter, `]`, `]`, Enter), insert a terminal from the Terminal strips navigator (Ctrl+2; F6 and
 //! Shift+F6; Insert), renumber the devices through the palette and Ctrl+Enter (Ctrl+K, "renum", Enter; Tab and Space
@@ -100,7 +100,7 @@ fn terminals_of(h: &Harness<'_, App>, strip: &str) -> usize {
 #[test]
 fn the_five_core_tasks_with_key_events_only() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let pdf = tmp.0.join("out.pdf");
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));

@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Doc 06a §2.4 in the window, on a writable copy of Golden A, folio 101: a symbol kept in place shows a small pin on
+//! Doc 06a §2.4 in the window, on a writable copy of the sample, folio 101: a symbol kept in place shows a small pin on
 //! its body's top-right corner while it is selected, and none when the selection leaves it.
 
 use crate::support;
 
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 #[test]
 fn a_selected_kept_symbol_shows_the_pin() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let rep = {
         let shell = h.state().shell();
         let page = shell.canvas().unwrap().page();

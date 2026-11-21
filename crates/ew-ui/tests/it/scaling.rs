@@ -73,9 +73,9 @@ fn step(h: &mut Harness<'_, App>) {
     assert_eq!(support::footer_problems(h), Vec::<String>::new());
 }
 
-/// Golden A open in the window (folio 101), at `size`.
-fn on_golden(tmp: &Tmp, size: Size) -> Harness<'static, App> {
-    let mut h = harness(tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+/// The sample open in the window (folio 101), at `size`.
+fn on_sample(tmp: &Tmp, size: Size) -> Harness<'static, App> {
+    let mut h = harness(tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
     apply(&mut h, size);
@@ -109,7 +109,7 @@ fn new_project(size: Size) {
 /// Renumber devices… (with a numbering scheme, as `dutch.rs` sets it) and Renumber pages….
 fn renumber(size: Size) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, size);
+    let mut h = on_sample(&tmp, size);
     support::page_based_numbering(&mut h);
     for action in ["devices.renumber", "pages.renumber"] {
         dispatch(&mut h, action, json!({}));
@@ -127,7 +127,7 @@ fn renumber(size: Size) {
 /// The print pre-dialog: Export PDF's choices (the range, the paper, the preview).
 fn print(size: Size) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, size);
+    let mut h = on_sample(&tmp, size);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
     for _ in 0..3000 {
         h.run_ok();
@@ -145,7 +145,7 @@ fn print(size: Size) {
 /// The find and replace pane, with a search's results.
 fn find_and_replace(size: Size) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, size);
+    let mut h = on_sample(&tmp, size);
     dispatch(&mut h, "find.open_replace", json!({}));
     step(&mut h);
     assert!(h.state().shell().find_shown());
@@ -210,7 +210,7 @@ fn first_run(size: Size) {
 /// The recovery dialog of a session that ended without a clean close (`jobs.rs` JB7).
 fn recovery(size: Size) {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     {
         let mut crashed = ShellModel::new(Mode::Gui, tmp.config());
         let opened = crashed.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
@@ -235,8 +235,8 @@ fn recovery(size: Size) {
     h.state_mut().shell_mut().shutdown();
 }
 
-fn golden_parts() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv")
+fn table_parts() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
 /// File, Import, Parts table…: the column mapping step, then the import card (`parts_import.rs`).
@@ -249,7 +249,7 @@ fn parts_import(size: Size) {
     settle(&mut h);
     wait_for_page(&mut h);
     apply(&mut h, size);
-    let path = golden_parts();
+    let path = table_parts();
     dispatch(&mut h, "parts.import", json!({"path": path.to_string_lossy()}));
     step(&mut h);
     dispatch(&mut h, "parts.map_import", json!({}));
@@ -263,7 +263,7 @@ fn parts_import(size: Size) {
 #[test]
 fn a_footer_below_the_window_is_reported() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Size::At300);
+    let mut h = on_sample(&tmp, Size::At300);
     dispatch(&mut h, "pages.renumber", json!({}));
     step(&mut h);
     h.set_size(Vec2::new(WINDOW.x * 3.0, 60.0));
@@ -436,7 +436,7 @@ fn ctrl_wheel_one_frame(h: &mut Harness<'_, App>) -> (f64, f64) {
 #[test]
 fn reduced_motion_stops_animation_and_the_zoom_jumps() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
     // The harness draws on the CPU, which reduces motion while the setting is unset: motion on.
@@ -479,7 +479,7 @@ fn a_failed_gpu_start_leaves_reduced_motion_on() {
         name: "test GPU".into(),
     };
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
     assert!(h.state().shell().reduce_motion(), "unset, on the CPU canvas");
@@ -493,7 +493,7 @@ fn a_failed_gpu_start_leaves_reduced_motion_on() {
     assert!(animation_time(&h) > 0.0);
     h.state_mut().shell_mut().shutdown();
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
     h.state_mut()

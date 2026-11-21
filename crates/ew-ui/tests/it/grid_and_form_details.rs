@@ -14,9 +14,9 @@ use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness_with, settle, wait_for_page};
 
-/// The window on a writable copy of Golden A with the Terminal strips navigator in table mode, Properties hidden.
+/// The window on a writable copy of the sample with the Terminal strips navigator in table mode, Properties hidden.
 fn strips(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1000.0, 900.0));
@@ -52,9 +52,9 @@ fn the_columns_button_keeps_space_4_from_the_pane_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The main window on a writable copy of Golden A, folio 101 shown.
+/// The main window on a writable copy of the sample, folio 101 shown.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));

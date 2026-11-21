@@ -40,7 +40,7 @@ fn has_text(h: &Harness<'_, App>, text: &str) -> bool {
 #[test]
 fn escape_closes_every_dialog_without_its_action() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let rev = h.state().shell().revision();
@@ -75,7 +75,7 @@ fn escape_closes_every_dialog_without_its_action() {
 #[test]
 fn the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     edit_toast(&mut h);
@@ -124,7 +124,7 @@ fn the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
 #[test]
 fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     edit_toast(&mut h);
@@ -161,7 +161,7 @@ fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
 #[test]
 fn the_insert_symbol_picker_stands_above_the_toasts() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     edit_toast(&mut h);
@@ -180,7 +180,7 @@ fn the_insert_symbol_picker_stands_above_the_toasts() {
 #[test]
 fn the_palette_rows_carry_breadcrumbs_and_key_chips() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "tools.palette", json!({}));
@@ -206,7 +206,7 @@ fn the_palette_rows_carry_breadcrumbs_and_key_chips() {
 #[test]
 fn empty_states_and_the_jobs_outcome_badge() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "jobs.show", json!({}));
@@ -239,7 +239,7 @@ fn empty_states_and_the_jobs_outcome_badge() {
 #[test]
 fn a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -283,7 +283,7 @@ fn a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A harness on Golden A with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
+/// A harness on the sample with one toast (an edit's) painted in its first frame; returns the frame time of that frame.
 fn one_toast(h: &mut Harness<'_, App>) -> f64 {
     settle(h);
     // The harness draws on the CPU, which reduces motion while the setting is unset.
@@ -312,7 +312,7 @@ fn opacity_at(h: &mut Harness<'_, App>, shown: f64, t: f64) -> Option<f32> {
 #[test]
 fn a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     let shown = one_toast(&mut h);
     let fade = f64::from(ew_ui::theme::current(&h.ctx).motion_base) / 1000.0;
@@ -346,7 +346,7 @@ fn a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
 #[test]
 fn hovering_a_toast_pauses_its_fade() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     let shown = one_toast(&mut h);
     assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
@@ -379,7 +379,7 @@ fn hovering_a_toast_pauses_its_fade() {
 fn a_toast_that_holds_the_keyboard_focus_is_paused() {
     for leave_canvas in [true, false] {
         let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
+        let dir = tmp.sample("s.ew");
         let mut h = harness(&tmp, Scripted::default(), Some(dir));
         let shown = one_toast(&mut h);
         assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
@@ -437,7 +437,7 @@ fn a_toast_that_holds_the_keyboard_focus_is_paused() {
 #[test]
 fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     let shown = one_toast(&mut h);
     // The page navigator's filter field is the top one of the left column (the Properties filter is below it).
@@ -464,7 +464,7 @@ fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
 #[test]
 fn a_long_toast_is_cut_at_four_rows_with_its_whole_text_in_the_tooltip() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
@@ -508,7 +508,7 @@ fn a_long_toast_is_cut_at_four_rows_with_its_whole_text_in_the_tooltip() {
 #[test]
 fn a_toast_with_its_whole_text_shows_no_tooltip() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     let shown = one_toast(&mut h);
     assert_eq!(opacity_at(&mut h, shown, 1.0), Some(1.0));
@@ -538,7 +538,7 @@ fn a_toast_with_its_whole_text_shows_no_tooltip() {
 #[test]
 fn a_toast_under_a_still_pointer_fades_on_time() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -590,7 +590,7 @@ fn a_toast_under_a_still_pointer_fades_on_time() {
 fn a_greyed_commands_toast_title_stands_whole() {
     const TITLE: &str = "A panel layout page takes no symbols or wires";
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
     let mut h = Harness::builder()

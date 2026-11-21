@@ -15,7 +15,7 @@ use support::{Scripted, Tmp, harness, settle, wait_for_page};
 #[test]
 fn page_describe_makes_exactly_one_page_tables_call_per_revision_and_folio() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

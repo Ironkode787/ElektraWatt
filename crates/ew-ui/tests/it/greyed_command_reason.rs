@@ -12,8 +12,8 @@ use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -37,7 +37,7 @@ fn toasts(h: &Harness<'_, App>) -> Vec<String> {
 #[test]
 fn the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     for (action, params) in [
         ("page.goto", json!({ "folio": "102" })),
         ("view.command_tab", json!({ "tab": "output" })),
@@ -72,7 +72,7 @@ fn the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
 #[test]
 fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let divider = h
         .state()
         .shell()
@@ -80,7 +80,7 @@ fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
         .iter()
         .find(|r| r.kind == "section_divider")
         .map(|r| r.folio.clone())
-        .expect("Golden A has a section divider");
+        .expect("the sample has a section divider");
     assert_eq!(
         h.state_mut()
             .shell_mut()
@@ -110,7 +110,7 @@ fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
 #[test]
 fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let divider = h
         .state()
         .shell()
@@ -118,7 +118,7 @@ fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
         .iter()
         .find(|r| r.kind == "section_divider")
         .map(|r| r.folio.clone())
-        .expect("Golden A has a section divider");
+        .expect("the sample has a section divider");
     let prompt = |h: &Harness<'_, App>| ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
     assert_eq!(
         h.state_mut()

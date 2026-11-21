@@ -50,13 +50,13 @@ fn search(d: &mut Driver, query: &str) -> Vec<String> {
 #[test]
 fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     d.set_script_dir(tmp.0.clone());
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
     let file = tmp.0.join("back.aml");
     let export = json!({"format": "aml-1.4.0", "path": file.to_string_lossy()});

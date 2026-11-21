@@ -17,9 +17,9 @@ use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
-/// A harness with a copy of Golden A open on folio 103, its canvas drawn.
+/// A harness with a copy of the sample open on folio 103, its canvas drawn.
 fn on_103(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     assert_eq!(
@@ -227,7 +227,7 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
     let rev = h.state().shell().revision();
     let session = h.state().shell().project_epoch();
     let before = h.state().canvas_counters();
-    let other = tmp.golden("other.ew");
+    let other = tmp.sample("other.ew");
     let shell = h.state_mut().shell_mut();
     assert_eq!(
         shell.dispatch(

@@ -58,9 +58,9 @@ fn devices() -> Vec<HeadlessDevice> {
     all
 }
 
-/// Folio 103 of a copy of Golden A, as the canvas shows it.
+/// Folio 103 of a copy of the sample, as the canvas shows it.
 fn folio_103(tmp: &Tmp) -> Arc<CanvasPage> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     let opened = shell.dispatch(
         "file.open",
@@ -717,7 +717,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     };
     let tmp = Tmp::new();
     let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(
         shell.dispatch(
@@ -734,7 +734,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     let ctx = egui::Context::default();
     let plain = Arc::clone(shell.canvas().expect("a canvas").page());
     let plain_gpu = host_image(&mut host, &ctx, &plain, &fonts);
-    assert_eq!(red_pixels(&plain_gpu), 0, "the golden page has no red");
+    assert_eq!(red_pixels(&plain_gpu), 0, "the sample's page has no red");
     // The page's own GPU/CPU difference at 96 dpi (text and widened hairlines), which the logo adds to.
     let plain_mean = mean_difference(&plain_gpu, &tiles(&plain.list, plain.sheet, 96).0);
     let logo = ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));

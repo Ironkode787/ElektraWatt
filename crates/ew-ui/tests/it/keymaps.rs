@@ -16,16 +16,16 @@ use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-/// The window on a writable copy of Golden A, folio 103, the canvas focused, with `settings` and `keymap` written to
+/// The window on a writable copy of the sample, folio 103, the canvas focused, with `settings` and `keymap` written to
 /// the settings directory first.
-fn on_golden(tmp: &Tmp, settings: &str, keymap: Option<&str>) -> Harness<'static, App> {
+fn on_sample(tmp: &Tmp, settings: &str, keymap: Option<&str>) -> Harness<'static, App> {
     let config = tmp.0.join("config");
     std::fs::create_dir_all(&config).unwrap();
     std::fs::write(config.join("settings.toml"), settings).unwrap();
     if let Some(k) = keymap {
         std::fs::write(config.join("keymap.toml"), k).unwrap();
     }
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -63,7 +63,7 @@ const FIRST_RUN_DONE: &str = "first_run_done = true\n";
 #[test]
 fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "first_run_done = true\nkeymap = \"kicad\"\n", None);
+    let mut h = on_sample(&tmp, "first_run_done = true\nkeymap = \"kicad\"\n", None);
     for (key, action) in [
         (Key::A, "tool.place"),
         (Key::G, "tool.move"),
@@ -85,7 +85,7 @@ fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
 #[test]
 fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
+    let mut h = on_sample(&tmp, FIRST_RUN_DONE, None);
     let log = actions_of(&mut h, Modifiers::NONE, Key::A);
     assert!(log.is_empty(), "{log:?}");
     let log = actions_of(&mut h, Modifiers::NONE, Key::I);
@@ -102,7 +102,7 @@ fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
 #[test]
 fn a_user_binding_replaces_the_presets_in_the_window() {
     let tmp = Tmp::new();
-    let mut h = on_golden(
+    let mut h = on_sample(
         &tmp,
         FIRST_RUN_DONE,
         Some(
@@ -122,7 +122,7 @@ fn a_user_binding_replaces_the_presets_in_the_window() {
 #[test]
 fn the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
+    let mut h = on_sample(&tmp, FIRST_RUN_DONE, None);
     dispatch(&mut h, "help.shortcuts", json!({}));
     settle(&mut h);
     assert!(
@@ -179,7 +179,7 @@ fn ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
             "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"{keys}\"\naction = \"ui.dismiss\"\n\
              context = \"global\"\n"
         );
-        let mut h = on_golden(&tmp, FIRST_RUN_DONE, Some(&keymap));
+        let mut h = on_sample(&tmp, FIRST_RUN_DONE, Some(&keymap));
         assert_eq!(h.state().shell().banner(), None, "{keys}");
         h.key_press(Key::F10);
         settle(&mut h);

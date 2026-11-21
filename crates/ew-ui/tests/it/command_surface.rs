@@ -20,9 +20,9 @@ use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
-/// The main window on a copy of Golden A at 1920 by 1080 in `density`, folio 101 on show.
+/// The main window on a copy of the sample at 1920 by 1080 in `density`, folio 101 on show.
 fn window(tmp: &Tmp, density: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(
         shell.dispatch("settings.set", &json!({"key": "density", "value": density})),
@@ -202,7 +202,7 @@ fn the_command_surface_from_the_keyboard() {
 }
 
 /// Doc 16a §5.5 as rc.3 builds it: the HUD floats over the canvas, nothing but its own pill behind it, so the drawing
-/// shows up to its edge: on Golden A 101 at 1920 by 1080 the canvas runs under the HUD to the page view's foot; after a
+/// shows up to its edge: on the sample's 101 at 1920 by 1080 the canvas runs under the HUD to the page view's foot; after a
 /// fit the sheet lies whole in the canvas.
 #[test]
 fn the_hud_floats_over_the_canvas() {

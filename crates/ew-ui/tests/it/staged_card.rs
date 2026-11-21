@@ -14,7 +14,7 @@ use ew_ui::app::App;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::status::waiting_text;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 /// The right edge of the left column: the Pages pane's widgets stand left of it.
 fn left_column(h: &Harness<'_, App>) -> f32 {
@@ -24,7 +24,7 @@ fn left_column(h: &Harness<'_, App>) -> f32 {
 #[test]
 fn a_staged_delete_is_seen_and_applied_where_it_started() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     let rev = h.state().shell().revision().unwrap();
     dispatch(&mut h, "navigator.delete", json!({ "kind": "pages" }));
     settle(&mut h);

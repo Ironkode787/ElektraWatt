@@ -111,12 +111,12 @@ fn the_device_browser_opens_by_its_button_browses_a_category_places_by_a_double_
 #[test]
 fn every_floating_overlay_closes_by_a_click_beside_it_and_by_its_close_button() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
     type Open = fn(&mut ShellModel);
     type IsOpen = fn(&ShellModel) -> bool;

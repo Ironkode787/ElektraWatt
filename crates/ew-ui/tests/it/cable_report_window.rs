@@ -38,7 +38,7 @@ fn toast(shell: &ShellModel) -> String {
 #[test]
 fn new_cable_and_report_block_open_their_forms_from_the_menus_and_create() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

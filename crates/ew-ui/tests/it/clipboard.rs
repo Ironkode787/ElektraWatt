@@ -21,7 +21,7 @@ use ew_viewmodel::shell::{Focus, SessionCalls};
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::Selection;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 /// Selects -102F1's representation on folio 102.
 fn select_102f1(h: &mut Harness<'_, App>) {
@@ -45,7 +45,7 @@ fn select_102f1(h: &mut Harness<'_, App>) {
 #[test]
 fn copy_and_paste_events_reach_the_clipboard_actions_on_the_canvas() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     select_102f1(&mut h);
     assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
     // The platform's copy event (Ctrl+C under winit): the fragment to the shell's clipboard and to `copy_text`.
@@ -97,7 +97,7 @@ fn copy_and_paste_events_reach_the_clipboard_actions_on_the_canvas() {
 #[test]
 fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     select_102f1(&mut h);
     h.event(egui::Event::Copy);
     settle(&mut h);
@@ -124,7 +124,7 @@ fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {
 #[test]
 fn text_fields_keep_their_own_copy_and_paste() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     h.key_press_modifiers(Modifiers::COMMAND, Key::F);
     settle(&mut h);
     assert_eq!(h.state().shell().focus(), Some(Focus::Find));
@@ -145,7 +145,7 @@ fn text_fields_keep_their_own_copy_and_paste() {
 #[test]
 fn menu_paste_requests_the_system_clipboard() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     select_102f1(&mut h);
     h.event(egui::Event::Copy);
     settle(&mut h);
@@ -275,7 +275,7 @@ fn assert_cut_refusal(h: &mut Harness<'_, App>, mut before: CutState) {
 #[test]
 fn incomplete_cut_clipboard_event_shows_reason_without_changes() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     incomplete_marker(&mut h);
     let before = cut_state(&h);
     h.event(egui::Event::Cut);
@@ -287,7 +287,7 @@ fn incomplete_cut_clipboard_event_shows_reason_without_changes() {
 #[test]
 fn plain_text_paste_refusal_remains_quiet() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
     let rev = h.state().shell().revision();
     h.event(egui::Event::Paste("ordinary external text".into()));

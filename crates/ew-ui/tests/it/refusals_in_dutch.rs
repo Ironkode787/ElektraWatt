@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Refusals in Dutch in the window, on a writable copy of Golden A with the UI in Dutch: a
+//! Refusals in Dutch in the window, on a writable copy of the sample with the UI in Dutch: a
 //! command's own refusal shows in the window's banner in Dutch, whole, a record named in words in Dutch too; the
 //! refusal (a point that defines a potential already) is one of them.
 
@@ -26,7 +26,7 @@ fn refused_in_window(h: &mut Harness<'_, App>, cmd: &str, params: Value) -> Stri
 #[test]
 fn a_refused_command_shows_its_reason_in_dutch_in_the_window() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

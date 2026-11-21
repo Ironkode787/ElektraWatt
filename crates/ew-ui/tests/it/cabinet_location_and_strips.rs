@@ -123,12 +123,12 @@ fn a_panel_layout_page_says_how_the_devices_reach_the_plate() {
 #[test]
 fn a_parts_list_that_runs_on_says_where() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
     assert_eq!(
         d.shell_mut().dispatch("page.goto", &json!({"folio": "901"})),

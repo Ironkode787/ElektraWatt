@@ -42,8 +42,8 @@ fn new_project(tmp: &Tmp) -> (ShellModel, PathBuf) {
     (shell, dir)
 }
 
-fn golden_parts() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv")
+fn table_parts() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn without_a_project_a_parts_table_opens_no_mapping() {
     platform
         .answers
         .borrow_mut()
-        .push_back(Pick::Path(golden_parts()));
+        .push_back(Pick::Path(table_parts()));
     let mut h = harness(&tmp, platform, None);
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
@@ -75,7 +75,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     platform
         .answers
         .borrow_mut()
-        .push_back(Pick::Path(golden_parts()));
+        .push_back(Pick::Path(table_parts()));
     let (shell, dir) = new_project(&tmp);
     let mut h = harness_with(shell, platform.clone(), None);
     settle(&mut h);
@@ -160,7 +160,7 @@ fn cancel_drops_the_card_without_a_change() {
     let mut h = harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     wait_for_page(&mut h);
-    let path = golden_parts();
+    let path = table_parts();
     let out = h
         .state_mut()
         .shell_mut()
@@ -397,8 +397,8 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
 #[test]
 fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let other = tmp.golden("h.ew");
+    let dir = tmp.sample("s.ew");
+    let other = tmp.sample("h.ew");
     let platform = ThreadedPlatform::default();
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(platform.clone()), Some(dir));

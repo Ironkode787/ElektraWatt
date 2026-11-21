@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test support of the shell tests: a temporary copy of Golden A or of the sample project, a harness around the
+//! Test support of the shell tests: a temporary copy of the sample project, a harness around the
 //! application frame without rendering, a scripted file dialog, and the accessibility walker (ADR-0014 amendment 2,
 //! NFR-A11Y-02).
 

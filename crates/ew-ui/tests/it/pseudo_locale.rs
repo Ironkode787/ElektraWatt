@@ -33,9 +33,9 @@ fn step(h: &mut Harness<'_, App>) {
     support::assert_fits(h);
 }
 
-/// Golden A open on folio 101 in the window, then the pseudo-locale (the setup of `place.rs`).
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+/// The sample open on folio 101 in the window, then the pseudo-locale (the setup of `place.rs`).
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -143,7 +143,7 @@ fn the_fit_check_finds_two_siblings_that_overlap() {
 #[test]
 fn place_and_wire_in_the_pseudo_locale() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     step(&mut h);
     dispatch(&mut h, "canvas.pointer", json!({"x_mm": 120.0, "y_mm": 120.0}));
@@ -165,7 +165,7 @@ fn place_and_wire_in_the_pseudo_locale() {
 #[test]
 fn a_terminal_strip_in_the_pseudo_locale() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
     step(&mut h);
     let row = {
@@ -183,7 +183,7 @@ fn a_terminal_strip_in_the_pseudo_locale() {
 #[test]
 fn renumber_in_the_pseudo_locale() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     step(&mut h);
@@ -204,7 +204,7 @@ fn renumber_in_the_pseudo_locale() {
 #[test]
 fn export_pdf_in_the_pseudo_locale() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let pdf: PathBuf = tmp.0.join("out.pdf");
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
@@ -234,7 +234,7 @@ fn export_pdf_in_the_pseudo_locale() {
 #[test]
 fn view_language_nederlands_and_back_in_the_window() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // An open card: the renumber preview of `preview_history.rs`.

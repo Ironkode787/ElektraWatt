@@ -41,7 +41,7 @@ fn dialog(h: &Harness<'_, App>) -> egui::Rect {
 fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
     for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         let tmp = Tmp::new();
-        let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+        let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
         h.set_size(size);
         settle(&mut h);
         dispatch(
@@ -69,7 +69,8 @@ fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
             "Paper",
             "Scale to fit",
             "Monochrome",
-            "1 of 5",
+            // Section 1: its divider and the five pages the sample draws in it.
+            "1 of 6",
             "Previous",
             "Next",
             "Print…",
@@ -84,7 +85,7 @@ fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
         }
         h.get_by_label("Next").click();
         settle(&mut h);
-        assert!(h.query_by_label("2 of 5").is_some(), "Next moves the preview");
+        assert!(h.query_by_label("2 of 6").is_some(), "Next moves the preview");
         h.state_mut().shell_mut().shutdown();
     }
 }
@@ -92,7 +93,7 @@ fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
 #[test]
 fn print_on_a_platform_without_printing_says_so_in_one_toast() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
@@ -118,7 +119,7 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
     let gate = Gate::new();
     gate.hold("page");
     shell.set_job_gate_for_tests(Some(gate.clone()));
-    let mut h = harness_with(shell, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness_with(shell, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
@@ -143,7 +144,7 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
 #[test]
 fn no_page_chosen_shows_the_empty_state_and_disables_both_print_buttons() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "sections"}));
@@ -179,7 +180,7 @@ fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
 #[test]
 fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
@@ -232,7 +233,7 @@ fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
 #[test]
 fn the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
@@ -268,7 +269,7 @@ fn the_first_focus_is_print_and_shows_its_focus_ring() {
 #[test]
 fn the_preview_draws_the_papers_whole_edge() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
@@ -315,7 +316,7 @@ fn the_visual_driver_paints_the_three_states_at_both_sizes() {
         ("2560", Geometry::parse(Some("2560x1440"), Some("1")).unwrap()),
     ] {
         let tmp = Tmp::new();
-        let golden = tmp.golden("g.ew");
+        let sample = tmp.sample("s.ew");
         let mut d = Driver::with_geometry(tmp.config(), Some(out.clone()), tmp.0.clone(), geometry).unwrap();
         // A dispatch, then a short wait, so the next frame line paints the changed model.
         let wait = parse_input(json!({"input": "wait", "ms": 100}).as_object().unwrap()).unwrap();
@@ -335,7 +336,7 @@ fn the_visual_driver_paints_the_three_states_at_both_sizes() {
         act(
             &mut d,
             "file.open",
-            json!({"dir": golden.to_string_lossy(), "read_only": true}),
+            json!({"dir": sample.to_string_lossy(), "read_only": true}),
         );
         act(&mut d, "page.goto", json!({"folio": "101"}));
         act(

@@ -26,9 +26,9 @@ use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
-/// A harness with a copy of Golden A open on folio 103, its canvas settled and drawn.
+/// A harness with a copy of the sample open on folio 103, its canvas settled and drawn.
 fn on_103(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     assert_eq!(
@@ -427,7 +427,7 @@ fn compare(a: &[u8], b: &[u8]) -> (f64, u8) {
 #[test]
 fn tile_parity_the_stitched_tiles_of_folio_103_match_the_whole_page_raster() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, Scripted::default(), Some(tmp.sample("s.ew")));
     settle(&mut h);
     let shell = h.state_mut().shell_mut();
     assert_eq!(
