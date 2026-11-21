@@ -294,7 +294,6 @@ fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
     let tmp = Tmp::new("pal-strips");
     let mut shell = tmp.sample_in(Mode::Gui, false, "101");
     for (q, tag) in [("X1031", "-X1031"), ("-101W1", "-101W1"), ("-102F1", "-102F1")] {
-
         let entries = query(&mut shell, q);
         let labels: Vec<&str> = entries.iter().map(|e| e.label.as_str()).collect();
         assert!(labels.contains(&tag), "{q}: {labels:?}");

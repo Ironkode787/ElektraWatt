@@ -304,6 +304,9 @@ pub fn empty_point(c: &CanvasModel) -> (i64, i64) {
     panic!("no empty point on {}", c.page().folio)
 }
 
+/// A route from a wire's pin end to its other end, given both points.
+type PathOf<'a> = dyn Fn((i64, i64), (i64, i64)) -> Vec<(i64, i64)> + 'a;
+
 /// FT-500's overlap and its wire through a symbol on a writable copy of the sample shown at folio 101, which the
 /// router never draws: three wires given routes by `connection.route` (a command stores the route it is given). The
 /// wires of -101F1:1 and -101F1:3 then run on one line, the breaker's top pin row, inside -101F1's rectangle (from
@@ -323,7 +326,7 @@ pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> (i64, i64) {
                 .clone()
         };
         // The wire at `pin` given the route `path` from the pin to its other end, in the wire's own direction.
-        let route = |pin: &str, path: &dyn Fn((i64, i64), (i64, i64)) -> Vec<(i64, i64)>| {
+        let route = |pin: &str, path: &PathOf<'_>| {
             let pin = cp(pin);
             let c = t
                 .connections
@@ -346,7 +349,9 @@ pub fn provisional_overlap_on_101(shell: &mut ShellModel) -> (i64, i64) {
         // Up from the bottom pin into the body, out to the right one grid step past the body, down and back.
         let psu = cp("-101G1:+#2");
         let body = t.reps.iter().find(|r| r.id == psu.rep).expect("-101G1").body;
-        let right = page.snapper.page_of_index(page.snapper.grid_index_of(body[2]) + 1);
+        let right = page
+            .snapper
+            .page_of_index(page.snapper.grid_index_of(body[2]) + 1);
         let up = |pin: (i64, i64), other: (i64, i64)| {
             let y = pin.1 - step;
             vec![pin, (pin.0, y), (right, y), (right, other.1), other]

@@ -453,10 +453,7 @@ fn connect_cores_tells_two_cables_with_one_tag_apart() {
         .collect();
     assert_eq!(
         words,
-        [
-            "-9W9 \u{b7} EW-GEN-CBL-17 (1)",
-            "-9W9 \u{b7} EW-GEN-CBL-17 (2)"
-        ]
+        ["-9W9 \u{b7} EW-GEN-CBL-17 (1)", "-9W9 \u{b7} EW-GEN-CBL-17 (2)"]
     );
     done(&mut s, "ui.dismiss", json!({}));
     for (language, refusal) in [

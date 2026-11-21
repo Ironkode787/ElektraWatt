@@ -39,10 +39,7 @@ fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     assert_eq!(qty(&s), "2");
     let toast = s.toast().expect("the toast of a commit on 8 devices");
     assert_eq!(toast.text, "Set quantity on 8 devices.");
-    assert!(
-        s.describe()
-            .contains("toast \"Set quantity on 8 devices.\" undo")
-    );
+    assert!(s.describe().contains("toast \"Set quantity on 8 devices.\" undo"));
     assert_eq!(state(&s)["toast"]["undo"], true);
     // The toast goes (the window's 8 seconds, or Close); the log keeps it with its Undo.
     done(&mut s, "toast.dismiss", json!({}));

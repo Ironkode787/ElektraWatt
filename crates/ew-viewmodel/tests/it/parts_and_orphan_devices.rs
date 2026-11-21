@@ -187,7 +187,6 @@ fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .collect()
 }
 
-
 /// Finding 5: deleting the only representation of a device deletes the device and its part use in the same command,
 /// so the parts list has no phantom `-?G1`; one undo restores both. A device left without a representation by a
 /// delete of its representation alone is EW-CORE-047. (The run's -101G1 is kept now, as it
@@ -222,7 +221,6 @@ fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_bot
     assert!(
         line_of(&after, "EW-GEN-LMP-1").is_none_or(|l| !l.contains("-102E1")),
         "no phantom -102E1: {after:?}"
-
     );
     assert!(core047(&tmp, &mut s).is_empty());
     // One undo step restores the device, its part and its symbol.
@@ -331,7 +329,6 @@ fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
                     Some((r.id.to_string(), r.ip.as_ref()?.name.clone()))
                 })
                 .expect("an IP of 101 with one wire")
-
         };
         done(&mut s, "select.set", json!({"ids": [g1[0].to_string(), ip]}));
         done(&mut s, "edit.delete_selection", json!({}));

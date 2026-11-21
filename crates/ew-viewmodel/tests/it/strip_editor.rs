@@ -27,7 +27,6 @@ fn last(shell: &ShellModel) -> (String, Value) {
 
 /// A writable copy of the sample on folio 102, headless, with the accessory parts the sample lacks
 /// ([`common::ACCESSORY_PARTS`]).
-
 fn with_accessory_parts(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     common::import_parts(&mut shell, tmp, common::ACCESSORY_PARTS);

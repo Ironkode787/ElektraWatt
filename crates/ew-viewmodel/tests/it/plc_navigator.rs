@@ -489,7 +489,9 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let mut s = new_project(&tmp);
     let part: serde_json::Value = std::fs::read_dir(std::path::Path::new(common::SAMPLE).join("lib/parts"))
         .unwrap()
-        .map(|e| serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(e.unwrap().path()).unwrap()))
+        .map(|e| {
+            serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(e.unwrap().path()).unwrap())
+        })
         .map(Result::unwrap)
         .find(|p| p["meta"]["key"] == "EW-GEN-VTM-1")
         .expect("the sample's copy of EW-GEN-VTM-1");

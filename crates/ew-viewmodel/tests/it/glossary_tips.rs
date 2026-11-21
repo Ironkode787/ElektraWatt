@@ -628,7 +628,10 @@ fn wire_colours_stroke_24v_in_dbu_and_stripe_the_bonded_wire_and_are_off_by_defa
         })
         .expect("a page draws the bonded wire");
     let strokes = s.wire_colour_overlay(0);
-    let stripes = strokes.iter().find(|x| x.id == bonded).expect("the bonded wire is stroked");
+    let stripes = strokes
+        .iter()
+        .find(|x| x.id == bonded)
+        .expect("the bonded wire is stroked");
 
     assert_eq!(stripes.code, "GNYE", "on folio {folio}");
     assert_eq!(stripes.colours, [iec_rgb("GN"), iec_rgb("YE")]);

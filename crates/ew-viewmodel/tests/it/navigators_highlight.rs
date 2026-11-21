@@ -115,9 +115,7 @@ fn highlighting_24v_from_the_potentials_navigator() {
         assert_eq!(*n, want.len());
         assert_eq!(
             lines_with(&shell, "  highlight "),
-            [format!(
-                "  highlight slot 0 potential \"24V\" connections {n}"
-            )]
+            [format!("  highlight slot 0 potential \"24V\" connections {n}")]
         );
     }
     assert_eq!(
@@ -160,10 +158,7 @@ fn highlighting_24v_from_the_potentials_navigator() {
     assert!(shell.highlights().is_empty());
     assert!(lines_with(&shell, "  highlight ").is_empty());
     // Four slots, then a fifth replaces the oldest.
-    for (i, name) in ["24V", "L1", "L2", "L3", "0V"]
-        .iter()
-        .enumerate()
-    {
+    for (i, name) in ["24V", "L1", "L2", "L3", "0V"].iter().enumerate() {
         let k = row_key(&shell, NavKind::Potentials, NavRole::Potential, name);
         done(
             &mut shell,

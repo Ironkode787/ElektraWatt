@@ -196,7 +196,9 @@ fn regex_technical_value_and_library_copy() {
     assert_eq!(psu.replaceable, Err("library copy: update from library".into()));
     let d = shell.describe();
     assert!(
-        d.contains("\"Part number\" \"EW-GEN-PSU-1 (Generic)\" read-only \"library copy: update from library\""),
+        d.contains(
+            "\"Part number\" \"EW-GEN-PSU-1 (Generic)\" read-only \"library copy: update from library\""
+        ),
         "{d}"
     );
     assert_eq!(

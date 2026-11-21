@@ -237,10 +237,7 @@ fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     assert_eq!(s.banner(), None);
     assert!(s.is_dirty(), "the edit since the hold is not on disk yet");
     done(&mut s, "file.save", json!({}));
-    assert_eq!(
-        wire_overrides(&dir),
-        json!({"csa": "2.5", "colour": ["WH"]})
-    );
+    assert_eq!(wire_overrides(&dir), json!({"csa": "2.5", "colour": ["WH"]}));
 }
 
 /// The overrides of the sample's first plain wire as the project folder `dir` holds them.
@@ -294,9 +291,7 @@ fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     done(&mut s, "page.goto", json!({"folio": "102"}));
     done(&mut s, "view.zoom_in", json!({}));
     let zoom = s.canvas().expect("a canvas").zoom();
-    holder
-        .execute(&colour(&sample_wire(0), json!(["RD"])))
-        .unwrap();
+    holder.execute(&colour(&sample_wire(0), json!(["RD"]))).unwrap();
     holder.save().unwrap();
     done(&mut s, "project.check_disk", json!({}));
     assert_eq!(s.current_folio(), Some("102"));
@@ -720,10 +715,7 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
     );
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     done(&mut s, "file.save", json!({}));
-    assert_eq!(
-        wire_overrides(&dir),
-        json!({"csa": "2.5", "colour": ["RD"]})
-    );
+    assert_eq!(wire_overrides(&dir), json!({"csa": "2.5", "colour": ["RD"]}));
 }
 
 /// The dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the

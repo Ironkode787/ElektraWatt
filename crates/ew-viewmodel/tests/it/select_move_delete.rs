@@ -7,7 +7,6 @@
 //! library holds, and `page.describe`'s item and box lines. Every test works on a writable
 //! temporary copy of the sample (or a new project where a test needs a project without the sample's FnDefs).
 
-
 use crate::common;
 
 use common::{Tmp, actual_size, at, canvas, done, grid_point, select_ids, sheet, tables};

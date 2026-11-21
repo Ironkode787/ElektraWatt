@@ -821,7 +821,9 @@ fn the_messages_detail_follows_the_ui_language() {
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         detail(&mut shell, &pot.key),
-        format!("{cable} heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout")
+        format!(
+            "{cable} heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout"
+        )
     );
     assert!(cable.ends_with("-101W1"), "{cable}");
 

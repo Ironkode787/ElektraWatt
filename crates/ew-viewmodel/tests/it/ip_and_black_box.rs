@@ -1326,8 +1326,7 @@ fn the_tools_read_nothing_while_moving() {
 
 /// A location node of the sample, read from its external references (the copy keeps every ID).
 fn external_location() -> String {
-    let (session, _) =
-        ew_api::Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(std::path::Path::new(common::SAMPLE), "test").unwrap();
     let q = session.query();
     let id = q
         .external_refs()
@@ -1404,10 +1403,7 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     done(&mut s, "ip.name", json!({"text": ""}));
     done(&mut s, "ip.external", json!({ "external": id }));
     let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
-    assert!(
-        name != "PE",
-        "the external point's own proposal: {name}"
-    );
+    assert!(name != "PE", "the external point's own proposal: {name}");
     assert_eq!(name, "IP");
     let rev = s.revision();
     done(&mut s, "canvas.activate", json!({}));

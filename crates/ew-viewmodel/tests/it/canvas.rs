@@ -696,7 +696,7 @@ fn the_canvas_prints_every_text_where_the_export_does() {
         .cps
         .iter()
         .find(|c| c.label == "-101G1:L")
-        .and_then(|c| c.connections.iter().next())
+        .and_then(|c| c.connections.first())
         .map(ToString::to_string)
         .expect("the wire to the power supply's L");
     done(

@@ -104,7 +104,11 @@ fn the_page_description_lists_a_strips_bridges() {
     );
     assert!(!page_text(&mut s, "101").contains("\n  bridge "));
     // Bridging two terminals of -X1011 shows on folio 101's description.
-    done(&mut s, "select.set", json!({"refs": ["tag:-X1011:L1", "tag:-X1011:L2"]}));
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["tag:-X1011:L1", "tag:-X1011:L2"]}),
+    );
     done(&mut s, "strip.bridge", json!({}));
     let text = page_text(&mut s, "101");
     let line = text

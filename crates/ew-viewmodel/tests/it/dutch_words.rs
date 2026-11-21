@@ -348,7 +348,10 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         assert_eq!(*label, format!("{rule} {title}"));
     }
     // The sample's tubes from the valve terminal in +CAB to the cylinders in +FLD, and the cable without its length.
-    for label in ["EW-FL-014 Slang verlaat een locatie", "EW-CORE-033 Kabel zonder lengte"] {
+    for label in [
+        "EW-FL-014 Slang verlaat een locatie",
+        "EW-CORE-033 Kabel zonder lengte",
+    ] {
         assert_eq!(
             rule_rows.iter().filter(|(_, l)| l == label).count(),
             1,
@@ -383,7 +386,6 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         .nodes
         .iter()
         .find(|n| n.role == NavRole::Finding && n.label.ends_with(cable))
-
         .expect("the cable row")
         .key
         .clone();
@@ -680,7 +682,12 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     };
     for (language, kind, page, route) in [
         ("en", "Line kind: Working", "Page: 201 Pneumatics", "Route: "),
-        ("nl", "Leidingsoort: Werkleiding", "Pagina: 201 Pneumatics", "Route: "),
+        (
+            "nl",
+            "Leidingsoort: Werkleiding",
+            "Pagina: 201 Pneumatics",
+            "Route: ",
+        ),
     ] {
         done(&mut shell, "view.language", json!({ "value": language }));
         let main = rows(&shell, false);
@@ -997,7 +1004,9 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
         let n = t
             .nodes
             .iter()
-            .find(|n| n.role == role && (role != NavRole::Ip || ["source", "bron"].contains(&n.cells[i].as_str())))
+            .find(|n| {
+                n.role == role && (role != NavRole::Ip || ["source", "bron"].contains(&n.cells[i].as_str()))
+            })
             .expect("a row");
         (n.label.clone(), n.cells[i].clone())
     };
@@ -1032,7 +1041,6 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             "gebruikt",
             "bron",
             "1P-installatieautomaat 1-2",
-
             "f afgeleid · potentiaaldefinitie bij -X1:1 · kleurprofiel 'DBU/WH 24 V'",
         ),
     ] {
@@ -1124,7 +1132,6 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
             ),
             (
                 "Kastlamp X1-X2".to_owned(),
-
                 "Systeem".to_owned(),
                 "Systeem".to_owned(),
                 "Alleen-lezen".to_owned(),

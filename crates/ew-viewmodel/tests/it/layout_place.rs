@@ -25,7 +25,17 @@ const MM: i64 = 1_000_000;
 /// assembly member -201K1-Q2 of rail 2. The sample places every device; these tests need unplaced devices and a rail
 /// with room at both ends.
 const TAKEN_OFF: [&str; 12] = [
-    "-X1011", "-102F1", "-X1021", "-102S2", "-102S1", "-102Q1", "-102E1", "-103F1", "-X1031", "-104E1", "-104E2",
+    "-X1011",
+    "-102F1",
+    "-X1021",
+    "-102S2",
+    "-102S1",
+    "-102Q1",
+    "-102E1",
+    "-103F1",
+    "-X1031",
+    "-104E1",
+    "-104E2",
     "-201K1-Q2",
 ];
 
@@ -233,7 +243,6 @@ const R1_PUSHED: [(&str, f64); 4] = [
     ("-102F1", 125.0),
     ("-101G1", 164.0),
 ];
-
 
 // ---------------------------------------------------------------------------------------------------------------
 // PW-1
@@ -596,7 +605,12 @@ fn refused_drops_and_a_plate_placement() {
     // The refused drop says why in the bar, as its ghost did.
     assert_eq!(
         shell.tool_notice(),
-        Some(format!("-102F1 mounts on a TS 35×7.5 rail and does not fit {rail}: drop it on a TS 35×7.5 rail.").as_str())
+        Some(
+            format!(
+                "-102F1 mounts on a TS 35×7.5 rail and does not fit {rail}: drop it on a TS 35×7.5 rail."
+            )
+            .as_str()
+        )
     );
     assert_eq!(shell.revision(), revision, "nothing committed");
 
@@ -605,7 +619,10 @@ fn refused_drops_and_a_plate_placement() {
     done(&mut shell, "canvas.pointer", at(away, json!({})));
     let g = ghost(&shell);
     assert_eq!(g["carrier"], "plate");
-    assert_eq!(g["refused"], "-102F1 mounts on a TS 35×7.5 rail; drop it on a rail.");
+    assert_eq!(
+        g["refused"],
+        "-102F1 mounts on a TS 35×7.5 rail; drop it on a rail."
+    );
     assert_eq!(
         refused(&mut shell, "canvas.release", at(away, json!({}))),
         "reason-layout-refused"

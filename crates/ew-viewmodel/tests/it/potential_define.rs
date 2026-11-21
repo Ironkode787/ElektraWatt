@@ -190,7 +190,6 @@ const W20_TO_W23: [(&str, &str); 3] = [
     ("-102Q1:A2", "-X1021:6/b"),
 ];
 
-
 /// L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
 /// DBU and WH by the project's profile once they are named and typed in the Potentials table. Naming a row is one
 /// step, a `potential.define` at the CP with the typed name; Type and Voltage of the now defined row set its
@@ -205,7 +204,10 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     let zero = potential_at(&mut shell, "102", "-X1021:5/a");
     let before_101 = marker_text(&mut shell, "101", &W4_W5);
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
-    assert_ne!(before_101, "1.5 BK BU", "without definitions N is not BU (the size profile 0.75/1.5 gives mains 1.5 and control 0.75)");
+    assert_ne!(
+        before_101, "1.5 BK BU",
+        "without definitions N is not BU (the size profile 0.75/1.5 gives mains 1.5 and control 0.75)"
+    );
     assert_ne!(before_102, "0.75 DBU WH WH");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     for name in [&l, &n, &plus, &zero] {

@@ -833,7 +833,6 @@ fn rows_commit_from_the_properties_grid() {
 /// What `layout.move` says of -102F1 moved to 9999 mm on rail 1 (470 mm long).
 const FAR_POSITION_REFUSAL: &str = "the pose is off the rail: s = 9999 mm is outside [0, 470 mm]";
 
-
 /// The text of the shown Properties row `key`.
 fn row_text(s: &ShellModel, key: &str) -> String {
     let sheet = s.properties().sheet().expect("a Properties sheet");

@@ -332,7 +332,9 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
     assert_eq!(chips, ["104-B13", "105-C2", "105-C4"]);
     assert!(
-        shell.describe().contains("\n  elsewhere \"104-B13\" \"105-C2\" \"105-C4\"\n"),
+        shell
+            .describe()
+            .contains("\n  elsewhere \"104-B13\" \"105-C2\" \"105-C4\"\n"),
         "the canvas section's chip line"
     );
     assert_eq!(state(&shell)["properties"]["title"], "-104A1");
@@ -358,7 +360,13 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     let port_row = row_key(&shell, NavKind::Devices, NavRole::Representation, "105-C2");
     // The row's representation record (the PROFIBUS port's on folio 105), among the row's records.
     let (session, _) = ew_api::Session::open_read_only(Path::new(common::SAMPLE), "test").unwrap();
-    let reps: Vec<_> = session.page_tables("105").unwrap().reps.iter().map(|r| r.id).collect();
+    let reps: Vec<_> = session
+        .page_tables("105")
+        .unwrap()
+        .reps
+        .iter()
+        .map(|r| r.id)
+        .collect();
     let rep_id = *shell
         .nav(NavKind::Devices)
         .unwrap()
@@ -381,7 +389,10 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
         Some(port_row.as_str())
     );
     assert!(
-        shell.shown_rows(NavKind::Devices).iter().any(|r| r.key == port_row),
+        shell
+            .shown_rows(NavKind::Devices)
+            .iter()
+            .any(|r| r.key == port_row),
         "the collapsed device was expanded to reveal the row"
     );
     assert_eq!(state(&shell)["focus"], "canvas", "the focus stays on the canvas");
@@ -509,7 +520,6 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     assert_eq!(
         shell.new_page_proposal(None, None).0,
         "3",
-
         "after a generated page too (rc.5)"
     );
     done(&mut shell, "page.goto", json!({"folio": "103"}));

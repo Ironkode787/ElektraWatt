@@ -136,7 +136,11 @@ fn a_bond_drawn_on_pelv_wire_keeps_0v_and_pe_apart() {
             .unwrap_or_else(|| panic!("no potential {name}: {rows:?}"))
             .clone()
     };
-    assert!(!row("0V").2.contains("GN"), "0 V keeps its own colour: {:?}", row("0V"));
+    assert!(
+        !row("0V").2.contains("GN"),
+        "0 V keeps its own colour: {:?}",
+        row("0V")
+    );
     assert_eq!(row("0V").1, "potential_def");
     assert!(row("PE").2.contains("GN"), "PE stays PE: {:?}", row("PE"));
     assert!(
@@ -167,7 +171,11 @@ fn the_cp_form_the_kinds_and_the_refusals() {
     );
     let m = failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a", "b": "-X9:9"}));
     assert!(m.contains("-X9:9"), "{m}");
-    let m = failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a", "b": "-X1021:8/a"}));
+    let m = failed(
+        &mut shell,
+        "bond.draw",
+        json!({"a": "-X1021:8/a", "b": "-X1021:8/a"}),
+    );
     assert!(m.contains("two different"), "{m}");
     failed(&mut shell, "bond.draw", json!({"a": "-X1021:8/a"}));
     // Without a selection and without ends the action is disabled before its parameters are read.

@@ -398,7 +398,6 @@ fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
                 "place.pick",
                 json!({"symbol": "ew.iec.terminal@qet10", "strip": strip, "designation": designation}),
             ),
-
             ("nav.goto", json!({"text": "199-D2"})),
             ("canvas.activate", json!({"alt": true})),
             ("ui.dismiss", json!({})),

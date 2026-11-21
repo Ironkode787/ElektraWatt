@@ -150,16 +150,16 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
     let sheet = s.properties().sheet().expect("a sheet");
     assert_eq!(sheet.header.title, "Project");
     let texts: Vec<String> = ["project/settings.text_styles", "project/settings.numbering"]
-    .iter()
-    .map(|k| {
-        let row = sheet.sections[0]
-            .rows
-            .iter()
-            .find(|r| r.key == *k)
-            .expect("the row");
-        value_text(row)
-    })
-    .collect();
+        .iter()
+        .map(|k| {
+            let row = sheet.sections[0]
+                .rows
+                .iter()
+                .find(|r| r.key == *k)
+                .expect("the row");
+            value_text(row)
+        })
+        .collect();
     assert_eq!(texts, ["3 elementen", "page-based"]);
 
     s.shutdown();

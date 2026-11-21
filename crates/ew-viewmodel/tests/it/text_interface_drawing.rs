@@ -85,7 +85,9 @@ fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     // the source's link (a press there follows the link).
     let pointless: Vec<&String> = wires.iter().filter(|l| at_of(l).is_none()).collect();
     assert!(
-        pointless.iter().all(|l| l.starts_with("  wire junction ") && l.contains("\"PE\"")),
+        pointless
+            .iter()
+            .all(|l| l.starts_with("  wire junction ") && l.contains("\"PE\"")),
         "{pointless:#?}"
     );
     let t = tables(&s);
@@ -142,11 +144,19 @@ fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     }
     // A wire is deleted from the text: select it by its ends, Delete.
     let n = tables(&s).connections.len();
-    done(&mut s, "select.set", json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}));
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}),
+    );
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(tables(&s).connections.len(), n - 1);
     // No such wire, and the wrong form, fail with the form in the message.
-    let m = failed(&mut s, "select.set", json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}));
+    let m = failed(
+        &mut s,
+        "select.set",
+        json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}),
+    );
     assert!(m.contains("wire:<end> -> <end>"), "{m}");
     failed(&mut s, "select.set", json!({"refs": ["wire:-101Q1:1"]}));
 }

@@ -251,8 +251,6 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     shell.shutdown();
 }
 
-
-
 // ---------------------------------------------------------------------------------------------------------------
 // MS2: pending (FR-UI-041, amended by D16)
 

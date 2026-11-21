@@ -173,7 +173,6 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         .collect();
     assert!(
         labels.contains(&"OK"),
-
         "the new pin is a connection point of the device: {labels:?}"
     );
 }

@@ -40,7 +40,6 @@ fn the_parts_list_says_which_devices_it_leaves_out() {
         .collect();
     assert!(!named.is_empty(), "the contact has no part");
 
-
     done(&mut s, "lists.parts", json!({}));
     let toast = s.toast().cloned().expect("a toast");
     assert_eq!(toast.action(), Some(NoteAction::SelectUnlisted));

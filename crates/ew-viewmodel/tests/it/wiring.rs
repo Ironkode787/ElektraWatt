@@ -278,7 +278,10 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
     let start = cp(&s, "-102S3:13");
     click_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
-    let (b1, b2) = (steps_from(&s, start.at, (0, -5)), steps_from(&s, start.at, (0, -6)));
+    let (b1, b2) = (
+        steps_from(&s, start.at, (0, -5)),
+        steps_from(&s, start.at, (0, -6)),
+    );
     click_at(&mut s, b1);
     click_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);

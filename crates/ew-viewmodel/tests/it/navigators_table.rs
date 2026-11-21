@@ -63,7 +63,6 @@ fn label_of(shell: &ShellModel, n: &str) -> String {
 
 /// A writable copy of the sample, headless, with the Terminal strips table filtered by `filter` and sorted by
 /// Terminal.
-
 fn strips(tmp: &Tmp, filter: &str) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
@@ -270,7 +269,6 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
         n.visible()
             .iter()
             .map(|r| t.nodes[r.node as usize].key.clone())
-
             .collect()
     };
     assert!(devices.len() > 5, "more rows than the preview shows");
@@ -627,7 +625,12 @@ fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
         // Two rows of two different records with a value in the column (a potential with its definition, not one
         // known only by a name at a connection point).
         let t = shell.nav(kind).and_then(|n| n.table()).cloned().unwrap();
-        let defined = |k: &str| t.nodes.iter().find(|n| n.key == k).is_none_or(|n| n.kinds != ["cp"]);
+        let defined = |k: &str| {
+            t.nodes
+                .iter()
+                .find(|n| n.key == k)
+                .is_none_or(|n| n.kinds != ["cp"])
+        };
         let mut seen = Vec::new();
         let keys: Vec<String> = column(&shell, kind, label)
             .into_iter()
@@ -794,9 +797,9 @@ fn describe_lines_words_and_counts() {
     done(&mut shell, "navigator.table", json!({"kind": "pages"}));
     let d = shell.describe();
     assert!(
-        d.contains("navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows ")
-            && d.contains("\n  columns \"Folio\" \"Title\" \"Changed in\"\n"),
-
+        d.contains(
+            "navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows "
+        ) && d.contains("\n  columns \"Folio\" \"Title\" \"Changed in\"\n"),
         "{d}"
     );
     assert!(!d.contains("navigator \"Pages\" mode "), "{d}");
@@ -989,7 +992,6 @@ fn copy_then_paste_back_changes_nothing_in_either_language() {
         done(&mut shell, "table.copy", json!({}));
         if copy_in == "en" {
             assert_eq!(shell.clipboard().text().unwrap(), EXPECTED_X1031);
-
         }
         done(&mut shell, "view.language", json!({ "value": paste_in }));
         done(

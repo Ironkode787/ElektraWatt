@@ -171,7 +171,6 @@ fn a_height_that_is_no_height_is_refused_in_words() {
     assert_eq!(row(&shell, "Wire marker"), before);
 }
 
-
 /// Every new project starts readable: no style under the minimum, and the terminal's number smaller than the device
 /// tag; nothing for EW-CORE-061 to report.
 #[test]

@@ -754,8 +754,7 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
         }
     }
     // The sample's size profile, from its project file.
-    let sample =
-        std::fs::read_to_string(std::path::Path::new(common::SAMPLE).join("project.jsonl")).unwrap();
+    let sample = std::fs::read_to_string(std::path::Path::new(common::SAMPLE).join("project.jsonl")).unwrap();
     let size = sample
         .lines()
         .map(|l| serde_json::from_str::<Value>(l).unwrap())
@@ -1113,7 +1112,10 @@ fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     // The explicit mode marks the connections with an explicit cross-section or colour, and says how many.
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
     let explicit = shell.toast().unwrap().text.clone();
-    assert!(explicit.ends_with(" wires carry a marker.") || explicit == "1 wire carries a marker.", "{explicit}");
+    assert!(
+        explicit.ends_with(" wires carry a marker.") || explicit == "1 wire carries a marker.",
+        "{explicit}"
+    );
     // The same mode again commits nothing and still reports the count.
     let rev = shell.revision();
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));

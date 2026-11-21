@@ -156,7 +156,10 @@ fn update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
 
 /// The files of the folder `sub` of the project at `dir`.
 fn files_in(dir: &Path, sub: &str) -> Vec<PathBuf> {
-    std::fs::read_dir(dir.join(sub)).unwrap().map(|e| e.unwrap().path()).collect()
+    std::fs::read_dir(dir.join(sub))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect()
 }
 
 /// The sample's parts are all the starter library's: a part of the project's own, OWN-1 of the manufacturer Acme
@@ -167,7 +170,11 @@ fn own_part_copy(tmp: &Tmp, dir: &Path) -> (PathBuf, PathBuf) {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     common::import_parts(&mut s, tmp, "OWN-1,Acme,OWN-1,,,Own part,piece,,,,,,,,,,,\n");
     done(&mut s, "select.set", json!({ "refs": ["tag:-101Q1"] }));
-    done(&mut s, "props.set", json!({"row": "device/parts", "value": "OWN-1"}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/parts", "value": "OWN-1"}),
+    );
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));
     let new = |sub: &str, before: &[PathBuf]| {
@@ -469,7 +476,8 @@ fn a_library_version_that_breaks_the_project_refuses_the_update() {
             .expect("-201M1 on folio 201")
             .function
             .to_string();
-        let (session, _) = Session::open_read_only(Path::new(common::SAMPLE), "test").expect("the sample opens");
+        let (session, _) =
+            Session::open_read_only(Path::new(common::SAMPLE), "test").expect("the sample opens");
         let def = session
             .query()
             .functions()
@@ -492,7 +500,11 @@ fn a_library_version_that_breaks_the_project_refuses_the_update() {
          \"b\":{{\"cp\":[\"{cylinder}\",1]}},\"page\":\"{page_id}\"}}\n"
     ));
     std::fs::write(&page, text).unwrap();
-    std::fs::write(dir.join(format!("lib/fndefs/{def}.json")), "{\"$k\": \"fndef\",\n").unwrap();
+    std::fs::write(
+        dir.join(format!("lib/fndefs/{def}.json")),
+        "{\"$k\": \"fndef\",\n",
+    )
+    .unwrap();
 
     let before = tree(&dir);
     for (locale, message) in [

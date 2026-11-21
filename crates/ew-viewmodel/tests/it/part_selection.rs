@@ -28,7 +28,6 @@ fn writable(tmp: &Tmp) -> ShellModel {
     }
     done(&mut s, "select.set", json!({"ids": []}));
     s
-
 }
 
 /// The describe lines of the open dialog that start with `prefix` (after the indent).
@@ -149,10 +148,7 @@ fn a_breaker_offers_the_same_function_first() {
     );
     let r = results(&s);
     assert_eq!(r[..2], ["EW-GEN-MCB-2", "EW-GEN-MCB-1"], "{r:?}");
-    assert!(
-        result_of(&s, "EW-GEN-MCB-2")
-            .ends_with("project compatible same-fndef cursor")
-    );
+    assert!(result_of(&s, "EW-GEN-MCB-2").ends_with("project compatible same-fndef cursor"));
     assert!(result_of(&s, "EW-GEN-MCB-1").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-3").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-4").ends_with("compatible same-category"));
@@ -194,7 +190,11 @@ fn a_breaker_offers_the_same_function_first() {
     );
     assert!(lines(&s, "query ")[0].contains(" view project "));
     // A text narrows the list; the detail follows the active row.
-    done(&mut s, "part.search", json!({ "view": "all", "text": "EW-GEN-TRM" }));
+    done(
+        &mut s,
+        "part.search",
+        json!({ "view": "all", "text": "EW-GEN-TRM" }),
+    );
     assert_eq!(results(&s), ["EW-GEN-TRM-1", "EW-GEN-TRM-2"]);
     let version = starter_version("EW-GEN-TRM-1");
     assert_eq!(
@@ -424,7 +424,6 @@ fn the_strip_editor_cells_choose_parts() {
     assert_eq!(cmd, "fields.set", "{params}");
     assert_eq!(params["path"], "overrides.wire_part", "{params}");
     s.shutdown();
-
 }
 
 /// PS5 in the shell: a field that does not parse prints its message under the field (`invalid`), Save is refused with
@@ -435,13 +434,18 @@ fn the_part_editor_refuses_with_a_message() {
     let mut s = writable(&tmp);
     select(&mut s, "-101F2");
     done(&mut s, "part.edit", json!({}));
-    assert_eq!(lines(&s, "dialog "), ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]);
+    assert_eq!(
+        lines(&s, "dialog "),
+        ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]
+    );
     assert!(lines(&s, "field ").contains(&"field \"Part number\" \"EW-GEN-MCB-2\"".to_owned()));
     assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"10 A\"".to_owned()));
     let version = starter_version("EW-GEN-MCB-2");
     assert_eq!(
         lines(&s, "source "),
-        [format!("source library \"ElektraWatt starter parts\" version \"{version}\" fork on")]
+        [format!(
+            "source library \"ElektraWatt starter parts\" version \"{version}\" fork on"
+        )]
     );
     // An unchanged draft.
     assert_eq!(refused(&mut s, "part.save", json!({})), "reason-part-unchanged");

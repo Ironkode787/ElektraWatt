@@ -136,7 +136,10 @@ fn every_wire_of_folio_101_is_picked_by_a_click_on_a_point_only_it_covers() {
                 // run along its whole length.
                 None if samples(line).iter().all(|p| {
                     all.iter().any(|(e, pts)| {
-                        e != wire && pts.windows(2).any(|w| segment_dist2(*p, w[0], w[1]) <= reach(&s).pow(2))
+                        e != wire
+                            && pts
+                                .windows(2)
+                                .any(|w| segment_dist2(*p, w[0], w[1]) <= reach(&s).pow(2))
                     })
                 }) =>
                 {
@@ -231,10 +234,7 @@ fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {
         .expect("-101G1")
         .clone();
     let snap = s.canvas().unwrap().page().snapper.clone();
-    let centre = snap.page_to_sheet((
-        (psu.body[0] + psu.body[2]) / 2,
-        (psu.body[1] + psu.body[3]) / 2,
-    ));
+    let centre = snap.page_to_sheet(((psu.body[0] + psu.body[2]) / 2, (psu.body[1] + psu.body[3]) / 2));
     assert_eq!(fresh_click(&mut s, centre), vec![EntityRef(psu.id)]);
     // The wire of -101G1:+#2 runs up into -101G1's body from its bottom pin: a point of it 1 mm above the pin,
     // inside the symbol's rectangle and outside the middle of its body.

@@ -422,7 +422,11 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
 /// Draws a black box of the power supply EW-GEN-PSU-1 with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
 /// rectangles `[x0, y0, x1, y1]` of its texts left of its outline (up to its edge): its caption.
 fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i64; 4]> {
-    done(s, "tool.black_box", json!({"part": "EW-GEN-PSU-1", "template": 0}));
+    done(
+        s,
+        "tool.black_box",
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
+    );
     for k in [a, b] {
         let p = grid_point(s, k);
         let q = s.canvas().unwrap().page().snapper.page_to_sheet(p);
@@ -469,7 +473,11 @@ fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
     let x = switch.at.0;
     let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
     // The case: the caption stands level with the run, within two grid steps of it, not on it.
-    assert_eq!(caption.len(), 2, "tag and part number (the generic part names no manufacturer)");
+    assert_eq!(
+        caption.len(),
+        2,
+        "tag and part number (the generic part names no manufacturer)"
+    );
 
     assert!(
         caption

@@ -48,7 +48,8 @@ fn endpoints(s: &ShellModel) -> Endpoints {
                 .to_string()
         })
         .collect();
-    let (session, _) = Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample opens read-only");
+    let (session, _) =
+        Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample opens read-only");
     let q = session.query();
     let terminal = |function: &str| {
         let (_, f) = q
@@ -74,7 +75,11 @@ fn endpoints(s: &ShellModel) -> Endpoints {
             }),
             "{function}'s part has no bridge shaft"
         );
-        (term.seq, term.designation.as_str().to_owned(), term.strip.as_uuid().to_string())
+        (
+            term.seq,
+            term.designation.as_str().to_owned(),
+            term.strip.as_uuid().to_string(),
+        )
     };
     let strip = terminal(&x[0]).2;
     for (k, function) in x.iter().enumerate() {
@@ -91,7 +96,6 @@ fn endpoints(s: &ShellModel) -> Endpoints {
                 .find(|(_, c)| {
                     serde_json::to_value(&c.a).ok() == Some(json!({"cp": [x[k], 0]}))
                         && serde_json::to_value(&c.b).ok() == Some(json!({"cp": [x[k + 1], 0]}))
-
                 })
                 .unwrap_or_else(|| panic!("the bridge over -X1021 {} and {}", k + 1, k + 2));
             assert_eq!(
@@ -170,7 +174,6 @@ fn place_terminal_at(s: &mut ShellModel, p: (i64, i64), params: Value) {
     done(s, "canvas.activate", json!({"alt": true}));
     done(s, "ui.dismiss", json!({}));
 }
-
 
 /// The `strip.bridge` item of the app menu (Draw, Connect).
 fn edit_item(s: &ShellModel, id: &str) -> ActionItem {

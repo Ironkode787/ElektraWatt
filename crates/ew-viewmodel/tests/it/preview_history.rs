@@ -271,7 +271,8 @@ fn renumber_previews(mode: Mode) {
         .collect();
     assert!(tags.contains(&"  tag \"-106W1\" \"-105W1\""), "{tags:?}");
     assert!(
-        tags.iter().all(|t| t.starts_with("  tag \"-106") && t.contains(" \"-105")),
+        tags.iter()
+            .all(|t| t.starts_with("  tag \"-106") && t.contains(" \"-105")),
         "{tags:?}"
     );
     let pages = shell.preview_pane().pages().to_vec();
@@ -312,7 +313,6 @@ fn renumber_previews_headless() {
 /// PV2 in the window's mode: the dialogs, their defaults and OK.
 #[test]
 fn renumber_previews_through_the_dialogs() {
-
     renumber_previews(Mode::Gui);
 }
 
@@ -423,11 +423,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     done(&mut shell, "find.text", json!({"text": "Spare"}));
     done(&mut shell, "find.replacement", json!({"text": "Reserve"}));
     done(&mut shell, "find.fields", json!({"fields": ["function_text"]}));
-    done(
-        &mut shell,
-        "find.folios",
-        json!({"folios": ["201"]}),
-    );
+    done(&mut shell, "find.folios", json!({"folios": ["201"]}));
     done(&mut shell, "find.run", json!({}));
     done(&mut shell, "find.replace_all", json!({}));
     assert_eq!(state(&shell)["card"]["origin"], "find");

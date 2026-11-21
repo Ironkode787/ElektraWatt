@@ -76,7 +76,14 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
         .iter()
         .find(|p| {
             p.label_box.is_some_and(|bx| {
-                !in_footprint(&t, p.footprint, ((bx.min().x.0 + bx.max().x.0) / 2, (bx.min().y.0 + bx.max().y.0) / 2))
+                !in_footprint(
+                    &t,
+                    p.footprint,
+                    (
+                        (bx.min().x.0 + bx.max().x.0) / 2,
+                        (bx.min().y.0 + bx.max().y.0) / 2,
+                    ),
+                )
             })
         })
         .expect("a balloon off its device")
@@ -146,7 +153,8 @@ fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back
             let (Some(bx), fp) = (p.label_box, p.footprint) else {
                 return false;
             };
-            in_footprint(&t, fp, (bx.min().x.0, bx.min().y.0)) && in_footprint(&t, fp, (bx.max().x.0, bx.max().y.0))
+            in_footprint(&t, fp, (bx.min().x.0, bx.min().y.0))
+                && in_footprint(&t, fp, (bx.max().x.0, bx.max().y.0))
         })
         .expect("a balloon inside its device")
         .clone();

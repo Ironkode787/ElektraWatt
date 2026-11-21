@@ -108,7 +108,6 @@ fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
         assert!(d.devices.iter().any(|x| x == tag), "{tag}: {:?}", d.devices);
     }
 
-
     // The detail's thumbnail is drawn from the scene.
     let th = shell.macro_thumbnail().expect("a drawn thumbnail");
     assert!(th.region[0] < th.region[2] && th.region[1] < th.region[3]);
