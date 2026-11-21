@@ -1032,6 +1032,9 @@ base generation). The example records W20's colour change from DBU to BU
 - **Lifecycle.**
   - A successful save starts a new segment; the old one goes after the next snapshot.
   - A clean close deletes the directory (NFR-PRIV-05).
+  - Making a project in a directory (a new project, an import, Save As) deletes the leftover segments of its project
+    ID at that path: they are of a project that was there before, and an import of the same source again has the same
+    ID, so they would be offered to a project they do not belong to.
   - A dirty session that ends without a clean close or an explicit discard keeps its journal. The shell closes a clean session at exit but drops a dirty one without closing it: a window
     closed or a log-off while dirty, and the end of a headless script with unsaved changes (which exits 1), all leave
     the journal for the next open; only the unsaved-changes dialog's Discard, or `file.close` or `app.quit` with

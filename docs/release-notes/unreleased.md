@@ -85,6 +85,8 @@ change here.
   from them (the cell's `ew.cell.inset`, FT-1765)
 - behaviour-change: the DXF export writes a text as high as the capitals of its own face: a Technical drawing text is
   0.719 of its em high (it was 0.714, Noto Sans's); the other bundled faces are unchanged
+- behaviour-change: a project made in a folder where a project of the same ID was (an import of the same source again,
+  Save As onto its path) is no longer offered that project's leftover crash journal: making it deletes the journal
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
   in the graph
 - format-variant: form Align baseline_centre

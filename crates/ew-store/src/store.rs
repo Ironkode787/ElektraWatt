@@ -1752,7 +1752,8 @@ impl Store {
     // Create
 
     /// Writes `model` as generation 1 into `root` (a new project, Save As), which must not hold a
-    /// manifest, and keeps it open for editing. Inside a git worktree it also writes the managed `.gitattributes` and
+    /// manifest, and keeps it open for editing. It deletes the leftover journals of its project ID at `root`: they
+    /// are of a project that was there before (doc 05 §8.1). Inside a git worktree it also writes the managed `.gitattributes` and
     /// `.gitignore` blocks ([`crate::git::write_blocks`]).
     ///
     /// # Errors
@@ -1797,6 +1798,9 @@ impl Store {
         }
         store.prepare_journal_dir(Some(model.project().id.cast()));
         if let Some(j) = &mut store.journal {
+            // A leftover journal of this project ID at this path is of a project that was here before (`root` held
+            // no project): nothing of it applies to the new one, so it is not offered to it (doc 05 §8.1).
+            j.discard(&std::mem::take(&mut store.leftovers));
             if j.start(store.generation, store.manifest_hash.as_ref()).is_err() {
                 store.journal = None;
             }
