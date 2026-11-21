@@ -512,7 +512,7 @@ mod tests {
         assert_eq!((p.width, p.height), (Nm::from_mm(420), Nm::from_mm(297)));
     }
 
-    /// PR-2 in miniature (Golden A has no A3 sheet): an A3 landscape page printed on A4 with the fit carries
+    /// PR-2 in miniature (the sample project has no A3 sheet): an A3 landscape page printed on A4 with the fit carries
     /// "scaled 71 %", without it is clipped and the notice names the page; its content stays the page's item for item,
     /// and on its own sheet at actual size the set is the export's PDF byte for byte.
     #[test]

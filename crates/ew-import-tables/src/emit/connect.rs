@@ -114,7 +114,7 @@ enum PendingKind<'t> {
     Bridge(BridgeSpec),
     /// A bus connection, with its cable device by `devices` key (doc 10 §2.7).
     Bus(Option<&'t str>),
-    /// A fluid line of kind working (Golden A's F1 to F16).
+    /// A fluid line of kind working.
     Fluid,
 }
 
@@ -348,7 +348,7 @@ fn stored_route(
     };
     // An end the tables do not place (a strip segment's terminal, drawn from derived queries: a CP of a function no
     // symbol or black box draws) is named by the route itself: its first item is end `a`'s point, its last end `b`'s
-    // (Golden A's router-written routes).
+    // (a router-written route).
     let undrawn = |e: &Endpoint| match e {
         Endpoint::Cp(f, _) => {
             !cx.cp_points.keys().any(|(g, _, _)| g == f)

@@ -4,7 +4,7 @@
 //! The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its
 //! tables read into format-level records.
 //!
-//! [`TablesImporter`] reads the tables of `golden/J-E-2416/tables/` (schemas: `golden/J-E-2416/README.md`)
+//! [`TablesImporter`] reads tables of the `ew` dialect (their schemas: `src/schema.rs`)
 //! and emits format-level `ew-schema` records and library documents plus an import report, under the
 //! importer contract of `ew-interop-api` (ADR-0021): it never sees the model, the file system or the clock.
 //!
@@ -76,8 +76,8 @@ mod table;
 
 pub use csv::TableLimits;
 /// The importer's own check of a carrier path. `ew-derive`'s `check_path` is the rule; this crate may not
-/// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy, and `ew-api`'s `golden_csv` test runs both over one
-/// set of paths and asserts they agree.
+/// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy. The test that ran both over one set of paths
+/// went with the reference project; no test holds the two equal now.
 #[doc(hidden)]
 pub use emit::layout::path_problem as carrier_path_problem;
 /// The importer contract this crate implements, re-exported for hosts that reach the importer through

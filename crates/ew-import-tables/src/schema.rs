@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The table schemas of `golden/J-E-2416/README.md`: file stem, required and optional columns.
+//! The table schemas of the `ew` dialect: file stem, required and optional columns.
 
 use crate::table::TableSpec;
 

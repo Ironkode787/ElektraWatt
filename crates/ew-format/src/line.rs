@@ -11,7 +11,7 @@ use crate::order::LineKey;
 
 /// `$k` first, then the record's own members in declaration order: the envelope of `ew-schema`'s
 /// `Record` and `LibDocument`, rebuilt here so that a row held behind an `Arc` serialises without being
-/// cloned into a `Record`. The bytes are the same (tested over the golden project).
+/// cloned into a `Record`. The bytes are the same.
 #[derive(Serialize)]
 struct Tagged<'a, T> {
     #[serde(rename = "$k")]
@@ -225,10 +225,10 @@ fn push_indent(out: &mut String, n: usize) {
 /// form of doc 05 §3.4, keeping the member order. A final LF is appended.
 ///
 /// ```
-/// let compact = r#"{"$k":"part","meta":{"licence":"CC0-1.0","sources":["golden tables"]},"cp_pattern":[]}"#;
+/// let compact = r#"{"$k":"part","meta":{"licence":"CC0-1.0","sources":["my tables"]},"cp_pattern":[]}"#;
 /// assert_eq!(
 ///     ew_format::pretty(compact),
-///     "{\"$k\": \"part\", \"meta\": {\"licence\": \"CC0-1.0\", \"sources\": [\"golden tables\"]}, \"cp_pattern\": []}\n"
+///     "{\"$k\": \"part\", \"meta\": {\"licence\": \"CC0-1.0\", \"sources\": [\"my tables\"]}, \"cp_pattern\": []}\n"
 /// );
 /// ```
 pub fn pretty(compact: &str) -> String {

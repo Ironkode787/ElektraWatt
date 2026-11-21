@@ -535,8 +535,8 @@ pub(crate) fn emit(
     super::plc::report_unknown_parts(cx, plc);
 }
 
-/// The licence of a part or manufacturer copy: `CC0-1.0` for the golden bootstrap, whose copies ship as
-/// the sample project (doc 07 §3.8); none for a user's `ew import parts`, whose licence is the user's to state.
+/// The licence of a part or manufacturer copy: `CC0-1.0` for the CSV bootstrap (doc 07 §3.8); none for a
+/// user's `ew import parts`, whose licence is the user's to state.
 fn bootstrap_licence(cx: &Cx<'_>) -> Option<String> {
     cx.part_source.is_none().then(|| "CC0-1.0".to_owned())
 }

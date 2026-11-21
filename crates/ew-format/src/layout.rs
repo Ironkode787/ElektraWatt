@@ -251,7 +251,7 @@ pub fn lib_file(doc: &LibDocument) -> Option<FilePath> {
 }
 
 /// [`Anchors`] over a set of records, for writing a project from records alone (an importer's batch, the
-/// golden bootstrap) without a model.
+/// CSV bootstrap) without a model.
 #[derive(Clone, Debug, Default)]
 pub struct RecordAnchors {
     function_device: BTreeMap<AnyId, Option<AnyId>>,

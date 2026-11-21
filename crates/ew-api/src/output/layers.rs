@@ -18,8 +18,9 @@
 //!
 //! The other layers (revision marks, highlights, features, dimensions) are drawn by no rule of `ew-scene` yet and are
 //! empty. Each family is `ew_scene::page::page_display_list` over a partial view; a test holds every layer equal
-//! to the same function over the full view ([`page_view`]) on every golden page. The display language is the
-//! neutral one (no `lang` key yet: the views print neutral texts until multi-language output, FR-I18N-005).
+//! to the same function over the full view ([`page_view`]) on every page of the sample project. The display
+//! language is the neutral one (no `lang` key yet: the views print neutral texts until multi-language output,
+//! FR-I18N-005).
 //!
 //! The families are pure functions of `Q` and two process constants: the bundled font set
 //! (`ew_text::bundled()`) and the built-in generic symbols (`view::generic_symbols`).

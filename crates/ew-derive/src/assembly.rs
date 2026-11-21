@@ -12,8 +12,9 @@
 //! form *segments*, the maximal runs of consecutive members drawn on one page. With two or more segments the
 //! overview continues across pages, and every open end gets a break mark (doc 11 §5.5 step 5, FR-DEV-023):
 //! a [`BreakSide::Right`] mark after the last representation of every segment but the last, and a
-//! [`BreakSide::Left`] mark before the first representation of every segment but the first. The marks are derived, never stored, so moving a module
-//! to another page moves its marks (store intent, derive presentation).
+//! [`BreakSide::Left`] mark before the first representation of every segment but the first. The marks are
+//! derived, never stored, so moving a module to another page moves its marks (store intent, derive
+//! presentation).
 
 use std::sync::Arc;
 

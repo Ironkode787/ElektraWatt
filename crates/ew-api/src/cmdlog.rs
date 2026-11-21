@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Command logs (`.ewcmd`, doc 17 §3.5): JSON Lines, one header, then one command per line, replayed by
-//! [`Session::run_script`]. The golden variants (`golden/J-E-2416/variants/*.ewcmd`, doc 20 §2.2) are such
-//! logs.
+//! [`Session::run_script`].
 //!
 //! ```text
-//! {"$schema":"ew.cmdlog/1","label":"Golden B, step B2"}
+//! {"$schema":"ew.cmdlog/1","label":"Renumber section 1"}
 //! {"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1}}
 //! ```
 //!

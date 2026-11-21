@@ -1102,7 +1102,7 @@ mod tests {
         // "1-A-A1" reads only as folio "1-A", row A, column 1.
         assert_eq!(read_goto(&qet, "1-A-A1", &pages), Ok((1, 0, 1)));
         // `{page}{row}{column}` with folios whose labels make two readings: "1011" is folio "1", row "0", column
-        // "11", and folio "10", row "1", column "1". (Golden A's frames have letter rows and digit columns, which
+        // "11", and folio "10", row "1", column "1". (The shipped frames have letter rows and digit columns, which
         // always split one way; these synthetic frames do not.)
         let tight = ew_derive::parse_format("{page}{row}{column}");
         let (r1, c1) = (labels(&["0"]), labels(&["11"]));

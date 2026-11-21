@@ -32,7 +32,7 @@
 //!   page whose digest differs from `r_last`'s or that `r_last` does not list, every page of a `revision_overview`
 //!   block, and a page `o`'s page notes name (the release's `changed_pages(r)` unions `r.page_notes` into the
 //!   digest-changed pages, so the open revision shows what its release will record); otherwise (the no-digest
-//!   branch: Golden A's historic V1.0) a page `o`'s page notes name.
+//!   branch: a revision released before the project came to ElektraWatt) a page `o`'s page notes name.
 //! - [`last_changed_in`]: `o`'s label if the page is changed now, else the latest released revision that recorded it,
 //!   else the first revision ([`ew_derive::last_changed_in`] with this module's `changed_now` in the digest branch).
 //! - [`changed_pages`]: of `o`, the pages changed now, in page order; of any other revision the pages it records

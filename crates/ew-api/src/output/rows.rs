@@ -13,8 +13,8 @@
 //!
 //! **Naming a block** ([`find_block`]): its ID (any UUID spelling), else its first folio (`908`). **Terminals**: the
 //! rows of each terminal-diagram block are split by strip (a data row's first row-ID component is its strip; a heading
-//! row goes with the strip of the next data row); with `--strip <tag>` the output is that strip's rows alone (the
-//! golden `terminals_<strip>.csv`), without it every strip of the blocks in block order, each strip's rows after a
+//! row goes with the strip of the next data row); with `--strip <tag>` the output is that strip's rows alone,
+//! without it every strip of the blocks in block order, each strip's rows after a
 //! heading row `heading,<strip tag>,,…`. Within a block every run of a strip is kept (runs concatenated in row order);
 //! a strip a later block lists again keeps the earlier block's rows, and [`RowsCsv::notices`] says so. `--strip`
 //! takes a full tag exactly, else the printed tag, and refuses a printed tag two strips share.

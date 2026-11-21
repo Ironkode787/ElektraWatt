@@ -21,7 +21,7 @@ use crate::schema;
 use crate::table::{Findings, Table};
 use crate::{IMPORTER_ID, IMPORTER_VERSION, LINEAGE_LABEL};
 
-/// The golden CSV bootstrap (`ew import csv`, FR-IMP-022, doc 20 §3.2 path (a)).
+/// The CSV bootstrap (`ew import csv`, FR-IMP-022).
 ///
 /// It reads the set of table files of one `tables/` directory, given as [`ImportInput`]s (file names only, never
 /// paths; the host reads the files).
@@ -56,7 +56,7 @@ impl TablesImporter {
         IMPORTER_VERSION
     }
 
-    /// Imports the tables `inputs` into a new golden project.
+    /// Imports the tables `inputs` into a new project.
     ///
     /// The bootstrap creates the project, whose ID is `v5(ns, "project|<key>")` ([`ids::project_id`]):
     /// `ctx.project` must be nil or the derived ID. `ctx.lineage` must be absent or the golden lineage.
@@ -74,7 +74,7 @@ impl TablesImporter {
             && l.namespace != ns
         {
             return Err(ImportError::Unsupported {
-                message: "the golden CSV bootstrap imports into the fixed lineage Fixed(\"golden\") only"
+                message: "the CSV bootstrap imports into the fixed lineage Fixed(\"golden\") only"
                     .into(),
             });
         }

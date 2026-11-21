@@ -123,7 +123,7 @@ use ew_schema::{
 
 /// The tag of the cable a bus line is linked to (doc 10 §2.7), printed beside the line as a wire number is; `None` for
 /// another connection, a line without a cable and one whose cable is drawn on the line's page (its own symbol prints
-/// the tag there, as Golden A's -3W1 on page 3).
+/// the tag there).
 fn bus_cable_text(q: &Q, c: &ew_schema::Connection) -> Option<String> {
     let ew_schema::ConnectionKind::Bus(line) = &c.kind else {
         return None;

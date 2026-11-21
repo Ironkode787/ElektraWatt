@@ -35,8 +35,7 @@
 //!   ([`MIGRATIONS`]), and the steward's check of a released format ([`steward_problems`]). A library copy whose item a
 //!   step changed takes the hash of its migrated item ([`rehash_migrated_copy`]): the loader and a pasted fragment's
 //!   copies share it, so a copy reads with one hash wherever it was migrated.
-//! - **Writing a whole project** ([`render_records`], [`project_files`]): the path of an importer's batch
-//!   and of the golden fixture (doc 20 §3.2 path (c)).
+//! - **Writing a whole project** ([`render_records`], [`project_files`]): the path of an importer's batch.
 //! - **Merging** ([`merge_record`], [`merge_file`]): the three-way merge core of doc 05 §11.2 and §11.3
 //!   per record on `serde_json::Value`, under `ew-schema`'s strategy table, and per file (a record
 //!   file, a library document, `manifest.json`), writing conflict records as lines.

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Writing a whole project from records (doc 05 §2, §3, §4): the path of an importer's batch, of `ew import
-//! csv` and of the golden fixture (doc 20 §3.2 path (c)). `ew-store` writes saves file by file with the same
+//! Writing a whole project from records (doc 05 §2, §3, §4): the path of an importer's batch and of `ew import
+//! csv`. `ew-store` writes saves file by file with the same
 //! functions.
 
 use std::collections::{BTreeMap, BTreeSet};

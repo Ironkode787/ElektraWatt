@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The identity rule of the golden bootstrap (doc 20 §3.2, doc 14 §2.3, ADR-0004 amendment 4).
+//! The identity rule of the CSV bootstrap (doc 14 §2.3, ADR-0004 amendment 4).
 //!
 //! Every record of table row `{key}` in table `{table}` has the ID `v5(ns, "{table}|{key}")`, where `ns` is the
 //! namespace of the fixed import lineage `Fixed("golden")` of importer `csv`, and carries
@@ -35,7 +35,7 @@ pub fn lineage_id() -> Id<ImportLineage> {
     record_id("import_lineage", LINEAGE_LABEL)
 }
 
-/// The ID of the golden project, the row `key` of `project.csv`: `v5(ns, "project|{key}")`.
+/// The ID of the imported project, the row `key` of `project.csv`: `v5(ns, "project|{key}")`.
 pub fn project_id(key: &str) -> Id<Project> {
     record_id("project", key)
 }

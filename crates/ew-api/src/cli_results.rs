@@ -1731,7 +1731,7 @@ pub struct QueryEntry {
     pub key: String,
     /// What it answers.
     pub description: String,
-    /// Its golden example: a key on Golden A.
+    /// Its example: a key on the sample project.
     pub example: String,
     /// The version of its output type.
     pub output_version: u32,

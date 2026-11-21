@@ -698,7 +698,7 @@ pub(crate) fn emit_project(
             extra: Default::default(),
         },
         revision_label: None,
-        // Importers write no text styles: the golden project prints with the built-in table (ADR-0032 decision 3).
+        // Importers write no text styles: an imported project prints with the built-in table (ADR-0032 decision 3).
         text_styles: Default::default(),
         process_tag_scheme: None,
         extra: numbering(&mut r)

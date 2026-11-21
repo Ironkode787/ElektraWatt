@@ -125,7 +125,7 @@ impl Table {
     /// The table `csv`, parsed from `input`, of `file` under `spec` and import `mode`, or `None` when a required
     /// column is missing (reported as EW-IMP-002). Unknown columns are reported (EW-IMP-004) and ignored.
     ///
-    /// Keys are hashed byte for byte (README of the golden tables, doc 14 §9 strict mode): a row whose `key`
+    /// Keys are hashed byte for byte (doc 14 §9 strict mode): a row whose `key`
     /// cell is not in NFC is dropped with EW-IMP-002. Every other cell of a known column is NFC-normalised,
     /// only when it is not NFC already; the table keeps the input and the spans, so nothing else is copied.
     pub(crate) fn new(

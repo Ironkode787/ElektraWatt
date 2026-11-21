@@ -4,8 +4,7 @@
 //! Page rasters (D7; FR-EXT-004, FT-254): `ew render --page <folio> --png` and `ew export png`.
 //!
 //! One function draws a page: [`page_png`] renders a page scene's sheet list through `ew-render-cpu` with the bundled
-//! fonts only ([`font_bytes`]) and encodes it as PNG with the resolution in its `pHYs` chunk. The golden PNGs
-//! (`golden/J-E-2416/expected/png/<folio>.png`, 150 dpi) are this function's output, so the CLI writes their bytes.
+//! fonts only ([`font_bytes`]) and encodes it as PNG with the resolution in its `pHYs` chunk.
 //! [`export_png_with`] runs phases 1 and 2 of the export job ([`export_pages_with`]: the selection, the memoised
 //! layers, the images resolved from the project's assets) and rasterises the sheets on the same parallelism, so the
 //! threads change the speed, never the bytes.
@@ -28,7 +27,7 @@ use super::{
 };
 use crate::Session;
 
-/// The resolution of a page raster when none is given: the golden PNGs' 150 dpi.
+/// The resolution of a page raster when none is given: 150 dpi.
 pub const DEFAULT_DPI: u32 = 150;
 
 /// The resolutions a page raster may take (`--dpi`).

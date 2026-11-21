@@ -245,7 +245,7 @@ mod tests {
             .collect()
     }
 
-    /// L1-5: the golden bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
+    /// L1-5: the CSV bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
     /// lives in [`SYSTEM_LIBRARY`], and a FnDef reference the tables emit points at it with the item ID
     /// `v5(SYSTEM_LIBRARY, key)`, as before the importer's own constant was dropped.
     #[test]

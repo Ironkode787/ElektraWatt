@@ -7,8 +7,8 @@
 //!
 //! Every importer call goes through [`front_door`]. A QET project becomes a project through `import.apply`
 //! ([`session_from_import`], D7): the batch on a fork of an empty project, the normalisers, the structural invariants
-//! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The golden CSV
-//! bootstrap keeps [`session_from_batch`] and writes no run (D13).
+//! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The CSV
+//! bootstrap (`ew import csv`) keeps [`session_from_batch`] and writes no run (D13).
 
 use std::path::Path;
 
@@ -1189,7 +1189,7 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
 /// name; only its base name is kept.
 ///
 /// A table that a spreadsheet saved with a byte-order mark (one leading U+FEFF) is read without it: the
-/// user's path of `parts.import` and `ew import parts` accepts it, while the golden bootstrap, which calls
+/// user's path of `parts.import` and `ew import parts` accepts it, while the CSV bootstrap, which calls
 /// `ew_import_tables` directly, stays strict.
 ///
 /// # Errors
@@ -1433,7 +1433,7 @@ pub fn read_tables(dir: &Path) -> Result<Vec<ImportInput>, TablesError> {
     Ok(inputs)
 }
 
-/// Imports golden-dialect tables (`golden/J-E-2416/tables/`, doc 20) with the symbols, FnDefs and forms of `library`
+/// Imports tables of the `ew` dialect with the symbols, FnDefs and forms of `library`
 /// in `mode` (strict, the bootstrap's default, drops a row with a foreign colour code with EW-IMP-002; lenient keeps
 /// it with EW-IMP-008). A table of the dialect that is not readable CSV refuses the import, with
 /// the reader's line (the importer itself would only drop the table with a finding).

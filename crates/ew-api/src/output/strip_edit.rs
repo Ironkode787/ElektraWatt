@@ -848,7 +848,7 @@ mod tests {
             .collect()
     }
 
-    fn golden() -> Vec<TerminalGroup> {
+    fn strip_groups() -> Vec<TerminalGroup> {
         vec![
             g(1, 4, "Pneumatics"),
             g(5, 10, "Spare"),
@@ -868,7 +868,7 @@ mod tests {
     /// SE8: the three examples of D8 on -X1031's groups.
     #[test]
     fn relabel_splits_merges_and_clears() {
-        let out = relabel(golden(), &order(), &[7, 8], "Reserve");
+        let out = relabel(strip_groups(), &order(), &[7, 8], "Reserve");
         assert_eq!(
             show(&out),
             [
@@ -880,9 +880,9 @@ mod tests {
                 row(15, 20, "Spare"),
             ]
         );
-        let out = relabel(golden(), &order(), &[5, 6, 7, 8, 9, 10], "Pneumatics");
+        let out = relabel(strip_groups(), &order(), &[5, 6, 7, 8, 9, 10], "Pneumatics");
         assert_eq!(show(&out), [row(1, 14, "Pneumatics"), row(15, 20, "Spare")]);
-        let out = relabel(golden(), &order(), &[5, 6, 7, 8, 9, 10], "");
+        let out = relabel(strip_groups(), &order(), &[5, 6, 7, 8, 9, 10], "");
         assert_eq!(
             show(&out),
             [
@@ -896,7 +896,7 @@ mod tests {
     /// SE8: a group with an unknown member keeps it on each piece and is never absorbed.
     #[test]
     fn unknown_members_survive_on_each_piece() {
-        let mut groups = golden();
+        let mut groups = strip_groups();
         groups[1].extra.insert("x-note".into(), json!(1));
         let out = relabel(groups.clone(), &order(), &[7, 8], "Reserve");
         assert!(out[1].extra.contains_key("x-note") && out[3].extra.contains_key("x-note"));
