@@ -1858,7 +1858,7 @@ mod tests {
     /// `project.jsonl` (compact, sorted keys), and the wizard's `sample` choices write them unchanged.
     #[test]
     fn the_company_profile_files_are_the_sample_projects_values() {
-        let project = include_str!("../../../golden/J-E-2416.ew/project.jsonl");
+        let project = include_str!("../../../fixtures/sample/sample.ew/project.jsonl");
         let project: Value = serde_json::from_str(project.lines().next().unwrap()).unwrap();
         let settings = &project["settings"];
         for (member, text) in [
