@@ -296,6 +296,116 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
         .expect("the navigator's table")
 }
 
+/// Every navigator's column header has its text in both locales, the en-GB one
+/// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
+/// in nl-NL the window's tables show the
+/// Dutch headers and the Devices tree its badges and kinds in Dutch, but for the known wrong kind words of
+/// [`WRONG_KIND_WORDS`].
+#[test]
+fn every_navigator_column_and_badge_reads_in_both_locales() {
+    let (session, _) =
+        ew_api::Session::open_read_only(std::path::Path::new(crate::common::SAMPLE), "test").unwrap();
+    let mut wanted = BTreeSet::new();
+    let mut wrong = Vec::new();
+    for kind in NavKind::ALL {
+        for c in session.navigator_table(kind).columns {
+            let key = c.key.replace('_', "-");
+            let own = format!("column-{}-{key}", kind.source().word());
+            let key = if strings::has_key(&own) {
+                own
+            } else {
+                format!("column-{key}")
+            };
+            if strings::lookup(&key) != Some(c.label.as_str()) {
+                wrong.push(format!("{key}: {:?} is not {:?}", strings::lookup(&key), c.label));
+            }
+            wanted.insert(key);
+        }
+    }
+    assert_eq!(wrong, Vec::<String>::new());
+    assert_eq!(missing(&wanted), Vec::<String>::new());
+    let tmp = Tmp::new("ft1264");
+    let mut shell = tmp.sample_shell("102");
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    let english: Vec<String> = shell
+        .shown_rows(NavKind::Devices)
+        .iter()
+        .map(|r| r.text.clone())
+        .collect();
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    let labels: Vec<String> = table(&shell, NavKind::Devices)
+        .columns
+        .iter()
+        .map(|c| c.label.clone())
+        .collect();
+    assert_eq!(
+        labels,
+        ["Aanduiding", "Soort", "Functietekst", "Artikel", "Locatie (+)"]
+    );
+    let dutch: Vec<String> = shell
+        .shown_rows(NavKind::Devices)
+        .iter()
+        .map(|r| r.text.clone())
+        .collect();
+    // A function's kind of `KIND_WORDS` in Dutch too; the generic rule's segments without words of their own stay as
+    // written (FT-1483: "2P mcb", "Black box").
+    let kinds = [
+        ("1P MCB ", "1P-installatieautomaat "),
+        ("3P motor ", "3P-motor "),
+        ("5/2 valve ", "5/2-ventiel "),
+        ("A1A2 coil ", "A1A2 spoel "),
+        ("Cabinet lamp ", "Kastlamp "),
+        ("Coil ", "Spoel "),
+        ("Double-acting cylinder ", "Dubbelwerkende cilinder "),
+        ("NC pushbutton ", "NC-drukknop "),
+        ("NO contact ", "NO-contact "),
+        ("NO position switch ", "NO-positieschakelaar "),
+        ("NO pushbutton ", "NO-drukknop "),
+        ("Overview ", "Overzicht "),
+        ("PROFIBUS port ", "PROFIBUS-poort "),
+    ];
+    let mut seen_wrong = BTreeSet::new();
+    let worded: Vec<String> = english
+        .iter()
+        .map(|t| {
+            let t = kinds
+                .iter()
+                .chain(WRONG_KIND_WORDS.iter())
+                .find_map(|(en, nl)| {
+                    let rest = t.strip_prefix(en)?;
+                    if WRONG_KIND_WORDS.contains(&(*en, *nl)) {
+                        seen_wrong.insert(*en);
+                    }
+                    Some(format!("{nl}{rest}"))
+                })
+                .unwrap_or_else(|| t.clone());
+            t.replace(" [main]", " [hoofdfunctie]")
+                .replace(" [aux]", " [hulpfunctie]")
+                .replace(" [spare]", " [reserve]")
+                .replace(" [not drawn]", " [niet getekend]")
+                .replace(" [frozen]", " [vastgezet]")
+                .replace(" [earth connection]", " [aardverbinding]")
+        })
+        .collect();
+    assert!(english.iter().any(|t| t.ends_with(" [main]")), "{english:?}");
+    assert_eq!(dutch, worded);
+    // The known wrong words still show: the fix makes them read as written and removes the list.
+    assert_eq!(
+        seen_wrong.into_iter().collect::<Vec<_>>(),
+        WRONG_KIND_WORDS.map(|(en, _)| en)
+    );
+    shell.shutdown();
+}
+
+/// The kind words the Dutch Devices tree gets wrong (FT-1913): a generic segment without words of its own, which
+/// should stay as written ("3P manualswitch", as "2P mcb" does), gets a stray "- " after its pole count. The English
+/// kind and what the Dutch tree prints.
+const WRONG_KIND_WORDS: [(&str, &str); 2] = [
+    ("3P manualswitch ", "3P- manualswitch "),
+    ("3P mcb ", "3P- mcb "),
+];
+
+
 /// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
 #[test]
