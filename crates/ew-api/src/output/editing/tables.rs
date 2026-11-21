@@ -323,9 +323,9 @@ pub struct TableBox {
     pub own_pins: bool,
     /// The names of the box's own pins (`BoxCp.name`): function CP index and name.
     pub names: Vec<(u16, String)>,
-    /// The least height in grid steps that keeps the turned pin texts of its top and bottom sides apart and inside it;
-    /// 0 where they print none.
-    pub depth: i64,
+    /// The least width and the least height in grid steps that keep the pin texts of its left and right sides, and of
+    /// its top and bottom sides, apart and inside it; 0 across where they print none.
+    pub room: (i64, i64),
 }
 
 /// One cell of a [`TableBox`] drawn as a valve terminal's positions.
@@ -735,7 +735,7 @@ impl Session {
                         .is_some_and(|d| ew_derive::is_fluid_terminal(&q, d)),
                     cells: Vec::new(),
                     supply_end: None,
-                    depth: crate::output::view::box_text_depth(&q, &rep),
+                    room: crate::output::view::box_text_room(&q, &rep),
                     own_pins: first.as_ref().is_some_and(|f| {
                         matches!(f.kind, FunctionKind::BlackBox)
                             && f.device

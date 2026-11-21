@@ -1053,14 +1053,16 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
     compose_pin_texts(rep, def, function, designation, &texts.pins)
 }
 
-/// The least height in grid steps of the black box `r` that keeps the pin texts of its top and its bottom side apart
-/// and inside it (the height collapsed through them): a text of a top or bottom side is turned a quarter and
-/// reaches in from its pin by the scene's `PIN_TEXT_GAP` and its length (one line's height for a text of signs only,
-/// which the scene prints horizontally); the longest of the top side and the longest of the bottom side, with half a
-/// millimetre between them. 0 for a representation that is no black box or prints no pin text on a top or bottom side.
-pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
+/// The least width and the least height in grid steps of the black box `r` that keep the pin texts of its opposite
+/// sides apart and inside it (the box collapsed through them), by one rule for the four sides: a pin's text reaches
+/// in from its pin by the scene's `PIN_TEXT_GAP` and its extent along the pin's inward normal as the scene prints it
+/// (on a left or right side horizontal, so its length; on a top or bottom side turned a quarter, so its length, or one
+/// line's height for a text of signs only, which the scene prints horizontally); across the box the longest text of
+/// each of the two sides, with half a millimetre between them. 0 across a box whose two sides there print no pin text,
+/// and both for a representation that is no black box.
+pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
     let (Some(symbol), Some(b)) = (q.symbols().get(r.symbol), r.box_.as_ref()) else {
-        return 0;
+        return (0, 0);
     };
     let step = page_grid(q, PageRef::Drawn(r.page))
         .at(1)
@@ -1069,13 +1071,14 @@ pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
     let line = crate::part_box::pin_text_line().unwrap_or(0);
     // How far the longest text of the side `dir` reaches into the box from it.
     let side = |dir: &ew_schema::Dir4| {
+        let turned = matches!(dir, ew_schema::Dir4::Up | ew_schema::Dir4::Down);
         b.cps
             .iter()
             .filter(|cp| ew_scene::symbol::transform_dir(&cp.dir, r.orient) == *dir)
             .filter_map(|cp| texts.iter().find(|t| t.idx == cp.idx))
             .map(|t| {
                 let signs = !t.text.chars().any(char::is_alphanumeric);
-                let reach = if signs {
+                let reach = if turned && signs {
                     line
                 } else {
                     crate::part_box::pin_text_length(&t.text)
@@ -1085,11 +1088,14 @@ pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
             .max()
             .unwrap_or(0)
     };
-    let depth = side(&ew_schema::Dir4::Up) + side(&ew_schema::Dir4::Down);
-    if depth == 0 {
-        return 0;
-    }
-    (depth + 500_000 + step - 1) / step
+    let steps = |a: ew_schema::Dir4, b: ew_schema::Dir4| match side(&a) + side(&b) {
+        0 => 0,
+        reach => (reach + 500_000 + step - 1) / step,
+    };
+    (
+        steps(ew_schema::Dir4::Left, ew_schema::Dir4::Right),
+        steps(ew_schema::Dir4::Up, ew_schema::Dir4::Down),
+    )
 }
 
 /// The interface a box of a port function draws, in words ("X1", "X1 P1R"; doc 10 §2.7): a black box (a symbol

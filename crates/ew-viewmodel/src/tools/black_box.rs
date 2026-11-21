@@ -1059,24 +1059,28 @@ fn pins_fit(
 pub type GripStop = ((i64, i64), Vec<(i64, i64)>);
 
 /// Where grip `grip` of the box `outline` with the pins `cps` stops when dragged to the grid point `to` (page nm), and
-/// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]) or the box would be lower than `depth`
-/// grid steps while it gets lower (the pin texts of its top and bottom sides would touch), as near to `to` as
-/// they fit, moved back towards the grip's own point a grid step at a time on each axis that is too short. Errors as
-/// [`reshape_by_grip`].
+/// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]) or the box would be narrower or lower
+/// than `room` (its least width and height in grid steps, [`TableBox::room`](ew_api::output::TableBox::room)) while it
+/// gets narrower or lower (the pin texts of two opposite sides would touch), as near to `to` as they fit, moved back
+/// towards the grip's own point a grid step at a time on each axis that is too short. Errors as [`reshape_by_grip`].
 pub fn grip_stop(
     grid: PageGridMap,
     outline: &[(i64, i64)],
     cps: &[BoxCpAt],
-    depth: i64,
+    room: (i64, i64),
     grip: usize,
     to: (i64, i64),
 ) -> Result<GripStop, Key<'static>> {
-    let height = |o: &[(i64, i64)]| {
-        let ys = o.iter().map(|p| p.1);
-        ys.clone().max().zip(ys.min()).map_or(0, |(a, b)| a - b)
+    let extent = |o: &[(i64, i64)], along_x: bool| {
+        let vs = o.iter().map(|p| if along_x { p.0 } else { p.1 });
+        vs.clone().max().zip(vs.min()).map_or(0, |(a, b)| a - b)
     };
-    let low =
-        |new: &[(i64, i64)]| height(new) < height(outline) && height(new) < depth.saturating_mul(grid.step());
+    // Whether `new` gets narrower (along x) or lower than the pin texts of the two sides across it need.
+    let short = |new: &[(i64, i64)], along_x: bool| {
+        let least = if along_x { room.0 } else { room.1 };
+        extent(new, along_x) < extent(outline, along_x)
+            && extent(new, along_x) < least.saturating_mul(grid.step())
+    };
     let home = grip_points(outline).get(grip).copied().unwrap_or(to);
     let mut at = to;
     let mut new = reshape_by_grip(outline, grip, at)?;
@@ -1085,7 +1089,7 @@ pub fn grip_stop(
             let k = grid.index(v);
             grid.coord(if h > v { k + 1 } else { k - 1 })
         };
-        while !pins_fit(grid, outline, cps, &new, along_x) || (!along_x && low(&new)) {
+        while !pins_fit(grid, outline, cps, &new, along_x) || short(&new, along_x) {
             let (v, h) = if along_x { (at.0, home.0) } else { (at.1, home.1) };
             if v == h {
                 break;
@@ -1621,17 +1625,17 @@ mod tests {
             .map(|(x, i)| (i, (x * 1_000_000, 0), Dir::Up))
             .collect();
         // The right edge's grip (5: the midpoint of v1v2) dragged to x 2: three pins need four steps.
-        let (at, new) = grip_stop(g, &r, &cps, 0, 5, (2_000_000, 2_000_000)).unwrap();
+        let (at, new) = grip_stop(g, &r, &cps, (0, 0), 5, (2_000_000, 2_000_000)).unwrap();
         assert_eq!(at, (4_000_000, 2_000_000));
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, 0, 5, (6_000_000, 2_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (0, 0), 5, (6_000_000, 2_000_000)).unwrap().0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, 0, 6, (3_000_000, 1_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (0, 0), 6, (3_000_000, 1_000_000)).unwrap().0,
             (3_000_000, 1_000_000)
         );
     }

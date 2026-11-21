@@ -1198,7 +1198,7 @@ impl SelectTool {
                     return ToolOutput::Transient(Overlay::default());
                 };
                 // The box goes no smaller than its pins need: the grip stops there, and the hint says why.
-                let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, b.depth, *grip, p) {
+                let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, b.room, *grip, p) {
                     Ok(stop) => stop,
                     // An inside-out grip is the same refusal on the drag and on its release; the box stays as it is.
                     Err(reason_key) => return ToolOutput::Refused(reason_key),

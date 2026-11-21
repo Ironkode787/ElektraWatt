@@ -950,7 +950,7 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
         "the pin stands where the ghost was"
     );
     // The height stops where the top's and the bottom's pin texts would touch.
-    let depth = b.depth;
+    let depth = b.room.1;
     assert!(depth > 0);
     select_ids(&mut s, &[rep.id.to_string()]);
     // The bottom-right corner dragged up to one step below the top.
@@ -1184,7 +1184,7 @@ fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
         .expect("-101G1")
         .clone();
     let b = psu.black_box.clone().unwrap();
-    assert!(b.depth > 0, "the turned texts need a height");
+    assert!(b.room.1 > 0, "the turned texts need a height");
     select_ids(&mut s, &[psu.id.to_string()]);
     // The lowest corner on the right, dragged up to one step below the top.
     let corner = *b.outline.iter().max_by_key(|p| (p.1, p.0)).unwrap();
@@ -1210,7 +1210,7 @@ fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
         .unwrap();
     let ys: Vec<i64> = after.outline.iter().map(|p| index_of(&s, *p).1).collect();
     let height = ys.iter().max().unwrap() - ys.iter().min().unwrap();
-    assert!(height >= b.depth, "{height} {}", b.depth);
+    assert!(height >= b.room.1, "{height} {}", b.room.1);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

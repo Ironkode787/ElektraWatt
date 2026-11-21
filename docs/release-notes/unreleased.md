@@ -19,6 +19,8 @@ change here.
   symbols and junctions onto it together: where the nearest grid points would bring two things nearer than they
   stood, the later one moves on by whole steps, so no symbol ends on another, a row keeps its order and two pins with
   more than a step between them keep a grid line between them for a wire (doc 06 §8 item 3, FT-1817)
+- behaviour-change: a drawn box goes no narrower than the pin texts of its left and right sides need, as it goes no
+  lower than those of its top and bottom sides: a grip stops there (doc 06 §8 item 13, FT-1839)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit
