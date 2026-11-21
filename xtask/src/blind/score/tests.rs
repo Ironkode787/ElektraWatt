@@ -880,11 +880,10 @@ fn the_agents_steps_and_the_epilogue_are_read_from_the_runs_files() {
 // ---- The text helpers.
 
 #[test]
-fn csv_and_the_query_file_round_trip() {
+fn the_csv_and_the_query_file_parse() {
     let rows = vec![row(&["a", "b,c", "say \"x\""]), row(&["multi\nline", "", "end"])];
-    let text = write_csv(&rows);
-    assert_eq!(text, "a,\"b,c\",\"say \"\"x\"\"\"\n\"multi\nline\",,end\n");
-    assert_eq!(parse_csv(&text), rows);
+    let text = "a,\"b,c\",\"say \"\"x\"\"\"\n\"multi\nline\",,end\n";
+    assert_eq!(parse_csv(text), rows);
     assert_eq!(parse_csv("x,y\r\n1,2"), [row(&["x", "y"]), row(&["1", "2"])]);
     assert!(parse_csv("").is_empty());
     // The parts list: the export's columns by name, only the data rows, sorted.

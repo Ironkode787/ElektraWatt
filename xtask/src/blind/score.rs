@@ -321,26 +321,6 @@ pub fn parse_csv(text: &str) -> Vec<Vec<String>> {
     rows
 }
 
-/// CSV text of `rows`: a field is quoted when it holds a comma, a quote or a line break; lines end with `\n`.
-pub fn write_csv(rows: &[Vec<String>]) -> String {
-    let mut out = String::new();
-    for row in rows {
-        let line: Vec<String> = row
-            .iter()
-            .map(|f| {
-                if f.contains([',', '"', '\n', '\r']) {
-                    format!("\"{}\"", f.replace('"', "\"\""))
-                } else {
-                    f.clone()
-                }
-            })
-            .collect();
-        out.push_str(&line.join(","));
-        out.push('\n');
-    }
-    out
-}
-
 /// The parts list of a CSV with a header: the export's (`row,Pos,Qty,…`, only the `data` rows) or the oracle's
 /// (`Pos,Qty,…`); the columns are found by name.
 ///

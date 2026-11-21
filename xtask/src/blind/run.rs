@@ -39,45 +39,6 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     hex(&Sha256::digest(bytes))
 }
 
-/// The digest over every file under `dir`, in path order: each file's relative path (with `/`), a NUL, its SHA-256 and
-/// a newline, hashed again. A text file's line ends do not matter (the fixture is read the same on every checkout).
-pub fn tree_sha(dir: &Path) -> Result<String> {
-    fn walk(dir: &Path, rel: &str, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
-        let mut entries: Vec<_> = std::fs::read_dir(dir)
-            .with_context(|| format!("reading {}", dir.display()))?
-            .collect::<std::io::Result<_>>()?;
-        entries.sort_by_key(std::fs::DirEntry::file_name);
-        for e in entries {
-            let name = e.file_name().to_string_lossy().into_owned();
-            let path = e.path();
-            let rel = if rel.is_empty() {
-                name
-            } else {
-                format!("{rel}/{name}")
-            };
-            if e.file_type()?.is_dir() {
-                walk(&path, &rel, out)?;
-            } else {
-                out.push((rel, path));
-            }
-        }
-        Ok(())
-    }
-    let mut files = Vec::new();
-    walk(dir, "", &mut files)?;
-    let mut all = String::new();
-    for (rel, path) in files {
-        let bytes = std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
-        // A line-end difference of a text checkout must not change the digest: hash text files line-end free.
-        let digest = match std::str::from_utf8(&bytes) {
-            Ok(text) => sha256_hex(text.replace("\r\n", "\n").as_bytes()),
-            Err(_) => sha256_hex(&bytes),
-        };
-        all.push_str(&format!("{rel}\0{digest}\n"));
-    }
-    Ok(sha256_hex(all.as_bytes()))
-}
-
 /// `value` as compact JSON with the members of every object in key order, whatever the map implementation is.
 pub fn canonical(value: &Value) -> String {
     match value {
@@ -707,23 +668,6 @@ mod tests {
         for bad in ["", ".hidden", "a b", "a/b", "a\\b", "..", &"x".repeat(65)] {
             assert!(!valid_run_id(bad), "{bad}");
         }
-    }
-
-    #[test]
-    fn the_tree_digest_ignores_line_ends_and_sees_every_change() {
-        let tmp = Tmp::new("tree");
-        std::fs::create_dir_all(tmp.0.join("a/b")).unwrap();
-        std::fs::write(tmp.0.join("a/x.txt"), "one\ntwo\n").unwrap();
-        std::fs::write(tmp.0.join("a/b/y.bin"), [0u8, 159, 146, 150]).unwrap();
-        let first = tree_sha(&tmp.0).unwrap();
-        std::fs::write(tmp.0.join("a/x.txt"), "one\r\ntwo\r\n").unwrap();
-        assert_eq!(tree_sha(&tmp.0).unwrap(), first);
-        std::fs::write(tmp.0.join("a/b/y.bin"), [0u8, 159, 146, 151]).unwrap();
-        assert_ne!(tree_sha(&tmp.0).unwrap(), first);
-        std::fs::write(tmp.0.join("new.txt"), "").unwrap();
-        let with_new = tree_sha(&tmp.0).unwrap();
-        std::fs::remove_file(tmp.0.join("new.txt")).unwrap();
-        assert_ne!(tree_sha(&tmp.0).unwrap(), with_new);
     }
 
     #[test]

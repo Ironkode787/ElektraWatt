@@ -26,7 +26,6 @@ pub mod filter;
 pub mod friction;
 pub mod keeper;
 pub mod normalise;
-pub mod oracle;
 pub mod protocol;
 pub mod replay;
 pub mod round;
@@ -84,8 +83,7 @@ For the orchestrator:
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
   selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
                                               the visual self-test through the keeper and the visual driver
-  bless-oracle <task> [--bin <dir>]           the expected rows of a task's oracle, from a temporary copy of Golden A
-  check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against its source
+  check-task <task>                           the task folder: the sheet, the prelude, a brief's sheet against its source
 ";
 
 /// Takes `--flag value` and `--flag` out of `args`.
@@ -677,26 +675,6 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             }
             selftest::run(root, &a)
         }
-        "bless-oracle" => {
-            let mut f = Flags(rest);
-            let bin = f.take_value("--bin")?.map(PathBuf::from);
-            let args = f.rest();
-            let [task] = args.as_slice() else {
-                bail!("bless-oracle <task> [--bin <dir>]");
-            };
-            let (before, after) = oracle::bless_oracle(
-                root,
-                &oracle::BlessArgs {
-                    task: task.clone(),
-                    bin,
-                },
-            )?;
-            println!("oracle of `{task}` written from a temporary copy of the golden project");
-            println!("golden/ digest before {before}");
-            println!("golden/ digest after  {after}");
-            println!("golden/ unchanged: {}", before == after);
-            Ok(before == after)
-        }
         "check-task" => {
             let args = Flags(rest).rest();
             let [task] = args.as_slice() else {
@@ -921,7 +899,6 @@ mod tests {
             "start",
             "compose",
             "replay",
-            "bless-oracle",
             "rescore",
             "check-task",
             "nonsense",

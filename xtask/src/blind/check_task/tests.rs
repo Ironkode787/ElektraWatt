@@ -1,107 +1,46 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Tests of `check-task`: the committed task is checked against doc 20 without a product.
+//! Tests of `check-task`: a brief's sheet is checked against the sample's script without a product.
 
 use super::*;
 use crate::blind::run::copy_dir;
 use crate::blind::testkit::Tmp;
 
-/// `check-task` reports each kind of problem of a copy of the committed task, by file.
+/// `check-task` on a copy of a brief that starts on the sample: the committed brief is sound; an identifier and a name
+/// that the sample's script does not hold and an address in its sheet are named, and a missing sheet.
 #[test]
 fn check_task_names_what_is_wrong() {
     let tmp = Tmp::new("check-task");
     let root = tmp.0.join("repo");
-    std::fs::create_dir_all(root.join("docs/design")).unwrap();
-    std::fs::copy(crate::workspace_root().join(DOC20), root.join(DOC20)).unwrap();
-    let task = root.join("tools/blind/tasks/gpp-101-103");
-    copy_dir(&task_dir(&crate::workspace_root(), "gpp-101-103"), &task).unwrap();
-    assert_eq!(check_task(&root, "gpp-101-103").unwrap(), Vec::<String>::new());
-    let edit = |rel: &str, f: &dyn Fn(String) -> String| {
-        let p = task.join(rel);
-        let text = std::fs::read_to_string(&p).unwrap();
-        std::fs::write(&p, f(text)).unwrap();
-    };
-    let problems = |_: ()| check_task(&root, "gpp-101-103").unwrap().join("\n");
-    // The sheet: an identifier doc 20 does not hold, a name it does not hold, an address.
-    edit("task.md", &|t| {
-        format!("{t}\nDraw -X9999 for Zoltan at https://example.invalid and mail a@b.\n")
-    });
-    let p = problems(());
-    assert!(p.contains("`-X9999` is not in doc 20"), "{p}");
-    assert!(p.contains("`Zoltan` is a name that doc 20 does not hold"), "{p}");
+    let script = root.join(SAMPLE_SCRIPT);
+    std::fs::create_dir_all(script.parent().unwrap()).unwrap();
+    std::fs::copy(crate::workspace_root().join(SAMPLE_SCRIPT), &script).unwrap();
+    let brief = "brief-ut-t1-place";
+    let task = root.join("tools/blind/tasks").join(brief);
+    copy_dir(&task_dir(&crate::workspace_root(), brief), &task).unwrap();
+    assert_eq!(check_task(&root, brief).unwrap(), Vec::<String>::new());
+    let sheet = std::fs::read_to_string(task.join("task.md")).unwrap().replace("\r\n", "\n");
+    std::fs::write(
+        task.join("task.md"),
+        sheet.replace(
+            "\n## History",
+            "\nDraw -X9999 for Zoltan at https://example.invalid and mail a@b.\n\n## History",
+        ),
+    )
+    .unwrap();
+    let p = check_task(&root, brief).unwrap().join("\n");
+    assert!(p.contains("`-X9999` is not in the sample's script"), "{p}");
+    assert!(p.contains("`Zoltan` is a name that the sample's script does not hold"), "{p}");
     assert!(p.contains("(an address or a path)"), "{p}");
-    edit("task.md", &|t| {
-        t.replace(
-            "\nDraw -X9999 for Zoltan at https://example.invalid and mail a@b.\n",
-            "",
-        )
-    });
-    // An unclosed folio block and a block for a folio the oracle has no counts for.
-    edit("task.md", &|t| {
-        t.replace("<!-- /folio -->", "")
-            .replacen("<!-- folio 102 -->", "<!-- folio 109 -->", 1)
-    });
-    let p = problems(());
-    assert!(p.contains("task.md:"), "{p}");
-    edit("task.md", &|_| {
-        std::fs::read_to_string(crate::workspace_root().join("tools/blind/tasks/gpp-101-103/task.md"))
-            .unwrap()
-    });
-    // The prelude: an entry too many, a wrong action, a drawing line without its follow-up, an unknown class.
-    edit("prelude.toml", &|t| {
-        format!("{t}\n[[step]]\naction = \"file.save\"\nclass = \"setup\"\n")
-    });
-    assert!(problems(()).contains("prelude.toml has 6 entries for 5 prelude steps"));
-    edit("prelude.toml", &|t| {
-        t.replace("\n[[step]]\naction = \"file.save\"\nclass = \"setup\"\n", "")
-            .replacen("action = \"wizard.cancel\"", "action = \"wizard.close\"", 1)
-    });
-    assert!(problems(()).contains("entry 3: action `wizard.close`, the step is `wizard.cancel`"));
-    edit("prelude.toml", &|t| {
-        t.replacen(
-            "action = \"wizard.close\"\nclass = \"setup\"",
-            "action = \"wizard.cancel\"\nclass = \"drawing\"",
-            1,
-        )
-    });
-    assert!(problems(()).contains("entry 3: a drawing line names its follow-up"));
-    edit("prelude.toml", &|t| {
-        t.replacen("class = \"drawing\"", "class = \"decor\"", 1)
-    });
-    assert!(problems(()).contains("class `decor` is setup or drawing"));
-    edit("prelude.toml", &|t| {
-        t.replacen("class = \"decor\"", "class = \"drawing\"\ngap = \"FT-408\"", 1)
-    });
-    assert_eq!(problems(()), "");
-    // The gaps: an unknown check, a duplicate, a follow-up that is neither FT nor WP, an empty reason.
-    edit("gaps.toml", &|t| {
-        format!(
-            "{t}\n[[gap]]\ncheck = \"H9\"\ngap = \"FT-1\"\nreason = \"x\"\n\n[[gap]]\ncheck = \"H4\"\ngap = \"later\"\nreason = \" \"\n"
-        )
-    });
-    let p = problems(());
-    assert!(p.contains("`H9` is not a check of this task"), "{p}");
-    assert!(p.contains("`H4` is listed twice"), "{p}");
-    assert!(p.contains("`later` is neither a follow-up"), "{p}");
-    assert!(p.contains("`H4` has no reason"), "{p}");
-    // A missing file and a wrong header.
-    std::fs::remove_file(task.join("oracle/rows/ends.csv")).unwrap();
-    std::fs::write(task.join("oracle/rows/pages.csv"), "folio,name\n101,x\n").unwrap();
-    std::fs::write(task.join("oracle/bom.csv"), "a,b\n").unwrap();
-    let p = problems(());
-    assert!(p.contains("oracle/rows/ends.csv is missing"), "{p}");
-    assert!(
-        p.contains("oracle/rows/pages.csv: the header is not folio,title"),
-        "{p}"
-    );
-    assert!(p.contains("oracle/bom.csv: the header"), "{p}");
+    std::fs::remove_file(task.join("task.md")).unwrap();
+    assert_eq!(check_task(&root, brief).unwrap(), ["task.md is missing"]);
 }
 
-/// The sheet's words: identifiers and mid-sentence names must be doc 20's; sentence starts, cells' first words, the
-/// placeholders and comments are free.
+/// The sheet's words: identifiers and mid-sentence names must be the source's; sentence starts, cells' first words,
+/// the placeholders and comments are free.
 #[test]
-fn the_sheets_words_must_be_doc_20s() {
+fn the_sheets_words_must_be_the_sources() {
     let doc =
         "The tag S51 and -101F1 stand at 101-B2. Festo and Eaton make parts. Folio 101 has PE and BK wires.";
     // Fine: identifiers in doc, names in doc, sentence starts, placeholders, comments, table first cells.
@@ -137,6 +76,4 @@ fn the_sheets_words_must_be_doc_20s() {
     );
     assert!(!identifier_shaped("wire") && !identifier_shaped("17") && !identifier_shaped("Draw"));
     assert!(capitalised("Festo") && !capitalised("FESTO") && !capitalised("S51") && !capitalised("a"));
-    assert!(valid_gap("FT-408") && valid_gap("WP-S2.07") && valid_gap("WP-S2.04 part 4b"));
-    assert!(!valid_gap("FT-") && !valid_gap("later") && !valid_gap("FT-4a"));
 }

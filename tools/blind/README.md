@@ -13,19 +13,15 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
 | `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a gate task also `prelude.toml` (the class of each prelude step), `gaps.toml` (the checks an open follow-up blocks) and `oracle/` |
-| `tasks/gpp-101-103/oracle/` | `counts.toml` (the exact counts and the marker texts, with their sources), `bom.csv` (doc 20 §14.1 restricted to folios 101 to 103 with the demo variant's quantities), `rows.sql` (the read-only queries) and `rows/*.csv` (the expected rows); **made by `bless-oracle`** from a temporary copy of Golden A, never edited by hand except `counts.toml` |
-| `tasks/gpp-101-103/task.md` | The G-PP job sheet, an extract of doc 20 (the tables of folios 101 to 103); `<!-- folio N -->` blocks are left out of the composed prompt for folios not in `--folios` |
 | `tasks/free/` | The free task: no oracle, no score |
 | `recordings/<name>/` | A blessed run: the replay inputs and the evidence, never the full transcript |
 | `ROUND.md` | The usability rounds' prompt (WP-S2.12 D11, front matter `prompt`, `version`): the hint command and the proxy questionnaire; `compose` adds it after the task sheet of a brief whose `task.toml` names `rounds` |
 | `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds (WP-S2.12 D10): R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
 | `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 (WP-S2.12 §5.1) as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
 
-`cargo xtask blind check-task <task>` checks a task folder without a product (files, prelude classes, gaps, and that every
-identifier of `task.md` is in doc 20, or for a brief that starts on the sample in its script); `cargo xtask blind bless-oracle <task>` makes the oracle from a temporary copy of
-Golden A with the built `elektrawatt` and `ew` (it prints the digest of `golden/` before and after and fails on a
-difference). Run `bless-oracle` after any change of the golden fixture or of `rows.sql`, and `check-task` after any change
-of a task folder.
+`cargo xtask blind check-task <task>` checks a task folder without a product (the sheet and the prelude, and for a brief
+that starts on the sample that every identifier of `task.md` is in the sample's script). Run it after any change of a
+task folder.
 
 The check run's filter admits the actions of kind `View` and `file.open`, `app.quit`, **except** the canvas actions that can
 reach a tool's commit (FT-442): `canvas.press`, `canvas.release`, `canvas.activate` and `canvas.activate_alt` (a press, a
@@ -36,9 +32,8 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
 
 1. Build: `cargo build -p xtask -p elektrawatt -p ew`, then run `cargo xtask docs-gen` (it writes the action list the harness reads, `target/reference/actions.txt`, never committed), then `mdbook build docs/book`
    (the guide, `target/book`; its reference pages are built, not committed).
-2. `cargo xtask blind start --kind gate --task gpp-101-103 --persona qet-veteran --run gpp-r1` (`--folios 101` for
-   the dry run on one folio: the sheet's blocks of the other folios are left out of the prompt, and their checks score
-   `gap` "not in this run") starts a run in `<temp>/ew-blind/gpp-r1/` (outside the repository; `--out` names another folder) with copies of the
+2. `cargo xtask blind start --kind brief --task brief-ut-t1-place --persona qet-user --run ut1-r1` starts a run in
+   `<temp>/ew-blind/ut1-r1/` (outside the repository; `--out` names another folder) with copies of the
    harness, the product binaries, the guide and the starter content, an empty sample folder, and a keeper (a loopback
    process of the copied harness; `--stateless` for agent shells that block loopback or kill detached processes). It
    prints the path of `prompt.md` and of the agent's command. Without the built guide (`target/book/index.html`) it
@@ -47,14 +42,14 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
    Permission rules **allow** only running `<run>/bin/xtask blind ...` and reading `<run>/prompt.md` and `<run>/book/**`,
    and **deny** everything else: the repository, `<run>/.harness/`, `<run>/work/`, `<run>/config/`, other runs, file
    writes, network tools. The harness does not write them; the orchestrator does.
-4. `cargo xtask blind stop gpp-r1`: the epilogue (a `page.describe` per folio, a save only if the project is dirty,
+4. `cargo xtask blind stop ut1-r1`: the epilogue (a `page.describe` per folio, a save only if the project is dirty,
    `app.quit`), the exports of the copied `ew` (PDF on 1 and 4 threads, the parts list, `ew check` as text and JSON),
-   the score (`out/score.json`: hard checks H1 to H7, soft checks S1 to S8, each `ok`,
-   `miss` or `gap`, and the outcome `pass`, `pass-with-gaps`, `fail` or `incomplete`) and `out/report.md`.
-5. `cargo xtask blind start --kind check --task gpp-101-103 --of gpp-r1 --run gpp-r1-check` for the checker (view
+   the score (`out/score.json`: a brief run's acceptance items decided mechanically, a free run's protocol) and
+   `out/report.md`.
+5. `cargo xtask blind start --kind check --task brief-ut-t1-place --of ut1-r1 --run ut1-r1-check` for the checker (view
    actions only, on a copy of the project; the drafter's check report, parts list and score are copied into its
    `reports/` for `report <run> check|bom|score`, and its folios are the drafter's), then `stop` it.
-6. `cargo xtask blind replay gpp-r1 --twice` (R1 and R2 must hold), then `cargo xtask blind bless gpp-r1 --as gpp-1
+6. `cargo xtask blind replay ut1-r1 --twice` (R1 and R2 must hold), then `cargo xtask blind bless ut1-r1 --as ut1-1
    --replay deep`.
 7. An Opus lead reads `drafter.md`, `handback.md`, `checker.md`, `out/report.md` and the PDF, checks the agents' tool
    logs for any call outside the allowed commands (a violation voids the run, which is not blessed), and writes the
