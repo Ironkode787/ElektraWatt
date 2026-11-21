@@ -363,8 +363,8 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
     assert_eq!(view[0].1, "-UC1 plate");
     assert_eq!(view[1].1, "Abbreviated");
     assert_eq!(
-        view[2].1, "Item numbers",
-        "the sample's 902, made by Enclosure…, numbers its devices for the legend"
+        view[2].1, "Tags or numbers",
+        "the sample's 902, made by Enclosure…, prints its tags where they fit and balloons where they do not"
     );
     // The rows sit under their own category, Surface view.
     let categories: Vec<ew_api::output::Category> = s
@@ -978,8 +978,8 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     assert_eq!(
         cmd.params,
         json!({"page": new.to_string(), "surface": plate.to_string(), "datum_at": [datum.0, datum.1],
-            "label_mode": "abbreviated", "scale": {"one_to": n}, "labels": "item_numbers"}),
-        "a new view numbers its devices"
+            "label_mode": "abbreviated", "scale": {"one_to": n}, "labels": "tags_or_numbers"}),
+        "a new view prints a tag where it fits and a balloon where it does not"
     );
     run(&mut s, &cmd);
     assert_eq!(scale_of(&s, new), ew_schema::Scale::OneTo(n));

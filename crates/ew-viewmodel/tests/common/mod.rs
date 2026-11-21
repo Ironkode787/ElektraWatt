@@ -422,6 +422,54 @@ pub fn nav_rows(shell: &ShellModel, title: &str) -> Vec<String> {
     out
 }
 
+/// Deletes the legend list whose first page is `folio` as a person does, on its row of the Blocks navigator.
+pub fn delete_legend_list(shell: &mut ShellModel, folio: &str) {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
+    done(shell, "navigator.show", json!({"kind": "blocks"}));
+    let key = shell
+        .nav(NavKind::Blocks)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::ReportBlock && n.cells[2] == folio)
+                .map(|n| n.key.clone())
+        })
+        .unwrap_or_else(|| panic!("a legend list at {folio}"));
+    done(shell, "navigator.select", json!({"kind": "blocks", "keys": [key]}));
+    done(shell, "navigator.delete", json!({"kind": "blocks"}));
+    // The delete's card, applied.
+    done(shell, "preview.apply", json!({}));
+}
+
+/// A legend box as a project made before 0.3.5 holds one (doc 12 §5.4), on a copy of the sample: a new panel page 980
+/// at 1:10 shows the field location +FLD's new enclosure (Enclosure…), its legend list is deleted, and Add legend puts
+/// the legend, the enclosure and its plate, beside the layout, where it fits whole. The box's ID; page 980 shown.
+pub fn legend_box(tmp: &Tmp) -> (ShellModel, String) {
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "980", "type": "panel_layout", "title": "Field"}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "980"}));
+    done(&mut shell, "select.set", json!({"ids": []}));
+    done(&mut shell, "props.set", json!({"row": "page/scale", "value": "1:10"}));
+    done(
+        &mut shell,
+        "layout.enclosure_new",
+        json!({"location": "+FLD", "part": "EW-GEN-ENC-1"}),
+    );
+    delete_legend_list(&mut shell, "980.1");
+    done(&mut shell, "page.goto", json!({"folio": "980"}));
+    done(&mut shell, "page.add_legend", json!({}));
+    let id = shell
+        .panel_tables()
+        .and_then(|t| t.blocks.first().map(|b| b.id.to_string()))
+        .expect("the legend box beside the layout");
+    (shell, id)
+}
+
 /// The ID (as the commands take it) of the page with folio `folio`.
 pub fn page_id(shell: &ShellModel, folio: &str) -> String {
     shell

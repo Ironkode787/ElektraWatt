@@ -436,7 +436,7 @@ fn ips_structure_blocks() {
         (NavRole::Location, "location")
     );
 
-    // Report blocks: the wizard's standard layout, nine page blocks, and the legend Enclosure… embedded on 902.
+    // Report blocks: the wizard's standard layout, nine page blocks, and the legend Enclosure… made as 902's page.
     let t = s.navigator_table(NavKind::Blocks);
     assert_tree_contract(&t);
     let rows = table_rows(&t);
@@ -447,14 +447,9 @@ fn ips_structure_blocks() {
         .collect();
     assert_eq!(
         paged,
-        ["2", "901", "903", "906", "907", "908", "909", "910", "911"]
+        ["2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911"]
     );
-    let embedded: Vec<&str> = rows
-        .iter()
-        .filter(|n| n.cells[4] == "0")
-        .map(|n| n.cells[2].as_str())
-        .collect();
-    assert_eq!(embedded, ["902"]);
+    assert!(rows.iter().all(|n| n.cells[4] != "0"), "no embedded block");
     let wl = rows.iter().find(|n| n.cells[2] == "907").unwrap();
     assert_eq!(wl.cells[1], "wire_list");
     assert_eq!(

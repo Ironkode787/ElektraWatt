@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A layout page that can be read (at 1:10 the tags must not run into each other: numbers, a table beside the layout
-//! and labels that move), through the shell on temporary copies
-//! of the sample: a balloon off its device drags alone and the device's menu puts it back; a new layout page at 1:10
-//! shows item numbers, gets its legend (with the description) and prints its tags without the cabinet's location; Add
-//! legend is refused where the page holds one.
+//! and labels that move), through the shell on temporary copies of the sample: a balloon off its device drags alone and
+//! the device's menu puts it back; a new layout view prints tags where they fit and balloons where they do not, gets
+//! its legend page in the same step and prints its tags without the cabinet's location; a legend box beside a layout
+//! moves and resizes; Add legend is refused where the layout has its legend.
 
 use crate::common;
 
@@ -236,8 +236,8 @@ fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
     out
 }
 
-/// The sample's plate on a new layout page 980 at 1:10, which gets its legend with the view (at the fitting 1:5 the
-/// layout, centred, leaves less than a legend's 60 mm beside it).
+/// The sample's plate on a new layout page 980 at 1:10 through the page's Surface row: a new view, which gets its legend
+/// page with it.
 fn new_layout_page(shell: &mut ShellModel) {
     let surface = panel(shell).surface.to_string();
     done(
@@ -255,22 +255,15 @@ fn new_layout_page(shell: &mut ShellModel) {
     );
 }
 
-/// The legend Add legend made stood over the frame's column ruler
-/// as a narrow strip with every cell cut, and could not be clicked. The legend of a new layout page lies inside the
-/// frame's drawing area, is one table across its block, prints every position and every tag whole, and can be
-/// selected, dragged and resized by a corner, each one undo step.
+/// The legend Add legend made stood over the frame's column ruler as a narrow strip with every cell cut, and could not be
+/// clicked. A legend box beside a layout (as a project made before 0.3.5 holds one, or as Add legend puts one where it
+/// fits whole) lies inside the frame's drawing area, is one table across its block, prints every position and every
+/// tag whole, and can be selected, dragged and resized by a corner, each one undo step.
 #[test]
 fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     let tmp = Tmp::new("layout-legend-table");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
-    new_layout_page(&mut shell);
+    let (mut shell, _) = common::legend_box(&tmp);
     let t = panel(&shell);
-    assert!(t.numbered);
-    assert!(
-        !common::toast(&shell).contains("show their tags"),
-        "a legend beside numbered devices offers no switch: {}",
-        common::toast(&shell)
-    );
     let [block] = t.blocks.as_slice() else {
         panic!("one legend: {:?}", t.blocks)
     };
@@ -283,17 +276,13 @@ fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     );
     assert!(r.width().0 >= 60 * MM, "{r:?}");
     let printed = texts_in(&shell, block.drawn);
-    // One table: the header once, every position whole, every tag whole.
+    // One table: the header once; the enclosure's and the plate's rows, their positions whole, no text cut.
     assert_eq!(printed.iter().filter(|t| *t == "Pos").count(), 1, "{printed:?}");
-    let rows = printed.iter().filter(|t| t.parse::<u32>().is_ok()).count();
-    assert!(rows >= 20, "{printed:?}");
     assert!(
-        printed
-            .iter()
-            .filter(|t| t.starts_with('='))
-            .all(|t| !t.ends_with('\u{2026}')),
+        ["1", "2"].iter().all(|p| printed.iter().any(|t| t == p)),
         "{printed:?}"
     );
+    assert!(printed.iter().all(|t| !t.ends_with('\u{2026}')), "{printed:?}");
     // A click on the legend selects it and shows its corners.
     let centre = sheet(
         &shell,
@@ -329,11 +318,11 @@ fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     shell.shutdown();
 }
 
-/// At 1:5 nine small devices printed their tags over each other. A
-/// new layout view looks at whether the tags of the placements fit their footprints, not only at the scale: the
-/// sample's terminals are about a millimetre wide at 1:5, so the view starts with item numbers.
+/// At 1:5 nine small devices printed their tags over each other. A new layout view prints each device's tag where it
+/// fits inside the device and its item number in a balloon where it does not (doc 12 §5.3), whatever the scale: the
+/// sample's terminals, about a millimetre wide at 1:5, take balloons.
 #[test]
-fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
+fn a_new_layout_view_prints_tags_where_they_fit_and_balloons_where_they_do_not() {
     let tmp = Tmp::new("layout-numbers-fit");
     let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     let surface = panel(&shell).surface.to_string();
@@ -354,32 +343,30 @@ fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
         "props.set",
         json!({"row": "page/derived.surface", "value": surface}),
     );
-    assert!(panel(&shell).numbered, "item numbers at 1:5");
+    let t = panel(&shell);
+    assert_eq!(t.show, ew_api::output::LabelShow::TagsOrNumbers);
+    assert!(t.numbered, "numbers where tags do not fit");
     shell.shutdown();
 }
 
+/// The legend of a layout is a list page of its own right after it (doc 12 §5.4): the sample's 902 has its legend on
+/// 902.1 and is offered no second one, nor is a second page of its plate, which prints its tags without the cabinet's
+/// location; Enclosure… on a new page gives the new layout its legend page in the undo step of its view, titled after
+/// its layout and printing the description.
 #[test]
-fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
+fn a_new_layout_view_gets_its_legend_page_in_the_same_undo_step() {
     let tmp = Tmp::new("layout-legend");
     let mut shell = tmp.sample_in(Mode::Headless, true, "902");
-    // The sample's 902 holds its legend, which Enclosure… placed.
     assert_eq!(
         refused(&mut shell, "page.add_legend", json!({})),
-        "reason-legend-exists"
+        "reason-legend-paged"
     );
     new_layout_page(&mut shell);
     let t = panel(&shell);
-    assert!(t.numbered, "at 1:10 the devices carry item numbers");
     assert_eq!(
         refused(&mut shell, "page.add_legend", json!({})),
-        "reason-legend-exists",
-        "the new page got its legend with the view"
-    );
-    // The legend a person gets prints the description too.
-
-    assert!(
-        texts(&shell).iter().any(|t| t == "Description"),
-        "the new legend's Description"
+        "reason-legend-paged",
+        "the plate has its legend on 902.1"
     );
     // The page has no location of its own: the cabinet's is not printed before every tag.
     assert!(
@@ -387,17 +374,46 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
         "{:?}",
         t.placements.iter().map(|p| p.label.clone()).collect::<Vec<_>>()
     );
+    // A new enclosure on a new page: its view and its legend page.
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "981", "type": "panel_layout", "title": "Field"}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "981"}));
+    done(
+        &mut shell,
+        "layout.enclosure_new",
+        json!({"location": "+FLD", "part": "EW-GEN-ENC-1"}),
+    );
+    let legend = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "981.1")
+        .cloned()
+        .expect("the legend page 981.1");
+    assert_eq!(legend.title, "Legend of layout 981");
+    done(&mut shell, "page.goto", json!({"folio": "981.1"}));
+    assert!(
+        texts(&shell).iter().any(|t| t == "Description"),
+        "the legend's Description"
+    );
+    // One undo takes back the view and its legend page; the enclosure stays.
+    done(&mut shell, "page.goto", json!({"folio": "981"}));
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(shell.page_rows().iter().all(|r| r.folio != "981.1"));
+    assert!(shell.panel_tables().is_none(), "the page shows no plate");
     shell.shutdown();
 }
 
-/// The Labels choice is not found only far down the page's Properties. The
-/// layout page's menu offers Labels: Tags, Item numbers and Both, the current one checked, each one undo step; a
-/// legend added beside tags offers to show the item numbers it lists.
+
+/// The Labels choice is not found only far down the page's Properties. The layout page's menu offers Labels: Tags, Item
+/// numbers, Both and Tags or numbers, the current one checked, each one undo step; a legend added beside tags offers to
+/// show the item numbers it lists.
 #[test]
 fn the_pages_menu_chooses_the_labels_and_a_legend_beside_tags_offers_numbers() {
     let tmp = Tmp::new("layout-labels-menu");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
-    new_layout_page(&mut shell);
+    let (mut shell, legend) = common::legend_box(&tmp);
     let checked = |shell: &ShellModel| -> Vec<String> {
         canvas_menu(shell, MenuSpot::Sheet, None)
             .into_iter()
@@ -405,13 +421,12 @@ fn the_pages_menu_chooses_the_labels_and_a_legend_beside_tags_offers_numbers() {
             .map(|i| i.label)
             .collect()
     };
-    assert_eq!(checked(&shell), ["Labels: Item numbers"]);
+    assert_eq!(checked(&shell), ["Labels: Tags or numbers"]);
     done(&mut shell, "layout.labels", json!({"show": "tags"}));
     assert!(!panel(&shell).numbered);
     assert_eq!(checked(&shell), ["Labels: Tags"]);
     // The legend goes, and comes back beside the tags: its toast offers the numbers.
-    let block = panel(&shell).blocks[0].id;
-    done(&mut shell, "select.set", json!({"ids": [block.to_string()]}));
+    done(&mut shell, "select.set", json!({"ids": [legend]}));
     done(&mut shell, "edit.delete_selection", json!({}));
     assert!(panel(&shell).blocks.is_empty());
     done(&mut shell, "page.add_legend", json!({}));

@@ -73,7 +73,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The layout page
 
-- FT-2025 `ew-api`: A new layout page at its fitting scale on an A4 frame gets no legend with its view: the layout, centred (FT-1768), leaves 59 mm beside the starter enclosure at 1:5, under Add legend's 60 mm, so Enclosure… and the Surface row add none and Add legend refuses for room (the sample's script sets 902's datum by hand to keep its legend). Goes with the legend's redesign (FT-1920).
 
 #### What a new item takes
 
@@ -104,7 +103,6 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 - FT-1916 `ew-viewmodel`: Five rows of Properties have no explanation in either language: the project's Source, Translations and Frames, and Kind and Part of a function's connection point closure. The project's Frames row also shows a form's raw ID instead of its name. The exception list `UNEXPLAINED` of `tests/it/props_explain.rs` goes with the fix.
 - FT-1917 `ew-store, ew-api`: Two sessions that each set another override of one wire (the cross-section in one, the colour in the other) collide when the wire's record held no overrides yet: the merge shows the cross-section as changed on both sides ("base (none) mine 2.5 theirs (none)") and refuses the later edit with "changed since the choice was shown". Two fields that do not touch should merge. The same with an unsaved edit here and a colleague's save of the colour alone: a second collision is shown on the cross-section.
 - FT-1918 `ew-commands, ew-derive`: A device inserted onto a wire splits it, and the wire's printed number goes to the new half: on the sample's page 101 the PE wire of -101G1 prints 101.4, and after a contact is put on its upright part the kept side prints 101.17 and the new half 101.4. FR-CON-008 keeps the number on the side that keeps the record. `tests/it/wiring.rs` pins it as it comes and turns with the fix.
-- FT-1920 `ew-scene, ew-commands`: The legend that Enclosure… places on the sample's panel page 902 draws 21 of its 30 rows ("too many rows") and cuts Qty and Part number on every row. The sample is what a new person opens first: the legend a command places should hold its rows and its columns their values. The README's panel layout picture shows it and is shot again with the fix.
 - FT-1921 `ew-export, ew-import-dxf`: A page exported to DXF and read back puts a terminal's texts (designations and strip tags, the terminal style of 2.52 mm) 0.049 mm higher than they stood, where every other text returns within 0.01 mm: the sample's pages 101 to 103, the first on 101 at (51.00, 49.31) mm.
 - FT-1922 `ew-viewmodel, ew-commands`: A bus line drawn with the window's bus tools (the DP line from -104A1 to -201K1 on the sample) makes the logical net only. The bus segments, EW-BUS-004 and the bus overview see nothing until `bus.physical_net.create` is run by hand; drawing the line should make the physical net on both ports.
 - FT-1923 `ew-reports, ew-scene`: An I/O list block on the PLC overview's form cuts the CPU's tag (-104A1) and the part number on every row of the sample, with or without the deactivated channels.

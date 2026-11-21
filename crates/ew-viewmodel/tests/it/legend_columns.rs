@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A legend chooses its printed columns as a list does (doc 09 §3.8, FT-1772): on a copy of the sample's panel layout
-//! 902, a legend made before its block had columns of its own prints the report's four columns, and List columns…,
-//! with the legend selected, offers the description among the others; its Apply makes the legend print it.
+//! A legend chooses its printed columns as a list does (doc 09 §3.8, FT-1772): a legend box beside a layout
+//! (`common::legend_box`) made before its block had columns of its own prints the report's four columns, and List
+//! columns…, with the legend selected, offers the description among the others; its Apply makes the legend print it.
 
 use crate::common;
 
 use common::{Tmp, done, form};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_viewmodel::shell::{FormTable, Mode, TICKED};
+use ew_viewmodel::shell::{FormTable, TICKED};
 use serde_json::{Map, Value, json};
 
 /// The rows of `table` that are ticked, by their column's name.
@@ -25,11 +25,7 @@ fn ticked(table: &FormTable) -> Vec<String> {
 #[test]
 fn an_old_legend_takes_the_description_through_list_columns() {
     let tmp = Tmp::new("legend-columns");
-    let mut s = tmp.sample_in(Mode::Headless, true, "902");
-    let legend = s
-        .panel_tables()
-        .and_then(|p| p.blocks.first().map(|b| b.id))
-        .expect("the sample's legend on 902");
+    let (mut s, legend) = common::legend_box(&tmp);
     // The legend as a build before 0.3 made it: no columns of its own.
     done(
         &mut s,

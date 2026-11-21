@@ -51,6 +51,7 @@ fn block() -> CreateReportBlock {
         embedded: None,
         columns: Vec::new(),
         form_copies: Vec::new(),
+        layout_page: None,
     }
 }
 

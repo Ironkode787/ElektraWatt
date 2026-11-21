@@ -173,7 +173,8 @@ columns (§3.8, "In the window").
 **A legend as a list of its own** (0.3.5, [12](12-panel-layout.md) §5.4). `ReportBlock.layout_page` (an optional page
 ID, additive) names the panel layout page a page block of kind `enclosure_legend` lists: its rows are those of the
 surface that page's view shows, its pages follow that page in folio and section (§3.2), its title's `{layout}` prints
-that page's folio, and its generated pages print the layout page's structure in their title block. It is a link that
+that page's folio, and its generated pages print the structure that page shows (`page_display_structure`: its tags and
+title block as the layout's). It is a link that
 cascades: deleting the layout page deletes the block. `report_block.create {layout_page}` writes the layout page's
 folio number as `first_folio` and its section as `section`, so the block keeps EW-INV-014; this build reads neither for
 such a block, and the folio checks of `page.create` and `report_block.create` leave it out (its pages move to a free

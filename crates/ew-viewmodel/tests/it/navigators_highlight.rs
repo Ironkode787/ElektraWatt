@@ -367,7 +367,9 @@ fn new_structure_node_prefills_the_marked_parent() {
 #[test]
 fn opening_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new("nav2-blocks-open");
-    let mut shell = tmp.sample_in(Mode::Headless, false, "102");
+    // An embedded block: a legend box beside a layout.
+    let (mut shell, _) = common::legend_box(&tmp);
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "navigator.show", json!({"kind": "blocks"}));
     let t = shell.nav(NavKind::Blocks).and_then(|n| n.table()).unwrap();
     let wire = t

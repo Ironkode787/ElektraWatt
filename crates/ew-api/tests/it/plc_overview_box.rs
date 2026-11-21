@@ -51,8 +51,8 @@ fn printed_rect(x0: i64, y0: i64, x1: i64, y1: i64) -> Bounds {
 /// A `plc_overview` block embedded on folio 201 (printed 100.00–230.00 × 16.31–93.00 mm: a title band, a header row
 /// and eight rows of 6.52 mm), selecting the devices `include`; built from the sample's embedded legend block.
 fn overview_box(include: &[&str]) -> ReportBlock {
-    let s = common::sample();
-    let (_, records, _) = common::sample_records();
+    let s = common::sample_with_legend_box();
+    let (_, records, _) = common::sample_records_with_legend_box();
     let mut b = records
         .iter()
         .find_map(|r| match r {
@@ -83,7 +83,7 @@ fn overview_box(include: &[&str]) -> ReportBlock {
 }
 
 fn session_with(block: ReportBlock) -> Session {
-    let (project, mut records, lib) = common::sample_records();
+    let (project, mut records, lib) = common::sample_records_with_legend_box();
     records.push(Record::ReportBlock(block));
     common::session_of(project, records, lib)
 }
@@ -192,7 +192,7 @@ fn a_module_selection_lists_that_module_only_and_a_station_selection_its_cards()
 /// is the same with and without it.
 #[test]
 fn the_box_changes_no_potential() {
-    let without = common::sample();
+    let without = common::sample_with_legend_box();
     let with = session_with(overview_box(&["-201K1"]));
     let a = without.query().get::<PotentialPartition>(());
     let b = with.query().get::<PotentialPartition>(());

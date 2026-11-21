@@ -25,6 +25,10 @@ const EXCLUDED: &[(&str, &str)] = &[
         "the per-strip and per-device blocks: their selection names project records (908's names its station)",
     ),
     (
+        "the legend list of a layout page",
+        "it goes with the project's own panel layout (doc 12 §5.4), which Enclosure… makes",
+    ),
+    (
         "the location nodes",
         "the project's own cabinets and process field (doc 20 §4.3); the wizard's location field is empty by default",
     ),
@@ -138,6 +142,7 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
         .into_iter()
         .filter(|b| b["$k"] == "report_block")
         .filter(|b| !(903..=905).contains(&b["first_folio"].as_u64().unwrap_or(0)))
+        .filter(|b| b.get("layout_page").is_none())
         .map(|b| {
             let title = if b["first_folio"] == 908 {
                 Value::Null

@@ -31,8 +31,9 @@ fn the_memoised_layers_equal_the_scene_of_the_full_view_on_every_page() {
     let s = sample_session(None);
     let q = s.query();
     let order = q.get::<ew_derive::PageOrder>(());
-    // The title page, two of contents, three section dividers, the seven drawn pages and the fourteen of the reports.
-    assert_eq!(order.entries.len(), 27);
+    // The title page, two of contents, three section dividers, the seven drawn pages and the sixteen of the reports
+    // and the layout's legend.
+    assert_eq!(order.entries.len(), 29);
     for entry in &order.entries {
         let job = ew_api::output::page_scene(&q, entry);
         let full = page_scene(
@@ -460,11 +461,12 @@ fn prev_and_next_follow_the_page_order_with_the_report_pages() {
         assert_eq!(text(g.entry.page, "page.next"), next, "Next of {}", folios[i]);
     }
     // The pages the review named: the cover's Next is the table of contents, the divider 100 follows its
-    // continuation, 902 is followed by 903.
+    // continuation, 902 is followed by its legend pages, then 903.
     let at = |f: &str| folios.iter().position(|x| *x == f).expect("the folio exists");
     assert_eq!(folios[at("1") + 1], "2");
     assert_eq!(folios[at("100") - 1], "2.1");
-    assert_eq!(folios[at("902") + 1], "903");
+    assert_eq!(folios[at("902") + 1], "902.1");
+    assert_eq!(folios[at("902.2") + 1], "903");
     let mut ids: Vec<ew_dl::Destination> = pages.iter().map(|g| destination(g.entry.page)).collect();
     ids.sort();
     ids.dedup();

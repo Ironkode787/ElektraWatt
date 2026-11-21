@@ -32,11 +32,11 @@ fn pages_lists_the_page_order_under_its_sections() {
     let s = common::sample();
     let t = s.navigator_table(NavKind::Pages);
     let rows = s.page_rows();
-    // The title page, two of contents, three section dividers, the seven drawn pages and the fourteen pages of the
-    // reports.
-    assert_eq!(rows.len(), 27);
+    // The title page, two of contents, three section dividers, the seven drawn pages and the sixteen pages of the
+    // reports and the layout's legend.
+    assert_eq!(rows.len(), 29);
     let pages: Vec<&ew_api::output::NavNode> = t.nodes.iter().filter(|n| n.table_row).collect();
-    assert_eq!(pages.len(), 27);
+    assert_eq!(pages.len(), 29);
     let folios: Vec<&str> = pages.iter().map(|n| n.label.as_str()).collect();
     let order: Vec<&str> = rows.iter().map(|r| r.folio.as_str()).collect();
     assert_eq!(folios, order, "the derived page order");

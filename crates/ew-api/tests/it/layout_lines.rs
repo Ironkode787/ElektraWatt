@@ -173,13 +173,13 @@ fn rails_and_ducts_come_from_the_carriers_and_print_902() {
     }
 }
 
-/// The sample's embedded `enclosure_legend` block on 902.
+/// The sample's `enclosure_legend` block of 902: its legend page (`layout_page`).
 fn legend_block(q: &Q, p902: Id<Page>) -> ReportBlock {
     q.report_blocks()
         .iter()
-        .find(|(_, b)| b.embedded.as_ref().is_some_and(|e| e.page == p902))
+        .find(|(_, b)| b.layout_page == Some(p902))
         .map(|(_, b)| ReportBlock::clone(b))
-        .expect("902 embeds the legend")
+        .expect("902 has its legend page")
 }
 
 fn legend(q: &Q, p902: Id<Page>) -> RowSet {

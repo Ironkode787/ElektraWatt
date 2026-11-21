@@ -347,6 +347,21 @@ change here.
 - behaviour-change: a stored route that misses an end it names (written outside the program, drawn with a hook to its
   pin) is broken to Route: a page-wide Route offers to draw it to its end, ticked in the preview as a wire you drew
   (doc 06a §3.2, FT-1975)
+- behaviour-change: a panel layout's legend is a list page of its own right after its layout page (902.1, 902.2 …
+  after 902): Enclosure… makes it with the plate, which takes the whole sheet; it runs on over as many pages as it
+  needs on the set's own frame, prints the project's language, stands in the contents and the PDF outline and exports
+  as CSV and XLSX; Add legend keeps a legend beside the layout only where every row and text fits there whole, else
+  makes the page and says so; Move the legend to its own page turns a legend box of a project made before into the
+  page in one step of Undo, and such a box prints as before until then (doc 12 §5.4, FT-1920)
+- behaviour-change: a new layout labels each device with its tag where the tag fits inside it and with its numbered
+  balloon where it does not (Labels: Tags or numbers), whatever the scale; tags, item numbers and both stay choices
+  (doc 12 §5.3)
+- behaviour-change: on a layout with a legend page, Follow reference goes from a device's tag or balloon to its row
+  and from the row's tag back to the device, and the exported PDF links them the same way (doc 12 §5.4)
+- api-add: `ReportBlock.layout_page`, an optional member that names the layout page a legend list follows, and
+  `report_block.create {layout_page}`; `page.surface_view.set {labels: tags_or_numbers}` and `layout.labels {show:
+  tags_or_numbers}`; the action `report_block.legend_to_page`; the PDF destinations `ew:pl:<placement>` and
+  `ew:lr:<placement>` (doc 09 §2.2, §3.2, §4.2)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
@@ -359,3 +374,4 @@ change here.
 - format-variant: device Unit mA
 - format-variant: part Unit mA
 - format-variant: project Unit mA
+- format-variant: page_item LayoutLabels tags_or_numbers

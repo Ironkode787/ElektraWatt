@@ -121,6 +121,46 @@ pub fn sample_records() -> (ew_schema::Project, Vec<Record>, Vec<LibDocument>) {
     )
 }
 
+/// The sample's records as a project made by 0.3.0 holds its layout (doc 12 §5.4): its legend a box beside the plate on
+/// 902 (`embedded`, the box the sample's script made then, the plate where that box left it room, the devices numbered),
+/// not a list page of its own; for the tests of embedded blocks and of a legend made before.
+pub fn sample_records_with_legend_box() -> (ew_schema::Project, Vec<Record>, Vec<LibDocument>) {
+    let (project, mut records, lib) = sample_records();
+    for r in &mut records {
+        match r {
+            Record::ReportBlock(b) if b.layout_page.is_some() => {
+                let page = b.layout_page.take().expect("the layout page");
+                let rect = ew_units::Rect::from_points(
+                    ew_units::Pt2::new(ew_units::Nm(203_087_834), ew_units::Nm(10_291_667)),
+                    ew_units::Pt2::new(ew_units::Nm(270_166_667), ew_units::Nm(169_625_000)),
+                );
+                b.embedded = Some(ew_schema::EmbedSpec {
+                    page,
+                    rect: ew_schema::Bounds(rect),
+                    extra: Default::default(),
+                });
+                b.first_folio = None;
+                b.section = None;
+                b.title = Default::default();
+            }
+            Record::PageItem(item) => {
+                if let ew_schema::PageItemKind::SurfaceView(v) = &mut item.kind {
+                    v.datum_at = ew_units::Pt2::new(ew_units::Nm(79_530_115), ew_units::Nm(154_284_722));
+                    v.labels = ew_schema::LayoutLabels::ItemNumbers;
+                }
+            }
+            _ => {}
+        }
+    }
+    (project, records, lib)
+}
+
+/// A session over [`sample_records_with_legend_box`].
+pub fn sample_with_legend_box() -> Session {
+    let (project, records, lib) = sample_records_with_legend_box();
+    session_of(project, records, lib)
+}
+
 /// The copy ID of the starter part `number` among the library parts.
 pub fn library_part(s: &Session, number: &str) -> ew_ids::Uuid {
     s.library_parts()

@@ -16,11 +16,13 @@ the parts list and the enclosure legend read it from there.
    in a project without one it proposes **New location**, the first choice of the Location list, with a code such as
    `CAB1` that you can change. It proposes the first enclosure part of the project or of an installed library, such as
    "Wall enclosure 600 × 800 × 250 mm"; choose others from the lists if you like, then **Create**.
-   The page now shows the enclosure and its mounting plate, centred and at the scale that fits the page. A new
-   location, the enclosure and the plate on the page are three steps of Undo. Another plate goes on the page through
-   the page's **Surface** row in Properties, or **Mounting plate…** in the menu of Enclosure's arrow. Where the tags
-   would not fit the devices on paper (at 1:5 and smaller scales on an empty plate) the devices are numbered and the
-   page gets a legend beside the plate that lists each number with its tag, quantity, part number and description.
+   The page now shows the enclosure and its mounting plate, centred on the whole sheet at the scale that fits it, and
+   the layout gets its legend: a list page right after the layout page (902.1 after 902) with the number, tag,
+   quantity, part number and description of each item, which runs on over as many pages as it needs. Each device
+   shows its tag where the tag fits inside it, and a numbered balloon where it does not (a terminal, a small part).
+   A new location, the enclosure, and the plate on the page with its legend page are three steps of Undo. Another
+   plate goes on the page through the page's **Surface** row in Properties, or **Mounting plate…** in the menu of
+   Enclosure's arrow.
 
    A location that has its enclosure already (made from another page) is not made twice: with that location
    chosen, the dialog's button reads **Draw -UC1 of +CAB1 on this page** and puts its mounting plate on the page.
@@ -53,16 +55,22 @@ the parts list and the enclosure legend read it from there.
 
 ## Labels and the legend
 
-8. The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, **Labels: Both**) and, with nothing
-   selected, the page's **Labels** row in Properties choose what each device shows: its tag, its item number in a
-   balloon, or both. A legend added while the devices show their tags offers **Show item numbers**. Labels that would run into each other move apart, above and below the row, with a
+8. The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, **Labels: Both**, **Labels: Tags or
+   numbers**) and, with nothing selected, the page's **Labels** row in Properties choose what each device shows: its
+   tag, its item number in a balloon, both, or its tag where it fits and its balloon where it does not (what a new
+   layout shows). The legend lists every item whatever the labels show. A legend added while the devices show their
+   tags offers **Show item numbers**. Labels that would run into each other move apart, above and below the row, with a
    line to their device. On the cabinet's own layout the tags leave out the cabinet's location.
-9. **Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add legend**) puts the legend in the free space
-   beside the layout, with the number, tag, quantity, part number and description of each item, one table as wide as
-   its block and as long as its rows. Where the block is narrow, the part number and quantity give way first; the
-   numbers and tags stay whole. It is offered while the page has none. Click the legend to select it, drag it to move
-   it, and drag one of its corners to make it wider or narrower.
-10. A label or balloon can be dragged on its own: one beside its device at once, one on its device once the device is
+9. A layout without a legend gets one through **Add legend** in the page's right-click menu (also **Page ▸ Order ▸
+   Add legend**): in the free space beside the layout where every row and every text fits there whole, one table as
+   wide as its block and as long as its rows; otherwise, as a toast says, on its own page after the layout page. Click
+   a legend beside the layout to select it, drag it to move it, and drag one of its corners to make it wider or
+   narrower. **Move the legend to its own page** in its right-click menu (also **Page ▸ Order**) makes such a legend,
+   or one of a project made before, the layout's legend page, in one step of Undo. The legend page's columns and
+   caption are chosen as any list's: **Output ▸ List columns…** on its page.
+10. **Follow reference** (`F`) on a device's tag or balloon goes to its row on the legend page, and on a row's tag back
+    to the device on the layout; in an exported PDF a click does the same.
+11. A label or balloon can be dragged on its own: one beside its device at once, one on its device once the device is
     selected (the label then shows a dashed box with a handle). Its line follows it to the device.
     **Reset label position** in the device's right-click menu puts it back; **Reset label positions** in the page's
     right-click menu puts every label of the page back.

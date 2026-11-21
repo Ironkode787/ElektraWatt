@@ -118,8 +118,9 @@ pub fn outline_json(entries: &[ew_export::OutlineEntry], depth: usize) -> String
 }
 
 /// The report row links the generated pages draw other than the PLC overview's connection-point links, per
-/// folio in page order: every link of a drawn data row whose cell prints a text. Each is one link annotation
-/// of the PDF, so the PDF's links are the cross-reference items, the PLC overview rows and these.
+/// folio in page order: every link of a drawn data row whose cell prints a text (a cell that is a link's target, a
+/// legend row, is none). Each is one link annotation of the PDF, so the PDF's links are the cross-reference items, the
+/// PLC overview rows, the layout labels' links to their legend rows and these.
 pub fn report_row_links(pages: &[ViewedPage]) -> Vec<(String, usize)> {
     pages
         .iter()
@@ -133,7 +134,7 @@ pub fn report_row_links(pages: &[ViewedPage]) -> Vec<(String, usize)> {
                 .map(|r| {
                     r.links
                         .iter()
-                        .filter(|l| !matches!(l.dest, ew_dl::Destination::Cp(_)))
+                        .filter(|l| !matches!(l.dest, ew_dl::Destination::Cp(_)) && !l.target)
                         .filter(|l| {
                             t.columns.get(l.column).is_some_and(|c| c.weight > 0)
                                 && r.cells.get(l.column).is_some_and(|s| !s.is_empty())

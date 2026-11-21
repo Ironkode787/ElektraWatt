@@ -20,7 +20,7 @@ use serde_json::json;
 /// beside the sample's legend on 902, and the valve terminal's assembly of one unlabelled configuration; and the valve
 /// terminal's ID.
 fn records() -> (ew_schema::Project, Vec<Record>, Vec<ew_schema::LibDocument>, Uuid) {
-    let (project, mut records, lib) = common::sample_records();
+    let (project, mut records, lib) = common::sample_records_with_legend_box();
     let mut cables: Vec<&mut ew_schema::Device> = records
         .iter_mut()
         .filter_map(|r| match r {

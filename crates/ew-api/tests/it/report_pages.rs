@@ -64,20 +64,20 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     }
     assert_eq!(labels.last(), Some(&"911"));
 
-    // The whole order: the sample's 27 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the wire
-    // list 907 into 907, 907.1 and 907.2, the PLC overview 908 into 908 and 908.1 (24 channels), the potential overview
-    // and the device tag overview into two pages each.
+    // The whole order: the sample's 29 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the legend of
+    // the layout 902 into 902.1 and 902.2 (30 rows), the wire list 907 into 907, 907.1 and 907.2, the PLC overview 908
+    // into 908 and 908.1 (24 channels), the potential overview and the device tag overview into two pages each.
     assert_eq!(
         labels,
         [
             "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901", "901.1",
-            "902", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1", "910", "910.1",
-            "911",
+            "902", "902.1", "902.2", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1",
+            "910", "910.1", "911",
         ]
     );
 
-    // The TOC fixpoint (doc 09 §3.1): 27 pages need two TOC pages of 23 rows; the count is stable.
-    assert_eq!(order.len(), 27);
+    // The TOC fixpoint (doc 09 §3.1): 29 pages need two TOC pages of 23 rows; the count is stable.
+    assert_eq!(order.len(), 29);
     assert_eq!(order.toc_pages, 2);
     assert!(order.fixpoint_reached);
 

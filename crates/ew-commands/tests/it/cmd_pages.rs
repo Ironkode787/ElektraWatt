@@ -82,6 +82,7 @@ fn block(first_folio: Option<u32>) -> CreateReportBlock {
         embedded: None,
         columns: Vec::new(),
         form_copies: Vec::new(),
+        layout_page: None,
     }
 }
 

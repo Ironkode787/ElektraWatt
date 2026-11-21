@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Embedded report blocks drawn through one path, on the sample project: its legend on the panel page 902, and blocks
+//! Embedded report blocks drawn through one path, on the sample project as 0.3.0 held it: its legend a box on the panel
+//! page 902 (`common::sample_records_with_legend_box`), and blocks
 //! a test adds to the sample's records (a PART DATA box on 902; a wire list, a block of a newer source and three
 //! linking kinds on 101).
 //!
@@ -122,7 +123,7 @@ fn fixture_block(
 
 /// A session over the sample's records, `edit` applied first.
 fn sample_with(edit: impl FnOnce(&mut Vec<Record>)) -> Session {
-    let (project, mut records, lib) = common::sample_records();
+    let (project, mut records, lib) = common::sample_records_with_legend_box();
     edit(&mut records);
     common::session_of(project, records, lib)
 }
@@ -151,9 +152,9 @@ fn part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
 /// `terminals` are not embedded blocks.
 #[test]
 fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes() {
-    let s = common::sample();
+    let s = common::sample_with_legend_box();
     let q = s.query();
-    let (_, records, _) = common::sample_records();
+    let (_, records, _) = common::sample_records_with_legend_box();
     let legend = legend(&records);
     let out = row_export(&q, &RowExport::Report, Some(&legend.id.to_string())).expect("the legend's rows");
     assert_eq!(out.rows, q.get::<BlockRows>(legend.id).rows.len());
@@ -258,7 +259,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason() {
 /// LB-6 and LB-10: the tables layer of the page with the embedded legend does not depend on the record order.
 #[test]
 fn the_tables_layer_does_not_depend_on_record_order() {
-    let a = common::sample();
+    let a = common::sample_with_legend_box();
     let b = sample_with(|records| records.reverse());
     let (qa, qb) = (a.query(), b.query());
     let (la, lb) = (
@@ -419,7 +420,7 @@ fn the_cover_tables_print_the_profiles_rows_in_their_tables() {
 /// its Covers.
 #[test]
 fn part_data_lists_an_assemblys_configurations_and_the_parts_list_its_configured_row() {
-    let (project, records, lib) = common::sample_records();
+    let (project, records, lib) = common::sample_records_with_legend_box();
     let mut values: Vec<serde_json::Value> = records
         .iter()
         .map(|r| serde_json::to_value(r).expect("a record serialises"))

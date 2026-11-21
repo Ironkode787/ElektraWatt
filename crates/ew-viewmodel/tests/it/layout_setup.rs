@@ -211,16 +211,16 @@ fn draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
     done(&mut s, "tool.duct_draw", json!({}));
     done(&mut s, "layout.draw_options", json!({"part": number}));
     // Duct 1 again: between the sample's two rails.
-    click_mm(&mut s, 26.5, 436.5);
+    click_mm(&mut s, 26.5, 441.5);
     click_mm(&mut s, 300.0, 700.0);
     done(&mut s, "tool.back", json!({}));
-    click_mm(&mut s, 493.5, 433.0);
+    click_mm(&mut s, 493.5, 438.0);
     // A double click: the second click adds nothing, the double click finishes.
-    click_mm(&mut s, 493.5, 433.0);
+    click_mm(&mut s, 493.5, 438.0);
     done(&mut s, "tool.finish", json!({}));
     let added = new_carriers(&s, &before);
     assert_eq!(added.len(), 1, "one duct");
-    assert_eq!(mm_path(&added[0]), [(25, 435), (495, 435)]);
+    assert_eq!(mm_path(&added[0]), [(25, 440), (495, 440)]);
     assert_eq!(added[0].path, d1.path);
     assert_eq!((added[0].width, added[0].height), (Some(40 * MM), Some(60 * MM)));
     // A second duct: from under the first one's lower edge, down to the plate's bottom edge; Enter on the last vertex

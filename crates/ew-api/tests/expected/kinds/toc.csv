@@ -14,6 +14,8 @@ data,900,+CAB - Section 9 - Page 900 - 999 - Nomenclature,,+CAB
 data,901,Partlist 1,,+CAB
 data,901.1,Partlist 2,,+CAB
 data,902,Panel layout,,+CAB
+data,902.1,Legend of layout 902,,+CAB
+data,902.2,Legend of layout 902,,+CAB
 data,903,Terminal Diagram 1,,+CAB
 data,906,Cable Overview and Diagrams,,+CAB
 data,907,Wire List 1,,+CAB

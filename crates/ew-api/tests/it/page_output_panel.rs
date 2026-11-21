@@ -192,10 +192,6 @@ fn contains(r: Rect, p: Pt2) -> bool {
     r.min().x <= p.x && p.x <= r.max().x && r.min().y <= p.y && p.y <= r.max().y
 }
 
-fn overlaps(a: Rect, b: Rect) -> bool {
-    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
-}
-
 /// A page rectangle of 902 on paper (its frame's sheet map).
 fn printed(q: &Q, r: Rect) -> Rect {
     let frame = q.get::<PageFrameOf>(drawn(q, "902"));
@@ -394,11 +390,8 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
         spans(printed(&q, plate), 104_000_000, 144_000_000),
         "104 × 144 mm printed"
     );
-    // The fit: the outline stays clear of the legend the page embeds.
-    assert!(!tables.blocks.is_empty(), "902 embeds its legend");
-    for b in &tables.blocks {
-        assert!(!overlaps(enclosure, b.drawn), "clear of the legend {b:?}");
-    }
+    // The legend is a page of its own (doc 12 §5.4): the page holds no box beside the plate.
+    assert!(tables.blocks.is_empty(), "{:?}", tables.blocks);
     assert!(
         surface_list.items.iter().all(|i| i.entity.is_none()),
         "the outlines carry no entity"
@@ -495,8 +488,8 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
     assert_eq!(
         footprint_902(&s, "-101Q1"),
         Rect::from_points(
-            Pt2::new(Nm(89_871_979), Nm(28_053_150)),
-            Pt2::new(Nm(100_822_187), Nm(45_289_590))
+            Pt2::new(Nm(97_847_804), Nm(36_728_152)),
+            Pt2::new(Nm(108_798_012), Nm(53_964_592))
         )
     );
 

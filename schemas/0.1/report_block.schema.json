@@ -546,6 +546,17 @@
       "$ref": "#/$defs/Uuid",
       "description": "The record ID; generated pages are `v5(id, page_index)`."
     },
+    "layout_page": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The panel layout page a page block of kind `enclosure_legend` lists and follows: its rows are the surface that\npage shows, its pages are numbered after that page (doc 09 §2.2, §3.2; doc 12 §5.4). Additive: an older build\nkeeps it and lists no rows for such a block, so prints no legend page."
+    },
     "legend": {
       "$ref": "#/$defs/MlText",
       "description": "The line printed under the table of each of the block's pages (doc 09 §3.8); empty: none. Additive."

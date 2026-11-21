@@ -131,10 +131,11 @@ impl ShellModel {
             .unwrap_or_default()
     }
 
-    /// Where Add legend would put the focused page's legend (`Session::legend_offer`).
+    /// Where Add legend would put the focused page's legend (`Session::legend_offer`); a page of another kind than a
+    /// panel layout asks nothing.
     pub fn legend_offer(&self) -> ew_api::output::LegendOffer {
         match (self.focused_page_id(), self.project_session()) {
-            (Some(page), Some(s)) => s.legend_offer(page),
+            (Some(page), Some(s)) if self.on_panel_page() => s.legend_offer(page),
             _ => ew_api::output::LegendOffer::NoLayout,
         }
     }
@@ -780,7 +781,7 @@ impl ShellModel {
             "form": form,
             "layout_page": page.to_string(),
             "columns": columns,
-            "title": { "en": LEGEND_TITLE.0, "nl": LEGEND_TITLE.1 },
+            "title": { "en-GB": LEGEND_TITLE.0, "nl-NL": LEGEND_TITLE.1 },
         });
         if let Some(copies) = copies {
             params["form_copies"] = copies;

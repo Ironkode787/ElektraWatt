@@ -647,11 +647,14 @@ fn report_blocks(session: &Session) -> Vec<String> {
     out
 }
 
-/// [`report_blocks`] of the blocks with pages of their own (a block embedded in a drawn page goes with the page).
+/// [`report_blocks`] of the blocks with pages of their own (a block embedded in a drawn page goes with the page, and so
+/// does a layout page's legend list).
 fn report_blocks_with_own_pages(session: &Session) -> Vec<String> {
     let mut out: Vec<String> = lines_of(session)
         .into_iter()
-        .filter(|v| v["$k"] == "report_block" && v.get("first_folio").is_some())
+        .filter(|v| {
+            v["$k"] == "report_block" && v.get("first_folio").is_some() && v.get("layout_page").is_none()
+        })
         .map(|v| format!("{} {}", v["first_folio"], v["title"]))
         .collect();
     out.sort();

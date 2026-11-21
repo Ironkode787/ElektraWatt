@@ -175,8 +175,8 @@ fn every_query_answers_on_the_sample() {
                     folios,
                     [
                         "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900",
-                        "901", "901.1", "902", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909",
-                        "909.1", "910", "910.1", "911"
+                        "901", "901.1", "902", "902.1", "902.2", "903", "906", "907", "907.1", "907.2", "908",
+                        "908.1", "909", "909.1", "910", "910.1", "911"
                     ]
                 );
                 assert_eq!(folios, s.page_labels());
@@ -196,7 +196,7 @@ fn every_query_answers_on_the_sample() {
             "title_block" => {
                 assert_eq!(out["values"]["page.folio"], "101");
                 assert_eq!(out["values"]["page.title"], "Supply 400 V AC");
-                assert_eq!(out["values"]["doc.page_count"], "27");
+                assert_eq!(out["values"]["doc.page_count"], "29");
             }
             "wire_numbers" => {
                 let want = wire_numbers(&s, "102");
