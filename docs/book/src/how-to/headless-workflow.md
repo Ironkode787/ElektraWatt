@@ -33,7 +33,7 @@ $ mkdir out
 ## Where the project comes from
 
 EW makes the sample project itself. The script `fixtures/sample/sample.uiscript` holds the window's own actions in
-order, from the new-project wizard to the last tube, as a user chooses them; `cargo xtask gen` runs it and writes the
+order, from the new-project wizard to the rails of the panel layout, as a user chooses them; `cargo xtask gen` runs it and writes the
 project `fixtures/sample/sample.ew`, and a test checks that the checked-in project is what the script makes.
 
 A project is a directory, here `fixtures/sample/sample.ew`. Every `ew` command that works on a project takes it as its
