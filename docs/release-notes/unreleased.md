@@ -70,8 +70,9 @@ change here.
   and a report block's form is set with `fields.set` path `form` (its Form row in Properties) to a form the project
   holds (FT-1859)
 - api-add: a project prints in a typeface of its own: Project ▸ Text styles… ▸ Choose a font file…
-  (`text_styles.typeface`; the command `project.typeface.set {file, name}`) takes a TrueType or OpenType file of at
-  most 768 KiB into the project, and every text of the Standard typeface prints in it in the PDF, the SVG, the PNG,
+  (`text_styles.typeface`; the command `project.typeface.set {file, name}`, the file in base64 parts of at most
+  1 MiB each) takes a TrueType or OpenType file of at most 2.5 MiB, Arial and Calibri among them, into the project in
+  one step, and every text of the Standard typeface prints in it in the PDF, the SVG, the PNG,
   the print and on screen; the DXF names the file in its text style; **Use Noto Sans** takes it back. A font whose
   licence forbids embedding is refused (doc 09 §4.8, FT-1872)
 - api-add: a free text can stand on its baseline (`anchor: baseline`, `item.place`'s `anchor`), and a symbol's text

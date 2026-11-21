@@ -22,7 +22,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### The source's typeface
 
-- FT-1940 `ew-commands, ew-viewmodel`: A typeface file over 768 KiB is refused (Arial and Tahoma of Windows 11 are 1.0 and 0.9 MB), because the file travels in one parameter string of `project.typeface.set`, which holds 1 MiB of base64 (doc 09 §4.8). The way through is the command taking the file in parts or the window's action handing the bytes over without the JSON parameter; a piece of work of its own (the limits of command parameters, doc 18).
 - FT-1941 `ew-import-qet, ew-scene`: After FT-1765, 493 of about 4,800 imported texts of the pilot reference pair still stand apart from QET's own PDF (doc 14 §4.10): title-block cells 1 to 2 mm across, because QET's `hadjust` scales a too-wide text without a floor and never for its height while EW shrinks a cell's lines to fit its height and stops at 0.5 mm (`frames.rs`, `forms/text.rs`); rich-text free texts that QET's computer printed in Tahoma 0.7 to 1.6 mm higher (its ascent is 1.0 em; the face QET printed is its computer's substitution, which the file does not say); 94 texts of 8 pt in a lower band of some pages 0.5 mm higher, not yet examined.
 
 #### Lists and frames

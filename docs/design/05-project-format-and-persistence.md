@@ -1622,7 +1622,7 @@ writes to the system and community tiers are refused.
   sniffer (below), which counts SVG elements textually; an SVG is also parsed by `ew_schema::svg_hazard`
   inside the sniff and drawn through usvg with external references refused ([14](14-interop.md) §11). The underlay
   sources `pdf` and `dxf` are at most 64 MiB, and the project's typeface is a `ttf` or `otf` file (by its sfnt magic)
-  of at most 768 KiB, which `project.typeface.set` reads further ([09](09-reports-forms-output.md) §4.8). The
+  of at most 2.5 MiB, which `project.typeface.set` reads further ([09](09-reports-forms-output.md) §4.8). The
   extensions are `AssetFormat`'s, which the path classification of `ew-format` reads too (with `glb`).
 - **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
   (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model

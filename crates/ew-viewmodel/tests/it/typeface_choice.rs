@@ -45,6 +45,26 @@ fn a_font_file_prints_the_page_and_use_noto_sans_takes_it_back() {
     assert_eq!(page(&shell), before);
 }
 
+/// A font of the size of Calibri (1.6 MiB) is taken as a small one is: one step, its parts within the limits of
+/// command parameters; a file over the ceiling is refused in words that name it and the ceiling.
+#[test]
+fn a_large_text_face_is_taken_and_a_file_over_the_ceiling_is_refused() {
+    let tmp = Tmp::new("typeface-large");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    let large = tmp.0.join("Large-Regular.ttf");
+    std::fs::write(&large, ew_testdir::font_of_size(1_650_000)).unwrap();
+    done(&mut shell, "text_styles.typeface", json!({"path": large.display().to_string()}));
+    assert!(line(&shell).contains("(Large-Regular.ttf)"), "{}", line(&shell));
+    let over = tmp.0.join("Huge.ttf");
+    std::fs::write(&over, ew_testdir::font_of_size(3_000_000)).unwrap();
+    let out = shell.dispatch("text_styles.typeface", &json!({"path": over.display().to_string()}));
+    let Outcome::Failed { message } = out else {
+        panic!("{out:?}");
+    };
+    assert!(message.contains("Huge.ttf") && message.contains("2560 KiB"), "{message}");
+    assert!(line(&shell).contains("(Large-Regular.ttf)"), "the earlier typeface stays");
+}
+
 #[test]
 fn a_file_that_is_no_font_is_refused_in_words() {
     let tmp = Tmp::new("typeface-refused");

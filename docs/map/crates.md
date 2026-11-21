@@ -952,11 +952,11 @@ Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.
 
 `crates/ew-testdir` · MIT OR Apache-2.0 · depends on none · used by none · in tests by `elektrawatt`, `ew`, `ew-api`, `ew-library`, `ew-sqlview`, `ew-store`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
-The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree. A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
+The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]). A dev-only helper crate without dependencies, so any crate may take it as a dev-dependency.
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree. |
+| `src/lib.rs` |  | The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]). |
 
 ## ew-testids
 

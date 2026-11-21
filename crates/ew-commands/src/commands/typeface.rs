@@ -22,13 +22,15 @@ pub const MAX_TYPEFACE_NAME: usize = 255;
 /// `project.typeface.set` (`SetTypeface`): sets or removes the project's typeface (doc 09 §4.8).
 ///
 /// - `file`: the font file in base64 (RFC 4648 §4: standard alphabet, padded, no line breaks), a TrueType or OpenType
-///   file of one typeface of at most 768 KiB ([`MAX_TYPEFACE_BYTES`]). The bytes join the project's asset store and
-///   `settings.typeface` names them with `name`. An empty text removes the setting (the asset stays in the store while
+///   file of one typeface of at most 2.5 MiB ([`MAX_TYPEFACE_BYTES`]), as a list of parts joined in order before
+///   decoding: a part is one parameter string of at most 1 MiB, so a file over 768 KiB comes in two to four parts and
+///   stays one command, one undo step and one line of a command log. The bytes join the project's asset store and
+///   `settings.typeface` names them with `name`. An empty list removes the setting (the asset stays in the store while
 ///   the session lasts, so undo brings it back).
 /// - `name`: the file's name without its folder (`LiberationSans-Regular.ttf`), at most 255 characters; needed with a
 ///   file.
 ///
-/// Refused at `/file`, in words: a text over the limit or that is not base64; bytes that are no font of one typeface (a
+/// Refused at `/file`, in words: parts over the limit together, or that are not base64; bytes that are no font of one typeface (a
 /// collection `.ttc`, a web font `.woff`, any other file); a font whose tables cannot be read or that names no family;
 /// a font without the letters A to Z, a to z and the digits 0 to 9; a font whose embedding permission (`OS/2.fsType`)
 /// is restricted, allows bitmaps only or forbids a subset, since the PDF embeds the subset of the glyphs it prints.
@@ -39,8 +41,9 @@ pub const MAX_TYPEFACE_NAME: usize = 255;
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetTypeface {
-    /// The font file (TrueType or OpenType, one typeface, at most 768 KiB) in base64; empty removes the typeface.
-    pub file: String,
+    /// The font file (TrueType or OpenType, one typeface, at most 2.5 MiB) in base64, in parts of at most 1 MiB each
+    /// joined in order; an empty list removes the typeface.
+    pub file: Vec<String>,
     /// The file's name without its folder; needed with a file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -69,10 +72,10 @@ impl Command for SetTypeface {
                     (MAX_TYPEFACE_BYTES / 1024).to_string()
                 ))
             };
-            if self.file.len() > MAX_TYPEFACE_BYTES.div_ceil(3) * 4 {
+            if self.file.iter().map(String::len).sum::<usize>() > MAX_TYPEFACE_BYTES.div_ceil(3) * 4 {
                 return Err(too_large());
             }
-            let bytes = ew_schema::base64_decode(&self.file)
+            let bytes = ew_schema::base64_decode(&self.file.concat())
                 .map_err(|e| refused(text!("refusal-params-detail", crate::error::asset_error_text(&e))))?;
             if bytes.len() > MAX_TYPEFACE_BYTES {
                 return Err(too_large());

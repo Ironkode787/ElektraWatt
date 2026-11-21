@@ -10,7 +10,6 @@
 use crate::common;
 
 use common::*;
-use ew_commands::commands::SetTypeface;
 use ew_commands::{AnyCommand, CmdError, CommandRegistry, Cost, DynCommand, Engine, Exposure, Origin};
 use serde_json::json;
 use sha2::Digest;
@@ -20,7 +19,7 @@ const FONT: &[u8] = include_bytes!("../../../../assets/fonts/RoutedGothic-Regula
 fn set(file: &[u8], name: &str) -> AnyCommand {
     AnyCommand {
         name: "project.typeface.set".to_owned(),
-        params: json!({"file": ew_schema::base64_encode(file), "name": name}),
+        params: json!({"file": [ew_schema::base64_encode(file)], "name": name}),
     }
 }
 
@@ -85,7 +84,7 @@ fn a_font_file_becomes_the_typeface_and_undoes() {
     e.redo(&Origin::Gui).unwrap();
     let removal = AnyCommand {
         name: "project.typeface.set".to_owned(),
-        params: json!({"file": ""}),
+        params: json!({"file": []}),
     };
     commit(&mut e, &removal);
     assert_eq!(e.model().project().settings.typeface, None);
@@ -116,7 +115,7 @@ fn what_is_no_usable_typeface_is_refused_in_words() {
         (
             AnyCommand {
                 name: "project.typeface.set".to_owned(),
-                params: json!({"file": "not base64!", "name": "a.ttf"}),
+                params: json!({"file": ["not base64!"], "name": "a.ttf"}),
             },
             "/file",
             "base64",
@@ -127,15 +126,16 @@ fn what_is_no_usable_typeface_is_refused_in_words() {
         assert_eq!(at, path, "{message}");
         assert!(message.contains(words), "{path}: {message}");
     }
-    // Over the limit: as JSON its base64 is over the limit of one parameter string already, so the typed command says
-    // it in its own words.
-    let large = SetTypeface {
-        file: ew_schema::base64_encode(&[FONT, &vec![0; 800 * 1024]].concat()),
-        name: Some("a.ttf".to_owned()),
+    // Over the ceiling, in parts within the limits of command parameters: refused in words before it is decoded.
+    let text = ew_schema::base64_encode(&[FONT, &vec![0; 2_600 * 1024]].concat());
+    let large = AnyCommand {
+        name: "project.typeface.set".to_owned(),
+        params: json!({"file": [&text[..1 << 20], &text[1 << 20..2 << 20], &text[2 << 20..3 << 20], &text[3 << 20..]],
+            "name": "a.ttf"}),
     };
     let (at, message) = refused(&mut e, &large);
     assert_eq!(
-        (at.as_str(), message.contains("768 KiB")),
+        (at.as_str(), message.contains("2560 KiB")),
         ("/file", true),
         "{message}"
     );

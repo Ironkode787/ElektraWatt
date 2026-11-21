@@ -3,7 +3,8 @@
 
 //! The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test
 //! ends, [`copy_dir`], and the paths of the test projects (the sample and the release fixture) and
-//! the starter content in the source tree. A dev-only helper crate without dependencies, so any crate may take it as
+//! the starter content in the source tree, and a font file of any size for a project's typeface ([`font_of_size`]).
+//! A dev-only helper crate without dependencies, so any crate may take it as
 //! a dev-dependency. How each test binary opens the sample (in place, read-only, or a copy) is in its own support.
 
 use std::path::{Path, PathBuf};
@@ -93,6 +94,41 @@ pub fn copy_dir(from: &Path, to: &Path) {
             fail("copy", &source, e);
         }
     }
+}
+
+/// A font file of the repository a test may take as a project's typeface (Routed Gothic, OFL-1.1, a bundled file).
+pub const FONT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/RoutedGothic-Regular.ttf");
+
+/// [`FONT`] grown to `len` bytes or a little more, still a valid font of the same face: one more table (`zpad`, zeros,
+/// which no reader asks for) is appended to the table directory and its data at the end, every other table's offset
+/// moved by the directory's new record. A large typeface for a test, of the size of the vendors' text faces, without a
+/// vendor's file in the repository.
+///
+/// # Panics
+///
+/// When the file cannot be read or its table directory is cut short.
+pub fn font_of_size(len: usize) -> Vec<u8> {
+    let font = std::fs::read(FONT).expect("the repository's font file");
+    let tables = usize::from(u16::from_be_bytes([font[4], font[5]]));
+    let directory = 12 + 16 * tables;
+    let mut out = font[..directory].to_vec();
+    out[4..6].copy_from_slice(&u16::try_from(tables + 1).expect("few tables").to_be_bytes());
+    // Every table's offset moves by the one new record of 16 bytes.
+    for t in 0..tables {
+        let at = 12 + 16 * t + 8;
+        let offset = u32::from_be_bytes(out[at..at + 4].try_into().expect("four bytes")) + 16;
+        out[at..at + 4].copy_from_slice(&offset.to_be_bytes());
+    }
+    let data_end = font.len() + 16;
+    let pad_at = data_end.next_multiple_of(4);
+    let pad_len = len.saturating_sub(pad_at).max(4);
+    out.extend_from_slice(b"zpad");
+    out.extend_from_slice(&0u32.to_be_bytes());
+    out.extend_from_slice(&u32::try_from(pad_at).expect("a small file").to_be_bytes());
+    out.extend_from_slice(&u32::try_from(pad_len).expect("a small file").to_be_bytes());
+    out.extend_from_slice(&font[directory..]);
+    out.resize(pad_at + pad_len, 0);
+    out
 }
 
 /// A new, empty directory `<temp>/<stem>-<pid>-<n>` that this call created. A test process that is killed (a cancelled

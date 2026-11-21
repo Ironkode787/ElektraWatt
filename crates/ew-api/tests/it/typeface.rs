@@ -42,7 +42,7 @@ fn set_typeface(s: &mut Session) {
     common::run_cmd(
         s,
         "project.typeface.set",
-        json!({"file": ew_api::base64_encode(FONT), "name": NAME}),
+        json!({"file": [ew_api::base64_encode(FONT)], "name": NAME}),
     );
 }
 
@@ -111,6 +111,31 @@ fn the_typeface_prints_in_the_pdf_and_is_named_by_the_dxf() {
         text.contains("  7\nEW-ROUTED-GOTHIC\n"),
         "texts in the typeface's style"
     );
+}
+
+/// A font of the size of the vendors' text faces (Arial weighs 1.0 MiB as Windows ships it) is taken from a command log
+/// as a script or `ew apply` gives it: the file in parts of one parameter string each, one line, one undo step; and the
+/// pages print in it.
+#[test]
+fn a_font_of_the_size_of_arial_is_taken_from_a_command_log_and_prints() {
+    let font = ew_testdir::font_of_size(1_040_000);
+    assert!(font.len() > 1_000_000);
+    let text = ew_api::base64_encode(&font);
+    let parts: Vec<&str> = text.as_bytes().chunks(ew_api::MAX_PARAM_STRING).map(|c| std::str::from_utf8(c).unwrap()).collect();
+    assert!(parts.len() > 1, "a file over 768 KiB comes in parts");
+    let line = json!({"cmd": "project.typeface.set", "params": {"file": parts, "name": "Large.ttf"}});
+    let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{line}\n")).expect("a command log");
+    let mut s = sample();
+    s.run_script(&log, "typeface.ewcmd").expect("the line commits");
+    let face = FontKey {
+        sha256: sha2::Sha256::digest(&font).into(),
+        face_index: 0,
+    };
+    assert!(matches!(s.typeface(), TypefaceState::Loaded { face: f, .. } if f == face), "{:?}", s.typeface());
+    let pdf = s.export_pdf(&options()).unwrap();
+    assert!(pdf.report.fonts.contains(&face), "{:?}", pdf.report.fonts);
+    s.undo(&ew_api::Origin::Gui).expect("one step");
+    assert_eq!(s.typeface(), TypefaceState::Bundled);
 }
 
 #[test]

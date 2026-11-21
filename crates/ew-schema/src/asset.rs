@@ -118,9 +118,11 @@ impl AssetFormat {
 /// The largest embedded underlay source (a PDF or a DXF): 64 MiB.
 pub const MAX_UNDERLAY_BYTES: usize = 64 * 1024 * 1024;
 
-/// The largest font file a project takes as its typeface: 768 KiB, the most whose base64 fits the one parameter string
-/// of a command (1 MiB; doc 09 §4.8).
-pub const MAX_TYPEFACE_BYTES: usize = 768 * 1024;
+/// The largest font file a project takes as its typeface: 2.5 MiB (doc 09 §4.8). The text faces of one typeface weigh
+/// up to about 1.8 MiB (Calibri 1.6 MiB, Segoe UI Variable 1.8 MiB); only emoji, symbol and East Asian faces and
+/// faces for every script weigh more (2.4 to 22 MiB). Its base64 fits one command's parameters (4 MiB) in parts of
+/// one parameter string each (1 MiB).
+pub const MAX_TYPEFACE_BYTES: usize = 2_560 * 1024;
 
 /// How a record names an asset: its content hash, its encoding and, when known, its intrinsic size (width and
 /// height in pixels or SVG user units; only their ratio is used). Encoded as

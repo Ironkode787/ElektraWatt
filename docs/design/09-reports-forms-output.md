@@ -1001,10 +1001,20 @@ chose it, without its folder. Absent, the project prints as before. An older bui
 - **In the window:** Project ▸ Text styles… has the line *Standard typeface* above the styles: "Noto Sans, comes
   with the program" or the file's family and name, with **Choose a font file…** (`text_styles.typeface {path}`, the
   file dialog) and **Use Noto Sans** (`text_styles.typeface_clear`). **By a command:** `project.typeface.set {file,
-  name}`, `file` the font file in base64 and `name` its file name; an empty `file` removes the setting. One undo step;
-  bulk, so the window previews it.
-- **Refused in words** (both languages, at `/file` or `/name`): a file over 768 KiB (the most one parameter of a
-  command carries in base64; FT-1940 is the row for larger files); text that is not base64; a file that is no font of
+  name}`, `file` the font file in base64 as a list of parts joined in order and `name` its file name; an empty list
+  removes the setting. One undo step; bulk, so the window previews it.
+- **A large file.** A command's parameters hold at most 1 MiB in one string and 4 MiB in all (doc 18), and a
+  picture comes into a project as one string (at most 512 KiB). A font file comes the same road in parts: each part is
+  one string of at most 1 MiB, so a file over 768 KiB is two to four parts of one command. It stays one transaction
+  (one undo step, one line of the crash journal with its file) and one line of a command log that `ew apply` replays;
+  the window's action and a script send the same parts. The limits of command parameters stay as they are.
+- **The ceiling: 2.5 MiB.** The text faces of one typeface weigh up to about 1.8 MiB: of 597 single-face files of a
+  Windows computer, 584 are at most 2 MiB, among them Arial (1.0 MiB), Tahoma (0.9), Segoe UI (0.9), Times New Roman
+  (1.1) and Calibri (1.6); only emoji, symbol and East Asian faces and faces for every script weigh more (2.4 to
+  22 MiB), whose further letters no drawing of the program prints (its fallback serves Latin, Greek and Cyrillic). Its
+  base64 fits the 4 MiB of one command with room to spare.
+- **Refused in words** (both languages, at `/file` or `/name`): a file over 2.5 MiB, naming the ceiling and which fonts
+  weigh more; text that is not base64; a file that is no font of
   one typeface (a TrueType or OpenType file: not a collection `.ttc`, not a web font `.woff`); a font whose tables
   cannot be read; a font without the letters A to Z, a to z and the digits; a font whose embedding permission forbids
   what the PDF does (below); an empty name, or one with a folder in it or over 255 characters.
@@ -1064,7 +1074,7 @@ keep Noto Sans.
 
 **What it does not do.** No system fonts (NFR-REL-11 holds: the file is in the project). One file only: no second
 file for the bold or italic cut, no typeface for Narrow, Mono or Technical drawing, no font of a frame or title block
-of its own. No font over 768 KiB (FT-1940). The DXF does not embed or outline the texts. The window's own type is not
+of its own. No font over 2.5 MiB. The DXF does not embed or outline the texts. The window's own type is not
 the typeface. A text placed with the Text tool keeps the middle anchor.
 
 ---

@@ -277,14 +277,14 @@ impl ShellModel {
             name: "project.settings.set".to_owned(),
             params: serde_json::json!({ "member": "text_styles", "value": value }),
         };
-        self.commit_noted(&cmd, |_| done)
+        self.commit_noted(&cmd, Some(done))
     }
 
-    /// Commits `cmd` in one step; the page's note is `done` of the shell after it, or why it did not.
-    fn commit_noted(&mut self, cmd: &AnyCommand, done: impl FnOnce(&ShellModel) -> String) -> Outcome {
+    /// Commits `cmd` in one step; the page's note is `done`, or why it did not commit.
+    fn commit_noted(&mut self, cmd: &AnyCommand, done: Option<String>) -> Outcome {
         let out = self.run_commit(cmd);
         let note = match &out {
-            Outcome::Done => Some(done(self)),
+            Outcome::Done => done,
             Outcome::Failed { message } => Some(message.clone()),
             _ => None,
         };
@@ -324,8 +324,11 @@ impl ShellModel {
 
     /// `text_styles.typeface {path}` (Text styles ▸ Choose a font file…): the project's typeface from a font file, in
     /// one step (`project.typeface.set` with the file and its name; doc 09 §4.8). The window asks for the file with its
-    /// dialog (`Prompt::OpenFont`). A file that cannot be read or is larger than the 768 KiB a project takes is refused
-    /// here, naming the file by its name; one that is no usable font, by the command, in its words.
+    /// dialog (`Prompt::OpenFont`). A file that cannot be read or is larger than the 2.5 MiB a project takes is refused
+    /// here, naming the file by its name; one that is no usable font, by the command, in its words. The file goes to the
+    /// command in parts of one parameter string each ([`ew_api::MAX_PARAM_STRING`]), so a large font is one step as a
+    /// small one is, in the window and in a script's command log alike. The page's line names the new typeface; no note
+    /// repeats it.
     pub(crate) fn act_text_styles_typeface(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
@@ -369,26 +372,28 @@ impl ShellModel {
         if bytes.len() > limit {
             return too_large(self);
         }
+        let text = ew_api::base64_encode(&bytes);
+        // The text is ASCII, so every cut is on a character boundary.
+        let part = ew_api::MAX_PARAM_STRING;
+        let parts: Vec<&str> = (0..text.len())
+            .step_by(part)
+            .map(|at| &text[at..(at + part).min(text.len())])
+            .collect();
         let cmd = AnyCommand {
             name: "project.typeface.set".to_owned(),
-            params: serde_json::json!({ "file": ew_api::base64_encode(&bytes), "name": name }),
+            params: serde_json::json!({ "file": parts, "name": name }),
         };
-        self.commit_noted(&cmd, |s| {
-            let words = s.typeface_line().map_or_else(String::new, |l| l.words);
-            strings::format(key!("text-styles-note-typeface"), &[&words])
-        })
+        self.commit_noted(&cmd, None)
     }
 
     /// `text_styles.typeface_clear` (Text styles ▸ Use Noto Sans): the Standard typeface back to the bundled Noto Sans,
-    /// in one step.
+    /// in one step; the page's line says so.
     pub(crate) fn act_text_styles_typeface_clear(&mut self) -> Outcome {
         let cmd = AnyCommand {
             name: "project.typeface.set".to_owned(),
-            params: serde_json::json!({ "file": "" }),
+            params: serde_json::json!({ "file": [] }),
         };
-        self.commit_noted(&cmd, |_| {
-            strings::text(key!("text-styles-note-typeface-clear")).to_owned()
-        })
+        self.commit_noted(&cmd, None)
     }
 
     /// `text_styles.set {style, height?, face?, bold?}`: one style's height (a cap height in mm, `2.5` or `2,5`), its

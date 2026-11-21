@@ -114,7 +114,7 @@ says where the style prints and has:
   project has.
 
 Above the styles, **Standard typeface** says what prints the Standard typeface. **Choose a font file…** takes a
-TrueType or OpenType file (`.ttf`, `.otf`, at most 768 KiB) into the project, and every text in the Standard typeface
+TrueType or OpenType file (`.ttf`, `.otf`, at most 2.5 MiB) into the project, and every text in the Standard typeface
 then prints in it: on screen, in the PDF and the print, and as the font the DXF names. Use it to match a drawing set
 printed in another typeface, such as Liberation Sans. The project carries the whole file, so give the project only to
 those the font's licence allows; a font whose licence forbids embedding it in a document is refused. **Use Noto Sans**
