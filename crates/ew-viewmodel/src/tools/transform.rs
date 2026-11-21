@@ -4,7 +4,7 @@
 //! Transform and delete on a selection: with Select active and representations selected, R commits
 //! `rep.transform {reps, rotate: 1}`, Shift+R `rotate: 3`, X `rotate: 0, mirror: true`, Y `rotate: 2, mirror: true`;
 //! V on exactly one representation commits the `rep.transform` whose composition gives the next variant letter.
-//! Delete commits `edit.delete` with every entity of the selection the page tables resolve (§6.6). Transforms act on
+//! Delete commits `edit.delete` with every entity of the selection the page tables resolve. Transforms act on
 //! representations only; a move takes the selection's representations, page items and structure boxes.
 
 use ew_api::AnyCommand;

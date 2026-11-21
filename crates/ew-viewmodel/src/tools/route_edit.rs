@@ -9,7 +9,7 @@
 //! a press would take larger. A press on a segment of a *selected* connection drags it: a horizontal segment moves
 //! vertically and a vertical one horizontally. A press on a bend drags the corner, which moves its two segments. The
 //! readout shows the offset; the release commits (one undo step), Escape cancels. On a route-less connection the drag
-//! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Route
+//! starts from its drawn polyline. The keyboard route editor (Edit route) is gone: Route
 //! (`layout.route`) routes selected wires anew.
 //!
 //! **Keyboard**: with one wire selected, Tab and Shift+Tab give a handle the focus along the wire from the end
@@ -178,7 +178,7 @@ pub fn horizontal(line: &[(i64, i64)], seg: usize) -> bool {
 /// A part of a connection: the connection, its deduplicated polyline and the part.
 pub type PartRef = (EntityRef, Vec<(i64, i64)>, RoutePart);
 
-/// The part of the selected connections under the sheet point `at` within 4 points (§7.3's second row): a bend
+/// The part of the selected connections under the sheet point `at` within 4 points: a bend
 /// before a segment (a bend lies on two of them), of each kind the nearest, ties by connection ID.
 pub fn part_at(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
     let r = cx.nm_of_points(crate::canvas::HOVER_SLOP_PT).floor().min(9.0e15) as i128;

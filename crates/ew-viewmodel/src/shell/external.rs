@@ -10,7 +10,7 @@
 //!   unreadable change is a banner (D21); a read-only window reloads and keeps its page, zoom and selection where the
 //!   records exist.
 //! - **Cloud folders** (D25): a project in a cloud-synced folder shows a banner at open, and its session reads an
-//!   unreadable change again before saves wait. Online-only placeholders are not detected (de-scoped, §14.4).
+//!   unreadable change again before saves wait. Online-only placeholders are not detected (de-scoped, doc 05 §15).
 //! - **`.ewz`** (D24): File ▸ Export .ewz… (`file.export_ewz`) writes the saved generation; File ▸ Open .ewz…
 //!   (`file.open_ewz`) asks Extract and open or Open read-only.
 //! - **The upgrade** (D11, D24): the first save of a project in an older format asks once (`file.upgrade`).

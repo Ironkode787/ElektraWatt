@@ -112,7 +112,7 @@ pub enum PrintBuild {
         /// Its pages.
         pages: usize,
     },
-    /// No page is chosen: §6.17's empty state.
+    /// No page is chosen: doc 16a §6.17's empty state.
     Empty,
     /// The build failed, with the cause (no path).
     Failed(String),
@@ -666,7 +666,7 @@ impl ShellModel {
         ))
     }
 
-    /// The progress line of a running build (§6.19): "Building the print set… 40 %", or the writing phase's line.
+    /// The progress line of a running build (doc 16a §6.19): "Building the print set… 40 %", or the writing phase's line.
     pub fn print_progress_text(&self) -> Option<String> {
         let p = self.print_progress()?;
         Some(if p.total == 0 && p.phase == "writing" {

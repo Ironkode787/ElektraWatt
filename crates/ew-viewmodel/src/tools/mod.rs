@@ -4,7 +4,7 @@
 //! The canvas tool framework: the tool contract, the overlay, the
 //! snapper, the selection and the two shipped tools, Select and Measure, which change nothing.
 //!
-//! **The contract** (§7.1). A [`Tool`] is a state machine over typed input events ([`CanvasEvent`], in sheet nm):
+//! **The contract** (doc 06 §4.1). A [`Tool`] is a state machine over typed input events ([`CanvasEvent`], in sheet nm):
 //! one [`ToolOutput`] per event, a transient [`Overlay`], a preview command, a committed command, a cancel, a
 //! selection change or a link to follow. A tool gets no `World` and never calls the `Session`: its context
 //! ([`ToolCx`]) is the prepared page content of the focused canvas (display list, entity rectangles, links, cells,
@@ -178,7 +178,7 @@ pub enum CanvasEvent {
         /// How long, in milliseconds.
         ms: u32,
     },
-    /// The keyboard grid cursor moved to `at` (§7.7).
+    /// The keyboard grid cursor moved to `at`.
     CursorMove {
         /// The sheet point.
         at: (i64, i64),
@@ -239,7 +239,7 @@ pub struct RouteInfo {
     pub end: Option<String>,
 }
 
-/// What the host learned from a tool's preview (§7.3), handed to [`Tool::on_preview`].
+/// What the host learned from a tool's preview, handed to [`Tool::on_preview`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PreviewInfo {
     /// Whether the command was accepted.
@@ -292,12 +292,12 @@ pub enum Ghost {
         steps: (i64, i64),
         /// The readout (`dx 7.938 dy 0.000 mm`).
         readout: String,
-        /// The autoconnect proposals of the moved CPs (part 2, §8.3).
+        /// The autoconnect proposals of the moved CPs.
         proposals: Vec<(String, Option<String>)>,
         /// Whether the move commits them (connect on move).
         connect: bool,
     },
-    /// The paste tool's floating fragment (§8.8).
+    /// The paste tool's floating fragment.
     Paste {
         /// The fragment's records.
         records: usize,
@@ -423,9 +423,9 @@ pub enum ToolOutput {
     None,
     /// The overlay becomes this one.
     Transient(Overlay),
-    /// Preview this command on a fork (§7.3); the overlay is kept.
+    /// Preview this command on a fork; the overlay is kept.
     Preview(Box<dyn DynCommand>),
-    /// Commit this command (§7.3); then the overlay and the preview are cleared.
+    /// Commit this command; then the overlay and the preview are cleared.
     Commit(Box<dyn DynCommand>),
     /// Drop the overlay and the preview; the revision is unchanged.
     Cancel,
@@ -437,7 +437,7 @@ pub enum ToolOutput {
     RefusedWith(Key<'static>, String),
     /// Change the selection; the overlay is cleared.
     Select(SelectionChange),
-    /// Follow the page's link to this destination (§6.4); the overlay is cleared.
+    /// Follow the page's link to this destination; the overlay is cleared.
     Follow(Destination),
     /// A step only the host can take, because it reads what a tool may not (the libraries): no command.
     Host(HostStep),
@@ -577,7 +577,7 @@ pub trait Tool {
         None
     }
 
-    /// The host ran the tool's preview (§7.3): the tool may answer a new overlay (the predicted tag, the CPs a
+    /// The host ran the tool's preview: the tool may answer a new overlay (the predicted tag, the CPs a
     /// symbol exchange leaves unmapped).
     fn on_preview(&mut self, info: &PreviewInfo) -> Option<Overlay> {
         let _ = info;
@@ -1016,7 +1016,7 @@ pub fn page_selection_kinds(selection: &Selection, page: &CanvasPage) -> Vec<(En
         .collect()
 }
 
-/// The selection resolved by the page tables (§6.6): each entity the tables hold with its kind, in selection order.
+/// The selection resolved by the page tables: each entity the tables hold with its kind, in selection order.
 pub fn selection_kinds(selection: &Selection, tables: &PageTables) -> Vec<(EntityRef, EntityKind)> {
     selection
         .items

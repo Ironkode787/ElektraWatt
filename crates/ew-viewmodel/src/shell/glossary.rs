@@ -7,7 +7,7 @@
 //! and the definition, and a row's actions as buttons.
 //!
 //! **The search** (`glossary.filter`) covers every column in the UI language and in English, by the navigator
-//! filter's rule (§6.3's plain text): the text split into tokens as a navigator row's cells are
+//! filter's rule (doc 16 §5.3's plain text): the text split into tokens as a navigator row's cells are
 //! (`ew_api::output::nav_tokens`), a row matching when every typed token is a prefix of one of its tokens, or when
 //! the typed text, case-folded, lies in one of its texts. An EPLAN or QET cell the file leaves empty stays empty.
 

@@ -147,7 +147,7 @@ pub struct NewProjectDialog {
 
 /// The file system read for the New project dialog's fields (name, folder, chosen line and its folder): what Create cannot do, and
 /// what it does besides, in words. The dialog asks every frame; the folders are read again only when a field changes,
-/// when the window regains the focus and once a second ([`ShellModel::recheck_new_project`]; rc.5, H11: a frame read a
+/// when the window regains the focus and once a second ([`ShellModel::recheck_new_project`]; a frame must not read a
 /// folder four times). Not part of the dialog's state: a copy starts empty, and two dialogs
 /// are equal whatever each read.
 #[derive(Default, Debug)]
@@ -236,8 +236,8 @@ impl NewProjectDialog {
         self.checked().0
     }
 
-    /// What Create does beyond the project when it can run: the folder typed is not there yet and is made (a
-    /// persona run expected the program to make it, as programs do); `None` otherwise.
+    /// What Create does beyond the project when it can run: the folder typed is not there yet and is made (as programs
+    /// do); `None` otherwise.
     pub fn note(&self) -> Option<String> {
         self.checked().1
     }

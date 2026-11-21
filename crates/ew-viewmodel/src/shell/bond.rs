@@ -204,7 +204,7 @@ impl ShellModel {
                 ("voltage", "voltage", voltage),
             ],
         };
-        // A pin named (a device's right-click menu, rc.5: pins that touch terminals directly, with no wire to select).
+        // A pin named (a device's right-click menu, pins that touch terminals directly, with no wire to select).
         let pin = match string_param(p, "at") {
             Err(e) => return e,
             Ok(None) => None,

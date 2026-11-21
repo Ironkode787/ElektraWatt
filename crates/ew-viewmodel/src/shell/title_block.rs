@@ -164,8 +164,8 @@ const PEOPLE: &str = "project/people.";
 
 impl ShellModel {
     /// The project's sheet gets one plain row per person the title block can print (Designer, Checker, Customer…) at
-    /// the head of Main, typed as a name; the list of parties, with addresses and personal data, waits under More (a
-    /// persona run met a raw JSON box when it looked for its designer).
+    /// the head of Main, typed as a name; the list of parties, with addresses and personal data, waits under More (no raw JSON box
+    /// stands where a person looks for the designer).
     pub(super) fn people_in_rows(sheet: &mut PropertySheet) {
         for section in sheet.sections.iter_mut().filter(|s| s.kind == "project") {
             let Some(list) = section.rows.iter().find(|r| r.path == "parties").cloned() else {
@@ -327,7 +327,7 @@ impl ShellModel {
 
     /// The line under field `field` of the open form `form`: the form's own ([`FormDialog::note`]), New page's place
     /// under its folio ([`ShellModel::new_page_place`]), and the Title
-    /// block fields form's rule of the revision label before Apply (the persona round of 0.2.0-rc.2: a "B" was refused
+    /// block fields form's rule of the revision label before Apply (a "B" must not be refused
     /// only after Apply): the project's form by the next free label, and where the form is set.
     pub fn form_note(&self, form: &FormDialog, field: &str) -> Option<String> {
         if let Some(note) = form.note(field) {
@@ -340,7 +340,7 @@ impl ShellModel {
             return None;
         }
         let (_, facts, _) = self.title_block_fields()?;
-        // Which cell of the sheet prints the field (a persona run could not tell which field fed which cell).
+        // Which cell of the sheet prints the field (so that a person can tell which field feeds which cell).
         let cell = facts
             .cells
             .iter()
@@ -365,8 +365,8 @@ impl ShellModel {
 
     /// The line at the foot of the open form `form`, under its last field: the Title block fields form's word on
     /// Checked where the page's title block prints a Checked cell that the current revision fills from no checker
-    /// yet, so the field is not in the form (the persona round of 0.2.0-rc.2: the line stood first, over fields that
-    /// had no Checked). `None` for another form.
+    /// yet, so the field is not in the form (the line must not stand first, over fields that
+    /// have no Checked). `None` for another form.
     pub fn form_foot(&self, form: &FormDialog) -> Option<String> {
         if form.action == "page.fit_grid" {
             return self.grid_fit_foot(form);

@@ -148,11 +148,11 @@ pub struct PageNavigator {
     collapsed: BTreeSet<String>,
     /// The row cursor's key, when the user moved it; else the current page's row.
     row: Option<String>,
-    /// The keys of the marked rows (multi-selection, §6.4).
+    /// The keys of the marked rows (multi-selection).
     pub(crate) marked: BTreeSet<String>,
     /// The key a Shift range starts from.
     pub(crate) anchor: Option<String>,
-    /// The selection generation the navigator last applied or followed (the generation guard, §6.5).
+    /// The selection generation the navigator last applied or followed (the generation guard).
     pub(crate) applied: Option<u64>,
 }
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's jobs (§6.4): the PDF export as a job of `ew_jobs`, its entries in the
+//! The shell's jobs (doc 16 §8.3): the PDF export as a job of `ew_jobs`, its entries in the
 //! Jobs pane, and the file rule.
 //!
 //! **The file rule.** The job's body runs the export ([`ew_api::output::ExportJob::run`]) and then writes the bytes to
@@ -422,7 +422,7 @@ pub(crate) fn io_cause(e: &std::io::Error) -> String {
 /// The pages a job's body produced, and their kinds.
 type PageCount = (usize, ew_api::output::PageKinds);
 
-/// The export job's body (§6.3 step 3): the export (`produce`: the bytes and the pages), then the sibling written and
+/// The export job's body: the export (`produce`: the bytes and the pages), then the sibling written and
 /// synced, the checkpoint `rename`, the rename over the target.
 fn export_body(
     produce: impl FnOnce(&JobCtl) -> Result<(Vec<u8>, PageCount), JobError>,

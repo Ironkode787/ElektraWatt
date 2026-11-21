@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's state (§7.3, §7.8): the active tool, the overlay it owns, the kept preview, the
+//! The tool host's state: the active tool, the overlay it owns, the kept preview, the
 //! selection, the link preview and the live-region announcement. The shell drives it (`ShellModel`'s tool actions);
 //! only the shell calls the `Session`.
 
@@ -111,7 +111,7 @@ pub(crate) struct ToolHost {
     pub context: Option<(usize, u32, crate::canvas::PageId)>,
     /// The connection point the last `cp.*` step put the cursor on: (session, revision, folio, index).
     pub last_cp: Option<(u64, u64, String, usize)>,
-    /// The picker popup (§6.4), while open.
+    /// The picker popup, while open.
     pub picker: Option<Picker>,
     /// The Join chooser of the Place tool (doc 16a §6.22), while open.
     pub chooser: Option<Chooser>,
@@ -119,11 +119,11 @@ pub(crate) struct ToolHost {
     pub exchange_rep: Option<EntityRef>,
     /// The place catalogue of (session, revision, folio), fetched once while the picker needs it.
     pub catalogue: Option<((u64, u64, String), Arc<PlaceCatalogue>)>,
-    /// The symbol shapes of (session, revision), by copy ID text, fetched once per copy (§6.2).
+    /// The symbol shapes of (session, revision), by copy ID text, fetched once per copy.
     pub shapes: Option<((u64, u64), ShapeCache)>,
     /// The primary record of the host's or a tool's last commit (its ID text).
     pub last_primary: Option<String>,
-    /// The page tables before the last commit, for dropping deleted records from the selection (§6.4 item 3).
+    /// The page tables before the last commit, for dropping deleted records from the selection.
     pub before_commit: Option<Arc<PageTables>>,
     /// The junction sequence editor popup, while open.
     pub junction_editor: Option<JunctionEditor>,
@@ -223,7 +223,7 @@ pub(crate) struct ToolHost {
     /// The page an open Arrange and route card would leave (docs/design/06a-drafting.md §7.3), read once per plan.
     pub arranged: Option<std::sync::Arc<crate::canvas::CanvasPage>>,
     /// The canvas group whose view was fitted when Arrange and route opened its card: it fits the page again at the
-    /// first new size of its pane once the card is gone (§7.3), whatever zoom the person took while it was open.
+    /// first new size of its pane once the card is gone, whatever zoom the person took while it was open.
     pub refit: Option<usize>,
 }
 

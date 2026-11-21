@@ -212,7 +212,7 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
             live
         })
         .unwrap_or_default();
-    // A tool's state change or a selection change is said until the cursor moves again (§7.6); it is
+    // A tool's state change or a selection change is said until the cursor moves again; it is
     // the focused group's.
     let focused = model.area().map(|a| a.focused) == Some(group);
     let live = match model.tool_announcement() {
@@ -241,7 +241,7 @@ pub fn follow_hint(model: &ShellModel, label: &str, action: &str) -> String {
 }
 
 /// The hint of one canvas: the hovered link's target while the active tool shows the hover, else the tool's status
-/// hint (§7.2).
+/// hint.
 fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
     match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
@@ -256,7 +256,7 @@ fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
 }
 
 /// The hint field: the active tool's status hint (`Click to select; drag for a rubber band`), or the hovered link's
-/// `Click or F: go to <label>` (§7.2).
+/// `Click or F: go to <label>`.
 pub fn hint(model: &ShellModel) -> String {
     match model.canvas() {
         Some(c) => hint_of(model, c),
@@ -264,9 +264,9 @@ pub fn hint(model: &ShellModel) -> String {
     }
 }
 
-/// The status-bar fields of `model` (§6.5): after the language, `Notifications <n>` while the log is
+/// The status-bar fields of `model` (doc 16a §5.8): after the language, `Notifications <n>` while the log is
 /// not empty, and last, while a job runs and `hide_job` is false, the job field: `PDF export <p> %` in the window,
-/// `PDF export` headless (no progress number in a transcript, §9 item 2).
+/// `PDF export` headless (no progress number in a transcript).
 pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
     let mut out = Vec::new();
     match model.project_name() {
@@ -457,7 +457,7 @@ pub fn findings_text(c: crate::navigators::messages::MessageCounts) -> Option<(S
     Some((parts.join(" · "), tone))
 }
 
-/// What waits in the Preview tab, in words (the owner's test of 0.3.0-rc.1: Update staged a card he never saw): "1 change
+/// What waits in the Preview tab, in words (Update must not stage a card unseen): "1 change
 /// waits for Apply" with the open card's changes, "A preview is open" for a card that changes nothing yet (the paste
 /// choice); `None` without a card. The status bar's field and the Preview tab's mark say it.
 pub fn waiting_text(model: &ShellModel) -> Option<String> {

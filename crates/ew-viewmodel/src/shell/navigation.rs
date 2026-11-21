@@ -118,9 +118,9 @@ pub struct SessionCalls {
     pub navigator_table: u64,
     /// `Session::highlight_members`: once per highlight and revision.
     pub highlight_members: u64,
-    /// `Session::export_job`: once per started PDF export (§9 item 5); no other `Session` call runs off this thread.
+    /// `Session::export_job`: once per started PDF export; no other `Session` call runs off this thread.
     pub export_job: u64,
-    /// `Session::preview_entities`: once per card the Preview tab shows (§9 item 5).
+    /// `Session::preview_entities`: once per card the Preview tab shows.
     pub preview_entities: u64,
     /// `Session::history_view`: once per (project session, revision) while the history panel is open.
     pub history_view: u64,
@@ -680,7 +680,7 @@ impl ShellModel {
         }
     }
 
-    /// The context restore of an undo or redo (§8.5): group `g`'s active tab shows `page` at `viewport` (a fitted view
+    /// The context restore of an undo or redo: group `g`'s active tab shows `page` at `viewport` (a fitted view
     /// fits again); the location it leaves goes on the tab's back list unless it is the one it reaches.
     pub(super) fn restore_location(&mut self, g: usize, page: PageId, viewport: Viewport) {
         let Some(from) = self.location(g) else { return };
@@ -823,7 +823,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Tabs and groups (§6.2)
+    // Tabs and groups
 
     fn area_op(
         &mut self,
@@ -944,7 +944,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Jumps, history, links and Go to (§6.3 to §6.5)
+    // Jumps, history, links and Go to
 
     pub(crate) fn act_history(&mut self, back: bool) -> Outcome {
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
@@ -1155,7 +1155,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-project"));
         };
         // The device's row of the Devices navigator (a terminal's of the Strips navigator) knows its main page and
-        // its drawings there (§6.1 item 6: main function first, then page order).
+        // its drawings there (main function first, then page order).
         let open = [ew_api::output::NavKind::Devices, ew_api::output::NavKind::Strips]
             .into_iter()
             .find_map(|kind| {
@@ -1256,8 +1256,8 @@ impl ShellModel {
 
     /// `nav.show {record, words?}`: Go to a thing by its drawing, not by its cell: the page of the first drawing of
     /// function `record` (of device `record`'s main function) shows with the symbol in the middle, selected (its whole
-    /// outline marked), and `words` stand beside it until the pointer moves (the persona run read a ring at the cell's
-    /// middle as nothing). Refused in words for a thing drawn nowhere.
+    /// outline marked), and `words` stand beside it until the pointer moves (so that a ring at the cell's
+    /// middle is not read as nothing). Refused in words for a thing drawn nowhere.
     pub(crate) fn act_nav_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let record = match p
             .get("record")
@@ -1425,7 +1425,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The grid cursor (§6.6)
+    // The grid cursor
 
     pub(crate) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
         // In a station's view the arrows go from slot to slot.
@@ -1465,7 +1465,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The page navigator (§6.1)
+    // The page navigator
 
     pub(crate) fn act_pages_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "mode") {
@@ -1608,7 +1608,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The focus (§6.6)
+    // The focus
 
     pub(crate) fn act_focus(&mut self, p: &Map<String, Value>) -> Outcome {
         let area = match string_param(p, "area") {

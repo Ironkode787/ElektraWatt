@@ -416,8 +416,8 @@ fn conductor(word: &str) -> Option<&'static str> {
     })
 }
 
-/// Whether a ghost CP designated `designation` would join the named potential `potential` of another conductor (rc.3:
-/// a placement joined a neutral pin to a phase because they stood near): both stand for a conductor
+/// Whether a ghost CP designated `designation` would join the named potential `potential` of another conductor (a placement must
+/// not join a neutral pin to a phase because they stand near): both stand for a conductor
 /// ([`conductor`]) and not the same one; a phase `L` matches any phase. A potential named by its fallback is no
 /// conductor's.
 fn other_conductor(designation: &str, potential: Option<&ew_api::output::TablePotential>) -> bool {
@@ -723,8 +723,8 @@ mod tests {
         );
     }
 
-    /// A persona run: a two-pole device under another whose poles stand a different distance apart had one pole
-    /// joined; the other pole now joins its partner by a wire that jogs over halfway, and its hint sends that route.
+    /// A two-pole device under another whose poles stand a different distance apart does not have one pole
+    /// joined only: the other pole joins its partner by a wire that jogs over halfway, and its hint sends that route.
     #[test]
     fn a_pole_out_of_line_joins_its_partner_by_a_jog() {
         let mut t = tables();
@@ -749,7 +749,7 @@ mod tests {
         assert!(p.list.is_empty(), "{p:?}");
     }
 
-    /// rc.3 persona runs: a sensor placed near an output card was joined to an output, and a neutral pin to a phase.
+    /// A sensor placed near an output card is not joined to an output, nor a neutral pin to a phase.
     /// A contact's point never takes a PLC output's pin (a coil's still does); a point that names a conductor never
     /// takes a point of a potential named for another one (a phase `L` takes any phase; a fallback name is no
     /// conductor's); a terminal's two sides never join two potentials of different names.
@@ -817,7 +817,7 @@ mod tests {
         assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
     }
 
-    /// A persona run, entry 17: a CP facing the ghost within the short run is proposed, one further away is far.
+    /// A CP facing the ghost within the short run is proposed, one further away is far.
     #[test]
     fn a_hit_beyond_the_short_run_is_far() {
         let g = [ghost(0, (0, 0), Dir::Down)];

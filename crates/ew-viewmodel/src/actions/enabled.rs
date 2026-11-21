@@ -41,7 +41,7 @@ pub(super) fn writable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)
 }
 
-/// The selection is one valve terminal (Generate overview… without a row; the persona round), else why not in words.
+/// The selection is one valve terminal (Generate overview… without a row), else why not in words.
 pub(super) fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.selected_valve_terminal().map(|_| ())
@@ -608,7 +608,7 @@ pub(super) fn ips_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with at least two interruption points selected (Edit ▸ Arrange interruption points; §9.3).
+/// An editable page with at least two interruption points selected (Edit ▸ Arrange interruption points).
 pub(super) fn two_ips(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.selected_ip_count() >= 2 {
@@ -618,7 +618,7 @@ pub(super) fn two_ips(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with exactly one black box selected (Edit ▸ Add connection point, the grips; §9.4).
+/// An editable page with exactly one black box selected (Edit ▸ Add connection point, the grips).
 pub(super) fn one_box(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_black_box_selected() {
@@ -628,7 +628,7 @@ pub(super) fn one_box(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with exactly one unbound free text selected (Edit ▸ Edit text; §10.5).
+/// An editable page with exactly one unbound free text selected (Edit ▸ Edit text).
 pub(super) fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.text_edit_target().map(|_| ())
@@ -742,7 +742,7 @@ pub(super) fn damaged_update_offered(m: &ShellModel) -> Result<(), Key<'static>>
     }
 }
 
-/// The recovery dialog's answers need the dialog (§6.6).
+/// The recovery dialog's answers need the dialog.
 pub(super) fn recovery_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if matches!(m.dialog(), Some(crate::shell::Dialog::Recovery { .. })) {
         Ok(())

@@ -5,13 +5,13 @@
 //! row gestures `strip.insert`, `strip.delete_rows`, `strip.move` and `strip.add_accessory` (`strip.unbridge` lives with
 //! the bridge rule in `bridge.rs`).
 //!
-//! **One gesture, one command.** Every gesture compiles through `Session::strip_edit` (the only door below the shell,
-//! §4.2) into one `terminal.insert`, `terminal.move` or `fields.set`, committed directly with the toast and one undo
+//! **One gesture, one command.** Every gesture compiles through `Session::strip_edit` (the only door below the shell)
+//! into one `terminal.insert`, `terminal.move` or `fields.set`, committed directly with the toast and one undo
 //! step (D12); deleting terminal rows is one `edit.delete` that always opens the host card (it removes their wires and
 //! bridges). The shell names no schema type: rows are read from the navigator's table, records through the session's
 //! query by their ID text.
 //!
-//! **Context** (§6.9): the Terminal strips navigator is open and focused (headless: open); otherwise the gestures refuse
+//! **Context**: the Terminal strips navigator is open and focused (headless: open); otherwise the gestures refuse
 //! `reason-not-strip-editor`.
 
 use std::collections::BTreeSet;
@@ -77,7 +77,7 @@ fn record(node: &NavNode) -> Option<Uuid> {
 }
 
 impl ShellModel {
-    /// The context of the strip editor's gestures (§6.9): the Terminal strips navigator is open and focused (headless:
+    /// The context of the strip editor's gestures: the Terminal strips navigator is open and focused (headless:
     /// open).
     pub(crate) fn strip_editor_shown(&self) -> Result<(), Key<'static>> {
         if !self.navigator_open(NavKind::Strips) {
@@ -187,7 +187,7 @@ impl ShellModel {
         Some(device.aspects.terminal.as_ref()?.strip.as_uuid())
     }
 
-    /// `strip.edit {strip?}` (Edit ▸ Strip editor, §6.1): the strip given (a printed tag), else the selected strip,
+    /// `strip.edit {strip?}` (Edit ▸ Strip editor): the strip given (a printed tag), else the selected strip,
     /// else the strip of the selected terminal, else the strip of the navigator's cursor row; shows the Terminal strips
     /// navigator focused in table mode, filtered to the strip, its cursor on the strip's first row.
     pub(crate) fn act_strip_edit(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -257,7 +257,7 @@ impl ShellModel {
         };
         let strip = &table.nodes[at];
         // A strip without a tag yet (`-?X?`) is shown by its ID, never by a filter built
-        // from its placeholder tag; any other strip by its `strip:` filter (§6.10).
+        // from its placeholder tag; any other strip by its `strip:` filter.
         let (filter, scope) = if strip.label.contains('?') {
             (String::new(), Some(strip.key.clone()))
         } else {
@@ -282,7 +282,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `strip.insert {count?, designation?}` (Insert, §6.4): `count` terminals before the cursor terminal row (on an
+    /// `strip.insert {count?, designation?}` (Insert): `count` terminals before the cursor terminal row (on an
     /// accessory row or the strip row, before the next terminal; with none after the cursor, at the end), copying the
     /// reference terminal (D14); one `terminal.insert`, the toast, the cursor on the first new row.
     pub(crate) fn act_strip_insert(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -417,7 +417,7 @@ impl ShellModel {
         })
     }
 
-    /// `strip.delete_rows` (Ctrl+Delete, §6.4, D12): terminal rows are one `edit.delete` of their devices, always the
+    /// `strip.delete_rows` (Ctrl+Delete, D12): terminal rows are one `edit.delete` of their devices, always the
     /// card; accessory rows one `fields.set` per strip, committed with the toast; a mix is refused.
     pub(crate) fn act_strip_delete_rows(&mut self) -> Outcome {
         let rows = or_return!(self.strip_rows());
@@ -510,7 +510,7 @@ impl ShellModel {
         out
     }
 
-    /// `strip.move {step?, before?}` (Alt+Up, Alt+Down, §6.4, D4): the marked terminal rows of one strip (else the
+    /// `strip.move {step?, before?}` (Alt+Up, Alt+Down, D4): the marked terminal rows of one strip (else the
     /// cursor row) one terminal up (`step` −1) or down (+1), or before the terminal `before` (a printed designation of
     /// the same strip, or `end`); one `terminal.move` with the toast; the marks and the cursor follow the rows.
     pub(crate) fn act_strip_move(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -582,7 +582,7 @@ impl ShellModel {
         out
     }
 
-    /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory, §6.5, D5): an accessory of `kind` (default
+    /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory, D5): an accessory of `kind` (default
     /// `end_clamp`) after the cursor row (a terminal: its `seq`; an accessory: its `after_seq`; the strip row: 0), or
     /// with `before` directly before the cursor terminal row, its
     /// part parsed by D7 or the one project copy of the kind's part kinds; several: the chooser list in the window, the
@@ -709,7 +709,7 @@ impl ShellModel {
             m.chooser = None;
         }
         // The accessory's word in lower case inside the sentence (doc 16a §8.1), the terminal in words
-        // (§8.8, "terminal 1 of -X1031"); the toast starts with a capital in either language.
+        // ("terminal 1 of -X1031"); the toast starts with a capital in either language.
         let word = &strings::in_sentence(strings::accessory_text(&kind));
         let terminal = strings::format(
             key!("accessory-at-terminal"),

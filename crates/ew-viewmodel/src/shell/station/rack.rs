@@ -37,7 +37,7 @@ impl ShellModel {
         let Some(project) = self.project.as_ref() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // A card dropped on a station's row (the persona run m3-p4): one that cannot go there says why.
+        // A card dropped on a station's row: one that cannot go there says why.
         let station_tag = project.session.device_tag(station).unwrap_or_default();
         if !project
             .session

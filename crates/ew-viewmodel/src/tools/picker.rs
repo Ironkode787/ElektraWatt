@@ -26,7 +26,7 @@
 //! a filter names Edit ▸ Choose part… as the next step.
 //!
 //! A row is disabled with a reason when the page's type does not allow the symbol's representation type or when a
-//! template function has no symbol on the page. In exchange mode (§7.5) only the allowed symbol rows are listed. A
+//! template function has no symbol on the page. In exchange mode only the allowed symbol rows are listed. A
 //! black-box row (a black-box symbol, or a template function that is a black box) arms the black box tool instead of
 //! Place; Insert ▸ Black box opens the picker on those rows alone ([`PickerMode::BlackBox`]).
 //!
@@ -518,7 +518,7 @@ impl Picker {
             // One order, (manufacturer, part number), the catalogue's order within a tie, whether the project holds
             // the part or not: a part placed once keeps its row, so the next click hits the row it aims at. Under a
             // filter, the parts whose description starts with it come first ("valve terminal" found the valve for a
-            // valve terminal before the terminal; the persona round).
+            // valve terminal before the terminal).
             let phrase = f.trim();
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
             parts.sort_by_cached_key(|i| {

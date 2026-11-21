@@ -9,7 +9,7 @@
 //! `k = round(d × den / num)` in `i128`, halves away from zero; a representation then moves to the grid point at
 //! its own index plus `k`, which the command computes exactly.
 //!
-//! **Rubber bands** (§6.7). A connection with exactly one end on a moved representation is drawn from the moved
+//! **Rubber bands**. A connection with exactly one end on a moved representation is drawn from the moved
 //! CP's new position along its polyline as `geometry::follow_end` moves it ([`follow_polyline`]: the end vertex by
 //! the CP's own displacement, the far end fixed, a dog-leg where a segment cannot follow); a connection with
 //! both ends moved is drawn translated.
@@ -71,7 +71,7 @@ fn cp_shift(tables: &ew_api::output::PageTables, at: (i64, i64), d: (i64, i64)) 
     (to.0 - at.0, to.1 - at.1)
 }
 
-/// The movable entities of a drag that starts on `pressed` (§7.3): the selection's representations, page items and
+/// The movable entities of a drag that starts on `pressed`: the selection's representations, page items and
 /// structure boxes when the pressed entity is selected, else the pressed entity alone; in selection order.
 pub fn moved_set(cx: &ToolCx<'_>, pressed: EntityRef) -> Vec<EntityRef> {
     if cx.selection.contains(pressed) {
@@ -124,7 +124,7 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
         let snap = |v: i64| grid_point_of(cx.snapper.grid(), v);
         let line: Vec<(i64, i64)> = match (da, db) {
             (None, None) => continue,
-            // Both ends moved: drawn translated (§6.7).
+            // Both ends moved: drawn translated.
             (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
             _ => follow_polyline(&c.polyline, &snap, da, db),
         };

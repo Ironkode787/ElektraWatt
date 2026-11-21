@@ -4,7 +4,7 @@
 //! The message panel on the navigator framework (D8, D9, D10): the view state that the table of
 //! `NavKind::Messages` does not hold, and the pure rules over that table.
 //!
-//! **Pending** (§7.2, FR-UI-041). The shell keeps the **editing page**: the focused tab's page after every successful
+//! **Pending** (FR-UI-041). The shell keeps the **editing page**: the focused tab's page after every successful
 //! commit made while that tab is focused, cleared when the focused tab shows another page, when the project closes and
 //! by `messages.check`. A finding row is pending when its node has the facet `kind:completeness`, its `page` facet
 //! names the editing page's folio and its state is open. A pending row gets the badge `pending` after its others, is
@@ -38,14 +38,14 @@ pub(crate) type CheckedTable = (&'static str, bool);
 /// The message panel's view state in the shell.
 #[derive(Clone, Debug, Default)]
 pub struct MessagesState {
-    /// The page of the focused tab on which the last commit was made (§7.2), with the project session it belongs to.
+    /// The page of the focused tab on which the last commit was made, with the project session it belongs to.
     pub(crate) editing_page: Option<(u64, PageId)>,
     /// The name of the scheme the table was built with, read with the table (once per revision while the pane is open).
     pub(crate) scheme: Option<&'static str>,
     /// Whether the pane shows the migration report instead of the project's scheme (d).
     pub(crate) migration: bool,
     /// The origin annotations of the commits made through a quick fix, by (project session, revision): `quick fix
-    /// <rule ID>` for the history panel (§7.4, §8.4).
+    /// <rule ID>` for the history panel (doc 16 §8.1).
     pub(crate) annotations: BTreeMap<(u64, u64), String>,
     /// The Fix all card on show: its fix's key (`fix-mark-cp-unused`, else its command) and how many fixes it holds,
     /// for the toast after Apply.
@@ -87,7 +87,7 @@ pub(crate) struct OnlineFacts {
     pub(crate) conflict_cps: Vec<(ew_api::output::Uuid, u16)>,
 }
 
-/// The counts of the pane's header line (§7.3): the open findings by severity less the pending ones, the waived
+/// The counts of the pane's header line: the open findings by severity less the pending ones, the waived
 /// findings, and the pending ones.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct MessageCounts {
@@ -111,7 +111,7 @@ impl MessageCounts {
     }
 }
 
-/// The finding a detail block shows (§7.3): rule, title, kind, severity, message and the quick fix's label; and what
+/// The finding a detail block shows: rule, title, kind, severity, message and the quick fix's label; and what
 /// Waive… and Unwaive need: the fingerprint, whether it is waived and the waiver's ID.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FindingDetail {
@@ -163,7 +163,7 @@ fn facet<'n>(node: &'n NavNode, name: &str) -> Option<&'n str> {
         .map(|(_, v)| v.as_str())
 }
 
-/// The one pending rule (§7.2): an open completeness finding whose page (`page`, lower case) is the editing page
+/// The one pending rule: an open completeness finding whose page (`page`, lower case) is the editing page
 /// (`editing`, a folio, any case). The Messages rows ([`is_pending`]) and the Properties header's chips
 /// ([`chip_pending`]) both read it (M39: the chip counts what the pane counts).
 pub fn pending_on(completeness_open: bool, page: Option<&str>, editing: Option<&str>) -> bool {
@@ -173,7 +173,7 @@ pub fn pending_on(completeness_open: bool, page: Option<&str>, editing: Option<&
     }
 }
 
-/// Whether a finding row is pending while `editing` (a folio, any case) is the editing page's folio (§7.2).
+/// Whether a finding row is pending while `editing` (a folio, any case) is the editing page's folio.
 pub fn is_pending(node: &NavNode, editing: Option<&str>) -> bool {
     node.role == NavRole::Finding
         && pending_on(
@@ -397,7 +397,7 @@ pub(crate) fn subject(node: &NavNode) -> String {
     node.cells.get(SUBJECT).cloned().unwrap_or_default()
 }
 
-/// The detail block of a finding row (§7.3); `None` for any other row and for the release's housekeeping warnings
+/// The detail block of a finding row; `None` for any other row and for the release's housekeeping warnings
 /// (nothing to waive).
 pub fn detail(node: &NavNode) -> Option<FindingDetail> {
     if is_release_note(node) {

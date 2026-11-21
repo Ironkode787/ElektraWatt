@@ -6,7 +6,7 @@
 //! popup's content, the tools' strip fields, the marker mode action and the return to Select when an edit finishes.
 //!
 //! **Reads.** Arming and the pointer and cursor moves of the Text, Graphic, Wire marker and Structure box tools read
-//! nothing (§12 item 4); text edit resolves the selection through the page tables the canvas has already fetched. A
+//! nothing; text edit resolves the selection through the page tables the canvas has already fetched. A
 //! structure box's location node and external reference are resolved through the session's query when its field is
 //! set.
 //!
@@ -33,7 +33,7 @@ pub struct TextPopup {
     pub title_key: Key<'static>,
     /// The text the field starts with (the ghost's).
     pub text: String,
-    /// Whether Tab takes the text and asks for the next (a box's pins, rc.5: `tool.next_proposal`).
+    /// Whether Tab takes the text and asks for the next (a box's pins, `tool.next_proposal`).
     pub tab_next: bool,
     /// Why the text typed cannot be taken, shown whole in a line under the field.
     pub error: Option<String>,
@@ -94,7 +94,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The Text tool and text edit (§10.5)
+    // The Text tool and text edit
 
     /// `tool.text` (T): the Text tool, armed.
     pub(crate) fn act_tool_text(&mut self) -> Outcome {
@@ -165,7 +165,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The Graphic tool (§10.5)
+    // The Graphic tool
 
     /// `tool.graphic {shape?}` (L, Insert ▸ Graphic): the Graphic tool, `line` without a shape.
     pub(crate) fn act_tool_graphic(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -182,7 +182,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The Wire marker tool (§10.5, §10.7)
+    // The Wire marker tool
 
     /// `tool.marker` (Shift+W): the Wire marker tool, armed.
     pub(crate) fn act_tool_marker(&mut self) -> Outcome {
@@ -248,7 +248,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The Structure box tool (§10.5, §10.7)
+    // The Structure box tool
 
     /// `tool.structure_box` (Shift+B): the Structure box tool, armed.
     pub(crate) fn act_tool_structure_box(&mut self) -> Outcome {
@@ -484,7 +484,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The marker mode action (§10.6)
+    // The marker mode action
 
     /// `project.marker_mode {mode}` (Tools ▸ Wire markers): commits `project.drawing.set` with the mode, or `null`
     /// for `per_wire`; a mode the project already has commits nothing.

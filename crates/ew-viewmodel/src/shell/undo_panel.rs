@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel's host duties and context restore (§8.4, §8.5, D13; FR-UI-023).
+//! The history panel's host duties and context restore (doc 16 §8.1, D13; FR-UI-023).
 //!
 //! **The panel** fetches `Session::history_view` once per (project session, revision) while it is open
 //! ([`ShellModel::sync_history`], counted) and none while it is closed. `history.row` moves its row cursor over the
@@ -64,7 +64,7 @@ impl ShellModel {
     }
 
     /// Annotates the history entry committed at `rev` with the origin text the panel shows instead of `Session`'s
-    /// (`quick fix EW-CORE-023`, §7.4 and §8.4); view state, cleared with the project.
+    /// (`quick fix EW-CORE-023`); view state, cleared with the project.
     pub fn note_history_origin(&mut self, rev: u64, text: &str) {
         self.history.origins.insert(rev, text.to_owned());
     }
@@ -380,7 +380,7 @@ impl ShellModel {
         }
     }
 
-    /// Restores the context kept under `rev` (§8.5): the page as a jump if it still exists, its viewport, and the
+    /// Restores the context kept under `rev`: the page as a jump if it still exists, its viewport, and the
     /// items of its selection that still exist. Nothing without a kept context.
     pub(super) fn restore_context(&mut self, rev: u64) {
         let Some(context) = self.history.contexts.get(&rev).cloned() else {

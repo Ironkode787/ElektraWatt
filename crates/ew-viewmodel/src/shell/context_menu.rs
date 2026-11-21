@@ -354,7 +354,7 @@ impl ShellModel {
             out.extend(self.aimed("potential.draw", json!({ "at": pin }), label));
         }
         self.plc_entries(thing.device, out);
-        // The persona round: a valve terminal's box offered no Add valve nor Generate overview….
+        // A valve terminal's box offers Add valve and Generate overview….
         let coil = match rep.functions.as_slice() {
             [f] => Some(*f),
             _ => None,
@@ -709,7 +709,7 @@ impl ShellModel {
                 out.extend(self.menu_item("devices.set_location"));
             }
             // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
-            // offers them (the persona round of M3: a right-click on a message did nothing).
+            // offers them.
             // A group whose findings' fixes are of one kind: Fix all (n)….
             (NavKind::Messages, NavRole::Rule, _) => {
                 if let Some((group, n)) = self.fix_all_offer(&node.key) {
@@ -770,7 +770,7 @@ impl ShellModel {
         out
     }
 
-    /// The PLC panel's and the PLC grid's Addresses menu (the persona round: Freeze addresses was found only through
+    /// The PLC panel's and the PLC grid's Addresses menu (so that Freeze addresses is not found only through
     /// the guide): the addressing commands of each configuration project, as its row's menu offers them, each label
     /// led by the configuration project's name when the project has more than one. Empty without one.
     pub fn plc_addressing_items(&self) -> Vec<ActionItem> {
@@ -862,7 +862,7 @@ impl ShellModel {
     }
 
     /// A waiting card's own entries: Attach to `<station>` for each station that takes cards, so that a card listed
-    /// under Modules without a station says on its own row where it can go (the persona round of M3).
+    /// under Modules without a station says on its own row where it can go.
     fn attach_entries(&self, card: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
             return;
@@ -1007,7 +1007,7 @@ impl ShellModel {
         if let Some(words) = self.terminal_kind_words(device) {
             out.extend(self.heading(words));
         }
-        // Valves put on their positions without a symbol (from the rack, the PLC list, a project made before rc.3).
+        // Valves put on their positions without a symbol (from the rack, the PLC list, an older project).
         if session.valves_to_draw(device) {
             let label = strings::text(key!("action-fluid-draw-valves")).to_owned();
             out.extend(self.aimed(
@@ -1058,7 +1058,7 @@ impl ShellModel {
                 i
             }));
         };
-        // An empty position is blanked from the module too (the persona round added a valve to blank it).
+        // An empty position is blanked from the module too.
         let blank = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
             let label = strings::format(key!("canvas-valve-blank"), &[&position.to_string()]);
             out.extend(self.aimed(
@@ -1116,8 +1116,8 @@ impl ShellModel {
 
     /// The entry of solenoid `s` of valve `device`, on the valve's symbol, its rows and its coil's row alike: a terminal
     /// valve's Go to output or its plug pin (never Draw solenoid); a stand-alone valve's Go to solenoid 14
-    /// where its coil is drawn, else Draw solenoid 14 on this page… while an electrical page is in front (the rc.2
-    /// re-test), on an electrical page… otherwise.
+    /// where its coil is drawn, else Draw solenoid 14 on this page… while an electrical page is in front,
+    /// on an electrical page… otherwise.
     fn solenoid_entry(
         &self,
         session: &ew_api::Session,
@@ -1177,8 +1177,8 @@ impl ShellModel {
         }
     }
 
-    /// Whether an electrical (multi-line) page is in front: Draw solenoid and Draw the plug draw there (the rc.2
-    /// re-test), and say "on this page…".
+    /// Whether an electrical (multi-line) page is in front: Draw solenoid and Draw the plug draw there,
+    /// and say "on this page…".
     fn electrical_in_front(&self) -> bool {
         self.page_rows()
             .get(self.page_index())

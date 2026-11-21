@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Naming a pin of a drawn box in place (`box_pin`, rc.5: a box drawn without a part could not get pins). A box whose
+//! Naming a pin of a drawn box in place (`box_pin`, a box drawn without a part can get pins). A box whose
 //! pins are its own ([`TableBox::own_pins`](ew_api::output::TableBox::own_pins)) takes a pin where it stands: Add pin
 //! (its right-click, Edit ▸ Add pin), a wire drawn to its edge where no pin is, or a double click on a pin to rename it
 //! opens this tool on the pin's point, and the text popup asks for its name. Add pin without a point (the bar's) arms

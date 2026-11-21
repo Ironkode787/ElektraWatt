@@ -1187,7 +1187,7 @@ fn derived_path(words: &[&str]) -> String {
     out
 }
 
-/// The page of a shipped rule in the book (§7.3): the rule's declared `docs` reference as a page,
+/// The page of a shipped rule in the book: the rule's declared `docs` reference as a page,
 /// `reference/rules/<id in lower case>.md` (`reference/rules/ew-core-033.md`); `None` for a rule this build does not
 /// ship.
 pub fn rule_page(rule: &str) -> Option<String> {
@@ -1379,7 +1379,7 @@ mod tests {
 
     /// Every target the window can open is in the guide: its page is in `SUMMARY.md` and holds the heading or anchor
     /// (a built reference page: the source it is built from). It reads the sources, never `target/book`: a local build
-    /// of the guide older than the sources failed it (rc.3 review).
+    /// of the guide older than the sources failed it.
     #[test]
     fn every_help_target_is_in_the_guide() {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
@@ -1580,7 +1580,7 @@ mod tests {
         assert_eq!(html_target(&anchor("home").unwrap()), "introduction.html");
     }
 
-    /// The persona runs of the third 0.3.0 candidate: F1 on Highlight opened the panels page. A button of the bar opens
+    /// F1 on Highlight must not open the panels page. A button of the bar opens
     /// its action's own section: the bar page's (its English label), or an own section it had already.
     #[test]
     fn each_button_of_the_bar_opens_its_actions_own_section() {

@@ -781,7 +781,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         items.extend(item("rep.keep_in_place"));
     }
     // Over a text of the one selected symbol, Hide text and Put the text back (greyed with its reason while the texts
-    // stand where the symbol puts them, rc.3: the menu offered only Hide text); over a symbol with a moved text, Put
+    // stand where the symbol puts them); over a symbol with a moved text, Put
     // the text back.
     let over_text = model.text_under_pointer();
     if let Some(slot) = over_text
@@ -1113,7 +1113,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 .get(model.page_index())
                 .is_some_and(|r| r.kind == "bus_topology")
             {
-                // A bus-topology page says its three steps where the user looks (a persona run found no way on).
+                // A bus-topology page says its three steps where the user looks.
                 strings::text(key!("hud-bus-page-steps")).to_owned()
             } else if model.page_rows().get(model.page_index()).map(|r| r.kind.as_str())
                 == Some("panel_layout")

@@ -338,7 +338,7 @@ pub fn state_json(shell: &ShellModel) -> String {
             "focus",
             &match shell.focus() {
                 None => Value::Null,
-                // `navigator` for Pages, `navigator.<kind>` for the others (§6.8).
+                // `navigator` for Pages, `navigator.<kind>` for the others.
                 Some(Focus::Navigator(crate::navigators::NavKind::Pages)) => Value::from("navigator"),
                 Some(Focus::Navigator(k)) => Value::from(format!("navigator.{}", k.word())),
                 Some(Focus::Canvas(_)) => Value::from("canvas"),
@@ -361,7 +361,7 @@ pub fn state_json(shell: &ShellModel) -> String {
     object(members)
 }
 
-/// The `clipboard` member (§8.8): `null` while empty, `{"kind": "fragment", "records", "copies"}` or `{"kind": "text",
+/// The `clipboard` member: `null` while empty, `{"kind": "fragment", "records", "copies"}` or `{"kind": "text",
 /// "lines"}`. Never the text: a fragment holds real record IDs (data, not machine text).
 fn clipboard_json(shell: &ShellModel) -> String {
     use crate::clipboard::ClipKind;
@@ -379,7 +379,7 @@ fn clipboard_json(shell: &ShellModel) -> String {
     }
 }
 
-/// The `find` member (§7.6): `null` while the find pane is closed.
+/// The `find` member: `null` while the find pane is closed.
 fn find_json(shell: &ShellModel) -> String {
     if !shell.find_shown() {
         return "null".to_owned();
@@ -908,7 +908,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
     let card = shell.properties().card()?;
     let tags = card.preview.derived.tags.len().to_string();
     let xrefs = card.preview.derived.xrefs.len().to_string();
-    // A macro card's line ends with its conflicts, also when a prevent rule refused it (§11).
+    // A macro card's line ends with its conflicts, also when a prevent rule refused it.
     if let CardOrigin::Macro(m) = &card.origin {
         let head = match card.failed_lead() {
             Some(lead) => match lead.rule {

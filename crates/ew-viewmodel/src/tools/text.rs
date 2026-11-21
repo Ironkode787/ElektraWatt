@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Text tool (`text`; §10.7) and text edit (F2, a double click on a selected free text), with the
-//! six bindable names a free text may show instead of its own text (§10.2 item 2).
+//! The Text tool (`text`) and text edit (F2, a double click on a selected free text), with the
+//! six bindable names a free text may show instead of its own text.
 //!
 //! **The Text tool.** All points are page nm, fine-snapped ([`crate::tools::Snapper::snap_fine`],
 //! `FineKind::Text`); the overlay is in sheet nm. A bound text has nothing to type: a click places it at once with

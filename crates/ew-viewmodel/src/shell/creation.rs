@@ -1838,7 +1838,7 @@ impl ShellModel {
             }
             None => {}
         }
-        // The persona round: Apply changed nothing visible. The toast says what the default tube is now and that the
+        // Apply shows its change: the toast says what the default tube is now and that the
         // tubes drawn already take it; without a material it says the tubes still lack one (EW-FL-007).
         let size = match (
             tube.get("od").and_then(Value::as_i64),
@@ -2294,8 +2294,7 @@ impl ShellModel {
         }
         let out = self.host_create("report_block.create", params);
         if out == Outcome::Done {
-            // A block with nothing to list makes no page: the toast says so and what gives it rows (the persona round
-            // looked for a page 913 that the toast had announced).
+            // A block with nothing to list makes no page: the toast says so and what gives it rows.
             let empty = self.project_session().is_some_and(|s| {
                 matches!(
                     ew_api::output::report_folios(&s.query(), &number.to_string()),

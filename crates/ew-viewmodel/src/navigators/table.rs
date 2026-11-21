@@ -9,7 +9,7 @@
 //! ascending or descending, ties by node order); [`table_rows`]. **Columns** on show are the chosen ones in the chosen
 //! order; the key column cannot be hidden and stays first.
 //!
-//! **Editable cells** (§8.2): a column with a route of §8.2's table (`NavColumn::route`), on a row with records of the
+//! **Editable cells**: a column with a route (`NavColumn::route`), on a row with records of the
 //! route's kind. Every other cell is read-only with the first reason of: "derived", "generated", "no record of this
 //! kind", "edit in the property grid", "no command yet" ([`cell_reason`]).
 //!
@@ -45,7 +45,7 @@ use serde_json::{Value, json};
 #[cfg(test)]
 use std::collections::BTreeSet;
 
-/// Why a cell is read-only (§8.2's precedence), `None` for an editable cell: "derived", "generated", "no record of this
+/// Why a cell is read-only (in this order), `None` for an editable cell: "derived", "generated", "no record of this
 /// kind", "edit in the property grid", "no command yet": the text of
 /// [`cell_reason_key`](ew_api::output::table_edit::cell_reason_key).
 pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<String> {
@@ -284,7 +284,7 @@ pub struct CellEdit {
     pub buffer: String,
 }
 
-/// The rows of the table on show (§8.1): the table rows that pass the filter (and, with a `scope`, the children of the
+/// The rows of the table on show: the table rows that pass the filter (and, with a `scope`, the children of the
 /// node of that key), sorted by the sort column (or the label), natural, ascending or descending, ties by node order.
 /// One level, a pure function.
 pub fn table_rows(
@@ -343,7 +343,7 @@ pub fn table_rows(
         .collect()
 }
 
-/// The node indices a gesture acts on (§8.3 to §8.6): the marked rows on show, in display order, else the cursor row.
+/// The node indices a gesture acts on: the marked rows on show, in display order, else the cursor row.
 pub fn gesture_rows(nav: &Navigator) -> Vec<u32> {
     let Some(table) = nav.table() else {
         return Vec::new();
@@ -386,7 +386,7 @@ pub fn cell_text(table: &NavTable, node: u32, key: &str) -> String {
         .unwrap_or_default()
 }
 
-/// The texts a pattern fill produces (§8.5) over [`gesture_rows`] in the cursor column: `{n}` counts the rows from 1,
+/// The texts a pattern fill produces over [`gesture_rows`] in the cursor column: `{n}` counts the rows from 1,
 /// `{prev}` starts with the cursor column's text of the row on show directly above the first one (empty when there is
 /// none). With `limit`, only the first `limit` rows are computed (the dialog's preview). A row in error passes the
 /// empty text on as the next row's `{prev}`, so an error cannot grow later rows.

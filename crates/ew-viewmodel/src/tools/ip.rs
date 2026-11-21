@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The IP tool (`ip`; doc 06 §3.5, §4.5) and the naming rules it shares with the Wire tool's end in an
-//! interruption point (§9.2).
+//! interruption point.
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
@@ -18,8 +18,8 @@
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The name** is the typed one, unchanged; else, while a point of the project waits for its partner (a target
-//! without a source, a source without a target; [`ProjectIps::waiting`]), that name with the partner's direction (rc.2:
-//! placing the partner of IP-1 is the default); else a proposal from a base ([`proposal_base`]; an external point's
+//! without a source, a source without a target; [`ProjectIps::waiting`]), that name with the partner's direction (placing the partner of IP-1
+//! is the default); else a proposal from a base ([`proposal_base`]; an external point's
 //! is `IP`): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
@@ -138,7 +138,7 @@ impl IpDir {
 
     /// D's next direction: source and target, to and fro; an undirected point becomes a source. (D went on to
     /// undirected after target. A person who pressed D for "target" on a point the tool had already made a target
-    /// got an undirected one, whose arrow takes its wire at the tail: the persona round before 0.2.0. Undirected
+    /// got an undirected one, whose arrow takes its wire at the tail. Undirected
     /// is a choice of the point's Direction in Properties.)
     pub fn next(self) -> IpDir {
         match self {
@@ -329,7 +329,7 @@ impl ProjectIps {
 /// becomes `target` with that name (the first point of a name is its source, the next ones its targets, on the
 /// same page too), and an automatic `target` whose name has points but no source becomes its `source`: the tool
 /// offers the partner a lone point lacks, never a second point of its direction (a target placed first by the
-/// page's left quarter, then "L1-1 target" offered: the persona round of 0.2.0-rc.2). Only a name the user gives
+/// page's left quarter, then "L1-1 target" offered). Only a name the user gives
 /// joins two points. Otherwise the point
 /// keeps `auto` and takes the first name of the series that no interruption point of the project has
 /// ([`ProjectIps::free_name`]), read from the model at the moment of naming, so a reopen, an undo or a paste

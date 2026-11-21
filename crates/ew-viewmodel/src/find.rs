@@ -5,7 +5,7 @@
 //! revision they were made at, the result cursor and the pane's note.
 //!
 //! Only the shell (`ShellModel`'s `find.*` actions) calls the `Session`: `find.run` makes exactly one
-//! `Session::find` call and typing makes none (§9 item 4); `find.replace_all` turns the results'
+//! `Session::find` call and typing makes none; `find.replace_all` turns the results'
 //! `replace_command` into one `fields.set_many` that always goes through the inline preview card (FR-UI-020,
 //! FR-DEV-032: "one previewed command"). A result list made at another revision than the current one is stale.
 

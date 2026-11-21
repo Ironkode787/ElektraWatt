@@ -64,13 +64,13 @@ pub enum PaneKind {
     Properties,
     /// The find pane: opened by Ctrl+F or Ctrl+H below the page view.
     Find,
-    /// A navigator other than Pages (§6.8): docked as a tab beside the Pages pane; its workspace key is the kind word.
+    /// A navigator other than Pages (doc 16a §5.4): docked as a tab beside the Pages pane; its workspace key is the kind word.
     Navigator(NavKind),
-    /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock.
+    /// The Jobs pane (doc 16 §8.3): the PDF exports with their progress and results, in the bottom dock.
     Jobs,
-    /// The Preview tab (§8.1): the open card's preview, in the bottom dock.
+    /// The Preview tab (doc 16a §6.23): the open card's preview, in the bottom dock.
     Preview,
-    /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock.
+    /// The history panel (doc 16 §8.1): the undo steps and the marker lines, in the bottom dock.
     History,
     /// The glossary pane (D16, FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
     Glossary,
@@ -433,7 +433,7 @@ impl Layout {
         }
     }
 
-    /// The layout with a navigator pane (View ▸ Navigators, §6.8): the Pages pane at the left of a horizontal root
+    /// The layout with a navigator pane (View ▸ Navigators): the Pages pane at the left of a horizontal root
     /// split (160 of the shares), another navigator as a new tab beside the Pages pane (the Pages pane's place becomes
     /// tabs, or the tabs it is in get one more), shown; without a Pages pane, at the left like Pages. Unchanged when
     /// the pane is in it.

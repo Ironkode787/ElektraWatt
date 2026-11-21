@@ -577,7 +577,7 @@ impl ShellModel {
         })
     }
 
-    /// `part.choose {target?, use?, add?, strip?}` (§9.4): opens the part dialog for its target; `strip` (its ID), for
+    /// `part.choose {target?, use?, add?, strip?}`: opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         // A cable by its ID (Choose a cable type… on its finding): its cable parts, those that fit first.
@@ -860,7 +860,7 @@ impl ShellModel {
         Ok(grid.or_else(lib_row))
     }
 
-    /// `part.edit {part?}` (§9.4): opens the part editor with the draft of a held part copy.
+    /// `part.edit {part?}`: opens the part editor with the draft of a held part copy.
     pub(crate) fn act_part_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         let copy = match self.part_edit_copy(p) {
             Ok(Some(c)) => c,
@@ -1156,7 +1156,7 @@ impl ShellModel {
         };
         match project.session.own_part_update(&editor.draft) {
             Ok(plan) => {
-                // The card in words, as a part kept to the project lists its correction (the persona run m3-p4).
+                // The card in words, as a part kept to the project lists its correction.
                 let fields = plan
                     .copies
                     .first()
@@ -1361,7 +1361,7 @@ impl ShellModel {
     }
 }
 
-/// A part card's changed members in words (the persona run m3-p4 read the sections as raw JSON): each member by its
+/// A part card's changed members in words (never the sections as raw JSON): each member by its
 /// label, the sections as the interfaces and PLC fields that change ([`section_changes`]), the pins made again as
 /// their designations (their function template following them, unlisted).
 fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
@@ -1474,7 +1474,7 @@ fn interface_words(p: &Value) -> String {
     [choice("bus"), choice("role"), ports_words(p)].join(", ")
 }
 
-/// The changes of a part's `sections` in words (the persona run m3-p4 read them as JSON): per interface of the bus
+/// The changes of a part's `sections` in words (never as JSON): per interface of the bus
 /// section that comes, goes or changes, "Interface X1: 8 ports → 6 ports" (its socket count alone when nothing else
 /// of it changes, else its bus, role and count); per field of the PLC section the part editor shows ("Channels: 8 →
 /// 16", "Pin pattern: {n+1} → X2:{n+1}"), the I/O ranges and bit map that follow the channels left out; anything else

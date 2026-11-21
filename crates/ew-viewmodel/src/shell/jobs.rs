@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's part of the jobs and notifications: the PDF export as a job (§6.3) with its entries and actions (§6.4), the
-//! notifications and their log (§6.5), and the recovery dialog's answers (§6.6).
+//! The shell's part of the jobs and notifications (doc 16 §8.2, §8.3): the PDF export as a job with its entries and actions, the
+//! notifications and their log, and the recovery dialog's answers.
 //!
 //! **Threads.** The `Session` never leaves this thread: `file.export_pdf` takes `Session::export_job` (a snapshot) and
 //! hands it to a job of `ew_jobs`; nothing on the job's thread touches the shell. The end of a job is taken by
@@ -136,7 +136,7 @@ impl ShellModel {
         self.notes.newest_visible()
     }
 
-    /// Whether `n`'s action is valid now (§6.5): Undo while the step it reports is the next undo step of the same
+    /// Whether `n`'s action is valid now: Undo while the step it reports is the next undo step of the same
     /// project session; Open while the file it names was written in this session. `false` without an action.
     pub fn notification_valid(&self, n: &Notification) -> bool {
         n.action().is_some_and(|a| self.note_action_valid(n, a))
@@ -207,7 +207,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Notifications (§6.5)
+    // Notifications
 
     /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
@@ -571,8 +571,8 @@ impl ShellModel {
         );
     }
 
-    /// Shows the toast that the parts list leaves out the devices without a part, when there are any (a persona run,
-    /// entry 31): how many, with Select them.
+    /// Shows the toast that the parts list leaves out the devices without a part, when there are any:
+    /// how many, with Select them.
     #[inline(never)]
     pub(super) fn notify_unlisted(&mut self) {
         let Some(devices) = self
@@ -619,7 +619,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The PDF export (§6.3)
+    // The PDF export
 
     /// `file.export_pdf {path?, replace?, wait?}`: the export as a job writing `path` through its hidden sibling.
     pub(crate) fn act_export_pdf(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -740,7 +740,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5). The waiting step sees
+    /// Waits for job `number` and takes its end; the step's outcome by the end. The waiting step sees
     /// the end, so it is not an unseen failure, also when a poll took the end before this step; the
     /// entry is marked as waited for, whatever its end.
     pub(super) fn wait_job(&mut self, number: u64) -> Outcome {
@@ -760,7 +760,7 @@ impl ShellModel {
         outcome
     }
 
-    /// The end of job `number` (§6.3 item 5): its entry's status, the notification, the history marker. Returns the
+    /// The end of job `number`: its entry's status, the notification, the history marker. Returns the
     /// outcome a waiting step reports.
     pub(super) fn finish_job(&mut self, number: u64, end: JobEnd<ExportDone>) -> Outcome {
         let current = self.project.as_ref().map(|p| (p.epoch, p.session.world().rev.0));
@@ -967,7 +967,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The recovery dialog (§6.6)
+    // The recovery dialog
 
     /// `journal.keep` (Open read-only, Escape): the dialog closes; the project stays read-only and the journal stays.
     pub(crate) fn act_journal_keep(&mut self) -> Outcome {

@@ -110,8 +110,8 @@ impl FormDialog {
                 .iter()
                 .find(|f| f.name == "level")
                 .and_then(|f| super::level_sentence(&f.value)),
-            // What the chosen type is for (`form-page-type-note-<type>`, the persona run m3-p4 read of lists under Bus
-            // topology), else, a list being no page type, where lists are made.
+            // What the chosen type is for (`form-page-type-note-<type>`), else,
+            // a list being no page type, where lists are made.
             ("page.new", "type") => Some(
                 self.fields
                     .iter()

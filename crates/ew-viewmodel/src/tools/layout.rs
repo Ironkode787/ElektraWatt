@@ -19,7 +19,7 @@
 //! **Target snapping on a rail** (D4). The footprint's left edge snaps within 15 points to (1) where it touches a
 //! neighbour at its minimum gap, (2) the rail ends at their gaps, (4) the plate grid along the axis (5 mm or 1 mm);
 //! the nearest wins, at equal distance (1) before (2) before (4). Target (3), the column alignment with the rail
-//! above, is de-scoped in this part (§13's order). Shift suspends the snapping: the pointer's `s` rounded to 0.1 mm.
+//! above, is de-scoped in this part. Shift suspends the snapping: the pointer's `s` rounded to 0.1 mm.
 //! On the plate the footprint snaps to the grid and, within 15 points, to the edges and centres of the other
 //! footprints and of the ducts.
 //!
@@ -1132,7 +1132,7 @@ fn capitalised(s: &str) -> String {
 /// positions where it touches a neighbour at its minimum gap and (2) the rail ends at their gaps, each within
 /// `reach`, and (4) the nearest grid point along the axis (`origin` is the rail start's coordinate along its
 /// direction, so the grid is the plate's); at equal distance the lower class wins. Target (3), the column alignment,
-/// is de-scoped (§13).
+/// is de-scoped.
 pub fn snap_left(
     items: &[RailItem],
     length: i128,

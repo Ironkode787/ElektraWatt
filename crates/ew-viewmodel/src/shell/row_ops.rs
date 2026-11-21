@@ -251,7 +251,7 @@ impl ShellModel {
         Ok(())
     }
 
-    /// `cable.swap_cores`: the two marked core rows of one cable swap their connections (§7, FR-CBL-016).
+    /// `cable.swap_cores`: the two marked core rows of one cable swap their connections (FR-CBL-016).
     pub(crate) fn act_cable_swap_cores(&mut self) -> Outcome {
         if let Err(reason_key) = self.cables_shown() {
             return Outcome::Refused { reason_key };

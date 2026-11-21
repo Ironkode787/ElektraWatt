@@ -4,7 +4,7 @@
 //! The clipboard actions: copy, cut, paste, duplicate, copy tag list and the
 //! headless clipboard.
 //!
-//! **Reads** (§9 item 4): a copy is one `Session::copy_fragment`, a tag list one `Session::tag_list`, `edit.paste_clip`
+//! **Reads**: a copy is one `Session::copy_fragment`, a tag list one `Session::tag_list`, `edit.paste_clip`
 //! one `parse_fragment`, duplicate one of each of the first and third; the paste tool's moves make no `Session` call,
 //! a dwell that changes the anchor or the revision one `preview_with`.
 
@@ -29,7 +29,7 @@ use ew_api::DerivedDiff;
 use ew_api::output::Uuid;
 
 impl ShellModel {
-    /// The shell's clipboard (§8.7).
+    /// The shell's clipboard.
     pub fn clipboard(&self) -> &ClipboardState {
         &self.clip
     }
@@ -614,7 +614,7 @@ impl ShellModel {
         self.notify(text, true);
     }
 
-    /// After a committed paste (§8.5): Select takes over with the pasted representations selected, one selection change.
+    /// After a committed paste: Select takes over with the pasted representations selected, one selection change.
     /// The pasted representations are those the page tables hold now and did not before the commit; a paste fitted to the
     /// page's grid has its wires routed and says so ([`Self::finish_fitted_paste`]).
     pub(super) fn after_paste(&mut self) {

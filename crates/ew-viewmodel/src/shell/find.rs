@@ -5,7 +5,7 @@
 //! `Session::find` call; typing makes none), the result cursor and the jump, and the replace through the inline
 //! preview card.
 //!
-//! **Replace** (§7.4): `find.replace_all` re-runs the search first when the results are stale or were made for
+//! **Replace**: `find.replace_all` re-runs the search first when the results are stale or were made for
 //! another query, then previews the results' `fields.set_many` through the host and always shows the card. Apply on a
 //! fresh card commits one transaction (one undo step) and leaves the note "Replaced 20; run again to refresh"; the
 //! results are not re-run. **A stale replace card** is never applied with its old parameters: Apply runs the search
@@ -122,7 +122,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `find.text` and `find.replacement`: the whole text of the field; no search (§9 item 4).
+    /// `find.text` and `find.replacement`: the whole text of the field; no search.
     pub(crate) fn act_find_text(&mut self, p: &Map<String, Value>, replacement: bool) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
@@ -260,7 +260,7 @@ impl ShellModel {
     }
 
     /// `find.replace_all` (Ctrl+Enter in the pane, Edit ▸ Replace all): the results' `fields.set_many`, previewed,
-    /// always through the card (§7.4). Stale results, or results of another query, are searched again first.
+    /// always through the card. Stale results, or results of another query, are searched again first.
     pub(crate) fn act_find_replace_all(&mut self) -> Outcome {
         if !self.find.replace_mode {
             return Outcome::refused(key!("reason-find-no-replace"));
@@ -393,7 +393,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// A command refusal of the replace as the pane shows it (§7.4, the refusal per field): a pointer below
+    /// A command refusal of the replace as the pane shows it (the refusal per field): a pointer below
     /// `/edits/<i>` names the entry's record by its subject in the results and the field by its path ("on -201U5-Q1
     /// (function_text): ..."); other IDs as folios or "a record".
     fn refusal_for_find(&self, e: &ew_api::CmdError, params: &Value) -> String {
@@ -449,7 +449,7 @@ impl ShellModel {
         super::properties::replace_uuids(&text, &name)
     }
 
-    /// Apply on a replace card (§7.4): a fresh card commits one transaction; a stale one runs the search again and shows
+    /// Apply on a replace card: a fresh card commits one transaction; a stale one runs the search again and shows
     /// a fresh card.
     pub(super) fn apply_find_card(&mut self, card: Card) -> Outcome {
         let Some(rev) = self.revision() else {

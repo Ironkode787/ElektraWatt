@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators in the shell (to §6.9): the open navigators with their tables, the
+//! The navigators in the shell (doc 16 §5): the open navigators with their tables, the
 //! `navigator.*` actions (which also take `kind = pages` and then do what the six `pages.*` actions do), multi-selection,
-//! selection synchronisation both ways with the chip line "Not on this page" (§6.5), the reorder of pages through
-//! `page.reorder` and its card (§6.6), and the New page pre-fill.
+//! selection synchronisation both ways with the chip line "Not on this page" (doc 16a §6.24), the reorder of pages through
+//! `page.reorder` and its card, and the New page pre-fill.
 //!
 //! **Tables.** At the end of every dispatch each open navigator other than Pages whose table is not of the current
 //! revision fetches it with one `Session::navigator_table` call (counted); a closed navigator makes none. Filtering,
@@ -39,7 +39,7 @@ use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit}
 use crate::strings;
 use crate::tools::{OverlayItem, PreviewState, SelectionChange};
 
-/// The most chips the line "Not on this page" shows (§6.5).
+/// The most chips the line "Not on this page" shows (doc 16a §6.24).
 pub const MAX_CHIPS: usize = 12;
 
 /// The command `pages.reorder` builds.
@@ -68,8 +68,8 @@ impl Chip {
         }
     }
 
-    /// What the chip does, in words: "Go to page 1, A0", "Go to page 1" without a cell (a persona run read
-    /// "1-A0" as cryptic and did not take it for a jump).
+    /// What the chip does, in words: "Go to page 1, A0", "Go to page 1" without a cell ("1-A0" alone
+    /// is cryptic and not taken for a jump).
     pub fn words(&self) -> String {
         if self.cell.is_empty() {
             crate::strings::format(crate::key!("chip-go-page"), &[&self.folio])
@@ -79,7 +79,7 @@ impl Chip {
     }
 }
 
-/// What a row on show carries for dragging (§6.6, §6.7).
+/// What a row on show carries for dragging (doc 16 §4.8).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DragSource {
     /// A page record row of the Pages navigator: its folio.
@@ -90,7 +90,7 @@ pub enum DragSource {
     /// A channel row of the PLC navigator (the channel's ID text): dropped on a connection point of the
     /// canvas, `navigator.bind` binds it there with `plc.bind_channel`.
     Channel(String),
-    /// A macro row of the Macros navigator (its row key, §11): dropped on a canvas, `macros.place` opens its card at
+    /// A macro row of the Macros navigator (its row key): dropped on a canvas, `macros.place` opens its card at
     /// the drop point.
     Macro(String),
     /// A device row of the Unplaced devices navigator (the device's ID text): dropped on a panel page, the
@@ -141,12 +141,12 @@ pub struct ShownRow {
     pub finding: Option<FindingLook>,
 }
 
-/// How a finding row is painted (§7.3, FR-UI-025): the severity's icon and colour, muted and outlined when pending.
+/// How a finding row is painted (doc 16a §6.24, FR-UI-025): the severity's icon and colour, muted and outlined when pending.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FindingLook {
     /// The severity word: `error`, `warning` or `info`.
     pub severity: &'static str,
-    /// Whether the finding is pending (§7.2).
+    /// Whether the finding is pending.
     pub pending: bool,
 }
 
@@ -172,7 +172,7 @@ impl ShellModel {
         }
     }
 
-    /// The state of an open navigator other than Pages, or of the Pages navigator in table mode (§8.1).
+    /// The state of an open navigator other than Pages, or of the Pages navigator in table mode.
     pub fn nav(&self, kind: NavKind) -> Option<&Navigator> {
         self.generic(kind)
     }
@@ -276,7 +276,7 @@ impl ShellModel {
             .find_map(|e| off.iter().find(|(d, _)| *d == e.0).map(|(d, _)| *d))
     }
 
-    /// The chips of the line "Not on this page" (§6.5).
+    /// The chips of the line "Not on this page" (doc 16a §6.24).
     pub fn chips(&self) -> &[Chip] {
         &self.chips
     }
@@ -553,7 +553,7 @@ impl ShellModel {
                                 .then(|| node.records.first().map(|r| DragSource::Channel(r.to_string())))
                                 .flatten()
                         })
-                        // A macro row of an installed library drops onto a canvas (§11).
+                        // A macro row of an installed library drops onto a canvas.
                         .or_else(|| {
                             (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
                                 .then(|| DragSource::Macro(node.key.clone()))
@@ -571,8 +571,8 @@ impl ShellModel {
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
                                 .flatten()
                         })
-                        // A station's or a bus device's row drops onto a bus page (a persona run dragged his CPU
-                        // from the PLC panel and nothing happened).
+                        // A station's or a bus device's row drops onto a bus page (a CPU dragged
+                        // from the PLC panel must do something).
                         .or_else(|| {
                             let station = match k {
                                 NavKind::Plc => node.role == ew_api::output::NavRole::Station,
@@ -774,7 +774,7 @@ impl ShellModel {
 
     /// Opens and closes navigator states with the layout, fetches the tables of the current revision, clears the chips
     /// when the selection or the page changed, follows a page switch with the Pages cursor, and marks the selected
-    /// records' rows in every navigator that has not seen the selection's generation (§6.5).
+    /// records' rows in every navigator that has not seen the selection's generation (doc 16 §5.4).
     pub(super) fn sync_navigators(&mut self) {
         if !self.has_project() {
             self.navs.clear();
@@ -850,7 +850,7 @@ impl ShellModel {
                 n.table = Some(Arc::new(table));
             }
         }
-        // The highlights' members, once per highlight and revision (§7.3).
+        // The highlights' members, once per highlight and revision (doc 16a §7.5).
         if let Some(project) = &self.project {
             for h in self.highlights.stale_mut(rev) {
                 h.members = Arc::new(project.session.highlight_members(&h.target));
@@ -1054,7 +1054,7 @@ impl ShellModel {
         }
     }
 
-    /// Navigator → canvas (§6.5): the window selection becomes the marked rows' drawables on the shown page, else their
+    /// Navigator → canvas (doc 16 §5.4): the window selection becomes the marked rows' drawables on the shown page, else their
     /// records; the page is never switched; the drawables elsewhere become the chips.
     fn apply_marks(&mut self, kind: NavKind) {
         let marks = self.marks(kind);
@@ -1462,7 +1462,7 @@ impl ShellModel {
         let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
             return failed(key!("error-nav-key"), &[&key, kind.word()]);
         };
-        // Enter on a macro row arms the macro tool (§11).
+        // Enter on a macro row arms the macro tool.
         if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
             return self.arm_macro(&key);
         }
@@ -1651,7 +1651,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Reorder (§6.6)
+    // Reorder
 
     /// The page row of a printed folio that is a page record.
     fn record_row(&self, folio: &str) -> Result<PageRow, Outcome> {
@@ -2206,7 +2206,7 @@ pub fn row_highlight(node: &NavNode) -> Option<HighlightTarget> {
 }
 
 impl ShellModel {
-    /// The window's highlights (§7.3).
+    /// The window's highlights (doc 16a §7.5).
     pub fn highlights(&self) -> &Highlights {
         &self.highlights
     }

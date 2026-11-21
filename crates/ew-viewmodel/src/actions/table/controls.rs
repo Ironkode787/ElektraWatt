@@ -336,7 +336,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             "props.edit",
             View,
             Menu::Edit,
-            // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key (§6.9).
+            // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key.
             &["F2"],
             grid_shown,
             None,
@@ -690,7 +690,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_startup_dismiss(),
     ))),
-    // The find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
+    // The find pane's own controls; the pane handles Enter, Up and Down itself.
     keeps_banner(hidden(in_find(act(
         "find.close",
         View,

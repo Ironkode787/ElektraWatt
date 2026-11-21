@@ -93,7 +93,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_props_project(),
         ),
     )),
-    // Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
+    // Edit, Find…, Find and replace… and Replace all. macOS's ⌥⌘F (doc 16 §4.4) needs a
     // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
     keeps_banner(act(
         "find.open",

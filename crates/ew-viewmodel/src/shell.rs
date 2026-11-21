@@ -98,7 +98,7 @@ mod command_tabs;
 mod onboarding;
 // Swap cores, and Delete and F2 in navigator trees (FT-490).
 mod row_ops;
-// The strip editor's row gestures (§6.4, §6.5).
+// The strip editor's row gestures.
 mod strip_editor;
 mod table;
 // A navigator table's export and import.
@@ -412,8 +412,8 @@ pub enum Dialog {
     },
     /// Project ▸ Import ▸ QElectroTech project: the import card. It says what Create project makes, gives a verdict
     /// and lists the kinds of findings by what they ask of the reader; Create project or Cancel, which writes
-    /// nothing. (The owner's hands-on test of 0.1.0: the card listed counts and page numbers without a conclusion,
-    /// and its button was "Apply".)
+    /// nothing. (The card gives a conclusion, not only counts
+    /// and page numbers, and its button is not "Apply".)
     ImportQet {
         /// The source's file name.
         file: String,
@@ -478,8 +478,8 @@ pub enum Dialog {
     /// Closing the view of a station not made yet (doc 10 §6): Close without making it, or Cancel. Nothing of the
     /// station is written before Create, so closing loses what was chosen.
     DiscardStation,
-    /// Which station takes a module placed on a page where none is drawn, in a project of several stations (F18 of the
-    /// rc.1 test): a button per station, the last one a module was given to first; Cancel leaves it waiting.
+    /// Which station takes a module placed on a page where none is drawn, in a project of several stations:
+    /// a button per station, the last one a module was given to first; Cancel leaves it waiting.
     ChooseStation {
         /// The module.
         card: ew_api::output::Uuid,
@@ -705,13 +705,13 @@ pub struct ShellModel {
     navigator: PageNavigator,
     /// The open navigators other than Pages, by kind.
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
-    /// The Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
+    /// The Pages navigator in table mode, a generic navigator over `navigator_table(Pages)`.
     pages_table: Option<crate::navigators::Navigator>,
     /// FT-490: the tree row whose label is being renamed.
     rename: Option<NavRename>,
     /// The column mapping step of the parts import.
     parts_map: Option<PartsMap>,
-    /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
+    /// The chips of the line "Not on this page" (doc 16a §6.24), and the (selection generation, page) they were made for.
     chips: Vec<navigators::Chip>,
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
     /// The page the focused tab showed at the end of the last dispatch (a page switch moves the Pages cursor).
@@ -740,7 +740,7 @@ pub struct ShellModel {
     props: crate::properties::PropertiesState,
     /// The find pane: the query, the results, the cursor and the note.
     find: crate::find::FindState,
-    /// The clipboard (§8.7): the headless clipboard, and what a copy hands the window.
+    /// The clipboard: the headless clipboard, and what a copy hands the window.
     clip: crate::clipboard::ClipboardState,
     /// The ID aliases `@n` of this session's machine text; never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
@@ -1547,7 +1547,7 @@ impl ShellModel {
         self.prompt.take()
     }
 
-    /// The status-bar fields, left to right (§6.5): with the notifications field
+    /// The status-bar fields, left to right (doc 16a §5.8): with the notifications field
     /// while the log is not empty and, last, the job field while a job runs; `hide_job` leaves the job field out (the
     /// window's 200 ms rule: a job younger than that shows none; the describe text and the transcript pass `false`).
     pub fn status_fields(&self, hide_job: bool) -> Vec<String> {
@@ -1724,7 +1724,7 @@ impl ShellModel {
         // A toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
         // (and, in the window, for 8 seconds); a later commit only expires its Undo (the rule that the next
         // committing action removed it gives way to the stack).
-        // The project session and revision before the action, for the editing page (§7.2).
+        // The project session and revision before the action, for the editing page.
         let before = self.epoch_rev();
         // The context before the action is kept for the history entries it commits.
         let context = self.take_context();
@@ -1745,7 +1745,7 @@ impl ShellModel {
         self.sync_junction_editor();
         // The grips of a selected black box.
         self.sync_box_grips();
-        // The navigators follow the revision, the page and the selection (§6.5).
+        // The navigators follow the revision, the page and the selection.
         self.sync_navigators();
         self.sync_properties();
         self.sync_find();
@@ -1762,8 +1762,7 @@ impl ShellModel {
         outcome
     }
 
-    /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead (
-    /// §10.5).
+    /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead.
     pub(crate) fn act_tool_finish(&mut self, _p: &Map<String, Value>) -> Outcome {
         let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
         if idle && self.text_edit_target().is_ok() {
@@ -1990,8 +1989,8 @@ impl ShellModel {
     }
 
     /// The date format the open project shows and takes its dates in (`Formatting::date_format`; dd-mm-yyyy when it
-    /// names none, ISO without a project). Every date field of the window reads and writes through it (the owner's
-    /// test of 0.3.0-rc.1: a dd-mm-yyyy project asked for YYYY-MM-DD).
+    /// names none, ISO without a project). Every date field of the window reads and writes through it (a dd-mm-yyyy project must
+    /// not ask for YYYY-MM-DD).
     pub fn date_format(&self) -> ew_api::catalog::DateFormat {
         self.project
             .as_ref()
@@ -2072,8 +2071,8 @@ impl ShellModel {
         if self.symbol_editor().is_some() {
             return self.act_symbol(if redo { "redo" } else { "undo" }, &Map::new());
         }
-        // With something in flight on the pointer, the first Undo puts it away as Esc does and undoes nothing (rc.5:
-        // it undid a step on another page while the box still hung there, and said nothing).
+        // With something in flight on the pointer, the first Undo puts it away as Esc does and undoes nothing (it must not undo a
+        // step on another page while the box still hangs there, and say nothing).
         if !self.history.quiet && self.tool_in_flight() {
             self.put_away_in_flight(redo);
             return Outcome::Done;

@@ -5,7 +5,7 @@
 //! sequence editor popup and its commits, the crossings setting, and the Wire tool's live region.
 //!
 //! **Reads.** The junction editor reads the page tables the canvas already holds and `Session::junction_wires` once
-//! per (session, revision, junction) while it is open; the Wire tool and the proposals read nothing (§12 item 4).
+//! per (session, revision, junction) while it is open; the Wire tool and the proposals read nothing.
 //!
 //! **Commits** go through the tool's commit path (`execute_with` in the window, `run_script` headless), one
 //! `junction.edit` per change (D11).
@@ -37,7 +37,7 @@ impl ShellModel {
         self.tools.notice.as_deref()
     }
 
-    /// Exactly one junction is selected on the focused page (`junction.open`'s condition, §8.5).
+    /// Exactly one junction is selected on the focused page (`junction.open`'s condition).
     pub fn one_junction_selected(&self) -> bool {
         self.canvas().is_some_and(|c| {
             let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
@@ -45,7 +45,7 @@ impl ShellModel {
         })
     }
 
-    /// Exactly one connection is selected on the focused page (`tool.route_edit`'s condition, §8.4).
+    /// Exactly one connection is selected on the focused page (`tool.route_edit`'s condition).
     pub fn one_connection_selected(&self) -> bool {
         self.canvas().is_some_and(|c| {
             let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
@@ -182,7 +182,7 @@ impl ShellModel {
             .and_then(|w| w.ghost_route().map(<[(i64, i64)]>::to_vec))
     }
 
-    /// How many times the active Wire tool ran the router (the exact-count tests, §12 item 4); `None` for another
+    /// How many times the active Wire tool ran the router (the exact-count tests); `None` for another
     /// tool.
     pub fn wire_route_calls(&mut self) -> Option<u64> {
         self.tools
@@ -218,7 +218,7 @@ impl ShellModel {
         }
     }
 
-    /// `tool.wire` (W, §8.7): arms the Wire tool with the page type's connection kind.
+    /// `tool.wire` (W): arms the Wire tool with the page type's connection kind.
     pub(crate) fn act_tool_wire(&mut self) -> Outcome {
         match self.wire_kind() {
             Ok(kind) => {
@@ -229,7 +229,7 @@ impl ShellModel {
         }
     }
 
-    /// The live region of the Wire tool while it routes (§8.2): `Wire: routing from <label>. …`.
+    /// The live region of the Wire tool while it routes: `Wire: routing from <label>. …`.
     pub(super) fn announce_wire(&mut self) {
         let label = self
             .with_tool_cx(|t, _| {
@@ -288,7 +288,7 @@ impl ShellModel {
         JunctionEditor::read(&tables, j, &cell_of, wires, rev, row)
     }
 
-    /// `junction.open` (§8.5): the editor of exactly one selected junction (the registry disables it otherwise, naming
+    /// `junction.open`: the editor of exactly one selected junction (the registry disables it otherwise, naming
     /// what to select). A script selects the junction first (`select.set` with its ID).
     pub(crate) fn act_junction_open(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
@@ -414,7 +414,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Crossings
 
-    /// `project.crossings {on?}` (§8.6): commits `project.drawing.set` with `crossings: hops`, or with `null` (the
+    /// `project.crossings {on?}`: commits `project.drawing.set` with `crossings: hops`, or with `null` (the
     /// member removed: plain, as a project without the setting) to turn it off; without `on` it toggles.
     pub(crate) fn act_crossings(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
@@ -650,7 +650,7 @@ impl ShellModel {
         Some(f(host.tool.as_mut(), &cx))
     }
 
-    /// Enter with Select idle and exactly one junction selected opens its editor (§8.5); `None` otherwise.
+    /// Enter with Select idle and exactly one junction selected opens its editor; `None` otherwise.
     pub(super) fn enter_opens_junction(&mut self) -> Option<Outcome> {
         if self.tools.tool.name() != "select" || self.tools.tool.state() != "idle" {
             return None;
@@ -681,7 +681,7 @@ impl ShellModel {
     // Route (docs/design/06a-drafting.md §7.1, §7.2)
 
     /// `layout.route` (Route): the plan of the selected wires and every wire with an end on a selected symbol, or with
-    /// nothing of the page selected, of the page's wires that are unrouted, broken or routed by the program (§3.2).
+    /// nothing of the page selected, of the page's wires that are unrouted, broken or routed by the program (doc 06a §3.2).
     /// Nothing to do: a toast says so, and names the number of wires a page-wide Route left as the person's; where
     /// routing those anew would make the page better, its action Route these too… previews that ([`Self::route_his_card`]).
     /// No route of the person's would change: applied at once as one `layout.apply` (one undo step), a toast names the
@@ -887,7 +887,7 @@ impl ShellModel {
 
     /// `route.handle {step}` (Tab +1, Shift+Tab −1): the focus goes to the next or the previous handle of the
     /// one selected wire along the wire as a person reads it, from its end that comes first (the upper, else the left
-    /// one; a persona run's Tab landed on a handle at the wire's far end) to the other, round at its ends; the first
+    /// one) to the other, round at its ends; the first
     /// Tab takes the first, the first Shift+Tab the last. Refused without one wire selected.
     pub(crate) fn act_route_handle(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some((wire, line)) = self.wire_handles() else {
@@ -988,7 +988,7 @@ impl ShellModel {
     }
 
     /// Apply on a Route card: the plan's `layout.apply` commits as a bulk card's command does, and the toast says how
-    /// many wires it routed (§12a).
+    /// many wires it routed.
     pub(super) fn apply_route_card(&mut self, card: crate::properties::Card) -> Outcome {
         let toast = match &card.origin {
             crate::properties::CardOrigin::Route { page, routed, .. } => strings::format(

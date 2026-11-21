@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel in the shell (to §7.6): `NavKind::Messages` in the bottom dock, the
+//! The message panel in the shell: `NavKind::Messages` in the bottom dock, the
 //! editing page and the pending rows, F8 and Shift+F8, F1 on a finding or rule row, the quick fix as a previewed card,
 //! and Tools ▸ Run checks.
 //!
-//! **Calls** (§7.5). The pane's table is the framework's: one `Session::navigator_table(Messages)` per revision while
+//! **Calls**. The pane's table is the framework's: one `Session::navigator_table(Messages)` per revision while
 //! it is open (one `Session::check` inside), none while it is closed. The editing page changes the pending rows
 //! without a call. `messages.check` drops the table, so the end of the dispatch fetches it again; `messages.fix` runs
 //! the online check once more to read the finding's quick fix (memoised), then previews the fix.
@@ -42,7 +42,7 @@ impl ShellModel {
             .map(strings::scheme_text)
     }
 
-    /// The folio of the editing page (§7.2), while there is one.
+    /// The folio of the editing page, while there is one.
     pub fn editing_folio(&self) -> Option<String> {
         let (epoch, page) = self.messages.editing_page?;
         if self.project.as_ref().map(|p| p.epoch) != Some(epoch) {
@@ -54,7 +54,7 @@ impl ShellModel {
             .map(|r| r.folio.clone())
     }
 
-    /// The header counts of the open Messages pane (§7.3).
+    /// The header counts of the open Messages pane.
     pub fn messages_counts(&self) -> Option<MessageCounts> {
         let t = self.navs.get(&NavKind::Messages)?.table()?;
         Some(messages::counts(t, self.editing_folio().as_deref()))
@@ -81,7 +81,7 @@ impl ShellModel {
         self.messages_counts().map_or(0, |c| c.open())
     }
 
-    /// Whether row `key` of navigator `kind` is a pending finding (§7.2).
+    /// Whether row `key` of navigator `kind` is a pending finding.
     pub fn row_pending(&self, kind: NavKind, key: &str) -> bool {
         if kind != NavKind::Messages {
             return false;
@@ -93,7 +93,7 @@ impl ShellModel {
             .is_some_and(|(_, n)| messages::is_pending(n, editing.as_deref()))
     }
 
-    /// The detail block of the Messages cursor's finding (§7.3), with the waiver's ID while it is waived.
+    /// The detail block of the Messages cursor's finding, with the waiver's ID while it is waived.
     pub fn messages_detail(&self) -> Option<FindingDetail> {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
@@ -205,14 +205,14 @@ impl ShellModel {
     }
 
     /// The origin annotation the shell keeps for the commit that made revision `rev` of the open project session
-    /// (`quick fix <rule ID>`, §7.4), for the history panel (§8.4).
+    /// (`quick fix <rule ID>`), for the history panel.
     pub fn origin_annotation(&self, rev: u64) -> Option<&str> {
         let epoch = self.project.as_ref()?.epoch;
         self.messages.annotations.get(&(epoch, rev)).map(String::as_str)
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The editing page (§7.2)
+    // The editing page
 
     /// The project session and revision before an action runs (the dispatch's argument to
     /// [`ShellModel::track_editing_page`]).

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Delete on a page (`edit.delete_selection`, §7.4) and the devices it leaves undrawn: a device that loses its last
+//! Delete on a page (`edit.delete_selection`) and the devices it leaves undrawn: a device that loses its last
 //! representation goes with it in the same command unless it holds more than the drawing, a device no page draws is
 //! deleted itself, one drawn only on other pages is refused, and the toast names the devices that stay without a
 //! symbol.
@@ -74,7 +74,7 @@ impl ShellModel {
         !unused.is_empty() || elsewhere
     }
 
-    /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
+    /// `edit.delete_selection` (Delete): `edit.delete` with every entity of the selection the page tables
     /// resolve.
     pub(crate) fn act_delete_selection(&mut self) -> Outcome {
         // In a station's view Delete takes the card under the cursor out of its slot (a valve off its position).
@@ -340,7 +340,7 @@ impl ShellModel {
         (unused, elsewhere)
     }
 
-    /// Cancels a pending keyboard move or drag before Delete acts on the selection (§7.4: Delete deletes; the move is
+    /// Cancels a pending keyboard move or drag before Delete acts on the selection (Delete deletes; the move is
     /// a gesture not yet committed, so it goes first).
     fn cancel_pending_move(&mut self) {
         if matches!(self.tools.tool.state(), "moving" | "dragging") {

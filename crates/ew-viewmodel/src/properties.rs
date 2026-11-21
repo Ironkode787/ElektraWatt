@@ -32,7 +32,7 @@ use crate::tools::PreviewState;
 /// Above this many targets an edit always goes through the card (FR-UI-044 rule 1, `edit.rs`'s `BULK_ABOVE`).
 pub const BULK_TARGETS: usize = 500;
 
-/// What the edit policy decides on a preview (§6.6).
+/// What the edit policy decides on a preview.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Decision {
     /// Commit the kept preview at once.
@@ -87,7 +87,7 @@ pub enum ChoiceKind {
     Ambiguous,
     /// The switch between a neutral text and languages (FR-I18N-001): each value is the member's whole new value.
     MlTextSwitch,
-    /// The options of a choice editor (§6.5): an enum's words, the colour codes, the part copies, the structure nodes
+    /// The options of a choice editor (doc 16 §6.3): an enum's words, the colour codes, the part copies, the structure nodes
     /// of a slot's aspect, filtered by the buffer (`Session::field_choices`); each value is the leaf's.
     Options,
 }
@@ -108,7 +108,7 @@ pub struct Choices {
     pub index: Option<usize>,
 }
 
-/// Whether a value type has a choice editor with options (§6.5: a combo for enums and colours, a picker for part
+/// Whether a value type has a choice editor with options (doc 16 §6.3: a combo for enums and colours, a picker for part
 /// copies and structure nodes).
 pub fn has_options(ty: &FieldType) -> bool {
     matches!(
@@ -129,8 +129,8 @@ pub fn opens_choices(row: &PropRow) -> bool {
     has_options(&row.ty) || row.key == GRID_ROW || row.key == STYLE_ROW
 }
 
-/// How an editable row's value is chosen, which its cell shows (the owner's test of 0.3.0-rc.1: a drop-down row
-/// looked like any other): from a list (a chevron, a combo box), or in a picker of parts ("…").
+/// How an editable row's value is chosen, which its cell shows (so that a drop-down row does not look like
+/// any other): from a list (a chevron, a combo box), or in a picker of parts ("…").
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ValueChooser {
     /// A closed list: the words of an enumeration, the colours, the structure nodes, the grids.
@@ -186,7 +186,7 @@ impl Popup {
     }
 }
 
-/// An edit compiled into a command, kept with the card so that a stale card can be checked and rebuilt (§6.6).
+/// An edit compiled into a command, kept with the card so that a stale card can be checked and rebuilt.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PendingEdit {
     /// The row's key.
@@ -219,7 +219,7 @@ pub struct PendingEdit {
 pub enum CardOrigin {
     /// An edit of the property grid.
     Properties,
-    /// A replace of the find pane: the query whose hits it writes, so that a stale card runs it again (§7.4).
+    /// A replace of the find pane: the query whose hits it writes, so that a stale card runs it again.
     Find {
         /// The query.
         query: crate::find::FindQuery,
@@ -236,28 +236,28 @@ pub enum CardOrigin {
         /// The copies it skips: their key exists already.
         skipped: usize,
     },
-    /// The Pages navigator's reorder (`pages.reorder`, §6.6): the card in the Pages pane, with the preview's folio
+    /// The Pages navigator's reorder (`pages.reorder`): the card in the Pages pane, with the preview's folio
     /// changes `"<old> → <new>"` in position order.
     Reorder {
         /// The notices of `page.reorder`'s preview.
         notices: Vec<String>,
     },
-    /// A finding's quick fix (`messages.fix`, §7.4): the card in the Messages pane, always previewed.
+    /// A finding's quick fix (`messages.fix`): the card in the Messages pane, always previewed.
     QuickFix {
         /// The rule ID of the finding.
         rule: String,
     },
-    /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages… (`page.renumber`) and Tools, Renumber
+    /// The card of a `Bulk` command a dialog built: Page, Renumber pages… (`page.renumber`) and Tools, Renumber
     /// devices… (`numbering.renumber`); its targets and changes are the number of entity changes. Draw ▸ Bond's
     /// `bond.create` (FT row 7 of the G-PP triage) uses the same card with its own reason.
     Bulk,
-    /// A gesture of a navigator's table (§8.7): the card in the navigator's pane, with the gesture's cells, so that
+    /// A gesture of a navigator's table: the card in the navigator's pane, with the gesture's cells, so that
     /// `table.resolve` and `table.drop` rebuild the command and a stale card retargets its rows.
     Table {
         /// The gesture, with its title.
         gesture: crate::navigators::table::TableGesture,
     },
-    /// A macro's insertion from the Macros navigator (`macro.insert`, §11, FR-MAC-005): the card in the Preview tab
+    /// A macro's insertion from the Macros navigator (`macro.insert`, FR-MAC-005): the card in the Preview tab
     /// with the conflicts the user decides on before Apply; a refused preview (a prevent rule) still shows them.
     Macro(Box<MacroInsert>),
     /// The part editor's Save (`part.edit_copy`, D20): the card in the Preview tab with the field diff, the devices
@@ -282,7 +282,7 @@ pub enum CardOrigin {
     /// Route (`layout.route`) over routes a person drew: the card in the Preview tab with the plan's
     /// lead line and one row per connection left unrouted; Apply commits the plan's `layout.apply`.
     Route {
-        /// "Route 3 wires on folio 101: 2 routed, 1 not routed." (§12a).
+        /// "Route 3 wires on folio 101: 2 routed, 1 not routed."
         lead: String,
         /// One row per connection left unrouted, with its reason.
         rows: Vec<String>,
@@ -553,7 +553,7 @@ impl CardOrigin {
     }
 }
 
-/// The inline preview card (§6.6).
+/// The inline preview card.
 #[derive(Debug)]
 pub struct Card {
     /// The preview.
@@ -562,7 +562,7 @@ pub struct Card {
     pub edit: PendingEdit,
     /// The number of targets.
     pub targets: usize,
-    /// The number of changed records (a replace: the number of replaced hits, §7.2).
+    /// The number of changed records (a replace: the number of replaced hits).
     pub changes: usize,
     /// Why the card opened (`reason-identifiers`).
     pub reason: Key<'static>,
@@ -871,7 +871,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.medium",
             // Any other fluid device's ports with the medium each carries.
             "derived.port",
-            // A valve's solenoids and its position on its valve terminal (the persona round: found only
+            // A valve's solenoids and its position on its valve terminal (not to be found only
             // through the filter).
             "derived.solenoid",
             "derived.position",
@@ -886,12 +886,12 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.colour",
             // Whether the wire prints its marker, beside the cross-section and the colour it prints.
             "overrides.show_marker",
-            // A bus line's cable and plugs (a persona run looked for them and did not find them).
+            // A bus line's cable and plugs.
             "derived.bus_cable",
             "derived.bus_plugs",
         ],
     ),
-    // A bus port's address: the device name and IP, the station address (a persona run looked for them).
+    // A bus port's address: the device name and IP, the station address.
     // A marked supply point's place and device ("the comes from cannot be changed in the properties").
     (
         "function",
@@ -1151,7 +1151,7 @@ pub fn find_row<'s>(sheet: &'s PropertySheet, key: &str) -> Option<(&'s SheetSec
         .find_map(|s| s.rows.iter().find(|r| r.key == key).map(|r| (s, r)))
 }
 
-/// Whether a row is a derived row (§6.4).
+/// Whether a row is a derived row (doc 16 §6.2).
 pub fn is_derived(row: &PropRow) -> bool {
     row.key.contains("/derived.")
 }
@@ -1192,7 +1192,7 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
         return strings::format(key!("props-port"), &[name]);
     }
     // A bus port's address is named by what it is on its bus: the device name and IP on PROFINET, the station address
-    // on PROFIBUS (a persona run found "no field for the device name and IP").
+    // on PROFIBUS.
     if section.kind == "function" && row.path == "bus_port.address" {
         let bus = section
             .rows
@@ -1211,7 +1211,7 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
     strings::field_label(&section.kind, &row.path_for_label())
 }
 
-/// Writes a connection's Kind in words (a persona run read `{"bus":{}}`): its variant, as a word or the one member of
+/// Writes a connection's Kind in words (never as `{"bus":{}}`): its variant, as a word or the one member of
 /// a variant with data, by its `choice-connection-kind-<word>` text (Wire, Bus line, Tube, Bridge) where the text is
 /// raw data or the bare word. The JSON value is unchanged.
 pub fn connection_kind_in_words(sheet: &mut PropertySheet) {
@@ -1341,7 +1341,7 @@ pub fn is_header(section: &SheetSection, row: &PropRow) -> bool {
     })
 }
 
-/// Why a row is read-only, as the grid shows it (§6.8); `None` for an editable row, a derived row and a group header.
+/// Why a row is read-only, as the grid shows it (doc 16 §6.3); `None` for an editable row, a derived row and a group header.
 pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &PropRow) -> Option<String> {
     if let Some(r) = &sheet.read_only {
         return Some(r.clone());
@@ -1407,7 +1407,7 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     }
 }
 
-/// The settable member's new value with a leaf replaced (§6.6), moved down to `ew-api` with table mode's pure rule,
+/// The settable member's new value with a leaf replaced, moved down to `ew-api` with table mode's pure rule,
 /// re-exported under its old path.
 pub use ew_api::output::table_edit::compose;
 
@@ -1430,7 +1430,7 @@ pub fn section_header(kind: &str, n: usize) -> String {
     format!("{} ({n})", strings::kinds_heading(kind))
 }
 
-/// The default value of a new list item of type `ty` (`props.list` `add`, §6.5).
+/// The default value of a new list item of type `ty` (`props.list` `add`).
 pub fn item_default(ty: &FieldType) -> Value {
     match ty.inner() {
         FieldType::Text | FieldType::Ident | FieldType::MlText => Value::String(String::new()),
@@ -2089,7 +2089,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("size profile '", Some("'"), key!("chip-via-size-profile")),
     ("class ", Some(""), key!("chip-via-class")),
     ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
-    // A tube's medium and tube (the persona round).
+    // A tube's medium and tube.
     (
         "medium definition at ",
         Some(""),
@@ -2112,7 +2112,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("medium '", Some("'"), key!("chip-via-medium")),
     ("tube part ", Some(""), key!("chip-via-tube-part")),
     ("no tube specification", None, key!("chip-via-no-tube-spec")),
-    // A valve's position (the persona round).
+    // A valve's position.
     ("on no valve terminal", None, key!("chip-via-no-terminal")),
     // A valve's solenoids.
     ("PLC output ", Some(""), key!("chip-via-plc-output")),

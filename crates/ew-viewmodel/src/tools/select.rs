@@ -29,7 +29,7 @@
 //! | idle with movable entities selected | [`SelectTool::start_move`] (M) | moving | `Transient`; the host puts the grid cursor on the primary entity's anchor first |
 //! | moving | `CursorMove` | moving | steps = the cursor's grid displacement since M; `Transient` |
 //! | moving | `Dwell`, `Activate` | moving, idle | as dragging: `Preview`, `Commit` (zero steps: `Cancel`) |
-//! | idle with representations selected | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | idle | `Commit(rep.transform …)` (§7.4; V on exactly one) |
+//! | idle with representations selected | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | idle | `Commit(rep.transform …)` (V on exactly one) |
 //! | any | `Activate` | idle | as a press and release at the grid cursor |
 //! | any | `Escape` | idle | `Cancel`, or `None` from idle |
 //!
@@ -1665,7 +1665,7 @@ impl Tool for SelectTool {
         true
     }
 
-    /// A double click on a free text opens it for editing (the host turns `tool.finish` into text edit, §10.5).
+    /// A double click on a free text opens it for editing (the host turns `tool.finish` into text edit).
     fn finishes_on_double_click(&self) -> bool {
         true
     }

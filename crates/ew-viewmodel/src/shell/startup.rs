@@ -28,7 +28,7 @@ use crate::strings;
 /// The directory of the crash logs under the state directory.
 pub const CRASH_DIR: &str = "crashes";
 
-/// The line a crash log ends with when its last panic ended the session (§5 L8; English, read by support).
+/// The line a crash log ends with when its last panic ended the session (English, read by support).
 pub const ENDED_LINE: &str = "Ended: this panic ended the session";
 
 /// The crash logs kept: the newest 20.

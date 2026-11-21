@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator framework (to §6.5; D5, D6, D7): the state of an open navigator over its
+//! The navigator framework (doc 16 §5; D5, D6, D7): the state of an open navigator over its
 //! [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the
 //! precomputed tokens and facets, the sort, and the marked rows.
 //!
@@ -15,7 +15,7 @@
 //! order; descending reverses the key order, ties still by node order. In the flat view the rows are the table rows
 //! (for Devices the device nodes), one level.
 //!
-//! **Filter** (§6.3). The query is split at whitespace: a part `<facet>:<value>` with a facet of the closed list
+//! **Filter** (doc 16 §5.3). The query is split at whitespace: a part `<facet>:<value>` with a facet of the closed list
 //! (`page`, `potential`, `state`, `kind`, `part`) matches a node with that facet and a case-folded equal value;
 //! `unplaced` and `frozen` alone match the flag (in the PLC navigator and the PLC grid also `unassigned`, `spare`,
 //! `tbd`, `duplicate` and `safety`, and the facets `config:<name>` and `bus:<net>`); every other part is plain text, split into tokens like the node tokens
@@ -55,7 +55,7 @@ impl PartialEq for TableRef {
 
 impl Eq for TableRef {}
 
-/// The facets of the closed list that take a value (§6.1 item 5).
+/// The facets of the closed list that take a value (doc 16 §5.3).
 pub const FACETS: [&str; 8] = [
     "page",
     "potential",
@@ -123,7 +123,7 @@ impl SortBy {
     }
 }
 
-/// A parsed filter query (§6.3).
+/// A parsed filter query (doc 16 §5.3).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Query {
     /// `(facet, value)` conditions, the value case-folded.
@@ -133,7 +133,7 @@ pub struct Query {
     /// The plain tokens.
     pub tokens: Vec<String>,
     /// The sub-tokens of each typed plain word that splits into more than one (`24VDC-4` gives `24`, `vdc`, `4`):
-    /// each such group must match within one cell of a row (§6.3).
+    /// each such group must match within one cell of a row.
     pub words: Vec<Vec<String>>,
     /// The plain text, case-folded and trimmed (the substring alternative).
     pub text: String,
@@ -191,7 +191,7 @@ impl Query {
         self.facets.is_empty() && self.flags.is_empty() && self.tokens.is_empty() && self.text.is_empty()
     }
 
-    /// Whether a node with these tokens (sorted), facets, label and cells matches (§6.3): every facet and flag
+    /// Whether a node with these tokens (sorted), facets, label and cells matches (doc 16 §5.3): every facet and flag
     /// holds, and either every query token is a prefix of one of the node's tokens, the sub-tokens of one typed word
     /// all matching within one cell (the label or one column's value), or the plain text is a substring of
     /// the label.
@@ -303,7 +303,7 @@ pub struct NavStamp {
     table_mode: Option<table::TableMode>,
 }
 
-/// The state of an open navigator other than Pages (§6.2).
+/// The state of an open navigator other than Pages.
 #[derive(Clone, Debug)]
 pub struct Navigator {
     /// Which navigator.
@@ -330,7 +330,7 @@ pub struct Navigator {
     pub(crate) anchor: Option<String>,
     /// The table of the current revision.
     pub(crate) table: Option<Arc<NavTable>>,
-    /// The selection generation this navigator last applied or followed (the generation guard, §6.5).
+    /// The selection generation this navigator last applied or followed (the generation guard).
     pub(crate) applied: Option<u64>,
     /// Table mode: Some while the navigator shows its table.
     pub(crate) table_mode: Option<table::TableMode>,
@@ -378,7 +378,7 @@ impl Navigator {
         &self.marked
     }
 
-    /// Table mode's state, while the navigator shows its table (§8).
+    /// Table mode's state, while the navigator shows its table.
     pub fn table_mode(&self) -> Option<&table::TableMode> {
         self.table_mode.as_ref()
     }
@@ -504,7 +504,7 @@ impl Navigator {
     }
 }
 
-/// The visible rows of `table` (§6.2): a pure function, so that a test can run it on a synthetic table of any size.
+/// The visible rows of `table`: a pure function, so that a test can run it on a synthetic table of any size.
 pub fn visible_rows(
     table: &NavTable,
     view: NavView,
@@ -659,15 +659,15 @@ pub fn cell_text(table: &NavTable, node: &NavNode, col: usize) -> String {
 }
 
 /// The hover text of a library copy's state, its row's `state` facet `code` (`current`, `source_missing`, …): what
-/// the state means and what a person can do (the owner's test of 0.3.0-rc.1: "Source missing … No idea what that
-/// means"); `None` for another code.
+/// the state means and what a person can do (a bare "Source missing" leaves a person
+/// guessing); `None` for another code.
 pub fn library_state_tip(code: &str) -> Option<String> {
     let code = if code.is_empty() { "current" } else { code };
     crate::strings::lookup(&format!("library-state-tip-{code}")).map(str::to_owned)
 }
 
 /// The words of a library copy's state, its row's `state` facet `code` (`current`, `source_missing`, …), in the UI
-/// language from the text `ew-api` writes in English (the owner's test of 0.3.0-rc.1: the State column was English
+/// language from the text `ew-api` writes in English (the State column must not stay English
 /// only); `english` is that cell, whose parentheses hold the library's version of an update.
 pub fn library_state_words(code: &str, english: &str) -> String {
     use crate::strings;

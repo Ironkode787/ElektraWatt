@@ -1079,7 +1079,7 @@ impl ShellModel {
     /// page's function as the enclosure device's. The location `new` (the form's first choice, "New location"), or
     /// `new_location` given alone, makes the location node of the code `new_location` first (`structure.create_node`,
     /// one undo step more; a code an existing location has takes that location), so a new project gets its panel
-    /// layout without a detour through Structure node… (the persona round of 0.2.0-rc.2: Enclosure… was disabled in a
+    /// layout without a detour through Structure node… (Enclosure… is not disabled in a
     /// project without a location). If the enclosure is refused after the node is made, the node is taken back. In the
     /// window without a location and a part the Create enclosure dialog opens (the focused page's location, else a new
     /// one, and the first part chosen); a refusal stays under its fields.
@@ -1642,7 +1642,7 @@ impl ShellModel {
         }
     }
 
-    /// `layout.auto_fill_rail {rail?, order, locate?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, §8): `layout.auto_fill`
+    /// `layout.auto_fill_rail {rail?, order, locate?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6): `layout.auto_fill`
     /// of the rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or
     /// `dt`) with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says
     /// what it placed and what did not fit. With `locate` the devices without a location get the cabinet's first
@@ -1801,8 +1801,8 @@ impl ShellModel {
         })
     }
 
-    /// `layout.locate_devices {location?, devices?}` (a layout page's Give location…, rc.5: a persona was sent to
-    /// Properties for each of thirty devices): gives devices the location `location` (its `+` path or node ID; by
+    /// `layout.locate_devices {location?, devices?}` (a layout page's Give location…: many devices at once,
+    /// not Properties for each): gives devices the location `location` (its `+` path or node ID; by
     /// default the cabinet's the page shows) in one step. `devices` are device IDs, or the rows of the window's table
     /// in its order (a ticked row's device); by default the devices drawn on the wiring pages without a location
     /// (`Session::unlocated_drawn_devices`) but those behind terminals in the field. In the window without `devices`

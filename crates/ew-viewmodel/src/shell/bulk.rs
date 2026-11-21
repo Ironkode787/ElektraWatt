@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab's host duties, the renumber dialogs and their `bulk` card (§8.2, §8.3,
-//! D12) and the GUI purge step (§8.6).
+//! The Preview tab's host duties, the renumber dialogs and their `bulk` card (D12)
+//! and the GUI purge step.
 //!
 //! **The Preview tab.** [`ShellModel::sync_preview`] runs at the end of every dispatch and after the window changed the
 //! layout: a new card (by [`crate::preview::card_key`]) fetches its lists once (`Session::preview_entities`, counted) and
@@ -46,7 +46,7 @@ pub(super) const DEVICE_SCOPES: &[&str] = &["project", "page", "selection"];
 /// The schemes of `numbering.renumber` (its `scheme` schema).
 pub(super) const SCHEMES: &[&str] = &["page_based"];
 
-/// The most file names the purge confirmation lists before "and `<n>` more" (§8.6).
+/// The most file names the purge confirmation lists before "and `<n>` more".
 pub const PURGE_LISTED: usize = 20;
 
 /// A whole-number parameter: a number or its decimal text; `Ok(None)` when absent or empty.
@@ -103,7 +103,7 @@ impl ShellModel {
         &self.preview
     }
 
-    /// The Preview tab's summary line of the open card (§8.1): its records, tags, cross-reference texts and pages
+    /// The Preview tab's summary line of the open card: its records, tags, cross-reference texts and pages
     /// (`preview-summary`), or `None` without a card. The window paints it under the tab's header; the text interface
     /// prints it for a bulk or table card, which has no inline card of its own.
     pub fn preview_summary(&self) -> Option<String> {
@@ -119,7 +119,7 @@ impl ShellModel {
                 ],
             ));
         }
-        // A route card's summary is its plan's lead (§12a), and so is an Arrange and route card's.
+        // A route card's summary is its plan's lead, and so is an Arrange and route card's.
         if let crate::properties::CardOrigin::Route { lead, .. } = &card.origin {
             return Some(lead.clone());
         }
@@ -159,7 +159,7 @@ impl ShellModel {
         };
         if self.preview.key.as_ref() == Some(&key) {
             if !self.preview_shown() {
-                // The tab was closed with the card pending: the card is cancelled (§8.1).
+                // The tab was closed with the card pending: the card is cancelled.
                 self.props.card = None;
                 self.preview.clear();
             }
@@ -374,8 +374,8 @@ impl ShellModel {
         self.preview_host_card_as(&card.edit.name, card.edit.params, card.reason, card.origin)
     }
 
-    /// What Apply of a PLC addressing card did, as its toast says it (the persona round: after Freeze addresses
-    /// nothing said that they were frozen): Freeze addresses counts the channel addresses it made manual and names
+    /// What Apply of a PLC addressing card did, as its toast says it (after Freeze addresses it says
+    /// that they were frozen): Freeze addresses counts the channel addresses it made manual and names
     /// the configuration project, Re-address counts the addresses that moved; `None` for another card.
     fn plc_addressing_toast(&self, card: &Card) -> Option<String> {
         let preview = card.preview.result.as_ref().ok()?;

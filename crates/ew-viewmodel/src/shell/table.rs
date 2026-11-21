@@ -11,7 +11,7 @@
 //! ambiguous cell opens the card. A direct gesture commits the kept preview (the window `Session::commit`, headless a
 //! one-line command log through `Session::run_script`) and shows the toast `"Set <columns> on <n> <rows>"`.
 //!
-//! **The card** (§8.7) holds the gesture: `table.resolve` picks a reading of an ambiguous cell and `table.drop` removes
+//! **The card** holds the gesture: `table.resolve` picks a reading of an ambiguous cell and `table.drop` removes
 //! a cell, each compiling and previewing again; Apply is refused while a cell blocks; a stale card retargets its rows
 //! on the current table and shows a fresh card (a second Apply).
 
@@ -64,7 +64,7 @@ impl TableView {
     }
 }
 
-/// The value a clear gives a field of type `ty` (§8.3): `null` for an optional, the empty text for a text, an
+/// The value a clear gives a field of type `ty`: `null` for an optional, the empty text for a text, an
 /// identifier or a language text, else nothing ("cannot be cleared").
 fn cleared(ty: Option<&FieldType>) -> Option<Value> {
     match ty {
@@ -290,7 +290,7 @@ impl ShellModel {
         })
     }
 
-    /// A cell of node `i`, column `col`, with `text` parsed for the column's route (§8.2, §8.3); a read-only cell is
+    /// A cell of node `i`, column `col`, with `text` parsed for the column's route; a read-only cell is
     /// invalid with its reason.
     fn text_cell(&self, view: &TableView, i: u32, col: usize, text: &str) -> GestureCell {
         let mut extra = None;
@@ -471,7 +471,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The commit path (§8.3)
+    // The commit path
 
     /// Compiles, previews and decides a gesture: a direct commit with the toast, the card, or the error. `card` forces
     /// the card with that reason when the policy would commit (a rebuilt card).
@@ -677,7 +677,7 @@ impl ShellModel {
         }
     }
 
-    /// Apply on a table card (§8.7): refused while a cell blocks; a fresh card commits; a stale one retargets its rows
+    /// Apply on a table card: refused while a cell blocks; a fresh card commits; a stale one retargets its rows
     /// on the current table and shows a fresh card.
     pub(super) fn apply_table_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::Table { gesture } = &card.origin else {
@@ -1114,7 +1114,7 @@ impl ShellModel {
             }
             return out;
         }
-        // A parse error stays in the field (§8.3).
+        // A parse error stays in the field.
         let first = self.text_cell(&view, row, col, &edit.buffer);
         if let CellValue::Invalid(message) = &first.value
             && first.route.is_none()
@@ -1196,7 +1196,7 @@ impl ShellModel {
         self.run_gesture(Self::gesture(GestureKind::Edit, kind, cells), None)
     }
 
-    /// `table.fill_down` (Ctrl+D): the first marked row's cell of the cursor column into every marked row (§8.4).
+    /// `table.fill_down` (Ctrl+D): the first marked row's cell of the cursor column into every marked row.
     pub(crate) fn act_table_fill_down(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
@@ -1219,7 +1219,7 @@ impl ShellModel {
     }
 
     /// `table.pattern_fill {pattern?}` (Ctrl+Shift+D): without a pattern it opens the dialog; with one it fills the
-    /// cursor column of the marked rows (§8.5).
+    /// cursor column of the marked rows.
     pub(crate) fn act_table_pattern_fill(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         match string_param(p, "pattern") {
@@ -1283,7 +1283,7 @@ impl ShellModel {
         self.run_gesture(Self::gesture(GestureKind::PatternFill, kind, cells), None)
     }
 
-    /// `table.paste {text?}` (Ctrl+V): the tab-separated text (else the clipboard's) from the cursor cell (§8.6). A
+    /// `table.paste {text?}` (Ctrl+V): the tab-separated text (else the clipboard's) from the cursor cell. A
     /// first row naming at least half of the columns on show is a header and maps the columns by label (in any shipped
     /// language) or key; otherwise they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
     pub(crate) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1411,7 +1411,7 @@ impl ShellModel {
     }
 
     /// `table.copy` (Ctrl+C): the marked rows' cells on show (else the cursor row's) as tab-separated text with a
-    /// header row of the column labels, onto the clipboard (§8.6).
+    /// header row of the column labels, onto the clipboard.
     pub(crate) fn act_table_copy(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
@@ -1440,7 +1440,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared (§8.3).
+    /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared.
     pub(crate) fn act_table_clear(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {

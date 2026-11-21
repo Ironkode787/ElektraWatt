@@ -55,7 +55,7 @@ use crate::strings;
 /// The JSON spellings of the orientations A to H.
 pub const ORIENT_NAMES: [&str; 8] = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"];
 
-/// What a placement creates (the armed target of §7.1).
+/// What a placement creates (the armed target).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PlaceTarget {
     /// A new device with this letter.
@@ -825,7 +825,7 @@ impl PlaceTool {
         }
     }
 
-    /// Whether a `new_terminal` target waits for the next designation (§7.2: after a commit with a designation that
+    /// Whether a `new_terminal` target waits for the next designation (after a commit with a designation that
     /// is not decimal digits the next commit asks again; `text.input` or a new `place.pick` gives it).
     pub fn needs_designation(&self) -> bool {
         self.ask

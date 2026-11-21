@@ -28,7 +28,7 @@ use crate::strings;
 use crate::strings::Key;
 use crate::wizard::{FieldKind, Step, fields_of};
 
-/// The most rows a navigator prints in the describe text (§6.10): a window around the cursor.
+/// The most rows a navigator prints in the describe text: a window around the cursor.
 pub const NAV_WINDOW: usize = 50;
 
 fn item_line(indent: &str, item: &ActionItem) -> String {
@@ -267,7 +267,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(format!("  button \"{}\"", strings::text(key!("wizard-cancel"))));
 }
 
-/// The first row of the describe window (§6.10): `clamp(cursor − 10, 0, max(0, n − 50))`.
+/// The first row of the describe window: `clamp(cursor − 10, 0, max(0, n − 50))`.
 fn window_start(n: usize, cursor: Option<usize>) -> usize {
     cursor
         .unwrap_or(0)
@@ -335,7 +335,7 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The lines of every open navigator other than Pages (§6.10): the header with the kind, the view, the sort, the
+/// The lines of every open navigator other than Pages: the header with the kind, the view, the sort, the
 /// filter, the row count and the window, then one line per row of the window around the cursor.
 fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let pages = crate::navigators::NavKind::Pages;
@@ -368,7 +368,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             rows.len(),
             if rows.is_empty() { 0 } else { start + 1 },
         ));
-        // The Messages pane's header line (§7.6).
+        // The Messages pane's header line.
         if kind == crate::navigators::NavKind::Messages
             && let Some(c) = model.messages_counts()
         {
@@ -383,7 +383,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             ));
         }
         let table = nav.table();
-        // The table's lines (§8.8).
+        // The table's lines.
         if let (Some(mode), Some(t)) = (nav.table_mode(), table) {
             table_lines(
                 model,
@@ -430,7 +430,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
-        // The detail lines of the cursor's finding (§7.6).
+        // The detail lines of the cursor's finding.
         if kind == crate::navigators::NavKind::Messages
             && let Some(d) = model.messages_detail()
         {
@@ -453,7 +453,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// A navigator's table (§8.8): the `columns` line of the column labels on show, one `row` line per row of the window
+/// A navigator's table: the `columns` line of the column labels on show, one `row` line per row of the window
 /// with its cells on show quoted (` selected`, ` cursor "<column label>"`, the highlight slot), then the cell edit
 /// (`editing "<column label>" buffer "<text>"`), its error, and the pattern dialog (`pattern "<pattern>" values
 /// "<text>" …` with the first five texts, or `invalid "<message>"`).
@@ -598,7 +598,7 @@ fn user(text: &str) -> String {
     text.replace('"', "'")
 }
 
-/// The provenance of a row in the describe text: its word and quoted chip text (UUIDs left out, §9 item 5).
+/// The provenance of a row in the describe text: its word and quoted chip text (UUIDs left out).
 fn provenance_words(p: &Provenance) -> String {
     match p {
         Provenance::Authored => "authored".to_owned(),
@@ -741,7 +741,7 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The find pane's lines (§7.6), after the property grid's; none while the pane is closed.
+/// The find pane's lines, after the property grid's; none while the pane is closed.
 fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if !model.find_shown() {
         return;
@@ -1032,7 +1032,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             },
         }
-        // The table card's invalid and ambiguous cells (§8.8), numbered by their place in the gesture.
+        // The table card's invalid and ambiguous cells, numbered by their place in the gesture.
         if let crate::properties::CardOrigin::Table { gesture } = &card.origin {
             for (i, c) in gesture.cells.iter().enumerate() {
                 if !c.blocking() {
@@ -1061,7 +1061,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     toast_lines(model, lines);
 }
 
-/// The visible toasts (§6.8), oldest first and the newest last: `toast "<text>"`, then the action's word and
+/// The visible toasts (doc 16a §6.10), oldest first and the newest last: `toast "<text>"`, then the action's word and
 /// `expired` when it is no longer valid.
 fn toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     for n in model.notifications().visible() {
@@ -1083,7 +1083,7 @@ fn action_words(model: &ShellModel, n: &crate::notifications::Notification) -> S
         .collect()
 }
 
-/// The Jobs pane while it is open (§6.8): `jobs running <k>`, then one line per entry, oldest first. A running job
+/// The Jobs pane while it is open (doc 16 §8.3): `jobs running <k>`, then one line per entry, oldest first. A running job
 /// prints no number (they depend on timing).
 fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if !model.jobs_shown() {
@@ -1139,7 +1139,7 @@ fn listed<T>(lines: &mut Vec<String>, items: &[T], word: &str, line: impl Fn(&T)
     }
 }
 
-/// The Preview tab while it is open (§8.7): `preview none` without a card; else the header, the summary and the lists
+/// The Preview tab while it is open (doc 16a §6.23): `preview none` without a card; else the header, the summary and the lists
 /// of entities, tags, cross-reference texts and pages.
 fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if !model.preview_shown() {
@@ -1221,7 +1221,7 @@ fn glossary_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The history panel while it is open (§8.7): `history entries <n> cursor <c>`, then its lines newest first (entries
+/// The history panel while it is open (doc 16 §8.1): `history entries <n> cursor <c>`, then its lines newest first (entries
 /// numbered from 1, the markers after their revision's entry); the row cursor's entry ends with `cursor`. Show changes
 /// follows as `  changes entry <n> records <k>` and at most [`crate::undo_history::MAX_CHANGES`] entity lines.
 fn history_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -1271,7 +1271,7 @@ fn history_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The notifications log while its popup is open (§6.8): `notifications <n>`, then the entries, newest first.
+/// The notifications log while its popup is open (doc 16a §6.10): `notifications <n>`, then the entries, newest first.
 fn notification_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let log = model.notifications();
     if !log.popup_open() {
@@ -1519,7 +1519,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push("canvas statistics shown".to_owned());
     }
     lines.push(format!("canvas renderer {}", crate::script::renderer_word(model)));
-    // The chip line "Not on this page" (§6.5).
+    // The chip line "Not on this page" (doc 16a §6.24).
     if !model.chips().is_empty() {
         let chips: Vec<String> = model
             .chips()
@@ -1528,7 +1528,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
             .collect();
         lines.push(format!("  elsewhere {}", chips.join(" ")));
     }
-    // The highlights drawn on the shown page (§7.4), oldest first.
+    // The highlights drawn on the shown page (doc 16a §7.5), oldest first.
     if let Some(group) = model.area().map(|a| a.focused) {
         let shown = model.highlight_overlay(group);
         for h in model.highlights().items() {

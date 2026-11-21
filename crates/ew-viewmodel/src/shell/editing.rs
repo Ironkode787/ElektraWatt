@@ -9,10 +9,10 @@
 //! in `shell/delete.rs`.
 //!
 //! **Reads.** The place catalogue is fetched once per (session, revision, folio) while the picker or `place.pick`
-//! needs it, a symbol shape once per copy per revision (§6.2); pointer and cursor moves, the picker's filter and its
-//! row keys make no `Session` call (§12 item 4) but the shape of a symbol the browser's picture shows first.
+//! needs it, a symbol shape once per copy per revision; pointer and cursor moves, the picker's filter and its
+//! row keys make no `Session` call but the shape of a symbol the browser's picture shows first.
 //!
-//! **Host commits** (§6.4 item 2) go through the tool's commit path: `Session::execute_with` in the window,
+//! **Host commits** go through the tool's commit path: `Session::execute_with` in the window,
 //! `Session::run_script` headless. A failed host commit leaves the tool unarmed and shows the message in the banner.
 
 use std::sync::Arc;
@@ -154,8 +154,7 @@ impl ShellModel {
     /// placed directly opens its view in a tab beside the page, so it is filled there (a further symbol of a station
     /// drawn before, a station the project had put on a bus page, or one whose view is open already, does not; Escape
     /// goes back to the page); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
-    /// waits asks which station takes it when the project has several, and offers New station… when it has none (the
-    /// persona run m3-p4 found the PLC panel by trying every icon).
+    /// waits asks which station takes it when the project has several, and offers New station… when it has none.
     fn say_card_waits(&mut self, before: &PageTables, now: &PageTables) {
         let existing = std::mem::take(&mut self.tools.drew_existing);
         let Some(session) = self.project_session() else {
@@ -477,7 +476,7 @@ impl ShellModel {
         self.tools.picker.as_ref()
     }
 
-    /// Whether the active place tool waits for the next terminal designation (§7.2).
+    /// Whether the active place tool waits for the next terminal designation.
     pub(super) fn place_needs_designation(&mut self) -> bool {
         self.tools
             .tool
@@ -630,7 +629,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Host commits
 
-    /// A host commit (§6.4 item 2): the tool's commit path; a failure shows its message in the banner.
+    /// A host commit: the tool's commit path; a failure shows its message in the banner.
     pub(super) fn host_commit(&mut self, name: &str, params: Value) -> Outcome {
         let cmd = AnyCommand {
             name: name.into(),
@@ -847,8 +846,8 @@ impl ShellModel {
         if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
             && !cat.parts[*pi].interfaces.is_empty()
         {
-            // A station of this part that the project has and this page does not show comes first (a persona run:
-            // Device ▸ Place made a second, empty CPU beside the one drawn with its cards): Put -1A1 here, or a new one.
+            // A station of this part that the project has and this page does not show comes first (Device ▸ Place must not
+            // make a second, empty CPU beside the one drawn with its cards): Put -1A1 here, or a new one.
             let copy = cat.parts[*pi].copy;
             if self.mode == super::Mode::Gui && !self.stations_off_page(Some(copy)).is_empty() {
                 self.tools.picker = None;
@@ -1079,8 +1078,8 @@ impl ShellModel {
             (_, part) if terminal => {
                 let mut strip = or_return!(string_param(p, "strip")).map(str::to_owned);
                 // Without a strip in the project a terminal has nowhere to go: a direct `place.pick` refuses. Chosen
-                // in the picker (the window's path) it goes on a new strip, made as Terminal…'s new strip is (a
-                // persona run: the empty strip chooser that opened instead stood between Place and the page).
+                // in the picker (the window's path) it goes on a new strip, made as Terminal…'s new strip is (no
+                // empty strip chooser stands between Place and the page).
                 if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
                     return Outcome::refused(key!("reason-no-strip"));
                 }
@@ -1215,7 +1214,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Actions
 
-    /// `tool.place` and `tool.place_part` (§7.6): opens the picker of the focused page.
+    /// `tool.place` and `tool.place_part`: opens the picker of the focused page.
     pub(crate) fn act_open_picker(&mut self, mode: PickerMode) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
@@ -1374,7 +1373,7 @@ impl ShellModel {
         }
     }
 
-    /// `picker.choose`: the current row (§7.1).
+    /// `picker.choose`: the current row.
     pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {
             return Outcome::refused(key!("reason-no-picker"));
@@ -1477,7 +1476,7 @@ impl ShellModel {
         }
     }
 
-    /// `place.pick` (§7.6, headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
+    /// `place.pick` (headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
     /// `template` (0-based; a part without a function template with `symbol` instead), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
     /// and `designation`. `device=<tag>` (with `symbol`) joins an existing device, and `function` also
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
@@ -1634,7 +1633,7 @@ impl ShellModel {
         self.arm(cat, pick, p)
     }
 
-    /// The transform keys (§7.4, §7.2): `Key(k)` to the active tool; with Select, V on several representations is
+    /// The transform keys: `Key(k)` to the active tool; with Select, V on several representations is
     /// refused `reason-one-rep` and Shift+V `reason-place-only`; with Place, Shift+V is the host's (the next
     /// catalogue symbol drawing the same function definition).
     pub(crate) fn act_tool_key(&mut self, key: ToolKey) -> Outcome {
@@ -1689,7 +1688,7 @@ impl ShellModel {
         self.send_tool(&CanvasEvent::Key(key))
     }
 
-    /// Shift+V with Place (§7.2): the next catalogue symbol (key order, wrapping) that draws the same function
+    /// Shift+V with Place: the next catalogue symbol (key order, wrapping) that draws the same function
     /// definition and the page allows; an embedded one only (a starter symbol is chosen through the picker).
     fn next_rep_type(&mut self) -> Outcome {
         let Some(cat) = self.catalogue() else {
@@ -1733,7 +1732,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `tool.move` (M, §7.3): the keyboard move of the selection's movable entities (representations, page items
+    /// `tool.move` (M): the keyboard move of the selection's movable entities (representations, page items
     /// and structure boxes); the grid cursor goes to the primary entity's anchor when it is not shown, else the first
     /// movable entity's (a representation's insertion point, an item's top-left bounds corner, a structure box's
     /// first outline vertex).
@@ -1847,7 +1846,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// `rep.exchange {symbol?}` (§7.5): on exactly one selected representation that draws no interruption point;
+    /// `rep.exchange {symbol?}`: on exactly one selected representation that draws no interruption point;
     /// without `symbol` the picker opens in exchange mode, with one the tool is armed at once.
     pub(crate) fn act_rep_exchange(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = self.canvas() else {
@@ -1904,7 +1903,7 @@ impl ShellModel {
         out
     }
 
-    /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
+    /// The after-commit duties, at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
         // A box armed with records this dispatch took away (a Delete in a navigator, as an Undo would) ends.
@@ -1980,7 +1979,7 @@ impl ShellModel {
         }
     }
 
-    /// The place tool's shape after a new revision (§12 item 4): read once again through the per-revision cache, so
+    /// The place tool's shape after a new revision: read once again through the per-revision cache, so
     /// a library update reaches the floating symbol; nothing else of the tool changes.
     fn refresh_place_shape(&mut self) {
         if self.tools.tool.name() != "place" {
@@ -2009,7 +2008,7 @@ impl ShellModel {
         }
     }
 
-    /// The live-region text of the place tool after a change (§7.2): `Place <key>: <target>, variant <letter>, at
+    /// The live-region text of the place tool after a change: `Place <key>: <target>, variant <letter>, at
     /// <cell>`.
     pub(super) fn announce_place(&mut self) {
         let Some(Ghost::Place {

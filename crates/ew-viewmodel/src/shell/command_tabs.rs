@@ -47,8 +47,8 @@ impl ShellModel {
     }
 
     /// Shows the navigator `kind`, or hides it when it is shown. Docked behind another tab, or in a collapsed column, it
-    /// comes to the front instead and the status bar says so (a persona run's Bus panel button closed a panel
-    /// he could not see).
+    /// comes to the front instead and the status bar says so (a panel button must not close a panel
+    /// out of sight).
     pub(crate) fn act_discipline_panel(&mut self, kind: NavKind) -> Outcome {
         let pane = crate::layout::PaneKind::Navigator(kind);
         let left = !crate::layout::PaneKind::BOTTOM.contains(&pane);

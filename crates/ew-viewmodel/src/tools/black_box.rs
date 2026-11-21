@@ -92,8 +92,8 @@ pub enum BoxTarget {
         /// Whether the box is the device's main function.
         main: bool,
     },
-    /// A station or one of its modules drawn on an electrical page by its box (`plc.draw_station` of the one box,
-    /// rc.5): Place here on a PLC part that no electrical page draws, made with or without functions.
+    /// A station or one of its modules drawn on an electrical page by its box (`plc.draw_station` of the one box):
+    /// Place here on a PLC part that no electrical page draws, made with or without functions.
     Station {
         /// The station's ID text.
         station: String,
@@ -390,8 +390,8 @@ impl BlackBoxTool {
     }
 
     /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
-    /// A box that would leave the frame's drawing area is moved inside it by whole grid steps where it fits (the rc.2
-    /// re-test: a terminal ran past the frame's edge, its positions cut off), and laid out afresh there: on a grid whose
+    /// A box that would leave the frame's drawing area is moved inside it by whole grid steps where it fits (a terminal must not
+    /// run past the frame's edge, its positions cut off), and laid out afresh there: on a grid whose
     /// step is no whole number of nanometres (the QET grid) the same layout at another corner has its points a
     /// nanometre apart, and a moved one would leave its pins off the grid.
     fn one_click_box(&self, cx: &ToolCx<'_>) -> Option<(BoxLayout, Option<i64>)> {
@@ -641,7 +641,7 @@ impl BlackBoxTool {
                     kind: MarkerKind::Cp,
                 });
             }
-            // The label at the pointer says what a click does (the persona run took it for a tool of two corners).
+            // The label at the pointer says what a click does (it is not a tool of two corners).
             items.push(OverlayItem::Label {
                 at: cx.snapper.page_to_sheet(pos),
                 text: crate::strings::format(key!("place-target-click"), &[&self.label()]),
@@ -735,7 +735,7 @@ impl BlackBoxTool {
                     let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
                     return ToolOutput::RefusedWith(key!("reason-box-too-large"), words);
                 }
-                // A box never lands on another box (the persona run placed two terminals on one spot).
+                // A box never lands on another box (two terminals never stand on one spot).
                 if overlaps_a_box(cx, pos, &outline) {
                     return ToolOutput::Refused(key!("reason-box-occupied"));
                 }

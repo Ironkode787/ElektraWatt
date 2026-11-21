@@ -102,8 +102,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Fluid ▸ Place: the device browser at the pneumatic parts, at the valve terminals, and at the air supply and its
     // preparation, so that what is placed has its part (the air supply placed from the symbols had none); a bare
-    // symbol stays Draw ▸ Symbol's. From any page they work on a fluid page: the nearest, else one made then (rc.3:
-    // greyed elsewhere, they did not say why).
+    // symbol stays Draw ▸ Symbol's. From any page they work on a fluid page: the nearest, else one made then (greyed
+    // elsewhere, they say why).
     keeps_banner(placed(
         place(
             Group::FluidPlace,

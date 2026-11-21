@@ -213,8 +213,8 @@ impl WireTarget {
         }
     }
 
-    /// Whether a connection from this target to `other` would join two points that already sit on one line (the
-    /// persona round: such a click did nothing and said nothing): one is a point on a connection that ends at the
+    /// Whether a connection from this target to `other` would join two points that already sit on one line (such a click
+    /// must not do nothing and say nothing): one is a point on a connection that ends at the
     /// other, or, when `duplicates` (tubes: a second tube between two ports is never wanted; two wires may double a
     /// cross-section), a connection joins them already.
     fn on_one_line(&self, other: &WireTarget, tables: &ew_api::output::PageTables, duplicates: bool) -> bool {
@@ -461,7 +461,7 @@ fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
 
 /// Whether a bend at the page point `p`, reached along `route`, would draw the wire through a symbol (ADR-0033 rule
 /// (c)): `p` lies inside a representation's body or black-box outline that `route` did not enter over one of that
-/// representation's connection points (a run over a free terminal's CPs passes through it on purpose, §5.3). A body
+/// representation's connection points (a run over a free terminal's CPs passes through it on purpose). A body
 /// that holds a connection point of another representation is an outline drawn around it (a valve terminal's box
 /// around its valves), as the router treats it, and takes bends.
 fn inside_symbol(cx: &ToolCx<'_>, p: (i64, i64), route: &[(i64, i64)]) -> bool {
@@ -905,7 +905,7 @@ pub struct WireTool {
     over_text: bool,
     /// Whether the point is on a junction that already joins three wires: the hint says so.
     full_junction: bool,
-    /// How many times the router ran (the exact-count test, §12 item 4).
+    /// How many times the router ran (the exact-count test).
     routes: u64,
     /// The labels of the start and the end, for the transcript.
     labels: (Option<String>, Option<String>),

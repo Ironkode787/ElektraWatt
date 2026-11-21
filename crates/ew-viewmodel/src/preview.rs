@@ -20,14 +20,14 @@
 //! **Lists.** Each list of the describe text prints at most [`MAX_LIST`] lines, then `more <list word> <n>`; the
 //! window virtualises them. Order: entities by `Session::preview_entities`' order; tags by their old text in natural
 //! order; cross-references grouped by the folio of the representation's page in page order, then by their old text;
-//! pages in page order (§9 item 4). Nothing here reads a clock or a path.
+//! pages in page order. Nothing here reads a clock or a path.
 
 use ew_api::output::PreviewEntity;
 
 use crate::key;
 use crate::properties::Card;
 
-/// The most lines each list of the `preview` section prints before its `more` line (§8.7).
+/// The most lines each list of the `preview` section prints before its `more` line.
 pub const MAX_LIST: usize = 20;
 
 /// What identifies a card: the revision it was prepared on, the command, its parameters as JSON text, the origin word.

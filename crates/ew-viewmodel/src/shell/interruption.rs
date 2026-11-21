@@ -6,10 +6,10 @@
 //! black box with their keyboard forms.
 //!
 //! **Reads.** The IP symbol and the external arrow are rows of the place catalogue (fetched once per (session,
-//! revision, folio)) and their shapes come through the per-revision shape cache (§6.2); a starter symbol the project
+//! revision, folio)) and their shapes come through the per-revision shape cache; a starter symbol the project
 //! lacks travels in the command's `copies`, as the picker's placements do (FT-656: one undo step). The external
 //! references are read from the session's query when the IP tool's
-//! field is set. Pointer and cursor moves of the IP and black box tools read nothing (§12 item 4).
+//! field is set. Pointer and cursor moves of the IP and black box tools read nothing.
 //!
 //! **Commits** go through the tool's commit path (`execute_with` in the window, `run_script` headless).
 
@@ -250,9 +250,9 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The IP tool (§9.1) and P while routing (§9.2)
+    // The IP tool and P while routing
 
-    /// `tool.ip` (P): while the Wire tool routes, the wire ends in an interruption point (§9.2); otherwise the IP tool
+    /// `tool.ip` (P): while the Wire tool routes, the wire ends in an interruption point; otherwise the IP tool
     /// is armed with the IP symbol of the page's grid family.
     pub(crate) fn act_tool_ip(&mut self) -> Outcome {
         if self.tools.tool.name() == "wire" && self.tools.tool.state() == "routing" {
@@ -683,7 +683,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Continue and arrange (§9.3)
+    // Continue and arrange
 
     /// `ip.continue_on {folio, x_mm?, y_mm?}` (Edit ▸ Continue on page…): `ip.continue` of exactly one selected
     /// interruption point onto the page `folio`. Without a point: the same y (on the target's grid), and x the leftmost
@@ -838,11 +838,11 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // The black box tool (§9.4, §9.5)
+    // The black box tool
 
     /// `tool.black_box` (B): without parameters the picker on the black-box rows; on a bus-topology page where a
-    /// station or a bus device of the project is not drawn yet, first the choice of Put a station on this page (rc.2
-    /// persona run: the tool kept taking the station placed last); with `place.pick`'s parameters the black box tool is
+    /// station or a bus device of the project is not drawn yet, first the choice of Put a station on this page (the tool must not
+    /// keep taking the station placed last); with `place.pick`'s parameters the black box tool is
     /// armed at once (a row that is no black box is refused).
     pub(crate) fn act_tool_black_box(&mut self, p: &Map<String, Value>) -> Outcome {
         if !p.contains_key("symbol") && !p.contains_key("part") {
@@ -920,7 +920,7 @@ impl ShellModel {
         self.commit_from_host(cmd.as_ref())
     }
 
-    /// The grips of a selected black box (§9.4) and the handles of a selected connection's line: while Select is idle
+    /// The grips of a selected black box and the handles of a selected connection's line: while Select is idle
     /// and exactly one black box or one connection is selected, the overlay shows the box's grips and CPs, or a
     /// handle on every segment and bend of the wire (where a drag edits its route); once that no longer holds, a
     /// grips overlay the host set is cleared (the end of every dispatch).

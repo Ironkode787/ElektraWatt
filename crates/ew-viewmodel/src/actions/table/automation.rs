@@ -383,7 +383,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages; without a row, of the
-    // selected valve terminal, greyed in words while none is selected (the persona round).
+    // selected valve terminal, greyed in words while none is selected.
     with_params(
         "station?:ref",
         in_navigator(with_aliases(

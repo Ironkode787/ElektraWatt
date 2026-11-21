@@ -194,7 +194,7 @@ impl ShellModel {
             for button in crate::rail::rail(self).left {
                 // A panel's name weighs as an alias does, so that a command of as good a match ranks first ("part"
                 // finds Device from part… before the panel Parts in use).
-                // A panel's glossary aliases too ("network" finds Bus, the persona run m3-p4).
+                // A panel's glossary aliases too ("network" finds Bus).
                 let aliases = crate::glossary::panel_aliases(button.word);
                 let names = std::iter::once(button.label.as_str()).chain(aliases.iter().copied());
                 // A panel named exactly what was typed weighs as a label, so that it leads the commands named after

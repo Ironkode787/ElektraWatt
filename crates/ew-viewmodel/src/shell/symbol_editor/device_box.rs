@@ -552,7 +552,7 @@ impl ShellModel {
     }
 
     /// After the box is closed: back where it was opened from, the project or the editor's ways in (which offer the
-    /// symbol draft in hand to continue; rc.3: Close box landed in that draft, as if it had been opened again).
+    /// symbol draft in hand to continue; Close box does not land in that draft, as if it had been opened again).
     fn leave_box(&mut self, from_project: bool) {
         let Some(editor) = &mut self.symbol_editor else {
             return;

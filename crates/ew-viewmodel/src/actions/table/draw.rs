@@ -354,7 +354,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot_sep(Menu::Edit),
         |s, _| s.act_delete_selection(),
     ))),
-    // The clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
+    // The clipboard. The chords are the canvas's: a text field of the property grid or the find
     // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
     in_canvas(act(
         "edit.cut",
@@ -695,8 +695,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     // Draw ▸ Layout (Enclosure with Mounting plate… in its split, Auto-fill rail… under it, Rail, Duct) on a panel layout page
-    // with a surface view, the draw tools' options card, and Project ▸ Enclosure… (also in Draw ▸ Layout, rc.2: the
-    // persona looked for the enclosure and the plate beside Rail and Duct).
+    // with a surface view, the draw tools' options card, and Project ▸ Enclosure… (also in Draw ▸ Layout: the
+    // enclosure and the plate stand beside Rail and Duct).
     with_icon(
         "ew-mounting-plate",
         act(
@@ -846,7 +846,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // A row of the Arrange and route card ticked or unticked, or all the wires you drew: the page is planned again
-    // (§7.3).
+    // (doc 06a §7.3).
     with_params(
         "row?:int, all?:bool",
         hidden(act(
@@ -869,7 +869,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_arrange_as_is(),
     ))),
-    // While a wire is drawn, `.` makes the joint it makes on a wire a dot instead of the bevel (§7.6).
+    // While a wire is drawn, `.` makes the joint it makes on a wire a dot instead of the bevel (doc 06a §7.6).
     keeps_banner(hidden(in_canvas(act(
         "tool.wire_dot",
         Command,
@@ -1229,7 +1229,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Connect),
         |s, _| s.act_strip_bridge(),
     ))),
-    // The strip editor (§6.9; 262 → 268).
+    // The strip editor.
     with_params(
         "strip?:text",
         act(

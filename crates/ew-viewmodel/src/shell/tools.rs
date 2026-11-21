@@ -5,7 +5,7 @@
 //! focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the
 //! keyboard tool input, the link hover preview and the selection.
 //!
-//! **Outputs** (§7.2). `Transient` replaces the overlay; `Preview` runs `Session::preview_with` once (a repeat of
+//! **Outputs**. `Transient` replaces the overlay; `Preview` runs `Session::preview_with` once (a repeat of
 //! the kept command on the kept revision is ignored) and keeps the overlay; `Commit` commits a fresh, equal preview
 //! with `Session::commit` in the window, else `Session::execute_with` (a preview and its commit for a bulk command),
 //! and headless always runs a one-line command log through `Session::run_script`, exactly `command.run`'s path,
@@ -43,7 +43,7 @@ use ew_dl::EntityRef;
 /// The toast key of why a command did nothing ([`ShellModel::explain_disabled`]): a second one replaces the first.
 const DISABLED: &str = "disabled";
 
-/// A connection-point step of the keyboard (§7.7).
+/// A connection-point step of the keyboard.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum CpStep {
     /// `cp.next`.
@@ -151,8 +151,8 @@ impl ShellModel {
         if hint == crate::tools::Hint::plain(key!("hint-select"))
             && let Some((wire, line)) = self.wire_handles()
         {
-            // The handle with the focus by its place along the wire as Tab goes (a persona run could not tell which
-            // dot it was) and the arrows that move it.
+            // The handle with the focus by its place along the wire as Tab goes (so a person can tell which
+            // dot it is) and the arrows that move it.
             if let Some((_, k)) = self.tools.handle.filter(|(w, _)| *w == wire) {
                 use crate::tools::route_edit::{GripMove, grip_move, handle_parts, reads_backwards};
                 let parts = handle_parts(&line);
@@ -541,7 +541,7 @@ impl ShellModel {
         ));
     }
 
-    /// Hands `ev` to the active tool and acts on its output (§7.2).
+    /// Hands `ev` to the active tool and acts on its output.
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
         // A refused key's notice stands in the status bar until the next canvas input. A tool
         // refusal is sticky for the rest of its gesture: its release keeps it and the post-release hover keeps it, so
@@ -621,7 +621,7 @@ impl ShellModel {
         }
     }
 
-    /// The host's action on a tool's output (§7.2).
+    /// The host's action on a tool's output.
     pub(super) fn apply_tool_output(&mut self, out: ToolOutput) -> Outcome {
         match out {
             ToolOutput::None => Outcome::Done,
@@ -709,7 +709,7 @@ impl ShellModel {
                     });
                 }
                 // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with
-                // one tag appeared "unexplained" (the persona round of M3).
+                // one tag appeared "unexplained".
                 if out == Outcome::Done
                     && cmd.name() == "bus.place_ports"
                     && let Ok(json) = cmd.to_json()
@@ -889,8 +889,8 @@ impl ShellModel {
                 if self.tools.selection.apply(&change) {
                     self.announce_selection();
                 } else if !self.tools.selection.is_empty() {
-                    // A click on what is selected already brings Properties back to it from the project's sheet (a
-                    // persona run's Properties stayed on the project until he selected something else first).
+                    // A click on what is selected already brings Properties back to it from the project's sheet (Properties
+                    // must not stay on the project until something else is selected first).
                     self.props.project_mode = None;
                 }
                 // A click on an empty cell of a valve terminal drawn as its positions fills it.
@@ -945,7 +945,7 @@ impl ShellModel {
         })
     }
 
-    /// The persona round's valves placed inside a valve terminal's box stayed loose devices: a `device.place` whose
+    /// A valve placed inside a valve terminal's box must not stay a loose device: a `device.place` whose
     /// insertion point lies inside the box of a valve terminal of the page, and a `rep.move` of one representation whose
     /// new insertion point does, name that terminal as `into` (the command seats a valve or a supply plate there and
     /// leaves any other device). Any other command, and a move of the terminal's own box, is returned as it is.
@@ -1032,7 +1032,7 @@ impl ShellModel {
         )
     }
 
-    /// The sentence that says where a device dropped into a valve terminal's box now sits (the persona round: a toast
+    /// The sentence that says where a device dropped into a valve terminal's box now sits (a toast
     /// that names the position), or that the terminal had no free position; `None` for a device that is neither a valve
     /// nor on a valve terminal.
     pub(super) fn seat_words(&self, device: ew_api::output::Uuid) -> Option<String> {
@@ -1052,7 +1052,7 @@ impl ShellModel {
     }
 
     /// For a `device.place` with autoconnect hints (`connect`): the number of wires it draws as words (`1 wire`,
-    /// `2 wires`; `1 tube` where every hint joins a fluid port, persona round 3) and the proposals the ghost showed
+    /// `2 wires`; `1 tube` where every hint joins a fluid port) and the proposals the ghost showed
     /// (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any other command or a placement without hints
     /// (Alt, or no proposal).
     /// The far autoconnect hits a `device.place` does not join, offered by its toast; none at its point moved or with
@@ -1208,7 +1208,7 @@ impl ShellModel {
         ))
     }
 
-    /// `Preview(cmd)` (§7.3): `Session::preview_with` once, the semantic ghost from `Session::derived_diff`; a
+    /// `Preview(cmd)`: `Session::preview_with` once, the semantic ghost from `Session::derived_diff`; a
     /// preview of the kept command on the kept revision is not run again.
     fn run_preview(&mut self, cmd: &dyn DynCommand) {
         let Some(rev) = self.revision() else { return };
@@ -1267,7 +1267,7 @@ impl ShellModel {
         }
     }
 
-    /// `Commit(cmd)` (§7.3) of the tool host: [`ShellModel::commit`] with the tool's kept preview of `cmd` when it is
+    /// `Commit(cmd)` of the tool host: [`ShellModel::commit`] with the tool's kept preview of `cmd` when it is
     /// fresh, else `cmd` executed. A read-only project refuses before anything runs.
     pub(super) fn run_commit(&mut self, cmd: &dyn DynCommand) -> Outcome {
         if !self.is_writable() {
@@ -1403,7 +1403,7 @@ impl ShellModel {
         }
     }
 
-    /// The tool's part of the Escape chain (§7.2): `Escape` to the tool; when it answers `None` (its first state), a
+    /// The tool's part of the Escape chain: `Escape` to the tool; when it answers `None` (its first state), a
     /// tool other than Select is replaced by Select, and Select with a selection clears it.
     pub(super) fn dismiss_tool(&mut self) -> Outcome {
         match self.run_tool(&CanvasEvent::Escape) {
@@ -1422,7 +1422,7 @@ impl ShellModel {
         }
     }
 
-    /// The grid cursor of group `g` moved: the active tool learns it when `g` is the focused group (§7.7).
+    /// The grid cursor of group `g` moved: the active tool learns it when `g` is the focused group.
     pub(super) fn cursor_moved(&mut self, g: usize) {
         self.tools.announcement = None;
         if self.area.as_ref().map(|a| a.focused) != Some(g) {
@@ -1459,7 +1459,7 @@ impl ShellModel {
         }
     }
 
-    /// `canvas.press` and `canvas.release` (§7.9): `x_mm`, `y_mm`, optional `button` (`primary`, `middle`),
+    /// `canvas.press` and `canvas.release`: `x_mm`, `y_mm`, optional `button` (`primary`, `middle`),
     /// `shift`, `ctrl`, `alt` and `group`. A press in the other group focuses it first; the middle button reaches
     /// no tool (it pans). A primary release after the tool's context changed under its press is dropped: no focus,
     /// pointer, tool or selection change.
@@ -1633,7 +1633,7 @@ impl ShellModel {
             return self.send_tool(&CanvasEvent::Activate);
         }
         // Without a grid cursor the Duct tool's Enter finishes the line its clicks drew, as its hint says, or says why
-        // not (a persona run: two clicks and Enter drew no duct and named the grid cursor).
+        // not.
         if self.tools.tool.name() == "duct_draw" && self.canvas().and_then(CanvasModel::cursor).is_none() {
             return self.send_tool(&CanvasEvent::Key(crate::tools::ToolKey::Finish));
         }
@@ -1649,7 +1649,7 @@ impl ShellModel {
         self.send_tool(&CanvasEvent::Back)
     }
 
-    /// `cp.next`, `cp.previous`, `cp.next_unconnected` (§7.7): the grid cursor goes to the next or previous
+    /// `cp.next`, `cp.previous`, `cp.next_unconnected`: the grid cursor goes to the next or previous
     /// connection point of the page in reading order after the cursor (from the view centre without one), wrapping;
     /// `cp.next_unconnected` only to a connection point no connection ends at.
     pub(crate) fn act_cp_step(&mut self, p: &Map<String, Value>, step: CpStep) -> Outcome {
@@ -1717,7 +1717,7 @@ pub(super) enum Kept<'a> {
     /// refusal in the command's words ([`command_failed`]).
     Tool(&'a dyn DynCommand),
     /// A card's or the property grid's kept, fresh preview (a refused preview fails with its own message); a refusal
-    /// of the commit names a target of the section by its label (§6.7).
+    /// of the commit names a target of the section by its label.
     Card(PreviewState, Option<&'a SheetSection>),
 }
 

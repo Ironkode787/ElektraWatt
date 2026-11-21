@@ -392,7 +392,7 @@ pub struct CanvasPage {
     pub panel: Option<Arc<ew_api::output::PanelTables>>,
     /// The page as the layout sees it (`Session::page_draft`, docs/design/06a-drafting.md §2.2), fetched with the
     /// tables: the Wire tool and a move route against it, and the guides of a symbol placed by hand are found on it
-    /// (§6). Empty for a page that is not drawn.
+    /// (doc 06a §6). Empty for a page that is not drawn.
     pub draft: Arc<ew_api::drafting::DraftPage>,
     /// The symbols' texts where the page prints them (`Session::page_slot_texts`), fetched with the tables: what a
     /// drag of a selected symbol's text grabs. Empty for a page that is not drawn.
@@ -875,7 +875,7 @@ impl CanvasModel {
 
     /// Every entity a press at the pointer can pick, in the Select tool's pick order ([`crate::tools::pick_stack`]),
     /// found now: a press or a release clears the hover while the pointer stands still, and a right click right after
-    /// a click acts on what is under it (the owner's test of 0.3.0-rc.1: a selected symbol's right click gave the
+    /// a click acts on what is under it (a selected symbol's right click must not give the
     /// page's menu). Empty while the pointer is outside the pane.
     pub fn pointer_stack(&self) -> Vec<EntityRef> {
         self.pointer

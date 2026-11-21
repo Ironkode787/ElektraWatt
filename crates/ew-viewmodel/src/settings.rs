@@ -1410,7 +1410,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// A settings file of 0.3.0-rc.2 and before names one template path: it loads as a list of that one, still used for
+    /// An earlier settings file names one template path: it loads as a list of that one, still used for
     /// new projects, and the template leaves the recent projects; a list round-trips with its names.
     #[test]
     fn one_template_path_becomes_a_list_of_one() {

@@ -86,7 +86,7 @@ impl Chooser {
         }
     }
 
-    /// Type-ahead (§6.22): the active row becomes the first row whose name starts with `text`, ignoring case and a
+    /// Type-ahead (doc 16a §6.22): the active row becomes the first row whose name starts with `text`, ignoring case and a
     /// leading `-` (so `k1` and `-101k1` both reach `-101K1`); else the first whose name contains it. No match keeps
     /// the active row. Returns whether a row matched.
     pub fn type_ahead(&mut self, text: &str) -> bool {

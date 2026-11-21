@@ -7,7 +7,7 @@
 //! **The sheet** is fetched at the end of a dispatch when the pane is in the layout and its key (project session,
 //! revision, the records) changed: a selection change, a focused-page change with an empty selection, or a new
 //! revision makes exactly one `Session::property_sheet` call; row moves, category toggles, typing, choices and popups
-//! make none (§9 item 4). With the pane closed there is no sheet and no call.
+//! make none. With the pane closed there is no sheet and no call.
 //!
 //! **The commit path** (D6, D7): an edit compiles into exactly one command (`fields.set` or `project.settings.set`),
 //! refused unless its exposure is `Edit` (D4). It is previewed once (`Session::preview_with`); the edit policy decides
@@ -39,7 +39,7 @@ use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
 
-/// The message of a command refusal as the grid shows it (§6.7): a parameter path `/targets/<i>` names the target by
+/// The message of a command refusal as the grid shows it: a parameter path `/targets/<i>` names the target by
 /// its label (`label(i)`, "on -101F1: …").
 fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     match e {
@@ -63,7 +63,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     }
 }
 
-/// `text` with every hyphenated UUID replaced by `name(uuid)` (no UUID reaches the transcript, §9 item 5).
+/// `text` with every hyphenated UUID replaced by `name(uuid)` (no UUID reaches the transcript).
 pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String {
     let b = text.as_bytes();
     let is_uuid = |w: &[u8]| {
@@ -182,7 +182,7 @@ impl ShellModel {
         &self.props
     }
 
-    /// The form a bus port's field takes, said under its editor (the persona run m3-p4): for `bus_port.address`
+    /// The form a bus port's field takes, said under its editor: for `bus_port.address`
     /// the address form of the port's bus with an example (`Session::bus_address_form`), for `bus_port.termination`
     /// its words; `None` for another field or a function without a bus port.
     fn port_field_hint(&self, function: ew_api::output::Uuid, field: &str) -> Option<String> {
@@ -509,7 +509,7 @@ impl ShellModel {
                 }
             }
         }
-        // A read-only project's rows offer nothing (§6.3, §6.8).
+        // A read-only project's rows offer nothing.
         if sheet.read_only.is_some() {
             for s in &mut sheet.sections {
                 for r in &mut s.rows {
@@ -520,7 +520,7 @@ impl ShellModel {
         sheet
     }
 
-    /// The project's Made from template row by the template's name in the list (a persona run read a dash for a
+    /// The project's Made from template row by the template's name in the list (a dash must not stand for a
     /// project made from a template), else in words that it is no template of the list; the ID and the generation the
     /// project records under it say nothing to a person and are left out.
     fn made_from_in_words(&self, sheet: &mut PropertySheet) {
@@ -914,7 +914,7 @@ impl ShellModel {
             self.focus = Some(Focus::Properties);
         }
         let key = or_return!(self.props_row_param(p));
-        // A derived row edits its authored partner: Enter or F2 is its Override (§6.4).
+        // A derived row edits its authored partner: Enter or F2 is its Override.
         let overrides = self.props_find(&key).is_some_and(|(_, r)| {
             !r.actions.contains(&RowAction::Edit) && r.actions.contains(&RowAction::Override)
         });
@@ -949,7 +949,7 @@ impl ShellModel {
         let buffer = match buffer {
             Some(b) => b,
             None => match (&row.value, self.mltext_object(&section, &row)) {
-                // A multi-language value edits its source language's text inside the object (§6.5).
+                // A multi-language value edits its source language's text inside the object.
                 (_, Some(object)) => self.source_text(&object),
                 // The minimal part chooser edits the part numbers (`533356 × 1`), not the list's JSON.
                 (RowValue::One { json, text }, None) if row.ty.is_part_uses() => {
@@ -995,7 +995,7 @@ impl ShellModel {
         self.props.tag_proposal = None;
         self.props.choices = None;
         self.props.popup = None;
-        // A choice editor lists its options (§6.5).
+        // A choice editor lists its options.
         if crate::properties::opens_choices(&row) {
             self.props.choices = self.options(&section, &row, "", key);
         }
@@ -1427,7 +1427,7 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        // A language object: the text replaces the source language's and the other languages stay (§6.5); an empty
+        // A language object: the text replaces the source language's and the other languages stay; an empty
         // text removes the source language, and with it the last one the value.
         let value = match (self.mltext_object(&section, &row), parsed.value) {
             (Some(mut object), v @ (Value::String(_) | Value::Null)) => {
@@ -1451,7 +1451,7 @@ impl ShellModel {
         self.commit_value(key, value, text.to_owned(), parsed.notes)
     }
 
-    /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path (§6.6).
+    /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path.
     pub(super) fn commit_value(
         &mut self,
         key: &str,
@@ -1543,7 +1543,7 @@ impl ShellModel {
             self.props.set_error(key.to_owned(), message.clone());
             return Outcome::Failed { message };
         };
-        // A value equal to the current one builds no command (§6.6).
+        // A value equal to the current one builds no command.
         let current = if row.path == member {
             match &row.value {
                 RowValue::One { json, .. } if !is_derived(&row) => Some(json.clone()),
@@ -1822,7 +1822,7 @@ impl ShellModel {
         }
     }
 
-    /// The commit path of an edit (§6.6): the exposure guard, one preview, the policy, then the commit or the card.
+    /// The commit path of an edit: the exposure guard, one preview, the policy, then the commit or the card.
     /// `card` forces the card (a rebuilt stale card).
     fn run_edit(&mut self, edit: PendingEdit, card: bool) -> Outcome {
         self.props.tag_proposal = None;
@@ -2023,7 +2023,7 @@ impl ShellModel {
         let base_rev = self.revision()?;
         let proposal = self.project.as_ref()?.session.join_proposal(*device, text)?;
         // A free function of the device the symbol becomes is named ("-201Q1 has an undrawn solenoid 14: make this symbol
-        // that?", rc.2 F11); else the symbol joins as an auxiliary contact.
+        // that?"); else the symbol joins as an auxiliary contact.
         let shown = match &proposal.slot {
             Some(slot) => strings::format(key!("props-join-slot-proposal"), &[&proposal.tag, slot]),
             None => strings::format(key!("props-join-proposal"), &[&proposal.tag]),
@@ -2625,7 +2625,7 @@ impl ShellModel {
         self.row_action(&key, action)
     }
 
-    /// A row action (§6.3, §6.4): its partner write, or the editor for Edit and Override.
+    /// A row action: its partner write, or the editor for Edit and Override.
     fn row_action(&mut self, key: &str, action: RowAction) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
@@ -2669,7 +2669,7 @@ impl ShellModel {
         }
     }
 
-    /// Freeze on a device section with several targets (§7.5): every device whose tag is not frozen gets
+    /// Freeze on a device section with several targets: every device whose tag is not frozen gets
     /// `tag.frozen` ← `{"text": <its product designation>, "sign": "shown"}`, all in one `fields.set_many` through the
     /// preview and the policy (rule 2 opens the card). Each device's product designation is the derived tag row of its
     /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all").
@@ -2896,7 +2896,7 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::TableImport(_)) {
             return self.apply_table_import_card(card);
         }
-        // A replace card is the find pane's (§7.4).
+        // A replace card is the find pane's.
         if matches!(card.origin, CardOrigin::Find { .. }) {
             return self.apply_find_card(card);
         }
@@ -2929,15 +2929,15 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Arrange(_)) {
             return self.apply_arrange_card(card);
         }
-        // A bulk card is a renumber dialog's (§8.2).
+        // A bulk card is a renumber dialog's.
         if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);
         }
-        // A macro card is the Macros navigator's (`macro.insert`, §11).
+        // A macro card is the Macros navigator's (`macro.insert`).
         if matches!(card.origin, CardOrigin::Macro(_)) {
             return self.apply_macro_card(card);
         }
-        // A table card is a navigator's table gesture (§8.7).
+        // A table card is a navigator's table gesture.
         if matches!(card.origin, CardOrigin::Table { .. }) {
             return self.apply_table_card(card);
         }
@@ -2953,7 +2953,7 @@ impl ShellModel {
             let Card { preview, edit, .. } = card;
             return self.commit_edit(preview, &edit);
         }
-        // Stale (§6.6): never re-preview the old parameters.
+        // Stale: never re-preview the old parameters.
         let edit = card.edit;
         let member = member_path(&edit.route).unwrap_or_default();
         let member_key = format!("{}/{member}", edit.kind);
@@ -3009,7 +3009,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The grid's part of the Escape chain (§6.9) while it has the focus: the choices or a popup, then the edit, then
+    /// The grid's part of the Escape chain while it has the focus: the choices or a popup, then the edit, then
     /// the card, then the focus goes back to the canvas. `None` when the grid does not have the focus.
     pub(super) fn dismiss_properties(&mut self) -> Option<Outcome> {
         if self.focus != Some(Focus::Properties) {
@@ -3106,7 +3106,7 @@ pub(super) mod tests {
         assert_eq!(after.preview_with, before.preview_with, "no preview");
         assert_eq!(after.commit, before.commit);
         assert_eq!(after.run_script, before.run_script);
-        // §6.7: a refusal at `/targets/<i>` names that target by its label, also among several targets.
+        // A refusal at `/targets/<i>` names that target by its label, also among several targets.
         assert_eq!(
             shell.dispatch("select.set", &json!({"refs": ["tag:-101F1", "tag:-102F1"]})),
             Outcome::Done

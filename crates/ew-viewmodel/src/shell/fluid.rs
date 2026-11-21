@@ -34,7 +34,7 @@ impl ShellModel {
         let Some(mut params) = self.project_session().and_then(|s| s.overview_params(station)) else {
             return Outcome::refused(key!("reason-overview-no-page"));
         };
-        // A new overview page names the terminal it shows (the persona round: page 202 had no title).
+        // A new overview page names the terminal it shows.
         if let Some(tag) = self.project_session().and_then(|s| s.device_tag(station)) {
             params["title"] = Value::String(strings::format(key!("overview-page-title"), &[&tag]));
         }
@@ -57,7 +57,7 @@ impl ShellModel {
         }
     }
 
-    /// `fluid.valve_add {module, position}` (doc 11 §7, the persona round): a valve terminal's Add valve at position
+    /// `fluid.valve_add {module, position}` (doc 11 §7): a valve terminal's Add valve at position
     /// n: one `valve.set_occupancy` with the part of its other valves, else the libraries' valve for its positions
     /// (embedded with it), then the new valve's symbol on the pointer when the page shown takes it, so that a click
     /// places it; a toast names the valve and its position.
@@ -323,7 +323,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `fluid.plug_ports` (Fluid ▸ Plug ports, rc.3: the rack run found Plug port only by right-clicking one port at a
+    /// `fluid.plug_ports` (Fluid ▸ Plug ports: no need to right-click one port at a
     /// time): the open working ports of the selected valves plugged, one undo step; a toast says whose.
     pub(crate) fn act_fluid_plug_ports(&mut self) -> Outcome {
         let (fixes, tags) = match self.selected_open_ports() {

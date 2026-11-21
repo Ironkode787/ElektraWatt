@@ -14,7 +14,7 @@
 //! **Update.** `libraries.update` previews `library.update` of the marked copies of the Libraries navigator (else the
 //! copy under the cursor, else every copy with an update) and opens the bulk card (`Session::update_from_library`).
 //!
-//! **Save as macro… and Make variable.** A library write is a front-end operation (§13.2 item 7): no command, no
+//! **Save as macro… and Make variable.** A library write is a front-end operation: no command, no
 //! command log, and headless (a script, `--record`, MCP) `macros.save` refuses (`reason-library-write-window`, as the
 //! purge refuses). In the window the dialog is the confirmation (D12: not undoable); a read-only library refuses before
 //! anything is written. `props.make_variable` remembers the focused property row as a variable of the next save.
@@ -326,7 +326,7 @@ fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
     failed(key!("error-macro-save"), &[&e.to_string()])
 }
 
-/// The words of a row badge in the UI language: the Libraries and Macros navigators' codes (§11), the other
+/// The words of a row badge in the UI language: the Libraries and Macros navigators' codes, the other
 /// navigators' fixed badge words by their `nav-badge-<word>` text (`unplaced`, `frozen`, `spare`, `main`, a
 /// severity, ...) and a strip's `<n> spare`; any other badge (a rule group's count) as given.
 pub(super) fn badge_word(code: &str) -> String {
@@ -388,7 +388,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The Macros navigator's detail
 
-    /// The detail of the macro under the Macros navigator's cursor (§11: name, description, "No preview", devices,
+    /// The detail of the macro under the Macros navigator's cursor (name, description, "No preview", devices,
     /// variables); `None` when the cursor is on no macro row or the navigator is closed.
     pub fn macro_detail(&self) -> Option<&MacroDetail> {
         self.macros.detail.as_ref().and_then(|(_, d, _)| d.as_deref())
@@ -988,7 +988,7 @@ impl ShellModel {
     /// `x_mm`/`y_mm` (a sheet point of the page on show, snapped to its grid), else the selection's anchor. Without
     /// `name` or `confirm` the window opens the dialog (name, key, description, library, kind, insertion point), which
     /// is the confirmation (the write is not undoable, D12); headless the action refuses (a library write is a
-    /// front-end operation, §13.2 item 7).
+    /// front-end operation).
     pub(crate) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::refused(key!("reason-library-write-window"));

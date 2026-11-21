@@ -134,7 +134,7 @@ impl ShellModel {
         text
     }
 
-    /// `strip.new {letter?, tag?, dialog?}` (§7.6): a host commit of `device.create` with the strip aspect. While the
+    /// `strip.new {letter?, tag?, dialog?}`: a host commit of `device.create` with the strip aspect. While the
     /// picker's strip chooser is open it lists the new strip, which becomes its current row.
     ///
     /// With `dialog` (the picker's New row) the New terminal strip form opens instead, its Tag field
@@ -235,7 +235,7 @@ impl ShellModel {
     /// `tool.place_terminal {strip?, kind?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
     /// window without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the
     /// tag it will take, editable in `tag`; `new` stands first, and the strip of the page's terminal placed last is chosen, else
-    /// `new`, rc.2 and rc.5), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
+    /// `new`), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
     /// terminal part of the kinds: [`Self::terminal_part_proposal`] proposes one, and a part chosen sets its kind), how
     /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
@@ -251,8 +251,8 @@ impl ShellModel {
         if kinds.is_empty() {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
-        // The strip the form adds to: the strip of the terminal placed last on this page, else a new strip (the
-        // field terminals joined the supply page's strip; rc.5: the strip used last on another page was chosen).
+        // The strip the form adds to: the strip of the terminal placed last on this page, else a new strip (not the strip
+        // used last on another page: the field terminals would join the supply page's strip).
         let page_strip: Option<String> = self.page_terminal_strip();
         if p.is_empty() && self.mode == super::Mode::Gui {
             let example = self.tag_example("strip", "X");
@@ -766,7 +766,7 @@ mod tests {
     use super::spacing_words;
     use crate::strings;
 
-    /// rc.3 review: the Spacing field's lengths take the window's decimal sign.
+    /// The Spacing field's lengths take the window's decimal sign.
     #[test]
     fn a_spacing_reads_with_the_windows_decimal_sign() {
         assert_eq!(spacing_words(2, 4.0), "2 grid steps · 8.0 mm");

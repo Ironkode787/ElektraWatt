@@ -347,8 +347,8 @@ pub(super) fn retype(session: Option<&ew_api::Session>, wires: &[Uuid], form: &m
             *cell = core;
         }
     }
-    // A new cable (its form asks for a part) says at once which wire the type leaves without a core, and why (rc.3:
-    // three wires listed, the cable made from two, nothing said).
+    // A new cable (its form asks for a part) says at once which wire the type leaves without a core, and why (three wires
+    // listed, the cable made from two).
     if form.fields.iter().any(|f| f.name == "part") {
         let rows: Vec<(String, String)> = table
             .rows

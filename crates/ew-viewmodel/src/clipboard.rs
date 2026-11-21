@@ -4,7 +4,7 @@
 //! The shell's clipboard: one text value, what it holds, and the text the window
 //! puts on the system clipboard.
 //!
-//! **Headless** runs have no system clipboard: the shell keeps the text (§8.7). `clipboard.text` sets it as an
+//! **Headless** runs have no system clipboard: the shell keeps the text. `clipboard.text` sets it as an
 //! external copy would; `edit.copy`, `edit.cut` and `edit.copy_tags` write it; `edit.paste_clip` reads it. **In the
 //! window** the same actions run: a copy also leaves its text in [`ClipboardState::take_outbox`], which the window
 //! hands to egui's `Context::copy_text`, and a paste event's text arrives as `edit.paste_clip`'s `text`.
@@ -99,7 +99,7 @@ impl ClipboardState {
         self.outbox.take()
     }
 
-    /// The describe line (§8.8): `clipboard fragment records <n> copies <n>`, `clipboard text lines <n>` or
+    /// The describe line: `clipboard fragment records <n> copies <n>`, `clipboard text lines <n>` or
     /// `clipboard none`.
     pub fn describe_line(&self) -> String {
         match &self.kind {

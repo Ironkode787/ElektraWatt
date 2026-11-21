@@ -240,7 +240,7 @@ impl ShellModel {
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["topic"]),
             // F1 with the pointer on nothing the window names, and Help ▸ What is this?: the focus, the selection,
-            // the tool, the screen (a finding's row of the Messages pane its rule's page, §7.3).
+            // the tool, the screen (a finding's row of the Messages pane its rule's page).
             Ok(None) => help::context_topic(self),
         };
         self.request_doc(&topic);

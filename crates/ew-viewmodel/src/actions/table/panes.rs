@@ -364,7 +364,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ))),
     )),
-    // The navigator framework (§6.9).
+    // The navigator framework (doc 16 §5).
     keeps_banner(with_params(
         "kind:enum(pages|devices|connections|strips|cables|plc|plc_grid|bus|fluid|tubes|media|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
@@ -650,7 +650,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_pages_move(false),
         ),
     )),
-    // Potential and net highlighting (§7.4).
+    // Potential and net highlighting (doc 16a §7.5).
     keeps_banner(with_params(
         "kind?:text, key?:text, off?:bool",
         in_navigator(placed(
@@ -680,7 +680,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_clear_highlights(),
         ),
     )),
-    // Table mode (§8.8).
+    // Table mode (doc 16 §7.1).
     keeps_banner(with_params(
         "kind:text, on?:bool",
         hidden(act(

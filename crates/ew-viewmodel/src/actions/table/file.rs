@@ -251,7 +251,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_discard_journal(p),
         ),
     ))),
-    // The export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
+    // The export runs as a job; `replace` confirms an existing file, `wait` (headless) returns at
     // once.
     with_params(
         "path?:path, replace?:bool, wait?:bool",
