@@ -9,7 +9,7 @@ use crate::common;
 use common::{Tmp, done, refused};
 use ew_api::output::{PanelTables, RowValue};
 use ew_viewmodel::properties::{row_label, value_text, visible_rows};
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 fn panel(shell: &ShellModel) -> std::sync::Arc<PanelTables> {

@@ -357,7 +357,7 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     );
     let port_row = row_key(&shell, NavKind::Devices, NavRole::Representation, "105-C2");
     // The row's representation record (the PROFIBUS port's on folio 105), among the row's records.
-    let (mut session, _) = ew_api::Session::open_read_only(Path::new(common::SAMPLE), "test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(Path::new(common::SAMPLE), "test").unwrap();
     let reps: Vec<_> = session.page_tables("105").unwrap().reps.iter().map(|r| r.id).collect();
     let rep_id = *shell
         .nav(NavKind::Devices)

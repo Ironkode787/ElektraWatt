@@ -10,7 +10,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, refused};
-use ew_api::output::{PanelTables, Uuid};
+use ew_api::output::PanelTables;
 use ew_units::Rect;
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::shell::{Mode, ShellModel};

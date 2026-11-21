@@ -142,6 +142,24 @@ pub fn actual_size(tmp: &Tmp, folio: &str) -> ShellModel {
     s
 }
 
+/// A headless shell with a writable copy of the sample on folio 103 and a second strip made there, -X1032, of one
+/// terminal (1) in the page's empty lower right: the sample draws one strip per page.
+#[allow(dead_code)]
+pub fn with_a_second_strip_on_103(tmp: &Tmp) -> ShellModel {
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    done(&mut s, "cursor.set", json!({"x_mm": 250.0, "y_mm": 170.0}));
+    done(&mut s, "tool.place", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"designation": "1", "strip": "-X??", "part": "EW-GEN-TRM-1"}),
+    );
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "ui.dismiss", json!({}));
+    s
+}
+
 /// The sheet point of the page point `p` of the focused page.
 pub fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
     s.canvas().unwrap().page().snapper.page_to_sheet(p)

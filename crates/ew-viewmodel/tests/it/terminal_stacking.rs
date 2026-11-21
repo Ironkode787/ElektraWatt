@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A terminal placed on a page point where a terminal of the same strip already
-//! sits moves to the next free point to the right, two grid steps along, as Golden A's 1X1 draws its three terminals of
-//! one cell 20 QET px apart; a terminal of another strip is not moved.
+//! sits moves to the next free point to the right, two grid steps along, as the terminals of
+//! one cell stand 20 QET px apart; a terminal of another strip is not moved.
 
 use crate::common;
 
 use common::{Tmp, done, grid_point, toast};
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
 /// The insertion point of the representation whose connection points print `label` (a terminal's with its clamp, `/a`).
@@ -44,7 +44,7 @@ fn place(s: &mut ShellModel, strip: &str, designation: &str, k: (i64, i64)) -> S
 #[test]
 fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
     let tmp = Tmp::new("ft622");
-    let mut s = tmp.sample_in(Mode::Headless, true, "103");
+    let mut s = common::with_a_second_strip_on_103(&tmp);
     done(&mut s, "view.zoom_actual", json!({}));
     let k = (110, 30);
     let p = grid_point(&s, k);

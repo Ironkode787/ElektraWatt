@@ -5,14 +5,15 @@
 //! a strip placed in line under terminal 1 was connected to it, shorting the two feed terminals; two terminals of a
 //! strip are joined by a bridge, never by a wire autoconnect proposes. A terminal of another strip, in the same
 //! geometry, is proposed and connected as before; a move of the terminal into that line proposes nothing either. The
-//! geometry is the play-test's: a switch at grid index (60, 20) on a writable copy of Golden A's
-//! folio 103, terminal 70 of -X1031 at (60, 28), the second terminal at (60, 34).
+//! geometry is the play-test's: a switch at grid index (60, 20) on a writable copy of the sample's
+//! folio 103 with a second strip -X1032 made there, terminal 70 of -X1031 at (60, 28), the second terminal at
+//! (60, 34).
 
 use crate::common;
 
 use common::{Tmp, at, done, tables};
 use ew_api::output::TableEnd;
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
 /// The sheet point of grid index `k` on the shown page.
@@ -72,7 +73,7 @@ fn pair(a: &str, b: &str) -> [String; 2] {
 /// A shell at actual size on folio 103 with a switch at (60, 20) and terminal 70 of -X1031 at (60, 28) placed under
 /// it with autoconnect, so that its upper CP is connected to the switch and its lower CP is free.
 fn feed(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.sample_in(Mode::Headless, true, "103");
+    let mut s = common::with_a_second_strip_on_103(tmp);
     done(&mut s, "view.zoom_actual", json!({}));
     place(
         &mut s,

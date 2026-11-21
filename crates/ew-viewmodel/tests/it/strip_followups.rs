@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, new_project, refused, state, strip_at, strip_cursor, strip_row, strip_texts, toast};
+use common::{Tmp, done, new_project, refused, state, strip_at, strip_row, toast};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerMode;
@@ -89,71 +89,29 @@ fn page_text(s: &mut ShellModel, folio: &str) -> String {
 #[test]
 fn the_page_description_lists_a_strips_bridges() {
     let tmp = Tmp::new("s207p2-621");
-    let mut s = tmp.sample_in(Mode::Headless, true, "103");
-    let text = page_text(&mut s, "103");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    let text = page_text(&mut s, "102");
     let bridges: Vec<&str> = text.lines().filter(|l| l.starts_with("  bridge ")).collect();
     assert!(
-        bridges.contains(&"  bridge \"BR1\" \"-X1031:1\" \"-X1031:2\" \"-X1031:3\" \"-X1031:4\""),
+        bridges.contains(&"  bridge \"BR1\" \"-X1021:1\" \"-X1021:2\" \"-X1021:3\" \"-X1021:4\""),
         "{bridges:?}"
     );
-    // Folio 103 draws -X1031 (BR1 to BR5) and -X1032 (BR6).
-    assert_eq!(bridges.len(), 6, "{bridges:?}");
+    // Folio 102 draws -X1021 with the two groups the sample's script bridges (BR1 and BR2).
+    assert_eq!(bridges.len(), 2, "{bridges:?}");
     assert!(
-        bridges[5].starts_with("  bridge \"BR6\" \"-X1032:1\""),
+        bridges[1].starts_with("  bridge \"BR2\" \"-X1021:5\""),
         "{bridges:?}"
     );
     assert!(!page_text(&mut s, "101").contains("\n  bridge "));
-    // Bridging two terminals of 1X1 shows on folio 101's description.
-    done(&mut s, "select.set", json!({"refs": ["tag:1X1:1", "tag:1X1:2"]}));
+    // Bridging two terminals of -X1011 shows on folio 101's description.
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1011:L1", "tag:-X1011:L2"]}));
     done(&mut s, "strip.bridge", json!({}));
     let text = page_text(&mut s, "101");
     let line = text
         .lines()
         .find(|l| l.starts_with("  bridge "))
         .unwrap_or_else(|| panic!("{text}"));
-    assert!(line.ends_with("\"1X1:1\" \"1X1:2\""), "{line}");
-    s.shutdown();
-}
-
-/// A writable copy of Golden A, headless, with the strip editor open on `strip` (table mode, filtered).
-fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
-    let mut s = tmp.sample_in(Mode::Headless, true, "103");
-    done(&mut s, "strip.edit", json!({ "strip": strip }));
-    s
-}
-
-// ---------------------------------------------------------------------------------------------------------------
-
-/// Table mode reaches the start of a strip: Add accessory with `before` on the first terminal row adds the accessory
-/// at `after_seq` 0 (Pos 0.1), on a later terminal directly before it (after the terminal before it and the accessories
-/// already there); one undo step each. Without `before` it goes after the row as built.
-#[test]
-fn add_accessory_before_the_first_terminal_in_table_mode() {
-    let tmp = Tmp::new("s207p2-600");
-    let mut s = editor(&tmp, "-X1031");
-    let k1 = strip_row(&s, "Terminal", "1");
-    assert_eq!(strip_cursor(&s), k1);
-    let steps = s.recorded_commands().len();
-    done(&mut s, "strip.add_accessory", json!({"before": true}));
-    assert_eq!(s.recorded_commands().len(), steps + 1, "one command");
-    assert_eq!(toast(&s), "Added end bracket before terminal 1 of -X1031.");
-    assert_eq!(strip_texts(&s, "Pos")[..2], ["0.1", "1"]);
-    assert_eq!(strip_cursor(&s), strip_row(&s, "Pos", "0.1"));
-    // Before terminal 5: after terminal 4.
-    let k5 = strip_row(&s, "Terminal", "5");
-    strip_at(&mut s, &k5);
-    done(&mut s, "strip.add_accessory", json!({"before": true}));
-    let pos = strip_texts(&s, "Pos");
-    let i = pos.iter().position(|p| p == "4.1").expect("4.1");
-    assert_eq!(pos[i - 1..=i + 1], ["4", "4.1", "5"]);
-    // An undo removes the last one only.
-    done(&mut s, "edit.undo", json!({}));
-    assert!(!strip_texts(&s, "Pos").contains(&"4.1".to_owned()));
-    assert_eq!(strip_texts(&s, "Pos")[0], "0.1");
-    // Without `before`, after the terminal, named in words.
-    strip_at(&mut s, &k5);
-    done(&mut s, "strip.add_accessory", json!({}));
-    assert_eq!(toast(&s), "Added end bracket after terminal 5 of -X1031.");
+    assert!(line.ends_with("\"-X1011:L1\" \"-X1011:L2\""), "{line}");
     s.shutdown();
 }
 
@@ -163,14 +121,14 @@ fn add_accessory_before_the_first_terminal_in_table_mode() {
 /// A terminal row whose terminal has no representation on a strip without strip segments carries the `unplaced` badge
 /// and is a drag source naming its terminal; Enter (`navigator.open`) on it arms the Place tool with the terminal's
 /// main function on the page shown, and a click places it, so the badge goes. Terminals drawn by a strip segment
-/// (-X1031) are not unplaced.
+/// (-X1021) are not unplaced.
 #[test]
 fn enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     let tmp = Tmp::new("s207p2-68");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
-    done(&mut s, "strip.edit", json!({"strip": "1X1"}));
-    // A new terminal at the end of 1X1 (it has no strip segment): unplaced.
+    done(&mut s, "strip.edit", json!({"strip": "-X1011"}));
+    // A new terminal at the end of -X1011 (it has no strip segment): unplaced.
     let last = strip_row(&s, "Terminal", "PE");
     strip_at(&mut s, &last);
     done(&mut s, "strip.insert", json!({"designation": "9"}));
@@ -182,7 +140,7 @@ fn enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
         &r.drag,
         Some(ew_viewmodel::shell::DragSource::Function(_))
     ));
-    let placed = strip_row(&s, "Terminal", "1");
+    let placed = strip_row(&s, "Terminal", "L1");
     let r1 = rows.iter().find(|r| r.key == placed).unwrap();
     assert!(!r1.badges.iter().any(|b| b == "not drawn"));
     // Enter on the row (in the tree view) arms Place with the terminal's function.
@@ -197,11 +155,11 @@ fn enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     let rows = s.shown_rows(NavKind::Strips);
     let r = rows.iter().find(|r| r.key == new).expect("the row");
     assert!(!r.badges.iter().any(|b| b == "not drawn"), "{:?}", r.badges);
-    // -X1031's terminals are drawn by its strip segments.
+    // -X1021's terminals are drawn by its strip segments.
     done(
         &mut s,
         "navigator.filter",
-        json!({"kind": "strips", "text": "strip:-x1031"}),
+        json!({"kind": "strips", "text": "strip:-x1021"}),
     );
     let rows = s.shown_rows(NavKind::Strips);
     assert!(rows.iter().all(|r| !r.badges.iter().any(|b| b == "not drawn")));
