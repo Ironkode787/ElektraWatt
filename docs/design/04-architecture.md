@@ -489,8 +489,7 @@ pub struct Row<T>   { value: Arc<T>, changed_at: Rev }
 
 This table summarises the shape of each entity and the reason for it; it is a summary, not a schema. The
 field-level schema is the [domain model](03-domain-model.md) together with `ew-schema`, and for report blocks and
-forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary differs from them, they are normative**
-.
+forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary differs from them, they are normative**.
 
 | Concept | Record (authored fields only) | Notes and reference |
 |---|---|---|
@@ -1440,8 +1439,8 @@ carries the prepared page tables (display list, entity rectangles, links, cells,
 `World`, so a tool never calls the `Session`; only the host does. `ew-ui` paints the transient overlay, maps pointer
 and keys onto tool events and runs the dwell timer. There is one active tool per window, not per canvas, and timing is
 an input (`canvas.dwell`), never model state. Previews go through `Session::preview` (§5.4). The canvas area of
-the page-view pane is per-project state in a nested egui_tiles tree, rebuilt from the model, outside `ew.workspace/1`
-. Part 1 of WP-S2.03 is the read-only viewer (page navigator, tabs, side by side, cross-reference jumps,
+the page-view pane is per-project state in a nested egui_tiles tree, rebuilt from the model, outside `ew.workspace/1`.
+Part 1 of WP-S2.03 is the read-only viewer (page navigator, tabs, side by side, cross-reference jumps,
 Go to); part 2 is the tool framework with the Select and Measure tools; no shipped tool commits, so the shell stays a
 viewer until WP-S2.04 and WP-S2.05.
 
