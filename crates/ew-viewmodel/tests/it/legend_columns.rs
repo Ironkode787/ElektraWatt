@@ -80,8 +80,5 @@ fn an_old_legend_takes_the_description_through_list_columns() {
     // Opened again, the legend prints the description after its four columns.
     done(&mut s, "report_block.columns", json!({}));
     let again = form(&s).table.expect("the columns' table");
-    assert_eq!(
-        ticked(&again),
-        ["Pos", "DT", "Qty", "Part number", "Description"]
-    );
+    assert_eq!(ticked(&again), ["Pos", "DT", "Qty", "Part number", "Description"]);
 }

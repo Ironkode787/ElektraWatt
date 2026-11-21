@@ -31,21 +31,45 @@ const SHEET: SheetMap = SheetMap {
 
 /// The rows: position, tag, quantity, part number, description.
 const ROWS: [[&str; 5]; 3] = [
-    ["1", "-UC1", "1", "EW-GEN-ENC-1", "Wall enclosure 600 × 800 × 250 mm"],
-    ["2", "-101F1", "1", "EW-GEN-MCB-2P", "Miniature circuit breaker, 2 poles"],
-    ["3", "-102Q1", "1", "EW-GEN-CON-3P", "Contactor with three main contacts and one auxiliary contact"],
+    [
+        "1",
+        "-UC1",
+        "1",
+        "EW-GEN-ENC-1",
+        "Wall enclosure 600 × 800 × 250 mm",
+    ],
+    [
+        "2",
+        "-101F1",
+        "1",
+        "EW-GEN-MCB-2P",
+        "Miniature circuit breaker, 2 poles",
+    ],
+    [
+        "3",
+        "-102Q1",
+        "1",
+        "EW-GEN-CON-3P",
+        "Contactor with three main contacts and one auxiliary contact",
+    ],
 ];
 
 /// What a legend 60 mm wide and `high` hundredths of a millimetre high prints: its texts, the columns of its cut
 /// texts, whether it reports rows it does not draw, and its fills.
 fn legend(high: i64) -> (Vec<String>, Vec<usize>, bool, Vec<Brush>) {
     let p = |x: i64, y: i64| SHEET.unapply(Pt2::new(Nm(x * 10_000), Nm(y * 10_000)));
-    let columns = [("Pos", 8), ("DT", 18), ("Qty", 10), ("Part number", 24), ("Description", 40)]
-        .map(|(h, w)| TableColumn {
-            header: h.to_owned(),
-            weight: w,
-        })
-        .to_vec();
+    let columns = [
+        ("Pos", 8),
+        ("DT", 18),
+        ("Qty", 10),
+        ("Part number", 24),
+        ("Description", 40),
+    ]
+    .map(|(h, w)| TableColumn {
+        header: h.to_owned(),
+        weight: w,
+    })
+    .to_vec();
     let table = EmbeddedTable {
         title: "LEGEND".to_owned(),
         columns,
@@ -122,7 +146,10 @@ fn a_narrow_legend_wraps_its_descriptions_and_keeps_its_identifiers_whole() {
             .filter(|t| row[4].contains(t.trim()))
             .flat_map(|t| t.split_whitespace())
             .collect();
-        assert!(words.iter().all(|w| printed.contains(w)), "{words:?} in {texts:?}");
+        assert!(
+            words.iter().all(|w| printed.contains(w)),
+            "{words:?} in {texts:?}"
+        );
     }
     // No drop shadow, and a light header.
     assert_eq!(fills, [Brush::Solid(LOOKUP_HEADER_FILL)]);

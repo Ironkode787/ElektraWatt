@@ -234,7 +234,9 @@ pub fn boxed_box(
         None => {
             let (_, per_flow) = boxed_capacity(rect, table, sheet);
             let given = if table.note.is_some() { 1 } else { table.rows.len() };
-            ROW_HEIGHT.0.saturating_mul(i64::try_from(given.min(per_flow)).unwrap_or(0))
+            ROW_HEIGHT
+                .0
+                .saturating_mul(i64::try_from(given.min(per_flow)).unwrap_or(0))
         }
     };
     let bottom = (r.min().y.0 + title_band(table).0 + ROW_HEIGHT.0 * header)
@@ -658,10 +660,7 @@ fn lower_boxed(
                         // A prose text of a wrapped row prints its lines (doc 12 §5.4).
                         let lines = plan.as_ref().map_or(1, |p| p.lines[at]);
                         let prose = t.lookup.as_ref().is_some_and(|l| l.prose.contains(&c));
-                        if lines > 1
-                            && prose
-                            && wrapped(row, c, &edges, fonts, &small, sheet).is_some()
-                        {
+                        if lines > 1 && prose && wrapped(row, c, &edges, fonts, &small, sheet).is_some() {
                             push_wrapped(&mut out, fonts, &small, sheet, cell, s, lines, &links);
                             continue;
                         }

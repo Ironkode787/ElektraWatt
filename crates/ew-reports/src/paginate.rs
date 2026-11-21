@@ -206,14 +206,20 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
         let found = (1..slices.len()).find_map(|k| {
             let (last, before) = (data(&slices[k]), data(&slices[k - 1]));
             let want = LAST_PAGE_ROWS.checked_sub(last).filter(|w| *w > 0)?;
-            (ends[k] && !ends[k - 1] && before >= LAST_PAGE_ROWS + want && !short.iter().any(|(p, _)| *p == k - 1))
-                .then_some((k - 1, want))
+            (ends[k]
+                && !ends[k - 1]
+                && before >= LAST_PAGE_ROWS + want
+                && !short.iter().any(|(p, _)| *p == k - 1))
+            .then_some((k - 1, want))
         });
         let Some((page, want)) = found else {
             return slices;
         };
         let height = layouts.page(idx(slices[page].sub)).data;
-        short.push((page, Nm(height.0.saturating_mul(i64::try_from(want).unwrap_or(0)))));
+        short.push((
+            page,
+            Nm(height.0.saturating_mul(i64::try_from(want).unwrap_or(0))),
+        ));
     }
 }
 
