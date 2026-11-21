@@ -11,8 +11,7 @@
 //!   `docs/book/src/reference/commands/`;
 //! - `rules.json`, the rule catalogue of `ew-checks`, gives one page per rule and an index page per rule pack under
 //!   `docs/book/src/reference/rules/`, each rule's page joining the rule's hand-written notes
-//!   (`docs/book/rule-notes/`) and its findings in Golden A (`crates/ew-api/tests/expected/findings_mvp.csv`); a
-//!   rule without notes, or notes that miss a section or cite a standard in another form, fail;
+//!   (`docs/book/rule-notes/`); a rule without notes, or notes that miss a section or cite a standard in another form, fail;
 //! - `keymap-sheet.json` of `ew-viewmodel` gives `reference/keymaps.md`;
 //! - `properties.json` of `ew-viewmodel`, the texts that explain the rows of Properties, gives `reference/properties.md`,
 //!   the page F1 on a row of Properties opens at the row's anchor;
@@ -1857,7 +1856,6 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<(Summ
     let catalogue = parse_catalogue(&text)?;
     let notes = read_notes(root)?;
     let problems = notes_problems(&catalogue.rules, &notes);
-    let findings = golden_findings(root)?;
     let mut packs: BTreeMap<&str, Vec<&Rule>> = BTreeMap::new();
     for rule in &catalogue.rules {
         packs.entry(rule.pack.as_str()).or_default().push(rule);
@@ -1883,8 +1881,7 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<(Summ
                 );
             }
             let note = notes.get(&rule_file(&r.id)).map(String::as_str).unwrap_or("");
-            let mine: Vec<&GoldenFinding> = findings.iter().filter(|f| f.rule == r.id).collect();
-            files.insert(rule_page.clone(), rule_page_text(r, note, &mine));
+            files.insert(rule_page.clone(), rule_page_text(r, note));
             items.push((r.id.clone(), rule_page, 1));
         }
         let _ = writeln!(
@@ -1920,8 +1917,8 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<(Summ
          shipped rules of the rule registry, one page per rule and an index page per pack, with the rule notes \
          [`{RULE_NOTES}`]({}). The rule catalogue of the design is \
          [doc 15 §4]({}).\n\n\
-         A rule's page says what the rule checks and why, the standard it rests on by number and clause, its \
-         finding in the golden project, how to fix a finding and whether a finding can be waived. F1 on a finding \
+         A rule's page says what the rule checks and why, the standard it rests on by number and clause, an \
+         example, how to fix a finding and whether a finding can be waived. F1 on a finding \
          in the Messages pane opens the page of its rule.\n\n\
          ## Packs\n\n| Pack | Rules | IDs |\n|---|---|---|\n{rows}\n\
          ## Schemes\n\n| Scheme | Purpose | Lenient |\n|---|---|---|\n{}\n",
@@ -1974,48 +1971,15 @@ fn pack_page(pack: &str, rules: &[&Rule]) -> String {
     out
 }
 
-/// The page of one rule: the title; what it checks, why and the standard, from the rule's notes; its
-/// findings in the golden project and the notes' example; how to fix (the hint, then the notes); waiving (from
+/// The page of one rule: the title; what it checks, why and the standard, from the rule's notes; the
+/// notes' example; how to fix (the hint, then the notes); waiving (from
 /// `waivable`, then the notes); then the rule's data.
-fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String {
+fn rule_page_text(r: &Rule, notes: &str) -> String {
     let section = |heading: &str| {
         notes_section(notes, heading)
             .map(|(_, body)| body)
             .unwrap_or_default()
     };
-    let mut golden = String::new();
-    if findings.is_empty() {
-        golden.push_str("Golden A has no finding of this rule.\n");
-    }
-    for f in findings {
-        let subjects: Vec<String> = f
-            .subjects
-            .split("; ")
-            .filter(|s| !s.is_empty())
-            .map(|s| format!("`{s}`"))
-            .collect();
-        // A row of no finding says why there is none in its targets cell.
-        if f.count == "0" {
-            let _ = writeln!(golden, "- {}: no finding ({}).", f.ef, cell(&f.targets));
-            continue;
-        }
-        let state = if f.severity == "waived" {
-            " waived".to_owned()
-        } else {
-            format!(", {}", f.severity)
-        };
-        let _ = write!(golden, "- {}: {} finding(s){state}", f.ef, f.count);
-        if !subjects.is_empty() {
-            let _ = write!(golden, ", on {}", subjects.join(", "));
-        }
-        if !f.targets.is_empty() {
-            let _ = write!(golden, " ({})", cell(&f.targets));
-        }
-        if !f.defect.is_empty() {
-            let _ = write!(golden, "; the golden project's defect {}", f.defect);
-        }
-        golden.push_str(".\n");
-    }
     let supersedes: Vec<String> = r.supersedes.iter().map(|s| format!("`{s}`")).collect();
     let running = |online: bool| -> String {
         let names: Vec<String> = r
@@ -2036,7 +2000,7 @@ fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String 
          ## What it checks\n\n{checks}\n\n\
          ## Why\n\n{why}\n\n\
          ## Standard\n\n{standard}\n\n\
-         ## In the golden project\n\n{golden}\n{example}\n\n\
+         ## Example\n\n{example}\n\n\
          ## How to fix\n\n{hint}{fix}\n\n\
          ## Waiving\n\n{waivable}\n\n{waiving}\n\n\
          ## Rule data\n\n\
@@ -2124,8 +2088,6 @@ const NOTES_HEADINGS: [&str; 6] = [
 ];
 /// The one line of **Standard** for a rule that rests on no standard.
 const NO_STANDARD: &str = "No standard: a project-hygiene rule.";
-/// Golden A's expected findings: the EF rows (rule, count, subjects, targets, defect).
-const GOLDEN_FINDINGS: &str = "crates/ew-api/tests/expected/findings_mvp.csv";
 
 /// The notes files of [`RULE_NOTES`], by file name.
 fn read_notes(root: &Path) -> Result<BTreeMap<String, String>> {
@@ -2250,57 +2212,6 @@ fn is_citation(line: &str) -> bool {
         }
     });
     body_ok && number_ok && year_ok && clause_ok
-}
-
-/// One EF row of Golden A's expected findings.
-struct GoldenFinding {
-    ef: String,
-    rule: String,
-    severity: String,
-    count: String,
-    subjects: String,
-    targets: String,
-    defect: String,
-}
-
-/// The EF rows of [`GOLDEN_FINDINGS`], in file order.
-fn golden_findings(root: &Path) -> Result<Vec<GoldenFinding>> {
-    let text =
-        read_lf(&root.join(GOLDEN_FINDINGS))?.with_context(|| format!("{GOLDEN_FINDINGS} is missing"))?;
-    let mut lines = text.lines().filter(|l| !l.trim().is_empty());
-    let header = crate::repo::csv_fields(
-        lines
-            .next()
-            .with_context(|| format!("{GOLDEN_FINDINGS} is empty"))?,
-    );
-    let column = |name: &str| {
-        header
-            .iter()
-            .position(|h| h == name)
-            .with_context(|| format!("{GOLDEN_FINDINGS} has no column `{name}`"))
-    };
-    let (ef, rule, severity, count) = (
-        column("ef")?,
-        column("rule")?,
-        column("severity")?,
-        column("count")?,
-    );
-    let (subjects, targets, defect) = (column("subjects")?, column("targets")?, column("defect")?);
-    Ok(lines
-        .map(|line| {
-            let fields = crate::repo::csv_fields(line);
-            let get = |i: usize| fields.get(i).cloned().unwrap_or_default();
-            GoldenFinding {
-                ef: get(ef),
-                rule: get(rule),
-                severity: get(severity),
-                count: get(count),
-                subjects: get(subjects),
-                targets: get(targets),
-                defect: get(defect),
-            }
-        })
-        .collect())
 }
 
 #[cfg(test)]
@@ -2465,7 +2376,7 @@ mod tests {
     }
 
     /// A pack's index page links each rule's page; a rule's page holds the sections in order, the
-    /// golden findings, the hint, the waiving sentence and the rule's data.
+    /// example, the hint, the waiving sentence and the rule's data.
     #[test]
     fn a_rule_page_has_the_sections_in_order_and_the_pack_page_links_it() {
         let rule = rule_fixture();
@@ -2475,17 +2386,8 @@ mod tests {
             "{page}"
         );
         assert!(page.contains("#44-ew-term-and-ew-pot"), "{page}");
-        let golden = GoldenFinding {
-            ef: "EF-20".into(),
-            rule: "EW-TERM-002".into(),
-            severity: "error".into(),
-            count: "2".into(),
-            subjects: "X1:1; X1:2".into(),
-            targets: "X1:1, X1:2".into(),
-            defect: "D-99".into(),
-        };
         let notes = notes_fixture("- IEC 60204-1:2016, 13.2.2 (unverified)");
-        let page = rule_page_text(&rule, &notes, &[&golden]);
+        let page = rule_page_text(&rule, &notes);
         let headings: Vec<&str> = page.lines().filter(|l| l.starts_with('#')).collect();
         assert_eq!(
             headings,
@@ -2494,7 +2396,7 @@ mod tests {
                 "## What it checks",
                 "## Why",
                 "## Standard",
-                "## In the golden project",
+                "## Example",
                 "## How to fix",
                 "## Waiving",
                 "## Rule data",
@@ -2502,9 +2404,8 @@ mod tests {
         );
         assert!(
             page.contains(
-                "## In the golden project\n\n- EF-20: 2 finding(s), error, on `X1:1`, `X1:2` (X1:1, X1:2); the golden \
-                 project's defect D-99.\n\nGive two terminals one designation.\n\n## How to fix\n\nRenumber the \
-                 strip.\n\nRenumber.\n\n## Waiving\n\nThis rule's findings can be waived.\n\nRarely.\n\n"
+                "## Example\n\nGive two terminals one designation.\n\n## How to fix\n\nRenumber the strip.\n\n\
+                 Renumber.\n\n## Waiving\n\nThis rule's findings can be waived.\n\nRarely.\n\n"
             ),
             "{page}"
         );
@@ -2524,13 +2425,7 @@ mod tests {
             waivable: false,
             ..rule.clone()
         };
-        let page = rule_page_text(&integrity, &notes, &[]);
-        assert!(
-            page.contains(
-                "## In the golden project\n\nGolden A has no finding of this rule.\n\nGive two terminals"
-            ),
-            "{page}"
-        );
+        let page = rule_page_text(&integrity, &notes);
         assert!(
             page.contains("## Waiving\n\nThis rule's findings cannot be waived.\n\nRarely."),
             "{page}"
@@ -2542,7 +2437,7 @@ mod tests {
             hint: String::new(),
             ..integrity.clone()
         };
-        let page = rule_page_text(&on_open, &notes, &[]);
+        let page = rule_page_text(&on_open, &notes);
         assert!(
             page.contains("## How to fix\n\nRenumber.\n\n## Waiving"),
             "{page}"
@@ -2556,7 +2451,7 @@ mod tests {
             ..rule.clone()
         };
         assert!(
-            rule_page_text(&bus, &notes, &[])
+            rule_page_text(&bus, &notes)
                 .contains("| Open item | TBD value (findings with discriminator `address` only) |")
         );
     }

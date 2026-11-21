@@ -87,23 +87,3 @@ pub(crate) fn write_atomic(path: &Path, text: &str) -> Result<()> {
     result.with_context(|| format!("writing {}", path.display()))
 }
 
-/// Splits one CSV record (RFC 4180 quoting, no line breaks inside a field).
-pub(crate) fn csv_fields(line: &str) -> Vec<String> {
-    let mut fields = Vec::new();
-    let mut field = String::new();
-    let mut quoted = false;
-    let mut chars = line.chars().peekable();
-    while let Some(c) = chars.next() {
-        match (c, quoted) {
-            ('"', true) if chars.peek() == Some(&'"') => {
-                field.push('"');
-                chars.next();
-            }
-            ('"', _) => quoted = !quoted,
-            (',', false) => fields.push(std::mem::take(&mut field)),
-            _ => field.push(c),
-        }
-    }
-    fields.push(field);
-    fields
-}
