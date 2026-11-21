@@ -54,6 +54,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Files and the text interface
 
+- FT-1930 `ew`: Three openings do not yet warn about a file `manifest.json` does not list, as the common open does since FT-1879: the editing open of `ew route`, `ew revision`, and the editing part of `ew project assets purge`.
 
 #### A copy of pages
 
