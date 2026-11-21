@@ -341,7 +341,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
 | `src/layout/queries.rs` |  | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
 | `src/layout/snap.rs` |  | The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost and the commit agree by construction (D4). |
-| `src/layout/snap/tests.rs` |  | The rail model and the resolver over Golden A's rail intervals (doc 20 §13; the spec's SN-1 to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules). |
+| `src/layout/snap/tests.rs` |  | The rail model and the resolver over two hand-made 570 mm rails (the spec's SN-1 to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules). |
 | `src/layout/tests.rs` |  | The layout geometry and the compatibility table of doc 12 §3.3. |
 | `src/lib.rs` |  | All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-0003). |
 | `src/links.rs` |  | Per-function and per-terminal inputs of the stitch graph, as memoised families: |
@@ -456,7 +456,7 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 | `src/read.rs` | large | The project reader (doc 05 §3, §6): which files to read, and the records, kept lines, findings and rewrite set of a project's files. |
 | `src/since.rs` |  | The computed `min_reader` stamp (doc 05 §4, §10.1; ADR-0011): the lowest format a reader needs is the greatest format among the kinds, members and variants a project's files use, never below the format's major floor and never above the format itself. |
 | `src/version.rs` |  | The reader decisions of doc 05 §10.1 (ADR-0011). |
-| `src/write.rs` |  | Writing a whole project from records (doc 05 §2, §3, §4): the path of an importer's batch, of `ew import csv` and of the golden fixture (doc 20 §3.2 path (c)). |
+| `src/write.rs` |  | Writing a whole project from records (doc 05 §2, §3, §4): the path of an importer's batch and of `ew import csv`. |
 
 ## ew-ids
 
@@ -558,7 +558,7 @@ The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; d
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/csv.rs` |  | Strict, bounded CSV reader and writer for the golden CSV dialect. |
+| `src/csv.rs` |  | Strict, bounded CSV reader and writer for the `ew` CSV dialect. |
 | `src/emit/assembly.rs` |  | The assembly table (doc 20 §14.2, doc 03 §7; D-36, D-41): `assembly_configs.csv` → the `assembly` aspect of the device named by `assembly`, one `AssemblyConfig` per row, in `n` order. |
 | `src/emit/bus.rs` |  | The bus tables (doc 10 §2.7): `logical_nets.csv` → `logical_net`, `physical_nets.csv` → `physical_net`, and `bus_ports.csv` → the `bus_port` aspect of the function its key names. |
 | `src/emit/connect.rs` |  | Connections, junctions, conductors, potential definitions and bonds (doc 20 §7, §8, §10; doc 03 §9.2). |
@@ -569,12 +569,12 @@ The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; d
 | `src/emit/plc.rs` |  | The PLC tables (doc 20 §6.2, §11.2, §11.3; doc 10 §2.2–§2.6): configuration projects, the PLC section of a part, channels and device links. |
 | `src/emit/profiles.rs` |  | The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2, doc 20 §7.1, §7.2): `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads. |
 | `src/emit/project.rs` |  | Project, parties, structure, external references, sections, pages and report blocks (doc 20 §4, §5, §16). |
-| `src/ids.rs` |  | The identity rule of the golden bootstrap (doc 20 §3.2, doc 14 §2.3, ADR-0004 amendment 4). |
+| `src/ids.rs` |  | The identity rule of the CSV bootstrap (doc 14 §2.3, ADR-0004 amendment 4). |
 | `src/import.rs` |  | The import driver: inputs → tables → emitters → sorted batch. |
 | `src/lib.rs` |  | The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its tables read into format-level records. |
 | `src/library.rs` |  | The built-in library the tables reference by key (doc 05 §13.2, doc 07 §9.1): starter symbols, FnDefs and forms as embedded copies. |
-| `src/parts.rs` |  | Parts tables into an existing project (the golden-dialect slice of the parts import): the `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`, `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts\|{key}")` in the golden lineage's namespace, so the same key gives the same copy on every import (a re-import is idempotent). |
-| `src/schema.rs` |  | The table schemas of `golden/J-E-2416/README.md`: file stem, required and optional columns. |
+| `src/parts.rs` |  | Parts tables into an existing project (the `ew`-dialect slice of the parts import): the `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`, `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts\|{key}")` in the golden lineage's namespace, so the same key gives the same copy on every import (a re-import is idempotent). |
+| `src/schema.rs` |  | The table schemas of the `ew` dialect: file stem, required and optional columns. |
 | `src/table.rs` |  | Tables by name, typed cell readers and the capped finding list. |
 
 ## ew-interop-api
@@ -759,13 +759,13 @@ IEC 81346 reference-designation parser and formatter (strict and lenient), with 
 
 `crates/ew-render-cpu` · GPL-3.0-or-later · depends on `ew-dl` · used by `ew-export`, `ew-print`, `ew-render2d`, `ew-ui` · in tests by `elektrawatt`, `ew-api`, `ew-testkit`
 
-CPU renderer: GPU-less fallback, thumbnails, golden PNGs and banded printing.
+CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing.
 
 | File | Size | What it holds |
 |---|---|---|
 | `src/fonts.rs` |  | Font bytes by [`FontKey`]: how renderers and writers get the files behind the glyph runs of a display list without depending on the text stack (ARCH §3: `ew-render-cpu` and `ew-export` see `ew-dl` only). |
 | `src/image.rs` |  | Raster image items decoded for drawing: PNG with `png`, JPEG with `zune-jpeg`, both bounded by [`MAX_IMAGE_PIXELS`] before any pixel buffer is allocated, so that a small file cannot decompress into an unbounded buffer. |
-| `src/lib.rs` |  | CPU renderer: GPU-less fallback, thumbnails, golden PNGs and banded printing. |
+| `src/lib.rs` |  | CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing. |
 | `src/mono.rs` |  | The monochrome form of a display list (doc 09 §4.2, FR-OUT-011). |
 | `src/png.rs` |  | Deterministic PNG encoding of a rendered image (FR-OUT-014). |
 | `src/png_chunks.rs` |  | The chunk structure of PNG bytes, checked before the `png` crate decodes them (fuzz finding of CI run 40897313649: `png` 0.18.1 indexes past a `PLTE` whose length is not a multiple of 3 and panics while it builds its palette). |
@@ -801,30 +801,30 @@ Built-in report row queries, user SQL reports through the sandboxed query API of
 | File | Size | What it holds |
 |---|---|---|
 | `src/arrange.rs` |  | Manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027, FR-I18N-010). |
-| `src/csv.rs` |  | The CSV text of a report block's rows (doc 09 §1.3; `ew export cables\|bom`, the golden `expected/csv/`). |
+| `src/csv.rs` |  | The CSV text of a report block's rows (doc 09 §1.3; `ew export cables\|bom`). |
 | `src/export.rs` |  | The row sources of the export commands `ew export cables` and `ew export bom` (doc 17 §3.3, FR-EXT-003, FR-EXP-005): the rows of the project's report block of the matching kind, as a folio of that block prints them, written by the one CSV writer ([`crate::csv::rows_csv`]). |
 | `src/kind.rs` |  | The report-kind registry (doc 09 §2.4): each built-in kind is a registered Rust row query with a column schema. |
-| `src/kinds/cable_overview.rs` |  | `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013; golden 906). |
+| `src/kinds/cable_overview.rs` |  | `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013; folio 906 of the standard layout). |
 | `src/kinds/conn.rs` |  | What the connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`) share: the project's physical wires with their effective properties, wire ends as cells, terminal bridges and the cell formatting of wire properties. |
 | `src/kinds/device_list.rs` |  | `device_list`: the device list (FR-REP-008). |
-| `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2; golden 902). |
+| `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
 | `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
 | `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4). |
 | `src/kinds/numbering_report.rs` |  | `numbering_report`: frozen tags and frozen wire numbers with their rule-derived values (FR-REP-022, FR-NUM-022, doc 09 §2.4). |
 | `src/kinds/open_items.rs` |  | `open_items`: the open-items list (FR-REP-021). |
-| `src/kinds/part_data.rs` |  | `part_data`: the embedded PART DATA box (FR-REP-028; golden 201, 202, 902). |
-| `src/kinds/parts.rs` |  | `parts_summary` and `parts_list` (FR-REP-004 … FR-REP-006; golden 901, 901.1), and the part cells the other part-based kinds share. |
+| `src/kinds/part_data.rs` |  | `part_data`: the embedded PART DATA box (FR-REP-028). |
+| `src/kinds/parts.rs` |  | `parts_summary` and `parts_list` (FR-REP-004 … FR-REP-006; folio 901 of the standard layout), and the part cells the other part-based kinds share. |
 | `src/kinds/plc_bus_lists.rs` |  | The PLC and bus lists of 1.0 (doc 10 §5): `plc_card_list` (FR-REP-045), `network_address_list` and `bus_cable_list` (FR-BUS-008), `bus_overview` (FR-REP-020, FR-BUS-007: the generated bus topology overview, one block per project that lists every logical net's segments), `iolink_port_list` (FR-BUS-014) and `safety_io_list` (FR-PLC-041). |
-| `src/kinds/plc_overview.rs` |  | `plc_overview`: the PLC overview, one row per channel of a station (FR-PLC-022, FR-REP-019; doc 10 §5; golden 908, 908.1, 908.2), and the PLC overview box of a module or station embedded on a page (FR-PLC-052). |
-| `src/kinds/potential_overview.rs` |  | `potential_overview`: the potential overview (FR-REP-016; golden 909). |
-| `src/kinds/profile_tables.rs` |  | `profile_tables`: the embedded colour and standard-size tables of the cover (FR-REP-028, FR-REP-038; golden folio 1; doc 08 §4.2, doc 20 §7.1, §7.2, §17.3). |
-| `src/kinds/revision_overview.rs` |  | `revision_overview`: the revisions and their changed pages (FR-REP-018, golden 911; doc 09 §2.4, doc 15 §5.6). |
-| `src/kinds/structure_overview.rs` |  | `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; golden 910). |
-| `src/kinds/terminal_diagram.rs` |  | `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; golden 903, 904, 905). |
+| `src/kinds/plc_overview.rs` |  | `plc_overview`: the PLC overview, one row per channel of a station (FR-PLC-022, FR-REP-019; doc 10 §5; folio 908 of the standard layout), and the PLC overview box of a module or station embedded on a page (FR-PLC-052). |
+| `src/kinds/potential_overview.rs` |  | `potential_overview`: the potential overview (FR-REP-016; folio 909 of the standard layout). |
+| `src/kinds/profile_tables.rs` |  | `profile_tables`: the embedded colour and standard-size tables of the cover (FR-REP-028, FR-REP-038; doc 08 §4.2). |
+| `src/kinds/revision_overview.rs` |  | `revision_overview`: the revisions and their changed pages (FR-REP-018, folio 911 of the standard layout; doc 09 §2.4, doc 15 §5.6). |
+| `src/kinds/structure_overview.rs` |  | `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; folio 910 of the standard layout). |
+| `src/kinds/terminal_diagram.rs` |  | `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; from folio 903 of the standard layout). |
 | `src/kinds/terminal_overview.rs` |  | `terminal_overview`: the terminal strip overview (FR-REP-010). |
-| `src/kinds/toc.rs` |  | `toc`: the table of contents (FR-REP-003; golden 2, 2.1). |
-| `src/kinds/wire_list.rs` |  | `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; golden 907, 907.1, 907.2). |
+| `src/kinds/toc.rs` |  | `toc`: the table of contents (FR-REP-003; folio 2 of the standard layout). |
+| `src/kinds/wire_list.rs` |  | `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout). |
 | `src/layout.rs` |  | The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5, §3.2). |
 | `src/lib.rs` |  | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`, pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]). |
 | `src/paginate.rs` |  | Pagination of an arranged row set into generated pages (doc 09 §3.2, FR-REP-002, FR-PAG-011, FR-PAG-030). |
@@ -914,7 +914,7 @@ Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natura
 | `src/functions.rs` |  | The functions and the collation the host registers on every consumer connection (doc 17 §6.2): `ew_natural` (X2 < X10), `ew_ml(text, lang)`, and the date and time functions overridden so that they reject `'now'` (results are deterministic, NFR-REL-07). |
 | `src/lib.rs` |  | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation (ADR-0017, ARCH §10.2, doc 17 §6). |
 | `src/materialise.rs` | large | The rows of every internal table, read from the model through tracked queries (`Q`) and from the check report the caller ran. |
-| `src/result.rs` |  | The result of a query: column names and rows of SQLite values, written as CSV (the golden CSV dialect) or JSON. |
+| `src/result.rs` |  | The result of a query: column names and rows of SQLite values, written as CSV (the `ew` CSV dialect) or JSON. |
 | `src/rows.rs` |  | Rows of the internal tables, filled by column name, and the value conventions of doc 17 §6.1. |
 | `src/sandbox.rs` |  | The sandbox every consumer reads the projection through (ADR-0017 decision 4, doc 17 §6.2). |
 | `src/sandbox_tests.rs` |  | The security tests of the sandbox (doc 18 §11.5 "SQL sandbox", "SQL statement gate"; NFR-SEC-06, TM-05): hostile SQL is refused by the gate or the authorizer, or stopped by the limits, the deadline and the result caps. |
@@ -1267,7 +1267,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | File | Size | What it holds |
 |---|---|---|
 | `src/action_map.rs` |  | `gen-maps`, its first half: the action map `docs/map/actions.md`, one row per action of the view-model's registry with its entry in the table, the method its handler calls with its file, and the text keys that name it. |
-| `src/anonymise.rs` |  | The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09 (docs/design/20-golden-project.md §3.5, 19 LR-12). |
+| `src/anonymise.rs` |  | The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09 (19 LR-12). |
 | `src/api_guard.rs` | large | `api-guard`: the guard of the published file-format surface (ADR-0011 amendment 6). |
 | `src/blind/brief.rs` | large | The open design brief (visual spec §6.1 and §6.2) and `check-brief <task>`. |
 | `src/blind/check_task.rs` |  | `check-task <task>`: checks a task folder without a product. |
