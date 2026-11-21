@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-FL 1.0 rules that compare what a circuit joins (doc 11 §6): EW-FL-005, -006, -009 and -012, each made to
-//! report on a small circuit and kept silent on the correct one beside it.
+//! The EW-FL 1.0 rules that compare what a circuit joins (doc 11 §6): EW-FL-005, -006, -009 and -012, and the two that
+//! find what a circuit lacks, EW-FL-007 (a tube's specification) and EW-FL-010 (a supply), each made to report on a
+//! small circuit and kept silent on the correct one beside it.
 
 use crate::common;
 
@@ -354,4 +355,105 @@ fn ew_fl_009_reports_a_coil_fed_at_another_voltage_or_current() {
     ] {
         assert_eq!(messages(&circuit(silent), "EW-FL-009"), Vec::<String>::new());
     }
+}
+
+/// EW-FL-007 (FR-FLU-020): a fluid line with no tube has no tube specification, and a tube with its two diameters but
+/// no material says the material is missing; the tube of a part with both diameters and a material, and a line whose
+/// medium gives a default tube, report nothing.
+#[test]
+fn ew_fl_007_reports_a_tube_without_its_specification() {
+    let circuit = |kind: Value| {
+        let mut fx = base();
+        part_of(&mut fx, SRC, "AS", 1, (ONE_DEF, ONE_SYM));
+        part_of(&mut fx, CYL, "M", 1, (CYL_DEF, CYL_SYM));
+        fx.conn(0x4001, P1, at(SRC, 0), at(CYL, 0), &json!({ "kind": kind }));
+        fx
+    };
+    assert_eq!(
+        messages(&circuit(json!({"fluid": {}})), "EW-FL-007"),
+        [
+            "tube -1AS1:1 → -1M1:A has no tube specification; give the medium or the project a default tube, or set it \
+             on the line"
+        ]
+    );
+    assert_eq!(
+        messages(
+            &circuit(json!({"fluid": {"tube": {"od": 6_000_000, "id": 4_000_000}}})),
+            "EW-FL-007"
+        ),
+        [
+            "tube -1AS1:1 → -1M1:A is 6×4 mm but has no material; give the default tube of its medium or of the \
+             project a material, or set it on the tube"
+        ]
+    );
+    assert_eq!(
+        messages(
+            &circuit(json!({"fluid": {"tube": {"part": {"copy": us(TUBE_PART)}}}})),
+            "EW-FL-007"
+        ),
+        Vec::<String>::new()
+    );
+    let mut fx = circuit(json!({"fluid": {}}));
+    fx.rec_mut(&us(AIR))["default_tube"] = json!({"od": 6_000_000, "id": 4_000_000, "material": "pu"});
+    medium_def(&mut fx, 0x5001, at(SRC, 0), AIR);
+    assert_eq!(messages(&fx, "EW-FL-007"), Vec::<String>::new());
+}
+
+/// EW-FL-010 (FR-FLU-020): a valve terminal whose supply gallery nothing feeds, and a valve outside a terminal whose
+/// port 1 reaches only the valve itself, report; a supply line to the terminal's supply plate, a medium defined at the
+/// valve's port 1, and a valve that is not fitted report nothing.
+#[test]
+fn ew_fl_010_reports_a_gallery_or_a_port_1_that_nothing_feeds() {
+    // The valve terminal -?U1 (drawn on no page, so its tag has no page part): its supply plate -1U2 taps gallery 1 at
+    // position 1, the valve -1Q3 at position 2.
+    let terminal = || {
+        let mut fx = base();
+        let profile = "siemens-tia-intl@2027.1";
+        fx.push(json!({"$k": "plc_config_project", "id": us(CFG), "name": "PLC1", "profile": profile}));
+        fx.device(VT, "U", Some(1)).with(
+            "plc_station",
+            json!({"config_project": us(CFG), "role": "valve_terminal"}),
+        );
+        part_of(&mut fx, PLATE, "U", 2, (PLATE_DEF, PLATE_SYM));
+        fx.with_parts(PLATE, &[PLATE_PART]);
+        fx.rec_mut(&us(PLATE))["parent"] = json!(us(VT));
+        fx.rec_mut(&us(PLATE))["position"] = json!(1);
+        part_of(&mut fx, 0x710c, "Q", 3, (VALVE_DEF, VALVE_SYM));
+        fx.rec_mut(&us(0x710c))["parent"] = json!(us(VT));
+        fx.rec_mut(&us(0x710c))["position"] = json!(2);
+        fx
+    };
+    assert_eq!(
+        messages(&terminal(), "EW-FL-010"),
+        [
+            "-?U1: no compressed air reaches its valves, because nothing feeds the valve terminal's supply. Draw the \
+             supply line to its supply port, or use Define medium at port there."
+        ]
+    );
+    let mut fx = terminal();
+    part_of(&mut fx, SRC, "AS", 1, (ONE_DEF, ONE_SYM));
+    line(&mut fx, 0x4001, at(SRC, 0), at(PLATE, 0));
+    assert_eq!(messages(&fx, "EW-FL-010"), Vec::<String>::new());
+
+    // A valve alone whose port 1 is joined to its own exhaust 3 only.
+    let valve = |state: Option<&str>| {
+        let mut fx = base();
+        part_of(&mut fx, V1, "Q", 1, (VALVE_DEF, VALVE_SYM));
+        if let Some(s) = state {
+            fx.rec_mut(&us(V1))["state"] = json!(s);
+        }
+        line(&mut fx, 0x4001, at(V1, 0), at(V1, 2));
+        fx
+    };
+    assert_eq!(
+        messages(&valve(None), "EW-FL-010"),
+        ["-1Q1: no compressed air reaches port 1. Draw the supply line to it, or use Define medium at port there."]
+    );
+    let mut fx = valve(None);
+    medium_def(&mut fx, 0x5001, at(V1, 0), AIR);
+    assert_eq!(messages(&fx, "EW-FL-010"), Vec::<String>::new());
+    assert_eq!(
+        messages(&valve(Some("not_fitted")), "EW-FL-010"),
+        Vec::<String>::new()
+    );
 }
