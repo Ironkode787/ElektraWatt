@@ -12,8 +12,9 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
-    NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
+    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
+    LogicalNet, NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole,
+    ReportBlock,
 };
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,

@@ -90,7 +90,12 @@ impl ReportKindDef for OpenItems {
 /// The row of one open item.
 fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
-    put(columns, &mut cells, "category", words_cell(row.category, row.category_nl));
+    put(
+        columns,
+        &mut cells,
+        "category",
+        words_cell(row.category, row.category_nl),
+    );
     put(columns, &mut cells, "item", text_cell(&f.subject));
     // The message as `ew check --lang nl-NL` words it (its en-GB text where the rule has no Dutch pattern).
     let dutch = ew_checks::messages::render(f, "nl-NL");
@@ -101,7 +106,12 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
         Severity::Warning => "waarschuwing",
         Severity::Error => "fout",
     };
-    put(columns, &mut cells, "severity", words_cell(f.severity.name(), severity));
+    put(
+        columns,
+        &mut cells,
+        "severity",
+        words_cell(f.severity.name(), severity),
+    );
     if let Some(page) = f.page {
         put(columns, &mut cells, "page", Cell::Folio(PageRef::Drawn(page)));
     }

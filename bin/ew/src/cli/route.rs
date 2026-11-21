@@ -6,9 +6,9 @@
 //! ([`ew_api::Session::route_plan`], [`ew_api::Session::arrange_plan`]) is stored as one `layout.apply`, the command
 //! the window's buttons store, and the project is saved once; `--dry-run` prints the plan.
 
+use ew_api::AnyCommand;
 use ew_api::cli_results as results;
 use ew_api::routing::{Reason, RoutePlan, RouteScope};
-use ew_api::AnyCommand;
 
 use super::{RouteArgs, open_for_writing, open_reader, project_dir, reader_dir};
 

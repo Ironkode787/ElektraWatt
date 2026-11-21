@@ -72,8 +72,10 @@ impl ReportKindDef for CableOverview {
         if cables.is_empty() {
             return set;
         }
-        set.rows
-            .push(heading("overview", ew_derive::langs("Cable overview", "Kabeloverzicht")));
+        set.rows.push(heading(
+            "overview",
+            ew_derive::langs("Cable overview", "Kabeloverzicht"),
+        ));
         for (_, cable) in &cables {
             set.rows.push(cable_row(q, *cable, &by_core));
         }
@@ -84,8 +86,10 @@ impl ReportKindDef for CableOverview {
             } else {
                 format!("{} {part}", short_tag(q, *cable))
             };
-            set.rows
-                .push(heading(&format!("cable/{}", cable.as_uuid()), MlText::neutral(&title)));
+            set.rows.push(heading(
+                &format!("cable/{}", cable.as_uuid()),
+                MlText::neutral(&title),
+            ));
             let mut cores: Vec<(bool, Option<u8>, NaturalKey, Id<Conductor>)> = q
                 .idx()
                 .conductors_of_cable(*cable)

@@ -157,7 +157,9 @@ pub(super) fn kind_text(k: &ChannelKind) -> Cell {
         ChannelKind::PowerSupply => "voeding",
         ChannelKind::MultiFunction => "multifunctie",
         ChannelKind::Unknown(_) => "overig",
-        ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => english,
+        ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => {
+            english
+        }
     };
     words_cell(english, dutch)
 }
@@ -200,12 +202,7 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
         "designation",
         ident(r.text.designation.as_deref()),
     );
-    put(
-        columns,
-        &mut cells,
-        "kind",
-        kind_text(&r.kind),
-    );
+    put(columns, &mut cells, "kind", kind_text(&r.kind));
     put(columns, &mut cells, "symbol", ident(r.text.symbol.as_deref()));
     if let Some(t) = &r.text.function_text {
         put(columns, &mut cells, "function", Cell::Text(t.clone()));

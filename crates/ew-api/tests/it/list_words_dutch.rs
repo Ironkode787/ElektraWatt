@@ -54,7 +54,10 @@ fn records() -> (ew_schema::Project, Vec<Record>, Vec<ew_schema::LibDocument>, U
         .find(|v| v["$k"] == "device" && v["plc_station"]["role"] == "valve_terminal")
         .expect("the sample's valve terminal");
     terminal["assembly"] = json!({"configs": [{"order_code": "VT-1"}]});
-    let terminal: Uuid = terminal["id"].as_str().and_then(|t| t.parse().ok()).expect("its ID");
+    let terminal: Uuid = terminal["id"]
+        .as_str()
+        .and_then(|t| t.parse().ok())
+        .expect("its ID");
     let records = values
         .into_iter()
         .map(|v| Record::from_value(v).expect("a record"))
@@ -122,7 +125,11 @@ const WORDS: &[(&str, &str, &str)] = &[
     ("cable_overview_diagrams", "from part", "uit artikel"),
     ("cable_overview_diagrams", "length missing", "lengte ontbreekt"),
     ("wire_list", "Bridges", "Bruggen"),
-    ("wire_list", "plug-in bridge, terminals 1\u{2013}4", "insteekbrug, klemmen 1\u{2013}4"),
+    (
+        "wire_list",
+        "plug-in bridge, terminals 1\u{2013}4",
+        "insteekbrug, klemmen 1\u{2013}4",
+    ),
     ("wire_list", "core", "ader"),
     ("wire_list", "bond/rule", "potentiaalverbinding/regel"),
     ("potential_overview", "Bond", "Potentiaalverbinding"),
@@ -146,8 +153,14 @@ fn a_dutch_projects_lists_print_the_programs_own_words_in_dutch() {
     let ((english, terminal), (dutch, _)) = (sample(false), sample(true));
     for (kind, en, nl) in WORDS {
         let (in_english, in_dutch) = (cells(&english, kind), cells(&dutch, kind));
-        assert!(in_english.iter().any(|c| c == en), "{kind}: {en} in {in_english:?}");
-        assert!(!in_english.iter().any(|c| c == nl), "{kind}: {nl} in {in_english:?}");
+        assert!(
+            in_english.iter().any(|c| c == en),
+            "{kind}: {en} in {in_english:?}"
+        );
+        assert!(
+            !in_english.iter().any(|c| c == nl),
+            "{kind}: {nl} in {in_english:?}"
+        );
         assert!(in_dutch.iter().any(|c| c == nl), "{kind}: {nl} in {in_dutch:?}");
         assert!(!in_dutch.iter().any(|c| c == en), "{kind}: {en} in {in_dutch:?}");
     }
@@ -181,6 +194,12 @@ fn a_dutch_projects_boxes_print_their_titles_in_dutch() {
     }
     // The legend's header row: its columns' headings, in Dutch on a drawn page too.
     let heading = |texts: &[String], word: &str| texts.iter().any(|t| t == word);
-    assert!(heading(&en, "Description") && !heading(&en, "Omschrijving"), "{en:?}");
-    assert!(heading(&nl, "Omschrijving") && !heading(&nl, "Description"), "{nl:?}");
+    assert!(
+        heading(&en, "Description") && !heading(&en, "Omschrijving"),
+        "{en:?}"
+    );
+    assert!(
+        heading(&nl, "Omschrijving") && !heading(&nl, "Description"),
+        "{nl:?}"
+    );
 }

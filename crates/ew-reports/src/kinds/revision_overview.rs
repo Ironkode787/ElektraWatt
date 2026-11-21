@@ -100,7 +100,9 @@ fn row(q: &Q, order: &ew_derive::PageOrderV, rev: &Revision) -> Row {
         RevisionState::Open => words_cell("open", "open"),
         RevisionState::Released => words_cell("released", "uitgegeven"),
         RevisionState::Withdrawn => words_cell("withdrawn", "ingetrokken"),
-        RevisionState::Unknown(v) => text_cell(v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string())),
+        RevisionState::Unknown(v) => {
+            text_cell(v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string()))
+        }
     };
     let mut pages: Vec<(usize, PageRef)> = recorded_changed_pages(rev)
         .into_iter()

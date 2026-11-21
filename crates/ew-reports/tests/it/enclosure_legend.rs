@@ -97,7 +97,7 @@ fn rows(q: &Q, page: Option<u128>) -> RowSet {
 fn text(cell: &Cell) -> String {
     match cell {
         Cell::Ident(s) => s.clone(),
-        Cell::Text(t) => t.as_neutral().unwrap_or_default().to_owned(),
+        Cell::Text(t) => ew_derive::text_in(t, None).to_owned(),
         Cell::Qty(q, _) => q.to_string(),
         Cell::Tag(_) => "<tag>".to_owned(),
         Cell::Empty => String::new(),

@@ -55,8 +55,13 @@ impl ReportKindDef for NumberingReport {
         tags.sort();
         for (_, id, frozen) in tags {
             let rule = rule_product(q, id).map(|(p, _)| p).unwrap_or_default();
-            set.rows
-                .push(row(RowId::entity(id), Cell::Tag(id), ("tag", "kenmerk"), &frozen, &rule));
+            set.rows.push(row(
+                RowId::entity(id),
+                Cell::Tag(id),
+                ("tag", "kenmerk"),
+                &frozen,
+                &rule,
+            ));
         }
         let numbers = q.get::<WireNumbers>(());
         let mut wires: Vec<(Id<Connection>, String)> = q
@@ -73,8 +78,13 @@ impl ReportKindDef for NumberingReport {
                 .number(id)
                 .and_then(|n| n.rule.clone())
                 .unwrap_or_default();
-            set.rows
-                .push(row(RowId::entity(id), Cell::Empty, ("wire number", "draadnummer"), &frozen, &rule));
+            set.rows.push(row(
+                RowId::entity(id),
+                Cell::Empty,
+                ("wire number", "draadnummer"),
+                &frozen,
+                &rule,
+            ));
         }
         set
     }

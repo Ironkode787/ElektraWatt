@@ -73,7 +73,7 @@ column	to_cp	CP	Ident	false
 column	potential	Potential	Ident	false
 column	colour	Colour	Colour	false
 column	cross_section	mm²	Qty	false
-column	source	Source	Ident	false
+column	source	Source	Text	false
 column	via	Via	Text	false
 column	part	Wire part	Ident	false
 column	pages	Pages	Folios	false
