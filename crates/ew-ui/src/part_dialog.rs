@@ -7,7 +7,7 @@
 //! **Choose a part.** The search field (first focus), a filter row (Only parts that fit, the four views as a segmented
 //! control, Show deprecated and withdrawn), the result list and the active row's detail line. Typing edits the search
 //! (`part.search`), Up and Down move the active row, Enter chooses it (`part.pick` with its 1-based `index`), Escape
-//! cancels. Rows: the favourite star (a button named "Favourite", `part.favourite`), the part number in
+//! cancels. No row is active until the person chooses one (a click, or Down from the field, FT-1845). Rows: the favourite star (a button named "Favourite", `part.favourite`), the part number in
 //! `type.body.strong`, the manufacturer, the elided description, the source badge and the fit badge. AccessKit: the
 //! list is a `ListBox` named "Parts" whose rows are `ListBoxOption`s with position and set size.
 //!
@@ -38,12 +38,12 @@ fn active_id() -> egui::Id {
     egui::Id::unique("part-choose-active")
 }
 
-/// The part dialog's active row (0-based), kept in the window's memory.
-pub(crate) fn active(ctx: &egui::Context) -> usize {
-    ctx.data(|d| d.get_temp(active_id()).unwrap_or(0))
+/// The part dialog's active row (0-based), kept in the window's memory; `None` until the person chooses one.
+pub(crate) fn active(ctx: &egui::Context) -> Option<usize> {
+    ctx.data(|d| d.get_temp(active_id()).flatten())
 }
 
-fn set_active(ctx: &egui::Context, i: usize) {
+fn set_active(ctx: &egui::Context, i: Option<usize>) {
     ctx.data_mut(|d| d.insert_temp(active_id(), i));
 }
 
@@ -58,7 +58,7 @@ pub(crate) fn chooser(
     let t = theme::current(ui.ctx());
     let ctx = ui.ctx().clone();
     if just_opened {
-        set_active(&ctx, 0);
+        set_active(&ctx, None);
     }
     let mut text = c.query.text.clone();
     let search = ui.add(
@@ -79,7 +79,7 @@ pub(crate) fn chooser(
         search.request_focus();
     }
     if text != c.query.text {
-        set_active(&ctx, 0);
+        set_active(&ctx, None);
         events.push(Event::Action("part.search", json!({ "text": text })));
     }
     ui.add_space(t.space_2);
@@ -98,7 +98,7 @@ pub(crate) fn chooser(
                 .selectable_label(c.query.view == v, strings::text(strings::Key::run_time(&key)))
                 .clicked()
             {
-                set_active(&ctx, 0);
+                set_active(&ctx, None);
                 events.push(Event::Action("part.search", json!({ "view": v.word() })));
             }
         }
@@ -113,7 +113,7 @@ pub(crate) fn chooser(
     });
     ui.add_space(t.space_2);
     let n = c.offers.len().min(PART_ROWS);
-    let mut act = active(&ctx).min(n.saturating_sub(1));
+    let mut act = active(&ctx).filter(|i| *i < n);
     let (up, down, enter) = ui.input(|i| {
         (
             i.key_pressed(Key::ArrowUp),
@@ -121,11 +121,12 @@ pub(crate) fn chooser(
             i.key_pressed(Key::Enter),
         )
     });
-    if down && act + 1 < n {
-        act += 1;
-    }
-    if up && act > 0 {
-        act -= 1;
+    // Down from no row takes the first; Up from the first stays on it.
+    match act {
+        None if down && n > 0 => act = Some(0),
+        Some(i) if down && i + 1 < n => act = Some(i + 1),
+        Some(i) if up && i > 0 => act = Some(i - 1),
+        _ => {}
     }
     let list_name = strings::text(key!("part-choose-list"));
     // Doc 16a §2: the list takes the window's height as it grows, ten rows at the floor.
@@ -143,7 +144,7 @@ pub(crate) fn chooser(
             .show(ui, |ui| {
                 ui.set_min_width(ui.available_width());
                 for (i, o) in c.offers.iter().take(n).enumerate() {
-                    let selected = i == act;
+                    let selected = act == Some(i);
                     ui.horizontal(|ui| {
                         let star = ui.add(
                             egui::Button::new(if o.favourite { "\u{2605}" } else { "\u{2606}" }).frame(false),
@@ -223,7 +224,7 @@ pub(crate) fn chooser(
                             node.set_size_of_set(n);
                         });
                         if row.clicked() {
-                            act = i;
+                            act = Some(i);
                         }
                         if row.double_clicked() {
                             picked = Some(i);
@@ -241,7 +242,7 @@ pub(crate) fn chooser(
                 .color(t.text_secondary.color32()),
         );
     }
-    if let Some(detail) = shell.part_offer_detail(act) {
+    if let Some(detail) = act.and_then(|i| shell.part_offer_detail(i)) {
         ui.add_space(t.space_2);
         ui.label(
             RichText::new(detail)
@@ -300,8 +301,8 @@ pub(crate) fn chooser(
         None => d.remove::<String>(id),
     });
     set_active(&ctx, act);
-    if enter && n > 0 && !naming {
-        picked = Some(act);
+    if enter && !naming {
+        picked = act;
     }
     if let Some(i) = picked {
         events.push(Event::Action("part.pick", json!({ "index": i + 1 })));

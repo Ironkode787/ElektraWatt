@@ -142,12 +142,14 @@ pub fn show(
         Dialog::TextStyles(_) => Some(crate::dialog::preview_width(&t, window)),
         _ => None,
     };
-    // Choose picks the list's active row, which the window keeps.
-    if matches!(d, Dialog::PartChoose(_)) {
-        spec.primary.answer = DialogAnswer::Action(
-            "part.pick",
-            json!({ "index": crate::part_dialog::active(ctx) + 1 }),
-        );
+    // Choose picks the list's active row, which the window keeps; until the person chooses one it waits.
+    if let Dialog::PartChoose(c) = d
+        && let Some(i) = crate::part_dialog::active(ctx)
+    {
+        spec.primary.answer = DialogAnswer::Action("part.pick", json!({ "index": i + 1 }));
+        if !c.offers.is_empty() {
+            spec.primary.disabled = None;
+        }
     }
     // What Submit sends (the field's text as typed this frame) and whether Enter in a field submitted.
     let mut submit_text: Option<String> = None;

@@ -3,7 +3,7 @@
 
 //! The part selection dialog's data. [`Session::part_offers`] merges the project's part
 //! copies and the catalogue hits of [`Session::part_search`] into one list ordered for the target (the fit to its
-//! function, the rank of the text, held before not held, favourites and recently used parts, the catalogue's order,
+//! function, the rank of the text, found by what the part is for before found by its words, held before not held, favourites and recently used parts, the catalogue's order,
 //! the natural part number); [`Session::part_pick_command`] compiles a choice into the one command of its gesture
 //! (`part.assign` for devices, the strip cell's `fields.set` with `copies` for a bridge or an accessory part).
 
@@ -140,6 +140,13 @@ pub struct PartOfferQuery {
     pub favourites: Vec<(Uuid, Uuid)>,
     /// `(library, item)` of the recently used parts, most recent first (D18).
     pub recent: Vec<(Uuid, Uuid)>,
+    /// What the text names a part as being for (FT-1845): first category levels (`SensingPosition`), which the
+    /// caller reads from the text in the words of the categories; a part whose own category, or whose main
+    /// function's FnDef category, starts with one is found by it.
+    pub purpose_categories: Vec<String>,
+    /// What the text names a part as being for: contact kinds' words (`no`); a part whose main function's FnDef has
+    /// one is found by it.
+    pub purpose_kinds: Vec<String>,
 }
 
 /// One row of the dialog's list.
@@ -212,8 +219,9 @@ fn inactive(s: &ItemStatus) -> bool {
 
 /// The rank of a held copy for the text (D17 (2)): 0 without text, 1 the normalised part number equals it, 2 starts
 /// with it, 3 contains it (three characters or more), 4 every word is in the part number, type, manufacturer or
-/// description; `None` when it does not match.
-fn held_rank(text: &str, part: &Part, manufacturer: &str, description: &str) -> Option<u8> {
+/// description (in every language), or the part is for what the text names (`purpose`); `None` when it does not
+/// match.
+fn held_rank(text: &str, part: &Part, manufacturer: &str, purpose: bool) -> Option<u8> {
     if text.is_empty() {
         return Some(0);
     }
@@ -230,17 +238,21 @@ fn held_rank(text: &str, part: &Part, manufacturer: &str, description: &str) -> 
             return Some(3);
         }
     }
+    let descriptions: Vec<String> = part
+        .description
+        .languages()
+        .filter_map(|l| part.description.get(l).map(str::to_owned))
+        .chain(part.description.as_neutral().map(str::to_owned))
+        .collect();
     let hay = format!(
         "{} {} {} {}",
         part.part_number.as_str(),
         part.type_designation.as_ref().map_or("", |t| t.as_str()),
         manufacturer,
-        description
+        descriptions.join(" ")
     )
     .to_lowercase();
-    text.split_whitespace()
-        .all(|w| hay.contains(&w.to_lowercase()))
-        .then_some(4)
+    (purpose || text.split_whitespace().all(|w| hay.contains(&w.to_lowercase()))).then_some(4)
 }
 
 fn category_matches(category: Option<&ew_schema::CategoryKey>, prefix: &[String]) -> bool {
@@ -262,6 +274,8 @@ struct Key {
     recent_pos: usize,
     fit: Fit,
     rank: u8,
+    /// Not found by what it is for (FT-1845): false leads its rank.
+    not_purpose: bool,
     not_held: bool,
     boost: u8,
     score: usize,
@@ -276,6 +290,7 @@ fn key_order(a: &Key, b: &Key) -> Ordering {
         .cmp(&b.recent_pos)
         .then(a.fit.cmp(&b.fit))
         .then(a.rank.cmp(&b.rank))
+        .then(a.not_purpose.cmp(&b.not_purpose))
         .then(a.not_held.cmp(&b.not_held))
         .then(a.boost.cmp(&b.boost))
         .then(a.score.cmp(&b.score))
@@ -309,6 +324,26 @@ impl Session {
             Ok(LibDocument::Fndef(c)) => Some(c.item),
             _ => None,
         }
+    }
+
+    /// Whether a held part is for what the query names (FT-1845): its own category's first level, or its main
+    /// template function's FnDef's first category level or contact kind, is among the query's purposes.
+    fn held_purpose(&self, q: &Q, part: &Part, query: &PartOfferQuery) -> bool {
+        if query.purpose_categories.is_empty() && query.purpose_kinds.is_empty() {
+            return false;
+        }
+        let named = |c: &str| query.purpose_categories.iter().any(|p| p == c);
+        if part.category.as_ref().is_some_and(|(c0, _, _)| named(c0.as_str())) {
+            return true;
+        }
+        part.function_template
+            .iter()
+            .filter(|t| t.main)
+            .filter_map(|t| self.template_fndef(q, &t.fndef))
+            .any(|d| {
+                let kind = serde_json::to_value(&d.contact_kind).unwrap_or_default();
+                named(d.category.0.as_str()) || query.purpose_kinds.iter().any(|k| kind.as_str() == Some(k))
+            })
     }
 
     /// The fit of a held part to a function (D17, by the rules the catalogue applies to its hits).
@@ -407,7 +442,8 @@ impl Session {
             }
             let manufacturer = ew_derive::manufacturer_name(&query, &p.manufacturer);
             let description = text_of(&p.description);
-            let Some(rank) = held_rank(text, p, &manufacturer, &description) else {
+            let purpose = self.held_purpose(&query, p, q);
+            let Some(rank) = held_rank(text, p, &manufacturer, purpose) else {
                 continue;
             };
             let lib = c.library_id.as_uuid();
@@ -436,6 +472,7 @@ impl Session {
                     recent_pos: 0,
                     fit,
                     rank,
+                    not_purpose: !purpose,
                     not_held: false,
                     boost: 0,
                     score: 0,
@@ -466,6 +503,12 @@ impl Session {
                     compatible_with: compat.clone(),
                     include_inactive: q.include_inactive,
                     boost,
+                    purpose_categories: q.purpose_categories.clone(),
+                    purpose_kinds: q
+                        .purpose_kinds
+                        .iter()
+                        .filter_map(|k| serde_json::from_value(serde_json::Value::String(k.clone())).ok())
+                        .collect(),
                     ..PartQuery::default()
                 })
             };
@@ -505,6 +548,7 @@ impl Session {
                         recent_pos: 0,
                         fit,
                         rank: h.rank_tier,
+                        not_purpose: !h.purpose,
                         not_held: true,
                         boost: if fav {
                             0

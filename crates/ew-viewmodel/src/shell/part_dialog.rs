@@ -52,8 +52,9 @@ pub struct PartChooser {
     pub offers: Vec<PartOffer>,
     /// Why each offer does not fit a cable, in the offers' order; `None` where it fits.
     pub misfits: Vec<Option<String>>,
-    /// The active row (0-based).
-    pub cursor: usize,
+    /// The active row (0-based); `None` until the person chooses one (FT-1845: Enter took a first row the person had
+    /// not chosen).
+    pub cursor: Option<usize>,
 }
 
 impl PartChooser {
@@ -231,6 +232,60 @@ fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str)
     t.eq_ignore_ascii_case(number)
         || t.eq_ignore_ascii_case(&short)
         || t.eq_ignore_ascii_case(&format!("{short} \u{b7} {description}"))
+}
+
+/// What a typed text names a part as being for (FT-1845, doc 07 §4.3): the function categories and the contact kinds
+/// whose words take every word of the text, each word the start of one of theirs (or, from four letters, inside one:
+/// a Dutch compound). A category's words are its `function-category-<key>` text in each shipped language and its key
+/// split at its capitals ("Fluid Sensor"); a contact kind's are its `symbol-kind-<kind>` text in each. Nothing for a
+/// text without words.
+pub(crate) fn purposes(text: &str) -> (Vec<String>, Vec<String>) {
+    let words = |t: &str| -> Vec<String> {
+        t.split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .map(str::to_lowercase)
+            .collect()
+    };
+    let typed = words(text);
+    if typed.is_empty() {
+        return (Vec::new(), Vec::new());
+    }
+    let names = |texts: Vec<String>| {
+        let theirs: Vec<String> = texts.iter().flat_map(|t| words(t)).collect();
+        typed.iter().all(|w| {
+            theirs
+                .iter()
+                .any(|t| t.starts_with(w.as_str()) || (w.chars().count() >= 4 && t.contains(w.as_str())))
+        })
+    };
+    let shipped = |key: &str| -> Vec<String> {
+        strings::shipped_texts(key)
+            .into_iter()
+            .map(|(_, t)| t.to_owned())
+            .collect()
+    };
+    let categories = strings::source_keys("function-category-")
+        .into_iter()
+        .filter(|k| {
+            let mut texts = shipped(&format!("function-category-{k}"));
+            let mut split = String::new();
+            for c in k.chars() {
+                if c.is_uppercase() && !split.is_empty() {
+                    split.push(' ');
+                }
+                split.push(c);
+            }
+            texts.push(split);
+            names(texts)
+        })
+        .map(str::to_owned)
+        .collect();
+    let kinds = strings::source_keys("symbol-kind-")
+        .into_iter()
+        .filter(|k| !k.ends_with("-help") && names(shipped(&format!("symbol-kind-{k}"))))
+        .map(str::to_owned)
+        .collect();
+    (categories, kinds)
 }
 
 fn api_refusal(e: ApiError) -> Outcome {
@@ -497,6 +552,7 @@ impl ShellModel {
         if let Some(Dialog::PartChoose(c)) = &mut self.dialog {
             c.query.favourites = favourites;
             c.query.recent = recent;
+            (c.query.purpose_categories, c.query.purpose_kinds) = purposes(&c.query.text);
             c.offers = project.session.part_offers(&c.query);
             // A layout kind is offered to a device only where panel layout
             // attaches it (`chooser_layout_kinds`: an end bracket to a strip, an enclosure or a plate to a device
@@ -526,7 +582,7 @@ impl ShellModel {
                 .collect();
             rows.sort_by_key(|(why, _)| why.is_some());
             (c.misfits, c.offers) = rows.into_iter().unzip();
-            c.cursor = c.cursor.min(c.offers.len().saturating_sub(1));
+            c.cursor = c.cursor.filter(|i| *i < c.offers.len());
         }
     }
 
@@ -675,7 +731,7 @@ impl ShellModel {
             },
             offers: Vec::new(),
             misfits: Vec::new(),
-            cursor: 0,
+            cursor: None,
         };
         let out = self.open_dialog(Dialog::PartChoose(Box::new(chooser)));
         self.part_refresh();
@@ -723,7 +779,7 @@ impl ShellModel {
         if let Some(v) = view {
             c.query.view = v;
         }
-        c.cursor = 0;
+        c.cursor = None;
         self.part_refresh();
         Outcome::Done
     }
@@ -764,8 +820,8 @@ impl ShellModel {
                 )),
             };
         }
-        c.offers
-            .get(c.cursor)
+        c.cursor
+            .and_then(|i| c.offers.get(i))
             .cloned()
             .ok_or(Outcome::refused(key!("reason-part-choose-none")))
     }
@@ -834,7 +890,7 @@ impl ShellModel {
         if let (Some(Dialog::PartChoose(c)), Some(Value::Number(n))) = (&mut self.dialog, p.get("index")) {
             c.cursor = n
                 .as_u64()
-                .map_or(0, |i| usize::try_from(i).unwrap_or(1).saturating_sub(1));
+                .map(|i| usize::try_from(i).unwrap_or(1).saturating_sub(1));
         }
         self.part_refresh();
         Outcome::Done
@@ -1361,7 +1417,7 @@ impl ShellModel {
         }
         if let Some(mut chooser) = editor.back.take() {
             chooser.query.text = number.clone();
-            chooser.cursor = 0;
+            chooser.cursor = None;
             self.dialog = Some(Dialog::PartChoose(chooser));
             self.part_refresh();
         }

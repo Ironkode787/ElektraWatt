@@ -348,7 +348,7 @@ impl Index {
         let mut found: BTreeMap<i64, RawPart> = BTreeMap::new();
         let compat = q.compatible_with.as_ref();
         if q.text.trim().is_empty() {
-            self.part_tier(0, "part p", "1", vec![], "0.0", compat, &mut found)?;
+            self.part_tier(0, "part p", "1", vec![], "0.0", compat, false, &mut found)?;
         } else {
             if !norm.is_empty() {
                 self.part_tier(
@@ -358,6 +358,7 @@ impl Index {
                     vec![Sql::Text(norm.clone())],
                     "0.0",
                     compat,
+                    false,
                     &mut found,
                 )?;
                 let hi = format!("{norm}\u{10FFFF}");
@@ -368,6 +369,7 @@ impl Index {
                     vec![Sql::Text(norm.clone()), Sql::Text(hi)],
                     "0.0",
                     compat,
+                    false,
                     &mut found,
                 )?;
             }
@@ -379,6 +381,7 @@ impl Index {
                     vec![Sql::Text(format!("\"{}\"", norm.replace('"', "\"\"")))],
                     "0.0",
                     compat,
+                    false,
                     &mut found,
                 )?;
             }
@@ -390,6 +393,33 @@ impl Index {
                     vec![Sql::Text(fts)],
                     "bm25(part_text, 10.0, 6.0, 3.0, 3.0, 1.0, 2.0, 1.0)",
                     compat,
+                    false,
+                    &mut found,
+                )?;
+            }
+            // What the text names the part as being for (FT-1845): its own category's first level, or its main
+            // function's FnDef's first category level or contact kind. Such a part is found in tier 4 (or keeps
+            // its better tier) and leads its tier.
+            if !q.purpose_categories.is_empty() || !q.purpose_kinds.is_empty() {
+                let categories = serde_json::to_string(&q.purpose_categories).unwrap_or_default();
+                let kinds: Vec<String> = q.purpose_kinds.iter().map(json_text).collect();
+                self.part_tier(
+                    4,
+                    "part p",
+                    "EXISTS(SELECT 1 FROM json_each(?6) c
+                              WHERE substr(p.category, 1, length(c.value) + 1) = c.value || char(31))
+                     OR EXISTS(SELECT 1 FROM part_fn f JOIN item i
+                                 ON i.kind = 'fndef' AND i.lib = f.fndef_lib AND i.item = f.fndef_item
+                               WHERE f.part = p.id AND f.main
+                                 AND (i.cat0 IN (SELECT value FROM json_each(?6))
+                                      OR i.contact IN (SELECT value FROM json_each(?7))))",
+                    vec![
+                        Sql::Text(categories),
+                        Sql::Text(serde_json::to_string(&kinds).unwrap_or_default()),
+                    ],
+                    "0.0",
+                    compat,
+                    true,
                     &mut found,
                 )?;
             }
@@ -428,6 +458,7 @@ impl Index {
             let key = OrderKey {
                 fit,
                 rank_tier: raw.rank_tier,
+                purpose: raw.purpose,
                 not_held: !held.contains(&(raw.lib, raw.item)),
                 not_boosted: !boost.contains(&(raw.lib, raw.item)),
                 score: raw.score,
@@ -451,6 +482,7 @@ impl Index {
                     compatible: raw.compatible,
                     same_fndef,
                     rank_tier: raw.rank_tier,
+                    purpose: raw.purpose,
                 },
             ));
         }
@@ -470,6 +502,7 @@ impl Index {
         extra: Vec<Sql>,
         score: &str,
         compat: Option<&FnCompat>,
+        purpose: bool,
         found: &mut BTreeMap<i64, RawPart>,
     ) -> Result<(), LibraryError> {
         let sql = format!(
@@ -524,7 +557,11 @@ impl Index {
         })?;
         for row in rows {
             let (id, row) = row?;
-            if found.get(&id).is_some_and(|f| f.rank_tier <= tier) {
+            if let Some(f) = found.get_mut(&id)
+                && f.rank_tier <= tier
+            {
+                // The purpose query marks the parts it finds, whatever tier found them first.
+                f.purpose |= purpose;
                 continue;
             }
             let (Ok(lib), Ok(item)) = (Uuid::try_parse(&row.lib), Uuid::try_parse(&row.item)) else {
@@ -547,6 +584,7 @@ impl Index {
                     compatible: row.compatible,
                     same_fndef: row.same_fndef,
                     rank_tier: tier,
+                    purpose,
                 },
             );
         }
@@ -647,6 +685,7 @@ impl Index {
                 OrderKey {
                     fit: 1,
                     rank_tier,
+                    purpose: false,
                     not_held: true,
                     not_boosted: true,
                     score,
@@ -718,6 +757,7 @@ struct RawPart {
     compatible: Option<bool>,
     same_fndef: bool,
     rank_tier: u8,
+    purpose: bool,
 }
 
 struct RawItemRow {

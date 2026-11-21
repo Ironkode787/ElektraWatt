@@ -1959,12 +1959,12 @@ fn part_choose_lines(
         if o.favourite {
             line.push_str(" favourite");
         }
-        if i == c.cursor {
+        if c.cursor == Some(i) {
             line.push_str(" cursor");
         }
         lines.push(line);
     }
-    if let Some(detail) = model.part_offer_detail(c.cursor) {
+    if let Some(detail) = c.cursor.and_then(|i| model.part_offer_detail(i)) {
         lines.push(format!("  detail \"{}\"", user(&detail)));
     }
 }

@@ -590,6 +590,9 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
     );
     if c.offers.is_empty() {
         choose.disabled = Some(strings::text(key!("part-choose-nothing")).to_owned());
+    } else if c.cursor.is_none() {
+        // FT-1845: no row is chosen for the person; Choose waits for one.
+        choose.disabled = Some(strings::text(key!("reason-part-choose-none")).to_owned());
     }
     DialogSpec {
         secondary: vec![cancel()],

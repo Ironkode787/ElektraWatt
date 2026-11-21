@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! In the window without rendering (NFR-A11Y-01): the part dialog by keyboard alone (typing
-//! searches, Down moves the active row, Enter chooses it) and its AccessKit tree (the result list a `ListBox` named
-//! "Parts" with `ListBoxOption` rows carrying position and set size, the star a button named "Favourite"); the part
+//! searches, no row is active until Down takes one, Enter chooses it) and its AccessKit tree (the result list a
+//! `ListBox` named "Parts" with `ListBoxOption` rows carrying position and set size, the star a button named "Favourite"); the part
 //! editor by keyboard alone (its fields named by their labels, Enter saves into the `part` card). The accessible-name
 //! walker runs after every step.
 
@@ -50,7 +50,7 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     let first = rows[0].accesskit_node();
     assert_eq!(first.data().position_in_set(), Some(1));
     assert_eq!(first.data().size_of_set(), Some(rows.len()));
-    assert!(first.is_selected() == Some(true), "the first row is active");
+    assert!(first.is_selected() != Some(true), "no row is chosen for the person (FT-1845)");
     assert!(
         first
             .label()
@@ -80,6 +80,9 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     assert_eq!(c.query.text, "MCB");
     let second = c.offers[1].part_number.clone();
     let n = h.state().shell().recorded_commands().len();
+    // Down from no row takes the first, a second Down the second.
+    h.key_press(Key::ArrowDown);
+    settle(&mut h);
     h.key_press(Key::ArrowDown);
     settle(&mut h);
     h.key_press(Key::Enter);

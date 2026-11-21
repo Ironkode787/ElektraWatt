@@ -1049,6 +1049,25 @@ CREATE TABLE part_cp(part INTEGER, fn_idx INTEGER, desig_norm TEXT, csa_min INTE
 
 Inside a tier, favourites and parts "used in this project" come first. Ties break by natural sort (`ew_natural`).
 
+*As built (FT-1845): what the part dialog searches and how it ranks.* A person types what a part is for ("sensor",
+"normally open contact") as often as its words, and "sensor" found nothing while "normally open contact" ranked the
+contactor first (its description names an auxiliary contact). The dialog searches what a part already carries; no
+part gets new data and no list of synonyms is kept.
+- *Its words:* the part number (tiers 1 to 3), and the type, the manufacturer, the description in every language and
+  the keywords (tier 4; a held copy's description in every language too).
+- *What it is for:* the window reads from the text the function categories and contact kinds it names. A category is
+  named when every typed word starts one of its words, or (from four letters) stands inside one, its words being its
+  `function-category-<key>` text in English and Dutch and its key split at its capitals ("sensor" names Position
+  sensors, Pressure sensors, Temperature sensors and `FluidSensor`); a contact kind likewise by its
+  `symbol-kind-<kind>` texts ("normally open contact", "maakcontact" name `no`). A part is for it when its own
+  category's first level, or its main function's FnDef's first category level or contact kind, is one of them. Such a
+  part is found in tier 4 when its words are not (or keeps its better tier).
+- *Order:* the fit to the target's function (with one), the tier, then inside a tier the parts found by what they are
+  for before those found by their words only, then held before not held, favourites and recent parts, the full-text
+  score and the natural part number.
+- *No row is chosen for the person:* the list opens and refreshes with no active row; a click or Down chooses one,
+  Choose and Enter wait for it (Enter took a first row nobody had looked at).
+
 **Compatibility filter.** When a part is chosen for a function `f`, a part is compatible if its template contains a
 function with:
 - the same category (first two levels) and the same contact kind (MVP, FR-PRT-015);

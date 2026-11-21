@@ -129,7 +129,7 @@ fn a_two_pole_switch_has_a_starter_part_that_fits() {
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.search", json!({ "fits": true }));
     assert_eq!(results(&s).first().map(String::as_str), Some("EW-GEN-SW-3"));
-    assert!(result_of(&s, "EW-GEN-SW-3").ends_with("compatible same-fndef cursor"));
+    assert!(result_of(&s, "EW-GEN-SW-3").ends_with("compatible same-fndef"));
 }
 
 /// PS1 in the shell: the part-less 1P+N breaker -101F2's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
@@ -148,7 +148,7 @@ fn a_breaker_offers_the_same_function_first() {
     );
     let r = results(&s);
     assert_eq!(r[..2], ["EW-GEN-MCB-2", "EW-GEN-MCB-1"], "{r:?}");
-    assert!(result_of(&s, "EW-GEN-MCB-2").ends_with("project compatible same-fndef cursor"));
+    assert!(result_of(&s, "EW-GEN-MCB-2").ends_with("project compatible same-fndef"));
     assert!(result_of(&s, "EW-GEN-MCB-1").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-3").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-4").ends_with("compatible same-category"));
@@ -170,8 +170,10 @@ fn a_breaker_offers_the_same_function_first() {
         );
     }
     let version = starter_version("EW-GEN-MCB-2");
+    // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
+    assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
-        lines(&s, "detail "),
+        [format!("detail \"{}\"", s.part_offer_detail(0).unwrap_or_default())],
         [format!(
             "detail \"ElektraWatt starter parts (System) · version {version} · released · functions 1P+N MCB 1-2-N-N\""
         )]
@@ -197,8 +199,10 @@ fn a_breaker_offers_the_same_function_first() {
     );
     assert_eq!(results(&s), ["EW-GEN-TRM-1", "EW-GEN-TRM-2"]);
     let version = starter_version("EW-GEN-TRM-1");
+    // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
+    assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
-        lines(&s, "detail "),
+        [format!("detail \"{}\"", s.part_offer_detail(0).unwrap_or_default())],
         [format!(
             "detail \"ElektraWatt starter parts (System) · version {version} · released · functions Feed-through \
              terminal 1-2\""

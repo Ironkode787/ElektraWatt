@@ -50,6 +50,10 @@ change here.
   titles, headers and cells in the project's language; the CSV and XLSX stay English (doc 09 §3.8, FT-1955)
 - behaviour-change: `ew route` names on stderr a file of the project that `manifest.json` does not list, and refuses a
   crashed session's unsaved journal and an older format as the other writers do (FT-1930)
+- behaviour-change: the part dialog finds a part by what it is for as well as by its words: its category and its
+  main function, read in English and Dutch ("sensor" finds the position and pressure switches, "normally open
+  contact" ranks the parts whose main function is one before the contactor), and it chooses no row until the person
+  does, so Enter no longer takes a first row nobody looked at (doc 07 §4.3, FT-1845)
 - behaviour-change: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
   of `ew export dxf` into a folder as a job; a folder that holds other files is refused and left as it was (doc 09
   §4.9, FT-1960)

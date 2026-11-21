@@ -156,7 +156,7 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     assert!(has_line(d, "dialog \"Choose a part for -102F1\""), "{d}");
     assert!(
         d.contains(
-            "result 1 \"EW-GEN-MCB-1\" \"Generic\" \"Miniature circuit breaker, 1 pole\" project compatible same-fndef cursor"
+            "result 1 \"EW-GEN-MCB-1\" \"Generic\" \"Miniature circuit breaker, 1 pole\" project compatible same-fndef"
         ),
         "{d}"
     );

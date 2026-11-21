@@ -7,9 +7,11 @@
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");
 //!    when the filter names the function's FnDef ([`FnCompat::fndef`]), the parts whose function
 //!    template declares that FnDef come before the other compatible ones;
-//! 2. the rank tier: exact `pn_norm` (1), `pn_norm` prefix (2), trigram substring (3), full text (4); a query
-//!    without text lists every part in tier 0;
-//! 3. inside a tier: parts the project holds, then the caller's boost list (favourites, recently used);
+//! 2. the rank tier: exact `pn_norm` (1), `pn_norm` prefix (2), trigram substring (3), full text or what the part is
+//!    for (4); a query without text lists every part in tier 0;
+//! 3. inside a tier: the parts found by what they are for ([`PartQuery::purpose_categories`],
+//!    [`PartQuery::purpose_kinds`]) before the others, then parts the project holds, then the caller's boost list
+//!    (favourites, recently used);
 //! 4. the full-text score, `bm25` quantised to 10⁻⁶ ([`quantise`]) so that platforms that differ in the last bits of
 //!    a float order alike;
 //! 5. the natural order of the part number (`ew_natural`'s order), the manufacturer key, the library ID, the item ID.
@@ -61,6 +63,12 @@ pub struct PartQuery {
     pub held: Vec<(Uuid, Uuid)>,
     /// `(library, item)` of favourites and recently used parts: next inside a tier.
     pub boost: Vec<(Uuid, Uuid)>,
+    /// What the typed text names a part as being for: first category levels (`SensingPosition`). A part whose own
+    /// category, or whose main function's FnDef category, starts with one is found in tier 4 and leads it.
+    pub purpose_categories: Vec<String>,
+    /// What the typed text names a part as being for: contact kinds (`no` for "normally open contact"). A part whose
+    /// main function's FnDef has one is found in tier 4 and leads it.
+    pub purpose_kinds: Vec<ContactKind>,
     /// At most this many hits; 0 for all.
     pub limit: u32,
 }
@@ -91,8 +99,10 @@ pub struct PartHit {
     /// Whether the part's function template declares [`FnCompat::fndef`] (the same library and item at any version);
     /// `None` without a filter or without `fndef`.
     pub same_fndef: Option<bool>,
-    /// 0 (no text), 1 exact part number, 2 prefix, 3 trigram, 4 full text.
+    /// 0 (no text), 1 exact part number, 2 prefix, 3 trigram, 4 full text or what it is for.
     pub rank_tier: u8,
+    /// Whether the part was found by what it is for ([`PartQuery::purpose_categories`], [`PartQuery::purpose_kinds`]).
+    pub purpose: bool,
 }
 
 /// A search over symbols, FnDefs, macros, manufacturers and forms.
@@ -168,11 +178,13 @@ pub(crate) fn natural_key(s: &str) -> Result<impl Ord + use<>, String> {
     }
 }
 
-/// The sort key of a hit after its rank: held, boost, score, natural part number, manufacturer key, library, item.
+/// The sort key of a hit after its rank: found by what it is for, held, boost, score, natural part number, manufacturer key, library, item.
 pub(crate) struct OrderKey {
     /// 0 the same FnDef (D17), 1 compatible or no filter, 2 incompatible.
     pub fit: u8,
     pub rank_tier: u8,
+    /// Found by what it is for: first inside its tier.
+    pub purpose: bool,
     pub not_held: bool,
     pub not_boosted: bool,
     pub score: i64,
@@ -192,6 +204,7 @@ pub(crate) fn sort_by_order<T>(items: Vec<(OrderKey, T)>) -> Vec<T> {
         a.fit
             .cmp(&b.fit)
             .then(a.rank_tier.cmp(&b.rank_tier))
+            .then(b.purpose.cmp(&a.purpose))
             .then(a.not_held.cmp(&b.not_held))
             .then(a.not_boosted.cmp(&b.not_boosted))
             .then(b.score.cmp(&a.score))
@@ -238,6 +251,7 @@ mod tests {
             OrderKey {
                 fit: 1,
                 rank_tier: 4,
+                purpose: false,
                 not_held: true,
                 not_boosted: true,
                 score: quantise(score),
@@ -288,6 +302,18 @@ mod tests {
         let mut exact = key("ZZ", 0.0, 4);
         exact.0.rank_tier = 1;
         assert_eq!(sort_by_order(vec![plain, boosted, held, exact]), [4, 1, 2, 3]);
+    }
+
+    /// FT-1845: inside a tier a part found by what it is for comes before one found by its words only, held or not.
+    #[test]
+    fn a_part_found_by_what_it_is_for_leads_its_tier() {
+        let mut held = key("A1", -9.0, 1);
+        held.0.not_held = false;
+        let mut purpose = key("Z9", 0.0, 2);
+        purpose.0.purpose = true;
+        let mut exact = key("ZZ", 0.0, 3);
+        exact.0.rank_tier = 1;
+        assert_eq!(sort_by_order(vec![held, purpose, exact]), [3, 2, 1]);
     }
 
     #[test]
