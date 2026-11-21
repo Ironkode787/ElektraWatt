@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The check engine through the session (doc 15 §3): the `pre-delivery` scheme on Golden A, memoised
-//! against cold and under the oracle, and the shipped prevent rules as the commit validator (D-12, and the
-//! leniency towards duplicates a model already holds, FR-CHK-011).
+//! The check engine through the session (doc 15 §3): the `pre-delivery` scheme on the sample, memoised against cold
+//! and under the oracle, the shipped prevent rules as the commit validator (D-12, and the leniency towards duplicates
+//! a model already holds, FR-CHK-011), and the quick fixes and rules of the packs on defects the set-ups make.
 //!
-//! The Golden A expectations are the rules the MVP engine implements so far; the full target is doc 20
-//! §18.1 (42 errors, 32 warnings, 31 infos, 1 waived). `golden_a_pre_delivery_summary` prints the per-rule
-//! counts for the comparison.
+//! The sample is clean under the pre-delivery checks (two infos of EW-NUM-001 on the enclosure's frozen tags), so a
+//! rule's findings are made by an edit of a copy of its records; the messages of the rules are pinned whole in
+//! `ew-checks` (`tests/it/pot_pack.rs`, `messages.rs`).
 
-use crate::golden_common;
+use crate::common;
 
 use std::collections::BTreeMap;
 
@@ -25,53 +25,66 @@ fn counts(report: &checks::CheckReport) -> BTreeMap<&'static str, usize> {
     out
 }
 
-#[test]
-fn golden_a_pre_delivery_summary() {
-    let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
-    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let by_rule = counts(&report);
-    println!(
-        "pre-delivery on Golden A: {:?}; rules evaluated: {:?}",
-        report.counts,
-        report.rules.iter().map(|r| r.id).collect::<Vec<_>>()
-    );
-    for f in &report.findings {
-        println!(
-            "  {} {} {} {}: {}",
-            f.severity, f.rule, f.code, f.subject, f.message
-        );
-    }
-    // doc 20 §18.1: "every other rule of the MVP packs reports nothing on Golden A", in particular
-    // FR-CHK-016 (designations) and FR-CHK-017 (22 pairs, 4 external points).
-    for zero in [
-        "EW-TERM-001",
-        "EW-TERM-002",
-        "EW-RDS-004",
-        "EW-CORE-051",
-        "EW-POT-001",
-    ] {
-        assert_eq!(by_rule.get(zero), None, "{zero}: {:#?}", report.findings);
-    }
-    // EF-08: -3W1 has no length.
-    assert_eq!(by_rule.get("EW-CORE-033"), Some(&1), "{:#?}", report.findings);
-    assert!(
-        report
-            .findings
-            .iter()
-            .any(|f| f.rule == "EW-CORE-033" && f.subject.ends_with("-3W1"))
-    );
-    assert_eq!(report.exit_code(), i32::from(report.counts.errors > 0));
+/// The sample's records edited by `edit`, as a session with `memo`.
+fn sample_with(memo: MemoMode, edit: impl FnOnce(&mut Vec<Record>)) -> Session {
+    let (project, mut records, lib) = common::sample_records();
+    edit(&mut records);
+    Session::from_records(
+        project,
+        records,
+        lib,
+        SessionOptions {
+            memo,
+            ..SessionOptions::default()
+        },
+    )
+    .expect("the edited sample is a valid model")
 }
 
-/// The memoised check equals the cold one (two independent halves of one claim, split so that nextest runs
-/// them in parallel; the oracle half is `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`). The
-/// rules run over the memo store and over a cold query; the layout rules' findings, which the session joins from the
-/// pages it draws, are left out of both.
+/// The device tagged `tag`, as its ID text.
+fn id_of(tag: &str) -> String {
+    common::sample()
+        .resolve_reference(&format!("tag:{tag}"))
+        .unwrap_or_else(|e| panic!("{tag}: {e:?}"))
+        .to_string()
+}
+
+/// The ID of the sample's wire numbered `number`.
+fn wire(number: &str) -> String {
+    common::sample()
+        .navigator_table(ew_api::output::NavKind::Connections)
+        .nodes
+        .iter()
+        .find(|n| n.table_row && n.label == number)
+        .map(|n| n.records[0].to_string())
+        .unwrap_or_else(|| panic!("no wire {number}"))
+}
+
+/// The sample under pre-delivery in release mode: no error and no warning, the two infos of EW-NUM-001 on the
+/// enclosure's frozen tags, and in particular nothing of FR-CHK-016 (designations) and FR-CHK-017 (interruption
+/// points).
 #[test]
-fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
-    let batch = golden_common::batch();
-    let memo = golden_common::session(&batch);
+fn the_sample_is_clean_under_pre_delivery() {
+    let s = common::sample();
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let by_rule = counts(&report);
+    assert_eq!(
+        by_rule,
+        [("EW-NUM-001", 2)].into_iter().collect(),
+        "{:#?}",
+        report.findings
+    );
+    assert_eq!((report.counts.errors, report.counts.warnings), (0, 0));
+    assert_eq!(report.exit_code(), 0);
+}
+
+/// The memoised check equals the cold one (two independent halves of one claim, split so that nextest runs them in
+/// parallel; the oracle half is `the_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`). The rules run over
+/// the memo store and over a cold query; the layout rules' findings, which the session joins from the pages it draws,
+/// are left out of both.
+#[test]
+fn the_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
+    let memo = common::sample();
     let first = checks::run(&memo.query(), &PRE_DELIVERY, CheckMode::Release);
     let again = checks::run(&memo.query(), &PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
@@ -86,28 +99,26 @@ fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
     assert_eq!(first, cold, "memoised and cold runs agree");
 }
 
-/// The oracle is quiet over the full online check and the pre-delivery check of Golden A, re-running one memoised
-/// read in 16 cold per gate (a fixed, deterministic sample). The value equality of the whole report
-/// is the `_memo` half's; every read runs through the oracle in the deep nightly
-/// (`nightly_golden_a_check_oracle_is_quiet_on_every_read`).
+/// The oracle is quiet over the full online check and the pre-delivery check of the sample, re-running one memoised
+/// read in 16 cold per gate (a fixed, deterministic sample). The value equality of the whole report is the `_memo`
+/// half's; every read runs through the oracle in the deep nightly (`nightly_the_check_oracle_is_quiet_on_every_read`).
 #[test]
-fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
+fn the_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
     check_oracle_is_quiet(ew_derive::Oracle::OneIn(
         std::num::NonZeroU32::new(16).expect("n is not zero"),
     ));
 }
 
-/// The deep nightly's twin of `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`: every memoised
-/// read of both checks re-run cold.
+/// The deep nightly's twin of `the_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`: every memoised read
+/// of both checks re-run cold.
 #[test]
 #[ignore = "deep run: the check oracle on every read"]
-fn nightly_golden_a_check_oracle_is_quiet_on_every_read() {
+fn nightly_the_check_oracle_is_quiet_on_every_read() {
     check_oracle_is_quiet(ew_derive::Oracle::Every);
 }
 
 fn check_oracle_is_quiet(sample: ew_derive::Oracle) {
-    let batch = golden_common::batch();
-    let oracle = golden_common::session_oracle(&batch);
+    let oracle = sample_with(MemoMode::Oracle, |_| {});
     let _ = oracle.take_oracle_mismatches();
     let store = oracle.memo().expect("memoising session");
     store.set_oracle(sample);
@@ -121,17 +132,11 @@ fn check_oracle_is_quiet(sample: ew_derive::Oracle) {
     );
 }
 
-/// The golden batch with -X1031:4 renamed to "3", so the strip holds a duplicate before any edit (as a
-/// lenient import would commit it).
-fn session_with_duplicate(
-    batch: &ew_import_tables::ew_interop_api::ImportBatch,
-) -> (Session, String, String) {
-    let ids = golden_common::ids_by_key(batch);
-    let (t3, t4) = (
-        ids["terminals|-X1031:3"].clone(),
-        ids["terminals|-X1031:4"].clone(),
-    );
-    let s = golden_common::session_with(batch, |_, records| {
+/// The sample with -X1021:4 renamed to "3", so the strip holds a duplicate before any edit (as a lenient import would
+/// commit it).
+fn session_with_duplicate() -> (Session, String) {
+    let (t3, t4) = (id_of("-X1021:3"), id_of("-X1021:4"));
+    let s = sample_with(MemoMode::On, |records| {
         for r in records.iter_mut() {
             if let Record::Device(d) = r
                 && d.id.to_string() == t4
@@ -141,13 +146,12 @@ fn session_with_duplicate(
             }
         }
     });
-    (s, t3, t4)
+    (s, t3)
 }
 
 #[test]
 fn an_existing_duplicate_is_reported_but_does_not_block_other_edits() {
-    let batch = golden_common::batch();
-    let (mut s, t3, _) = session_with_duplicate(&batch);
+    let (mut s, t3) = session_with_duplicate();
     let report = s.check(&checks::MIGRATION, CheckMode::Release);
     assert_eq!(
         counts(&report).get("EW-TERM-002"),
@@ -165,7 +169,7 @@ fn an_existing_duplicate_is_reported_but_does_not_block_other_edits() {
     // Resolving it with terminal.designate commits too, and the finding goes.
     let cmd = AnyCommand {
         name: "terminal.designate".into(),
-        params: serde_json::json!({"assignments": [{"terminal": t3, "designation": "21"}]}),
+        params: serde_json::json!({"assignments": [{"terminal": t3, "designation": "9"}]}),
     };
     s.execute(&cmd).expect("the re-designation commits");
     let report = s.check(&checks::MIGRATION, CheckMode::Release);
@@ -174,12 +178,10 @@ fn an_existing_duplicate_is_reported_but_does_not_block_other_edits() {
 
 #[test]
 fn a_new_duplicate_is_prevented_with_the_rule_and_a_remedy() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
+    let mut s = common::sample();
     let cmd = AnyCommand {
         name: "terminal.designate".into(),
-        params: serde_json::json!({"assignments": [{"terminal": ids["terminals|-X1031:3"], "designation": "4"}]}),
+        params: serde_json::json!({"assignments": [{"terminal": id_of("-X1021:3"), "designation": "4"}]}),
     };
     let rev = s.world().rev;
     match s.execute(&cmd) {
@@ -209,25 +211,16 @@ fn a_session_with_its_own_hook_does_not_install_the_shipped_rules() {
             Ok(())
         }
     }
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
+    let (project, records, lib) = common::sample_records();
     let options = SessionOptions {
         prevent: Some(Box::new(AcceptAll)),
         memo: MemoMode::Off,
         ..SessionOptions::default()
     };
-    let mut s = Session::from_records(project.unwrap(), records, batch.lib.clone(), options).unwrap();
+    let mut s = Session::from_records(project, records, lib, options).unwrap();
     let cmd = AnyCommand {
         name: "terminal.designate".into(),
-        params: serde_json::json!({"assignments": [{"terminal": ids["terminals|-X1031:3"], "designation": "4"}]}),
+        params: serde_json::json!({"assignments": [{"terminal": id_of("-X1021:3"), "designation": "4"}]}),
     };
     s.execute(&cmd).expect("the custom hook accepts");
 }
@@ -253,15 +246,21 @@ fn potential_names(s: &Session) -> Vec<String> {
     names
 }
 
-/// Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
-/// reports EW-POT-001 with the fix "Declare 0 V–PE bond (PELV)" on W27, the wire on the PE side; running the fix's
-/// command as `messages.fix` does leaves 0V and PE two potentials, no EW-POT-001 and EW-POT-002 satisfied by the one
-/// bond; undo brings the finding back.
+/// The sample without its bond B1 (D-22: the wire 101.5 from -X1011:PE to the 0 V terminal is then a plain wire, 0 V
+/// and PE merge) reports EW-POT-001 with the fix "Declare 0 V–PE bond (PELV)" on the wire the bond named; running the
+/// fix's command as `messages.fix` does leaves 0V and PE two potentials, no EW-POT-001 and EW-POT-002 satisfied by
+/// the one bond; undo brings the finding back.
 #[test]
-fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session_with(&batch, |_, records| {
+fn the_0v_pe_bond_fix_declares_the_bond_on_its_wire_and_undo_restores_the_finding() {
+    let (_, records, _) = common::sample_records();
+    let via = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Bond(b) => serde_json::to_value(b).ok().map(|v| v["via"].clone()),
+            _ => None,
+        })
+        .expect("the sample's bond B1");
+    let mut s = sample_with(MemoMode::On, |records| {
         records.retain(|r| !matches!(r, Record::Bond(_)));
     });
     let names = potential_names(&s);
@@ -279,12 +278,7 @@ fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
     assert_eq!(fix.label, "Declare 0 V–PE bond (PELV)");
     assert_eq!(fix.command, "bond.create");
     assert_eq!(fix.params["kind"], "pelv_0v_pe");
-    assert_eq!(
-        fix.params["via"],
-        ids["connections|W27"].as_str(),
-        "{}",
-        fix.params
-    );
+    assert_eq!(fix.params["via"], via, "{}", fix.params);
 
     // The command path of `messages.fix`: the finding's command with its parameters.
     let cmd = AnyCommand {
@@ -313,12 +307,14 @@ fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
 }
 
 /// EW-POT-009's message says "connect it or mark it unused", and its quick fix does the second (the persona round of
-/// M3: nobody found where). On Golden A the fix of -102F2:13 marks that pin unused with one `fields.set`; the finding
-/// is then an info without a fix, and :14 keeps its warning.
+/// M3: nobody found where). The sample without the lamp -102E1's 0 V wire (102.9) has that pin unconnected; the fix
+/// marks it unused with one `fields.set`; the finding is then an info without a fix.
 #[test]
 fn the_unconnected_pins_fix_marks_it_unused() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session_with(&batch, |_, _| {});
+    let lamp_wire = wire("102.9");
+    let mut s = sample_with(MemoMode::On, |records| {
+        records.retain(|r| !matches!(r, Record::Connection(c) if c.id.to_string() == lamp_wire));
+    });
     let open = |s: &Session| -> Vec<checks::Finding> {
         s.check(&PRE_DELIVERY, CheckMode::Release)
             .findings
@@ -328,8 +324,12 @@ fn the_unconnected_pins_fix_marks_it_unused() {
     };
     let before = open(&s);
     let warnings = |fs: &[checks::Finding]| fs.iter().filter(|f| f.fix.is_some()).count();
-    assert_eq!(warnings(&before), 2, "{before:#?}");
-    let fix = before[0].fix.clone().expect("a fix");
+    let n = warnings(&before);
+    assert!(n >= 1, "{before:#?}");
+    let fix = before
+        .iter()
+        .find_map(|f| f.fix.clone())
+        .expect("a fix");
     assert_eq!(
         (fix.label.as_str(), fix.command.as_str()),
         ("Mark not used", "fields.set")
@@ -341,11 +341,11 @@ fn the_unconnected_pins_fix_marks_it_unused() {
     .expect("the fix commits");
     let after = open(&s);
     assert_eq!(after.len(), before.len(), "the finding stays, as an info");
-    assert_eq!(warnings(&after), 1, "{after:#?}");
+    assert_eq!(warnings(&after), n - 1, "{after:#?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The EW-POT pack on Golden A (doc 20 §18.1; P2-2).
+// The EW-POT pack on the sample.
 
 /// The open findings of `rule` in a run, as `(severity, subject)` sorted.
 fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
@@ -359,150 +359,83 @@ fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
     out
 }
 
-/// The expected open findings of `rule` on Golden A (doc 20 §18.1's rows), as `(severity, subject)` sorted.
-fn expected(ef: &[(&str, &str)]) -> Vec<(String, String)> {
-    let mut out: Vec<(String, String)> = ef
+/// The ID of the sample's one wire with a cross-section override: the shield of -103W1 on 103 (2.5 mm²).
+fn shield() -> String {
+    common::sample()
+        .query()
+        .connections()
         .iter()
-        .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
-        .collect();
-    out.sort();
-    out
+        .find(|(_, c)| c.overrides.csa.is_some())
+        .map(|(id, _)| id.to_string())
+        .expect("the shield wire")
 }
 
-/// P2-2 / doc 20 §18.1: the EW-POT pack of the pre-delivery scheme reports on Golden A exactly the rows of EF-01
-/// (EW-POT-013: T55, S56), EF-06 (EW-POT-006: W6, numbered 101.8), EF-09 (EW-POT-009: -102F2:13, :14), EF-10
-/// (EW-POT-003: -201U1:3, -202U1:3) and EF-11 (EW-POT-005: the BU cores W36 and W41 of -106W1 and -106W2), and nothing for EW-POT-001, -002, -004, -008, -014, -015 and -017; the online-only rules
-/// EW-POT-011, -012 and -016 report nothing in the drafting scheme.
+/// The EW-POT pack of the pre-delivery scheme reports nothing on the sample, the online-only rules nothing in the
+/// drafting scheme; D-38: the shield wire without its 2.5 mm² override is an undersized PE wire (EW-POT-006, its
+/// target that wire), with it the finding is gone.
 #[test]
-fn golden_a_ew_pot_pack_reports_the_ef_rows() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let s = golden_common::session(&batch);
+fn the_ew_pot_pack_is_quiet_and_an_undersized_pe_wire_is_pot006() {
+    let s = common::sample();
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let first = |rule: &str, subject: &str| -> checks::Finding {
-        report
-            .findings
-            .iter()
-            .find(|f| f.rule == rule && f.subject == subject)
-            .cloned()
-            .unwrap_or_else(|| panic!("{rule} on {subject}: {:#?}", report.findings))
-    };
-    assert_eq!(
-        subjects(&report, "EW-POT-013"),
-        expected(&[("error", "T55"), ("error", "S56")]),
-        "EF-01"
-    );
-    assert_eq!(
-        first("EW-POT-013", "T55").message,
-        "T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55): what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device that opens phase and neutral together, such as a two-pole breaker."
-    );
-    assert_eq!(
-        first("EW-POT-013", "S56").message,
-        "S56 opens the neutral N-55 → N-55S without the phase (load E56 stays connected to L-55): what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device that opens phase and neutral together, such as a two-pole breaker."
-    );
-    assert_eq!(
-        subjects(&report, "EW-POT-006"),
-        expected(&[("error", "101.8")]),
-        "EF-06"
-    );
-    let w6 = first("EW-POT-006", "101.8");
-    assert_eq!(
-        w6.message,
-        "PE wire 101.8 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at 1X1 (the sizing \
-         table is not verified against the standard). Make it at least 2.5 mm² in its Properties."
-    );
-    assert_eq!(
-        w6.targets[0].id.to_string(),
-        ids["connections|W6"],
-        "the finding is W6"
-    );
-    assert_eq!(
-        subjects(&report, "EW-POT-009"),
-        expected(&[("warning", "-102F2:13"), ("warning", "-102F2:14")]),
-        "EF-09"
-    );
-    assert_eq!(
-        subjects(&report, "EW-POT-003"),
-        expected(&[]),
-        "EF-10 is superseded by EF-22"
-    );
-    assert_eq!(
-        subjects(&report, "EW-PLC-013"),
-        expected(&[("warning", "-201U1:3"), ("warning", "-202U1:3")]),
-        "EF-22, on the pins EF-10 named"
-    );
-    assert_eq!(
-        subjects(&report, "EW-POT-005"),
-        expected(&[("warning", "-106W1/BU"), ("warning", "-106W2/BU")]),
-        "EF-11"
-    );
-    let cores: std::collections::BTreeSet<String> = report
-        .findings
-        .iter()
-        .filter(|f| f.rule == "EW-POT-005")
-        .map(|f| f.targets[0].id.to_string())
-        .collect();
-    assert_eq!(
-        cores,
-        [ids["connections|W36"].clone(), ids["connections|W41"].clone()]
-            .into_iter()
-            .collect(),
-        "EF-11 is W36 and W41"
-    );
-    for zero in [
+    for rule in [
         "EW-POT-001",
         "EW-POT-002",
+        "EW-POT-003",
         "EW-POT-004",
+        "EW-POT-005",
+        "EW-POT-006",
         "EW-POT-008",
+        "EW-POT-009",
+        "EW-POT-013",
         "EW-POT-014",
         "EW-POT-015",
         "EW-POT-017",
         "EW-POT-021",
     ] {
-        assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
+        assert!(
+            report.rules.iter().any(|r| r.id == rule),
+            "{rule} ran in the pre-delivery scheme"
+        );
+        assert_eq!(subjects(&report, rule), Vec::<(String, String)>::new(), "{rule}");
     }
     let online = s.check(&checks::DRAFTING, CheckMode::Online);
     for zero in ["EW-POT-011", "EW-POT-012", "EW-POT-016"] {
         assert_eq!(subjects(&online, zero), Vec::<(String, String)>::new(), "{zero}");
     }
-}
-
-/// D-38 (P2-2): W6 at 2.5 mm² clears EW-POT-006.
-#[test]
-fn golden_a_d38_a_2_5_mm2_pe_clears_pot006() {
-    let batch = golden_common::batch();
-    let w6 = golden_common::ids_by_key(&batch)["connections|W6"].clone();
-    let s = golden_common::session_with(&batch, |_, records| {
+    let shield = shield();
+    let bare = sample_with(MemoMode::On, |records| {
         for r in records.iter_mut() {
             if let Record::Connection(c) = r
-                && c.id.to_string() == w6
+                && c.id.to_string() == shield
             {
-                c.overrides.csa = Some(ew_schema::Csa::Mm2("2.5".parse().expect("a decimal")));
+                c.overrides.csa = None;
             }
         }
     });
-    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert_eq!(subjects(&report, "EW-POT-006"), Vec::<(String, String)>::new());
+    let report = bare.check(&PRE_DELIVERY, CheckMode::Release);
+    let found: Vec<&checks::Finding> = report.findings.iter().filter(|f| f.rule == "EW-POT-006").collect();
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert_eq!(found[0].severity, checks::Severity::Error);
+    assert_eq!(found[0].targets[0].id.to_string(), shield, "the finding is the shield wire");
 }
 
-/// D-21, MVP part (P2-2): clearing `rail_bonded` on the -X1032 terminals cuts their PE off the location's rail, so
-/// +J-E-2416 holds a PE potential that reaches neither the incoming PE nor an earth symbol: one EW-POT-008 warning
-/// naming it by a pin and its page.
+/// D-21, MVP part: the sample with the PE wire of its power supply -101G1 (the star's branch from -X1011:PE, which the
+/// connections navigator numbers 101.6) deleted holds a PE potential that reaches neither the incoming PE nor an earth
+/// symbol: one EW-POT-008 warning naming it by its pin and its page.
 #[test]
-fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let strip = ids["devices|-X1032"].clone();
-    let s = golden_common::session_with(&batch, |_, records| {
-        for r in records.iter_mut() {
-            if let Record::Device(d) = r
-                && let Some(t) = d.aspects.terminal.as_mut()
-                && t.strip.to_string() == strip
-            {
-                t.rail_bonded = false;
-            }
-        }
-    });
+fn a_pe_branch_deleted_leaves_one_pe_island() {
+    let pe_wire = wire("101.6");
+    let mut s = common::sample();
+    // The wire goes by the delete command, which keeps its junction's sequence whole.
+    let cmd = AnyCommand {
+        name: "edit.delete".into(),
+        params: serde_json::json!({"targets": [{"kind": "connection", "id": pe_wire}]}),
+    };
+    match s.execute(&cmd) {
+        Err(CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
+        other => other,
+    }
+    .expect("the PE wire is deleted");
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     let islands: Vec<&checks::Finding> = report
         .findings
@@ -512,106 +445,44 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
     assert_eq!(islands.len(), 1, "{islands:#?}");
     assert_eq!(
         islands[0].message,
-        "The protective earth at -102G1:PE on page 102 reaches neither the incoming PE nor an earth symbol of \
-         +J-E-2416. Connect it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
+        "The protective earth at -101G1:PE on page 101 reaches neither the incoming PE nor an earth symbol of +CAB. \
+         Connect it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
     );
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Cables, parts and devices on Golden A (doc 20 §18.1; P3-2, P3-3).
+// Cables, parts, devices, pages and texts on the sample.
 
-/// P3-3 / doc 20 §18.1: the EW-CORE rules of part 3 report on Golden A the rows of EF-07 (EW-CORE-034: +J-E-206 → 1X1,
-/// D-19), EF-17 (EW-CORE-043: the four TBD parts, errors in release mode, D-04) and EF-04 (EW-CORE-041: S56, E56), and
-/// nothing for EW-CORE-008, -031, -032, -036, -042, -044, -045 and -048; the online-only EW-CORE-037 reports nothing
-/// in the drafting scheme.
-///
-/// EW-CORE-041 also reports a known deviation from EF-04 until its package lands: the process valves -203Q1 to -203Q8
-/// (supplied by others, exempt once `supply_scope` exists, FT-209). -XPE (EF-19) is an earth connection and asked no
-/// part.
+/// The EW-CORE rules of cables, parts and devices (EW-CORE-008, -031 … -048) and of pages, texts, designations and
+/// terminals report nothing on the sample in the pre-delivery scheme, the rule system itself (EW-CORE-083, -084) is
+/// quiet, and online in the drafting scheme EW-CORE-037, -063, -071, EW-RDS-002 (the sample's location codes have no
+/// separator) and EW-TERM-003 report nothing.
 #[test]
-fn golden_a_ew_core_part3_reports_the_ef_rows() {
-    let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
+fn the_core_rds_and_term_rules_are_quiet_on_the_sample() {
+    let s = common::sample();
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert_eq!(
-        subjects(&report, "EW-CORE-034"),
-        expected(&[("warning", "+J-E-206 → 1X1")])
-    );
-    let ef07 = report
-        .findings
-        .iter()
-        .find(|f| f.rule == "EW-CORE-034")
-        .expect("EF-07");
-    assert!(
-        ef07.message
-            .starts_with("the external connection +J-E-206 → 1X1 has no cable: wires "),
-        "{}",
-        ef07.message
-    );
-    assert_eq!(
-        subjects(&report, "EW-CORE-043"),
-        expected(&[
-            ("error", "TBD DIN rail TS 35"),
-            ("error", "TBD End bracket"),
-            ("error", "TBD Plug-in bridge"),
-            ("error", "TBD Wiring duct 40×60"),
-        ])
-    );
-    let mut ef04: Vec<(&str, String)> = ["S56", "E56"]
-        .iter()
-        .map(|t| ("warning", format!("=P01+J-E-2416-{t}")))
-        .collect();
-    ef04.extend((1..=8).map(|n| ("warning", format!("=P01+FIELD-203Q{n}"))));
-    let ef04: Vec<(&str, &str)> = ef04.iter().map(|(a, b)| (*a, b.as_str())).collect();
-    assert_eq!(subjects(&report, "EW-CORE-041"), expected(&ef04));
-    for zero in [
-        "EW-CORE-008",
-        "EW-CORE-031",
-        "EW-CORE-032",
-        "EW-CORE-036",
-        "EW-CORE-042",
-        "EW-CORE-044",
-        "EW-CORE-045",
-        "EW-CORE-048",
-    ] {
-        assert!(
-            report.rules.iter().any(|r| r.id == zero),
-            "{zero} ran in the pre-delivery scheme"
-        );
-        assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
-    }
-    let online = s.check(&checks::DRAFTING, CheckMode::Online);
-    assert_eq!(subjects(&online, "EW-CORE-037"), Vec::<(String, String)>::new());
-}
-
-/// On Golden A (doc 20 §18.1): EF-12 is EW-CORE-061 twice (the styles `cp.small` and `marker`,
-/// D-31), EF-18 is EW-RDS-003 once (T55, a temperature switch with the letter T); every other rule of pages, texts,
-/// designations and terminals reports nothing in the pre-delivery scheme, and the rule system itself (EW-CORE-083,
-/// -084) is quiet. Online in the drafting scheme EW-RDS-002 reports the two location codes with a separator
-/// (J-E-206, J-E-2416), and EW-CORE-063, -071 and EW-TERM-003 report nothing.
-#[test]
-fn golden_a_part4_reports_the_ef_rows() {
-    let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
-    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert_eq!(
-        subjects(&report, "EW-CORE-061"),
-        expected(&[("warning", "Connection point"), ("warning", "Wire marker")])
-    );
-    assert_eq!(
-        subjects(&report, "EW-RDS-003"),
-        expected(&[("warning", "=P01+J-E-2416-T55")])
-    );
     for zero in [
         "EW-CORE-008",
         "EW-CORE-021",
         "EW-CORE-022",
         "EW-CORE-025",
         "EW-CORE-026",
+        "EW-CORE-031",
+        "EW-CORE-032",
+        "EW-CORE-034",
+        "EW-CORE-036",
+        "EW-CORE-041",
+        "EW-CORE-042",
+        "EW-CORE-043",
+        "EW-CORE-044",
+        "EW-CORE-045",
+        "EW-CORE-048",
+        "EW-CORE-061",
         "EW-CORE-083",
         "EW-CORE-084",
         "EW-NUM-002",
         "EW-RDS-001",
+        "EW-RDS-003",
         "EW-RDS-007",
         "EW-RDS-009",
         "EW-RDS-010",
@@ -624,18 +495,13 @@ fn golden_a_part4_reports_the_ef_rows() {
         assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
     }
     let online = s.check(&checks::DRAFTING, CheckMode::Online);
-    for f in online
-        .findings
-        .iter()
-        .filter(|f| ["EW-RDS-002", "EW-CORE-063", "EW-CORE-071", "EW-TERM-003"].contains(&f.rule))
-    {
-        println!("  {} {} {}: {}", f.severity, f.rule, f.subject, f.message);
-    }
-    assert_eq!(
-        subjects(&online, "EW-RDS-002"),
-        expected(&[("info", "+J-E-206"), ("info", "+J-E-2416")])
-    );
-    for zero in ["EW-CORE-063", "EW-CORE-071", "EW-TERM-003"] {
+    for zero in [
+        "EW-CORE-037",
+        "EW-CORE-063",
+        "EW-CORE-071",
+        "EW-RDS-002",
+        "EW-TERM-003",
+    ] {
         assert_eq!(subjects(&online, zero), Vec::<(String, String)>::new(), "{zero}");
     }
 }
@@ -643,10 +509,9 @@ fn golden_a_part4_reports_the_ef_rows() {
 /// D-15 (P3-2, PA-4): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
 /// mode and supersedes EW-CORE-044's finding for the same value, so it prints once.
 #[test]
-fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
-    let batch = golden_common::batch();
+fn a_tbd_channel_address_is_an_open_item() {
     let mut done = false;
-    let s = golden_common::session_with(&batch, |_, records| {
+    let s = sample_with(MemoMode::On, |records| {
         for r in records.iter_mut() {
             if let Record::Channel(c) = r
                 && !done
