@@ -353,7 +353,7 @@ pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {
 
 /// [`icon_button`] that may be disabled (`color.text.disabled`, no hover) and may be a toggle: `Some(on)` draws the
 /// Selected state while on (`color.accent.subtle` fill, the icon in `color.accent`; doc 16a §6.1) and gives the node
-/// its selected state, as the navigators' Table toggle (§6.21).
+/// its selected state, as the navigators' Table toggle (doc 16a §6.21).
 pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on: Option<bool>) -> Response {
     icon_toggle_tip(ui, id, name, name, enabled, on)
 }

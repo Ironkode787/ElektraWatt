@@ -267,8 +267,8 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
                                 .font(theme::font(&t.type_small))
                                 .color(t.text_tertiary.color32()),
                         );
-                        // The selected template's actions stand in its own row, so they read as its (a persona run
-                        // could not tell which template the buttons under the list acted on).
+                        // The selected template's actions stand in its own row, so they read as its (not as
+                        // buttons under the list that do not say which template they act on).
                         if selected && !row_actions.is_empty() {
                             ui.add_space(t.space_1);
                             buttons(ui, &t, &row_actions, events);
@@ -276,7 +276,7 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
                     })
                     .response;
                 // Only another row takes a click: over the selected one a click would land on the frame, not on its
-                // name field or its buttons (the persona run's Save name did nothing).
+                // name field or its buttons.
                 let response = if selected {
                     response
                 } else {

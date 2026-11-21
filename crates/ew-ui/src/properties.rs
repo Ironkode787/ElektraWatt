@@ -412,7 +412,7 @@ impl PropertiesPane {
         }
     }
 
-    /// The grid's keys while it has the focus and no field is edited (§6.9).
+    /// The grid's keys while it has the focus and no field is edited.
     fn keys(&mut self, ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
         let row = shell.properties_row();
@@ -534,7 +534,7 @@ impl PropertiesPane {
         }
     }
 
-    /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
+    /// The header: title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
     /// subtitle and the location in `type.small`, secondary; one severity chip per finding at the right of the
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
     fn header(
@@ -689,7 +689,7 @@ impl PropertiesPane {
         }
     }
 
-    /// The inline preview card (§6.6; doc 16a §6.23): "Preview of `<command>`" with its revision and
+    /// The inline preview card (doc 16a §6.23): "Preview of `<command>`" with its revision and
     /// status badge, the summary as a polite live region, the first tag changes, Apply and Cancel.
     fn card(&self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let Some(card) = shell.properties().card() else {
@@ -832,7 +832,7 @@ impl PropertiesPane {
                 label.clone(),
             )
         });
-        // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (§4.15).
+        // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (doc 16a §4.15).
         let tertiary = if selected {
             t.text_secondary
         } else {
@@ -875,7 +875,7 @@ impl PropertiesPane {
         } else {
             Self::value_and_actions(&mut child, shell, &parts, events);
         }
-        // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
+        // Below the row: its error (doc 16a §6.1: the icon and the message in `color.error`, `type.small`), its choices, the
         // notes of the last commit, the popups.
         if let Some(e) = error {
             self.error_line(ui, shell, &parts, e, events);
@@ -995,7 +995,7 @@ impl PropertiesPane {
         group_id
     }
 
-    /// The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
+    /// The cursor row: the Selected state of a tree row (doc 16a §6.6), `color.accent.subtle` and the 2-px accent bar.
     fn paint_cursor(ui: &Ui, t: &crate::theme::Tokens, rect: egui::Rect) {
         ui.painter()
             .rect_filled(rect, crate::theme::SQUARE, t.accent_subtle.color32());
@@ -1080,7 +1080,7 @@ impl PropertiesPane {
         }
     }
 
-    /// A checkbox (§6.5): a click sets the other value; the chip at the cell's right end. Returns the cell.
+    /// A checkbox: a click sets the other value; the chip at the cell's right end. Returns the cell.
     fn bool_cell(
         child: &mut Ui,
         p: &RowParts<'_>,
@@ -1143,7 +1143,7 @@ impl PropertiesPane {
         // A wire's value its cable core gives takes a click, which says where it is changed.
         let cable = !header && !editable && shell.cable_row(&row.key).is_some();
         // A click on a read-only value moves the row cursor there (no focus stop of its own): what is typed next goes to
-        // that row and is refused with its reason, never into the row before (a persona run's text landed in the date
+        // that row and is refused with its reason, never into the row before (a text must not land in the date
         // row above).
         let (cell, response) = child.allocate_exact_size(
             Vec2::new(
@@ -1443,7 +1443,7 @@ impl PropertiesPane {
 
     /// The options of a choice editor (a combo for enums and colours, a filtered picker for parts and structure nodes)
     /// and the readings of an ambiguous number: a list box in a popup over the grid, Up and Down move the highlight,
-    /// Enter or a click chooses (§6.5, §6.9). The popup (doc 16a §6.22's look: `color.surface.raised`,
+    /// Enter or a click chooses. The popup (doc 16a §6.22's look: `color.surface.raised`,
     /// `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`, at most `size.chooser` rows before it
     /// scrolls) opens under the row when it fits above the status bar, else over it, and is clamped to the window's
     /// free area (no part of it under the status bar or outside the window): `choices_placement`.
@@ -1520,7 +1520,7 @@ impl PropertiesPane {
                                         ui.ctx().accesskit_node_builder(response.id, |n| {
                                             n.set_selected(selected)
                                         });
-                                        // The active row has the hover overlay (§6.22: as menus, never the accent).
+                                        // The active row has the hover overlay (doc 16a §6.22: as menus, never the accent).
                                         if selected || response.hovered() {
                                             ui.painter().rect_filled(
                                                 r,
@@ -1625,7 +1625,7 @@ impl PropertiesPane {
             _ => label.to_owned(),
         };
         // A fresh field holds the focus before it reads this frame's keys: a character typed in the frame the field
-        // opens (the one after the character that opened it) goes into it, not lost (a persona run's "24 V DC" became
+        // opens (the one after the character that opened it) goes into it, not lost ("24 V DC" must not become
         // "2 V DC").
         if fresh {
             ui.memory_mut(|m| m.request_focus(field_id));
@@ -1663,7 +1663,7 @@ impl PropertiesPane {
         );
         let name = label.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
-        // A bus port's address or termination says its form under the editor (the persona run m3-p4).
+        // A bus port's address or termination says its form under the editor.
         if let Some(hint) = shell.property_edit_hint() {
             crate::components::show_tip(ui.ctx(), egui::containers::Tooltip::for_widget(&response), &hint);
         }
@@ -1745,7 +1745,7 @@ impl PropertiesPane {
         }
     }
 
-    /// The multi-language popup (§6.5): a "Neutral" row and one row per project language, source first; Enter in a
+    /// The multi-language popup: a "Neutral" row and one row per project language, source first; Enter in a
     /// row sets that text.
     fn mltext_popup(&mut self, ui: &mut Ui, sheet: &PropertySheet, row: &PropRow, events: &mut Vec<Event>) {
         if self.mltext.is_empty() {
@@ -1826,8 +1826,7 @@ pub(crate) fn choices_placement(
 
 /// Whether `row` is a link the grid follows: a device link with a value.
 /// The project's sheet: its sections, each a link to Edit section… (its title and folio range), and New section…, so
-/// a running project's sections are changed where its properties are, not only in the template (a persona run found
-/// them only in the wizard).
+/// a running project's sections are changed where its properties are, not only in the template.
 fn project_sections(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: &mut Vec<Event>) {
     if sheet.read_only.is_some() || sheet.header.kinds.as_slice() != [("project".to_owned(), 1)] {
         return;

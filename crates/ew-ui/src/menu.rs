@@ -48,8 +48,8 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     item_in(ui, item, true, events);
 }
 
-/// [`item`] in a row's right-click menu: a greyed entry shows its reason on a line under it, not only on hover (rc.5:
-/// a panel's Place here said why only to a pointer that rested on it).
+/// [`item`] in a row's right-click menu: a greyed entry shows its reason on a line under it, not only on hover (a
+/// panel's Place here must not say why only to a pointer that rested on it).
 pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     item_in(ui, item, true, events);
     if let (false, Some(reason)) = (item.enabled, &item.reason) {

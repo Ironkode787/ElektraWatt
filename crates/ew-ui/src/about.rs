@@ -588,8 +588,8 @@ fn form_fields(
         crate::value_table::show(ui, table, events);
     }
     // The refusal under the fields keeps the room it took while the form is open: when it goes (the field is changed),
-    // the dialog keeps its height and no button moves under the pointer (the persona round of 0.2.0-rc.2: Apply
-    // jumped up and the click missed it).
+    // the dialog keeps its height and no button moves under the pointer (Apply
+    // would jump up and the click miss it).
     let room_id = egui::Id::unique(("form-error-room", form.action));
     if just_opened {
         ui.data_mut(|d| d.remove::<f32>(room_id));
@@ -629,8 +629,8 @@ fn field_line(ui: &mut Ui, t: &crate::theme::Tokens, label_width: f32, line: Str
 }
 
 /// The height a form's list opens to: every choice in view without a scroll (New page's thirteen types, Panel
-/// layout among the last: the list opened on six of them and hid the rest below its fold, the persona round of
-/// 0.2.0-rc.2), up to three quarters of the window; the list opens on whichever side of its field has the room.
+/// layout among the last: a shorter list would hide the rest below its fold),
+/// up to three quarters of the window; the list opens on whichever side of its field has the room.
 fn list_height(ui: &Ui) -> f32 {
     ui.ctx().content_rect().height() * 0.75
 }

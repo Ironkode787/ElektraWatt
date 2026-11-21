@@ -89,7 +89,7 @@ pub struct ShadowLayer {
 }
 
 /// An elevation token (doc 16a §4.10): two shadow layers, the key shadow first. The high-contrast themes have none
-/// (both layers transparent; borders replace them, §4.7).
+/// (both layers transparent; borders replace them, doc 16a §4.7).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Elevation {
     /// The layers, key shadow first.
@@ -160,7 +160,7 @@ impl TypeToken {
 }
 
 /// The global ramps of doc 16a §4.2 to §4.4 and the high-contrast starting values of §4.7.
-// The whole ramp is the global layer (§4.1): not every step has an alias yet.
+// The whole ramp is the global layer (doc 16a §4.1): not every step has an alias yet.
 #[allow(dead_code)]
 pub(crate) mod ramp {
     use super::Rgba;
@@ -248,7 +248,7 @@ pub struct Tokens {
     /// The density these tokens are for.
     pub density: Density,
 
-    // Colour aliases (§4.5).
+    // Colour aliases (doc 16a §4.5).
     pub surface_chrome: Rgba,
     pub surface_panel: Rgba,
     pub surface_raised: Rgba,
@@ -279,10 +279,10 @@ pub struct Tokens {
     pub success_subtle: Rgba,
     pub info: Rgba,
     pub info_subtle: Rgba,
-    /// The dialog backdrop over the whole window (§6.12: light `slate-900` at 24 %, dark black at 40 %).
+    /// The dialog backdrop over the whole window (doc 16a §6.12: light `slate-900` at 24 %, dark black at 40 %).
     pub backdrop: Rgba,
 
-    // Canvas tokens (§4.6); the sheet is white in every theme.
+    // Canvas tokens (doc 16a §4.6); the sheet is white in every theme.
     pub canvas_surround: Rgba,
     pub canvas_sheet: Rgba,
     pub canvas_sheet_line: Rgba,
@@ -300,13 +300,13 @@ pub struct Tokens {
     pub canvas_chip_text: Rgba,
     pub canvas_highlight_label: Rgba,
 
-    // Elevation (§4.10).
+    // Elevation (doc 16a §4.10).
     pub elevation_1: Elevation,
     pub elevation_2: Elevation,
-    /// The window and popup outline: 0 (none) in light and dark, 1 px in the high-contrast themes (§4.7).
+    /// The window and popup outline: 0 (none) in light and dark, 1 px in the high-contrast themes (doc 16a §4.7).
     pub border_raised_width: f32,
 
-    // Typography (§4.8).
+    // Typography (doc 16a §4.8).
     pub type_caption: TypeToken,
     pub type_small: TypeToken,
     pub type_label: TypeToken,
@@ -314,10 +314,10 @@ pub struct Tokens {
     pub type_body_strong: TypeToken,
     pub type_title: TypeToken,
     pub type_display: TypeToken,
-    /// `Monospace` in egui: Noto Sans at 12 (§4.14).
+    /// `Monospace` in egui: Noto Sans at 12 (doc 16a §4.14).
     pub type_mono: TypeToken,
 
-    // Spacing (§4.9).
+    // Spacing (doc 16a §4.9).
     pub space_1: f32,
     pub space_2: f32,
     pub space_icon: f32,
@@ -327,7 +327,7 @@ pub struct Tokens {
     pub space_6: f32,
     pub space_7: f32,
 
-    // Sizes (§4.9) and component sizes (§6).
+    // Sizes (doc 16a §4.9) and component sizes (§6).
     pub size_row: f32,
     pub size_control: f32,
     pub size_control_inline: f32,
@@ -398,7 +398,7 @@ pub struct Tokens {
     /// fill and outline the pill with `color.border.default`.
     pub badge_on_chrome: Rgba,
 
-    // Radii and borders (§4.10).
+    // Radii and borders (doc 16a §4.10).
     pub radius_none: f32,
     pub radius_mark: f32,
     pub radius_sm: f32,
@@ -408,14 +408,14 @@ pub struct Tokens {
     pub border_width: f32,
     pub focus_width: f32,
 
-    // Icons (§4.11).
+    // Icons (doc 16a §4.11).
     pub icon_sm: f32,
     pub icon_md: f32,
     pub icon_lg: f32,
     pub icon_stroke: f32,
     pub icon_stroke_lg: f32,
 
-    // Motion (§4.12), in milliseconds.
+    // Motion (doc 16a §4.12), in milliseconds.
     pub motion_fast: u32,
     pub motion_base: u32,
 }
@@ -503,7 +503,7 @@ pub const PAIRS: &[Pair] = &[
     pair("color.text.secondary", "color.surface.chrome", PairKind::Text),
     pair("color.text.secondary", "color.badge.on_chrome", PairKind::Text),
     pair("color.text.secondary", "color.surface.raised", PairKind::Text),
-    // §4.15: a selected or marked row draws its tertiary parts in secondary text.
+    // Doc 16a §4.15: a selected or marked row draws its tertiary parts in secondary text.
     pair("color.text.secondary", "color.accent.subtle", PairKind::Text),
     pair("color.history.undone", "color.surface.panel", PairKind::Text),
     pair("color.table.cursor", "color.surface.panel", PairKind::NonText),
@@ -561,7 +561,7 @@ pub const PAIRS: &[Pair] = &[
     ),
 ];
 
-/// The boundaries every high-contrast theme must show at 3:1 (§4.7).
+/// The boundaries every high-contrast theme must show at 3:1 (doc 16a §4.7).
 pub const HC_PAIRS: &[Pair] = &[
     pair("color.border.subtle", "color.surface.panel", PairKind::NonText),
     pair("color.border.default", "color.surface.panel", PairKind::NonText),
@@ -821,7 +821,7 @@ fn palette(theme: Theme) -> Palette {
             success: SUCCESS_LIGHT,
             success_subtle: SUCCESS_SUBTLE_LIGHT,
             surround: SLATE_150,
-            // slate-900 at 24 % (§6.12).
+            // slate-900 at 24 % (doc 16a §6.12).
             backdrop: SLATE_900.alpha(61),
             elevation_1: Elevation {
                 layers: [layer(0, 1, 2, 0, INK.alpha(26)), layer(0, 0, 0, 1, INK.alpha(10))],
@@ -990,7 +990,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         success_subtle: p.success_subtle,
         info: p.accent,
         info_subtle: p.accent_subtle,
-        // Light: slate-900 at 24 % (§6.12); dark: black at 40 %. Opaque-free in high contrast is not required
+        // Light: slate-900 at 24 % (doc 16a §6.12); dark: black at 40 %. Opaque-free in high contrast is not required
         // for a backdrop.
         backdrop: p.backdrop,
         canvas_surround: p.surround,

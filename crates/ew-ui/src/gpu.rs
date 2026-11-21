@@ -150,7 +150,7 @@ impl GpuHost {
         }
     }
 
-    /// The GPU side of a second canvas group (§9: one offscreen target per visible group): the
+    /// The GPU side of a second canvas group (one offscreen target per visible group): the
     /// leader's render state, flags and adapter; its switch-rule result is mirrored each frame by
     /// [`GpuHost::follow`], so the rule runs and tells its banners once.
     pub fn follower(&self) -> GpuHost {

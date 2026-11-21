@@ -345,7 +345,7 @@ impl FindPane {
         }
     }
 
-    /// The replace card (§7.4; doc 16a §6.23): "Replace" with its revision and status badge, the
+    /// The replace card (doc 16a §6.23): "Replace" with its revision and status badge, the
     /// summary as a polite live region, the first tag changes, Apply and Cancel.
     fn card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let Some(card) = shell.properties().card() else {

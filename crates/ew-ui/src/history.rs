@@ -79,7 +79,7 @@ pub(crate) fn state_icon(t: &Tokens, state: EntryState) -> Option<(IconId, Rgba)
 }
 
 /// The colour of an entry's label: `color.history.undone` for an undone entry (`color.text.secondary` while it is the
-/// row cursor, on the Selected fill, §4.15), else `color.text.primary`.
+/// row cursor, on the Selected fill, doc 16a §4.15), else `color.text.primary`.
 fn label_colour(t: &Tokens, state: EntryState, selected: bool) -> Rgba {
     match state {
         EntryState::Redo if selected => t.text_secondary,
@@ -355,8 +355,8 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
         if !on_show {
             actions.set_opacity(0.0);
         }
-        // `history.undo_to` redoes up to an undone entry (§8.4), so its row offers Redo to here; the others keep
-        // Undo to here (§8.8).
+        // `history.undo_to` redoes up to an undone entry, so its row offers Redo to here; the others keep
+        // Undo to here.
         let (walk, walk_icon) = match e.state {
             EntryState::Redo => (key!("history-redo-to"), IconId::arrow_forward_up),
             EntryState::Now | EntryState::Done => (key!("action-history-undo-to"), IconId::history),

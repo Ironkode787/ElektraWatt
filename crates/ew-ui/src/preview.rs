@@ -603,7 +603,7 @@ fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>, closed: f3
 /// The strongest opacity of the accent behind a new card's header, a tint under its text and buttons.
 const HIGHLIGHT_ALPHA: f32 = 0.18;
 
-/// The opacity of the highlight behind `card`'s header this frame (the owner's test of 0.3.0-rc.1: a staged card went
+/// The opacity of the highlight behind `card`'s header this frame (so that a staged card does not go
 /// unseen): a card the tab shows for the first time is highlighted once, fading out over the canvas's arrival time of
 /// frame time ([`crate::canvas::arrival_opacity`]; still with reduced motion), then never again; `None` once it is over.
 fn header_highlight(ui: &Ui, card: &ew_viewmodel::properties::Card, reduce_motion: bool) -> Option<f32> {

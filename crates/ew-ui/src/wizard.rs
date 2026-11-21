@@ -144,7 +144,7 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
     });
     ui.add_space(t.space_5);
     if step == Step::Review {
-        // Where Create makes the template, and the way to put it elsewhere (a persona run's Create met a full folder
+        // Where Create makes the template, and the way to put it elsewhere (Create must not meet a full folder
         // with no way on).
         if let (Some(target), None) = (target, wizard.finished_dir()) {
             ui.scope(|ui| {

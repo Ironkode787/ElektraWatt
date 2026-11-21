@@ -46,7 +46,7 @@ pub(crate) fn show(
         return;
     };
     let n = ch.rows.len();
-    // The keys (§6.22): consumed before anything else sees them.
+    // The keys (doc 16a §6.22): consumed before anything else sees them.
     let (down, up, home, end, enter, typed, now) = ctx.input_mut(|i| {
         let down = i.consume_key(Modifiers::NONE, Key::ArrowDown);
         let up = i.consume_key(Modifiers::NONE, Key::ArrowUp);
@@ -112,7 +112,7 @@ pub(crate) fn show(
         .min(bound.width());
     let rows = n.min(t.size_chooser_rows as usize);
     let max_height = t.size_row * rows as f32;
-    // 8 px from the pointer's 16-px box (§6.22), else the page view's centre.
+    // 8 px from the pointer's 16-px box (doc 16a §6.22), else the page view's centre.
     let at = ctx
         .pointer_latest_pos()
         .filter(|p| bound.contains(*p))
@@ -167,7 +167,7 @@ pub(crate) fn show(
                                         node.set_position_in_set(i + 1);
                                         node.set_size_of_set(n);
                                     });
-                                    // The hover overlay, as menus (§6.13), never the accent.
+                                    // The hover overlay, as menus (doc 16a §6.13), never the accent.
                                     if selected || response.hovered() {
                                         ui.painter().rect_filled(
                                             r,

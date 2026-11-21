@@ -578,8 +578,8 @@ fn editable(
     response.tip(tip)
 }
 
-/// The field a tag (or the PLC's name, whose ID `device` then is) is changed in, in its place, named `name` (rc.5,
-/// H14): opened on `text` with the focus, in `font`; Enter takes it (`plc.rack_rename {device, text}`), Escape or a click elsewhere leaves it (`cancel`). While a refusal
+/// The field a tag (or the PLC's name, whose ID `device` then is) is changed in, in its place, named `name`:
+/// opened on `text` with the focus, in `font`; Enter takes it (`plc.rack_rename {device, text}`), Escape or a click elsewhere leaves it (`cancel`). While a refusal
 /// stands under the rack, a click elsewhere keeps the field, without the focus, on the text as typed.
 fn tag_field(
     ui: &mut Ui,

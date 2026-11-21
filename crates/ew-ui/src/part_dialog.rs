@@ -591,7 +591,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     let d = &e.draft;
     let mut save = false;
     // Doc 16a §2: the form takes the window's height as it grows, sixteen rows at the floor. It keeps that height and
-    // its width while one types (the persona run m3-p4: the dialog grew after the first key and moved up under the
+    // its width while one types (it would grow after the first key and move up under the
     // pointer): the body scrolls inside it.
     let height = crate::dialog::grown(t.size_row * 16.0, 0.6, ui.ctx().content_rect().height());
     let mut area = ScrollArea::vertical()
@@ -973,7 +973,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     }
     for m in ["l_plus", "m", "slots", "max_modules"] {
         text_field(ui, m);
-        // What Allowed slots takes, with an example (the persona run m3-p4 could not tell a list from a count).
+        // What Allowed slots takes, with an example, so a list is not taken for a count.
         if m == "slots" {
             note(ui, strings::text(key!("part-plc-slots-hint")));
         }
@@ -1362,8 +1362,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             events.push(Event::Action("part.bus_row", serde_json::Value::Null));
         }
     }
-    // A row just added comes into sight whole, with Add interface under it, never half hidden at the form's bottom edge
-    // (the persona run m3-p4).
+    // A row just added comes into sight whole, with Add interface under it, never half hidden at the form's bottom edge.
     let count = ui.scope_id().with("part-bus-rows");
     let before = ui.data(|m| m.get_temp::<usize>(count));
     if before.is_some_and(|n| d.bus.len() > n) {

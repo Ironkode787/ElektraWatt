@@ -260,7 +260,7 @@ pub struct App {
     toasts_low: bool,
     toast_stack: Option<egui::Rect>,
     /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
-    /// elapsed time and the 200 ms rule, §6.4; the frame clock, like the toasts').
+    /// elapsed time and the 200 ms rule; the frame clock, like the toasts').
     job_started: std::collections::BTreeMap<u64, f64>,
     /// Whether the shell has the window's repaint request as its jobs' waker.
     waker_set: bool,
@@ -1746,7 +1746,7 @@ impl App {
                 _ => {}
             }
         }
-        // In a navigator's table the clipboard events run the table's copy and paste (§8.6).
+        // In a navigator's table the clipboard events run the table's copy and paste.
         if focused == Context::Navigator
             && !palette_open
             && let Some(kind) = self.shell.focused_navigator()
@@ -1901,8 +1901,8 @@ impl App {
             tool == "structure_box",
         );
         // The name is the first thing the interruption point tool takes when it is chosen from the bar or a menu:
-        // the pointer is off the sheet then, and what is typed next is the point's name. (It went to the canvas,
-        // where the letters were lost and Enter placed a point at the grid cursor: the persona round before 0.2.0.)
+        // the pointer is off the sheet then, and what is typed next is the point's name. (It would go to the canvas,
+        // where the letters were lost and Enter placed a point at the grid cursor.)
         // Chosen by its key with the pointer on the sheet (or with no pointer in the window), the keys stay with the
         // tool, so D turns the direction.
         // Noted every frame (noted only while the tool ran, so the tool chosen a second time kept the keys

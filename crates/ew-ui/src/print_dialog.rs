@@ -179,7 +179,7 @@ fn row<R>(ui: &mut Ui, label_width: f32, label: &str, field: impl FnOnce(&mut Ui
 fn options(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     ui.spacing_mut().item_spacing.y = t.space_3;
-    // The label column of §6.12, at most half the column (a narrower column keeps its fields).
+    // The label column of doc 16a §6.12, at most half the column (a narrower column keeps its fields).
     let label_width = t.size_dialog_label.min(ui.available_width() / 2.0).floor() - t.space_6;
     // The radio buttons are named by their own words; the row's label names the group.
     row(ui, label_width, strings::text(key!("print-range")), |ui, _| {
@@ -403,7 +403,7 @@ fn keep_navigation_room(ui: &mut Ui) {
     ui.add_space(t.space_2 + t.size_control);
 }
 
-/// §6.19's progress line in the preview's place: the text with its percentage over a 2-px accent line, or the
+/// Doc 16a §6.19's progress line in the preview's place: the text with its percentage over a 2-px accent line, or the
 /// writing phase's text beside a spinner (none on the frame clock, which would never settle).
 fn progress(ui: &mut Ui, shell: &ShellModel) {
     let t = theme::current(ui.ctx());

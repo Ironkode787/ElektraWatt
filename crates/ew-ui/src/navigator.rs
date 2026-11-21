@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator panes (§6.6, §6.8): one generic tree widget for every
+//! The navigator panes (doc 16a §6.6): one generic tree widget for every
 //! navigator, the shell's rows on show (`ShellModel::shown_rows`) drawn as a filter field and a tree of rows with
 //! egui's row virtualisation (only the rows in view are painted).
 //!
@@ -273,7 +273,7 @@ impl NavigatorPane {
                             events.push(Event::Action("section.new", Value::Null));
                         }
                     }
-                    // The Fluid panel's Fluid settings… and New medium… (the persona round found them only through
+                    // The Fluid panel's Fluid settings… and New medium… (so they are not found only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
                     // The PLC panel's + is New station… (the rack comes first).
                     let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] =
@@ -332,7 +332,7 @@ impl NavigatorPane {
                             }
                         }
                     }
-                    // The Table toggle (§8.1, `navigator.table`); the Messages pane
+                    // The Table toggle (`navigator.table`); the Messages pane
                     // has no table mode, so no toggle.
                     if self.kind != NavKind::Messages {
                         let toggle = crate::components::icon_toggle(
@@ -520,7 +520,7 @@ impl NavigatorPane {
                     egui::EventFilter {
                         horizontal_arrows: true,
                         vertical_arrows: true,
-                        // In table mode Tab moves the cell cursor (§8.1).
+                        // In table mode Tab moves the cell cursor.
                         tab: in_table,
                         escape: false,
                     },
@@ -610,7 +610,7 @@ impl NavigatorPane {
         let renaming = shell.nav_rename().filter(|r| r.kind == kind).cloned();
         let mut painted = 0;
         let mut view = 0..0;
-        // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
+        // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items.
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
             // Rows of `size.row`, edge to edge (doc 16a §6.6): the row's widgets take the row's height, no gap.
             ui.spacing_mut().item_spacing.y = 0.0;
@@ -844,7 +844,7 @@ impl NavigatorPane {
         }
     }
 
-    /// Type-ahead (§6.4): printable characters other than Space, without Ctrl or Alt, extend the buffer.
+    /// Type-ahead: printable characters other than Space, without Ctrl or Alt, extend the buffer.
     fn type_ahead(&mut self, ui: &Ui, events: &mut Vec<Event>) {
         let (typed, now) = ui.ctx().input_mut(|i| {
             let mut typed = String::new();
@@ -1130,8 +1130,8 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
     } = *tree;
     let is_cursor = cursor == Some(row.key.as_str());
     let mut fix_clicked = false;
-    // The whole row takes a click, not only its text (the persona round of M3: a click or a right-click beside a
-    // short name did nothing). It is registered before the row's widgets, so the chevron, the name and a badge
+    // The whole row takes a click, not only its text (a click or a right-click beside a
+    // short name must not do nothing). It is registered before the row's widgets, so the chevron, the name and a badge
     // stay on top of it and it answers in the gaps between them.
     let gap_rect = egui::Rect::from_min_size(
         egui::pos2(ui.max_rect().left(), ui.cursor().top()),
@@ -1499,7 +1499,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
     }
 }
 
-/// The reorder card in the Pages pane (§6.6; doc 16a §6.23): "Reorder pages" with its revision and
+/// The reorder card in the Pages pane (doc 16a §6.23): "Reorder pages" with its revision and
 /// status badge, "106 → 103, 103 → 106 · <n> tags, <m> cross-reference texts", Apply and Cancel.
 fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(card) = shell.properties().card() else {
@@ -1518,7 +1518,7 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     crate::components::inline_card(ui, shell, card, events, |_, _| {});
 }
 
-/// The table card in the pane of the navigator whose gesture it holds (§8.7; doc 16a §6.23): the
+/// The table card in the pane of the navigator whose gesture it holds (doc 16a §6.23): the
 /// title with the gesture and its counts, the pasted columns that were ignored, every invalid or ambiguous cell (row,
 /// column, text, reason) with a button per reading (`table.resolve`) and Drop (`table.drop`), then Apply and Cancel.
 fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<Event>) {
@@ -1575,7 +1575,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
     });
 }
 
-/// The chip line "Not on this page" above the canvas (§6.5): the label in `type.small` `color.text.secondary`, then
+/// The chip line "Not on this page" above the canvas (doc 16a §6.24): the label in `type.small` `color.text.secondary`, then
 /// one jump chip (doc 16a §6.24) per chip, reading what it does ("Go to page 1, A0"), that opens the page and selects
 /// the drawable there; on a bus page that does not draw the device yet, Put it here beside them.
 pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {

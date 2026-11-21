@@ -51,7 +51,7 @@ fn cell(ui: &mut Ui, t: &Tokens, width: f32, text: &mut String, name: &str, hint
     // The editing fill goes under the text: its slot is taken before the field paints.
     let fill = ui.painter().add(egui::Shape::Noop);
     // The field is the cell less `space.4` at each side, exactly the row high, its text centred on the row (egui would
-    // grow it to `interact_size.y` downwards), as the navigator grid's editor (§6.21).
+    // grow it to `interact_size.y` downwards), as the navigator grid's editor (doc 16a §6.21).
     let field = cell.shrink2(egui::vec2(t.space_4, 0.0));
     ui.spacing_mut().interact_size.y = field.height();
     let edit = ui.place(

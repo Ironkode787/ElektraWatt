@@ -334,7 +334,7 @@ fn macro_detail(
             .max_height(cap)
             .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
             .show(ui, |ui| {
-                // §11: the thumbnail, or "No preview".
+                // the thumbnail, or "No preview".
                 if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th, thumb)) {
                     line(
                         ui,

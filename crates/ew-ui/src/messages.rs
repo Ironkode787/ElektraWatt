@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel's own parts of the navigator pane (§7.3, §7.4; restyled to
+//! The message panel's own parts of the navigator pane (restyled to
 //! doc 16a §6.24): the header with the scheme and one count badge per severity, the quick-fix card, the detail block
 //! of the cursor's finding with its Fix button and rule page link, and the severity icon and word of the
 //! finding rows (FR-UI-025: an icon, a colour and the word).
@@ -88,7 +88,7 @@ pub(crate) fn group_severity(key: &str) -> Option<&'static str> {
     }
 }
 
-/// Paints a severity icon of `size.severity_icon` in its colour (§7.3, doc 16a §6.24).
+/// Paints a severity icon of `size.severity_icon` in its colour (doc 16a §6.24).
 pub(crate) fn severity_icon(ui: &mut Ui, look: FindingLook) {
     let t = theme::current(ui.ctx());
     let (rect, _) = ui.allocate_exact_size(Vec2::splat(t.size_severity_icon), Sense::hover());
@@ -362,7 +362,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     fix_card(ui, shell, events);
 }
 
-/// The quick-fix card (§7.4; doc 16a §6.23): "Quick fix `<rule>`" with its revision and status badge,
+/// The quick-fix card (doc 16a §6.23): "Quick fix `<rule>`" with its revision and status badge,
 /// what the fix changes, Apply and Cancel.
 fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(card) = shell.properties().card() else {

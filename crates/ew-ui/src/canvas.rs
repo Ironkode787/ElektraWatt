@@ -36,7 +36,7 @@
 //! ([`canvas_theme`]) and the scale rule of `ew-render2d`'s overlay; the hover outline is drawn around the first
 //! entity of the pick stack under the pointer (FT-500, doc 16a §6.25), never on a selected one; a connection point
 //! under the pointer shows a tooltip in the inverse style (doc 16a §6.18, §7.2); the statistics panel is a diagnostic
-//! chip at the canvas's top right (§7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
+//! chip at the canvas's top right (doc 16a §7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
 //! frames with [`CanvasHost::set_chrome_obstacles`], and the chips keep off them.
 //!
 //! No raster and no tessellation happens on the UI thread. Each canvas is one focusable AccessKit node with the
@@ -89,7 +89,7 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 pub(crate) const GROUPS: usize = 2;
 
-/// The hover outline of a canvas while the active tool shows the hover (§7.1): the hovered link's
+/// The hover outline of a canvas while the active tool shows the hover (doc 16a §7.1): the hovered link's
 /// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
 /// picks, FT-500; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
 /// which shows its band ([`hover_path`]). While the Join chooser is open, its active row's object instead (doc 16a
@@ -250,7 +250,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         &shell.conflict_overlay(group),
         conflict_colour(shell),
     );
-    // The highlights, composited like the ghost (§7.3).
+    // The highlights, composited like the ghost (doc 16a §7.5).
     let items: Vec<OverlayItem> = shell
         .highlight_overlay(group)
         .into_iter()
@@ -551,7 +551,7 @@ fn highlight_bands(
     Some((bands, *slot))
 }
 
-/// Composites the highlights into a snapshot (§7.3): per highlight, each pixel whose centre lies in one of its bands is
+/// Composites the highlights into a snapshot (doc 16a §7.5): per highlight, each pixel whose centre lies in one of its bands is
 /// the slot colour at 30 % over what is there, or the full colour on a hatch line. A pixel is painted once per
 /// highlight even where two bands overlap, so the result does not depend on the band order.
 fn composite_highlights(
@@ -595,7 +595,7 @@ fn composite_highlights(
     }
 }
 
-/// Paints the highlights of canvas group `group` in the window (§7.3): the bands as filled quadrilaterals at 30 % and
+/// Paints the highlights of canvas group `group` in the window (doc 16a §7.5): the bands as filled quadrilaterals at 30 % and
 /// the hatch segments as lines in the full colour, above the overlays.
 /// Paints an open Arrange and route card's moves on canvas group `group` (docs/design/06a-drafting.md §7.3): each moved
 /// symbol's new place tinted in the accent colour, its old place a faint dashed outline, the two joined by a dotted
@@ -1658,7 +1658,7 @@ impl CanvasHost {
         let wire_strokes = paint_wire_colours(ui, rect, ppp, &transform, shell, group);
         // The conflict overlay, under the highlights.
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
-        // The window's highlights on this page (§7.3).
+        // The window's highlights on this page (doc 16a §7.5).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
         // An open Arrange and route card's moves.
         paint_arrange_moves(ui, rect, ppp, &transform, shell, group, as_is);
@@ -2007,7 +2007,7 @@ impl CanvasHost {
     /// the same menu at the selection while the canvas has the keys. A disabled entry shows its reason in its tooltip;
     /// a click on an entry dispatches its action and closes the menu.
     ///
-    /// With any other tool a right-click is Escape (the owner's hands-on test of 0.1.0: a right click should cancel
+    /// With any other tool a right-click is Escape (a right click cancels
     /// whatever is active, placing a device or drawing a wire): it dismisses as the key does, one step per click,
     /// and the menu opens only once the Select tool is back.
     fn context_menu(

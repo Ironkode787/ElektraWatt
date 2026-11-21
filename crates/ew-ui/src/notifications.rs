@@ -7,7 +7,7 @@
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
 //! newest at the top: 300 px wide (`size.toast`; [`TOAST_SHARE`] of a wider window), `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
 //! columns with `space.3` gaps: the 20-px semantic icon ([`tone_icon`]: a result's worst severity with the icons of
-//! §6.24, else a check in `color.success` for a toast with an action, the info icon otherwise), the title in
+//! doc 16a §6.24, else a check in `color.success` for a toast with an action, the info icon otherwise), the title in
 //! `type.body.strong` with a result's line under it in `type.small` and `color.text.secondary` (the check's
 //! "4 errors, 25 warnings, 12 infos" on one line; a refusal's reason wrapped up to [`LINE_ROWS`] rows), and the action as a text link in `type.small` SemiBold
 //! `color.accent` (Undo, Open; disabled once it is no longer valid), and a 24-px Dismiss icon button. Each is a polite

@@ -481,7 +481,7 @@ pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], 
 /// `(anchor, size)` by doc 16a §7.4's rule, in order: [`place_chip`] by its anchor (its stroke's middle in its lane)
 /// clear of the canvas's outside, of the codes placed before it, of `obstacles` and of the `pointer`'s box; where every
 /// candidate is taken, the nearest place stacked inward (`gap` apart) clear of the same; only where there is none, the
-/// first candidate, faded (`true`). `obstacles` are what §7.4 names besides: the HUD, the
+/// first candidate, faded (`true`). `obstacles` are what doc 16a §7.4 names besides: the HUD, the
 /// frame-statistics panel, the other chips and the drawing's printed texts.
 pub fn wire_code_chips(
     bounds: Rect,

@@ -20,7 +20,7 @@
 //! **Accessibility.** The table is the focusable node with the role `Table` named `<navigator> table`; a header cell is
 //! a button named `Sort by <column label>` (the sorted one adds ", sorted ascending" or ", sorted
 //! descending"); a cell is a node with the role `Cell` named `<column label> <cell text>,
-//! row <i> of <n>`, with `, read-only` for a read-only cell (§8.1).
+//! row <i> of <n>`, with `, read-only` for a read-only cell.
 //!
 //! **The strip editor.** An accessory row is a row of the grid like a terminal row; its texts are
 //! `color.text.secondary` (a fitting between the terminals, not a terminal), except its editable Part cell. While
@@ -144,7 +144,7 @@ impl TableUi {
                 ui.colored_label(tokens.error.color32(), e);
             });
         }
-        // The pattern fill dialog (§8.5).
+        // The pattern fill dialog.
         self.pattern_dialog(ui, nav, preview, events);
         // No row (an empty navigator, or a filter without hits): the caller's empty state, not a bare header.
         if rows.is_empty() {
@@ -208,8 +208,8 @@ impl TableUi {
                 let sort_changed = resorted
                     .as_ref()
                     .is_some_and(|(old, new)| old.as_ref() == Some(key) || new.as_ref() == Some(key));
-                // A text typed or changed that its column cut widens the column once, up to its range's end (the
-                // persona runs: a PLC grid's Symbol "CLAMP_RETRACTED" read "CLAMP_RETR…").
+                // A text typed or changed that its column cut widens the column once, up to its range's end (a PLC
+                // grid's Symbol "CLAMP_RETRACTED" would read "CLAMP_RETR…").
                 let grows = self.grow.iter().any(|g| g == key);
                 Column::new(tokens.size_table_column)
                     .range(tokens.size_table_column_min..=max)
@@ -403,7 +403,7 @@ impl TableUi {
                 json!({"kind": ch.kind, "part": ch.items[i].1}),
             ));
         };
-        // The keys (§6.22): Up and Down wrap, Home, End, Enter picks, Escape closes.
+        // The keys (doc 16a §6.22): Up and Down wrap, Home, End, Enter picks, Escape closes.
         let pressed = |k: Key| ui.ctx().input_mut(|i| i.consume_key(Modifiers::NONE, k));
         if pressed(Key::ArrowDown) {
             self.chooser_active = (self.chooser_active + 1) % n;
@@ -533,7 +533,7 @@ impl TableUi {
     }
 }
 
-/// The column chooser (§8.1, `table.columns`) of navigator `nav` in table mode, on the pane's tool line: the Columns
+/// The column chooser (`table.columns`) of navigator `nav` in table mode, on the pane's tool line: the Columns
 /// menu button, a Subtle button with a chevron (doc 16a §6.21), whose menu has a check box per column (the key column
 /// cannot be hidden) and Move left and Move right for the columns on show.
 pub(crate) fn chooser(
@@ -632,7 +632,7 @@ pub(crate) fn chooser(
 }
 
 impl TableUi {
-    /// The pattern fill dialog (§8.5): the pattern field and the first five values (or the pattern's error); Enter
+    /// The pattern fill dialog: the pattern field and the first five values (or the pattern's error); Enter
     /// applies (`table.commit`), Escape closes it (`ui.dismiss`).
     fn pattern_dialog(
         &mut self,
@@ -707,7 +707,7 @@ impl TableUi {
     }
 }
 
-/// The keys of the table while it has the focus (§8.1).
+/// The keys of the table while it has the focus.
 pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>) {
     let kind = nav.kind.word();
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
@@ -1021,7 +1021,7 @@ impl Delegate<'_> {
             ui.memory_mut(|m| m.request_focus(self.edit_id));
         }
         // An editor opened on the cell's own text (a double-click, F2) selects it, as the Properties editor does, so
-        // that what is typed replaces it: "2" typed over "TBD" gave "TBD2" (the persona round of M3). One opened by
+        // that what is typed replaces it: "2" typed over "TBD" would give "TBD2". One opened by
         // typing holds the typed character and keeps the caret behind it.
         if self.fresh && !self.buffer.is_empty() {
             let now = ui.ctx().cumulative_frame_nr();

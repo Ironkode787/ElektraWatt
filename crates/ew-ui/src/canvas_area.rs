@@ -144,7 +144,7 @@ impl CanvasAreaHost {
     }
 
     /// The tree of `area`; `shares` (one per group, left to right) carry the splitter's position across a rebuild
-    /// when the number of groups is unchanged (§6.2: the share is host state), else the groups share equally.
+    /// when the number of groups is unchanged (the share is host state), else the groups share equally.
     fn build(area: &CanvasArea, session: u64, shares: Option<&[f32]>) -> Tree<TabPane> {
         let mut tiles = Tiles::default();
         let mut groups = Vec::new();
@@ -185,7 +185,7 @@ impl CanvasAreaHost {
         canvas: &mut CanvasHost,
         events: &mut Vec<Event>,
     ) {
-        // The chip line "Not on this page" above the canvas (§6.5).
+        // The chip line "Not on this page" above the canvas (doc 16a §6.24).
         crate::navigator::chip_line(ui, shell, events);
         let drop_rect = ui.available_rect_before_wrap();
         let Some(area) = shell.area() else {
