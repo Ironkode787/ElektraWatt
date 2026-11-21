@@ -285,7 +285,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/jsonschema.rs` |  | A JSON Schema 2020-12 validator for the subset of keywords that schemars 1.x emits for command parameters, so that `AnyCommand` parameters are rejected with the JSON Pointer of the offending value (doc 17 §2.1) before they are deserialised. |
 | `src/lib.rs` |  | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`. |
 | `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, stability, confirmation and the origin of a transaction. |
-| `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text bound to a part moves with it. |
+| `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text of a symbol moves with it. |
 | `src/normalise/bus_nets.rs` |  | Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after row 14a). |
 | `src/normalise/bus_ports.rs` |  | Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15). |
 | `src/normalise/channel_instantiation.rs` |  | Normaliser #3, channel instantiation (N1; doc 06 §3.2, doc 10 §2.4, §3.3). |
