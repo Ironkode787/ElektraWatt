@@ -853,7 +853,12 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
             continue;
         }
         let ty = node_type(schema, node, 1);
-        let category = Category::of_member(member, true);
+        let category = match Category::of_member(member, true) {
+            // A medium's colour marks its lines on the page: it is no electrical value (FT-1761: a medium's Colour
+            // stood under Electrical).
+            Category::Electrical if name == "medium" => Category::Identity,
+            c => c,
+        };
         push_node(name, &segment(member), &ty, category, exposure, &mut out);
         if name == "project" && member == "settings" {
             // The rows that exist even when absent, after the listed members of `settings`.
