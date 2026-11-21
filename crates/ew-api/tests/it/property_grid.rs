@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The property grid below the shell (acceptance checks PG1, PG2 and the `ew-api` half of PG8): the
-//! field catalogue of every kind, the routes, the property sheet of Golden A's records with its derived rows and
+//! field catalogue of every kind, the routes, the property sheet of the sample's records with its derived rows and
 //! chips, and the editors' parse and display rules on the project's data.
-
-use crate::golden_common;
 
 use std::path::Path;
 
@@ -24,13 +22,7 @@ fn catalogue_kinds() -> impl Iterator<Item = ew_schema::Kind> {
         .filter(|k| k.status() == ew_schema::KindStatus::Implemented && !k.is_library())
 }
 
-/// Golden A's fixture, read-only (no lock; commands run in memory).
-fn golden() -> Session {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    Session::open_read_only(&dir, "ElektraWatt test")
-        .expect("the golden fixture opens")
-        .0
-}
+
 
 /// The catalogue text: one line per node, `<kind> <path> <type> <category> <route>`.
 fn catalogue_text() -> String {
@@ -202,7 +194,7 @@ fn the_catalogue_follows_the_registry() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PG2: the sheet on Golden A
+// PG2: the sheet on the sample
 
 /// The UUID of the device whose tag prints `tag`.
 fn device(s: &Session, tag: &str) -> ew_derive::ew_ids::Uuid {
@@ -240,15 +232,24 @@ fn main_rep(s: &Session, device: ew_derive::ew_ids::Uuid) -> ew_derive::ew_ids::
     q.get::<ew_derive::MainRep>(id).unwrap().as_uuid()
 }
 
-/// The connection whose golden key is `key` (`W29`: the one on folio 103).
-fn wire(s: &Session, key: &str) -> ew_derive::ew_ids::Uuid {
-    let q = s.query();
-    let want = format!("connections|{key}");
-    q.connections()
+/// The wire numbered `number` (`102.1`: from the breaker -102F1 to the strip -X1021, 24 V).
+fn wire(s: &Session, number: &str) -> ew_derive::ew_ids::Uuid {
+    s.navigator_table(ew_api::output::NavKind::Connections)
+        .nodes
         .iter()
-        .find(|(_, c)| c.source_ref.as_ref().is_some_and(|r| r.key.as_str() == want))
+        .find(|n| n.table_row && n.label == number)
+        .map(|n| n.records[0])
+        .unwrap_or_else(|| panic!("no wire {number}"))
+}
+
+/// The sample's one wire with a cross-section override: the shield on 103.
+fn overridden_wire(s: &Session) -> ew_derive::ew_ids::Uuid {
+    s.query()
+        .connections()
+        .iter()
+        .find(|(_, c)| c.overrides.csa.is_some())
         .map(|(id, _)| id.as_uuid())
-        .unwrap_or_else(|| panic!("no connection {key}"))
+        .expect("the shield wire")
 }
 
 /// The drawn page labelled `folio`.
@@ -258,7 +259,7 @@ fn page(s: &Session, folio: &str) -> ew_derive::ew_ids::Uuid {
 
 #[test]
 fn a_representation_reaches_three_sections_with_derived_rows() {
-    let s = golden();
+    let s = crate::common::sample();
     let f1 = device(&s, "-101F1");
     let rep = main_rep(&s, f1);
     let sheet = s.property_sheet(&[rep]);
@@ -305,26 +306,27 @@ fn a_representation_reaches_three_sections_with_derived_rows() {
 
 #[test]
 fn frozen_tags_wire_chips_and_the_page_description() {
-    let s = golden();
-    let s51 = device(&s, "S51");
-    let sheet = s.property_sheet(&[s51]);
+    let s = crate::common::sample();
+    // The enclosure's tag, which Enclosure… freezes.
+    let uc1 = device(&s, "-UC1");
+    let sheet = s.property_sheet(&[uc1]);
     let tag = row(&sheet, "device/derived.tag");
     assert_eq!(
         tag.provenance,
         Provenance::Frozen {
-            note: "frozen (sign hidden)".into()
+            note: "frozen".into()
         }
     );
     assert_eq!(tag.actions, [RowAction::Edit, RowAction::Unfreeze]);
-    // W29 (D15): the size profile and the colour profile name the supplying rows.
-    let w29 = wire(&s, "W29");
+    // 102.1 (D15): the size profile and the colour profile name the supplying rows.
+    let w29 = wire(&s, "102.1");
     let sheet = s.property_sheet(&[w29]);
     let csa = row(&sheet, "connection/derived.csa");
     assert_eq!(one(csa), "0.75 mm²");
     assert_eq!(
         csa.provenance,
         Provenance::Derived {
-            via: "potential 24VDC-1 · size profile '0.75/1.5' · class control".into()
+            via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
         }
     );
     assert_eq!(csa.actions, [RowAction::Override]);
@@ -333,11 +335,11 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     assert_eq!(
         colour.provenance,
         Provenance::Derived {
-            via: "potential 24VDC-1 · colour profile 'DBU/WH 24 V'".into()
+            via: "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
         }
     );
-    // W20: its cross-section is overridden on the connection (CDP).
-    let w20 = wire(&s, "W20");
+    // The shield wire: its cross-section is overridden on the connection (CDP).
+    let w20 = overridden_wire(&s);
     let sheet = s.property_sheet(&[w20]);
     let csa = row(&sheet, "connection/derived.csa");
     assert_eq!(
@@ -351,7 +353,7 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     let p101 = page(&s, "101");
     let sheet = s.property_sheet(&[p101]);
     let d = row(&sheet, "page/derived.description");
-    assert_eq!(one(d), "Expansion Control Cabinets");
+    assert_eq!(one(d), "Conveyor drive with a pneumatic clamp");
     assert_eq!(
         d.provenance,
         Provenance::Inherited {
@@ -359,21 +361,16 @@ fn frozen_tags_wire_chips_and_the_page_description() {
         }
     );
     assert_eq!(d.path, "description_override");
-    // Page 101 holds the supply's external connection, which has no cable (EW-CORE-034, doc 20 EF-07). The header
-    // also counts the findings of what the page draws, where Messages and the status bar place them (FT-1587): a
-    // device's "has no part" has no page of its own.
-    let rules: Vec<&str> = sheet.header.findings.iter().map(|f| f.rule.as_str()).collect();
-    for rule in ["EW-CORE-034", "EW-CORE-041"] {
-        assert!(rules.contains(&rule), "{rule}: {:?}", sheet.header.findings);
-    }
+    // The sample is clean under the checks: page 101's header counts no finding.
+    assert!(sheet.header.findings.is_empty(), "{:?}", sheet.header.findings);
 }
 
 #[test]
 fn mixed_and_missing_selections() {
-    let s = golden();
+    let s = crate::common::sample();
     let f1 = device(&s, "-101F1");
     let rep = main_rep(&s, f1);
-    let w29 = wire(&s, "W29");
+    let w29 = wire(&s, "102.1");
     let sheet = s.property_sheet(&[rep, w29]);
     assert!(
         sheet.sections.is_empty(),
@@ -409,7 +406,7 @@ fn mixed_and_missing_selections() {
 /// the raw kind word "representation".
 #[test]
 fn an_interruption_points_header_names_its_kind_in_words() {
-    let s = golden();
+    let s = crate::common::sample();
     let tables = s.page_tables("102").unwrap();
     let ip = tables
         .reps
@@ -425,7 +422,7 @@ fn an_interruption_points_header_names_its_kind_in_words() {
 /// first CP's label, then place), never by ID alone, and a `‹varies›` value lists its texts in natural text order.
 #[test]
 fn targets_and_varied_texts_are_in_label_order() {
-    let s = golden();
+    let s = crate::common::sample();
     let tables = s.page_tables("101").unwrap();
     let mut devices: Vec<ew_derive::ew_ids::Uuid> = tables.reps.iter().filter_map(|r| r.device).collect();
     devices.dedup();
@@ -492,7 +489,7 @@ fn targets_and_varied_texts_are_in_label_order() {
 
 #[test]
 fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
-    let mut s = golden();
+    let mut s = crate::common::sample();
     let project = s.query().project().id.as_uuid();
     let sheet = s.property_sheet(&[project]);
     for member in [
@@ -528,7 +525,7 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     assert_eq!(
         d.provenance,
         Provenance::Overridden {
-            note: "override · project description is 'Expansion Control Cabinets'".into()
+            note: "override · project description is 'Conveyor drive with a pneumatic clamp'".into()
         }
     );
     assert_eq!(d.actions, [RowAction::Override, RowAction::Reset]);
@@ -549,7 +546,7 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
 /// The frozen tag is typed as the page prints it.
 #[test]
 fn the_frozen_tag_takes_the_printed_tag_as_text() {
-    let s = golden();
+    let s = crate::common::sample();
     let value = |text: &str| s.parse_field_input("device", "tag.frozen", text).unwrap().value;
     assert_eq!(value("S51"), json!({"text": "S51", "sign": "hidden"}));
     assert_eq!(value("-S51"), json!({"text": "S51"}));
@@ -569,7 +566,7 @@ fn the_frozen_tag_takes_the_printed_tag_as_text() {
 /// FT-429: a cable's length is typed in metres or as its words, and shows as it is typed.
 #[test]
 fn the_cable_length_is_typed_in_metres_or_words() {
-    let s = golden();
+    let s = crate::common::sample();
     let value = |text: &str| s.parse_field_input("device", "cable.length", text).unwrap().value;
     assert_eq!(value("12.5 m"), json!({"manual": 12_500_000_000_i64}));
     assert_eq!(value("12.5m"), json!({"manual": 12_500_000_000_i64}));
@@ -608,8 +605,8 @@ fn the_cable_length_is_typed_in_metres_or_words() {
 // PG8: the editors on the project's data
 
 #[test]
-fn editors_parse_and_format_on_golden_a() {
-    let s = golden();
+fn editors_parse_and_format_on_the_sample() {
+    let s = crate::common::sample();
     // Colours: the project's company code DBU, `BR` refused with the suggestion BN.
     assert_eq!(
         s.parse_field_input("connection", "overrides.colour", "dbu")
@@ -638,11 +635,11 @@ fn editors_parse_and_format_on_golden_a() {
     assert!(p.notes.iter().any(|n| n.contains("U+0410")), "{:?}", p.notes);
     // The part picker by part number; the part's choices in natural order.
     let p = s
-        .parse_field_input("device", "parts[0].part", "A9F78116")
+        .parse_field_input("device", "parts[0].part", "EW-GEN-MCB-1")
         .unwrap();
     assert!(p.value.get("copy").is_some(), "{}", p.value);
-    let choices = s.field_choices("device", "parts[0].part", "a9f");
-    assert!(!choices.is_empty() && choices.iter().all(|c| c.text.to_lowercase().contains("a9f")));
+    let choices = s.field_choices("device", "parts[0].part", "gen-mcb");
+    assert!(!choices.is_empty() && choices.iter().all(|c| c.text.to_lowercase().contains("gen-mcb")));
     let colours = s.field_choices("connection", "overrides.colour", "");
     assert_eq!(colours.first().map(|c| c.text.as_str()), Some("BK"));
     assert_eq!(colours.last().map(|c| c.text.as_str()), Some("DBU"));
@@ -654,7 +651,7 @@ fn editors_parse_and_format_on_golden_a() {
     assert_eq!(s.field_choices("device", "state", "").len(), 4);
     // A slot by its printed code path.
     let loc = s.field_choices("device", "structure.location", "");
-    assert!(!loc.is_empty(), "the golden project has location nodes");
+    assert!(!loc.is_empty(), "the sample has location nodes");
     let first = &loc[0];
     assert_eq!(
         s.parse_field_input("device", "structure.location", &first.text)
@@ -667,11 +664,12 @@ fn editors_parse_and_format_on_golden_a() {
 
 #[test]
 fn a_counter_collision_names_the_next_free_counter() {
-    let mut s = golden();
-    let f1 = device(&s, "-102F1");
+    let mut s = crate::common::sample();
+    // -102S2 holds counter 2 of the push buttons on 102.
+    let s1 = device(&s, "-102S1");
     let cmd = AnyCommand {
         name: "fields.set".into(),
-        params: json!({"kind": "device", "targets": [f1.to_string()], "path": "tag.counter", "value": 2}),
+        params: json!({"kind": "device", "targets": [s1.to_string()], "path": "tag.counter", "value": 2}),
     };
     let err = s.execute(&cmd).unwrap_err();
     let text = format!("{err:?}");
@@ -680,7 +678,7 @@ fn a_counter_collision_names_the_next_free_counter() {
 
 #[test]
 fn the_command_meta_and_the_reference_resolver() {
-    let s = golden();
+    let s = crate::common::sample();
     assert_eq!(s.command_meta("fields.set").unwrap().exposure, Exposure::Edit);
     assert_eq!(
         s.command_meta("project.checks.set").unwrap().exposure,
@@ -702,20 +700,20 @@ fn the_command_meta_and_the_reference_resolver() {
 /// ambiguous one is refused with a sentence naming the candidates, never guessed.
 #[test]
 fn a_bare_tag_is_a_reference() {
-    let s = golden();
+    let s = crate::common::sample();
     assert_eq!(
         s.resolve_reference("-101F1").unwrap(),
         s.resolve_reference("tag:-101F1").unwrap()
     );
     assert_eq!(
-        s.resolve_reference("-X1032:5").unwrap(),
-        s.resolve_reference("tag:-X1032:5").unwrap()
+        s.resolve_reference("-X1031:U").unwrap(),
+        s.resolve_reference("tag:-X1031:U").unwrap()
     );
     let err = s.resolve_reference("-999Z9").unwrap_err().to_string();
     assert!(err.contains("no device prints this tag"), "{err}");
     // Two devices frozen to the same text print the same tag: refused, and the sentence names the candidates.
     let mut s = s;
-    let ids = [device(&s, "-102F1"), device(&s, "-102F2")];
+    let ids = [device(&s, "-102F1"), device(&s, "-103F1")];
     for id in ids {
         let cmd = AnyCommand {
             name: "fields.set".into(),
@@ -725,7 +723,6 @@ fn a_bare_tag_is_a_reference() {
         s.execute(&cmd).unwrap();
     }
     let err = s.resolve_reference("-K9").unwrap_err().to_string();
-    eprintln!("{err}");
     assert!(
         err.starts_with("`-K9` is ambiguous: 2 devices print this tag ("),
         "{err}"
@@ -733,7 +730,7 @@ fn a_bare_tag_is_a_reference() {
     for id in ids {
         assert!(err.contains(&format!("`id:{id}`")), "{err}");
     }
-    assert_eq!(err.matches("=P01+J-E-2416-K9 as `id:").count(), 2, "{err}");
+    assert_eq!(err.matches("+CAB-K9 as `id:").count(), 2, "{err}");
 }
 
 /// The page item and structure box placement members read their narrowing reasons (a page item's kind and a
@@ -806,10 +803,9 @@ fn placed(s: &mut Session, name: &str, params: Value) -> ew_derive::ew_ids::Uuid
 
 #[test]
 fn page_items_and_structure_boxes_have_property_sheets() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
-    let page = &ids["pages|101"];
+    let mut s = crate::common::sample();
+    let page = &page(&s, "101").to_string();
+    let w4 = wire(&s, "101.2").to_string();
     let text = placed(
         &mut s,
         "item.place",
@@ -826,7 +822,7 @@ fn page_items_and_structure_boxes_have_property_sheets() {
         &mut s,
         "marker.place",
         json!({"page": page,
-        "connections": [&ids["connections|W4"]], "at": [100_000_000, 120_000_000]}),
+        "connections": [w4], "at": [100_000_000, 120_000_000]}),
     );
     let box_id = placed(
         &mut s,
@@ -893,8 +889,7 @@ fn page_items_and_structure_boxes_have_property_sheets() {
 
 #[test]
 fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let page = page(&s, "101").to_string();
     let mut texts = Vec::new();
     for (text, x) in [("40x60", 100_000_000), ("Updated", 120_000_000)] {
@@ -943,10 +938,10 @@ fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
 
 /// A templated function's `template_entry` row is read-only, labelled "Part function" (its label key), its
 /// value the entry's function and designations as the part names them, never the integer; a function without the
-/// member (every one of Golden A) has no such row.
+/// member (every one of the sample) has no such row.
 #[test]
 fn a_templated_function_shows_its_part_function() {
-    let mut s = golden();
+    let mut s = crate::common::sample();
     let fixture: Value = serde_json::from_str(
         &std::fs::read_to_string(
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/two_starter_fndef_part.json"),
@@ -1003,7 +998,7 @@ fn a_templated_function_shows_its_part_function() {
     // designations, not the FnDef's 21 and 22).
     assert!(texts.contains(&"NO contact 13-14".to_owned()), "{texts:?}");
     assert!(texts.contains(&"NC contact Out1-Out2".to_owned()), "{texts:?}");
-    // A function without `template_entry` (Golden A's): no row.
+    // A function without `template_entry` (the sample's): no row.
     let plain = s
         .query()
         .functions()
@@ -1022,12 +1017,12 @@ fn a_templated_function_shows_its_part_function() {
     );
 }
 
-/// An external interruption point's External row reads as the IP tool prints the reference,
-/// `<device>:<connection>`, not the record kind's internal name; a reference without a connection reads its device
-/// alone.
+/// An external interruption point's External row reads as the IP tool prints the reference, its device alone where
+/// the reference names no connection (the sample's supply marks name the upstream breaker -Q0 only), and
+/// `<device>:<connection>`, not the record kind's internal name, once it names one.
 #[test]
 fn an_external_points_row_names_its_reference() {
-    let s = golden();
+    let s = crate::common::sample();
     let q = s.query();
     let (point, reference) = q
         .functions()
@@ -1037,7 +1032,7 @@ fn an_external_points_row_names_its_reference() {
             let external = v["kind"]["ip"]["external"].as_str()?.to_owned();
             Some((id.as_uuid(), external))
         })
-        .expect("an external interruption point in Golden A");
+        .expect("an external interruption point in the sample");
     let x = q
         .external_refs()
         .iter()
@@ -1046,7 +1041,7 @@ fn an_external_points_row_names_its_reference() {
         .expect("its reference");
     assert_eq!(
         (x.device.as_str(), x.connection.as_ref().map(|c| c.as_str())),
-        ("JE-N1000-03", Some("PE"))
+        ("-Q0", None)
     );
     let text = |s: &Session| match &s
         .property_sheet(&[point])
@@ -1060,25 +1055,25 @@ fn an_external_points_row_names_its_reference() {
         RowValue::One { text, .. } => text.clone(),
         other => format!("{other:?}"),
     };
-    assert_eq!(text(&s), "JE-N1000-03:PE");
-    // The reference without a connection reads its device alone.
+    assert_eq!(text(&s), "-Q0");
+    // A reference with a connection reads `<device>:<connection>`.
     let mut s = s;
     s.execute(&AnyCommand {
         name: "fields.set".into(),
-        params: json!({"kind": "external_ref", "targets": [reference], "path": "connection", "value": null}),
+        params: json!({"kind": "external_ref", "targets": [reference], "path": "connection", "value": "2"}),
     })
-    .expect("the connection is cleared");
-    assert_eq!(text(&s), "JE-N1000-03");
+    .expect("the connection is set");
+    assert_eq!(text(&s), "-Q0:2");
 }
 
 /// `Session::stored_field` gives what the record's property row holds, without a sheet: every top-level row of a
 /// device's, a wire's and a page's own section, a value or none; and nothing for a record of another kind.
 #[test]
 fn a_stored_field_is_what_the_record_s_row_holds() {
-    let s = golden();
+    let s = crate::common::sample();
     let records = [
         ("device", device(&s, "-101F1")),
-        ("connection", wire(&s, "W29")),
+        ("connection", wire(&s, "102.1")),
         ("page", page(&s, "103")),
     ];
     for (kind, id) in records {
@@ -1117,7 +1112,7 @@ fn a_stored_field_is_what_the_record_s_row_holds() {
 /// has no Line kind row.
 #[test]
 fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
-    let mut s = golden();
+    let mut s = crate::common::sample();
     let valves: Vec<ew_derive::ew_ids::Uuid> = {
         let q = s.query();
         let fndefs = q.fndefs();
@@ -1167,7 +1162,7 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
         ]
     );
     assert_eq!(sheet.header.title, "drain line");
-    let w29 = wire(&s, "W29");
+    let w29 = wire(&s, "102.1");
     let sheet = s.property_sheet(&[w29]);
     let keys: Vec<&str> = sheet
         .sections
@@ -1178,14 +1173,14 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
     assert!(!keys.contains(&"connection/line_kind"), "{keys:?}");
 }
 
-/// rc.2, F9: what a device is comes from what the model knows of it. On Golden A the valve terminal -201U1 is a PLC
-/// station of role valve terminal with a bus port, the MCB -101F1 is electrical and nothing else, a terminal of -X1032
+/// rc.2, F9: what a device is comes from what the model knows of it. On the sample the valve terminal -201K1 is a PLC
+/// station of role valve terminal with a bus port, the MCB -101F1 is electrical and nothing else, a terminal of -X1031
 /// is a terminal; the sheet's header carries the same natures.
 #[test]
 fn a_devices_natures_come_from_its_aspects_and_its_points() {
-    let s = golden();
+    let s = crate::common::sample();
     let natures = |tag: &str| s.device_natures(device(&s, tag)).expect("a device");
-    let vt = natures("-201U1");
+    let vt = natures("-201K1");
     assert_eq!(vt.station, Some(ew_schema::StationRole::ValveTerminal));
     assert!(vt.bus_device() && !vt.mechanical_only(), "{vt:?}");
     let mcb = natures("-101F1");
@@ -1193,7 +1188,7 @@ fn a_devices_natures_come_from_its_aspects_and_its_points() {
         mcb.electrical() && !mcb.fluid() && !mcb.bus_device() && !mcb.terminal,
         "{mcb:?}"
     );
-    let terminal = natures("-X1032:5");
+    let terminal = natures("-X1031:U");
     assert!(terminal.terminal && !terminal.fluid(), "{terminal:?}");
     let header = s.property_sheet(&[device(&s, "-101F1")]).header;
     assert_eq!(header.what.map(|w| w.natures), Some(mcb));
