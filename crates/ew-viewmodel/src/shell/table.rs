@@ -18,9 +18,9 @@
 use std::sync::Arc;
 
 use ew_api::output::table_edit::channel_text_cell;
-use ew_api::output::{InputError, NavKind, NavTable, StripEdit, StripEditError, Uuid};
+use ew_api::output::{InputError, NavKind, NavNode, NavTable, StripEdit, StripEditError, Uuid};
 use ew_api::{AnyCommand, Exposure, Submit};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use super::navigation::bump;
 use super::tools::Kept;
@@ -377,9 +377,32 @@ impl ShellModel {
         let node = &view.table.nodes[i as usize];
         match cell_reason(&view.table, node, col) {
             Some(reason) => Err(reason),
+            // A PLC channel's function text is the wired device's: every gesture sets it there.
+            None if channel_text_cell(&view.table, node, col).is_some() => {
+                match self.channel_device(&view.table, node, col) {
+                    Some(_) => Ok(("device".to_owned(), "function_text".to_owned())),
+                    None => Err(strings::text(key!("rack-channel-no-device")).to_owned()),
+                }
+            }
             None => strip_route(&view.table, node, col)
                 .or_else(|| view.table.columns[col].route.clone())
                 .ok_or_else(|| strings::text(key!("table-reason-no-command")).to_owned()),
+        }
+    }
+
+    /// The device wired to the channel of a PLC channel row's Function text cell ([`channel_text_cell`]), whose
+    /// function text the cell shows and sets; `None` for every other cell and for a channel nothing is wired to.
+    fn channel_device(&self, table: &NavTable, node: &NavNode, col: usize) -> Option<Uuid> {
+        let channel = channel_text_cell(table, node, col)??;
+        self.project_session()?.channel_row(channel)?.device
+    }
+
+    /// The records a cell of route kind `kind` sets: a PLC channel's Function text the wired device
+    /// ([`ShellModel::channel_device`]), every other cell its row's ([`row_targets`]).
+    fn cell_targets(&self, table: &NavTable, node: &NavNode, col: usize, kind: &str) -> Vec<Uuid> {
+        match channel_text_cell(table, node, col) {
+            Some(_) => self.channel_device(table, node, col).into_iter().collect(),
+            None => row_targets(node, kind),
         }
     }
 
@@ -421,7 +444,7 @@ impl ShellModel {
                 if k == STRIP_ROUTE {
                     strip_targets(&view.table, node, p)
                 } else {
-                    row_targets(node, k)
+                    self.cell_targets(&view.table, node, col, k)
                 }
             })
             .unwrap_or_default();
@@ -767,7 +790,10 @@ impl ShellModel {
                     cell.define = None;
                 }
                 Some(node) => {
-                    cell.targets = row_targets(node, &kind);
+                    cell.targets = match view.table.columns.iter().position(|c| c.key == cell.column) {
+                        Some(col) => self.cell_targets(&view.table, node, col, &kind),
+                        None => row_targets(node, &kind),
+                    };
                     // A potential defined meanwhile is set like any definition; one still without defines it.
                     cell.define = if cell.targets.is_empty() {
                         define_point(node, &kind, &path)
@@ -1097,22 +1123,6 @@ impl ShellModel {
         {
             self.close_edit(kind);
             return Outcome::Done;
-        }
-        // A PLC channel's function text, the wired device's, goes as in the station view; a refusal stays in the
-        // field.
-        if let Some(Some(channel)) = channel_text_cell(&view.table, &view.table.nodes[row as usize], col) {
-            let set = json!({"channel": channel.to_string(), "column": "function_text", "text": edit.buffer});
-            let out = self.dispatch("plc.rack_channel", &set);
-            match &out {
-                Outcome::Done => self.close_edit(kind),
-                Outcome::Failed { message } => {
-                    if let Some(m) = self.mode_mut(kind) {
-                        m.error = Some(message.clone());
-                    }
-                }
-                Outcome::Refused { .. } => {}
-            }
-            return out;
         }
         // A parse error stays in the field.
         let first = self.text_cell(&view, row, col, &edit.buffer);

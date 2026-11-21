@@ -57,7 +57,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
-- FT-1846 `ew-viewmodel, ew-api`: Paste and fill-down in the PLC grid's Function text column say "no command yet"; let both act on the wired device's function text, as typing does.
 - FT-1838 `ew-ui, ew-viewmodel`: F2 does not open a channel's cell in the station view's channel table; a click does.
 - FT-1823 `ew-viewmodel`: The overview page that a station's To do proposes takes a folio in the wiring section.
 - FT-1824 `ew-ui`: A toast can cover a To do button of the station view.

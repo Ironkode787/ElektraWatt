@@ -104,8 +104,9 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     None
 }
 
-/// A PLC channel row's Function text cell: its function text is the wired device's, typed in the cell as in the
-/// station view's channel table (`plc.rack_channel`), not through a route of the row's record. `Some(Some(channel))`
+/// A PLC channel row's Function text cell: its function text is the wired device's, which every gesture of the cell
+/// (typing, paste, fill down, clear) sets, as the station view's channel table does (`plc.rack_channel`), not through
+/// a route of the row's record. `Some(Some(channel))`
 /// for such a cell of a channel something is wired to (its Target cell names it), `Some(None)` for one of a channel
 /// nothing is wired to, `None` for every other cell.
 pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<Uuid>> {

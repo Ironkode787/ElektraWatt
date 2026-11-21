@@ -1204,7 +1204,7 @@ impl ShellModel {
 
     /// `plc.rack_channel {channel?, column?, text?, next?, cancel?}` (a symbol typed into the channel table did
     /// nothing): a channel's symbol (`column` `symbol`) or function text (`function_text`) of the module on show, or
-    /// (the PLC grid's cell) of any channel, set as Properties set them ([`ShellModel::set_channel_text`]). Without
+    /// of any channel of the project, set as Properties set them ([`ShellModel::set_channel_text`]). Without
     /// `text` the field opens on the
     /// cell; with it the cell takes the text, and with `next` the same cell of the next channel opens, so a card's
     /// channels are typed in one go. The function text is the wired device's (the PLC overview prints that): a channel
@@ -1297,8 +1297,9 @@ impl ShellModel {
 
     /// Sets the symbol (`column` `symbol`) or the function text (`function_text`) of the channel of `row` to `text`, as
     /// the PLC grid and Properties set them (`fields.set`): the symbol on the channel, the function text on the device
-    /// wired to it, in the project's language (its other languages stay). The station view's channel table and the PLC
-    /// grid both type them through here. A text equal to the one shown commits nothing. The refusal in words.
+    /// wired to it, in the project's language (its other languages stay). The station view's channel table types them
+    /// through here; the PLC grid's gestures set the same field (`shell/table.rs`). A text equal to the one shown
+    /// commits nothing. The refusal in words.
     pub(in crate::shell) fn set_channel_text(
         &mut self,
         row: &ew_api::output::RackChannel,

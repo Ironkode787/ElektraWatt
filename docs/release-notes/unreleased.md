@@ -255,6 +255,9 @@ change here.
   Supply comes in here… takes an empty field as not known (`ip.supply_in`, `external_ref.create`: `location` and
   `device` optional); EW-CORE-034 still asks for the cable and names the place by what is known (doc 06 §3.5,
   FT-1876)
+- behaviour-change: paste, fill down, pattern fill and clear in the PLC grid's Function text column set the function
+  text of the device wired to each channel, as typing does, one command per gesture; they said "no command yet", and
+  a channel nothing is wired to is refused in words (doc 10 §6, FT-1846)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
