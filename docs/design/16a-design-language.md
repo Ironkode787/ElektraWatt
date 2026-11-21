@@ -768,6 +768,15 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
   vertical stack of three 28-px icon buttons (Zoom in, Zoom out, Fit page) on `color.surface.raised`, `radius.md`,
   `elevation.1`.
 - **Toasts** appear at the canvas's top right (§6.10).
+- **Scroll bars** (FT-1830): along the canvas's right and bottom edges, `space.2` thick, a thumb in
+  `color.text.tertiary` (`color.text.secondary` under the pointer and while dragged) with `radius.pill`, standing for
+  the part of the page in view against the page and the room beyond it the view shows; shown only while part of the
+  page is out of view (P3: a fitted page has none), and a thumb dragged pans the view as far.
+- **The wheel's choice where the zoom is first met** (FT-1830): the plain mouse wheel zooms; its first zoom of a page
+  shows the one-time tip "The mouse wheel zooms the page. It can scroll the page instead, Ctrl with the wheel then
+  zooms (View ▸ Mouse wheel scrolls)." with the action Wheel scrolls the page, which turns the setting on. It is a tip
+  of FR-UI-048 (a toast with one action, once, off with View ▸ Show tips), shown to everyone, not only to a person
+  who comes from EPLAN or QET; a zoom by a button or a key shows none.
 
 *As built.* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` objects overlap here · click again to select the next" (`hud-stack`, the text as built). The tool strip's fields are on the tool options card (§5.2).
 

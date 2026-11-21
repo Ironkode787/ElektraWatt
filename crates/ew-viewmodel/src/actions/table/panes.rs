@@ -44,7 +44,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ))),
     keeps_banner(with_params(
-        "percent:json, x_mm?:mm, y_mm?:mm, group?:uint",
+        "percent:json, x_mm?:mm, y_mm?:mm, group?:uint, wheel?:bool",
         hidden(act(
             "view.zoom_to",
             View,

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The three one-time tips (FR-UI-048) for a user who comes from EPLAN or QET, each a toast with
-//! one action of the registry.
+//! The one-time tips (FR-UI-048), each a toast with one action of the registry: three for a user who comes from
+//! EPLAN or QET, and one for everyone, where the mouse wheel's zoom is first met (FT-1830).
 //!
 //! 1. A Line segment of the Graphic tool ending on a connection point: "Lines do not connect. Draw a wire instead."
 //!    with **Convert to connection** (`edit.undo` of the line, one undo step, then `tool.wire`).
@@ -12,8 +12,11 @@
 //!    page's row in the Pages table): "This page is generated from a report block." with **Show report block**
 //!    (`select.set` with the block, then `props.focus`).
 //!
-//! A tip is shown only while `tips` is on and first run's answer `comes_from` is `eplan` or `qet`, and at most once:
-//! its word enters `tips_seen` in `settings.toml` when it is shown.
+//! 4. The plain mouse wheel's first zoom of a page (a person who expects it to pan meets a zoom): "The mouse wheel
+//!    zooms the page." with **Wheel scrolls the page** (`view.wheel_scrolls {on: true}`, as View ▸ Mouse wheel scrolls).
+//!
+//! A tip is shown only while `tips` is on, the first three only while first run's answer `comes_from` is `eplan` or
+//! `qet`, and each at most once: its word enters `tips_seen` in `settings.toml` when it is shown.
 
 use ew_api::output::{NavKind, NavTable, PageTables, Uuid};
 use serde_json::{Value, json};
@@ -33,6 +36,8 @@ pub enum Tip {
     DerivedTag,
     /// An edit refused on a generated page.
     GeneratedPage,
+    /// The plain mouse wheel zoomed a page for the first time.
+    WheelZooms,
 }
 
 impl Tip {
@@ -42,6 +47,7 @@ impl Tip {
             Tip::LineOnCp => "line_on_cp",
             Tip::DerivedTag => "derived_tag",
             Tip::GeneratedPage => "generated_page",
+            Tip::WheelZooms => "wheel_zooms",
         }
     }
 
@@ -51,6 +57,7 @@ impl Tip {
             Tip::LineOnCp => key!("tip-line-on-cp"),
             Tip::DerivedTag => key!("tip-derived-tag"),
             Tip::GeneratedPage => key!("tip-generated-page"),
+            Tip::WheelZooms => key!("tip-wheel-zooms"),
         }
     }
 }
@@ -81,7 +88,7 @@ impl ShellModel {
     /// without a block is not shown).
     pub(super) fn offer_tip(&mut self, tip: Tip, select: Vec<Uuid>) {
         if !self.settings.tips
-            || !TIP_ORIGINS.contains(&self.settings.comes_from.as_str())
+            || (tip != Tip::WheelZooms && !TIP_ORIGINS.contains(&self.settings.comes_from.as_str()))
             || self.settings.tips_seen.iter().any(|w| w == tip.word())
         {
             return;
@@ -109,6 +116,13 @@ impl ShellModel {
             }
             Tip::DerivedTag => (
                 NoteAction::Renumber,
+                Validity::Session {
+                    epoch: project.epoch,
+                    select: Vec::new(),
+                },
+            ),
+            Tip::WheelZooms => (
+                NoteAction::WheelScrolls,
                 Validity::Session {
                     epoch: project.epoch,
                     select: Vec::new(),

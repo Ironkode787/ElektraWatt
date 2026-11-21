@@ -66,6 +66,8 @@ pub enum NoteAction {
     RouteHis,
     /// The Messages list, after a check that found something (FT-1761: the check's toast had no way to it).
     ShowMessages,
+    /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom (FT-1830).
+    WheelScrolls,
 }
 
 impl NoteAction {
@@ -91,6 +93,7 @@ impl NoteAction {
             NoteAction::GoTo => "go_to",
             NoteAction::RouteHis => "route_his",
             NoteAction::ShowMessages => "show_messages",
+            NoteAction::WheelScrolls => "wheel_scrolls",
         }
     }
 
@@ -116,6 +119,7 @@ impl NoteAction {
             "go_to" => Some(NoteAction::GoTo),
             "route_his" => Some(NoteAction::RouteHis),
             "show_messages" => Some(NoteAction::ShowMessages),
+            "wheel_scrolls" => Some(NoteAction::WheelScrolls),
             _ => None,
         }
     }
@@ -142,6 +146,7 @@ impl NoteAction {
             NoteAction::GoTo => key!("note-action-go-to-page"),
             NoteAction::RouteHis => key!("note-action-route-his"),
             NoteAction::ShowMessages => key!("note-action-show-messages"),
+            NoteAction::WheelScrolls => key!("note-action-wheel-scrolls"),
         }
     }
 }

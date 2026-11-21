@@ -472,6 +472,11 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.route_his_card()
             }
+            // The wheel tip's Wheel scrolls the page: the setting on; the toast is spent.
+            Some(NoteAction::WheelScrolls) => {
+                self.notes.dismiss(entry.serial);
+                self.dispatch("view.wheel_scrolls", &serde_json::json!({ "on": true }))
+            }
             // The check's Show messages: the Messages list in the bottom dock; the toast is spent.
             Some(NoteAction::ShowMessages) => {
                 self.notes.dismiss(entry.serial);

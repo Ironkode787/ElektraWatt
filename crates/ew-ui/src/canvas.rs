@@ -1512,6 +1512,7 @@ impl CanvasHost {
             events,
         );
         self.context_menu(&response, shell, canvas, group, events);
+        Self::scroll_bars(ui, rect, canvas, group, events);
         Self::potential_offer(&response, shell, canvas, group, events);
         Self::supply_panel(&response, shell, canvas, group, events);
         Self::list_foot(&response, shell, canvas, group, events);
@@ -2592,12 +2593,14 @@ impl CanvasHost {
             return;
         };
         let anchor = Self::sheet_point(rect, canvas, pos);
-        let zoom_to = |zoom: f64| {
+        let zoom_to = |zoom: f64, wheel: bool| {
             let (x, y) = mm(anchor);
-            Event::Action(
-                "view.zoom_to",
-                json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group}),
-            )
+            let mut p = json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group});
+            // A step of the plain wheel says so: the first one offers the wheel's other use (FT-1830).
+            if wheel {
+                p["wheel"] = json!(true);
+            }
+            Event::Action("view.zoom_to", p)
         };
         // A wheel line that pans moves the view as far as egui scrolls a line.
         let (line_pts, zoom_speed) = ui.ctx().options(|o| {
@@ -2654,6 +2657,7 @@ impl CanvasHost {
         view.wheel_lines += wheel;
         let mut zoom = canvas.zoom();
         let mut stepped = false;
+        let wheel_step = view.wheel_lines.abs() >= 1.0;
         while view.wheel_lines >= 1.0 {
             zoom = zoom_in_step(zoom);
             view.wheel_lines -= 1.0;
@@ -2691,7 +2695,7 @@ impl CanvasHost {
             stepped = true;
         }
         if stepped {
-            events.push(zoom_to(zoom));
+            events.push(zoom_to(zoom, wheel_step));
         }
         // Scroll in points (trackpads) and the drags pan.
         let mut pan = pan;
@@ -2705,6 +2709,80 @@ impl CanvasHost {
                 "view.pan",
                 json!({"dx": pan.x, "dy": pan.y, "group": group}),
             ));
+        }
+    }
+
+    /// The page's scroll bars (FT-1830, doc 16a §5.5): along the canvas's right and bottom edges, each thumb the part
+    /// of the page (and the room beyond it the view shows) that is in view, shown only while part of the page is out
+    /// of view; dragging a thumb pans the view as far (`view.pan`).
+    fn scroll_bars(ui: &Ui, rect: Rect, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
+        let t = crate::theme::current(ui.ctx());
+        let [x0, y0, x1, y1] = canvas.view_nm();
+        let (w, h) = canvas.sheet();
+        let k = canvas.points_per_nm();
+        let thick = t.space_2;
+        for vertical in [false, true] {
+            let (v0, v1, end) = if vertical { (y0, y1, h) } else { (x0, x1, w) };
+            if v0 <= 0 && v1 >= end {
+                continue;
+            }
+            let (lo, hi) = (v0.min(0), v1.max(end));
+            let extent = (hi - lo) as f32;
+            let track = if vertical {
+                Rect::from_min_max(
+                    Pos2::new(rect.right() - thick, rect.top()),
+                    Pos2::new(rect.right(), rect.bottom() - thick),
+                )
+            } else {
+                Rect::from_min_max(
+                    Pos2::new(rect.left(), rect.bottom() - thick),
+                    Pos2::new(rect.right() - thick, rect.bottom()),
+                )
+            };
+            let len = if vertical { track.height() } else { track.width() };
+            if extent <= 0.0 || len <= 0.0 {
+                continue;
+            }
+            let (a, b) = ((v0 - lo) as f32 / extent * len, (v1 - lo) as f32 / extent * len);
+            let thumb = if vertical {
+                Rect::from_min_max(
+                    Pos2::new(track.left(), track.top() + a),
+                    Pos2::new(track.right(), track.top() + b),
+                )
+            } else {
+                Rect::from_min_max(
+                    Pos2::new(track.left() + a, track.top()),
+                    Pos2::new(track.left() + b, track.bottom()),
+                )
+            };
+            let id = ui.scope_id().with(("canvas-scroll-bar", group, vertical));
+            let r = ui.interact(thumb, id, Sense::drag());
+            let name = ew_viewmodel::strings::text(if vertical {
+                ew_viewmodel::key!("canvas-scroll-vertical")
+            } else {
+                ew_viewmodel::key!("canvas-scroll-horizontal")
+            });
+            r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ScrollBar, true, name));
+            let colour = if r.hovered() || r.dragged() {
+                t.text_secondary
+            } else {
+                t.text_tertiary
+            };
+            ui.painter().rect_filled(
+                thumb.shrink(t.border_width * 2.0),
+                crate::theme::radius(t.radius_pill),
+                colour.color32(),
+            );
+            let d = if vertical { r.drag_delta().y } else { r.drag_delta().x };
+            if r.dragged() && d != 0.0 {
+                // The thumb moved `d` points along its track: the view moves as far across the page.
+                let points = -f64::from(d * extent / len) * k;
+                let (dx, dy) = if vertical { (0.0, points) } else { (points, 0.0) };
+                events.push(Event::Action(
+                    "view.pan",
+                    json!({"dx": dx, "dy": dy, "group": group}),
+                ));
+            }
         }
     }
 
