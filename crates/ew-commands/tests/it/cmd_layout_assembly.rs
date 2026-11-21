@@ -25,9 +25,9 @@ use ew_model::Model;
 use ew_model::fixture::*;
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, Clearance, Device, Enclosure, FnRole, Kind, LayoutSpace, LibCopy, LibDocument,
-    MountKind, MountingSurface, Part, PartRef, PartUse, Placement, Record, Slot, StructureNode, SurfaceKind,
-    TagScheme, TagSpec,
+    Carrier, Clearance, Device, Enclosure, FnRole, Kind, LayoutSpace, LibCopy, LibDocument, MountKind,
+    MountingSurface, Part, PartRef, PartUse, Placement, Record, Slot, StructureNode, SurfaceKind, TagScheme,
+    TagSpec,
 };
 use ew_units::{Nm, Pose3, Pt2, Quat9};
 use serde_json::{Value, json};

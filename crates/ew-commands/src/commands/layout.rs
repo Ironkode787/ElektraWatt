@@ -2831,9 +2831,7 @@ impl Command for CreateEnclosureFromPart {
                 None => None,
             })
             .collect();
-        let n = (1u32..)
-            .find(|n| !held.contains(&format!("UC{n}")))
-            .unwrap_or(1);
+        let n = (1u32..).find(|n| !held.contains(&format!("UC{n}"))).unwrap_or(1);
         let structure = StructureAssignment {
             location: Some(Slot::Node(self.location)),
             function: self.function.map(Slot::Node),
@@ -2876,7 +2874,6 @@ impl Command for CreateEnclosureFromPart {
         Ok(Outcome::primary((Kind::Enclosure, enclosure.cast())))
     }
 }
-
 
 /// The enclosure device or its plate device as `layout.enclosure.create_from_part` makes it: one piece of `part`.
 fn enclosure_device(

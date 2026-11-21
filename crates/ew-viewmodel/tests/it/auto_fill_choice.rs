@@ -92,7 +92,10 @@ fn the_form_ticks_the_cabinets_devices_and_leaves_the_field_unticked() {
             .unwrap_or_else(|| panic!("{tag} is offered: {:?}", table.rows))
     };
     assert!(tick("-104E1"), "the cabinet's own lamp");
-    assert!(tick("-104E2"), "a lamp without a location whose part goes on the rail");
+    assert!(
+        tick("-104E2"),
+        "a lamp without a location whose part goes on the rail"
+    );
     assert!(!tick("-104B1"), "a position switch is field equipment");
     assert!(!tick("-201M1"), "so is a cylinder");
 
@@ -132,7 +135,11 @@ fn a_script_names_the_devices_or_takes_the_guess() {
         "{message}"
     );
     // The guess: -104E1, and not the field devices.
-    done(&mut s, "layout.auto_fill_rail", json!({"rail": rail, "order": "dt"}));
+    done(
+        &mut s,
+        "layout.auto_fill_rail",
+        json!({"rail": rail, "order": "dt"}),
+    );
     assert!(placed(&s, "-104E1"));
     assert!(!placed(&s, "-104B1") && !placed(&s, "-201M1"));
     assert!(!in_cabinet(&s, "-201M1"));

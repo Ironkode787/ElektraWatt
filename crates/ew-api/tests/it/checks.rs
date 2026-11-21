@@ -67,12 +67,7 @@ fn the_sample_is_clean_under_pre_delivery() {
     let s = common::sample();
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     let by_rule = counts(&report);
-    assert_eq!(
-        by_rule,
-        BTreeMap::new(),
-        "{:#?}",
-        report.findings
-    );
+    assert_eq!(by_rule, BTreeMap::new(), "{:#?}", report.findings);
     assert_eq!((report.counts.errors, report.counts.warnings), (0, 0));
     assert_eq!(report.exit_code(), 0);
 }

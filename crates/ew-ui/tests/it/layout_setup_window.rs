@@ -448,8 +448,8 @@ fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
         h.query_all_by_label(ew_viewmodel::strings::text(ew_viewmodel::key!(
             "auto-fill-devices-all"
         )))
-            .next()
-            .is_some(),
+        .next()
+        .is_some(),
         "the devices' line"
     );
     assert!(

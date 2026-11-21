@@ -558,7 +558,9 @@ fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let pageless = rep.is_none()
         && page_id.is_none()
         && (dev.aspects.cable.is_some()
-            || q.table::<ew_schema::Enclosure>().iter().any(|(_, e)| e.device == id));
+            || q.table::<ew_schema::Enclosure>()
+                .iter()
+                .any(|(_, e)| e.device == id));
     let cell = || main_rep.and_then(|r| (*q.get::<RepAnchorCell>(r)).clone());
     let mut out = String::new();
     let mut rest = format;

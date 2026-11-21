@@ -153,7 +153,9 @@ fn messages_carry_the_check_run() {
         })
         .expect("the frozen tag");
     let report = session.check(&PRE_DELIVERY, CheckMode::Release);
-    let p = session.sql_projection(Some(&report)).expect("the projection builds");
+    let p = session
+        .sql_projection(Some(&report))
+        .expect("the projection builds");
     let reader = p.reader(Profile::EW_SQL).unwrap();
     let set = reader
         .query(
@@ -166,10 +168,7 @@ fn messages_carry_the_check_run() {
         .iter()
         .map(|r| r.iter().map(|v| v.text()).collect())
         .collect();
-    assert_eq!(
-        rows,
-[["EW-NUM-001", "info", "open", "+CAB-F1"]]
-    );
+    assert_eq!(rows, [["EW-NUM-001", "info", "open", "+CAB-F1"]]);
 }
 
 /// A modular valve terminal. The sample's -201K1 holds its four valve positions in its head; the set-up puts a module

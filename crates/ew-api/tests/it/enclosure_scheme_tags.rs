@@ -74,5 +74,9 @@ fn a_new_enclosure_and_its_plate_take_the_schemes_tags() {
         .filter(|f| f.rule == "EW-NUM-001" && f.is_open() && f.subject.starts_with("+FLD"))
         .map(|f| f.subject.as_str())
         .collect();
-    assert_eq!(deviating, Vec::<&str>::new(), "no tag of +FLD's enclosure deviates");
+    assert_eq!(
+        deviating,
+        Vec::<&str>::new(),
+        "no tag of +FLD's enclosure deviates"
+    );
 }

@@ -10,9 +10,9 @@ use crate::common;
 
 use ew_api::AnyCommand;
 use ew_api::output::PageFrameOf;
+use ew_derive::PageRef;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
-use ew_derive::PageRef;
 use ew_schema::{MountingSurface, Page};
 use serde_json::json;
 
@@ -21,7 +21,12 @@ const MM: i64 = 1_000_000;
 #[test]
 fn a_new_layout_stands_in_the_middle_of_a_frame_with_an_offset() {
     let mut s = common::sample();
-    let p902 = s.page_rows().into_iter().find(|r| r.folio == "902").expect("902").id;
+    let p902 = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == "902")
+        .expect("902")
+        .id;
     let plate = s
         .query()
         .table::<MountingSurface>()
@@ -62,9 +67,7 @@ fn a_new_layout_stands_in_the_middle_of_a_frame_with_an_offset() {
         Nm((5_291_667 + 174_625_000) / 2),
     );
 
-    let (x, y) = s
-        .centred_surface_datum(row.id, plate)
-        .expect("a centred datum");
+    let (x, y) = s.centred_surface_datum(row.id, plate).expect("a centred datum");
     s.execute(&AnyCommand {
         name: "page.surface_view.set".into(),
         params: json!({"page": row.id.to_string(), "surface": plate.to_string(), "datum_at": [x, y],
@@ -84,10 +87,7 @@ fn a_new_layout_stands_in_the_middle_of_a_frame_with_an_offset() {
         Nm((enclosure.min().x.0 + enclosure.max().x.0) / 2),
         Nm((enclosure.min().y.0 + enclosure.max().y.0) / 2),
     );
-    let off = (
-        (centre.x.0 - middle.x.0).abs(),
-        (centre.y.0 - middle.y.0).abs(),
-    );
+    let off = ((centre.x.0 - middle.x.0).abs(), (centre.y.0 - middle.y.0).abs());
     assert!(
         off.0 <= 1 && off.1 <= 1,
         "the enclosure's middle {centre:?} is the drawing area's {middle:?}"
