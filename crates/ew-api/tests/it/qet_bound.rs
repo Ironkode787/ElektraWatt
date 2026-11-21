@@ -364,7 +364,10 @@ fn a_wrong_row_refuses_the_map_in_words() {
     let lib = library().with_symbol_map_beside(&file).expect("the map reads");
     let r = import_qet("bound.qet", std::fs::read(&file).unwrap(), &lib);
     std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
-    let e = r.err().expect("refused").to_string();
+    let Err(e) = r else {
+        panic!("a row that does not fit the element refuses the import")
+    };
+    let e = e.to_string();
     assert!(
         e.contains("symbol-map.csv, line 2: coil.elmt has 2 terminals; the row names 1 connection points"),
         "{e}"
