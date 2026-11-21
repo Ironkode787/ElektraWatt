@@ -218,7 +218,11 @@ fn widen(q: &Q, pages: &[Id<Page>], fragment: &mut Fragment) {
     let devices = ids_of(fragment, Kind::Device);
     let mut added: Vec<Record> = Vec::new();
     for cable in &cables {
-        let Some(dev) = q.devices().get(*cable).filter(|_| !devices.contains(&cable.as_uuid())) else {
+        let Some(dev) = q
+            .devices()
+            .get(*cable)
+            .filter(|_| !devices.contains(&cable.as_uuid()))
+        else {
             continue;
         };
         added.push(Record::Device((**dev).clone()));
@@ -261,7 +265,11 @@ fn widen(q: &Q, pages: &[Id<Page>], fragment: &mut Fragment) {
     }
     // The report blocks embedded on the pages.
     for (_, block) in q.report_blocks().iter() {
-        if block.embedded.as_ref().is_some_and(|e| on_pages.contains(&e.page)) {
+        if block
+            .embedded
+            .as_ref()
+            .is_some_and(|e| on_pages.contains(&e.page))
+        {
             added.push(Record::ReportBlock((**block).clone()));
         }
     }
@@ -286,7 +294,12 @@ fn widen(q: &Q, pages: &[Id<Page>], fragment: &mut Fragment) {
 /// those whose copies continue points outside the copy, and those whose copies would join the points they were copied
 /// from (the group lies wholly on the pages, or a copied point is a source, and neither the rename nor a swapped
 /// structure node gives the copies a group of their own); each in natural order.
-fn ip_groups(q: &Q, fragment: &Fragment, rename: &[Rename], structure: &[NodeSwap]) -> (Vec<String>, Vec<String>) {
+fn ip_groups(
+    q: &Q,
+    fragment: &Fragment,
+    rename: &[Rename],
+    structure: &[NodeSwap],
+) -> (Vec<String>, Vec<String>) {
     let pairing = q.get::<IpPairingQ>(());
     let copied = ids_of(fragment, Kind::Function);
     let swapped: BTreeSet<Id<StructureNode>> = structure.iter().map(|s| s.from).collect();
@@ -336,7 +349,7 @@ fn left_out(q: &Q, pages: &[Id<Page>], fragment: &Fragment, rename: &[Rename]) -
         let functions = q
             .idx()
             .functions_of_device(d)
-            .any(|f| q.idx().reps_of_function(f).any(|r| elsewhere(r)));
+            .any(|f| q.idx().reps_of_function(f).any(&elsewhere));
         let terminals = q
             .idx()
             .terminals_of_strip(d)

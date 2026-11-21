@@ -189,14 +189,14 @@ fn a_script_copies_a_relay_a_strip_over_two_pages_and_a_cable_together() {
     let mut s = small_project(&tmp);
     let (on11, on12) = (labels(&mut s, "11"), labels(&mut s, "12"));
     let relay = device_of(&mut s, "11", COIL);
-    assert_eq!(device_of(&mut s, "12", CONTACT), relay, "the fixture: the contact is the relay's");
+    assert_eq!(
+        device_of(&mut s, "12", CONTACT),
+        relay,
+        "the fixture: the contact is the relay's"
+    );
     let before_cables = cables(&mut s);
     let before = rules(&mut s);
-    done(
-        &mut s,
-        "pages.copy",
-        json!({"pages": ["11", "12"], "offset": 10}),
-    );
+    done(&mut s, "pages.copy", json!({"pages": ["11", "12"], "offset": 10}));
     let card = s.properties().card().expect("the copy's card");
     assert!(matches!(card.origin, CardOrigin::PageCopy { .. }));
     assert_eq!(s.preview_summary().as_deref(), Some("Copy 2 pages: 11, 12"));
@@ -211,7 +211,11 @@ fn a_script_copies_a_relay_a_strip_over_two_pages_and_a_cable_together() {
         copy,
         "the copy's contact is the copy's relay's"
     );
-    let core_kinds: Vec<String> = common::tables(&s).connections.iter().map(|c| c.kind.clone()).collect();
+    let core_kinds: Vec<String> = common::tables(&s)
+        .connections
+        .iter()
+        .map(|c| c.kind.clone())
+        .collect();
     assert_eq!(core_kinds, ["core", "core"], "the copy's wires on 22 are cores");
     let after_cables = cables(&mut s);
     let (_, cores) = &before_cables[0];
@@ -313,7 +317,12 @@ fn paste_in_place_puts_the_block_where_it_was_copied() {
     let mut s = tmp.sample_in(Mode::Gui, true, "102");
     let breaker = |s: &ShellModel| {
         let t = common::tables(s);
-        let f1 = t.cps.iter().find(|c| c.label == "-102F1:1").expect("-102F1:1").rep;
+        let f1 = t
+            .cps
+            .iter()
+            .find(|c| c.label == "-102F1:1")
+            .expect("-102F1:1")
+            .rep;
         t.reps.iter().find(|r| r.id == f1).map(|r| (r.id, r.pos)).unwrap()
     };
     let (rep, pos) = breaker(&s);
@@ -343,7 +352,11 @@ fn a_text_in_the_header_band_does_not_refuse_the_paste() {
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("a frame");
     let rep = {
         let t = common::tables(&s);
-        t.cps.iter().find(|c| c.label == "-102F1:1").expect("-102F1:1").rep
+        t.cps
+            .iter()
+            .find(|c| c.label == "-102F1:1")
+            .expect("-102F1:1")
+            .rep
     };
     // The Text tool, half-way up the header band over the breaker.
     let at = (cp(&s, "-102F1:1").0, area[1] / 2);

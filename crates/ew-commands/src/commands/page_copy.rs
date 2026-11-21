@@ -217,7 +217,10 @@ impl CopyPages {
                 .into_iter()
                 .any(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed);
             if held || !printed_new.insert((section_id, printed.clone())) {
-                return Err(Self::invalid("/offset", text!("refusal-page-copy-folio-held", printed)));
+                return Err(Self::invalid(
+                    "/offset",
+                    text!("refusal-page-copy-folio-held", printed),
+                ));
             }
             if let Some(reason) = held_folio_problem(tx, section.map(|s| &**s), section_id, &printed) {
                 return Err(Self::invalid("/offset", reason));
@@ -314,7 +317,10 @@ impl CopyPages {
         let mut froms = BTreeSet::new();
         for (i, r) in self.rename.iter().enumerate() {
             if r.from.is_empty() {
-                return Err(Self::invalid(format!("/rename/{i}/from"), text!("refusal-page-copy-rename-empty")));
+                return Err(Self::invalid(
+                    format!("/rename/{i}/from"),
+                    text!("refusal-page-copy-rename-empty"),
+                ));
             }
             if !froms.insert(r.from.as_str()) {
                 return Err(Self::invalid(
@@ -326,7 +332,10 @@ impl CopyPages {
         let name = |old: &str| -> Result<Ident, CmdError> {
             let new = renamed(old, &self.rename);
             new.parse::<Ident>().map_err(|_| {
-                Self::invalid("/rename", text!("refusal-page-copy-rename-not-a-name", old, new.as_str()))
+                Self::invalid(
+                    "/rename",
+                    text!("refusal-page-copy-rename-not-a-name", old, new.as_str()),
+                )
             })
         };
         for v in &mut fragment.records {
@@ -372,15 +381,24 @@ impl Command for CopyPages {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.fragment.project.as_uuid() != tx.project().id.as_uuid() {
-            return Err(Self::invalid("/fragment/project", text!("refusal-page-copy-other-project")));
+            return Err(Self::invalid(
+                "/fragment/project",
+                text!("refusal-page-copy-other-project"),
+            ));
         }
         if self.fragment.pages.is_empty() {
-            return Err(Self::invalid("/fragment/pages", text!("refusal-page-copy-no-page")));
+            return Err(Self::invalid(
+                "/fragment/pages",
+                text!("refusal-page-copy-no-page"),
+            ));
         }
         let pages = self.pages()?;
         let (target, folios) = match (self.offset, self.after) {
             (Some(_), Some(_)) => {
-                return Err(Self::invalid("/offset", text!("refusal-page-copy-offset-and-after")));
+                return Err(Self::invalid(
+                    "/offset",
+                    text!("refusal-page-copy-offset-and-after"),
+                ));
             }
             (None, None) => return Err(Self::invalid("/offset", text!("refusal-page-copy-no-folios"))),
             (None, Some(after)) => {

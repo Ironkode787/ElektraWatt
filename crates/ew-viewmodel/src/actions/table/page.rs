@@ -132,16 +132,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "pages?:list(text), offset?:uint, after?:text, node?:text, code?:text, rename?:json",
         placed(
             place(Group::Order, 4, CommandSize::Small, None),
-            "files",
-            act(
-                "pages.copy",
-                Command,
-                Menu::Page,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_pages_copy(p),
-            ),
+            "copy",
+            act("pages.copy", Command, Menu::Page, &[], writable, None, |s, p| {
+                s.act_pages_copy(p)
+            }),
         ),
     ),
     act(

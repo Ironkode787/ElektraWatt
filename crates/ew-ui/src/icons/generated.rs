@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 146;
+pub const COUNT: usize = 147;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -52,6 +52,7 @@ pub enum IconId {
     clipboard_list,
     code,
     columns_3,
+    copy,
     cpu,
     cpu_2,
     current_location,
@@ -203,6 +204,7 @@ impl IconId {
         IconId::clipboard_list,
         IconId::code,
         IconId::columns_3,
+        IconId::copy,
         IconId::cpu,
         IconId::cpu_2,
         IconId::current_location,
@@ -354,6 +356,7 @@ pub const KEYS: [&str; COUNT] = [
     "clipboard-list",
     "code",
     "columns-3",
+    "copy",
     "cpu",
     "cpu-2",
     "current-location",
@@ -982,6 +985,24 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(9.0, 21.0),
         M(15.0, 3.0),
         L(15.0, 21.0),
+    ],
+    // copy
+    &[
+        M(7.0, 9.667),
+        C(7.0, 8.194, 8.194, 7.0, 9.667, 7.0),
+        L(18.333, 7.0),
+        C(19.806, 7.0, 21.0, 8.194, 21.0, 9.667),
+        L(21.0, 18.333),
+        C(21.0, 19.806, 19.806, 21.0, 18.333, 21.0),
+        L(9.667, 21.0),
+        C(8.194, 21.0, 7.0, 19.806, 7.0, 18.333),
+        L(7.0, 9.667),
+        M(4.012, 16.737),
+        C(3.388, 16.381, 3.002, 15.719, 3.0, 15.0),
+        L(3.0, 5.0),
+        C(3.0, 3.9, 3.9, 3.0, 5.0, 3.0),
+        L(15.0, 3.0),
+        C(15.75, 3.0, 16.158, 3.385, 16.5, 4.0),
     ],
     // cpu
     &[

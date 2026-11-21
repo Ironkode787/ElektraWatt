@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use egui::{Key, Modifiers, OutputCommand};
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_viewmodel::clipboard::ClipKind;
 use ew_viewmodel::ew_api::output::PageTables;
@@ -152,7 +152,15 @@ fn menu_paste_requests_the_system_clipboard() {
     let text = h.state().shell().clipboard().text().unwrap().to_owned();
     support::open_menu(&mut h, &["Edit"]);
     settle(&mut h);
-    h.get_by_label_contains("Paste").click();
+    // Paste, not Paste in place below it.
+    h.get_all_by_label_contains("Paste")
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| !l.contains("in place"))
+        })
+        .expect("Edit ▸ Paste")
+        .click();
     h.step();
     assert!(
         h.output().viewport_output.values().any(|v| v

@@ -1048,7 +1048,9 @@ impl ShellModel {
             // page macro.
             "" => {
                 let rows = self.page_rows();
-                p.get("pages").and_then(Value::as_array).is_some_and(|a| !a.is_empty())
+                p.get("pages")
+                    .and_then(Value::as_array)
+                    .is_some_and(|a| !a.is_empty())
                     || selection.iter().all(|id| rows.iter().any(|r| r.id == *id))
             }
             _ => return self.save_done(failed(key!("error-bad-param"), &["kind"])),

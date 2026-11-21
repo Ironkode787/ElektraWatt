@@ -101,7 +101,11 @@ impl PasteTool {
         let (a, b) = (cx.snapper.sheet_to_page((0, 0)), cx.snapper.sheet_to_page((w, h)));
         let sheet = [a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1)];
         self.fragment.ghost.iter().enumerate().any(|(i, g)| {
-            let area = if self.fragment.free.contains(&i) { sheet } else { area };
+            let area = if self.fragment.free.contains(&i) {
+                sheet
+            } else {
+                area
+            };
             let (x0, x1) = (
                 page.0.saturating_add(g[0].min(g[2])),
                 page.0.saturating_add(g[0].max(g[2])),

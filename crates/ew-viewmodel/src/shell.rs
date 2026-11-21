@@ -76,11 +76,11 @@ mod cables;
 mod box_pins;
 mod bulk;
 // Copy pages… (doc 06 §3.6).
-mod page_copy;
 mod delete;
 mod editing;
 mod find;
 mod interruption;
+mod page_copy;
 mod terminals;
 // Joining an existing device from the window.
 mod join;

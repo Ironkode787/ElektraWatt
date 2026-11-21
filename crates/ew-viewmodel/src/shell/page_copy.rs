@@ -11,9 +11,9 @@ use serde_json::{Map, Value};
 
 use super::forms::{FormDialog, FormField, FormTable};
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::properties::{Card, CardOrigin};
 use crate::strings;
-use crate::key;
 
 /// The action of Copy pages… (its form dispatches it).
 const ACTION: &str = "pages.copy";
@@ -54,7 +54,10 @@ impl ShellModel {
     /// The structure nodes of the project as the form offers them: the node's ID and its designation (`+CAB`), in
     /// the order of the designations, after "no node of its own".
     fn copy_node_options(&self) -> Vec<(String, String)> {
-        let mut out = vec![(String::new(), strings::text(key!("form-page-copy-node-none")).to_owned())];
+        let mut out = vec![(
+            String::new(),
+            strings::text(key!("form-page-copy-node-none")).to_owned(),
+        )];
         let Some(project) = &self.project else { return out };
         let q = project.session.query();
         let mut nodes: Vec<(String, String)> = q
@@ -76,7 +79,10 @@ impl ShellModel {
 
     /// The node a `node` parameter names: its ID (or alias), or its designation with its aspect's sign (`+CAB`).
     fn copy_node(&self, text: &str) -> Result<String, Outcome> {
-        let Some((_, aspect)) = super::creation::SIGNS.iter().find(|(sign, _)| text.starts_with(sign)) else {
+        let Some((_, aspect)) = super::creation::SIGNS
+            .iter()
+            .find(|(sign, _)| text.starts_with(sign))
+        else {
             return Ok(text.to_owned());
         };
         self.structure_node(aspect, text)
@@ -104,7 +110,9 @@ impl ShellModel {
         let pages = or_return!(self.macro_pages(p));
         let offset = or_return!(super::bulk::uint_param(p, "offset"));
         let text = |name: &str| -> Result<String, Outcome> {
-            Ok(string_param(p, name)?.map(|s| s.trim().to_owned()).unwrap_or_default())
+            Ok(string_param(p, name)?
+                .map(|s| s.trim().to_owned())
+                .unwrap_or_default())
         };
         let (after, node, code) = match (text("after"), text("node"), text("code")) {
             (Ok(a), Ok(n), Ok(c)) => (a, n, c),

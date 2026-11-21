@@ -204,7 +204,9 @@ impl ShellModel {
             CardOrigin::PageCopy { rows, .. } => rows.clone(),
             _ => Vec::new(),
         };
-        self.preview.notices.extend(preview.outcome().notices.iter().cloned());
+        self.preview
+            .notices
+            .extend(preview.outcome().notices.iter().cloned());
         let position = |page: Uuid| rows.iter().position(|r| r.id == page);
         let mut pages: Vec<usize> = preview
             .affected_pages()

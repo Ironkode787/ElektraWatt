@@ -299,6 +299,9 @@ pub struct App {
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
     request_paste: bool,
+    /// The system clipboard was asked for by Edit ▸ Paste in place: the platform's paste event in the next frame runs
+    /// `edit.paste_in_place` with its text instead of `edit.paste_clip`.
+    paste_in_place: bool,
     /// The IP tool's name field in the tool strip: `ip.name` on Enter.
     ip_name: String,
     /// Whether the IP tool's fields were shown in the last frame: the frame the tool is chosen in gives its name
@@ -401,6 +404,7 @@ impl App {
             window_zoom: None,
             applied_theme: None,
             request_paste: false,
+            paste_in_place: false,
             ip_name: String::new(),
             ip_shown: false,
             drawing_fields_epoch: None,
@@ -601,12 +605,13 @@ impl App {
             self.request_paste = true;
             return;
         }
-        if action == "edit.paste_clip"
+        if matches!(action, "edit.paste_clip" | "edit.paste_in_place")
             && params.get("text").is_none()
             && self.shell.paste_page_reason().is_none()
             && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
         {
             self.request_paste = true;
+            self.paste_in_place = action == "edit.paste_in_place";
             return;
         }
         if self.dispatch_log.len() == DISPATCH_LOG {
@@ -1522,6 +1527,8 @@ impl App {
     /// `ui.dismiss`. F1 is handled at the end of the frame, in every state. While a canvas has the
     /// focus, `[` and `]` are matched as the physical keys (no AltGr on QWERTZ and AZERTY, doc 16 §4.4).
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
+        // The platform answers the last frame's request for the clipboard in this frame, or not at all.
+        let paste_in_place = std::mem::take(&mut self.paste_in_place);
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
         // The junction sequence editor is a popup like the picker: Escape closes it, its own keys
@@ -1740,7 +1747,12 @@ impl App {
                     return;
                 }
                 Some(egui::Event::Paste(text)) => {
-                    events.push(routed(&self.shell, "edit.paste_clip", json!({ "text": text })));
+                    let action = if paste_in_place {
+                        "edit.paste_in_place"
+                    } else {
+                        "edit.paste_clip"
+                    };
+                    events.push(routed(&self.shell, action, json!({ "text": text })));
                     return;
                 }
                 _ => {}

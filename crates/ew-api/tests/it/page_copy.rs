@@ -156,7 +156,17 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     let terminals = |st: Id<Device>| -> BTreeSet<String> {
         q.idx()
             .terminals_of_strip(st)
-            .filter_map(|t| Some(q.devices().get(t)?.aspects.terminal.as_ref()?.designation.to_string()))
+            .filter_map(|t| {
+                Some(
+                    q.devices()
+                        .get(t)?
+                        .aspects
+                        .terminal
+                        .as_ref()?
+                        .designation
+                        .to_string(),
+                )
+            })
             .collect()
     };
     let strip_copy = copy_of
@@ -198,7 +208,9 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
         .collect();
     let at_copy = |e: &Endpoint| matches!(e, Endpoint::Cp(f, _) if copied_fns.contains(f));
     assert!(
-        q.table::<Bond>().iter().any(|(_, b)| at_copy(&b.a) && at_copy(&b.b)),
+        q.table::<Bond>()
+            .iter()
+            .any(|(_, b)| at_copy(&b.a) && at_copy(&b.b)),
         "the bond is copied"
     );
     drop(q);
@@ -229,7 +241,9 @@ fn a_copy_whose_points_would_join_their_originals_or_whose_folios_are_taken_is_r
     }
     let mut taken = spec(&s, rename());
     taken.folios = CopyFolios::Offset(1);
-    let plan = s.copy_pages(&taken).expect("composed: the folios are the command's");
+    let plan = s
+        .copy_pages(&taken)
+        .expect("composed: the folios are the command's");
     match run(&mut s, &plan.command) {
         Err(CmdError::InvalidParams { path, text, .. }) => {
             assert_eq!(path, "/offset");

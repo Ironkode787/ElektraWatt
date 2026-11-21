@@ -443,8 +443,11 @@ fn read_header<'c>(
     if let Some(free) = obj.get("free") {
         let n = member("ghost")?.as_array().map_or(0, Vec::len);
         let ok = free.as_array().is_some_and(|a| {
-            a.iter()
-                .all(|i| i.as_u64().and_then(|i| usize::try_from(i).ok()).is_some_and(|i| i < n))
+            a.iter().all(|i| {
+                i.as_u64()
+                    .and_then(|i| usize::try_from(i).ok())
+                    .is_some_and(|i| i < n)
+            })
         });
         if !ok {
             return Err(invalid(api_text!("refusal-fragment-free")));
