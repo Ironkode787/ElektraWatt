@@ -845,9 +845,28 @@ fn search_in(ask: &Ask<'_>, half: bool, window: Rect) -> Option<Found> {
 }
 
 /// `pts` cleaned, its corners next to the ends on the ends' coordinates (an end off the lattice): the corner after the
-/// first end takes the end's coordinate across the first segment, the corner before the last end the last end's.
+/// first end takes the end's coordinate across the first segment, the corner before the last end the last end's. A
+/// straight route between two ends that are not on one line (each off the lattice beside it) takes a jog at the grid
+/// line nearest its middle, so that it stays square.
 pub fn fit(pts: Vec<Pt>) -> Vec<Pt> {
     let mut pts = geom::clean(&pts);
+    if let [a, b] = pts[..]
+        && a.x != b.x
+        && a.y != b.y
+    {
+        let near = |v: i64| -> Tick {
+            let s = i64::from(TICKS_PER_STEP);
+            Tick::try_from((v + s / 2).div_euclid(s) * s).unwrap_or_default()
+        };
+        let mid = |p: Tick, q: Tick| near((i64::from(p) + i64::from(q)).div_euclid(2));
+        pts = if (b.y - a.y).abs() >= (b.x - a.x).abs() {
+            let y = mid(a.y, b.y);
+            vec![a, Pt::new(a.x, y), Pt::new(b.x, y), b]
+        } else {
+            let x = mid(a.x, b.x);
+            vec![a, Pt::new(x, a.y), Pt::new(x, b.y), b]
+        };
+    }
     let n = pts.len();
     if n >= 3 {
         let (a, b, c) = (pts[0], pts[1], pts[2]);

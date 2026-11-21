@@ -665,6 +665,10 @@ plan that routes one is offered although a text then lies across a wire that was
 step aside; the result names the wire); only a fault on such a wire refuses it. Before, one such text refused the
 whole plan and every wire stayed without a route.
 
+*Two ends nearly in line (FT-2010).* Where the search's route between two ends is straight on the lattice but the ends
+are not on one line (a pin off the grid a part of a step beside it, as a grid change leaves a symbol whose own spacing
+the new grid does not hold), the route steps across at the grid line nearest its middle; it was one slanted segment.
+
 Order: the remaining jobs by the city-block distance of their ends, shortest first, then by the first end's
 place, then by ID. Then at most `PASSES` passes in the same order: lift one wire, search it against all the
 others, keep the new route when its cost is lower. A pass that changes nothing ends the passes.
