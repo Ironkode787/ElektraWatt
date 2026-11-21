@@ -250,17 +250,15 @@ fn a_starter_coil_bound_to_an_output_channel_prints_its_address() {
     assert_eq!((count(&texts, "Q4.0"), count(&texts, "Q0.0")), (0, 1));
 }
 
-/// Golden A's lamp, position switch and 5/2 valve have a `PlcAddress` slot
-/// (0.2.0). Every valve on the valve-manifold folios 203 to 206 prints the address of the channel bound to its coil,
-/// the address folio 908 lists with that valve as its target; the unbound lamp and position switch of folio 101 print
-/// nothing, and none of Golden A's black boxes has a pin bound to a channel (its pins print their
-/// designations only). The exported bytes are held by the golden byte-equality and snapshot tests.
+/// The sample's lamp, position switch and 5/2 valve have a `PlcAddress` slot (0.2.0). Every device a channel is bound
+/// to prints that channel's address, the address folio 908 lists with that device as its target: the signal lamps
+/// and the position switch on 104, the valves on 201; the lamp of folio 102, bound to no channel, prints nothing. The
+/// PLC cards' pins print their designations with the addresses of their channels.
 #[test]
-fn golden_a_prints_the_valve_addresses_of_part_2() {
-    let golden = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-    let (s, _) = Session::open_read_only(std::path::Path::new(golden), "test").unwrap();
+fn the_sample_prints_the_addresses_of_its_bound_devices() {
+    let s = crate::common::sample();
     let q = s.query();
-    let mut with_slot: Vec<String> = q
+    let with_slot: Vec<String> = q
         .symbols()
         .iter()
         .filter(|(_, c)| {
@@ -271,29 +269,29 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
         })
         .filter_map(|(_, c)| c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
         .collect();
-    with_slot.sort();
-    assert_eq!(
-        with_slot,
-        [
-            "ew.iec.lamp@qet10",
-            "ew.iec.position-switch-no@qet10",
-            // FT-1734: the terminal has the slot; Golden A has no terminal on a traced path, so it prints nothing.
-            "ew.iec.terminal@qet10",
-            "ew.iso.valve-5-2-sol-spring@qet10"
-        ]
-    );
+    // The symbols of the bound devices have the slot (the library gives it to more: the coil, the push buttons).
+    for key in [
+        "ew.iec.lamp@qet10",
+        "ew.iec.position-switch-no@qet10",
+        // FT-1734: the terminal has the slot; the sample has no terminal on a traced path, so it prints nothing.
+        "ew.iec.terminal@qet10",
+        "ew.iso.valve-5-2-sol-spring@qet10",
+    ] {
+        assert!(with_slot.iter().any(|k| k == key), "{key}: {with_slot:?}");
+    }
     // What the PlcAddress slots print: (device, text), with the folio of each.
     let mut printed: Vec<(Id<Device>, String)> = Vec::new();
     let mut folios: Vec<u32> = Vec::new();
+    let mut pin_addresses = 0;
     for (page, p) in q.pages().iter() {
         let slots = q.get::<ew_api::output::PageSlotsOf>(page);
-        // The black boxes' pins print their CP designations only, no address.
-        assert!(
-            slots
-                .iter()
-                .all(|(_, _, pins)| pins.iter().all(|p| !p.text.contains(' '))),
-            "{page}"
-        );
+        // A black box's pin prints its CP designation, and after one space the address of the channel bound to it.
+        for pin in slots.iter().flat_map(|(_, _, pins)| pins.iter()) {
+            if let Some((_, address)) = pin.text.split_once(' ') {
+                assert!(address.starts_with('I') || address.starts_with('Q'), "{page}: {}", pin.text);
+                pin_addresses += 1;
+            }
+        }
         for (rep, values, _) in slots.iter() {
             let rep = q.reps().get(*rep).unwrap();
             let symbol = q.symbols().get(rep.symbol).unwrap();
@@ -313,7 +311,8 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
     printed.sort();
     folios.sort_unstable();
     folios.dedup();
-    assert_eq!(folios, [203, 204, 205, 206]);
+    assert_eq!(folios, [104, 201]);
+    assert!(pin_addresses > 0, "the PLC cards' pins print their channels' addresses");
     // The PLC overview's rows (folio 908): each channel bound to a device, with its printed address.
     let mut listed: Vec<(Id<Device>, String)> = Vec::new();
     for (station, d) in q.devices().iter() {
@@ -328,6 +327,6 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
         }
     }
     listed.sort();
-    assert!(listed.iter().any(|(_, t)| t == "Q0.1") && listed.iter().any(|(_, t)| t == "Q6.7"));
+    assert!(listed.iter().any(|(_, t)| t == "I0.1") && listed.iter().any(|(_, t)| t == "Q0.6"));
     assert_eq!(printed, listed);
 }

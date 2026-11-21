@@ -3,7 +3,7 @@
 
 //! FR-PLC-008: a profile file put into a library is chosen by `plc.set_profile` without a code change.
 //! A fixture library holds a third absolute profile (`%Q0.1`-style, its own `profile.id`); the command-log line that
-//! pins it embeds it first (D8), Golden A's configuration project's channels then render in it, and the project,
+//! pins it embeds it first (D8), the sample's configuration project's channels then render in it, and the project,
 //! saved and reopened without the library, still renders them from its copy. T1 (a name at hand neither built in nor
 //! held) and T2 (a profile file that does not render: refused by `library.embed`, left out of the profiles at hand,
 //! noted in the library's listing) are asserted whole.
@@ -20,8 +20,6 @@ use ew_derive::{ChannelAddr, ChannelAddresses, Q};
 use ew_ids::{Id, Uuid};
 use ew_schema::{Device, LibDocument, PlcConfigProject};
 use serde_json::{Value, json};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
 /// The built-in TIA profile file with another pin and notation: `fixture-absolute@1`, `%Q0.1` on the drawing.
 fn fixture_profile(library: Uuid, id: &str, edit: impl FnOnce(&mut Value)) -> LibDocument {
@@ -92,9 +90,9 @@ fn cfg(s: &Session) -> Uuid {
     *one
 }
 
-/// The rendered addresses of module -201U3's channels.
+/// The rendered addresses of the valve terminal -201K1's channels.
 fn module_texts(s: &Session) -> Vec<String> {
-    let module = s.resolve_reference("tag:-201U3").unwrap();
+    let module = s.resolve_reference("tag:-201K1").unwrap();
     let q: Q = s.query();
     q.get::<ChannelAddresses>(Id::<Device>::from_uuid(module))
         .iter()
@@ -126,14 +124,14 @@ fn refusal(e: &CmdError) -> String {
 fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project() {
     let root = Tmp(ew_testdir::fresh_dir("ew-api-plc-profiles"));
     let (t, lib) = library(&root.0);
-    let dir = root.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = root.0.join("sample.ew");
+    copy_dir(Path::new(ew_testdir::SAMPLE), &dir);
     let mut s = open(&dir, &root.0, Some(t.clone()));
     let cfg = cfg(&s);
     assert_eq!(
         module_texts(&s)[1],
         "Q0.1",
-        "the built-in TIA profile Golden A pins"
+        "the built-in TIA profile the sample pins"
     );
 
     // T1: a name neither built in nor held, nor in a library.
@@ -238,8 +236,8 @@ fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {
         v["mnemonics"]["area"]["Q"] = json!("A");
     });
     reg.write(lib, &[edited]).unwrap();
-    let dir = root.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = root.0.join("sample.ew");
+    copy_dir(Path::new(ew_testdir::SAMPLE), &dir);
     let mut s = open(&dir, &root.0, Some(t));
     assert_eq!(module_texts(&s)[1], "Q0.1", "the built-in before the embed");
     let copy = s.libraries().documents(lib, ew_schema::Kind::PlcProfile);
@@ -250,7 +248,7 @@ fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {
     .unwrap();
 
     assert_eq!(&module_texts(&s)[..2], ["A0.0", "A0.1"]);
-    let module = s.resolve_reference("tag:-201U3").unwrap();
+    let module = s.resolve_reference("tag:-201K1").unwrap();
     let channel = s.query().get::<ChannelAddresses>(Id::<Device>::from_uuid(module))[2]
         .channel
         .as_uuid();

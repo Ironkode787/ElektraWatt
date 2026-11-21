@@ -1,18 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A (AC-29): the start command re-addresses
-//! one module with one recompute of its channel addresses and one undo step; the profile command changes the printed
-//! notation and nothing else in the files; EW-PLC-012 reports the 28 coil bindings under the part map H1 and none
-//! under H2; the tag form of `plc.bind_channel`.
-
-use crate::golden_common;
+//! On the sample (AC-29): the start command re-addresses one module with one recompute of its channel addresses and
+//! one undo step; the profile command changes the printed notation and nothing else in the files; EW-PLC-012 reports
+//! none of the valve terminal's four coil bindings under its part's map and all four under the swapped map; the tag
+//! form of `plc.bind_channel`. The modules: the CPU -104A1's input card -104A1-A1 and output card -104A1-A2, and the
+//! valve terminal -201K1 with its eight outputs.
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{AnyCommand, Origin, Session};
 use ew_derive::{ChannelAddr, ChannelAddresses, ModuleOrder, Q};
 use ew_ids::Id;
-use ew_schema::{Channel, Device, Kind, LibDocument, PlcConfigProject, Record};
+use ew_schema::{Channel, Device, Kind, LibDocument, PlcConfigProject};
 use serde_json::{Value, json};
 
 fn run(s: &mut Session, name: &str, params: Value) {
@@ -27,9 +26,17 @@ fn device(s: &Session, tag: &str) -> Id<Device> {
     Id::from_uuid(s.resolve_reference(tag).unwrap_or_else(|e| panic!("{tag}: {e}")))
 }
 
+/// Replays command-log text as origin `cmdlog:ft721`; the number of lines that committed.
+fn run_log(s: &mut Session, text: &str) -> Result<usize, String> {
+    let log = ew_api::CmdLog::parse(text).map_err(|e| e.to_string())?;
+    s.run_script(&log, "ft721")
+        .map(|r| r.len())
+        .map_err(|e| e.to_string())
+}
+
 fn cfg(q: &Q) -> Id<PlcConfigProject> {
     let cfgs: Vec<Id<PlcConfigProject>> = q.table::<PlcConfigProject>().iter().map(|(id, _)| id).collect();
-    assert_eq!(cfgs.len(), 1, "Golden A has one configuration project");
+    assert_eq!(cfgs.len(), 1, "the sample has one configuration project");
     cfgs[0]
 }
 
@@ -52,14 +59,13 @@ fn all_texts(q: &Q) -> Vec<(Id<Device>, Vec<String>)> {
         .collect()
 }
 
-/// PA-1, PA-6 (D8, D9): `plc.set_start` gives -201U5 the output start Q10; its eight channels print Q10.0 … Q10.7,
-/// the other modules keep their addresses, `channel_addresses` runs once (the module's own), and one undo restores
-/// every address.
+/// PA-1, PA-6 (D8, D9): `plc.set_start` gives -104A1-A2 the output start Q10; its eight channels print Q10.0 …
+/// Q10.7, the other modules keep their addresses, `channel_addresses` runs once (the module's own), and one undo
+/// restores every address.
 #[test]
 fn a_start_re_addresses_one_module_in_one_step() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
-    let u5 = device(&s, "-201U5");
+    let mut s = crate::common::sample();
+    let u5 = device(&s, "-104A1-A2");
     let before = all_texts(&s.query());
     run(
         &mut s,
@@ -71,7 +77,7 @@ fn a_start_re_addresses_one_module_in_one_step() {
     assert_eq!(
         stats.family("channel_addresses").re_executions,
         1,
-        "only -201U5's channel addresses run again"
+        "only -104A1-A2's channel addresses run again"
     );
     for ((m, b), (m2, a)) in before.iter().zip(&after) {
         assert_eq!(m, m2);
@@ -90,9 +96,8 @@ fn a_start_re_addresses_one_module_in_one_step() {
 /// PA-1's refusals: a start of the other direction's area, and a text that is no start.
 #[test]
 fn a_start_of_the_wrong_area_is_refused() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
-    let u5 = device(&s, "-201U5");
+    let mut s = crate::common::sample();
+    let u5 = device(&s, "-104A1-A2");
     for (spec, want) in [
         ("I10", "is not an output start"),
         ("Q10.3", "is not a start of profile"),
@@ -111,8 +116,7 @@ fn a_start_of_the_wrong_area_is_refused() {
 /// the configuration project's `profile`.
 #[test]
 fn the_iec_profile_changes_the_notation_only() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let before_world = s.world();
     let before = all_texts(&s.query());
     let c = cfg(&s.query());
@@ -155,15 +159,14 @@ fn the_iec_profile_changes_the_notation_only() {
 /// `%QX20.1`; a unit address without its size (`%Q20`) is refused with the profile's example.
 #[test]
 fn the_iec_profile_reads_a_bit_without_its_size() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let c = cfg(&s.query());
     run(
         &mut s,
         "plc.set_profile",
         json!({"config_project": c.to_string(), "profile": "iec-61131-3"}),
     );
-    let u5 = device(&s, "-201U5");
+    let u5 = device(&s, "-104A1-A2");
     let ch = channel(&s.query(), u5, 1);
     run(
         &mut s,
@@ -180,14 +183,23 @@ fn the_iec_profile_reads_a_bit_without_its_size() {
     assert!(format!("{err}").contains("%QX0.1"), "{err}");
 }
 
-/// Golden A's library with the solenoid-position map of part 533361 replaced by `map` (H2 swaps solenoids 14 and 12).
+/// The part of the sample's valve terminal.
+const VALVE_TERMINAL: &str = "EW-GEN-VTM-1";
+
+/// The valve terminal's solenoid-position map with solenoids 14 and 12 swapped: 14 on the odd channel of its position,
+/// where the sample binds every valve's coil 14 to the even one.
+fn swapped() -> Value {
+    json!([{"solenoid": "14", "channel": "2p+1"}, {"solenoid": "12", "channel": "2p"}])
+}
+
+/// The sample's library with the solenoid-position map of the valve terminal's part replaced by `map`.
 fn lib_with_map(lib: &[LibDocument], map: &Value) -> Vec<LibDocument> {
     lib.iter()
         .map(|d| {
             let LibDocument::Part(p) = d else {
                 return d.clone();
             };
-            if p.item.part_number.as_str() != "533361" {
+            if p.item.part_number.as_str() != VALVE_TERMINAL {
                 return d.clone();
             }
             let mut v = serde_json::to_value(d).expect("a document");
@@ -205,87 +217,75 @@ fn plc_012(s: &Session) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// AC-29 (D10, EF-02): under map H1 (14 → 2p, 12 → 2p + 1) EW-PLC-012 reports the 28 coil bindings on the odd bits,
-/// each with the rebind quick fix; under H2 (14 → 2p + 1) it reports none; folio 908 prints the same rows either way.
-/// PA-5: a `plc` section of confidence `test` marks the findings.
+/// The sample over `lib`.
+fn sample_over(lib: impl FnOnce(&[LibDocument]) -> Vec<LibDocument>) -> Session {
+    let (project, records, sample_lib) = crate::common::sample_records();
+    crate::common::session_of(project, records, lib(&sample_lib))
+}
+
+/// The sample with the valve terminal's map swapped.
+fn swapped_sample() -> Session {
+    sample_over(|lib| lib_with_map(lib, &swapped()))
+}
+
+/// The subject's channel of an EW-PLC-012 finding: what follows the last `-201K1:`.
+fn on_channel(f: &ew_api::checks::Finding, number: u16) -> bool {
+    f.subject.ends_with(&format!("-201K1:{number}"))
+}
+
+/// AC-29 (D10, EF-02): under the part's own map (14 → 2p, 12 → 2p + 1) EW-PLC-012 reports none of the valve
+/// terminal's coil bindings; under the swapped map (14 → 2p + 1) it reports the four, each with the rebind quick fix;
+/// folio 908 prints the same rows either way. PA-5: a `plc` section of confidence `test` marks the findings.
 #[test]
 fn ac29_ew_plc_012_follows_the_part_map() {
-    let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
-    let h1 = plc_012(&s);
-    assert_eq!(h1.len(), 28, "{h1:#?}");
-    assert!(h1.iter().all(|f| f.discriminator == "binding"
+    let s = crate::common::sample();
+    assert!(plc_012(&s).is_empty(), "{:#?}", plc_012(&s));
+    let s2 = swapped_sample();
+    let h2 = plc_012(&s2);
+    assert_eq!(h2.len(), 4, "the four valves: {h2:#?}");
+    assert!(h2.iter().all(|f| f.discriminator == "binding"
         && f.fix.as_ref().is_some_and(|x| x.command == "plc.bind_channel")
         && !f.unverified_data));
-    let first = h1
-        .iter()
-        .find(|f| f.subject == "=P01+J-E-2416-201U5:1")
-        .expect("a finding on -201U5:1");
-    assert!(
-        first.message.contains("assigns to =P01+J-E-2416-201U5:0"),
-        "{}",
-        first.message
-    );
-
-    let session_over = |lib: Vec<LibDocument>| {
-        let mut project = None;
-        let mut records = Vec::new();
-        for r in &batch.records {
-            match r {
-                Record::Project(p) => project = Some(p.clone()),
-                other => records.push(other.clone()),
-            }
-        }
-        Session::from_records(
-            project.expect("the project"),
-            records,
-            lib,
-            ew_api::SessionOptions::default(),
-        )
-        .expect("the edited batch")
-    };
-    let h2 = json!([{"solenoid": "14", "channel": "2p+1"}, {"solenoid": "12", "channel": "2p"}]);
-    let s2 = session_over(lib_with_map(&batch.lib, &h2));
-    assert!(plc_012(&s2).is_empty(), "{:#?}", plc_012(&s2));
+    let first = h2.iter().find(|f| on_channel(f, 0)).expect("a finding on -201K1:0");
+    assert!(first.message.contains("-201K1:1"), "{}", first.message);
     assert_eq!(
         all_texts(&s2.query()),
         all_texts(&s.query()),
         "the addresses do not follow the map"
     );
 
-    // PA-5: the same H1 data marked `test`
-    let marked: Vec<LibDocument> = batch
-        .lib
-        .iter()
-        .map(|d| match d {
-            LibDocument::Part(p) if p.item.part_number.as_str() == "533361" => {
-                let mut v = serde_json::to_value(d).expect("a document");
-                v["meta"]["confidence"] = json!({"plc": "test"});
-                LibDocument::from_value(v).expect("the marked part")
-            }
-            other => other.clone(),
-        })
-        .collect();
-    let s3 = session_over(marked);
+    // PA-5: the same swapped data marked `test`
+    let s3 = sample_over(|lib| {
+        lib_with_map(lib, &swapped())
+            .into_iter()
+            .map(|d| match &d {
+                LibDocument::Part(p) if p.item.part_number.as_str() == VALVE_TERMINAL => {
+                    let mut v = serde_json::to_value(&d).expect("a document");
+                    v["meta"]["confidence"] = json!({"plc": "test"});
+                    LibDocument::from_value(v).expect("the marked part")
+                }
+                _ => d,
+            })
+            .collect()
+    });
     let f = plc_012(&s3);
-    assert_eq!(f.len(), 28);
+    assert_eq!(f.len(), 4);
     assert!(f.iter().all(|f| f.unverified_data));
 }
 
 /// The rebind quick fix of a finding commits, and the finding is gone; the binding moves to the map's channel.
 #[test]
 fn the_rebind_fix_clears_its_finding() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = swapped_sample();
     let f = plc_012(&s)
         .into_iter()
-        .find(|f| f.subject == "=P01+J-E-2416-201U5:1")
+        .find(|f| on_channel(f, 0))
         .expect("the finding");
     let fix = f.fix.expect("a fix");
     run(&mut s, &fix.command, fix.params);
     let after = plc_012(&s);
-    assert_eq!(after.len(), 27);
-    assert!(after.iter().all(|f| f.subject != "=P01+J-E-2416-201U5:1"));
+    assert_eq!(after.len(), 3);
+    assert!(after.iter().all(|f| !on_channel(f, 0)));
 }
 
 /// The ID of channel `number` of `module`.
@@ -302,11 +302,10 @@ fn channel(q: &Q, module: Id<Device>, number: u16) -> Id<Channel> {
 /// ambiguous name stops the replay and lists candidates.
 #[test]
 fn bind_channel_takes_tags() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = swapped_sample();
     let f = plc_012(&s)
         .into_iter()
-        .find(|f| f.subject == "=P01+J-E-2416-201U5:1")
+        .find(|f| on_channel(f, 0))
         .expect("the finding");
     let coil = f
         .targets
@@ -327,71 +326,70 @@ fn bind_channel_takes_tags() {
         .as_ref()
         .map(|t| t.short().to_owned())
         .expect("a tag");
-    let u5 = device(&s, "-201U5");
+    let u5 = device(&s, "-201K1");
 
-    for (form, channel_text) in [("number", "-201U5#0"), ("designation", "-201U5:0")] {
+    for (form, channel_text) in [("number", "-201K1#1"), ("designation", "-201K1:1")] {
         let log = format!(
             "{{\"$schema\":\"ew.cmdlog/1\"}}\n{{\"cmd\":\"plc.bind_channel\",\"params\":{{\"channel\":\"{channel_text}\",\
              \"endpoint\":{{\"cp\":{{\"function\":\"{valve_tag}\",\"designation\":\"14\"}}}}}}}}\n"
         );
-        golden_common::run_log(&mut s, &log, "ft721").unwrap_or_else(|e| panic!("{form}: {e}"));
+        run_log(&mut s, &log).unwrap_or_else(|e| panic!("{form}: {e}"));
         let q = s.query();
         let bound = q
             .table::<Channel>()
-            .get(channel(&q, u5, 0))
+            .get(channel(&q, u5, 1))
             .and_then(|c| c.binding.clone());
         assert_eq!(
             bound,
             Some(ew_schema::Endpoint::Cp(coil.cast(), 0)),
-            "{form}: channel 0 binds the coil CP 14 (the coil function's CP 0, WP-S1.20 D5)"
+            "{form}: channel 1 binds the coil CP 14 (the coil function's CP 0, WP-S1.20 D5)"
         );
-        assert!(plc_012(&s).iter().all(|f| f.subject != "=P01+J-E-2416-201U5:1"));
+        assert!(plc_012(&s).iter().all(|f| !on_channel(f, 0)));
         s.undo(&Origin::CmdLog { file: "ft721".into() }).expect("undo");
     }
 
     for (channel_text, function_text, want) in [
-        ("-201U5#9", valve_tag.as_str(), "has no channel 9"),
+        ("-201K1#9", valve_tag.as_str(), "has no channel 9"),
         (
-            "-201U5:X",
+            "-201K1:X",
             valve_tag.as_str(),
-            "no channel of -201U5 is designated `X`",
+            "no channel of -201K1 is designated `X`",
         ),
         ("-999U9#0", valve_tag.as_str(), "no device prints this tag"),
-        ("-201U5#0", "-999Y9", "no device prints this tag"),
+        ("-201K1#1", "-999Y9", "no device prints this tag"),
     ] {
         let log = format!(
             "{{\"$schema\":\"ew.cmdlog/1\"}}\n{{\"cmd\":\"plc.bind_channel\",\"params\":{{\"channel\":\"{channel_text}\",\
              \"endpoint\":{{\"cp\":{{\"function\":\"{function_text}\",\"designation\":\"14\"}}}}}}}}\n"
         );
-        let err = golden_common::run_log(&mut s, &log, "ft721").expect_err(channel_text);
+        let err = run_log(&mut s, &log).expect_err(channel_text);
         assert!(err.contains(want), "{channel_text} {function_text}: {err}");
     }
 }
 
-/// FR-PLC-009: under the tag-based `rockwell-logix` profile a channel prints from its station and slot (Golden A has no
-/// CPU, so -201U1 is a remote adapter named by its tag), and a slot change re-renders the module's addresses.
+/// FR-PLC-009: under the tag-based `rockwell-logix` profile a channel prints from its station and slot, and a slot
+/// change re-renders the module's addresses: the input card moved to slot 9, the output card after it moves up.
 #[test]
 fn the_rockwell_profile_renders_from_the_station_and_the_slot() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let c = cfg(&s.query());
     run(
         &mut s,
         "plc.set_profile",
         json!({"config_project": c.to_string(), "profile": "rockwell-logix"}),
     );
-    let u5 = device(&s, "-201U5");
-    assert_eq!(texts(&s.query(), u5)[1], "_201U1:3:O.Data.1");
+    let u5 = device(&s, "-104A1-A1");
+    assert_eq!(texts(&s.query(), u5)[1], "Local:1:I.Data.1");
     run(
         &mut s,
         "fields.set",
         json!({"kind": "device", "targets": [u5.to_string()], "path": "plc_module.slot", "value": {"rack": {"rack": 0, "slot": 9}}}),
     );
     let q = s.query();
-    assert_eq!(texts(&q, u5)[1], "_201U1:9:O.Data.1");
+    assert_eq!(texts(&q, u5)[1], "Local:9:I.Data.1");
     assert_eq!(
-        texts(&q, device(&s, "-201U6"))[0],
-        "_201U1:3:O.Data.0",
+        texts(&q, device(&s, "-104A1-A2"))[0],
+        "Local:1:O.Data.0",
         "the next positional module moves up"
     );
     let err = s
@@ -454,8 +452,7 @@ fn manual_texts(q: &Q, module: Id<Device>) -> Vec<(u16, String)> {
 /// while its spare channels follow the start. Undo restores `auto`.
 #[test]
 fn freezing_keeps_every_printed_address() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let before = all_texts(&s.query());
     let c = cfg(&s.query());
     let receipt = bulk(&mut s, "plc.freeze", json!({"config_project": c.to_string()}));
@@ -502,15 +499,14 @@ fn freezing_keeps_every_printed_address() {
     );
 }
 
-/// FR-PLC-014: `plc.readdress` turns -201U5's manual start back to `auto`, its preview lists the eight changed
+/// FR-PLC-014: `plc.readdress` turns -104A1-A2's manual start back to `auto`, its preview lists the eight changed
 /// addresses with old and new text, and one undo restores the manual start; `plc.convert_manual_to_auto` drops a
-/// manual start equal to the automatic one and keeps (and names) one that differs.
+/// manual start equal to the automatic one (the input card's I0) and keeps (and names) one that differs.
 #[test]
 fn readdress_and_convert_manual_to_auto() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let before = all_texts(&s.query());
-    let (u5, u6) = (device(&s, "-201U5"), device(&s, "-201U6"));
+    let (u5, u6) = (device(&s, "-104A1-A2"), device(&s, "-104A1-A1"));
     run(
         &mut s,
         "plc.set_start",
@@ -526,7 +522,7 @@ fn readdress_and_convert_manual_to_auto() {
     let notices = preview.outcome().notices.clone();
     assert_eq!(notices.len(), 8, "{notices:?}");
     assert!(
-        notices.contains(&"channel 3 of -201U5: Q10.3 → Q2.3".to_owned()),
+        notices.contains(&"channel 3 of -104A1-A2: Q10.3 → Q1.3".to_owned()),
         "{notices:?}"
     );
     bulk(&mut s, "plc.readdress", json!({"config_project": c.to_string()}));
@@ -534,11 +530,11 @@ fn readdress_and_convert_manual_to_auto() {
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(texts(&s.query(), u5)[0], "Q10.0");
 
-    // -201U6 keeps Q3 under auto, so a manual Q3 is dropped; -201U5's manual Q10 stays
+    // -104A1-A1 keeps I0 under auto, so a manual I0 is dropped; -104A1-A2's manual Q10 stays
     run(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u6.to_string()], "dir": "output", "spec": "Q3"}),
+        json!({"modules": [u6.to_string()], "dir": "input", "spec": "I0"}),
     );
     let receipt = bulk(
         &mut s,
@@ -547,17 +543,17 @@ fn readdress_and_convert_manual_to_auto() {
     );
     assert_eq!(
         receipt.outcome.notices,
-        ["module -201U5 keeps its manual output start Q10 (automatic: Q2)"]
+        ["module -104A1-A2 keeps its manual output start Q10 (automatic: Q1)"]
     );
     let q = s.query();
     let start = |m: Id<Device>| {
         q.devices()
             .get(m)
             .and_then(|d| d.aspects.plc_module.clone())
-            .map(|p| p.start.output)
+            .map(|p| p.start)
     };
-    assert_eq!(start(u6), Some(ew_schema::AddrSpec::Auto));
-    assert!(matches!(start(u5), Some(ew_schema::AddrSpec::Manual(_))));
+    assert_eq!(start(u6).map(|s| s.input), Some(ew_schema::AddrSpec::Auto));
+    assert!(matches!(start(u5).map(|s| s.output), Some(ew_schema::AddrSpec::Manual(_))));
 }
 
 /// Under the tag-based `rockwell-logix` profile `plc.freeze` is refused in words (its addresses follow the station
@@ -565,15 +561,14 @@ fn readdress_and_convert_manual_to_auto() {
 /// the module's start neither moves it elsewhere nor makes it vanish.
 #[test]
 fn a_tag_based_profile_freezes_nothing_and_prints_an_inherited_manual_address_in_place() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let c = cfg(&s.query());
-    let u6 = device(&s, "-201U6");
+    let u6 = device(&s, "-104A1-A2");
     let ch1 = channel(&s.query(), u6, 1);
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "channel", "targets": [ch1.to_string()], "path": "address", "value": "Q3.1"}),
+        json!({"kind": "channel", "targets": [ch1.to_string()], "path": "address", "value": "Q1.1"}),
     );
     run(
         &mut s,
@@ -592,17 +587,28 @@ fn a_tag_based_profile_freezes_nothing_and_prints_an_inherited_manual_address_in
         "fields.set",
         json!({"kind": "device", "targets": [u6.to_string()], "path": "plc_module.slot", "value": {"rack": {"rack": 0, "slot": 9}}}),
     );
-    assert_eq!(texts(&s.query(), u6)[1], "_201U1:9:O.Data.1");
+    assert_eq!(texts(&s.query(), u6)[1], "Local:9:O.Data.1");
 }
 
-/// `plc.convert_manual_to_auto` changes nothing that prints: -201U3's manual start Q1 keeps its own place as
-/// automatic (-201U4's manual Q0 holds Q0), but -201U5 after it would move from Q2 to Q3, so the start stays manual
-/// and the notice says why.
+/// `plc.convert_manual_to_auto` changes nothing that prints: the valve terminal -201K1's manual start Q1 keeps its own
+/// place as automatic (-104A1-A2's manual Q0 holds Q0), but an output card added after them would move from Q2 to Q3,
+/// so the start stays manual and the notice says why.
 #[test]
 fn converting_a_start_that_would_move_another_module_keeps_it() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
-    let (u3, u4) = (device(&s, "-201U3"), device(&s, "-201U4"));
+    let mut s = crate::common::sample();
+    let (u3, u4) = (device(&s, "-201K1"), device(&s, "-104A1-A2"));
+    let part = s
+        .query()
+        .devices()
+        .get(u4)
+        .map(|d| serde_json::to_value(&d.parts[0]).expect("a part use"))
+        .expect("-104A1-A2");
+    let station = device(&s, "-104A1");
+    run(
+        &mut s,
+        "plc.add_module",
+        json!({"station": station.to_string(), "part": part}),
+    );
     for (m, spec) in [(u3, "Q1"), (u4, "Q0")] {
         run(
             &mut s,
@@ -620,29 +626,28 @@ fn converting_a_start_that_would_move_another_module_keeps_it() {
     assert_eq!(
         receipt.outcome.notices,
         [
-            "module -201U3 keeps its manual output start Q1: as an automatic start it would move the addresses of other \
+            "module -201K1 keeps its manual output start Q1: as an automatic start it would move the addresses of other \
           modules"
         ]
     );
 }
 
-/// After `plc.freeze` a module added in rack slot 9 (free: the positional modules hold 1 to 7), which A1 allocates
+/// After `plc.freeze` a module added in rack slot 9 (free: the positional cards hold 1 and 2), which A1 allocates
 /// before every positional module, is placed around the frozen modules (their starts are frozen too), so the batch
 /// commits and no frozen address moves.
 #[test]
 fn a_module_added_before_frozen_ones_commits_and_moves_nothing() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = crate::common::sample();
     let c = cfg(&s.query());
     bulk(&mut s, "plc.freeze", json!({"config_project": c.to_string()}));
     let before = all_texts(&s.query());
     let part = s
         .query()
         .devices()
-        .get(device(&s, "-201U3"))
+        .get(device(&s, "-104A1-A2"))
         .map(|d| serde_json::to_value(&d.parts[0]).expect("a part use"))
-        .expect("-201U3");
-    let station = device(&s, "-201U1");
+        .expect("-104A1-A2");
+    let station = device(&s, "-104A1");
     run(
         &mut s,
         "plc.add_module",
