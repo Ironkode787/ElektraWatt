@@ -522,9 +522,10 @@ impl ShellModel {
     }
 
     /// `text.function_over_path` (Function text over its path, in the canvas context menu over one symbol of a device;
-    /// doc 06 §3.8): `item.place` of a text bound to the symbol that prints its device's function text, centred over
-    /// the symbol, its baseline two grid steps above the body; the person drags it to the head of the path. Refused for
-    /// a device without a function text, which would print nothing.
+    /// doc 06 §3.8): `item.place` of a text bound to the symbol that prints its device's function text, centred on the
+    /// symbol's column, its baseline a grid step above the highest wire or symbol the column holds: over its current
+    /// path; the person drags it where the drawing wants it. Refused for a device without a function text, which
+    /// would print nothing.
     pub(crate) fn act_text_function_over_path(&mut self) -> Outcome {
         let Some((page, rep, step)) = self.one_selected_symbol() else {
             return Outcome::refused(key!("reason-one-device-symbol"));
@@ -543,7 +544,25 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-function-text"));
         }
         let [x0, y0, x1, _] = rep.body;
-        let at = json!([x0 + (x1 - x0) / 2, y0 - 2 * step]);
+        let x = x0 + (x1 - x0) / 2;
+        // The highest wire or symbol of the column: the head of the path.
+        let top = self.canvas().map_or(y0, |c| {
+            let t = &c.page().tables;
+            let wires = t.connections.iter().flat_map(|c| {
+                c.polyline
+                    .windows(2)
+                    .filter(|w| w[0].0.min(w[1].0) <= x && x <= w[0].0.max(w[1].0))
+                    .map(|w| w[0].1.min(w[1].1))
+                    .collect::<Vec<_>>()
+            });
+            let bodies = t
+                .reps
+                .iter()
+                .filter(|r| r.body[0] <= x && x <= r.body[2])
+                .map(|r| r.body[1]);
+            wires.chain(bodies).min().unwrap_or(y0)
+        });
+        let at = json!([x, top - step]);
         self.place_bound_text(page, rep.id, "device.function_text", at, "centre", "baseline")
     }
 
