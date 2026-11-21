@@ -1296,6 +1296,8 @@ impl ShellModel {
             i.params = json!({ "at": key });
             i
         }));
+        // Copy pages… of the marked pages (the right-click marks or selects the row first).
+        out.extend(self.menu_item("pages.copy"));
         out.extend(self.aimed(
             "navigator.delete",
             json!({ "kind": NavKind::Pages.word() }),

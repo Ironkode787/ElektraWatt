@@ -58,6 +58,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `section.new` | `crates/ew-viewmodel/src/actions/table/page.rs` | `act_section_new` `crates/ew-viewmodel/src/shell/creation.rs` | `action-section-new`, `toast-section-new` |
 | `section.edit` | `crates/ew-viewmodel/src/actions/table/page.rs` | `act_section_edit` `crates/ew-viewmodel/src/shell/creation.rs` | `action-section-edit` |
 | `pages.renumber` | `crates/ew-viewmodel/src/actions/table/page.rs` | `act_pages_renumber` `crates/ew-viewmodel/src/shell/bulk.rs` | `action-pages-renumber` |
+| `pages.copy` | `crates/ew-viewmodel/src/actions/table/page.rs` | `act_pages_copy` `crates/ew-viewmodel/src/shell/page_copy.rs` | `action-pages-copy` |
 | `page.next` | `crates/ew-viewmodel/src/actions/table/page.rs` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-page-next` |
 | `page.previous` | `crates/ew-viewmodel/src/actions/table/page.rs` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-page-previous` |
 | `page.first` | `crates/ew-viewmodel/src/actions/table/page.rs` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-page-first` |
@@ -150,6 +151,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `edit.cut` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_cut` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-cut` |
 | `edit.copy` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_copy` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-copy` |
 | `edit.paste_clip` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_paste_clip` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-paste-clip` |
+| `edit.paste_in_place` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_paste_in_place` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-paste-in-place` |
 | `edit.duplicate` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_duplicate` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-duplicate` |
 | `edit.copy_tags` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_copy_tags` `crates/ew-viewmodel/src/shell/clipboard.rs` | `action-edit-copy-tags` |
 | `edit.select_all` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_select_all` `crates/ew-viewmodel/src/shell/properties.rs` | `action-edit-select-all` |

@@ -126,6 +126,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Page, Copy pages…: the marked pages copied for a second installation (doc 06 §3.6, FT-1862); also on a page
+    // row's right-click menu.
+    with_params(
+        "pages?:list(text), offset?:uint, after?:text, node?:text, code?:text, rename?:json",
+        placed(
+            place(Group::Order, 4, CommandSize::Small, None),
+            "files",
+            act(
+                "pages.copy",
+                Command,
+                Menu::Page,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_pages_copy(p),
+            ),
+        ),
+    ),
     act(
         "page.next",
         View,

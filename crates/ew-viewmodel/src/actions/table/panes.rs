@@ -519,14 +519,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "name?:text, key?:text, description?:text, library?:text, kind?:text, pages?:list(text), x_mm?:mm, \
          y_mm?:mm, value_sets?:json, confirm?:bool",
-        in_canvas(act(
-            "macros.save",
-            Command,
-            Menu::Edit,
-            &[],
-            macro_scope_shown,
-            slot(Menu::Edit),
-            |s, p| s.act_macros_save(p),
+        // Pages named by folio (`pages`) need no selection or marked page (FT-1862).
+        in_canvas(enabled_when_named(
+            &["pages"],
+            has_pages,
+            act(
+                "macros.save",
+                Command,
+                Menu::Edit,
+                &[],
+                macro_scope_shown,
+                slot(Menu::Edit),
+                |s, p| s.act_macros_save(p),
+            ),
         )),
     ),
     with_params(

@@ -936,7 +936,7 @@ impl ShellModel {
 
     /// The pages of a page macro: the folios of `pages`, else the marked pages of the Pages navigator
     /// (else its cursor's page), as page IDs in page order; generated pages refuse.
-    fn macro_pages(&self, p: &Map<String, Value>) -> Result<Vec<Uuid>, Outcome> {
+    pub(super) fn macro_pages(&self, p: &Map<String, Value>) -> Result<Vec<Uuid>, Outcome> {
         let folios = super::table::list_param(p, "pages")?;
         match folios.filter(|f| !f.is_empty()) {
             Some(folios) => {
@@ -981,9 +981,9 @@ impl ShellModel {
 
     /// `macros.save {name?, key?, description?, library?, kind?, pages?, x_mm?, y_mm?, confirm?}` (Edit ▸ Save as
     /// macro…): writes the selection as a window macro, or pages as a page macro, into a writable library (by name,
-    /// key or ID; default the first writable one). `kind` is `window` or `page`; without it a selection
-    /// of drawn records makes a window macro, and no selection or one of pages only (marking pages selects them) a
-    /// page macro. A page macro's pages are
+    /// key or ID; default the first writable one). `kind` is `window` or `page`; without it `pages`, no selection or
+    /// one of pages only (marking pages selects them) make a page macro, and any other selection of drawn records a
+    /// window macro; with `pages` the action needs no selection and no marked page. A page macro's pages are
     /// `pages` (folios), else the marked pages (else the Pages cursor's page). A window macro's insertion point is
     /// `x_mm`/`y_mm` (a sheet point of the page on show, snapped to its grid), else the selection's anchor. Without
     /// `name` or `confirm` the window opens the dialog (name, key, description, library, kind, insertion point), which
@@ -1044,10 +1044,12 @@ impl ShellModel {
         let page_macro = match kind.as_str() {
             "window" => false,
             "page" => true,
-            // No kind: pages (nothing selected, or only pages, as marking pages selects them) make a page macro.
+            // No kind: pages named by folio, or nothing selected, or only pages (marking pages selects them), make a
+            // page macro.
             "" => {
                 let rows = self.page_rows();
-                selection.iter().all(|id| rows.iter().any(|r| r.id == *id))
+                p.get("pages").and_then(Value::as_array).is_some_and(|a| !a.is_empty())
+                    || selection.iter().all(|id| rows.iter().any(|r| r.id == *id))
             }
             _ => return self.save_done(failed(key!("error-bad-param"), &["kind"])),
         };

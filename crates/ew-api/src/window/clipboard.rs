@@ -7,7 +7,8 @@
 //!
 //! **The format** (`#ew-fragment v1`, the project-fragment format of architecture §5.5). UTF-8 text, LF line ends, a
 //! final LF: line 1 `#ew-fragment v1`; line 2 the header `{"$fragment": {"format", "project", "grid": [num, den],
-//! "page_kind", "anchor": [x, y], "ghost": [[x0, y0, x1, y1], …]}}`; then one canonical record line per record, one
+//! "page_kind", "anchor": [x, y], "ghost": [[x0, y0, x1, y1], …], "free"?: [i, …]}}` (`free`: the indices of the ghost
+//! rectangles of free texts and graphics, which may lie outside the drawing area); then one canonical record line per record, one
 //! `{"$lib": <libdoc>}` line per library copy and one `{"$node": {"id", "aspect", "path", "aliases"}}` line per
 //! structure node. The record kinds a fragment carries are devices, functions, representations, connections,
 //! junctions, potential definitions, page items and structure boxes. Another application sees JSON Lines after one
@@ -113,6 +114,9 @@ pub struct ParsedFragment {
     pub grid: (i64, i64),
     /// The ghost rectangles relative to the anchor, `[x0, y0, x1, y1]` in nm.
     pub ghost: Vec<[i64; 4]>,
+    /// The indices of the ghost rectangles that are free texts and graphics, which may lie outside the drawing area
+    /// (the header's `free`, doc 05 §12; empty for a fragment without it).
+    pub free: Vec<usize>,
 }
 
 /// Why clipboard text is not pasted.
@@ -349,6 +353,12 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
             [a, b, c, d] => Some([a.as_i64()?, b.as_i64()?, c.as_i64()?, d.as_i64()?]),
             _ => None,
         })
+        .collect::<Vec<_>>();
+    let free = header["free"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|i| usize::try_from(i.as_u64()?).ok())
         .collect();
     let count = records.len();
     let params = json!({
@@ -366,6 +376,7 @@ pub fn parse_fragment_with(text: &str, chain: &Migrations) -> Result<ParsedFragm
         records: count,
         grid,
         ghost,
+        free,
     })
 }
 
@@ -427,6 +438,17 @@ fn read_header<'c>(
     });
     if !rects_ok {
         return Err(invalid(api_text!("refusal-fragment-ghost")));
+    }
+    // `free` (since 0.3.5): indices into `ghost`.
+    if let Some(free) = obj.get("free") {
+        let n = member("ghost")?.as_array().map_or(0, Vec::len);
+        let ok = free.as_array().is_some_and(|a| {
+            a.iter()
+                .all(|i| i.as_u64().and_then(|i| usize::try_from(i).ok()).is_some_and(|i| i < n))
+        });
+        if !ok {
+            return Err(invalid(api_text!("refusal-fragment-free")));
+        }
     }
     Ok((h.clone(), migration))
 }
@@ -1032,25 +1054,30 @@ impl Session {
             .find(|e| e.page == PageRef::Drawn(page_id))
             .map(|e| e.folio.clone());
         let tables = folio.and_then(|f| self.page_tables(&f));
-        let bodies: Vec<[i64; 4]> = lines
-            .iter()
-            .filter_map(|(_, r)| match r {
-                Record::Representation(rep) => {
-                    let t = tables.as_ref()?.reps.iter().find(|t| t.id == rep.id.as_uuid())?;
-                    Some(t.body)
-                }
-                Record::PageItem(item) => {
-                    let t = tables
-                        .as_ref()?
-                        .items
-                        .iter()
-                        .find(|t| t.id == item.id.as_uuid())?;
-                    Some(t.bounds)
-                }
+        // The free texts and graphics among them (`free`): they may lie outside the drawing area.
+        let mut free: Vec<usize> = Vec::new();
+        let mut bodies: Vec<[i64; 4]> = Vec::new();
+        for (_, r) in &lines {
+            let body = match r {
+                Record::Representation(rep) => tables
+                    .as_ref()
+                    .and_then(|t| t.reps.iter().find(|t| t.id == rep.id.as_uuid()))
+                    .map(|t| t.body),
+                Record::PageItem(item) => tables
+                    .as_ref()
+                    .and_then(|t| t.items.iter().find(|t| t.id == item.id.as_uuid()))
+                    .map(|t| t.bounds),
                 Record::StructureBox(b) => outline_bounds(b),
                 _ => None,
-            })
-            .collect();
+            };
+            let Some(body) = body else { continue };
+            if let Record::PageItem(item) = r
+                && matches!(item.kind, PageItemKind::FreeText(_) | PageItemKind::Graphic(_))
+            {
+                free.push(bodies.len());
+            }
+            bodies.push(body);
+        }
         let min_x = bodies.iter().map(|b| b[0].min(b[2])).min().unwrap_or(0);
         let min_y = bodies.iter().map(|b| b[1].min(b[3])).min().unwrap_or(0);
         let anchor = (floor_to_grid(page.grid, min_x), floor_to_grid(page.grid, min_y));
@@ -1062,20 +1089,21 @@ impl Session {
             .ok()
             .and_then(|v| v.as_str().map(str::to_owned))
             .unwrap_or_default();
-        let header = format!(
-            "{{\"$fragment\":{}}}",
-            ordered(&[
-                ("format", json!(ew_schema::FORMAT)),
-                (
-                    "project",
-                    json!(q.project().id.as_uuid().hyphenated().to_string())
-                ),
-                ("grid", json!([page.grid.num(), page.grid.den()])),
-                ("page_kind", json!(page_kind)),
-                ("anchor", json!([anchor.0, anchor.1])),
-                ("ghost", json!(ghost)),
-            ])
-        );
+        let mut members = vec![
+            ("format", json!(ew_schema::FORMAT)),
+            (
+                "project",
+                json!(q.project().id.as_uuid().hyphenated().to_string()),
+            ),
+            ("grid", json!([page.grid.num(), page.grid.den()])),
+            ("page_kind", json!(page_kind)),
+            ("anchor", json!([anchor.0, anchor.1])),
+            ("ghost", json!(ghost)),
+        ];
+        if !free.is_empty() {
+            members.push(("free", json!(free)));
+        }
+        let header = format!("{{\"$fragment\":{}}}", ordered(&members));
         let mut text = String::new();
         text.push_str(FRAGMENT_HEADER);
         text.push('\n');

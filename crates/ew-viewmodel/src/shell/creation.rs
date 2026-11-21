@@ -85,7 +85,7 @@ pub const STRUCTURE_KINDS: &[&str] = &[
 
 /// The prefix sign of each structure aspect (doc 03 §5, `Aspect::default_sign`), the longer signs first so that `==` is
 /// read before `=` and `++` before `+`.
-const SIGNS: [(&str, &str); 7] = [
+pub(super) const SIGNS: [(&str, &str); 7] = [
     ("==", "functional_assignment"),
     ("++", "installation_site"),
     ("=", "function"),

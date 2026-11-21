@@ -389,6 +389,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
+    // Paste in place (FT-1862): the block where the copy's anchor was; no shortcut (Ctrl+Shift+V is kept for paste as
+    // representation, doc 06 §6).
+    with_params(
+        "text?:text",
+        in_canvas(act(
+            "edit.paste_in_place",
+            Command,
+            Menu::Edit,
+            &[],
+            paste_page,
+            slot(Menu::Edit),
+            |s, p| s.act_paste_in_place(p),
+        )),
+    ),
     in_canvas(act(
         "edit.duplicate",
         Command,

@@ -107,6 +107,7 @@
     - [`marker.place`](reference/commands/marker.place.md)
     - [`merge.resolve`](reference/commands/merge.resolve.md)
     - [`numbering.renumber`](reference/commands/numbering.renumber.md)
+    - [`page.copy`](reference/commands/page.copy.md)
     - [`page.create`](reference/commands/page.create.md)
     - [`page.delete`](reference/commands/page.delete.md)
     - [`page.renumber`](reference/commands/page.renumber.md)

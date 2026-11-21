@@ -456,6 +456,28 @@ impl ShellModel {
         out
     }
 
+    /// `edit.paste_in_place {text?}` (Edit ▸ Paste in place, doc 06 §3.6): the clipboard's block put down with its
+    /// anchor where the copy's anchor was, as `edit.paste_clip` reads and arms it, then one Activate of the paste tool:
+    /// one `edit.paste` and Select with the pasted symbols selected; a block that would lie outside the page's drawing
+    /// area is refused in words and stays on the pointer.
+    pub(crate) fn act_paste_in_place(&mut self, p: &Map<String, Value>) -> Outcome {
+        let out = self.act_paste_clip(p);
+        if out != Outcome::Done || self.tools.tool.name() != "paste" {
+            return out;
+        }
+        let placed = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<PasteTool>())
+                    .map(|p| p.in_place(cx))
+            })
+            .flatten();
+        if let Some(ToolOutput::Transient(o)) = placed {
+            self.tools.overlay = o;
+        }
+        self.send_tool(&crate::tools::CanvasEvent::Activate)
+    }
+
     /// `edit.duplicate` (Ctrl+D): the selection's fragment without touching the clipboard, floating in the paste tool
     /// two grid steps right and down of its anchor.
     pub(crate) fn act_duplicate(&mut self) -> Outcome {

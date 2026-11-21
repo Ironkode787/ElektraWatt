@@ -2966,8 +2966,11 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Arrange(_)) {
             return self.apply_arrange_card(card);
         }
-        // A bulk card is a renumber dialog's.
-        if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
+        // A bulk card is a renumber dialog's, and Copy pages…'s.
+        if matches!(
+            card.origin,
+            CardOrigin::Bulk | CardOrigin::Part(_) | CardOrigin::PageCopy { .. }
+        ) {
             return self.apply_bulk_card(card);
         }
         // A macro card is the Macros navigator's (`macro.insert`).

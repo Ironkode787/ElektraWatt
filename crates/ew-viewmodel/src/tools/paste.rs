@@ -6,9 +6,10 @@
 //!
 //! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`: one ghost rectangle per ghost entry of
 //! the fragment, its middle at the point and its anchor snapped to the grid (never to a connection point:
-//! `snap_grid`; Duplicate starts with the anchor at its point), a label `paste <n> records` with the dropped
-//! connections, and after a preview the predicted tags; where a part of it would lie outside the frame's drawing area
-//! the label says so and `Press` or `Activate` is refused with that reason (a paste ended off the sheet and
+//! `snap_grid`; Duplicate starts with the anchor at its point, Paste in place with the anchor where the copy's was), a
+//! label `paste <n> records` with the dropped connections, and after a preview the predicted tags; where a part of it
+//! would lie outside the frame's drawing area (a free text or graphic: outside the sheet) the label says so and `Press`
+//! or `Activate` is refused with that reason (a paste ended off the sheet and
 //! nothing said so); the host floats it at the pointer (else the view's middle) as soon as it is armed, so the ghost
 //! shows before the first move; `Dwell` of 80 ms and more →
 //! `Preview(edit.paste {page, at, fragment})` (the semantic ghost: the derived diff's tags); `Press` or `Activate` →
@@ -81,12 +82,26 @@ impl PasteTool {
         self.moved(at, cx)
     }
 
-    /// Whether a part of the fragment at its anchor lies outside the frame's drawing area (`ip::drawing_area`).
+    /// The fragment with its anchor where the copy's anchor was: the same page coordinates (Paste in place), snapped
+    /// to the page's grid.
+    pub fn in_place(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
+        let a = &self.fragment.params["anchor"];
+        let anchor = (a[0].as_i64().unwrap_or(0), a[1].as_i64().unwrap_or(0));
+        self.start_at(anchor, cx)
+    }
+
+    /// Whether a part of the fragment at its anchor lies outside the frame's drawing area (`ip::drawing_area`): a free
+    /// text or graphic (the fragment's `free`) only where it would leave the sheet, since the Text tool puts texts in the
+    /// frame's bands too (FT-1862).
     fn outside(&self, cx: &ToolCx<'_>) -> bool {
         let (Some((_, page)), Some(area)) = (self.at, super::ip::drawing_area(cx.page)) else {
             return false;
         };
-        self.fragment.ghost.iter().any(|g| {
+        let (w, h) = cx.page.sheet;
+        let (a, b) = (cx.snapper.sheet_to_page((0, 0)), cx.snapper.sheet_to_page((w, h)));
+        let sheet = [a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1)];
+        self.fragment.ghost.iter().enumerate().any(|(i, g)| {
+            let area = if self.fragment.free.contains(&i) { sheet } else { area };
             let (x0, x1) = (
                 page.0.saturating_add(g[0].min(g[2])),
                 page.0.saturating_add(g[0].max(g[2])),

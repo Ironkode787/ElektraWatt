@@ -75,6 +75,8 @@ mod cables;
 // The Preview tab, the renumber dialogs and the purge.
 mod box_pins;
 mod bulk;
+// Copy pages… (doc 06 §3.6).
+mod page_copy;
 mod delete;
 mod editing;
 mod find;

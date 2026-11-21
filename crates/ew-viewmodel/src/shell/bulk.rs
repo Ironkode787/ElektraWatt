@@ -50,7 +50,7 @@ pub(super) const SCHEMES: &[&str] = &["page_based"];
 pub const PURGE_LISTED: usize = 20;
 
 /// A whole-number parameter: a number or its decimal text; `Ok(None)` when absent or empty.
-fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u32>, Outcome> {
+pub(super) fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u32>, Outcome> {
     match p.get(name) {
         None | Some(Value::Null) => Ok(None),
         Some(Value::Number(n)) => n
@@ -126,6 +126,9 @@ impl ShellModel {
         if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
             return Some(a.lead.clone());
         }
+        if let crate::properties::CardOrigin::PageCopy { lead, .. } = &card.origin {
+            return Some(lead.clone());
+        }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // A count of one takes the singular ("1 item · 1 page").
         Some(strings::format(
@@ -196,7 +199,12 @@ impl ShellModel {
         };
         bump(calls, |c| c.preview_entities += 1);
         self.preview.entities = project.session.preview_entities(preview);
-        self.preview.notices.clone_from(&preview.outcome().notices);
+        // A copy of pages says first what it leaves out and what continues outside it.
+        self.preview.notices = match &card.origin {
+            CardOrigin::PageCopy { rows, .. } => rows.clone(),
+            _ => Vec::new(),
+        };
+        self.preview.notices.extend(preview.outcome().notices.iter().cloned());
         let position = |page: Uuid| rows.iter().position(|r| r.id == page);
         let mut pages: Vec<usize> = preview
             .affected_pages()
@@ -361,7 +369,9 @@ impl ShellModel {
             };
         }
         if card.preview.base_rev == rev {
-            let toast = self.plc_addressing_toast(&card);
+            let toast = self
+                .plc_addressing_toast(&card)
+                .or_else(|| self.page_copy_toast(&card));
             let Card { preview, edit, .. } = card;
             let out = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if out == Outcome::Done

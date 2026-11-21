@@ -291,6 +291,14 @@ pub enum CardOrigin {
         /// How many wires the plan routes.
         routed: usize,
     },
+    /// Page ▸ Copy pages… (`page.copy`, doc 06 §3.6): the card in the Preview tab with its lead line and what the copy
+    /// leaves out or continues, one line each in the tab's notices; Apply commits the one `page.copy`.
+    PageCopy {
+        /// "Copy 3 pages."
+        lead: String,
+        /// The devices drawn also on pages not copied, the frozen tags cleared, the names whose points continue.
+        rows: Vec<String>,
+    },
 }
 
 /// What an Arrange and route card shows (docs/design/06a-drafting.md §7.3).
@@ -549,6 +557,7 @@ impl CardOrigin {
             CardOrigin::TableImport(_) => "table-import",
             CardOrigin::Route { .. } => "route",
             CardOrigin::Arrange(_) => "arrange",
+            CardOrigin::PageCopy { .. } => "page-copy",
         }
     }
 }
