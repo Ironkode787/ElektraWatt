@@ -19,7 +19,7 @@ for a failure. A failure is a blocker of the release ([the release procedure](RE
 ## MT-1: NVDA on Windows (NFR-A11Y-02, M)
 
 **Setup.** Windows 11 with the latest NVDA release, its speech viewer on (NVDA menu, Tools, Speech viewer). The
-candidate's installer, installed for the user. A copy of the sample project (Golden A, `J-E-2416.ew`), opened from the
+candidate's installer, installed for the user. A copy of the sample project (`samples/sample.ew`), opened from the
 start page with Open sample project. No mouse is used once the project is open.
 
 **Steps.**
