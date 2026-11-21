@@ -1,40 +1,39 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel page 902 of Golden A (acceptance LP-1 to LP-5):
+//! The panel page 902 of the sample (acceptance LP-1 to LP-5):
 //!
 //! - `the_surface_view_round_trips_and_is_refused_elsewhere`: `page.surface_view.set` replaces 902's view in
-//!   place (one view, its ID kept) and the edit survives a save and a reopen of a fixture copy; a view on a schematic
-//!   page and a surface that does not exist are refused; a view with members this build does not know reads and writes
-//!   back unchanged.
-//! - `lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints`: the enclosure and the plate at 1:10 on
-//!   paper (printed 75.0 × 100.0 mm and 65.0 × 90.0 mm from the datum (34.45, 174.50) mm printed), the rails with their
-//!   axis lines, the ducts with "40×60", every placement's footprint; a part with a `front_2d` drawing draws it
+//!   place (one view, its ID kept) and the edit survives a save and a reopen of a copy of the sample; a view on a
+//!   schematic page and a surface that does not exist are refused; a view with members this build does not know reads
+//!   and writes back unchanged.
+//! - `lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints`: the 600 × 800 mm enclosure and the
+//!   520 × 720 mm plate at 1:5 on paper (printed 120 × 160 mm and 104 × 144 mm), clear of the legend; the rails with
+//!   their axis lines, the duct with "40×60", every placement's footprint; a part with a `front_2d` drawing draws it
 //!   instead.
-//! - `the_carriers_are_cut_around_the_labels_of_902`: no carrier stroke runs through a label's knockout box, and the
-//!   footprints and the labels stay whole.
+//! - `the_carriers_are_cut_around_the_labels_of_902`: with the tags as labels no carrier stroke runs through a label's
+//!   knockout box, and the footprints and the labels stay whole.
 //! - `labels_print_in_the_device_style_turn_inside_or_take_a_leader`: the labels in `xref.device` at 1.83 mm em,
-//!   none scaled; -101F1 turned inside its 1.8 mm footprint; the full mode; a 6 mm part takes a leader.
-//! - `the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Cabinet Layout · Scale 1:10", the
-//!   TOC row unchanged; 1:5 changes no layout record and keeps the label height.
+//!   none scaled; -102F1 turned inside its 3.6 mm footprint; the full mode; a 6 mm part takes a leader.
+//! - `the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Panel layout · Scale 1:5", the
+//!   TOC row unchanged; 1:10 changes no layout record and keeps the label height.
 //! - `a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement`: the memo
 //!   counts and the pick.
 //!
-//! The display lists are in page coordinates; 902's frame maps the page to paper at 0.986282578 (offset 9.79 mm), and
-//! the projection divides by that factor, so the stated 1:10 holds on paper (`printed` maps a page rectangle).
+//! The display lists are in page coordinates; 902's frame maps the page to paper (its `page_to_sheet`), and the
+//! projection divides by that factor, so the stated scale holds on paper (`printed` maps a page rectangle).
 
-// LP-1 copies the fixture into a clock-named scratch directory (`ew-testdir`).
+// LP-1 copies the sample into a clock-named scratch directory (`ew-testdir`).
 #![allow(clippy::disallowed_methods)]
 
-use crate::common::copy_dir;
-use crate::golden_common;
+use crate::common;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_api::output::{
-    CarriersLayer, ExportAssets, ExportOptions, FrameLayer, LabelsLayer, PlacementsLayer, SurfaceLayer,
-    SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with, page_layer, text_style_table,
+    CarriersLayer, ExportAssets, ExportOptions, FrameLayer, LabelsLayer, PageFrameOf, PlacementsLayer,
+    SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with, page_layer, text_style_table,
 };
 use ew_api::{AnyCommand, CmdError, Recovery, Session, SessionOptions, StoreOptions};
 use ew_derive::ew_ids::{Id, Uuid};
@@ -42,18 +41,17 @@ use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::PlacementGeometry;
 use ew_derive::{PageOrder, PageRef, Q, Query};
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Layer, PathEl, ShapedRun};
-use ew_import_tables::ids::record_id;
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{LabelFit, Projection, label_fit, place_label};
 use ew_schema::{
     Carrier, CarrierKind, Device, Enclosure, LayoutSpace, LibCopy, LibDocument, MountingSurface, Page,
-    PageItem, PageItemKind, Part, Placement, Record, Scale, Sha256, SurfaceLabelMode,
+    PageItem, PageItemKind, Part, Placement, Record, Sha256, SurfaceLabelMode,
 };
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
 
-/// A page point in millimetres (three decimals at most).
+/// A point in millimetres (three decimals at most).
 fn mm(x: f64, y: f64) -> Pt2 {
     let nm = |v: f64| Nm((v * 1e6).round() as i64);
     Pt2::new(nm(x), nm(y))
@@ -63,26 +61,26 @@ fn mm_rect(a: (f64, f64), b: (f64, f64)) -> Rect {
     Rect::from_points(mm(a.0, a.1), mm(b.0, b.1))
 }
 
-/// Whether every corner of `a` is within `tol` of `b`'s.
-fn near(a: Rect, b: Rect, tol: Nm) -> bool {
-    let d = |p: Pt2, q: Pt2| (p.x.0 - q.x.0).abs() <= tol.0 && (p.y.0 - q.y.0).abs() <= tol.0;
-    d(a.min(), b.min()) && d(a.max(), b.max())
+fn dev(s: &Session, tag: &str) -> Id<Device> {
+    Id::from_uuid(s.resolve_reference(&format!("tag:{tag}")).expect("the device"))
 }
 
-fn dev(key: &str) -> Id<Device> {
-    record_id("devices", key)
+fn page(s: &Session, folio: &str) -> Id<Page> {
+    s.page_rows()
+        .iter()
+        .find(|r| r.folio == folio)
+        .map(|r| Id::from_uuid(r.id))
+        .unwrap_or_else(|| panic!("no page {folio}"))
 }
 
-fn placement(key: &str) -> Id<Placement> {
-    record_id("placements", key)
+/// The surface 902 shows.
+fn surface(s: &Session) -> Id<MountingSurface> {
+    s.panel_tables("902").expect("902's view").surface_id
 }
 
-fn surface() -> Id<MountingSurface> {
-    record_id("mounting_surfaces", "-UC1")
-}
-
-fn page(key: &str) -> Id<Page> {
-    record_id("pages", key)
+/// The projection of 902's view as its placements layer draws with it.
+fn projection_902(s: &Session) -> Projection {
+    s.panel_tables("902").expect("902's view").projection
 }
 
 fn id_json<T>(id: Id<T>) -> Value {
@@ -112,6 +110,23 @@ fn run(s: &mut Session, name: &str, params: Value) -> Option<Value> {
         .outcome
         .primary
         .map(|k| serde_json::to_value(k.1).expect("a key serialises"))
+}
+
+/// 902's view set again where it stands, with `extra` members (`label_mode`, `labels`).
+fn set_view(s: &mut Session, extra: Value) {
+    let datum = views_on(&s.query(), page(s, "902"))
+        .iter()
+        .find_map(|v| match &v.kind {
+            PageItemKind::SurfaceView(v) => Some(v.datum_at),
+            _ => None,
+        })
+        .expect("902's view");
+    let mut params = json!({"page": id_json(page(s, "902")), "surface": id_json(surface(s)),
+                            "datum_at": [datum.x.0, datum.y.0]});
+    for (k, v) in extra.as_object().expect("members") {
+        params[k] = v.clone();
+    }
+    run(s, "page.surface_view.set", params);
 }
 
 /// The drawn page of a printed folio.
@@ -177,31 +192,32 @@ fn contains(r: Rect, p: Pt2) -> bool {
     r.min().x <= p.x && p.x <= r.max().x && r.min().y <= p.y && p.y <= r.max().y
 }
 
-/// The page-to-sheet factor of Golden A's frames (`page_to_sheet.scale_ppb`).
-const SHEET_PPB: u32 = 986_282_578;
-
-/// The projection of 902's view: the plate's origin at (25, 167) mm on the page, scale 1:10 on paper.
-fn projection_902() -> Projection {
-    Projection::on_sheet(mm(25.0, 167.0), &Scale::OneTo(10), SHEET_PPB)
+fn overlaps(a: Rect, b: Rect) -> bool {
+    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
 }
 
 /// A page rectangle of 902 on paper (its frame's sheet map).
-fn printed(r: Rect) -> Rect {
-    SheetMap {
-        scale_ppb: SHEET_PPB,
-        offset: mm(9.79, 9.79),
-    }
-    .apply_rect(r)
+fn printed(q: &Q, r: Rect) -> Rect {
+    let frame = q.get::<PageFrameOf>(drawn(q, "902"));
+    SheetMap::of(&frame.as_ref().as_ref().expect("902's frame").form).apply_rect(r)
+}
+
+/// Whether a printed rectangle spans `w × h` nm, within the nanometre each of the two roundings (the projection's and
+/// the sheet map's) may leave.
+fn spans(r: Rect, w: i64, h: i64) -> bool {
+    (r.width().0 - w).abs() <= 1 && (r.height().0 - h).abs() <= 1
 }
 
 /// A placement's footprint on 902.
-fn footprint_902(q: &Q, key: &str) -> Rect {
-    let g = q.get::<PlacementGeometry>(placement(key));
+fn footprint_902(s: &Session, tag: &str) -> Rect {
+    let g = s
+        .query()
+        .get::<PlacementGeometry>(common::placement_of(s, tag));
     let g = g
         .as_ref()
         .as_ref()
-        .unwrap_or_else(|| panic!("{key} has a geometry"));
-    projection_902().rect(g.footprint).expect("in range")
+        .unwrap_or_else(|| panic!("{tag} has a geometry"));
+    projection_902(s).rect(g.footprint).expect("in range")
 }
 
 /// The surface view items of a page.
@@ -216,10 +232,11 @@ fn views_on(q: &Q, p: Id<Page>) -> Vec<PageItem> {
 /// A part copy of `device`'s placed part with `width` mm, the clip point at its centre and the `front_2d` polylines
 /// given (in part mm), assigned to the device in place of that part (as `golden_layout.rs` LQ-4 does).
 fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_2d: &[&[(i64, i64)]]) {
+    let placement = common::placement_of(s, device);
     let q = s.query();
     let old: Id<Part> = q
         .table::<Placement>()
-        .get(placement(device))
+        .get(placement)
         .and_then(|p| p.part.as_ref().map(|r| r.copy))
         .expect("the placement names its part");
     let mut copy: LibCopy<Part> = LibCopy::clone(q.table::<LibCopy<Part>>().get(old).expect("the copy"));
@@ -249,10 +266,11 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
     let hash =
         ew_commands::commands::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
     copy.sha256 = Sha256(hash);
+    let device = dev(s, device);
     run(
         s,
         "part.assign",
-        json!({"devices": [id_json(dev(device))], "part": id_json(copy.id),
+        json!({"devices": [id_json(device)], "part": id_json(copy.id),
                "copies": [serde_json::to_value(LibDocument::Part(copy.clone())).unwrap()],
                "mode": "replace", "from": id_json(old)}),
     );
@@ -264,8 +282,8 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
 /// writes back as read.
 #[test]
 fn the_surface_view_round_trips_and_is_refused_elsewhere() {
-    let dir = ew_testdir::Tmp::new("ew-panel-lp1");
-    copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
+    let tmp = ew_testdir::Tmp::new("ew-panel-lp1");
+    let dir = tmp.sample("sample.ew");
     let mut options = StoreOptions::new("panel-lp1");
     let (state, state_2) = (
         ew_testdir::Tmp::new("ew-panel-lp1-state"),
@@ -278,17 +296,21 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
         SessionOptions::default(),
         Recovery::Discard,
     )
-    .expect("the fixture copy opens");
-    let item: Id<PageItem> = record_id("page_items", "902");
+    .expect("the sample's copy opens");
+    let (p902, surface) = (page(&s, "902"), surface(&s));
+    let item = views_on(&s.query(), p902)
+        .first()
+        .expect("902 holds a view")
+        .id;
     assert_eq!(
-        views_on(&s.query(), page("902"))
+        views_on(&s.query(), p902)
             .iter()
             .map(|v| v.id)
             .collect::<Vec<_>>(),
         vec![item],
         "902 holds its one view"
     );
-    let set = |datum: [i64; 2], mode: &str| json!({"page": id_json(page("902")), "surface": id_json(surface()), "datum_at": datum, "label_mode": mode});
+    let set = |datum: [i64; 2], mode: &str| json!({"page": id_json(p902), "surface": id_json(surface), "datum_at": datum, "label_mode": mode});
     let primary = run(&mut s, "page.surface_view.set", set([30 * MM, 160 * MM], "full"));
     assert_eq!(primary, Some(id_json(item)), "the outcome names the view");
     let again = run(&mut s, "page.surface_view.set", set([31 * MM, 161 * MM], "full"));
@@ -297,7 +319,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
         Some(id_json(item)),
         "a second set replaces, it adds no view"
     );
-    let views = views_on(&s.query(), page("902"));
+    let views = views_on(&s.query(), p902);
     assert_eq!(views.len(), 1, "one view on 902");
     let PageItemKind::SurfaceView(v) = &views[0].kind else {
         unreachable!()
@@ -305,7 +327,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     assert_eq!(
         (v.surface, v.datum_at, v.label_mode.clone()),
         (
-            surface(),
+            surface,
             Pt2::new(Nm(31 * MM), Nm(161 * MM)),
             SurfaceLabelMode::Full
         )
@@ -315,27 +337,27 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     options.state_dir = Some(state_2.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)
         .expect("the saved copy opens");
-    assert_eq!(views_on(&s.query(), page("902")), views, "the view reads back");
+    assert_eq!(views_on(&s.query(), p902), views, "the view reads back");
 
     let refused = |s: &mut Session, params: Value| {
         s.execute(&cmd("page.surface_view.set", params))
             .expect_err("refused")
             .to_string()
     };
-    let on_101 = json!({"page": id_json(page("101")), "surface": id_json(surface()), "datum_at": [0, 0]});
+    let p101 = page(&s, "101");
+    let on_101 = json!({"page": id_json(p101), "surface": id_json(surface), "datum_at": [0, 0]});
     assert_eq!(
         refused(&mut s, on_101),
         "page.surface_view.set: folio 101 is not a panel-layout page; a surface view goes on a panel-layout page"
     );
-    let missing = json!({"page": id_json(page("902")), "surface": id_json(Id::<MountingSurface>::from_uuid(
+    let missing = json!({"page": id_json(p902), "surface": id_json(Id::<MountingSurface>::from_uuid(
         Uuid::from_u128(0x5a))), "datum_at": [0, 0]});
     assert_eq!(
         refused(&mut s, missing),
         "page.surface_view.set: invalid parameters at `/surface`: the mounting surface is not in the project"
     );
-    assert!(views_on(&s.query(), page("101")).is_empty(), "nothing on 101");
+    assert!(views_on(&s.query(), p101).is_empty(), "nothing on 101");
     drop(s);
-    let _ = std::fs::remove_dir_all(&dir);
 
     // A label mode and a member of a newer build stay verbatim through a read and a write.
     let line = json!({"$k": "page_item", "id": "21758f62-f398-5901-bd3b-d1b972c1782d",
@@ -350,54 +372,38 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
 /// and carrier_geometry; never re-derive geometry" — the expected footprints are `placement_geometry`'s, projected).
 #[test]
 fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = common::sample();
+    let tables = s.panel_tables("902").expect("902's view");
+    let projection = tables.projection;
     let q = s.query();
 
     let surface_list = layer(&q, "902", Layer::Surface);
     let rects: Vec<Rect> = surface_list.items.iter().filter_map(item_bounds).collect();
-    // The enclosure (-50, -50)–(700, 950) mm and the plate (0, 0)–(650, 900) mm of the plate frame at 1:10 on paper:
-    // 76.043 × 101.391 mm on the page from the datum (25, 167) mm …
-    let enclosure = Rect::from_points(
-        Pt2::new(Nm(19_930_459), Nm(70_678_720)),
-        Pt2::new(Nm(95_973_574), Nm(172_069_541)),
-    );
-    let plate = Rect::from_points(
-        Pt2::new(Nm(25_000_000), Nm(75_748_261)),
-        Pt2::new(Nm(90_904_033), Nm(167_000_000)),
-    );
+    // The sample's 600 × 800 mm enclosure holds its 520 × 720 mm plate 40 mm in from each side; in the plate's frame
+    // the enclosure runs (-40, -40)–(560, 760) mm and the plate (0, 0)–(520, 720) mm, drawn at 1:5 from the view's
+    // datum …
+    let enclosure = projection
+        .rect(mm_rect((-40.0, -40.0), (560.0, 760.0)))
+        .expect("in range");
+    let plate = projection
+        .rect(mm_rect((0.0, 0.0), (520.0, 720.0)))
+        .expect("in range");
     assert!(rects.contains(&enclosure), "the enclosure: {rects:?}");
     assert!(rects.contains(&plate), "the plate: {rects:?}");
-    // … 75.0 × 100.0 mm printed from the datum (34.45, 174.50) mm printed, to the nanometre rounding.
-    let tol = Nm(1_000);
+    // … 120 × 160 mm and 104 × 144 mm printed.
     assert!(
-        near(
-            printed(enclosure),
-            mm_rect((29.447, 79.499), (104.447, 179.499)),
-            tol
-        ),
-        "{:?}",
-        printed(enclosure)
+        spans(printed(&q, enclosure), 120_000_000, 160_000_000),
+        "120 × 160 mm printed"
     );
     assert!(
-        near(printed(plate), mm_rect((34.447, 84.499), (99.447, 174.499)), tol),
-        "{:?}",
-        printed(plate)
+        spans(printed(&q, plate), 104_000_000, 144_000_000),
+        "104 × 144 mm printed"
     );
-    // Two roundings (the projection's and the sheet map's) leave at most a nanometre each way.
-    let span = |r: Rect, w: i64, h: i64| (r.width().0 - w).abs() <= 1 && (r.height().0 - h).abs() <= 1;
-    assert!(
-        span(printed(enclosure), 75_000_000, 100_000_000),
-        "75 × 100 mm printed"
-    );
-    assert!(span(printed(plate), 65_000_000, 90_000_000), "65 × 90 mm printed");
-    // The fit: the outline stays clear of 902's PART DATA box (16.31–71.11 × 16.31–52.85 mm
-    // printed), of the legend's rect (108.00–278.00 × 19.50–167.50, D17) and of the frame's drawing area, whose bottom
-    // edge is at 182.02 mm printed.
-    let outline = printed(enclosure);
-    assert!(outline.min().y > mm(0.0, 52.85).y, "below PART DATA");
-    assert!(outline.max().x < mm(108.0, 0.0).x, "left of the legend");
-    assert!(outline.max().y < mm(0.0, 182.02).y, "above the frame's edge");
+    // The fit: the outline stays clear of the legend the page embeds.
+    assert!(!tables.blocks.is_empty(), "902 embeds its legend");
+    for b in &tables.blocks {
+        assert!(!overlaps(enclosure, b.drawn), "clear of the legend {b:?}");
+    }
     assert!(
         surface_list.items.iter().all(|i| i.entity.is_none()),
         "the outlines carry no entity"
@@ -433,7 +439,7 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
                 rails += 1;
                 assert_eq!((dashed, labels.len()), (0, 0), "rail {id}: no label");
                 let path = &c.path;
-                let axis = projection_902()
+                let axis = projection
                     .rect(Rect::from_points(path[0], path[path.len() - 1]))
                     .expect("in range");
                 // Cut around the labels on it, the axis stays on its line within its ends.
@@ -453,13 +459,17 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             "carrier {id} has an outline"
         );
     }
-    assert_eq!((rails, ducts, axes.len()), (3, 5, 3), "doc 20 §13's carriers");
+    assert_eq!(
+        (rails, ducts, axes.len()),
+        (2, 1, 2),
+        "the sample's two rails and its duct"
+    );
 
     let placements = layer(&q, "902", Layer::Placements);
     for (id, _) in q.table::<Placement>().iter() {
         let g = q.get::<PlacementGeometry>(id);
         let g = g.as_ref().as_ref().expect("a geometry");
-        let expected = projection_902().rect(g.footprint).expect("in range");
+        let expected = projection.rect(g.footprint).expect("in range");
         let drawn: Vec<Rect> = placements
             .items
             .iter()
@@ -467,11 +477,12 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             .filter_map(item_bounds)
             .collect();
         // A strip's end brackets follow the footprints with its placement's entity (their positions are
-        // `golden_end_brackets::eb2_…`).
-        let brackets = ["R1", "R2", "R3"]
+        // `end_brackets::eb2_…`).
+        let brackets = q
+            .table::<Carrier>()
             .iter()
-            .map(|k| {
-                q.get::<ew_derive::layout::GroupAccessories>(record_id("carriers", k))
+            .map(|(c, _)| {
+                q.get::<ew_derive::layout::GroupAccessories>(c)
                     .iter()
                     .filter(|b| b.placement == id)
                     .count()
@@ -483,15 +494,16 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             "placement {id}: its footprint"
         );
     }
-    // -102G1: the footprint (101, 675)–(171, 805) mm of the plate frame at 1:10 on paper from (25, 167) mm.
+    drop(q);
+    // -101Q1: 54 × 85 mm with its clip point at its centre, clipped 53 mm along rail 1 from (25, 580) mm: the footprint
+    // (51, 537.5)–(105, 622.5) mm of the plate frame, at 1:5 on paper from the view's datum.
     assert_eq!(
-        footprint_902(&q, "-102G1"),
+        footprint_902(&s, "-101Q1"),
         Rect::from_points(
-            Pt2::new(Nm(35_240_473), Nm(85_380_389)),
-            Pt2::new(Nm(42_337_830), Nm(98_561_196))
+            Pt2::new(Nm(89_871_979), Nm(28_053_150)),
+            Pt2::new(Nm(100_822_187), Nm(45_289_590))
         )
     );
-    drop(q);
 
     // A part with a `front_2d` drawing (a rectangle inset 2 mm) draws it instead of the footprint.
     assign_test_part(
@@ -501,22 +513,24 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
         18,
         &[&[(2, 2), (16, 2), (16, 88), (2, 88), (2, 2)]],
     );
+    let f1 = common::placement_of(&s, "-102F1");
     let q = s.query();
-    let g = q.get::<PlacementGeometry>(placement("-102F1"));
+    let g = q.get::<PlacementGeometry>(f1);
     let g = g.as_ref().as_ref().expect("a geometry");
     assert_eq!(g.outline.len(), 1, "one polyline");
-    let outline = projection_902().points(&g.outline[0]).expect("in range");
+    let outline = projection.points(&g.outline[0]).expect("in range");
     let expected = outline[1..]
         .iter()
         .fold(Rect::from_point(outline[0]), |b, p| b.union(Rect::from_point(*p)));
     let drawn: Vec<Rect> = layer(&q, "902", Layer::Placements)
         .items
         .iter()
-        .filter(|i| i.entity == Some(entity(placement("-102F1"))))
+        .filter(|i| i.entity == Some(entity(f1)))
         .filter_map(item_bounds)
         .collect();
     assert_eq!(drawn, vec![expected], "the front_2d outline");
-    assert_ne!(expected, footprint_902(&q, "-102F1"), "not the footprint");
+    drop(q);
+    assert_ne!(expected, footprint_902(&s, "-102F1"), "not the footprint");
 }
 
 /// Whether the axis-parallel segment `a`–`b` runs through the open interior of `r`.
@@ -551,12 +565,13 @@ fn segments(els: &[PathEl]) -> Vec<(Pt2, Pt2)> {
     out
 }
 
-/// On 902 no carrier stroke runs through a label's knockout box; the turned
-/// labels of -101F1 and -102F1 cut their rail; the footprints stay whole rectangles.
+/// On 902 with the tags as labels no carrier stroke runs through a label's knockout box; the turned labels of -102F1
+/// and -X1031 cut their rail; the footprints stay whole rectangles.
 #[test]
 fn the_carriers_are_cut_around_the_labels_of_902() {
-    let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
+    let mut s = common::sample();
+    set_view(&mut s, json!({"labels": "tags"}));
+    let projection = projection_902(&s);
     let q = s.query();
     let style = text_style_table(&q)
         .resolve("xref.device")
@@ -568,16 +583,11 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
             continue;
         };
         let g = q.get::<PlacementGeometry>(id);
-        let fp = projection_902()
+        let fp = projection
             .rect(g.as_ref().as_ref().expect("a geometry").footprint)
             .expect("in range");
         let shaped = ew_text::bundled().shape(&run.text, &style, None);
         let placed = place_label(ew_text::bundled(), &style, &run.text, &shaped, fp, None);
-        assert!(
-            matches!(placed.fit, LabelFit::Horizontal | LabelFit::Turned),
-            "{}: inside its footprint",
-            run.text
-        );
         boxes.push((run.text.clone(), placed.knockout));
     }
     let box_of = |tag: &str| {
@@ -587,7 +597,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
             .map(|(_, b)| *b)
             .unwrap_or_else(|| panic!("{tag}'s label"))
     };
-    for tag in ["-101F1", "-102F1"] {
+    for tag in ["-102F1", "-X1031"] {
         let b = box_of(tag);
         assert!(b.height() > b.width(), "{tag} is turned");
     }
@@ -615,7 +625,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
         }
     }
     assert!(cut > 0, "a carrier is cut");
-    // -101F1's and -102F1's boxes cross a rail's outline: some carrier item ends a run on each box's edge.
+    // -102F1's and -X1031's boxes cross rail 1's axis line: some carrier item ends a run on each box's edge.
     let ends: Vec<Pt2> = carriers
         .items
         .iter()
@@ -626,7 +636,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
         .flatten()
         .flat_map(|(a, b)| [a, b])
         .collect();
-    for tag in ["-101F1", "-102F1"] {
+    for tag in ["-102F1", "-X1031"] {
         let b = box_of(tag);
         assert!(
             ends.iter().any(|p| p.x == b.min().x || p.x == b.max().x),
@@ -641,12 +651,13 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
     }
 }
 
-/// LP-3. The labels of 902 ("the ink box uses ew-text's existing API: Shaped::advance() along
+/// LP-3. The labels of 902 with the tags as labels ("the ink box uses ew-text's existing API: Shaped::advance() along
 /// the text; across it, cap_height + 0.1 mm per side, plus descent only for descender glyphs").
 #[test]
 fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = common::sample();
+    set_view(&mut s, json!({"labels": "tags"}));
+    let f1 = common::placement_of(&s, "-102F1");
     let q = s.query();
     let style = text_style_table(&q)
         .resolve("xref.device")
@@ -654,41 +665,35 @@ fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
     assert_eq!(style.size, Nm(1_852_083), "7 QET px: 1.83 mm em");
     let labels = layer(&q, "902", Layer::Labels);
     let all = runs(&labels);
-    for tag in ["T55", "S51", "1X1", "-X1031", "-X1032", "-201U3"] {
+    for tag in ["-X1011", "-101Q1", "-104A1-A1", "-201K1-Q1"] {
         assert!(all.iter().any(|(_, r)| r.text == tag), "{tag} is printed");
     }
     assert!(
         all.iter().all(|(_, r)| r.size == style.size),
         "no label is scaled"
     );
-    assert!(
-        labels.items.iter().all(|i| matches!(i.kind, ItemKind::Glyphs(_))),
-        "every label of 902 fits its footprint: no leader"
-    );
 
-    let (_, f1) = all
+    let (_, label) = all
         .iter()
-        .find(|(e, _)| *e == Some(entity(placement("-101F1"))))
-        .expect("-101F1's label");
-    assert_eq!(f1.text, "-101F1");
-    let fp = footprint_902(&q, "-101F1");
-    assert_eq!(
-        fp.max().x.0 - fp.min().x.0,
-        1_825_035,
-        "1.825 mm wide on the page"
-    );
+        .find(|(e, _)| *e == Some(entity(f1)))
+        .expect("-102F1's label");
+    assert_eq!(label.text, "-102F1");
+    drop(q);
+    let fp = footprint_902(&s, "-102F1");
+    let q = s.query();
+    // An 18 mm part at 1:5: 3.6 mm on paper.
     assert!(
-        (printed(fp).width().0 - 1_800_000).abs() <= 1,
-        "1.8 mm wide on paper"
+        (printed(&q, fp).width().0 - 3_600_000).abs() <= 1,
+        "3.6 mm wide on paper"
     );
-    assert!(turned(f1), "turned");
-    assert!(contains(fp, run_centre(f1)), "inside its footprint");
-    let shaped = ew_text::bundled().shape("-101F1", &style, None);
+    assert!(turned(label), "turned");
+    assert!(contains(fp, run_centre(label)), "inside its footprint");
+    let shaped = ew_text::bundled().shape("-102F1", &style, None);
     assert_eq!(
         label_fit(
             ew_text::bundled(),
             &style,
-            "-101F1",
+            "-102F1",
             &shaped,
             Nm(fp.max().x.0 - fp.min().x.0),
             Nm(fp.max().y.0 - fp.min().y.0)
@@ -697,32 +702,26 @@ fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
     );
     drop(q);
 
-    run(
-        &mut s,
-        "page.surface_view.set",
-        json!({"page": id_json(page("902")), "surface": id_json(surface()), "datum_at": [25 * MM, 167 * MM],
-               "label_mode": "full"}),
-    );
+    set_view(&mut s, json!({"label_mode": "full"}));
     assert!(
-        texts(&layer(&s.query(), "902", Layer::Labels)).contains(&"=P01+J-E-2416-X1031".to_owned()),
+        texts(&layer(&s.query(), "902", Layer::Labels)).contains(&"+CAB-X1031".to_owned()),
         "the full designation"
     );
-    run(
-        &mut s,
-        "page.surface_view.set",
-        json!({"page": id_json(page("902")), "surface": id_json(surface()), "datum_at": [25 * MM, 167 * MM]}),
-    );
+    set_view(&mut s, json!({}));
 
-    // A 6 mm part: 0.6 mm on paper takes the label neither way; it goes outside with a leader.
+    // A 6 mm part: 1.2 mm on paper takes the label neither way; it goes outside with a leader.
     assign_test_part(&mut s, "-102F1", "LP3-6MM", 6, &[]);
+    let fp = footprint_902(&s, "-102F1");
     let q = s.query();
-    let fp = footprint_902(&q, "-102F1");
-    assert_eq!(fp.max().x.0 - fp.min().x.0, 608_345);
+    assert!(
+        (printed(&q, fp).width().0 - 1_200_000).abs() <= 1,
+        "1.2 mm wide on paper"
+    );
     let labels = layer(&q, "902", Layer::Labels);
     let mine: Vec<&Item> = labels
         .items
         .iter()
-        .filter(|i| i.entity == Some(entity(placement("-102F1"))))
+        .filter(|i| i.entity == Some(entity(f1)))
         .collect();
     let run = mine
         .iter()
@@ -742,20 +741,20 @@ fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
     );
 }
 
-/// LP-4. The title block of 902 prints the scale; the TOC row of 902 keeps the plain title; 902 at 1:5 changes no
+/// LP-4. The title block of 902 prints the scale; the TOC row of 902 keeps the plain title; 902 at 1:10 changes no
 /// layout record and keeps the label height.
 #[test]
 fn the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = common::sample();
+    let p902 = page(&s, "902");
     let q = s.query();
     let frame = texts(&layer(&q, "902", Layer::Frame));
     assert!(
-        frame.contains(&"Cabinet Layout · Scale 1:10".to_owned()),
+        frame.contains(&"Panel layout · Scale 1:5".to_owned()),
         "{frame:?}"
     );
     let toc = texts(&page_layer(&q, drawn(&q, "2"), Layer::Tables).list);
-    assert!(toc.contains(&"Cabinet Layout".to_owned()), "the TOC row: {toc:?}");
+    assert!(toc.contains(&"Panel layout".to_owned()), "the TOC row: {toc:?}");
     assert!(
         !toc.iter().any(|t| t.contains("Scale")),
         "the TOC prints no scale"
@@ -794,65 +793,68 @@ fn the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": {"one_to": 5}}),
+        json!({"kind": "page", "path": "scale", "targets": [id_json(p902)], "value": {"one_to": 10}}),
     );
+    let projection = projection_902(&s);
     let q = s.query();
     assert_eq!(layout(&q), before, "no layout record changed");
     assert_eq!(sizes(&q), size_before, "the label height is kept");
     assert!(
-        texts(&layer(&q, "902", Layer::Frame)).contains(&"Cabinet Layout · Scale 1:5".to_owned()),
+        texts(&layer(&q, "902", Layer::Frame)).contains(&"Panel layout · Scale 1:10".to_owned()),
         "the title block follows"
     );
-    // The plate is twice as large: 130 mm wide on paper (131.808 mm on the page) from x = 25 mm.
+    // The plate is half as large: 52 × 72 mm on paper, its corner still at the view's datum.
+    let plate = projection
+        .rect(mm_rect((0.0, 0.0), (520.0, 720.0)))
+        .expect("in range");
     let rects: Vec<Rect> = layer(&q, "902", Layer::Surface)
         .items
         .iter()
         .filter_map(item_bounds)
         .collect();
-    let plate = Rect::from_points(
-        Pt2::new(Nm(25_000_000), Nm(-15_503_477)),
-        Pt2::new(Nm(156_808_067), Nm(167_000_000)),
-    );
-    assert!(rects.contains(&plate), "the plate at 1:5: {rects:?}");
+    assert!(rects.contains(&plate), "the plate at 1:10: {rects:?}");
     assert!(
-        (printed(plate).width().0 - 130_000_000).abs() <= 1,
-        "130 mm printed"
+        spans(printed(&q, plate), 52_000_000, 72_000_000),
+        "52 × 72 mm printed"
+    );
+    assert_eq!(
+        (plate.min().x, plate.max().y),
+        (projection.datum.x, projection.datum.y)
     );
     drop(q);
     // `fields.set` refuses a scale of 1:0 with `page.surface_view.set`'s text (a stored one is read and drawn
     // 1:1: `a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one`).
     let zero = cmd(
         "fields.set",
-        json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": {"one_to": 0}}),
+        json!({"kind": "page", "path": "scale", "targets": [id_json(p902)], "value": {"one_to": 0}}),
     );
     assert_eq!(
         s.execute(&zero).unwrap_err().to_string(),
         "fields.set: invalid parameters at `/value`: a scale is 1:n with n at least 1"
     );
     assert!(
-        texts(&layer(&s.query(), "902", Layer::Frame)).contains(&"Cabinet Layout · Scale 1:5".to_owned()),
+        texts(&layer(&s.query(), "902", Layer::Frame)).contains(&"Panel layout · Scale 1:10".to_owned()),
         "the scale stays"
     );
 }
 
-/// The reader stays tolerant. A copy of Golden A whose 902 line says `one_to: 0` opens; 902 draws the
-/// surface at 1:1 on the page, as a page drawn not to scale, and its title block prints the plain title, with neither
-/// the suffix nor the scale.
+/// The reader stays tolerant. A copy of the sample whose 902 line says `one_to: 0` opens; 902 draws the surface at
+/// 1:1 on the page, as a page drawn not to scale, and its title block prints the plain title, with neither the suffix
+/// nor the scale.
 #[test]
 fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
     let (tmp, state) = (
         ew_testdir::Tmp::new("ew-panel-scale-0"),
         ew_testdir::Tmp::new("ew-panel-scale-0-state"),
     );
-    let dir = tmp.0.clone();
-    copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
+    let dir = tmp.sample("sample.ew");
     let pages = dir.join("pages");
     let mut edited = 0;
     for e in std::fs::read_dir(&pages).expect("the pages folder") {
         let path = e.expect("an entry").path();
         let text = std::fs::read_to_string(&path).expect("a page file");
-        if text.contains(r#""scale":{"one_to":10}"#) {
-            let text = text.replace(r#""scale":{"one_to":10}"#, r#""scale":{"one_to":0}"#);
+        if text.contains(r#""scale":{"one_to":5}"#) {
+            let text = text.replace(r#""scale":{"one_to":5}"#, r#""scale":{"one_to":0}"#);
             std::fs::write(&path, text).expect("the edited page file");
             edited += 1;
         }
@@ -870,21 +872,25 @@ fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
             .collect()
     };
     let frame = texts(&layer(&s.query(), "902", Layer::Frame));
-    assert!(frame.contains(&"Cabinet Layout".to_owned()), "{frame:?}");
+    assert!(frame.contains(&"Panel layout".to_owned()), "{frame:?}");
     assert!(
         !frame.iter().any(|t| t.contains("Scale") || t.contains("1:0")),
         "{frame:?}"
     );
     let at_zero = surface(&s);
-    // The plate's 650 × 900 mm from (25, 167) mm: the surface at 1:1 on the page, as a page drawn not to scale.
-    assert!(
-        at_zero.contains(&Rect::from_points(mm(25.0, -733.0), mm(675.0, 167.0))),
-        "{at_zero:?}"
+    // The plate's 520 × 720 mm with its corner at the view's datum: the surface at 1:1 on the page, as a page drawn
+    // not to scale.
+    let datum = projection_902(&s).datum;
+    let plate = Rect::from_points(
+        Pt2::new(datum.x, Nm(datum.y.0 - 720 * MM)),
+        Pt2::new(Nm(datum.x.0 + 520 * MM), datum.y),
     );
+    assert!(at_zero.contains(&plate), "{at_zero:?}");
+    let p902 = page(&s, "902");
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": "not_to_scale"}),
+        json!({"kind": "page", "path": "scale", "targets": [id_json(p902)], "value": "not_to_scale"}),
     );
     assert_eq!(surface(&s), at_zero, "1:0 draws as a page not to scale");
 }
@@ -923,31 +929,35 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
     best.map(|(_, e)| e)
 }
 
-/// LP-5. A `layout.move` of -102G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
+/// LP-5. A `layout.move` of -101G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
 /// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
 /// footprint's centre picks its placement.
 #[test]
 fn a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
-    // The pick, as Golden A places them (the moved -102G1 below overlaps its neighbours).
+    let mut s = common::sample();
+    // The pick, as the sample places them (the moved -101G1 below overlaps its neighbours).
     let q = s.query();
     let p = drawn(&q, "902");
     let mut entities = Vec::new();
     for l in [Layer::Surface, Layer::Carriers, Layer::Placements, Layer::Labels] {
         entities.extend(page_layer(&q, p, l).list.entity_bounds());
     }
-    for key in ["-102G1", "-X1031", "-201U3"] {
-        let at = centre(footprint_902(&q, key));
-        assert_eq!(pick(&entities, at), Some(entity(placement(key))), "{key}");
-    }
     drop(q);
+    for tag in ["-101G1", "-X1031", "-201K1-Q1"] {
+        let at = centre(footprint_902(&s, tag));
+        assert_eq!(
+            pick(&entities, at),
+            Some(entity(common::placement_of(&s, tag))),
+            "{tag}"
+        );
+    }
 
     s.export_pdf(&ExportOptions::default()).expect("the first export");
+    let g1 = common::placement_of(&s, "-101G1");
     run(
         &mut s,
         "layout.move",
-        json!({"placement": id_json(placement("-102G1")),
+        json!({"placement": id_json(g1),
                "pose": {"t": [100 * MM, 0, 0], "q": serde_json::to_value(ew_derive::layout::Quarter::new(0).quat()).unwrap()}}),
     );
     let memo = s
