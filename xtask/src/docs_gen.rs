@@ -11,7 +11,8 @@
 //!   `docs/book/src/reference/commands/`;
 //! - `rules.json`, the rule catalogue of `ew-checks`, gives one page per rule and an index page per rule pack under
 //!   `docs/book/src/reference/rules/`, each rule's page joining the rule's hand-written notes
-//!   (`docs/book/rule-notes/`); a rule without notes, or notes that miss a section or cite a standard in another form, fail;
+//!   (`docs/book/rule-notes/`); a rule without notes, or notes that miss a section or cite a standard in another
+//!   form, fail;
 //! - `keymap-sheet.json` of `ew-viewmodel` gives `reference/keymaps.md`;
 //! - `properties.json` of `ew-viewmodel`, the texts that explain the rows of Properties, gives `reference/properties.md`,
 //!   the page F1 on a row of Properties opens at the row's anchor;

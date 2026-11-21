@@ -20,7 +20,9 @@ fn check_task_names_what_is_wrong() {
     let task = root.join("tools/blind/tasks").join(brief);
     copy_dir(&task_dir(&crate::workspace_root(), brief), &task).unwrap();
     assert_eq!(check_task(&root, brief).unwrap(), Vec::<String>::new());
-    let sheet = std::fs::read_to_string(task.join("task.md")).unwrap().replace("\r\n", "\n");
+    let sheet = std::fs::read_to_string(task.join("task.md"))
+        .unwrap()
+        .replace("\r\n", "\n");
     std::fs::write(
         task.join("task.md"),
         sheet.replace(
@@ -31,7 +33,10 @@ fn check_task_names_what_is_wrong() {
     .unwrap();
     let p = check_task(&root, brief).unwrap().join("\n");
     assert!(p.contains("`-X9999` is not in the sample's script"), "{p}");
-    assert!(p.contains("`Zoltan` is a name that the sample's script does not hold"), "{p}");
+    assert!(
+        p.contains("`Zoltan` is a name that the sample's script does not hold"),
+        "{p}"
+    );
     assert!(p.contains("(an address or a path)"), "{p}");
     std::fs::remove_file(task.join("task.md")).unwrap();
     assert_eq!(check_task(&root, brief).unwrap(), ["task.md is missing"]);

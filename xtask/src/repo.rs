@@ -86,4 +86,3 @@ pub(crate) fn write_atomic(path: &Path, text: &str) -> Result<()> {
     }
     result.with_context(|| format!("writing {}", path.display()))
 }
-

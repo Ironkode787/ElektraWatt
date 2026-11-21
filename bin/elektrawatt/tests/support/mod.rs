@@ -13,7 +13,6 @@ use serde_json::{Value, json};
 
 pub use ew_testdir::{CONTENT, SAMPLE, copy_dir};
 
-
 /// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
 /// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead. Written here on its own, not with the printer's scanner, so that the two check each other.
 pub fn first_uuid(text: &str) -> Option<&str> {

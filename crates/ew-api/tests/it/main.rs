@@ -5,12 +5,12 @@
 
 #[path = "../common/mod.rs"]
 mod common;
-#[path = "../qet_synth/mod.rs"]
-mod qet_synth;
 #[path = "../page_output/pdf_read.rs"]
 mod pdf_read;
 #[path = "../page_output/pdf_support.rs"]
 mod pdf_support;
+#[path = "../qet_synth/mod.rs"]
+mod qet_synth;
 #[path = "../page_output/view.rs"]
 mod view;
 

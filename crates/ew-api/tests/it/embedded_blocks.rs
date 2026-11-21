@@ -25,8 +25,8 @@ use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_reports::BlockRows;
-use ew_reports::render::{RenderOptions, render};
 use ew_reports::RowKind;
+use ew_reports::render::{RenderOptions, render};
 use ew_scene::embedded::{EmbeddedContent, EmbeddedTable};
 use ew_scene::forms::SheetMap;
 use ew_scene::page::PageFinding;
@@ -372,7 +372,10 @@ fn the_cover_tables_print_the_profiles_rows_in_their_tables() {
             .map(|r| keys.iter().map(|k| cell(r, k)).collect())
             .collect()
     };
-    let colours = rows_of("colours", &["voltage_class", "function", "potential_type", "colour"]);
+    let colours = rows_of(
+        "colours",
+        &["voltage_class", "function", "potential_type", "colour"],
+    );
     let control = rows_of("control", &["colour", "size"]);
     let mains = rows_of("mains", &["colour", "size"]);
     assert!(
