@@ -1397,11 +1397,12 @@ as-built "[stale]" text; the summary line in `type.small` `color.text.secondary`
 
 **The Preview tab** (bottom dock): a header row with the title, revision and badge at the left and Apply and Cancel at
 the right, so the actions stay visible above long lists (as built they sit under the summary); the summary line under
-it ("12 items · 4 tags · 6 cross-reference texts · 3 pages" as built; an import's created
-and skipped counts); then the
-lists **Entities, Tags, Xrefs, Pages** as collapsible sections with headers in the style of the property categories
+it ("12 items · 4 tags · 6 cross-reference texts · 3 pages" as built, a count of none left out since FT-1761, as
+in the cards' lines; an import's created and skipped counts); then the
+lists **Entities, Tags, Cross-references, Pages** (FT-1761: "Xrefs" was no word of the user's) as collapsible sections with headers in the style of the property categories
 (§6.8: 28 px, `type.small` SemiBold `color.text.secondary`, a chevron) and a count badge (§6.16) instead of "(n)".
-List rows are `size.row` in `type.small`: an entity row shows the change word in `color.text.tertiary` in a 64-px
+List rows are `size.row` in `type.small`: an entity row shows the change word ("Changed", in sentence case as the
+row's first word) in `color.text.tertiary` in a 64-px
 column, the kind in `color.text.secondary`, the label in `color.text.primary` and the changed fields in
 `color.text.tertiary`; a tag or cross-reference row shows "old → new" with the arrow in `color.text.tertiary` and, for a
 cross-reference, the folio as the meta column (tabular digits). Each list shows `size.preview_list` rows, then

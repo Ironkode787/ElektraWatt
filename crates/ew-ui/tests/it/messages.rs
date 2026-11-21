@@ -853,18 +853,18 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
 }
 
 /// The quick-fix card's strip in the Messages pane counts its records, tags and cross-reference
-/// texts in words, in en-GB and in nl-NL (it read "1, 0, 0").
+/// texts in words, in en-GB and in nl-NL (it read "1, 0, 0"), a count of none left out (FT-1761).
 #[test]
 fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
     use ew_viewmodel::{key, strings};
     for (lang, line) in [
         (
             "en",
-            "Preview open: Quick fix EW-CORE-023 · 1 change, 0 tags, 0 cross-reference texts",
+            "Preview open: Quick fix EW-CORE-023 · 1 change",
         ),
         (
             "nl",
-            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 wijziging, 0 kenmerken, 0 kruisverwijzingsteksten",
+            "Voorbeeld open: Snelle oplossing EW-CORE-023 · 1 wijziging",
         ),
     ] {
         let tmp = Tmp::new();

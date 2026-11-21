@@ -104,7 +104,7 @@ impl ShellModel {
     }
 
     /// The Preview tab's summary line of the open card: its records, tags, cross-reference texts and pages
-    /// (`preview-summary`), or `None` without a card. The window paints it under the tab's header; the text interface
+    /// (zero counts left out), or `None` without a card. The window paints it under the tab's header; the text interface
     /// prints it for a bulk or table card, which has no inline card of its own.
     pub fn preview_summary(&self) -> Option<String> {
         let card = self.props.card()?;
@@ -130,15 +130,16 @@ impl ShellModel {
             return Some(lead.clone());
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
-        // A count of one takes the singular ("1 item · 1 page").
-        Some(strings::format(
-            key!("preview-summary"),
+        // A count of one takes the singular ("1 item · 1 page"); a count of none is left out (FT-1761: "0
+        // cross-reference texts"), the records always said.
+        Some(crate::preview::counted(
             &[
-                &strings::format_count(count_key!("preview-records"), records),
-                &strings::format_count(count_key!("preview-tags-count"), self.preview.tags().len()),
-                &strings::format_count(count_key!("preview-xrefs-count"), self.preview.xrefs().len()),
-                &strings::format_count(count_key!("preview-pages-count"), self.preview.pages().len()),
+                (count_key!("preview-records"), records),
+                (count_key!("preview-tags-count"), self.preview.tags().len()),
+                (count_key!("preview-xrefs-count"), self.preview.xrefs().len()),
+                (count_key!("preview-pages-count"), self.preview.pages().len()),
             ],
+            " \u{b7} ",
         ))
     }
 

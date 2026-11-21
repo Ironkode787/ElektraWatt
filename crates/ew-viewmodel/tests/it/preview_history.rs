@@ -190,11 +190,11 @@ fn renumber_previews(mode: Mode) {
     // The bulk card's one summary line, shared by the window's Preview tab and the text interface.
     assert_eq!(
         shell.preview_summary().as_deref(),
-        Some("2 items · 2 tags · 0 cross-reference texts · 1 page")
+        Some("2 items · 2 tags · 1 page")
     );
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
-        Some("Preview: Renumber · 2 items · 2 tags · 0 cross-reference texts · 1 page")
+        Some("Preview: Renumber · 2 items · 2 tags · 1 page")
     );
     let entities: Vec<&str> = section
         .iter()

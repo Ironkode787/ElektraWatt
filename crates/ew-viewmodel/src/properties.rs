@@ -1796,48 +1796,58 @@ pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -
 }
 
 /// A Properties card's summary line (`card-line`): its targets, then its changes, tags and cross-reference texts each
-/// counted with its own singular (as the quick fix's); the window and the describe text show it.
+/// counted with its own singular (as the quick fix's), a count of none left out; the window and the describe text
+/// show it.
 pub fn card_line(card: &Card) -> String {
-    let (tags, xrefs) = card_counts(card);
     strings::format(
         key!("card-line"),
         &[
             &card.targets.to_string(),
             &kind_plural(&card.edit.kind, card.targets),
-            &strings::format_count(crate::count_key!("preview-changes-count"), card.changes),
-            &tags,
-            &xrefs,
+            &change_counts(card, Some(card.changes)),
         ],
     )
 }
 
 /// A reorder card's summary line (`card-reorder`): its moves (`notices`), then its tags and cross-reference texts each
-/// counted with its own singular.
+/// counted with its own singular, a count of none left out.
 pub fn reorder_line(card: &Card, notices: &[String]) -> String {
-    let (tags, xrefs) = card_counts(card);
-    strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
+    let counts = change_counts(card, None);
+    if counts.is_empty() {
+        return notices.join(", ");
+    }
+    strings::format(key!("card-reorder"), &[&notices.join(", "), &counts])
 }
 
-/// A quick fix card's summary line (`card-fix`): its changes, tags and cross-reference texts each counted
-/// with its own singular; the window and the describe text show it.
+/// A quick fix card's summary line: its changes, tags and cross-reference texts each counted with its own singular,
+/// a count of none left out; the window and the describe text show it.
 pub fn fix_line(card: &Card) -> String {
-    let (tags, xrefs) = card_counts(card);
-    let records = strings::format_count(crate::count_key!("preview-changes-count"), card.changes);
-    strings::format(key!("card-fix"), &[&records, &tags, &xrefs])
+    change_counts(card, Some(card.changes))
 }
 
-/// A card's tags and cross-reference texts, counted.
-fn card_counts(card: &Card) -> (String, String) {
-    (
-        strings::format_count(
-            crate::count_key!("preview-tags-count"),
-            card.preview.derived.tags.len(),
+/// A card's changes (when given), tags and cross-reference texts, counted and joined by commas; a count of none is
+/// left out (FT-1761: a card read "0 tags, 0 cross-reference texts"), the changes always said.
+fn change_counts(card: &Card, changes: Option<usize>) -> String {
+    let counts = [
+        (crate::count_key!("preview-tags-count"), card.preview.derived.tags.len()),
+        (crate::count_key!("preview-xrefs-count"), card.preview.derived.xrefs.len()),
+    ];
+    match changes {
+        Some(n) => crate::preview::counted(
+            &[
+                [(crate::count_key!("preview-changes-count"), n)].as_slice(),
+                &counts,
+            ]
+            .concat(),
+            ", ",
         ),
-        strings::format_count(
-            crate::count_key!("preview-xrefs-count"),
-            card.preview.derived.xrefs.len(),
-        ),
-    )
+        None => counts
+            .iter()
+            .filter(|(_, n)| *n > 0)
+            .map(|(k, n)| strings::format_count(*k, *n))
+            .collect::<Vec<_>>()
+            .join(", "),
+    }
 }
 
 /// The refusal of a word that is not one of an enumerated field's, in the UI language: a potential's Type

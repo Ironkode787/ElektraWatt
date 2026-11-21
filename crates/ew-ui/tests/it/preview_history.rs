@@ -41,7 +41,7 @@ fn two_breakers_out_of_order(h: &mut Harness<'_, App>) {
     settle(h);
 }
 
-/// The name of the Preview tab's list header that starts with `lead` ("Xrefs ("): its count is what the change gives.
+/// The name of the Preview tab's list header that starts with `lead` ("Cross-references ("): its count is what the change gives.
 fn list_header(h: &Harness<'_, App>, lead: &str) -> String {
     h.query_all_by_label_contains(lead)
         .filter_map(|n| n.accesskit_node().label())
@@ -91,7 +91,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     // order (column first) -102S2 stands above -102S1, so closing the gaps swaps them. Three pages.
     assert!(has_text(
         &h,
-        "4 items · 4 tags · 0 cross-reference texts · 3 pages"
+        "4 items · 4 tags · 3 pages"
     ));
     assert!(
         has_text(&h, "-101F9 → -101F1"),
@@ -162,7 +162,7 @@ fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.get_all_by_label("Show changes").next().unwrap().click();
     settle(&mut h);
     assert!(h.query_by_label("Changes of step 2").is_some());
-    assert!(has_text(&h, "changed device -101F1 (function text)"));
+    assert!(has_text(&h, "Changed device -101F1 (function text)"));
     h.get_by_label("Close").click();
     settle(&mut h);
     assert!(h.state().shell().history_pane().changes().is_none());
@@ -323,7 +323,7 @@ fn a_changed_records_line_reads_in_dutch() {
     settle(&mut h);
     h.get_all_by_label("Wijzigingen tonen").next().unwrap().click();
     settle(&mut h);
-    assert!(has_text(&h, "gewijzigd apparaat -101F1 (functietekst)"));
+    assert!(has_text(&h, "Gewijzigd apparaat -101F1 (functietekst)"));
     h.get_by_label("Sluiten").click();
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -340,7 +340,7 @@ fn a_changed_records_line_reads_in_dutch() {
     );
     settle(&mut h);
     // The tag's member by its Properties label ("Kenmerknummering"), and the header of the two devices.
-    assert!(has_text(&h, "gewijzigd apparaat -101F1 (kenmerknummering)"));
+    assert!(has_text(&h, "Gewijzigd apparaat -101F1 (kenmerknummering)"));
     assert!(has_text(&h, "2 apparaten"));
     // The action after the Preview's colon in a sentence, and the revision in words.
     assert!(has_text(&h, "Voorbeeld: eigenschap instellen"));
@@ -370,7 +370,7 @@ fn the_preview_lists_open_in_place_and_name_the_new_folio() {
     settle(&mut h);
     settle(&mut h);
     // The cross-reference texts of the renumbered page, as many as it prints.
-    let xrefs_list = list_header(&h, "Xrefs (");
+    let xrefs_list = list_header(&h, "Cross-references (");
     let (pages, xrefs) = (header(&h, "Pages (1)"), header(&h, &xrefs_list));
     h.get_by_label("Pages (1)").click();
     settle(&mut h);

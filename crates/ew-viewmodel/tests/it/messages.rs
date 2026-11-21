@@ -575,7 +575,7 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     // Each count of the card's line takes its singular.
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
-        Some("1 change, 0 tags, 0 cross-reference texts")
+        Some("1 change")
     );
     // The card opens in the Preview tab like every origin; the Messages pane stays docked.
     assert!(shell.preview_shown());

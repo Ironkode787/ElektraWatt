@@ -70,6 +70,18 @@ pub fn entity_words(e: &PreviewEntity) -> (&'static str, String) {
     (change, crate::properties::kind_plural(&e.kind, 1))
 }
 
+/// Counts in words joined by `sep` (" · "): the first always, each other only when it is not zero (FT-1761: a
+/// preview read "0 cross-reference texts").
+pub(crate) fn counted(parts: &[(crate::strings::CountKey, usize)], sep: &str) -> String {
+    parts
+        .iter()
+        .enumerate()
+        .filter(|(i, (_, n))| *i == 0 || *n > 0)
+        .map(|(_, (key, n))| crate::strings::format_count(*key, *n))
+        .collect::<Vec<_>>()
+        .join(sep)
+}
+
 /// One cross-reference text change: the folio of the representation's page (empty when it has none), the text before
 /// and after.
 #[derive(Clone, PartialEq, Eq, Debug)]
