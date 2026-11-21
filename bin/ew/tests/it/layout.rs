@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew layout` on a copy of Golden A: the text of folio 101 names no fault and no wire across a text, its line of
+//! `ew layout` on a copy of the sample: the text of folio 101 names no fault and no wire across a text, its line of
 //! figures agrees with the `--json` result, and a folio that names no page is refused in words. Named items only,
 //! never totals.
 
@@ -9,17 +9,17 @@ use std::path::Path;
 
 use ew_api::cli_results as results;
 
-use crate::support::{EwTmp, Tmp, stderr, stdout};
+use crate::support::{EwTmp, Tmp, page_file, stderr, stdout};
 
 #[test]
 fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     let t = Tmp::new("ew-layout");
-    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
+    let p = t.sample("sample.ew").to_string_lossy().into_owned();
     let o = t.ew(&["layout", &p, "--page", "101"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let text = stdout(&o);
     let lines: Vec<&str> = text.lines().collect();
-    // Golden A's routes are the router's (RG1, RG2): no line names a fault or a wire across a text.
+    // The sample's wires on 101 are drawn as a draughtsman draws them: no line names a fault or a wire across a text.
     for word in [
         "  touch: ",
         "  overlap: ",
@@ -65,7 +65,7 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
 #[test]
 fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
     let t = Tmp::new("ew-layout");
-    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
+    let p = t.sample("sample.ew").to_string_lossy().into_owned();
     let o = t.ew(&["layout", &p]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let heads: Vec<String> = stdout(&o)
@@ -73,7 +73,8 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
         .filter(|l| !l.starts_with(' '))
         .map(|l| l.split(':').next().unwrap_or_default().to_owned())
         .collect();
-    for folio in ["1", "3", "101", "102", "103", "106", "203"] {
+    // The sample's drawn pages: the title page, 101 to 105 and the pneumatics.
+    for folio in ["1", "101", "102", "103", "104", "105", "201"] {
         assert!(heads.iter().any(|h| h == folio), "{folio}: {heads:?}");
     }
     let o = t.ew(&["layout", &p, "--page", "999"]);
@@ -87,34 +88,40 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
     );
 }
 
-/// `ew route`: folio 3's one wire, its route cleared first (Golden A's routes are the router's), is
-/// routed and saved, so a second run has nothing to do; `--dry-run` writes nothing; an unknown folio is refused in words.
+/// `ew route`: folio 105's one wire, its route cleared first, is routed and saved, so a second run has nothing to do;
+/// `--dry-run` writes nothing; an unknown folio is refused in words.
 #[test]
 fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     let t = Tmp::new("ew-layout");
-    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
-    // `connections|DP.1`, the bus cable's hop on folio 3, without a route.
+    let p = t.sample("sample.ew").to_string_lossy().into_owned();
+    // The PROFIBUS line from -104A1 to -201K1, the one wire of the bus page 105, without a route.
+    let page = std::fs::read_to_string(Path::new(&p).join(page_file(Path::new(&p), 105))).unwrap();
+    let line = page.lines().find(|l| l.contains("\"$k\":\"connection\"")).unwrap();
+    let wire: serde_json::Value = serde_json::from_str(line).unwrap();
     let log = Path::new(&p).with_file_name("unroute.ewcmd");
     std::fs::write(
         &log,
-        "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"folio 3's wire unrouted\"}\n\
-         {\"cmd\":\"connection.route\",\"params\":{\"connection\":\"ec0fcf51-0509-588e-a64c-a564f837c94b\",\"route\":[]}}\n",
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"folio 105's wire unrouted\"}}\n\
+             {{\"cmd\":\"connection.route\",\"params\":{{\"connection\":{},\"route\":[]}}}}\n",
+            wire["id"]
+        ),
     )
     .unwrap();
     let o = t.ew(&["apply", &p, log.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let before = std::fs::read_dir(Path::new(&p).join("pages")).unwrap().count();
-    let o = t.ew(&["route", &p, "--page", "3", "--dry-run"]);
+    let o = t.ew(&["route", &p, "--page", "105", "--dry-run"]);
     assert_eq!(
         (o.status.code(), stdout(&o)),
-        (Some(0), "Would route 1 wire on folio 3.\n".to_owned()),
+        (Some(0), "Would route 1 wire on folio 105.\n".to_owned()),
         "{}",
         stderr(&o)
     );
-    let o = t.ew(&["route", &p, "--page", "3"]);
+    let o = t.ew(&["route", &p, "--page", "105"]);
     assert_eq!(
         (o.status.code(), stdout(&o)),
-        (Some(0), "Routed 1 wire on folio 3.\n".to_owned()),
+        (Some(0), "Routed 1 wire on folio 105.\n".to_owned()),
         "{}",
         stderr(&o)
     );
@@ -122,7 +129,7 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
         std::fs::read_dir(Path::new(&p).join("pages")).unwrap().count(),
         before
     );
-    let o = t.ew(&["route", &p, "--page", "3", "--json"]);
+    let o = t.ew(&["route", &p, "--page", "105", "--json"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let json: results::RouteResult = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(json.schema, results::ROUTE);

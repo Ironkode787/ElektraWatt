@@ -6,16 +6,10 @@
 //! tells the state; an instrument list is previewed and applied.
 
 use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
-use crate::support::{EwTmp, GOLDEN_A, Tmp, copy_dir, stderr, stdout};
-
-fn golden_copy(t: &Tmp) -> PathBuf {
-    let copy = t.path("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &copy);
-    copy
-}
+use crate::support::{EwTmp, Tmp, stderr, stdout};
 
 fn ew(t: &Tmp, args: &[&OsStr]) -> Output {
     t.ew(args)
@@ -29,7 +23,7 @@ fn ok(o: &Output) -> String {
 #[test]
 fn an_export_is_recorded_and_its_file_comes_back() {
     let t = Tmp::new("ew-plc-test");
-    let project = golden_copy(&t);
+    let project = t.sample("sample.ew");
     let aml = t.path("PLC1.aml");
 
     let o = ew(
@@ -43,7 +37,9 @@ fn an_export_is_recorded_and_its_file_comes_back() {
         ],
     );
     let text = ok(&o);
-    assert!(text.contains("1 station, 7 modules, 56 channels"), "{text}");
+    // The sample's PLC: the CPU's station with its input and output card, and the valve terminal's station on the
+    // PROFIBUS with its one module; 8 channels each.
+    assert!(text.contains("2 stations, 3 modules, 24 channels"), "{text}");
     let written = std::fs::read_to_string(&aml).unwrap();
     assert!(written.contains("SchemaVersion=\"2.15\""));
     // the snapshot is in the saved project, in the configuration project's own file
@@ -119,7 +115,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
 #[test]
 fn the_tag_table_and_the_gvl_are_written_under_both_names() {
     let t = Tmp::new("ew-plc-test");
-    let project = golden_copy(&t);
+    let project = t.sample("sample.ew");
     for (word, file) in [
         ("plc-xlsx", "tags.xlsx"),
         ("plc-tags", "tags2.xlsx"),
@@ -170,11 +166,11 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
 #[test]
 fn an_instrument_list_is_previewed_and_applied() {
     let t = Tmp::new("ew-plc-test");
-    let project = golden_copy(&t);
+    let project = t.sample("sample.ew");
     let list = t.path("instruments.csv");
     std::fs::write(
         &list,
-        "tag,signal type,description\nTA05-V-40,DO,Valve 40\nTA05-S-01,DI,Level switch\n",
+        "tag,signal type,description\nTA05-V-40,DO,Valve 40\nTA05-T-01,AI,Temperature\n",
     )
     .unwrap();
     let run = |extra: &[&OsStr]| {
@@ -188,12 +184,13 @@ fn an_instrument_list_is_previewed_and_applied() {
         ew(&t, &args)
     };
     let text = ok(&run(&[]));
-    assert!(text.contains("TA05-V-40: channel 1 of -201U5 reserved"), "{text}");
-    assert!(text.contains("TA05-S-01: no spare DI channel"), "{text}");
+    // The first spare output of the output card; the sample has no analogue input.
+    assert!(text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"), "{text}");
+    assert!(text.contains("TA05-T-01: no spare AI channel"), "{text}");
     assert!(text.contains("nothing is written: apply with --apply"), "{text}");
     let text = ok(&run(&["--apply".as_ref()]));
     assert!(text.contains("applied and saved"), "{text}");
     // applied: the row has its channel, so the same list reserves no other
     let text = ok(&run(&[]));
-    assert!(text.contains("TA05-V-40: channel 1 of -201U5 reserved"), "{text}");
+    assert!(text.contains("TA05-V-40: channel 0 of -104A1-A2 reserved"), "{text}");
 }

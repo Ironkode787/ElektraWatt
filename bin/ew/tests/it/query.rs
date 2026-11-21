@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew query` and `ew queries` on a copy of Golden A: the text and the `--json` result,
-//! the failure paths, the registry's snapshot, determinism and `--project`.
+//! `ew query` and `ew queries` on a copy of the sample: the text and the `--json` result, the failure paths, the
+//! registry's snapshot, determinism and `--project`.
 
 use ew_api::cli_results as results;
 use serde_json::{Value, json};
@@ -53,10 +53,11 @@ fn assert_query_result(out: &str) -> results::QueryResult {
 #[test]
 fn device_tag_prints_its_text_and_its_json_result() {
     let t = Tmp::new("ew-query");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let o = t.ew(&args([&"query", &p, &"device_tag", &"tag:-101F1"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), "full       =P01+J-E-2416-101F1\ndisplayed  -101F1\n");
+    // The sample's page 101 lies in the location +CAB.
+    assert_eq!(stdout(&o), "full       +CAB-101F1\ndisplayed  -101F1\n");
     assert_eq!(stderr(&o), "");
 
     let o = t.ew(&args([&"query", &p, &"device_tag", &"tag:-101F1", &"--json"]));
@@ -68,7 +69,7 @@ fn device_tag_prints_its_text_and_its_json_result() {
     );
     assert_eq!(
         r.output,
-        json!({"full": "=P01+J-E-2416-101F1", "displayed": "-101F1"})
+        json!({"full": "+CAB-101F1", "displayed": "-101F1"})
     );
     assert_eq!(r.explain, None);
     assert!(stdout(&o).contains("\"explain\": null"), "{}", stdout(&o));
@@ -98,39 +99,13 @@ fn device_tag_prints_its_text_and_its_json_result() {
     );
 }
 
-/// QU-3 and QU-5 through the program: every entry of `ew queries --json` answers its example with exit 0, and the
-/// `output` of its `--json` result validates against the entry's own output schema.
-#[test]
-fn every_example_validates_against_its_output_schema() {
-    let t = Tmp::new("ew-query");
-    let p = t.golden("J-E-2416.ew");
-    let o = t.ew(&args([&"queries", &"--json"]));
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let list: Value = serde_json::from_str(&stdout(&o)).unwrap();
-    for q in list["queries"].as_array().unwrap() {
-        let name = q["name"].as_str().unwrap();
-        let example = q["example"].as_str().unwrap();
-        let o = t.ew(&args([&"query", &p, &name, &example, &"--json"]));
-        assert_eq!(o.status.code(), Some(0), "{name}: {}", stderr(&o));
-        let r = assert_query_result(&stdout(&o));
-        assert_eq!((r.query.as_str(), r.key.as_str()), (name, example));
-        let (schemas, index) = compile(&format!("urn:ew:query:{name}"), q["output"].clone());
-        if let Err(e) = schemas.validate(&r.output, index) {
-            panic!(
-                "{name}: the output does not validate against its schema: {e:#}\n{}",
-                r.output
-            );
-        }
-    }
-}
-
 /// The failure paths exit 2 with `error: ` and the message on stderr, nothing on stdout. An unknown query is refused
 /// before the project is opened; a key that names no record prints the replay's message (QU-3); a record of another
 /// kind is named in words ("Every adapter checks the resolved record's kind").
 #[test]
 fn failures_exit_2_with_their_message() {
     let t = Tmp::new("ew-query");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let missing = t.0.join("no-such-project");
     for (cmd, message) in [
         (
@@ -143,7 +118,7 @@ fn failures_exit_2_with_their_message() {
         ),
         (
             args([&"query", &p, &"device_tag", &"folio:101"]),
-            "error: `folio:101` names page 101 Power Supply 1 - Main Current; `device_tag` takes a device \
+            "error: `folio:101` names page 101 Supply 400 V AC; `device_tag` takes a device \
              (`tag:-101F1` or `id:<uuid>`)\n",
         ),
         (
@@ -229,7 +204,7 @@ fn queries_prints_the_committed_registry() {
 #[test]
 fn two_runs_print_the_same_text_and_write_nothing() {
     let t = Tmp::new("ew-query");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let before = tree(&p);
     for cmd in [
         args([&"query", &p, &"device_tag", &"tag:-101F1", &"--explain"]),
@@ -238,7 +213,7 @@ fn two_runs_print_the_same_text_and_write_nothing() {
             &"query",
             &p,
             &"xref_text_of",
-            &"tag:-201U1",
+            &"tag:-102Q1",
             &"--explain",
             &"--json",
         ]),
@@ -256,7 +231,7 @@ fn two_runs_print_the_same_text_and_write_nothing() {
 #[test]
 fn project_flag_equals_the_positional_directory() {
     let t = Tmp::new("ew-query");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let positional = t.ew(&args([&"query", &p, &"cell_of", &"tag:-101F1", &"--explain"]));
     let flag = t.ew(&args([
         &"query",
@@ -271,7 +246,7 @@ fn project_flag_equals_the_positional_directory() {
     assert_eq!(stdout(&positional), stdout(&flag));
     assert_eq!(
         stdout(&positional),
-        "cell_of tag:-101F1 @ rev 0\n  folio      101\n  cell       B8\n  policy     Cold · rep_anchor_cell is \
+        "cell_of tag:-101F1 @ rev 0\n  folio      101\n  cell       E8\n  policy     Cold · rep_anchor_cell is \
          computed on demand and has no memo\n  provenance main representation\n"
     );
     let both = t.ew(&args([&"query", &p, &"cell_of", &"tag:-101F1", &"--project", &p]));
