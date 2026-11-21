@@ -127,6 +127,11 @@ pub struct SymbolSource {
     pub name: symbols::MlText,
     /// Connection grid, so native and imported versions can be distinguished.
     pub grid: symbols::units::Grid,
+    /// The first level of its function's category (`Relay`), which the symbol browser files it under; empty when
+    /// its function does not resolve.
+    pub category: String,
+    /// The symbol copy whose shape the start card's preview draws (`Session::symbol_shape`).
+    pub copy: Option<ew_api::output::Uuid>,
 }
 
 /// A function definition offered by the editor's library chooser.
@@ -496,6 +501,14 @@ pub(crate) fn name_words(name: &symbols::MlText) -> String {
 }
 
 /// A refusal in the window's words (part 3's nit: never a raw member name).
+/// The first level of the category of the FnDef `fndef` names, as the library resolves it; empty when it does not.
+fn category_of(registry: &ew_api::library::Registry, fndef: &symbols::schema::LibRef) -> String {
+    match registry.resolve(fndef) {
+        Ok(symbols::schema::LibDocument::Fndef(f)) => f.item.category.0.as_str().to_owned(),
+        _ => String::new(),
+    }
+}
+
 fn words(key: strings::Key<'static>) -> String {
     strings::text(key).to_owned()
 }
@@ -1234,6 +1247,7 @@ impl ShellModel {
         let fallback;
         editor.box_sources = self.read_box_parts();
         let registry = if let Some(project) = &self.project {
+            let libraries = project.session.libraries();
             for (id, s) in project.session.query().symbols().iter() {
                 editor.sources.push(SymbolSource {
                     source: id.to_string(),
@@ -1241,6 +1255,8 @@ impl ShellModel {
                     key: s.item.meta.key.as_ref().map(ToString::to_string),
                     name: s.item.name.clone(),
                     grid: s.item.grid,
+                    category: category_of(libraries, &s.item.fndef),
+                    copy: Some(id.as_uuid()),
                 });
             }
             project.session.libraries()
@@ -1258,6 +1274,8 @@ impl ShellModel {
                         source: format!("library:{}:{}", s.library_id, s.item_id),
                         library: Some(library.name.clone()),
                         key: s.item.meta.key.as_ref().map(ToString::to_string),
+                        category: category_of(registry, &s.item.fndef),
+                        copy: Some(s.id.as_uuid()),
                         name: s.item.name,
                         grid: s.item.grid,
                     });
@@ -1283,7 +1301,19 @@ impl ShellModel {
         }
         editor.functions.sort_by(|a, b| a.key.cmp(&b.key));
         editor.functions.dedup_by(|a, b| a.source == b.source);
+        // In the symbol browser's order (FT-1810: Copy a library symbol was one long list without order): by the
+        // words of the function category the browser files a symbol under, Other last, then by name.
+        editor.sources.sort_by_cached_key(|s| {
+            let filed = crate::tools::category_words(&s.category);
+            (filed.is_none(), filed.unwrap_or_default().to_lowercase(), s.words().0.to_lowercase())
+        });
         Ok(())
+    }
+
+    /// The shape of the start card's symbol `source` for its preview (FT-1810): the copy's outline and connection
+    /// points as the symbol browser draws them; `None` without a project or for a symbol no copy is read for.
+    pub fn symbol_source_shape(&self, source: &SymbolSource) -> Option<ew_api::output::SymbolShape> {
+        self.project.as_ref()?.session.symbol_shape(source.copy?)
     }
 
     /// Test on a new page: the draft checked, a page with its grid and the draft's name made, and the draft placed

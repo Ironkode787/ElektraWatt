@@ -99,6 +99,9 @@ pub(crate) struct EditorView {
     )>,
     /// The start card's list on show under its filter ([`start_rows`]).
     start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
+    /// The symbol the Copy page's preview shows (the row the pointer is on, else the first) and its shape, read once
+    /// per symbol (FT-1810).
+    copy_preview: Option<(String, Option<std::rc::Rc<ew_viewmodel::ew_api::output::SymbolShape>>)>,
 }
 
 /// What the outline is made for: the draft's generation and revision, the language and the discipline.
@@ -1059,7 +1062,7 @@ impl EditorView {
                 ui.spacing_mut().item_spacing.y = t.space_2;
                 match self.start_page {
                     StartPage::Ways => self.start_ways(ui, shell, editor, events),
-                    StartPage::Copy => self.start_copy(ui, editor, events),
+                    StartPage::Copy => self.start_copy(ui, shell, editor, events),
                     StartPage::Box => self.start_box(ui, shell, events),
                 }
             });
@@ -1092,16 +1095,6 @@ impl EditorView {
                 .color(t.text_secondary.color32()),
         );
         ui.add_space(t.space_3);
-        // The draft in hand comes first: the editor keeps it until it is saved or discarded.
-        if editor.in_hand() {
-            let name = strings::format(
-                strings::Key::run_time("symbol-start-continue"),
-                &[&ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)],
-            );
-            if way(ui, IconId::pencil, &name, label(editor.state_key())).clicked() {
-                action(events, "symbol.start", json!({ "leave": true }));
-            }
-        }
         if way(
             ui,
             IconId::file_plus,
@@ -1143,6 +1136,17 @@ impl EditorView {
         .clicked()
         {
             ask(events, "symbol.open", json!({}));
+        }
+        // The draft in hand after the ways in, which keep their places (FT-1810: on top it moved every entry down
+        // after a save); the editor keeps it until it is saved or discarded.
+        if editor.in_hand() {
+            let name = strings::format(
+                strings::Key::run_time("symbol-start-continue"),
+                &[&ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)],
+            );
+            if way(ui, IconId::pencil, &name, label(editor.state_key())).clicked() {
+                action(events, "symbol.start", json!({ "leave": true }));
+            }
         }
         let recent = shell.symbol_recents();
         if !recent.is_empty() {
@@ -1258,7 +1262,7 @@ impl EditorView {
     }
 
     /// The library's symbols, to copy one: the original stays as it is.
-    fn start_copy(&mut self, ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
+    fn start_copy(&mut self, ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
         ui.horizontal(|ui| {
             if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
@@ -1294,22 +1298,50 @@ impl EditorView {
                             .as_deref()
                             .is_some_and(|k| k.to_lowercase().contains(&wanted))
                 })
-                .map(|(i, _, (name, library))| (i, name, library))
+                // In the browser's order (the editor sorts its sources so), each row naming what it is filed under.
+                .map(|(i, s, (name, library))| {
+                    let filed = ew_viewmodel::tools::category_words(&s.category)
+                        .unwrap_or_else(|| label(key!("category-other")));
+                    (i, name, format!("{filed} \u{b7} {library}"))
+                })
                 .collect()
         });
         ui.spacing_mut().scroll.floating = false;
-        egui::ScrollArea::vertical()
-            .id_salt("symbol-start-sources")
-            .auto_shrink([false, false])
-            .show_rows(ui, t.size_row, rows.len(), |ui, range| {
-                for (i, name, library) in &rows[range] {
-                    if panels::list_row(ui, name, library, false).clicked()
-                        && let Some(source) = editor.sources.get(*i)
-                    {
-                        ask(events, "symbol.copy_edit", json!({ "symbol": source.source }));
-                    }
-                }
+        // The list at the left, the symbol the pointer is on at the right, as the symbol browser shows it.
+        let mut hovered: Option<usize> = None;
+        let preview_w = (ui.available_width() * 0.4).max(t.size_dialog_form / 3.0);
+        ui.horizontal_top(|ui| {
+            let list_w = ui.available_width() - preview_w - t.space_3;
+            ui.allocate_ui(Vec2::new(list_w, ui.available_height()), |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("symbol-start-sources")
+                    .auto_shrink([false, false])
+                    .show_rows(ui, t.size_row, rows.len(), |ui, range| {
+                        for (i, name, detail) in &rows[range] {
+                            let row = panels::list_row(ui, name, detail, false);
+                            if row.hovered() {
+                                hovered = Some(*i);
+                            }
+                            if row.clicked()
+                                && let Some(source) = editor.sources.get(*i)
+                            {
+                                ask(events, "symbol.copy_edit", json!({ "symbol": source.source }));
+                            }
+                        }
+                    });
             });
+            let shown = hovered.or_else(|| rows.first().map(|r| r.0));
+            if let Some(source) = shown.and_then(|i| editor.sources.get(i)) {
+                if self.copy_preview.as_ref().is_none_or(|(s, _)| *s != source.source) {
+                    let shape = shell.symbol_source_shape(source).map(std::rc::Rc::new);
+                    self.copy_preview = Some((source.source.clone(), shape));
+                }
+                let side = preview_w.min(ui.available_height());
+                let (rect, _) = ui.allocate_exact_size(Vec2::splat(side), Sense::hover());
+                let shape = self.copy_preview.as_ref().and_then(|(_, s)| s.as_deref());
+                crate::picker::picture(ui, &t, rect, shape);
+            }
+        });
         if rows.is_empty() {
             ui.label(
                 egui::RichText::new(label(key!("symbol-start-no-match"))).color(t.text_secondary.color32()),

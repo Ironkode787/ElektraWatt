@@ -1179,7 +1179,11 @@ is `#[ignore]`d (not measured, the owner's rule).
 *As built (0.3.0, the redesign after the owner's test of the second candidate).* The **Symbol editor** opens from
 Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, on a screen built as the main window is.
 With nothing in hand it shows a **start card**: New symbol, Copy a library symbol…, Device box for a part…, Import a
-file…, the draft in hand and the symbols edited lately. With a symbol in hand: the **command bar** (Start; Select,
+file…, the draft in hand and the symbols edited lately; the draft in hand stands after the four ways in, which keep
+their places (FT-1810: on top it moved every entry down after a save). Copy a library symbol… lists the symbols in the
+symbol browser's order, by the words of the function category each is filed under (Other last) and then by name, each
+row naming that category and its library, with the browser's picture of the symbol under the pointer (else the first)
+beside the list. With a symbol in hand: the **command bar** (Start; Select,
 Line, Rectangle, Circle, More shapes, Text; Connection point, Text field, Other marks for the cross-reference point
 and the mechanical link point; the drawing grid and Snap to grid; Test on a page, Save, the Draft menu and Close
 editor); on the left the **outline** of the symbol (its connection points, texts and shapes, each row a click to the

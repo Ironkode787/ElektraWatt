@@ -952,7 +952,12 @@ fn connection_points(picker: &Picker, row: PickerRow) -> Vec<String> {
 /// The picture of a symbol shape in `rect`: the white sheet with a 1-px `color.border.default` frame, the shape's
 /// outline in the sheet's ink and its connection points as open markers, fitted with a margin; the sheet alone without
 /// a shape.
-fn picture(ui: &Ui, t: &Tokens, rect: egui::Rect, shape: Option<&ew_viewmodel::ew_api::output::SymbolShape>) {
+pub(crate) fn picture(
+    ui: &Ui,
+    t: &Tokens,
+    rect: egui::Rect,
+    shape: Option<&ew_viewmodel::ew_api::output::SymbolShape>,
+) {
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, theme::radius(t.radius_md), t.canvas_sheet.color32());
     painter.rect_stroke(
