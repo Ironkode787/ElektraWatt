@@ -7,4 +7,4 @@ text = "Terminal strips are edited in the strip editor, a table of the strip's t
 text = "In the strip editor a new terminal is inserted before the row the cursor is on, so put the cursor on terminal 5. The Function text column takes one value for many marked rows at once."
 
 [[hint]]
-text = "Open Strip editor for -X1031, put the cursor on terminal 5 and use Insert terminal with a free designation such as 21; then mark the twelve spare rows (state spare) and set their Function text to Reserve in one go."
+text = "Open Strip editor for -X1021, put the cursor on terminal 5 and use Insert terminal with a free designation such as 9; then mark the rows of terminals 5 to 8 and set their Function text to 0V in one go."

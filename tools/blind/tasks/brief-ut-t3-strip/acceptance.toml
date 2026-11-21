@@ -1,48 +1,45 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T3 as items. Golden A's -X1031 has the
-# twelve spare terminals 5 to 10 and 15 to 20; a new terminal is unused, not spare. "The fill is one undo step" is
-# decided by no output: the soft A6 is the checker's.
+# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T3 as items. The sample's -X1021 has the
+# 24V group on terminals 1 to 4 and the 0V group on 5 to 8. "The fill is one undo step" is decided by no output: the
+# soft A6 is the checker's.
 
 [[item]]
 id = "A1"
 kind = "hard"
-what = "One terminal of -X1031 sits between -X1031:4 and -X1031:5 in the strip's order."
+what = "One terminal of -X1021 sits between -X1021:4 and -X1021:5 in the strip's order."
 how = "connections"
-query = "SELECT t.tag FROM api_v1_terminal t WHERE t.strip_tag = '-X1031' AND t.seq > (SELECT seq FROM api_v1_terminal WHERE tag = '-X1031:4') AND t.seq < (SELECT seq FROM api_v1_terminal WHERE tag = '-X1031:5')"
+query = "SELECT t.tag FROM api_v1_terminal t WHERE t.strip_tag = '-X1021' AND t.seq > (SELECT seq FROM api_v1_terminal WHERE tag = '-X1021:4') AND t.seq < (SELECT seq FROM api_v1_terminal WHERE tag = '-X1021:5')"
 expect = "== 1"
 
 [[item]]
 id = "A2"
 kind = "hard"
-what = "Every terminal of -X1031 has a designation of its own."
+what = "Every terminal of -X1021 has a designation of its own."
 how = "connections"
-query = "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1031' GROUP BY designation HAVING count(*) > 1"
+query = "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1021' GROUP BY designation HAVING count(*) > 1"
 expect = "== 0"
 
-# A prevent rule would refuse the insert itself; A3 also finds no error on a terminal of the strip. A longer strip pushes
-# its end bracket into -X1032 on the rail (EW-LAY-010, a finding on the strip and not on a terminal): that is the
-# layout's consequence, not part of T3's criterion.
 [[item]]
 id = "A3"
 kind = "hard"
-what = "No error finding names a terminal of -X1031."
+what = "No error finding names a terminal of -X1021."
 how = "check"
-query = "SELECT fingerprint FROM api_v1_message WHERE severity = 'error' AND target_tags LIKE '%-X1031:%'"
+query = "SELECT fingerprint FROM api_v1_message WHERE severity = 'error' AND target_tags LIKE '%-X1021:%'"
 expect = "== 0"
 
 [[item]]
 id = "A4"
 kind = "hard"
-what = "The twelve spare terminals of -X1031 have the function text Reserve."
+what = "The four 0V terminals of -X1021 have the function text 0V."
 how = "connections"
-query = "SELECT tag FROM api_v1_terminal WHERE strip_tag = '-X1031' AND state = 'spare' AND function_text = 'Reserve'"
-expect = ">= 12"
+query = "SELECT tag FROM api_v1_terminal WHERE tag IN ('-X1021:5', '-X1021:6', '-X1021:7', '-X1021:8') AND function_text = '0V'"
+expect = "== 4"
 
 [[item]]
 id = "A5"
 kind = "hard"
-what = "No spare terminal of -X1031 has another function text."
+what = "No 24V terminal of -X1021 has the function text 0V."
 how = "connections"
-query = "SELECT tag FROM api_v1_terminal WHERE strip_tag = '-X1031' AND state = 'spare' AND COALESCE(function_text, '') <> 'Reserve'"
+query = "SELECT tag FROM api_v1_terminal WHERE tag IN ('-X1021:1', '-X1021:2', '-X1021:3', '-X1021:4') AND function_text = '0V'"
 expect = "== 0"
 
 [[item]]
