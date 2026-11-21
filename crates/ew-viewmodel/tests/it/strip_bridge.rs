@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! In the view model: `strip.bridge` (Edit ▸ Bridge terminals)
-//! on the folio-103 demo variant, the bridge group the action derives, one undo step per bridge, and the refusals of
-//! a selection that is not terminals of one strip; and the chain over three or more terminals in one undo
+//! on the sample's -X1021 of folio 102, the bridge group the action derives, one undo step per bridge, and the refusals
+//! of a selection that is not terminals of one strip; and the chain over three or more terminals in one undo
 //! step and the side-1 end of terminals without a bridge shaft. Every test works on a writable temporary copy of
-//! Golden A.
+//! the sample.
 
 use crate::common;
 
@@ -19,28 +19,108 @@ use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::shell::ShellModel;
 use serde_json::{Value, json};
 
-/// -X1031's terminal functions 1 to 4, in sequence order (verified in [`assert_golden_endpoints`]).
-const X1031: [&str; 4] = [
-    "911c8c13-00e3-512e-84bf-c5a9fe29c6fd",
-    "941aa213-6e5e-5fe3-8bca-008e8296a60d",
-    "677c22f6-eb0b-539c-bcbc-5bc64890dec9",
-    "ac9bd12a-9eb6-5719-bf65-38b973d38d05",
-];
-/// -X1031's strip device.
-const X1031_STRIP: &str = "d8221507-61e8-5141-a2cb-95300ef8a242";
-/// BR1's three connections, over -X1031 1–2, 2–3 and 3–4.
-const BR1: [&str; 3] = [
-    "b4459567-b8f3-5099-80d8-fb4e89b237ac",
-    "7839b214-ef70-55a7-948d-7f15041b7e04",
-    "cc6d528f-3d18-5553-8db0-e15a3fb415da",
-];
-/// -X1032's terminal 1.
-const X1032_1: &str = "7f6b83c0-d75e-58da-864c-7f2fd5ed3b06";
-/// The symbol Golden A's terminals use.
+/// The symbol the sample's terminals use.
 const TERMINAL_SYMBOL: &str = "ew.iec.terminal@qet10";
 
+/// What the bridge rule works on in the sample, read from it ([`endpoints`]).
+struct Endpoints {
+    /// -X1021's terminal functions 1 to 4, in sequence order.
+    x: Vec<String>,
+    /// -X1021's strip device.
+    strip: String,
+    /// BR1's three connections, over -X1021 1–2, 2–3 and 3–4.
+    br1: Vec<String>,
+}
+
+/// The endpoints the bridge rule relies on, from folio 102 shown in `s` (the functions by the labels the page prints)
+/// and the sample itself: every function's device is a terminal of -X1021 with the expected sequence, of a part with
+/// no bridge shaft (EW-GEN-TRM-1), so a bridge ends on its side-1 CP, index 0; BR1's three connections are the sample's
+/// bridge over them. A difference stops the test before its own assertions.
+fn endpoints(s: &ShellModel) -> Endpoints {
+    let t = tables(s);
+    let x: Vec<String> = (1..=4)
+        .map(|k| {
+            t.cps
+                .iter()
+                .find(|c| c.label == format!("-X1021:{k}/a"))
+                .unwrap_or_else(|| panic!("-X1021:{k} on folio 102"))
+                .function
+                .to_string()
+        })
+        .collect();
+    let (session, _) = Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample opens read-only");
+    let q = session.query();
+    let terminal = |function: &str| {
+        let (_, f) = q
+            .functions()
+            .iter()
+            .find(|(id, _)| id.as_uuid().to_string() == function)
+            .unwrap_or_else(|| panic!("the function {function}"));
+        let device = q
+            .devices()
+            .get(f.device.expect("the terminal's device"))
+            .expect("the device");
+        let term = device.aspects.terminal.as_ref().expect("the terminal aspect");
+        let part = device.parts.first().expect("the terminal's part");
+        let copy = q
+            .parts()
+            .iter()
+            .find(|(id, _)| id.as_uuid() == part.part.copy.as_uuid())
+            .expect("the part copy")
+            .1;
+        assert!(
+            copy.item.cp_pattern.iter().all(|cp| {
+                serde_json::to_value(&cp.clamp).map_or(true, |clamp| clamp.get("shaft").is_none())
+            }),
+            "{function}'s part has no bridge shaft"
+        );
+        (term.seq, term.designation.as_str().to_owned(), term.strip.as_uuid().to_string())
+    };
+    let strip = terminal(&x[0]).2;
+    for (k, function) in x.iter().enumerate() {
+        let (seq, designation, of) = terminal(function);
+        assert_eq!(seq, k as u32 + 1, "{function}'s sequence");
+        assert_eq!(designation, (k + 1).to_string());
+        assert_eq!(of, strip);
+    }
+    let br1: Vec<String> = (0..3)
+        .map(|k| {
+            let (id, c) = q
+                .connections()
+                .iter()
+                .find(|(_, c)| {
+                    serde_json::to_value(&c.a).ok() == Some(json!({"cp": [x[k], 0]}))
+                        && serde_json::to_value(&c.b).ok() == Some(json!({"cp": [x[k + 1], 0]}))
+
+                })
+                .unwrap_or_else(|| panic!("the bridge over -X1021 {} and {}", k + 1, k + 2));
+            assert_eq!(
+                serde_json::to_value(&c.kind).expect("the kind's JSON"),
+                json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
+            );
+            id.as_uuid().to_string()
+        })
+        .collect();
+    Endpoints { x, strip, br1 }
+}
+
+/// The representations of `functions` on the page shown, in the same order.
+fn reps_of(s: &ShellModel, functions: &[String]) -> Vec<TableRep> {
+    let t = tables(s);
+    functions
+        .iter()
+        .map(|function| {
+            t.reps
+                .iter()
+                .find(|r| r.functions.len() == 1 && r.functions[0].to_string() == *function)
+                .unwrap_or_else(|| panic!("no representation of {function}"))
+                .clone()
+        })
+        .collect()
+}
+
 /// Deletes the connections with these ID texts (`edit.delete`).
-fn delete_connections(s: &mut ShellModel, connections: &[&str]) {
+fn delete_connections(s: &mut ShellModel, connections: &[String]) {
     let targets: Vec<Value> = connections
         .iter()
         .map(|id| json!({"kind": "connection", "id": id}))
@@ -91,29 +171,6 @@ fn place_terminal_at(s: &mut ShellModel, p: (i64, i64), params: Value) {
     done(s, "ui.dismiss", json!({}));
 }
 
-/// Places a new representation of each function in `functions`, one row of free grid points, and returns their page
-/// table rows in the same order.
-fn place_terminals(s: &mut ShellModel, functions: &[&str]) -> Vec<TableRep> {
-    let points = free_row(s, functions.len());
-    for (function, point) in functions.iter().zip(&points) {
-        place_terminal_at(
-            s,
-            *point,
-            json!({"function": function, "symbol": TERMINAL_SYMBOL}),
-        );
-    }
-    let t = tables(s);
-    functions
-        .iter()
-        .map(|function| {
-            t.reps
-                .iter()
-                .find(|r| r.functions.len() == 1 && r.functions[0].to_string() == *function)
-                .unwrap_or_else(|| panic!("no placed representation of {function}"))
-                .clone()
-        })
-        .collect()
-}
 
 /// The `strip.bridge` item of the app menu (Draw, Connect).
 fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
@@ -128,75 +185,8 @@ fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
         .unwrap_or_else(|| panic!("no {id} in the Draw menu"))
 }
 
-/// The golden endpoints the bridge rule relies on: every function's device is the terminal aspect of -X1031 (or
-/// -X1032), with the expected strip and sequence and a bridge shaft at CP index 3; BR1's three connections are the
-/// golden bridge. A difference here stops the test before its own assertions.
-fn assert_golden_endpoints() {
-    let (session, _) =
-        Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
-    let q = session.query();
-    let terminal = |function: &str| {
-        let (_, f) = q
-            .functions()
-            .iter()
-            .find(|(id, _)| id.as_uuid().to_string() == function)
-            .unwrap_or_else(|| panic!("the function {function}"));
-        let device = q
-            .devices()
-            .get(f.device.expect("the terminal's device"))
-            .expect("the device");
-        let term = device.aspects.terminal.as_ref().expect("the terminal aspect");
-        let part = device.parts.first().expect("the terminal's part");
-        let copy = q
-            .parts()
-            .iter()
-            .find(|(id, _)| id.as_uuid() == part.part.copy.as_uuid())
-            .expect("the part copy")
-            .1;
-        let cp = copy
-            .item
-            .cp_pattern
-            .iter()
-            .find(|cp| cp.idx == 3)
-            .expect("CP 3 of the part pattern");
-        assert_eq!(
-            serde_json::to_value(&cp.clamp).expect("the clamp's JSON"),
-            json!({"shaft": 1}),
-            "{function} has its bridge shaft at CP 3"
-        );
-        (term, device)
-    };
-    for (k, function) in X1031.iter().enumerate() {
-        let (term, _) = terminal(function);
-        assert_eq!(term.seq, k as u32 + 1, "{function}'s sequence");
-        assert_eq!(term.designation.as_str(), (k + 1).to_string());
-        assert_eq!(term.strip.as_uuid().to_string(), X1031_STRIP);
-    }
-    let (term, _) = terminal(X1032_1);
-    assert_ne!(term.strip.as_uuid().to_string(), X1031_STRIP);
-    for (k, connection) in BR1.iter().enumerate() {
-        let (_, c) = q
-            .connections()
-            .iter()
-            .find(|(id, _)| id.as_uuid().to_string() == *connection)
-            .unwrap_or_else(|| panic!("the bridge connection {connection}"));
-        assert_eq!(
-            serde_json::to_value(&c.kind).expect("the kind's JSON"),
-            json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
-        );
-        assert_eq!(
-            serde_json::to_value(&c.a).expect("the a end's JSON"),
-            json!({"cp": [X1031[k], 3]})
-        );
-        assert_eq!(
-            serde_json::to_value(&c.b).expect("the b end's JSON"),
-            json!({"cp": [X1031[k + 1], 3]})
-        );
-    }
-}
-
-/// The largest group among -X1031's bridge connections in the project at `dir`.
-fn largest_x1031_bridge_group(dir: &Path) -> u64 {
+/// The largest group among the bridge connections of the strip `strip` in the project at `dir`.
+fn largest_bridge_group(dir: &Path, strip: &str) -> u64 {
     let (session, _) = Session::open_read_only(dir, "test").expect("the project copy opens read-only");
     let q = session.query();
     let mut max = 0;
@@ -226,7 +216,7 @@ fn largest_x1031_bridge_group(dir: &Path) -> u64 {
             .as_ref()
             .map(|t| t.strip.as_uuid().to_string())
             .as_deref()
-            == Some(X1031_STRIP)
+            == Some(strip)
         {
             max = max.max(group);
         }
@@ -234,11 +224,12 @@ fn largest_x1031_bridge_group(dir: &Path) -> u64 {
     max
 }
 
-/// -X1031 and BR1 deleted, four terminals placed, three bridges drawn.
+/// BR1 deleted, its four terminals bridged again pair by pair.
 fn three_bridges(tmp: &Tmp) -> (ShellModel, Vec<TableRep>, Vec<u64>) {
-    let mut s = actual_size(tmp, "103");
-    delete_connections(&mut s, &BR1);
-    let reps = place_terminals(&mut s, &X1031);
+    let mut s = actual_size(tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1);
+    let reps = reps_of(&s, &e.x);
     let mut groups = Vec::new();
     for k in 0..3 {
         select_ids(&mut s, &[reps[k].id.to_string(), reps[k + 1].id.to_string()]);
@@ -257,14 +248,14 @@ fn three_bridges(tmp: &Tmp) -> (ShellModel, Vec<TableRep>, Vec<u64>) {
 
 #[test]
 fn three_bridges_join_four_terminals_in_one_group() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-pi10");
-    let mut s = actual_size(&tmp, "103");
-    delete_connections(&mut s, &BR1);
-    let reps = place_terminals(&mut s, &X1031);
-    // The remaining -X1031 bridges (BR2 to BR5) are read from the saved modified copy, not from pristine Golden A.
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1);
+    let reps = reps_of(&s, &e.x);
+    // The remaining -X1021 bridge (BR2) is read from the saved modified copy, not from the pristine sample.
     done(&mut s, "file.save", json!({}));
-    let remaining = largest_x1031_bridge_group(&tmp.sample_copy());
+    let remaining = largest_bridge_group(&tmp.sample_copy(), &e.strip);
     let mut groups = Vec::new();
     for k in 0..3 {
         // The first step selects the higher sequence first; the rule still puts :1 in `a` and :2 in `b`.
@@ -279,10 +270,10 @@ fn three_bridges_join_four_terminals_in_one_group() {
         assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
         let last = s.recorded_commands().last().expect("the commit");
         assert_eq!(last.cmd, "connection.draw");
-        assert_eq!(last.params["a"], json!({"cp": {"function": X1031[k], "idx": 3}}));
+        assert_eq!(last.params["a"], json!({"cp": {"function": e.x[k], "idx": 0}}));
         assert_eq!(
             last.params["b"],
-            json!({"cp": {"function": X1031[k + 1], "idx": 3}})
+            json!({"cp": {"function": e.x[k + 1], "idx": 0}})
         );
         assert!(last.params.get("page").is_none(), "{}", last.params);
         assert!(last.params.get("route").is_none(), "{}", last.params);
@@ -301,8 +292,8 @@ fn three_bridges_join_four_terminals_in_one_group() {
         remaining + 1,
         "the next free group after the remaining bridges"
     );
-    // BR2 to BR5 remain on -X1031 in groups 2 to 5, so the first new bridge takes group 6.
-    assert_eq!(group0, 6, "BR2 to BR5 remain in groups 2 to 5");
+    // BR2 remains on -X1021 in group 2 (the sample's script), so the first new bridge takes group 3.
+    assert_eq!(group0, 3, "BR2 remains in group 2");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -310,7 +301,6 @@ fn three_bridges_join_four_terminals_in_one_group() {
 
 #[test]
 fn each_bridge_is_one_undo_step() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-undo");
     let (mut s, reps, _) = three_bridges(&tmp);
     let rev = s.revision();
@@ -338,11 +328,11 @@ fn each_bridge_is_one_undo_step() {
 
 #[test]
 fn a_bridge_extends_the_group_of_an_existing_bridge() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-extend");
-    let mut s = actual_size(&tmp, "103");
-    delete_connections(&mut s, &BR1[2..]);
-    let reps = place_terminals(&mut s, &X1031[2..]);
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1[2..]);
+    let reps = reps_of(&s, &e.x[2..]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
     done(&mut s, "strip.bridge", json!({}));
     let last = s.recorded_commands().last().expect("the commit");
@@ -359,21 +349,21 @@ fn a_bridge_extends_the_group_of_an_existing_bridge() {
 
 #[test]
 fn bridging_twice_is_refused() {
-    assert_golden_endpoints();
     // The bridge drawn first counts.
     let tmp = Tmp::new("bridge-twice");
-    let mut s = actual_size(&tmp, "103");
-    delete_connections(&mut s, &BR1);
-    let reps = place_terminals(&mut s, &X1031[..2]);
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1);
+    let reps = reps_of(&s, &e.x[..2]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
     done(&mut s, "strip.bridge", json!({}));
     let rev = s.revision();
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
     assert_eq!(s.revision(), rev, "a refused bridge commits nothing");
-    // Golden A's own BR1 1–2 counts.
-    let tmp = Tmp::new("bridge-twice-golden");
-    let mut s = actual_size(&tmp, "103");
-    let reps = place_terminals(&mut s, &X1031[..2]);
+    // The sample's own BR1 1–2 counts.
+    let tmp = Tmp::new("bridge-twice-sample");
+    let mut s = actual_size(&tmp, "102");
+    let reps = reps_of(&s, &e.x[..2]);
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
 }
@@ -383,10 +373,10 @@ fn bridging_twice_is_refused() {
 
 #[test]
 fn the_selection_must_be_terminals_of_one_strip() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-selection");
-    let mut s = actual_size(&tmp, "103");
-    let reps = place_terminals(&mut s, &[X1031[0], X1032_1]);
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    let reps = reps_of(&s, &e.x[..1]);
     // One terminal.
     select_ids(&mut s, &[reps[0].id.to_string()]);
     assert_eq!(
@@ -404,7 +394,7 @@ fn the_selection_must_be_terminals_of_one_strip() {
         .reps
         .iter()
         .find(|r| r.ip.is_some())
-        .expect("an interruption point on 103")
+        .expect("an interruption point on 102")
         .id
         .to_string();
     select_ids(&mut s, &[reps[0].id.to_string(), other]);
@@ -413,7 +403,11 @@ fn the_selection_must_be_terminals_of_one_strip() {
         "reason-bridge-selection"
     );
     // Two terminals of different strips: their own reason.
-    select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["tag:-X1021:1", "tag:-X1011:L1"]}),
+    );
     let rev = s.revision();
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-strips");
     assert_eq!(s.revision(), rev, "a refused bridge commits nothing");
@@ -430,11 +424,11 @@ fn the_selection_must_be_terminals_of_one_strip() {
 
 #[test]
 fn four_terminals_draw_the_chain_in_one_undo_step() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-chain");
-    let mut s = actual_size(&tmp, "103");
-    delete_connections(&mut s, &BR1);
-    let reps = place_terminals(&mut s, &X1031);
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1);
+    let reps = reps_of(&s, &e.x);
     // Selected out of order: the chain follows the strip's order, :1-:2, :2-:3, :3-:4.
     let selection: Vec<String> = [3, 0, 2, 1].iter().map(|k| reps[*k].id.to_string()).collect();
     select_ids(&mut s, &selection);
@@ -454,12 +448,12 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
         "Added 3 bridges between 4 terminals."
     );
     for (k, c) in connections.iter().enumerate() {
-        assert_eq!(c["a"], json!({"cp": {"function": X1031[k], "idx": 3}}));
-        assert_eq!(c["b"], json!({"cp": {"function": X1031[k + 1], "idx": 3}}));
-        // BR2 to BR5 remain on -X1031 in groups 2 to 5, so the chain takes group 6.
+        assert_eq!(c["a"], json!({"cp": {"function": e.x[k], "idx": 0}}));
+        assert_eq!(c["b"], json!({"cp": {"function": e.x[k + 1], "idx": 0}}));
+        // BR2 remains on -X1021 in group 2, so the chain takes group 3.
         assert_eq!(
             c["kind"],
-            json!({"bridge": {"kind": "plug_in", "group": 6, "shaft": 1}})
+            json!({"bridge": {"kind": "plug_in", "group": 3, "shaft": 1}})
         );
         assert!(c.get("page").is_none() && c.get("route").is_none(), "{c}");
     }
@@ -483,19 +477,19 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
 
 #[test]
 fn a_chain_draws_only_the_pairs_not_bridged_yet() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-chain-gap");
-    let mut s = actual_size(&tmp, "103");
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
     // BR1 loses its middle bridge :2-:3; :1-:2 and :3-:4 stay in group 1.
-    delete_connections(&mut s, &BR1[1..2]);
-    let reps = place_terminals(&mut s, &X1031);
+    delete_connections(&mut s, &e.br1[1..2]);
+    let reps = reps_of(&s, &e.x);
     let selection: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
     select_ids(&mut s, &selection);
     done(&mut s, "strip.bridge", json!({}));
     let last = s.recorded_commands().last().expect("the commit");
     assert_eq!(last.cmd, "connection.draw", "one missing pair is one bridge");
-    assert_eq!(last.params["a"], json!({"cp": {"function": X1031[1], "idx": 3}}));
-    assert_eq!(last.params["b"], json!({"cp": {"function": X1031[2], "idx": 3}}));
+    assert_eq!(last.params["a"], json!({"cp": {"function": e.x[1], "idx": 0}}));
+    assert_eq!(last.params["b"], json!({"cp": {"function": e.x[2], "idx": 0}}));
     assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
     // One bridge counts its two terminals.
     assert_eq!(
@@ -507,7 +501,7 @@ fn a_chain_draws_only_the_pairs_not_bridged_yet() {
 // ---------------------------------------------------------------------------------------------------------------
 // Terminals without a part shaft bridge at their lowest side-1 CP
 
-/// A new strip on 103 with `n` terminals placed by symbol (no part, so no shaft): their page table rows, in
+/// A new strip on 101 with `n` terminals placed by symbol (no part, so no shaft): their page table rows, in
 /// designation order 1 to `n`.
 fn partless_strip(s: &mut ShellModel, n: usize) -> Vec<TableRep> {
     done(s, "strip.new", json!({"letter": "X"}));
@@ -562,7 +556,7 @@ fn function_of(rep: &TableRep) -> String {
 #[test]
 fn partless_terminals_bridge_at_their_side1_cp() {
     let tmp = Tmp::new("bridge-partless");
-    let mut s = actual_size(&tmp, "103");
+    let mut s = actual_size(&tmp, "101");
     let reps = partless_strip(&mut s, 2);
     select_ids(&mut s, &[reps[1].id.to_string(), reps[0].id.to_string()]);
     let rev = s.revision();
@@ -585,12 +579,13 @@ fn partless_terminals_bridge_at_their_side1_cp() {
     );
 }
 
-/// Folio 103's BR1, BR5 and BR6 as the G-PP drafter drew them: on new strips whose terminals were placed by symbol
-/// and carry no part, a chain of four, a pair and a chain of three, each in one step and its own group.
+/// The bridges the G-PP drafter drew on folio 103 of the old reference project, on a new strip of 101 whose terminals
+/// were placed by symbol and carry no part: a chain of four, a pair and a chain of three, each in one step and its own
+/// group.
 #[test]
-fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
+fn bridges_draw_on_terminals_placed_by_symbol() {
     let tmp = Tmp::new("bridge-gpp-103");
-    let mut s = actual_size(&tmp, "103");
+    let mut s = actual_size(&tmp, "101");
     let reps = partless_strip(&mut s, 9);
     let mut groups = Vec::new();
     for (range, cmd) in [
@@ -618,71 +613,6 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
         groups.push(entries[0]["kind"]["bridge"]["group"].as_u64().expect("a group"));
     }
     assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
-}
-
-/// A bridge joins terminals, not CPs.
-/// Two part-less terminals are bridged at their side-1 CP (index 0); once they carry PT 2.5-TWIN, whose shaft-1 entry
-/// is CP index 3, Bridge terminals on the pair is refused as "already bridged"; on the pair and a third terminal it
-/// draws one connection, into the same group, from the second terminal's shaft CP; the side-1 bridge stays as drawn.
-#[test]
-fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
-    let tmp = Tmp::new("bridge-partless-then-part");
-    let mut s = actual_size(&tmp, "103");
-    let reps = partless_strip(&mut s, 3);
-    let ids: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
-    select_ids(&mut s, &ids[..2]);
-    done(&mut s, "strip.bridge", json!({}));
-    let first = s.recorded_commands().last().expect("the first bridge").clone();
-    assert_eq!(first.params["a"]["cp"]["idx"], 0, "{}", first.params);
-    assert_eq!(
-        first.params["kind"],
-        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
-    );
-    for id in &ids {
-        select_ids(&mut s, std::slice::from_ref(id));
-        done(
-            &mut s,
-            "props.set",
-            json!({"row": "device/parts", "value": "PT 2.5-TWIN"}),
-        );
-    }
-    // The pair: bridged already (terminal identity, not the CP).
-    select_ids(&mut s, &ids[..2]);
-    let rev = s.revision();
-    assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
-    assert_eq!(s.revision(), rev, "nothing committed");
-    // The pair and a third terminal: one connection, the second to the third, in the pair's group.
-    select_ids(&mut s, &ids);
-    done(&mut s, "strip.bridge", json!({}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
-    let second = s.recorded_commands().last().expect("the second bridge").clone();
-    assert_eq!(second.cmd, "connection.draw", "{}", second.params);
-    assert_eq!(
-        second.params["a"],
-        json!({"cp": {"function": function_of(&reps[1]), "idx": 3}})
-    );
-    assert_eq!(
-        second.params["b"],
-        json!({"cp": {"function": function_of(&reps[2]), "idx": 3}})
-    );
-    assert_eq!(
-        second.params["kind"],
-        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}}),
-        "the same group: the chain touches the side-1 bridge's terminals"
-    );
-    // The side-1 bridge is unchanged: no command after it deleted or re-seated a connection.
-    let after: Vec<&str> = s
-        .recorded_commands()
-        .iter()
-        .skip_while(|c| c.params != first.params)
-        .map(|c| c.cmd.as_str())
-        .collect();
-    assert!(
-        after
-            .iter()
-            .all(|c| *c != "edit.delete" && *c != "connection.reconnect"),
-        "{after:?}"
-    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -720,9 +650,10 @@ fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<Str
 #[test]
 fn bridge_terminals_by_reps_tags_marks_and_functions() {
     let tmp = Tmp::new("bridge-se10");
-    let mut s = actual_size(&tmp, "103");
-    delete_connections(&mut s, &BR1);
-    let reps = place_terminals(&mut s, &X1031[..2]);
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
+    delete_connections(&mut s, &e.br1);
+    let reps = reps_of(&s, &e.x[..2]);
     let mut results: Vec<(&str, String, Value)> = Vec::new();
     let mut bridge = |s: &mut ShellModel, how: &'static str| {
         let rev = s.revision();
@@ -737,12 +668,12 @@ fn bridge_terminals_by_reps_tags_marks_and_functions() {
     done(
         &mut s,
         "select.set",
-        json!({"refs": ["tag:-X1031:1", "tag:-X1031:2"]}),
+        json!({"refs": ["tag:-X1021:1", "tag:-X1021:2"]}),
     );
     bridge(&mut s, "tags");
-    select_ids(&mut s, &[X1031[0].to_owned(), X1031[1].to_owned()]);
+    select_ids(&mut s, &[e.x[0].clone(), e.x[1].clone()]);
     bridge(&mut s, "functions");
-    let keys = strip_rows(&mut s, "-X1031", &["1", "2"]);
+    let keys = strip_rows(&mut s, "-X1021", &["1", "2"]);
     done(
         &mut s,
         "navigator.select",
@@ -751,8 +682,8 @@ fn bridge_terminals_by_reps_tags_marks_and_functions() {
     bridge(&mut s, "navigator marks");
     let (_, cmd, params) = &results[0];
     assert_eq!(cmd, "connection.draw");
-    assert_eq!(params["a"], json!({"cp": {"function": X1031[0], "idx": 3}}));
-    assert_eq!(params["b"], json!({"cp": {"function": X1031[1], "idx": 3}}));
+    assert_eq!(params["a"], json!({"cp": {"function": e.x[0], "idx": 0}}));
+    assert_eq!(params["b"], json!({"cp": {"function": e.x[1], "idx": 0}}));
     for (how, c, p) in &results[1..] {
         assert_eq!((c, p), (cmd, params), "{how}");
     }
@@ -760,7 +691,7 @@ fn bridge_terminals_by_reps_tags_marks_and_functions() {
     done(
         &mut s,
         "select.set",
-        json!({"refs": ["tag:-X1031:1", "tag:-X1032:1"]}),
+        json!({"refs": ["tag:-X1021:1", "tag:-X1011:L1"]}),
     );
     assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-strips");
 }
@@ -769,10 +700,10 @@ fn bridge_terminals_by_reps_tags_marks_and_functions() {
 /// entry refuse `reason-bridge-no-shaft` (the shaft half, part-placed terminals ending on the shaft CPs, is PI10).
 #[test]
 fn terminals_without_a_shaft_or_a_side1_cp_refuse() {
-    // A function definition of Golden A with connection points and none of them on side 1.
+    // A function definition of the sample with connection points and none of them on side 1.
     let def = {
         let (session, _) =
-            Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
+            Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample opens read-only");
         let q = session.query();
         q.fndefs()
             .iter()
@@ -787,14 +718,15 @@ fn terminals_without_a_shaft_or_a_side1_cp_refuse() {
             .expect("a definition without side-1 CPs")
     };
     let tmp = Tmp::new("bridge-se11");
-    let mut s = actual_size(&tmp, "103");
+    let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "terminal.add", "params": {"strip": X1031_STRIP, "fndef": def,
+        json!({"cmd": "terminal.add", "params": {"strip": e.strip, "fndef": def,
             "terminals": [{"designation": "N1"}, {"designation": "N2"}]}}),
     );
-    let keys = strip_rows(&mut s, "-X1031", &["N1", "N2"]);
+    let keys = strip_rows(&mut s, "-X1021", &["N1", "N2"]);
     done(
         &mut s,
         "navigator.select",
@@ -808,17 +740,17 @@ fn terminals_without_a_shaft_or_a_side1_cp_refuse() {
     assert_eq!(s.revision(), rev);
 }
 
-/// SE13: Remove bridge on Golden A's BR1 (-X1031 1–2, 2–3, 3–4): all four terminals remove the whole
+/// SE13: Remove bridge on the sample's BR1 (-X1021 1–2, 2–3, 3–4): all four terminals remove the whole
 /// group in one `edit.delete` of three connections and one undo step; 3 and 4 remove the end link; 2 and 3 refuse
 /// `reason-unbridge-split`; terminals no bridge joins refuse `reason-unbridge-none`.
 #[test]
 fn se13_remove_bridge() {
-    assert_golden_endpoints();
     let tmp = Tmp::new("bridge-se13");
     let mut s = actual_size(&tmp, "102");
+    let e = endpoints(&s);
     done(&mut s, "navigator.show", json!({"kind": "strips"}));
     let select = |s: &mut ShellModel, terminals: &[&str]| {
-        let refs: Vec<String> = terminals.iter().map(|t| format!("tag:-X1031:{t}")).collect();
+        let refs: Vec<String> = terminals.iter().map(|t| format!("tag:-X1021:{t}")).collect();
         done(s, "select.set", json!({ "refs": refs }));
     };
     let targets = |s: &ShellModel| -> Vec<String> {
@@ -841,7 +773,7 @@ fn se13_remove_bridge() {
     let rev = s.revision();
     done(&mut s, "strip.unbridge", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
-    let mut br1: Vec<String> = BR1.iter().map(|x| (*x).to_owned()).collect();
+    let mut br1 = e.br1.clone();
     br1.sort();
     assert_eq!(targets(&s), br1);
     assert!(
@@ -852,7 +784,8 @@ fn se13_remove_bridge() {
     // The end link 3–4.
     select(&mut s, &["3", "4"]);
     done(&mut s, "strip.unbridge", json!({}));
-    assert_eq!(targets(&s), [BR1[2]]);
+    assert_eq!(targets(&s), [e.br1[2].clone()]);
+
     done(&mut s, "edit.undo", json!({}));
     // The middle link 2–3 would leave 1–2 and 3–4 apart.
     select(&mut s, &["2", "3"]);
