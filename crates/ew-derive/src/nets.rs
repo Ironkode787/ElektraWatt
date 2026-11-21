@@ -7,9 +7,10 @@
 //! page's connections of kind `Wire`, `Core`, `Bus` and `Internal`. A connection named as some
 //! `Bond.via` is left out (the bond cut, doc 08 §3.7), and so is an earth wire: a connection with one end on an earth
 //! point (a pin whose role is PE or FE, a definition of that type there, or a definition or an interruption point named
-//! `PE` or `FE`) and the other in a net of the page that holds a 0 V point (the same for M, L-, `0V`), joined without
-//! the connections to earth points. The person who drew that wire earthed the 0 V: it is the bond, and 0 V stays
-//! 0 V (the drawn bond, doc 08 §3.7). `Bridge` connections
+//! `PE` or `FE`) and the other in a net of the page that holds a 0 V point (the same for M, L-, and a name whose head is
+//! `0V`, `0VDC`, `M` or `L-`) or an interruption point that carries one in from another page ([`ZeroVoltIps`]), joined
+//! without the connections to earth points. The person who drew that wire earthed the 0 V: it is the bond, and 0 V
+//! stays 0 V (the drawn bond, doc 08 §3.7). `Bridge` connections
 //! join at the potential level
 //! and `Overview` and unknown kinds never join (CI-07). Every interruption point drawn on the page is a
 //! node even without a connection, so that the stitch graph can pair it.
@@ -96,7 +97,7 @@ pub fn joins_net(kind: &ConnectionKind) -> bool {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Mark {
     /// A 0 V point: a pin whose role is M or L-, a potential definition of that type there, or (without a type) a
-    /// definition or an interruption point named by a 0 V word (`0V`, `M`, `L-`).
+    /// definition or an interruption point named by a 0 V word ([`word_mark`]).
     ZeroVolt,
     /// An earth point: a pin whose role is PE or FE (an earth symbol, a PE terminal, a PE or FE screw), or a
     /// definition of that type there, or (without a type) a definition or an interruption point named `PE` or `FE`.
@@ -122,12 +123,24 @@ fn type_mark(t: &PotentialType) -> Option<Mark> {
     }
 }
 
-/// The mark of a name that is a type's own word (`0V`, `M`, `L-`, `PE`, `FE`), as doc 08 §3.5 reads such a name.
+/// The mark of a name that is a type's own word (`PE`, `FE`), as doc 08 §3.5 reads such a name; a 0 V also by the head
+/// of its name, the part before a dash with something after it, spaces aside, as the supply marks' panel reads a name:
+/// `0V`, `0VDC`, `M` or `L-` (`0V`, `0VDC-6`, `0 V DC`, `M-2`; doc 08 §3.7).
 fn word_mark(name: &str) -> Option<Mark> {
-    match name.trim().to_uppercase().replace('\u{2212}', "-").as_str() {
-        "0V" | "M" | "L-" => Some(Mark::ZeroVolt),
-        "PE" => Some(Mark::Earth(EarthKind::Protective)),
-        "FE" => Some(Mark::Earth(EarthKind::Functional)),
+    let word: String = name
+        .to_uppercase()
+        .replace('\u{2212}', "-")
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    let head = match word.find('-') {
+        Some(i) if i > 0 && i + 1 < word.len() => &word[..i],
+        _ => word.as_str(),
+    };
+    match (word.as_str(), head) {
+        ("PE", _) => Some(Mark::Earth(EarthKind::Protective)),
+        ("FE", _) => Some(Mark::Earth(EarthKind::Functional)),
+        (_, "0V" | "0VDC" | "M" | "L-") => Some(Mark::ZeroVolt),
         _ => None,
     }
 }
@@ -224,78 +237,23 @@ impl Query for PageLocalNets {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, page: &Id<Page>) -> Arc<LocalNets> {
-        // The bond cut (doc 08 §3.7), read as a cut-off point: a bond edit reaches this page only when the cut
-        // changed.
-        let vias = q.get_value_part::<crate::index::BondVias>(());
-        let mut dsu = Dsu::default();
-        let mut via: BTreeMap<EndpointKey, BTreeSet<Id<Connection>>> = BTreeMap::new();
-        let mut cut = Vec::new();
-        let connections = q.connections();
-        // The connections with an end on an earth point wait until the rest of the page is joined: one whose other
-        // end's net holds a 0 V point is an earth wire.
-        let defs = q.get::<crate::index::DefPoints>(());
-        let functions = q.functions();
-        let mut marks: BTreeMap<EndpointKey, Option<Mark>> = BTreeMap::new();
-        let mut mark_of = |e: EndpointKey| -> Option<Mark> {
-            *marks.entry(e).or_insert_with(|| {
-                if let Some(cp) = CpRef::of(e)
-                    && let Some(m) = q
-                        .get::<FunctionCps>(cp.function)
-                        .iter()
-                        .find(|c| c.idx == cp.idx)
-                        .and_then(|c| c.potential_role.as_ref())
-                        .and_then(type_mark)
-                {
-                    return Some(m);
-                }
-                let by_def = defs.at(e).find_map(|d| {
-                    let d = q.potential_defs().get(d)?;
-                    match &d.ptype {
-                        Some(t) => type_mark(t),
-                        None => word_mark(d.name.as_str()),
-                    }
-                });
-                by_def.or_else(|| match &functions.get(CpRef::of(e)?.function)?.kind {
-                    FunctionKind::Ip(ip) => word_mark(ip.name.as_str()),
-                    _ => None,
-                })
-            })
-        };
-        let mut earth_ended: Vec<(Id<Connection>, EndpointKey, EndpointKey)> = Vec::new();
-        let mut zero_volt: Vec<EndpointKey> = Vec::new();
-        type Via = BTreeMap<EndpointKey, BTreeSet<Id<Connection>>>;
-        let join = |dsu: &mut Dsu<EndpointKey>,
-                    via: &mut Via,
-                    id: Id<Connection>,
-                    a: EndpointKey,
-                    b: EndpointKey| {
-            let (ia, ib) = (dsu.node(a), dsu.node(b));
-            dsu.union(ia, ib);
-            via.entry(a).or_default().insert(id);
-            via.entry(b).or_default().insert(id);
-        };
-        for id in q.idx().connections_by_page(*page) {
-            let Some(c) = connections.get(id) else { continue };
-            if c.page != Some(*page) || !joins_net(&c.kind) {
-                continue;
-            }
-            if vias.contains(&id) {
-                cut.push(id);
-                continue;
-            }
-            let Some((a, b)) = ends(c) else { continue };
-            let (ma, mb) = (mark_of(a), mark_of(b));
-            for (e, m) in [(a, ma), (b, mb)] {
-                if m == Some(Mark::ZeroVolt) {
-                    zero_volt.push(e);
-                }
-            }
-            if matches!(ma, Some(Mark::Earth(_))) || matches!(mb, Some(Mark::Earth(_))) {
-                earth_ended.push((id, a, b));
-                continue;
-            }
-            join(&mut dsu, &mut via, id, a, b);
-        }
+        let Base {
+            mut dsu,
+            mut via,
+            mut cut,
+            earth_ended,
+            mut zero_volt,
+        } = base(q, *page);
+        // An interruption point that carries a 0 V in from another page is a 0 V point of this page; the set is read
+        // as a cut-off point, so a 0 V drawn elsewhere reaches this page only when the points it carries changed.
+        let carried = q.get_value_part::<ZeroVoltIps>(());
+        zero_volt.extend(
+            page_ips(q, *page)
+                .into_iter()
+                .filter(|f| carried.contains(f))
+                .filter_map(|f| ip_cp(q, f))
+                .map(CpRef::key),
+        );
         // An earth wire: exactly one end on an earth point, the other end in a net (as joined without the
         // connections that wait) that holds a 0 V point. The test reads that net only, so the order of the waiting
         // connections decides nothing.
@@ -308,9 +266,8 @@ impl Query for PageLocalNets {
             .collect();
         let mut earth_wires = Vec::new();
         let mut joined = Vec::new();
-        earth_ended.sort();
-        for (id, a, b) in earth_ended {
-            let other = match (mark_of(a), mark_of(b)) {
+        for (id, a, b, ma, mb) in earth_ended {
+            let other = match (ma, mb) {
                 (Some(Mark::Earth(k)), m) if !matches!(m, Some(Mark::Earth(_))) => Some((b, a, k)),
                 (m, Some(Mark::Earth(k))) if !matches!(m, Some(Mark::Earth(_))) => Some((a, b, k)),
                 _ => None,
@@ -344,21 +301,7 @@ impl Query for PageLocalNets {
             dsu.node(EndpointKey::Junction(j));
         }
         // Interruption points drawn on the page are nodes even without a connection.
-        let reps = q.reps();
-        let functions = q.functions();
-        let mut ips = BTreeSet::new();
-        for r in q.idx().reps_by_page(*page) {
-            let Some(rep) = reps.get(r) else { continue };
-            for f in &rep.functions {
-                if functions
-                    .get(*f)
-                    .is_some_and(|f| matches!(f.kind, FunctionKind::Ip(_)))
-                {
-                    ips.insert(*f);
-                }
-            }
-        }
-        for f in ips {
+        for f in page_ips(q, *page) {
             if let Some(cp) = ip_cp(q, f) {
                 dsu.node(cp.key());
             }
@@ -405,6 +348,220 @@ impl Query for PageLocalNets {
             earth_wires,
             net_of,
         })
+    }
+}
+
+/// The connections of a node, by node.
+type Via = BTreeMap<EndpointKey, BTreeSet<Id<Connection>>>;
+
+/// A connection that ends on an earth point: its ID, its two ends and their marks.
+type EarthEnded = (
+    Id<Connection>,
+    EndpointKey,
+    EndpointKey,
+    Option<Mark>,
+    Option<Mark>,
+);
+
+/// A page joined without the connections that end on an earth point: the first half of [`PageLocalNets`], and what
+/// [`PageIpNets`] reads of it.
+struct Base {
+    dsu: Dsu<EndpointKey>,
+    via: Via,
+    /// The bond cut (doc 08 §3.7).
+    cut: Vec<Id<Connection>>,
+    /// The connections with an end on an earth point, in ID order: they wait until the rest of the page is joined.
+    earth_ended: Vec<EarthEnded>,
+    /// The ends of the page's joining connections that are 0 V points.
+    zero_volt: Vec<EndpointKey>,
+}
+
+/// Joins `a` and `b` by the connection `id`.
+fn join(dsu: &mut Dsu<EndpointKey>, via: &mut Via, id: Id<Connection>, a: EndpointKey, b: EndpointKey) {
+    let (ia, ib) = (dsu.node(a), dsu.node(b));
+    dsu.union(ia, ib);
+    via.entry(a).or_default().insert(id);
+    via.entry(b).or_default().insert(id);
+}
+
+/// The page joined without the connections that end on an earth point (see [`Base`]).
+fn base(q: &Q, page: Id<Page>) -> Base {
+    // The bond cut (doc 08 §3.7), read as a cut-off point: a bond edit reaches this page only when the cut changed.
+    let vias = q.get_value_part::<crate::index::BondVias>(());
+    let mut b = Base {
+        dsu: Dsu::default(),
+        via: BTreeMap::new(),
+        cut: Vec::new(),
+        earth_ended: Vec::new(),
+        zero_volt: Vec::new(),
+    };
+    let connections = q.connections();
+    let defs = q.get::<crate::index::DefPoints>(());
+    let functions = q.functions();
+    let mut marks: BTreeMap<EndpointKey, Option<Mark>> = BTreeMap::new();
+    let mut mark_of = |e: EndpointKey| -> Option<Mark> {
+        *marks.entry(e).or_insert_with(|| {
+            if let Some(cp) = CpRef::of(e)
+                && let Some(m) = q
+                    .get::<FunctionCps>(cp.function)
+                    .iter()
+                    .find(|c| c.idx == cp.idx)
+                    .and_then(|c| c.potential_role.as_ref())
+                    .and_then(type_mark)
+            {
+                return Some(m);
+            }
+            let by_def = defs.at(e).find_map(|d| {
+                let d = q.potential_defs().get(d)?;
+                match &d.ptype {
+                    Some(t) => type_mark(t),
+                    None => word_mark(d.name.as_str()),
+                }
+            });
+            by_def.or_else(|| match &functions.get(CpRef::of(e)?.function)?.kind {
+                FunctionKind::Ip(ip) => word_mark(ip.name.as_str()),
+                _ => None,
+            })
+        })
+    };
+    for id in q.idx().connections_by_page(page) {
+        let Some(c) = connections.get(id) else { continue };
+        if c.page != Some(page) || !joins_net(&c.kind) {
+            continue;
+        }
+        if vias.contains(&id) {
+            b.cut.push(id);
+            continue;
+        }
+        let Some((x, y)) = ends(c) else { continue };
+        let (mx, my) = (mark_of(x), mark_of(y));
+        for (e, m) in [(x, mx), (y, my)] {
+            if m == Some(Mark::ZeroVolt) {
+                b.zero_volt.push(e);
+            }
+        }
+        if matches!(mx, Some(Mark::Earth(_))) || matches!(my, Some(Mark::Earth(_))) {
+            b.earth_ended.push((id, x, y, mx, my));
+            continue;
+        }
+        join(&mut b.dsu, &mut b.via, id, x, y);
+    }
+    b.earth_ended.sort_by_key(|e| e.0);
+    b
+}
+
+/// The interruption-point functions drawn on `page`, in ID order.
+fn page_ips(q: &Q, page: Id<Page>) -> BTreeSet<Id<Function>> {
+    let (reps, functions) = (q.reps(), q.functions());
+    q.idx()
+        .reps_by_page(page)
+        .filter_map(|r| reps.get(r))
+        .flat_map(|rep| rep.functions.iter().copied())
+        .filter(|f| {
+            functions
+                .get(*f)
+                .is_some_and(|f| matches!(f.kind, FunctionKind::Ip(_)))
+        })
+        .collect()
+}
+
+/// One net of a page, as joined without the connections to earth points, that holds an interruption point.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct IpNet {
+    /// Whether the net holds a 0 V point.
+    pub(crate) zero_volt: bool,
+    /// Its interruption points, in ID order.
+    pub(crate) ips: Vec<Id<Function>>,
+}
+
+/// `page_ip_nets(page)`: the nets of the page that hold an interruption point, joined without the connections that end
+/// on an earth point, in the order of their first point: what [`ZeroVoltIps`] reads of a page. Memo, note-free.
+#[derive(Debug)]
+pub(crate) struct PageIpNets;
+
+impl Query for PageIpNets {
+    type Key = Id<Page>;
+    type Value = Vec<IpNet>;
+    const FAMILY: &'static str = "page_ip_nets";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, page: &Id<Page>) -> Arc<Vec<IpNet>> {
+        let Base {
+            mut dsu, zero_volt, ..
+        } = base(q, *page);
+        let zero_roots: BTreeSet<usize> = zero_volt
+            .into_iter()
+            .map(|e| {
+                let i = dsu.node(e);
+                dsu.find(i)
+            })
+            .collect();
+        let mut by_root: BTreeMap<usize, IpNet> = BTreeMap::new();
+        for f in page_ips(q, *page) {
+            let Some(cp) = ip_cp(q, f) else { continue };
+            let i = dsu.node(cp.key());
+            let root = dsu.find(i);
+            by_root
+                .entry(root)
+                .or_insert_with(|| IpNet {
+                    zero_volt: zero_roots.contains(&root),
+                    ips: Vec::new(),
+                })
+                .ips
+                .push(f);
+        }
+        let mut nets: Vec<IpNet> = by_root.into_values().collect();
+        nets.sort_by(|a, b| a.ips.cmp(&b.ips));
+        Arc::new(nets)
+    }
+}
+
+/// `zero_volt_ips()`: the interruption points that carry a 0 V (doc 08 §3.7, the drawn bond across pages): the points
+/// of a net of [`PageIpNets`] that holds a 0 V point, and every point their pairs reach from there, net by net and page
+/// by page. A point that carries a 0 V is a 0 V point of its page's nets, so a wire from it to an earth point is an
+/// earth wire wherever the 0 V was named. The pairs are the pairing's ([`IpPairingQ`](crate::ip::IpPairingQ)), which
+/// reads no net. Memo, note-free.
+#[derive(Debug)]
+pub(crate) struct ZeroVoltIps;
+
+impl Query for ZeroVoltIps {
+    type Key = ();
+    type Value = BTreeSet<Id<Function>>;
+    const FAMILY: &'static str = "zero_volt_ips";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, _: &()) -> Arc<BTreeSet<Id<Function>>> {
+        let pairing = q.get::<crate::ip::IpPairingQ>(());
+        let mut dsu: Dsu<Id<Function>> = Dsu::default();
+        let mut zero = Vec::new();
+        for page in q.get::<crate::index::PageIds>(()).keys() {
+            for net in q.get::<PageIpNets>(*page).iter() {
+                let first = dsu.node(net.ips[0]);
+                for f in &net.ips[1..] {
+                    let i = dsu.node(*f);
+                    dsu.union(first, i);
+                }
+                if net.zero_volt {
+                    zero.push(first);
+                }
+            }
+        }
+        for f in pairing.ips.keys() {
+            let i = dsu.node(*f);
+            for partner in pairing.partners(*f) {
+                let j = dsu.node(*partner);
+                dsu.union(i, j);
+            }
+        }
+        let roots: BTreeSet<usize> = zero.into_iter().map(|i| dsu.find(i)).collect();
+        let mut out = BTreeSet::new();
+        for g in dsu.groups() {
+            let i = dsu.node(g[0]);
+            if roots.contains(&dsu.find(i)) {
+                out.extend(g);
+            }
+        }
+        Arc::new(out)
     }
 }
 
