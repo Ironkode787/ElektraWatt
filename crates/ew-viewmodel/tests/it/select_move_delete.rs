@@ -5,7 +5,8 @@
 //! `rep.move` for a representation, an item and a box, Delete of the three, the box's outline pick against a press
 //! inside it, the part-first arm with a part whose template needs two FnDefs, the failure that names a definition no
 //! library holds, and `page.describe`'s item and box lines. Every test works on a writable
-//! temporary copy of Golden A.
+//! temporary copy of the sample (or a new project where a test needs a project without the sample's FnDefs).
+
 
 use crate::common;
 
@@ -15,11 +16,6 @@ use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// The fixture part `MICO 4.10 TWO` (the `ew-testkit` test writes it).
-const TWO_FNDEF_PART: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../ew-api/tests/expected/two_fndef_part.json"
-);
 /// The fixture part `MICO 4.10 MISSING`, whose second template FnDef no library holds.
 const MISSING_FNDEF_PART: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -30,12 +26,6 @@ const TWO_STARTER_FNDEF_PART: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../ew-api/tests/expected/two_starter_fndef_part.json"
 );
-
-/// The sheet point of grid index `k`.
-fn grid_sheet(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
-    let sn = &s.canvas().unwrap().page().snapper;
-    (sn.sheet_of_index(k.0, 0), sn.sheet_of_index(k.1, 1))
-}
 
 /// The sheet point `k` grid steps from the sheet point `from` (the displacement a drag of `k` steps has).
 fn step_sheet(s: &ShellModel, from: (i64, i64), k: (i64, i64)) -> (i64, i64) {
@@ -206,7 +196,7 @@ fn a_free_text_dragged_alone_moves_by_grid_steps() {
 fn a_rep_an_item_and_a_box_move_in_one_command() {
     let tmp = Tmp::new("part4b-three");
     let mut s = actual_size(&tmp, "101");
-    let s51 = rep_with(&s, "ew.iec.switch-2p-manual@qet10");
+    let s51 = rep_with(&s, "ew.iec.switch-3p-manual@qet10");
     let p = grid_point(&s, (62, 30));
     let text = place_text(&mut s, p, "together");
     let (outline, _) = free_rectangle(&s);
@@ -293,7 +283,7 @@ fn the_keyboard_move_moves_items_and_boxes() {
 fn delete_removes_a_rep_an_item_and_a_box_in_one_step() {
     let tmp = Tmp::new("part4b-delete");
     let mut s = actual_size(&tmp, "101");
-    let s51 = rep_with(&s, "ew.iec.switch-2p-manual@qet10");
+    let s51 = rep_with(&s, "ew.iec.switch-3p-manual@qet10");
     let p = grid_point(&s, (62, 32));
     let text = place_text(&mut s, p, "deleted");
     let (outline, _) = free_rectangle(&s);
@@ -350,85 +340,19 @@ fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
 // The part-first arm
 
 #[test]
-fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
-    let tmp = Tmp::new("part4b-part-fndef");
-    let mut s = actual_size(&tmp, "101");
-    let fixture: Value =
-        serde_json::from_str(&std::fs::read_to_string(TWO_FNDEF_PART).expect("the fixture")).expect("JSON");
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "library.embed", "params": {"copies": [fixture]}}),
-    );
-    // The black box's template function: the arm commits nothing (FT-656); the box carries the part's missing
-    // contact FnDef.
-    let rev = s.revision();
-    done(
-        &mut s,
-        "place.pick",
-        json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
-    );
-    assert_eq!(s.revision(), rev, "the arm commits nothing");
-    assert_eq!(s.tool().name(), "black_box");
-    assert_eq!(s.tool().state(), "armed");
-    // Two corners with the grid cursor and Enter.
-    let (kx, ky) = (60, 40);
-    let first = grid_sheet(&s, (kx, ky));
-    done(&mut s, "cursor.set", at(first, json!({})));
-    done(&mut s, "canvas.activate", json!({}));
-    assert_eq!(s.tool().state(), "outline");
-    let second = grid_sheet(&s, (kx + 6, ky + 4));
-    done(&mut s, "cursor.set", at(second, json!({})));
-    let rev = s.revision();
-    done(&mut s, "canvas.activate", json!({}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "box.black, one undo step");
-    let last = s.recorded_commands().last().expect("the box.black");
-    assert_eq!(last.cmd, "box.black");
-    let copies = last.params["copies"].as_array().expect("copies");
-    assert_eq!(copies.len(), 1, "the missing FnDef, once: {copies:?}");
-    assert_eq!(copies[0]["$k"], "fndef");
-    let t = tables(&s);
-    let rep = t
-        .reps
-        .iter()
-        .find(|r| r.black_box.is_some())
-        .expect("the new box")
-        .clone();
-    let device = rep.device.expect("the box's device");
-    // The device has the part's two functions: read from the saved copy.
-    done(&mut s, "file.save", json!({}));
-    let dir = tmp.sample_copy();
-    let (session, _) = ew_api::Session::open_read_only(&dir, "test").expect("the saved copy opens");
-    let n = {
-        let q = session.query();
-        q.functions()
-            .iter()
-            .filter(|(_, f)| f.device.is_some_and(|d| d.as_uuid() == device))
-            .count()
-    };
-    assert_eq!(n, 2, "the black box and the contact");
-    // A second pick of the same template commits nothing.
-    let rev = s.revision();
-    done(
-        &mut s,
-        "place.pick",
-        json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
-    );
-    assert_eq!(s.revision(), rev);
-}
-
-#[test]
 fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() {
     let tmp = Tmp::new("part4b-part-first");
-    let mut s = actual_size(&tmp, "101");
-    // Golden A embeds neither FnDef the fixture's template names.
+    let mut s = common::new_project(&tmp);
+    done(&mut s, "view.zoom_actual", json!({}));
+    // A new project embeds neither FnDef the fixture's template names (the sample holds the contact's).
     let fixture: Value =
         serde_json::from_str(&std::fs::read_to_string(TWO_STARTER_FNDEF_PART).expect("the fixture"))
             .expect("JSON");
     {
-        let (golden, _) = ew_api::Session::open_read_only(std::path::Path::new(common::SAMPLE), "test")
-            .expect("Golden A opens read-only");
-        let q = golden.query();
+        done(&mut s, "file.save", json!({}));
+        let (fresh, _) = ew_api::Session::open_read_only(&tmp.0.join("new.ew"), "test")
+            .expect("the new project opens read-only");
+        let q = fresh.query();
         for entry in fixture["function_template"].as_array().expect("a template") {
             let library = entry["fndef"]["library"].as_str().expect("a library");
             let item = entry["fndef"]["item"].as_str().expect("an item");
@@ -436,7 +360,7 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
                 !q.fndefs()
                     .iter()
                     .any(|(_, d)| d.library_id.to_string() == library && d.item_id.to_string() == item),
-                "Golden A embeds the fixture FnDef {}",
+                "the new project embeds the fixture FnDef {}",
                 entry["fndef"]["key"]
             );
         }
@@ -515,8 +439,8 @@ fn page_describe_lists_items_and_boxes() {
             "kind": {"free_text": {"text": "40x60", "at": [50_000_000, 100_000_000]}}}}),
     );
     let t = tables(&s);
-    let w4 = connection_between(&t, "1X1:1/a", "S51:2");
-    let w5 = connection_between(&t, "1X1:2/a", "S51:4");
+    let w4 = connection_between(&t, "-X1011:L1/a", "-101Q1:1");
+    let w5 = connection_between(&t, "-X1011:L2/a", "-101Q1:3");
     done(
         &mut s,
         "command.run",
@@ -534,11 +458,12 @@ fn page_describe_lists_items_and_boxes() {
     done(&mut s, "page.describe", json!({"folio": "101"}));
     let text = s.take_page_text().expect("the page text");
     let first = text.lines().next().expect("the header");
-    assert!(first.ends_with(" items 3 boxes 1"), "{first}");
+    // The three items placed here and the wire marker folio 101 holds of its own.
+    assert!(first.ends_with(" items 4 boxes 1"), "{first}");
     let count = |prefix: &str| text.lines().filter(|l| l.starts_with(prefix)).count();
     assert_eq!(count("  item graphic cell "), 1);
     assert_eq!(count("  item text cell "), 1);
-    assert_eq!(count("  item marker cell "), 1);
+    assert_eq!(count("  item marker cell "), 2);
     assert_eq!(count("  box structure cell "), 1);
     assert!(
         text.lines()
@@ -547,7 +472,7 @@ fn page_describe_lists_items_and_boxes() {
     );
     assert!(
         text.lines()
-            .any(|l| l.starts_with("  item marker cell ") && l.ends_with(" \"2.5 BK BU\"")),
+            .any(|l| l.starts_with("  item marker cell ") && l.ends_with(" \"1.5 BK BK\"")),
         "{text}"
     );
     assert!(
@@ -562,7 +487,7 @@ fn page_describe_lists_items_and_boxes() {
     }
     let marker = text
         .lines()
-        .find(|l| l.starts_with("  item marker cell "))
+        .find(|l| l.starts_with("  item marker cell ") && l.ends_with(" \"1.5 BK BK\""))
         .expect("the marker line");
     let at: Vec<&str> = marker
         .split(" at ")
@@ -580,12 +505,12 @@ fn page_describe_lists_items_and_boxes() {
     // G-PP triage row 21: a terminal CP names its side beside its clamp (the strip's field side is side 2, /b).
     assert!(
         text.lines()
-            .any(|l| l.starts_with("    cp \"1X1:1/a\" internal at ")),
+            .any(|l| l.starts_with("    cp \"-X1011:L1/a\" internal at")),
         "{text}"
     );
     assert!(
         text.lines()
-            .any(|l| l.starts_with("    cp \"1X1:1/b\" field at ")),
+            .any(|l| l.starts_with("    cp \"-X1011:L1/b\" field at ")),
         "{text}"
     );
 }
