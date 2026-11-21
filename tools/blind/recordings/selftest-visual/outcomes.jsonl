@@ -3,7 +3,7 @@
 {"action":"page.goto","outcome":"done","reason":null,"step":3}
 {"dispatched":[{"action":"view.canvas_resize","outcome":"done","reason":null}],"frame":"t0000.png"}
 {"dispatched":[],"frame":"t0000-l1.png"}
-{"dispatched":[{"action":"tool.place","outcome":"done","reason":null}],"input":{"input":"click","x":119,"y":104},"step":4}
+{"dispatched":[{"action":"tool.place","outcome":"done","reason":null}],"input":{"input":"click","x":153,"y":104},"step":4}
 {"dispatched":[{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null},{"action":"picker.filter","outcome":"done","reason":null}],"input":{"input":"type","text":"contact-no"},"step":5}
 {"dispatched":[{"action":"picker.choose","outcome":"done","reason":null}],"input":{"chord":"enter","input":"key"},"step":6}
 {"dispatched":[],"frame":"t0001.png"}

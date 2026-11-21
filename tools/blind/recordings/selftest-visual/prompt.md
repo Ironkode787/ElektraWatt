@@ -15,7 +15,7 @@ refusals. The prelude creates the new project and the page; the epilogue of `sto
 (the scripted agent saves its own work) and quits.
 
 `cargo xtask blind selftest-visual` runs it twice, with the session keeper and with `--stateless`, blesses the first run
-as the recording `tools/blind/recordings/selftest-visual/` (`ci = "pr"`, the inputs, the dispatched actions and the
+as the recording `tools/blind/recordings/selftest-visual/` (`replay = "check"`, the inputs, the dispatched actions and the
 frames' hashes, never the PNGs) and replays that recording twice without painting; on Windows it paints the frames once
 more and reports how many differ from the recording's hashes (R4, a report). A change of the window that breaks the
 recording (a moved button, a new dialog) is repaired by running the visual self-test again in the same change; the

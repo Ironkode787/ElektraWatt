@@ -1,5 +1,5 @@
 {"look":{},"expect":["frames/t0000-l1.png"]}
-{"do":[{"input":"click","x":119,"y":104},{"input":"type","text":"contact-no"},{"input":"key","chord":"enter"}],"expect":["frame frames/t0001.png"]}
+{"do":[{"input":"click","x":153,"y":104},{"input":"type","text":"contact-no"},{"input":"key","chord":"enter"}],"expect":["frame frames/t0001.png"]}
 {"note":"patience 9 flow 9 The Symbol button opened a picker; the filter and Enter armed the contact."}
 {"do":[{"input":"click","x":700,"y":400},{"input":"click","x":900,"y":400},{"input":"key","chord":"escape"}],"expect":["frame frames/t0002.png"]}
 {"note":"patience 9 flow 8 Two contacts are on the page; their tags are small."}

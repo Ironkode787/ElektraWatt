@@ -1,7 +1,7 @@
 {"$schema":"ew.uiscript/1","label":"steps"}
 {"frame":"t0000.png"}
 {"frame":"t0000-l1.png","settle":false}
-{"input":"click","x":119,"y":104}
+{"input":"click","x":153,"y":104}
 {"input":"type","text":"contact-no"}
 {"chord":"enter","input":"key"}
 {"frame":"t0001.png"}
