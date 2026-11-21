@@ -4,7 +4,8 @@
 //! File ▸ Import… of EPLAN data in the window (WP-S3.18, doc 14 §5, §13), at 1920 × 1080: an EDZ shows the Data Portal
 //! terms notice once per session, then what it means for the project; Update previews the changed fields of the
 //! project's part copy on the card (AC-38); Add to my parts library writes the user's library; a report spreadsheet
-//! offers the mappings that fit its headers and makes a new project.
+//! offers the mappings that fit its headers and makes a new project. Not here: that the terms notice cannot be skipped
+//! (`ew-viewmodel`'s `eplan_import.rs`).
 
 use crate::support;
 
@@ -118,41 +119,6 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
             .join("libraries")
             .join("user-parts.ewlib")
             .is_dir()
-    );
-}
-
-/// The terms notice cannot be skipped: an EDZ under another name, and an import that names its step before the notice
-/// was shown, stop at the notice, and nothing is written.
-#[test]
-fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
-    let tmp = Tmp::new();
-    let disguised = tmp.0.join("psu.xml");
-    std::fs::copy(EDZ, &disguised).unwrap();
-    let mut h = open_sample(&tmp, &[]);
-    for how in ["library", "update"] {
-        support::dispatch(
-            &mut h,
-            "file.import_eplan",
-            json!({"file": disguised.to_string_lossy(), "how": how}),
-        );
-        assert!(
-            matches!(
-                h.state().shell().dialog(),
-                Some(Dialog::ImportEplan {
-                    step: EplanStep::Terms,
-                    ..
-                })
-            ),
-            "{how}: {:?}",
-            h.state().shell().dialog()
-        );
-    }
-    assert!(
-        !tmp.0
-            .join("data")
-            .join("libraries")
-            .join("user-parts.ewlib")
-            .exists()
     );
 }
 
