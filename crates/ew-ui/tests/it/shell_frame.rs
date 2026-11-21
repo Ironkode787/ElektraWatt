@@ -100,7 +100,7 @@ fn the_sample_project_opens_read_only_from_the_start_page() {
     h.get_by_label("Open sample project").click();
     settle(&mut h);
     let shell = h.state().shell();
-    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert_eq!(shell.project_name(), Some("sample.ew"));
     assert!(matches!(
         shell.access(),
         Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-sample")
@@ -203,7 +203,7 @@ fn the_first_run_flow_walks_its_steps_and_starts_with_the_sample() {
     let shell = h.state().shell();
     assert!(shell.first_run().is_none());
     assert!(shell.settings().first_run_done);
-    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert_eq!(shell.project_name(), Some("sample.ew"));
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -383,7 +383,7 @@ fn closing_the_wizard_keeps_the_draft_and_the_screen_returns_to_the_start_page()
 #[test]
 fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness_with(gui_shell(&tmp), Scripted::default(), Some(dir));
     settle(&mut h);
     assert_eq!(
@@ -581,7 +581,7 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
 #[test]
 fn a_leftover_journal_is_discarded_from_the_banner() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     {
         let mut crashed = gui_shell(&tmp);
         done(&mut crashed, "file.open", json!({ "dir": dir.to_string_lossy() }));

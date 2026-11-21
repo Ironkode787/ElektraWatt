@@ -813,14 +813,14 @@ fn core_cells(d: &mut Driver) -> Vec<String> {
     }
 }
 
-/// The sample's supply on folio 101 (L, N and PE from another drawing set to the strip 1X1), the three wires
-/// selected, Cable…: the form proposes a type with a green-yellow core (`3G1.5`), since one wire is the protective
-/// conductor, and gives N the blue core, PE the green-yellow and L the brown. Retyped to a type without a blue core and
+/// The sample's power supply on folio 101 (its L and N from the breaker -101F1, its PE from the strip's PE terminal),
+/// the three wires selected, Cable…: the form proposes a type with a green-yellow core (`3G1.5`), since one wire is
+/// the protective conductor, and gives N the blue core, PE the green-yellow and L the brown. Retyped to a type without a blue core and
 /// back, the cores are proposed afresh: before, the neutral kept the brown core the first type gave it.
 #[test]
 fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_again() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let shell = d.shell_mut();
@@ -830,15 +830,19 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
         Outcome::Done
     );
     d.settle();
-    let refs: Vec<String> = [
-        "J-E-206-N -> 1X1:2/b",
-        "J-E-206-PE -> 1X1:PE/b",
-        "J-E-206-L -> 1X1:1/b",
-    ]
-    .iter()
-    .map(|w| format!("wire:{w}"))
-    .collect();
-    let out = d.shell_mut().dispatch("select.set", &json!({ "refs": refs }));
+    // The power supply's N, PE and L wires, by its connection points (each takes one wire).
+    let ids: Vec<String> = {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        ["-101G1:N", "-101G1:PE", "-101G1:L"]
+            .iter()
+            .map(|label| {
+                let cp = tables.cps.iter().find(|c| c.label == *label).expect(label);
+                assert_eq!(cp.connections.len(), 1, "{label}");
+                cp.connections[0].to_string()
+            })
+            .collect()
+    };
+    let out = d.shell_mut().dispatch("select.set", &json!({ "ids": ids }));
     assert_eq!(out, Outcome::Done, "{out:?}");
     d.settle();
     d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
@@ -855,16 +859,16 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
         }
         other => panic!("not the Cable form: {other:?}"),
     };
+    // The form lists the wires in their records' order: N blue, PE green-yellow, L brown, in that order.
+    let mut cores: Vec<(&String, &str)> = ids.iter().zip(["BU", "GNYE", "BN"]).collect();
+    cores.sort();
+    let cores: Vec<&str> = cores.into_iter().map(|(_, c)| c).collect();
     let proposed = type_text(&mut d);
     assert!(
         proposed == "3G1.5" || proposed.contains(" · 3G"),
         "a PE among the wires: a G type: {proposed}"
     );
-    assert_eq!(
-        core_cells(&mut d),
-        ["BU", "GNYE", "BN"],
-        "N blue, PE green-yellow, L brown"
-    );
+    assert_eq!(core_cells(&mut d), cores, "N blue, PE green-yellow, L brown");
     // Retyped as a person writes it: first a type without blue and green-yellow cores, then one with them again.
     d.input(&key("tab"));
     d.input(&typed("3x1.5"));
@@ -873,10 +877,6 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
     d.input(&typed("3G2.5"));
     d.settle();
     assert_eq!(type_text(&mut d), "3G2.5");
-    assert_eq!(
-        core_cells(&mut d),
-        ["BU", "GNYE", "BN"],
-        "after 3x1.5 and back to 3G2.5"
-    );
+    assert_eq!(core_cells(&mut d), cores, "after 3x1.5 and back to 3G2.5");
     d.shell_mut().shutdown();
 }

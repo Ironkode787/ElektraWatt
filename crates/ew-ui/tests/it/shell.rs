@@ -90,7 +90,7 @@ fn the_palette_runs_the_selected_entry_with_enter() {
 #[test]
 fn page_down_changes_the_page_in_the_status_bar() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     assert!(
@@ -122,7 +122,7 @@ fn page_down_changes_the_page_in_the_status_bar() {
 #[test]
 fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // The navigator's row of the fourth page, by its accessible name.
@@ -195,7 +195,7 @@ fn help_about_opens_and_closes() {
 #[test]
 fn open_asks_the_file_dialog_and_opens_the_answer() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(dir));
     let mut h = harness(&tmp, platform.clone(), None);
@@ -204,7 +204,7 @@ fn open_asks_the_file_dialog_and_opens_the_answer() {
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenFolder]);
     assert!(h.state().shell().has_project());
-    assert_eq!(h.state().shell().project_name(), Some("g.ew"));
+    assert_eq!(h.state().shell().project_name(), Some("s.ew"));
     // A cancelled dialog changes nothing.
     h.state_mut()
         .shell_mut()
@@ -293,7 +293,7 @@ fn help_tutorials_holds_no_command_line_run() {
 #[test]
 fn closing_a_dirty_project_asks_and_discard_closes_it() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let run = json!({"cmd": "page.create", "params": {"number": 999}});
@@ -329,7 +329,7 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
 #[test]
 fn go_to_page_takes_a_folio() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let folio = h.state().shell().page_labels()[4].clone();
@@ -354,7 +354,7 @@ fn go_to_page_takes_a_folio() {
 #[test]
 fn keys_do_not_leak_out_of_the_palette_or_a_text_field() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     h.key_press_modifiers(Modifiers::COMMAND, Key::K);
@@ -475,7 +475,7 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
 #[test]
 fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -518,7 +518,7 @@ fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
 #[test]
 fn a_small_dialog_is_as_wide_as_its_buttons() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let dxf = tmp.0.join("plan.dxf");
     std::fs::write(
         &dxf,
@@ -556,7 +556,7 @@ fn a_small_dialog_is_as_wide_as_its_buttons() {
 fn a_tutorial_opens_its_practice_project_in_a_second_window() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
-    let mut h = harness(&tmp, platform.clone(), Some(tmp.golden("g.ew")));
+    let mut h = harness(&tmp, platform.clone(), Some(tmp.sample("s.ew")));
     wait_for_page(&mut h);
     settle(&mut h);
     support::open_menu(&mut h, &["Help", "Tutorials"]);
@@ -565,7 +565,7 @@ fn a_tutorial_opens_its_practice_project_in_a_second_window() {
     assert!(platform.asked.borrow().is_empty(), "no folder question");
     assert_eq!(
         h.state().shell().project_name(),
-        Some("g.ew"),
+        Some("s.ew"),
         "the open project stays"
     );
     let windows = platform.opened_windows.borrow();

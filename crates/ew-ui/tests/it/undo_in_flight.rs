@@ -6,7 +6,7 @@
 //! last step at once and says what it took back and where; a placement and the wires it connected by itself go back as
 //! one step.
 
-use crate::support::{Tmp, dispatch, on_golden, settle};
+use crate::support::{Tmp, dispatch, on_sample, settle};
 
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
@@ -62,10 +62,10 @@ fn toast(h: &Window) -> String {
 #[test]
 fn ctrl_z_puts_away_a_wire_begun_and_takes_back_a_finished_one() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     let before = wires(&h);
     let free = free_cps(&h);
-    assert!(free.len() >= 2, "Golden A's page 102 has free connection points");
+    assert!(free.len() >= 2, "the sample's page 102 has free connection points");
     dispatch(&mut h, "tool.wire", json!({}));
     cursor_at(&mut h, free[0]);
     dispatch(&mut h, "canvas.activate", json!({}));
@@ -104,7 +104,7 @@ fn ctrl_z_puts_away_a_wire_begun_and_takes_back_a_finished_one() {
 fn a_placement_and_the_line_it_connected_go_back_as_one_step() {
     use ew_viewmodel::tools::Ghost;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     let (free, step) = {
         let c = h.state().shell().canvas().unwrap();
         let t = &c.page().tables;

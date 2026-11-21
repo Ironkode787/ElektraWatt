@@ -16,7 +16,7 @@ use ew_ui::app::App;
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::Ghost;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
+use support::{Tmp, dispatch, on_sample, screen, settle, wait_for_page};
 
 /// The Text tool typing at a free point: the popup opens and its field takes the focus.
 fn typing_text(h: &mut Harness<'_, App>) {
@@ -40,7 +40,7 @@ fn label() -> &'static str {
 #[test]
 fn a_click_with_the_text_tool_gives_the_popup_s_field_the_focus() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "tool.text", json!({}));
     settle(&mut h);
     let pos = screen(&h, (100_000_000, 100_000_000));
@@ -73,7 +73,7 @@ fn a_click_with_the_text_tool_gives_the_popup_s_field_the_focus() {
 #[test]
 fn escape_closes_the_text_popup_without_a_commit() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     typing_text(&mut h);
     let field = h
         .get_all_by_role(egui::Role::TextInput)
@@ -102,7 +102,7 @@ fn escape_closes_the_text_popup_without_a_commit() {
 #[test]
 fn shift_w_and_shift_b_arm_the_marker_and_structure_box_tools() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     h.key_press_modifiers(Modifiers::SHIFT, Key::W);
     settle(&mut h);
     settle(&mut h);
@@ -120,7 +120,7 @@ fn shift_w_and_shift_b_arm_the_marker_and_structure_box_tools() {
 #[test]
 fn the_marker_fields_in_the_tool_strip_send_the_cross_section() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "tool.marker", json!({}));
     settle(&mut h);
     settle(&mut h);
@@ -231,7 +231,7 @@ fn outline_box(h: &mut Harness<'_, App>) {
 #[test]
 fn rearming_marker_and_structure_box_resets_visible_fields_to_tool_defaults() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     rearm_marker(&mut h);
     activate(&mut h, "tool.structure_box");
     for switch_away in [true, false] {
@@ -256,7 +256,7 @@ fn rearming_marker_and_structure_box_resets_visible_fields_to_tool_defaults() {
 #[test]
 fn drawing_field_drafts_survive_frames_and_outline_transitions() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     activate(&mut h, "tool.marker");
     type_field(&mut h, key!("action-marker-csa"), "2.5", false);
     settle(&mut h);
@@ -293,7 +293,7 @@ fn drawing_field_drafts_survive_frames_and_outline_transitions() {
 #[test]
 fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     activate(&mut h, "tool.marker");
     type_field(&mut h, key!("action-marker-csa"), "2.5", true);
     dispatch(&mut h, "page.goto", json!({"folio":"102"}));
@@ -307,7 +307,7 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
     // Closing and reopening the project replaces the whole host; its epoch must still advance.
     dispatch(&mut h, "file.close", json!({}));
     settle(&mut h);
-    let dir = tmp.0.join("g.ew");
+    let dir = tmp.0.join("s.ew");
     dispatch(&mut h, "file.open", json!({"dir":dir.to_string_lossy()}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -322,7 +322,7 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
 fn text_popup_typing_previews_without_commit_and_enter_places_it() {
     use ew_viewmodel::tools::PreviewStatus;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     typing_text(&mut h);
     assert!(
         h.get_all_by_role(egui::Role::TextInput)
@@ -368,7 +368,7 @@ fn text_popup_typing_previews_without_commit_and_enter_places_it() {
 fn text_edit_typing_updates_preview_before_enter() {
     use ew_viewmodel::tools::PreviewStatus;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let page = h.state().shell().canvas().unwrap().page().tables.page.to_string();
     dispatch(
         &mut h,
@@ -445,7 +445,7 @@ fn tap(h: &mut Harness<'_, App>, pos: egui::Pos2) {
 fn clicking_placed_text_shows_properties_and_f2_edit() {
     use ew_viewmodel::properties::{RowValue, find_row};
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     assert!(h.state().shell().properties_shown());
     typing_text(&mut h);
     type_field(&mut h, key!("action-text-input"), "40x60", true);
@@ -531,7 +531,7 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
     assert_sheet(&h);
 }
 
-/// A box drawn without a part on a new page 150 of Golden A's copy, selected, its name field open for a new pin on its
+/// A box drawn without a part on a new page 150 of the sample's copy, selected, its name field open for a new pin on its
 /// top edge (Add pin from its right-click).
 fn naming_a_pin(h: &mut Harness<'_, App>) -> ew_viewmodel::ew_api::output::Uuid {
     let page = json!({"cmd": "page.create", "params": {
@@ -583,7 +583,7 @@ fn pin_names(h: &Harness<'_, App>, rep: ew_viewmodel::ew_api::output::Uuid) -> V
 #[test]
 fn tab_between_pin_names_makes_one_pin_per_name() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let rep = naming_a_pin(&mut h);
     for (i, name) in ["24V", "24V", "0V", "0V"].into_iter().enumerate() {
         h.event(egui::Event::Text(name.to_owned()));
@@ -600,7 +600,7 @@ fn tab_between_pin_names_makes_one_pin_per_name() {
 #[test]
 fn an_empty_pin_name_is_said_under_the_field() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let rep = naming_a_pin(&mut h);
     h.key_press(Key::Enter);
     settle(&mut h);

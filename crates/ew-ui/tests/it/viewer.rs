@@ -17,8 +17,8 @@ use ew_viewmodel::shell::{Focus, Outcome};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -68,7 +68,7 @@ fn canvas_description(h: &Harness<'_, App>) -> String {
 #[test]
 fn the_viewer_without_a_pointer() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     // Ctrl+G, "103-A1", Enter: folio 103, the status field reads the cell.
     h.key_press_modifiers(Modifiers::COMMAND, Key::G);
     settle(&mut h);
@@ -224,9 +224,9 @@ fn the_viewer_without_a_pointer() {
 #[test]
 fn exact_counts_of_the_multi_canvas_host() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     // Every page a cross-reference of section 1 leads to is shown once, so a follow stays in the cache.
-    for folio in ["101", "106", "102"] {
+    for folio in ["101", "104", "102"] {
         dispatch(&mut h, "page.goto", json!({ "folio": folio }));
     }
     dispatch(&mut h, "tab.new", json!({}));
@@ -324,7 +324,7 @@ fn exact_counts_of_the_multi_canvas_host() {
 #[test]
 fn hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -360,7 +360,7 @@ fn hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
 #[test]
 fn the_splitter_share_survives_a_tab_click_and_ctrl_f6() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "tab.new", json!({}));
     dispatch(&mut h, "view.side_by_side", json!({}));
@@ -419,7 +419,7 @@ fn the_splitter_share_survives_a_tab_click_and_ctrl_f6() {
 #[test]
 fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let built = h.state().navigator_rebuilds();
     assert!(built >= 1, "the first frame builds the rows");
     for _ in 0..5 {
@@ -436,7 +436,7 @@ fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
         .navigator_rows()
         .into_iter()
         .find(|r| matches!(r.kind, RowKind::Node { .. }))
-        .expect("the golden navigator has a node");
+        .expect("the navigator has a node");
     dispatch(&mut h, "pages.toggle", json!({"key": node.key}));
     settle(&mut h);
     assert_eq!(
@@ -463,7 +463,7 @@ fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
 #[test]
 fn canvas_tab_badges_are_chips_not_bracketed_words() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     wait_for_page(&mut h);
     h.key_press_modifiers(Modifiers::COMMAND, Key::T);
@@ -533,7 +533,7 @@ fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
 #[test]
 fn a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp);
+    let mut h = on_sample(&tmp);
     let start = folio(&h);
     assert_ne!(start, "103");
     for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {

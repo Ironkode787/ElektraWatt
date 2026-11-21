@@ -20,8 +20,8 @@ use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// A harness on a folio without waiting for its tiles: the dashed overlays are model state and are painted before the
 /// page image arrives.
-fn quick_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn quick_sample(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({ "folio": folio }));
@@ -78,7 +78,7 @@ fn tap(h: &mut Harness<'_, App>, pos: Pos2) {
 #[test]
 fn select_and_measure_from_the_keyboard_alone() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     // The Tools menu's Measure through the palette, keyboard only.
     h.key_press_modifiers(Modifiers::COMMAND, Key::K);
     settle(&mut h);
@@ -148,7 +148,9 @@ fn select_and_measure_from_the_keyboard_alone() {
         // The one selected device in words.
         assert_eq!(
             live(&h),
-            "-102F2, Black box, folio 102, 10 connection points, 8 wires"
+            // The first free point of 102 is the b clamp of the strip's terminal 5 (its a clamp takes the 0 V feed,
+            // and the bridge joins it to 6, 7 and 8).
+            "-X1021:5, Feed-through terminal 1-2, folio 102, 2 connection points, 2 wires"
         );
         press(&mut h, Key::Escape);
         assert!(h.state().shell().selection().is_empty());
@@ -159,7 +161,7 @@ fn select_and_measure_from_the_keyboard_alone() {
 #[test]
 fn the_primary_button_is_the_tools_input() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     let canvas = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -218,7 +220,7 @@ fn the_primary_button_is_the_tools_input() {
 #[test]
 fn a_press_and_its_release_in_one_frame_still_click() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     // An entity whose centre is no link and picks it, with no wire within reach (the Select tool takes a wire's line
     // drawn through a symbol's middle first, FT-500, and the tap's point is rounded to the screen).
     let (entity, p) = {
@@ -245,7 +247,8 @@ fn a_press_and_its_release_in_one_frame_still_click() {
     tap(&mut h, pos);
     settle(&mut h);
     assert_eq!(h.state().shell().selection().items, vec![entity], "a tap selects");
-    // A tap on a link follows it.
+    // A tap on a link follows it: a link of another thing than the one selected (the selected point's own
+    // cross-reference is under its selection's outline).
     let link = h
         .state()
         .shell()
@@ -254,7 +257,10 @@ fn a_press_and_its_release_in_one_frame_still_click() {
         .page()
         .links
         .iter()
-        .find(|l| l.target.as_ref().is_some_and(|t| t.folio != "103"))
+        .find(|l| {
+            l.target.as_ref().is_some_and(|t| t.folio != "103")
+                && h.state().shell().selected_rects(0).iter().all(|r| !r.intersects(l.rect))
+        })
         .unwrap()
         .clone();
     let pos = screen(&h, ew_viewmodel::canvas::rect_centre(link.rect));
@@ -271,7 +277,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
 #[test]
 fn a_press_on_the_splitter_between_the_groups_is_no_tool_input() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -351,7 +357,7 @@ fn button(h: &mut Harness<'_, App>, pos: Pos2, pressed: bool) {
 #[test]
 fn a_group_hidden_while_a_press_is_held_drops_the_release() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -413,7 +419,7 @@ fn a_group_hidden_while_a_press_is_held_drops_the_release() {
 #[test]
 fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     dispatch(&mut h, "view.side_by_side", json!({}));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -441,7 +447,7 @@ fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
 #[test]
 fn the_physical_bracket_key_steps_the_connection_points() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "102");
+    let mut h = support::on_sample(&tmp, "102");
     // QWERTZ: the key right of P is `+` logically and `]` physically.
     let bracket = |h: &mut Harness<'_, App>| {
         h.event(egui::Event::Key {
@@ -483,7 +489,7 @@ fn the_physical_bracket_key_steps_the_connection_points() {
 #[test]
 fn the_window_reports_the_rest_and_shows_the_popup() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     let link = h
         .state()
         .shell()
@@ -529,8 +535,9 @@ fn the_window_reports_the_rest_and_shows_the_popup() {
         h.run_ok();
     }
     assert!(h.state().canvas_scene_count() >= 2);
-    // A pointer move closes it.
-    h.event(egui::Event::PointerMoved(pos + egui::Vec2::new(40.0, 0.0)));
+    // A pointer move off the link, to its left, closes it.
+    let left = screen(&h, (link.rect.min().x.0, p.1));
+    h.event(egui::Event::PointerMoved(egui::pos2(left.x - 40.0, pos.y)));
     h.run_ok();
     h.run_ok();
     assert!(h.state().shell().link_preview().is_none());
@@ -540,7 +547,7 @@ fn the_window_reports_the_rest_and_shows_the_popup() {
 #[test]
 fn exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     // The property grid fetches a sheet per selection change (its counts in `tests/it/properties.rs`): closed
     // here, so that the tool events alone are counted.
     dispatch(&mut h, "props.show", json!({"on": false}));
@@ -675,7 +682,7 @@ fn goto_by_key(h: &mut Harness<'_, App>, folio: &str) {
 #[test]
 fn a_page_change_without_pointer_input_paints_no_dashed_rectangle() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // The pointer is over the canvas, but the go-to page change itself sends no pointer event.
@@ -692,7 +699,7 @@ fn a_page_change_without_pointer_input_paints_no_dashed_rectangle() {
 #[test]
 fn a_page_change_after_a_hover_paints_no_dashed_rectangle() {
     let tmp = Tmp::new();
-    let mut h = quick_golden(&tmp, "102");
+    let mut h = quick_sample(&tmp, "102");
     // The centre of an entity, wherever the fit put the sheet.
     let at = {
         let c = h.state().shell().canvas().unwrap();
@@ -716,7 +723,7 @@ fn a_page_change_after_a_hover_paints_no_dashed_rectangle() {
 #[test]
 fn a_band_release_without_pointer_movement_paints_no_dashed_rectangle() {
     let tmp = Tmp::new();
-    let mut h = quick_golden(&tmp, "102");
+    let mut h = quick_sample(&tmp, "102");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
     let from = screen(&h, (w / 5, hh / 5));
     let to = screen(&h, (w * 3 / 5, hh * 3 / 5));
@@ -748,7 +755,7 @@ fn a_band_release_without_pointer_movement_paints_no_dashed_rectangle() {
 #[test]
 fn a_stationary_click_keeps_the_place_ghost() {
     let tmp = Tmp::new();
-    let mut h = quick_golden(&tmp, "103");
+    let mut h = quick_sample(&tmp, "103");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "place");
@@ -793,7 +800,7 @@ fn a_stationary_click_keeps_the_place_ghost() {
 fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     let tmp = Tmp::new();
     use ew_viewmodel::canvas::{pick, rect_centre};
-    let mut h = quick_golden(&tmp, "102");
+    let mut h = quick_sample(&tmp, "102");
     // The pan below moves the sheet by `pan` on the screen. The pointer rests where that brings an object under it,
     // whatever the page's layout is: the centre of an object's rectangle whose pick is that object, moved by the pan.
     let pan = Vec2::new(80.0, 40.0);
@@ -920,14 +927,14 @@ fn assert_chips_apart(
 }
 
 /// The owner's hands-on test of 0.1.0 (FT-1637): "while a device is being placed its texts jitter around it as it
-/// moves, and the ghost reads Preview of Place device". The Place ghost of a terminal on Golden A shows one chip,
+/// moves, and the ghost reads Preview of Place device". The Place ghost of a terminal on the sample shows one chip,
 /// its own label, and no preview chip; the label keeps its place while the pointer moves about the ghost's point
 /// without moving the ghost, and keeps the same place beside the ghost when the ghost moves a grid step; with the
 /// frame statistics shown and the ghost beside their panel, the label does not cover the panel.
 #[test]
 fn the_place_ghost_shows_one_label_that_stands_still_beside_it() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     let at = place_and_rest(&mut h);
     // A second rest at the same point (the 300-ms dwell previews again): still one label.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 300}));
@@ -1011,7 +1018,7 @@ fn the_place_ghost_shows_one_label_that_stands_still_beside_it() {
 #[test]
 fn the_place_label_stays_inside_the_canvas_at_the_floor() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let at = place_and_rest(&mut h);
@@ -1072,7 +1079,7 @@ fn the_image_hint_follows_the_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
     let file = a_png(&tmp);
     let scripted = Scripted::default();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, scripted.clone(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -1119,7 +1126,7 @@ impl ew_ui::app::Platform for ThreadedImage {
 fn the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let tmp = Tmp::new();
     let file = a_png(&tmp);
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let shell = ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir));
     let mut h = Harness::builder()
@@ -1155,12 +1162,13 @@ fn the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
 }
 
 /// The chip of a tag change on an existing device stands above its printed tag text (`TableRep::tag_at`),
-/// not the body's corner. The flow: on a copy of Golden A with a numbering scheme that prints the column (Golden A's
-/// own tags change with no move on a page), -101F1 is selected, moved to the right with the keyboard and rested on.
+/// not the body's corner. The flow: on a copy of the sample with a numbering scheme that prints the column (the
+/// sample's own tags change with no move on a page), -101F1 is selected, moved to the right with the keyboard and
+/// rested on.
 #[test]
 fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_sample(&tmp, "101");
     // The rails and the wider left column narrow the page view; at 1000 px the chip meets the
     // view's edge and is pushed off its candidates, so this window has the reference width.
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -1182,7 +1190,7 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
         .tables
         .reps
         .iter()
-        .find(|r| r.symbol_key == "ew.iec.mcb-1pn@qet10")
+        .find(|r| r.symbol_key == "ew.iec.mcb-2p@qet10")
         .cloned()
         .expect("-101F1");
     let tag_at = rep.tag_at.expect("-101F1 prints its tag");
@@ -1241,7 +1249,7 @@ pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
 fn a_right_click_opens_the_canvas_context_menu() {
     use ew_viewmodel::canvas::{pick, rect_centre};
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "103");
+    let mut h = support::on_sample(&tmp, "103");
     // The centre of an object's rectangle whose pick is that object.
     let (entity, at) = {
         let c = h.state().shell().canvas().unwrap();

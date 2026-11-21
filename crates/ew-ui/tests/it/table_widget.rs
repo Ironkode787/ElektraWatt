@@ -18,10 +18,10 @@ use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
-/// The window on a writable copy of Golden A, folio 102 shown, navigator `kind` in table mode filtered `filter`,
+/// The window on a writable copy of the sample, navigator `kind` in table mode filtered `filter`,
 /// with the focus.
 fn table(tmp: &Tmp, kind: &str, filter: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -78,21 +78,21 @@ fn steps(shell: &ShellModel) -> usize {
     shell.recorded_commands().len()
 }
 
-/// TB7: in the Terminal strips table (-X1031, 20 rows) every cell is named `<column> <text>, row <i> of <n>` (`,
-/// read-only` for the derived or key cells), the headers are `Sort by <column>` buttons; End moves the cell cursor to
-/// the last column and the table scrolls right: the key column (Strip) stays at the left edge while Terminal scrolls
-/// out and State comes into view; Home scrolls back.
+/// TB7: in the Terminal strips table (-X1021, the eight terminals of the sample's 102) every cell is named
+/// `<column> <text>, row <i> of <n>` (`, read-only` for the derived or key cells), the headers are `Sort by <column>`
+/// buttons; End moves the cell cursor to the last column and the table scrolls right: the key column (Strip) stays at
+/// the left edge while Terminal scrolls out and State comes into view; Home scrolls back.
 #[test]
 fn the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "x1031");
+    let mut h = table(&tmp, "strips", "strip:-X1021");
     // A window narrow enough that the table is wider than its pane (at 1920 the left column grows until it fits).
     h.set_size(egui::Vec2::new(1000.0, 700.0));
     settle(&mut h);
     // The columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
     for name in [
-        "Strip -X1031, row 1 of 20, read-only",
-        "Terminal 1, row 1 of 20",
+        "Strip -X1021, row 1 of 8, read-only",
+        "Terminal 1, row 1 of 8",
         "Sort by Strip",
         "Sort by Terminal",
         "Terminal strips table",
@@ -100,14 +100,14 @@ fn the_key_column_stays_while_the_table_scrolls_right() {
         assert!(shown(&h, name), "{name}");
     }
     let key_left = h
-        .get_by_label("Strip -X1031, row 1 of 20, read-only")
+        .get_by_label("Strip -X1021, row 1 of 8, read-only")
         .rect()
         .left();
     let state = |h: &Harness<'static, App>| {
         h.query_all_by_label_contains("State ").any(|n| {
             n.accesskit_node()
                 .label()
-                .is_some_and(|l| l.ends_with(", row 1 of 20"))
+                .is_some_and(|l| l.ends_with(", row 1 of 8"))
         })
     };
     assert!(!state(&h), "State is right of the pane");
@@ -124,11 +124,11 @@ fn the_key_column_stays_while_the_table_scrolls_right() {
         "the cursor is on the last column"
     );
     assert!(state(&h), "State scrolled into view");
-    assert!(!shown(&h, "Terminal 1, row 1 of 20"), "Terminal scrolled out");
-    let key_cell = h.get_by_label("Strip -X1031, row 1 of 20, read-only");
+    assert!(!shown(&h, "Terminal 1, row 1 of 8"), "Terminal scrolled out");
+    let key_cell = h.get_by_label("Strip -X1021, row 1 of 8, read-only");
     assert_eq!(key_cell.rect().left(), key_left, "the key column is frozen");
     key(&mut h, Modifiers::NONE, Key::Home);
-    assert!(shown(&h, "Terminal 1, row 1 of 20"), "Home scrolls back");
+    assert!(shown(&h, "Terminal 1, row 1 of 8"), "Home scrolls back");
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -138,7 +138,7 @@ fn the_key_column_stays_while_the_table_scrolls_right() {
 #[test]
 fn header_click_sorts_and_the_chooser_hides_and_orders() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "x1031");
+    let mut h = table(&tmp, "strips", "strip:-X1021");
     h.get_by_label("Sort by Terminal").click();
     settle(&mut h);
     let nav = |h: &Harness<'static, App>| {
@@ -152,7 +152,7 @@ fn header_click_sorts_and_the_chooser_hides_and_orders() {
     settle(&mut h);
     assert_eq!(nav(&h), (SortBy::Column("terminal".into()), true));
     assert!(shown(&h, "Sort by Terminal, sorted descending"));
-    assert!(shown(&h, "Terminal 20, row 1 of 20"), "descending");
+    assert!(shown(&h, "Terminal 8, row 1 of 8"), "descending");
     // The chooser.
     h.get_by_label("Columns").click();
     settle(&mut h);
@@ -187,30 +187,30 @@ fn header_click_sorts_and_the_chooser_hides_and_orders() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// TB2 in the window, from the keyboard alone: Terminal strips in table mode filtered `x1031` and sorted by Terminal
-/// (an AccessKit click on its header) list 1 to 20; Ctrl+Home, Down to terminal 13, Right to Function text, typing
-/// "Spare" and Enter set its function text (one step); Shift+Down four times marks 13 to 17; Ctrl+D fills "Spare" down
-/// as one `fields.set` with 5 targets, a direct commit with the toast; Ctrl+Z undoes it in one step and restores 14 to
-/// 17.
+/// TB2 in the window, from the keyboard alone: Terminal strips in table mode filtered to the strip -X1021 and sorted
+/// by Terminal (an AccessKit click on its header) list 1 to 8; Ctrl+Home, Down to terminal 3, Right to Function text, typing
+/// "Spare" and Enter set its function text (one step); Shift+Down four times marks 3 to 7; Ctrl+D fills "Spare" down
+/// as one `fields.set` with 5 targets, a direct commit with the toast; Ctrl+Z undoes it in one step and restores 4 to
+/// 7.
 #[test]
 fn fill_down_from_the_keyboard_is_one_step() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "x1031");
-    // Twenty rows of `size.row` (28 points) need a taller window than 700 points to be all on show.
+    let mut h = table(&tmp, "strips", "strip:-X1021");
+    // The rows of `size.row` (28 points) with the dock below need a taller window than 700 points to be all on show.
     h.set_size(egui::Vec2::new(1000.0, 900.0));
     // Properties under the navigator would halve it; this test needs the whole column.
     done(h.state_mut().shell_mut(), "props.show", json!({"on": false}));
     settle(&mut h);
     h.get_by_label("Sort by Terminal").click_accesskit();
     settle(&mut h);
-    let order: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+    let order: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
     assert_eq!(texts(h.state().shell(), NavKind::Strips, "Terminal"), order);
-    for n in 1..=20 {
-        assert!(shown(&h, &format!("Terminal {n}, row {n} of 20")), "{n}");
+    for n in 1..=8 {
+        assert!(shown(&h, &format!("Terminal {n}, row {n} of 8")), "{n}");
     }
     let before = texts(h.state().shell(), NavKind::Strips, "Function text");
     key(&mut h, Modifiers::COMMAND, Key::Home);
-    keys(&mut h, Key::ArrowDown, 12);
+    keys(&mut h, Key::ArrowDown, 2);
     keys(&mut h, Key::ArrowRight, 2);
     assert!(
         h.state()
@@ -222,7 +222,7 @@ fn fill_down_from_the_keyboard_is_one_step() {
     );
     let n = steps(h.state().shell());
     type_text(&mut h, "Spare");
-    let name = format!("Function text {}, row 13 of 20", before[12]);
+    let name = format!("Function text {}, row 3 of 8", before[2]).replace(" ,", ",");
     assert!(
         h.state()
             .shell()
@@ -237,7 +237,7 @@ fn fill_down_from_the_keyboard_is_one_step() {
     assert!(h.get_by_label(&name).is_focused(), "the editor has the keyboard");
     key(&mut h, Modifiers::NONE, Key::Enter);
     assert_eq!(steps(h.state().shell()), n + 1, "one step");
-    assert!(shown(&h, "Function text Spare, row 13 of 20"));
+    assert!(shown(&h, "Function text Spare, row 3 of 8"));
     for _ in 0..4 {
         key(&mut h, Modifiers::SHIFT, Key::ArrowDown);
     }
@@ -250,42 +250,35 @@ fn fill_down_from_the_keyboard_is_one_step() {
     assert_eq!(last.params["targets"].as_array().unwrap().len(), 5);
     assert!(shell.properties().card().is_none(), "a direct commit");
     let filled = texts(shell, NavKind::Strips, "Function text");
-    assert_eq!(&filled[12..17], ["Spare"; 5]);
-    for row in 13..=17 {
+    assert_eq!(&filled[2..7], ["Spare"; 5]);
+    for row in 3..=7 {
         assert!(
-            shown(&h, &format!("Function text Spare, row {row} of 20")),
+            shown(&h, &format!("Function text Spare, row {row} of 8")),
             "{row}"
         );
     }
     key(&mut h, Modifiers::COMMAND, Key::Z);
     let undone = texts(h.state().shell(), NavKind::Strips, "Function text");
-    assert_eq!(undone[12], "Spare");
-    assert_eq!(
-        &undone[13..17],
-        &before[13..17],
-        "one undo step restores 14 to 17"
-    );
+    assert_eq!(undone[2], "Spare");
+    assert_eq!(&undone[3..7], &before[3..7], "one undo step restores 4 to 7");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// TB3 in the window, from the keyboard alone: Space marks -X1031's 12 spare terminals, Ctrl+Shift+D opens the
+/// TB3 in the window, from the keyboard alone: Space marks -X1021's eight terminals one by one, Ctrl+Shift+D opens the
 /// pattern dialog with the keyboard in its field, typing `Spare_{n:02}` shows the first five values, Enter applies one
 /// `fields.set_many`.
 #[test]
 fn pattern_fill_from_the_keyboard() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "x1031");
+    let mut h = table(&tmp, "strips", "strip:-X1021");
     h.get_by_label("Sort by Terminal").click_accesskit();
     settle(&mut h);
-    let states = texts(h.state().shell(), NavKind::Strips, "State");
     key(&mut h, Modifiers::COMMAND, Key::Home);
-    for s in &states {
-        if s == "spare" {
-            key(&mut h, Modifiers::NONE, Key::Space);
-        }
+    for _ in 0..8 {
+        key(&mut h, Modifiers::NONE, Key::Space);
         key(&mut h, Modifiers::NONE, Key::ArrowDown);
     }
-    assert_eq!(h.state().shell().nav(NavKind::Strips).unwrap().marked().len(), 12);
+    assert_eq!(h.state().shell().nav(NavKind::Strips).unwrap().marked().len(), 8);
     key(&mut h, Modifiers::NONE, Key::Home);
     keys(&mut h, Key::ArrowRight, 2);
     key(&mut h, Modifiers::COMMAND | Modifiers::SHIFT, Key::D);
@@ -303,27 +296,20 @@ fn pattern_fill_from_the_keyboard() {
     let shell = h.state().shell();
     assert_eq!(steps(shell), n + 1, "one step");
     assert_eq!(shell.recorded_commands().last().unwrap().cmd, "fields.set_many");
-    let fn_texts = texts(shell, NavKind::Strips, "Function text");
-    let spare: Vec<&String> = states
-        .iter()
-        .zip(&fn_texts)
-        .filter(|(s, _)| *s == "spare")
-        .map(|(_, t)| t)
-        .collect();
-    let expected: Vec<String> = (1..=12).map(|n| format!("Spare_{n:02}")).collect();
-    assert_eq!(spare, expected.iter().collect::<Vec<_>>());
+    let expected: Vec<String> = (1..=8).map(|n| format!("Spare_{n:02}")).collect();
+    assert_eq!(texts(shell, NavKind::Strips, "Function text"), expected);
     assert!(!shown(&h, "Pattern"), "the dialog closed");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// TB4 in the window, from the keyboard and AccessKit actions: in the Cables table (-106W1, sorted by Cable) with the
+/// TB4 in the window, from the keyboard and AccessKit actions: in the Cables table (-103W1, sorted by Cable) with the
 /// cursor on the first core's mm² cell, the platform's paste event with `0,75` and `1,500` opens the table card with
 /// the second cell ambiguous; Ctrl+Enter is refused while it blocks; an AccessKit click on the reading "1.5
 /// (decimal)" resolves it and Ctrl+Enter applies one command.
 #[test]
 fn paste_resolve_and_apply_without_a_pointer() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "cables", "-106W1");
+    let mut h = table(&tmp, "cables", "-103W1");
     h.get_by_label("Sort by Cable").click_accesskit();
     settle(&mut h);
     let (first, csa) = {
@@ -367,7 +353,7 @@ fn paste_resolve_and_apply_without_a_pointer() {
 #[test]
 fn w31_3_a_header_text_is_truncated_within_its_column() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "x1031");
+    let mut h = table(&tmp, "strips", "strip:-X1021");
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
     // Columns start at `size.table_column`; the cell cursor brings Function text into view.
@@ -378,7 +364,7 @@ fn w31_3_a_header_text_is_truncated_within_its_column() {
     );
     settle(&mut h);
     let header = h.get_by_label("Sort by Function text").rect();
-    let cell = h.get_by_label("Function text 1+, row 1 of 20").rect();
+    let cell = h.get_by_label("Function text, row 1 of 8").rect();
     assert!(
         (header.left() - cell.left()).abs() < 0.5 && (header.right() - cell.right()).abs() < 0.5,
         "the header {header:?} covers its column {cell:?}"

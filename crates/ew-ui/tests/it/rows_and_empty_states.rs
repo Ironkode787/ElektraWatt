@@ -30,9 +30,9 @@ fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
     labels(h, egui::Role::Group).iter().any(|l| l == name)
 }
 
-/// A copy of Golden A in the window at 1920 × 1080, on folio 101.
-fn on_golden(tmp: &Tmp, read_only: bool) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+/// A copy of the sample in the window at 1920 × 1080, on folio 101.
+fn on_sample(tmp: &Tmp, read_only: bool) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(
         shell.dispatch(
@@ -95,7 +95,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
 fn the_pending_chips_and_the_messages_header_say_what_they_count() {
     const TIP: &str = "Findings on the page you are editing that wait until you leave it or run a check";
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, false);
+    let mut h = on_sample(&tmp, false);
     // Folio 102, whose page draws findings of one other severity only, so that the header has room for whole chips.
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "messages.show", json!({"on": true}));
@@ -173,13 +173,19 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK10 (doc 16a §6.24): on Golden A with an error, a warning and a pending completeness finding, every finding row on
+/// DK10 (doc 16a §6.24): on the sample with an error, infos and a pending completeness finding, every finding row on
 /// show is named with its severity word; the pending row carries a "Pending" status badge node; the header is one
 /// node named by the as-built sentence; the walker passes.
 #[test]
 fn messages_rows_badges_and_header() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, false);
+    let mut h = on_sample(&tmp, false);
+    // The sample is clean but for infos: an unpaired point on 102, left for 101, is an open error.
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    settle(&mut h);
+    place_ip(&mut h, "K31OPEN");
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     // While findings are pending, one sentence under the header says what pending means.
@@ -193,7 +199,7 @@ fn messages_rows_badges_and_header() {
     );
     let shell = h.state().shell();
     let counts = shell.messages_counts().unwrap();
-    // Golden A's online scheme reports one error and infos, no warning: the warning's icon and colour are proved by the
+    // The sample reports the one error and infos, no warning: the warning's icon and colour are proved by the
     // unit tests of `messages.rs`.
     assert!(counts.errors > 0 && counts.infos > 0, "{counts:?}");
     assert!(counts.pending > 0, "{counts:?}");
@@ -270,7 +276,7 @@ fn messages_rows_badges_and_header() {
 #[test]
 fn fix_is_disabled_on_a_read_only_project() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     for (action, params) in [
         ("file.open", json!({"dir": dir.to_string_lossy()})),
@@ -329,7 +335,7 @@ fn fix_is_disabled_on_a_read_only_project() {
 #[test]
 fn history_rows_actions_marker_and_show_changes() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

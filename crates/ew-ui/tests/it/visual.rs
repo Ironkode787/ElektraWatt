@@ -100,14 +100,14 @@ fn key(chord: &str) -> Input {
     Input::Key { key, mods, repeat: 1 }
 }
 
-/// A driver over a copy of Golden A on folio 101, settled, with its accessibility tree.
-fn golden_on_101(tmp: &Tmp) -> Driver {
-    let golden = tmp.golden("g.ew");
+/// A driver over a copy of the sample on folio 101, settled, with its accessibility tree.
+fn sample_on_101(tmp: &Tmp) -> Driver {
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, ew_viewmodel::shell::Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
@@ -120,11 +120,11 @@ fn golden_on_101(tmp: &Tmp) -> Driver {
 #[test]
 fn a_scripts_ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let lines = [
-        json!({"action": "file.open", "params": {"dir": golden.to_string_lossy()}}),
+        json!({"action": "file.open", "params": {"dir": sample.to_string_lossy()}}),
         json!({"action": "page.goto", "params": {"folio": "101"}}),
-        json!({"action": "select.set", "params": {"refs": ["tag:F55"]}}),
+        json!({"action": "select.set", "params": {"refs": ["tag:-101F1"]}}),
         json!({"input": "key", "chord": "f10"}),
         json!({"action": "ui.dismiss"}),
         json!({"action": "ui.dismiss"}),
@@ -247,7 +247,7 @@ fn the_inputs_check_their_members_and_bounds() {
 #[test]
 fn the_drivers_double_clicks_on_two_rows_open_both() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "102"}));
     d.settle();
     let row = |d: &Driver, folio: &str| {
@@ -280,12 +280,14 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
     use ew_viewmodel::navigators::NavKind;
     use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     for (action, params) in [
+        // The strip's page: a terminal of another page, selected, would add the chip line under the page.
+        ("page.goto", json!({"folio": "102"})),
         ("props.show", json!({"on": false})),
         ("navigator.show", json!({"kind": "strips"})),
         ("navigator.table", json!({"kind": "strips"})),
-        ("navigator.filter", json!({"kind": "strips", "text": "x1032"})),
+        ("navigator.filter", json!({"kind": "strips", "text": "strip:-X1021"})),
         ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
     ] {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");
@@ -345,7 +347,7 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
 #[test]
 fn clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     // The drags below aim at Fit page's view (the first view is fit-width).
     let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
     d.settle();
@@ -484,7 +486,7 @@ fn the_same_script_twice_gives_the_same_logs_states_and_frames() {
 #[test]
 fn the_dwells_follow_the_frame_clock() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     let dwells = |d: &mut Driver| actions(d).iter().filter(|a| *a == "canvas.dwell").count();
     d.input(&Input::Hover { at: (900, 500) });
     let start = d.frame_count();
@@ -697,12 +699,12 @@ fn coordinates_are_checked_against_the_runs_frame() {
 #[test]
 fn a_click_at_the_extension_reaches_the_widget() {
     let tmp = Tmp::new();
-    let golden = tmp.golden("g.ew");
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), extension()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, ew_viewmodel::shell::Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
@@ -900,7 +902,7 @@ fn a_right_click_on_the_page_cancels_the_active_tool() {
 #[test]
 fn a_drag_on_a_selected_wire_edits_its_route_with_the_mouse() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
     d.settle();
     // The window's pixels of a sheet point, from two pointer positions the canvas reports.
@@ -1240,7 +1242,7 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
 #[test]
 fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     let direction = |d: &mut Driver, folio: &str| -> String {
         let _ = d.shell_mut().dispatch("page.goto", &json!({ "folio": folio }));
         d.settle();
@@ -1248,8 +1250,8 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
         tables
             .reps
             .iter()
-            .find_map(|r| r.ip.as_ref().filter(|i| i.name == "L-1"))
-            .expect("the page arrow L-1")
+            .find_map(|r| r.ip.as_ref().filter(|i| i.name == "24V"))
+            .expect("the page arrow 24V")
             .direction
             .clone()
     };
@@ -1260,7 +1262,7 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
         tables
             .reps
             .iter()
-            .find(|r| r.ip.as_ref().is_some_and(|i| i.name == "L-1"))
+            .find(|r| r.ip.as_ref().is_some_and(|i| i.name == "24V"))
             .unwrap()
             .id
             .to_string()

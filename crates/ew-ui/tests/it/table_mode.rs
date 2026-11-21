@@ -18,16 +18,16 @@ use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
-/// The window on a writable copy of Golden A, folio 102 shown.
+/// The window on a writable copy of the sample.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     h
 }
 
-/// The Terminal strips navigator in table mode, filtered `x1032`, sorted by Terminal, with the focus.
+/// The Terminal strips navigator in table mode, filtered to the strip -X1021, sorted by Terminal, with the focus.
 fn strips_table(h: &mut Harness<'static, App>) {
     let shell = h.state_mut().shell_mut();
     done(shell, "navigator.show", json!({"kind": "strips"}));
@@ -35,7 +35,7 @@ fn strips_table(h: &mut Harness<'static, App>) {
     done(
         shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "x1032"}),
+        json!({"kind": "strips", "text": "strip:-X1021"}),
     );
     let by = shell
         .nav(NavKind::Strips)
@@ -190,7 +190,7 @@ fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
     t.nodes.iter().find(|x| x.key == key).expect("the row").cells[c].clone()
 }
 
-/// In the window: the strip editor on -X1031 is the Terminal strips grid; an
+/// In the window: the strip editor on -X1021 is the Terminal strips grid; an
 /// accessory row is a row of the grid (its cells named like a terminal row's); with two end-bracket parts in the
 /// project, Add accessory opens the chooser list (a `ListBox` named "Choose the part", its rows `ListBoxOption`s with
 /// position and set size), Down and Enter pick the second part (one `fields.set` of `strip.accessories`), and the list
@@ -199,12 +199,13 @@ fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
 fn the_strip_editor_and_its_chooser_list() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
-    // A second end bracket, so that Add accessory has to ask.
+    // Two end brackets (the sample holds none), so that Add accessory has to ask.
     let csv = tmp.0.join("brackets.csv");
     std::fs::write(
         &csv,
         "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\n\
-         ACME end bracket,ACME,EB-1,end_bracket,,End bracket,piece,,\n",
+         ACME end bracket,ACME,EB-1,end_bracket,,End bracket,piece,,\n\
+         ACME wide end bracket,ACME,EB-2,end_bracket,,Wide end bracket,piece,,\n",
     )
     .expect("the parts table");
     {
@@ -212,9 +213,9 @@ fn the_strip_editor_and_its_chooser_list() {
         done(shell, "parts.import", json!({"path": csv.to_string_lossy()}));
         done(shell, "parts.map_import", json!({}));
         done(shell, "preview.apply", json!({}));
-        done(shell, "strip.edit", json!({"strip": "-X1031"}));
-        let k20 = strips_row(shell, "Terminal", "20");
-        done(shell, "table.cell", json!({"kind": "strips", "row": k20}));
+        done(shell, "strip.edit", json!({"strip": "-X1021"}));
+        let k8 = strips_row(shell, "Terminal", "8");
+        done(shell, "table.cell", json!({"kind": "strips", "row": k8}));
     }
     settle(&mut h);
     support::assert_accessible(&h);
@@ -266,12 +267,12 @@ fn the_strip_editor_and_its_chooser_list() {
     assert_eq!(last.params["path"], "strip.accessories");
     assert!(h.query_by_label("Choose the part").is_none(), "the list closed");
     let shell = h.state().shell();
-    let acc = strips_row(shell, "Pos", "20.1");
+    let acc = strips_row(shell, "Pos", "8.1");
     let number = items[1].0.split(" (").next().expect("the part number");
     assert_eq!(strips_cell(shell, &acc, "Part"), number);
     // The accessory row is a row of the grid: its cells are named like a terminal row's.
     assert!(
-        h.query_by_label_contains("Pos 20.1, row 21 of 21").is_some(),
+        h.query_by_label_contains("Pos 8.1, row 9 of 9").is_some(),
         "the accessory row's Pos cell"
     );
     h.state_mut().shell_mut().shutdown();

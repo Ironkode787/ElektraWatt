@@ -13,7 +13,7 @@ use egui_kittest::Harness;
 use ew_ui::app::App;
 use ew_viewmodel::ew_api::output::TableEnd;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
+use support::{Tmp, dispatch, on_sample, screen, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -61,7 +61,7 @@ fn connections(h: &Harness<'_, App>) -> Vec<ew_viewmodel::ew_api::output::TableC
 #[test]
 fn fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     let before = connections(&h);
     let rev = h.state().shell().revision();
     // W arms the Wire tool.
@@ -78,8 +78,8 @@ fn fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
         .unwrap_or_default()
         .to_owned();
     assert!(live.starts_with("Wire: routing from -102F1:2."), "{live}");
-    // `[` to -102F2:24VDC#1, Enter ends it.
-    step_to(&mut h, "-102F2:24VDC#1", Key::OpenBracket);
+    // `[` to the strip's free -X1021:2/a, Enter ends it.
+    step_to(&mut h, "-X1021:2/a", Key::OpenBracket);
     press(&mut h, Key::Enter);
     assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1), "one revision");
     let after = connections(&h);
@@ -100,7 +100,7 @@ fn fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
     };
     let mut ends = [label(&new[0].a), label(&new[0].b)];
     ends.sort();
-    assert_eq!(ends, ["-102F1:2".to_owned(), "-102F2:24VDC#1".to_owned()]);
+    assert_eq!(ends, ["-102F1:2".to_owned(), "-X1021:2/a".to_owned()]);
     // N steps to the next unconnected CP; Escape twice ends the tool.
     press(&mut h, Key::N);
     press(&mut h, Key::Escape);
@@ -112,7 +112,7 @@ fn fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
 #[test]
 fn ctrl_enter_places_without_autoconnect() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(
         &mut h,
         "place.pick",
@@ -136,7 +136,7 @@ fn ctrl_enter_places_without_autoconnect() {
 #[test]
 fn the_junction_editor_popup_reorders_with_alt_down_and_closes_with_escape() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     let j = h.state().shell().canvas().unwrap().page().tables.junctions[0].clone();
     dispatch(&mut h, "select.set", json!({"ids": [j.id.to_string()]}));
     dispatch(&mut h, "junction.open", json!({}));
@@ -160,7 +160,7 @@ fn the_junction_editor_popup_reorders_with_alt_down_and_closes_with_escape() {
 #[test]
 fn the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     press(&mut h, Key::W);
     step_to(&mut h, "-102F1:2", Key::CloseBracket);
     press(&mut h, Key::Enter);
@@ -222,7 +222,7 @@ fn drag(h: &mut Harness<'_, App>, a: egui::Pos2, b: egui::Pos2, n: usize) {
 #[test]
 fn a_page_change_ends_the_wire_tool_and_select_takes_over() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     let w = connections(&h)[0].id;
     dispatch(&mut h, "select.set", json!({"ids": [w.to_string()]}));
     dispatch(&mut h, "tool.wire", json!({}));
@@ -249,7 +249,7 @@ fn a_page_change_ends_the_wire_tool_and_select_takes_over() {
 #[test]
 fn a_horizontal_drag_moves_a_representation_along_x_only() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     assert!(
         !support::hud_value(&h).is_empty(),
         "the HUD at rest (WP-S2.17 part 2: it replaced the tool strip)"
@@ -292,11 +292,13 @@ fn a_horizontal_drag_moves_a_representation_along_x_only() {
 #[test]
 fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
+    // The wire 102.1 from the breaker -102F1 to the strip, routed up over the drawing and along grid row 8.
+    let id = support::wire_between(&h, "-102F1:2", "-X1021:1/a");
     let w = connections(&h)
         .into_iter()
-        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 15_875_000) && c.polyline[0].0 == 127_000_000)
-        .expect("-102G1:PE to PE-1.2");
+        .find(|c| c.id.to_string() == id)
+        .expect("the wire 102.1");
     let (a, b) = (w.polyline[0], *w.polyline.last().unwrap());
     let row = 21_166_667; // grid row 8 (8 × 7 937 500 / 3, rounded)
     let route = json!([[a.0, a.1], [a.0, row], [b.0, row], [b.0, b.1]]);
@@ -335,7 +337,7 @@ fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
 #[test]
 fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     press(&mut h, Key::C);
     assert_eq!(
         h.state().shell().status_fields(false)[0],
@@ -354,7 +356,7 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
 fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     use egui_kittest::kittest::Queryable as _;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let (centre, label) = {
         let c = h.state().shell().canvas().unwrap();
         let link = c
@@ -454,13 +456,13 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The pointer over a fluid line of folio 203 shows a tooltip naming its line kind ("Working
+/// The pointer over a fluid line of folio 201 shows a tooltip naming its line kind ("Working
 /// line"); over an electrical wire of folio 102 there is none.
 #[test]
 fn hovering_a_fluid_line_names_its_kind() {
     use egui_kittest::kittest::Queryable as _;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     // The middle of the longest segment of the page's longest fluid line, away from its ends.
     let middle = |h: &Harness<'_, App>, fluid: bool| {
         let c = h.state().shell().canvas().unwrap();
@@ -516,13 +518,13 @@ fn hovering_a_fluid_line_names_its_kind() {
 }
 
 /// With the tooltip (doc 16a §7.2): the pointer over a connection point of folio 101 shows
-/// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`1X1:1/a · terminal · L`), and
+/// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`-X1011:L1/a · terminal · L1`), and
 /// none once the pointer leaves it.
 #[test]
 fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
     use egui_kittest::kittest::Queryable as _;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let page_point = |h: &Harness<'_, App>, label: &str| {
         let c = h.state().shell().canvas().unwrap();
         c.page()
@@ -534,10 +536,10 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
             .at
     };
     assert!(
-        h.query_by_label("1X1:1/a").is_none(),
+        h.query_by_label("-X1011:L1/a").is_none(),
         "no tooltip before the hover"
     );
-    for label in ["1X1:1/a", "1X1:1/b"] {
+    for label in ["-X1011:L1/a", "-X1011:L1/b"] {
         let at = screen_of_page(&h, page_point(&h, label));
         h.hover_at(at);
         settle(&mut h);
@@ -552,7 +554,7 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
             Some(label)
         );
         // The tooltip shows after egui's delay: frames until it does (bounded).
-        let tip = format!("{label} · terminal · L");
+        let tip = format!("{label} · terminal · L1");
         assert_eq!(
             h.state().shell().canvas().unwrap().hovered_cp_tip().as_deref(),
             Some(tip.as_str())
@@ -575,6 +577,6 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
         h.step();
     }
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
-    assert!(h.query_all_by_label_contains("1X1:1/b").next().is_none());
+    assert!(h.query_all_by_label_contains("-X1011:L1/b").next().is_none());
     h.state_mut().shell_mut().shutdown();
 }

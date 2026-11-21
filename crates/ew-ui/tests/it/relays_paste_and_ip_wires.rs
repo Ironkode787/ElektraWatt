@@ -297,16 +297,16 @@ fn the_fix_badge_of_a_duplicate_tag_renumbers_the_other_device() {
     d.shell_mut().shutdown();
 }
 
-/// A driver over a copy of Golden A on folio 101, the page fitted.
-fn golden_101(tmp: &Tmp) -> Driver {
-    let golden = tmp.golden("g.ew");
+/// A driver over a copy of the sample on folio 104 (its two lamps -104E1 and -104E2), the page fitted.
+fn sample_104(tmp: &Tmp) -> Driver {
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
-    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "104"}));
     let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
     d.settle();
     d
@@ -326,9 +326,9 @@ fn rep_of(d: &mut Driver, label: &str) -> (String, (i64, i64)) {
 #[test]
 fn a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
     let tmp = Tmp::new();
-    let mut d = golden_101(&tmp);
+    let mut d = sample_104(&tmp);
     let pixel = pixel_map(&mut d);
-    let (id, centre) = rep_of(&mut d, "E56:X1");
+    let (id, centre) = rep_of(&mut d, "-104E2:X1");
     let at = page_pixel(&mut d, &pixel, centre);
     let step = page_pixel(&mut d, &pixel, (centre.0 + 8_000_000, centre.1)).0 - at.0;
     d.input(&click(at));
@@ -341,7 +341,7 @@ fn a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
         mods: Modifiers::NONE,
     });
     d.settle();
-    assert_ne!(rep_of(&mut d, "E56:X1").1, centre, "the lamp moved");
+    assert_ne!(rep_of(&mut d, "-104E2:X1").1, centre, "the lamp moved");
     d.shell_mut().shutdown();
 }
 
@@ -350,9 +350,9 @@ fn a_drag_from_a_symbols_centre_right_after_selecting_it_moves_it() {
 #[test]
 fn a_paste_lands_with_its_middle_at_the_click() {
     let tmp = Tmp::new();
-    let mut d = golden_101(&tmp);
+    let mut d = sample_104(&tmp);
     let pixel = pixel_map(&mut d);
-    let (_, centre) = rep_of(&mut d, "E56:X1");
+    let (_, centre) = rep_of(&mut d, "-104E2:X1");
     let at = page_pixel(&mut d, &pixel, centre);
     d.input(&click(at));
     d.input(&key("ctrl+c"));
@@ -396,11 +396,16 @@ fn a_paste_lands_with_its_middle_at_the_click() {
 #[test]
 fn the_findings_chip_of_two_symbols_opens_messages_unfiltered() {
     let tmp = Tmp::new();
-    let mut d = golden_101(&tmp);
+    let mut d = sample_104(&tmp);
     let pixel = pixel_map(&mut d);
-    let (_, e55) = rep_of(&mut d, "E55:L");
-    let (_, e56) = rep_of(&mut d, "E56:X1");
-    let (a, b) = (page_pixel(&mut d, &pixel, e55), page_pixel(&mut d, &pixel, e56));
+    let (_, e1) = rep_of(&mut d, "-104E1:X1");
+    let (_, e2) = rep_of(&mut d, "-104E2:X1");
+    let (a, b) = (page_pixel(&mut d, &pixel, e1), page_pixel(&mut d, &pixel, e2));
+    // The two lamps lettered K, so each has a warning (EW-RDS-003): the sample's lamps have no finding.
+    let lettered_k = json!({"cmd": "fields.set", "params": {"kind": "device",
+        "targets": [{"ref": "tag:-104E1"}, {"ref": "tag:-104E2"}], "path": "tag.letter", "value": "K"}});
+    assert_eq!(d.shell_mut().dispatch("command.run", &lettered_k), Outcome::Done);
+    d.settle();
     d.input(&click(a));
     d.settle();
     d.input(&Input::Click {
