@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A drawn potential is named, typed and given its voltage in the Potentials table:
-//! on a copy of Golden A whose 19 potential definitions are deleted (every potential is
+//! on a copy of the sample whose 7 potential definitions are deleted (every potential is
 //! then known only at its connection points, as on a freshly drawn folio), the Name cell of a row defines its
 //! potential with the typed name at the row's CP in one undo step, alone or with Type and Voltage typed in the same
 //! gesture; Type or Voltage typed without a name refuses with "Name the potential first" and creates nothing. Once L,
 //! N, +24V and 0V are named and typed, the profile colours them BK, BU, DBU and WH and the wire markers of folios 101
-//! and 102 read "2.5 BK BU" and "1.5 DBU DBU WH WH". The class, colour and cross-section of such a row stay
+//! and 102 read "1.5 BK BU" and "0.75 DBU WH WH". The class, colour and cross-section of such a row stay
 //! read-only, a gesture over two such rows is refused per cell, and a defined row's Voltage sets `env.ac_dc` too.
 
 use crate::common;
@@ -127,24 +127,33 @@ fn marker_text(shell: &mut ShellModel, folio: &str, ends: &[(&str, &str)]) -> St
         })
         .collect();
     let page_id = page.tables.page.to_string();
+    let markers = |shell: &ShellModel| -> Vec<(ew_api::output::Uuid, Option<String>)> {
+        let tables = &shell.canvas().unwrap().page().tables;
+        tables
+            .items
+            .iter()
+            .filter(|i| i.kind == "wire_marker")
+            .map(|i| (i.id, i.text.clone()))
+            .collect()
+    };
+    let before = markers(shell);
     done(
         shell,
         "command.run",
         json!({"cmd": "marker.place", "params": {"page": page_id, "connections": ids, "at": [60_000_000, 40_000_000]}}),
     );
-    let tables = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
-    let texts: Vec<String> = tables
-        .items
-        .iter()
-        .filter(|i| i.kind == "wire_marker")
-        .filter_map(|i| i.text.clone())
+    // The new marker's text (the page may hold markers of its own).
+    let texts: Vec<String> = markers(shell)
+        .into_iter()
+        .filter(|m| !before.contains(m))
+        .filter_map(|(_, t)| t)
         .collect();
     assert_eq!(texts.len(), 1, "{texts:?}");
     done(shell, "edit.undo", json!({}));
     texts[0].clone()
 }
 
-/// A writable copy of Golden A with every potential definition deleted (one step), the Potentials table on.
+/// A writable copy of the sample with every potential definition deleted (one step), the Potentials table on.
 fn undefined(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
@@ -173,30 +182,31 @@ fn invalid_lines(shell: &ShellModel, reason: &str) -> usize {
     shell.describe().lines().filter(|l| l.ends_with(&tail)).count()
 }
 
-const W4_W5: [(&str, &str); 2] = [("1X1:1/a", "S51:2"), ("1X1:2/a", "S51:4")];
-const W20_TO_W23: [(&str, &str); 4] = [
-    ("junction 1", "-102F1:1"),
-    ("-102G1:+#2", "junction 1"),
-    ("junction 3", "-102F2:GND#1"),
-    ("junction 2", "-102F2:GND#2"),
+const W4_W5: [(&str, &str); 2] = [("-101F1:2", "-101G1:L"), ("-101F1:4", "-101G1:N")];
+/// The 24 V wire into -102F1 and two 0 V wires of folio 102, as its page text names their ends.
+const W20_TO_W23: [(&str, &str); 3] = [
+    ("24V", "-102F1:1"),
+    ("0V", "-X1021:5/a"),
+    ("-102Q1:A2", "-X1021:6/b"),
 ];
+
 
 /// L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
 /// DBU and WH by the project's profile once they are named and typed in the Potentials table. Naming a row is one
 /// step, a `potential.define` at the CP with the typed name; Type and Voltage of the now defined row set its
-/// definition (`fields.set`, `fields.set_many` with the current); the markers read "2.5 BK BU" and "1.5 DBU DBU WH WH".
+/// definition (`fields.set`, `fields.set_many` with the current); the markers read "1.5 BK BU" and "0.75 DBU WH WH".
 #[test]
 fn named_and_typed_drawn_potentials_colour_their_wires() {
     let tmp = Tmp::new("potdef-colours");
     let mut shell = undefined(&tmp);
-    let l = potential_at(&mut shell, "101", "S51:2");
-    let n = potential_at(&mut shell, "101", "S51:4");
+    let l = potential_at(&mut shell, "101", "-101G1:L");
+    let n = potential_at(&mut shell, "101", "-101G1:N");
     let plus = potential_at(&mut shell, "102", "-102F1:1");
-    let zero = potential_at(&mut shell, "102", "-102F2:GND#1");
+    let zero = potential_at(&mut shell, "102", "-X1021:5/a");
     let before_101 = marker_text(&mut shell, "101", &W4_W5);
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
-    assert_ne!(before_101, "2.5 BK BU", "without definitions N is not BU");
-    assert_ne!(before_102, "1.5 DBU DBU WH WH");
+    assert_ne!(before_101, "1.5 BK BU", "without definitions N is not BU (the size profile 0.75/1.5 gives mains 1.5 and control 0.75)");
+    assert_ne!(before_102, "0.75 DBU WH WH");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     for name in [&l, &n, &plus, &zero] {
         assert_eq!(
@@ -207,8 +217,9 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     }
 
     for (shown, typed, ptype, voltage) in [
-        (&l, "L", Some("L"), "230 V AC"),
-        (&n, "N", Some("N"), "230 V AC"),
+        (&l, "L", None, "230 V AC"),
+        // The nets of L and N carry their types L and N already.
+        (&n, "N", None, "230 V AC"),
         (&plus, "24V", None, "24 V DC"),
         (&zero, "0V", None, "24 V DC"),
     ] {
@@ -238,8 +249,8 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     for (name, colour) in [("L", "BK"), ("N", "BU"), ("24V", "DBU"), ("0V", "WH")] {
         assert_eq!(row(&shell, name, "Colour").2, colour, "{name}");
     }
-    assert_eq!(marker_text(&mut shell, "101", &W4_W5), "2.5 BK BU");
-    assert_eq!(marker_text(&mut shell, "102", &W20_TO_W23), "1.5 DBU DBU WH WH");
+    assert_eq!(marker_text(&mut shell, "101", &W4_W5), "1.5 BK BU");
+    assert_eq!(marker_text(&mut shell, "102", &W20_TO_W23), "0.75 DBU WH WH");
     shell.shutdown();
 }
 
@@ -249,7 +260,7 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
 fn name_and_type_in_one_gesture_are_one_potential_define() {
     let tmp = Tmp::new("potdef-paste");
     let mut shell = undefined(&tmp);
-    let l = potential_at(&mut shell, "101", "S51:2");
+    let l = potential_at(&mut shell, "101", "-101G1:L");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
 
     let steps = shell.recorded_commands().len();
@@ -271,7 +282,7 @@ fn name_and_type_in_one_gesture_are_one_potential_define() {
 fn type_or_voltage_without_a_name_refuses() {
     let tmp = Tmp::new("potdef-unnamed");
     let mut shell = undefined(&tmp);
-    let l = potential_at(&mut shell, "101", "S51:2");
+    let l = potential_at(&mut shell, "101", "-101G1:L");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let (key, kind, _) = row(&shell, &l, "Type");
     assert_eq!(kind, "cp");
@@ -298,10 +309,11 @@ fn type_or_voltage_without_a_name_refuses() {
 
     // Named, the row is defined; Type then sets its definition as built.
     type_cell(&mut shell, &l, "Potential", "L");
-    type_cell(&mut shell, "L", "Type", "L");
+    type_cell(&mut shell, "L", "Type", "L1");
     let last = shell.recorded_commands().last().unwrap();
     assert_eq!(last.cmd, "fields.set", "{}", last.params);
-    assert_eq!(row(&shell, "L", "Type").2, "L");
+    assert_eq!(row(&shell, "L", "Type").2, "L1");
+
     shell.shutdown();
 }
 
@@ -311,8 +323,8 @@ fn type_or_voltage_without_a_name_refuses() {
 fn the_cells_that_stay_read_only_and_one_row_per_gesture() {
     let tmp = Tmp::new("potdef-rules");
     let mut shell = undefined(&tmp);
-    let l = potential_at(&mut shell, "101", "S51:2");
-    let n = potential_at(&mut shell, "101", "S51:4");
+    let l = potential_at(&mut shell, "101", "-101G1:L");
+    let n = potential_at(&mut shell, "101", "-101G1:N");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
 
     // The class, colour and cross-section of an undefined potential stay read-only.
@@ -532,7 +544,7 @@ fn node(shell: &ShellModel, name: &str) -> ew_viewmodel::navigators::NavNode {
 fn define_potential_from_a_potentials_row() {
     let tmp = Tmp::new("potdef-row");
     let mut shell = undefined(&tmp);
-    let l = potential_at(&mut shell, "101", "S51:2");
+    let l = potential_at(&mut shell, "101", "-101G1:L");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let row = node(&shell, &l);
     let (function, idx) = row.define_at.expect("a point to define it at");
@@ -573,7 +585,7 @@ fn define_potential_from_a_potentials_row() {
     );
     done(&mut shell, "view.language", json!({"value": "en"}));
     // The pin goes with its form: cancelled, a Define potential… from the menu asks for the selection again.
-    let n = potential_at(&mut shell, "101", "S51:4");
+    let n = potential_at(&mut shell, "101", "-101G1:N");
     let n_row = node(&shell, &n).key;
     done(&mut shell, "potential.draw_row", json!({"row": n_row}));
     done(&mut shell, "ui.dismiss", json!({}));

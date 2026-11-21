@@ -124,19 +124,19 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     coil.id
 }
 
-/// FT-740 (FR-PLC-020's acceptance on Golden A): channel 1 of -201U3 (Q0.1), unbound, dropped on a port of -201U3-Q1's
-/// valve symbol on folio 203 binds the valve's internal coil 14, which is drawn without a CP: one command, and the
-/// toast names the coil.
+/// FT-740 (FR-PLC-020's acceptance): the output Q0.1 of the card -104A1-A2, unbound, dropped on a port of the
+/// spare valve -201K1-Q3's symbol on folio 201 binds the valve's internal coil 14, which is drawn without a CP: one
+/// command, and the toast names the coil.
 #[test]
-fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
+fn a_channel_dropped_on_a_valve_binds_its_internal_coil() {
     let tmp = Tmp::new("plcnav-ft740");
-    let mut s = tmp.sample_in(Mode::Headless, true, "203");
+    let mut s = tmp.sample_in(Mode::Headless, true, "201");
     done(&mut s, "view.zoom_actual", json!({}));
     done(&mut s, "navigator.show", json!({"kind": "plc"}));
     let (ch, _) = channel_rows(&s)
         .into_iter()
         .find(|(_, label)| label == "Q0.1")
-        .expect("channel 1 of -201U3");
+        .expect("the output Q0.1 of the card -104A1-A2");
     done(
         &mut s,
         "command.run",
@@ -146,7 +146,7 @@ fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
     let port = t
         .cps
         .iter()
-        .filter(|c| c.label.starts_with("-201U3-Q1:"))
+        .filter(|c| c.label.starts_with("-201K1-Q3:"))
         .min_by_key(|c| c.idx)
         .expect("a port of -201U3-Q1 on folio 203")
         .clone();
@@ -159,7 +159,7 @@ fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one command");
     let toast = s.toast().expect("the bind's toast").text.clone();
-    assert!(toast.contains("-201U3-Q1:14"), "{toast}");
+    assert!(toast.contains("-201K1-Q3:14"), "{toast}");
 }
 
 /// A channel dropped on a stand-alone coil (not on the card) is refused before
@@ -480,21 +480,20 @@ fn a_device_wired_to_two_card_pins_asks_which() {
     );
 }
 
-/// Attachable: a valve not wired to a valve terminal (Golden A's sub-base part 533361, which has a
-/// solenoid-position map) is attached to it at its first free position and bound where it was dropped: one command,
+/// Attachable: a valve not wired to a valve terminal (the sample's valve terminal module part EW-GEN-VTM-1, which
+/// has a solenoid-position map) is attached to it at its first free position and bound where it was dropped: one command,
 /// one undo step (FT-774), both named by the toast, which offers Undo.
 #[test]
 fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let tmp = Tmp::new("plcnav-ft753-attach");
     let mut s = new_project(&tmp);
-    let part: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(format!(
-            "{}/lib/parts/496e2ad0-fbe2-5733-bb7c-b950ab527a14.json",
-            common::SAMPLE
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+    let part: serde_json::Value = std::fs::read_dir(std::path::Path::new(common::SAMPLE).join("lib/parts"))
+        .unwrap()
+        .map(|e| serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(e.unwrap().path()).unwrap()))
+        .map(Result::unwrap)
+        .find(|p| p["meta"]["key"] == "EW-GEN-VTM-1")
+        .expect("the sample's copy of EW-GEN-VTM-1");
+    let part_id = part["id"].as_str().unwrap().to_owned();
     done(
         &mut s,
         "command.run",
@@ -510,7 +509,8 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
         &mut s,
         "command.run",
         json!({"cmd": "plc.set_module_part", "params": {"module": module, "parts": [
-            {"part": {"copy": "496e2ad0-fbe2-5733-bb7c-b950ab527a14"}, "qty": "1"}
+            {"part": {"copy": part_id}, "qty": "1"}
+
         ]}}),
     );
     done(&mut s, "tool.place", json!({}));
@@ -721,16 +721,22 @@ fn transcript_and_counts() {
 #[test]
 fn the_address_profile_is_chosen_in_properties() {
     use ew_viewmodel::properties::{FieldType, RowValue, find_row};
-    // Golden A's configuration project PLC1.
-    const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";
     let tmp = Tmp::new("plcnav-ft1448");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "navigator.show", json!({"kind": "plc"}));
+    // The sample's configuration project (its station's).
+    let config = s
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.key.starts_with("plc_config_project:")))
+        .map(|n| n.key.clone())
+        .expect("a configuration project");
     done(
         &mut s,
         "navigator.select",
-        json!({"kind": "plc", "keys": [format!("plc_config_project:{PLC1}")]}),
+        json!({"kind": "plc", "keys": [config]}),
     );
+
     let profile = |s: &ShellModel| {
         let sheet = s.properties().sheet().expect("a sheet");
         let (_, row) = find_row(sheet, "plc_config_project/profile").expect("the profile row");

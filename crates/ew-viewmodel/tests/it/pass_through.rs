@@ -5,7 +5,7 @@
 //! representation, where the run enters and leaves it, is drawn as two connections in one transaction (one undo
 //! step), so a terminal drawn into a vertical circuit is in the circuit; a run over one free CP (a T) stays one
 //! connection. The wires are drawn by the window's own path (pointer presses on the canvas, the bends fixed with Alt
-//! on grid points, as a drafter does), on a writable copy of Golden A's folio 103 in an empty area. A double
+//! on grid points, as a drafter does), on a writable copy of the sample's folio 103 in an empty area. A double
 //! click on the pin a wire just ended on starts the next wire there.
 
 use crate::common;
@@ -419,10 +419,10 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
 
 // A black box's caption is an obstacle to the router, the through route included. Beside the line the through route is still taken; standing on the line it is not.
 
-/// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
+/// Draws a black box of the power supply EW-GEN-PSU-1 with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
 /// rectangles `[x0, y0, x1, y1]` of its texts left of its outline (up to its edge): its caption.
 fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i64; 4]> {
-    done(s, "tool.black_box", json!({"part": "MICO 4.10", "template": 0}));
+    done(s, "tool.black_box", json!({"part": "EW-GEN-PSU-1", "template": 0}));
     for k in [a, b] {
         let p = grid_point(s, k);
         let q = s.canvas().unwrap().page().snapper.page_to_sheet(p);
@@ -469,7 +469,8 @@ fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
     let x = switch.at.0;
     let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
     // The case: the caption stands level with the run, within two grid steps of it, not on it.
-    assert_eq!(caption.len(), 3, "tag, part number, manufacturer");
+    assert_eq!(caption.len(), 2, "tag and part number (the generic part names no manufacturer)");
+
     assert!(
         caption
             .iter()
@@ -537,32 +538,27 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
-// An interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
-// folio 101 feeds before they were mirrored, so the test mirrors one back), still turns on the
-// area's edge: the frame's inward step gives way on that side.
+// An interruption point one step inside the drawing area, leaving towards the sheet's edge (the source point 1L1 of
+// the sample's folio 101, which leaves right, moved to the area's right edge), still turns on the area's edge: the
+// frame's inward step gives way on that side.
 #[test]
 fn an_interruption_point_at_the_area_edge_still_routes() {
     let tmp = Tmp::new("c39-edge");
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "view.zoom_actual", json!({}));
-    let feed = cp(&s, "J-E-206-L").rep.to_string();
-    done(
-        &mut s,
-        "command.run",
-        json!({"cmd": "rep.transform", "params": {"reps": [feed.clone()], "mirror": true}}),
-    );
+    let feed = cp(&s, "1L1").rep.to_string();
     let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
     let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
-    // And moved so that its connection point lies one step inside the area's left edge.
-    let steps = (area[0] + g - cp(&s, "J-E-206-L").at.0) / g;
+    // Moved so that its connection point lies one step inside the area's right edge.
+    let steps = (area[2] - g - cp(&s, "1L1").at.0) / g;
     done(
         &mut s,
         "command.run",
         json!({"cmd": "rep.move", "params": {"reps": [feed], "steps": [steps, 0]}}),
     );
-    let (from, to) = (cp(&s, "J-E-206-L"), cp(&s, "1X1:1/b"));
-    // The case: one step inside the area's left edge, leaving left.
-    assert_eq!(from.at.0, area[0] + g);
+    let (from, to) = (cp(&s, "1L1"), cp(&s, "-101F1:1"));
+    // The case: one step inside the area's right edge, leaving right.
+    assert_eq!(from.at.0, area[2] - g);
     let before = tables(&s);
     done(&mut s, "tool.wire", json!({}));
     click(&mut s, from.at, false);
@@ -574,7 +570,7 @@ fn an_interruption_point_at_the_area_edge_still_routes() {
     let new = new_connections(&before, &tables(&s));
     assert_eq!(new.len(), 1);
     let line = &new[0].polyline;
-    assert!(line.iter().all(|p| p.0 >= area[0]), "{line:?}");
+    assert!(line.iter().all(|p| p.0 <= area[2]), "{line:?}");
 }
 
 // The frame outside the drawing area (the header bands, the title block and its fields) is an obstacle to

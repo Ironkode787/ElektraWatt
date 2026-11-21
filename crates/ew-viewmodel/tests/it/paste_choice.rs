@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the text interface (FT-396): two copies of Golden A, P1 holding
-//! FX-MCB-1PN 1.0.0 on F55 and P2 holding 1.0.1 (a description change, a patch), each in its own shell over one user
+//! Through the text interface (FT-396): two copies of the sample, P1 holding
+//! FX-MCB-1PN 1.0.0 on -101F1 and P2 holding 1.0.1 (a description change, a patch), each in its own shell over one user
 //! library "Fixture parts". The library is written by the parts import into a library (`catalog::import_into_library`),
-//! the second version by the same import bumped, so the viewmodel's tests name no schema type. F55 copied in P1 and
+//! the second version by the same import bumped, so the viewmodel's tests name no schema type. -101F1 copied in P1 and
 //! pasted in P2 opens the paste choice card (`reason-paste-versions`): Use the project's copy is one `edit.paste` with
 //! `adapt` and one undo step, Update the project's copy is disabled. Pasted the other way, Update the project's copy
 //! opens `library.update`'s card and its Apply arms the paste again: two commands, two undo steps.
@@ -83,7 +83,7 @@ fn publish(t: &LibraryTiers, root: &Path, description: &str, bump: bool) {
     .unwrap();
 }
 
-/// A headless shell with the tiers `t` and a writable copy of Golden A named `copy`, on folio 101.
+/// A headless shell with the tiers `t` and a writable copy of the sample named `copy`, on folio 101.
 fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers) -> ShellModel {
     let dir = tmp.0.join(copy);
     common::copy_dir(Path::new(common::SAMPLE), &dir);
@@ -99,18 +99,18 @@ fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers) -> ShellModel {
     shell
 }
 
-/// A shell whose F55 uses FX-MCB-1PN as the library holds it now (its first use replaced through the part dialog).
+/// A shell whose -101F1 uses FX-MCB-1PN as the library holds it now (its first use replaced through the part dialog).
 fn holding(tmp: &Tmp, copy: &str, t: &LibraryTiers) -> ShellModel {
     let mut s = shell_with(tmp, copy, t);
-    done(&mut s, "select.set", json!({"refs": ["tag:F55"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
     done(&mut s, "part.choose", json!({"use": 0}));
     done(&mut s, "part.pick", json!({"part": "FX-MCB-1PN (Fixture)"}));
     s
 }
 
-/// F55's representation on the page shown, selected; its page position.
+/// -101F1's representation on the page shown, selected; its page position.
 fn select_f55(s: &mut ShellModel) -> (i64, i64) {
-    done(s, "select.set", json!({"refs": ["tag:F55"]}));
+    done(s, "select.set", json!({"refs": ["tag:-101F1"]}));
     let dev = s.selection().items[0].0;
     let rep = s
         .canvas()
@@ -120,13 +120,13 @@ fn select_f55(s: &mut ShellModel) -> (i64, i64) {
         .reps
         .iter()
         .find(|r| r.device == Some(dev))
-        .expect("F55 is drawn on 101")
+        .expect("-101F1 is drawn on 101")
         .clone();
     done(s, "select.set", json!({"ids": [rep.id.to_string()]}));
     rep.pos
 }
 
-/// F55 copied in `from`: the clipboard text and F55's position.
+/// -101F1 copied in `from`: the clipboard text and -101F1's position.
 fn copy_f55(from: &mut ShellModel) -> (String, (i64, i64)) {
     let pos = select_f55(from);
     done(from, "edit.copy", json!({}));
@@ -158,7 +158,7 @@ fn commands(s: &ShellModel) -> Vec<String> {
     s.recorded_commands().iter().map(|c| c.cmd.clone()).collect()
 }
 
-/// The held FX-MCB-1PN as a copy of F55 carries it (the `$lib` line of its part): its copy ID and version. Copies F55
+/// The held FX-MCB-1PN as a copy of -101F1 carries it (the `$lib` line of its part): its copy ID and version. Copies -101F1
 /// (the clipboard and the selection change).
 fn held_mcb(s: &mut ShellModel) -> (String, String) {
     let (text, _) = copy_f55(s);
@@ -172,7 +172,7 @@ fn held_mcb(s: &mut ShellModel) -> (String, String) {
                 d["version"].as_str().unwrap().to_owned(),
             )
         })
-        .expect("F55's fragment carries FX-MCB-1PN")
+        .expect("-101F1's fragment carries FX-MCB-1PN")
 }
 
 fn held_version(s: &mut ShellModel) -> String {

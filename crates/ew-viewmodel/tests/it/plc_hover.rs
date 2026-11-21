@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! In the view model: `ui.describe` reports the printed PLC address of the connection point under
-//! the pointer. On a writable copy of Golden A a spare channel of a valve terminal is bound to a drawn port of one of
-//! its valves on folio 203; hovering that port prints `canvas hover cp "<label>" address "<address>"`, the address the
-//! page tables give the CP. No such line is printed before the binding.
+//! the pointer. On a writable copy of the sample a spare output channel is bound to a drawn port of one of the valve
+//! terminal's valves on folio 201; hovering that port prints `canvas hover cp "<label>" address "<address>"`, the
+//! address the page tables give the CP. No such line is printed before the binding.
 
 use crate::common;
 
@@ -54,23 +54,23 @@ fn table_cp(s: &ShellModel, id: &str) -> TableCp {
 #[test]
 fn describe_reports_the_plc_address_of_the_hovered_cp() {
     let tmp = Tmp::new("plc-hover");
-    let mut s = tmp.sample_in(Mode::Headless, true, "203");
+    let mut s = tmp.sample_in(Mode::Headless, true, "201");
     done(&mut s, "view.zoom_actual", json!({}));
-    // A drawn port of the valve -201U3-Q1 (its coil is a function of its own) and the spare channel 0 of
-    // its module -201U3 (the row key of the golden tables names it).
+    // A drawn port of the spare valve -201K1-Q3 (its coil is a function of its own) and a spare output channel.
     let records = channels(&tmp);
     let cps: Vec<TableCp> = s.canvas().unwrap().page().tables.cps.clone();
     let channel = records
         .iter()
-        .find(|r| r["source_ref"]["key"] == "channels|-201U3:0" && r.get("binding").is_none())
+        .find(|r| r["kind"] == "do" && r.get("binding").is_none())
         .and_then(|r| r["id"].as_str())
-        .expect("the spare channel 0 of -201U3")
+        .expect("a spare output channel")
         .to_owned();
     let target = cps
         .iter()
-        .find(|c| c.label.starts_with("-201U3-Q1:"))
+        .find(|c| c.label.starts_with("-201K1-Q3:"))
         .cloned()
-        .expect("a valve port and a spare channel on 203");
+        .expect("a valve port on 201");
+
     let p = s.canvas().unwrap().page().snapper.page_to_sheet(target.at);
     done(&mut s, "canvas.pointer", at(p, json!({})));
     assert_eq!(hover_line(&s), None, "no address before the binding");
