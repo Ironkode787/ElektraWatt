@@ -4,7 +4,8 @@
 //! File ▸ Import… of a drawing in the window (WP-S3.19, doc 14 §13): the picker's answer, a DXF, opens the dialog that
 //! says what the file is and that its unit is assumed; Add as page makes a new graphic page and shows it; a second
 //! import, Place under page, puts the drawing under the shown page as an underlay; each outcome is a toast; the
-//! accessible-name walker after the dialog.
+//! accessible-name walker after the dialog. Not here: the import's job, its Cancel and the new page's folio
+//! (`ew-viewmodel`'s `drawing_import.rs`).
 
 use crate::support;
 
@@ -18,86 +19,6 @@ use support::{Scripted, Tmp, finish_jobs, harness_with, settle, wait_for_page};
 /// A drawing without a unit: one rectangle.
 const PLAN: &str = "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\n0\n90\n4\n70\n1\n10\n20\n20\n20\n10\n120\n20\n20\n\
 10\n120\n20\n70\n10\n20\n20\n70\n0\nENDSEC\n0\nEOF\n";
-
-/// FT-1753: a drawing import runs as a job of the Jobs pane, off the window's thread: held at its start, it is listed
-/// as running, and its Cancel ends it with nothing imported and the cancel said in words. The test waits until the job
-/// stands at its gate before it cancels and releases (a release before the job arrived left it held for good on a
-/// loaded machine), then for the job's own end: no clock is in it.
-#[test]
-fn a_drawing_import_runs_as_a_job_with_cancel() {
-    let tmp = Tmp::new();
-    let dxf = tmp.0.join("plan.dxf");
-    std::fs::write(&dxf, PLAN).unwrap();
-    let mut h = support::on_sample(&tmp, "101");
-    let pages = h.state().shell().page_rows().len();
-    let gate = ew_viewmodel::ew_api::ew_jobs::Gate::new();
-    gate.hold("drawing");
-    h.state_mut()
-        .shell_mut()
-        .set_job_gate_for_tests(Some(gate.clone()));
-    support::dispatch(
-        &mut h,
-        "file.import_drawing",
-        json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
-    );
-    settle(&mut h);
-    let running: Vec<String> = h
-        .state()
-        .shell()
-        .jobs()
-        .entries()
-        .filter(|e| e.is_running())
-        .map(|e| e.kind.word().to_owned())
-        .collect();
-    assert_eq!(running, ["import"], "the window answers while the job runs");
-    gate.wait_reached("drawing");
-    support::dispatch(&mut h, "jobs.cancel", json!({}));
-    gate.release();
-    h.state_mut().shell_mut().wait_jobs();
-    settle(&mut h);
-    assert_eq!(h.state().shell().page_rows().len(), pages, "nothing imported");
-    let toast = h
-        .state()
-        .shell()
-        .toast()
-        .map(|t| t.text.clone())
-        .unwrap_or_default();
-    assert_eq!(
-        toast,
-        "The import of plan.dxf was cancelled; nothing was imported."
-    );
-}
-
-/// On the sample, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
-/// no page has, after every page of its section.
-#[test]
-fn a_drawing_page_takes_a_folio_no_page_has() {
-    let tmp = Tmp::new();
-    let dxf = tmp.0.join("plan.dxf");
-    std::fs::write(&dxf, PLAN).unwrap();
-    let mut h = support::on_sample(&tmp, "101");
-    let before: Vec<String> = h
-        .state()
-        .shell()
-        .page_rows()
-        .iter()
-        .map(|r| r.folio.clone())
-        .collect();
-    support::dispatch(
-        &mut h,
-        "file.import_drawing",
-        json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
-    );
-    finish_jobs(&mut h);
-    let shown = h.state().shell().current_folio().map(str::to_owned).unwrap();
-    assert!(!before.contains(&shown), "{shown} is a new folio: {before:?}");
-    let rows = h.state().shell().page_rows();
-    assert_eq!(
-        rows.iter().filter(|r| r.folio == shown).count(),
-        1,
-        "one page {shown}"
-    );
-}
 
 #[test]
 fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
