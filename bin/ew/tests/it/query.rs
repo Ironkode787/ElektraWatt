@@ -148,7 +148,7 @@ fn failures_exit_2_with_their_message() {
         (
             args([&"query", &p, &"channel_addresses", &"tag:-101F1"]),
             "error: `tag:-101F1` names device -101F1, which is not a PLC module; `channel_addresses` takes a PLC \
-             module (`tag:-201U5`)\n",
+             module (`tag:-104A1-A2`)\n",
         ),
         (
             args([&"query", &p, &"page_order", &"x"]),

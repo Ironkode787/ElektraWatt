@@ -74,8 +74,7 @@ impl TablesImporter {
             && l.namespace != ns
         {
             return Err(ImportError::Unsupported {
-                message: "the CSV bootstrap imports into the fixed lineage Fixed(\"golden\") only"
-                    .into(),
+                message: "the CSV bootstrap imports into the fixed lineage Fixed(\"golden\") only".into(),
             });
         }
         if inputs.len() as u64 > u64::from(ctx.limits.max_input_files) {

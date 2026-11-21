@@ -301,20 +301,20 @@ fn refusals_name_the_key_and_what_the_query_takes() {
     assert_eq!(
         err("channel_addresses", "tag:-101F1"),
         "`tag:-101F1` names device -101F1, which is not a PLC module; `channel_addresses` takes a PLC module \
-         (`tag:-201U5`)"
+         (`tag:-104A1-A2`)"
     );
     // The channel form is a command-log reference, not this key: a terminal is a device of another kind.
     assert_eq!(
         err("channel_addresses", "-X1031:U"),
         "`-X1031:U` names device -X1031:U, which is not a PLC module; `channel_addresses` takes a PLC module \
-         (`tag:-201U5`)"
+         (`tag:-104A1-A2`)"
     );
     assert_eq!(err("page_order", "x"), "`page_order` takes no key: give `-`");
     assert_eq!(err("bom_rows", "tag:-101F1"), "`bom_rows` takes no key: give `-`");
     assert_eq!(
         err("potential_name", "tag:-101F1"),
         "`tag:-101F1` names device -101F1, which is not a terminal; `potential_name` takes a wire or a junction \
-         (`id:<uuid>`) or a terminal (`tag:-X1031:1`)"
+         (`id:<uuid>`) or a terminal (`tag:-X1011:L1`)"
     );
     assert_eq!(
         err("wire_props_of", "tag:-101F1"),
@@ -335,7 +335,7 @@ fn refusals_name_the_key_and_what_the_query_takes() {
     assert_eq!(
         err("plc_address_text", "folio:101"),
         "`folio:101` names page 101 Supply 400 V AC; `plc_address_text` takes a function (`id:<uuid>`) \
-         or a device (`tag:-201U3-Q1`, its main function)"
+         or a device (`tag:-201K1-Q2`, its main function)"
     );
     assert_eq!(
         err("cell_of", "-X99"),

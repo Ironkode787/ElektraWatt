@@ -35,8 +35,8 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::wizard_data::{
-    COLOUR_PROFILE_SAMPLE, STANDARD_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES,
-    SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
+    COLOUR_PROFILE_SAMPLE, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS,
+    SIZE_PROFILE_SAMPLE, STANDARD_REPORT_LAYOUT, TITLE_BLOCK,
 };
 
 /// The field of the check level, the one field the draft's script does not write (Create writes it in the window).
