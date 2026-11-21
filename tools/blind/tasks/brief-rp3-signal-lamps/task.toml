@@ -1,5 +1,5 @@
 # A persona brief of the third candidate's round (WP-S2.19 section 11.3): RP3 visual by `eplan-maintainer` on a copy
-# of Golden A at 1920 x 1080. `check-brief brief-rp3-golden-lamps` proves it runnable by replaying `solution.uiscript`
+# of the sample at 1920 x 1080. `check-brief brief-rp3-signal-lamps` proves it runnable by replaying `solution.uiscript`
 # and deciding `acceptance.toml` on its exports.
 kind = "brief"
 grade = 1
@@ -17,4 +17,4 @@ requires = [
 areas = ["move", "symbol picker", "wiring", "routing", "check", "save and export"]
 task_id = "RP3"
 rounds = ["R2"]
-start = "golden-a"
+start = "sample"

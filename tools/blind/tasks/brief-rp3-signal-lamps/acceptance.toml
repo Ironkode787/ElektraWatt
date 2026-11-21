@@ -1,32 +1,32 @@
-# The acceptance list of RP3 (WP-S2.19 section 11.3), on a copy of Golden A, whose own check report has errors of
-# other packages (the panel layout's, for one), so no item asks for a clean report. Correctness is A1 and A2 (`ew sql`);
-# the measures are A4 and A7 here and `ew layout <project> --page 101` in the round's report: its hard rules must be 0,
-# and its crossings and bends are written beside the keep score and Golden A's own `ew layout` line. A
-# finding of the run is written as a row of the round's report: the run, the item or the measure, what the tester did,
-# what the program showed, a frame.
+# The acceptance list of RP3 (WP-S2.19 section 11.3), on a copy of the sample, whose check report is clean, so no item
+# asks for a clean report that the persona's change alone could spoil. Correctness is A1 and A2 (`ew sql`); the
+# measures are A4 and A7 here and `ew layout <project> --page 102` in the round's report: its hard rules must be 0, and
+# its crossings and bends are written beside the keep score and the sample's own `ew layout` line. A finding of the
+# run is written as a row of the round's report: the run, the item or the measure, what the tester did, what the
+# program showed, a frame.
 
 [[item]]
 id = "A1"
 kind = "hard"
-what = "E56 stands two columns to the right of where it was, in 101-E16."
+what = "-102E1 stands two columns to the right of where it was, in 102-E7."
 how = "pages"
-query = "SELECT tag FROM api_v1_device WHERE tag = 'E56' AND main_folio = '101' AND main_cell = 'E16'"
+query = "SELECT tag FROM api_v1_device WHERE tag = '-102E1' AND main_folio = '102' AND main_cell = 'E7'"
 expect = "== 1"
 
 [[item]]
 id = "A2"
 kind = "hard"
-what = "A second lamp is wired in parallel with E56: a lamp other than E56 on both of E56's potentials."
+what = "A second lamp is wired in parallel with -102E1: a lamp other than -102E1 on both of its potentials."
 how = "connections"
-query = "SELECT f.device_tag FROM api_v1_function f WHERE f.fndef = 'ew.fn.lamp' AND f.device_tag <> 'E56' AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = 'N-55S' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = 'N-55S') AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = 'L-55' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = 'L-55')"
+query = "SELECT f.device_tag FROM api_v1_function f WHERE f.fndef = 'ew.fn.lamp' AND f.device_tag <> '-102E1' AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = '24V/102Q1:14' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = '24V/102Q1:14') AND f.device_tag IN (SELECT from_tag FROM api_v1_wire WHERE potential_name = '0V' UNION SELECT to_tag FROM api_v1_wire WHERE potential_name = '0V')"
 expect = ">= 1"
 
 [[item]]
 id = "A3"
 kind = "hard"
-what = "The tester let the program route the lamps' wires again (Reroute)."
+what = "The tester let the program route the lamps' wires again (Route)."
 how = "outcomes"
-actions = ["route.reroute"]
+actions = ["layout.route"]
 
 [[item]]
 id = "A4"
