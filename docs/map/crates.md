@@ -1292,8 +1292,8 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |
 | `src/blind/round.rs` |  | The usability rounds' additions to a run: hints on request and the proxy questionnaire. |
 | `src/blind/run.rs` |  | Run folders, the run's files and the formats `ew.blindrun/1` and `ew.blindturns/1`. |
-| `src/blind/score.rs` | large | Scoring (D12): the hard and soft checks of a gate run against the oracle of its task. |
-| `src/blind/score/tests.rs` |  | Tests of the scoring: fixtures of a run folder, canned outputs of the copied `ew`, each status and each outcome. |
+| `src/blind/score.rs` |  | Scoring (D12): what `stop` writes into a run's `score.json`, and the task files the harness reads. |
+| `src/blind/score/tests.rs` |  | Tests of the scoring: the protocol of a run without a brief. |
 | `src/blind/selftest.rs` |  | `selftest`: a scripted fake agent runs through the real keeper and the copied binaries. |
 | `src/blind/session.rs` |  | The product as a session the harness feeds: one step in, one transcript line out. |
 | `src/blind/start.rs` | large | `start`: a run folder outside the repository with the copies the run needs, the composed prompt, the prelude and, unless `--stateless`, a keeper. |

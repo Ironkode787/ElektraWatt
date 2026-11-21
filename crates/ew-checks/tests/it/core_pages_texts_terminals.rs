@@ -156,7 +156,11 @@ fn core026_reports_a_cable_and_a_station_their_overviews_leave_out() {
     }
     fx.form(0x8401);
     for (n, kind, manual) in [
-        (0x8400, "cable_overview_diagrams", json!({"exclude": [us(0x8300)]})),
+        (
+            0x8400,
+            "cable_overview_diagrams",
+            json!({"exclude": [us(0x8300)]}),
+        ),
         (0x8402, "plc_overview", json!({"include": [us(0x8610)]})),
     ] {
         fx.push(json!({

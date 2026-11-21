@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{
-    DraftPage, End, FixedText, LabelKind, MarkId, Owner, Places, Pt, Reason, Rect, Scope, Side, WireEnd, WireId, geom,
-    jobs, measure, route, route_wire,
+    DraftPage, End, FixedText, LabelKind, MarkId, Owner, Places, Pt, Reason, Rect, Scope, Side, WireEnd,
+    WireId, geom, jobs, measure, route, route_wire,
 };
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
@@ -150,7 +150,12 @@ fn a_page_wide_route_takes_the_unrouted_the_slanted_the_off_grid_and_the_compute
         b.device(&format!("L{k}"), p(6 + 10 * k, 16));
     }
     let wire = |b: &mut Page, k: usize, via: &[Pt]| {
-        b.run(&format!("w{k}"), b.pin(&format!("K{k}"), "2"), b.pin(&format!("L{k}"), "1"), via)
+        b.run(
+            &format!("w{k}"),
+            b.pin(&format!("K{k}"), "2"),
+            b.pin(&format!("L{k}"), "1"),
+            via,
+        )
     };
     let fine = wire(&mut b, 0, &[]);
     let slanted = wire(&mut b, 1, &[p(16, 10), p(17, 12), p(16, 14)]);
@@ -538,7 +543,12 @@ fn a_wire_that_runs_as_well_as_the_search_would_draw_it_is_not_redrawn() {
     b.run("feed", b.pin("in", "1"), j1, &[]);
     b.run("drop", j2, b.pin("K", "1"), &[]);
     let kept = b.run("kept", j1, j2, &[p(6, 10)]);
-    b.page.wires.iter_mut().find(|w| w.id == kept).expect("kept").computed = true;
+    b.page
+        .wires
+        .iter_mut()
+        .find(|w| w.id == kept)
+        .expect("kept")
+        .computed = true;
     b.device("K1", p(24, 2));
     b.device("K2", p(24, 12));
     let free = b.wire("free", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
@@ -587,10 +597,7 @@ fn the_direct_route_through_a_terminal_left_out_is_clear() {
         owner: t.0,
         rect: Rect::new(Pt::new(s(10) - 4, s(10) - 4), Pt::new(s(10) + 4, s(10) + 4)),
     });
-    let ends = (
-        WireEnd::Pin(b.pin_id("K", "2")),
-        WireEnd::Pin(b.pin_id("L", "1")),
-    );
+    let ends = (WireEnd::Pin(b.pin_id("K", "2")), WireEnd::Pin(b.pin_id("L", "1")));
     let direct = [p(10, 6), p(10, 14)];
     assert!(ew_drafting::wire_clear(&b.page, ends, None, &[t], &direct));
     assert!(!ew_drafting::wire_clear(&b.page, ends, None, &[], &direct));
@@ -654,7 +661,11 @@ fn a_job_goes_round_a_text_that_cannot_move() {
     let done = routed(&b.page);
     let q = measure(&done);
     assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
-    assert!(q.findings.across_texts.is_empty(), "{:?}", q.findings.across_texts);
+    assert!(
+        q.findings.across_texts.is_empty(),
+        "{:?}",
+        q.findings.across_texts
+    );
     let r = &done.wires.iter().find(|w| w.id == job).expect("the job").route;
     assert_eq!(corners(r), 3, "{r:?}");
 }

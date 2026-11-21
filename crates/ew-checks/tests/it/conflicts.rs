@@ -136,7 +136,10 @@ fn ew_core_011_names_a_record_theirs_deleted() {
         .filter(|f| f.rule == "EW-CORE-011")
         .map(|f| f.message)
         .collect();
-    assert_eq!(found, ["device -?K1: theirs deleted it and ours changed function_text"]);
+    assert_eq!(
+        found,
+        ["device -?K1: theirs deleted it and ours changed function_text"]
+    );
 }
 
 /// EW-CORE-013 (doc 15 §6.4): after a merge, the model holding a conflict record, two devices that share a tag are one
@@ -161,14 +164,24 @@ fn ew_core_013_groups_a_tag_two_devices_share_after_a_merge() {
     assert_eq!(f[0].discriminator, "EW-RDS-004");
     assert_eq!(f[0].targets.len(), 2);
     // No tag is frozen: the oldest keeps it, the one other must change, and the fix renumbers it.
-    let arg = |name: &str| f[0].args.iter().find(|(n, _)| *n == name).map(|(_, v)| v.as_str());
+    let arg = |name: &str| {
+        f[0].args
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, v)| v.as_str())
+    };
     assert_eq!((arg("keeper"), arg("others")), (Some("oldest"), Some("one")));
     assert!(f[0].fix.is_some(), "{f:#?}");
     // The device whose tag is frozen keeps it, though its ID is the newer.
     let mut frozen = fx(true);
     frozen.rec_mut(&us(0x2002))["tag"]["frozen"] = json!({"text": "1K1", "sign": "hidden"});
     let f = findings_of(&frozen.build(), "EW-CORE-013");
-    let arg = |name: &str| f[0].args.iter().find(|(n, _)| *n == name).map(|(_, v)| v.as_str());
+    let arg = |name: &str| {
+        f[0].args
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, v)| v.as_str())
+    };
     assert_eq!(arg("keeper"), Some("frozen"));
     // The fix renumbers the other, the older.
     let fix = f[0].fix.as_ref().expect("the fix");

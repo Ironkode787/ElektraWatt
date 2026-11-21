@@ -329,7 +329,12 @@ fn a_route_the_person_shaped_that_the_plan_redraws_is_flagged() {
     let mut b = inputs();
     // B1 one step right of its pin, its wire drawn by hand with a step to the left.
     put(&mut b, "B1", p(18, 18));
-    let w1 = b.page.wires.iter().position(|w| w.id.0 == crate::kit::id("w1")).expect("w1");
+    let w1 = b
+        .page
+        .wires
+        .iter()
+        .position(|w| w.id.0 == crate::kit::id("w1"))
+        .expect("w1");
     b.page.wires[w1].route = vec![p(18, 22), p(18, 26), p(17, 26), p(17, 30)];
     let (a, _) = run(&b.page, &[]);
     assert!(a.moves.iter().any(|(x, _)| *x == id("B1")), "{:?}", a.moves);
