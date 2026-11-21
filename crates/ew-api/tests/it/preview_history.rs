@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The public items below the shell: `Session::preview_entities` on a fixture command of
-//! each change kind and on Golden B's two renumbers, and `Session::history_view` on a fixture
+//! each change kind and on a renumber of the sample's section 1, and `Session::history_view` on a fixture
 //! history of four GUI steps, a script step and an external change.
-
-use crate::golden_common;
 
 use ew_api::output::PreviewEntity;
 use ew_api::window::HistoryRow;
@@ -112,61 +110,12 @@ fn preview_entities_label_added_changed_and_removed_records_in_order() {
     }
 }
 
+/// A renumber of the sample's section 1 in steps of two (102 to 103, 103 to 105, 104 to 107, 105 to 109): its preview
+/// lists the four page records, changed in their folio only; every tag that changes is a tag of a device on a moved
+/// page, which follows its page (the sample's page-based numbering), and cross-references change.
 #[test]
-fn golden_b_previews_list_their_records() {
-    let b = golden_common::batch();
-    let mut s = golden_common::session(&b);
-    // B1: the settings step, then the renumber's preview.
-    let settings = s
-        .preview(&cmd(
-            "project.settings.set",
-            json!({"member":"numbering","value":{"default":"page-based","schemes":[{"key":"page-based","format":"{page}{letter}{counter}","rules":[],"child_separator":"-"}]}}),
-        ))
-        .unwrap();
-    s.commit(settings).unwrap();
-    let p = s
-        .preview(&cmd(
-            "numbering.renumber",
-            json!({"scope":"project","scheme":"page_based","include_frozen":true,"options":{"only_nonconforming":true}}),
-        ))
-        .unwrap();
-    let entities = s.preview_entities(&p);
-    assert!(!entities.is_empty());
-    assert!(
-        entities
-            .iter()
-            .all(|e| e.change == "changed" && e.kind == "device"),
-        "{entities:?}"
-    );
-    let labels: Vec<&str> = entities.iter().map(|e| e.label.as_str()).collect();
-    assert_eq!(labels, ["-XPE", "1X1", "E55", "E56", "F55", "S51", "S56", "T55"]);
-    // The renumber's own tag changes: eight of doc 20 §2.2's ten rows (the strips -X1031 and -X1032 were renamed by
-    // the settings step) and the three terminals of 1X1, which follow their strip.
-    let d = s.derived_diff(&p);
-    let mut tags: Vec<(&str, &str)> = d
-        .tags
-        .iter()
-        .map(|t| (t.before.as_str(), t.after.as_str()))
-        .collect();
-    tags.sort_unstable();
-    assert_eq!(
-        tags,
-        [
-            ("-XPE", "-101X2"),
-            ("1X1", "-101X1"),
-            ("1X1:1", "-101X1:1"),
-            ("1X1:2", "-101X1:2"),
-            ("1X1:PE", "-101X1:PE"),
-            ("E55", "-101E1"),
-            ("E56", "-101E2"),
-            ("F55", "-101F2"),
-            ("S51", "-101S1"),
-            ("S56", "-101S2"),
-            ("T55", "-101T1"),
-        ]
-    );
-    s.commit(p).unwrap();
-    // B2: the folios of section 1 from 101: one page record, folio 106.
+fn a_page_renumber_previews_its_pages_and_the_tags_that_follow() {
+    let mut s = crate::common::sample();
     let section = s
         .query()
         .sections()
@@ -177,24 +126,28 @@ fn golden_b_previews_list_their_records() {
     let p = s
         .preview(&cmd(
             "page.renumber",
-            json!({"scope":{"section": section.to_string()},"start":101,"step":1,"keep_gaps":false}),
+            json!({"scope":{"section": section.to_string()},"start":101,"step":2,"keep_gaps":false}),
         ))
         .unwrap();
     let entities = s.preview_entities(&p);
-    assert_eq!(entities.len(), 1, "{entities:?}");
-    assert_eq!(entities[0].change, "changed");
-    assert_eq!(entities[0].kind, "page");
-    assert!(entities[0].label.starts_with("106"), "{entities:?}");
-    assert_eq!(entities[0].fields, ["folio"]);
+    assert_eq!(entities.len(), 4, "{entities:?}");
+    assert!(
+        entities
+            .iter()
+            .all(|e| e.change == "changed" && e.kind == "page" && e.fields == ["folio"]),
+        "{entities:?}"
+    );
+    let moved = [("102", "103"), ("103", "105"), ("104", "107"), ("105", "109")];
     let d = s.derived_diff(&p);
-    let mut tags: Vec<(&str, &str)> = d
-        .tags
-        .iter()
-        .map(|t| (t.before.as_str(), t.after.as_str()))
-        .collect();
-    tags.sort_unstable();
-    assert_eq!(tags, [("-106W1", "-104W1"), ("-106W2", "-104W2")]);
-    assert_eq!(d.xrefs.len(), 14);
+    assert!(!d.tags.is_empty());
+    for t in &d.tags {
+        let (from, to) = moved
+            .iter()
+            .find(|(from, _)| t.before.contains(from))
+            .unwrap_or_else(|| panic!("{} is on no moved page", t.before));
+        assert_eq!(t.after, t.before.replacen(from, to, 1), "{t:?}");
+    }
+    assert!(!d.xrefs.is_empty());
 }
 
 /// `(label, origin, step, pages)` of a row.

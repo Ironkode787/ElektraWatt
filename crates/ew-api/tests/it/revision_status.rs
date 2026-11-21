@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page digests, the page change status, the revision overview and the
-//! `{page.last_changed_in}` placeholder over Golden A (acceptance PD-1 to PD-4; PD-5 is the golden page output of
-//! `tests/it/page_output.rs` and the headless report).
+//! `{page.last_changed_in}` placeholder over the sample with a revision history (acceptance PD-1 to PD-4): its V1.0
+//! released before page digests (historic) and an open V2.0 whose page notes name 101 and 105.
 
 use crate::common;
 
@@ -131,12 +131,39 @@ fn frame_texts(q: &Q, page: PageRef) -> Vec<String> {
     out
 }
 
-/// The golden batch with its title block's "Revision:" cell bound to `{page.last_changed_in}` (a fixture title
-/// block for PD-4), and, when given, V1.0 released with these page digests (a digest-based release for PD-2).
-fn golden_variant(placeholder: bool, digests: Option<BTreeMap<Id<Page>, Digest128>>) -> Session {
-    let batch = common::golden_batch();
-    let (project, mut records) = common::split(&batch);
-    let mut lib = batch.lib.clone();
+/// The sample with a revision history: its open V1.0 released on 2025-03-03 (historic: no page digests), and an open
+/// V2.0 of 2025-04-14 whose page notes name 101 and 105.
+fn history() -> Session {
+    history_variant(false, None)
+}
+
+/// [`history`] with its title block's "Revision:" cell bound to `{page.last_changed_in}` (a fixture title block for
+/// PD-4), and, when given, V1.0 released with these page digests (a digest-based release for PD-2).
+fn history_variant(placeholder: bool, digests: Option<BTreeMap<Id<Page>, Digest128>>) -> Session {
+    let pages: BTreeMap<String, String> = common::sample()
+        .page_rows()
+        .into_iter()
+        .map(|r| (r.folio.clone(), r.id.to_string()))
+        .collect();
+    let (project, mut records, mut lib) = common::sample_records();
+    for r in &mut records {
+        if let Record::Revision(rev) = r
+            && rev.label.as_str() == "V1.0"
+        {
+            let mut v = serde_json::to_value(&*rev).expect("a revision");
+            v["date"] = json!("2025-03-03");
+            v["state"] = json!("released");
+            *rev = serde_json::from_value(v).expect("the released V1.0");
+        }
+    }
+    records.push(
+        Record::from_value(json!({
+            "$k": "revision", "id": "31a45c26-4b99-565c-bbac-68077de2577c", "label": "V2.0", "date": "2025-04-14",
+            "description": "Changes on 101 and 105", "state": "open",
+            "page_notes": [{"page": pages["101"]}, {"page": pages["105"]}]
+        }))
+        .expect("V2.0"),
+    );
     let rebind = |text: String| text.replace("\"{revision.current.label}\"", "\"{page.last_changed_in}\"");
     if placeholder {
         let mut hits = 0;
@@ -148,7 +175,7 @@ fn golden_variant(placeholder: bool, digests: Option<BTreeMap<Id<Page>, Digest12
                 *d = LibDocument::from_json(&new).expect("the fixture form reads");
             }
         }
-        assert!(hits > 0, "the golden title block binds the revision label");
+        assert!(hits > 0, "the sample's title block binds the revision label");
     }
     if let Some(digests) = digests {
         for r in &mut records {
@@ -171,11 +198,11 @@ fn store_options(state: &Path) -> StoreOptions {
     o
 }
 
-/// PD-1: the digest of every Golden A page is the same in two sessions, on 1 and 4 threads, page by page and as a
-/// map, and after the project is written to a directory and opened again; the pages' digests differ.
+/// PD-1: the digest of every page is the same in two sessions, on 1 and 4 threads, page by page and as a map, and
+/// after the project is written to a directory and opened again; the pages' digests differ.
 #[test]
 fn the_digests_are_stable_across_runs_threads_and_a_save() {
-    let a = common::golden_session();
+    let a = history();
     let q = a.query();
     let serial = page_digests(&q, Parallelism::Serial);
     let order = q.get::<PageOrder>(());
@@ -184,7 +211,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
     assert_eq!(
         distinct.len(),
         serial.len(),
-        "no two Golden A pages print the same"
+        "no two pages print the same"
     );
     assert_eq!(page_digests(&q, Parallelism::threads(4)), serial, "4 threads");
     for e in &order.entries {
@@ -195,7 +222,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
             e.folio
         );
     }
-    let b = common::golden_session();
+    let b = history();
     assert_eq!(
         page_digests(&b.query(), Parallelism::Serial),
         serial,
@@ -204,7 +231,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
 
     let dir = ew_testdir::Tmp::new("ew-pd1-project");
     let state = ew_testdir::Tmp::new("ew-pd1-state");
-    let mut c = common::golden_session();
+    let mut c = history();
     c.create(&dir, store_options(&state))
         .expect("the project is written");
     c.close();
@@ -227,7 +254,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
 /// the open revision's label, which every title block prints, changes none.
 #[test]
 fn a_move_on_101_changes_101_only_and_a_label_changes_none() {
-    let mut s = common::golden_session();
+    let mut s = history();
     let before = page_digests(&s.query(), Parallelism::Serial);
     move_within_cell(&mut s, "101");
     let q = s.query();
@@ -257,25 +284,25 @@ fn a_move_on_101_changes_101_only_and_a_label_changes_none() {
     );
 }
 
-/// PD-3: Golden A's V1.0 is historic (no digests), so V2.0's changes are its page notes, 101 and 106; folio 911
-/// lists V1.0 released and V2.0 open with those pages, a withdrawal record directly after the revision it
-/// withdraws; the page navigator's "Changed in" is V2.0 on 101 and 106 and V1.0 on every other page.
+/// PD-3: V1.0 is historic (no digests), so V2.0's changes are its page notes, 101 and 105; folio 911 lists V1.0
+/// released and V2.0 open with those pages, a withdrawal record directly after the revision it withdraws; the page
+/// navigator's "Changed in" is V2.0 on 101 and 105 and V1.0 on every other page.
 #[test]
-fn golden_a_changes_101_and_106_in_v2() {
-    let mut s = common::golden_session();
+fn the_history_changes_101_and_105_in_v2() {
+    let mut s = history();
     let q = s.query();
     assert_eq!(
         folios(&q, &changed_pages(&q, &revision(&q, "V2.0"))),
-        ["101", "106"]
+        ["101", "105"]
     );
     assert_eq!(
         folios(&q, &changed_pages(&q, &revision(&q, "V1.0"))),
         Vec::<String>::new()
     );
-    assert_eq!(changed_folios(&q), ["101", "106"]);
+    assert_eq!(changed_folios(&q), ["101", "105"]);
     let order = q.get::<PageOrder>(());
     for e in &order.entries {
-        let want = if ["101", "106"].contains(&e.folio.as_str()) {
+        let want = if ["101", "105"].contains(&e.folio.as_str()) {
             "V2.0"
         } else {
             "V1.0"
@@ -286,7 +313,7 @@ fn golden_a_changes_101_and_106_in_v2() {
     let rows = s.page_rows();
     assert!(!rows.is_empty());
     for r in &rows {
-        let want = if ["101", "106"].contains(&r.folio.as_str()) {
+        let want = if ["101", "105"].contains(&r.folio.as_str()) {
             "V2.0"
         } else {
             "V1.0"
@@ -305,7 +332,7 @@ fn golden_a_changes_101_and_106_in_v2() {
         cells,
         [
             ["V1.0", "03-03-2025", "", "", "released", ""],
-            ["V2.0", "14-04-2025", "<engineer>", "", "open", "101, 106"],
+            ["V2.0", "14-04-2025", "", "", "open", "101, 105"],
         ]
     );
 
@@ -332,17 +359,17 @@ fn golden_a_changes_101_and_106_in_v2() {
 
 /// PD-2: with V1.0 released with page digests (the digest branch), a drawn page is changed now when its digest
 /// differs or V2.0's page notes name it (doc 15 §5.6: the release's `changed_pages(r)` unions `r.page_notes` into the
-/// digest-changed pages). Golden A's V2.0 notes 101 and 106, whose digests did not change: they are changed
+/// digest-changed pages). V2.0 notes 101 and 105, whose digests did not change: they are changed
 /// in V2.0 in the overview and the "Changed in" column, 102 stays at V1.0 until an edit on it, and folio 911 lists
 /// V2.0's pages from the digests and the notes.
 #[test]
 fn a_digest_based_release_follows_the_digests_and_the_page_notes() {
-    let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
-    let mut s = golden_variant(false, Some(digests));
+    let digests = page_digests(&history().query(), Parallelism::Serial);
+    let mut s = history_variant(false, Some(digests));
     let q = s.query();
     assert_eq!(
         changed_folios(&q),
-        ["101", "106", "911"],
+        ["101", "105", "911"],
         "the noted pages and the revision overview"
     );
     assert_eq!(last_changed_in(&q, folio(&q, "101")).as_deref(), Some("V2.0"));
@@ -363,40 +390,40 @@ fn a_digest_based_release_follows_the_digests_and_the_page_notes() {
     assert_eq!(changed(&s, "102").as_deref(), Some("V1.0"));
     let table = s.page_list_table("911").expect("folio 911 has a table");
     assert_eq!(table.rows[1].cells[0], "V2.0");
-    assert_eq!(table.rows[1].cells[5], "101, 106, 911");
+    assert_eq!(table.rows[1].cells[5], "101, 105, 911");
 
     move_within_cell(&mut s, "102");
     let q = s.query();
-    assert_eq!(changed_folios(&q), ["101", "102", "106", "911"]);
+    assert_eq!(changed_folios(&q), ["101", "102", "105", "911"]);
     assert_eq!(last_changed_in(&q, folio(&q, "102")).as_deref(), Some("V2.0"));
     assert_eq!(
         folios(&q, &changed_pages(&q, &revision(&q, "V2.0"))),
-        ["101", "102", "106", "911"]
+        ["101", "102", "105", "911"]
     );
     drop(q);
     assert_eq!(changed(&s, "102").as_deref(), Some("V2.0"));
     assert_eq!(
-        changed(&s, "106").as_deref(),
+        changed(&s, "105").as_deref(),
         Some("V2.0"),
         "noted, digest unchanged"
     );
     let table = s.page_list_table("911").expect("folio 911 has a table");
     assert_eq!(table.rows[1].cells[0], "V2.0");
-    assert_eq!(table.rows[1].cells[5], "101, 102, 106, 911");
+    assert_eq!(table.rows[1].cells[5], "101, 102, 105, 911");
 }
 
-/// PD-4: a title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 106 and V1.0 on every other drawn
+/// PD-4: a title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 105 and V1.0 on every other drawn
 /// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it; the noted
-/// pages 101 and 106 stay V2.0) and an unnoted, unchanged page keeps V1.0.
+/// pages 101 and 105 stay V2.0) and an unnoted, unchanged page keeps V1.0.
 #[test]
 fn the_placeholder_prints_the_revision_that_last_changed_the_page() {
-    let s = golden_variant(true, None);
+    let s = history_variant(true, None);
     let q = s.query();
     for e in q.get::<PageOrder>(()).entries.iter() {
         let PageRef::Drawn(_) = e.page else {
             continue;
         };
-        let want = if ["101", "106"].contains(&e.folio.as_str()) {
+        let want = if ["101", "105"].contains(&e.folio.as_str()) {
             "Revision: V2.0"
         } else {
             "Revision: V1.0"
@@ -406,20 +433,20 @@ fn the_placeholder_prints_the_revision_that_last_changed_the_page() {
     }
     drop(q);
 
-    let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
-    let mut s = golden_variant(true, Some(digests));
+    let digests = page_digests(&history().query(), Parallelism::Serial);
+    let mut s = history_variant(true, Some(digests));
     move_within_cell(&mut s, "102");
     let q = s.query();
     for (f, want) in [
         ("102", "Revision: V2.0"),
         ("101", "Revision: V2.0"),
-        ("106", "Revision: V2.0"),
+        ("105", "Revision: V2.0"),
     ] {
         let texts = frame_texts(&q, folio(&q, f));
         assert!(texts.iter().any(|t| t == want), "{f}: {texts:?}");
     }
     for e in q.get::<PageOrder>(()).entries.iter() {
-        if !matches!(e.page, PageRef::Drawn(_)) || ["101", "102", "106"].contains(&e.folio.as_str()) {
+        if !matches!(e.page, PageRef::Drawn(_)) || ["101", "102", "105"].contains(&e.folio.as_str()) {
             continue;
         }
         let texts = frame_texts(&q, e.page);
@@ -432,12 +459,12 @@ fn the_placeholder_prints_the_revision_that_last_changed_the_page() {
 }
 
 /// The page digest is a memoised query (Class I, doc 15 §5.6). In the digest branch a second read of every
-/// page's change status runs no digest again, and a move on 102 runs only 102's digest again (101 and 106 are named
+/// page's change status runs no digest again, and a move on 102 runs only 102's digest again (101 and 105 are named
 /// by V2.0's page notes, so their status does not read their digests).
 #[test]
 fn the_digest_is_memoised_per_page() {
-    let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
-    let mut s = golden_variant(false, Some(digests));
+    let digests = page_digests(&history().query(), Parallelism::Serial);
+    let mut s = history_variant(false, Some(digests));
     let runs = |s: &Session| {
         s.memo()
             .expect("a memoising session")
