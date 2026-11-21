@@ -92,23 +92,23 @@ and the tab stays beside it.
 Right-click the station (on the page, in the PLC panel) and choose **Rack…**, choose **Rack** on the PLC tab, or
 double-click the station in the PLC panel. Its rack opens in a tab beside the page tabs:
 
-![A station's rack in its tab: the cards, the table, the channels of the selected module, To do, and the catalogue](images/plc-rack.png)
+![A station's rack in its tab: the cards, To do, the table, the channels of the selected module, and the catalogue](images/plc-rack.png)
 
 - **The buttons above the rack** act on the selected module.
 - **The rack, drawn**: one card per place, the head first, then each slot. A card says what the module gives (8 DI),
   its tag, its part number and the page it is drawn on; a free slot is an outline with a plus. A station whose part
   takes no modules, such as a valve terminal of valve positions alone, has no slots: its positions follow the head.
+- **To do**, under the rack, says what is wrong or left, each in a sentence with its fix beside it: a module in a slot
+  its part does not allow, a module drawn on no page, a station on no bus page.
 - **The table** under it lists the same places: slot, module, part (number and description), what it gives, its
   addresses and the page it is drawn on. A module without a part says **No part**, with **Choose part…** beside it.
 - **Channels** lists the channels of the selected module: address, symbol name and what is wired to it, which is a
   link to its place on its page.
-- **To do** says what is wrong or left, each in a sentence with its fix beside it: a module in a slot its part does
-  not allow, a module drawn on no page, a station on no bus page.
 - **The catalogue** at the right lists the parts that fit the station, by kind, under a filter. Parts that do not fit
   the selected slot are greyed and say why, as is a library part that nothing can draw yet because it has no pins,
   with what to do in the part editor.
 
-With **Side by side**, a station's view in the other group shows the same rack, table, channels and To do; where the
+With **Side by side**, a station's view in the other group shows the same rack, To do, table and channels; where the
 room is short it leaves out the catalogue until you click in it.
 
 To change it:

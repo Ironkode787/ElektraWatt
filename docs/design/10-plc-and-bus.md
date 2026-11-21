@@ -1801,7 +1801,8 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   the cell keeps the keyboard cursor, ringed as a table's cursor cell, when its field closes: F2 opens the cell the
   cursor stands on and the arrows walk the cells, as in the window's other tables, until a place chosen in the rack
   takes the keys back (FT-1838);
-- **To do** (`ShellModel::station_todo`): EW-PLC-011's findings on the station with the error icon and word and Show,
+- **To do** (`ShellModel::station_todo`), the first of the lists under the rack, clear of the toasts at their bottom
+  right (doc 16a §6.10, FT-1824): EW-PLC-011's findings on the station with the error icon and word and Show,
   a module without a part (Choose part…), then each side of the station on no page of its kind (rc.5): the devices no
   electrical page draws (`Session::off_electrical_pages`; a drawing on a bus page or as positions on a fluid page does
   not count), a station with bus interfaces on no bus page, a valve terminal on no fluid page; each button acts on the

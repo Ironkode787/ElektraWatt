@@ -5015,8 +5015,8 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:95
 msgid ""
-"![A station's rack in its tab: the cards, the table, the channels of the "
-"selected module, To do, and the catalogue](images/plc-rack.png)"
+"![A station's rack in its tab: the cards, To do, the table, the channels of "
+"the selected module, and the catalogue](images/plc-rack.png)"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:97
@@ -5034,22 +5034,22 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:101
 msgid ""
+"**To do**, under the rack, says what is wrong or left, each in a sentence "
+"with its fix beside it: a module in a slot its part does not allow, a module "
+"drawn on no page, a station on no bus page."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:103
+msgid ""
 "**The table** under it lists the same places: slot, module, part (number and "
 "description), what it gives, its addresses and the page it is drawn on. A "
 "module without a part says **No part**, with **Choose part…** beside it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:103
+#: src/how-to/plc-workspace.md:105
 msgid ""
 "**Channels** lists the channels of the selected module: address, symbol name "
 "and what is wired to it, which is a link to its place on its page."
-msgstr ""
-
-#: src/how-to/plc-workspace.md:105
-msgid ""
-"**To do** says what is wrong or left, each in a sentence with its fix beside "
-"it: a module in a slot its part does not allow, a module drawn on no page, a "
-"station on no bus page."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:107
@@ -5063,7 +5063,7 @@ msgstr ""
 #: src/how-to/plc-workspace.md:111
 msgid ""
 "With **Side by side**, a station's view in the other group shows the same "
-"rack, table, channels and To do; where the room is short it leaves out the "
+"rack, To do, table and channels; where the room is short it leaves out the "
 "catalogue until you click in it."
 msgstr ""
 

@@ -1107,6 +1107,11 @@ moves away.
 *As built.* **In the symbol editor** the toasts stand at the top right of its drawing, `space.4` under the editor's
 header row, so a save's toast never covers Close editor (FT-1714).
 
+*As built.* **In a station's view** (doc 10 §6) the top right holds the catalogue and its filter, so the toasts stand
+at the bottom right of the rack's lists, `space.4` from their edges. What the person does next is the To do's buttons,
+so the To do is not the lists' last part there but their first, right under the rack: a toast covers at most the
+right end of the places table or the channels, which scroll from under it (FT-1824).
+
 ### 6.11 Banners
 
 A banner is for a state of the whole project (read-only, recovery pending, integrity findings, GPU fallback): full

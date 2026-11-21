@@ -7,9 +7,10 @@
 //! **Left**, top to bottom: the header (the station's tag and part and the PLC it belongs to; for a station not made
 //! yet what it is, its PLC and Create); **the rack drawn** left to right, one card per place: the head, each slot
 //! with its module (what it gives, its tag, its part number, its page) or free, and a valve terminal's positions;
-//! then, scrolling, the same places as **a table** (slot, module, part, gives, addresses, drawn on), **the channels**
-//! of the module under the cursor (address, symbol name, what is wired to it) and **To do** (each finding and each
-//! step that is left, in a sentence, with its fix beside it).
+//! then, scrolling, **To do** (each finding and each step that is left, in a sentence, with its fix beside it; first,
+//! clear of the toasts at the lists' bottom right), the same places as **a table** (slot, module, part, gives,
+//! addresses, drawn on) and **the channels** of the module under the cursor (address, symbol name, what is wired to
+//! it).
 //!
 //! **Right**: the catalogue, the device browser's parts that fit the station, by group, under a filter; the parts
 //! that do not fit where the cursor stands are greyed with the reason. New part… is at its foot.
@@ -301,9 +302,11 @@ pub(crate) fn show(
             .id_salt("station-lists")
             .auto_shrink([false, false])
             .show(ui, |ui| {
+                // What is left to do first, under the rack: the lists end at the bottom right, where the toasts stand
+                // (doc 16a §6.10), and the To do's buttons are the next step.
+                todo(ui, &t, shell, shown, &mut out);
                 table(ui, &t, shell, tab, &all, &mut out);
                 channels(ui, &t, shown, &all, tab, &mut out);
-                todo(ui, &t, shell, shown, &mut out);
                 ui.add_space(t.space_5);
             });
     });

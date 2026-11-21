@@ -265,6 +265,8 @@ change here.
 - behaviour-change: in a station's view the channel cell last clicked or typed in keeps the keyboard cursor, ringed:
   F2 opens it and the arrows walk the channel cells, until a place chosen in the rack takes the keys back; F2 changed
   the card's tag there (doc 10 §6, FT-1838)
+- behaviour-change: a station's view shows its To do first, right under the rack, where a toast never covers its
+  buttons; it stood at the foot of the lists, where the toasts stand (doc 16a §6.10, doc 10 §6, FT-1824)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

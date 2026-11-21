@@ -57,7 +57,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
-- FT-1824 `ew-ui`: A toast can cover a To do button of the station view.
+- FT-2000 `docs`: The guide's picture of a rack (`how-to/images/plc-rack.png`) is older than the station view: it lacks the Function text column and shows the To do under the channels; paint it again from the view.
 
 #### The window's finish
 
