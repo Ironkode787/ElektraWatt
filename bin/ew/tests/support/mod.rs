@@ -79,6 +79,27 @@ pub fn page_file(dir: &Path, folio: u32) -> String {
         .unwrap_or_else(|| panic!("no page with the folio {folio} in {}", dir.display()))
 }
 
+/// The generation the project in `dir` was saved at (its manifest's): the sample's is that of its script's saves.
+pub fn generation(dir: &Path) -> u64 {
+    let manifest: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap()).unwrap();
+    manifest["generation"].as_u64().unwrap()
+}
+
+/// A command log that renumbers the folios of section 1 from 111 (the sample's 101 to 105 become 111 to 115, so the
+/// page-based tags change: -101F1 becomes -111F1), written into `dir` as `renumber.ewcmd`.
+pub fn renumber_log(dir: &Path) -> PathBuf {
+    let log = dir.join("renumber.ewcmd");
+    std::fs::write(
+        &log,
+        "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"renumber the folios of section 1 from 111\"}\n\
+         {\"cmd\":\"page.renumber\",\"params\":{\"scope\":{\"section\":{\"ref\":\"section:1\"}},\"start\":111,\
+         \"step\":1,\"keep_gaps\":false}}\n",
+    )
+    .unwrap();
+    log
+}
+
 /// Every file of a directory tree with its bytes, by relative path.
 pub fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     fn go(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {

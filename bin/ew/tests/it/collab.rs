@@ -6,7 +6,8 @@
 //!
 //! Git runs only in fresh temporary repositories: `-C <dir>`, every repository-selecting variable of
 //! `ew_api::git::ISOLATE` removed, the global configuration a file of the test's own folder and the system one off, a
-//! user set; a test skips with a message when git is absent. Golden A is only read and copied.
+//! user set; a test skips with a message when git is absent. The repositories hold a copy of the sample; the wire the
+//! merges change is its shield wire on page 103 (`merge_driver`'s).
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -14,24 +15,30 @@ use std::process::{Command, Output, Stdio};
 
 use serde_json::{Value, json};
 
-use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
+use crate::merge_driver::{SHIELD_OVERRIDES, colour_conflict, page, page_with, shield_id};
+use crate::support::{EwTmp as _, SAMPLE, Tmp};
 
-/// Page 102.
-const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
-
-/// A record's ID from Golden A by its source key (`connections|W20`, `devices|-102F2`).
-fn golden_id(key: &str) -> String {
-    let needle = format!("\"key\":\"{key}\"");
-    for dir in ["pages", "devices"] {
-        for e in std::fs::read_dir(Path::new(GOLDEN_A).join(dir)).unwrap() {
-            let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
-            if let Some(line) = text.lines().find(|l| l.contains(&needle)) {
-                let v: Value = serde_json::from_str(line).unwrap();
-                return v["id"].as_str().unwrap().to_owned();
-            }
-        }
+/// The ID of the sample's device `tag`, as `ew sql` reads it.
+fn device_id(tag: &str) -> String {
+    let t = Tmp::new("ew-collab-id");
+    let query = format!("SELECT id FROM api_v1_device WHERE tag = '{tag}'");
+    let o = t.ew(&[OsStr::new("sql"), OsStr::new(SAMPLE), OsStr::new(&query)]);
+    let out = String::from_utf8_lossy(&o.stdout).into_owned();
+    match out.lines().collect::<Vec<_>>()[..] {
+        ["id", id] => id.to_owned(),
+        _ => panic!("{tag}: {out}"),
     }
-    panic!("{key} is not in Golden A");
+}
+
+/// The ID of the sample's copy of the part `number` (`lib/parts/<id>.json`).
+fn copy_id(number: &str) -> String {
+    let needle = format!("\"part_number\": \"{number}\"");
+    std::fs::read_dir(Path::new(SAMPLE).join("lib/parts"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| std::fs::read_to_string(p).unwrap().contains(&needle))
+        .map(|p| p.file_stem().unwrap().to_string_lossy().into_owned())
+        .unwrap_or_else(|| panic!("no copy of {number}"))
 }
 
 fn set(kind: &str, id: &str, path: &str, value: Value) -> ew_api::AnyCommand {
@@ -59,7 +66,7 @@ fn edit(dir: &Path, cmds: &[ew_api::AnyCommand]) {
     s.close();
 }
 
-/// A fresh folder with a git repository `repo` holding a copy of Golden A as `J-E-2416.ew`, committed; its own global
+/// A fresh folder with a git repository `repo` holding a copy of the sample as `sample.ew`, committed; its own global
 /// git configuration. Removed on drop.
 struct Repo(Tmp);
 
@@ -82,8 +89,8 @@ impl Repo {
         ] {
             assert!(r.git(args).status.success(), "git {args:?}");
         }
-        crate::support::copy_dir(Path::new(GOLDEN_A), &r.project());
-        r.commit("Golden A");
+        crate::support::copy_dir(Path::new(SAMPLE), &r.project());
+        r.commit("The sample");
         Some(r)
     }
 
@@ -92,7 +99,7 @@ impl Repo {
     }
 
     fn project(&self) -> PathBuf {
-        self.repo().join("J-E-2416.ew")
+        self.repo().join("sample.ew")
     }
 
     /// The test's own environment for git and `ew`: no repository-selecting variable, the global configuration a file
@@ -148,38 +155,39 @@ fn result(o: &Output) -> (Option<i32>, String, String) {
     )
 }
 
-/// The line `ew diff` prints for -101F1's part changed from Golden A's A9P52610 to 552286.
-const PART_LINE: &str = "-101F1: parts [{\"part\":{\"copy\":\"A9P52610\"},\"qty\":\"1\"}] → [{\"part\":{\"copy\":\"552286\"},\"qty\":\"1\"}]\n";
+/// The line `ew diff` prints for -101F1's part changed from the sample's 2-pole breaker EW-GEN-MCB-4 to the 3-pole
+/// EW-GEN-MCB-3 of -103F1.
+const PART_LINE: &str = "-101F1: parts [{\"part\":{\"copy\":\"EW-GEN-MCB-4\"},\"qty\":\"1\"}] → [{\"part\":{\"copy\":\"EW-GEN-MCB-3\"},\"qty\":\"1\"}]\n";
 
-/// -101F1 with the part copy of 552286 instead of A9P52610.
+/// -101F1 with the part copy of EW-GEN-MCB-3 instead of EW-GEN-MCB-4.
 fn change_101f1(dir: &Path) {
-    let device = golden_id("devices|-101F1");
-    let parts = json!([{"part": {"copy": "07a6c371-1881-5acc-9ac3-0d773f0ddc16"}, "qty": "1"}]);
+    let device = device_id("-101F1");
+    let parts = json!([{"part": {"copy": copy_id("EW-GEN-MCB-3")}, "qty": "1"}]);
     edit(dir, &[set("device", &device, "parts", parts)]);
 }
 
-/// DG-1: `ew diff` between Golden A and a copy with -101F1's part changed prints that line (exit 0, and 1 with
+/// DG-1: `ew diff` between the sample and a copy with -101F1's part changed prints that line (exit 0, and 1 with
 /// `--exit-code`); the same between a directory and its `.ewz`, which are equal; and between `git:HEAD` and the working
 /// copy in a temporary repository; `--json` validates against its result schema.
 #[test]
 fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     let Some(r) = Repo::new("ew-dg1") else { return };
     let copy = r.0.path("copy.ew");
-    crate::support::copy_dir(Path::new(GOLDEN_A), &copy);
+    crate::support::copy_dir(Path::new(SAMPLE), &copy);
     change_101f1(&copy);
-    let golden = Path::new(GOLDEN_A);
-    let plain = r.ew(&[OsStr::new("diff"), golden.as_os_str(), copy.as_os_str()]);
+    let sample = Path::new(SAMPLE);
+    let plain = r.ew(&[OsStr::new("diff"), sample.as_os_str(), copy.as_os_str()]);
     assert_eq!(result(&plain), (Some(0), PART_LINE.to_owned(), String::new()));
     let exit = r.ew(&[
         OsStr::new("diff"),
-        golden.as_os_str(),
+        sample.as_os_str(),
         copy.as_os_str(),
         OsStr::new("--exit-code"),
     ]);
     assert_eq!(result(&exit), (Some(1), PART_LINE.to_owned(), String::new()));
     let json = r.ew(&[
         OsStr::new("diff"),
-        golden.as_os_str(),
+        sample.as_os_str(),
         copy.as_os_str(),
         OsStr::new("--json"),
     ]);
@@ -214,15 +222,15 @@ fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
 
     // `git:HEAD` against the working copy.
     change_101f1(&r.project());
-    let head = r.ew(&["diff", "git:HEAD", "J-E-2416.ew", "--exit-code"]);
+    let head = r.ew(&["diff", "git:HEAD", "sample.ew", "--exit-code"]);
     assert_eq!(result(&head), (Some(1), PART_LINE.to_owned(), String::new()));
-    let missing = r.ew(&["diff", "git:no-such-revision", "J-E-2416.ew"]);
+    let missing = r.ew(&["diff", "git:no-such-revision", "sample.ew"]);
     assert_eq!(
         result(&missing),
         (
             Some(2),
             String::new(),
-            "error: git:no-such-revision: the revision holds no no-such-revision:J-E-2416.ew/manifest.json\n"
+            "error: git:no-such-revision: the revision holds no no-such-revision:sample.ew/manifest.json\n"
                 .to_owned()
         )
     );
@@ -289,7 +297,7 @@ fn git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
         result(&done),
         (
             Some(0),
-            "the merge driver and the textconv are configured (4 keys)\nJ-E-2416.ew: .gitattributes and .gitignore \
+            "the merge driver and the textconv are configured (4 keys)\nsample.ew: .gitattributes and .gitignore \
              written\n"
                 .to_owned(),
             String::new()
@@ -313,7 +321,7 @@ fn git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
         result(&again),
         (
             Some(0),
-            "the merge driver and the textconv are configured (4 keys)\nJ-E-2416.ew: the managed blocks are up to \
+            "the merge driver and the textconv are configured (4 keys)\nsample.ew: the managed blocks are up to \
              date\n"
                 .to_owned(),
             String::new()
@@ -351,7 +359,7 @@ fn the_hook_is_installed_and_a_foreign_one_is_kept() {
     let exe = quoted_exe();
     let expected = format!(
         "#!/bin/sh\n# ElektraWatt (managed): the project-integrity check after a merge\nstatus=0\n{exe} check \
-         --integrity --after-merge 'J-E-2416.ew' || status=1\nexit $status\n"
+         --integrity --after-merge 'sample.ew' || status=1\nexit $status\n"
     );
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), expected);
     std::fs::write(&hook, "#!/bin/sh\necho mine\n").unwrap();
@@ -471,27 +479,17 @@ fn git_setup_from_an_appimage_names_the_appimage() {
     }
 }
 
-/// A copy of Golden A whose page 102 holds MD-6's conflict record on W20's colour, as part 5's CR-1 project.
+/// A copy of the sample whose page 103 holds MD-6's conflict record on the shield wire's colour, as part 5's CR-1
+/// project.
 fn cr1_project(dir: &Path) {
-    const OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
-    const CONFLICT: &str = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
-    crate::support::copy_dir(Path::new(GOLDEN_A), dir);
-    let page = std::fs::read_to_string(dir.join(PAGE)).unwrap();
-    let w20 = page
-        .lines()
-        .find(|l| l.contains("connections|W20"))
-        .unwrap()
-        .to_owned();
-    let bu = w20.replace(
-        OVERRIDES,
-        r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#,
-    );
-    std::fs::write(dir.join(PAGE), format!("{}{CONFLICT}\n", page.replace(&w20, &bu))).unwrap();
+    crate::support::copy_dir(Path::new(SAMPLE), dir);
+    let bu = page_with(r#""overrides":{"csa":"2.5","colour":["BU"]}"#);
+    std::fs::write(dir.join(page()), format!("{bu}{}\n", colour_conflict())).unwrap();
 }
 
-/// DG-6: `ew check --integrity` exits 1 on CR-1's project for its conflict record and 0 on Golden A.
+/// DG-6: `ew check --integrity` exits 1 on CR-1's project for its conflict record and 0 on the sample.
 #[test]
-fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
+fn the_integrity_check_fails_on_a_conflict_record_and_passes_the_sample() {
     let base = Tmp::new("ew-dg6");
     let cr1 = base.path("cr1.ew");
     cr1_project(&cr1);
@@ -504,7 +502,7 @@ fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
     assert_eq!(code, Some(1), "{out}{err}");
     assert!(out.contains("EW-CORE-011"), "{out}");
     assert_eq!(err, "integrity: 1 errors, 0 warnings, 0 infos, 0 waived\n");
-    let (code, out, err) = result(&run(Path::new(GOLDEN_A)));
+    let (code, out, err) = result(&run(Path::new(SAMPLE)));
     assert_eq!(
         (code, err.as_str()),
         (Some(0), "integrity: 0 errors, 0 warnings, 0 infos, 0 waived\n"),
@@ -512,19 +510,20 @@ fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
     );
 }
 
-/// The page-102 file of the project `dir`, as text.
-fn page_102(dir: &Path) -> String {
-    std::fs::read_to_string(dir.join(PAGE)).unwrap()
+/// The page-103 file of the project `dir`, as text.
+fn page_103(dir: &Path) -> String {
+    std::fs::read_to_string(dir.join(page())).unwrap()
 }
 
-/// W20's line of a page file.
-fn w20_line(page: &str) -> Value {
-    serde_json::from_str(page.lines().find(|l| l.contains("connections|W20")).unwrap()).unwrap()
+/// The shield wire's line of a page file.
+fn shield_line(page: &str) -> Value {
+    let id = format!("\"id\":\"{}\"", shield_id());
+    serde_json::from_str(page.lines().find(|l| l.contains(&id)).unwrap()).unwrap()
 }
 
-/// DG-2 and DG-7 (AC-41): on a fresh repository holding a Golden A copy, `ew git setup --yes`, then the two branches of
-/// D29: A sets -102F2's function text and adds W20's colour BU, B sets its cross-section 2.5. `git merge` exits 0
-/// with csa 2.5 and BU, a merged manifest, and `ew check --integrity` exits 0; `git log -p` shows the textconv lines.
+/// DG-2 and DG-7 (AC-41): on a fresh repository holding a copy of the sample, `ew git setup --yes`, then the two
+/// branches of D29: A sets -102Q1's function text and adds the shield wire's colour BU, B sets its cross-section 4.
+/// `git merge` exits 0 with csa 4 and BU, a merged manifest, and `ew check --integrity` exits 0; `git log -p` shows the textconv lines.
 /// The conflict variant (B also adds WH) leaves one conflict record, the project opens, and `ew merge resolve --take
 /// ours` makes it clean. Before setup, git's configuration has no driver (XW-7's status).
 #[test]
@@ -537,7 +536,8 @@ fn ac41_merges_through_git_with_the_driver() {
     );
     assert_eq!(r.ew(&["git", "setup", "--yes"]).status.code(), Some(0));
     r.commit("ew git setup");
-    let (w20, f2) = (golden_id("connections|W20"), golden_id("devices|-102F2"));
+    assert!(page_103(&r.project()).contains(SHIELD_OVERRIDES));
+    let (wire, q1) = (shield_id(), device_id("-102Q1"));
     let branch = |name: &str, from: &str, cmds: &[ew_api::AnyCommand]| {
         assert!(r.git(&["checkout", "--quiet", "-b", name, from]).status.success());
         edit(&r.project(), cmds);
@@ -547,36 +547,36 @@ fn ac41_merges_through_git_with_the_driver() {
         "a",
         "main",
         &[
-            set("device", &f2, "function_text", json!("Spare")),
-            set("connection", &w20, "overrides.colour", json!(["BU"])),
+            set("device", &q1, "function_text", json!("Motor contactor")),
+            set("connection", &wire, "overrides.colour", json!(["BU"])),
         ],
     );
     branch(
         "b",
         "main",
-        &[set("connection", &w20, "overrides.csa", json!("2.5"))],
+        &[set("connection", &wire, "overrides.csa", json!("4"))],
     );
     branch(
         "b-wh",
         "main",
         &[
-            set("connection", &w20, "overrides.csa", json!("2.5")),
-            set("connection", &w20, "overrides.colour", json!(["WH"])),
+            set("connection", &wire, "overrides.csa", json!("4")),
+            set("connection", &wire, "overrides.colour", json!(["WH"])),
         ],
     );
 
     // DG-2: the textconv lines of branch A's page change, labelled from the working copy.
-    let log = r.git(&["log", "-p", "-1", "a", "--", &format!("J-E-2416.ew/{PAGE}")]);
+    let log = r.git(&["log", "-p", "-1", "a", "--", &format!("sample.ew/{}", page())]);
     let log = String::from_utf8_lossy(&log.stdout).into_owned();
     assert!(r.git(&["checkout", "--quiet", "a"]).status.success());
     let (session, _) = ew_api::Session::open_read_only(&r.project(), "ElektraWatt test").unwrap();
-    let (text, known) = ew_api::output::textconv(Some(&session), page_102(&r.project()).as_bytes());
+    let (text, known) = ew_api::output::textconv(Some(&session), page_103(&r.project()).as_bytes());
     drop(session);
     let line = text
         .lines()
         .find(|l| l.contains("overrides.colour=[\"BU\"]"))
-        .expect("W20's textconv line");
-    assert!(known > 0 && !line.contains(&w20[..8]), "a derived label: {line}");
+        .expect("the shield wire's textconv line");
+    assert!(known > 0 && !line.contains(&wire), "a derived label: {line}");
     assert!(
         log.lines().any(|l| l == format!("+{line}")),
         "git log -p shows {line}:\n{log}"
@@ -595,15 +595,12 @@ fn ac41_merges_through_git_with_the_driver() {
         "{}",
         String::from_utf8_lossy(&merged.stderr)
     );
-    let v = w20_line(&page_102(&r.project()));
-    assert_eq!(
-        v["overrides"],
-        json!({"csa": "2.5", "colour": ["BU"], "show_marker": true})
-    );
+    let v = shield_line(&page_103(&r.project()));
+    assert_eq!(v["overrides"], json!({"csa": "4", "colour": ["BU"]}));
     let manifest: Value =
         serde_json::from_slice(&std::fs::read(r.project().join("manifest.json")).unwrap()).unwrap();
     assert_eq!(manifest["merged"], json!(true));
-    let integrity = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
+    let integrity = r.ew(&["check", "--integrity", "sample.ew"]);
     assert_eq!(
         integrity.status.code(),
         Some(0),
@@ -623,24 +620,24 @@ fn ac41_merges_through_git_with_the_driver() {
         Some(1),
         "git merge reports the conflict"
     );
-    let page = page_102(&r.project());
+    let page = page_103(&r.project());
     assert_eq!(
         page.matches("\"$k\":\"conflict\"").count(),
         1,
         "one conflict record"
     );
     assert_eq!(
-        w20_line(&page)["overrides"]["colour"],
+        shield_line(&page)["overrides"]["colour"],
         json!(["BU"]),
         "ours in place"
     );
-    let opened = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
+    let opened = r.ew(&["check", "--integrity", "sample.ew"]);
     assert_eq!(
         opened.status.code(),
         Some(1),
         "the project opens and reports the conflict"
     );
-    let resolved = r.ew(&["merge", "resolve", "--take", "ours", "J-E-2416.ew"]);
+    let resolved = r.ew(&["merge", "resolve", "--take", "ours", "sample.ew"]);
     assert_eq!(
         result(&resolved),
         (
@@ -649,8 +646,8 @@ fn ac41_merges_through_git_with_the_driver() {
             String::new()
         )
     );
-    assert!(!page_102(&r.project()).contains("\"$k\":\"conflict\""));
-    let clean = r.ew(&["check", "--integrity", "J-E-2416.ew"]);
+    assert!(!page_103(&r.project()).contains("\"$k\":\"conflict\""));
+    let clean = r.ew(&["check", "--integrity", "sample.ew"]);
     assert_eq!(
         clean.status.code(),
         Some(0),

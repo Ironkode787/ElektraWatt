@@ -8,14 +8,7 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::support::{EwTmp, PARTS, Tmp, args, stderr, stdout, tree};
-
-/// The generation the project in `dir` was saved at (its manifest's).
-fn generation(dir: &Path) -> u64 {
-    let manifest: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap()).unwrap();
-    manifest["generation"].as_u64().unwrap()
-}
+use crate::support::{EwTmp, PARTS, Tmp, args, generation, stderr, stdout, tree};
 
 /// A command log of one new page, written into `t` as `page.ewcmd`.
 fn page_log(t: &Tmp) -> PathBuf {

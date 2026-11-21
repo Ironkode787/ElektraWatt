@@ -19,9 +19,9 @@ use ew_api::cli_results as results;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crate::support::{EwTmp, GOLDEN_A, GOLDEN_PARTS, GOLDEN_TABLES, Tmp, args, stderr, stdout, tree};
-
-const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
+use crate::support::{
+    EwTmp, PARTS, SAMPLE, TABLES, Tmp, args, generation, renumber_log, stderr, stdout, tree,
+};
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
 /// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
@@ -141,12 +141,12 @@ pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &s
 // CL-1: `--project`
 
 /// CL-1: for every subcommand that takes a project, the positional directory and `--project <dir>` give equal stdout
-/// and exit codes on Golden A's copy, and both together exit 2 with D3's message. The human-only subcommands are
+/// and exit codes on the sample's copy, and both together exit 2 with D3's message. The human-only subcommands are
 /// compared off a terminal (both forms exit 2 before the project is opened).
 #[test]
 fn project_flag_equals_the_positional_directory() {
     let t = Tmp::new("ew-conventions");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let tiny = t.tiny("tiny.ew");
     let sqlite = t.0.join("p.sqlite");
     let pdf = t.0.join("p.pdf");
@@ -156,7 +156,7 @@ fn project_flag_equals_the_positional_directory() {
     let report_pdf = t.0.join("908.pdf");
     let ewz = t.0.join("p.ewz");
     let parts = t.0.join("parts.csv");
-    std::fs::copy(GOLDEN_PARTS, &parts).unwrap();
+    std::fs::copy(PARTS, &parts).unwrap();
     let tiny_pdf = t.0.join("tiny.pdf");
     let o = t.ew(&args([&"export", &"pdf", &tiny, &"--out", &tiny_pdf]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
@@ -276,9 +276,9 @@ fn project_flag_equals_the_positional_directory() {
 #[test]
 fn apply_with_the_project_flag_replays_as_the_positional_form() {
     let t = Tmp::new("ew-conventions");
-    let a = t.golden("a.ew");
-    let b = t.golden("b.ew");
-    let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let a = t.sample("a.ew");
+    let b = t.sample("b.ew");
+    let log = renumber_log(&t);
     let positional = t.ew(&args([&"apply", &a, &log]));
     let flagged = t.ew(&args([&"apply", &"--project", &b, &log]));
     assert_eq!(positional.status.code(), Some(0), "{}", stderr(&positional));
@@ -287,7 +287,7 @@ fn apply_with_the_project_flag_replays_as_the_positional_form() {
         (flagged.status.code(), stdout(&flagged))
     );
     assert!(tree(&a) == tree(&b), "the two replays saved the same files");
-    assert!(tree(&a) != tree(Path::new(GOLDEN_A)), "the replay is saved");
+    assert!(tree(&a) != tree(Path::new(SAMPLE)), "the replay is saved");
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -311,12 +311,13 @@ fn json_twice<T: Serialize + DeserializeOwned>(t: &Tmp, args: &[OsString], name:
 #[test]
 fn every_reading_json_result_validates_round_trips_and_repeats() {
     let t = Tmp::new("ew-conventions");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let tiny = t.tiny("tiny.ew");
     let tiny_pdf = t.0.join("tiny.pdf");
     let o = t.ew(&args([&"export", &"pdf", &tiny, &"--out", &tiny_pdf]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let check: results::CheckResult = json_twice(&t, &args([&"check", &p, &"--json"]), results::CHECK, 1);
+    // The sample is clean under the pre-delivery checks: exit 0.
+    let check: results::CheckResult = json_twice(&t, &args([&"check", &p, &"--json"]), results::CHECK, 0);
     assert_eq!(check.scheme, "pre-delivery");
     let sql: results::SqlResult = json_twice(
         &t,
@@ -391,7 +392,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         results::EXPORT_TERMINALS,
         0,
     );
-    assert_eq!(terminals.strips, ["1X1", "-X1031", "-X1032"]);
+    assert_eq!(terminals.strips, ["-X1011", "-X1021", "-X1031"]);
     let report: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--block", &"908", &"--json"]),
@@ -402,7 +403,10 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         (report.kind.as_str(), report.format.as_str()),
         ("plc_overview", "csv")
     );
-    // `--kind` prints the kind, the rows and `"block": ""`.
+    // `--kind` prints the kind, the rows of its CSV and `"block": ""`.
+    let o = t.ew(&args([&"export", &"report", &p, &"--kind", &"device_list"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let device_rows = stdout(&o).lines().count() - 1;
     let by_kind: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--kind", &"device_list", &"--json"]),
@@ -417,7 +421,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
             by_kind.rows,
             by_kind.folios.is_none(),
         ),
-        ("", "device_list", "csv", Some(68), true)
+        ("", "device_list", "csv", Some(device_rows), true)
     );
     let report_pdf = t.0.join("908.pdf");
     let report: results::ExportReportResult = json_twice(
@@ -439,7 +443,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     );
     assert_eq!(
         report.folios.as_deref(),
-        Some(&["908".to_owned(), "908.1".to_owned(), "908.2".to_owned()][..])
+        Some(&["908".to_owned(), "908.1".to_owned()][..])
     );
     let png_dir = t.0.join("png");
     let r: results::ExportPngResult = json_twice(
@@ -464,7 +468,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert_eq!((r.page.as_str(), r.dpi), ("103", 150));
-    let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = renumber_log(&t);
     let preview: results::ApplyResult = json_twice(
         &t,
         &args([&"apply", &p, &log, &"--preview", &"--json"]),
@@ -476,7 +480,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         changes
             .tags
             .iter()
-            .any(|c| c.before == "-106W1" && c.after == "-104W1"),
+            .any(|c| c.before == "-101F1" && c.after == "-111F1"),
         "{changes:?}"
     );
     assert!(!preview.saved);
@@ -560,7 +564,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     assert_eq!((import.source.as_str(), import.counts.pages), ("t.qet", 1));
     // Nothing above wrote into the project.
     assert!(
-        tree(&p) == tree(Path::new(GOLDEN_A)),
+        tree(&p) == tree(Path::new(SAMPLE)),
         "a reader wrote into the project"
     );
 }
@@ -571,10 +575,11 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
 fn every_writing_json_result_validates_and_round_trips() {
     let t = Tmp::new("ew-conventions");
     // `apply` on two copies.
-    let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = renumber_log(&t);
     let mut outs = Vec::new();
+    let g = generation(Path::new(SAMPLE));
     for name in ["a.ew", "b.ew"] {
-        let p = t.golden(name);
+        let p = t.sample(name);
         let o = t.ew(&args([&"apply", &p, &log, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::ApplyResult = assert_result(&stdout(&o), results::APPLY);
@@ -592,7 +597,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let o = t.ew(&args([
             &"import",
             &"parts",
-            &GOLDEN_PARTS,
+            &PARTS,
             &"--project",
             &target,
             &"--json",
@@ -654,16 +659,20 @@ fn every_writing_json_result_validates_and_round_trips() {
     // `fmt` on two copies with the same two lines swapped.
     let mut outs = Vec::new();
     for name in ["f.ew", "g.ew"] {
-        let p = t.golden(name);
-        let file = p.join("devices").join("71.jsonl");
-        let text = std::fs::read_to_string(&file).unwrap();
+        let p = t.sample(name);
+        // The first device file of two lines or more.
+        let (file, text) = tree(&p.join("devices"))
+            .into_iter()
+            .map(|(f, b)| (p.join("devices").join(f), String::from_utf8(b).unwrap()))
+            .find(|(_, text)| text.lines().count() > 1)
+            .unwrap();
         let mut lines: Vec<&str> = text.lines().collect();
         lines.swap(0, 1);
         std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
         let o = t.ew(&args([&"fmt", &p, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::FmtResult = assert_result(&stdout(&o), results::FMT);
-        assert_eq!((r.check, r.files.len(), r.generation), (false, 1, 2), "{r:?}");
+        assert_eq!((r.check, r.files.len(), r.generation), (false, 1, g + 1), "{r:?}");
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
@@ -672,20 +681,20 @@ fn every_writing_json_result_validates_and_round_trips() {
     // the page file as edited outside EW.
     let mut outs = Vec::new();
     for (name, saved) in [("r1.ew", true), ("r2.ew", true), ("r3.ew", false)] {
-        let p = t.golden(name);
+        let p = t.sample(name);
         with_a_broken_line(&p, saved);
         let o = t.ew(&args([&"fmt", &p, &"--repair", &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
         assert_eq!(
             (r.discarded.len(), r.files.len(), r.kept.len(), r.generation),
-            (1, 1, 0, 2),
+            (1, 1, 0, g + 1),
             "{r:?}"
         );
         let backup = r.backup.expect("a backup");
         assert_eq!(
             (backup.generation, backup.reused, backup.edited),
-            (1, false, usize::from(!saved))
+            (g, false, usize::from(!saved))
         );
         let path = serde_json::to_string(&backup.path).unwrap();
         outs.push(stdout(&o).replace(&path, "\"<backup>\""));
@@ -696,13 +705,13 @@ fn every_writing_json_result_validates_and_round_trips() {
     let r: results::FmtRepairResult = assert_result(&stdout(&o), results::FMT_REPAIR);
     assert_eq!(
         (r.discarded.len(), r.backup, r.generation),
-        (0, None, 2),
+        (0, None, g + 1),
         "nothing to repair"
     );
     // `recover` and `recover --replay` of a crashed session's journal on two copies.
     let mut outs = Vec::new();
     for name in ["h.ew", "i.ew"] {
-        let p = t.golden(name);
+        let p = t.sample(name);
         let mut store = ew_api::StoreOptions::new("test");
         store.state_dir = Some(t.state_dir());
         let (mut crashed, _) = ew_api::Session::open(
@@ -724,7 +733,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let r: results::RecoverResult = assert_result(&stdout(&o), results::RECOVER);
         assert_eq!(
             (r.action, r.replayed, r.generation),
-            (results::RecoverAction::Summary, false, 1),
+            (results::RecoverAction::Summary, false, g),
             "{r:?}"
         );
         let o = t.ew(&args([&"recover", &p, &"--replay", &"--json"]));
@@ -741,24 +750,24 @@ fn every_writing_json_result_validates_and_round_trips() {
         );
         assert_eq!(
             (r.action, r.replayed, r.generation),
-            (results::RecoverAction::Replay, true, 2),
+            (results::RecoverAction::Replay, true, g + 1),
             "{r:?}"
         );
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
     // `export ewz` twice to the same file, and `extract` twice into the same fresh target.
-    let golden = t.golden("ewz.ew");
+    let packed = t.sample("ewz.ew");
     let ewz = t.0.join("p.ewz");
     let r: results::ExportEwzResult = json_twice(
         &t,
-        &args([&"export", &"ewz", &golden, &"--out", &ewz, &"--json"]),
+        &args([&"export", &"ewz", &packed, &"--out", &ewz, &"--json"]),
         results::EXPORT_EWZ,
         0,
     );
     // Every file of the project is in the archive, however many the sample has.
-    let files = tree(&golden).len();
-    assert_eq!((r.generation, r.files), (1, files), "{r:?}");
+    let files = tree(&packed).len();
+    assert_eq!((r.generation, r.files), (g, files), "{r:?}");
     let into = t.0.join("extracted.ew");
     let mut outs = Vec::new();
     for _ in 0..2 {
@@ -766,7 +775,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let o = t.ew(&args([&"extract", &ewz, &"--into", &into, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::ExtractResult = assert_result(&stdout(&o), results::EXTRACT);
-        assert_eq!((r.generation, r.files), (1, files), "{r:?}");
+        assert_eq!((r.generation, r.files), (g, files), "{r:?}");
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);
@@ -776,7 +785,7 @@ fn every_writing_json_result_validates_and_round_trips() {
     for _ in 0..2 {
         let _ = std::fs::remove_dir_all(&out);
         let o = t.ew_with(
-            &args([&"import", &"csv", &GOLDEN_TABLES, &"--out", &out, &"--json"]),
+            &args([&"import", &"csv", &TABLES, &"--out", &out, &"--json"]),
             true,
         );
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
@@ -798,10 +807,10 @@ fn every_writing_json_result_validates_and_round_trips() {
 #[test]
 fn json_is_the_alias_of_format_json() {
     let t = Tmp::new("ew-conventions");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let json = t.ew(&args([&"check", &p, &"--json"]));
     let format = t.ew(&args([&"check", &p, &"--format", &"json"]));
-    assert_eq!(json.status.code(), Some(1), "{}", stderr(&json));
+    assert_eq!(json.status.code(), Some(0), "{}", stderr(&json));
     assert_eq!(json.stdout, format.stdout, "`--json` equals `--format json`");
     let both = t.ew(&args([&"check", &p, &"--json", &"--format", &"json"]));
     assert_eq!(both.stdout, format.stdout);
