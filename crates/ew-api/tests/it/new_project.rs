@@ -987,3 +987,18 @@ fn a_project_from_a_template_without_its_pages_starts_with_one_empty_page() {
     assert_eq!((summary.pages, summary.devices), (0, 0), "{summary:?}");
     assert!(summary.template);
 }
+
+/// FT-1900: the one page a copy without the template's pages makes takes its ID from the session's source, so two
+/// copies with one seed hold one set of IDs.
+#[test]
+fn a_copy_without_pages_takes_its_page_id_from_the_session_source() {
+    let copy = |seed| {
+        Session::new_project(
+            ProjectTemplate::DirectoryWithoutPages(Path::new(SAMPLE)),
+            NewProjectKind::Schematic,
+            options(seed),
+        )
+        .unwrap()
+    };
+    assert_eq!(ids_of(&copy(19)), ids_of(&copy(19)));
+}

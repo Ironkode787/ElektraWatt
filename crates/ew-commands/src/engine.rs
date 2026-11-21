@@ -314,6 +314,12 @@ impl Engine {
         &self.history
     }
 
+    /// Hands the ID source back (a scratch engine lent the caller's source); the engine draws from the system
+    /// clock and entropy after.
+    pub fn take_ids(&mut self) -> Box<dyn IdSource + Send> {
+        std::mem::replace(&mut self.ids, Box::new(SystemSource))
+    }
+
     /// Replaces the model by one reopened from disk (a read-only session's reload): the history starts
     /// again, and a preview of the old model is never committed as prepared.
     ///

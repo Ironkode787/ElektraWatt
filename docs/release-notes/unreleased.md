@@ -376,3 +376,5 @@ change here.
 - format-variant: part Unit mA
 - format-variant: project Unit mA
 - format-variant: page_item LayoutLabels tags_or_numbers
+- behaviour-change: a project made without its template's pages takes its first page's ID from the session's ID source,
+  so two runs of one script make the same project; it took it from the clock (FT-1900)

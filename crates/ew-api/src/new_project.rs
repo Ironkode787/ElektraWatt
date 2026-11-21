@@ -267,7 +267,12 @@ impl Session {
         if let ProjectTemplate::DirectoryWithoutPages(_) = template {
             let refused =
                 |e: CmdError| OpenError::Format(format!("the pages of the template cannot be left out: {e}"));
-            let mut scratch = Session::new(model, SessionOptions::default());
+            // The first page's ID comes from the session's own source, so that one script makes one project.
+            let lent = SessionOptions {
+                ids: options.ids.take(),
+                ..SessionOptions::default()
+            };
+            let mut scratch = Session::new(model, lent);
             omit(&mut scratch, true, true).map_err(refused)?;
             let page = AnyCommand {
                 name: "page.create".into(),
@@ -275,6 +280,7 @@ impl Session {
             };
             scratch.execute(&page).map_err(refused)?;
             model = scratch.engine.model().clone();
+            options.ids = Some(scratch.engine.take_ids());
         }
         Ok(Session::new(model, options))
     }
