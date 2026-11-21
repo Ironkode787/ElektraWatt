@@ -50,7 +50,11 @@ pub(super) fn is_listed_device(dev: &Device) -> bool {
 /// `spare`, `reserved` or `not fitted` as authored, else `used` when the terminal has a wire (`wired`) or belongs to a
 /// bridge (`bridged`), and `unused` otherwise. `terminal_diagram`'s State column and `terminal_overview`'s counts use
 /// this one rule.
-pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) -> (&'static str, &'static str) {
+pub(super) fn terminal_state(
+    state: &DeviceState,
+    wired: bool,
+    bridged: bool,
+) -> (&'static str, &'static str) {
     match state {
         DeviceState::Spare => ("spare", "reserve"),
         DeviceState::Reserved => ("reserved", "gereserveerd"),

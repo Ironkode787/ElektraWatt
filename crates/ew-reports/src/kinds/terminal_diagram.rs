@@ -46,8 +46,20 @@ impl ReportKindDef for TerminalDiagram {
             ColumnDef::new("group", CellType::Text, "Group", "Groep").weighted(9),
             ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(11),
             ColumnDef::new("potential", CellType::Ident, "Potential", "Potentiaal").weighted(9),
-            ColumnDef::new("side1", CellType::Text, "Side 1 (clamp a)", "Zijde 1 (aansluiting a)").weighted(21),
-            ColumnDef::new("side2", CellType::Text, "Side 2 (clamp b)", "Zijde 2 (aansluiting b)").weighted(24),
+            ColumnDef::new(
+                "side1",
+                CellType::Text,
+                "Side 1 (clamp a)",
+                "Zijde 1 (aansluiting a)",
+            )
+            .weighted(21),
+            ColumnDef::new(
+                "side2",
+                CellType::Text,
+                "Side 2 (clamp b)",
+                "Zijde 2 (aansluiting b)",
+            )
+            .weighted(24),
             ColumnDef::new("bridge", CellType::Ident, "Bridge", "Brug").weighted(6),
             ColumnDef::new("state", CellType::Text, "State", "Status").weighted(7),
         ]

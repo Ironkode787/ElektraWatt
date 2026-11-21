@@ -106,7 +106,10 @@ impl ShellModel {
     /// The look of the list on show, its texts in the window's language; `None` on any other page.
     fn list_on_show(&self) -> Option<ListLook> {
         let page = self.focused_page_id()?;
-        self.project.as_ref()?.session.list_look(page, strings::rule_language())
+        self.project
+            .as_ref()?
+            .session
+            .list_look(page, strings::rule_language())
     }
 
     /// The folio of the page on show.
@@ -133,7 +136,7 @@ impl ShellModel {
         self.form_done(action, Outcome::Done)
     }
 
-    /// `report_block.columns {caption?, legend?, columns?}` (Output ▸ Reports ▸ List columns…): without a parameter the
+    /// `report_block.columns {caption?, legend?, columns?}` (Output ▸ List columns…): without a parameter the
     /// window opens the form of the list on show (see the module documentation); its Apply writes the caption, the
     /// legend and the printed columns in one step, a field left empty clearing its member. Refused in words: no list on
     /// show, a width that is not a whole number of 1 or more, an order that is not a whole number, no column ticked.
@@ -153,7 +156,11 @@ impl ShellModel {
                         if c.shown { TICKED } else { "" }.to_owned(),
                         c.heading.clone(),
                         c.width.to_string(),
-                        if c.shown { (i + 1).to_string() } else { String::new() },
+                        if c.shown {
+                            (i + 1).to_string()
+                        } else {
+                            String::new()
+                        },
                     ],
                 })
                 .collect();
@@ -205,7 +212,14 @@ impl ShellModel {
         let mut chosen: Vec<(u32, usize, Value)> = Vec::new();
         for (i, c) in look.columns.iter().enumerate() {
             let cells = row_cells(table, i);
-            let cell = |w: &str| cells.get(w).and_then(Value::as_str).unwrap_or("").trim().to_owned();
+            let cell = |w: &str| {
+                cells
+                    .get(w)
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .trim()
+                    .to_owned()
+            };
             if cell(&words[0]) != TICKED {
                 continue;
             }
@@ -264,7 +278,7 @@ impl ShellModel {
         self.commit_look(COLUMNS, edits, toast)
     }
 
-    /// `report_block.rows {rows?}` (Output ▸ Reports ▸ Rows of your own…): without a parameter the window opens the form
+    /// `report_block.rows {rows?}` (Output ▸ Rows of your own…): without a parameter the window opens the form
     /// of the list on show (see the module documentation); its Apply writes the rows the list holds that the model does
     /// not, in one step, the empty ones left out. Refused in words: no list on show, a table of contents.
     pub(crate) fn act_report_block_rows(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -291,7 +305,10 @@ impl ShellModel {
                         })
                         .collect::<Vec<String>>()
                 })
-                .chain(std::iter::repeat_n(vec![String::new(); headings.len()], SPARE_ROWS))
+                .chain(std::iter::repeat_n(
+                    vec![String::new(); headings.len()],
+                    SPARE_ROWS,
+                ))
                 .enumerate()
                 .map(|(i, cells)| FormRow {
                     key: (i + 1).to_string(),
@@ -314,7 +331,11 @@ impl ShellModel {
                 }),
             }));
         }
-        let table = p.get("rows").and_then(Value::as_array).cloned().unwrap_or_default();
+        let table = p
+            .get("rows")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
         let mut rows: Vec<Value> = Vec::new();
         for i in 0..table.len() {
             let cells = row_cells(&table, i);

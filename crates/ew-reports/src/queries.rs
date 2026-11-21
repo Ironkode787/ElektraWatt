@@ -84,7 +84,9 @@ fn with_added_rows(mut rows: RowSet, block: &ReportBlock) -> RowSet {
                 match c.ty {
                     CellType::Ident => Cell::Ident(plain),
                     CellType::Address => Cell::Address(plain),
-                    CellType::Number => plain.parse().map_or_else(|_| Cell::Text(text.clone()), Cell::Number),
+                    CellType::Number => plain
+                        .parse()
+                        .map_or_else(|_| Cell::Text(text.clone()), Cell::Number),
                     _ => Cell::Text(text.clone()),
                 }
             })

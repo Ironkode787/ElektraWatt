@@ -803,7 +803,12 @@ impl Session {
         };
         let top = area.row_top(drawn + i64::from(legend)).0;
         Some(PageListTable {
-            foot: [area.left.0, top, area.right.0, top + ew_scene::table::ROW_HEIGHT.0],
+            foot: [
+                area.left.0,
+                top,
+                area.right.0,
+                top + ew_scene::table::ROW_HEIGHT.0,
+            ],
             columns: t.columns.iter().map(|c| c.header.clone()).collect(),
             rows: t
                 .rows

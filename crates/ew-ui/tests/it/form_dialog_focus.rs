@@ -477,6 +477,13 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         json!({"kind": "devices", "key": device}),
     );
     checked.insert(check_form(&mut h, "devices.set_location", json!({})));
+    // List columns… and Rows of your own… on a page of a list.
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    goto(&mut h, "903");
+    for action in ["report_block.columns", "report_block.rows"] {
+        checked.insert(check_form(&mut h, action, json!({})));
+        dispatch(&mut h, "ui.dismiss", json!({}));
+    }
     h.state_mut().shell_mut().shutdown();
     drop(h);
 

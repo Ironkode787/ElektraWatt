@@ -104,7 +104,11 @@ impl FormDef {
                     let (sn, sd) = (i128::from(num), i128::from(den));
                     (hn * sd + i128::from(count) * sn * hd, hd * sd)
                 };
-                let (rn, rd) = far(grid.columns.count, grid.columns.width.num(), grid.columns.width.den());
+                let (rn, rd) = far(
+                    grid.columns.count,
+                    grid.columns.width.num(),
+                    grid.columns.width.den(),
+                );
                 let (bn, bd) = far(grid.rows.count, grid.rows.height.num(), grid.rows.height.den());
                 (
                     printed(hn, hd, offset.0),
@@ -162,10 +166,15 @@ mod tests {
     /// 15.01 mm, 23 rows; a caption and a legend each take one of them.
     #[test]
     fn the_starter_a4_frame_holds_the_house_table() {
-        let frame = form(include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"));
+        let frame = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+        ));
         let tb = form(include_str!("../../../content/forms/ew.titleblock.qet-a4.json"));
         let a = frame.list_area(Some(&tb), false, false);
-        assert_eq!((a.left, a.right, a.top), (Nm(16_310_000), Nm(277_270_000), Nm(15_010_000)));
+        assert_eq!(
+            (a.left, a.right, a.top),
+            (Nm(16_310_000), Nm(277_270_000), Nm(15_010_000))
+        );
         assert_eq!(a.rows, HOUSE_ROWS_PER_PAGE);
         assert_eq!(a.header_top(), a.top);
         let both = frame.list_area(Some(&tb), true, true);
@@ -185,9 +194,13 @@ mod tests {
     /// them data rows.
     #[test]
     fn the_starter_a3_frame_holds_a_wider_and_longer_table() {
-        let a4 = form(include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"))
-            .list_area(None, false, false);
-        let frame = form(include_str!("../../../content/forms/ew.frame.qet-a3-landscape-grid.json"));
+        let a4 = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+        ))
+        .list_area(None, false, false);
+        let frame = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a3-landscape-grid.json"
+        ));
         let tb = form(include_str!("../../../content/forms/ew.titleblock.qet-a3.json"));
         let a3 = frame.list_area(Some(&tb), false, false);
         assert_eq!((a3.left, a3.top), (a4.left, a4.top));
@@ -199,7 +212,9 @@ mod tests {
     /// holds one, and nothing panics.
     #[test]
     fn a_form_without_a_grid_takes_its_sheet_and_a_tiny_one_holds_one_row() {
-        let mut plain = form(include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"));
+        let mut plain = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+        ));
         plain.grid = None;
         plain.page_to_sheet = None;
         let a = plain.list_area(None, false, false);

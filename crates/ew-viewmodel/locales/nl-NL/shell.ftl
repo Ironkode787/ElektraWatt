@@ -7690,7 +7690,7 @@ toast-arrange-applied = { $p0 } geschikt: { $p1 }, { $p2 }.
 toast-arrange-nothing = Niets te schikken: de pagina staat al zo goed als de regels toelaten.
 toast-arrange-none-left = Er blijft niets over om toe te passen: elke wijziging van dit voorbeeld is uitgevinkt.
 
-# Doc 09 §3.8: Uitvoer ▸ Rapporten ▸ Lijstkolommen… en Eigen rijen… van de getoonde lijst.
+# Doc 09 §3.8: Uitvoer ▸ Lijstkolommen… en Eigen rijen… van de getoonde lijst.
 action-report-block-columns = Lijstkolommen…
 action-report-block-rows = Eigen rijen…
 list-columns-title = Lijstkolommen

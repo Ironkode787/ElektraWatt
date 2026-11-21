@@ -195,7 +195,10 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         NavKind::Strips => {
             let mut c = own(&["strip"]);
             c.push(column("pos", "Pos", false, None));
-            for mut k in kind_columns("terminal_diagram").into_iter().filter(|k| k.key != "strip") {
+            for mut k in kind_columns("terminal_diagram")
+                .into_iter()
+                .filter(|k| k.key != "strip")
+            {
                 k.key_column = false;
                 let bridge = k.key == "bridge";
                 c.push(k);

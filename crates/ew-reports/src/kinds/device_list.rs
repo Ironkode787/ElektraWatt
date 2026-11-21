@@ -46,9 +46,21 @@ impl ReportKindDef for DeviceList {
             ColumnDef::new("tag", CellType::Ident, "Tag", "Kenmerk").weighted(52),
             ColumnDef::new("function_text", CellType::Text, "Function text", "Functietekst").weighted(50),
             ColumnDef::new("parts", CellType::Ident, "Parts", "Artikelen").weighted(46),
-            ColumnDef::new("tech_data", CellType::Text, "Technical data", "Technische gegevens").weighted(40),
+            ColumnDef::new(
+                "tech_data",
+                CellType::Text,
+                "Technical data",
+                "Technische gegevens",
+            )
+            .weighted(40),
             ColumnDef::new("location", CellType::Ident, "Location (+)", "Locatie (+)").weighted(31),
-            ColumnDef::new("main_rep", CellType::CellRef, "Main representation", "Hoofdweergave").weighted(42),
+            ColumnDef::new(
+                "main_rep",
+                CellType::CellRef,
+                "Main representation",
+                "Hoofdweergave",
+            )
+            .weighted(42),
         ]
     }
 

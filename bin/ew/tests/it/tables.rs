@@ -488,7 +488,7 @@ fn the_json_results_name_format_preset_and_revision() {
         (&serde_json::json!("csv"), &serde_json::json!("rfc4180"))
     );
     assert_eq!(v["strips"], serde_json::json!(["-X1011", "-X1021", "-X1031"]));
-    assert!(v["csv"].as_str().unwrap().starts_with("id,Terminal,"));
+    assert!(v["csv"].as_str().unwrap().starts_with("id,Strip,Terminal,"));
     let v = json(args([&"export", &"wires", &p, &"--json"]));
     assert_eq!(
         (&v["format"], &v["preset"]),

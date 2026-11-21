@@ -49,11 +49,7 @@ pub fn row_texts(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
 pub fn rows_csv(q: &Q, set: &RowSet) -> String {
     let mut out = String::new();
     let header: Vec<String> = std::iter::once("row".to_owned())
-        .chain(
-            set.columns
-                .iter()
-                .map(|c| csv_field(c.english())),
-        )
+        .chain(set.columns.iter().map(|c| csv_field(c.english())))
         .collect();
     out.push_str(&header.join(","));
     out.push('\n');

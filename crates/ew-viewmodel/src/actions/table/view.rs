@@ -274,12 +274,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Output ▸ Reports ▸ List columns… and Rows of your own… of the list on show (doc 09 §3.8), beside Report.
+    // Output ▸ List columns… and Rows of your own… of the list on show (doc 09 §3.8), beside Report.
     with_params(
         "caption?:text, legend?:text, columns?:json",
         placed(
             place(Group::Reports, 2, CommandSize::Small, None),
-            "columns-3",
+            "table-options",
             act(
                 "report_block.columns",
                 Command,

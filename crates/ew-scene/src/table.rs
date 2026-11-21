@@ -514,8 +514,15 @@ pub fn lower_table(
                 at: (Option<usize>, usize),
                 links: &[&TableLink]| styled(out, s, &style, (x0, x1, y0), at, links);
     if let Some(caption) = view.caption.as_deref().filter(|_| area.caption) {
-        let caption_style = styles.resolve(CAPTION_STYLE).unwrap_or_else(|| style.clone());
-        styled(&mut out, caption, &caption_style, (left, right, area.top), (None, 0), &[]);
+        let caption_style = styles.resolve(CAPTION_STYLE).unwrap_or(style);
+        styled(
+            &mut out,
+            caption,
+            &caption_style,
+            (left, right, area.top),
+            (None, 0),
+            &[],
+        );
     }
     for (c, col) in view.columns.iter().enumerate() {
         if col.weight > 0 {
@@ -554,7 +561,15 @@ pub fn lower_table(
         }
     }
     if let Some(legend) = &view.legend {
-        text(&mut out, legend, left, right, row_y(row_count + 1), (None, 0), &[]);
+        text(
+            &mut out,
+            legend,
+            left,
+            right,
+            row_y(row_count + 1),
+            (None, 0),
+            &[],
+        );
     }
     out
 }

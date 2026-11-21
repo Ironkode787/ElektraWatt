@@ -7957,7 +7957,7 @@ toast-arrange-applied = Arranged { $p0 }: { $p1 }, { $p2 }.
 toast-arrange-nothing = Nothing to arrange: the page is already arranged as well as the rules allow.
 toast-arrange-none-left = Nothing is left to apply: every change of this preview is unticked.
 
-# Doc 09 §3.8: Output ▸ Reports ▸ List columns… and Rows of your own… of the list on show.
+# Doc 09 §3.8: Output ▸ List columns… and Rows of your own… of the list on show.
 action-report-block-columns = List columns…
 action-report-block-rows = Rows of your own…
 list-columns-title = List columns

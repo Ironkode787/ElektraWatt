@@ -123,7 +123,13 @@ impl ReportKindDef for PlcCardList {
             ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(10),
             ColumnDef::new("input_start", CellType::Address, "Input start", "Begin ingangen").weighted(8),
             ColumnDef::new("input_length", CellType::Number, "Input bytes", "Ingangsbytes").weighted(7),
-            ColumnDef::new("output_start", CellType::Address, "Output start", "Begin uitgangen").weighted(8),
+            ColumnDef::new(
+                "output_start",
+                CellType::Address,
+                "Output start",
+                "Begin uitgangen",
+            )
+            .weighted(8),
             ColumnDef::new("output_length", CellType::Number, "Output bytes", "Uitgangsbytes").weighted(7),
             ColumnDef::new("used", CellType::Number, "Used", "Gebruikt").weighted(5),
             ColumnDef::new("spare", CellType::Number, "Spare", "Reserve").weighted(5),
@@ -229,7 +235,13 @@ impl ReportKindDef for NetworkAddressList {
             ColumnDef::new("mask", CellType::Ident, "Subnet mask", "Subnetmasker").weighted(9),
             ColumnDef::new("master", CellType::Bool, "Master", "Master").weighted(5),
             ColumnDef::new("rate", CellType::Number, "Rate (bit/s)", "Snelheid (bit/s)").weighted(8),
-            ColumnDef::new("config_project", CellType::Ident, "Configuration project", "Configuratieproject").weighted(9),
+            ColumnDef::new(
+                "config_project",
+                CellType::Ident,
+                "Configuration project",
+                "Configuratieproject",
+            )
+            .weighted(9),
             ColumnDef::new("tbd", CellType::Bool, "TBD", "N.t.b.").weighted(4),
         ]
     }
@@ -714,7 +726,13 @@ impl ReportKindDef for SafetyIoList {
             ColumnDef::new("module", CellType::Ident, "Module", "Module").weighted(10),
             ColumnDef::new("channel", CellType::Number, "Channel", "Kanaal").weighted(6),
             ColumnDef::new("pair", CellType::Number, "Pair", "Paar").weighted(5),
-            ColumnDef::new("target", CellType::Ident, "Sensor or actuator", "Sensor of actuator").weighted(12),
+            ColumnDef::new(
+                "target",
+                CellType::Ident,
+                "Sensor or actuator",
+                "Sensor of actuator",
+            )
+            .weighted(12),
             ColumnDef::new("requirement", CellType::Ident, "Requirement", "Eis").weighted(8),
             ColumnDef::new("test_pulse", CellType::Ident, "Test pulse", "Testpuls").weighted(10),
         ]

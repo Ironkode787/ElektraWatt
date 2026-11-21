@@ -199,11 +199,7 @@ fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hol
     });
     let q = s.query();
     let set = q.get::<BlockRows>(id);
-    let labels: Vec<String> = set
-        .columns
-        .iter()
-        .map(|c| c.english().to_owned())
-        .collect();
+    let labels: Vec<String> = set.columns.iter().map(|c| c.english().to_owned()).collect();
     assert!(
         set.rows.len() > 9,
         "the wire list has more rows than the rect holds"

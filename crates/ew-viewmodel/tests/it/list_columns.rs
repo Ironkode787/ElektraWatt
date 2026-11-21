@@ -72,7 +72,10 @@ fn list_columns_and_rows_of_your_own_write_the_list_on_show() {
     let mut bad = apply.clone();
     bad["columns"] = param(&wrong);
     let refusal = common::failed(&mut s, "report_block.columns", bad);
-    assert!(refusal.starts_with("The width of Terminal is a whole number"), "{refusal}");
+    assert!(
+        refusal.starts_with("The width of Terminal is a whole number"),
+        "{refusal}"
+    );
     done(&mut s, "report_block.columns", apply);
     assert!(s.dialog().is_none(), "{:?}", s.dialog());
     // Opened again, the form shows what the list prints now.
@@ -101,5 +104,9 @@ fn list_columns_and_rows_of_your_own_write_the_list_on_show() {
     done(&mut s, "report_block.rows", json!({}));
     let again = form(&s).table.expect("the rows' table");
     assert_eq!(again.rows[0].cells, ["-Q9:1", "1a"]);
-    assert!(again.rows[1..].iter().all(|r| r.cells.iter().all(String::is_empty)));
+    assert!(
+        again.rows[1..]
+            .iter()
+            .all(|r| r.cells.iter().all(String::is_empty))
+    );
 }

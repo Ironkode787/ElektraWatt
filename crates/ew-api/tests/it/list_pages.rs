@@ -78,7 +78,12 @@ fn a_list_prints_the_columns_headings_widths_caption_and_legend_its_block_choose
     let mut s = common::sample();
     let first = pages_of(&s, 903)[0];
     let before = table(&s, first);
-    let at = |key: &str| before.columns.iter().position(|c| c.header == english("terminal_diagram", key));
+    let at = |key: &str| {
+        before
+            .columns
+            .iter()
+            .position(|c| c.header == english("terminal_diagram", key))
+    };
     let (side1, terminal) = (at("side1").expect("side 1"), at("terminal").expect("terminal"));
     let block = block_at(&s, 903);
     set(
@@ -93,8 +98,15 @@ fn a_list_prints_the_columns_headings_widths_caption_and_legend_its_block_choose
     set(&mut s, &block, "caption", json!("Terminals of the sample"));
     set(&mut s, &block, "legend", json!("PE: protective earth"));
     let after = table(&s, first);
-    let heads: Vec<(&str, u32)> = after.columns.iter().map(|c| (c.header.as_str(), c.weight)).collect();
-    assert_eq!(heads, [(english("terminal_diagram", "side1").as_str(), 30), ("Klem", 10)]);
+    let heads: Vec<(&str, u32)> = after
+        .columns
+        .iter()
+        .map(|c| (c.header.as_str(), c.weight))
+        .collect();
+    assert_eq!(
+        heads,
+        [(english("terminal_diagram", "side1").as_str(), 30), ("Klem", 10)]
+    );
     assert_eq!(after.caption.as_deref(), Some("Terminals of the sample"));
     assert_eq!(after.legend.as_deref(), Some("PE: protective earth"));
     // The same rows, their cells those of the two columns; the caption and the legend take a row each.
@@ -107,9 +119,15 @@ fn a_list_prints_the_columns_headings_widths_caption_and_legend_its_block_choose
     let listed: usize = lists.iter().map(|p| table(&s, *p).rows.len()).sum();
     assert_eq!(listed, rows.rows.len(), "every row is on a page");
     // The CSV keeps every column of the kind.
-    let csv = row_export(&q, &RowExport::Report, Some("903")).expect("903's rows").csv;
+    let csv = row_export(&q, &RowExport::Report, Some("903"))
+        .expect("903's rows")
+        .csv;
     let header = csv.lines().next().expect("a header");
-    for c in Registry::builtin().by_name("terminal_diagram").expect("the kind").columns() {
+    for c in Registry::builtin()
+        .by_name("terminal_diagram")
+        .expect("the kind")
+        .columns()
+    {
         assert!(header.contains(c.english()), "{} in {header}", c.key);
     }
 }
@@ -136,8 +154,14 @@ fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     let nl: LangTag = "nl-NL".parse().expect("a tag");
     let page = pages_of(&s, 907)[0];
     let heads: Vec<String> = table(&s, page).columns.into_iter().map(|c| c.header).collect();
-    let kind = Registry::builtin().by_name("wire_list").expect("the kind").columns();
-    let dutch: Vec<String> = kind.iter().map(|c| text_in(&c.label, Some(&nl)).to_owned()).collect();
+    let kind = Registry::builtin()
+        .by_name("wire_list")
+        .expect("the kind")
+        .columns();
+    let dutch: Vec<String> = kind
+        .iter()
+        .map(|c| text_in(&c.label, Some(&nl)).to_owned())
+        .collect();
     let english: Vec<String> = kind.iter().map(|c| c.english().to_owned()).collect();
     assert_eq!(heads, dutch);
     assert_ne!(heads, english);
@@ -168,13 +192,22 @@ fn rows_of_your_own_are_listed_sorted_and_kept_when_the_model_changes() {
             .map(|i| (i, rows.rows.len(), rows.rows[i].cells[at].clone()))
     };
     let (i, n, cell) = terminal(&s).expect("the added row");
-    assert_eq!((i, cell), (n - 1, ew_reports::Cell::Ident("1a".to_owned())), "unsorted: after the kind's rows");
+    assert_eq!(
+        (i, cell),
+        (n - 1, ew_reports::Cell::Ident("1a".to_owned())),
+        "unsorted: after the kind's rows"
+    );
     // Sorted by terminal, it stands among the model's rows ("1a" before "2").
     set(&mut s, &block, "sort", json!([{"key": "terminal"}]));
     let (i, n, _) = terminal(&s).expect("the added row");
     assert!(i < n - 1, "{i} of {n}");
-    let csv = row_export(&s.query(), &RowExport::Report, Some("903")).expect("903's rows").csv;
-    assert!(csv.lines().any(|l| l.contains(",1a,") && l.contains("spare")), "{csv}");
+    let csv = row_export(&s.query(), &RowExport::Report, Some("903"))
+        .expect("903's rows")
+        .csv;
+    assert!(
+        csv.lines().any(|l| l.contains(",1a,") && l.contains("spare")),
+        "{csv}"
+    );
     // A change of the model leaves it where it is.
     let page = common::first_page(&s);
     common::run_cmd(
@@ -209,7 +242,11 @@ fn two_strips_terminals_of_one_designation_read_apart_in_the_terminal_diagram() 
     assert!(pe.len() > 1, "the sample has more than one terminal PE: {pe:?}");
     assert!(pe.iter().all(|s| !s.is_empty()), "{pe:?}");
     let strips: std::collections::BTreeSet<&String> = pe.iter().collect();
-    assert_eq!(strips.len(), pe.len(), "every terminal PE names another strip: {pe:?}");
+    assert_eq!(
+        strips.len(),
+        pe.len(),
+        "every terminal PE names another strip: {pe:?}"
+    );
 }
 
 /// FT-1826: a set whose frame is the starter A3 frame prints its lists on it, as many rows to a page as its list area
@@ -226,7 +263,10 @@ fn a_set_on_a3_prints_its_lists_on_a3() {
         (frame.form.sheet.width.0, frame.form.sheet.height.0),
         (420_000_000, 297_000_000)
     );
-    let a3_rows = frame.form.list_area(frame.title_block.as_deref(), false, false).rows;
+    let a3_rows = frame
+        .form
+        .list_area(frame.title_block.as_deref(), false, false)
+        .rows;
     assert!(a3_rows > ew_schema::HOUSE_ROWS_PER_PAGE, "{a3_rows}");
     let id = ew_derive::ew_ids::Id::from_uuid(block_at(&s, 907).parse().expect("a UUID"));
     let all = q.get::<BlockRows>(id).rows.len();

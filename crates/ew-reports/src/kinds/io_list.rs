@@ -48,7 +48,13 @@ impl ReportKindDef for IoList {
     /// house table's 260.96 mm without an overflow (248.3 mm at the floor).
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("config_project", CellType::Ident, "Configuration project", "Configuratieproject").weighted(269),
+            ColumnDef::new(
+                "config_project",
+                CellType::Ident,
+                "Configuration project",
+                "Configuratieproject",
+            )
+            .weighted(269),
             ColumnDef::new("cpu", CellType::Ident, "CPU", "CPU").weighted(66),
             ColumnDef::new("station", CellType::Ident, "Station", "Station").weighted(101),
             ColumnDef::new("bus_address", CellType::Ident, "Bus address", "Busadres").weighted(161),

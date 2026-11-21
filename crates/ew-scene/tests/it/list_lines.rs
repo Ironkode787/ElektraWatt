@@ -97,13 +97,21 @@ fn a_caption_stands_above_the_header_and_a_legend_under_the_last_row() {
             .items
             .iter()
             .find_map(|i| match &i.kind {
-                ItemKind::Glyphs(run) if run.text == text => Some(scene.map.apply(run.to_parent(Pt2::ORIGIN)).y),
+                ItemKind::Glyphs(run) if run.text == text => {
+                    Some(scene.map.apply(run.to_parent(Pt2::ORIGIN)).y)
+                }
                 _ => None,
             })
             .unwrap_or_else(|| panic!("{text} is drawn"))
     };
     let caption = baseline("Terminal list");
-    assert!(table.min().y.0 - ROW_HEIGHT.0 < caption.0 && caption < table.min().y, "{caption:?}");
+    assert!(
+        table.min().y.0 - ROW_HEIGHT.0 < caption.0 && caption < table.min().y,
+        "{caption:?}"
+    );
     let legend = baseline("PE: earth");
-    assert!(table.max().y < legend && legend.0 < table.max().y.0 + ROW_HEIGHT.0, "{legend:?}");
+    assert!(
+        table.max().y < legend && legend.0 < table.max().y.0 + ROW_HEIGHT.0,
+        "{legend:?}"
+    );
 }
