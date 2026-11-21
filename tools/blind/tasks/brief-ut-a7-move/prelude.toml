@@ -1,23 +1,51 @@
-# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of Golden A
-# (`task.toml`: `start = "golden-a"`); the prelude deletes the wire W18 (S56:14 to E56:X1) and moves E56's
-# representation twelve grid steps to the right (to 101-E16), saves, and shows folio 101.
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of the sample
+# (`task.toml`: `start = "sample"`); the prelude deletes the wire from -102Q1:14 to the lamp -102E1 and moves the lamp
+# two columns to the right, A7's start state.
 
 [[step]]
 action = "file.open"
 class = "setup"
 
 [[step]]
-action = "command.run"
+action = "page.goto"
 class = "setup"
 
 [[step]]
-action = "command.run"
+action = "select.set"
+class = "setup"
+
+[[step]]
+action = "edit.delete_selection"
+class = "setup"
+
+[[step]]
+action = "tool.select"
+class = "setup"
+
+[[step]]
+action = "cursor.set"
+class = "setup"
+
+[[step]]
+action = "canvas.activate"
+class = "setup"
+
+[[step]]
+action = "tool.move"
+class = "setup"
+
+[[step]]
+action = "cursor.set"
+class = "setup"
+
+[[step]]
+action = "canvas.activate"
+class = "setup"
+
+[[step]]
+action = "ui.dismiss"
 class = "setup"
 
 [[step]]
 action = "file.save"
-class = "setup"
-
-[[step]]
-action = "page.goto"
 class = "setup"
