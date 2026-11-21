@@ -625,7 +625,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 |---|---|---|
 | `src/error.rs` |  | [`LibraryError`]: why a registry operation did not happen. |
 | `src/file.rs` |  | The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. |
-| `src/index.rs` |  | The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory, never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is missing, unreadable or of another schema. |
+| `src/index.rs` | large | The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory, never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is missing, unreadable or of another schema. |
 | `src/lib.rs` |  | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects. |
 | `src/lock.rs` |  | `library.lock`, the writer's lock of a `.ewlib` directory, with the project lock's record and stale rule (doc 05 §7.1, §7.4). |
 | `src/manifest.rs` |  | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
@@ -1054,7 +1054,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/part_card.rs` |  | A part's data at a glance (F22): the card under the device browser's picture, on a device's row in the Devices list (its tooltip) and behind Part details in Properties. |
 | `src/part_dialog.rs` | large | The bodies of the part selection dialog and the part editor inside the 640-px form dialog frame (`crate::dialog`). |
 | `src/parts_card.rs` |  | The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's origin is an import. |
-| `src/parts_map.rs` |  | The column mapping step of File, Import, Parts table…: a card floating at the top centre while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`). |
+| `src/parts_map.rs` |  | The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog stands (FT-1761: at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`). |
 | `src/picker.rs` | large | The device and symbol browser (FT-1636): one overlay for Insert symbol, Insert device, Change symbol, Insert black box and the strip chooser, over a backdrop, the window less `space.6` on each side and most of its height. |
 | `src/preview.rs` |  | The Preview tab (D11; FR-UI-022), restyled to doc 16a §6.23. |
 | `src/print_dialog.rs` |  | The print pre-dialog (doc 16a §6.12): the options on the left on §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with Previous and Next under it, the stamp visible. |
@@ -1219,7 +1219,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/templates.rs` |  | New project, the templates and the check level (FR-PRJ-009, FR-PRJ-010, FR-MAC-011; doc 16 §3.7, §9.2). |
 | `src/shell/terminals.rs` |  | Terminals and strips placed on a page: New terminal strip (`strip.new`), Terminal… (`tool.place_terminal`: its form, its proposal of a part, the row of terminals one click places and its spacing), the strip tag the Place tool shows while it places terminals, and the words of a terminal placed. |
 | `src/shell/text_styles.rs` |  | Text styles (Project ▸ Text styles…, `text_styles.open`; ADR-0032, ADR-0028 amendment 2; doc 16 §3.7). |
-| `src/shell/tips.rs` |  | The three one-time tips (FR-UI-048) for a user who comes from EPLAN or QET, each a toast with one action of the registry. |
+| `src/shell/tips.rs` |  | The one-time tips (FR-UI-048), each a toast with one action of the registry: three for a user who comes from EPLAN or QET, and one for everyone, where the mouse wheel's zoom is first met (FT-1830). |
 | `src/shell/title_block.rs` |  | Title block fields… (`page.title_block`, FT-1686): every field the focused page's title block prints from the project's data, in one form, written where its value comes from in one undo step: the page's title and description, the project's master data, its parties' names, the open revision's label and the names of the parties the current revision names as author and checker (FT-1718). |
 | `src/shell/tools.rs` | large | The tool host in the shell: one active tool per window acting on the focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the keyboard tool input, the link hover preview and the selection. |
 | `src/shell/undo_panel.rs` |  | The history panel's host duties and context restore (doc 16 §8.1, D13; FR-UI-023). |

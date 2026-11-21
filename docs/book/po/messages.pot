@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-21T22:35:27+01:00\n"
+"POT-Creation-Date: 2026-11-21T22:44:34+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -512,12 +512,11 @@ msgstr ""
 
 #: src/tutorials/first-page.md:26
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the transformer's pin 1U2, "
-"then the pin X1 of -1E1: the wire is drawn. Draw three more wires the same "
-"way: from X1 of -1E1 to X1 of -1E2, from 2U2 to X2 of -1E1, and from X2 of "
-"\\-1E1 to X2 of -1E2. Choose **Draw ▸ Select**. The two lamps are wired in "
-"parallel to the transformer's secondary. Each wire takes a number, such as "
-"1.1."
+"Choose **Draw ▸ Wire** (`W`). Click the transformer's pin 1U2, then the pin "
+"X1 of -1E1: the wire is drawn. Draw three more wires the same way: from X1 "
+"of -1E1 to X1 of -1E2, from 2U2 to X2 of -1E1, and from X2 of \\-1E1 to X2 "
+"of -1E2. Choose **Draw ▸ Select**. The two lamps are wired in parallel to "
+"the transformer's secondary. Each wire takes a number, such as 1.1."
 msgstr ""
 
 #: src/tutorials/first-page.md:30
@@ -635,10 +634,10 @@ msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:26
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`). Draw the cabinet side: from X1 of "
-"-1E2 to the bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. "
-"Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top "
-"of \\-1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**. The terminal -1X1:1 "
+"Choose **Draw ▸ Wire** (`W`). Draw the cabinet side: from X1 of -1E2 to the "
+"bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. Then the "
+"field side: from the top of -1X1:1 to X1 of -1E3, and from the top of "
+"\\-1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**. The terminal -1X1:1 "
 "carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
 msgstr ""
 
@@ -924,10 +923,10 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:39
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its "
-"bottom, then the supply's pin -, at the bottom of G1: the return wire is "
-"drawn. Choose **Draw ▸ Select**. The two EW-POT-009 warnings are gone. While "
-"you edit, the Messages pane shows the project's own scheme, drafting."
+"Choose **Draw ▸ Wire** (`W`). Click the lamp's pin X2, at its bottom, then "
+"the supply's pin -, at the bottom of G1: the return wire is drawn. Choose "
+"**Draw ▸ Select**. The two EW-POT-009 warnings are gone. While you edit, the "
+"Messages pane shows the project's own scheme, drafting."
 msgstr ""
 
 #: src/tutorials/import-qet.md:42
@@ -1299,11 +1298,11 @@ msgstr ""
 
 #: src/tutorials/plc-station.md:56
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 "
-"at the top of -1A1-A1; click X2 of \\-1E1, then pin 1 at the bottom of "
-"-1A1-A2. Choose **Draw ▸ Select**. The switch is wired to the first input "
-"and the lamp to the first output. Each module's pins print their addresses, "
-"I0.0 at pin 1 of -1A1-A1, and the switch becomes the target of channel I0.0."
+"Choose **Draw ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 at the "
+"top of -1A1-A1; click X2 of \\-1E1, then pin 1 at the bottom of -1A1-A2. "
+"Choose **Draw ▸ Select**. The switch is wired to the first input and the "
+"lamp to the first output. Each module's pins print their addresses, I0.0 at "
+"pin 1 of -1A1-A1, and the switch becomes the target of channel I0.0."
 msgstr ""
 
 #: src/tutorials/plc-station.md:60
@@ -1443,11 +1442,10 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:40
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the socket P1 of the CPU's X1 "
-"box, then P1 of the switch; click P4 of the switch, then the socket P1 of "
-"the remote I/O station's X1 box. Choose **Draw ▸ Select**. The two bus lines "
-"join the CPU, the switch and the remote I/O station into one PROFINET "
-"network."
+"Choose **Draw ▸ Wire** (`W`). Click the socket P1 of the CPU's X1 box, then "
+"P1 of the switch; click P4 of the switch, then the socket P1 of the remote "
+"I/O station's X1 box. Choose **Draw ▸ Select**. The two bus lines join the "
+"CPU, the switch and the remote I/O station into one PROFINET network."
 msgstr ""
 
 #: src/tutorials/bus-network.md:43
@@ -1503,8 +1501,8 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:67
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`), click P5 of the switch, then P1 of "
-"-2K2, and choose **Draw ▸ Select**. In the Bus panel's table, type `drive1 "
+"Choose **Draw ▸ Wire** (`W`), click P5 of the switch, then P1 of -2K2, and "
+"choose **Draw ▸ Select**. In the Bus panel's table, type `drive1 "
 "192.168.0.3` into the **Address** cell of -2K2 X1. The converter is a node "
 "of the same network:"
 msgstr ""
@@ -1526,8 +1524,8 @@ msgstr ""
 #: src/tutorials/bus-network.md:81
 msgid ""
 "A bus-topology page holds the network: a device stands as one box per bus "
-"interface, and **Draw ▸ Connect ▸ Wire** draws the bus lines between their "
-"sockets. A CPU or a remote I/O head is a station, with its rack."
+"interface, and **Draw ▸ Wire** draws the bus lines between their sockets. A "
+"CPU or a remote I/O head is a station, with its rack."
 msgstr ""
 
 #: src/tutorials/bus-network.md:83
@@ -1631,12 +1629,11 @@ msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:42
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw the tubes, each from one "
-"port to the other: A of -2M1 to 1 of \\-2R1, 2 of -2R1 to 4 of -2Q1; B of "
-"-2M1 to 1 of -2R2, 2 of -2R2 to 2 of -2Q1; 1 of -2X1 to 1 of -2V1, and 2 of "
-"\\-2V1 to 1 of -2Q1. Choose **Draw ▸ Select**. The circuit is joined: "
-"supply, service unit, valve, and the two lines to the cylinder through the "
-"flow controls."
+"Choose **Draw ▸ Wire** (`W`) and draw the tubes, each from one port to the "
+"other: A of -2M1 to 1 of \\-2R1, 2 of -2R1 to 4 of -2Q1; B of -2M1 to 1 of "
+"-2R2, 2 of -2R2 to 2 of -2Q1; 1 of -2X1 to 1 of -2V1, and 2 of \\-2V1 to 1 "
+"of -2Q1. Choose **Draw ▸ Select**. The circuit is joined: supply, service "
+"unit, valve, and the two lines to the cylinder through the flow controls."
 msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:46
@@ -1686,9 +1683,9 @@ msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:66
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at "
-"the top of -1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid "
-"is wired to the PLC output."
+"Choose **Draw ▸ Wire** (`W`), click A1 of the coil, then pin 1 at the top of "
+"-1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid is wired to "
+"the PLC output."
 msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:69
@@ -1757,11 +1754,11 @@ msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:98
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw two tubes: 4 of -2Q2 to A of "
-"-2M2, and 2 of -2Q2 to B of -2M2. Choose **Draw ▸ Select**. The tubes leave "
-"the valve's working ports upwards. Click -2M2: its rows **Port A** and "
-"**Port B** read \"Compressed air, 6 bar\", the air that comes from -2X2 "
-"through the terminal and the valve."
+"Choose **Draw ▸ Wire** (`W`) and draw two tubes: 4 of -2Q2 to A of -2M2, and "
+"2 of -2Q2 to B of -2M2. Choose **Draw ▸ Select**. The tubes leave the "
+"valve's working ports upwards. Click -2M2: its rows **Port A** and **Port "
+"B** read \"Compressed air, 6 bar\", the air that comes from -2X2 through the "
+"terminal and the valve."
 msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:103
@@ -3940,7 +3937,7 @@ msgid "connect it to the subnet"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:45
-msgid "draw a bus line between the sockets with **Draw ▸ Connect ▸ Wire**"
+msgid "draw a bus line between the sockets with **Draw ▸ Wire**"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:46
@@ -4214,8 +4211,8 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:145
 msgid ""
-"Choose **Draw ▸ Connect ▸ Wire** (`W`) and wire it to the module's pin: pin "
-"1 is channel 0."
+"Choose **Draw ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is "
+"channel 0."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:146
@@ -4355,8 +4352,8 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:197
 msgid ""
-"Draw the bus lines with **Draw ▸ Connect ▸ Wire**: the ports become one "
-"network, named for its bus, with the CPU's port as its controller or master."
+"Draw the bus lines with **Draw ▸ Wire**: the ports become one network, named "
+"for its bus, with the CPU's port as its controller or master."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:199
@@ -4852,7 +4849,7 @@ msgid ""
 "Choose **Tube** on the Fluid tab and click from port to port. The bar under "
 "the page says the line kind and the project's tube, such as \"Working line · "
 "tube 6/4 mm\"; its **Line kind** button changes the kind for the next tubes. "
-"**Draw ▸ Connect ▸ Wire** draws working lines."
+"**Draw ▸ Wire** draws working lines."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:48
@@ -5626,14 +5623,13 @@ msgstr ""
 msgid ""
 "Draws connections between connection points: click a start point, then the "
 "end point; corners are placed where you click in between. Open it with Draw "
-"▸ Connect ▸ Wire. See [A first schematic "
-"page](../../tutorials/first-page.md). A click takes the connection point "
-"within about ten screen points of it, at any zoom, and the ring under the "
-"pointer shows which. A click that misses and lands right beside one is said "
-"in the status line at once (\"The click placed a bend beside a connection "
-"point, not on it: …\"), as is a start beside one that took nothing and a "
-"wire just drawn that bends beside one without joining it; Ctrl+Z takes such "
-"a wire back."
+"▸ Wire. See [A first schematic page](../../tutorials/first-page.md). A click "
+"takes the connection point within about ten screen points of it, at any "
+"zoom, and the ring under the pointer shows which. A click that misses and "
+"lands right beside one is said in the status line at once (\"The click "
+"placed a bend beside a connection point, not on it: …\"), as is a start "
+"beside one that took nothing and a wire just drawn that bends beside one "
+"without joining it; Ctrl+Z takes such a wire back."
 msgstr ""
 
 #: src/reference/window/tools.md:158
@@ -7620,8 +7616,8 @@ msgstr ""
 
 #: src/reference/window/things.md:34
 msgid ""
-"To make one: **Draw ▸ Connect ▸ Wire** (`W`), then a click on a start point "
-"and one on the end point ([Wire](tools.md#wire))."
+"To make one: **Draw ▸ Wire** (`W`), then a click on a start point and one on "
+"the end point ([Wire](tools.md#wire))."
 msgstr ""
 
 #: src/reference/window/things.md:37
@@ -9193,7 +9189,7 @@ msgid ""
 "**The same:** connections join connection points and follow the drawing. "
 "**What differs:** EW builds the physical wires from the drawn connections, "
 "junctions and interruption points, so the wire list follows the drawing "
-"without an update step. **In the window:** **Draw ▸ Connect ▸ Wire**."
+"without an update step. **In the window:** **Draw ▸ Wire**."
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:94 src/explanation/qet-and-ew.md:80
@@ -9444,7 +9440,7 @@ msgid ""
 "**The same:** a conductor joins two terminals of elements. **What differs:** "
 "a connection belongs to a potential and becomes part of a physical wire with "
 "a cross-section, colour and number, which the wire list and the terminal "
-"diagram show. **In the window:** **Draw ▸ Connect ▸ Wire**."
+"diagram show. **In the window:** **Draw ▸ Wire**."
 msgstr ""
 
 #: src/explanation/qet-and-ew.md:84
