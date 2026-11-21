@@ -1,6 +1,19 @@
-# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of Golden A
-# (`task.toml`: `start = "golden-a"`).
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of the sample
+# (`task.toml`: `start = "sample"`); the prelude renumbers its section 1 in steps of 2 (101, 103, 105, 107, 109), the
+# gaps the task closes.
 
 [[step]]
 action = "file.open"
+class = "setup"
+
+[[step]]
+action = "pages.renumber"
+class = "setup"
+
+[[step]]
+action = "preview.apply"
+class = "setup"
+
+[[step]]
+action = "file.save"
 class = "setup"

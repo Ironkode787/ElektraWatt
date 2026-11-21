@@ -18,7 +18,7 @@ actions = ["nav.follow"]
 [[item]]
 id = "A3"
 kind = "hard"
-what = "The drawing is unchanged: 24VDC-1 still runs on the folios 102, 103 and 106."
+what = "The drawing is unchanged: 24V still runs on the folios 101, 102 and 104."
 how = "connections"
-query = "SELECT name FROM api_v1_potential WHERE name = '24VDC-1' AND pages = '[\"102\",\"103\",\"106\"]'"
+query = "SELECT name FROM api_v1_potential WHERE name = '24V' AND pages = '[\"101\",\"102\",\"104\"]'"
 expect = "== 1"

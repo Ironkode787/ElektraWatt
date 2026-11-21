@@ -5,19 +5,18 @@
 [[item]]
 id = "A1"
 kind = "hard"
-what = "Folio 104 exists and folio 106 does not."
+what = "Folios 101 to 105 exist and folios 107 and 109 do not."
 how = "pages"
-query = "SELECT folio FROM api_v1_page WHERE folio = '104' AND NOT EXISTS (SELECT 1 FROM api_v1_page WHERE folio = '106')"
-expect = "== 1"
+query = "SELECT folio FROM api_v1_page WHERE folio IN ('101', '102', '103', '104', '105') AND NOT EXISTS (SELECT 1 FROM api_v1_page WHERE folio IN ('107', '109'))"
+expect = "== 5"
 
 [[item]]
 id = "A2"
 kind = "hard"
-what = "The cables of the old folio 106 are -104W1 and -104W2."
+what = "The motor cable is -103W1 again and the bus cable -105W1: the cables carry the tags of their folios."
 how = "connections"
-query = "SELECT tag FROM api_v1_cable WHERE tag IN ('-104W1', '-104W2')"
+query = "SELECT tag FROM api_v1_cable WHERE tag IN ('-103W1', '-105W1')"
 expect = "== 2"
-
 [[item]]
 id = "A3"
 kind = "hard"

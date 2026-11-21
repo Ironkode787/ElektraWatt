@@ -4,7 +4,7 @@
 text = "A folio's number is not typed into the folio: the program renumbers the folios of a section for you and shows what will change before it does."
 
 [[hint]]
-text = "Renumber section 1 from 101 in steps of 1 without keeping gaps: 101, 102 and 103 stay, and 106 becomes 104. The change opens a preview with its tags, cross-references and folios."
+text = "Renumber section 1 from 101 in steps of 1 without keeping gaps: 101 stays, 103 becomes 102, 105 becomes 103, and so on. The change opens a preview with its tags, cross-references and folios."
 
 [[hint]]
 text = "Choose Renumber pages... in the Page menu, section 1, start 101, step 1; read the Tags, Xrefs and Pages lists of the Preview tab, then press Apply."

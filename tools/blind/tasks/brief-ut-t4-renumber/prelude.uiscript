@@ -1,2 +1,5 @@
-{"$schema":"ew.uiscript/1","label":"brief-ut-t4-renumber prelude"}
+{"$schema":"ew.uiscript/1","label":"brief-ut-t4-renumber prelude: section 1 of the sample renumbered in steps of 2"}
 {"action":"file.open","params":{"dir":"project"}}
+{"action":"pages.renumber","params":{"section":"1","start":101,"step":2}}
+{"action":"preview.apply","params":{}}
+{"action":"file.save","params":{}}
