@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the shell on temporary copies of Golden A: Draw ▸ Layout enabled on 902 and disabled on 101
-//! with its reason; Draw rail giving R1's geometry with a diagonal second click; Draw duct giving D1 and
-//! D2 with Backspace, a double click and Enter; a carrier dragged by Select; the Create enclosure dialog on a
-//! new location of the project, its refusal on +J-E-2416, and a new panel page's Surface view centred (the
+//! Through the shell on temporary copies of the sample: Draw ▸ Layout enabled on 902 and disabled on 101
+//! with its reason; Draw rail giving rail 1's geometry with a diagonal second click; Draw duct giving duct 1 and
+//! a second duct with Backspace, a double click and Enter; a carrier dragged by Select; the Create enclosure dialog
+//! on a new location of the project, its refusal on +CAB, and a new panel page's Surface view centred (the
 //! project path); Properties rows committed from the shell; Auto-fill rail's dialog and toast.
 
 use crate::common;
@@ -171,28 +171,27 @@ fn draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
     let tmp = Tmp::new("ps2");
     let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let before = ids(&s);
+    let r1 = carrier(&panel(&s), "Rail 1").clone();
     let number = part_number_of(&s, "rail", "Rail 1");
     done(&mut s, "tool.rail_draw", json!({}));
     done(&mut s, "layout.draw_options", json!({"part": number}));
     assert_eq!(s.tool().name(), "rail_draw");
-    click_mm(&mut s, 40.8, 741.3);
+    click_mm(&mut s, 25.8, 581.3);
     assert_eq!(s.tool().state(), "drawing");
     // The second point, off the axis by 22 mm, stays on the horizontal.
-    let p = sheet_mm(&s, 609.2, 762.0);
+    let p = sheet_mm(&s, 494.2, 602.0);
     done(&mut s, "canvas.pointer", at(p, json!({})));
     assert_eq!(
         state(&s)["canvas"]["ghost"],
-        json!({"kind": "line", "carrier": "rail", "from_nm": [40_000_000, 740_000_000],
-            "to_nm": [610_000_000, 740_000_000]})
+        json!({"kind": "line", "carrier": "rail", "from_nm": [25_000_000, 580_000_000],
+            "to_nm": [495_000_000, 580_000_000]})
     );
     let rev = s.revision();
     common::click(&mut s, p, json!({}));
     assert_ne!(s.revision(), rev, "one commit");
     let added = new_carriers(&s, &before);
     assert_eq!(added.len(), 1);
-    let t = panel(&s);
-    let r1 = carrier(&t, "Rail 1");
-    assert_eq!(mm_path(&added[0]), [(40, 740), (610, 740)]);
+    assert_eq!(mm_path(&added[0]), [(25, 580), (495, 580)]);
     assert_eq!(added[0].path, r1.path);
     assert_eq!(added[0].profile, r1.profile);
     assert_eq!(added[0].part, r1.part);
@@ -207,31 +206,32 @@ fn draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
     let tmp = Tmp::new("ps3");
     let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let before = ids(&s);
+    let d1 = carrier(&panel(&s), "Duct 1").clone();
     let number = part_number_of(&s, "duct", "Duct 1");
     done(&mut s, "tool.duct_draw", json!({}));
     done(&mut s, "layout.draw_options", json!({"part": number}));
-    // D1: under the plate's top edge, inset by half the width (40 mm).
-    click_mm(&mut s, 1.5, 881.5);
+    // Duct 1 again: between the sample's two rails.
+    click_mm(&mut s, 26.5, 436.5);
     click_mm(&mut s, 300.0, 700.0);
     done(&mut s, "tool.back", json!({}));
-    click_mm(&mut s, 648.5, 878.0);
+    click_mm(&mut s, 493.5, 433.0);
     // A double click: the second click adds nothing, the double click finishes.
-    click_mm(&mut s, 648.5, 878.0);
+    click_mm(&mut s, 493.5, 433.0);
     done(&mut s, "tool.finish", json!({}));
-    let t = panel(&s);
     let added = new_carriers(&s, &before);
     assert_eq!(added.len(), 1, "one duct");
-    assert_eq!(mm_path(&added[0]), [(0, 880), (650, 880)]);
-    assert_eq!(added[0].path, carrier(&t, "Duct 1").path);
+    assert_eq!(mm_path(&added[0]), [(25, 435), (495, 435)]);
+    assert_eq!(added[0].path, d1.path);
     assert_eq!((added[0].width, added[0].height), (Some(40 * MM), Some(60 * MM)));
-    // D2: from under D1's lower edge, down to the plate's bottom edge; Enter on the last vertex finishes.
+    // A second duct: from under the first one's lower edge, down to the plate's bottom edge; Enter on the last vertex
+    // finishes.
     let before = ids(&s);
-    click_mm(&mut s, 21.5, 858.5);
-    click_mm(&mut s, 19.0, 1.5);
+    click_mm(&mut s, 46.5, 413.5);
+    click_mm(&mut s, 44.0, 1.5);
     done(&mut s, "tool.finish", json!({}));
     let added = new_carriers(&s, &before);
     assert_eq!(added.len(), 1, "a second duct");
-    assert_eq!(mm_path(&added[0]), [(20, 860), (20, 0)]);
+    assert_eq!(mm_path(&added[0]), [(45, 415), (45, 0)]);
     // One point is not a duct.
     click_mm(&mut s, 300.0, 300.0);
     assert_eq!(
@@ -246,7 +246,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
     let tmp = Tmp::new("drag-rail");
     let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let t = panel(&s);
-    let r3 = carrier(&t, "Rail 3").clone();
+    let r3 = carrier(&t, "Rail 2").clone();
     let on_r3 = t.placements.iter().filter(|p| p.carrier == Some(r3.id)).count();
     let a = r3.axis.expect("an axis");
     // A point of the rail no placement covers.
@@ -260,7 +260,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
                     && (i128::from(f.min().y.0)..=i128::from(f.max().y.0)).contains(&p.1)
             })
         })
-        .expect("a free point of rail 3");
+        .expect("a free point of rail 2");
     let from = s.canvas().unwrap().page().snapper.page_to_sheet(t.to_page(grab));
     let to = sheet_mm(&s, (grab.0 as f64) / 1e6 + 0.4, (grab.1 as f64) / 1e6 - 18.2);
     done(&mut s, "canvas.press", at(from, json!({})));
@@ -268,7 +268,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
     assert_eq!(s.tool().state(), "dragging");
     done(&mut s, "canvas.release", at(to, json!({})));
     let t = panel(&s);
-    let moved = carrier(&t, "Rail 3");
+    let moved = carrier(&t, "Rail 2");
     let shifted: Vec<(i64, i64)> = r3.path.iter().map(|p| (p.0, p.1 - 20_000_000)).collect();
     assert_eq!(moved.path, shifted, "18.2 mm down is 20 mm on the 5 mm grid");
     assert_eq!(
@@ -286,7 +286,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
 fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure() {
     let tmp = Tmp::new("ps1");
     let mut s = tmp.sample_in(Mode::Gui, true, "902");
-    // +J-E-2416 has -UC1: the refusal stays under the fields.
+    // +CAB has -UC1: the refusal stays under the fields.
     done(&mut s, "layout.enclosure_new", json!({}));
     let Some(Dialog::Form(form)) = s.dialog().cloned() else {
         panic!("{:?}", s.dialog())
@@ -298,7 +298,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         .iter()
         .find(|(v, _)| *v == location.value)
         .map(|(_, w)| w.as_str());
-    assert_eq!(words, Some("+J-E-2416"), "the focused page's location");
+    assert_eq!(words, Some("+CAB"), "the focused page's location");
     let part = form.fields.iter().find(|f| f.name == "part").unwrap();
     assert!(!part.options.is_empty(), "the project's enclosure parts");
     let enclosure_part = part.value.clone();
@@ -308,7 +308,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     };
     assert_eq!(
         message,
-        "Location +J-E-2416 already has enclosure -UC1; a location has one enclosure. \
+        "Location +CAB already has enclosure -UC1; a location has one enclosure. \
          Choose another location, or edit -UC1."
     );
     let Some(Dialog::Form(form)) = s.dialog() else {
@@ -514,12 +514,12 @@ fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
 const NEW_PROJECT_DATUM: &str = "79.530115, 154.284722 mm";
 
 /// PS-1's fitting scale of the new plate on folio 950.
-const PS1_SCALE: &str = "1:10";
+const PS1_SCALE: &str = "1:5";
 
 /// PS-1's centred datum of the new plate on folio 950 at [`PS1_SCALE`]: the frame's drawing-area centre on the page,
 /// less the enclosure rectangle's centre in the plate's frame (x), plus it (y, the page's y grows downwards), both
-/// drawn at the scale.
-const PS1_DATUM: &str = "99.301325, 126.9092 mm";
+/// drawn at the scale. The sample's enclosure part is the starter's, so the datum is a new project's.
+const PS1_DATUM: &str = NEW_PROJECT_DATUM;
 
 /// The Surface view row's choices on the page shown (the project's plates by their words).
 fn surfaces(s: &ShellModel) -> Vec<String> {
@@ -545,8 +545,8 @@ fn unplaced_key(s: &ShellModel, label: &str) -> String {
         .key
 }
 
-/// PS-6 (AS-3 through the window): R1 emptied, the four rail devices and E55 marked in Unplaced devices, Auto-fill rail
-/// in DT order gives -101F1, -102F1, -102F2 and -102G1 at clip 9, 27, 58.5 and 116 mm, and the toast names E55.
+/// PS-6 (AS-3 through the window): rail 1 emptied, four of its devices marked in Unplaced devices, Auto-fill rail
+/// in DT order gives -101F1, -101G1, -102F1 and -103F1 on it from its start, and the toast counts them.
 #[test]
 fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
     let tmp = Tmp::new("ps6");
@@ -561,7 +561,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
         );
     }
     done(&mut s, "navigator.show", json!({"kind": "unplaced"}));
-    for d in ["-102G1", "-102F2", "-101F1", "-102F1", "E55"] {
+    for d in ["-103F1", "-101G1", "-101F1", "-102F1"] {
         let key = unplaced_key(&s, d);
         done(&mut s, "navigator.mark", json!({"kind": "unplaced", "key": key}));
     }
@@ -588,7 +588,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
             (
                 "rail",
                 "Rail 1".to_owned(),
-                vec!["Rail 1".to_owned(), "Rail 2".to_owned(), "Rail 3".to_owned()]
+                vec!["Rail 1".to_owned(), "Rail 2".to_owned()]
             ),
             (
                 "order",
@@ -606,7 +606,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
         ),
         (
             "Auto-fill rail",
-            vec!["Fills with the 5 devices marked in Unplaced devices.".to_owned()],
+            vec!["Fills with the 4 devices marked in Unplaced devices.".to_owned()],
             "Fill"
         )
     );
@@ -624,10 +624,10 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
     assert_eq!(
         on,
         [
-            ("-101F1".to_owned(), 90),
-            ("-102F1".to_owned(), 270),
-            ("-102F2".to_owned(), 585),
-            ("-102G1".to_owned(), 1160)
+            ("-101F1".to_owned(), 180),
+            ("-101G1".to_owned(), 660),
+            ("-102F1".to_owned(), 1050),
+            ("-103F1".to_owned(), 1410)
         ],
         "clip points in tenths of a millimetre"
     );
@@ -637,11 +637,22 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
         .last()
         .map(|n| n.text.clone())
         .expect("a toast");
-    assert_eq!(
-        toast,
-        "Placed 4 devices on rail 1; E55: screw-mounted, not on a rail."
-    );
+    assert_eq!(toast, "Placed 4 devices on rail 1.");
+
     s.shutdown();
+}
+
+/// The sample's devices of rail 1 `tags`, taken off it: unplaced devices of the cabinet (the sample places every one).
+fn unplace(s: &mut ShellModel, tags: &[&str]) {
+    let t = panel(s);
+    for tag in tags {
+        let p = t.placements.iter().find(|p| p.tag == *tag).unwrap().id;
+        done(
+            s,
+            "command.run",
+            json!({"cmd": "layout.remove", "params": {"placement": p.to_string()}}),
+        );
+    }
 }
 
 /// The persona round of the second 0.3.0 candidate: "Nothing was placed on rail 1: no device to place" did not say
@@ -652,6 +663,7 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
 fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     let tmp = Tmp::new("fill-why");
     let mut s = tmp.sample_in(Mode::Gui, true, "902");
+    unplace(&mut s, &["-104E1", "-104E2"]);
     let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
     assert!(!unplaced.is_empty());
     done(
@@ -664,7 +676,7 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     done(&mut s, "layout.auto_fill_rail", json!({}));
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     let n = unplaced.len();
-    let why = format!("No device has this cabinet's location +J-E-2416 yet: {n} devices have no location.");
+    let why = format!("No device has this cabinet's location +CAB yet: {n} devices have no location.");
     assert_eq!(
         spec.body,
         [
@@ -672,7 +684,7 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
             why
         ]
     );
-    let give = format!("Give the {n} devices without a location +J-E-2416 and place them");
+    let give = format!("Give the {n} devices without a location +CAB and place them");
     let button = spec
         .secondary
         .iter()
@@ -703,6 +715,7 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
 fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
     let tmp = Tmp::new("devices-location");
     let mut s = tmp.sample_in(Mode::Gui, true, "902");
+    unplace(&mut s, &["-104E1", "-104E2"]);
     let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
     done(
         &mut s,
@@ -804,7 +817,7 @@ fn rows_commit_from_the_properties_grid() {
         panic!("refused")
     };
     assert_eq!(message, FAR_POSITION_REFUSAL);
-    assert_eq!(row_text(&s, "placement/derived.position"), "158 mm");
+    assert_eq!(row_text(&s, "placement/derived.position"), "185 mm");
     // R1's Length row lengthens the rail.
     let r1 = carrier(&panel(&s), "Rail 1").id;
     done(&mut s, "select.set", json!({"ids": [r1.to_string()]}));
@@ -817,8 +830,9 @@ fn rows_commit_from_the_properties_grid() {
     s.shutdown();
 }
 
-/// What `layout.move` says of -102F1 moved to 9999 mm on rail 1 (570 mm long).
-const FAR_POSITION_REFUSAL: &str = "the pose is off the rail: s = 9999 mm is outside [0, 570 mm]";
+/// What `layout.move` says of -102F1 moved to 9999 mm on rail 1 (470 mm long).
+const FAR_POSITION_REFUSAL: &str = "the pose is off the rail: s = 9999 mm is outside [0, 470 mm]";
+
 
 /// The text of the shown Properties row `key`.
 fn row_text(s: &ShellModel, key: &str) -> String {
@@ -1124,11 +1138,8 @@ fn the_draw_tools_texts_read_whole() {
     );
     let p = sheet_mm(&s, 300.0, 100.0);
     done(&mut s, "canvas.pointer", at(p, json!({"shift": true})));
-    // Golden A's duct part gives no size: the card asks for it, 40 × 60 mm (the numbers written out).
-    assert_eq!(
-        s.draw_card().and_then(|c| c.size),
-        Some(("40".to_owned(), "60".to_owned()))
-    );
+    // The sample's duct part gives its size, 40 × 60 mm: the card asks for none.
+    assert_eq!(s.draw_card().and_then(|c| c.size), None);
     // The card's texts (`tool_view.rs`), whole.
     assert_eq!(
         [
@@ -1175,7 +1186,7 @@ fn the_draw_tools_texts_read_whole() {
     s.shutdown();
 }
 
-/// The size chip of Draw duct with Golden A's duct part, which gives no size: the card's default 40 × 60 mm.
+/// The size chip of Draw duct with the sample's duct part, 40 × 60 mm.
 const DUCT_CHIP: &str = "40 \u{d7} 60 mm";
 
 /// Auto-fill rail with one marked device: the dialog's line for one device and the toast without notices;
@@ -1294,5 +1305,5 @@ fn the_surface_row_chooses_a_surface_by_its_id() {
     s.shutdown();
 }
 
-/// The Surface row's choices on Golden A with the enclosure of +J-E-999 added.
+/// The Surface row's choices on the sample with the enclosure of +J-E-999 added.
 const SURFACE_WORDS: [&str; 2] = ["-UC1 plate", "-UC2 plate"];
