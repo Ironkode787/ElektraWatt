@@ -1162,13 +1162,16 @@ the typeface. A text placed with the Text tool keeps the middle anchor.
 
 A person who must deliver the drawing set as CAD files gets from `ew export dxf` one file per page that is the page of
 the PDF: the same texts in the same places and sizes, the title block with its picture, in a format AutoCAD 2010 and
-later open, and with the page's structure, so that the receiver can work with it (FT-1877). The program writes no DWG
-(owner, 2026-11-20): a DWG is made from the DXF by a converter (the ODA File Converter, which the import runs the
-other way, doc 14 §6.5; or the receiver's CAD program), saved in whatever version the converter is told.
+later open, and with the page's structure, so that the receiver can work with it (FT-1877). This row writes no DWG: a
+DWG is made from the DXF by a converter (the ODA File Converter, which the import runs the other way, doc 14 §6.5; or
+the receiver's CAD program). The program's own DWG export comes after the DXF equals the PDF, as FT-1745 of the later
+backlog: the export runs the user's converter on this DXF. So the DXF is made to become a good DWG of the 2010 format
+(the choices marked *for the DWG* below).
 
 **The version: AutoCAD 2010 (`AC1024`).** It is the format AutoCAD 2010 to 2012 write, and every AutoCAD since opens
-it; so do the converters and readers of DXF (the ODA File Converter, BricsCAD, LibreCAD, ezdxf). What it changes
-against the earlier `AC1015` file:
+it; so do the converters and readers of DXF (the ODA File Converter, BricsCAD, LibreCAD, ezdxf). *For the DWG:* a DWG
+of the 2010 format is `AC1024` too, so a converter carries every object over as it is, without converting it to
+another version's form. What it changes against the earlier `AC1015` file:
 
 - Strings are UTF-8 (AutoCAD 2007 and later read a file of `AC1021` or later so), so a text is written as itself
   ("Ä", "∞", "²"), no longer as `\U+XXXX`; `$DWGCODEPAGE` stays `ANSI_1252`, as AutoCAD writes it.
@@ -1179,7 +1182,10 @@ against the earlier `AC1015` file:
 - The APPID table names `PE_URL`, the application of AutoCAD's hyperlinks.
 
 The rest stays: the sheet in millimetres in the model space, `$EXTMIN`/`$EXTMAX` and the limits the sheet, the tables,
-the model and paper space with their layouts, no date, user name or GUID. The same pages give the same bytes.
+the model and paper space with their layouts, no date, user name or GUID. The same pages give the same bytes. *For the
+DWG:* every object has its handle and its owner (an attribute its insert, a picture's definition its dictionary and
+the reactor that ties it to its `IMAGE`), as a DWG holds them, so a converter needs to repair nothing; and every name
+(a layer, a block, a style, an attribute) is one a DWG may hold.
 
 **Type.** As §4.8 merged it: a `STYLE` per face that names its font file, a `TEXT` at its run's baseline start, as high
 as its face's capitals, at its run's angle. What a text further needs to stand where the PDF has it:
@@ -1211,8 +1217,9 @@ object works on Windows only and no converter keeps it), so:
 - A PNG or JPEG picture is an `IMAGE` that names a file the export writes beside the pages, `picture-<the first 12
   hexadecimal digits of its SHA-256>.png` (or `.jpg`), once for the set and by its name alone, with its `IMAGEDEF` in
   the drawing's image dictionary (`ACAD_IMAGE_DICT`). AutoCAD finds a picture named so in the drawing's own folder:
-  the receiver keeps the picture files beside the page files, and so beside the DWG files a converter makes (it keeps
-  the reference as it is).
+  the receiver keeps the picture files beside the page files, and so beside the DWG files a converter makes. *For the
+  DWG:* a DWG holds a raster picture in the same way, as a reference to its file, so a converter keeps the `IMAGE`,
+  its definition and the relative name as they are and the DWG set shows the picture as the DXF set does.
 - A picture that cannot be drawn (its bytes not held, refused or not decodable) is a page finding of the export, as
   for the PDF.
 
@@ -1227,7 +1234,8 @@ object works on Windows only and no converter keeps it), so:
 - *A device's texts are attributes of its insert*: every text the page prints for the representation (its slot texts,
   a black box's pin texts, a terminal's strip tag) is an `ATTRIB` of the insert, where and as large as the PDF has it,
   on the texts layer. The block has an `ATTDEF` for each name its inserts on the page carry, where the first of them
-  has it, so that a CAD program's attribute tools list them.
+  has it, so that a CAD program's attribute tools list them. *For the DWG:* blocks, attribute definitions and
+  attributes are what a DWG holds itself, not a DXF-only form, so the DWG of a page has the page's structure.
 - *The names are an interface*, so they are few, stable and in words: one per kind of slot (doc 07 §2.3), the same in
   every language.
 
@@ -1257,7 +1265,7 @@ object works on Windows only and no converter keeps it), so:
   (`∞ 3-B2, 106-G3`) has no hyperlink: its items name them in words. A target outside the exported pages leaves the
   text without a link, as a partial PDF does. Every other text that links in the PDF (a row of the contents to its
   page) links so too. A link names `<label>.dxf`; with `ew export dxf --dwg-links` it names `<label>.dwg`, for a set
-  that a converter turns into DWG.
+  that a converter turns into DWG (a converter keeps a link as it is; FT-1745's export will set it itself).
 - *The frame and the title block* are entities on the frame layer, each page its own: a title block prints its page's
   values, so as a block it would be one per page. Its texts are `TEXT`s; its picture as above.
 
@@ -1266,7 +1274,9 @@ picture, the symbol inserts, the wires, the texts (the attributes among them: an
 insert on the symbols layer), the graphics, the tables and a printed underlay. A block's own content is on layer `0`,
 so it takes its insert's layer.
 
-**What it does not do.** No DWG and no font in the file: a text is a `TEXT` in a named face, never its outlines. No
+**What it does not do.** It writes no DWG: that is FT-1745 of the later backlog, after this row (the export runs the
+user's converter on this DXF, as the DWG import runs it the other way). No font in the file: a text is a `TEXT` in a
+named face, never its outlines. No
 `MTEXT` and no attribute of more lines. No title block as a block with attributes, no named views (a link opens the
 page and the text names the cell), no external references between the page files, no paper-space layout of the sheet,
 no plot styles. A raster picture is never inside the file, and the rule that aligned a text is not written. The window
