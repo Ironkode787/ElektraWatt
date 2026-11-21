@@ -106,7 +106,11 @@ impl Source {
                         (1, 1)
                     }
                     'r' | 'b' | 'c' if i == 0 || !is_ident(chars[i - 1]) => {
-                        let prefix = if c != 'r' && next == Some('r') { 2 } else { usize::from(c == 'r') };
+                        let prefix = if c != 'r' && next == Some('r') {
+                            2
+                        } else {
+                            usize::from(c == 'r')
+                        };
                         let hashes = chars
                             .get(i + prefix..)
                             .unwrap_or_default()
@@ -150,7 +154,11 @@ impl Source {
                         state = State::BlockComment(depth + 1);
                         (2, 0)
                     } else if c == '*' && next == Some('/') {
-                        state = if depth == 1 { State::Code } else { State::BlockComment(depth - 1) };
+                        state = if depth == 1 {
+                            State::Code
+                        } else {
+                            State::BlockComment(depth - 1)
+                        };
                         (2, 0)
                     } else {
                         (1, 0)
@@ -165,7 +173,8 @@ impl Source {
                     _ => (1, 0),
                 },
                 State::RawStr(hashes) => {
-                    if c == '"' && chars[i + 1..].iter().take(hashes).filter(|&&h| h == '#').count() == hashes {
+                    if c == '"' && chars[i + 1..].iter().take(hashes).filter(|&&h| h == '#').count() == hashes
+                    {
                         state = State::Code;
                         (hashes + 1, hashes + 1)
                     } else {
@@ -490,9 +499,15 @@ pub(crate) fn outline(args: &[String], root: &Path) -> Result<bool> {
                 Some(files) => files,
                 None => files.insert(repo::list_files(root)?),
             };
-            let prefix = if rel.is_empty() { String::new() } else { format!("{rel}/") };
-            let under: Vec<&String> =
-                all.iter().filter(|f| f.starts_with(&prefix) && f.ends_with(".rs")).collect();
+            let prefix = if rel.is_empty() {
+                String::new()
+            } else {
+                format!("{rel}/")
+            };
+            let under: Vec<&String> = all
+                .iter()
+                .filter(|f| f.starts_with(&prefix) && f.ends_with(".rs"))
+                .collect();
             if under.is_empty() {
                 writeln!(out, "{rel}: no Rust file")?;
             }
@@ -510,7 +525,12 @@ pub(crate) fn outline(args: &[String], root: &Path) -> Result<bool> {
                 }
             }
             if !left.is_empty() {
-                writeln!(out, "… {} more files left out, outline them one by one: {}", left.len(), left.join(", "))?;
+                writeln!(
+                    out,
+                    "… {} more files left out, outline them one by one: {}",
+                    left.len(),
+                    left.join(", ")
+                )?;
             }
             if !skipped.is_empty() {
                 writeln!(out, "generated, left out: {}", skipped.join(", "))?;
@@ -551,7 +571,11 @@ fn write_outline(out: &mut String, path: &str, text: &str, tests: bool) -> Resul
 
 /// The widest span of `items` and their children.
 fn span_width(items: &[Item]) -> usize {
-    items.iter().map(|i| span(i).len().max(span_width(&i.children))).max().unwrap_or(0)
+    items
+        .iter()
+        .map(|i| span(i).len().max(span_width(&i.children)))
+        .max()
+        .unwrap_or(0)
 }
 
 /// One line an item, its children indented below it; a tests module as one line unless `tests`.
@@ -611,7 +635,9 @@ pub(crate) fn find(args: &[String], root: &Path) -> Result<bool> {
             let name = args.next().context("--in needs a crate name")?;
             within = crate_dir(root, name)?;
         } else if arg.is_empty() || arg.chars().any(char::is_whitespace) || arg.starts_with('-') {
-            bail!("`{arg}` is not a name: a name is one word, such as act_pages_copy, CopyPages or page.copy");
+            bail!(
+                "`{arg}` is not a name: a name is one word, such as act_pages_copy, CopyPages or page.copy"
+            );
         } else {
             names.push(arg.as_str());
         }
@@ -669,7 +695,11 @@ fn where_text(files: &[(String, String)], map: &str, names: &[&str]) -> Result<S
                     "  {path}:{}  {}{}",
                     span(item),
                     item.signature,
-                    if item.doc.is_empty() { String::new() } else { format!(" — {}", item.doc) }
+                    if item.doc.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" — {}", item.doc)
+                    }
                 ));
             }
             if !lines.is_empty() {
@@ -801,7 +831,10 @@ type Alias = Vec<u8>;
             assert_eq!(found.len(), 1, "{name}: {items:#?}");
             (found[0].start, found[0].line, found[0].end)
         };
-        assert_eq!(by_name(&items, "f"), (line("/// Doc of"), line("pub(crate) fn f"), line("    0") + 1));
+        assert_eq!(
+            by_name(&items, "f"),
+            (line("/// Doc of"), line("pub(crate) fn f"), line("    0") + 1)
+        );
         let f = items.iter().find(|i| i.name.as_deref() == Some("f")).unwrap();
         assert_eq!(f.signature, "pub(crate) fn f<T>(a: T) -> u8");
         assert_eq!(f.doc, "Doc of `f`.");
@@ -816,12 +849,18 @@ type Alias = Vec<u8>;
         let imp = items.iter().find(|i| i.signature.starts_with("impl")).unwrap();
         assert_eq!(imp.signature, "impl<'a, T> Trait for Wrap<'a, T>");
         assert_eq!((imp.line, imp.end), (line("impl<'a"), line("        \"}\"") + 2));
-        assert_eq!(by_name(&items, "N"), (line("/// The constant"), line("const N"), line("const N")));
+        assert_eq!(
+            by_name(&items, "N"),
+            (line("/// The constant"), line("const N"), line("const N"))
+        );
         assert_eq!(by_name(&items, "method").2, line("        \"}\"") + 1);
         assert_eq!(by_name(&items, "get").1, line("pub fn get"));
         assert_eq!(by_name(&items, "S").2, line("        a: u8") + 1);
         assert_eq!(by_name(&items, "inner").2, line("macro_rules!") - 2);
-        assert_eq!(by_name(&items, "m"), (line("macro_rules!"), line("macro_rules!"), line("() => {};") + 1));
+        assert_eq!(
+            by_name(&items, "m"),
+            (line("macro_rules!"), line("macro_rules!"), line("() => {};") + 1)
+        );
         assert_eq!(by_name(&items, "COUNT").1, line("static mut"));
         let count = items.iter().find(|i| i.name.as_deref() == Some("COUNT")).unwrap();
         assert_eq!(count.signature, "static mut COUNT: [u8; 2]");
@@ -891,11 +930,20 @@ page.copy
         ];
         let found = where_text(&files, "", &["list_files"]).unwrap();
         let def = found.lines().nth(1).unwrap();
-        assert!(def.starts_with("  xtask/src/repo.rs:") && def.contains("pub fn list_files(root: &Path)"), "{found}");
+        assert!(
+            def.starts_with("  xtask/src/repo.rs:") && def.contains("pub fn list_files(root: &Path)"),
+            "{found}"
+        );
         let main_lines = word_lines(&main_rs, "list_files");
         assert!(!main_lines.is_empty());
         let numbers: Vec<String> = main_lines.iter().map(|l| (l + 1).to_string()).collect();
-        assert!(found.contains(&format!("xtask/src/main.rs ({}): {}", numbers.len(), numbers.join(", "))), "{found}");
+        assert!(
+            found.contains(&format!(
+                "xtask/src/main.rs ({}): {}",
+                numbers.len(),
+                numbers.join(", ")
+            )),
+            "{found}"
+        );
     }
-
 }
