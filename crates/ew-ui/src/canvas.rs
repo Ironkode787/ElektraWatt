@@ -2085,7 +2085,7 @@ impl CanvasHost {
                 .iter()
                 .chain(&canvas_menu(shell, spot, self.views[group].menu_point))
             {
-                crate::menu::item(ui, item, events);
+                crate::menu::row_item(ui, item, events);
             }
         });
     }

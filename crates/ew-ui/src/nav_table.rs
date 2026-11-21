@@ -1409,7 +1409,7 @@ impl TableDelegate for Delegate<'_> {
                     crate::navigator::select_row(self.kind, &node.key, page, self.events);
                 }
                 let events = &mut *self.events;
-                response.context_menu(|ui| {
+                crate::menu::row_context_menu(&response, |ui| {
                     for item in &menu {
                         crate::menu::row_item(ui, item, events);
                     }

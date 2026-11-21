@@ -1184,7 +1184,11 @@ dialog of WP-S6.05 takes its first focus on its Primary, as every other dialog d
 when the item has no icon, so labels align), the label, the key in `color.text.secondary` right-aligned, a chevron for
 a submenu. Hover and keyboard highlight use the hover overlay, not the accent; a checked item shows a check icon in the
 icon column. Separators are 1-px `color.border.subtle` lines with `space.2` above and below. Disabled items keep their
-place and show their reason as tooltip.
+place and show their reason as tooltip; in a right-click menu and in a button's menu (a command bar button's, a panel's
+More) the reason also stands on a caption line under the entry (FT-1761: there it was said on hover only), while the
+app menu keeps it in the tooltip, where a line under every greyed command would bury the tree. A row's right-click
+menu opens under its row, where the pointer was along it, or over the row where there is no room under it; it never
+covers the row it acts on (FT-1761).
 
 **The right-click menu is the quick way to what fits the thing under the pointer** (FT-1693). One rule: its first
 entries are what fits the thing, by what it is; then the general ones. A right-click on an object with the Select tool

@@ -896,7 +896,7 @@ fn addresses_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         .min_size(egui::vec2(0.0, t.size_control_inline));
     let _ = egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
         for item in &items {
-            crate::menu::item(ui, item, events);
+            crate::menu::row_item(ui, item, events);
         }
     });
 }
@@ -1385,7 +1385,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             if response.secondary_clicked() && !row.marked {
                 select_row(kind, &row.key, pages && row.openable, events);
             }
-            response.context_menu(|ui| {
+            crate::menu::row_context_menu(&response, |ui| {
                 for item in &menu {
                     crate::menu::row_item(ui, item, events);
                 }

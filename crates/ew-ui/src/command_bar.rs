@@ -528,10 +528,10 @@ pub(crate) fn inline_command(ui: &mut Ui, b: &CommandButton) -> Response {
     command_button(ui, &t, b, rect).0
 }
 
-/// A menu of `items`: each an entry with its shortcut, greyed with its reason when disabled.
+/// A menu of `items`: each an entry with its shortcut, greyed with its reason on a line under it when disabled.
 fn items_menu(ui: &mut Ui, items: &[ActionItem], events: &mut Vec<Event>) {
     for i in items {
-        crate::menu::item(ui, i, events);
+        crate::menu::row_item(ui, i, events);
     }
 }
 
@@ -553,10 +553,10 @@ fn group_menu(ui: &mut Ui, g: &GroupModel, events: &mut Vec<Event>) {
                     topic: b.topic,
                     params: Value::Null,
                 };
-                crate::menu::item(ui, &item, events);
+                crate::menu::row_item(ui, &item, events);
                 if let ButtonKind::Split(variants) = &b.kind {
                     for v in variants.iter().filter(|v| v.id != b.id) {
-                        crate::menu::item(ui, v, events);
+                        crate::menu::row_item(ui, v, events);
                     }
                 }
             }
