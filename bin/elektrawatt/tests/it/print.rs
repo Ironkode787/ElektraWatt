@@ -2,25 +2,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Headless: `file.print` with Range Sections 1, Paper A5 and Scale to fit builds the print set
-//! of PR-1 (its PDF is `golden/J-E-2416/expected/print/sha256.txt`), the preview's page 1 of 5 shows the stamp, and
+//! of PR-1 (its PDF is `ew print --sections 1 --paper A5 --fit`'s), the preview's page 1 of 6 shows the stamp, and
 //! Escape (`ui.dismiss`) closes the dialog and prints nothing. The held-build flows (PW-2) are `ew-viewmodel`'s
-//! `tests/it/print.rs`. Golden A itself is only copied, never written.
+//! `tests/it/print.rs`. The sample is only copied, never written.
 
 use std::path::Path;
 
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
-use sha2::{Digest, Sha256};
 
-use crate::support::{GOLDEN_A, Tmp, copy_dir, path};
-
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+use crate::support::{SAMPLE, Tmp, copy_dir, path};
 
 #[test]
 fn the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
     let tmp = Tmp::new();
-    let dir = tmp.path("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = tmp.path("sample.ew");
+    copy_dir(Path::new(SAMPLE), &dir);
     let mut s = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.path("config"), "0.0.0-test"),
@@ -35,19 +32,18 @@ fn the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
         json!({"range": "sections", "sections": "1", "paper": "A5", "fit": true}),
     );
     let set = s.print_set().expect("the set is built").clone();
-    let digest: String = Sha256::digest(&set.pdf)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect();
-    let expected = std::fs::read_to_string(Path::new(EXPECTED).join("print/sha256.txt")).unwrap();
-    assert_eq!(digest, expected.trim(), "PR-1's print set");
-    assert_eq!(s.print_page_text().as_deref(), Some("1 of 5"));
+    assert!(
+        set.pdf == crate::support::exported::section_1_on_a5(&dir),
+        "PR-1's print set is `ew print`'s"
+    );
+    // Section 1: its divider 100 and the folios 101 to 105.
+    assert_eq!(s.print_page_text().as_deref(), Some("1 of 6"));
     let d = s.describe();
     let preview: Vec<&str> = d
         .lines()
         .filter(|l| l.trim_start().starts_with("preview "))
         .collect();
-    assert_eq!(preview, ["  preview \"1 of 5\" page 100 stamp \"scaled 70 %\""]);
+    assert_eq!(preview, ["  preview \"1 of 6\" page 100 stamp \"scaled 70 %\""]);
     run(&mut s, "ui.dismiss", json!({}));
     assert!(s.print_dialog().is_none(), "Escape closes the dialog");
     assert!(s.take_print_request().is_none(), "and prints nothing");

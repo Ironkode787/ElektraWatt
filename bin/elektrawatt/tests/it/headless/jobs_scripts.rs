@@ -3,7 +3,7 @@
 
 //! The headless PDF export as a job (its result line) and the
 //! journal recovery as `ew.uiscript/1` scripts through the built binary, each run twice on its own copy of
-//! Golden A with byte-identical transcripts; the export's PDF is the golden digest; the `--record` log of the export
+//! the sample with byte-identical transcripts; the export's PDF is `ew export pdf`'s; the `--record` log of the export
 //! script replayed onto a fresh copy gives equal records. The flows with a held gate run in `ew-viewmodel`'s
 //! `tests/it/jobs.rs` (feature `testkit`). A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
 
@@ -12,12 +12,8 @@ use std::process::{Output, Stdio};
 
 use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
-use crate::support::{Tmp, copy_dir};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+use crate::support::{SAMPLE, Tmp, copy_dir};
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"jobs\"}\n");
@@ -87,19 +83,19 @@ fn export_steps(dir: &Path) -> Vec<(&'static str, Value)> {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays() {
-    jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case(false);
+fn the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays() {
+    jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case(false);
 }
 
-pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case(
+pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case(
     twice: bool,
 ) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
-        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
-        // The first export, before the edit, is the golden PDF: kept aside before the replace overwrites it.
+        copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
+        // The first export, before the edit, is `ew export pdf`'s PDF: kept aside before the replace overwrites it.
         let first = run(&dir, "first", &export_steps(&dir)[..3], None);
         assert_eq!(
             first.status.code(),
@@ -108,9 +104,10 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
             String::from_utf8_lossy(&first.stdout)
         );
         let pdf = std::fs::read(dir.join("out.pdf")).unwrap();
-        let digest: String = Sha256::digest(&pdf).iter().map(|b| format!("{b:02x}")).collect();
-        let expected = std::fs::read_to_string(Path::new(EXPECTED).join("pdf/sha256.txt")).unwrap();
-        assert_eq!(digest, expected.trim(), "the job's PDF is the golden PDF");
+        assert!(
+            pdf == crate::support::exported::pdf(Path::new(SAMPLE)),
+            "the job's PDF is `ew export pdf`'s"
+        );
         std::fs::remove_file(dir.join("out.pdf")).unwrap();
         let record = dir.join("record.ewcmd");
         let out = run(&dir, "export", &export_steps(&dir), Some(&record));
@@ -152,7 +149,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
         let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
         assert_eq!(log.commands().count(), 1);
         let fresh = dir.join("fresh.ew");
-        copy_dir(Path::new(GOLDEN_A), &fresh);
+        copy_dir(Path::new(SAMPLE), &fresh);
         let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
         replayed.run_script(&log, "export.ewcmd").unwrap();
         let (saved, _) = Session::open_read_only(&dir.join("g.ew"), "test").unwrap();
@@ -178,7 +175,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
         let project = dir.join("g.ew");
-        copy_dir(Path::new(GOLDEN_A), &project);
+        copy_dir(Path::new(SAMPLE), &project);
         // A run that ends with unsaved changes exits 1 and keeps its journal.
         let crash = run(
             &dir,
@@ -255,7 +252,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
 
 /// A script whose last step is an export that does not wait (`wait: false`) and has no
 /// `jobs.wait` still writes its file, because the end of the run waits for its jobs; two runs give the same
-/// transcript and the same PDF (the golden digest), and no sibling is left.
+/// transcript and the same PDF (`ew export pdf`'s), and no sibling is left.
 #[test]
 fn an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     let tmp = Tmp::new();
@@ -263,7 +260,7 @@ fn an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     let mut pdfs = Vec::new();
     for side in ["a", "b"] {
         let dir = tmp.dir().join(side);
-        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
         let pdf = dir.join("out.pdf");
         let steps = [
             ("file.open", json!({ "dir": path(&dir.join("g.ew")) })),
@@ -282,12 +279,10 @@ fn an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[1]["outcome"], "done");
         let bytes = std::fs::read(&pdf).expect("the PDF is written");
-        let digest: String = Sha256::digest(&bytes)
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect();
-        let expected = std::fs::read_to_string(Path::new(EXPECTED).join("pdf/sha256.txt")).unwrap();
-        assert_eq!(digest, expected.trim(), "the job's PDF is the golden PDF");
+        assert!(
+            bytes == crate::support::exported::pdf(Path::new(SAMPLE)),
+            "the job's PDF is `ew export pdf`'s"
+        );
         assert!(!dir.join(".out.pdf.ew-part").exists(), "no sibling");
         transcripts.push(String::from_utf8(out.stdout.clone()).unwrap());
         pdfs.push(bytes);
@@ -308,7 +303,7 @@ fn an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
     let mut outputs = Vec::new();
     for side in ["a", "b"] {
         let dir = tmp.dir().join(side);
-        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
         let pdf = dir.join("missing").join("out.pdf");
         let steps = [
             ("file.open", json!({ "dir": path(&dir.join("g.ew")) })),

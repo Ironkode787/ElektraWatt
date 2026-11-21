@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
 
-use crate::support::{GOLDEN_A, Tmp, USER_DIRS, bin_exe, copy_dir, path, script_text, steps};
+use crate::support::{SAMPLE, Tmp, USER_DIRS, bin_exe, copy_dir, path, script_text, steps};
 use serde_json::{Value, json};
 
 /// A headless run of `list` with `--config-dir <tmp>/config`, `EW_DEBUG_PANIC` set to 1 when `panic`.
@@ -89,7 +89,7 @@ fn edit(project: &Path) -> [(&'static str, Value); 2] {
 fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     let tmp = Tmp::new();
     let project = tmp.path("g.ew");
-    copy_dir(Path::new(GOLDEN_A), &project);
+    copy_dir(Path::new(SAMPLE), &project);
     // The model after the edit, as its PDF: the digest Recover must give back.
     let before = tmp.path("before.pdf");
     let mut crash = edit(&project).to_vec();
@@ -214,7 +214,7 @@ fn the_state_and_configuration_directories_are_user_only() {
         std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
     let project = tmp.path("g.ew");
-    copy_dir(Path::new(GOLDEN_A), &project);
+    copy_dir(Path::new(SAMPLE), &project);
     assert_eq!(
         run(&tmp, "crash.uiscript", &edit(&project), true).status.code(),
         Some(101)

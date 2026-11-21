@@ -495,7 +495,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
 #[test]
 fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     let tmp = Tmp::new();
-    let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::GOLDEN_A));
+    let out = run_tutorial_with(&tmp, "reports-and-pdf", Some(support::SAMPLE));
     let transcript = all_done(&out);
     let [copied, parts, preview, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(

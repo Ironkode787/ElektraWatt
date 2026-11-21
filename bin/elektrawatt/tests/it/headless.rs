@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! End-to-end tests of the headless mode of the `elektrawatt` binary (acceptance checks A6, A7
-//! and A8): no window, no GPU, no display. Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR`
+//! and A8): no window, no GPU, no display. Every test works on a temporary copy of the sample with `EW_CONFIG_DIR`
 //! in a temporary directory; nothing is written into the repository.
 
 use std::io::Write;
@@ -10,9 +10,8 @@ use std::path::Path;
 use std::process::{Output, Stdio};
 
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
-use crate::support::{self, GOLDEN_A, Tmp, bin_exe};
+use crate::support::{self, SAMPLE, Tmp, bin_exe};
 
 /// The property grid's headless checks (PG9 and PG10).
 mod grid_properties;
@@ -35,7 +34,6 @@ mod preview_scripts;
 /// The part dialog's and the part editor's flows headless (PS1, PS4, PS5 and PS7).
 mod parts_scripts;
 
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
     support::elektrawatt(&bin_exe())
@@ -159,9 +157,9 @@ fn smoke_script(dir: &Path, png: &Path, pdf: &Path) -> String {
 
 /// A6: the smoke script of the spec through the built binary.
 #[test]
-fn the_smoke_script_runs_on_golden_a() {
+fn the_smoke_script_runs_on_the_sample() {
     let tmp = Tmp::new();
-    let project = tmp.golden("run");
+    let project = tmp.sample("run/sample.ew");
     let png_path = tmp.path("103.png");
     let pdf_path = tmp.path("export.pdf");
     let record = tmp.path("recorded.ewcmd");
@@ -191,12 +189,14 @@ fn the_smoke_script_runs_on_golden_a() {
     }
     // The states: open, goto, snapshot, export, edit, save, close, reopen.
     let state = |i: usize| &steps[i]["state"];
-    assert_eq!(state(0)["project"], "J-E-2416.ew");
-    assert_eq!(state(0)["title"], "J-E-2416.ew - ElektraWatt");
+    assert_eq!(state(0)["project"], "sample.ew");
+    assert_eq!(state(0)["title"], "sample.ew - ElektraWatt");
     assert_eq!(state(0)["access"], "edit");
     assert_eq!(state(0)["dirty"], false);
     let count = state(0)["page_count"].as_u64().unwrap();
-    assert!(count > 30, "{count}");
+    let (sample, _) = ew_viewmodel::ew_api::Session::open_read_only(Path::new(SAMPLE), "test").unwrap();
+    assert_eq!(count, sample.page_labels().len() as u64, "every page of the sample");
+    sample.close();
     assert_eq!(state(1)["page"], "103");
     assert_eq!(state(4)["dirty"], true);
     assert_eq!(state(4)["can_undo"], true);
@@ -225,8 +225,8 @@ fn the_smoke_script_runs_on_golden_a() {
         "an absolute path in the transcript"
     );
 
-    // The 150 dpi snapshot of folio 103 matches the committed golden PNG within the doc 20 tolerance.
-    let committed = std::fs::read(Path::new(EXPECTED).join("png/103.png")).unwrap();
+    // The 150 dpi snapshot of folio 103 matches `ew render`'s PNG of the copy within the doc 20 tolerance.
+    let committed = support::exported::png(&tmp.sample("render/sample.ew"), "103");
     let produced = std::fs::read(&png_path).unwrap();
     let (w0, h0, a) = decode_rgba(&committed);
     let (w1, h1, b) = decode_rgba(&produced);
@@ -234,11 +234,12 @@ fn the_smoke_script_runs_on_golden_a() {
     let pct = differing_percent(&a, &b, 16);
     assert!(pct <= 0.5, "{pct:.3} % of the pixels differ");
 
-    // The PDF exported before any edit is the golden export: the bytes of `ew export pdf`.
+    // The PDF exported before any edit is the bytes of `ew export pdf`.
     let pdf = std::fs::read(&pdf_path).unwrap();
-    let digest: String = Sha256::digest(&pdf).iter().map(|b| format!("{b:02x}")).collect();
-    let expected = std::fs::read_to_string(Path::new(EXPECTED).join("pdf/sha256.txt")).unwrap();
-    assert_eq!(digest, expected.trim());
+    assert!(
+        pdf == support::exported::pdf(Path::new(support::SAMPLE)),
+        "the export is `ew export pdf`'s"
+    );
 
     // The saved page survives the reopen: the project on disk has it.
     let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&project, "test").unwrap();
@@ -253,7 +254,7 @@ fn the_smoke_script_runs_on_golden_a() {
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].name, "page.create");
     assert_eq!(commands[0].params, json!({"number": 999, "title": "Smoke"}));
-    let fresh = tmp.golden("fresh");
+    let fresh = tmp.sample("fresh/sample.ew");
     let (mut again, _) = ew_viewmodel::ew_api::Session::open_read_only(&fresh, "test").unwrap();
     again.run_script(&log, "recorded.ewcmd").unwrap();
     assert_eq!(again.page_labels(), labels);
@@ -278,15 +279,15 @@ fn the_transcript_is_deterministic() {
     };
     // Each run has settings of its own: the recent list is part of what the start page shows.
     let (tmp_a, tmp_b, tmp_c) = (Tmp::new(), Tmp::new(), Tmp::new());
-    let a = run_script_file(&tmp_a, "a.jsonl", &steps(&tmp_a.golden("one")), &[]);
-    let b = run_script_file(&tmp_b, "b.jsonl", &steps(&tmp_b.golden("two")), &[]);
+    let a = run_script_file(&tmp_a, "a.jsonl", &steps(&tmp_a.sample("one/sample.ew")), &[]);
+    let b = run_script_file(&tmp_b, "b.jsonl", &steps(&tmp_b.sample("two/sample.ew")), &[]);
     assert_eq!(a.status.code(), Some(0), "{}", stderr(&a));
     assert_eq!(b.status.code(), Some(0), "{}", stderr(&b));
     assert!(a.stdout.len() > 2000);
     assert_eq!(a.stdout, b.stdout);
 
     // The same script on stdin, line by line, gives the same transcript.
-    let dir = tmp_c.golden("three");
+    let dir = tmp_c.sample("three/sample.ew");
     let mut child = support::elektrawatt(&bin_exe())
         .args(["--headless", "--script", "-"])
         .env("EW_CONFIG_DIR", tmp_c.path("config"))
@@ -415,7 +416,7 @@ fn keep_going_runs_a_script_past_a_refused_step() {
 #[test]
 fn unsaved_changes_need_discard_in_a_script() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g");
+    let dir = tmp.sample("g/sample.ew");
     let edit = json!({"cmd": "page.create", "params": {"number": 998}});
     let out = run_script_file(
         &tmp,
@@ -432,7 +433,7 @@ fn unsaved_changes_need_discard_in_a_script() {
     assert_eq!(lines[3]["outcome"], "failed");
     assert!(lines[3]["message"].as_str().unwrap().contains("discard"));
     // The first run kept its journal for `dir`; a fresh copy shows the discard path.
-    let fresh = tmp.golden("g2");
+    let fresh = tmp.sample("g2/sample.ew");
     let out = run_script_file(
         &tmp,
         "discard.jsonl",
@@ -447,11 +448,11 @@ fn unsaved_changes_need_discard_in_a_script() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
 
-/// A8: `--smoke` on a copy of Golden A exits 0, on a missing directory 1.
+/// A8: `--smoke` on a copy of the sample exits 0, on a missing directory 1.
 #[test]
 fn the_smoke_flag_opens_read_only_and_draws_a_page() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("s");
+    let dir = tmp.sample("s/sample.ew");
     let before = listing(&dir);
     let out = elektrawatt(&tmp, &["--smoke".as_ref(), dir.as_os_str()]);
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
@@ -487,7 +488,7 @@ fn version_and_help_work() {
 #[test]
 fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g");
+    let dir = tmp.sample("g/sample.ew");
     let edit = json!({"cmd": "page.create", "params": {"number": 994}});
     let out = run_script_file(
         &tmp,
@@ -521,7 +522,7 @@ fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
     );
 
     // A fresh copy: the explicit discard ends cleanly and leaves no journal.
-    let dir2 = tmp.golden("h");
+    let dir2 = tmp.sample("h/sample.ew");
     let out = run_script_file(
         &tmp,
         "quit.jsonl",
@@ -567,7 +568,7 @@ fn config_dir_keeps_the_resources_the_program_found() {
         .arg("--config-dir")
         .arg(tmp.path("chosen"))
         .env_remove("EW_CONFIG_DIR")
-        .env("EW_SAMPLE_DIR", GOLDEN_A)
+        .env("EW_SAMPLE_DIR", SAMPLE)
         .env("HOME", &home)
         .env("APPDATA", &home)
         .env("LOCALAPPDATA", &home)
@@ -579,7 +580,7 @@ fn config_dir_keeps_the_resources_the_program_found() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let steps = transcript(&out);
     assert_eq!(steps[1]["outcome"], "done", "{}", steps[1]);
-    assert_eq!(steps[1]["state"]["project"], "J-E-2416.ew");
+    assert_eq!(steps[1]["state"]["project"], "sample.ew");
 }
 
 /// Without `EW_CONFIG_DIR` a headless run has no settings directory of its own choosing: it
@@ -587,7 +588,7 @@ fn config_dir_keeps_the_resources_the_program_found() {
 #[test]
 fn a_headless_run_leaves_the_users_settings_alone() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g");
+    let dir = tmp.sample("g/sample.ew");
     let home = tmp.path("home");
     std::fs::create_dir_all(&home).unwrap();
     let text = script(&[
@@ -691,8 +692,8 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             grid_clipboard::cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case,
         ),
         (
-            "headless::jobs_scripts::the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays",
-            jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case,
+            "headless::jobs_scripts::the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays",
+            jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_and_replays_case,
         ),
         (
             "headless::jobs_scripts::the_recovery_script_is_byte_identical_twice",
@@ -711,8 +712,8 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             messages_scripts::ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case,
         ),
         (
-            "headless::preview_scripts::golden_b_script_is_byte_identical_twice_and_replays",
-            preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays_case,
+            "headless::preview_scripts::renumber_script_is_byte_identical_twice_and_replays",
+            preview_scripts::pv2_renumber_script_is_byte_identical_twice_and_replays_case,
         ),
         (
             "headless::parts_scripts::the_part_dialog_script_is_deterministic",

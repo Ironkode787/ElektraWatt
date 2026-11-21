@@ -15,9 +15,8 @@ use std::process::{Output, Stdio};
 use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-use crate::support::{Tmp, copy_dir};
+use crate::support::{SAMPLE, Tmp, copy_dir};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"messages\"}\n");
@@ -92,7 +91,7 @@ fn run_flow(
     let mut commands = 0;
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
-        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
         assert_eq!(
             out.status.code(),
@@ -112,7 +111,7 @@ fn run_flow(
         let log = CmdLog::parse(&std::fs::read_to_string(dir.join("record.ewcmd")).unwrap()).unwrap();
         commands = log.commands().count();
         let fresh = dir.join("fresh.ew");
-        copy_dir(Path::new(GOLDEN_A), &fresh);
+        copy_dir(Path::new(SAMPLE), &fresh);
         let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
         replayed.run_script(&log, "record.ewcmd").unwrap();
         let (saved, _) = Session::open_read_only(&dir.join("g.ew"), "test").unwrap();

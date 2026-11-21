@@ -123,7 +123,7 @@ pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(t
     for d in [&new_a, &new_b, &fresh_dir] {
         copy_dir(&start, d);
     }
-    let a = tmp.golden_dir("a.ew");
+    let a = tmp.sample("a.ew");
     let record = tmp.path("clip.ewcmd");
     let out = run(&tmp, "clip.jsonl", &script(&steps(&a, &new_a)), &record);
     let t = all_done(&out);
@@ -139,7 +139,7 @@ pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(t
     crate::support::assert_no_uuid(&transcript);
     if twice {
         // Twice: the same bytes (the directories aside).
-        let b = tmp.golden_dir("b.ew");
+        let b = tmp.sample("b.ew");
         let out_b = run(
             &tmp,
             "clip_b.jsonl",
@@ -197,7 +197,7 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 #[test]
 fn two_instances_and_the_tag_list() {
     let tmp = Tmp::new();
-    let golden = tmp.golden_dir("g.ew");
+    let golden = tmp.sample("g.ew");
     let mut one = shell(&tmp, "one");
     done(&mut one, "file.open", json!({ "dir": golden.to_string_lossy() }));
     done(&mut one, "page.goto", json!({"folio": "102"}));

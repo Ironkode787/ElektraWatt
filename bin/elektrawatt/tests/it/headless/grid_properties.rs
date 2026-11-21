@@ -239,7 +239,7 @@ fn the_pilot_script_is_deterministic_and_replays() {
 
 pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
-    let a = tmp.golden_dir("a.ew");
+    let a = tmp.sample("a.ew");
     let record = tmp.path("pilot.ewcmd");
     let out_a = run(&tmp, "a.jsonl", &script(&pilot_steps(&a)), Some(&record));
     let steps = all_done(&out_a);
@@ -249,7 +249,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     let text_a = String::from_utf8_lossy(&out_a.stdout).into_owned();
     crate::support::assert_no_uuid(&text_a);
     if twice {
-        let b = tmp.golden_dir("b.ew");
+        let b = tmp.sample("b.ew");
         let lines_a: Vec<&str> = text_a.lines().skip(1).collect();
         let mut steps_b = pilot_steps(&b);
         let mut aliased = Vec::new();
@@ -333,7 +333,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
         log.commands().all(|c| c.name == "fields.set"),
         "the grid commits fields.set only here"
     );
-    let fresh = tmp.golden_dir("fresh.ew");
+    let fresh = tmp.sample("fresh.ew");
     let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
     replayed.run_script(&log, "pilot.ewcmd").unwrap();
     let (saved, _) = Session::open_read_only(&a, "test").unwrap();
@@ -410,7 +410,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
 #[test]
 fn a_counter_collision_stops_the_script_with_its_remedy() {
     let tmp = Tmp::new();
-    let dir = tmp.golden_dir("collision.ew");
+    let dir = tmp.sample("collision.ew");
     let steps = vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("select.set", json!({"refs": ["tag:-102F1"]})),
@@ -442,7 +442,7 @@ fn pg9_d06_headless() {
 
 pub(crate) fn pg9_d06_headless_case(twice: bool) {
     let tmp = Tmp::new();
-    let dir = tmp.golden_dir("d06.ew");
+    let dir = tmp.sample("d06.ew");
     let steps = vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("page.goto", json!({"folio": "101"})),
@@ -485,7 +485,7 @@ pub(crate) fn pg9_d06_headless_case(twice: bool) {
     assert_eq!(t[7]["state"]["focus"], "properties");
     if twice {
         // Twice: the same bytes.
-        let dir2 = tmp.golden_dir("d06b.ew");
+        let dir2 = tmp.sample("d06b.ew");
         let steps2: Vec<(&str, Value)> = steps
             .iter()
             .map(|(a, p)| {

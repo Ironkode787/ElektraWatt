@@ -32,7 +32,7 @@ use std::process::{Command, Output, Stdio};
 use ew_viewmodel::ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
 
-pub use ew_testdir::{CONTENT, GOLDEN_A, copy_dir};
+pub use ew_testdir::{CONTENT, GOLDEN_A, SAMPLE, copy_dir};
 
 /// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
 /// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead. Written here on its own, not with the printer's scanner, so that the two check each other.
@@ -793,11 +793,45 @@ impl Tmp {
     }
 
     /// A copy of the sample project at `name` in the directory (the program writes to what it opens).
-    // Allowed: no test reaches it yet; the program's tests move to it from `golden_dir`
-    // (docs/plan/m3.5-reference-project.md, section 5, lane 5).
-    #[allow(dead_code)]
     pub fn sample(&self, name: &str) -> PathBuf {
         self.0.sample(name)
+    }
+}
+
+/// What `ew` writes of the project in `dir`, made in this process from a read-only session: the PDF of `ew export
+/// pdf`, the 150 dpi raster of `ew render --page <folio>` and the print set of `ew print --sections 1 --paper A5
+/// --fit`. A headless run's exports are compared with these, so no test pins the bytes of a page of the sample.
+pub mod exported {
+    use std::path::Path;
+
+    use ew_viewmodel::ew_api::Session;
+    use ew_viewmodel::ew_api::output::print::{Fit, Paper, PrintOptions};
+    use ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
+
+    fn session(dir: &Path) -> Session {
+        Session::open_read_only(dir, "test").expect("the project opens").0
+    }
+
+    /// The PDF of `ew export pdf <dir>`.
+    pub fn pdf(dir: &Path) -> Vec<u8> {
+        session(dir).export_pdf(&ExportOptions::default()).unwrap().bytes
+    }
+
+    /// The PNG of `ew render <dir> --page <folio> --png`.
+    pub fn png(dir: &Path, folio: &str) -> Vec<u8> {
+        let mut files = session(dir).render_png(folio, 150).unwrap().files;
+        files.remove(0).bytes
+    }
+
+    /// The print set's PDF of `ew print <dir> --sections 1 --paper A5 --fit`.
+    pub fn section_1_on_a5(dir: &Path) -> Vec<u8> {
+        let options = PrintOptions {
+            pages: PageSelection::parse_sections("1").unwrap(),
+            paper: Paper::A5,
+            fit: Fit::ToPaper,
+            ..Default::default()
+        };
+        session(dir).print_set(&options).unwrap().pdf
     }
 }
 

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Headless: Golden B through the renumber actions and the
-//! Preview tab, with the history panel open, as an `ew.uiscript/1` script through the built binary, run twice on its own
-//! copy of Golden A with byte-identical transcripts; the `--record` log replayed onto a fresh copy gives the records of
-//! the saved project. A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
+//! Headless: two renumberings of the sample's section 1 through the renumber action and the Preview tab, with the
+//! history panel open, as an `ew.uiscript/1` script through the built binary, run twice on its own copy of the sample
+//! with byte-identical transcripts; the `--record` log replayed onto a fresh copy gives the records of the saved
+//! project. A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
 
 use std::path::Path;
 use std::process::{Output, Stdio};
@@ -12,10 +12,10 @@ use std::process::{Output, Stdio};
 use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-use crate::support::{GOLDEN_A, Tmp, copy_dir};
+use crate::support::{SAMPLE, Tmp, copy_dir};
 
 fn script(steps: &[(&str, Value)]) -> String {
-    let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"golden b\"}\n");
+    let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"renumber\"}\n");
     for (action, params) in steps {
         text.push_str(&json!({"action": action, "params": params}).to_string());
         text.push('\n');
@@ -49,28 +49,20 @@ fn steps_of(out: &Output) -> Vec<Value> {
     lines
 }
 
-/// Golden B: B1's settings step through `command.run`, its renumber through `devices.renumber`, B2 through
-/// `pages.renumber`, each applied from the Preview tab; then an undo of B2, an Undo to here back to B2, and a save.
-fn golden_b_steps(project: &Path) -> Vec<(&'static str, Value)> {
+/// The folios of section 1 renumbered from 111 and back from 101 through `pages.renumber`, each applied from the
+/// Preview tab; then an undo of the second, an Undo to here back to it, and a save.
+fn renumber_steps(project: &Path) -> Vec<(&'static str, Value)> {
     vec![
         ("file.open", json!({ "dir": project.to_string_lossy() })),
         ("history.show", json!({"on": true})),
-        (
-            "command.run",
-            json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
-                "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
-        ),
-        (
-            "devices.renumber",
-            json!({"scope": "project", "scheme": "page_based", "include_frozen": true, "only_nonconforming": true}),
-        ),
+        ("pages.renumber", json!({"section": "1", "start": 111})),
         ("ui.describe", json!({})),
         ("preview.apply", json!({})),
         ("pages.renumber", json!({"section": "1", "start": 101})),
         ("ui.describe", json!({})),
         ("preview.apply", json!({})),
         ("edit.undo", json!({})),
-        ("history.undo_to", json!({"entry": 3})),
+        ("history.undo_to", json!({"entry": 2})),
         ("file.save", json!({})),
         ("ui.describe", json!({})),
     ]
@@ -80,19 +72,19 @@ fn golden_b_steps(project: &Path) -> Vec<(&'static str, Value)> {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn golden_b_script_is_byte_identical_twice_and_replays() {
-    pv2_golden_b_script_is_byte_identical_twice_and_replays_case(false);
+fn renumber_script_is_byte_identical_twice_and_replays() {
+    pv2_renumber_script_is_byte_identical_twice_and_replays_case(false);
 }
 
-pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice: bool) {
+pub(crate) fn pv2_renumber_script_is_byte_identical_twice_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
         let project = dir.join("g.ew");
-        copy_dir(Path::new(GOLDEN_A), &project);
+        copy_dir(Path::new(SAMPLE), &project);
         let record = dir.join("record.ewcmd");
-        let out = run(&dir, &golden_b_steps(&project), &record);
+        let out = run(&dir, &renumber_steps(&project), &record);
         assert_eq!(
             out.status.code(),
             Some(0),
@@ -101,31 +93,20 @@ pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice
         );
         transcripts.push(String::from_utf8(out.stdout.clone()).unwrap());
         let steps = steps_of(&out);
-        assert_eq!(steps.len(), 13);
+        assert_eq!(steps.len(), 12);
         for s in &steps {
             assert_eq!(s["outcome"], "done", "{s}");
         }
-        let d = steps[4]["describe"].as_str().unwrap();
+        // The page-based tags follow their folios: -101F1 on 101, -103W1 on 103.
+        let d = steps[3]["describe"].as_str().unwrap();
+        assert!(d.contains("  summary records "), "{d}");
+        assert!(d.contains("  tag \"-101F1\" \"-111F1\""), "{d}");
+        assert!(d.contains("  tag \"-103W1\" \"-113W1\""), "{d}");
+        let d = steps[6]["describe"].as_str().unwrap();
+        assert!(d.contains("  tag \"-111F1\" \"-101F1\""), "{d}");
+        let d = steps[11]["describe"].as_str().unwrap();
         assert!(
-            d.contains(
-                "preview \"numbering.renumber\" ready rev 1\n  summary records 8 tags 11 xrefs 0 pages 1\n"
-            ),
-            "{d}"
-        );
-        assert!(d.contains("  tag \"F55\" \"-101F2\""), "{d}");
-        assert!(
-            d.contains("card ready \"numbering.renumber\" targets 8 changes 8 tags 11 xrefs 0"),
-            "{d}"
-        );
-        let d = steps[7]["describe"].as_str().unwrap();
-        assert!(d.contains("  summary records 1 tags 2 xrefs 14 pages "), "{d}");
-        assert!(
-            d.contains("  tag \"-106W1\" \"-104W1\"\n  tag \"-106W2\" \"-104W2\"\n"),
-            "{d}"
-        );
-        let d = steps[12]["describe"].as_str().unwrap();
-        assert!(
-            d.contains("history entries 3 cursor 3\n  marker \"Saved\"\n  entry 3 now "),
+            d.contains("history entries 2 cursor 2\n  marker \"Saved\"\n  entry 2 now "),
             "{d}"
         );
         assert!(d.contains("preview none"), "{d}");
@@ -136,9 +117,9 @@ pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice
         );
         // The record replayed onto a fresh copy: the records of the saved project.
         let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
-        assert_eq!(log.commands().count(), 3, "settings, renumber, page renumber");
+        assert_eq!(log.commands().count(), 2, "the two renumberings");
         let fresh = dir.join("fresh.ew");
-        copy_dir(Path::new(GOLDEN_A), &fresh);
+        copy_dir(Path::new(SAMPLE), &fresh);
         let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
         replayed.run_script(&log, "b.ewcmd").unwrap();
         let (saved, _) = Session::open_read_only(&project, "test").unwrap();

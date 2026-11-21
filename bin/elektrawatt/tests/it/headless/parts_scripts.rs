@@ -19,7 +19,7 @@ use ew_testkit::library::starter_version;
 use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
-use crate::support::{GOLDEN_A, Tmp, copy_dir, path};
+use crate::support::{SAMPLE, Tmp, copy_dir, path};
 
 fn script(name: &str, steps: &[(&str, Value)]) -> String {
     let mut text = json!({"$schema": "ew.uiscript/1", "label": name}).to_string();
@@ -92,7 +92,7 @@ fn run_flow(
     let mut commands = 0;
     for side in crate::support::runs(twice) {
         let dir = tmp.dir().join(side);
-        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        copy_dir(Path::new(SAMPLE), &dir.join("g.ew"));
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
         assert_eq!(
             out.status.code(),
@@ -112,7 +112,7 @@ fn run_flow(
         let log = CmdLog::parse(&std::fs::read_to_string(dir.join("record.ewcmd")).unwrap()).unwrap();
         commands = log.commands().count();
         let fresh = dir.join("fresh.ew");
-        copy_dir(Path::new(GOLDEN_A), &fresh);
+        copy_dir(Path::new(SAMPLE), &fresh);
         let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
         replayed.run_script(&log, "record.ewcmd").unwrap();
         let (saved, _) = Session::open_read_only(&dir.join("g.ew"), "test").unwrap();
@@ -401,8 +401,8 @@ pub(crate) fn ps8_the_paste_choice_script_is_deterministic_and_replays_case(twic
         let root = tmp.dir().join(side);
         let data = root.join("data");
         let (p1, p2) = (root.join("p1.ew"), root.join("p2.ew"));
-        copy_dir(Path::new(GOLDEN_A), &p1);
-        copy_dir(Path::new(GOLDEN_A), &p2);
+        copy_dir(Path::new(SAMPLE), &p1);
+        copy_dir(Path::new(SAMPLE), &p2);
         publish_fixture(&data, "MCB 1P+N C10", false);
         run_with_data(&root.join("setup-1"), &data, "ps8-setup", &choose_fixture(&p1));
         publish_fixture(&data, "MCB 1P+N C10 new text", true);

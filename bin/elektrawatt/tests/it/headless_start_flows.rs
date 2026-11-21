@@ -3,7 +3,8 @@
 
 //! End-to-end tests of the headless mode for the start actions:
 //! New project, the sample project, the tutorials, the QElectroTech import, the journal discard, the first-run flow,
-//! the company-standard wizard with its preview snapshot compared with the committed golden PNGs, workspaces and F1.
+//! the company-standard wizard with its preview snapshot compared with `ew render`'s PNGs of the sample, workspaces and
+//! F1.
 //! No window, no GPU, no display; the sample project and the starter content are named through the environment.
 
 use std::path::Path;
@@ -12,9 +13,7 @@ use std::process::{Command, Output, Stdio};
 use ew_testdir::Tmp;
 use serde_json::{Value, json};
 
-use crate::support::{CONTENT, GOLDEN_A, bin_exe, path};
-
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+use crate::support::{CONTENT, SAMPLE, bin_exe, path};
 
 fn script_text(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"part2\"}\n");
@@ -33,7 +32,7 @@ fn run(tmp: &Tmp, steps: &[(&str, Value)]) -> Output {
         .args(["--headless", "--script"])
         .arg(&file)
         .env("EW_CONFIG_DIR", tmp.path("config"))
-        .env("EW_SAMPLE_DIR", GOLDEN_A)
+        .env("EW_SAMPLE_DIR", SAMPLE)
         .env("EW_CONTENT_DIR", CONTENT)
         .env_remove("EW_DOCS_DIR")
         .env_remove("SOURCE_DATE_EPOCH")
@@ -122,7 +121,7 @@ fn the_sample_opens_read_only_and_the_tutorials_make_a_copy() {
             ("ui.describe", json!({})),
         ],
     );
-    assert_eq!(steps[0]["state"]["project"], "J-E-2416.ew");
+    assert_eq!(steps[0]["state"]["project"], "sample.ew");
     assert_eq!(steps[0]["state"]["access"], "read-only");
     assert!(describe(&steps[1]).contains("banner: This is the sample project."));
     assert_eq!(steps[2]["state"]["access"], "edit");
@@ -132,7 +131,7 @@ fn the_sample_opens_read_only_and_the_tutorials_make_a_copy() {
     assert_eq!(steps[4]["state"]["access"], "edit");
     assert!(describe(&steps[5]).contains("help: tutorials/index.html"));
     // The sample itself was not touched: no lock and no journal in the installation.
-    assert!(!Path::new(GOLDEN_A).join(".~ew.lock").exists());
+    assert!(!Path::new(SAMPLE).join(".~ew.lock").exists());
 }
 
 #[test]
@@ -270,7 +269,7 @@ fn the_first_run_flow_is_scripted_and_leaves_its_answers_in_the_settings() {
     );
     assert!(describe(&steps[1]).contains("first run \"Welcome to ElektraWatt\": step 1 of 5 \"Language\""));
     assert!(describe(&steps[11]).contains("step 5 of 5 \"Where to start\""));
-    assert_eq!(steps[12]["state"]["project"], "J-E-2416.ew");
+    assert_eq!(steps[12]["state"]["project"], "sample.ew");
     let settings = read(&tmp.path("config"), "settings.toml");
     for needle in [
         "first_run_done = true",
@@ -317,8 +316,9 @@ fn differing_percent(a: &[u8], b: &[u8], threshold: u8) -> f64 {
     100.0 * bad as f64 / (a.len() / 4) as f64
 }
 
-fn compare_with_golden(produced: &Path, folio: &str) -> f64 {
-    let committed = std::fs::read(Path::new(EXPECTED).join(format!("png/{folio}.png"))).unwrap();
+/// The share of pixels that differ between the snapshot `produced` and `ew render`'s PNG of the sample's `folio`.
+fn compare_with_sample(produced: &Path, folio: &str) -> f64 {
+    let committed = crate::support::exported::png(Path::new(SAMPLE), folio);
     let (w0, h0, a) = decode_rgba(&committed);
     let (w1, h1, b) = decode_rgba(&std::fs::read(produced).unwrap());
     assert_eq!((w0, h0), (w1, h1), "the size of the preview snapshot of {folio}");
@@ -373,15 +373,15 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     assert!(first.contains("preview \"Schematic page\": ready"), "{first}");
     // NFR-UX-08 in miniature: the default draft's preview is the sample's folio 102 and its cover.
     assert!(
-        compare_with_golden(&page, "102") <= 0.5,
-        "folio 102 differs from the golden"
+        compare_with_sample(&page, "102") <= 0.5,
+        "folio 102 differs from the sample's"
     );
     assert!(
-        compare_with_golden(&cover, "1") <= 0.5,
-        "the cover differs from the golden"
+        compare_with_sample(&cover, "1") <= 0.5,
+        "the cover differs from the sample's"
     );
     assert!(
-        compare_with_golden(&changed, "102") > 0.0,
+        compare_with_sample(&changed, "102") > 0.0,
         "the numbering format reaches the preview page"
     );
     let review = describe(&steps[12]);
@@ -646,7 +646,7 @@ fn the_company_logo_is_visible_on_the_cover() {
             ("view.snapshot", json!({"path": path(&job_cover), "dpi": 150})),
         ],
     );
-    let committed = std::fs::read(Path::new(EXPECTED).join("png/1.png")).unwrap();
+    let committed = crate::support::exported::png(Path::new(SAMPLE), "1");
     let (_, _, plain) = decode_rgba(&committed);
     let newly = |file: &Path, hit: &dyn Fn(&[u8]) -> bool| -> usize {
         let (_, _, img) = decode_rgba(&std::fs::read(file).unwrap());

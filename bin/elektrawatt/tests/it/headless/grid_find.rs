@@ -126,7 +126,7 @@ fn find_and_replace_headless_twice_and_replayed() {
 
 pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice: bool) {
     let tmp = Tmp::new();
-    let a = tmp.golden_dir("a.ew");
+    let a = tmp.sample("a.ew");
     let record = tmp.path("find.ewcmd");
     let out = run(&tmp, "find.jsonl", &script(&steps(&a)), &record);
     let t = all_done(&out);
@@ -180,7 +180,7 @@ pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice
     }
     if twice {
         // Twice: the same bytes.
-        let b = tmp.golden_dir("b.ew");
+        let b = tmp.sample("b.ew");
         let record_b = tmp.path("find_b.ewcmd");
         let out_b = run(&tmp, "find_b.jsonl", &script(&steps(&b)), &record_b);
         assert_eq!(
@@ -192,7 +192,7 @@ pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice
     let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
     let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
     assert_eq!(names, ["fields.set_many"; 3]);
-    let fresh = tmp.golden_dir("fresh.ew");
+    let fresh = tmp.sample("fresh.ew");
     let (mut replayed, _) = Session::open_read_only(&fresh, "test").unwrap();
     replayed.run_script(&log, "find.ewcmd").unwrap();
     let (saved, _) = Session::open_read_only(&a, "test").unwrap();
