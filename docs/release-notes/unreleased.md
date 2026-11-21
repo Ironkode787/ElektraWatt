@@ -35,3 +35,5 @@ change here.
 - behaviour-change: File ▸ Open sample project and Help ▸ Tutorials open the new sample project, a smaller control
   cabinet the program draws itself from its own script; the release ships it as `samples/sample.ew` in place of
   `samples/J-E-2416.ew`
+- behaviour-change: a print cancelled between two pages ends as cancelled; it could end with the printer's refusal
+  of the next page's paper ("The handle is invalid"), because the cancel was only read before each band

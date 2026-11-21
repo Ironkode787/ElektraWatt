@@ -213,6 +213,7 @@ Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 - FT-1764 `ew-ui`: `a_smaller_window_stays_usable` (`tests/it/command_surface.rs`) proves less than its name: its label query matches any node, and it checks the command bar and the page's size only (step 10).
 - FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
 - FT-1890 `ew-api, ew-commands, ew-derive, ew-viewmodel, ew-ui, ew-scene, xtask`: Comments still carry about 650 section references that name no document (a bare `§`) and 154 candidate tags (`rc.3`, `0.3.0-rc.1`); step 7 removed the rest. Name the document, or say the point without the reference.
+
 ## M4
 
 Rows for M4, manufacturing and the 2D/3D panel ([ROADMAP.md](../../ROADMAP.md)). FT-1814 and FT-1815 the owner asked
