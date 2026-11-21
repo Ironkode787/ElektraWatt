@@ -677,9 +677,20 @@ impl ShellModel {
                 self.tools.put_down = true;
                 self.tools.drew_existing = cmd.name() == "bus.place_ports"
                     && cmd.to_json().is_ok_and(|j| j["target"].get("device").is_some());
+                // The tags of the devices a box placement draws again: a station placed first on a bus page takes
+                // the tag of the page its box is drawn on now, which the toast says (FT-1766).
+                let retag = cmd
+                    .to_json()
+                    .map(|j| self.redrawn_tags(cmd.name(), &j))
+                    .unwrap_or_default();
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
+                if out == Outcome::Done
+                    && let Some(text) = self.retagged_words(&retag)
+                {
+                    self.notify(text, true);
+                }
                 // A refused interruption point keeps its ghost where it was and says why.
                 let (out, keep_ghost) = self.ip_commit_refused(out);
                 // Tip 1, a Line segment of the Graphic tool ending on a connection point.

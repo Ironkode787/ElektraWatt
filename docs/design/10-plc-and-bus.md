@@ -647,7 +647,14 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   row moved by whole grid steps where its second corner would let a box run past the edge, and it is refused in words
   ("Another device stands here: draw the boxes of the bus interfaces on a free place") where a box of it would cover a
   device drawn on the page, and with its size where it is larger than the area. Each box is still selected, reshaped
-  and deleted on its own.
+  and deleted on its own. A device placed first on a bus page takes its tag from that page (no other page draws
+  it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
+  a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function
+  (doc 06 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
+  and channels is the one cross-references, lists and the cabinet take, and keeping the bus page's would need an
+  exception in the rule `ew_commands::numbering` and `ew_derive::MainRep` share. The toast names both tags and why
+  ("-105A1 is now -104A1: a device takes its tag from the page that draws its own box, not from a bus page, which shows
+  its interfaces").
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

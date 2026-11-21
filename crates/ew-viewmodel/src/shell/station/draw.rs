@@ -351,12 +351,16 @@ impl ShellModel {
         if params["boxes"].as_array().is_some_and(Vec::is_empty) && !left.is_empty() {
             return back(self, no_room);
         }
+        let retag = self.redrawn_tags("plc.draw_station", &params);
         let out = self.run_commit(&ew_api::AnyCommand {
             name: "plc.draw_station".into(),
             params,
         });
         match out {
             Outcome::Done => {
+                if let Some(text) = self.retagged_words(&retag) {
+                    self.notify_rack(text, station);
+                }
                 // A card wider than the drawing area: its first box is drawn, the toast says where the rest is drawn.
                 let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
                     s.cards_drawn_in_part(station)
@@ -612,5 +616,54 @@ impl ShellModel {
             crate::tools::black_box::BlackBoxTool::new(symbol.to_owned(), target).with_copies(copies),
         ));
         Outcome::Done
+    }
+
+    /// The devices that the box placement `name` with `params` draws again, each with its tag now: a station's or a
+    /// card's box (`plc.draw_station`), an unplaced black-box function's (`box.black` of `existing_function`) or a new
+    /// function of a device's (`join_device`). Empty for any other command.
+    pub(in crate::shell) fn redrawn_tags(&self, name: &str, params: &Value) -> Vec<(Uuid, String)> {
+        let Some(session) = self.project_session() else {
+            return Vec::new();
+        };
+        let id = |v: &Value| v.as_str().and_then(|s| s.parse::<Uuid>().ok());
+        let devices: Vec<Uuid> = match name {
+            "plc.draw_station" => params["boxes"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|b| id(&b["device"]))
+                .collect(),
+            "box.black" => {
+                let target = &params["target"];
+                let of_function = id(&target["existing_function"]["function"]).and_then(|f| {
+                    let q = session.query();
+                    q.functions().get(f.to_string().parse().ok()?)?.device.map(|d| d.as_uuid())
+                });
+                of_function
+                    .or_else(|| id(&target["join_device"]["device"]))
+                    .into_iter()
+                    .collect()
+            }
+            _ => Vec::new(),
+        };
+        devices
+            .into_iter()
+            .filter_map(|d| Some((d, session.device_tag(d)?)))
+            .collect()
+    }
+
+    /// The toast of a placement that changed the tags `before` ([`ShellModel::redrawn_tags`]) of devices placed first on
+    /// a bus page (FT-1766): a device's tag names the page that draws its main function, so its box on a schematic
+    /// page takes that page's tag, and the person is told; `None` where no tag changed.
+    pub(in crate::shell) fn retagged_words(&self, before: &[(Uuid, String)]) -> Option<String> {
+        let session = self.project_session()?;
+        let pairs: Vec<String> = before
+            .iter()
+            .filter_map(|(d, was)| {
+                let now = session.device_tag(*d)?;
+                (now != *was).then(|| strings::format(key!("toast-retag-pair"), &[was, &now]))
+            })
+            .collect();
+        (!pairs.is_empty()).then(|| strings::format(key!("toast-retagged"), &[&pairs.join(", ")]))
     }
 }

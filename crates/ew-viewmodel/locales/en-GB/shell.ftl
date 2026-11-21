@@ -2809,6 +2809,8 @@ toast-autoconnect = { $p0 } and connected { $p1 }: { $p2 }. Alt+Click or { $p3 }
 toast-placed = Placed { $p0 } at { $p1 }.
 toast-placed-no-cell = Placed { $p0 }.
 toast-placed-boxes = Placed as { $p0 } boxes, one for each bus interface.
+toast-retagged = { $p0 }: a device takes its tag from the page that draws its own box, not from a bus page, which shows its interfaces.
+toast-retag-pair = { $p0 } is now { $p1 }
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.

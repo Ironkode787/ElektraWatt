@@ -194,6 +194,8 @@ change here.
   that would cover another device is refused in words (doc 10 §2.7, FT-1766)
 - behaviour-change: a finding of EW-PLC-012 (a binding or an address that differs from the part's map) offers Open
   the part's PLC section… in its row menu, which opens the module's part in the part editor (doc 10 §3.10, FT-1766)
+- behaviour-change: a station placed first on a bus page whose box is then drawn on a schematic page takes that
+  page's tag, and the toast says so with both tags and why (doc 10 §2.7, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
