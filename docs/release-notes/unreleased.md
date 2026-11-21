@@ -335,6 +335,9 @@ change here.
 - behaviour-change: Enclosure… gives the enclosure and its mounting plate the numbering scheme's tags, `-UC1` and
   `-UC1-U1`, not frozen ones, so the check no longer reports them as deviating (EW-NUM-001); a project's existing
   frozen tags stay (doc 03 §8.2, doc 12 §3.1, FT-1899)
+- behaviour-change: Route lays three potentials or more over one row of poles on trunks side by side; a trunk, or a
+  route, more than two steps beyond everything else on the page was not held, so the next trunk took its line and
+  its wires were left without a route (doc 06a §3.3, FT-1931)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

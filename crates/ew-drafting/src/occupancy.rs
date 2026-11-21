@@ -12,9 +12,10 @@
 //! it (a wire across its line, its coordinate in the move's half-open span, the far node included), and the texts it
 //! runs through with the ticks inside. A point off the half grid takes its nearest node.
 //!
-//! The structure covers the drawing area where something stands (the box of everything on the page, grown by two
-//! steps); a node outside it holds nothing. A page whose covered half grid exceeds four times [`MAX_NODES`] has no
-//! occupancy (the router then routes nothing).
+//! The structure covers the drawing area, every node a search may take (its last area is the drawing area): a trunk
+//! laid far beyond the pins it taps, or a route the search took round a group of parts, is held for the jobs after it.
+//! A node outside the area holds nothing. A page whose half grid exceeds four times [`MAX_NODES`] has no occupancy
+//! (the router then routes nothing).
 
 use std::collections::BTreeMap;
 
@@ -110,37 +111,11 @@ impl Occupancy {
     pub fn new(page: &DraftPage, texts: Vec<Text>, wired: &dyn Fn(PinId) -> bool) -> Option<Occupancy> {
         let mut parts: Vec<_> = page.parts.iter().collect();
         parts.sort_by_key(|p| p.id);
-        // The box of everything on the page.
-        let mut all: Option<Rect> = None;
-        let mut take = |r: Rect| all = Some(all.map_or(r, |a| a.union(r)));
-        for p in &parts {
-            take(p.bounds());
-            for pin in &p.pins {
-                take(Rect::new(p.at.plus(pin.at), p.at.plus(pin.at)));
-            }
-        }
-        for j in &page.junctions {
-            take(Rect::new(j.at, j.at));
-        }
-        for w in &page.wires {
-            for v in &w.route {
-                take(Rect::new(*v, *v));
-            }
-        }
-        for t in &texts {
-            take(t.rect);
-        }
-        let covered = all.map_or(page.area, |a| a.grown(2 * TICKS_PER_STEP));
+        let area = page.area;
         let ceil = |v: Tick| sat(i64::from(v).div_euclid(i64::from(HALF)) + 1);
         let floor = |v: Tick| sat(i64::from(v).div_euclid(i64::from(HALF)));
-        let lo = (
-            floor(covered.x0.max(page.area.x0)).max(floor(page.area.x0)),
-            floor(covered.y0.max(page.area.y0)).max(floor(page.area.y0)),
-        );
-        let hi = (
-            ceil(covered.x1.min(page.area.x1)).max(lo.0),
-            ceil(covered.y1.min(page.area.y1)).max(lo.1),
-        );
+        let lo = (floor(area.x0), floor(area.y0));
+        let hi = (ceil(area.x1).max(lo.0), ceil(area.y1).max(lo.1));
         let width = usize::try_from(i64::from(hi.0) - i64::from(lo.0) + 1).ok()?;
         let height = usize::try_from(i64::from(hi.1) - i64::from(lo.1) + 1).ok()?;
         let nodes = width.checked_mul(height)?;

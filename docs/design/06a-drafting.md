@@ -516,6 +516,10 @@ wire; per move between two nodes which wires run along it and which cross it; pe
 over it. The search and the three structured phases read it. It replaces the per-request preparation of today's
 search, which rebuilt the page for every wire.
 
+*As built (FT-1931).* It holds every node of the drawing area, the last area a search may take. It held what stood on
+the page and two steps beyond, so a second trunk four steps beyond the pins it taps was laid outside it, and the
+third trunk took the same line: on a page of three potentials over one row of poles two of them were left unrouted.
+
 ### 3.4 Nets, trunks and shared runs
 
 **A net job** is the set of job wires joined through movable junctions, or through a pin that two or more of them
