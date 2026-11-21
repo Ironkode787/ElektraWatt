@@ -27,18 +27,16 @@ use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{GroupAccessories, PlacementGeometry};
 use ew_derive::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Pen, Stroke};
-use ew_schema::{Carrier, Device, Part, Placement, Record};
+use ew_schema::{Carrier, Device, Part, Placement};
 use ew_units::Dec3;
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
 
-/// The fourth strip: a copy of -X1031 (five terminals, 26 mm) that is not placed, whose TBD end bracket part use is
-/// authored as 3 pieces, so that its derived count differs from it.
-const X33: u128 = 0x5e44_0000_0000_4000_8000_0000_0000_0033;
-
+/// The fourth strip (`common::add_a_fourth_strip`): a copy of -X1031 (five terminals, 26 mm) that is not placed, whose
+/// TBD end bracket part use is authored as 3 pieces, so that its derived count differs from it.
 fn x33() -> Id<Device> {
-    Id::from_uuid(Uuid::from_u128(X33))
+    Id::from_uuid(Uuid::from_u128(common::FOURTH_STRIP))
 }
 
 fn dev(s: &Session, tag: &str) -> Id<Device> {
@@ -57,31 +55,7 @@ fn session() -> (Session, Id<Carrier>) {
 /// [`session`] with the fourth strip X33 (a copy of -X1031 with its five terminals) added unplaced, its TBD end bracket
 /// authored as 3 pieces; with the memo mode `memo`.
 fn with_x33(memo: ew_api::MemoMode) -> (Session, Id<Carrier>) {
-    let x1031 = dev(&common::sample(), "-X1031");
-    let (mut s, rail) = common::strips_on_a_test_rail_over(
-        |records| {
-            let mut extra = Vec::new();
-            for r in records.iter() {
-                let Record::Device(d) = r else { continue };
-                if d.id == x1031 {
-                    let mut c = d.clone();
-                    c.id = x33();
-                    c.tag.counter = Some(33);
-                    extra.push(Record::Device(c));
-                } else if let Some(t) = d.aspects.terminal.as_ref().filter(|t| t.strip == x1031) {
-                    let mut c = d.clone();
-                    c.id = Id::from_uuid(Uuid::from_u128(X33 + 0x100 + u128::from(t.seq)));
-                    if let Some(t) = c.aspects.terminal.as_mut() {
-                        t.strip = x33();
-                    }
-                    extra.push(Record::Device(c));
-                }
-            }
-            assert_eq!(extra.len(), 6, "-X1031 and its five terminals");
-            records.extend(extra);
-        },
-        memo,
-    );
+    let (mut s, rail) = common::strips_on_a_test_rail_over(common::add_a_fourth_strip, memo);
     let bracket = common::part_copy(&s, "TBD end bracket");
     common::add_part_use_to(&mut s, x33().as_uuid(), bracket, "3");
     (s, rail)

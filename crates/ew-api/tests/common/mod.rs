@@ -338,3 +338,32 @@ pub fn strips_on_a_test_rail_over(
     }
     (s, rail)
 }
+
+/// The ID of the fourth strip [`add_a_fourth_strip`] adds; its terminals' IDs follow it by `0x100 + seq`.
+pub const FOURTH_STRIP: u128 = 0x5e44_0000_0000_4000_8000_0000_0000_0033;
+
+/// Adds to the sample's `records` a fourth strip, unplaced: a copy of -X1031 with its five terminals (26 mm), counter
+/// 33, with the ID [`FOURTH_STRIP`].
+pub fn add_a_fourth_strip(records: &mut Vec<Record>) {
+    let x1031 = sample().resolve_reference("tag:-X1031").expect("-X1031");
+    let strip: ew_ids::Id<ew_schema::Device> = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(FOURTH_STRIP));
+    let mut extra = Vec::new();
+    for r in records.iter() {
+        let Record::Device(d) = r else { continue };
+        if d.id.as_uuid() == x1031 {
+            let mut c = d.clone();
+            c.id = strip;
+            c.tag.counter = Some(33);
+            extra.push(Record::Device(c));
+        } else if let Some(t) = d.aspects.terminal.as_ref().filter(|t| t.strip.as_uuid() == x1031) {
+            let mut c = d.clone();
+            c.id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(FOURTH_STRIP + 0x100 + u128::from(t.seq)));
+            if let Some(t) = c.aspects.terminal.as_mut() {
+                t.strip = strip;
+            }
+            extra.push(Record::Device(c));
+        }
+    }
+    assert_eq!(extra.len(), 6, "-X1031 and its five terminals");
+    records.extend(extra);
+}
