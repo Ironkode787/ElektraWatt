@@ -166,6 +166,7 @@ where a real page shows it; each row says whether one is known.
 - FT-1837 `ew-drafting`: Tubes from a wide valve terminal with upward ports to a cylinder below are long, because every clear way is. **Page:** known, the persona runs' fluid pages.
 - FT-1931 `ew-drafting`: The occupancy covers what stands on the page and two steps beyond it, and a third trunk lies six steps out (`TRUNK_GAP` and twice `TRUNK_PITCH`), so that trunk and its junctions are not held for the searches after it. No page is known that shows it (mutation testing, 2026-11-21): build the page with three trunks first, then widen the occupancy or say why two steps are enough.
 - FT-1932 `ew-drafting`: The straights phase of Route never changed a plan that could be built in a test: the search draws the same straight. Show a page where it decides something, or delete the phase (mutation testing, 2026-11-21). No page known.
+- FT-2010 `ew-drafting, ew-commands`: After a grid change a wire to a pin that its symbol's own spacing keeps off the new grid finds no way, though it routed before (the grid fit puts only a symbol's first pin on the grid, doc 06 §8 item 3). **Page:** known, the sample's 104 (three wires of -104A1's cards) and 201 (-201K1:3 to -201X2:1) changed to 4 mm.
 
 ## M3.5: what its own steps leave
 

@@ -1562,13 +1562,14 @@ export start (FR-OUT-001).
    (`geometry::fit`), axis by axis, x first. Each item takes the box of its body and its pins and goes onto the grid by
    its point (a symbol's first pin, a junction's own point): to the nearest grid point, then, taken in the order of
    their left (top) edges, as many whole steps further right (down) as keep the gap to every item before it that
-   faces it at least what the gap was, or two steps where it was more. Two items face each other along x where their
-   boxes share some height, along y where they share some width after the x pass. *It keeps* the order of the things
-   that face each other along each axis; two things that stood apart stand apart (touching at most where they
-   touched); two pins with more than a step between them keep a grid line between them for a wire. *It gives up* the
-   exact nearest point of an item pushed on (a row whose pitch the new grid does not hold spreads to whole steps), and
-   the line-up of things that do not face each other (a column above a row may part from it by a step; its wires,
-   routed anew, take the turn). Items that overlapped along an axis before keep no rule between them there. Structure
+   faces it: a gap of a step of the new grid or more (room for a wire) at least what it was, or two steps where it was
+   more; a narrower gap at least open. Two items face each other along x where their boxes share some height, along y
+   where they share some width after the x pass. *It keeps* the order of the things that face each other along each
+   axis; two things that stood apart do not overlap; two pins more than a step apart keep a grid line between them for
+   a wire. *It gives up* the exact nearest point of an item pushed on (a row of wide symbols whose pitch the new grid
+   does not hold spreads to whole steps; a strip of terminals closer than a step may close up to touching), and the
+   line-up of things that do not face each other (a column above a row may part from it by a step; its wires, routed
+   anew, take the turn). Items that overlapped along an axis before keep no rule between them there. Structure
    boxes take their corners' nearest grid points and page items keep their places, as before. A copy of pages is no
    fit: it keeps every position as its source holds it (§3.6).
 4. **QET anchors.** QET-imported symbols keep QET's element-origin anchor so that imported texts match the source,

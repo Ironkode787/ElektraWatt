@@ -174,12 +174,13 @@ const FIT_SLACK: i128 = 2;
 /// The grid fit of doc 06 §8 item 3 (a page's grid changed, a paste onto a page of another grid): the displacement
 /// that brings each of `items` onto `grid`, in their order. Axis by axis, x first, each item goes to the grid point
 /// nearest its point; then, taken in the order of their boxes' near edges, each moves on by as few whole steps further
-/// right (down) as keep the gap between it and every item before it that faces it at least what the gap was or two
-/// steps, whichever is less. Two items face each other along x when their boxes share some height, along y when they
-/// share some width after the x pass; items whose boxes overlapped along the axis keep no rule between them. So no two
-/// items that stood apart end on one another, things that face each other keep their order, and two pins with more
-/// than a step between them keep a grid line between them for a wire; what is given up is the exact nearest point of
-/// an item pushed on. [`OutOfRange`] when a point would leave the drawable range.
+/// right (down) as keep the gap between it and every item before it that faces it: a gap of a step or more (room for
+/// a wire) at least what it was or two steps, whichever is less; a narrower one at least open (no overlap). Two items
+/// face each other along x when their boxes share some height, along y when they share some width after the x pass;
+/// items whose boxes overlapped along the axis keep no rule between them. So no two items that stood apart end on one
+/// another, things that face each other keep their order, and two pins more than a step apart keep a grid line between
+/// them for a wire; what is given up is the exact nearest point of an item pushed on. [`OutOfRange`] when
+/// a point would leave the drawable range.
 pub(crate) fn fit(grid: Grid, items: &[FitItem]) -> Result<Vec<Pt2>, OutOfRange> {
     let x = |p: Pt2| i128::from(p.x.0);
     let y = |p: Pt2| i128::from(p.y.0);
@@ -209,7 +210,9 @@ fn fit_axis(
     across: &[(i128, i128)],
 ) -> Result<Vec<i128>, OutOfRange> {
     let at = |k: i64| grid.at(k).map(|v| i128::from(v.0)).ok_or(OutOfRange);
-    let two = at(2)? - at(0)?;
+    let (step, two) = (at(1)? - at(0)?, at(2)? - at(0)?);
+    // What a gap keeps: room for a wire (a step or more) at least what it was up to two steps, else no overlap.
+    let keep = |gap: i128| if gap >= step { gap.min(two) } else { 0 };
     let mut order: Vec<usize> = (0..items.len()).collect();
     order.sort_by_key(|&i| (axis(items[i].lo), axis(items[i].hi), i));
     let mut shift = vec![0i128; items.len()];
@@ -225,7 +228,7 @@ fn fit_axis(
             .filter(|&&i| across[i].0 <= across[j].1 && across[j].0 <= across[i].1)
             .filter_map(|&i| {
                 let gap = axis(item.lo) - axis(items[i].hi);
-                (gap >= 0).then(|| axis(items[i].hi) + shift[i] + gap.min(two) - FIT_SLACK - axis(item.lo))
+                (gap >= 0).then(|| axis(items[i].hi) + shift[i] + keep(gap) - FIT_SLACK - axis(item.lo))
             })
             .max();
         if let Some(need) = need.filter(|need| *need > d) {
