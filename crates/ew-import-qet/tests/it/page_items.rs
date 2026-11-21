@@ -22,8 +22,9 @@ const FONT9: &str = "Sans Serif,9,-1,5,50,0,0,0,0,0";
 /// The em height of a 9 pt QET font (the `text.normal` of doc 20 §17.5), nm.
 const EM9: i64 = 3_175_000;
 
-/// The drop from a text box's top-left corner to its first line's middle, after the 4 px margin: 0.547 em.
-const MIDDLE9: i64 = 1_736_725;
+/// The drop from a text box's top-left corner to its first line's baseline, after the 4 px margin: Qt's ascent of
+/// 0.905 em (doc 09 §4.8).
+const BASELINE9: i64 = 2_873_375;
 
 fn px(v: &str) -> i64 {
     Decimal::parse(v).unwrap().px_to_nm().unwrap().0
@@ -170,11 +171,12 @@ fn text<'b>(batch: &'b ImportBatch, s: &str) -> &'b FreeText {
 #[test]
 fn free_texts_stand_where_qet_drew_them_in_their_size() {
     let b = import();
-    // The box's top-left corner (10, 200) px, the 4 px margin, then down to the middle of the first line.
+    // The box's top-left corner (10, 200) px, the 4 px margin, then down to the baseline of the first line.
     let note = text(&b, "Note");
     let em12 = 4_233_333;
     assert_eq!(note.at.x.0, px("10") + px("4"));
-    assert_eq!(note.at.y.0, px("200") + px("4") + em12 * 547 / 1000);
+    assert_eq!(note.at.y.0, px("200") + px("4") + em12 * 905 / 1000);
+    assert_eq!(note.anchor, Some(ew_schema::TextAnchor::Baseline));
     assert_eq!(note.style.as_ref().map(|s| s.as_str()), Some("qet.12"));
     // Qt rich text: one free text per paragraph, the body's size, entities decoded.
     let first = text(&b, "First & one");
@@ -320,22 +322,22 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
     let by_x = |x: &str| reps(&b).into_iter().find(|r| r.pos.x.0 == px(x)).unwrap();
     // The unlabelled element shows no slot and no text of its own.
     assert!(by_x("100").text_slots.is_empty());
-    // The labelled one shows its tag slot at its own text: (5, -30) px, the margin, the first line's middle.
+    // The labelled one shows its tag slot at its own text: (5, -30) px, the margin, the first line's baseline.
     let shown = by_x("300").text_slots.iter().next().unwrap();
     assert_eq!(usize::from(shown.slot), tag);
     assert_eq!(shown.visible, Some(true));
     let pos = shown.pos.unwrap();
     assert_eq!(
         (pos.x.0, pos.y.0),
-        (px("5") + px("4"), px("-30") + px("4") + MIDDLE9)
+        (px("5") + px("4"), px("-30") + px("4") + BASELINE9)
     );
-    // The information text prints its value at (500 + 20, 100 + 30) px, the margin, the line's middle.
+    // The information text prints its value at (500 + 20, 100 + 30) px, the margin, the line's baseline.
     let comment = text(&b, "Pump left");
     assert_eq!(
         (comment.at.x.0, comment.at.y.0),
         (
             px("500") + px("20") + px("4"),
-            px("100") + px("30") + px("4") + MIDDLE9
+            px("100") + px("30") + px("4") + BASELINE9
         )
     );
     assert_eq!(comment.style.as_ref().map(|s| s.as_str()), Some("qet.9"));
@@ -346,7 +348,7 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
         (centred.at.x.0, centred.at.y.0),
         (
             px("700") + px("20") + px("45"),
-            px("100") + px("30") + px("4") + MIDDLE9
+            px("100") + px("30") + px("4") + BASELINE9
         )
     );
     assert_eq!(centred.align, Some(TextAlign::Centre));

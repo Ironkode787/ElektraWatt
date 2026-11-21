@@ -225,26 +225,27 @@ fn set_ml(v: &mut Value, text: &str) {
     *v = serde_json::to_value(typed).unwrap_or_default();
 }
 
-/// The nine alignments of a text by (horizontal, vertical) position: left, centre, right; top, middle, bottom.
-const ALIGNS: [[&str; 3]; 3] = [
-    ["top_left", "middle_left", "bottom_left"],
-    ["top_centre", "centre", "bottom_centre"],
-    ["top_right", "middle_right", "bottom_right"],
+/// The twelve alignments of a text by (horizontal, vertical) position: left, centre, right; top, middle, bottom and the
+/// first line's baseline (doc 09 §4.8).
+const ALIGNS: [[&str; 4]; 3] = [
+    ["top_left", "middle_left", "bottom_left", "baseline_left"],
+    ["top_centre", "centre", "bottom_centre", "baseline_centre"],
+    ["top_right", "middle_right", "bottom_right", "baseline_right"],
 ];
 const ALIGN_H: [&str; 3] = ["left", "centre", "right"];
-const ALIGN_V: [&str; 3] = ["top", "middle", "bottom"];
+const ALIGN_V: [&str; 4] = ["top", "middle", "bottom", "baseline"];
 
 /// The (horizontal, vertical) position of an alignment word; a word of a newer format reads as top left.
 fn align_position(word: &str) -> (usize, usize) {
     (0..3)
-        .flat_map(|h| (0..3).map(move |v| (h, v)))
+        .flat_map(|h| (0..4).map(move |v| (h, v)))
         .find(|(h, v)| ALIGNS[*h][*v] == word)
         .unwrap_or((0, 0))
 }
 
 fn align_rows(v: &Value) -> [SheetRow; 2] {
     let (h, vertical) = align_position(v["align"].as_str().unwrap_or("top_left"));
-    let options = |words: [&str; 3]| {
+    let options = |words: &[&str]| {
         words
             .iter()
             .map(|w| ((*w).to_owned(), label(&format!("symbol-align-{w}"))))
@@ -254,19 +255,19 @@ fn align_rows(v: &Value) -> [SheetRow; 2] {
         row(
             "align_h",
             "symbol-align-horizontal",
-            choice(ALIGN_H[h], options(ALIGN_H)),
+            choice(ALIGN_H[h], options(&ALIGN_H)),
         ),
         row(
             "align_v",
             "symbol-align-vertical",
-            choice(ALIGN_V[vertical], options(ALIGN_V)),
+            choice(ALIGN_V[vertical], options(&ALIGN_V)),
         ),
     ]
 }
 
 fn set_align(v: &mut Value, horizontal: bool, word: &str) -> bool {
     let (mut h, mut vertical) = align_position(v["align"].as_str().unwrap_or("top_left"));
-    let words = if horizontal { ALIGN_H } else { ALIGN_V };
+    let words: &[&str] = if horizontal { &ALIGN_H } else { &ALIGN_V };
     let Some(at) = words.iter().position(|w| *w == word) else {
         return false;
     };

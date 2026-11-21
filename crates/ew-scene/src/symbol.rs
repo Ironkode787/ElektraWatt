@@ -435,8 +435,16 @@ fn readable(angle: Angle2) -> (Angle2, bool) {
 /// alignment: a text aligned middle right lies left of its anchor) is mapped by the variant and read back in the
 /// text's own frame, and a component of at least half its length keeps its sign. So a tag left of its body (middle
 /// right) on a symbol turned a quarter clockwise stands centred above it (bottom centre), and a designation beside a
-/// connection point stays beside it, on the side away from the line. An alignment of a newer format is kept.
+/// connection point stays beside it, on the side away from the line. A baseline alignment is read as a bottom one (the
+/// text lies above its anchor) and stays on the baseline while the text still lies above it; brought below it (a text
+/// at 180°, a symbol turned half round) it is a top alignment, beside it a middle one (doc 09 §4.8). An alignment of a
+/// newer format is kept.
 pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
+    keep_baseline(align, side_align(align, angle, variant))
+}
+
+/// [`placed_align`] with a baseline alignment read as a bottom one.
+fn side_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
     let Some((h, v)) = align_parts(align) else {
         return align.clone();
     };
@@ -472,17 +480,17 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
 /// (it stood beside it in the symbol) while its point's line leaves sideways: it runs along the line, away from the
 /// body (left-aligned on a line leaving right), so that it does not run into the body.
 pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orient2) -> Align {
-    let placed = placed_align(&slot.align, angle, variant);
+    let placed = side_align(&slot.align, angle, variant);
     let SlotKind::CpDesignation(idx) = &slot.kind else {
-        return placed;
+        return keep_baseline(&slot.align, placed);
     };
     let (Some((h0, _)), Some((0, v))) = (align_parts(&slot.align), align_parts(&placed)) else {
-        return placed;
+        return keep_baseline(&slot.align, placed);
     };
     if h0 == 0 || upright_angle(angle) != Angle2::ZERO {
-        return placed;
+        return keep_baseline(&slot.align, placed);
     }
-    match def
+    let along = match def
         .cps
         .iter()
         .find(|cp| cp.idx == *idx)
@@ -491,11 +499,12 @@ pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orie
         Some(Dir4::Right) => align_of(-1, v),
         Some(Dir4::Left) => align_of(1, v),
         _ => placed,
-    }
+    };
+    keep_baseline(&slot.align, along)
 }
 
-/// The horizontal and vertical parts of `align`, each −1 (left, top), 0 (centre, middle) or 1 (right, bottom); `None`
-/// for an alignment of a newer format.
+/// The horizontal and vertical parts of `align`, each −1 (left, top), 0 (centre, middle) or 1 (right, bottom), a
+/// baseline alignment's vertical part read as bottom; `None` for an alignment of a newer format.
 fn align_parts(align: &Align) -> Option<(i128, i128)> {
     Some(match align {
         Align::TopLeft => (-1, -1),
@@ -504,11 +513,26 @@ fn align_parts(align: &Align) -> Option<(i128, i128)> {
         Align::MiddleLeft => (-1, 0),
         Align::Centre => (0, 0),
         Align::MiddleRight => (1, 0),
-        Align::BottomLeft => (-1, 1),
-        Align::BottomCentre => (0, 1),
-        Align::BottomRight => (1, 1),
+        Align::BottomLeft | Align::BaselineLeft => (-1, 1),
+        Align::BottomCentre | Align::BaselineCentre => (0, 1),
+        Align::BottomRight | Align::BaselineRight => (1, 1),
         Align::Unknown(_) => return None,
     })
+}
+
+/// `placed` (a nine-way alignment from `align` read as [`align_parts`] reads it) on the baseline again when `align` is
+/// a baseline alignment and the text still lies above its anchor (`placed` is a bottom one).
+fn keep_baseline(align: &Align, placed: Align) -> Align {
+    let baseline = matches!(
+        align,
+        Align::BaselineLeft | Align::BaselineCentre | Align::BaselineRight
+    );
+    match placed {
+        Align::BottomLeft if baseline => Align::BaselineLeft,
+        Align::BottomCentre if baseline => Align::BaselineCentre,
+        Align::BottomRight if baseline => Align::BaselineRight,
+        other => other,
+    }
 }
 
 /// The alignment of the parts `h` and `v` ([`align_parts`]; any value above 0 counts as 1).

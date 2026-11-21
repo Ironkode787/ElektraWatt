@@ -6,7 +6,7 @@
 //!
 //! | QET | Page item |
 //! |---|---|
-//! | `<input>` | free text in its import style `qet.<size>…` (§4.10), left-aligned on [`text_anchor`] |
+//! | `<input>` | free text in its import style `qet.<size>…` (§4.10), left-aligned and anchored on its baseline at [`text_anchor`] |
 //! | `<shape type="Line">` | graphic line |
 //! | `<shape type="Rectangle">` | graphic rectangle; with corner radii `rx ry` a polygon through the rounded corners ([`rounded`]) |
 //! | `<shape type="Ellipse">` | graphic circle when its box is square, else a polygon through the ellipse ([`rounded`]) |
@@ -26,7 +26,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Bounds, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, PageItem, PageItemKind,
-    Record, Sha256, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, TextAlign,
+    Record, Sha256, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, TextAlign, TextAnchor,
 };
 use ew_units::{Angle2, Nm, Pt2, Rect};
 use sha2::Digest;
@@ -40,16 +40,12 @@ use crate::prims::text::{em_of, parse_qt_font, style_key, substitution};
 /// The margin QET's text items keep around their text (Qt's default document margin), px.
 pub const TEXT_MARGIN_PX: i64 = 4;
 
-/// From the top of a text line to the middle between its cap height and its baseline, per mille of the em
-/// (Qt's ascent of the substituted families, about 0.905 em, less half their cap height, about 0.716 em).
-pub const LINE_MIDDLE_PER_MILLE: i128 = 547;
+/// From the top of a text line to its baseline, per mille of the em: Qt's ascent of the families QET's texts are
+/// printed in (Arial and Liberation Sans: 1,854 of their 2,048 units).
+pub const ASCENT_PER_MILLE: i128 = 905;
 
 /// Half the distance between two lines, per mille of the em (Qt's line spacing, about 1.15 em).
 pub const HALF_LINE_PER_MILLE: i128 = 575;
-
-/// The descent of the bundled family below the baseline, per mille of the em (Noto Sans: 293 of its 1,000 units):
-/// QET places an element's static text by its baseline, EW by the bottom of its box.
-pub const DESCENT_PER_MILLE: i128 = 293;
 
 /// The point size of a QET text without a usable font: QET's default diagram font, 9 pt.
 pub const DEFAULT_POINT_SIZE: i64 = 9;
@@ -153,9 +149,10 @@ pub(crate) fn rich_text(raw: &str) -> Option<(String, Option<Decimal>, bool)> {
 
 /// The point where line `line` (from 0) of a QET text item stands, in its parent's frame, and its angle: QET
 /// places the top-left corner of the item's box at `(x, y)` and turns the item by `rotation` (clockwise)
-/// about it; EW draws a free text or an import slot left-aligned on the middle of a line. So the point is
-/// `(x, y)` plus the margin and, downward, [`LINE_MIDDLE_PER_MILLE`] of the em and twice
-/// [`HALF_LINE_PER_MILLE`] per line before it, that offset turned by the rotation rounded to a quarter turn.
+/// about it; EW draws a free text or an import slot on the baseline of the line (doc 09 §4.8), so that it stands
+/// where QET prints it in any typeface. So the point is `(x, y)` plus the margin and, downward, [`ASCENT_PER_MILLE`]
+/// of the em and twice [`HALF_LINE_PER_MILLE`] per line before it, that offset turned by the rotation rounded to a
+/// quarter turn.
 /// The angle is the negated rotation (Qt counts clockwise, `Angle2` counter-clockwise). `None` when `x` or
 /// `y` is missing or out of range. A text of several lines is placed line by line, so that its lines keep
 /// QET's spacing whatever EW's line spacing is.
@@ -169,7 +166,7 @@ pub(crate) fn text_anchor_across(at: &TextAt, line: usize, em: Nm, across: i128)
     let line = i128::try_from(line).ok()?;
     let em = i128::from(em.0);
     let down = margin
-        + div_round_half_even(em * LINE_MIDDLE_PER_MILLE, 1000)
+        + div_round_half_even(em * ASCENT_PER_MILLE, 1000)
         + div_round_half_even(em * HALF_LINE_PER_MILLE * 2 * line, 1000);
     text_point(at, across, down)
 }
@@ -270,8 +267,8 @@ pub(crate) fn line_key(key: &str, line: usize) -> String {
     }
 }
 
-/// A free text of `text` at `at` (page coordinates) and `angle` (taken into 0 … 360°), in `style`, aligned
-/// `align` there (left is written as absent).
+/// A free text of `text` standing on `at` (page coordinates: its baseline, doc 09 §4.8) at `angle` (taken into
+/// 0 … 360°), in `style`, aligned `align` there (left is written as absent).
 pub(crate) fn free_text(
     text: &str,
     at: Pt2,
@@ -287,7 +284,7 @@ pub(crate) fn free_text(
         style,
         height: None,
         align: (align != TextAlign::Left).then_some(align),
-        anchor: None,
+        anchor: Some(TextAnchor::Baseline),
         extra: Default::default(),
     })
 }

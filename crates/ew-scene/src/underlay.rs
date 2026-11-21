@@ -220,7 +220,7 @@ fn text(b: &mut Builder<'_>, t: &FreeText, moved: &dyn Fn(Pt2) -> Pt2) {
     let Some(content) = t.text.as_neutral() else {
         return;
     };
-    let align = text_align(t.align.as_ref());
+    let align = text_align(t.align.as_ref(), t.anchor.as_ref());
     b.text(&TextSpec {
         text: content,
         at: moved(t.at),

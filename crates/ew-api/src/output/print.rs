@@ -35,7 +35,7 @@ pub use ew_export::PagePlacement;
 
 use super::{
     ExportAssets, ExportOptions, Halt, OutputError, PageFindingAt, PageSelection, PdfDate,
-    export_pages_hooked, font_bytes,
+    export_pages_hooked,
 };
 use crate::Session;
 
@@ -328,7 +328,7 @@ fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
 }
 
 /// The print set of the pages `options` selects over `q` (D5): the export's pages, placed and stamped, written by
-/// [`ew_export::pdf`] with the export's options and the bundled fonts.
+/// [`ew_export::pdf`] with the export's options and the [`DrawingFonts`](super::DrawingFonts).
 ///
 /// # Errors
 ///
@@ -424,7 +424,7 @@ pub fn print_pages(
         };
         pdf_options.document_id = format!("{} print {paper} {fit}", pdf_options.document_id);
     }
-    let out = ew_export::pdf(&pages, &pdf_options, font_bytes(), None).map_err(OutputError::Pdf)?;
+    let out = ew_export::pdf(&pages, &pdf_options, &super::DrawingFonts, None).map_err(OutputError::Pdf)?;
     Ok(PrintSet {
         pages,
         pdf: out.bytes,
@@ -547,7 +547,7 @@ mod tests {
             ["page 902 is larger than A4: it is printed at 100 % and clipped from its top-left corner"]
         );
         let sheet = print_pages(vec![page.clone()], options.clone(), Paper::Sheet, Fit::Actual).unwrap();
-        let export = ew_export::pdf(&[page], &options, font_bytes(), None).unwrap();
+        let export = ew_export::pdf(&[page], &options, &crate::output::DrawingFonts, None).unwrap();
         assert!(
             sheet.pdf == export.bytes,
             "a set on its own sheets is the export's PDF"

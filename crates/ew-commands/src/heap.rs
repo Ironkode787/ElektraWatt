@@ -665,6 +665,10 @@ impl HeapSize for ProjectSettings {
             + self.formatting.heap_size()
             + self.revision_label.heap_size()
             + self.text_styles.heap_size()
+            + self
+                .typeface
+                .as_ref()
+                .map_or(0, |t| t.name.heap_size() + t.extra.heap_size())
             + self.extra.heap_size()
     }
 }

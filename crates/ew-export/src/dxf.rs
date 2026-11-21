@@ -13,7 +13,7 @@
 //! | `Instance` | an `INSERT` of a `BLOCK` per symbol geometry (named `EW_<symbol>_<variant>[_<extra>]`), scaled by the page-to-sheet map, turned and mirrored as the instance's transform; on the symbols layer, the block's content on layer `0` |
 //! | `Path` | one `LWPOLYLINE` per subpath (closed with `70 = 1`); quadratic and cubic Béziers flattened to within [`FLATNESS_NM`]; the stroke width as the nearest standard lineweight; a dash pattern as an `LTYPE` |
 //! | a filled `Path` | a solid `HATCH` per closed subpath; a colour other than black as a true colour (420) |
-//! | `Glyphs` | a `TEXT` at the run's baseline start, its cap height (0.714 em, the bundled face's) and angle; one `STYLE` per face; a character outside ASCII as `\U+XXXX`, so the file is ASCII whatever code page a reader assumes |
+//! | `Glyphs` | a `TEXT` at the run's baseline start, its face's cap height ([`DxfFace::cap`]: 0.714 em for the Noto faces) and angle; one `STYLE` per face, naming its font file (doc 09 §4.8); a character outside ASCII as `\U+XXXX`, so the file is ASCII whatever code page a reader assumes |
 //! | `Group` | its transform applied to its items; a clip is not written |
 //! | `Image` | not written, counted |
 //!
@@ -35,9 +35,6 @@ use ew_dl::{
 
 /// The tolerance Béziers are flattened to: 0.01 mm.
 pub const FLATNESS_NM: f64 = 10_000.0;
-
-/// The cap height of the bundled face per em (Noto Sans: 714 of 1000 units).
-const CAP_PER_EM: i64 = 714;
 
 /// The DXF layer names of the page layers (doc 09 §4.4's defaults; an export scheme maps them).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -175,9 +172,34 @@ pub struct DxfSheet {
 pub struct DxfOptions {
     /// The layer names.
     pub layers: DxfLayers,
-    /// The family and boldness of each face the runs name (its STYLE); a face without an entry is written as
-    /// `Noto Sans`.
-    pub faces: BTreeMap<FontKey, (String, bool)>,
+    /// The text style of each face the runs name; a face without an entry is written as Noto Sans Regular.
+    pub faces: BTreeMap<FontKey, DxfFace>,
+}
+
+/// How a DXF names one face (doc 09 §4.8): a DXF cannot carry a font, so its `STYLE` names the face and the font file a
+/// reader draws it with, and its `TEXT`s are as high as the face's capitals.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DxfFace {
+    /// The family (`Noto Sans`): the style's name, `EW-NOTO-SANS`.
+    pub family: String,
+    /// Whether it is the bold face: the style's name ends `-BOLD`.
+    pub bold: bool,
+    /// The font file the style names (group 3: `NotoSans-Regular.ttf`).
+    pub file: String,
+    /// The face's cap height and its units per em: a `TEXT`'s height is the run's em height times their ratio.
+    pub cap: (i32, u16),
+}
+
+impl DxfFace {
+    /// The face a run without an entry is written as: Noto Sans Regular, 714 of its 1000 units high.
+    fn noto() -> DxfFace {
+        DxfFace {
+            family: "Noto Sans".to_owned(),
+            bold: false,
+            file: "NotoSans-Regular.ttf".to_owned(),
+            cap: (714, 1000),
+        }
+    }
 }
 
 /// One written DXF file.
@@ -477,7 +499,9 @@ impl Writer<'_> {
                     let ahead = rt.apply(Pt2::new(Nm(1_000_000), Nm(0)));
                     // The angle on the sheet (y down) as DXF's (y up): the visual angle is the same.
                     let angle = atan2_deg(-((ahead.y.0 - at.y.0) as f64), (ahead.x.0 - at.x.0) as f64);
-                    let cap = run.size.0 * CAP_PER_EM / 1000;
+                    let face = self.opts.faces.get(&run.font).cloned().unwrap_or_else(DxfFace::noto);
+                    let cap = i128::from(run.size.0) * i128::from(face.cap.0) / i128::from(face.cap.1.max(1));
+                    let cap = i64::try_from(cap).unwrap_or(i64::MAX);
                     let style = self.style(run.font);
                     let (x, y) = if block { Self::block_xy(at) } else { self.xy(at) };
                     let mut body = String::new();
@@ -572,30 +596,17 @@ fn rgb(c: ew_dl::Color) -> u32 {
 
 /// The STYLE name of a face: its family in capitals with `-` for spaces, `-BOLD` for a bold face.
 fn style_name(opts: &DxfOptions, font: FontKey) -> String {
-    let (family, bold) = opts
-        .faces
-        .get(&font)
-        .cloned()
-        .unwrap_or_else(|| ("Noto Sans".to_owned(), false));
-    let mut s = format!("EW-{}", family.to_ascii_uppercase().replace(' ', "-"));
-    if bold {
+    let face = opts.faces.get(&font).cloned().unwrap_or_else(DxfFace::noto);
+    let mut s = format!("EW-{}", face.family.to_ascii_uppercase().replace(' ', "-"));
+    if face.bold {
         s.push_str("-BOLD");
     }
     dxf_text(&s)
 }
 
-/// The font file of a face: its family without spaces, `-Bold` or `-Regular`, `.ttf`.
+/// The font file a face's STYLE names ([`DxfFace::file`]).
 fn font_file(opts: &DxfOptions, font: FontKey) -> String {
-    let (family, bold) = opts
-        .faces
-        .get(&font)
-        .cloned()
-        .unwrap_or_else(|| ("Noto Sans".to_owned(), false));
-    dxf_text(&format!(
-        "{}-{}.ttf",
-        family.replace(' ', ""),
-        if bold { "Bold" } else { "Regular" }
-    ))
+    dxf_text(&opts.faces.get(&font).cloned().unwrap_or_else(DxfFace::noto).file)
 }
 
 /// The DXF file of each page (see the module documentation).

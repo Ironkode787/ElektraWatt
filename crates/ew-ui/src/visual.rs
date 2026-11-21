@@ -251,6 +251,7 @@ impl Platform for VisualPlatform {
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
+            | Prompt::OpenFont
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz
@@ -265,6 +266,7 @@ impl Platform for VisualPlatform {
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
+            | Prompt::OpenFont
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz

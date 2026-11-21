@@ -19,7 +19,8 @@
 //!    vector paths through `ew_scene::images`, a PNG or JPEG image gets its bytes); this phase is not a memoised
 //!    query, so reading which assets the project holds here is outside the read rule;
 //! 3. the writer: [`ew_export::pdf`] (PDF/A-2b, outline, `/PageLabels`, named destinations, links, subset fonts)
-//!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts only ([`font_bytes`]).
+//!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts and the project's typeface only
+//!    ([`DrawingFonts`], doc 09 §4.8).
 //!
 //! Serial and parallel runs give the same bytes (AC-14). The `Session` is not `Send`, so phase 1 of
 //! [`Session::export_pdf`] stays on its thread: the layers are memoised in the session's store and a second export
@@ -85,6 +86,8 @@ pub mod table_edit;
 mod table_io;
 // What the window's Title block fields form reads of a page (FT-1686).
 mod title_block_fields;
+// The project's typeface: the font set its texts are shaped and drawn with (doc 09 §4.8).
+mod typeface;
 // Underlays: placed by an import, drawn by the export job (WP-S3.19).
 mod underlay;
 mod view;
@@ -185,6 +188,7 @@ pub use table_io::{
     TableImportError, guard_table_read,
 };
 pub use title_block_fields::TitleBlockFacts;
+pub use typeface::{DrawingFonts, ProjectFonts, ProjectFontsQ, TypefaceState, font_files, fonts};
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
     COVER_FRAME, FrameForms, GRID_FRAME, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf,
@@ -599,11 +603,7 @@ pub fn export_dxf_with(
     }
     let dxf_options = ew_export::DxfOptions {
         layers: layers.clone(),
-        faces: svg_options(false)
-            .faces
-            .into_iter()
-            .map(|(k, f)| (k, (f.family, f.weight >= 700)))
-            .collect(),
+        faces: dxf_faces(q),
     };
     Ok(DxfExport {
         files: ew_export::dxf(&sheets, &dxf_options),
@@ -611,7 +611,8 @@ pub fn export_dxf_with(
     })
 }
 
-/// The bundled font faces as the writers read them (`ew_text::bundled()`): the export embeds no other font.
+/// The bundled font faces as the writers read them (`ew_text::bundled()`); with the project's typeface they are the
+/// [`DrawingFonts`]. The window's own type is drawn with these.
 pub fn font_bytes() -> &'static BTreeMap<FontKey, FontBytes> {
     static FONTS: OnceLock<BTreeMap<FontKey, FontBytes>> = OnceLock::new();
     FONTS.get_or_init(|| {
@@ -631,13 +632,13 @@ pub fn font_bytes() -> &'static BTreeMap<FontKey, FontBytes> {
     })
 }
 
-/// The SVG options of an export: the bundled faces by family, weight and style, each with its font file
-/// ([`font_bytes`]) so that every page embeds the subsets of the faces it draws.
-pub fn svg_options(monochrome: bool) -> SvgOptions {
-    let bytes = font_bytes();
+/// The SVG options of an export with the font set `fonts` (the project's, [`fonts`]): its faces by family, weight and
+/// style, each with its font file ([`DrawingFonts`]) so that every page embeds the subsets of the faces it draws.
+pub fn svg_options(fonts: &ew_text::FontSet, monochrome: bool) -> SvgOptions {
+    use ew_export::ew_render_cpu::FontResolver as _;
     SvgOptions {
         monochrome,
-        faces: ew_text::bundled()
+        faces: fonts
             .faces()
             .map(|f| {
                 (
@@ -647,8 +648,8 @@ pub fn svg_options(monochrome: bool) -> SvgOptions {
                         weight: f.weight.value(),
                         italic: f.italic,
                         // A face of a collection file is named only: the subsetter takes single-face files.
-                        data: bytes
-                            .get(&f.key)
+                        data: DrawingFonts
+                            .font(f.key)
                             .filter(|b| b.index == 0)
                             .map(|b| Arc::clone(&b.data)),
                     },
@@ -656,6 +657,38 @@ pub fn svg_options(monochrome: bool) -> SvgOptions {
             })
             .collect(),
     }
+}
+
+/// The text style of each face of the project's font set as a DXF names it (doc 09 §4.8): its family, its weight, its
+/// font file (the typeface's own name; a bundled face's `<Family>-<Regular|Bold>.ttf`) and its cap height.
+fn dxf_faces(q: &Q) -> BTreeMap<FontKey, ew_export::DxfFace> {
+    let project = q.get::<ProjectFontsQ>(());
+    let typeface = match &project.state {
+        TypefaceState::Loaded { name, .. } => Some(name.as_str()),
+        _ => None,
+    };
+    project
+        .set
+        .faces()
+        .map(|f| {
+            let bold = f.weight == ew_text::Weight::Bold;
+            let file = match typeface {
+                Some(name) if !ew_text::bundled().faces().any(|b| b.key == f.key) => name.to_owned(),
+                _ => format!(
+                    "{}-{}.ttf",
+                    f.family_name.replace(' ', ""),
+                    if bold { "Bold" } else { "Regular" }
+                ),
+            };
+            let face = ew_export::DxfFace {
+                family: f.family_name.clone(),
+                bold,
+                file,
+                cap: (f.metrics.cap_height, f.metrics.units_per_em),
+            };
+            (f.key, face)
+        })
+        .collect()
 }
 
 /// The date of `SOURCE_DATE_EPOCH` seconds (UTC); `None` before 0001-01-01 or after 9999-12-31.
@@ -998,7 +1031,7 @@ pub fn export_pdf_with(
     assets: &ExportAssets,
 ) -> Result<PdfExport, OutputError> {
     let pages = export_pages_with(q, options, assets)?;
-    let out = ew_export::pdf(&pages.pages, &pages.options, font_bytes(), None).map_err(OutputError::Pdf)?;
+    let out = ew_export::pdf(&pages.pages, &pages.options, &DrawingFonts, None).map_err(OutputError::Pdf)?;
     Ok(PdfExport {
         bytes: out.bytes,
         report: out.report,
@@ -1023,7 +1056,7 @@ pub fn export_svg_with(
     raster::refuse_same_file_names(pages.pages.iter().map(|p| p.label.as_str()), svg_file_name)?;
     let out = ew_export::svg(
         &pages.pages,
-        &svg_options(options.monochrome),
+        &svg_options(fonts(q), options.monochrome),
         None,
         options.parallelism,
     )

@@ -244,6 +244,11 @@ impl RfdPlatform {
                     .add_filter("Images", &["svg", "png", "jpg", "jpeg"]),
                 DialogKind::File,
             ),
+            Prompt::OpenFont => (
+                base.set_title(strings::text(key!("prompt-open-font-title")))
+                    .add_filter("TrueType, OpenType", &["ttf", "otf"]),
+                DialogKind::File,
+            ),
             Prompt::SavePdf => (
                 base.set_title(strings::text(key!("prompt-export-title")))
                     .set_file_name(strings::text(key!("prompt-pdf-name")))
@@ -430,7 +435,7 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
         title: request.title.clone(),
         pdf: request.set.pdf.clone(),
         pages: request.set.pages.clone(),
-        fonts: ew_viewmodel::ew_api::output::font_bytes().clone(),
+        fonts: ew_viewmodel::ew_api::output::font_files(request.set.report.fonts.iter().copied()),
         printer: None,
         monochrome: request.monochrome,
         // The Jobs pane's Cancel of the print sets it.

@@ -13,16 +13,24 @@
 //!
 //! Every change is one `project.settings.set {member: "text_styles"}`: one undo step, and the open page shows it at
 //! once. The styles are the project's; a template carries them to the projects made from it.
+//!
+//! Above the styles, the *Standard typeface* line (doc 09 §4.8): Noto Sans, or a font file the project holds, which then
+//! prints every style of the Standard typeface ([`ShellModel::typeface_line`]); **Choose a font file…**
+//! (`text_styles.typeface {path}`) and **Use Noto Sans** (`text_styles.typeface_clear`) are one `project.typeface.set`
+//! each.
 
 use ew_api::{
     AnyCommand, EffectiveStyle, MIN_CAP_HEIGHT, TEXT_STYLE_MAX_SIZE, TEXT_STYLE_MIN_SIZE, TYPEFACES,
     TextStyleGroup, TextWeight, Typeface, cap_height, em_for_cap, standard_text_style, text_style_entry,
     text_style_group,
 };
+use std::io::Read as _;
+
+use ew_api::output::TypefaceState;
 use ew_units::Nm;
 use serde_json::{Map, Value};
 
-use super::{Dialog, Outcome, ShellModel, failed, string_param};
+use super::{Dialog, Outcome, Prompt, ShellModel, failed, string_param};
 use crate::key;
 use crate::strings;
 
@@ -114,6 +122,16 @@ pub struct TextStyleRow {
     pub small: Option<String>,
     /// Whether it differs from what a new project has (Reset can be pressed).
     pub changed: bool,
+}
+
+/// The page's *Standard typeface* line (doc 09 §4.8).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TypefaceLine {
+    /// What prints the Standard typeface, in words: Noto Sans, or the family and the file of the project's, or why the
+    /// project's file does not print.
+    pub words: String,
+    /// Whether the project names a font file of its own (Use Noto Sans can be pressed).
+    pub own: bool,
 }
 
 /// The Text styles dialog.
@@ -257,15 +275,107 @@ impl ShellModel {
             name: "project.settings.set".to_owned(),
             params: serde_json::json!({ "member": "text_styles", "value": value }),
         };
-        let out = self.run_commit(&cmd);
+        self.commit_noted(&cmd, |_| done)
+    }
+
+    /// Commits `cmd` in one step; the page's note is `done` of the shell after it, or why it did not.
+    fn commit_noted(&mut self, cmd: &AnyCommand, done: impl FnOnce(&ShellModel) -> String) -> Outcome {
+        let out = self.run_commit(cmd);
+        let note = match &out {
+            Outcome::Done => Some(done(self)),
+            Outcome::Failed { message } => Some(message.clone()),
+            _ => None,
+        };
         if let Some(Dialog::TextStyles(d)) = &mut self.dialog {
-            d.note = match &out {
-                Outcome::Done => Some(done),
-                Outcome::Failed { message } => Some(message.clone()),
-                _ => None,
-            };
+            d.note = note;
         }
         out
+    }
+
+    /// The page's *Standard typeface* line (doc 09 §4.8); `None` without a project.
+    pub fn typeface_line(&self) -> Option<TypefaceLine> {
+        let p = self.project.as_ref()?;
+        let (words, own) = match p.session.typeface() {
+            TypefaceState::Bundled => (strings::text(key!("text-styles-typeface-bundled")).to_owned(), false),
+            TypefaceState::Loaded { name, family } => (
+                strings::format(key!("text-styles-typeface-loaded"), &[&family, &name]),
+                true,
+            ),
+            TypefaceState::Missing { name } => {
+                (strings::format(key!("text-styles-typeface-missing"), &[&name]), true)
+            }
+            TypefaceState::Unusable { name } => {
+                (strings::format(key!("text-styles-typeface-unusable"), &[&name]), true)
+            }
+        };
+        Some(TypefaceLine { words, own })
+    }
+
+    /// `text_styles.typeface {path}` (Text styles ▸ Choose a font file…): the project's typeface from a font file, in
+    /// one step (`project.typeface.set` with the file and its name; doc 09 §4.8). The window asks for the file with its
+    /// dialog (`Prompt::OpenFont`). A file that cannot be read or is larger than the 768 KiB a project takes is refused
+    /// here, naming the file by its name; one that is no usable font, by the command, in its words.
+    pub(crate) fn act_text_styles_typeface(&mut self, p: &Map<String, Value>) -> Outcome {
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => std::path::PathBuf::from(path),
+            Ok(None) => return self.need_path("text_styles.typeface", Prompt::OpenFont, "path", p),
+        };
+        let name = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let limit = ew_api::MAX_TYPEFACE_BYTES;
+        let too_large = |me: &mut ShellModel| {
+            me.text_styles_refused(strings::format(
+                key!("error-typeface-too-large"),
+                &[&name, &(limit / 1024).to_string()],
+            ))
+        };
+        // Only a regular file is read, and no more than the limit and one byte (it may grow after the metadata).
+        match std::fs::metadata(&path) {
+            Ok(m) if !m.is_file() => {
+                let why = strings::text(key!("error-typeface-not-a-file"));
+                return self.text_styles_refused(strings::format(key!("error-typeface-file"), &[&name, why]));
+            }
+            Ok(m) if m.len() > limit as u64 => return too_large(self),
+            Ok(_) => {}
+            Err(e) => {
+                return self.text_styles_refused(strings::format(
+                    key!("error-typeface-file"),
+                    &[&name, &e.to_string()],
+                ));
+            }
+        }
+        let mut bytes = Vec::new();
+        if let Err(e) = std::fs::File::open(&path).and_then(|f| f.take(limit as u64 + 1).read_to_end(&mut bytes)) {
+            return self.text_styles_refused(strings::format(
+                key!("error-typeface-file"),
+                &[&name, &e.to_string()],
+            ));
+        }
+        if bytes.len() > limit {
+            return too_large(self);
+        }
+        let cmd = AnyCommand {
+            name: "project.typeface.set".to_owned(),
+            params: serde_json::json!({ "file": ew_api::base64_encode(&bytes), "name": name }),
+        };
+        self.commit_noted(&cmd, |s| {
+            let words = s.typeface_line().map_or_else(String::new, |l| l.words);
+            strings::format(key!("text-styles-note-typeface"), &[&words])
+        })
+    }
+
+    /// `text_styles.typeface_clear` (Text styles ▸ Use Noto Sans): the Standard typeface back to the bundled Noto Sans,
+    /// in one step.
+    pub(crate) fn act_text_styles_typeface_clear(&mut self) -> Outcome {
+        let cmd = AnyCommand {
+            name: "project.typeface.set".to_owned(),
+            params: serde_json::json!({ "file": "" }),
+        };
+        self.commit_noted(&cmd, |_| {
+            strings::text(key!("text-styles-note-typeface-clear")).to_owned()
+        })
     }
 
     /// `text_styles.set {style, height?, face?, bold?}`: one style's height (a cap height in mm, `2.5` or `2,5`), its

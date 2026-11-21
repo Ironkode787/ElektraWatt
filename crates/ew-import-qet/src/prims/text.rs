@@ -12,8 +12,7 @@
 //! # Static `text`
 //!
 //! [`Primitive::Text`] with `pos = (x, y)` relative to the hotspot, `text = MlText::neutral(text)`,
-//! `align = Align::BottomLeft` with the point a descent lower in the text's frame (QET draws a static text from its
-//! baseline; EW aligns the bottom of its box, measured against QET's own PDF),
+//! `align = Align::BaselineLeft` (QET draws a static text from its baseline; doc 09 §4.8), one text per line,
 //! `angle = −rotation`, `style` from [`font_style`]. `extra`: `"qet.font"` = the raw `font` attribute if
 //! present; `"qet.color"` = the `color` attribute if it is present and not black (`black`, `#000000`), which is also reported
 //! (EW-IMP-004, info: "text colour `<c>` dropped"). A missing `text` attribute is an empty text.
@@ -81,9 +80,9 @@ use super::{ItemError, Parsed, PrimCtx};
 use crate::decimal::Decimal;
 
 /// The alignment of a slot read with [`PrimCtx::instance_texts`]: an element's own text moves the slot to a
-/// point on the middle of its first line's left end (the anchor a free text has too), whatever the definition
-/// said.
-pub const INSTANCE_ALIGN: Align = Align::MiddleLeft;
+/// point on the baseline of its first line's left end (the anchor an imported free text has too; doc 09 §4.8),
+/// whatever the definition said.
+pub const INSTANCE_ALIGN: Align = Align::BaselineLeft;
 
 /// Sets `extra[key]` to a string value.
 fn put(extra: &mut Extra, key: &str, value: &str) {
@@ -377,18 +376,16 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
         put(&mut extra, "qet.color", colour);
     }
     // QET writes the baseline of the first line; each further line stands one line spacing lower in the text's
-    // own frame. One text per line keeps that spacing, as a page's free texts do. EW aligns the text's box, whose
-    // bottom is the descent below the baseline, so each line's point stands that much lower.
+    // own frame. One text per line keeps that spacing, as a page's free texts do; each stands on its baseline.
     let em = i128::from(node_em(node).0);
     let spacing =
         crate::decimal::div_round_half_even(em * crate::project::items::HALF_LINE_PER_MILLE * 2, 1000);
-    let descent = crate::decimal::div_round_half_even(em * crate::project::items::DESCENT_PER_MILLE, 1000);
     let quarters =
         u8::try_from(crate::decimal::div_round_half_even(-i128::from(angle.0), 90_000).rem_euclid(4))
             .unwrap_or(0);
     let turn = crate::project::elements::orientation(quarters);
     for (i, line) in node.attribute("text").unwrap_or("").split('\n').enumerate() {
-        let down = i64::try_from(spacing * i128::try_from(i).unwrap_or(i128::MAX) + descent)
+        let down = i64::try_from(spacing * i128::try_from(i).unwrap_or(i128::MAX))
             .map_err(|_| ItemError("text: too many lines".to_owned()))?;
         let offset = turn.apply(Pt2::new(Nm(0), Nm(down)));
         let (Some(x), Some(y)) = (pos.x.0.checked_add(offset.x.0), pos.y.0.checked_add(offset.y.0)) else {
@@ -398,7 +395,7 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
             pos: Pt2::new(Nm(x), Nm(y)),
             text: MlText::neutral(line.trim_end_matches('\r')),
             style: style.clone(),
-            align: Align::BottomLeft,
+            align: Align::BaselineLeft,
             angle,
             extra: extra.clone(),
         }));
@@ -596,11 +593,10 @@ mod tests {
         assert!(entries.is_empty());
         let t = text_of(&out);
         assert_eq!(t.angle, Angle2(-90_000));
-        // QET's point is the baseline; the box's bottom stands a descent (293 of 1,000 of the 9 pt em of 3,175,000
-        // nm) lower in the text's frame, which a quarter turn clockwise points left.
-        assert_eq!(t.pos, Pt2::new(Nm(px("10").0 - 930_275), px("-20")));
+        // QET's point is the baseline, and the text stands on it (doc 09 §4.8).
+        assert_eq!(t.pos, Pt2::new(px("10"), px("-20")));
         assert_eq!(t.text, MlText::neutral("Hi"));
-        assert_eq!(t.align, Align::BottomLeft);
+        assert_eq!(t.align, Align::BaselineLeft);
         assert_eq!(t.style, None);
         assert!(t.extra.is_empty());
         let (r, out, _) = run(r#"<text x="0" y="0"/>"#, static_text);
@@ -613,13 +609,10 @@ mod tests {
 
     #[test]
     fn a_static_text_of_two_lines_keeps_its_first_baseline_on_qets_point_and_qets_line_spacing() {
-        // 9 pt: an em of 3,175,000 nm, a line spacing of 1.15 em, 3,651,250 nm, and a descent of 0.293 em, 930,275
-        // nm, from the baseline to the box's bottom, downward in the text's frame.
+        // 9 pt: an em of 3,175,000 nm and a line spacing of 1.15 em, 3,651,250 nm, downward in the text's frame; each
+        // line stands on its baseline.
         let font = r#"font="Sans Serif,9,-1,5,50,0,0,0,0,0""#;
-        for (rotation, step, descent) in [
-            ("0", (0, 3_651_250), (0, 930_275)),
-            ("90", (-3_651_250, 0), (-930_275, 0)),
-        ] {
+        for (rotation, step) in [("0", (0, 3_651_250)), ("90", (-3_651_250, 0))] {
             let xml = format!(r#"<text x="10" y="20" rotation="{rotation}" {font} text="AB&#xa;CD"/>"#);
             let (r, out, _) = run(&xml, static_text);
             r.unwrap();
@@ -634,8 +627,9 @@ mod tests {
             assert_eq!(texts.len(), 2, "rotation {rotation}");
             assert_eq!(texts[0].text, MlText::neutral("AB"));
             assert_eq!(texts[1].text, MlText::neutral("CD"));
-            let first = Pt2::new(Nm(px("10").0 + descent.0), Nm(px("20").0 + descent.1));
+            let first = Pt2::new(px("10"), px("20"));
             assert_eq!(texts[0].pos, first, "rotation {rotation}");
+            assert_eq!(texts[0].align, Align::BaselineLeft);
             assert_eq!(
                 texts[1].pos,
                 Pt2::new(Nm(first.x.0 + step.0), Nm(first.y.0 + step.1)),

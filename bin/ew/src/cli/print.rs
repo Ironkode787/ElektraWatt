@@ -79,7 +79,7 @@ pub(super) fn run_print(a: &PrintArgs) -> i32 {
         title: title.clone(),
         pdf: set.pdf,
         pages: set.pages,
-        fonts: ew_api::output::font_bytes().clone(),
+        fonts: ew_api::output::font_files(set.report.fonts.iter().copied()),
         printer: a.printer.clone(),
         monochrome: a.mono,
         cancel: ew_print::PrintCancel::default(),

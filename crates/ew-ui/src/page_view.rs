@@ -22,7 +22,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use egui::{ColorImage, TextureHandle, TextureOptions, Ui, Vec2};
 use ew_render_cpu::{RenderOptions, RgbaImage, SheetSize, pixel_size, render};
-use ew_viewmodel::ew_api::output::{ExportPages, font_bytes};
+use ew_viewmodel::ew_api::output::{DrawingFonts, ExportPages};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -53,7 +53,7 @@ pub fn render_page(pages: &ExportPages, dpi: u32) -> Result<RgbaImage, String> {
         dpi,
         ..RenderOptions::default()
     };
-    render(&page.content, sheet, &options, font_bytes(), None)
+    render(&page.content, sheet, &options, &DrawingFonts, None)
         .map(|(image, _report)| image)
         .map_err(|e| strings::format(key!("error-render"), &[&e.to_string()]))
 }

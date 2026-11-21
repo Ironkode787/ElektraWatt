@@ -675,6 +675,13 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
         "project.frames.set",
         Some("the template wizard (Project ▸ New template…)"),
     ),
+    // The font file comes in with its command, which checks it (doc 09 §4.8).
+    (
+        "project",
+        "settings.typeface",
+        "project.typeface.set",
+        Some("Text styles… (Project ▸ Setup)"),
+    ),
     (
         "project",
         "languages",

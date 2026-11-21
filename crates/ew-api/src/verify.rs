@@ -235,8 +235,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), o);
     check::<SettingsMember>(memo, cold, Member::ALL, o);
     check::<StitchGraphQ>(memo, cold, [()], o);
-    // ADR-0032: the project's effective text-style table.
+    // ADR-0032: the project's effective text-style table; doc 09 §4.8: its font set.
     check::<ew_derive::TextStyles>(memo, cold, [()], o);
+    check::<crate::output::ProjectFontsQ>(memo, cold, [()], o);
     check::<ew_derive::StripBridges>(memo, cold, keys.devices.iter().copied(), o);
     check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TocRows>(memo, cold, [()], o);

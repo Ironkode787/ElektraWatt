@@ -853,7 +853,7 @@ impl Mx<'_, '_> {
                 continue;
             };
             let slot_align = if align == TextAlign::Centre {
-                Align::Centre
+                Align::BaselineCentre
             } else {
                 INSTANCE_ALIGN
             };

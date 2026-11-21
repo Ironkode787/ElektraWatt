@@ -52,21 +52,21 @@ use egui::{
     Color32, ColorImage, Event as EguiEvent, Key, Mesh, Modifiers, MouseWheelUnit, PointerButton, Pos2, Rect,
     Sense, TextureHandle, TextureId, TextureOptions, Ui, Vec2,
 };
-use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
+use ew_render_cpu::{FontResolver, SheetSize};
 use ew_render2d::gpu::GpuView;
 use ew_render2d::overlay::{self, GridSpec, OpenCps, Overlay, OverlayInput, Theme};
 use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase};
 
 use crate::clock::{Stamp, now};
-use ew_dl::{Color, FontKey, ew_units::Nm};
+use ew_dl::{Color, ew_units::Nm};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_units::Rect as SheetRect;
 use ew_viewmodel::canvas::{
     CanvasModel, CanvasPage, HOVER_SLOP_PT, Viewport, bounded_pane, zoom_in_step, zoom_out_step,
 };
-use ew_viewmodel::ew_api::output::font_bytes;
+use ew_viewmodel::ew_api::output::DrawingFonts;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
@@ -900,7 +900,7 @@ fn render_view(
                 surround: theme.surround,
             };
             let (part, _) =
-                ew_render_cpu::render_region(&page.list, Some(&bounds), sheet, &options, font_bytes(), None)
+                ew_render_cpu::render_region(&page.list, Some(&bounds), sheet, &options, &DrawingFonts, None)
                     .map_err(|e| strings::format(key!("error-render"), &[&e.to_string()]))?;
             for row in 0..ch as usize {
                 let from = row * cw as usize * 4;
@@ -925,15 +925,6 @@ fn render_view(
     });
     overlay::composite(&mut image, &o, theme);
     Ok((image, dpi))
-}
-
-/// The bundled fonts as the tile workers read them.
-struct BundledFonts(&'static BTreeMap<FontKey, FontBytes>);
-
-impl FontResolver for BundledFonts {
-    fn font(&self, key: FontKey) -> Option<FontBytes> {
-        self.0.font(key)
-    }
 }
 
 /// What identifies a page's content: the project session (revisions restart with every session), the revision and
@@ -1251,7 +1242,7 @@ impl CanvasHost {
             sample: FrameSample::default(),
             frame_started: None,
             counters: CanvasCounters::default(),
-            fonts: Arc::new(BundledFonts(font_bytes())),
+            fonts: Arc::new(DrawingFonts),
             popup: PopupView::default(),
             rest: None,
             chips: (Vec::new(), None),

@@ -9,7 +9,7 @@
 //! | Item | Drawn as |
 //! |---|---|
 //! | graphic | its shape (line, polyline, rectangle, circle, arc in the QET convention, polygon) in the page's wire stroke ([`wire_stroke`]) unless `stroke` sets the width; `dashed`, `dotted` and `dash_dot` are the pen-width multiples of doc 07 §2.3; a closed shape with `fill` is filled black |
-//! | free text | its printed text ([`ItemView::text`]) at `at` in its style (absent: `text.normal`), aligned left, centred or right on `at` and vertically on its middle, at a readable angle with the alignment flipped as slot texts are (doc 06 §2.5) |
+//! | free text | its printed text ([`ItemView::text`]) at `at` in its style (absent: `text.normal`), aligned left, centred or right on `at` and vertically on its middle, or with `anchor: baseline` on its first line's baseline (doc 09 §4.8), at a readable angle with the alignment flipped as slot texts are (doc 06 §2.5) |
 //! | wire marker | when shown ([`ItemView::shown`]): a line through `at` across its wires (horizontal across vertical wires; vertical, turned 90°, across horizontal ones), past the outer wires as a per-connection marker's, and the group text in style `marker` clear of the wires beyond the line's end: right of a horizontal line, reading upwards from the top of a vertical one (FT-1706) |
 //! | cable mark | a wire marker whose connections are all cores of one cable ([`ItemView::cable`]), always: the line across the cable's wires, a slanted stroke on each core, each core's designation beside its wire, and the cable's tag with its type line at the line's start ([`crate::page`], "Cable marks") |
 //! | image | its asset in `rect`: a PNG or JPEG as an image item, an SVG as an image item too, which the export job and the renderers' resolver turn into vector paths ([`crate::images`], FR-SYM-025); the item carries the asset's hash and format and no bytes, as every image of a display list does |
@@ -23,7 +23,7 @@ use std::sync::Arc;
 use ew_dl::{Brush, Dash, DashPattern, EntityRef, ImageData, ImageFormat, Item, Path, Stroke};
 use ew_schema::{
     Align, AssetFormat, AssetRef, BoxStyle, Graphic, GraphicShape, LineDash, PageItem, PageItemKind,
-    StructureBox, TextAlign,
+    StructureBox, TextAlign, TextAnchor,
 };
 use ew_text::DEFAULT_STYLE_KEY;
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
@@ -126,12 +126,17 @@ fn box_stroke(view: &PageView, style: &BoxStyle) -> Stroke {
     }
 }
 
-/// The alignment of a free text at its point (horizontal from `align`, vertical on the middle).
-pub(crate) fn text_align(align: Option<&TextAlign>) -> Align {
-    match align {
-        Some(TextAlign::Centre) => Align::Centre,
-        Some(TextAlign::Right) => Align::MiddleRight,
-        Some(TextAlign::Left | TextAlign::Unknown(_)) | None => Align::MiddleLeft,
+/// The alignment of a free text at its point: horizontal from `align`, vertical on the middle, or on the first line's
+/// baseline with the anchor `baseline` (doc 09 §4.8).
+pub(crate) fn text_align(align: Option<&TextAlign>, anchor: Option<&TextAnchor>) -> Align {
+    let baseline = matches!(anchor, Some(TextAnchor::Baseline));
+    match (align, baseline) {
+        (Some(TextAlign::Centre), false) => Align::Centre,
+        (Some(TextAlign::Right), false) => Align::MiddleRight,
+        (Some(TextAlign::Left | TextAlign::Unknown(_)) | None, false) => Align::MiddleLeft,
+        (Some(TextAlign::Centre), true) => Align::BaselineCentre,
+        (Some(TextAlign::Right), true) => Align::BaselineRight,
+        (Some(TextAlign::Left | TextAlign::Unknown(_)) | None, true) => Align::BaselineLeft,
     }
 }
 
@@ -190,7 +195,11 @@ impl Builder<'_> {
             let entity = EntityRef(iv.item.id.as_uuid());
             match &iv.item.kind {
                 PageItemKind::FreeText(t) => {
-                    let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
+                    let align = symbol::placed_align(
+                        &text_align(t.align.as_ref(), t.anchor.as_ref()),
+                        t.angle,
+                        Orient2::R0,
+                    );
                     let style = t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str());
                     let text = Text::plain(
                         &iv.text,
@@ -254,9 +263,14 @@ mod tests {
     }
 
     #[test]
-    fn alignments_map_on_the_middle() {
-        assert_eq!(text_align(None), Align::MiddleLeft);
-        assert_eq!(text_align(Some(&TextAlign::Centre)), Align::Centre);
-        assert_eq!(text_align(Some(&TextAlign::Right)), Align::MiddleRight);
+    fn alignments_map_on_the_middle_or_the_baseline() {
+        assert_eq!(text_align(None, None), Align::MiddleLeft);
+        assert_eq!(text_align(Some(&TextAlign::Centre), None), Align::Centre);
+        assert_eq!(text_align(Some(&TextAlign::Right), None), Align::MiddleRight);
+        assert_eq!(text_align(None, Some(&TextAnchor::Middle)), Align::MiddleLeft);
+        let baseline = Some(&TextAnchor::Baseline);
+        assert_eq!(text_align(None, baseline), Align::BaselineLeft);
+        assert_eq!(text_align(Some(&TextAlign::Centre), baseline), Align::BaselineCentre);
+        assert_eq!(text_align(Some(&TextAlign::Right), baseline), Align::BaselineRight);
     }
 }

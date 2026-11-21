@@ -22,8 +22,8 @@
 //! language is the neutral one (no `lang` key yet: the views print neutral texts until multi-language output,
 //! FR-I18N-005).
 //!
-//! The families are pure functions of `Q` and two process constants: the bundled font set
-//! (`ew_text::bundled()`) and the built-in generic symbols (`view::generic_symbols`).
+//! The families are pure functions of `Q` (the project's font set among it, [`super::ProjectFontsQ`]) and the built-in
+//! generic symbols (`view::generic_symbols`), a process constant.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -242,7 +242,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
     let Some(view) = layer_view(q, page, layer) else {
         return Arc::new(PageLayer::default());
     };
-    let l = page_display_list(&view, layer, ew_text::bundled(), &text_style_table(q));
+    let l = page_display_list(&view, layer, super::fonts(q), &text_style_table(q));
     Arc::new(PageLayer {
         list: Arc::new(l.list),
         geometry: l.geometry,

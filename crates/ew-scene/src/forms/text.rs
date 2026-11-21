@@ -33,7 +33,11 @@ pub enum OverflowKind {
     UnknownPolicy,
 }
 
-/// Horizontal and vertical alignment parts of an [`Align`]; `None` for an unknown alignment.
+/// The vertical part of a baseline alignment ([`split_align`]): the first line's baseline on the point.
+pub(crate) const BASELINE: i8 = 2;
+
+/// Horizontal and vertical alignment parts of an [`Align`]: −1 left or top, 0 centre or middle, 1 right or bottom,
+/// and [`BASELINE`]; `None` for an unknown alignment.
 pub(crate) fn split_align(a: &Align) -> Option<(i8, i8)> {
     Some(match a {
         Align::TopLeft => (-1, -1),
@@ -45,6 +49,9 @@ pub(crate) fn split_align(a: &Align) -> Option<(i8, i8)> {
         Align::BottomLeft => (-1, 1),
         Align::BottomCentre => (0, 1),
         Align::BottomRight => (1, 1),
+        Align::BaselineLeft => (-1, BASELINE),
+        Align::BaselineCentre => (0, BASELINE),
+        Align::BaselineRight => (1, BASELINE),
         Align::Unknown(_) => return None,
     })
 }
@@ -192,7 +199,8 @@ pub(crate) fn min_size(fonts: &FontSet, style: &TextStyle, min_cap: Nm, sheet: S
 /// Horizontal: left at `min.x + padding`, right at `max.x − padding`, centre at the midpoint (halving
 /// toward −∞), per line. Vertical: top puts the first line's ascent at `min.y + padding`; bottom puts the
 /// last line's descent at `max.y − padding`; middle centres the block from the first line's cap height
-/// to the last baseline on the box's midpoint.
+/// to the last baseline on the box's midpoint; [`BASELINE`] puts the first line's baseline at `min.y + padding`
+/// (a point text's point: doc 09 §4.8), whatever the face's metrics.
 pub(crate) fn place(
     fonts: &FontSet,
     shaped: &Shaped,
@@ -209,6 +217,7 @@ pub(crate) fn place(
     let baseline0 = match spec.valign {
         -1 => r.min().y + spec.padding + m.ascent,
         1 => r.max().y - spec.padding - m.descent - last,
+        BASELINE => r.min().y + spec.padding,
         _ => {
             // Block from (baseline0 − cap) to (baseline0 + last), centred on the box's middle.
             let c = mid(r.min().y, r.max().y);

@@ -889,7 +889,7 @@ pub(crate) fn new_view_labels(
                 .clone();
             let shaped = q.get::<super::panel::ShapedText>((text.clone(), style));
             let (fw, fh) = (paper(fp.width().0), paper(fp.height().0));
-            Some(ew_scene::panel::label_fit(ew_text::bundled(), &style, &text, &shaped, fw, fh).is_some())
+            Some(ew_scene::panel::label_fit(super::fonts(q), &style, &text, &shaped, fw, fh).is_some())
         })
         .collect();
     let numbers = if fits.is_empty() {

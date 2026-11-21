@@ -701,6 +701,7 @@ pub(crate) fn emit_project(
         // Importers write no text styles: an imported project prints with the built-in table (ADR-0032 decision 3).
         text_styles: Default::default(),
         process_tag_scheme: None,
+        typeface: None,
         extra: numbering(&mut r)
             .map(|n| ("numbering".to_owned(), n))
             .into_iter()

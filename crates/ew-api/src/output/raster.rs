@@ -4,7 +4,7 @@
 //! Page rasters (D7; FR-EXT-004, FT-254): `ew render --page <folio> --png` and `ew export png`.
 //!
 //! One function draws a page: [`page_png`] renders a page scene's sheet list through `ew-render-cpu` with the bundled
-//! fonts only ([`font_bytes`]) and encodes it as PNG with the resolution in its `pHYs` chunk.
+//! fonts and the project's typeface ([`DrawingFonts`]) and encodes it as PNG with the resolution in its `pHYs` chunk.
 //! [`export_png_with`] runs phases 1 and 2 of the export job ([`export_pages_with`]: the selection, the memoised
 //! layers, the images resolved from the project's assets) and rasterises the sheets on the same parallelism, so the
 //! threads change the speed, never the bytes.
@@ -23,7 +23,7 @@ use ew_scene::page::PageScene;
 use ew_units::Nm;
 
 use super::{
-    ExportAssets, ExportOptions, OutputError, PageFindingAt, PageSelection, export_pages_with, font_bytes,
+    DrawingFonts, ExportAssets, ExportOptions, OutputError, PageFindingAt, PageSelection, export_pages_with,
 };
 use crate::Session;
 
@@ -148,18 +148,19 @@ pub fn png_file_name(label: &str) -> String {
     format!("{}.png", svg.strip_suffix(".svg").unwrap_or(&svg))
 }
 
-/// The PNG of a page scene at `dpi` (D7): its sheet list rendered with the bundled fonts, encoded with the resolution.
+/// The PNG of a page scene at `dpi` (D7): its sheet list rendered with the [`DrawingFonts`], encoded with the
+/// resolution.
 ///
 /// # Errors
 ///
 /// [`OutputError::Raster`] when the sheet has no positive size at `dpi`, is larger than [`MAX_PAGE_PIXELS`]
-/// ([`check_page_pixels`]), or a text names a font the bundled set does not hold.
+/// ([`check_page_pixels`]), or a text names a font the [`DrawingFonts`] do not hold.
 pub fn page_png(scene: &PageScene, dpi: u32) -> Result<Vec<u8>, OutputError> {
     check_page_pixels("The page", scene.sheet_width, scene.sheet_height, dpi)?;
     sheet_png(&scene.sheet_list(), scene.sheet_width, scene.sheet_height, dpi).map(|(bytes, _)| bytes)
 }
 
-/// The RGBA raster of one sheet display list at `dpi`, drawn with the bundled fonts.
+/// The RGBA raster of one sheet display list at `dpi`, drawn with the [`DrawingFonts`].
 ///
 /// # Errors
 ///
@@ -178,13 +179,13 @@ pub fn sheet_image(
         list,
         ew_render_cpu::SheetSize { width, height },
         &options,
-        font_bytes(),
+        &DrawingFonts,
         None,
     )
     .map_err(|e| OutputError::Raster(e.to_string()))?;
     if !report.missing_fonts.is_empty() {
         return Err(OutputError::Raster(format!(
-            "{} fonts of the page texts are not bundled",
+            "{} fonts of the page texts are not at hand",
             report.missing_fonts.len()
         )));
     }

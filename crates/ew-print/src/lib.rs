@@ -64,7 +64,7 @@ pub struct PrintJob {
     /// The print set's pages (each with its placement), for the adapters that render.
     pub pages: Vec<PdfPage>,
     /// The font files of the pages' glyph runs, for the adapters that render (the binaries fill
-    /// it from `ew_api::output::font_bytes()`).
+    /// it with `ew_api::output::font_files` of the faces the set's PDF embedded).
     pub fonts: BTreeMap<FontKey, FontBytes>,
     /// The printer; `None`: the default printer, or the one the dialog or viewer asks for.
     pub printer: Option<String>,

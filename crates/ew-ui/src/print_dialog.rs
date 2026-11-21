@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use egui::{Align, Layout, RichText, Sense, TextEdit, TextureHandle, TextureOptions, Ui, Vec2};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, render_placed};
-use ew_viewmodel::ew_api::output::font_bytes;
+use ew_viewmodel::ew_api::output::DrawingFonts;
 use ew_viewmodel::ew_api::output::print::{Paper, PrintSet};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
@@ -95,7 +95,7 @@ fn render_page(set: &PrintSet, index: usize, dpi: u32, mono: bool) -> Result<Rgb
         dpi,
         ..RenderOptions::default()
     };
-    render_placed(&content, placement, &options, font_bytes(), None)
+    render_placed(&content, placement, &options, &DrawingFonts, None)
         .map(|(image, _)| image)
         .map_err(|e| strings::format(key!("error-render"), &[&e.to_string()]))
 }

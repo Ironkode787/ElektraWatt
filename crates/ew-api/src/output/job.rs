@@ -11,7 +11,7 @@ use ew_derive::{Q, ReportPagesProvider};
 use ew_jobs::{JobCtl, JobError};
 
 use super::print::{PrintOptions, PrintSet, print_set_hooked};
-use super::{ExportAssets, ExportOptions, Halt, OutputError, PdfExport, export_pages_hooked, font_bytes};
+use super::{DrawingFonts, ExportAssets, ExportOptions, Halt, OutputError, PdfExport, export_pages_hooked};
 use crate::{Session, World};
 
 /// An export of the session's current snapshot that runs on another thread ([`Session::export_job`]): the `World`,
@@ -44,7 +44,7 @@ impl ExportJob {
             total: 0,
             phase: "writing",
         });
-        let out = ew_export::pdf(&pages.pages, &pages.options, font_bytes(), None)
+        let out = ew_export::pdf(&pages.pages, &pages.options, &DrawingFonts, None)
             .map_err(|e| JobError::Failed(OutputError::Pdf(e).to_string()))?;
         ctl.checkpoint("written")?;
         Ok(PdfExport {

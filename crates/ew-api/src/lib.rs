@@ -214,8 +214,8 @@ pub use ew_schema::PartyRole;
 pub use ew_schema::ProjectKind;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
-    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, pixel_limit,
-    sniff as sniff_asset,
+    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, MAX_TYPEFACE_BYTES, Sha256, SvgHazard, base64_encode,
+    pixel_limit, sniff as sniff_asset,
 };
 /// The conflict records a merge leaves (doc 05 §11.2): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};

@@ -43,9 +43,9 @@ use super::layers::text_style_table;
 use super::layout_edit::comma;
 use super::view::PageFrameOf;
 
-/// `shaped_text((text, style))`: a text shaped in a style by the bundled fonts (ADR-0015's memoised `shaped_text`; the
-/// fit test of a panel page's labels reads it, D10). A pure function of its key and the process's font set, so it
-/// never re-runs for a text it has shaped.
+/// `shaped_text((text, style))`: a text shaped in a style by the project's fonts (ADR-0015's memoised `shaped_text`;
+/// the fit test of a panel page's labels reads it, D10). A function of its key and [`super::ProjectFontsQ`], so it
+/// runs again for a text it has shaped only when the project's typeface changes.
 #[derive(Debug)]
 pub struct ShapedText;
 
@@ -55,8 +55,8 @@ impl Query for ShapedText {
     const FAMILY: &'static str = "shaped_text";
     const POLICY: Policy = Policy::Memo;
 
-    fn run(_q: &Q, key: &Self::Key) -> Arc<Shaped> {
-        Arc::new(ew_text::bundled().shape(&key.0, &key.1, None))
+    fn run(q: &Q, key: &Self::Key) -> Arc<Shaped> {
+        Arc::new(super::fonts(q).shape(&key.0, &key.1, None))
     }
 }
 

@@ -11,7 +11,7 @@ use egui::{RichText, TextEdit, Ui};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::text_styles::{
-    GROUPS, STANDARD_HEIGHTS, TextStyleRow, TextStylesDialog, faces, group_words,
+    GROUPS, STANDARD_HEIGHTS, TextStyleRow, TextStylesDialog, TypefaceLine, faces, group_words,
 };
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -59,6 +59,9 @@ pub(crate) fn text_styles(
     let t = components::tokens(ui);
     let rows = shell.text_style_rows();
     let writable = shell.is_writable();
+    if let Some(line) = shell.typeface_line() {
+        typeface_line(ui, &t, &line, writable, events);
+    }
     // The table takes the room the window has: at 2560 × 1440 it shows more rows, not a strip beside empty space.
     let room = ui.ctx().content_rect().height() * 0.62;
     egui::ScrollArea::vertical()
@@ -108,6 +111,52 @@ pub(crate) fn text_styles(
     if let Some(note) = &d.note {
         small(ui, &t, note, t.text_primary.color32());
     }
+}
+
+/// The *Standard typeface* line (doc 09 §4.8): what prints the Standard typeface, Choose a font file… and Use Noto Sans,
+/// and the note that the project carries the file.
+fn typeface_line(
+    ui: &mut Ui,
+    t: &theme::Tokens,
+    line: &TypefaceLine,
+    writable: bool,
+    events: &mut Vec<Event>,
+) {
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = t.space_3;
+        ui.label(
+            RichText::new(strings::text(key!("text-styles-typeface-title")))
+                .font(theme::font(&t.type_body_strong))
+                .color(t.text_primary.color32()),
+        );
+        ui.label(RichText::new(&line.words).color(t.text_primary.color32()));
+        let choose = components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("text-styles-typeface-choose")),
+            writable,
+            0.0,
+        );
+        if choose.clicked() {
+            events.push(Event::Action("text_styles.typeface", json!({})));
+        }
+        let clear = components::button(
+            ui,
+            Kind::Subtle,
+            strings::text(key!("text-styles-typeface-clear")),
+            writable && line.own,
+            0.0,
+        );
+        if clear.clicked() {
+            events.push(Event::Action("text_styles.typeface_clear", json!({})));
+        }
+    });
+    small(
+        ui,
+        t,
+        strings::text(key!("text-styles-typeface-note")),
+        t.text_secondary.color32(),
+    );
 }
 
 /// One style: its name and where it prints, its typeface, height, bold, sample and Reset.

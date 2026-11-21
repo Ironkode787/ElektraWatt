@@ -283,6 +283,28 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_text_styles_standard(),
     )),
+    // The Standard typeface's font file (doc 09 §4.8).
+    with_params(
+        "path?:text",
+        hidden(act(
+            "text_styles.typeface",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_text_styles_typeface(p),
+        )),
+    ),
+    hidden(act(
+        "text_styles.typeface_clear",
+        Command,
+        Menu::Project,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_text_styles_typeface_clear(),
+    )),
     // The property grid's own controls: the window and the headless mode dispatch them.
     keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",
