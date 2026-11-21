@@ -1,0 +1,32 @@
+id,Pos,Qty,Unit,Manufacturer,Part number,Description,Tags,Folios
+e:<id 1>/n:/n:component,1,15,pc,Generic,EW-GEN-TRM-1,Feed-through terminal,"-X1011:L1 … N, -X1021:1 … 8, -X1031:U … W",101–103
+e:<id 2>/n:/n:component,2,3,pc,Generic,EW-GEN-TRM-2,Protective earth terminal,"-X1011:PE, -X1031:PE, -X1031:SH","101, 103"
+e:<id 3>/n:/n:component,3,1,pc,Generic,EW-GEN-SW-3,"Main switch, 3 poles",-101Q1,101
+e:<id 4>/n:/n:component,4,1,pc,Generic,EW-GEN-PSU-1,"Power supply unit, AC to DC",-101G1,101
+e:<id 5>/n:/n:component,5,1,pc,Generic,EW-GEN-MCB-4,"Miniature circuit breaker, 2 poles",-101F1,101
+e:<id 6>/n:/n:component,6,1,pc,Generic,EW-GEN-MCB-1,"Miniature circuit breaker, 1 pole",-102F1,102
+e:<id 7>/n:/n:component,7,1,pc,Generic,EW-GEN-PB-2,Pushbutton with one normally closed contact,-102S2,102
+e:<id 8>/n:/n:component,8,1,pc,Generic,EW-GEN-PB-1,Pushbutton with one normally open contact,-102S1,102
+e:<id 9>/n:/n:component,9,1,pc,Generic,EW-GEN-CON-1,Contactor with three main contacts and one auxiliary normally open contact,-102Q1,102
+e:<id 10>/n:/n:component,10,1,pc,Generic,EW-GEN-LMP-1,Pilot lamp,-102E1,102
+e:<id 11>/n:/n:component,11,1,pc,Generic,EW-GEN-MCB-3,"Miniature circuit breaker, 3 poles",-103F1,103
+e:<id 12>/n:/n:component,12,1,pc,Generic,EW-GEN-MOT-1,Three-phase motor,-103M1,103
+e:<id 13>/n:/n:component,13,1,pc,Generic,EW-GEN-DO-1,"PLC digital output card, 8 channels",-104A1-A2,104
+e:<id 14>/n:/n:component,14,1,pc,Generic,EW-GEN-DI-1,"PLC digital input card, 8 channels",-104A1-A1,104
+e:<id 15>/n:/n:component,15,1,pc,Generic,EW-GEN-LMP-3,"Signal lamp, green",-104E1,104
+e:<id 16>/n:/n:component,16,1,pc,Generic,EW-GEN-POS-1,Position switch with one normally open contact,-104B1,104
+e:<id 17>/n:/n:component,17,1,pc,Generic,EW-GEN-LMP-2,"Signal lamp, red",-104E2,104
+e:<id 18>/n:/n:component,18,1,pc,Generic,EW-GEN-CPU-2,"PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O",-104A1,104
+e:<id 19>/n:/n:component,19,0,m,Generic,EW-GEN-TUB-6,"Tube PU 6 × 4 mm, blue","-201K1, -201K1-Q1, -201K1-Q2, -201X1",201
+e:<id 20>/n:/n:component,20,1,pc,Generic,EW-GEN-VTM-1,"Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",-201K1,201
+e:<id 21>/n:/n:component,21,1,pc,Generic,EW-GEN-AIR-1,Air supply: service unit G1/4 with shut-off valve and filter regulator,-201X1,201
+e:<id 22>/n:/n:component,22,2,pc,Generic,EW-GEN-SIL-1,Silencer G1/8,"-201X2, -201X3",201
+e:<id 23>/n:/n:component,23,2,pc,Generic,EW-GEN-CYL-1,"Cylinder double-acting, bore 32 mm, stroke 100 mm","-201M1, -201M2",201
+e:<id 24>/n:/n:component,24,4,pc,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",-201K1-Q1 … -201K1-Q4,201
+e:<id 25>/n:/n:component,25,1,pc,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm,-UC1,902
+e:<id 26>/n:/n:component,26,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm,-UC1-plate,902
+e:<id 27>/n:/n:component,27,0.94,m,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,-UC1,902
+e:<id 28>/n:/n:component,28,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm,-UC1,902
+e:<id 29>/n:/n:component,29,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,
+e:<id 30>/n:/n:component,30,10,m,Generic,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",-101W1,
+e:<id 31>/n:/n:component,31,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",-103W1,

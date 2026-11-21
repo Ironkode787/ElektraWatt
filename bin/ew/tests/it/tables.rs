@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the `ew` binary: the table writers behind every row export and the
-//! golden files (the round trip's tests are `round_trip`, with the helpers here).
+//! Through the `ew` binary, on a copy of the sample: the table writers behind every row export and their expected
+//! files (the round trip's tests are `round_trip`, with the helpers here).
 //!
-//! The golden files (D16): `golden/J-E-2416/expected/xlsx/sha256.txt` (one line `<sha256>  <file>` per workbook) and
-//! one cell dump per workbook, `expected/xlsx/<name>.cells.txt` (each sheet read back through the round trip's reader,
-//! [`ew_api::output::workbook_dump`]), for `bom_parts.xlsx`, `wires.xlsx`, `block_908.xlsx` (part 1),
-//! `strips_X1031.xlsx` and `io_list.xlsx` (part 2); and the CSV presets, `expected/csv/presets/bom_parts.<preset>.csv`
-//! and `io_list.excel-nl.csv` (`round_trip`). They are new files beside the eight CSVs, whose bytes do not move.
+//! The expected files (D16), under `bin/ew/tests/expected/`: one cell dump per workbook, `xlsx/<name>.cells.txt`
+//! (each sheet read back through the round trip's reader, [`ew_api::output::workbook_dump`]), for `bom_parts.xlsx`,
+//! `wires.xlsx`, `block_908.xlsx` (part 1), `strips_X1031.xlsx` and `io_list.xlsx` (part 2); and the CSV presets,
+//! `csv/presets/bom_parts.<preset>.csv` and `io_list.excel-nl.csv` (`round_trip`). Their IDs are numbered by order of
+//! appearance ([`numbered_ids`]): the sample's IDs are made by its script. The CSVs of the `ew` dialect are pinned by
+//! `ew-api`'s tests, not here.
 //! `EW_BLESS=1 cargo nextest run -p ew --all-features --test it -E 'test(/^(tables|round_trip)::/)'` rewrites them.
 
 use std::ffi::OsString;
@@ -17,38 +18,76 @@ use std::path::Path;
 use ew_api::catalog::{SourceFormat, table_limits};
 use ew_api::output::sheet::{SheetTable, read_sheet, sheet_names};
 use ew_api::zip::{ZipLimits, read as unzip};
-use sha2::{Digest, Sha256};
 
-use crate::support::{EwTmp, GOLDEN_A, Tmp, args, stderr, stdout};
+use crate::support::{EwTmp, SAMPLE, Tmp, args, stderr, stdout};
 
-pub(crate) const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+/// The expected files of the `ew` tests.
+const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
-// The program boundary of a test: `EW_BLESS=1` rewrites the golden files instead of comparing them.
+// The program boundary of a test: `EW_BLESS=1` rewrites the expected files instead of comparing them.
 #[allow(clippy::disallowed_methods)]
 fn bless() -> bool {
     std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
 }
 
-/// Compares `bytes` with the committed file `rel` below `expected/`, or writes it under `EW_BLESS=1`.
-pub(crate) fn golden_file(rel: &str, bytes: &[u8]) {
+/// `text` with every UUID written `<id n>`, numbered by order of first appearance.
+fn numbered_ids(text: &str) -> String {
+    let uuid = |s: &[u8]| {
+        s.len() == 36
+            && s.iter().enumerate().all(|(i, c)| {
+                if matches!(i, 8 | 13 | 18 | 23) {
+                    *c == b'-'
+                } else {
+                    c.is_ascii_hexdigit()
+                }
+            })
+    };
+    let bytes = text.as_bytes();
+    let mut seen: Vec<&str> = Vec::new();
+    let mut out = String::new();
+    let mut i = 0;
+    while let Some(c) = text[i..].chars().next() {
+        if bytes.len() >= i + 36 && uuid(&bytes[i..i + 36]) {
+            let id = &text[i..i + 36];
+            let n = match seen.iter().position(|s| *s == id) {
+                Some(n) => n + 1,
+                None => {
+                    seen.push(id);
+                    seen.len()
+                }
+            };
+            out.push_str(&format!("<id {n}>"));
+            i += 36;
+        } else {
+            out.push(c);
+            i += c.len_utf8();
+        }
+    }
+    out
+}
+
+/// Compares `text`, its IDs numbered ([`numbered_ids`]), with the committed file `rel` below `expected/`, or writes
+/// it under `EW_BLESS=1`.
+pub(crate) fn expected_file(rel: &str, text: &str) {
     let path = Path::new(EXPECTED).join(rel);
+    let text = numbered_ids(text);
     if bless() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, bytes).unwrap();
+        std::fs::write(&path, &text).unwrap();
         return;
     }
-    let committed =
-        std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
+    let committed = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
     assert!(
-        committed == bytes,
+        committed == text,
         "{} differs from the export (EW_BLESS=1 rewrites it)",
         path.display()
     );
 }
 
-/// The ID of Golden A's report block with this first folio (`report-blocks.jsonl`).
+/// The ID of the sample's report block with this first folio (`report-blocks.jsonl`).
 fn block_id(first_folio: u32) -> String {
-    let text = std::fs::read_to_string(Path::new(GOLDEN_A).join("report-blocks.jsonl")).unwrap();
+    let text = std::fs::read_to_string(Path::new(SAMPLE).join("report-blocks.jsonl")).unwrap();
     text.lines()
         .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
         .find(|v| v["first_folio"] == first_folio)
@@ -66,6 +105,13 @@ fn csv_table(text: &str) -> SheetTable {
     read_sheet(text.as_bytes(), SourceFormat::Csv, None, &table_limits()).unwrap()
 }
 
+/// The standard output of a successful `ew` run.
+fn printed(t: &Tmp, run: &[OsString]) -> String {
+    let o = t.ew(run);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    stdout(&o)
+}
+
 /// The text of the entry `name` of a workbook (the strict reader of `ew-zip` refuses another date, version or flag
 /// than the writer's, so a successful read also proves every entry's 1980-01-01 00:00).
 pub(crate) fn part(bytes: &[u8], name: &str) -> String {
@@ -77,13 +123,13 @@ pub(crate) fn part(bytes: &[u8], name: &str) -> String {
     String::from_utf8(entry.data.clone()).unwrap()
 }
 
-/// D16: the workbooks of Golden A, part 1's (`bom_parts`, `wires`, `block_908`) and part 2's (`strips_X1031` of `ew
-/// export table`, `io_list` of `ew export report --kind`), are the committed digests and cell dumps, and each export
+/// D16: the workbooks of the sample, part 1's (`bom_parts`, `wires`, `block_908`) and part 2's (`strips_X1031` of `ew
+/// export table`, `io_list` of `ew export report --kind`), are the committed cell dumps, and each export
 /// twice gives the same bytes (TX-5, RT-6).
 #[test]
-fn the_workbooks_are_the_committed_digests_and_dumps() {
+fn the_workbooks_are_the_committed_dumps() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let runs: [(&str, Vec<OsString>); 5] = [
         ("bom_parts", args([&"export", &"bom", &p, &"--format", &"xlsx"])),
         ("wires", args([&"export", &"wires", &p, &"--format", &"xlsx"])),
@@ -117,7 +163,6 @@ fn the_workbooks_are_the_committed_digests_and_dumps() {
             ]),
         ),
     ];
-    let mut digests = String::new();
     for (name, run) in &runs {
         let file = format!("{name}.xlsx");
         let bytes = t.written(run, &file);
@@ -125,29 +170,25 @@ fn the_workbooks_are_the_committed_digests_and_dumps() {
             t.written(run, &file) == bytes,
             "{name}: a second run gives other bytes"
         );
-        digests.push_str(&format!("{:x}  {file}\n", Sha256::digest(&bytes)));
         let dump = ew_api::output::workbook_dump(&bytes).unwrap();
-        golden_file(&format!("xlsx/{name}.cells.txt"), dump.as_bytes());
+        expected_file(&format!("xlsx/{name}.cells.txt"), &dump);
     }
-    golden_file("xlsx/sha256.txt", digests.as_bytes());
 }
 
-/// TX-1 (FR-REP-030): the wire list's workbook, read back, is `wires.csv`: the header `id` and its labels, its 51
-/// rows (50 data rows, one heading row) in folio 907's order with the same texts; column A is hidden; `_ew` names
+/// TX-1 (FR-REP-030): the wire list's workbook, read back, is the wire list's CSV: the header `id` and its labels, its
+/// rows (the data rows and the heading rows) in folio 907's order with the same texts; column A is hidden; `_ew` names
 /// the block of folio 907 and every column read-only; there is no `_ew_base`.
 #[test]
-fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
+fn the_wire_list_workbook_reads_back_as_the_wire_list() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let bytes = t.written(&args([&"export", &"wires", &p, &"--format", &"xlsx"]), "w.xlsx");
-    let want = csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/wires.csv")).unwrap());
+    let want = csv_table(&printed(&t, &args([&"export", &"wires", &p])));
     let got = sheet(&bytes, None);
     assert_eq!(got.headers[0], "id");
     assert_eq!(got.headers[1..], want.headers[1..]);
-    assert_eq!(got.rows.len(), 51);
-    assert_eq!(want.rows.len(), 51);
-    let data = got.rows.iter().filter(|r| !r[0].is_empty()).count();
-    assert_eq!(data, 50);
+    assert_eq!(got.rows.len(), want.rows.len());
+    assert!(want.rows.iter().any(|r| r[0] == "heading"));
     for (i, (g, w)) in got.rows.iter().zip(&want.rows).enumerate() {
         assert_eq!(g[1..], w[1..], "row {}", i + 1);
         assert_eq!(
@@ -176,14 +217,15 @@ fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
     assert!(workbook.contains("<sheet name=\"_ew\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>"));
 }
 
-/// TX-2: the bill of materials' Qty is a numeric cell; the block of folio 908 has its 56 rows (FR-EXT-027); the
-/// terminal diagrams give one sheet per strip; `ew sql` writes the query's rows.
+/// TX-2: the bill of materials' Qty is a numeric cell (the sample's 15 feed-through terminals, its rails' 0.94 m and
+/// its duct's 0.47 m); the block of folio 908 has the rows of its CSV (FR-EXT-027); the terminal diagrams give one
+/// sheet per strip; `ew sql` writes the query's rows.
 #[test]
 fn the_row_exports_and_sql_write_workbooks() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let bom = t.written(&args([&"export", &"bom", &p, &"--format", &"xlsx"]), "b.xlsx");
-    let want = csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/bom_parts.csv")).unwrap());
+    let want = csv_table(&printed(&t, &args([&"export", &"bom", &p])));
     let got = sheet(&bom, None);
     assert_eq!(got.rows.len(), want.rows.len());
     for (g, w) in got.rows.iter().zip(&want.rows) {
@@ -191,16 +233,17 @@ fn the_row_exports_and_sql_write_workbooks() {
     }
     let xml = part(&bom, "xl/worksheets/sheet1.xml");
     assert!(
-        xml.contains("<c r=\"C2\"><v>1</v></c>"),
+        xml.contains("<c r=\"C2\"><v>15</v></c>"),
         "row 2's quantity is a number"
     );
-    assert!(xml.contains("<v>1.71</v>") && xml.contains("<v>3.17</v>"));
+    assert!(xml.contains("<v>0.94</v>") && xml.contains("<v>0.47</v>"));
 
     let block = t.written(
         &args([&"export", &"report", &p, &"--block", &"908", &"--format", &"xlsx"]),
         "r.xlsx",
     );
-    assert_eq!(sheet(&block, None).rows.len(), 56);
+    let block_csv = csv_table(&printed(&t, &args([&"export", &"report", &p, &"--block", &"908"])));
+    assert_eq!(sheet(&block, None).rows.len(), block_csv.rows.len());
 
     let terminals = t.written(
         &args([&"export", &"terminals", &p, &"--format", &"xlsx"]),
@@ -208,11 +251,13 @@ fn the_row_exports_and_sql_write_workbooks() {
     );
     assert_eq!(
         sheet_names(&terminals, &table_limits()).unwrap(),
-        ["1X1", "-X1031", "-X1032", "_ew"]
+        ["-X1011", "-X1021", "-X1031", "_ew"]
     );
     let x1031 = sheet(&terminals, Some("-X1031"));
-    let want =
-        csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/terminals_X1031.csv")).unwrap());
+    let want = csv_table(&printed(
+        &t,
+        &args([&"export", &"terminals", &p, &"--strip", &"-X1031"]),
+    ));
     assert_eq!(x1031.rows.len(), want.rows.len());
     for (g, w) in x1031.rows.iter().zip(&want.rows) {
         assert_eq!(g[1..], w[1..]);
@@ -260,13 +305,13 @@ fn the_row_exports_and_sql_write_workbooks() {
 }
 
 /// TX-3 and D16: `--preset excel-nl`, `excel-en` and `rfc4180` on `ew export bom` are the committed files (`id` first,
-/// the quantities 1.71 and 3.17 written "1,71" and "3,17" in `excel-nl`); `--bom off --line-end lf` drops the
-/// byte-order mark and writes LF; the default is still `bom_parts.csv`. The presets write CRLF, asserted here; the
+/// the quantities 0.94 and 0.47 written "0,94" and "0,47" in `excel-nl`); `--bom off --line-end lf` drops the
+/// byte-order mark and writes LF; the default is still the `ew` dialect. The presets write CRLF, asserted here; the
 /// committed files hold LF, as the repository's `eol=lf` stores every text file.
 #[test]
 fn the_bom_presets_are_the_committed_files() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let mut texts = Vec::new();
     for preset in ["excel-nl", "excel-en", "rfc4180"] {
         let o = t.ew(&args([&"export", &"bom", &p, &"--preset", &preset]));
@@ -278,16 +323,16 @@ fn the_bom_presets_are_the_committed_files() {
             text.matches("\r\n").count(),
             "{preset}"
         );
-        golden_file(
+        expected_file(
             &format!("csv/presets/bom_parts.{preset}.csv"),
-            text.replace("\r\n", "\n").as_bytes(),
+            &text.replace("\r\n", "\n"),
         );
         texts.push(text);
     }
     let nl = &texts[0];
     assert!(nl.starts_with("\u{feff}id;Pos;Qty;Unit;Manufacturer;Part number;Description;Tags;Folios\r\n"));
-    assert!(nl.contains(";1,71;m;") && nl.contains(";3,17;m;"), "{nl}");
-    assert!(texts[1].starts_with("\u{feff}id,Pos,Qty,") && texts[1].contains(",1.71,m,"));
+    assert!(nl.contains(";0,94;m;") && nl.contains(";0,47;m;"), "{nl}");
+    assert!(texts[1].starts_with("\u{feff}id,Pos,Qty,") && texts[1].contains(",0.94,m,"));
     assert!(texts[2].starts_with("id,Pos,Qty,") && texts[2].ends_with("\r\n"));
     let o = t.ew(&args([
         &"export",
@@ -303,10 +348,9 @@ fn the_bom_presets_are_the_committed_files() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let want = nl.trim_start_matches('\u{feff}').replace("\r\n", "\n");
     assert_eq!(stdout(&o), want);
-    let o = t.ew(&args([&"export", &"bom", &p]));
     assert_eq!(
-        stdout(&o),
-        std::fs::read_to_string(Path::new(EXPECTED).join("csv/bom_parts.csv")).unwrap()
+        printed(&t, &args([&"export", &"bom", &p])),
+        printed(&t, &args([&"export", &"bom", &p, &"--preset", &"ew"]))
     );
     // The two refusals of D6, whole.
     let o = t.ew(&args([
@@ -341,7 +385,7 @@ fn the_bom_presets_are_the_committed_files() {
 #[test]
 fn formula_text_is_never_a_formula() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let query = "SELECT '=HYPERLINK(\"x\")' AS t, '-3X1' AS tag, -1.5 AS n";
     let out = t.0.join("f.xlsx");
     let o = t.ew(&args([&"sql", &p, &query, &"--format", &"xlsx", &"--out", &out]));
@@ -380,7 +424,7 @@ fn formula_text_is_never_a_formula() {
 #[test]
 fn the_workbook_date_is_the_export_date() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let out = t.0.join("d.xlsx");
     let run = args([&"export", &"wires", &p, &"--format", &"xlsx", &"--out", &out]);
     let o = t.ew_at(&run, Some("1767225600"));
@@ -402,7 +446,7 @@ fn the_workbook_date_is_the_export_date() {
 #[test]
 fn the_json_results_name_format_preset_and_revision() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let json = |run: Vec<OsString>| -> serde_json::Value {
         let o = t.ew(&run);
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
@@ -440,7 +484,7 @@ fn the_json_results_name_format_preset_and_revision() {
         (&v["format"], &v["preset"]),
         (&serde_json::json!("csv"), &serde_json::json!("rfc4180"))
     );
-    assert_eq!(v["strips"], serde_json::json!(["1X1", "-X1031", "-X1032"]));
+    assert_eq!(v["strips"], serde_json::json!(["-X1011", "-X1021", "-X1031"]));
     assert!(v["csv"].as_str().unwrap().starts_with("id,Terminal,"));
     let v = json(args([&"export", &"wires", &p, &"--json"]));
     assert_eq!(

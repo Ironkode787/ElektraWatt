@@ -1,0 +1,35 @@
+[-X1031]
+id	Strip	Pos	Terminal	Function text	Group	Part	Potential	Side 1 (clamp a)	Side 2 (clamp b)	Bridge	Bridge part	State
+strip:<id 1>/terminal:<id 2>	-X1031	1	U			EW-GEN-TRM-1	1L1/102Q1:2	-102Q1:2	-103M1:U1 via -103W1 BN			used
+strip:<id 1>/terminal:<id 3>	-X1031	2	V			EW-GEN-TRM-1	1L2/102Q1:4	-102Q1:4	-103M1:V1 via -103W1 BK			used
+strip:<id 1>/terminal:<id 4>	-X1031	3	W			EW-GEN-TRM-1	1L3/102Q1:6	-102Q1:6	-103M1:W1 via -103W1 GY			used
+strip:<id 1>/terminal:<id 5>	-X1031	4	PE			EW-GEN-TRM-2	PE	-X1031:SH/a, -X1011:PE/a	-103M1:PE via -103W1 GNYE			used
+strip:<id 1>/terminal:<id 6>	-X1031	5	SH			EW-GEN-TRM-2	PE	-X1031:PE/a	-103M1:PE via -103W1 SHIELD			used
+[_ew]
+format	ew-table/1
+project	<id 7>
+table	nav:strips/<id 1>
+rev	0
+generation	2
+locale	neutral
+ew	0.3.0
+column	strip	Strip	Text	false
+column	pos	Pos	Text	false
+column	terminal	Terminal	Text	true
+column	label	Function text	Text	true
+column	group	Group	Text	false
+column	part	Part	Text	false
+column	potential	Potential	Text	false
+column	side1	Side 1 (clamp a)	Text	false
+column	side2	Side 2 (clamp b)	Text	false
+column	bridge	Bridge	Text	false
+column	bridge_part	Bridge part	Text	false
+column	state	State	Text	true
+[_ew_base]
+id	terminal	label	state
+strip:<id 1>/terminal:<id 2>	U		used
+strip:<id 1>/terminal:<id 3>	V		used
+strip:<id 1>/terminal:<id 4>	W		used
+strip:<id 1>/terminal:<id 5>	PE		used
+strip:<id 1>/terminal:<id 6>	SH		used
+sha256	ad958f04db0b10cbefe414998a9e162d24c504e2d46b97f39977af5734803c24

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the `ew` binary: `ew export table` and `ew import table`, the round trip of a navigator's
-//! table and of the I/O list, over copies of Golden A.
+//! Through the `ew` binary: `ew export table` and `ew import table`, the round trip of a navigator's table and of the
+//! I/O list, over copies of the sample. The strip is the sample's 24 V strip -X1021, terminals 1 to 8.
 //!
 //! A workbook "saved by Excel" is the export with every inline string of every sheet moved into a shared-strings table
 //! (`t="s"` cells, as Excel writes them), the hidden sheets kept, and the test's cells replaced.
@@ -16,7 +16,7 @@ use ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use sha2::{Digest, Sha256};
 
 use crate::support::{EwTmp, Tmp, args, stderr, stdout};
-use crate::tables::{golden_file, sheet};
+use crate::tables::{expected_file, sheet};
 
 /// The columns of the Terminal strips table, as `ew export table strips` heads them.
 const STRIP_HEADERS: [&str; 13] = [
@@ -279,8 +279,8 @@ fn terminal_of(row: &str) -> &str {
     row.rsplit_once("terminal:").unwrap().1
 }
 
-/// `ew export table strips <p> --strip -X1031 --format xlsx`, written to `file`.
-fn x1031(t: &Tmp, p: &Path, file: &str) -> Vec<u8> {
+/// `ew export table strips <p> --strip -X1021 --format xlsx`, written to `file`.
+fn x1021(t: &Tmp, p: &Path, file: &str) -> Vec<u8> {
     t.written(
         &args([
             &"export",
@@ -288,7 +288,7 @@ fn x1031(t: &Tmp, p: &Path, file: &str) -> Vec<u8> {
             &"strips",
             &p,
             &"--strip",
-            &"-X1031",
+            &"-X1021",
             &"--format",
             &"xlsx",
         ]),
@@ -313,25 +313,25 @@ fn import(t: &Tmp, file: &Path, p: &Path, extra: &[&str]) -> String {
     stdout(&o)
 }
 
-/// RT-1: the strip's workbook writes -X1031's 20 terminal rows in the navigator's order with every column of the
+/// RT-1: the strip's workbook writes -X1021's 8 terminal rows in the navigator's order with every column of the
 /// Terminal strips table; `_ew` names `nav:strips/<uuid>` and marks `terminal`, `label` and `state` editable and
-/// `group`, `bridge_part`, `potential` not; `_ew_base` holds the 20 IDs and the three editable columns with the
+/// `group`, `bridge_part`, `potential` not; `_ew_base` holds the 8 IDs and the three editable columns with the
 /// SHA-256 of its rows.
 #[test]
 fn the_strip_workbook_names_its_table_and_holds_its_base() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
-    let bytes = x1031(&t, &p, "x.xlsx");
+    let p = t.sample("sample.ew");
+    let bytes = x1021(&t, &p, "x.xlsx");
     let limits = table_limits();
     assert_eq!(
         sheet_names(&bytes, &limits).unwrap(),
-        ["-X1031", "_ew", "_ew_base"]
+        ["-X1021", "_ew", "_ew_base"]
     );
     let main = sheet(&bytes, None);
     assert_eq!(main.headers, STRIP_HEADERS);
-    assert_eq!(main.rows.len(), 20);
+    assert_eq!(main.rows.len(), 8);
     let pos: Vec<String> = main.rows.iter().map(|r| r[2].clone()).collect();
-    let want: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+    let want: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
     assert_eq!(pos, want, "the navigator's order");
     let strip = between(&main.rows[0][0], "strip:", "/").to_owned();
     assert!(
@@ -358,14 +358,14 @@ fn the_strip_workbook_names_its_table_and_holds_its_base() {
         assert_eq!(editable.get(key), Some(&"false"), "{key}");
     }
     let base = read_rows(&bytes, SourceFormat::Xlsx, "_ew_base", &limits).unwrap();
-    assert_eq!(base.len(), 22);
+    assert_eq!(base.len(), 10);
     assert_eq!(base[0], ["id", "terminal", "label", "state"]);
-    for (b, m) in base[1..21].iter().zip(&main.rows) {
+    for (b, m) in base[1..9].iter().zip(&main.rows) {
         assert_eq!(*b, [m[0].clone(), m[3].clone(), m[4].clone(), m[12].clone()]);
     }
-    let text: String = base[..21].iter().map(|r| format!("{}\n", r.join("\t"))).collect();
+    let text: String = base[..9].iter().map(|r| format!("{}\n", r.join("\t"))).collect();
     assert_eq!(
-        base[21],
+        base[9],
         [
             "sha256".to_owned(),
             format!("{:x}", Sha256::digest(text.as_bytes()))
@@ -379,8 +379,8 @@ fn the_strip_workbook_names_its_table_and_holds_its_base() {
 #[test]
 fn five_labels_saved_by_excel_apply_in_one_step() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
-    let bytes = x1031(&t, &p, "x.xlsx");
+    let p = t.sample("sample.ew");
+    let bytes = x1021(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];
     let edits: Vec<(String, Put)> = labels
@@ -395,7 +395,7 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
         .zip(labels)
         .map(|(r, l)| {
             format!(
-                "-X1031:{}, Function text: exported \"{}\", project \"{}\", file \"{l}\": applied\n",
+                "-X1021:{}, Function text: exported \"{}\", project \"{}\", file \"{l}\": applied\n",
                 r[3], r[4], r[4]
             )
         })
@@ -448,7 +448,7 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
     assert_eq!(other, [], "no other record changes");
 
     // The command, replayed by `ew apply` as a command log.
-    let q = t.golden("q.ew");
+    let q = t.sample("q.ew");
     let log = format!(
         "{}\n{}\n",
         serde_json::json!({"$schema": ew_api::CMDLOG_SCHEMA, "label": "round trip"}),
@@ -461,17 +461,17 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
     assert_eq!(changes(&before, &records(&q)), changes(&before, &after));
 }
 
-/// RT-3: after the export, terminal 20 is deleted in the project and its row edited in the file (EW-IMP-303, naming
+/// RT-3: after the export, terminal 8 is deleted in the project and its row edited in the file (EW-IMP-303, naming
 /// its ID); terminal 2's label changed in the project only is kept (EW-IMP-302); terminal 3's changed in both keeps
 /// the project's value (EW-IMP-304), and with `--take-file` takes the file's.
 #[test]
 fn deleted_rows_and_project_changes_are_kept() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
-    let bytes = x1031(&t, &p, "x.xlsx");
+    let p = t.sample("sample.ew");
+    let bytes = x1021(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let label = |row: usize| cell_ref(&main.headers, "Function text", row + 1);
-    // The project's changes since the export: two labels (through a round trip of their own) and terminal 20 gone.
+    // The project's changes since the export: two labels (through a round trip of their own) and terminal 8 gone.
     let ew_side = put(
         &t,
         "ew.xlsx",
@@ -481,11 +481,11 @@ fn deleted_rows_and_project_changes_are_kept() {
         ),
     );
     import(&t, &ew_side, &p, &["--apply"]);
-    let twenty = terminal_of(&main.rows[19][0]).to_owned();
+    let eight = terminal_of(&main.rows[7][0]).to_owned();
     let delete = format!(
         "{}\n{}\n",
         serde_json::json!({"$schema": ew_api::CMDLOG_SCHEMA, "label": "delete"}),
-        serde_json::json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "device", "id": twenty}]}})
+        serde_json::json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "device", "id": eight}]}})
     );
     let log = put(&t, "delete.ewcmd", delete.as_bytes());
     let o = t.ew(&args([&"apply", &p, &log]));
@@ -495,25 +495,25 @@ fn deleted_rows_and_project_changes_are_kept() {
         "y.xlsx",
         &excel_save(
             &bytes,
-            &[(label(3), Put::Text("File 3")), (label(20), Put::Text("File 20"))],
+            &[(label(3), Put::Text("File 3")), (label(8), Put::Text("File 8"))],
         ),
     );
     let before = records(&p);
     let (two, three) = (&main.rows[1], &main.rows[2]);
     let head = format!(
-        "-X1031:{}, Function text: exported \"{}\", project \"EW 2\", file \"{}\": kept\n-X1031:{}, Function text: \
+        "-X1021:{}, Function text: exported \"{}\", project \"EW 2\", file \"{}\": kept\n-X1021:{}, Function text: \
          exported \"{}\", project \"EW 3\", file \"File 3\": ",
         two[3], two[4], two[4], three[3], three[4]
     );
     let findings = format!(
-        "EW-IMP-302: Function text of -X1031:{} was changed in the project since the export: the project's value is \
-         kept\nEW-IMP-304: Function text of -X1031:{} was changed in the project and in the file: ",
+        "EW-IMP-302: Function text of -X1021:{} was changed in the project since the export: the project's value is \
+         kept\nEW-IMP-304: Function text of -X1021:{} was changed in the project and in the file: ",
         two[3], three[3]
     );
     let unknown = format!(
         "EW-IMP-303: the row {} of the file is not in the project's table (deleted since the export?): nothing of it \
          is imported\n",
-        main.rows[19][0]
+        main.rows[7][0]
     );
     assert_eq!(
         import(&t, &file, &p, &["--apply"]),
@@ -546,8 +546,8 @@ fn deleted_rows_and_project_changes_are_kept() {
 #[test]
 fn read_only_cells_numbers_and_refusals() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
-    let bytes = x1031(&t, &p, "x.xlsx");
+    let p = t.sample("sample.ew");
+    let bytes = x1021(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let at = |header: &str| cell_ref(&main.headers, header, 2);
     let first = &main.rows[0];
@@ -558,7 +558,7 @@ fn read_only_cells_numbers_and_refusals() {
         &excel_save(&bytes, &[(at("Terminal"), Put::Text("1.10"))]),
     );
     import(&t, &renamed, &p, &["--apply"]);
-    let bytes = x1031(&t, &p, "x2.xlsx");
+    let bytes = x1021(&t, &p, "x2.xlsx");
     let file = put(
         &t,
         "y.xlsx",
@@ -575,12 +575,12 @@ fn read_only_cells_numbers_and_refusals() {
     assert_eq!(
         import(&t, &file, &p, &["--apply"]),
         format!(
-            "-X1031:1.10, Terminal: exported \"1.10\", project \"1.10\", file \"1.1\": applied\n-X1031:1.10, Group: \
-             project \"{group}\", file \"Spare\": read-only (edit in the window)\n-X1031:1.10, Potential: project \
-             \"{potential}\", file \"24VDC-9\": read-only (derived)\nEW-IMP-305: Terminal of -X1031:1.10 reads \
+            "-X1021:1.10, Terminal: exported \"1.10\", project \"1.10\", file \"1.1\": applied\n-X1021:1.10, Group: \
+             project \"{group}\", file \"Spare\": read-only (edit in the window)\n-X1021:1.10, Potential: project \
+             \"{potential}\", file \"24VDC-9\": read-only (derived)\nEW-IMP-305: Terminal of -X1021:1.10 reads \
              \"1.1\" where the export wrote \"1.10\": a spreadsheet stored the text as a number; \"1.1\" is \
-             imported\nEW-IMP-301: Group of -X1031:1.10 is read-only in a round trip (edit in the window): the \
-             file's value is not imported\nEW-IMP-301: Potential of -X1031:1.10 is read-only in a round trip \
+             imported\nEW-IMP-301: Group of -X1021:1.10 is read-only in a round trip (edit in the window): the \
+             file's value is not imported\nEW-IMP-301: Potential of -X1021:1.10 is read-only in a round trip \
              (derived): the file's value is not imported\n1 changed, 0 kept, 0 conflicts, 2 refused, 0 unknown, 0 \
              missing; applied in one step; saved\n",
             group = first[5],
@@ -595,7 +595,7 @@ fn read_only_cells_numbers_and_refusals() {
     );
 
     // An edited `_ew_base`: two-way against the project's values, with one notice.
-    let bytes = x1031(&t, &p, "x3.xlsx");
+    let bytes = x1021(&t, &p, "x3.xlsx");
     let edited = with_part(&bytes, "xl/worksheets/sheet3.xml", "<t>used</t>", "<t>spare</t>");
     let file = put(&t, "b.xlsx", &edited);
     assert_eq!(
@@ -628,7 +628,7 @@ fn read_only_cells_numbers_and_refusals() {
         &"strips",
         &p,
         &"--strip",
-        &"-X1031",
+        &"-X1021",
         &"--preset",
         &"excel-en",
         &"--out",
@@ -664,13 +664,13 @@ fn commented(csv: &str, comments: [&str; 3], keep_id: bool) -> String {
 }
 
 /// RT-5 (FR-PLC-038): `ew export report --kind io_list --preset excel-nl` is the committed preset (a byte-order mark,
-/// `;`, the `id` column, 28 rows); three Comment cells changed in Dutch and imported with `--table kind:io_list
+/// `;`, the `id` column, a row per channel the list holds); three Comment cells changed in Dutch and imported with `--table kind:io_list
 /// --apply` change exactly three `comment` fields; without the `id` column the rows match by station, slot and
 /// channel with the same result; the I/O list's workbook round-trips the same way.
 #[test]
 fn the_io_list_round_trips_by_id_and_by_point() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -681,17 +681,17 @@ fn the_io_list_round_trips_by_id_and_by_point() {
         &"excel-nl",
     ]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stderr(&o), "28 rows\n");
     let csv = stdout(&o);
+    let rows = csv.matches("\r\n").count() - 1;
+    assert_eq!(stderr(&o), format!("{rows} rows\n"), "the header and a line per row");
     assert!(
         csv.starts_with("\u{feff}id;Configuration project;CPU;Station;"),
         "{csv}"
     );
     assert!(!csv.contains('"'), "no quoted field");
-    assert_eq!(csv.matches("\r\n").count(), 29, "the header and 28 rows");
-    golden_file(
+    expected_file(
         "csv/presets/io_list.excel-nl.csv",
-        csv.replace("\r\n", "\n").as_bytes(),
+        &csv.replace("\r\n", "\n"),
     );
     let comments = ["Klep open", "Pomp aan", "Koeling geïnstalleerd"];
     let rows: Vec<Vec<&str>> = csv
@@ -729,7 +729,7 @@ fn the_io_list_round_trips_by_id_and_by_point() {
     );
     let before = records(&p);
     for (name, keep_id) in [("by-id", true), ("by-point", false)] {
-        let copy = t.golden(&format!("{name}.ew"));
+        let copy = t.sample(&format!("{name}.ew"));
         let file = put(
             &t,
             &format!("{name}.csv"),
@@ -748,7 +748,7 @@ fn the_io_list_round_trips_by_id_and_by_point() {
     }
 
     // The workbook: the same three cells, saved by Excel.
-    let copy = t.golden("xlsx.ew");
+    let copy = t.sample("xlsx.ew");
     let bytes = t.written(
         &args([
             &"export",
@@ -787,7 +787,7 @@ fn the_io_list_round_trips_by_id_and_by_point() {
 #[test]
 fn every_table_navigator_exports_and_the_others_are_refused() {
     let t = Tmp::new("ew-tables");
-    let p = t.golden("J-E-2416.ew");
+    let p = t.sample("sample.ew");
     for kind in ew_api::output::TABLE_NAVIGATORS {
         let word = kind.word();
         let run = args([&"export", &"table", &word, &p, &"--format", &"xlsx"]);
@@ -812,7 +812,7 @@ fn every_table_navigator_exports_and_the_others_are_refused() {
         )
     );
     let o = t.ew(&args([
-        &"export", &"table", &"devices", &p, &"--strip", &"-X1031",
+        &"export", &"table", &"devices", &p, &"--strip", &"-X1021",
     ]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -823,7 +823,7 @@ fn every_table_navigator_exports_and_the_others_are_refused() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: no terminal strip `-X9` (the strips are: -X1031, -X1032, 1X1)\n"
+        "error: no terminal strip `-X9` (the strips are: -X1011, -X1021, -X1031)\n"
     );
     let o = t.ew(&args([&"export", &"table", &"strips", &p, &"--format", &"xlsx"]));
     assert_eq!(o.status.code(), Some(2));
