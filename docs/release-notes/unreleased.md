@@ -113,6 +113,22 @@ change here.
   wrote nothing
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
   in the graph
+- api-add: a list prints the columns its maker chooses, in an order of their own, each with its width and a heading of
+  its own, a caption above its table, a legend line under it, and rows the model does not hold, which stay however
+  often the list is made again: Output ▸ List columns… and Rows of your own… on a page of the list, or `fields.set`
+  on its report block (paths `columns`, `caption`, `legend`, `added_rows`; additive members) (doc 09 §3.8, FT-1874)
+- behaviour-change: a list page's table stands in its frame's drawing area and holds as many rows as the frame has
+  room for, 36 on A3 (on the starter A4 frame it stands where it did), and a list page prints on the set's paper: when
+  the project's frame has another size than the list's, the list prints on the project's frame (FT-1826)
+- behaviour-change: a list page prints in the project's language: its column headings (in English and Dutch), its
+  terminal states, its decimal sign and the title block's labels (the starter A4 title block has Dutch labels, version
+  1.1.0); a Dutch project printed them in English (FT-1874)
+- api-add: the starter forms hold an A3 landscape frame with the grid and its title block, which a new project holds
+  and the template wizard's Frame offers (FT-1826)
+- behaviour-change: `ew print --fit` and the print dialog's Scale to fit enlarge a page to the paper too, an A4 set on
+  A3 at 141 %, and stamp it "scaled n %" (FT-1826)
+- behaviour-change: the terminal diagram's first column is the strip, so two strips' terminals 1 read apart; its CSV
+  and XLSX have the column too (FT-1805)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

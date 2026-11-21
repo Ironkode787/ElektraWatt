@@ -26,9 +26,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Lists and frames
 
-- FT-1874 `ew-reports, ew-scene, ew-viewmodel`: A report block cannot take the page's own frame and title block, chosen columns with their headings and widths, a caption, a legend line, or a row that is not in the model, and a list page prints English column heads in a Dutch project. The job's terminal, cable and material lists and its contents were lines and texts written by a script from the SQL views (an eighth of its time).
-- FT-1826 `content, ew-export, ew-reports`: There is no A3 frame or title block among the starter forms, the list pages keep an A4 frame of their own, and `ew print --fit` never enlarges, so a set that must be A3 needs forms made for it.
-- FT-1805 `ew-reports`: The terminal diagram (`kinds/terminal_diagram.rs`) lists terminal numbers without their strip, so two strips' terminals 1 read alike.
+- FT-1955 `ew-reports`: A Dutch project's lists still print the program's own words in their cells in English: a channel's or a device's state and kind, "from part", "length missing", "yes" and "no", "Bridges", "Order Code n", and the embedded boxes' titles "PART DATA" and "LEGEND" (`render.rs`, the kinds' cells). The headings, the terminal states and the title block print Dutch since FT-1874 (doc 09 §3.8).
 
 #### Texts the schematic carries
 

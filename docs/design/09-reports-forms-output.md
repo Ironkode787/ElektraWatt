@@ -123,6 +123,10 @@ pub struct ReportBlock {
     pub title: MlText,                       // + page-title format: "Wire List {n}", "Terminal Diagram {group}"
     pub empty: EmptyPolicy,                  // + OmitPages | OnePage("No entries")
     pub embedded: Option<EmbedSpec>,         // { page, rect } for page-embedded tables (§3.4)
+    pub columns: Vec<ReportColumn>,          // + { key, weight, heading? }: the printed columns (§3.8)
+    pub caption: MlText,                     // + the line above the table (§3.8)
+    pub legend: MlText,                      // + the line under the table (§3.8)
+    pub added_rows: Vec<AddedRow>,           // + { cells: { key: MlText } }: rows the model does not hold (§3.8)
     pub source_ref: Option<SourceRef>,       // import provenance (14 §2.3)
     // later, appended (kept in `extra` until then): params, filter (WP-S3.03)
 }
@@ -722,6 +726,85 @@ Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are 
 - Release-mode exports refuse stale Class II inputs (lengths, SQL projection of another revision) and untrusted
   SQL blocks (FR-EXP-001).
 
+### 3.8 Lists on the set's own frame
+
+A delivered set has its terminal lists, cable lists, parts list and contents on the set's own frame and title block,
+in its paper size, with the columns its maker chose under headings in the set's language, a caption, a legend line
+and now and then a row the model does not hold. Before, a list page printed the house table at fixed A4 places in
+every column of its kind under English headings, so the first production job wrote those pages with a script (an
+eighth of its time). Built (FT-1874, FT-1826, FT-1805):
+
+**The frame of a list page.** A list page (a generated page of a page-oriented block) prints on its block's form
+(`ReportBlock.form`: its Form row in Properties, `fields.set` path `form`, §2.2), on the set's paper: when the set's
+frame (the frame defaults' `default`, §2.6, a form the project holds) has another sheet size than the block's form,
+the page prints on the set's frame instead. So a set made A3 prints its lists on A3, the contents too, without a block
+edited; a set that keeps no frame defaults (an older project) prints its lists on their blocks' forms as before.
+The rule is `ew_reports::layout::list_frame`; the pagination and the page output read it, so a list's pages and their
+frame never disagree. The title block is the frame's.
+
+**Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
+with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
+title block. The table keeps the house table's distances to the starter A4 frame's drawing area (1.30 mm in on the
+left, 3.91 mm on the right, its top at the area's top), so on that frame it is the house table of §2.5 to the
+nanometre (x 16.31 to 277.27 mm, 23 rows) and every A4 list prints as it did. Rows are 6.52 mm: an optional caption
+row, the header, the data rows, an optional legend row and one row kept free under them (where the window marks a list
+that runs on); a page holds as many data rows as fit, at least one (36 on the starter A3 frame). One exact rule
+(`FormDef::list_area` in `ew-schema`) gives the pagination its rows and the drawing its places, so a page never holds
+a row it cannot draw; a TOC counts its pages with it too (the profile's 23 rows only when its form is missing). A form
+with a data area keeps that area's capacity for the pagination (§3.2).
+
+**The columns.** `ReportBlock.columns` (so far an embedded block's printed columns) is a list of `{key, weight,
+heading?}`; on a page block too it gives the printed columns in its order, `weight` the column's share of the
+table's width (widths in millimetres serve as shares) and `heading` (a multi-language text, optional, an additive
+member) the printed heading in place of the kind's. A key the kind does not have prints nothing (the window offers
+the kind's columns only). Empty: every column of the kind with its weight, as before. The chosen columns are the
+print's: the CSV and XLSX keep every column of the kind.
+
+**The caption and the legend.** `ReportBlock.caption` and `ReportBlock.legend` (multi-language texts, additive
+members): the caption prints in a row of its own above the header, in the style `box.title`, the legend in the row
+under the last row of the page, in the table's style; both on every page of the list, left aligned, shrunk, cut and
+reported as a cell is. Each takes one row from the page.
+
+**Rows the model does not hold.** `ReportBlock.added_rows` (additive): a list of `{cells: {<column key>: <text>}}`. A
+list is made anew from the model and its block on every read, and the rows are the block's, so nothing the model
+does removes or changes them: they join the kind's rows before the block's sorting and grouping (§3.3), a text in a
+column of identifiers or addresses as such and a whole number in a column of numbers as that number, so a sort
+places them among the model's rows; without sort keys they follow them. They print, paginate and export (CSV, XLSX) as
+any row, link nowhere, and their row ID is their place in the list (`n:added/i:<k>`). A table of contents takes none
+(it lists the pages).
+
+**The language.** A Dutch project printed English headings because a column's heading was one English text and the
+page printed neutral text, as did the title block. Now every kind's column has its heading in English and Dutch
+(`ColumnDef`, the languages the program ships), the starter title blocks have Dutch labels, and a page prints in the
+project's language (`languages.source`; `nl` and `nl-NL` alike, `ew_derive::text_in`): the headings, the caption, the
+legend, the rows' texts, the terminal states, the title block's labels and multi-language values, and quantities with
+the language's decimal sign unless the project sets its own separator. A project without a language prints English
+as before. The CSV and XLSX headers stay English.
+
+**The terminal diagram names the strip** (FT-1805): its first column, `strip`, prints each terminal's strip tag, so
+two strips' terminals 1 read apart; a block of one strip may leave the column out.
+
+**In the window.** On a page of a list, Output ▸ List columns… (the Output tab's Reports group) shows the caption, the
+legend and a row per column of the kind (its heading in the window's language): a tick to print it, a heading of its
+own, its width and its order; Apply writes them in one undo step (`fields.set_many`). Output ▸ Rows of your own…
+shows the printed columns and the list's own rows with three empty rows to fill; a row left empty is left out.
+Properties of a block shows its caption, legend, printed columns and rows in words. **By a command:** `fields.set` on
+the block, paths `columns`, `caption`, `legend` and `added_rows`.
+
+**A3 and the print.** The starter forms hold an A3 landscape frame with the grid and its title block, in the A4 ones'
+manner: QElectroTech's 60 px columns and 80 px rows, 25 by 12, printed at the A4 frame's scale and offset, so a text
+prints as high on A3 as on A4; the title block is the A4 one 127 mm wider, its title, project and description cells
+taking the width. A new project and a template hold them; the template wizard's Frame offers "A3 landscape, with
+grid", which puts the drawn pages, the contents and the dividers on it (the cover stays the A4 cover). `ew print
+--fit` (and the print dialog's Scale to fit) now scales each page to the whole paper up as well as down, so an A4 set
+prints on A3 at 141 %; a page scaled either way carries the stamp "scaled n %".
+
+**What it does not do.** Edit a form's drawing in the window (FT-1814). Placeholders in the caption or the legend.
+Rows of a height of the maker's, wrapping cells, a column's alignment. Check a row of the block's own against the
+model, or link it anywhere. Print one list in several languages (one PDF per language is 1.0). An A3 cover, an A3
+frame without the grid, frames A2 to A0. The program's own words in other cells ("from part", "length missing",
+"yes", a channel's state) stay English (FT-1955).
+
 ---
 
 ## 4. Page output pipeline
@@ -754,8 +837,8 @@ pure function of a caller-filled `PageView` (records by reference, derived texts
 only its own inputs, records are taken in ID order, a CP's position comes from the representation with the smallest
 ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `revision`
 and `highlights` layers are empty so far; the `tables` layer draws the house report table of a generated page from a
-caller-filled `TableView` of printed texts (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0,
-column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). A wire
+caller-filled `TableView` of printed texts (in its frame's list area, §3.8: x 16.31 to 277.27 mm on the starter A4
+frame; rows of 6.52 mm, header #C0C0C0, column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). A wire
 without a stored route is drawn as the unrouted dashed line. *As built:* the `Session`
 export job (`ew_api::output`) owns the view's glue rules: a divider or a page without a form uses the no-grid frame,
 the wire-marker text is "csa colour" (both provisional), and the slots filled are the tag, the CP
@@ -931,8 +1014,9 @@ link:
 
 *As built.* The print set (`ew_api::output::print`: `Paper`, `Fit::{Actual, ToPaper}`, `PrintOptions`,
 `Session::print_set`) places each page on its paper (`PagePlacement`, in `ew-render-cpu`); a set with no placement
-change is the export's PDF byte for byte. Fit stamps "scaled <n> %" in the bottom margin (Golden A's section 1 on
-A5 reads "scaled 70 %", `expected/print/`); without it a larger page is clipped and named in a notice. Ranges are
+change is the export's PDF byte for byte. Fit scales each page to the whole paper, up as well as down (an A4 set on A3
+at 141 %, §3.8), and stamps "scaled <n> %" in the bottom margin (Golden A's section 1 on A5 read "scaled 70 %");
+without it a larger page is clipped and named in a notice. Ranges are
 folio labels and ranges (`--pages`) or section numbers (`--sections`). `ew-print`'s adapters form a chain with one
 fallback notice: on Linux the portal (ashpd 0.13.13 with `async-io`, no tokio), then `lp`, then the viewer; on
 Windows the Windows adapter, then the viewer; elsewhere the viewer. The Windows adapter shows `PrintDlgExW`
