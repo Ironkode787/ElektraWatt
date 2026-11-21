@@ -36,6 +36,15 @@ pub struct NewPart {
     pub library: Option<String>,
 }
 
+/// What taking a part out of My parts did ([`Session::remove_own_part`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RemovedPart {
+    /// Its part number.
+    pub number: String,
+    /// The tags of the project's devices that keep using the project's copy of it, sorted.
+    pub devices: Vec<String>,
+}
+
 /// The starter document of `key`.
 pub(crate) fn starter_doc(key: &str) -> Option<LibDocument> {
     LibDocument::from_json(starter::item(key)?.json).ok()
@@ -483,6 +492,55 @@ impl Session {
             .update_from_documents(std::slice::from_ref(&doc), &[])
             .map_err(|e| failed(e.to_string()))?;
         Ok(plan)
+    }
+
+    /// Takes part `item` out of My parts, the person's own library `library` (`part.remove_own`, FT-1766, doc 07
+    /// §2.5): the next projects no longer offer it. A project that holds a copy of it keeps the copy, and its devices
+    /// keep their part: each project embeds the parts it uses, so no project loses a part this way. The devices of
+    /// this project that use its copy are named in the answer.
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Refused`] (`reason-part-not-own`) when `library` is not My parts or holds no such part;
+    /// [`PartDraftError::Field`] on `part` when My parts cannot be written (nothing is taken out then).
+    pub fn remove_own_part(&mut self, library: Uuid, item: Uuid) -> Result<RemovedPart, PartDraftError> {
+        let mine = self
+            .libraries()
+            .libraries()
+            .into_iter()
+            .find(|l| l.id == library && l.key == crate::eplan::USER_PARTS_KEY && l.writable);
+        let number = self
+            .libraries()
+            .documents(library, Kind::Part)
+            .into_iter()
+            .find_map(|d| match d {
+                LibDocument::Part(c) if c.item_id.as_uuid() == item => Some(c.item.part_number.as_str().to_owned()),
+                _ => None,
+            });
+        let (Some(mine), Some(number)) = (mine, number) else {
+            return Err(PartDraftError::Refused(ew_commands::text_key!(
+                "reason-part-not-own"
+            )));
+        };
+        self.libraries_mut()
+            .remove(library, Kind::Part, &[item])
+            .map_err(|e| {
+                PartDraftError::Field(message(
+                    "part",
+                    ew_commands::text_key!("error-part-library"),
+                    &[&mine.name, &e.to_string()],
+                ))
+            })?;
+        let q = self.query();
+        let held: Id<Part> = v5::lib_copy_id(library, item);
+        let mut devices: Vec<String> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy == held))
+            .map(|(id, _)| ew_derive::short_tag(&q, id))
+            .collect();
+        devices.sort();
+        Ok(RemovedPart { number, devices })
     }
 
     /// A new part's draft with the identity, the technical data and the sections of the held copy `copy` (Copy as a

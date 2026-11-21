@@ -149,7 +149,7 @@ pub use part_editor::{
     BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, SIZE_FIELDS,
     bus_words, mount_words, role_words,
 };
-pub use part_new::NewPart;
+pub use part_new::{NewPart, RemovedPart};
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 pub use part_plc::{MAX_CHANNELS, PLC_MEMBERS, PlcRows, channel_kind_words, plc_role_words};
 

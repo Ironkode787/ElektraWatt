@@ -623,8 +623,16 @@ fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
             ),
         );
     }
+    // A part of My parts is taken out of it there (FT-1766); the project keeps its copy, which the toast says.
+    let danger = (d.own && d.fork).then(|| {
+        DialogButton::new(
+            key!("part-remove-own"),
+            DialogAnswer::Action("part.remove_own", Value::Null),
+        )
+    });
     DialogSpec {
         secondary,
+        danger,
         form: true,
         ..small(
             e.title(),

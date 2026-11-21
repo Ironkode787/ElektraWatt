@@ -529,6 +529,13 @@ pub struct PartBusPort {
   row that changes as its columns that differ. A starter part or another
   library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the
   interface's address in its caption (the black-box frame's `bus_address` slot), "Node TBD" while it is open.
+  *Removed (FT-1766).* The part editor of a part of My parts has **Remove from my parts library** apart from Save
+  (`part.remove_own {part?}`): the item is taken out of My parts as a library write is made, all or nothing
+  (`ew_library::Registry::remove`), and the next projects no longer offer it. A project that holds a copy of it keeps
+  the copy and its devices their part, because every project embeds the parts it uses; the toast names the devices of
+  the open project that keep it, and the copy's state in the Libraries navigator reads that no library holds it.
+  Decided against refusing the removal while devices use the part: no project loses anything by it, and the person
+  need not delete devices first. A part that is not in My parts is refused in words.
 
 ### 2.7 Bus model
 
@@ -650,7 +657,7 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   and deleted on its own. A device placed first on a bus page takes its tag from that page (no other page draws
   it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
   a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function
-  (doc 06 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
+  (FR-NUM-007, doc 03 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
   and channels is the one cross-references, lists and the cabinet take, and keeping the bus page's would need an
   exception in the rule `ew_commands::numbering` and `ew_derive::MainRep` share. The toast names both tags and why
   ("-105A1 is now -104A1: a device takes its tag from the page that draws its own box, not from a bus page, which shows

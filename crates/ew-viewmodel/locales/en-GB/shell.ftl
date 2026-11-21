@@ -4652,6 +4652,11 @@ part-drawn-with = Drawn with
 part-own-users = Devices that use this part: { $p0 }. Save corrects the part they use, and a drawn device follows it: its box shows the pins and sockets the part still has, a bus line at a socket the part no longer has keeps its end there (the update names it), and a bus port keeps its bus, role and address. A pin or socket the part adds shows when the box is drawn again: delete the box and draw it again (a port from Ports not drawn yet in the Bus panel).
 part-read-only = This part belongs to { $p0 }, which you cannot change: its bus interfaces and PLC data stay as they are. Copy it as a part of your own to change them.
 part-copy-own = Copy as a part of your own…
+part-remove-own = Remove from my parts library
+action-part-remove-own = Remove from my parts library
+part-removed-own = Removed { $p0 } from your parts library: the next projects no longer offer it.
+part-removed-own-kept = Removed { $p0 } from your parts library: the next projects no longer offer it. This project keeps its copy for { $p1 }.
+reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
 symbol-make-part = Make a part for this symbol…
 symbol-make-part-how = A part whose devices are drawn with this symbol: its identity, bus interfaces and PLC data. Save the symbol to a library first.
 # FT-1766: the PLC section of a new part.

@@ -74,6 +74,9 @@ pub enum WriteFault {
     Reindex,
 }
 
+/// The lines a write brings, by shard and item: the item's version and line, `None` for an item taken out.
+type Incoming = BTreeMap<ShardKey, BTreeMap<Uuid, Option<(String, String)>>>;
+
 /// What a [`Registry::write`] did.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct WriteReport {
@@ -85,6 +88,8 @@ pub struct WriteReport {
     pub updated: Vec<Uuid>,
     /// Items the library already held with the same version and content.
     pub unchanged: Vec<Uuid>,
+    /// Items taken out of the library ([`Registry::remove`]).
+    pub deleted: Vec<Uuid>,
     /// Files written.
     pub written: Vec<String>,
     /// Files removed (replaced shards and leftovers of an interrupted write).
@@ -1056,17 +1061,9 @@ impl Registry {
     /// line for an item being written refuses the write ([`LibraryError::Format`]), as it may be a newer record this
     /// reader would lose.
     pub fn write(&mut self, library: Uuid, docs: &[LibDocument]) -> Result<WriteReport, LibraryError> {
-        let i = self
-            .libs
-            .iter()
-            .position(|l| l.info.id == library)
-            .ok_or(LibraryError::NotFound)?;
-        if !self.libs[i].info.writable {
-            return Err(LibraryError::ReadOnly);
-        }
-        let dir = self.libs[i].dir().ok_or(LibraryError::ReadOnly)?.to_path_buf();
+        let (i, dir) = self.writable(library)?;
         // The new lines by shard, checked before anything is locked or read.
-        let mut incoming: BTreeMap<ShardKey, BTreeMap<Uuid, (String, String)>> = BTreeMap::new();
+        let mut incoming: Incoming = BTreeMap::new();
         for doc in docs {
             let kind = doc
                 .kind()
@@ -1082,10 +1079,43 @@ impl Registry {
                 .map_err(|e| LibraryError::Format(format!("item {item}: {e}")))?;
             let line = record_line(doc).map_err(LibraryError::Format)?;
             let shard = incoming.entry(ShardKey::of(kind, item)).or_default();
-            if shard.insert(item, (version, line)).is_some() {
+            if shard.insert(item, Some((version, line))).is_some() {
                 return Err(LibraryError::Format(format!("item {item} is given twice")));
             }
         }
+        self.write_lines(i, &dir, incoming)
+    }
+
+    /// Takes items of kind `kind` out of a writable library, all or nothing, as [`Registry::write`] writes: under the
+    /// library's lock each shard that held one as a new file without it, then `library.json` with the next
+    /// generation, last. An item the library does not hold is not in the report's `deleted`; a line of one that this
+    /// reader cannot type refuses the removal ([`LibraryError::Format`]), as it may be a newer record.
+    pub fn remove(&mut self, library: Uuid, kind: Kind, items: &[Uuid]) -> Result<WriteReport, LibraryError> {
+        let (i, dir) = self.writable(library)?;
+        let mut incoming: Incoming = BTreeMap::new();
+        for item in items {
+            incoming.entry(ShardKey::of(kind, *item)).or_default().insert(*item, None);
+        }
+        self.write_lines(i, &dir, incoming)
+    }
+
+    /// The index and the directory of writable library `library`.
+    fn writable(&self, library: Uuid) -> Result<(usize, PathBuf), LibraryError> {
+        let i = self
+            .libs
+            .iter()
+            .position(|l| l.info.id == library)
+            .ok_or(LibraryError::NotFound)?;
+        if !self.libs[i].info.writable {
+            return Err(LibraryError::ReadOnly);
+        }
+        let dir = self.libs[i].dir().ok_or(LibraryError::ReadOnly)?.to_path_buf();
+        Ok((i, dir))
+    }
+
+    /// [`Registry::write`]'s and [`Registry::remove`]'s step under the library's lock.
+    fn write_lines(&mut self, i: usize, dir: &Path, incoming: Incoming) -> Result<WriteReport, LibraryError> {
+        let dir = dir.to_path_buf();
         lock::acquire(&dir, &self.me, &self.policy)?;
         self.held_locks.insert(dir.clone());
         let result = self.write_locked(i, &dir, incoming);
@@ -1096,12 +1126,7 @@ impl Registry {
         result
     }
 
-    fn write_locked(
-        &mut self,
-        i: usize,
-        dir: &Path,
-        incoming: BTreeMap<ShardKey, BTreeMap<Uuid, (String, String)>>,
-    ) -> Result<WriteReport, LibraryError> {
+    fn write_locked(&mut self, i: usize, dir: &Path, incoming: Incoming) -> Result<WriteReport, LibraryError> {
         // The manifest on disk now, not the one of the open: another writer may have written since.
         let base = open_manifest(dir, &self.limits).map_err(LibraryError::Format)?;
         if base.id != self.libs[i].info.id {
@@ -1136,7 +1161,15 @@ impl Registry {
                 )));
             }
             let mut changed = false;
-            for (item, (version, line)) in items {
+            for (item, change) in items {
+                // An item taken out (`Registry::remove`).
+                let Some((version, line)) = change else {
+                    if lines.remove(item).is_some() {
+                        report.deleted.push(*item);
+                        changed = true;
+                    }
+                    continue;
+                };
                 match lines.get(item) {
                     Some((v, l)) if v == version && l == line => report.unchanged.push(*item),
                     Some((v, _)) if v == version => {
@@ -1176,7 +1209,12 @@ impl Registry {
                 replaced.extend(shards.get(key).into_iter().flatten().cloned());
             }
         }
-        for v in [&mut report.added, &mut report.updated, &mut report.unchanged] {
+        for v in [
+            &mut report.added,
+            &mut report.updated,
+            &mut report.unchanged,
+            &mut report.deleted,
+        ] {
             v.sort();
         }
         if new_files.is_empty() {

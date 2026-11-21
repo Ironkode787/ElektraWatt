@@ -1097,6 +1097,51 @@ impl ShellModel {
     /// `part.save {another?}` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse
     /// refuses. A new part is saved at once; with `another` (a new cable type's Save and add another size) the form
     /// stays open on the next size of the series.
+    /// `part.remove_own {part?}` (Remove from My parts in the part editor of a part of My parts, FT-1766): the part
+    /// (the `part` text as `part.edit` reads it, else the part editor's) taken out of My parts, so the next projects no
+    /// longer offer it. The project keeps its copy, and the devices that use it keep it, which the toast names: every
+    /// project embeds the parts it uses. Refused in words for a part that is not in My parts.
+    pub(crate) fn act_part_remove_own(&mut self, p: &Map<String, Value>) -> Outcome {
+        let copy = match (self.part_edit_copy(p), &self.dialog) {
+            (Ok(Some(c)), _) if p.contains_key("part") => c,
+            (_, Some(Dialog::PartEdit(e))) if !p.contains_key("part") => e.draft.copy,
+            (Err(e), _) => return e,
+            _ => return Outcome::refused(key!("reason-part-edit-target")),
+        };
+        let Some(project) = &mut self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let held = {
+            let q = project.session.query();
+            copy.to_string().parse().ok().and_then(|id| {
+                q.parts()
+                    .get(id)
+                    .map(|c| (c.library_id.as_uuid(), c.item_id.as_uuid()))
+            })
+        };
+        let Some((library, item)) = held else {
+            return Outcome::refused(key!("reason-part-not-own"));
+        };
+        let removed = match project.session.remove_own_part(library, item) {
+            Ok(r) => r,
+            Err(e) => return draft_refusal(e),
+        };
+        if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.copy == copy) {
+            self.dialog = None;
+        }
+        self.libraries_changed();
+        let text = if removed.devices.is_empty() {
+            strings::format(key!("part-removed-own"), &[&removed.number])
+        } else {
+            strings::format(
+                key!("part-removed-own-kept"),
+                &[&removed.number, &removed.devices.join(", ")],
+            )
+        };
+        self.notify(text, false);
+        Outcome::Done
+    }
+
     pub(crate) fn act_part_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.new) {
             return self.part_save_new(flag(p, "another"));

@@ -4441,6 +4441,11 @@ part-drawn-with = Getekend met
 part-own-users = Apparaten die dit artikel gebruiken: { $p0 }. Opslaan verbetert het artikel dat ze gebruiken, en een getekend apparaat volgt het: zijn kader toont de pinnen en aansluitingen die het artikel nog heeft, een buslijn op een aansluiting die het artikel niet meer heeft houdt daar zijn eind (de update noemt hem), en een buspoort houdt zijn bus, rol en adres. Een pin of aansluiting die het artikel erbij krijgt, verschijnt als het kader opnieuw getekend wordt: verwijder het kader en teken het opnieuw (een poort vanuit Poorten nog niet getekend in het Bus-paneel).
 part-read-only = Dit artikel hoort bij { $p0 }, dat u niet kunt wijzigen: zijn businterfaces en PLC-gegevens blijven zoals ze zijn. Kopieer het als een eigen artikel om ze te wijzigen.
 part-copy-own = Kopiëren als eigen artikel…
+part-remove-own = Uit mijn artikelbibliotheek verwijderen
+action-part-remove-own = Uit mijn artikelbibliotheek verwijderen
+part-removed-own = { $p0 } is uit uw artikelbibliotheek verwijderd: volgende projecten bieden het niet meer aan.
+part-removed-own-kept = { $p0 } is uit uw artikelbibliotheek verwijderd: volgende projecten bieden het niet meer aan. Dit project houdt zijn kopie voor { $p1 }.
+reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
 symbol-make-part = Een artikel maken voor dit symbool…
 symbol-make-part-how = Een artikel waarvan de apparaten met dit symbool worden getekend: zijn identiteit, businterfaces en PLC-gegevens. Sla het symbool eerst op in een bibliotheek.
 # FT-1766: de PLC-sectie van een nieuw artikel.

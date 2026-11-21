@@ -196,6 +196,9 @@ change here.
   the part's PLC section… in its row menu, which opens the module's part in the part editor (doc 10 §3.10, FT-1766)
 - behaviour-change: a station placed first on a bus page whose box is then drawn on a schematic page takes that
   page's tag, and the toast says so with both tags and why (doc 10 §2.7, FT-1766)
+- api-add: Remove from my parts library in the part editor of a part of My parts (`part.remove_own`) takes the part
+  out of My parts; the next projects no longer offer it, and a project that uses it keeps its copy, which the toast
+  says (doc 10 §2.6, FT-1766)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
