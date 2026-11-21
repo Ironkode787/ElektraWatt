@@ -5,16 +5,12 @@
 //! shipped export job (`ew_api::output`), the committed structure file's text and the SHA-256. Shared by
 //! `tests/it/page_output.rs` and the acceptance runner.
 
-use std::collections::BTreeMap;
-
 use ew_api::output::{self, ExportAssets, ExportOptions};
 use ew_derive::Q;
-use ew_dl::FontKey;
-use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput, pdf};
-use ew_render_cpu::FontBytes;
+use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput};
 use sha2::{Digest, Sha256};
 
-use super::view::{GoldenPage, golden_session};
+use super::view::GoldenPage;
 
 /// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
 /// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face
@@ -59,16 +55,6 @@ pub fn svg_sha256(out: &SvgOutput) -> String {
         h.update(f.text.as_bytes());
     }
     format!("{:x}", h.finalize())
-}
-
-/// The SHA-256 of the golden PDF built over the golden model with its records shuffled by `seed` (`None`: in
-/// file order).
-pub fn pdf_sha256(seed: Option<u64>, fonts: &BTreeMap<FontKey, FontBytes>) -> String {
-    let s = golden_session(seed);
-    let q = s.query();
-    let out = pdf(&pdf_pages(&q, Parallelism::Serial), &pdf_options(&q), fonts, None)
-        .expect("the golden PDF is written");
-    format!("{:x}", Sha256::digest(&out.bytes))
 }
 
 /// The text of the committed `expected/pdf/structure.json` for a PDF over `pages`.

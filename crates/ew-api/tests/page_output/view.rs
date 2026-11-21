@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test glue: the golden model loaded through the CSV bootstrap, the bundled fonts and the pages of
-//! the page order with their views.
+//! Test glue: the golden model loaded through the CSV bootstrap (for the acceptance runner, which goes with it), the
+//! sample project over its records, the bundled fonts and the pages of the page order with their views.
 //!
 //! The views are the product's: `ew_api::output` owns the glue rules (frame forms,
 //! bindings, slot texts, wire markers, strip segments, report tables, embedded blocks) and builds one memoised
@@ -99,6 +99,23 @@ pub fn golden_session(shuffle: Option<u64>) -> Session {
         SessionOptions::default(),
     )
     .expect("the golden batch passes the model's integrity check")
+}
+
+/// The sample project over its records; with `shuffle`, the records are handed over in a permuted order (AC-14).
+pub fn sample_session(shuffle: Option<u64>) -> Session {
+    let (project, mut records, lib) = crate::common::sample_records();
+    if let Some(seed) = shuffle {
+        // The permutation of [`golden_session`].
+        let mut s = seed | 1;
+        for i in (1..records.len()).rev() {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            records.swap(i, (s % (i as u64 + 1)) as usize);
+        }
+    }
+    Session::from_records(project, records, lib, SessionOptions::default())
+        .expect("the sample passes the model's integrity check")
 }
 
 /// The bundled fonts by key, as the export job embeds them.
