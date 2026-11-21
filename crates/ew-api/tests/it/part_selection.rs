@@ -3,11 +3,10 @@
 
 //! Below the shell: the part selection dialog's offers, the command a choice
 //! compiles to and the part editor's draft, refusals, in-place edit and fork, over
-//! Golden A and a project made by the wizard, with the fixture catalogue "Fixture parts" written into a temporary user
+//! The sample and a project made by the wizard, with the fixture catalogue "Fixture parts" written into a temporary user
 //! tier. No test pins the number of offers or of starter parts: they assert named rows and their order.
 
 use crate::common::{Dir, tiers};
-use crate::golden_common;
 
 use std::path::Path;
 
@@ -18,7 +17,7 @@ use ew_api::{
     PartOfferQuery, PartPick, PartTarget, ProjectTemplate, Session, SessionOptions,
 };
 use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_schema::{Device, LibDocument, Part, Record};
+use ew_schema::{Device, LibDocument, Part};
 use serde_json::{Value, json};
 
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
@@ -142,27 +141,15 @@ fn options(libraries: Option<LibraryTiers>) -> SessionOptions {
     }
 }
 
-/// Golden A with the libraries of `tiers`.
-fn golden(tiers: Option<LibraryTiers>) -> Session {
-    let batch = golden_common::batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    Session::from_records(project.unwrap(), records, batch.lib.clone(), options(tiers)).unwrap()
+/// The sample with the libraries of `tiers`.
+fn sample(tiers: Option<LibraryTiers>) -> Session {
+    let (project, records, lib) = crate::common::sample_records();
+    Session::from_records(project, records, lib, options(tiers)).unwrap()
 }
 
 fn device(s: &Session, tag: &str) -> Uuid {
-    golden_common::tags(s)
-        .into_iter()
-        .find(|(_, t)| t == tag)
-        .unwrap_or_else(|| panic!("no device {tag}"))
-        .0
-        .as_uuid()
+    s.resolve_reference(&format!("tag:{tag}"))
+        .unwrap_or_else(|e| panic!("no device {tag}: {e:?}"))
 }
 
 fn copy_of(s: &Session, number: &str) -> Uuid {
@@ -210,23 +197,20 @@ fn part_uses(s: &Session, d: Uuid) -> Vec<Uuid> {
         .collect()
 }
 
-/// F55's main function, whose FnDef the golden fact of PS1 names.
+/// The 1-pole breaker -102F1's main function, whose FnDef is the starter's ew.fn.mcb-1p.
 fn f55_function(s: &Session) -> Uuid {
-    let (function, key) = s.main_function(device(s, "F55")).unwrap();
-    assert_eq!(
-        key, "ew.fn.mcb-1pn",
-        "a golden fact: F55's FnDef is the starter's ew.fn.mcb-1pn"
-    );
+    let (function, key) = s.main_function(device(s, "-102F1")).unwrap();
+    assert_eq!(key, "ew.fn.mcb-1p", "-102F1's FnDef");
     function
 }
 
-/// PS1: F55's offers: the 1P+N parts (same FnDef), then the 1P parts (same category), then every other part, held
-/// copies first; the deprecated part is absent; the Golden A copies with a template (terminals, black boxes) rank
+/// PS1: -102F1's offers: the 1P parts (same FnDef), then the other breakers (same category), then every other part,
+/// held copies first; the deprecated part is absent; the sample's copies with a template (terminals, black boxes) rank
 /// `other`.
 #[test]
 fn f55_offers_the_same_function_first() {
     let (_dir, t, _) = fixture("ew-api-ps1");
-    let s = golden(Some(t));
+    let s = sample(Some(t));
     let q = PartOfferQuery {
         function: Some(f55_function(&s)),
         ..PartOfferQuery::default()
@@ -239,12 +223,13 @@ fn f55_offers_the_same_function_first() {
     assert_eq!(
         head,
         [
-            ("EW-GEN-MCB-2", Fit::SameFnDef),
-            ("FX-MCB-1PN", Fit::SameFnDef),
-            ("EW-GEN-MCB-1", Fit::SameCategory),
+            ("EW-GEN-MCB-1", Fit::SameFnDef),
+            ("FX-MCB-1P", Fit::SameFnDef),
+            // held copies first: the sample holds the 3- and the 2-pole breaker
             ("EW-GEN-MCB-3", Fit::SameCategory),
             ("EW-GEN-MCB-4", Fit::SameCategory),
-            ("FX-MCB-1P", Fit::SameCategory),
+            ("EW-GEN-MCB-2", Fit::SameCategory),
+            ("FX-MCB-1PN", Fit::SameCategory),
         ]
     );
     let rest = &offers[6..];
@@ -255,16 +240,14 @@ fn f55_offers_the_same_function_first() {
         "held copies first"
     );
     assert!(!numbers(&offers).contains(&"FX-MCB-OLD"));
-    for number in ["PT 2.5-TWIN", "PT 2.5-TWIN-PE"] {
+    for number in ["EW-GEN-TRM-1", "EW-GEN-TRM-2"] {
         let o = offer(&offers, number);
         assert_eq!((o.held, o.fit), (true, Fit::Other), "{number}");
     }
-    // 5SY4204-7, F55's part, is project-local in Golden A: held, no library, other.
-    let mcb = offer(&offers, "5SY4204-7");
-    assert_eq!(
-        (mcb.held, &mcb.library, mcb.item, mcb.fit),
-        (true, &None, None, Fit::Other)
-    );
+    // EW-GEN-MCB-1, -102F1's part, is a held copy of the starter library.
+    let mcb = offer(&offers, "EW-GEN-MCB-1");
+    assert_eq!((mcb.held, mcb.fit), (true, Fit::SameFnDef));
+    assert!(mcb.library.is_some(), "{:?}", mcb.library);
     // The catalogue part names its library.
     let fx = offer(&offers, "FX-MCB-1PN");
     assert_eq!(fx.library.as_ref().map(|l| l.1.as_str()), Some("Fixture parts"));
@@ -390,9 +373,9 @@ fn search_and_filters() {
 #[test]
 fn choosing_commits_one_command() {
     let (_dir, t, lib) = fixture("ew-api-ps4");
-    let mut s = golden(Some(t));
-    let f55 = device(&s, "F55");
-    let mcb = copy_of(&s, "5SY4204-7");
+    let mut s = sample(Some(t));
+    let f55 = device(&s, "-102F1");
+    let mcb = copy_of(&s, "EW-GEN-MCB-1");
     let offers = s.part_offers(&PartOfferQuery {
         function: Some(f55_function(&s)),
         ..PartOfferQuery::default()
@@ -410,14 +393,8 @@ fn choosing_commits_one_command() {
     );
     let copies = cmd.params["copies"].as_array().unwrap();
     let kinds: Vec<&str> = copies.iter().map(|c| c["$k"].as_str().unwrap()).collect();
-    assert!(
-        kinds.contains(&"part") && kinds.contains(&"manufacturer"),
-        "{kinds:?}"
-    );
-    assert!(
-        copies.iter().any(|c| c["key"] == "Generic"),
-        "the manufacturer Generic travels"
-    );
+    // The part and its FnDef travel; the manufacturer Generic is held already.
+    assert_eq!(kinds, ["part", "fndef"]);
     let before = lines(&s);
     s.execute(&cmd).unwrap();
     let PartPick::Library { library, item: it } = generic else {
@@ -449,7 +426,7 @@ fn choosing_commits_one_command() {
         Err(ApiError::NotHeld(_))
     ));
     // BR1's bridge part from the catalogue: one `fields.set` with `copies`, one undo step.
-    let t1 = strip_terminal(&s, "-X1031", "1");
+    let t1 = strip_terminal(&s, "-X1021", "1");
     let bridge = PartPick::Library {
         library: lib,
         item: item(lib, "FX-BRG-1"),
@@ -507,12 +484,12 @@ fn strip_terminal(s: &Session, strip: &str, designation: &str) -> Uuid {
         .records[0]
 }
 
-/// A project made by the wizard with the golden parts table imported (project-local copies).
+/// A project made by the wizard with the test tables' parts table imported (project-local copies).
 fn wizard_with_parts() -> Session {
     let mut s =
         Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();
     let project = s.query().project().id.as_uuid();
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
     let parts = ew_api::import::read_parts_tables(&path, project).unwrap();
     commit(
         &mut s,
@@ -586,9 +563,15 @@ fn the_part_editor_refuses_with_a_message() {
 /// unchanged and the hash recomputed.
 #[test]
 fn an_edit_in_place_is_previewed() {
-    let mut s = golden(None);
-    let copy = copy_of(&s, "5SY4204-7");
-    let f55 = device(&s, "F55");
+    let mut s = sample(None);
+    let f55 = device(&s, "-102F1");
+    // The sample holds library copies only: -102F1's is forked first (PS7), and the fork is edited in place.
+    let library_copy = copy_of(&s, "EW-GEN-MCB-1");
+    let mut fork = s.part_draft(library_copy).unwrap();
+    s.set_draft_field(&mut fork, "description", "MCB 1P C16").unwrap();
+    let plan = s.part_edit_plan(&fork).unwrap();
+    commit(&mut s, &plan.command);
+    let copy = part_uses(&s, f55)[0];
     let held = s
         .query()
         .parts()
@@ -596,8 +579,8 @@ fn an_edit_in_place_is_previewed() {
         .map(|c| (**c).clone())
         .unwrap();
     let mut d = s.part_draft(copy).unwrap();
-    assert_eq!(d.text("part_number"), "5SY4204-7");
-    assert!(!d.fork, "Golden A's part copies are project-local");
+    assert_eq!(d.text("part_number"), "EW-GEN-MCB-1");
+    assert!(!d.fork, "a fork is the project's own copy");
     s.set_draft_field(&mut d, "description", "MCB 1P+N C4").unwrap();
     let plan = s.part_edit_plan(&d).unwrap();
     assert_eq!(plan.command.name, "part.edit_copy");
@@ -607,7 +590,7 @@ fn an_edit_in_place_is_previewed() {
         ["description"]
     );
     assert!(plan.devices.iter().any(|x| x.as_uuid() == f55));
-    // The BOM rows that change are 5SY4204-7's, where they print its description: each as the column that differs,
+    // The BOM rows that change are the fork's, where they print its description: each as the column that differs,
     // in words, never a CSV line.
     assert!(plan.bom_added.is_empty() && plan.bom_removed.is_empty());
     assert!(!plan.bom_changed.is_empty());
@@ -639,13 +622,13 @@ fn an_edit_in_place_is_previewed() {
     assert_eq!(lines(&s), before, "undo restores the copy");
 }
 
-/// PS7: a copy from a library forks: the fork carries `fork_of`, F55's part use names it, the original stays, the
+/// PS7: a copy from a library forks: the fork carries `fork_of`, -102F1's part use names it, the original stays, the
 /// Libraries status says Local fork; undo restores; a second edit of the fork is in place.
 #[test]
 fn a_library_copy_forks() {
-    let mut s = golden(None);
-    let f55 = device(&s, "F55");
-    let mcb = copy_of(&s, "5SY4204-7");
+    let mut s = sample(None);
+    let f55 = device(&s, "-102F1");
+    let mcb = copy_of(&s, "EW-GEN-MCB-1");
     let generic = s
         .part_offers(&PartOfferQuery {
             text: "EW-GEN-MCB-2".into(),
@@ -695,7 +678,7 @@ fn a_library_copy_forks() {
         json!({"library": held.library_id.as_uuid().to_string(), "item": held.item_id.as_uuid().to_string(),
                "version": held.version})
     );
-    assert_eq!(part_uses(&s, f55), [fork_copy], "F55's part use names the fork");
+    assert_eq!(part_uses(&s, f55), [fork_copy], "-102F1's part use names the fork");
     let still = s
         .query()
         .parts()
@@ -750,11 +733,11 @@ fn publish(t: &LibraryTiers, lib: Uuid, doc: LibDocument) {
     reg.write(lib, &[doc]).unwrap();
 }
 
-/// A copy of Golden A whose F55 uses FX-MCB-1PN as the fixture library holds it now (its first use replaced).
+/// The sample whose -102F1 uses FX-MCB-1PN as the fixture library holds it now (its first use replaced).
 fn holding_mcb(t: &LibraryTiers, lib: Uuid) -> Session {
-    let mut s = golden(Some(t.clone()));
-    let f55 = device(&s, "F55");
-    let from = copy_of(&s, "5SY4204-7");
+    let mut s = sample(Some(t.clone()));
+    let f55 = device(&s, "-102F1");
+    let from = copy_of(&s, "EW-GEN-MCB-1");
     let cmd = s
         .part_pick_command(
             &PartTarget::Devices {
@@ -771,18 +754,18 @@ fn holding_mcb(t: &LibraryTiers, lib: Uuid) -> Session {
     s
 }
 
-/// F55's representations on folio 101 as a fragment (`edit.paste`'s `fragment` member).
+/// -102F1's representations on folio 102 as a fragment (`edit.paste`'s `fragment` member).
 fn f55_fragment(s: &Session) -> Value {
-    let f55 = device(s, "F55");
+    let f55 = device(s, "-102F1");
     let reps: Vec<Uuid> = s
-        .page_tables("101")
+        .page_tables("102")
         .unwrap()
         .reps
         .iter()
         .filter(|r| r.device == Some(f55))
         .map(|r| r.id)
         .collect();
-    assert!(!reps.is_empty(), "F55 is drawn on 101");
+    assert!(!reps.is_empty(), "-102F1 is drawn on 102");
     let copied = s.copy_fragment(&reps).unwrap();
     ew_api::window::parse_fragment(&copied.text).unwrap().params
 }
@@ -809,8 +792,8 @@ fn the_copy(s: &Session, copy: Uuid) -> (String, String) {
     )
 }
 
-/// PS8 below the shell (D22, FT-396): P1 holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.1.0 (a description change, a
-/// patch). F55 copied in P1 and pasted in P2: `paste_versions` lists the copy as a patch, not newer; `edit.paste`
+/// PS8 below the shell (D22, FT-396): P1 holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.1.0 (a description change, a
+/// patch). -102F1 copied in P1 and pasted in P2: `paste_versions` lists the copy as a patch, not newer; `edit.paste`
 /// refuses without `adapt` and with it reuses P2's copy (one undo step). Pasted the other way the pasted version is
 /// newer: `paste_update` plans `library.update` from the fragment's document, and after it the paste needs no choice
 /// (two commands, two undo steps; P1 holds 1.1.0). A version that drops a CP makes "Use the project's copy" major,
@@ -862,7 +845,7 @@ fn the_paste_choice_below_the_shell() {
             .collect()
     };
     assert_eq!(p2.query().devices().len(), devices + 1);
-    assert_eq!(pasted.len(), 2, "F55 and the pasted device use P2's copy");
+    assert_eq!(pasted.len(), 2, "-102F1 and the pasted device use P2's copy");
     assert_eq!(the_copy(&p2, copy).0, "1.1.0", "the project's copy stays");
     p2.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(lines(&p2), before, "one undo step");
@@ -926,29 +909,36 @@ impl ew_testkit::golden::dsl::CommandSink for Sink<'_> {
 }
 
 /// "a strip device without terminals in the golden builder, whose chooser offers the end bracket
-/// ". A strip made by the builder's `device` verb, with the strip aspect and the main function of 1X1 and no
+/// ". A strip made by the builder's `device` verb, with the strip aspect of -X1011 and a main function of the built-in
+/// strip-segment FnDef (the sample's strips have no function of their own; the set-up embeds the FnDef) and no
 /// `terminals` step, is offered the end bracket and no other layout kind; its part dialog's offers, kept as the shell
 /// keeps them, list EW-GEN-EB-1.
 #[test]
 fn a_strip_without_terminals_is_offered_the_end_bracket() {
-    let mut s = golden(None);
-    let template = device(&s, "1X1");
-    let (main, _) = s.main_function(template).unwrap();
-    let (mut strip, main) = {
-        let q = s.query();
-        let strip = q
-            .devices()
-            .get(Id::<Device>::from_uuid(template))
-            .map(|d| Device::clone(d))
-            .unwrap();
-        let main = q
-            .functions()
-            .get(Id::from_uuid(main))
-            .map(|f| ew_schema::Function::clone(f))
-            .unwrap();
-        (strip, main)
-    };
-    assert!(strip.aspects.strip.is_some(), "1X1 is a strip");
+    let mut s = sample(None);
+    let template = device(&s, "-X1011");
+    let mut strip = s
+        .query()
+        .devices()
+        .get(Id::<Device>::from_uuid(template))
+        .map(|d| Device::clone(d))
+        .unwrap();
+    assert!(strip.aspects.strip.is_some(), "-X1011 is a strip");
+    let fndef: Value = serde_json::from_str(
+        &std::fs::read_to_string(crate::view::repo().join("content/fndefs/ew.fn.strip-segment.json"))
+            .expect("the strip-segment FnDef"),
+    )
+    .expect("JSON");
+    let def = fndef["id"].as_str().expect("its copy ID").to_owned();
+    s.execute(&AnyCommand {
+        name: "library.embed".into(),
+        params: json!({"copies": [fndef]}),
+    })
+    .expect("library.embed");
+    let main: ew_schema::Function = serde_json::from_value(json!({
+        "id": "5e900000-0000-7000-8000-000000000001", "device": strip.id.to_string(), "def": def
+    }))
+    .expect("a strip function");
     strip.tag.counter = Some(99);
     strip.parts.clear();
     let made = {
