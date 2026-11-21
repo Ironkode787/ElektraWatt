@@ -18,7 +18,10 @@ use serde_json::json;
 
 /// A new project with page 101, the PLC panel shown.
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let mut s = ShellModel::new(Mode::Gui, ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"));
+    let mut s = ShellModel::new(
+        Mode::Gui,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
     done(
         &mut s,
         "file.new",
@@ -193,11 +196,7 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
             .count()
     };
     assert_eq!(at_terminal(&s), 0, "off by default");
-    done(
-        &mut s,
-        "project.plc_addresses_at_terminals",
-        json!({"on": true}),
-    );
+    done(&mut s, "project.plc_addresses_at_terminals", json!({"on": true}));
     assert_eq!(at_terminal(&s), 1, "the terminal prints the channel's address");
     s.shutdown();
 }
@@ -287,11 +286,7 @@ fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
     done(&mut s, place.id, place.params.clone());
     assert_eq!(s.tool().name(), "black_box", "its box on the pointer");
     let kind = NavKind::Plc.word();
-    done(
-        &mut s,
-        "navigator.row",
-        json!({"kind": kind, "key": node.key}),
-    );
+    done(&mut s, "navigator.row", json!({"kind": kind, "key": node.key}));
     let revision = s.revision();
     let _ = s.dispatch("navigator.delete", &json!({"kind": kind}));
     if s.revision() == revision {
@@ -321,16 +316,8 @@ fn a_channel_of_an_undrawn_card_offers_place_here() {
         .expect("Place here on the channel's row");
     assert!(place.enabled, "{:?}", place.reason);
     assert_eq!(place.params["device"], json!(card.to_string()), "its card's box");
-    assert!(
-        node.badges.iter().any(|b| b == "unplaced"),
-        "{:?}",
-        node.badges
-    );
+    assert!(node.badges.iter().any(|b| b == "unplaced"), "{:?}", node.badges);
     done(&mut s, place.id, place.params.clone());
-    assert_eq!(
-        s.tool().name(),
-        "black_box",
-        "its card's box on the pointer"
-    );
+    assert_eq!(s.tool().name(), "black_box", "its card's box on the pointer");
     s.shutdown();
 }

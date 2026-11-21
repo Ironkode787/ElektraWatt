@@ -23,15 +23,12 @@ fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
     let tmp = Tmp::new("eplan-terms");
     let disguised = tmp.0.join("psu.xml");
     std::fs::copy(EDZ, &disguised).unwrap();
-    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(library_tiers(&tmp.0)));
+    let config =
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(Some(library_tiers(&tmp.0)));
     let mut s = ShellModel::new(Mode::Gui, config);
     let project = tmp.sample_copy();
     copy_dir(Path::new(SAMPLE), &project);
-    done(
-        &mut s,
-        "file.open",
-        json!({"dir": project.to_string_lossy()}),
-    );
+    done(&mut s, "file.open", json!({"dir": project.to_string_lossy()}));
     for how in ["library", "update"] {
         done(
             &mut s,
