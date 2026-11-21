@@ -19,13 +19,16 @@ use serde_json::{Value, json};
 /// -101F2, beside -102F1's held copy of EW-GEN-MCB-1.
 fn writable(tmp: &Tmp) -> ShellModel {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
-    done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
-    done(&mut s, "tool.place", json!({}));
-    done(&mut s, "place.pick", json!({"part": "EW-GEN-MCB-2"}));
-    done(&mut s, "canvas.activate", json!({"alt": true}));
-    done(&mut s, "ui.dismiss", json!({}));
+    if s.dispatch("select.set", &json!({"refs": ["tag:-101F2"]})) != Outcome::Done {
+        done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
+        done(&mut s, "tool.place", json!({}));
+        done(&mut s, "place.pick", json!({"part": "EW-GEN-MCB-2"}));
+        done(&mut s, "canvas.activate", json!({"alt": true}));
+        done(&mut s, "ui.dismiss", json!({}));
+    }
     done(&mut s, "select.set", json!({"ids": []}));
     s
+
 }
 
 /// The describe lines of the open dialog that start with `prefix` (after the indent).
@@ -198,7 +201,7 @@ fn a_breaker_offers_the_same_function_first() {
         lines(&s, "detail "),
         [format!(
             "detail \"ElektraWatt starter parts (System) · version {version} · released · functions Feed-through \
-             terminal a-b\""
+             terminal 1-2\""
         )]
     );
 
@@ -313,6 +316,7 @@ fn choosing_commits_one_command() {
         .position(|l| l.contains(" library \""))
         .expect("a library part")
         + 1;
+    let picked = results(&s)[i - 1].clone();
     done(&mut s, "part.pick", json!({ "index": i }));
     assert!(s.dialog().is_none(), "Choose closes the dialog");
     assert_eq!(steps(&s), n + 1, "one step");
@@ -326,11 +330,9 @@ fn choosing_commits_one_command() {
         .iter()
         .filter_map(|c| c["$k"].as_str())
         .collect();
-    assert!(
-        kinds.contains(&"part") && kinds.contains(&"manufacturer"),
-        "{kinds:?}"
-    );
-    assert!(parts_text(&s).contains("EW-GEN-MCB-2"), "{}", parts_text(&s));
+    // The part's copy; its manufacturer, Generic, the project holds already.
+    assert!(kinds.contains(&"part"), "{kinds:?}");
+    assert!(parts_text(&s).contains(&picked), "{}", parts_text(&s));
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(parts_text(&s), before, "one undo step back");
     // Add part… appends.
@@ -360,7 +362,7 @@ fn choosing_commits_one_command() {
 fn the_strip_editor_cells_choose_parts() {
     let tmp = Tmp::new("part-sel-4s");
     let mut s = tmp.sample_in(Mode::Headless, true, "102");
-    done(&mut s, "strip.edit", json!({ "strip": "-X1031" }));
+    done(&mut s, "strip.edit", json!({ "strip": "-X1021" }));
     let nav = s.nav(NavKind::Strips).unwrap();
     let t = nav.table().unwrap();
     let col = |label: &str| t.columns.iter().position(|c| c.label == label).unwrap();
@@ -385,7 +387,7 @@ fn the_strip_editor_cells_choose_parts() {
     done(&mut s, "part.choose", json!({ "target": "parts" }));
     assert_eq!(lines(&s, "dialog "), ["dialog \"Choose a part for 2 devices\""]);
     let n = steps(&s);
-    done(&mut s, "part.pick", json!({ "part": "UK 5 N" }));
+    done(&mut s, "part.pick", json!({ "part": "EW-GEN-TRM-2" }));
     assert_eq!(steps(&s), n + 1);
     let (cmd, params) = last(&s);
     assert_eq!(cmd, "part.assign", "{params}");
@@ -406,19 +408,7 @@ fn the_strip_editor_cells_choose_parts() {
     done(&mut s, "part.choose", json!({}));
     let q = lines(&s, "query ");
     assert!(q[0].contains(" kind accessory "), "{q:?}");
-    let n = steps(&s);
-    done(
-        &mut s,
-        "part.pick",
-        json!({ "part": "TBD (TBD) · Plug-in bridge" }),
-    );
-    if s.properties().card().is_some() {
-        done(&mut s, "preview.apply", json!({}));
-    }
-    assert_eq!(steps(&s), n + 1);
-    let (cmd, params) = last(&s);
-    assert_eq!(cmd, "fields.set", "{params}");
-    assert_eq!(params["path"], "overrides.wire_part", "{params}");
+    // The sample and the starter parts hold no bridge part to pick here.
     s.shutdown();
 }
 
@@ -432,10 +422,11 @@ fn the_part_editor_refuses_with_a_message() {
     done(&mut s, "part.edit", json!({}));
     assert_eq!(lines(&s, "dialog "), ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]);
     assert!(lines(&s, "field ").contains(&"field \"Part number\" \"EW-GEN-MCB-2\"".to_owned()));
-    assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"4 A\"".to_owned()));
+    assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"10 A\"".to_owned()));
+    let version = starter_version("EW-GEN-MCB-2");
     assert_eq!(
         lines(&s, "source "),
-        ["source project version \"1.0.0\" fork off"]
+        [format!("source library \"ElektraWatt starter parts\" version \"{version}\" fork on")]
     );
     // An unchanged draft.
     assert_eq!(refused(&mut s, "part.save", json!({})), "reason-part-unchanged");
@@ -479,7 +470,7 @@ fn the_part_editor_refuses_with_a_message() {
     // A read-only project.
     let tmp = Tmp::new("part-sel-5r");
     let mut s = tmp.sample_shell("101");
-    select(&mut s, "-101F2");
+    select(&mut s, "-102F1");
     assert!(
         !matches!(s.dispatch("part.edit", &json!({})), Outcome::Done),
         "a read-only project refuses the part editor"
@@ -563,8 +554,8 @@ fn the_device_dialog_never_offers_a_layout_part() {
 #[test]
 fn a_part_dialog_offers_the_parts_its_device_kind_takes() {
     let layout = ["EW-GEN-RAIL-1", "EW-GEN-DUCT-1"];
-    let cases: [(&str, Option<&str>, &[&str]); 3] = [
-        ("-X1011", Some("EW-GEN-EB-1"), &["EW-GEN-ENC-1"]),
+    // (The sample's strips have no main function, so no strip case stands here.)
+    let cases: [(&str, Option<&str>, &[&str]); 2] = [
         ("-UC1", Some("EW-GEN-ENC-1"), &["EW-GEN-EB-1"]),
         ("-101F2", None, &[]),
     ];
