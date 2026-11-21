@@ -20,7 +20,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::support::{
-    EwTmp, PARTS, SAMPLE, TABLES, Tmp, args, generation, renumber_log, stderr, stdout, tree,
+    EwTmp, PARTS, SAMPLE, TABLES, Tmp, args, device_file, generation, renumber_log, stderr, stdout, tree,
 };
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
@@ -660,12 +660,8 @@ fn every_writing_json_result_validates_and_round_trips() {
     let mut outs = Vec::new();
     for name in ["f.ew", "g.ew"] {
         let p = t.sample(name);
-        // The first device file of two lines or more.
-        let (file, text) = tree(&p.join("devices"))
-            .into_iter()
-            .map(|(f, b)| (p.join("devices").join(f), String::from_utf8(b).unwrap()))
-            .find(|(_, text)| text.lines().count() > 1)
-            .unwrap();
+        let file = p.join(device_file(&p));
+        let text = std::fs::read_to_string(&file).unwrap();
         let mut lines: Vec<&str> = text.lines().collect();
         lines.swap(0, 1);
         std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();

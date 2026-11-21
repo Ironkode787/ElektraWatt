@@ -6,7 +6,10 @@
 use std::path::PathBuf;
 use std::process::Output;
 
-use crate::support::{CONTENT, EwTmp as _, GOLDEN_A, GOLDEN_PARTS, Tmp, copy_dir, stderr, stdout, tree};
+use crate::support::{
+    CONTENT, EwTmp as _, PARTS, SAMPLE, TABLES, Tmp, copy_dir, device_file, generation, renumber_log, stderr, stdout,
+    tree,
+};
 
 /// The QElectroTech project of the import tests.
 trait QetTmp {
@@ -387,34 +390,33 @@ fn usage_errors_are_exit_2() {
     assert_eq!(ew(&[]).status.code(), Some(2));
     let o = ew(&[
         "check".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--scheme".as_ref(),
         "bogus".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(2), "an unknown --scheme: {}", stderr(&o));
 }
 
-/// `ew check` of Golden A in each output format: JSON (the check result of the pre-delivery scheme, exit 1) and
-/// Markdown (the report title); neither leaves a lock behind.
+/// `ew check` of the sample in each output format: JSON (the check result of the pre-delivery scheme, exit 0: the sample
+/// is clean) and Markdown (the report title); neither leaves a lock behind.
 #[test]
-fn check_golden_a_in_each_format() {
+fn check_the_sample_in_each_format() {
     let check = |format: &str| {
         ew(&[
             "check".as_ref(),
-            GOLDEN_A.as_ref(),
+            SAMPLE.as_ref(),
             "--format".as_ref(),
             format.as_ref(),
         ])
     };
     let o = check("json");
-    // Golden A has unwaived errors (doc 20 §18.1: AC-21 exits 1); today EW-CORE-033 on -3W1 is one.
     let code = o.status.code();
-    assert_eq!(code, Some(1), "case json: {}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(code, Some(0), "case json: {}", String::from_utf8_lossy(&o.stderr));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(v["$schema"], "ew.check-result/1");
     assert_eq!(v["scheme"], "pre-delivery");
-    assert_eq!(v["exit_code"].as_i64(), Some(1));
-    assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+    assert_eq!(v["exit_code"].as_i64(), Some(0));
+    assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
     let o = check("md");
     assert!(
         matches!(o.status.code(), Some(0 | 1)),
@@ -440,7 +442,7 @@ fn check_golden_a_in_each_format() {
 fn check_counts_integrity_errors_of_a_damaged_project() {
     let tmp = Tmp::new("ew-cli-test");
     let dir = tmp.0.join("damaged.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    copy_dir(std::path::Path::new(SAMPLE), &dir);
     // A JSON syntax error in a page file (EW-CORE-005, error, opens read-only).
     let pages = dir.join("pages");
     let page = std::fs::read_dir(&pages)
@@ -475,7 +477,7 @@ fn check_counts_integrity_errors_of_a_damaged_project() {
 fn check_uses_the_schemes_the_project_names() {
     let t = Tmp::new("ew-cli-test");
     let dir = t.0.join("named.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    copy_dir(std::path::Path::new(SAMPLE), &dir);
     let file = dir.join("project.jsonl");
     let text = std::fs::read_to_string(&file).unwrap();
     let (first, rest) = text.split_once('\n').unwrap();
@@ -502,10 +504,10 @@ fn check_uses_the_schemes_the_project_names() {
     assert_eq!(scheme_of(&[]), "full");
     assert_eq!(scheme_of(&["--mode", "online"]), "drafting");
     assert_eq!(scheme_of(&["--scheme", "migration"]), "migration");
-    // The golden project names none: the default.
+    // The sample names none: the default.
     let o = ew(&[
         "check".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--format".as_ref(),
         "json".as_ref(),
     ]);
@@ -521,7 +523,7 @@ fn check_uses_the_schemes_the_project_names() {
 fn check_notices_a_project_scheme_this_build_does_not_ship() {
     let t = Tmp::new("ew-cli-test");
     let dir = t.0.join("unshipped.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    copy_dir(std::path::Path::new(SAMPLE), &dir);
     let file = dir.join("project.jsonl");
     let text = std::fs::read_to_string(&file).unwrap();
     let (first, rest) = text.split_once('\n').unwrap();
@@ -549,10 +551,10 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
     let (code, scheme, stderr) = run(&dir, &[]);
     assert_eq!(scheme, "pre-delivery");
     assert!(stderr.contains(NOTICE), "{stderr}");
-    let (golden_code, _, golden_err) = run(std::path::Path::new(GOLDEN_A), &[]);
-    assert_eq!(code, golden_code, "the exit status is unchanged");
+    let (sample_code, _, sample_err) = run(std::path::Path::new(SAMPLE), &[]);
+    assert_eq!(code, sample_code, "the exit status is unchanged");
     assert!(matches!(code, Some(0 | 1)), "{stderr}");
-    assert!(!golden_err.contains("not shipped"), "{golden_err}");
+    assert!(!sample_err.contains("not shipped"), "{sample_err}");
     // Mode `online` reads the shipped `active_scheme`; `--scheme` reads no slot: no notice either way.
     let (_, scheme, stderr) = run(&dir, &["--mode", "online"]);
     assert_eq!(scheme, "drafting");
@@ -578,14 +580,29 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
     assert!(!stderr.contains("not shipped"), "{stderr}");
 }
 
-/// P5-2: `ew check --lang nl-NL` prints the Dutch text of a rule with an nl-NL pattern (EW-POT-013 on
-/// T55) and the en-GB text of one without (EW-CORE-044 has none; Golden A's EW-CORE-043 has one); the default and
-/// `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the exit status do not
-/// depend on the language.
+/// P5-2: `ew check --lang nl-NL` prints the Dutch text of the rules with an nl-NL pattern (EW-POT-006 on the sample's
+/// shield wire, its 2.5 mm² override removed for the test, and the infos EW-NUM-001 on the enclosure's frozen tags);
+/// the default and `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the
+/// exit status do not depend on the language. A rule without an nl-NL pattern falls back to en-GB in `ew-checks`'
+/// `messages` tests.
 #[test]
 fn check_lang_renders_the_messages_in_a_shipped_language() {
+    let t = Tmp::new("ew-cli-test");
+    let project = sample_copy(&t);
+    let log = t.0.join("shield.ewcmd");
+    std::fs::write(
+        &log,
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"the shield's override removed\"}}\n{}\n",
+            serde_json::json!({"cmd": "fields.set", "params": {"kind": "connection",
+                "targets": [crate::merge_driver::shield_id()], "path": "overrides.csa", "value": null}})
+        ),
+    )
+    .unwrap();
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let check = |lang: Option<&str>| {
-        let mut args: Vec<&std::ffi::OsStr> = vec!["check".as_ref(), GOLDEN_A.as_ref()];
+        let mut args: Vec<&std::ffi::OsStr> = vec!["check".as_ref(), project.as_os_str()];
         if let Some(l) = lang {
             args.push(std::ffi::OsStr::new("--lang"));
             args.push(std::ffi::OsStr::new(l));
@@ -596,9 +613,8 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     assert_eq!(en.status.code(), Some(1));
     let en_text = stdout(&en);
     assert!(
-        en_text.contains(
-            "T55: T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55)"
-        ),
+        en_text.contains("-103W1/SHIELD: PE wire -103W1/SHIELD has 1.5 mm², below the 2.5 mm² required")
+            && en_text.contains("UC1: frozen, deviates from scheme"),
         "{en_text}"
     );
     assert_eq!(stdout(&check(Some("en-GB"))), en_text);
@@ -606,14 +622,8 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     assert_eq!(nl.status.code(), Some(1));
     let nl_text = stdout(&nl);
     assert!(
-        nl_text.contains(
-            "T55: T55 opent de nulleider N-55 → N-55T zonder de fase (belasting E55 blijft verbonden met L-55)"
-        ),
-        "{nl_text}"
-    );
-    assert!(
-        !nl_text.contains("placeholder part \"End bracket\"")
-            && nl_text.contains("tijdelijk artikel \"End bracket\" (artikelnummer TBD)"),
+        nl_text.contains("-103W1/SHIELD: PE-draad -103W1/SHIELD heeft 1,5 mm², minder dan de 2,5 mm²")
+            && nl_text.contains("UC1: vastgezet, wijkt af van het nummeringsschema"),
         "{nl_text}"
     );
     // The same lines in the same order, the totals line equal.
@@ -629,25 +639,26 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
 }
 
 fn sql(query: &str) -> Output {
-    ew(&["sql".as_ref(), GOLDEN_A.as_ref(), query.as_ref()])
+    ew(&["sql".as_ref(), SAMPLE.as_ref(), query.as_ref()])
 }
 
 /// An inline query may start with an SQL comment; the count prints as CSV, stderr reports the row count, and the
 /// read leaves no lock behind.
 #[test]
 fn sql_inline_query_may_start_with_a_comment() {
-    let o = sql("-- the terminal count of doc 20 §9\nSELECT count(*) AS n FROM api_v1_terminal");
+    // The sample's 18 terminals: 5 on -X1011, 8 on -X1021, 5 on -X1031.
+    let o = sql("-- the sample's terminals\nSELECT count(*) AS n FROM api_v1_terminal");
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), "n\n28\n");
+    assert_eq!(stdout(&o), "n\n18\n");
     assert!(stderr(&o).contains("1 rows"), "{}", stderr(&o));
-    assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+    assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
 }
 
 #[test]
 fn sql_huge_timeout_is_a_usage_error_not_a_panic() {
     let o = ew(&[
         "sql".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "SELECT 1".as_ref(),
         "--timeout".as_ref(),
         "18446744073709551615".as_ref(),
@@ -660,8 +671,8 @@ fn sql_huge_timeout_is_a_usage_error_not_a_panic() {
 fn sql_json_natural_order() {
     let o = ew(&[
         "sql".as_ref(),
-        GOLDEN_A.as_ref(),
-        "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1031' ORDER BY designation COLLATE ew_natural LIMIT 3"
+        SAMPLE.as_ref(),
+        "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1021' ORDER BY designation COLLATE ew_natural LIMIT 3"
             .as_ref(),
         "--format".as_ref(),
         "json".as_ref(),
@@ -683,12 +694,13 @@ fn sql_query_from_file() {
     .unwrap();
     let o = ew(&[
         "sql".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--file".as_ref(),
         f.as_os_str(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), "n\n6\n");
+    // The two bridges of -X1021 (terminals 1 to 4 and 5 to 8).
+    assert_eq!(stdout(&o), "n\n2\n");
 }
 
 #[test]
@@ -727,11 +739,11 @@ fn last_line(o: &Output) -> String {
 }
 
 /// SE-9 at the call site: `ew sql`'s statement panics inside `run_sql`'s guard; the run ends
-/// with S1 and exit 2, prints no result, and the copy of Golden A's files are as they were.
+/// with S1 and exit 2, prints no result, and the copy of the sample's files are as they were.
 #[test]
 fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let before = tree(&project);
     let o = ew_faulted("sql", &["sql".as_ref(), project.as_os_str(), "SELECT 1".as_ref()]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
@@ -748,7 +760,7 @@ fn sql_a_panicking_statement_ends_with_s1_and_changes_nothing() {
 #[test]
 fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let out = t.0.join("result.xlsx");
     for format in [
         &["--format", "csv"][..],
@@ -772,11 +784,11 @@ fn sql_a_panicking_result_writer_ends_with_s1_and_writes_nothing() {
 
 /// SE-9 at the call site: `ew import table --apply`'s read panics inside
 /// `run_import_table`'s guard; the run ends with `error: ` and S2 with its first letter in lower case, exit 2, and the
-/// copy of Golden A's files are as they were.
+/// copy of the sample's files are as they were.
 #[test]
 fn import_table_a_panicking_read_ends_with_s2_and_changes_nothing() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let file = t.0.join("pages.csv");
     std::fs::write(&file, "id,Title\n").unwrap();
     let before = tree(&project);
@@ -801,12 +813,12 @@ fn import_table_a_panicking_read_ends_with_s2_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
-/// SE-9 (NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of Golden A stops at its deadline with
+/// SE-9 (NFR-REL-12): a recursive-CTE bomb in `ew sql` on a copy of the sample stops at its deadline with
 /// exit 2, and the copy's files are as they were.
 #[test]
 fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let before = tree(&project);
     let o = ew(&[
         "sql".as_ref(),
@@ -824,59 +836,38 @@ fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
     assert!(tree(&project) == before, "the copy's files changed");
 }
 
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-fn expected(path: &str) -> String {
-    std::fs::read_to_string(std::path::Path::new(EXPECTED).join(path)).unwrap()
-}
-
-/// `ew export cables` and `ew export bom` print the expected CSVs of the golden project, one case per list: the
-/// cable list of doc 20 §10 (`expected/csv/cables.csv`, with its row count on stderr and no lock left behind); the
-/// parts list by default, with `--mode parts` and with its alias `component` (the 27 rows of folios 901 and 901.1);
-/// and the assembly list of doc 20 §14.2 (A1 and A2 in place of rows 16-21, the "Covers" column).
+/// `ew export cables` and `ew export bom` print their lists of the sample: the cable list, with its row count on stderr
+/// (the overview's heading and 3 cables, then each cable's heading and its 5, 5 and 3 cores, shields included: 20) and
+/// no lock left behind; the parts list by default, with `--mode parts` and with its alias `component`, the same bytes;
+/// and the assembly list, the parts list with the column "Covers", empty in the sample, which holds no assembly.
 #[test]
-fn export_csv_is_the_expected_csv() {
-    let cases: [(&str, &[&str], &str); 5] = [
-        ("export_cables_is_the_expected_csv", &["cables"], "csv/cables.csv"),
-        (
-            "export_bom_parts_is_the_expected_csv default",
-            &["bom"],
-            "csv/bom_parts.csv",
-        ),
-        (
-            "export_bom_parts_is_the_expected_csv --mode parts",
-            &["bom", "--mode", "parts"],
-            "csv/bom_parts.csv",
-        ),
-        (
-            "export_bom_parts_is_the_expected_csv --mode component",
-            &["bom", "--mode", "component"],
-            "csv/bom_parts.csv",
-        ),
-        (
-            "export_bom_assembly_is_the_expected_csv",
-            &["bom", "--mode", "assembly"],
-            "csv/bom_assembly.csv",
-        ),
-    ];
-    for (name, args, file) in cases {
-        let mut a: Vec<&std::ffi::OsStr> = vec!["export".as_ref(), args[0].as_ref(), GOLDEN_A.as_ref()];
+fn export_csv_prints_the_lists() {
+    let export = |args: &[&str]| {
+        let mut a: Vec<&std::ffi::OsStr> = vec!["export".as_ref(), args[0].as_ref(), SAMPLE.as_ref()];
         a.extend(args[1..].iter().map(|s| std::ffi::OsStr::new(*s)));
         let o = ew(&a);
-        assert_eq!(o.status.code(), Some(0), "case {name}: {}", stderr(&o));
-        assert_eq!(stdout(&o), expected(file), "case {name}");
-        if name == "export_cables_is_the_expected_csv" {
-            assert!(stderr(&o).contains("20 rows"), "case {name}: {}", stderr(&o));
-            assert!(
-                !std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists(),
-                "case {name}"
-            );
-        }
+        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
+        o
+    };
+    let cables = export(&["cables"]);
+    assert_eq!(stderr(&cables), "20 rows\n");
+    assert_eq!(stdout(&cables).lines().count(), 21, "the header and 20 rows");
+    assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
+    let parts = stdout(&export(&["bom"]));
+    for mode in ["parts", "component"] {
+        assert_eq!(stdout(&export(&["bom", "--mode", mode])), parts, "--mode {mode}");
     }
+    let assembly = stdout(&export(&["bom", "--mode", "assembly"]));
+    let with_covers: String = parts
+        .lines()
+        .enumerate()
+        .map(|(i, l)| if i == 0 { format!("{l},Covers\n") } else { format!("{l},\n") })
+        .collect();
+    assert_eq!(assembly, with_covers);
 }
 
 /// A command that writes a file says so on stdout and writes it, one case per writer: `ew sql --out` (the CSV),
-/// `ew sql dump` (an SQLite file) and `ew export cables --out` (the expected cable list).
+/// `ew sql dump` (an SQLite file) and `ew export cables --out` (the cable list it prints).
 #[test]
 fn out_writes_a_file() {
     let t = Tmp::new("ew-cli-test");
@@ -887,21 +878,21 @@ fn out_writes_a_file() {
             "sql_out_writes_csv_file",
             vec![
                 "sql".as_ref(),
-                GOLDEN_A.as_ref(),
+                SAMPLE.as_ref(),
                 "SELECT count(*) AS n FROM api_v1_terminal".as_ref(),
                 "--out".as_ref(),
                 csv.as_os_str(),
             ],
             "result written to",
             &csv,
-            |bytes| assert_eq!(bytes, b"n\n28\n"),
+            |bytes| assert_eq!(bytes, b"n\n18\n"),
         ),
         (
             "sql_dump_writes_sqlite_file",
             vec![
                 "sql".as_ref(),
                 "dump".as_ref(),
-                GOLDEN_A.as_ref(),
+                SAMPLE.as_ref(),
                 sqlite.as_os_str(),
             ],
             "projection written to",
@@ -913,13 +904,13 @@ fn out_writes_a_file() {
             vec![
                 "export".as_ref(),
                 "cables".as_ref(),
-                GOLDEN_A.as_ref(),
+                SAMPLE.as_ref(),
                 "--out".as_ref(),
                 cables.as_os_str(),
             ],
             "export written to",
             &cables,
-            |bytes| assert_eq!(String::from_utf8_lossy(bytes), expected("csv/cables.csv")),
+            |bytes| assert!(String::from_utf8_lossy(bytes).starts_with("row,Cable,Cable type,")),
         ),
     ];
     for (name, args, says, out, check) in cases {
@@ -1066,7 +1057,7 @@ fn export_out_to_an_unwritable_path_is_exit_2() {
         let o = ew(&[
             "export".as_ref(),
             what.as_ref(),
-            GOLDEN_A.as_ref(),
+            SAMPLE.as_ref(),
             "--out".as_ref(),
             out.as_os_str(),
         ]);
@@ -1080,13 +1071,13 @@ fn export_out_to_an_unwritable_path_is_exit_2() {
     }
 }
 
-/// `ew verify-derived` over Golden A: every memoised value equals its cold recomputation with the oracle on.
+/// `ew verify-derived` over the sample: every memoised value equals its cold recomputation with the oracle on.
 /// The oracle re-runs every memoised read, about 90 s in a debug build, so the test is run by hand
 /// (`cargo nextest run -p ew --run-ignored only`) and by the acceptance runner's AC-16 at the library level.
 #[test]
 #[ignore = "deep run: the oracle re-runs every memoised read"]
-fn verify_derived_golden_a_is_clean() {
-    let o = ew(&["verify-derived".as_ref(), GOLDEN_A.as_ref()]);
+fn verify_derived_of_the_sample_is_clean() {
+    let o = ew(&["verify-derived".as_ref(), SAMPLE.as_ref()]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     assert!(
         stdout(&o).contains("0 differences, 0 oracle mismatches"),
@@ -1123,12 +1114,12 @@ fn verify_migration_exits_by_what_it_finds() {
     // The raster was compared, not skipped.
     assert!(!stdout(&o).contains(" 0 cells compared"), "{}", stdout(&o));
 
-    // Another drawing: Golden A's page 101 as the reference of the one-page project.
+    // Another drawing: the sample's page 101 as the reference of the one-page project.
     let other = t.0.join("other.pdf");
     let o = ew(&[
         "export".as_ref(),
         "pdf".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--pages".as_ref(),
         "101".as_ref(),
         "--out".as_ref(),
@@ -1194,29 +1185,25 @@ fn verify_migration_exits_by_what_it_finds() {
 // ---------------------------------------------------------------------------------------------------------
 // `ew export pdf|svg` (G-M1-01) and `ew apply`
 
-/// A copy of Golden A in `t`.
-fn golden_copy(t: &Tmp) -> PathBuf {
-    let copy = t.0.join("J-E-2416.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &copy);
-    copy
+/// A copy of the sample in `t`.
+fn sample_copy(t: &Tmp) -> PathBuf {
+    t.sample("sample.ew")
 }
 
-/// G-M1-01: `ew export pdf golden/J-E-2416.ew` writes the 36 pages of the page order as the PDF whose SHA-256 is
-/// `expected/pdf/sha256.txt`, on one thread and on four, writes nothing into the project and leaves no `.tmp`
-/// file.
+/// G-M1-01: `ew export pdf <sample>` writes every page of the page order as one PDF, the same bytes on one thread and
+/// on four, writes nothing into the project and leaves no `.tmp` file. The PDF's structure and its links are pinned by
+/// `ew-api`'s page-output tests.
 #[test]
-fn export_pdf_of_golden_a_is_the_committed_pdf() {
-    use sha2::{Digest, Sha256};
+fn export_pdf_writes_every_page_alike_on_one_and_four_threads() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let before = tree(&project);
-    let want = expected("pdf/sha256.txt");
-    // The committed link count: 64 cross-reference items, 28 PLC overview rows and the report row links, a sum that
-    // `ew-api`'s page-output test counts from the page views.
-    let structure: serde_json::Value = serde_json::from_str(&expected("pdf/structure.json")).unwrap();
-    let links = structure["links"].as_u64().expect("the committed link count");
+    let order = t.ew(&["query".as_ref(), project.as_os_str(), "page_order".as_ref(), "-".as_ref()]);
+    assert_eq!(order.status.code(), Some(0), "{}", stderr(&order));
+    let pages = stdout(&order).lines().count();
+    let mut first: Option<Vec<u8>> = None;
     for threads in ["1", "4"] {
-        let out = t.0.join(format!("J-E-2416-{threads}.pdf"));
+        let out = t.0.join(format!("sample-{threads}.pdf"));
         let o = t.ew(&[
             "export".as_ref(),
             "pdf".as_ref(),
@@ -1228,22 +1215,21 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
         ]);
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         assert!(
-            stdout(&o).contains(&format!(": 36 pages, {links} links")),
+            stdout(&o).contains(&format!(": {pages} pages, ")),
             "{}",
             stdout(&o)
         );
         let bytes = std::fs::read(&out).unwrap();
-        assert_eq!(
-            format!("{:x}\n", Sha256::digest(&bytes)),
-            want,
+        assert!(
+            *first.get_or_insert_with(|| bytes.clone()) == bytes,
             "{threads} threads"
         );
-        assert!(!t.0.join(format!("J-E-2416-{threads}.pdf.tmp")).exists());
+        assert!(!t.0.join(format!("sample-{threads}.pdf.tmp")).exists());
     }
     assert!(tree(&project) == before, "the export wrote into the project");
 }
 
-/// `ew export svg --pages 101-106` writes one file per selected page; an unknown folio, a missing `--out` and a
+/// `ew export svg --pages 101-105` writes one file per selected page; an unknown folio, a missing `--out` and a
 /// missing project exit 2.
 #[test]
 fn export_svg_writes_the_selected_pages() {
@@ -1252,27 +1238,27 @@ fn export_svg_writes_the_selected_pages() {
     let o = t.ew(&[
         "export".as_ref(),
         "svg".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--out".as_ref(),
         dir.as_os_str(),
         "--pages".as_ref(),
-        "101-106".as_ref(),
+        "101-105".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let files: Vec<String> = tree(&dir).into_keys().collect();
-    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "106.svg"]);
+    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "104.svg", "105.svg"]);
     let unknown = ew(&[
         "export".as_ref(),
         "svg".as_ref(),
-        GOLDEN_A.as_ref(),
+        SAMPLE.as_ref(),
         "--out".as_ref(),
         dir.as_os_str(),
         "--pages".as_ref(),
-        "104".as_ref(),
+        "106".as_ref(),
     ]);
     assert_eq!(unknown.status.code(), Some(2), "{}", stderr(&unknown));
-    assert!(stderr(&unknown).contains("104"), "{}", stderr(&unknown));
-    let no_out = ew(&["export".as_ref(), "pdf".as_ref(), GOLDEN_A.as_ref()]);
+    assert!(stderr(&unknown).contains("106"), "{}", stderr(&unknown));
+    let no_out = ew(&["export".as_ref(), "pdf".as_ref(), SAMPLE.as_ref()]);
     assert_eq!(no_out.status.code(), Some(2));
     let missing = ew(&[
         "export".as_ref(),
@@ -1285,15 +1271,14 @@ fn export_svg_writes_the_selected_pages() {
     assert!(!t.0.join("x.pdf").exists());
 }
 
-const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
-
-/// `ew apply --preview` of Golden B step B2 prints the renumbered tags and changes nothing on disk; `ew apply`
-/// commits and saves it (folio 106 becomes 104, which `ew export svg --pages 104` then finds), leaving no lock.
+/// `ew apply --preview` of a renumbering of section 1 from 111 prints the renumbered tags and changes nothing on disk;
+/// `ew apply` commits and saves it (folio 101 becomes 111, which `ew export svg --pages 111` then finds), leaving no
+/// lock.
 #[test]
-fn apply_golden_b2_previews_then_saves() {
+fn apply_of_a_renumbering_previews_then_saves() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let project = sample_copy(&t);
+    let log = renumber_log(&t);
     let before = tree(&project);
     let preview = t.ew(&[
         "apply".as_ref(),
@@ -1304,9 +1289,8 @@ fn apply_golden_b2_previews_then_saves() {
     assert_eq!(preview.status.code(), Some(0), "{}", stderr(&preview));
     let out = stdout(&preview);
     assert!(out.starts_with("preview: 1 of 1 lines commit;"), "{out}");
-    assert!(out.contains("-106W1 -> -104W1"), "{out}");
-    // Doc 20 section 2.2, step B2: 2 tags (-106W1, -106W2) and 14 cross-reference texts change.
-    assert!(out.contains(" 2 tags and 14 cross-references change"), "{out}");
+    assert!(out.contains("-101F1 -> -111F1"), "{out}");
+    assert!(out.contains(" cross-references change"), "{out}");
     assert!(tree(&project) == before, "a preview wrote into the project");
     let svg = |pages: &str| {
         t.ew(&[
@@ -1320,9 +1304,9 @@ fn apply_golden_b2_previews_then_saves() {
         ])
     };
     assert_eq!(
-        svg("104").status.code(),
+        svg("111").status.code(),
         Some(2),
-        "no folio 104 before the replay"
+        "no folio 111 before the replay"
     );
     let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
@@ -1333,7 +1317,7 @@ fn apply_golden_b2_previews_then_saves() {
     );
     assert!(tree(&project) != before, "the replay is saved");
     assert!(!project.join(".~ew.lock").exists(), "the lock is released");
-    assert_eq!(svg("104").status.code(), Some(0), "folio 104 after the replay");
+    assert_eq!(svg("111").status.code(), Some(0), "folio 111 after the replay");
 }
 
 /// Exit codes of `ew apply` (doc 17 section 3.2): a line a domain rule refuses (a second page 7777) exits 1, the
@@ -1342,7 +1326,7 @@ fn apply_golden_b2_previews_then_saves() {
 #[test]
 fn apply_exit_codes_and_one_step() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let write = |name: &str, lines: &[&str]| {
         let p = t.0.join(name);
         let mut text = String::from("{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}\n");
@@ -1392,115 +1376,6 @@ fn apply_exit_codes_and_one_step() {
     assert!(!project.join(".~ew.lock").exists());
 }
 
-/// `ew apply --preview` of Golden B step B1 (doc 20 section 2.2): the 10 device tags of the tag map change, the 28
-/// terminal tags follow their strips (38 tag lines), and no cross-reference text changes; nothing is saved.
-#[test]
-fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
-    let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let before = tree(&project);
-    let log = std::path::Path::new(VARIANTS).join("b1-page-based-tags.ewcmd");
-    let o = t.ew(&[
-        "apply".as_ref(),
-        project.as_os_str(),
-        log.as_os_str(),
-        "--preview".as_ref(),
-    ]);
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let out = stdout(&o);
-    assert!(out.starts_with("preview: 2 of 2 lines commit;"), "{out}");
-    assert!(out.contains(" 38 tags and 0 cross-references change"), "{out}");
-    for (before, after) in [
-        ("-X1031", "-103X1"),
-        ("-X1032", "-103X2"),
-        ("-XPE", "-101X2"),
-        ("1X1", "-101X1"),
-        ("E55", "-101E1"),
-        ("E56", "-101E2"),
-        ("F55", "-101F2"),
-        ("S51", "-101S1"),
-        ("S56", "-101S2"),
-        ("T55", "-101T1"),
-    ] {
-        let line = format!(": {before} -> {after}");
-        assert_eq!(
-            out.lines()
-                .filter(|l| l.starts_with("tag ") && l.ends_with(&line))
-                .count(),
-            1,
-            "{line}: {out}"
-        );
-    }
-    assert!(tree(&project) == before);
-}
-
-/// GP-UT (doc 20 section 2): `ew apply` of `variants/gp-ut.ewcmd` on a copy of Golden A removes -102F1
-/// (its device, function, representation, layout placement and the potential +24V-F defined at its terminal 2) and
-/// its four wires W20, W21, W24 and W25 (their six connection records, J3.1 and J4.1 being the junction segments, and
-/// the junctions J3 and J4), and nothing else: every other record line is byte for byte Golden A's.
-#[test]
-fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
-    let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let records = |dir: &std::path::Path| -> std::collections::BTreeSet<String> {
-        tree(dir)
-            .into_iter()
-            .filter(|(rel, _)| rel.ends_with(".jsonl"))
-            .flat_map(|(_, bytes)| {
-                String::from_utf8(bytes)
-                    .unwrap()
-                    .lines()
-                    .map(str::to_owned)
-                    .collect::<Vec<_>>()
-            })
-            .collect()
-    };
-    let before = records(&project);
-    let log = std::path::Path::new(VARIANTS).join("gp-ut.ewcmd");
-    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), "applied 1 of 1 lines; saved\n");
-    let after = records(&project);
-    assert!(after.is_subset(&before), "no record line is added or changed");
-    let removed: Vec<String> = before
-        .difference(&after)
-        .map(|line| {
-            let v: serde_json::Value = serde_json::from_str(line).unwrap();
-            let name = v["source_ref"]["key"].as_str().unwrap_or("no source");
-            format!("{} {name}", v["$k"].as_str().unwrap())
-        })
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    assert_eq!(
-        removed,
-        [
-            "connection connections|J3.1",
-            "connection connections|J4.1",
-            "connection connections|W20",
-            "connection connections|W21",
-            "connection connections|W24",
-            "connection connections|W25",
-            "device devices|-102F1",
-            "function functions|-102F1",
-            "junction junctions|J3",
-            "junction junctions|J4",
-            "placement no source",
-            "potential_def potentials|+24V-F",
-            "representation representations|-102F1",
-        ]
-    );
-    // The placement is -102F1's.
-    let placement = before
-        .difference(&after)
-        .find(|l| l.contains("\"$k\":\"placement\""))
-        .unwrap();
-    assert!(
-        placement.contains("\"device\":\"ff321999-9715-51d0-8eb6-9b93acae6158\""),
-        "{placement}"
-    );
-}
-
 /// `SOURCE_DATE_EPOCH` (doc 17 section 3.1) sets the creation date and with it the document ID: the PDF differs
 /// from the model-dated one, carries the date, and is the same bytes on one and four threads; an invalid value
 /// exits 2 and writes nothing.
@@ -1513,7 +1388,7 @@ fn source_date_epoch_dates_the_pdf() {
             &[
                 "export".as_ref(),
                 "pdf".as_ref(),
-                GOLDEN_A.as_ref(),
+                SAMPLE.as_ref(),
                 "--out".as_ref(),
                 out.as_os_str(),
                 "--threads".as_ref(),
@@ -1530,8 +1405,16 @@ fn source_date_epoch_dates_the_pdf() {
     assert_eq!(o4.status.code(), Some(0), "{}", stderr(&o4));
     let (a, b) = (std::fs::read(&p1).unwrap(), std::fs::read(&p4).unwrap());
     assert!(a == b, "1 and 4 threads differ");
-    use sha2::{Digest, Sha256};
-    assert_ne!(format!("{:x}\n", Sha256::digest(&a)), expected("pdf/sha256.txt"));
+    let undated = t.0.join("u.pdf");
+    let o = t.ew(&[
+        "export".as_ref(),
+        "pdf".as_ref(),
+        SAMPLE.as_ref(),
+        "--out".as_ref(),
+        undated.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(std::fs::read(&undated).unwrap() != a, "the model-dated PDF differs");
     let text = String::from_utf8_lossy(&a);
     assert!(
         text.contains("2023-11-14") || text.contains("D:20231114"),
@@ -1553,7 +1436,7 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
         t.ew(&[
             "export".as_ref(),
             "svg".as_ref(),
-            GOLDEN_A.as_ref(),
+            SAMPLE.as_ref(),
             "--out".as_ref(),
             dir.as_os_str(),
             "--pages".as_ref(),
@@ -1561,9 +1444,9 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
         ])
     };
     assert_eq!(svg("1,2,101", &dir).status.code(), Some(0));
-    assert_eq!(svg("101-106", &dir).status.code(), Some(0));
+    assert_eq!(svg("101-105", &dir).status.code(), Some(0));
     let files: Vec<String> = tree(&dir).into_keys().collect();
-    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "106.svg"]);
+    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "104.svg", "105.svg"]);
     let mixed = t.0.join("mixed");
     std::fs::create_dir_all(&mixed).unwrap();
     std::fs::write(mixed.join("notes.txt"), "keep").unwrap();
@@ -1580,7 +1463,7 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
 #[test]
 fn apply_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     // A session that commits one edit and is dropped without a save or a clean close: its journal stays.
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = Some(t.state_dir());
@@ -1601,7 +1484,7 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     let before = tree(&project);
     let journals = journal_files(&t);
     assert_eq!(journals.len(), 1);
-    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = renumber_log(&t);
     let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
     assert_eq!(
@@ -1635,7 +1518,7 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
     let o = t.ew(&[
         "import".as_ref(),
         "parts".as_ref(),
-        GOLDEN_PARTS.as_ref(),
+        PARTS.as_ref(),
         "--project".as_ref(),
         project.as_os_str(),
     ]);
@@ -1663,7 +1546,7 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
 #[test]
 fn project_checks_set_needs_an_interactive_terminal() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let before = tree(&project);
     let set = |extra: &[&str]| {
         let mut args: Vec<&std::ffi::OsStr> = vec![
@@ -1806,7 +1689,7 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
 #[test]
 fn revision_commands_are_refused_off_a_terminal() {
     let t = Tmp::new("ew-cli-test");
-    let dir = golden_copy(&t);
+    let dir = sample_copy(&t);
     let manifest = std::fs::read(dir.join("manifest.json")).unwrap();
     let dir_arg = dir.to_str().unwrap();
     for args in [
@@ -1829,7 +1712,7 @@ fn revision_commands_are_refused_off_a_terminal() {
     assert_eq!(o.status.code(), Some(2), "`--as` is required: {}", stderr(&o));
 }
 
-/// The recorded logs replay through `ew apply`: one log on a copy of Golden A, applied once, of
+/// The recorded logs replay through `ew apply`: one log on a copy of the sample, applied once, of
 /// - `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
 ///   `marker.place` and `rep.move`;
 /// - the property grid pilot's `--record` log (`pilot_log.rs`, which the headless
@@ -1842,9 +1725,9 @@ fn revision_commands_are_refused_off_a_terminal() {
 #[test]
 fn the_recorded_logs_replay_through_ew_apply() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let (golden, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
-    let tables = golden.page_tables("101").unwrap();
+    let project = sample_copy(&t);
+    let (sample, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
+    let tables = sample.page_tables("101").unwrap();
     let page = tables.page.to_string();
     let wires: Vec<String> = tables
         .connections
@@ -1854,7 +1737,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
         .map(|c| c.id.to_string())
         .collect();
     let rep = tables.reps[0].id.to_string();
-    drop(golden);
+    drop(sample);
     let header = "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"logs\"}";
     let mut lines = vec![
         serde_json::json!({"cmd": "project.drawing.set", "params": {"marker_mode": "explicit"}}),
@@ -1901,7 +1784,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
         stdout(&applied)
     );
     let fresh = t.0.join("fresh.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &fresh);
+    copy_dir(std::path::Path::new(SAMPLE), &fresh);
     let (mut replayed, _) = ew_api::Session::open_read_only(&fresh, "test").unwrap();
     replayed
         .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "logs.ewcmd")
@@ -1931,7 +1814,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
         removed, added,
         "per kind, the removed and added minted records balance"
     );
-    // The two projects' items and boxes on 101 by content: a marker's connections are the golden connection IDs,
+    // The two projects' items and boxes on 101 by content: a marker's connections are the sample's connection IDs,
     // which the log names, so they are equal on both sides.
     let contents = |s: &ew_api::Session| {
         let t = s.page_tables("101").expect("page 101");
@@ -1965,7 +1848,7 @@ fn parts_target(t: &Tmp, name: &str) -> PathBuf {
 }
 
 /// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
-/// projects (ids, hash, provenance, the licence that only the golden bootstrap states, the library of
+/// projects (ids, hash, provenance, the licence that only a table import states, the library of
 /// the manufacturer and of an enclosure's plate part).
 fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
     let mut out = std::collections::BTreeMap::new();
@@ -1997,10 +1880,10 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
     out
 }
 
-/// `ew import parts` creates the golden project's 29 part copies, and the recorded command
+/// `ew import parts` creates a part copy per row of the test tables' `parts.csv` (29), and the recorded command
 /// replays through `ew apply` to the same bytes.
 #[test]
-fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
+fn import_parts_creates_a_copy_per_row_and_replays_through_apply() {
     let t = Tmp::new("ew-cli-test");
     let a = parts_target(&t, "parts-a.ew");
     let b = t.0.join("parts-b.ew");
@@ -2008,7 +1891,7 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
     let o = t.ew(&[
         "import".as_ref(),
         "parts".as_ref(),
-        GOLDEN_PARTS.as_ref(),
+        PARTS.as_ref(),
         "--project".as_ref(),
         a.as_os_str(),
     ]);
@@ -2017,11 +1900,8 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
         stdout(&o),
         "imported parts.csv: 29 created, 0 skipped, 0 errors; saved\n"
     );
-    let golden = std::path::Path::new(GOLDEN_A).join("lib/parts");
     let mine = tree(&a.join("lib/parts"));
     assert_eq!(mine.len(), 29);
-    assert_eq!(mine.len(), tree(&golden).len());
-    assert_eq!(comparable_parts(&a.join("lib/parts")), comparable_parts(&golden));
 
     let id = {
         let (session, _) = ew_api::Session::open_reader(&b, "test", "test").expect("the copy opens");
@@ -2029,7 +1909,7 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
         session.close();
         id
     };
-    let parts = ew_api::import::read_parts_tables(std::path::Path::new(GOLDEN_PARTS), id).unwrap();
+    let parts = ew_api::import::read_parts_tables(std::path::Path::new(PARTS), id).unwrap();
     let log = format!(
         "{}\n{}\n",
         r#"{"$schema":"ew.cmdlog/1","label":"test"}"#,
@@ -2054,7 +1934,7 @@ fn a_second_import_parts_skips_every_key() {
         t.ew(&[
             "import".as_ref(),
             "parts".as_ref(),
-            GOLDEN_PARTS.as_ref(),
+            PARTS.as_ref(),
             "--project".as_ref(),
             a.as_os_str(),
         ])
@@ -2118,11 +1998,11 @@ fn import_parts_refusals_name_line_and_column() {
 }
 
 /// `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
-/// saved with a byte-order mark creates the same 29 part copies as the golden tables without it.
+/// saved with a byte-order mark creates the same 29 part copies as the test tables without it.
 #[test]
 fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     let t = Tmp::new("ew-cli-test");
-    let tables = std::path::Path::new(GOLDEN_PARTS).parent().unwrap();
+    let tables = std::path::Path::new(PARTS).parent().unwrap();
     let marked = t.0.join("bom-tables");
     std::fs::create_dir_all(&marked).unwrap();
     for file in [
@@ -2146,7 +2026,7 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
         ])
     };
     let plain = parts_target(&t, "parts-plain.ew");
-    let o = import(std::path::Path::new(GOLDEN_PARTS), &plain);
+    let o = import(std::path::Path::new(PARTS), &plain);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let bom = parts_target(&t, "parts-bom.ew");
     let o = import(&marked.join("parts.csv"), &bom);
@@ -2409,187 +2289,6 @@ fn lib_import_parts_and_import_parts_with_a_map() {
     );
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// AC-21 through the CLI (CL-6)
-
-/// The built packs of AC-21's subset, as the `ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv` names them.
-const AC21_PACKS: [&str; 8] = [
-    "EW-CORE",
-    "EW-IEC81346",
-    "EW-TERM",
-    "EW-POT",
-    "EW-PLC",
-    "EW-BUS",
-    "EW-LAYOUT",
-    "EW-FL",
-];
-
-/// The open findings of the built packs that doc 20 §18.1 does not list (FT-638: the process valves are supplied by
-/// others and exempt once `supply_scope` exists, FT-209), as the `ew-api` test holds them.
-const AC21_KNOWN_EXCESS: [(&str, &str); 8] = [
-    ("EW-CORE-041", "=P01+FIELD-203Q1"),
-    ("EW-CORE-041", "=P01+FIELD-203Q2"),
-    ("EW-CORE-041", "=P01+FIELD-203Q3"),
-    ("EW-CORE-041", "=P01+FIELD-203Q4"),
-    ("EW-CORE-041", "=P01+FIELD-203Q5"),
-    ("EW-CORE-041", "=P01+FIELD-203Q6"),
-    ("EW-CORE-041", "=P01+FIELD-203Q7"),
-    ("EW-CORE-041", "=P01+FIELD-203Q8"),
-];
-
-/// Splits one line of `findings_mvp.csv` into fields: commas outside double quotes separate; `""` is a quote.
-fn csv_fields(line: &str) -> Vec<String> {
-    let mut out = vec![String::new()];
-    let (mut quoted, mut chars) = (false, line.chars().peekable());
-    while let Some(c) = chars.next() {
-        match (c, quoted) {
-            ('"', true) if chars.peek() == Some(&'"') => {
-                chars.next();
-                out.last_mut().unwrap().push('"');
-            }
-            ('"', _) => quoted = !quoted,
-            (',', false) => out.push(String::new()),
-            (c, _) => out.last_mut().unwrap().push(c),
-        }
-    }
-    out
-}
-
-/// CL-6 (AC-21 through the CLI): on a copy of Golden A, `ew check --scheme pre-delivery --json` exits 1, and its
-/// findings of the built packs equal the rows of `findings_mvp.csv` that are not pending, with FT-638's known
-/// excess, as the `ew-api` test asserts on the library. The pending rows are listed by package; each names a rule no
-/// pack of this build reports. When the last pending package lands, every row is compared (doc 20 §18.1's 42 errors,
-/// 32 warnings and 31 infos) and the pending list is empty. A row of no finding (EF-19 since rc.3: -XPE is an earth
-/// connection, W-1 is not needed) expects none.
-#[test]
-fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
-    type Groups = std::collections::BTreeMap<(String, String), Vec<String>>;
-    let t = Tmp::new("ew-cli-test");
-    let copy = golden_copy(&t);
-    let o = t.ew(&[
-        "check".as_ref(),
-        "--scheme".as_ref(),
-        "pre-delivery".as_ref(),
-        "--json".as_ref(),
-        "--project".as_ref(),
-        copy.as_os_str(),
-    ]);
-    assert_eq!(
-        o.status.code(),
-        Some(1),
-        "doc 20 §18.1: `ew check` exits 1: {}",
-        stderr(&o)
-    );
-    let result: ew_api::cli_results::CheckResult = serde_json::from_str(&stdout(&o)).unwrap();
-    assert_eq!(ew_api::cli_results::to_text(&result), stdout(&o));
-    let pack_of: std::collections::BTreeMap<&str, &str> = result
-        .rules
-        .iter()
-        .map(|r| (r.id.as_str(), r.pack.as_str()))
-        .collect();
-    let mut got = Groups::new();
-    for f in &result.findings {
-        if !pack_of
-            .get(f.rule.as_str())
-            .is_some_and(|p| AC21_PACKS.contains(p))
-        {
-            continue;
-        }
-        let open = f.state == ew_api::checks::report::ResultState::Open;
-        if open
-            && AC21_KNOWN_EXCESS
-                .iter()
-                .any(|(r, s)| *r == f.rule && *s == f.subject)
-        {
-            continue;
-        }
-        let state = if open {
-            serde_json::to_value(f.severity)
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned()
-        } else {
-            "waived".to_owned()
-        };
-        got.entry((f.rule.clone(), state))
-            .or_default()
-            .push(f.subject.clone());
-    }
-    for v in got.values_mut() {
-        v.sort();
-    }
-    let csv = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../crates/ew-api/tests/expected/findings_mvp.csv"),
-    )
-    .unwrap();
-    let mut lines = csv.lines();
-    assert_eq!(
-        lines.next(),
-        Some("ef,rule,severity,count,subjects,targets,defect,pending")
-    );
-    let mut want = Groups::new();
-    let mut pending: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
-    for line in lines {
-        let f = csv_fields(line);
-        assert_eq!(f.len(), 8, "{line}");
-        if f[3] == "0" {
-            continue;
-        }
-        if f[7].is_empty() {
-            let mut subjects: Vec<String> = f[4]
-                .split("; ")
-                .filter(|s| !s.is_empty())
-                .map(str::to_owned)
-                .collect();
-            subjects.sort();
-            want.insert((f[1].clone(), f[2].clone()), subjects);
-        } else {
-            assert!(
-                !pack_of.contains_key(f[1].as_str()),
-                "{} {} is run by this build: compare its row (clear its pending column)",
-                f[0],
-                f[1]
-            );
-            pending
-                .entry(f[7].clone())
-                .or_default()
-                .push(format!("{} {}", f[0], f[1]));
-        }
-    }
-    for (package, rows) in &pending {
-        println!("AC-21 rows pending {package}: {}", rows.join(", "));
-    }
-    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21, EF-22 and EF-26, and EF-22
-    // (EW-PLC-013) supersedes EF-10 (EW-POT-003) on its pins.
-    want.remove(&("EW-POT-003".to_owned(), "warning".to_owned()));
-    let v1 = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../crates/ew-api/tests/expected/findings_1_0.csv"),
-    )
-    .unwrap();
-    for line in v1.lines().skip(1) {
-        let f = csv_fields(line);
-        let mut subjects: Vec<String> = f[4].split("; ").map(str::to_owned).collect();
-        subjects.sort();
-        want.insert((f[1].clone(), f[2].clone()), subjects);
-    }
-    assert_eq!(got, want, "AC-21's built-pack subset through `ew check --json`");
-    for (rule, subject) in AC21_KNOWN_EXCESS {
-        assert!(
-            result
-                .findings
-                .iter()
-                .any(|f| f.rule == rule && f.subject == subject),
-            "{rule} on {subject} is gone: update AC21_KNOWN_EXCESS with FT-638"
-        );
-    }
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// `ew fmt`, `ew recover` and `ew import csv`
-
 /// The journal files of the isolated `ew` in `t` with their bytes.
 fn journal_files(t: &Tmp) -> std::collections::BTreeMap<String, Vec<u8>> {
     let dir = t.state_dir();
@@ -2662,7 +2361,7 @@ fn swap_first_lines(project: &std::path::Path, rel: &str) {
     std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
 }
 
-/// FM-1 (FR-EXT-008): `ew fmt --check` on Golden A's copy exits 0; after two lines of `devices/71.jsonl` are swapped it
+/// FM-1 (FR-EXT-008): `ew fmt --check` on the sample's copy exits 0; after two lines of a device file are swapped it
 /// exits 1 naming that file and writes nothing; `ew fmt` rewrites that file only (it saves through the plan that starts from
 /// `Loaded.rewrite`, never `Changes::All`); then
 /// `ew fmt --check` exits 0 and the files equal the original bytes. The manifest is a new generation by necessity; its
@@ -2670,7 +2369,7 @@ fn swap_first_lines(project: &std::path::Path, rel: &str) {
 #[test]
 fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     let original = files_and_hashes(&project);
@@ -2683,13 +2382,14 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
         )
     );
 
-    swap_first_lines(&project, "devices/71.jsonl");
+    let rel = device_file(&project);
+    swap_first_lines(&project, &rel);
     let swapped = tree(&project);
     assert_eq!(
         run(&fmt(&["--check"])),
         (
             Some(1),
-            "would rewrite devices/71.jsonl\n".to_owned(),
+            format!("would rewrite {rel}\n"),
             "fmt: 1 file is not in canonical form; nothing was written\n".to_owned()
         )
     );
@@ -2699,8 +2399,8 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
         run(&fmt(&[])),
         (
             Some(0),
-            "rewrote devices/71.jsonl\n".to_owned(),
-            "fmt: rewrote 1 file; saved generation 2\n".to_owned()
+            format!("rewrote {rel}\n"),
+            format!("fmt: rewrote 1 file; saved generation {}\n", sample_generation() + 1)
         )
     );
     assert_eq!(
@@ -2722,7 +2422,7 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
         .collect();
     assert_eq!(
         changed,
-        ["devices/71.jsonl", "manifest.json"],
+        [&rel, "manifest.json"],
         "only the rewrite set and the manifest"
     );
     assert!(journal_files(&t).is_empty(), "the format's journal is closed");
@@ -2735,8 +2435,9 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
 #[test]
 fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let rel = "devices/71.jsonl";
+    let project = sample_copy(&t);
+    let rel = device_file(&project);
+    let rel = rel.as_str();
     let text = std::fs::read_to_string(project.join(rel)).unwrap();
     let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
     let third = lines[2].strip_suffix('}').unwrap().to_owned();
@@ -2772,7 +2473,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
         (
             Some(0),
             format!("rewrote {rel}\n"),
-            format!("{kept_text}fmt: rewrote 1 file; saved generation 2\n")
+            format!("{kept_text}fmt: rewrote 1 file; saved generation {}\n", sample_generation() + 1)
         )
     );
     let written = std::fs::read_to_string(project.join(rel)).unwrap();
@@ -2791,7 +2492,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
 
     // A line that is not JSON: the reader lists it, the writer is refused (the project opens read-only).
     let broken = t.0.join("broken.ew");
-    copy_dir(std::path::Path::new(GOLDEN_A), &broken);
+    copy_dir(std::path::Path::new(SAMPLE), &broken);
     swap_first_lines(&broken, rel);
     let mut text = std::fs::read_to_string(broken.join(rel)).unwrap();
     text.push_str("{\"$k\":\"device\",\n");
@@ -2837,22 +2538,31 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let mut shards: Vec<_> = std::fs::read_dir(project.join("devices"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    shards.sort();
-    let copy = shards
-        .iter()
-        .find_map(|p| {
-            let text = std::fs::read_to_string(p).unwrap();
-            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
-            Some(text[at..at + 36].to_owned())
-        })
-        .expect("a device names a part copy");
-    let file = format!("lib/parts/{copy}.json");
-    std::fs::write(project.join(&file), "{\"$k\": \"part\",\n").unwrap();
+    let project = sample_copy(&t);
+    // The sample holds starter parts only: -101F1 takes a supplier's part the test tables import.
+    let o = t.ew(&[
+        "import".as_ref(),
+        "parts".as_ref(),
+        PARTS.as_ref(),
+        "--project".as_ref(),
+        project.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let file = copy_file(&project, "5SY4204-7");
+    let copy = file.file_stem().unwrap().to_string_lossy().into_owned();
+    let log = t.0.join("part.ewcmd");
+    std::fs::write(
+        &log,
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{}\n",
+            serde_json::json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+                "path": "parts", "value": [{"part": {"copy": copy}, "qty": "1"}]}})
+        ),
+    )
+    .unwrap();
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    std::fs::write(&file, "{\"$k\": \"part\",\n").unwrap();
     let before = tree(&project);
     let o = ew_in(&t, &["fmt".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
@@ -2861,7 +2571,7 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
             Some(2),
             String::new(),
             format!(
-                "error: {}: the project opens read-only: the device -201U8-Q1 uses the library copy of its part, \
+                "error: {}: the project opens read-only: the device -101F1 uses the library copy of its part, \
                  which is damaged; update the copy from its library first; nothing was written\n",
                 project.display()
             )
@@ -2870,12 +2580,8 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
-/// `ew apply`'s line that assigns the compiled-in starter part EW-GEN-MCB-2 to Golden A's F55: its part
-/// copy is `lib/parts/4b259878-8a92-56e0-ac8e-8f23e7c66a6b.json`.
-const STARTER_MCB_ASSIGN: &str = r#"{"cmd":"part.assign","params":{"copies":[{"$k":"part","category":["ProtectionOvercurrent","MCB","1P+N"],"cp_pattern":[{"designation":"1","idx":0},{"designation":"2","idx":1},{"designation":"N","idx":2},{"designation":"N","idx":3}],"description":{"en":"Miniature circuit breaker, 1 pole and neutral"},"function_template":[{"cps":[0,1,2,3],"fndef":{"item":"473bc9ca-9b42-5683-ada8-f5f0a4081772","key":"ew.fn.mcb-1pn","library":"7202fd8b-1024-4bf1-9e99-670772eaa589","version_req":"^0.1"},"main":true}],"id":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b","item_id":"eb8a0c03-fd56-5637-b8f9-23434fd03a5d","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","manufacturer":{"item":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","library":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","version_req":"^0.1"},"mech":{"depth":70000000,"height":85000000,"mount_kind":"ts35x7_5","width":36000000},"meta":{"key":"EW-GEN-MCB-2","licence":"CC0-1.0","sources":["ew.original"]},"part_number":"EW-GEN-MCB-2","sha256":"sha256:3eeb8d7541d8f9218a2fe6c5c069ec88a310aab147248f8f39364403bbe249e7","tech_data":[{"key":"characteristic","value":"C"},{"key":"rated_current","value":{"unit":"A","value":"10"}}],"version":"0.1.1"},{"$k":"manufacturer","id":"7ae048b6-63ea-5c01-83b2-e1a83b5b4414","item_id":"f4260253-4a2b-5c11-a3d6-b01e2aa5efe6","key":"Generic","library_id":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","meta":{"licence":"CC0-1.0","sources":["ew.original"]},"name":{"en":"Generic"},"sha256":"sha256:f3df52cb1e83bcc3bda7957948246bcb5a5a958739eca73dce4191db5ad15d9c","version":"0.1.0"}],"devices":["594f6043-5d61-51b2-8f57-db20fe74a517"],"from":"f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f","mode":"replace","part":"4b259878-8a92-56e0-ac8e-8f23e7c66a6b"}}"#;
-
 /// A writer refused on a project whose damaged library copy is of a part an installed library holds
-/// (the compiled-in starter parts' EW-GEN-MCB-2, assigned to F55 by `ew apply`) names the part and its library, whole.
+/// (the compiled-in starter parts' EW-GEN-MCB-4 of the sample's -101F1) names the part and its library, whole.
 #[test]
 fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
     let t = Tmp::new("ew-cli-test");
@@ -2889,7 +2595,7 @@ fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
             Some(2),
             String::new(),
             format!(
-                "error: {}: the project opens read-only: the device F55 uses the library copy of part EW-GEN-MCB-2 \
+                "error: {}: the project opens read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-4 \
                  from ElektraWatt starter parts, which is damaged; update the copy from its library first; nothing \
                  was written\n",
                 project.display()
@@ -2899,12 +2605,22 @@ fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
-/// A writer refused on a project whose damaged library copy no device names (the form page 1 names)
+/// A writer refused on a project whose damaged library copy no device names (the form page 1 names: in the sample the
+/// title page takes its form from the project's frames, so the test names it on the page)
 /// names the copy and the record that names it, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_page_names() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
+    let rel = crate::support::page_file(&project, 1);
+    let page = std::fs::read_to_string(project.join(&rel)).unwrap();
+    let named = page.replacen(
+        ",\"title\":",
+        ",\"form\":\"81ee0d6d-6c0e-55e4-b7fd-1896f594051f\",\"title\":",
+        1,
+    );
+    assert_ne!(named, page);
+    put_as_saved(&project, &rel, named.as_bytes());
     std::fs::write(
         project.join("lib/forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json"),
         "{\"$k\": \"form\",\n",
@@ -2927,19 +2643,20 @@ fn a_writer_names_the_damaged_copy_a_page_names() {
     assert!(tree(&project) == before, "nothing is written");
 }
 
-/// A copy of Golden A in `t` whose F55 uses the compiled-in starter part EW-GEN-MCB-2, assigned by `ew apply`: the folder
-/// and the part copy's file, as the save wrote it.
+/// The file of the copy of the part `number` in the project `dir` (`lib/parts/<id>.json`).
+fn copy_file(dir: &std::path::Path, number: &str) -> PathBuf {
+    let needle = format!("\"part_number\": \"{number}\"");
+    std::fs::read_dir(dir.join("lib/parts"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| std::fs::read_to_string(p).unwrap().contains(&needle))
+        .unwrap_or_else(|| panic!("no copy of {number}"))
+}
+
+/// A copy of the sample in `t` and the file of its copy of the compiled-in starter part EW-GEN-MCB-4 (-101F1's).
 fn starter_mcb_project(t: &Tmp) -> (PathBuf, PathBuf) {
-    let project = golden_copy(t);
-    let log = t.0.join("assign.ewcmd");
-    std::fs::write(
-        &log,
-        format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{STARTER_MCB_ASSIGN}\n"),
-    )
-    .unwrap();
-    let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
-    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
-    let file = project.join("lib/parts/4b259878-8a92-56e0-ac8e-8f23e7c66a6b.json");
+    let project = sample_copy(t);
+    let file = copy_file(&project, "EW-GEN-MCB-4");
     (project, file)
 }
 
@@ -2951,15 +2668,20 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
     let t = Tmp::new("ew-cli-test");
     let (project, file) = starter_mcb_project(&t);
     let original = std::fs::read(&file).unwrap();
+    let version = serde_json::from_slice::<serde_json::Value>(&original).unwrap()["version"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     std::fs::write(&file, "{\"$k\": \"part\",\n").unwrap();
     let o = ew_in(&t, &["update-copies".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
             Some(0),
-            "updated the library copy of part EW-GEN-MCB-2 at version 0.1.1 from its library\nthe project opens for \
-             editing\n"
-                .to_owned(),
+            format!(
+                "updated the library copy of part EW-GEN-MCB-4 at version {version} from its library\nthe project \
+                 opens for editing\n"
+            ),
             String::new()
         )
     );
@@ -2975,30 +2697,21 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
     assert_eq!(fmt.status.code(), Some(0), "{}", stderr(&fmt));
 }
 
-/// FT-1499: `ew update-copies` on a project whose damaged copy no library holds (Golden A's own part copy of
-/// -201U8-Q1) is refused in words, exit 1, and writes nothing.
+/// FT-1499: `ew update-copies` on a project whose damaged copy no library holds (a supplier's part the test tables
+/// import into the sample, which holds starter parts only) is refused in words, exit 1, and writes nothing.
 #[test]
 fn update_copies_refuses_a_copy_no_library_holds() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    let mut shards: Vec<_> = std::fs::read_dir(project.join("devices"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
-    shards.sort();
-    let copy = shards
-        .iter()
-        .find_map(|p| {
-            let text = std::fs::read_to_string(p).unwrap();
-            let at = text.find("\"copy\":\"")? + "\"copy\":\"".len();
-            Some(text[at..at + 36].to_owned())
-        })
-        .expect("a device names a part copy");
-    std::fs::write(
-        project.join(format!("lib/parts/{copy}.json")),
-        "{\"$k\": \"part\",\n",
-    )
-    .unwrap();
+    let project = sample_copy(&t);
+    let o = t.ew(&[
+        "import".as_ref(),
+        "parts".as_ref(),
+        PARTS.as_ref(),
+        "--project".as_ref(),
+        project.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    std::fs::write(copy_file(&project, "5SY4204-7"), "{\"$k\": \"part\",\n").unwrap();
     let before = tree(&project);
     let o = ew_in(&t, &["update-copies".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
@@ -3062,10 +2775,12 @@ fn base64(bytes: &[u8]) -> String {
 #[test]
 fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let (small, big) = (png(2, 1), png(65536, 32768));
+    let page = crate::support::page_file(&project, 101);
+    let page = page.trim_start_matches("pages/").trim_end_matches(".jsonl");
     let place = format!(
-        r#"{{"cmd":"item.place","params":{{"page":"71260e59-ea02-5e16-8678-401d4044d9d7","kind":{{"image":{{"data":"{}","rect":[[0,0],[2000000,1000000]]}}}}}}}}"#,
+        r#"{{"cmd":"item.place","params":{{"page":"{page}","kind":{{"image":{{"data":"{}","rect":[[0,0],[2000000,1000000]]}}}}}}}}"#,
         base64(&small)
     );
     let log = t.0.join("place.ewcmd");
@@ -3127,8 +2842,8 @@ fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
 #[test]
 fn fmt_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
-    swap_first_lines(&project, "devices/71.jsonl");
+    let project = sample_copy(&t);
+    swap_first_lines(&project, &device_file(&project));
     crashed_session(&t, &project, &[new_page(7777)]);
     let before = tree(&project);
     let journals = journal_files(&t);
@@ -3182,6 +2897,11 @@ fn put_as_saved(project: &std::path::Path, rel: &str, bytes: &[u8]) {
     std::fs::write(project.join(rel), bytes).unwrap();
 }
 
+/// The generation of the sample's copies: that of its script's saves.
+fn sample_generation() -> u64 {
+    generation(std::path::Path::new(SAMPLE))
+}
+
 /// The backup `ew fmt --repair` writes for `project` at `generation`: beside the project folder, named
 /// `<project folder>.before-repair-g<generation>.ewz`, as the file system names it.
 fn backup_of(project: &std::path::Path, generation: u64) -> PathBuf {
@@ -3207,14 +2927,14 @@ fn beside_the_project(project: &std::path::Path) -> Vec<String> {
     names
 }
 
-/// EZ-5: `ew fmt --repair` on a page file of Golden A's copy with one broken line
+/// EZ-5: `ew fmt --repair` on a page file of the sample's copy with one broken line
 /// prints the line (its text cut at 80 characters) and the backup, writes the backup `.ewz` beside the project folder
 /// (generation 1 as it was, the line included) and a project without the line, which opens editable and canonical; a
 /// second run has nothing to repair and writes nothing; run on the project as it was, it reuses the backup.
 #[test]
 fn fmt_repair_discards_a_broken_line_after_a_backup() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     let rel = first_page_file(&project);
     let original = std::fs::read(project.join(&rel)).unwrap();
     let broken = format!("{{\"$k\":\"page\",\"title\":\"{}\"", "x".repeat(100));
@@ -3225,15 +2945,15 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     let before = tree(&project);
     let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
-    let backup = backup_of(&project, 1);
+    let backup = backup_of(&project, sample_generation());
     let shown: String = broken.chars().take(80).collect();
     let discarded = format!("discarded {rel}:2: {shown}\u{2026}\n");
     assert_eq!(
         run(&fmt(&["--repair"])),
         (
             Some(0),
-            format!("{discarded}backup {} (generation 1)\n", backup.display()),
-            "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+            format!("{discarded}backup {} (generation {})\n", backup.display(), sample_generation()),
+            format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
         )
     );
     let after = tree(&project);
@@ -3245,11 +2965,11 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
         "only the manifest and the page file"
     );
     let packed = ew_api::ewz::read(&std::fs::read(&backup).unwrap()).unwrap();
-    assert_eq!(packed.generation(), 1);
+    assert_eq!(packed.generation(), sample_generation());
     assert_eq!(packed.entries[&rel], bytes, "the backup holds the broken line");
     assert_eq!(
         beside_the_project(&project),
-        ["J-E-2416.ew.before-repair-g1.ewz"],
+        [format!("sample.ew.before-repair-g{}.ewz", sample_generation())],
         "no temporary file is left"
     );
     assert_eq!(
@@ -3275,17 +2995,18 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
         (
             Some(0),
             format!(
-                "{discarded}backup {} (generation 1, already there and reused)\n",
-                backup.display()
+                "{discarded}backup {} (generation {}, already there and reused)\n",
+                backup.display(),
+                sample_generation()
             ),
-            "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+            format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
         )
     );
     assert_eq!(tree(&project)[&rel], original);
     assert!(journal_files(&t).is_empty(), "the repair's journal is closed");
 }
 
-/// EZ-5 on a hand-edited copy of Golden A: the broken line written by hand,
+/// EZ-5 on a hand-edited copy of the sample: the broken line written by hand,
 /// the manifest untouched (an edit outside ElektraWatt since the last save), and the same with the page file's hash
 /// pending in a merged manifest. `ew export ewz` refuses the project, which is no verified generation; `ew fmt
 /// --repair` writes the backup of the files as found, saying how many differ from the generation as saved, then the
@@ -3298,7 +3019,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     for merged in [false, true] {
         let t = Tmp::new("ew-cli-test");
-        let project = golden_copy(&t);
+        let project = sample_copy(&t);
         let rel = first_page_file(&project);
         let original = std::fs::read(project.join(&rel)).unwrap();
         let bytes = after_the_first_line(&original, &[NOT_JSON]);
@@ -3306,11 +3027,10 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
         let listed = if merged {
             let manifest = std::fs::read_to_string(project.join("manifest.json")).unwrap();
             assert_eq!(manifest.matches(&hash(&original)).count(), 1);
-            let pending = manifest.replace(&hash(&original), "sha256:pending").replacen(
-                "\n  }\n}\n",
-                "\n  },\n  \"merged\": true\n}\n",
-                1,
-            );
+            // A merged manifest has no `base`: the sample's saved one has.
+            let mut pending = manifest.replace(&hash(&original), "sha256:pending");
+            let end = pending.find("\n  },\n  \"base\": ").expect("the manifest's base");
+            pending.replace_range(end.., "\n  },\n  \"merged\": true\n}\n");
             assert!(pending.ends_with("\"merged\": true\n}\n"));
             std::fs::write(project.join("manifest.json"), pending).unwrap();
             "sha256:pending".to_owned()
@@ -3352,7 +3072,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
         );
         assert!(!out.exists(), "the export writes nothing");
 
-        let backup = backup_of(&project, 1);
+        let backup = backup_of(&project, sample_generation());
         let repair = ew_in(
             &t,
             &["fmt".as_ref(), project.as_os_str(), "--repair".as_ref()],
@@ -3363,11 +3083,12 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
             (
                 Some(0),
                 format!(
-                    "discarded {rel}:2: {}\nbackup {} (generation 1, as found: 1 file edited outside EW)\n",
+                    "discarded {rel}:2: {}\nbackup {} (generation {}, as found: 1 file edited outside EW)\n",
                     String::from_utf8_lossy(NOT_JSON),
-                    backup.display()
+                    backup.display(),
+                    sample_generation()
                 ),
-                "Repaired: discarded 1 line; saved generation 2\n".to_owned()
+                format!("Repaired: discarded 1 line; saved generation {}\n", sample_generation() + 1)
             ),
             "merged: {merged}"
         );
@@ -3408,8 +3129,9 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
             (
                 Some(0),
                 format!(
-                    "extracted into {}: generation 1, {} files\n",
+                    "extracted into {}: generation {}, {} files\n",
                     restored.display(),
+                    sample_generation(),
                     found.len()
                 ),
                 String::new()
@@ -3588,7 +3310,7 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 #[test]
 fn recover_summarises_and_replays_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     crashed_session(&t, &project, &[new_page(7777), new_page(7778)]);
     let before = tree(&project);
     let journals = journal_files(&t);
@@ -3631,7 +3353,8 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
         (
             Some(0),
             format!(
-                "{summary}replayed 2 transactions of the crashed session's journal; saved generation 2\n"
+                "{summary}replayed 2 transactions of the crashed session's journal; saved generation {}\n",
+                sample_generation() + 1
             ),
             String::new()
         )
@@ -3658,7 +3381,7 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
 #[test]
 fn recover_refuses_a_replay_that_collides_with_a_later_save() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     // A page's ID: its file name (`pages/<id>.jsonl`).
     let page = std::fs::read_dir(project.join("pages"))
         .unwrap()
@@ -3713,7 +3436,7 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
 #[test]
 fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     let t = Tmp::new("ew-cli-test");
-    let project = golden_copy(&t);
+    let project = sample_copy(&t);
     crashed_session(&t, &project, &[new_page(7777)]);
     let journals = journal_files(&t);
     let mut store = ew_api::StoreOptions::new("test");
@@ -3764,7 +3487,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     );
     reader.close();
     let before = tree(&project);
-    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = renumber_log(&t);
     for args in [
         vec!["recover".as_ref(), project.as_os_str()],
         vec!["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
@@ -3782,12 +3505,10 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     holder.close();
 }
 
-const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables");
-
-/// A copy of the golden tables in `t` as `name`.
+/// A copy of the test tables in `t` as `name`.
 fn tables_copy(t: &Tmp, name: &str) -> PathBuf {
     let copy = t.0.join(name);
-    copy_dir(std::path::Path::new(GOLDEN_TABLES), &copy);
+    copy_dir(std::path::Path::new(TABLES), &copy);
     copy
 }
 
@@ -3838,14 +3559,14 @@ fn import_csv(t: &Tmp, tables: &std::path::Path, out: &std::path::Path, extra: &
     )
 }
 
-/// FM-6 through the binary: the golden tables import to a new project that is in canonical form and opens at
-/// generation 1 (its model and check findings against the bootstrap are `crates/ew-api/tests/import_csv.rs`); the
-/// files that differ from `golden/J-E-2416.ew` are printed (reported, not required). Without the starter content, or
+/// FM-6 through the binary: the test tables import to a new project that is in canonical form and opens at
+/// generation 1 (its model and check findings against the bootstrap are `crates/ew-api/tests/import_csv.rs`). Without
+/// the starter content, or
 /// into an `--out` that holds something, nothing is written (exit 2).
 #[test]
-fn import_csv_writes_the_golden_tables_as_a_new_project() {
+fn import_csv_writes_the_test_tables_as_a_new_project() {
     let t = Tmp::new("ew-cli-test");
-    let tables = std::path::Path::new(GOLDEN_TABLES);
+    let tables = std::path::Path::new(TABLES);
     let out = t.0.join("new.ew");
     let o = import_csv(&t, tables, &out, &[]);
     let n = ew_api::import::read_tables(tables).unwrap().len();
@@ -3882,13 +3603,6 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
     assert!(report.findings.is_empty(), "{:?}", report.findings);
     s.close();
     let written = tree(&out);
-    let golden = tree(std::path::Path::new(GOLDEN_A));
-    let differ: std::collections::BTreeSet<&String> = golden
-        .keys()
-        .chain(written.keys())
-        .filter(|k| golden.get(*k) != written.get(*k))
-        .collect();
-    println!("FM-6 through `ew import csv`: the files that differ from golden/J-E-2416.ew: {differ:?}");
 
     // An `--out` that holds something: refused, kept.
     let o = import_csv(&t, tables, &out, &[]);
@@ -3942,18 +3656,19 @@ fn import_csv_strict_lenient_and_unreadable_tables() {
     let o = import_csv(&t, &tables, &strict, &[]);
     let lines = import_lines(&tables, ew_api::import::ImportMode::Strict, None);
     assert!(lines.contains("EW-IMP-002 error: conductors.csv:6: "), "{lines}");
-    // The dropped conductor's two connections are dropped with it (EW-IMP-003).
+    // The test tables' -106W1:BN connects nothing, so its row is the one error (the connections dropped with a
+    // conductor, EW-IMP-003, are the importer's tests').
     let errors = lines
         .lines()
         .filter(|l| l.split(' ').nth(1) == Some("error:"))
         .count();
-    assert_eq!(errors, 3, "{lines}");
+    assert_eq!(errors, 1, "{lines}");
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
             Some(1),
             lines,
-            "error: the import made 3 error findings under `--strict` (the default); nothing was written\n"
+            "error: the import made 1 error finding under `--strict` (the default); nothing was written\n"
                 .to_owned()
         )
     );

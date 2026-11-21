@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! What the modules of the `ew` integration tests share: the path of the binary under test, the isolation of a run,
-//! the paths of the golden files, the small readers of an output, and [`EwTmp`], the runs of `ew` inside an
-//! [`ew_testdir::Tmp`].
+//! the paths of the sample and the test tables, what a test finds in a project by content (a page by its folio, a
+//! device file, the generation; the sample's IDs are made by its script), a renumbering log, the small readers of an
+//! output, and [`EwTmp`], the runs of `ew` inside an [`ew_testdir::Tmp`].
 
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
@@ -17,15 +18,6 @@ pub const PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tab
 
 /// The test tables: one small control cabinet in the table importer's format, written by hand.
 pub const TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables");
-
-/// Golden A's parts table.
-pub const GOLDEN_PARTS: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../golden/J-E-2416/tables/parts.csv"
-);
-
-/// Golden A's committed tables.
-pub const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables");
 
 /// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
 // The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
@@ -77,6 +69,16 @@ pub fn page_file(dir: &Path, folio: u32) -> String {
         })
         .map(|p| format!("pages/{}", p.file_name().unwrap().to_string_lossy()))
         .unwrap_or_else(|| panic!("no page with the folio {folio} in {}", dir.display()))
+}
+
+/// The first device file of two lines or more in the project `dir`, relative to it (`devices/<shard>.jsonl`): a shard
+/// is chosen by its records' IDs, which the sample's script makes.
+pub fn device_file(dir: &Path) -> String {
+    tree(&dir.join("devices"))
+        .into_iter()
+        .find(|(_, bytes)| bytes.iter().filter(|b| **b == b'\n').count() > 1)
+        .map(|(name, _)| format!("devices/{name}"))
+        .unwrap_or_else(|| panic!("no device file of two lines in {}", dir.display()))
 }
 
 /// The generation the project in `dir` was saved at (its manifest's): the sample's is that of its script's saves.
