@@ -195,3 +195,146 @@ pub fn ids_numbered(text: &str) -> String {
     }
     out
 }
+
+/// Imports the test tables' parts (`fixtures/tables/parts.csv` and its sibling tables) into `s` through
+/// `parts.import`, as project-local copies: the end brackets, the modular valve terminal's parts and the supplier parts
+/// the sample's starter library does not have.
+pub fn import_test_parts(s: &mut Session) {
+    let project = s.query().project().id.as_uuid();
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
+    let parts = ew_api::import::read_parts_tables(&path, project).expect("the test tables' parts read");
+    let cmd = ew_api::AnyCommand {
+        name: ew_api::import::PARTS_IMPORT.into(),
+        params: parts.params(),
+    };
+    let preview = s
+        .preview_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
+        .expect("parts.import previews");
+    s.commit(preview).expect("parts.import commits");
+}
+
+/// The ID of the part copy whose library key is `key` (the key column of `parts.csv`).
+pub fn part_copy(s: &Session, key: &str) -> ew_ids::Uuid {
+    s.query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key))
+        .map(|(id, _)| id.as_uuid())
+        .unwrap_or_else(|| panic!("no part copy {key}"))
+}
+
+/// Appends a use of the part copy `copy` (`qty` pieces) to the device tagged `tag`, with one `fields.set`.
+pub fn add_part_use(s: &mut Session, tag: &str, copy: ew_ids::Uuid, qty: &str) {
+    let device = s.resolve_reference(&format!("tag:{tag}")).expect("the device");
+    add_part_use_to(s, device, copy, qty);
+}
+
+/// [`add_part_use`] by the device's ID.
+pub fn add_part_use_to(s: &mut Session, device: ew_ids::Uuid, copy: ew_ids::Uuid, qty: &str) {
+    let mut uses = serde_json::to_value(
+        &s.query()
+            .devices()
+            .get(ew_ids::Id::from_uuid(device))
+            .expect("the device")
+            .parts,
+    )
+    .expect("the part uses");
+    uses.as_array_mut()
+        .expect("a list")
+        .push(serde_json::json!({"part": {"copy": copy.to_string()}, "qty": qty}));
+    s.execute(&ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({"kind": "device", "targets": [device.to_string()], "path": "parts", "value": uses}),
+    })
+    .unwrap_or_else(|e| panic!("{device}'s parts: {e}"));
+}
+
+/// The sample over its records edited by `edit` (so that it can be saved), with the memo mode `memo`, the test parts
+/// imported and the TBD end bracket added to each of its three strips: the brackets the layout derives at the ends of
+/// each strip's run on its rail (the sample's strips declare no end-bracket part of their own).
+pub fn sample_with_end_brackets_over(edit: impl FnOnce(&mut Vec<Record>), memo: ew_api::MemoMode) -> Session {
+    let (project, mut records, lib) = sample_records();
+    edit(&mut records);
+    let mut s = Session::from_records(
+        project,
+        records,
+        lib,
+        SessionOptions {
+            memo,
+            ..SessionOptions::default()
+        },
+    )
+    .expect("the edited sample is a valid model");
+    import_test_parts(&mut s);
+    let bracket = part_copy(&s, "TBD end bracket");
+    for strip in ["-X1011", "-X1021", "-X1031"] {
+        add_part_use(&mut s, strip, bracket, "1");
+    }
+    s
+}
+
+/// Runs a command through preview and commit when it is a bulk command, else directly; panics with the refusal.
+pub fn run_cmd(s: &mut Session, name: &str, params: serde_json::Value) -> ew_api::Receipt {
+    let cmd = ew_api::AnyCommand {
+        name: name.into(),
+        params: params.clone(),
+    };
+    match s.execute(&cmd) {
+        Err(ew_api::CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
+        other => other,
+    }
+    .unwrap_or_else(|e| panic!("{name} {params}: {e}"))
+}
+
+/// The placement of the device tagged `tag`.
+pub fn placement_of(s: &Session, tag: &str) -> ew_ids::Id<ew_schema::Placement> {
+    let device = s.resolve_reference(&format!("tag:{tag}")).expect("the device");
+    s.query()
+        .table::<ew_schema::Placement>()
+        .iter()
+        .find(|(_, p)| p.device.as_uuid() == device)
+        .map(|(id, _)| id)
+        .unwrap_or_else(|| panic!("{tag} is not placed"))
+}
+
+/// A rail pose whose footprint starts `s10` tenths of a millimetre along the rail (a strip's clip point is its left
+/// end).
+pub fn rail_at(s10: i64) -> serde_json::Value {
+    serde_json::json!({"t": [s10 * 100_000, 0, 0], "q": [1_000_000_000, 0, 0, 0]})
+}
+
+/// [`sample_with_end_brackets_over`] with a third rail added to the plate above rail 2 (470 mm, from u = 25 mm at
+/// v = 120 mm, where nothing is mounted), and the three strips moved onto it in one run: -X1011 at 30 mm (26 mm
+/// wide), -X1021 at 66 mm (41.6 mm), -X1031 at 117.6 mm (26 mm), each right after the bracket before it, so that the
+/// run holds four brackets: [20, 30] and [56, 66] of -X1011, [107.6, 117.6] of -X1021 and [143.6, 153.6] of -X1031.
+/// The session and the new rail.
+pub fn strips_on_a_test_rail() -> (Session, ew_ids::Id<ew_schema::Carrier>) {
+    strips_on_a_test_rail_over(|_| {}, ew_api::MemoMode::On)
+}
+
+/// [`strips_on_a_test_rail`] over the sample's records edited by `edit`, with the memo mode `memo`.
+pub fn strips_on_a_test_rail_over(
+    edit: impl FnOnce(&mut Vec<Record>),
+    memo: ew_api::MemoMode,
+) -> (Session, ew_ids::Id<ew_schema::Carrier>) {
+    let mut s = sample_with_end_brackets_over(edit, memo);
+    let tables = s.panel_tables("902").expect("902");
+    let receipt = run_cmd(
+        &mut s,
+        "layout.carrier.add",
+        serde_json::json!({"surface": tables.surface_id, "kind": "rail",
+            "path": [[25_000_000, 120_000_000], [495_000_000, 120_000_000]],
+            "params": {"rail": {"profile": "ts35x7_5"}}}),
+    );
+    let rail: ew_ids::Id<ew_schema::Carrier> =
+        ew_ids::Id::from_uuid(receipt.outcome.primary.expect("the new rail").1.as_uuid());
+    for (strip, s10) in [("-X1011", 300), ("-X1021", 660), ("-X1031", 1176)] {
+        let placement = placement_of(&s, strip);
+        run_cmd(
+            &mut s,
+            "layout.move",
+            serde_json::json!({"placement": placement, "carrier": {"carrier": rail}, "pose": rail_at(s10)}),
+        );
+    }
+    (s, rail)
+}

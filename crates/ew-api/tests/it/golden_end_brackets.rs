@@ -1,116 +1,90 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A (doc 20 §13, §14.1): the end brackets in the outputs.
+//! The end brackets in the outputs (doc 12 §3, doc 20 §14.1), on the sample with the set-up of
+//! `common::strips_on_a_test_rail`: the test tables' TBD end bracket on each of the three strips, and the strips moved
+//! in one run onto a third rail, -X1011 at 30 mm, -X1021 at 66 mm and -X1031 at 117.6 mm, brackets [20, 30] and
+//! [56, 66] of -X1011, [107.6, 117.6] of -X1021 and [143.6, 153.6] of -X1031 (the sample's strips declare no end
+//! bracket and stand packed between other devices).
 //!
-//! - `row_26_counts_the_derived_brackets_and_prints_902`: row 26 reads quantity 4, its tags in the sign order
-//!   and folio 902, assembly row 20 too; a fourth strip placed in R2's run gives 5, the strip's
-//!   authored quantity no longer counting; removing -X1032's placement returns its line to its authored quantity and
-//!   its folio 103 beside 902; 27 rows throughout (AC-07).
-//! - `one_truth_every_reader_of_the_part_lines_follows`: the end-bracket lines are `GroupAccessory` lines, the
-//!   parts list prints the derived quantity and the device list still lists 1X1's TBD part.
-//! - `eb2_902_draws_r2s_four_brackets_at_their_positions`: four rectangles in the footprints' pen, each with its strip's
-//!   placement, at [20, 30], [48.6, 58.6], [162.6, 172.6] and [198.6, 208.6] mm along R2, centred on its axis.
-//! - `golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs`: none on Golden A; -X1032 moved 5 mm
-//!   after -X1031 overlaps the bracket after -X1031; -X1032 at s = 544 mm passes the rail end by 10 mm, in
-//!   en-GB and nl-NL.
-//! - `eb_the_bracket_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over the moves.
+//! - `the_bracket_row_counts_the_derived_brackets_and_prints_902`: the BOM's bracket row reads 4 and folio 902; a fourth
+//!   strip placed in the run gives 5, its authored quantity no longer counting; removing -X1031's placement returns its
+//!   line to its authored quantity and its folio 103 beside 902.
+//! - `one_truth_every_reader_of_the_part_lines_follows`: the bracket lines are `GroupAccessory` lines, the parts list
+//!   prints the derived quantity and the device list still lists the strips' TBD part.
+//! - `eb2_902_draws_the_four_brackets_at_their_positions`: four rectangles in the footprints' pen, each with its strip's
+//!   placement, at their positions along the rail, centred on its axis.
+//! - `the_run_gives_no_bracket_finding_and_two_moves_give_theirs`: an overlap and a bracket past the rail end, in en-GB
+//!   and nl-NL.
+//! - the pushes of a growing, a widened, a turned strip and of two widened strips, and the memo against cold.
 
-use crate::golden_common;
+use crate::common::{self, placement_of, rail_at, run_cmd};
 
 use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
-use ew_api::{AnyCommand, CmdError, Session};
+use ew_api::Session;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{GroupAccessories, PlacementGeometry};
 use ew_derive::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Pen, Stroke};
-use ew_import_tables::ids::record_id;
-use ew_scene::panel::Projection;
-use ew_schema::{Carrier, Device, Part, Placement, Record, Scale};
+use ew_schema::{Carrier, Device, Part, Placement, Record};
 use ew_units::Dec3;
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
 
-/// The fourth strip: a copy of -X1032 (five PT 2.5-TWIN-PE, 26 mm) that is not placed, whose "TBD end bracket" part
-/// use is authored as 3 pieces, so that its derived count (1 in R2's run) differs from it.
+/// The fourth strip: a copy of -X1031 (five terminals, 26 mm) that is not placed, whose TBD end bracket part use is
+/// authored as 3 pieces, so that its derived count differs from it.
 const X33: u128 = 0x5e44_0000_0000_4000_8000_0000_0000_0033;
 
-fn dev(key: &str) -> Id<Device> {
-    record_id("devices", key)
+fn x33() -> Id<Device> {
+    Id::from_uuid(Uuid::from_u128(X33))
 }
 
-fn placement(key: &str) -> Id<Placement> {
-    record_id("placements", key)
-}
-
-fn carrier(key: &str) -> Id<Carrier> {
-    record_id("carriers", key)
+fn dev(s: &Session, tag: &str) -> Id<Device> {
+    Id::from_uuid(s.resolve_reference(&format!("tag:{tag}")).expect("the device"))
 }
 
 fn id_json<T>(id: Id<T>) -> Value {
     serde_json::to_value(id).expect("an ID serialises")
 }
 
-fn x33() -> Id<Device> {
-    Id::from_uuid(Uuid::from_u128(X33))
+/// The set-up of the module documentation, the rail added.
+fn session() -> (Session, Id<Carrier>) {
+    common::strips_on_a_test_rail()
 }
 
-/// Golden A with the fourth strip.
-fn session() -> Session {
-    golden_common::session_with(&golden_common::batch(), |_, records| with_x33(records))
-}
-
-/// Golden A with the fourth strip, the oracle on.
-fn session_oracle() -> Session {
-    golden_common::session_oracle_with(&golden_common::batch(), |_, records| with_x33(records))
-}
-
-fn with_x33(records: &mut Vec<Record>) {
-    let x1032 = dev("-X1032");
-    let mut extra = Vec::new();
-    for r in records.iter() {
-        let Record::Device(d) = r else { continue };
-        if d.id == x1032 {
-            let mut s = d.clone();
-            s.id = x33();
-            s.tag.counter = Some(33);
-            assert_eq!(
-                s.parts.len(),
-                2,
-                "-X1032: its end bracket, then its plug-in bridge"
-            );
-            s.parts[0].qty = Dec3(3_000);
-            extra.push(Record::Device(s));
-        } else if let Some(t) = d.aspects.terminal.as_ref().filter(|t| t.strip == x1032) {
-            let mut c = d.clone();
-            c.id = Id::from_uuid(Uuid::from_u128(X33 + 0x100 + u128::from(t.seq)));
-            if let Some(t) = c.aspects.terminal.as_mut() {
-                t.strip = x33();
+/// [`session`] with the fourth strip X33 (a copy of -X1031 with its five terminals) added unplaced, its TBD end bracket
+/// authored as 3 pieces; with the memo mode `memo`.
+fn with_x33(memo: ew_api::MemoMode) -> (Session, Id<Carrier>) {
+    let x1031 = dev(&common::sample(), "-X1031");
+    let (mut s, rail) = common::strips_on_a_test_rail_over(
+        |records| {
+            let mut extra = Vec::new();
+            for r in records.iter() {
+                let Record::Device(d) = r else { continue };
+                if d.id == x1031 {
+                    let mut c = d.clone();
+                    c.id = x33();
+                    c.tag.counter = Some(33);
+                    extra.push(Record::Device(c));
+                } else if let Some(t) = d.aspects.terminal.as_ref().filter(|t| t.strip == x1031) {
+                    let mut c = d.clone();
+                    c.id = Id::from_uuid(Uuid::from_u128(X33 + 0x100 + u128::from(t.seq)));
+                    if let Some(t) = c.aspects.terminal.as_mut() {
+                        t.strip = x33();
+                    }
+                    extra.push(Record::Device(c));
+                }
             }
-            extra.push(Record::Device(c));
-        }
-    }
-    assert_eq!(extra.len(), 6, "-X1032 and its five terminals");
-    records.extend(extra);
-}
-
-fn run(s: &mut Session, name: &str, params: Value) {
-    let cmd = AnyCommand {
-        name: name.into(),
-        params,
-    };
-    match s.execute(&cmd) {
-        Ok(_) => {}
-        Err(CmdError::Rejected { reason, .. }) => panic!("{name} refused: {reason}"),
-        Err(e) => panic!("{name}: {e:?}"),
-    }
-}
-
-/// A rail pose whose footprint starts at `s10` tenths of a millimetre (a strip's clip point is its left end).
-fn at(s10: i64) -> Value {
-    json!({"t": [s10 * MM / 10, 0, 0], "q": [1_000_000_000, 0, 0, 0]})
+            assert_eq!(extra.len(), 6, "-X1031 and its five terminals");
+            records.extend(extra);
+        },
+        memo,
+    );
+    let bracket = common::part_copy(&s, "TBD end bracket");
+    common::add_part_use_to(&mut s, x33().as_uuid(), bracket, "3");
+    (s, rail)
 }
 
 fn part_of(q: &Q, key: &str) -> Id<Part> {
@@ -129,15 +103,10 @@ fn tag(q: &Q, device: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// The end-bracket row of a BOM as (position, quantity, tags, folios).
-fn bracket_row(q: &Q, mode: BomMode) -> (u32, String, Vec<String>, Vec<String>) {
+/// The end-bracket row of a BOM as (quantity, tags, folios).
+fn bracket_row(q: &Q, mode: BomMode) -> (String, Vec<String>, Vec<String>) {
     let part = part_of(q, "TBD end bracket");
     let rows = q.get::<BomRows>(mode);
-    assert_eq!(
-        rows.iter().filter(|r| !r.configured).count(),
-        if mode == BomMode::Component { 27 } else { 21 },
-        "AC-07: the row count"
-    );
     let row: &BomRow = rows
         .iter()
         .find(|r| r.key.part == part)
@@ -145,7 +114,6 @@ fn bracket_row(q: &Q, mode: BomMode) -> (u32, String, Vec<String>, Vec<String>) 
     let order = q.get::<PageOrder>(());
     let folio = |p: &PageRef| order.entry(*p).expect("in the page order").folio.clone();
     (
-        row.pos,
         row.qty.to_string(),
         row.devices.iter().map(|d| tag(q, *d)).collect(),
         row.pages.iter().map(folio).collect(),
@@ -156,85 +124,104 @@ fn owned(v: &[&str]) -> Vec<String> {
     v.iter().map(|s| (*s).to_owned()).collect()
 }
 
+/// Where the footprint of `placement` starts along its rail, in tenths of a millimetre.
+fn s10_of(s: &Session, placement: Id<Placement>) -> i64 {
+    let q = s.query();
+    let row = q.table::<Placement>().get(placement).cloned().expect("the placement");
+    row.pose.t[0].0 * 10 / MM
+}
+
+fn s10(s: &Session, tag: &str) -> i64 {
+    s10_of(s, placement_of(s, tag))
+}
+
 #[test]
-fn row_26_counts_the_derived_brackets_and_prints_902() {
-    // Golden A as it is: row 26 reads 4, "-X1031, -X1032, 1X1", 902; assembly row 20 the same.
-    let plain = golden_common::session(&golden_common::batch());
+fn the_bracket_row_counts_the_derived_brackets_and_prints_902() {
+    // The run as set up: 4 brackets, the three strips, 902; the assembly mode the same.
+    let (plain, _) = session();
     let q = plain.query();
-    let want = (owned(&["-X1031", "-X1032", "1X1"]), owned(&["902"]));
-    let (pos, qty, tags, folios) = bracket_row(&q, BomMode::Component);
-    assert_eq!((pos, qty, (tags, folios)), (26, "4".to_owned(), want.clone()));
-    let (pos, qty, tags, folios) = bracket_row(&q, BomMode::Assembly);
-    assert_eq!((pos, qty, (tags, folios)), (20, "4".to_owned(), want));
+    let want = (owned(&["-X1011", "-X1021", "-X1031"]), owned(&["902"]));
+    let (qty, tags, folios) = bracket_row(&q, BomMode::Component);
+    assert_eq!((qty, (tags, folios)), ("4".to_owned(), want.clone()));
+    let (qty, tags, folios) = bracket_row(&q, BomMode::Assembly);
+    assert_eq!((qty, (tags, folios)), ("4".to_owned(), want));
+    drop(q);
 
     // The fourth strip unplaced keeps its authored 3 pieces and prints no folio of its own.
-    let mut s = session();
+    let (mut s, rail) = with_x33(ew_api::MemoMode::On);
     let q = s.query();
-    let (_, qty, tags, folios) = bracket_row(&q, BomMode::Component);
+    let (qty, tags, folios) = bracket_row(&q, BomMode::Component);
     let x33_tag = tag(&q, x33());
     assert_eq!(qty, "7");
     assert!(tags.contains(&x33_tag), "{tags:?}");
     assert_eq!(folios, ["902"]);
+    drop(q);
 
-    // Placed in R2's run, 10 mm after -X1032 (one bracket between): one derived bracket, 5 in all.
-    run(
+    // Placed in the run right after -X1031's bracket: one derived bracket, 5 in all.
+    run_cmd(
         &mut s,
         "layout.place",
-        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(carrier("R2"))}, "pose": at(2086)}),
+        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(rail)}, "pose": rail_at(1536)}),
     );
     let q = s.query();
     assert_eq!(
-        q.get::<GroupAccessories>(carrier("R2"))
+        q.get::<GroupAccessories>(rail)
             .iter()
             .filter(|b| b.strip == x33())
             .count(),
         1
     );
-    let (pos, qty, tags, folios) = bracket_row(&q, BomMode::Component);
-    assert_eq!((pos, qty.as_str(), folios.clone()), (26, "5", owned(&["902"])));
+    let (qty, tags, folios) = bracket_row(&q, BomMode::Component);
+    assert_eq!((qty.as_str(), folios.clone()), ("5", owned(&["902"])));
     assert_eq!(tags.len(), 4);
+    drop(q);
 
-    // -X1032's placement removed: its line is authored again (1 piece) and prints its representation folio 103;
-    // X33 now opens its own run after -X1031's bracket and holds two.
-    run(
-        &mut s,
-        "layout.remove",
-        json!({"placement": id_json(placement("-X1032"))}),
-    );
+    // -X1031's placement removed: its line is authored again (1 piece) and prints its representation folio 103; X33
+    // now opens its own run and holds two.
+    let x1031 = placement_of(&s, "-X1031");
+    run_cmd(&mut s, "layout.remove", json!({"placement": id_json(x1031)}));
     let q = s.query();
     let bracket = part_of(&q, "TBD end bracket");
     let lines: Vec<(Id<Part>, Dec3, LineSource)> = q
-        .get::<DevicePartLines>(dev("-X1032"))
+        .get::<DevicePartLines>(dev(&s, "-X1031"))
         .iter()
         .filter(|l| l.part == bracket)
         .map(|l| (l.part, l.qty, l.source))
         .collect();
     assert_eq!(lines, vec![(bracket, Dec3::ONE, LineSource::Device)]);
-    let (pos, qty, _, folios) = bracket_row(&q, BomMode::Component);
-    // 1X1 × 2, -X1031 × 1, X33 × 2 derived, -X1032 × 1 authored.
-    assert_eq!((pos, qty.as_str(), folios), (26, "6", owned(&["103", "902"])));
-    // Assembly mode reads the same lines, and 902's legend counts the derived brackets only (R2's
-    // five: 1X1 × 2, -X1031 × 1, X33 × 2), its one bracket row after the 30 others (X33 placed, -X1032 removed).
-    let (pos, qty, _, folios) = bracket_row(&q, BomMode::Assembly);
-    assert_eq!((pos, qty.as_str(), folios), (20, "6", owned(&["103", "902"])));
-    let surface = q.table::<Carrier>().get(carrier("R2")).expect("R2").surface;
-    let bracket_rows: Vec<(u32, Option<String>)> = ew_derive::layout::layout_legend(&q, surface)
+    // -X1011 × 2, -X1021 × 1, X33 × 2 derived, -X1031 × 1 authored.
+    let (qty, _, folios) = bracket_row(&q, BomMode::Component);
+    assert_eq!((qty.as_str(), folios), ("6", owned(&["103", "902"])));
+    // Assembly mode reads the same lines, and 902's legend counts the derived brackets only (five), in its one
+    // bracket row after the others.
+    let (qty, _, folios) = bracket_row(&q, BomMode::Assembly);
+    assert_eq!((qty.as_str(), folios), ("6", owned(&["103", "902"])));
+    let surface = q.table::<Carrier>().get(rail).expect("the rail").surface;
+    let legend = ew_derive::layout::layout_legend(&q, surface);
+    let bracket_rows: Vec<Option<String>> = legend
         .iter()
         .filter(|r| matches!(r.item, ew_derive::layout::LegendItem::Bracket(_)))
-        .map(|r| (r.pos, r.qty.map(|d| d.to_string())))
+        .map(|r| r.qty.map(|d| d.to_string()))
         .collect();
-    assert_eq!(bracket_rows, [(31, Some("5".to_owned()))]);
+    assert_eq!(bracket_rows, [Some("5".to_owned())]);
+    assert!(
+        matches!(
+            legend.last().map(|r| &r.item),
+            Some(ew_derive::layout::LegendItem::Bracket(_))
+        ),
+        "the bracket row comes last"
+    );
 }
 
 /// One truth for every reader of `device_part_lines`.
 #[test]
 fn one_truth_every_reader_of_the_part_lines_follows() {
-    let s = golden_common::session(&golden_common::batch());
+    let (s, _) = session();
     let q = s.query();
     let bracket = part_of(&q, "TBD end bracket");
-    for (strip, n) in [("1X1", 2), ("-X1031", 1), ("-X1032", 1)] {
+    for (strip, n) in [("-X1011", 2), ("-X1021", 1), ("-X1031", 1)] {
         let lines: Vec<(Id<Part>, Dec3, LineSource)> = q
-            .get::<DevicePartLines>(dev(strip))
+            .get::<DevicePartLines>(dev(&s, strip))
             .iter()
             .filter(|l| l.part == bracket)
             .map(|l| (l.part, l.qty, l.source))
@@ -245,30 +232,21 @@ fn one_truth_every_reader_of_the_part_lines_follows() {
             "{strip}"
         );
     }
-    // The parts list prints the derived quantity; the device list keeps 1X1's TBD part.
+    // The parts list prints the derived quantity; the device list keeps -X1011's TBD part.
     let parts = row_export(&q, &RowExport::Kind("parts_list".to_owned()), None).expect("the parts list");
     let line = parts
         .csv
         .lines()
-        .find(|l| l.starts_with("data,1X1,") && l.contains("End bracket"))
-        .expect("1X1's bracket line");
-    assert_eq!(line, "data,1X1,2,pc,TBD,TBD,End bracket");
+        .find(|l| l.starts_with("data,-X1011,") && l.contains("End bracket"))
+        .expect("-X1011's bracket line");
+    assert_eq!(line, "data,-X1011,2,pc,TBD,TBD,End bracket");
     let devices = row_export(&q, &RowExport::Kind("device_list".to_owned()), None).expect("the device list");
     let line = devices
         .csv
         .lines()
-        .find(|l| l.starts_with("data,=P01+J-E-2416-1X1,"))
-        .expect("1X1's row");
-    assert_eq!(line, "data,=P01+J-E-2416-1X1,,TBD,,+J-E-2416,101-D2");
-}
-
-/// The projection of 902's view: the plate's origin at (25, 167) mm on the page, scale 1:10 on paper.
-fn projection_902() -> Projection {
-    Projection::on_sheet(
-        Pt2::new(Nm(25 * MM), Nm(167 * MM)),
-        &Scale::OneTo(10),
-        986_282_578,
-    )
+        .find(|l| l.starts_with("data,+CAB-X1011,"))
+        .expect("-X1011's row");
+    assert_eq!(line, "data,+CAB-X1011,,TBD,,+CAB,101-B2");
 }
 
 fn drawn(q: &Q, folio: &str) -> PageRef {
@@ -280,41 +258,42 @@ fn drawn(q: &Q, folio: &str) -> PageRef {
         .unwrap_or_else(|| panic!("no folio {folio}"))
 }
 
-/// EB-2: R2's four brackets on 902.
+/// EB-2: the run's four brackets on 902.
 #[test]
-fn eb2_902_draws_r2s_four_brackets_at_their_positions() {
-    let s = golden_common::session(&golden_common::batch());
+fn eb2_902_draws_the_four_brackets_at_their_positions() {
+    let (s, _) = session();
+    let projection = s.panel_tables("902").expect("902").projection;
     let q = s.query();
     let list = std::sync::Arc::clone(&page_layer(&q, drawn(&q, "902"), Layer::Placements).list);
-    // The run's height: the largest footprint height of R2's three strips; R2's axis is v = 480 mm.
-    let h = ["1X1", "-X1031", "-X1032"]
+    let strips = ["-X1011", "-X1021", "-X1031"].map(|t| placement_of(&s, t));
+    // The run's height: the largest footprint height of the three strips; the rail's axis is v = 120 mm.
+    let h = strips
         .iter()
-        .map(|k| {
-            let g = q.get::<PlacementGeometry>(placement(k));
+        .map(|p| {
+            let g = q.get::<PlacementGeometry>(*p);
             g.as_ref().as_ref().expect("a geometry").footprint.height().0
         })
         .max()
         .expect("three strips");
     assert!(h > 0);
-    let p = projection_902();
-    // (s0, s1) along R2 in tenths of a millimetre, R2 starting at u = 40 mm, with the strip it belongs to.
+    // (s0, s1) along the rail in tenths of a millimetre, the rail starting at u = 25 mm, with the strip it belongs to.
     let want = [
-        (200, 300, "1X1"),
-        (486, 586, "1X1"),
-        (1626, 1726, "-X1031"),
-        (1986, 2086, "-X1032"),
+        (200, 300, strips[0]),
+        (560, 660, strips[0]),
+        (1076, 1176, strips[1]),
+        (1436, 1536, strips[2]),
     ];
     let pen = Some(Stroke::pen(Pen::P026));
     for (s0, s1, strip) in want {
         let surface = Rect::from_points(
-            Pt2::new(Nm(40 * MM + s0 * MM / 10), Nm(480 * MM - h / 2)),
-            Pt2::new(Nm(40 * MM + s1 * MM / 10), Nm(480 * MM - h / 2 + h)),
+            Pt2::new(Nm(25 * MM + s0 * MM / 10), Nm(120 * MM - h / 2)),
+            Pt2::new(Nm(25 * MM + s1 * MM / 10), Nm(120 * MM - h / 2 + h)),
         );
-        let expected = p.rect(surface).expect("in range");
+        let expected = projection.rect(surface).expect("in range");
         let items: Vec<Rect> = list
             .items
             .iter()
-            .filter(|i| i.entity == Some(EntityRef(placement(strip).as_uuid())))
+            .filter(|i| i.entity == Some(EntityRef(strip.as_uuid())))
             .filter(|i| matches!(&i.kind, ItemKind::Path(path) if path.stroke == pen && path.fill.is_none()))
             .filter_map(|i| {
                 DisplayList {
@@ -323,25 +302,22 @@ fn eb2_902_draws_r2s_four_brackets_at_their_positions() {
                 .bounds()
             })
             .collect();
-        // ±0.2 mm on the plate is ±0.02 mm on the page at 1:10.
-        let near = |a: Nm, b: Nm| (a.0 - b.0).abs() <= 20_000;
+        // ±0.2 mm on the plate is ±0.04 mm on the page at 1:5.
+        let near = |a: Nm, b: Nm| (a.0 - b.0).abs() <= 40_000;
         assert!(
             items.iter().any(|r| near(r.min().x, expected.min().x)
                 && near(r.max().x, expected.max().x)
                 && near(r.min().y, expected.min().y)
                 && near(r.max().y, expected.max().y)),
-            "{strip} [{s0}, {s1}]: {expected:?} in {items:?}"
+            "[{s0}, {s1}]: {expected:?} in {items:?}"
         );
     }
     // Four brackets, and the footprints of the three strips: seven items carry their placements.
-    let strips: Vec<EntityRef> = ["1X1", "-X1031", "-X1032"]
-        .iter()
-        .map(|k| EntityRef(placement(k).as_uuid()))
-        .collect();
+    let entities: Vec<EntityRef> = strips.iter().map(|p| EntityRef(p.as_uuid())).collect();
     let count = list
         .items
         .iter()
-        .filter(|i| i.entity.is_some_and(|e| strips.contains(&e)))
+        .filter(|i| i.entity.is_some_and(|e| entities.contains(&e)))
         .count();
     assert_eq!(count, 3 + 4);
 }
@@ -366,37 +342,34 @@ fn bracket_findings(s: &Session) -> Vec<(String, String)> {
     out
 }
 
+fn pair(en: &str, nl: &str) -> Vec<(String, String)> {
+    vec![(en.to_owned(), nl.to_owned())]
+}
+
 #[test]
-fn golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs() {
-    let mut s = golden_common::session(&golden_common::batch());
+fn the_run_gives_no_bracket_finding_and_two_moves_give_theirs() {
+    let (mut s, _) = session();
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+    let x1031 = placement_of(&s, "-X1031");
 
-    // -X1032 5 mm after -X1031 (which ends at 162.6 mm): one run, and the bracket after -X1031 overlaps it.
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": id_json(placement("-X1032")), "pose": at(1676)}),
-    );
+    // -X1031 5 mm after -X1021 (which ends at 107.6 mm): one run, and the bracket after -X1021 overlaps it.
+    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(1126)}));
     assert_eq!(
         bracket_findings(&s),
-        vec![(
-            "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-X1031 overlapt =P01+J-E-2416-X1032 op rail 2.".to_owned(),
-        )]
+        pair(
+            "The end bracket after +CAB-X1021 overlaps +CAB-X1031 on rail 3.",
+            "De eindsteun na +CAB-X1021 overlapt +CAB-X1031 op rail 3."
+        )
     );
 
-    // -X1032 at s = 544 mm: its own run, brackets [534, 544] and [570, 580] on a 570 mm rail.
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": id_json(placement("-X1032")), "pose": at(5440)}),
-    );
+    // -X1031 at s = 444 mm: its own run, brackets [434, 444] and [470, 480] on a 470 mm rail.
+    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(4440)}));
     assert_eq!(
         bracket_findings(&s),
-        vec![(
-            "The end bracket after =P01+J-E-2416-X1032 passes the end of rail 2 by 10 mm.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-X1032 steekt 10 mm voorbij het einde van rail 2.".to_owned(),
-        )]
+        pair(
+            "The end bracket after +CAB-X1031 passes the end of rail 3 by 10 mm.",
+            "De eindsteun na +CAB-X1031 steekt 10 mm voorbij het einde van rail 3."
+        )
     );
 }
 
@@ -404,11 +377,12 @@ fn golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs() {
 /// mismatch) over moves that change the runs.
 #[test]
 fn eb_the_bracket_lines_memoise_as_they_run_cold() {
-    let mut s = session_oracle();
+    let (mut s, rail) = with_x33(ew_api::MemoMode::Oracle);
+    let strips = ["-X1011", "-X1021", "-X1031"].map(|t| dev(&s, t));
     let check = |s: &Session, state: &str| {
         let memo = s.query();
         let cold = s.query_over(&s.world().model);
-        for strip in [dev("1X1"), dev("-X1031"), dev("-X1032"), x33()] {
+        for strip in strips.iter().copied().chain([x33()]) {
             assert_eq!(
                 memo.get::<DevicePartLines>(strip),
                 cold.get::<DevicePartLines>(strip),
@@ -423,25 +397,19 @@ fn eb_the_bracket_lines_memoise_as_they_run_cold() {
             );
         }
     };
-    check(&s, "as loaded");
-    run(
+    check(&s, "as set up");
+    run_cmd(
         &mut s,
         "layout.place",
-        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(carrier("R2"))}, "pose": at(2086)}),
+        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(rail)}, "pose": rail_at(1536)}),
     );
     check(&s, "X33 placed");
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": id_json(placement("-X1032")), "pose": at(4000)}),
-    );
-    check(&s, "-X1032 moved away");
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": id_json(placement("-102G1")), "pose": at(1000)}),
-    );
-    check(&s, "-102G1 moved");
+    let x1031 = placement_of(&s, "-X1031");
+    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1031), "pose": rail_at(4000)}));
+    check(&s, "-X1031 moved away");
+    let x1011 = placement_of(&s, "-X1011");
+    run_cmd(&mut s, "layout.move", json!({"placement": id_json(x1011), "pose": rail_at(2500)}));
+    check(&s, "-X1011 moved");
     let mismatches = s.take_oracle_mismatches();
     assert!(mismatches.is_empty(), "{mismatches:?}");
 }
@@ -451,177 +419,63 @@ fn eb_the_bracket_lines_memoise_as_they_run_cold() {
 fn insert_terminals(s: &mut Session, strip: &str, count: u32) {
     let cmd = s
         .strip_edit(&StripEdit::Insert {
-            strip: dev(strip).as_uuid(),
+            strip: dev(s, strip).as_uuid(),
             before: None,
             count,
             designation: None,
         })
         .expect("the insert compiles");
     assert_eq!(cmd.name, "terminal.insert");
-    run(s, &cmd.name, cmd.params);
+    run_cmd(s, &cmd.name, cmd.params);
 }
 
-/// Where the footprint of placement `key` starts along its rail (a strip's clip point is its left end), in tenths of a
-/// millimetre.
-fn s10(s: &Session, key: &str) -> i64 {
-    let q = s.query();
-    let row = q
-        .table::<Placement>()
-        .get(placement(key))
-        .cloned()
-        .expect("the placement");
-    row.pose.t[0].0 * 10 / MM
+fn lock(s: &mut Session, tag: &str) {
+    let placement = placement_of(s, tag);
+    run_cmd(
+        s,
+        "layout.lock",
+        json!({"placement": id_json(placement), "locked": true}),
+    );
 }
 
-/// Doc 12 §3.3's push, on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
-/// -X1031 moves -X1032 from 172.6 to 177.8 mm in the same step, with no finding; 69 fit, 70 put -X1032's bracket past
-/// the rail end (one `bracket_outside`); with -X1032 locked it stays, the insert is not refused and the bracket after
-/// -X1031 overlaps it.
+/// Doc 12 §3.3's push, on the 470 mm rail: one 5.2 mm terminal inserted into -X1021 moves -X1031 from 117.6 to 122.8 mm
+/// in the same step, with no finding; 60 fit, 61 put -X1031's bracket past the rail end (one `bracket_outside`); with
+/// -X1031 locked it stays, the insert is not refused and the bracket after -X1021 overlaps it.
 #[test]
 fn a_growing_strip_pushes_the_items_after_it() {
-    let fresh = || golden_common::session(&golden_common::batch());
+    let fresh = || session().0;
     let mut s = fresh();
-    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1726));
-    insert_terminals(&mut s, "-X1031", 1);
-    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1778));
-    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-
-    let mut s = fresh();
-    insert_terminals(&mut s, "-X1031", 69);
-    assert_eq!(s10(&s, "-X1032"), 1726 + 69 * 52);
+    assert_eq!((s10(&s, "-X1021"), s10(&s, "-X1031")), (660, 1176));
+    insert_terminals(&mut s, "-X1021", 1);
+    assert_eq!((s10(&s, "-X1021"), s10(&s, "-X1031")), (660, 1228));
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 
     let mut s = fresh();
-    insert_terminals(&mut s, "-X1031", 70);
-    assert_eq!(s10(&s, "-X1032"), 1726 + 70 * 52);
+    insert_terminals(&mut s, "-X1021", 60);
+    assert_eq!(s10(&s, "-X1031"), 1176 + 60 * 52);
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+
+    let mut s = fresh();
+    insert_terminals(&mut s, "-X1021", 61);
+    assert_eq!(s10(&s, "-X1031"), 1176 + 61 * 52);
     assert_eq!(
         bracket_findings(&s),
-        vec![(
-            "The end bracket after =P01+J-E-2416-X1032 passes the end of rail 2 by 2.6 mm.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-X1032 steekt 2,6 mm voorbij het einde van rail 2.".to_owned(),
-        )]
+        pair(
+            "The end bracket after +CAB-X1031 passes the end of rail 3 by 0.8 mm.",
+            "De eindsteun na +CAB-X1031 steekt 0,8 mm voorbij het einde van rail 3."
+        )
     );
 
     let mut s = fresh();
-    run(
-        &mut s,
-        "layout.lock",
-        json!({"placement": id_json(placement("-X1032")), "locked": true}),
-    );
-    insert_terminals(&mut s, "-X1031", 1);
-    assert_eq!(s10(&s, "-X1032"), 1726);
+    lock(&mut s, "-X1031");
+    insert_terminals(&mut s, "-X1021", 1);
+    assert_eq!(s10(&s, "-X1031"), 1176);
     assert_eq!(
         bracket_findings(&s),
-        vec![(
-            "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-X1031 overlapt =P01+J-E-2416-X1032 op rail 2.".to_owned(),
-        )]
-    );
-}
-
-/// Doc 12 §3.5: `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
-/// -X1031 (mode `replace`) widens the strip by 5.2 mm, and -X1032 moves from 172.6 to 177.8 mm in the same step, as
-/// one inserted terminal moves it.
-#[test]
-fn a_part_change_that_widens_a_strips_terminal_pushes() {
-    let mut s = golden_common::session(&golden_common::batch());
-    let q = s.query();
-    let terminal = q
-        .devices()
-        .iter()
-        .filter(|(_, d)| {
-            d.aspects
-                .terminal
-                .as_ref()
-                .is_some_and(|t| t.strip == dev("-X1031"))
-        })
-        .map(|(id, _)| id)
-        .min()
-        .expect("a terminal of -X1031");
-    let old = q.devices().get(terminal).expect("the terminal").parts[0]
-        .part
-        .copy;
-    let mut copy: ew_schema::LibCopy<Part> =
-        ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
-    let item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_1497);
-    // A test library of its own: `part.assign` embeds copies of other libraries only.
-    copy.item_id = Id::from_uuid(item);
-    copy.library_id = Id::from_uuid(Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0001));
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
-    copy.item.meta.key = Some("FT1497-TWIN".parse().expect("a key"));
-    copy.item.part_number = "FT1497-TWIN".parse().expect("a part number");
-    let mech = copy.item.mech.as_mut().expect("the part's mechanics");
-    assert_eq!(mech.width, Some(Nm(5_200_000)), "PT 2.5-TWIN is 5.2 mm wide");
-    mech.width = Some(Nm(10_400_000));
-    let doc = ew_schema::LibDocument::Part(copy.clone());
-    copy.sha256 = ew_schema::Sha256(ew_commands::commands::library_copy_hash(&doc).expect("a part hashes"));
-    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1726));
-    run(
-        &mut s,
-        "part.assign",
-        json!({"devices": [id_json(terminal)], "part": id_json(copy.id),
-               "copies": [serde_json::to_value(ew_schema::LibDocument::Part(copy.clone())).unwrap()],
-               "mode": "replace", "from": id_json(old)}),
-    );
-    assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1778));
-    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-}
-
-/// Doc 12 §3.4: -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
-/// mm) grows left, so one terminal inserted into it moves 1X1, the strip before it, from 30 to 24.8 mm in the same
-/// step, with no finding, and -X1032 after it stays; five put 1X1's bracket 6 mm past the rail's start (one
-/// `bracket_outside`, the positions written); with 1X1 locked it stays, the insert is not refused and the bracket
-/// after 1X1 overlaps -X1031.
-#[test]
-fn a_strip_turned_half_way_pushes_the_items_before_it() {
-    let turned = || {
-        let mut s = golden_common::session(&golden_common::batch());
-        run(
-            &mut s,
-            "layout.move",
-            json!({"placement": id_json(placement("-X1031")),
-                   "pose": {"t": [1626 * MM / 10, 0, 0], "q": [0, 0, 0, 1_000_000_000]}}),
-        );
-        s
-    };
-    let mut s = turned();
-    assert_eq!(
-        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
-        (300, 1626, 1726)
-    );
-    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-    insert_terminals(&mut s, "-X1031", 1);
-    assert_eq!(
-        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
-        (248, 1626, 1726)
-    );
-    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-
-    let mut s = turned();
-    insert_terminals(&mut s, "-X1031", 5);
-    assert_eq!(s10(&s, "1X1"), 300 - 5 * 52);
-    assert_eq!(
-        bracket_findings(&s),
-        vec![(
-            "The end bracket before =P01+J-E-2416-1X1 passes the start of rail 2 by 6 mm.".to_owned(),
-            "De eindsteun vóór =P01+J-E-2416-1X1 steekt 6 mm voorbij het begin van rail 2.".to_owned(),
-        )]
-    );
-
-    let mut s = turned();
-    run(
-        &mut s,
-        "layout.lock",
-        json!({"placement": id_json(placement("1X1")), "locked": true}),
-    );
-    insert_terminals(&mut s, "-X1031", 1);
-    assert_eq!(s10(&s, "1X1"), 300);
-    assert_eq!(
-        bracket_findings(&s),
-        vec![(
-            "The end bracket after =P01+J-E-2416-1X1 overlaps =P01+J-E-2416-X1031 on rail 2.".to_owned(),
-            "De eindsteun na =P01+J-E-2416-1X1 overlapt =P01+J-E-2416-X1031 op rail 2.".to_owned(),
-        )]
+        pair(
+            "The end bracket after +CAB-X1021 overlaps +CAB-X1031 on rail 3.",
+            "De eindsteun na +CAB-X1021 overlapt +CAB-X1031 op rail 3."
+        )
     );
 }
 
@@ -644,26 +498,115 @@ fn resized(mut copy: ew_schema::LibCopy<Part>, item: u128, key: &str, width: i64
 }
 
 /// The first terminal of `strip` (by ID).
-fn first_terminal(q: &Q, strip: &str) -> Id<Device> {
-    q.devices()
+fn first_terminal(s: &Session, strip: &str) -> Id<Device> {
+    let strip = dev(s, strip);
+    s.query()
+        .devices()
         .iter()
-        .filter(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == dev(strip)))
+        .filter(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == strip))
         .map(|(id, _)| id)
         .min()
         .expect("a terminal")
 }
 
-/// Doc 12 §3.4: one `part.assign` that widens a terminal of -X1031 and one of -X1032
-/// by 5.2 mm each cascades both pushes: -X1032 moves from 172.6 to 177.8 mm, and X33, placed 3 mm clear of the
-/// bracket after -X1032 (at 211.6 mm), moves to 219.0 mm, 10 mm after -X1032's new end at 209.0 mm, with no finding.
-/// Each push measured on the base snapshot left X33 at 216.0 mm, the bracket after -X1032 overlapping it.
+/// The terminal part's copy, and a copy of it twice as wide (10.4 mm) in a test library.
+fn wide_terminal(s: &Session, terminal: Id<Device>, item: u128, key: &str) -> (Id<Part>, Value, Value) {
+    let q = s.query();
+    let old = q.devices().get(terminal).expect("the terminal").parts[0].part.copy;
+    let copy = ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
+    assert_eq!(
+        copy.item.mech.as_ref().and_then(|m| m.width),
+        Some(Nm(5_200_000)),
+        "the terminal is 5.2 mm wide"
+    );
+    let (doc, id) = resized(copy, item, key, 10_400_000);
+    (old, doc, id)
+}
+
+/// Doc 12 §3.5: `part.assign` of a 10.4 mm copy of the terminal part onto one terminal of -X1021 (mode `replace`)
+/// widens the strip by 5.2 mm, and -X1031 moves from 117.6 to 122.8 mm in the same step, as one inserted terminal moves
+/// it.
+#[test]
+fn a_part_change_that_widens_a_strips_terminal_pushes() {
+    let (mut s, _) = session();
+    let terminal = first_terminal(&s, "-X1021");
+    let (old, copy, part) = wide_terminal(&s, terminal, 0x0190_0000_0000_7000_8000_0000_0000_1497, "FT1497-TWIN");
+    assert_eq!((s10(&s, "-X1021"), s10(&s, "-X1031")), (660, 1176));
+    run_cmd(
+        &mut s,
+        "part.assign",
+        json!({"devices": [id_json(terminal)], "part": part, "copies": [copy], "mode": "replace",
+               "from": id_json(old)}),
+    );
+    assert_eq!((s10(&s, "-X1021"), s10(&s, "-X1031")), (660, 1228));
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+}
+
+/// -X1021 turned 180° in place on the rail (its clip point its right end, 107.6 mm).
+fn turned() -> Session {
+    let (mut s, _) = session();
+    let x1021 = placement_of(&s, "-X1021");
+    run_cmd(
+        &mut s,
+        "layout.move",
+        json!({"placement": id_json(x1021), "pose": {"t": [1076 * MM / 10, 0, 0], "q": [0, 0, 0, 1_000_000_000]}}),
+    );
+    s
+}
+
+/// Doc 12 §3.4: -X1021 turned 180° grows left, so one terminal inserted into it moves -X1011, the strip before it, from
+/// 30 to 24.8 mm in the same step, with no finding, and -X1031 after it stays; five put -X1011's bracket 6 mm past the
+/// rail's start (one `bracket_outside`); with -X1011 locked it stays, the insert is not refused and the bracket after
+/// -X1011 overlaps -X1021.
+#[test]
+fn a_strip_turned_half_way_pushes_the_items_before_it() {
+    let mut s = turned();
+    assert_eq!(
+        (s10(&s, "-X1011"), s10(&s, "-X1021"), s10(&s, "-X1031")),
+        (300, 1076, 1176)
+    );
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+    insert_terminals(&mut s, "-X1021", 1);
+    assert_eq!(
+        (s10(&s, "-X1011"), s10(&s, "-X1021"), s10(&s, "-X1031")),
+        (248, 1076, 1176)
+    );
+    assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
+
+    let mut s = turned();
+    insert_terminals(&mut s, "-X1021", 5);
+    assert_eq!(s10(&s, "-X1011"), 300 - 5 * 52);
+    assert_eq!(
+        bracket_findings(&s),
+        pair(
+            "The end bracket before +CAB-X1011 passes the start of rail 3 by 6 mm.",
+            "De eindsteun vóór +CAB-X1011 steekt 6 mm voorbij het begin van rail 3."
+        )
+    );
+
+    let mut s = turned();
+    lock(&mut s, "-X1011");
+    insert_terminals(&mut s, "-X1021", 1);
+    assert_eq!(s10(&s, "-X1011"), 300);
+    assert_eq!(
+        bracket_findings(&s),
+        pair(
+            "The end bracket after +CAB-X1011 overlaps +CAB-X1021 on rail 3.",
+            "De eindsteun na +CAB-X1011 overlapt +CAB-X1021 op rail 3."
+        )
+    );
+}
+
+/// Doc 12 §3.4: one `part.assign` that widens a terminal of -X1021 and one of -X1031 by 5.2 mm each cascades both
+/// pushes: -X1031 moves from 117.6 to 122.8 mm, and X33, placed 3 mm clear of the bracket after -X1031 (at 156.6 mm),
+/// moves to 164.0 mm, 10 mm after -X1031's new end at 154.0 mm, with no finding.
 #[test]
 fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
-    let mut s = session();
-    run(
+    let (mut s, rail) = with_x33(ew_api::MemoMode::On);
+    run_cmd(
         &mut s,
         "layout.place",
-        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(carrier("R2"))}, "pose": at(2116)}),
+        json!({"device": id_json(x33()), "carrier": {"carrier": id_json(rail)}, "pose": rail_at(1566)}),
     );
     let x33_at = |s: &Session| {
         let q = s.query();
@@ -676,83 +619,62 @@ fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
         at * 10 / MM
     };
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-    let (terminals, copy, part) = {
-        let q = s.query();
-        let terminals = [first_terminal(&q, "-X1031"), first_terminal(&q, "-X1032")];
-        let old = q.devices().get(terminals[0]).expect("the terminal").parts[0]
-            .part
-            .copy;
-        let twin =
-            ew_schema::LibCopy::clone(q.table::<ew_schema::LibCopy<Part>>().get(old).expect("the copy"));
-        let (copy, part) = resized(
-            twin,
-            0x0190_0000_0000_7000_8000_0000_0000_1480,
-            "C53P2-TWIN",
-            10_400_000,
-        );
-        (terminals, copy, part)
-    };
+    let terminals = [first_terminal(&s, "-X1021"), first_terminal(&s, "-X1031")];
+    let (_, copy, part) = wide_terminal(&s, terminals[0], 0x0190_0000_0000_7000_8000_0000_0000_1480, "C53P2-TWIN");
     assert_eq!(
-        (s10(&s, "-X1031"), s10(&s, "-X1032"), x33_at(&s)),
-        (586, 1726, 2116)
+        (s10(&s, "-X1021"), s10(&s, "-X1031"), x33_at(&s)),
+        (660, 1176, 1566)
     );
-    run(
+    run_cmd(
         &mut s,
         "part.assign",
         json!({"devices": terminals.map(id_json), "part": part, "copies": [copy], "mode": "replace_all"}),
     );
     assert_eq!(
-        (s10(&s, "-X1031"), s10(&s, "-X1032"), x33_at(&s)),
-        (586, 1778, 2190)
+        (s10(&s, "-X1021"), s10(&s, "-X1031"), x33_at(&s)),
+        (660, 1228, 1640)
     );
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
 
-/// Doc 12 §3.4: -X1031 turned 180° as before, with an end bracket of 5 mm of its
-/// own while 1X1 keeps its 10 mm one. One terminal inserted into -X1031 moves 1X1 from 30 to 24.8 mm: the gap between
-/// the two strips is the bracket of 1X1, the strip on the left, as EW-LAY-010 judges it, so there is no finding.
-/// -X1031's own bracket in the mirrored frame left 1X1 at 29.8 mm, its bracket overlapping -X1031.
+/// Doc 12 §3.4: -X1021 turned 180° as before, with an end bracket of 5 mm of its own while -X1011 keeps its 10 mm one.
+/// One terminal inserted into -X1021 moves -X1011 from 30 to 24.8 mm: the gap between the two strips is the bracket of
+/// -X1011, the strip on the left, as EW-LAY-010 judges it, so there is no finding.
 #[test]
 fn a_turned_strip_pushes_by_the_bracket_of_the_strip_on_its_left() {
-    let mut s = golden_common::session(&golden_common::batch());
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": id_json(placement("-X1031")),
-               "pose": {"t": [1626 * MM / 10, 0, 0], "q": [0, 0, 0, 1_000_000_000]}}),
-    );
-    let (copy, part, tbd) = {
+    let mut s = turned();
+    let tbd = Id::<Part>::from_uuid(common::part_copy(&s, "TBD end bracket"));
+    let (copy, part) = {
         let q = s.query();
-        let tbd = part_of(&q, "TBD end bracket");
         let bracket = ew_schema::LibCopy::clone(q.parts().get(tbd).expect("the TBD end bracket"));
         assert_eq!(
             bracket.item.mech.as_ref().and_then(|m| m.width),
             Some(Nm(10 * MM)),
             "the TBD end bracket is 10 mm wide"
         );
-        let (copy, part) = resized(
+        resized(
             bracket,
             0x0190_0000_0000_7000_8000_0000_0000_1481,
             "C53P2-BRACKET-5",
             5 * MM,
-        );
-        (copy, part, tbd)
+        )
     };
-    run(
+    let x1021 = dev(&s, "-X1021");
+    run_cmd(
         &mut s,
         "part.assign",
-        json!({"devices": [id_json(dev("-X1031"))], "part": part, "copies": [copy], "mode": "replace",
+        json!({"devices": [id_json(x1021)], "part": part, "copies": [copy], "mode": "replace",
                "from": id_json(tbd)}),
     );
     assert_eq!(
-        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
-        (300, 1626, 1726)
+        (s10(&s, "-X1011"), s10(&s, "-X1021"), s10(&s, "-X1031")),
+        (300, 1076, 1176)
     );
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
-    insert_terminals(&mut s, "-X1031", 1);
+    insert_terminals(&mut s, "-X1021", 1);
     assert_eq!(
-        (s10(&s, "1X1"), s10(&s, "-X1031"), s10(&s, "-X1032")),
-        (248, 1626, 1726)
+        (s10(&s, "-X1011"), s10(&s, "-X1021"), s10(&s, "-X1031")),
+        (248, 1076, 1176)
     );
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
