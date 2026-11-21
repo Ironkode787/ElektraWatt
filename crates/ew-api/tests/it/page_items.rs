@@ -456,7 +456,7 @@ fn colour_of(q: &Q, c: Id<Connection>) -> Option<String> {
         .and_then(|p| ew_derive::colour_text(&p.value))
 }
 
-/// A wire's Wire marker tick always prints a marker (the owner's hands-on test of 0.1.0: the check box had no
+/// A wire's Wire marker tick always prints a marker (the check box must have a
 /// visible effect). With the project's mode absent, a wire that states neither a cross-section nor a colour prints
 /// what it is; in a rule mode the tick adds the wire to those the rule selects; `none` draws no marker at all.
 #[test]

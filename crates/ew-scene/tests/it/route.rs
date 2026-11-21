@@ -88,8 +88,8 @@ fn vertical(d: &Option<Dir4>) -> Option<bool> {
     }
 }
 
-/// A connection without a stored route is a right-angled line between its ends, never a diagonal (the owner's
-/// hands-on test of 0.1.0: a diagonal line read as a route the router had drawn askew): straight for aligned ends,
+/// A connection without a stored route is a right-angled line between its ends, never a diagonal (a diagonal
+/// line reads as a route the router had drawn askew): straight for aligned ends,
 /// else one corner, the first leg along end `a`'s direction, else the last along end `b`'s, else horizontal first;
 /// a single point where the ends meet (nothing is drawn).
 #[test]
