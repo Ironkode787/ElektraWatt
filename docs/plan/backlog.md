@@ -46,7 +46,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### The DXF as the PDF
 
-- FT-1877 `ew-export`: The DXF export does not equal the PDF: other type metrics, no picture in the title block, no AutoCAD 2010 format, and none of the page's structure (blocks with attributes, cross-reference links). The job's DWG files were made from the PDF's geometry: faithful as a plot, with no blocks and no attributes. A DWG is made from the DXF by a converter, as the import reads one; the program gets no DWG writer (owner, 2026-11-20).
+- FT-1877 `ew-export`: The DXF export does not equal the PDF: other type metrics, no picture in the title block, no AutoCAD 2010 format, and none of the page's structure (blocks with attributes, cross-reference links). The job's DWG files were made from the PDF's geometry: faithful as a plot, with no blocks and no attributes. Not in this row: writing a DWG. Until FT-1745 (backlog-later) a DWG is made from the DXF by a converter, as the import reads one (owner, 2026-11-20 and 2026-11-21: the program's own DWG output stays wanted, for later).
 
 #### What the model has no place for
 
