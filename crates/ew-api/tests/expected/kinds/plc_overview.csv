@@ -1,0 +1,25 @@
+row,Module,Part,Address,Channel,Designation,Kind,Symbol,Function text,Process tag,Target,State,Page
+data,-104A1-A1,EW-GEN-DI-1,I0.0,0,0,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.1,1,1,DI,,,,-104B1,used,104-F2
+data,-104A1-A1,EW-GEN-DI-1,I0.2,2,2,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.3,3,3,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.4,4,4,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.5,5,5,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.6,6,6,DI,,,,,spare,104-H0
+data,-104A1-A1,EW-GEN-DI-1,I0.7,7,7,DI,,,,,spare,104-H0
+data,-104A1-A2,EW-GEN-DO-1,Q1.0,0,0,DO,,,,,spare,104-B0
+data,-104A1-A2,EW-GEN-DO-1,Q1.1,1,1,DO,,,,-104E1,used,104-C2
+data,-104A1-A2,EW-GEN-DO-1,Q1.2,2,2,DO,,,,-104E2,used,104-C4
+data,-104A1-A2,EW-GEN-DO-1,Q1.3,3,3,DO,,,,,spare,104-B0
+data,-104A1-A2,EW-GEN-DO-1,Q1.4,4,4,DO,,,,,spare,104-B0
+data,-104A1-A2,EW-GEN-DO-1,Q1.5,5,5,DO,,,,,spare,104-B0
+data,-104A1-A2,EW-GEN-DO-1,Q1.6,6,6,DO,,,,,spare,104-B0
+data,-104A1-A2,EW-GEN-DO-1,Q1.7,7,7,DO,,,,,spare,104-B0
+data,-201K1,EW-GEN-VTM-1,Q0.0,0,0,DO,,,,-201K1-Q1,used,201-E4
+data,-201K1,EW-GEN-VTM-1,Q0.1,1,1,DO,,,,,deactivated,
+data,-201K1,EW-GEN-VTM-1,Q0.2,2,2,DO,,,,-201K1-Q2,used,201-E6
+data,-201K1,EW-GEN-VTM-1,Q0.3,3,3,DO,,,,,deactivated,
+data,-201K1,EW-GEN-VTM-1,Q0.4,4,4,DO,,Spare,,-201K1-Q3,used,201-E8
+data,-201K1,EW-GEN-VTM-1,Q0.5,5,5,DO,,,,,deactivated,
+data,-201K1,EW-GEN-VTM-1,Q0.6,6,6,DO,,Spare,,-201K1-Q4,used,201-E9
+data,-201K1,EW-GEN-VTM-1,Q0.7,7,7,DO,,,,,deactivated,

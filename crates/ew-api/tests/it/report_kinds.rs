@@ -1,29 +1,27 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Over Golden A: the list kinds `device_list` and `terminal_overview`, the export by kind, the block
-//! parameters and the revision overview's changed pages in the CSV.
+//! Over the sample: the list kinds `device_list` and `terminal_overview`, the export by kind, the block parameters and
+//! the revision overview's changed pages in the CSV.
 //!
-//! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of every kind the export derives are
-//! written by the export by kind
-//! (`row_export(q, &RowExport::Kind(kind), None)`, what `ew export report --kind <kind> --format csv` prints);
-//! `EW_BLESS=1 cargo nextest run -p ew-api --all-features --test it -E 'test(/^report_kinds::/)'` rewrites them.
+//! The kind CSVs `tests/expected/kinds/<kind>.csv` of every kind the export derives are written by the export by kind
+//! on the sample (`row_export(q, &RowExport::Kind(kind), None)`, what `ew export report --kind <kind> --format csv`
+//! prints); `EW_BLESS=1 cargo nextest run -p ew-api --all-features --test it -E 'test(/^report_kinds::/)'` rewrites
+//! them. They are the only pin of the rows of each kind on a whole project.
 //!
 //! What these tests rely on, quoted:
-//! - "a strip with no segment representation prints the cell of its `MainRep` ..., which is the
-//!   \"101-D2\" RK-2 names; a strip with neither prints an empty cell".
+//! - "a strip with no segment representation prints the cell of its `MainRep` ...; a strip with neither prints an
+//!   empty cell".
 //! - "`RowsError` gains four variants whose `Display` is D4's text exactly".
 //! - "Every registered kind other than `terminal_diagram` exports (D4's refusal list is closed)".
 //! - "`member` = `report block <first folio> params.<key>` ..., `detail` the lane's sentence".
 //! - "`row_export` replaces the `pages` cell of every data row of a `revision_overview` row set with it,
 //!   for `--block` and `--kind` alike".
-//! - "`expected/csv/io_list.csv` ...: the default `io_list` rows of Golden A (28 data rows),
-//!   written by `--kind io_list`".
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
-use crate::{common, golden_common};
+use crate::common;
 
 use ew_api::output::{RowExport, RowsError, page_layer, report_kinds, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
@@ -38,9 +36,16 @@ use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
 
 fn expected_csv(kind: &str) -> PathBuf {
-    golden_common::repo()
-        .join("golden/J-E-2416/expected/csv")
-        .join(format!("{kind}.csv"))
+    PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/kinds")).join(format!("{kind}.csv"))
+}
+
+/// The report block printed from `folio`.
+fn block_of(q: &Q, folio: u32) -> ReportBlock {
+    q.report_blocks()
+        .iter()
+        .find(|(_, b)| b.first_folio == Some(folio))
+        .map(|(_, b)| (**b).clone())
+        .unwrap_or_else(|| panic!("no block of {folio}"))
 }
 
 /// Whether `EW_BLESS=1` asks for the committed files to be rewritten.
@@ -54,7 +59,7 @@ fn export(q: &Q, kind: &str) -> ew_api::output::RowsCsv {
     row_export(q, &RowExport::Kind(kind.to_owned()), None).unwrap_or_else(|e| panic!("{kind}: {e}"))
 }
 
-/// The cells of a CSV line of the golden dialect (no field of these files is quoted with a comma inside, except the
+/// The cells of a CSV line of the `ew` dialect (no field of these files is quoted with a comma inside, except the
 /// quoted ones, which this splitter keeps together).
 fn fields(line: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -84,13 +89,16 @@ fn data(csv: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
-/// Each kind CSV equals the export by kind on Golden A; twice-run equal. A kind the
-/// export derives has its file.
+/// Each kind CSV equals the export by kind on the sample; twice-run equal. A kind the export derives has its file;
+/// a kind the export by kind gives no rows of on the sample has its header only: the bus overview (its segment needs a
+/// physical net, which the window's bus tools do not make), the enclosure legend and the part data (rows of an
+/// embedded block's selection only), the IO-Link port list, the medium overview, the open items and the safety I/O
+/// list.
 #[test]
 fn the_kind_csvs_equal_the_export_by_kind() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
-    // Every kind the export by kind derives on Golden A (`terminal_diagram` refuses: it lists one strip).
+    // Every kind the export by kind derives on the sample (`terminal_diagram` refuses: it lists one strip).
     let derived: Vec<(&str, ew_api::output::RowsCsv)> = report_kinds()
         .into_iter()
         .filter_map(|k| {
@@ -112,33 +120,21 @@ fn the_kind_csvs_equal_the_export_by_kind() {
     }
 }
 
-/// The device tags of folio 910's device rows in order, read from `expected/text/910*.csv` (the designation cell is
-/// the text item before each "Device" kind cell of the tables layer).
-fn tags_of_910() -> Vec<String> {
-    let dir = golden_common::repo().join("golden/J-E-2416/expected/text");
-    let mut tags = Vec::new();
-    for folio in ["910", "910.1", "910.2", "910.3"] {
-        let text = std::fs::read_to_string(dir.join(format!("{folio}.csv"))).unwrap();
-        let mut previous = String::new();
-        for line in text.lines().skip(1) {
-            let cells = fields(line);
-            if cells[1] != "tables" {
-                continue;
-            }
-            if cells[3] == "Device" {
-                tags.push(previous.clone());
-            }
-            previous = cells[3].clone();
-        }
-    }
-    tags
+/// The designations of folio 910's device rows (the device tag overview), in its order.
+fn tags_of_910(q: &Q) -> Vec<String> {
+    let set = q.get::<BlockRows>(block_of(q, 910).id);
+    (0..set.rows.len())
+        .map(|i| row_texts(q, &set, i))
+        .filter(|r| r[1] == "Device")
+        .map(|r| r[0].clone())
+        .collect()
 }
 
-/// RK-1 (FR-REP-008): the header and 68 data rows, the devices of folio 910 in its order, and the rows doc 20 §6.1
-/// gives.
+/// RK-1 (FR-REP-008): the header and a row per device, the devices of folio 910 in its order, and the rows the sample's
+/// script gives.
 #[test]
-fn the_device_list_lists_the_68_devices_of_folio_910() {
-    let s = common::golden_session();
+fn the_device_list_lists_the_devices_of_folio_910() {
+    let s = common::sample();
     let q = s.query();
     let out = export(&q, "device_list");
     assert_eq!(out.kind, "device_list");
@@ -148,10 +144,9 @@ fn the_device_list_lists_the_68_devices_of_folio_910() {
         Some("row,Tag,Function text,Parts,Technical data,Location (+),Main representation")
     );
     let rows = data(&out.csv);
-    assert_eq!(rows.len(), 68);
-    assert_eq!(out.rows, 68);
+    assert_eq!(out.rows, rows.len());
     let tags: Vec<String> = rows.iter().map(|r| r[1].clone()).collect();
-    assert_eq!(tags, tags_of_910());
+    assert_eq!(tags, tags_of_910(&q));
     let row = |short: &str| -> Vec<String> {
         rows.iter()
             .find(|r| r[1].ends_with(short))
@@ -161,22 +156,22 @@ fn the_device_list_lists_the_68_devices_of_folio_910() {
     let f1 = row("-101F1");
     assert_eq!(
         (f1[1].as_str(), f1[3].as_str(), f1[6].as_str()),
-        ("=P01+J-E-2416-101F1", "A9P52610", "101-B8")
+        ("+CAB-101F1", "EW-GEN-MCB-4", "101-E8")
     );
-    let u1 = row("-201U1");
-    assert_eq!((u1[3].as_str(), u1[6].as_str()), ("195740, 550208", "201-E1"));
+    let k1 = row("-201K1");
+    assert_eq!((k1[3].as_str(), k1[6].as_str()), ("EW-GEN-VTM-1", "201-E2"));
     let uc1 = row("-UC1");
-    assert_eq!((uc1[3].as_str(), uc1[6].as_str()), ("NSYPLA1074G", ""));
-    for short in ["S56", "E56"] {
+    assert_eq!((uc1[3].as_str(), uc1[6].as_str()), ("EW-GEN-ENC-1", ""));
+    for short in ["-X1011", "-X1021", "-X1031"] {
         assert_eq!(row(short)[3], "", "{short}: no part");
     }
 }
 
-/// FR-REP-010: the three strips' rows whole, in `terminal_diagram`'s default strip order (the
-/// natural order of the printed tag, so "-X1031" and "-X1032" before "1X1").
+/// FR-REP-010: the three strips' rows whole, in `terminal_diagram`'s default strip order (the natural order of the
+/// printed tag). Every terminal of the sample is wired: all used.
 #[test]
 fn the_terminal_overview_lists_the_three_strips() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let out = export(&q, "terminal_overview");
     assert_eq!(
@@ -197,45 +192,45 @@ fn the_terminal_overview_lists_the_three_strips() {
         [
             want([
                 "data",
-                "-X1031",
-                "20",
-                "8",
-                "12",
-                "0",
-                "20 \u{d7} PT 2.5-TWIN",
-                "103-A3, 103-A10"
-            ]),
-            want([
-                "data",
-                "-X1032",
+                "-X1011",
                 "5",
-                "4",
-                "1",
+                "5",
                 "0",
-                "5 \u{d7} PT 2.5-TWIN-PE",
-                "103-F3"
+                "0",
+                "4 \u{d7} EW-GEN-TRM-1, 1 \u{d7} EW-GEN-TRM-2",
+                "101-B2"
             ]),
             want([
                 "data",
-                "1X1",
-                "3",
-                "3",
+                "-X1021",
+                "8",
+                "8",
                 "0",
                 "0",
-                "2 \u{d7} UK 5 N, 1 \u{d7} USLKG 5",
-                "101-D2"
+                "8 \u{d7} EW-GEN-TRM-1",
+                "102-B4"
+            ]),
+            want([
+                "data",
+                "-X1031",
+                "5",
+                "5",
+                "0",
+                "0",
+                "3 \u{d7} EW-GEN-TRM-1, 2 \u{d7} EW-GEN-TRM-2",
+                "103-F4"
             ]),
         ]
     );
     // the location as `structure_overview` prints it for the strip devices' location
     let locations: Vec<String> = data(&out.csv).into_iter().map(|r| r[2].clone()).collect();
-    assert_eq!(locations, ["+J-E-2416", "+J-E-2416", "+J-E-2416"]);
+    assert_eq!(locations, ["+CAB", "+CAB", "+CAB"]);
 }
 
 /// RK-2: per strip, used, spare and other equal the counts of its `terminal_diagram` rows' State column.
 #[test]
 fn the_counts_agree_with_the_terminal_diagram_states() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let overview = project_rows(&q, "terminal_overview", None).expect("the overview");
     for (i, row) in overview.rows.iter().enumerate() {
@@ -270,19 +265,18 @@ fn run(session: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
     .unwrap_or_else(|e| panic!("{name} {params}: {e:?}"))
 }
 
-/// The device of Golden A with this short tag.
-fn device(s: &Session, short: &str) -> Id<ew_schema::Device> {
-    *golden_common::tags(s)
-        .iter()
-        .find(|(_, t)| t.ends_with(short))
-        .unwrap_or_else(|| panic!("no device {short}"))
-        .0
+/// The device tagged `tag`.
+fn device(s: &Session, tag: &str) -> Id<ew_schema::Device> {
+    Id::from_uuid(
+        s.resolve_reference(&format!("tag:{tag}"))
+            .unwrap_or_else(|e| panic!("no device {tag}: {e:?}")),
+    )
 }
 
 /// RK-2: a `reserved` terminal counts in Other; renumbering -X1031 to -X1041 (a frozen tag) keeps the row ID.
 #[test]
 fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let strip = device(&s, "-X1031");
     let row_of = |q: &Q| -> (ew_reports::RowSet, usize) {
         let set = project_rows(q, "terminal_overview", None).unwrap();
@@ -298,25 +292,12 @@ fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
         let (set, i) = row_of(&q);
         set.rows[i].id.clone()
     };
-    // a spare terminal of -X1031 made reserved: one spare fewer, one other more
-    let spare = {
-        let q = s.query();
-        let mut ts: Vec<_> = q
-            .idx()
-            .terminals_of_strip(strip)
-            .filter(|t| {
-                q.devices()
-                    .get(*t)
-                    .is_some_and(|d| d.state == ew_schema::DeviceState::Spare)
-            })
-            .collect();
-        ts.sort();
-        ts[0]
-    };
+    // the shield terminal of -X1031 made reserved: one used fewer, one other more
+    let shield = device(&s, "-X1031:SH");
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "device", "targets": [spare.to_string()], "path": "state", "value": "reserved"}),
+        json!({"kind": "device", "targets": [shield.to_string()], "path": "state", "value": "reserved"}),
     );
     let q = s.query();
     let (set, i) = row_of(&q);
@@ -325,12 +306,12 @@ fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
         texts[..7],
         [
             "-X1031",
-            "+J-E-2416",
-            "20",
-            "8",
-            "11",
+            "+CAB",
+            "5",
+            "4",
+            "0",
             "1",
-            "20 \u{d7} PT 2.5-TWIN"
+            "3 \u{d7} EW-GEN-TRM-1, 2 \u{d7} EW-GEN-TRM-2"
         ]
     );
     drop(q);
@@ -352,7 +333,7 @@ fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
 /// The four refusals as `RowsError::to_string()`, whole.
 #[test]
 fn the_refusals_of_the_export_by_kind() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let kind = |k: &str| RowExport::Kind(k.to_owned());
     assert_eq!(
@@ -391,7 +372,7 @@ fn the_refusals_of_the_export_by_kind() {
 /// Every registered kind but `terminal_diagram` exports a header line without a panic.
 #[test]
 fn every_registered_kind_but_terminal_diagram_exports() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     for name in Registry::builtin().names().filter(|n| *n != "terminal_diagram") {
         let out = export(&q, name);
@@ -401,54 +382,41 @@ fn every_registered_kind_but_terminal_diagram_exports() {
     }
 }
 
-/// RK-3: `--kind parts_summary` writes the component-mode rows, the rows of `expected/csv/bom_parts.csv`.
+/// RK-3: `--kind parts_summary` writes the component-mode rows, the rows of the bill of materials' export.
 #[test]
 fn the_parts_summary_kind_is_the_component_bom() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
-    let committed = std::fs::read_to_string(expected_csv("bom_parts")).unwrap();
-    assert_eq!(export(&q, "parts_summary").csv, committed);
+    let bom = row_export(&q, &RowExport::Bom(ew_api::BomMode::Component), None).expect("the BOM");
+    assert_eq!(export(&q, "parts_summary").csv, bom.csv);
 }
 
-/// The revision overview's CSV prints the changed pages as folio 911 does: V1.0 empty, V2.0
-/// "101, 106"; the export by kind writes the same rows.
+/// The revision overview's CSV prints the changed pages as folio 911 does; the export by kind writes the same rows.
 #[test]
 fn the_revision_overview_csv_prints_the_changed_pages() {
-    let s = common::golden_session();
+    let s = common::sample();
     let q = s.query();
     let by_block = row_export(&q, &RowExport::Report, Some("911")).expect("folio 911's rows");
     let rows = data(&by_block.csv);
-    let pages = |label: &str| -> String {
-        let r = rows
-            .iter()
-            .find(|r| r[1] == label)
-            .unwrap_or_else(|| panic!("{label}"));
-        r.last().unwrap().clone()
-    };
-    assert_eq!(pages("V1.0"), "");
-    assert_eq!(pages("V2.0"), "101, 106");
+    let printed = s.page_list_table("911").expect("folio 911 has a table");
+    assert_eq!(rows.len(), printed.rows.len());
+    for (row, page) in rows.iter().zip(&printed.rows) {
+        assert_eq!(row[1], page.cells[0], "the revision");
+        assert_eq!(row.last(), page.cells.last(), "{}: the changed pages", row[1]);
+    }
     assert_eq!(export(&q, "revision_overview").csv, by_block.csv);
 }
 
-/// Golden A with `block` added (a block value no command writes: `params`).
-fn golden_with_block(block: ReportBlock) -> Session {
-    golden_common::session_with(&golden_common::batch(), |_, records| {
-        records.push(Record::ReportBlock(block))
-    })
+/// The sample with `block` added (a block value no command writes: `params`).
+fn sample_with_block(block: ReportBlock) -> Session {
+    let (project, mut records, lib) = common::sample_records();
+    records.push(Record::ReportBlock(block));
+    common::session_of(project, records, lib)
 }
 
-/// A `parts_summary` block at folio 960 on folio 901's form with `params` (a block of Golden A's data).
+/// A `parts_summary` block at folio 960 on folio 901's form with `params` (a block of the sample's data).
 fn parts_block(params: Option<Value>) -> ReportBlock {
-    let batch = golden_common::batch();
-    let id = golden_common::block(&batch, "901");
-    let mut block = batch
-        .records
-        .iter()
-        .find_map(|r| match r {
-            Record::ReportBlock(b) if b.id == id => Some(b.clone()),
-            _ => None,
-        })
-        .unwrap();
+    let mut block = block_of(&common::sample().query(), 901);
     block.id = Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(0x5306_0001));
     block.first_folio = Some(960);
     block.source_ref = None;
@@ -459,9 +427,14 @@ fn parts_block(params: Option<Value>) -> ReportBlock {
     block
 }
 
+/// A `Q` over the session's snapshot without the report engine.
+fn plain(s: &Session) -> Q {
+    Q::new(&s.world().model)
+}
+
 /// The malformed-parameter notes of a session's derivation of `block`.
 fn notes_of(s: &Session, block: Id<ReportBlock>) -> (usize, Vec<DeriveNote>) {
-    let mut q = golden_common::plain(s);
+    let mut q = plain(s);
     let rows = q.get::<BlockRows>(block).rows.len();
     let notes = q
         .diagnostics()
@@ -473,19 +446,19 @@ fn notes_of(s: &Session, block: Id<ReportBlock>) -> (usize, Vec<DeriveNote>) {
 }
 
 /// `params.mode` "assembly" gives the assembly rows; "Assembly", 3 and an undeclared key give the
-/// component rows and exactly one note naming the block in words and the key.
+/// component rows and exactly one note naming the block in words and the key. (The sample has no assembly, so its
+/// assembly rows list the same parts; the mode shows in the assembly mode's Covers column.)
 #[test]
 fn the_parts_summary_mode_parameter() {
-    let component = golden_with_block(parts_block(None));
+    let component = sample_with_block(parts_block(None));
     let block = parts_block(None).id;
     let (component_rows, notes) = notes_of(&component, block);
     assert!(notes.is_empty(), "{notes:?}");
-    let assembly = golden_with_block(parts_block(Some(json!({"mode": "assembly"}))));
-    let (assembly_rows, notes) = notes_of(&assembly, block);
+    let assembly = sample_with_block(parts_block(Some(json!({"mode": "assembly"}))));
+    let (_, notes) = notes_of(&assembly, block);
     assert!(notes.is_empty(), "{notes:?}");
-    assert_ne!(assembly_rows, component_rows, "the assembly rows differ");
     {
-        let q = golden_common::plain(&assembly);
+        let q = plain(&assembly);
         let set = q.get::<BlockRows>(block);
         assert!(set.column("covers").is_some(), "assembly mode's Covers column");
     }
@@ -512,7 +485,7 @@ fn the_parts_summary_mode_parameter() {
         ),
     ];
     for (params, member, detail) in cases {
-        let s = golden_with_block(parts_block(Some(params.clone())));
+        let s = sample_with_block(parts_block(Some(params.clone())));
         let (rows, notes) = notes_of(&s, block);
         assert_eq!(rows, component_rows, "{params}: the component rows");
         assert_eq!(
@@ -535,7 +508,7 @@ fn the_parts_summary_mode_parameter() {
 #[test]
 fn a_long_key_or_value_is_quoted_cut() {
     let long = "k".repeat(1000);
-    let s = golden_with_block(parts_block(Some(
+    let s = sample_with_block(parts_block(Some(
         json!({ long.clone(): 1, "mode": "x".repeat(1000) }),
     )));
     let (_, notes) = notes_of(&s, parts_block(None).id);
@@ -562,7 +535,7 @@ fn form_of_910(s: &Session) -> (Value, Value) {
     let q = s.query();
     let b = q
         .report_blocks()
-        .get(golden_common::block(&golden_common::batch(), "910"))
+        .get(block_of(&q, 910).id)
         .expect("folio 910's block")
         .clone();
     (json!(b.form), json!(b.section))
@@ -583,7 +556,7 @@ fn folios_but(q: &Q, but: &[&str]) -> Vec<String> {
 /// lists them; every other page keeps its folio and order.
 #[test]
 fn the_list_kinds_paginate_on_the_house_table() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let before = folios_but(&s.query(), &[]);
     let (form, section) = form_of_910(&s);
     for (kind, folio, title) in [
@@ -611,7 +584,7 @@ fn the_list_kinds_paginate_on_the_house_table() {
         .map(|e| (e.folio.clone(), e.page))
         .collect();
     let folios: Vec<&str> = pages.iter().map(|(f, _)| f.as_str()).collect();
-    assert_eq!(folios, ["912", "912.1", "912.2", "913"]);
+    assert_eq!(folios, ["912", "912.1", "913"]);
     let page_910 = order
         .entries
         .iter()
@@ -639,11 +612,11 @@ fn the_list_kinds_paginate_on_the_house_table() {
         );
     }
     // the TOC lists the new pages
-    let toc = q.get::<BlockRows>(golden_common::block(&golden_common::batch(), "2"));
+    let toc = q.get::<BlockRows>(block_of(&q, 2).id);
     let listed: Vec<String> = (0..toc.rows.len())
         .map(|i| row_texts(&q, &toc, i)[0].clone())
         .collect();
-    for folio in ["912", "912.1", "912.2", "913"] {
+    for folio in ["912", "912.1", "913"] {
         assert!(
             listed.iter().any(|f| f == folio),
             "the TOC lists {folio}: {listed:?}"

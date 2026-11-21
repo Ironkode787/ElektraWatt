@@ -1,0 +1,27 @@
+row,Potential,Type,Voltage,Class,Colour,mm²,Aliases,Members,Pages
+data,-104A1-A2:2,,,,,0.75 mm²,0,2,104
+data,-104A1-A2:3,,,,,0.75 mm²,0,2,104
+data,-104A1:A,,,,(cable),(cable),0,2,105
+data,0V,M,,,,0.75 mm²,0,13,"101, 102, 104"
+data,1L1,,,,BK,1.5 mm²,0,3,"101, 103"
+data,1L1/101F1:2,L,,,,1.5 mm²,0,2,101
+data,1L1/102Q1:2,L1,,,BK,1.5 mm²,0,3,103
+data,1L1/103F1:2,,,,BK,1.5 mm²,0,2,103
+data,1L2,,,,BK,1.5 mm²,0,2,"101, 103"
+data,1L2/102Q1:4,L2,,,BK,1.5 mm²,0,3,103
+data,1L2/103F1:4,,,,BK,1.5 mm²,0,2,103
+data,1L3,,,,BK,1.5 mm²,0,2,"101, 103"
+data,1L3/102Q1:6,L3,,,BK,1.5 mm²,0,3,103
+data,1L3/103F1:6,,,,BK,1.5 mm²,0,2,103
+data,24V,L+,24 V DC,,DBU,0.75 mm²,0,6,"101, 102, 104"
+data,24V/102F1:2,,,,DBU,0.75 mm²,0,6,102
+data,24V/102Q1:14,,,,DBU,0.75 mm²,0,4,102
+data,24V/102S2:12,,,,DBU,0.75 mm²,0,3,102
+data,24V/104B1:14,,,,DBU,0.75 mm²,0,2,104
+data,L1,L1,400 V AC,,BK,1.5 mm²,0,3,101
+data,L2,L2,400 V AC,,BK,1.5 mm²,0,3,101
+data,L3,L3,400 V AC,,BK,1.5 mm²,0,3,101
+data,N,N,,,,0.75 mm²,0,3,101
+data,N/101F1:4,N,,,,0.75 mm²,0,2,101
+data,PE,PE,,,GNYE,1.5 mm²,0,6,101–103
+data,B1 (0V ⇄ PE),Bond,,,,,,,"101, 102"

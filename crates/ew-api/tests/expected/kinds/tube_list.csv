@@ -1,0 +1,8 @@
+row,Tag,From,Role,To,Role,Medium,Line,OD×ID,Material,Colour,Tube part,Length,Source,Fitting A,Fitting B,Location change,Page
+data,,-201K1-Q1:2,working,-201M1:B,consumer,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,+CAB → +FLD,201
+data,,-201K1-Q1:4,working,-201M1:A,consumer,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,+CAB → +FLD,201
+data,,-201K1-Q2:2,working,-201M2:B,consumer,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,+CAB → +FLD,201
+data,,-201K1-Q2:4,working,-201M2:A,consumer,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,+CAB → +FLD,201
+data,,-201K1:3,exhaust,-201X2:1,port,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,,201
+data,,-201K1:5,exhaust,-201X3:1,port,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,,201
+data,,-201X1:1,port,-201K1:1,supply,,working,6×4,PU,BU,EW-GEN-TUB-6,—,missing,,,,201

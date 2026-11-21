@@ -1,0 +1,4 @@
+row,Logical net,Station,Device type,Address or name,IP address,Subnet mask,Master,Rate (bit/s),Configuration project,TBD
+data,PROFIBUS DP,-104A1,EW-GEN-CPU-2,2,,,yes,,PLC1,no
+data,PROFIBUS DP,-201K1,EW-GEN-VTM-1,3,,,no,,PLC1,no
+data,,-104A1,EW-GEN-CPU-2,192.168.0.10,,,yes,,PLC1,no

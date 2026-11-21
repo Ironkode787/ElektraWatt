@@ -1,0 +1,4 @@
+row,Strip,Location (+),Terminals,Used,Spare,Other,Parts,Segments
+data,-X1011,+CAB,5,5,0,0,"4 × EW-GEN-TRM-1, 1 × EW-GEN-TRM-2",101-B2
+data,-X1021,+CAB,8,8,0,0,8 × EW-GEN-TRM-1,102-B4
+data,-X1031,+CAB,5,5,0,0,"3 × EW-GEN-TRM-1, 2 × EW-GEN-TRM-2",103-F4

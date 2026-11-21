@@ -1,0 +1,6 @@
+row,Slot,Module,Module part,Position,Valve,Valve part,Solenoids,Address,Function text,Process tag,Occupancy
+data,,-201K1,EW-GEN-VTM-1,,,,,,,,
+data,1,-201K1-Q1,EW-GEN-VLV-3,,,,,,,,
+data,2,-201K1-Q2,EW-GEN-VLV-3,,,,,,,,
+data,3,-201K1-Q3,EW-GEN-VLV-3,,,,,,,,
+data,4,-201K1-Q4,EW-GEN-VLV-3,,,,,,,,

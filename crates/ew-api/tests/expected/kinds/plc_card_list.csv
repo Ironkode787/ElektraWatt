@@ -1,0 +1,4 @@
+row,Station,Slot,Module,Part,Input start,Input bytes,Output start,Output bytes,Used,Spare,Reserved,Deactivated
+data,-201K1,1,-201K1,EW-GEN-VTM-1,,,QB0,1,4,0,0,4
+data,-104A1,1,-104A1-A1,EW-GEN-DI-1,IB0,1,,,1,7,0,0
+data,-104A1,2,-104A1-A2,EW-GEN-DO-1,,,QB1,1,2,6,0,0

@@ -1,0 +1,28 @@
+row,Folio,Title,Function (=),Location (+)
+data,1,Title page,,
+data,2,Table of Contents 1,,
+data,2.1,Table of Contents 2,,
+data,100,+CAB - Section 1 - Page 100 - 199 - Wiring Definition,,+CAB
+data,101,Supply 400 V AC,,+CAB
+data,102,Control 24 V DC,,+CAB
+data,103,Motor,,+CAB
+data,104,PLC,,+CAB
+data,105,PROFIBUS DP,,+CAB
+data,200,+CAB - Section 2 - Page 200 - 299 - Pneumatics,,+CAB
+data,201,Pneumatics,,+CAB
+data,900,+CAB - Section 9 - Page 900 - 999 - Nomenclature,,+CAB
+data,901,Partlist 1,,+CAB
+data,901.1,Partlist 2,,+CAB
+data,902,Panel layout,,+CAB
+data,903,Terminal Diagram 1,,+CAB
+data,906,Cable Overview and Diagrams,,+CAB
+data,907,Wire List 1,,+CAB
+data,907.1,Wire List 2,,+CAB
+data,907.2,Wire List 3,,+CAB
+data,908,PLC Overview 1,,+CAB
+data,908.1,PLC Overview 2,,+CAB
+data,909,Potential Overview,,+CAB
+data,909.1,Potential Overview,,+CAB
+data,910,Device Tag Overview 1,,+CAB
+data,910.1,Device Tag Overview 2,,+CAB
+data,911,Revision Overview,,+CAB

@@ -1,0 +1,27 @@
+row,Voltage class,Function,Potential type,Colour,Code,Size,Table
+heading,CABLE COLOUR DEFINITIONS,,,,,,colours
+data,24 VDC,Positive,L+,Dark Blue,DBU,,colours
+data,24 VDC,Signal,"signal, 24 V DC",Dark Blue,DBU,,colours
+data,24 VDC,0V,M,White,WH,,colours
+data,230 VAC,Live,L,Black,BK,,colours
+data,230 VAC,Signal,"signal, 230 V AC",Black,BK,,colours
+data,230 VAC,Neutral,N,Blue,BU,,colours
+data,230 VAC,Earth,PE,Yellow / Green,GNYE,,colours
+data,400 VAC,Phase 1,L1,Black,BK,,colours
+data,400 VAC,Phase 2,L2,Black,BK,,colours
+data,400 VAC,Phase 3,L3,Black,BK,,colours
+data,400 VAC,Neutral,N,Blue,BU,,colours
+data,400 VAC,Earth,PE,Yellow / Green,GNYE,,colours
+data,Analogue Signals,Positive,signal +,Gray,GY,,colours
+data,Analogue Signals,Negative,signal −,White,WH,,colours
+data,Analogue Signals,Earth,PE,Yellow / Green,GNYE,,colours
+heading,IEC60757 / EN60204-1,,,,,,colours
+heading,STANDARD SIZES CONTROL,,,,,,control
+data,,,,Dark Blue,DBU,0.75 mm²,control
+data,,,,White,WH,0.75 mm²,control
+data,,,,Yellow / Green,GNYE,0.75 mm²,control
+heading,STANDARD SIZES MAINS,,,,,,mains
+data,,,,Black,BK,1.5 mm²,mains
+data,,,,Blue,BU,1.5 mm²,mains
+data,,,,Yellow / Green,GNYE,1.5 mm²,mains
+heading,"If size or sign is not indicated in diagram, standard size or sign is to be used.",,,,,,note

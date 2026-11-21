@@ -1,0 +1,58 @@
+row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages
+data,,ext. L1,,-X1011:L1,2,L1,BN,2.5 mm²,core,-101W1 BN,,101
+data,,ext. L2,,-X1011:L2,2,L2,BK,2.5 mm²,core,-101W1 BK,,101
+data,,ext. L3,,-X1011:L3,2,L3,GY,2.5 mm²,core,-101W1 GY,,101
+data,,ext. PE,,-X1011:PE,2,PE,GNYE,2.5 mm²,core,-101W1 GNYE,,101
+data,,ext. N,,-X1011:N,2,N,BU,2.5 mm²,core,-101W1 BU,,101
+data,101.1,-X1011:L1,1,-101Q1,1,L1,BK,1.5 mm²,rule,,,101
+data,101.2,-X1011:L2,1,-101Q1,3,L2,BK,1.5 mm²,rule,,,101
+data,101.3,-X1011:L3,1,-101Q1,5,L3,BK,1.5 mm²,rule,,,101
+data,101.4,-X1011:PE,1,-101G1,PE,PE,GNYE,1.5 mm²,rule,101-C9 star at -X1011:PE/a,,101
+data,101.5,-X1011:PE,1,-X1021:8,1,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 102"
+data,101.6,-X1011:PE,1,-X1031:PE,1,PE,GNYE,1.5 mm²,rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 103"
+data,101.7,-X1011:N,1,-101F1,3,N,BU,0.75 mm²,rule/built-in,,,101
+data,101.8,-101Q1,2,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103"
+data,101.9,-101Q1,4,-103F1,3,1L2,BK,1.5 mm²,rule,IP 1L2,,"101, 103"
+data,101.10,-101Q1,6,-103F1,5,1L3,BK,1.5 mm²,rule,IP 1L3,,"101, 103"
+data,101.11,-101F1,1,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103"
+data,101.12,-101F1,2,-101G1,L,1L1/101F1:2,BK,1.5 mm²,rule/built-in,,,101
+data,101.13,-101F1,4,-101G1,N,N/101F1:4,BU,0.75 mm²,rule/built-in,,,101
+data,101.14,-101G1,+,-101G1,+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1,,101
+data,101.15,-101G1,+,-102F1,1,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 102"
+data,101.16,-101G1,+,-104A1,L+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 104"
+data,101.17,-101G1,-,-101G1,-,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1,,101
+data,101.18,-101G1,-,-X1021:5,1,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 102"
+data,101.19,-101G1,-,-104A1,M,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 104"
+data,102.1,-102F1,2,-X1021:1,1,24V/102F1:2,DBU,0.75 mm²,rule,,,102
+data,102.2,-X1021:1,2,-102S2,11,24V/102F1:2,DBU,0.75 mm²,rule,,,102
+data,102.3,-102S2,12,-102S1,13,24V/102S2:12,DBU,0.75 mm²,rule,102-D4 chain on -102S1:13,,102
+data,102.4,-102S1,13,-102Q1,13,24V/102S2:12,DBU,0.75 mm²,rule,102-D4 chain on -102S1:13,,102
+data,102.5,-102Q1,A1,-102S1,14,24V/102Q1:14,DBU,0.75 mm²,rule,102-E4 chain on -102Q1:A1,,102
+data,102.6,-X1021:6,2,-102Q1,A2,0V,BU,0.75 mm²,rule/built-in,,,102
+data,102.7,-102Q1,14,-102Q1,A1,24V/102Q1:14,DBU,0.75 mm²,rule,102-E4 chain on -102Q1:A1; chain on -102Q1:14,,102
+data,102.8,-102Q1,14,-102E1,X1,24V/102Q1:14,DBU,0.75 mm²,rule,chain on -102Q1:14,,102
+data,102.9,-X1021:7,2,-102E1,X2,0V,BU,0.75 mm²,rule/built-in,,,102
+data,103.1,-103F1,2,-102Q1,1,1L1/103F1:2,BK,1.5 mm²,rule,,,103
+data,103.2,-102Q1,2,-X1031:U,1,1L1/102Q1:2,BK,1.5 mm²,rule,,,103
+data,,-X1031:U,2,-103M1,U1,1L1/102Q1:2,BN,2.5 mm²,core,-103W1 BN,,103
+data,103.3,-103F1,4,-102Q1,3,1L2/103F1:4,BK,1.5 mm²,rule,,,103
+data,103.4,-103F1,6,-102Q1,5,1L3/103F1:6,BK,1.5 mm²,rule,,,103
+data,103.5,-102Q1,4,-X1031:V,1,1L2/102Q1:4,BK,1.5 mm²,rule,,,103
+data,103.6,-102Q1,6,-X1031:W,1,1L3/102Q1:6,BK,1.5 mm²,rule,,,103
+data,,-X1031:V,2,-103M1,V1,1L2/102Q1:4,BK,2.5 mm²,core,-103W1 BK,,103
+data,,-X1031:W,2,-103M1,W1,1L3/102Q1:6,GY,2.5 mm²,core,-103W1 GY,,103
+data,,-X1031:PE,2,-103M1,PE,PE,GNYE,2.5 mm²,core,-103W1 GNYE; chain on -103M1:PE,,103
+data,103.7,-X1031:PE,1,-X1031:SH,1,PE,GNYE,1.5 mm²,rule,103-E4 chain on -X1031:PE/a,,103
+data,,-X1031:SH,2,-103M1,PE,PE,GNYE,2.5 mm²,cdp/built-in,-103W1 SHIELD; chain on -103M1:PE,,103
+data,104.1,-104A1-A1,M,-104A1-A2,M,0V,BU,0.75 mm²,rule/built-in,104-D1 chain on -104A1-A1:M,,104
+data,104.2,-104A1-A2,2,-104E1,X1,-104A1-A2:2,BK,0.75 mm²,rule/built-in,,,104
+data,104.3,-104E1,X2,-104A1-A1,M,0V,BU,0.75 mm²,rule/built-in,104-D2 chain on -104E1:X2,,104
+data,104.4,-104B1,13,-104A1-A2,L+,24V,DBU,0.75 mm²,rule,104-E2 chain on -104B1:13,,104
+data,104.5,-104B1,14,-104A1-A1,2,24V/104B1:14,DBU,0.75 mm²,rule,,,104
+data,104.6,-104A1-A2,3,-104E2,X1,-104A1-A2:3,BK,0.75 mm²,rule/built-in,,,104
+data,104.7,-104E2,X2,-104E1,X2,0V,BU,0.75 mm²,rule/built-in,104-D4 chain on -104E2:X2,,104
+data,104.8,-104A1,L+,-104B1,13,24V,DBU,0.75 mm²,rule,"104-E2 chain on -104A1:L+, -104B1:13",,104
+data,104.9,-104A1,M,-104E2,X2,0V,BU,0.75 mm²,rule/built-in,"104-D4 chain on -104A1:M, -104E2:X2",,104
+heading,Bridges,,,,,,,,,,,
+data,BR1,-X1021:1,,-X1021:4,,24V/102F1:2,,,,"plug-in bridge, terminals 1–4",TBD,
+data,BR2,-X1021:5,,-X1021:8,,0V,,,,"plug-in bridge, terminals 5–8",TBD,
