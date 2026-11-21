@@ -4,8 +4,8 @@
 //! F18 and F19 of a test in the window, at 1920 × 1080: a station is made as a rack and filled (New station…,
 //! its head part and its modules from the catalogue, Create, one undo step), and a bus device without PLC data is
 //! given to a PLC from its symbol's menu, whose view then opens and takes a module. The rack is a view in a tab
-//! beside the page tabs (doc 10 §6). Not here: a click on the selection that brings its Properties back, and the Bus
-//! panel brought to the front (`ew-viewmodel`'s `plc_new_project.rs`).
+//! beside the page tabs (doc 10 §6). Not here: a click on the selection that brings its Properties back, the Bus
+//! panel brought to the front and Fix all of unconnected pins (`ew-viewmodel`'s `plc_new_project.rs`).
 
 use crate::support;
 
@@ -510,64 +510,6 @@ fn draw_on_a_page_lists_the_pages() {
         tabs.tabs.iter().any(|t| t.station.is_some()),
         "the station's tab stays open"
     );
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// A persona run: twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
-/// eight unconnected pins: its group's Fix all (n)… makes one card, one Apply marks them all not used (the toast says
-/// how many, with Undo), the warnings are gone, and one Undo brings them all back.
-#[test]
-fn fix_all_marks_every_unconnected_pin_in_one_step() {
-    use ew_viewmodel::ew_api::output::NavRole;
-    use ew_viewmodel::navigators::NavKind;
-    let tmp = Tmp::new();
-    let mut h = new_project(&tmp);
-    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-2", (10, 10));
-    let pins = |h: &mut egui_kittest::Harness<'static, ew_ui::app::App>| -> (usize, Option<String>) {
-        dispatch(h, "messages.show", json!({"on": true}));
-        dispatch(h, "messages.check", json!({}));
-        support::finish_jobs(h);
-        settle(h);
-        let nodes = h
-            .state()
-            .shell()
-            .nav(NavKind::Messages)
-            .and_then(|n| n.table())
-            .map(|t| t.nodes.clone())
-            .unwrap_or_default();
-        let count = nodes
-            .iter()
-            .filter(|n| {
-                n.role == NavRole::Finding
-                    && n.cells.first().is_some_and(|c| c == "warning")
-                    && n.cells.get(1).is_some_and(|c| c == "EW-POT-009")
-            })
-            .count();
-        let group = nodes
-            .iter()
-            .find(|n| n.role == NavRole::Rule && n.key == "severity:warning/rule:EW-POT-009")
-            .map(|n| n.key.clone());
-        (count, group)
-    };
-    let (before, group) = pins(&mut h);
-    assert!(before >= 2, "the unconnected pins: {before}");
-    let group = group.expect("the group of unconnected pins");
-    let offer = h.state().shell().fix_all_offer(&group);
-    assert_eq!(offer.as_ref().map(|o| o.1), Some(before), "Fix all ({before})…");
-    dispatch(&mut h, "messages.fix_all", json!({"key": group}));
-    settle(&mut h);
-    dispatch(&mut h, "preview.apply", json!({}));
-    settle(&mut h);
-    let toast = h
-        .state()
-        .shell()
-        .toast()
-        .map(|t| t.text.clone())
-        .unwrap_or_default();
-    assert_eq!(toast, format!("{before} pins marked not used."));
-    assert_eq!(pins(&mut h).0, 0, "the warnings are gone");
-    dispatch(&mut h, "edit.undo", json!({}));
-    assert_eq!(pins(&mut h).0, before, "one undo brings them all back");
     h.state_mut().shell_mut().shutdown();
 }
 

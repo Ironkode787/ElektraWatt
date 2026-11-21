@@ -3,8 +3,9 @@
 
 //! PLC work through the shell on a new project with page 101, from persona runs: a click on what is selected already
 //! brings Properties back to it, the PLC tab's Bus panel brings an open panel to the front, a terminal on a traced
-//! channel's path prints the channel's address with Project ▸ Channel addresses at terminals, and the PLC panel's Place
-//! here (on a channel's row, and ended by a Delete of its part). Not here: the station view, its To do, the PLC
+//! channel's path prints the channel's address with Project ▸ Channel addresses at terminals, Fix all marks a CPU's
+//! unconnected pins not used in one step, and the PLC panel's Place here (on a channel's row, and ended by a Delete of
+//! its part). Not here: the station view, its To do, the PLC
 //! workspace and their buttons in the window (`ew-ui`'s `plc_rack_first.rs`, `station_todo.rs`, `plc_workspace.rs`).
 
 use crate::common::{Tmp, cursor, done, grid_point};
@@ -198,6 +199,52 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         json!({"on": true}),
     );
     assert_eq!(at_terminal(&s), 1, "the terminal prints the channel's address");
+    s.shutdown();
+}
+
+/// A persona run: twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
+/// eight unconnected pins: its group's Fix all (n)… makes one card, one Apply marks them all not used (the toast says
+/// how many, with Undo), the warnings are gone, and one Undo brings them all back.
+#[test]
+fn fix_all_marks_every_unconnected_pin_in_one_step() {
+    let tmp = Tmp::new("plc-fix-all");
+    let mut s = new_project(&tmp);
+    black_box(&mut s, "EW-GEN-CPU-2", (10, 10), (16, 18));
+    let pins = |s: &mut ShellModel| -> (usize, Option<String>) {
+        done(s, "messages.show", json!({"on": true}));
+        done(s, "messages.check", json!({}));
+        s.wait_jobs();
+        let nodes = s
+            .nav(NavKind::Messages)
+            .and_then(|n| n.table())
+            .map(|t| t.nodes.clone())
+            .unwrap_or_default();
+        let count = nodes
+            .iter()
+            .filter(|n| {
+                n.role == NavRole::Finding
+                    && n.cells.first().is_some_and(|c| c == "warning")
+                    && n.cells.get(1).is_some_and(|c| c == "EW-POT-009")
+            })
+            .count();
+        let group = nodes
+            .iter()
+            .find(|n| n.role == NavRole::Rule && n.key == "severity:warning/rule:EW-POT-009")
+            .map(|n| n.key.clone());
+        (count, group)
+    };
+    let (before, group) = pins(&mut s);
+    assert!(before >= 2, "the unconnected pins: {before}");
+    let group = group.expect("the group of unconnected pins");
+    let offer = s.fix_all_offer(&group);
+    assert_eq!(offer.as_ref().map(|o| o.1), Some(before), "Fix all ({before})…");
+    done(&mut s, "messages.fix_all", json!({"key": group}));
+    done(&mut s, "preview.apply", json!({}));
+    let toast = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, format!("{before} pins marked not used."));
+    assert_eq!(pins(&mut s).0, 0, "the warnings are gone");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(pins(&mut s).0, before, "one undo brings them all back");
     s.shutdown();
 }
 
