@@ -1010,23 +1010,21 @@ impl Session {
         };
         match (edit.kind.as_str(), name) {
             // Where a marked supply point comes from: the place or the device there typed in its row moves
-            // the point and the points of its group to it (a new place is made).
+            // the point and the points of its group to it (a new place is made); a row emptied is not known (doc 06
+            // §3.5: an address alone, or a far end not known).
             ("function", "supply_place" | "supply_device") => {
                 let Some((place, device)) = self.supply_source(&[edit.target]) else {
                     return Err(LayoutEditError::Refused(ew_commands::text_key!(
                         "props-supply-no-mark"
                     )));
                 };
-                if text.is_empty() {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
-                        "props-supply-empty"
-                    )));
-                }
                 let (location, device) = if name == "supply_place" {
                     (text.to_owned(), device)
                 } else {
                     (place, text.to_owned())
                 };
+                let known = |s: String| (!s.is_empty()).then_some(s);
+                let (location, device) = (known(location), known(device));
                 let mut points: Vec<Uuid> = std::iter::once(edit.target)
                     .chain(edit.others.iter().copied())
                     .collect();

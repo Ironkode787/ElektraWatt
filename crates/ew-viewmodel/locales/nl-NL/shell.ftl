@@ -2646,7 +2646,6 @@ props-cannot-compose = Deze waarde kan hier niet worden ingesteld
 props-position-number = Typ een ventielplaats, zoals 2.
 props-position-no-terminal = Het ventiel zit op geen ventieleiland: plaats het in het kader van het eiland, of gebruik Ventiel toevoegen in het menu van het eiland.
 props-supply-no-mark = Het punt heeft geen voedingsmarkering: klik er met rechts op en kies eerst Voeding komt hier binnen…
-props-supply-empty = Typ waar de voeding vandaan komt.
 props-cannot-freeze = Er is geen nummer om vast te zetten
 props-changed-meanwhile = intussen gewijzigd: bewerk opnieuw
 props-varies = ‹verschilt› ({ $p0 })

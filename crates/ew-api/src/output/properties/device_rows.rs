@@ -34,7 +34,16 @@ impl Session {
         let mut any_frozen = false;
         for d in &devices {
             let tag = q.get::<DeviceTag>(*d);
-            let text = device_tag_text(q, *d);
+            // A device without a tag (an earth connection) shows none in its tag row; its chip says why.
+            let untagged = tag
+                .as_ref()
+                .as_ref()
+                .is_some_and(|t| t.source == ew_derive::TagSource::EarthConnection);
+            let text = if untagged {
+                String::new()
+            } else {
+                device_tag_text(q, *d)
+            };
             let provenance = tag_provenance(q, *d, tag.as_ref().as_ref());
             if matches!(provenance, Provenance::Frozen { .. }) {
                 any_frozen = true;

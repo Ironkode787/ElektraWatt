@@ -2728,7 +2728,6 @@ props-cannot-compose = This value cannot be set here
 props-position-number = Type a valve position, such as 2.
 props-position-no-terminal = The valve sits on no valve terminal: place it inside the valve terminal's box, or use Add valve on the valve terminal's menu.
 props-supply-no-mark = The point has no supply mark: right-click it and choose Supply comes in here… first.
-props-supply-empty = Type where the supply comes from.
 props-cannot-freeze = There is no number to freeze
 props-changed-meanwhile = changed meanwhile: edit again
 props-varies = ‹varies› ({ $p0 })

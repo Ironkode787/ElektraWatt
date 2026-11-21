@@ -32,14 +32,7 @@ fn row_label(q: &Q, d: Id<Device>) -> String {
     if !tag.is_empty() {
         return tag;
     }
-    q.idx()
-        .functions_of_device(d)
-        .find_map(|f| {
-            q.get::<ew_derive::FunctionCps>(f)
-                .first()
-                .map(|c| c.designation.clone())
-        })
-        .unwrap_or_default()
+    crate::output::properties::untagged_name(q, d)
 }
 
 /// The Devices tree: function nodes, location nodes inside them, the devices that are not children of another

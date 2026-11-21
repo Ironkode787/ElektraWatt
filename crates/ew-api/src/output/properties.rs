@@ -517,13 +517,30 @@ impl Session {
     }
 }
 
-/// The device's tag as displayed on its main page, else its short tag.
+/// The device's tag as displayed on its main page, else its short tag; a device without a tag (an earth connection,
+/// FT-1820) by [`untagged_name`].
 pub(crate) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     let main_page = (*q.get::<MainRep>(device)).and_then(|r| q.reps().get(r).map(|rep| rep.page));
-    match main_page {
+    let tag = match main_page {
         Some(page) => q.get::<DisplayedTag>((device, page)).as_ref().clone(),
         None => short_tag(q, device),
+    };
+    if tag.is_empty() {
+        return untagged_name(q, device);
     }
+    tag
+}
+
+/// The name of a device that has no tag (an earth connection, doc 03 §8.2): the designation of its first pin (`PE`).
+pub(crate) fn untagged_name(q: &Q, device: Id<Device>) -> String {
+    q.idx()
+        .functions_of_device(device)
+        .find_map(|f| {
+            q.get::<ew_derive::FunctionCps>(f)
+                .first()
+                .map(|c| c.designation.clone())
+        })
+        .unwrap_or_default()
 }
 
 // ---------------------------------------------------------------------------------------------------------------
