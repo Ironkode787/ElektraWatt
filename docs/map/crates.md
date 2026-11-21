@@ -71,6 +71,7 @@ The `Session` facade shared by every front-end.
 | `src/macros.rs` | large | Macros in the session (D12, D13; doc 07 §3.5, §4.6). |
 | `src/migration.rs` |  | `ew verify-migration`: an imported project against the drawing it came from (FR-IMP-021, doc 14 §4.15). |
 | `src/new_project.rs` |  | New projects (FR-PRJ-009, FR-PRJ-010; doc 07 §2.8, doc 05 §5.5): [`Session::new_project`] starts a session over a project that has no directory yet, from the built-in basic project or from a company basic project directory. |
+| `src/output/dxf_set.rs` |  | The DXF set's glue (doc 09 §4.9): which texts of a page's labels layer are the attributes of a symbol's insert and under which names (one per kind of slot, few, stable and in words: a receiver reads them), and the symbols' names in words that name their blocks. |
 | `src/output/editing.rs` |  | The reads the editing tools of the canvas prepare once per (revision, folio) or per symbol copy: what can be placed on a page ([`Session::place_catalogue`]), the `library.embed` parameters of a starter symbol ([`Session::starter_embed`]), a symbol copy's shape ([`Session::symbol_shape`]) and the records drawn on a page as tables ([`Session::page_tables`]). |
 | `src/output/editing/catalogue.rs` | large | The place catalogue: what can be placed on a page, its symbols, parts, PLC parts, template functions, bus interfaces and terminal strips, and the words their rows print. |
 | `src/output/editing/embeds.rs` |  | The `library.embed` parameters that place a starter or an installed library's symbol or part: the copies the project does not hold yet, and an installed symbol by its qualified address. |
@@ -429,7 +430,9 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/dxf.rs` | large | The DXF writer (doc 09 §4.4, FR-OUT-015): one AutoCAD 2000 (AC1015) ASCII file per page from the page's sheet layers, in millimetres (`$INSUNITS` 4), y up from the sheet's bottom edge. |
+| `src/dxf/mod.rs` | large | The DXF writer (doc 09 §4.4, §4.9, FR-OUT-015): one AutoCAD 2010 (AC1024) file per page from the page's sheet layers, in UTF-8, in millimetres (`$INSUNITS` 4), y up from the sheet's bottom edge, and the picture files its pages name. |
+| `src/dxf/picture.rs` |  | The raster pictures of a DXF page (doc 09 §4.9): a PNG or JPEG image item is an `IMAGE` that names a file the export writes beside the pages (`picture-<12 hex digits of its SHA-256>.png` or `.jpg`), with its `IMAGEDEF` in the image dictionary (`ACAD_IMAGE_DICT`), a reactor (`IMAGEDEF_REACTOR`) per `IMAGE` that ties the two, the raster variables (`ACAD_IMAGE_VARS`) and the classes of these objects, as AutoCAD writes them, so that a converter carries them into a DWG unchanged. |
+| `src/dxf/text.rs` |  | The texts of a DXF page (doc 09 §4.8, §4.9): a glyph run as a `TEXT` at the start of its glyphs on its baseline, as high as its face's capitals, at its angle, with the width factor that makes its face's own advances add up to its width in the PDF; a device's text as an `ATTRIB` of its insert and an `ATTDEF` of its block; a link source as a hyperlink (extended data of `PE_URL`); a face's `STYLE` with its family name (extended data of `ACAD`). |
 | `src/font_subset.rs` |  | The font subsetter of the SVG writer: a TrueType (`glyf`) face cut down to the glyphs a page draws, **with the glyph IDs kept** (doc 09 §4.4; FR-OUT-013). |
 | `src/lib.rs` |  | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PNG export. |
 | `src/parallel.rs` |  | The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07, AC-14). |
