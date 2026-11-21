@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::connection::{RouteConnection, point_bevels, run_routes};
 use crate::error::CmdError;
-use crate::geometry::require_on_grid;
+use crate::geometry::{rep_body as body, require_on_grid};
 use crate::meta::CommandMeta;
 use crate::proxy::{Orient2S, Pt2S, UuidS};
 use crate::text::text;
@@ -223,20 +223,6 @@ impl ApplyLayout {
         }
         Ok(())
     }
-}
-
-/// The body of `rep` as its symbol's graphics bound it (a drawn box: its outline), on the page, `[x0, y0, x1, y1]`.
-fn body(tx: &TxBuilder<'_>, rep: &Representation) -> Option<[i64; 4]> {
-    let corners: Vec<Pt2> = match rep.box_.as_ref().filter(|b| !b.outline.is_empty()) {
-        Some(b) => b.outline.iter().map(|p| rep.orient.apply(*p)).collect(),
-        None => {
-            let (lo, hi) = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?.item.graphic_bounds()?;
-            vec![rep.orient.apply(lo), rep.orient.apply(hi)]
-        }
-    };
-    let xs = corners.iter().map(|p| p.x.0 + rep.pos.x.0);
-    let ys = corners.iter().map(|p| p.y.0 + rep.pos.y.0);
-    Some([xs.clone().min()?, ys.clone().min()?, xs.max()?, ys.max()?])
 }
 
 impl Command for ApplyLayout {

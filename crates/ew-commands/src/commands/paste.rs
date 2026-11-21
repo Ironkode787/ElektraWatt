@@ -135,10 +135,11 @@ pub struct Fragment {
 /// axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
 /// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
 /// item's points and a structure box's outline vertices move by the same rule. **Fitted**: a fragment of
-/// another connection grid than the page's moves by `at − anchor` in nanometres, and then each representation so that
-/// its first connection point lies on the nearest grid point of the page (`geometry::fitted_pos`; a symbol whose own
-/// pin spacing does not fit the grid has its first pin on it), each junction and each structure box's outline vertex
-/// to its nearest grid point; page items keep their place relative to the rest (a representation's texts stand
+/// another connection grid than the page's moves by `at − anchor` in nanometres, and then the representations (each by
+/// its first connection point; a symbol whose own pin spacing does not fit the grid has its first pin on it) and the
+/// junctions onto the page's grid together, each to its nearest grid point or on by whole steps where that would bring
+/// it nearer what it faces than it stood (`geometry::fit`, doc 06 §8 item 3), each structure box's outline vertex to
+/// its nearest grid point; page items keep their place relative to the rest (a representation's texts stand
 /// relative to it), and every pasted connection loses its route, to be routed anew between the same ends (the window
 /// does it in the same undo step). (6) Frozen tags
 /// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
@@ -1361,23 +1362,22 @@ impl Insertion<'_> {
             }
         }
         let too_far = |i: usize| self.invalid(self.pointer(i), text!("refusal-paste-out-of-range"));
-        // Effect 5 fitted: moved by `at − anchor`, then onto the page's grid; the connections routed anew.
+        // Effect 5 fitted: moved by `at − anchor`, then onto the page's grid together (`geometry::fit`); the
+        // connections routed anew.
         if fit.is_some() {
             let d = sub(self.at, self.fragment.anchor)
                 .map_err(|_| self.invalid("/at", text!("refusal-paste-far-from-anchor")))?;
+            let mut items = Vec::new();
             for (i, _, record) in &mut typed {
                 let i = *i;
                 match record {
                     Record::Representation(r) => {
                         r.pos = crate::geometry::add(r.pos, d).map_err(|_| too_far(i))?;
-                        r.pos = crate::geometry::fitted_pos(tx, r, grid).map_err(|_| too_far(i))?;
-                        if rep_cps_checked(tx, r).is_err() {
-                            return Err(too_far(i));
-                        }
+                        items.push((i, crate::geometry::FitItem::rep(tx, r).map_err(|_| too_far(i))?));
                     }
                     Record::Junction(j) => {
-                        let at = crate::geometry::add(j.at, d).map_err(|_| too_far(i))?;
-                        j.at = crate::geometry::nearest_grid_point(grid, at).map_err(|_| too_far(i))?;
+                        j.at = crate::geometry::add(j.at, d).map_err(|_| too_far(i))?;
+                        items.push((i, crate::geometry::FitItem::point(j.at)));
                     }
                     Record::PageItem(item) => {
                         *item = super::items::translate_item(item, d).ok_or_else(|| too_far(i))?;
@@ -1389,6 +1389,31 @@ impl Insertion<'_> {
                         }
                     }
                     Record::Connection(c) => c.route.clear(),
+                    _ => {}
+                }
+            }
+            let fitted: Vec<crate::geometry::FitItem> = items.iter().map(|(_, item)| *item).collect();
+            let moves: BTreeMap<usize, Pt2> = crate::geometry::fit(grid, &fitted)
+                .map_err(|_| {
+                    self.invalid(
+                        format!("{}/records", self.prefix),
+                        text!("refusal-paste-out-of-range"),
+                    )
+                })?
+                .into_iter()
+                .zip(&items)
+                .map(|(m, (i, _))| (*i, m))
+                .collect();
+            for (i, _, record) in &mut typed {
+                let (i, m) = (*i, moves.get(i).copied().unwrap_or(Pt2::ORIGIN));
+                match record {
+                    Record::Representation(r) => {
+                        r.pos = crate::geometry::add(r.pos, m).map_err(|_| too_far(i))?;
+                        if rep_cps_checked(tx, r).is_err() {
+                            return Err(too_far(i));
+                        }
+                    }
+                    Record::Junction(j) => j.at = crate::geometry::add(j.at, m).map_err(|_| too_far(i))?,
                     _ => {}
                 }
             }

@@ -80,7 +80,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The grid fit and moves
 
-- FT-1817 `ew-commands, ew-api`: After a page's grid change or a paste fitted to another grid each item goes to its nearest grid point one by one (`commands/page.rs`, `commands/paste.rs`, `geometry.rs`), so two symbols can end on one another (EW-CORE-077 reports it) and two pins so close that a wire finds no way. Let the fit part what it pushed together and leave room for every wire.
 - FT-1818 `ew-viewmodel`: With a fitted symbol (its first pin on the grid, its position between grid points) the first arrow key moves the ghost a part of a step in the readout, while the move itself is whole steps.
 - FT-1836 `ew-viewmodel, ew-scene`: While a wire's pin name is asked (a wire drawn to a box's edge where no pin is), the wire's ghost is hidden; show it until the name is given.
 - FT-1796 `ew-viewmodel`: A drag that starts on a pin's label of a symbol moves the symbol; the tag, a box's caption and the texts of one selected symbol are dragged by themselves already.

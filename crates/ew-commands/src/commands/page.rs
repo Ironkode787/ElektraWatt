@@ -945,9 +945,10 @@ impl Command for SetSurfaceView {
 }
 
 /// `page.set_grid` (`SetPageGrid`): changes a page's connection grid and fits what stands on it to the new
-/// grid, in one undo step: each representation moves so that its first connection point lies on the nearest grid point
-/// (`geometry::fitted_pos`; a symbol whose own pin spacing does not fit the grid has its first pin on it), each
-/// junction and each structure box's outline vertex to its nearest grid point; page items keep their places, and every
+/// grid, in one undo step: the representations (each by its first connection point; a symbol whose own pin spacing does
+/// not fit the grid has its first pin on it) and the junctions move onto the grid together, each to its nearest grid
+/// point or on by whole steps where that would bring it nearer what it faces than it stood (`geometry::fit`, doc 06 §8
+/// item 3), each structure box's outline vertex to its nearest grid point; page items keep their places, and every
 /// connection on the page loses its route, to be routed anew between the same ends (the window routes them in the same
 /// undo step). The page's own grid again changes nothing. Rejected: a page that does not exist; a point that would
 /// leave the drawable range. Interactive. Outcome: the page.
@@ -980,25 +981,47 @@ impl Command for SetPageGrid {
             |tx: &TxBuilder<'_>| tx.reject::<()>(text!("refusal-page-grid-out-of-range", folio.clone()));
         let grid = self.grid;
         tx.update::<Page>(self.page, |p| p.grid = grid)?;
-        for id in tx.reps_on_page(self.page) {
-            let r = tx.require::<Representation>(id)?;
-            let Ok(pos) = crate::geometry::fitted_pos(tx, &r, grid) else {
+        // The symbols and the junctions fitted together (`geometry::fit`), so that none ends on another.
+        let reps: Vec<Arc<Representation>> = tx
+            .reps_on_page(self.page)
+            .into_iter()
+            .map(|id| tx.require::<Representation>(id))
+            .collect::<Result<_, _>>()?;
+        let junctions: Vec<Arc<Junction>> = tx
+            .junctions_on_page(self.page)
+            .into_iter()
+            .map(|id| tx.require::<Junction>(id))
+            .collect::<Result<_, _>>()?;
+        let fitted = reps
+            .iter()
+            .map(|r| crate::geometry::FitItem::rep(tx, r))
+            .chain(junctions.iter().map(|j| Ok(crate::geometry::FitItem::point(j.at))))
+            .collect::<Result<Vec<_>, _>>()
+            .and_then(|items| crate::geometry::fit(grid, &items));
+        let Ok(moves) = fitted else {
+            out_of_range(tx)?;
+            return Ok(outcome);
+        };
+        let (rep_moves, junction_moves) = moves.split_at(reps.len());
+        for (r, d) in reps.iter().zip(rep_moves) {
+            if *d == Pt2::ORIGIN {
+                continue;
+            }
+            let Ok(pos) = crate::geometry::add(r.pos, *d) else {
                 out_of_range(tx)?;
                 continue;
             };
-            if pos != r.pos {
-                tx.update::<Representation>(id, |r| r.pos = pos)?;
-            }
+            tx.update::<Representation>(r.id, |r| r.pos = pos)?;
         }
-        for id in tx.junctions_on_page(self.page) {
-            let j = tx.require::<Junction>(id)?;
-            let Ok(at) = crate::geometry::nearest_grid_point(grid, j.at) else {
+        for (j, d) in junctions.iter().zip(junction_moves) {
+            if *d == Pt2::ORIGIN {
+                continue;
+            }
+            let Ok(at) = crate::geometry::add(j.at, *d) else {
                 out_of_range(tx)?;
                 continue;
             };
-            if at != j.at {
-                tx.update::<Junction>(id, |j| j.at = at)?;
-            }
+            tx.update::<Junction>(j.id, |j| j.at = at)?;
         }
         for id in tx.structure_boxes_on_page(self.page) {
             let b = tx.require::<ew_schema::StructureBox>(id)?;

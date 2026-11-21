@@ -109,14 +109,139 @@ pub(crate) fn nearest_grid_point(grid: Grid, p: Pt2) -> Result<Pt2, OutOfRange> 
     }
 }
 
-/// The position at which `rep` stands fitted to `grid` (a paste onto a page of another grid, a page's grid
-/// changed): moved so that its first connection point ([`rep_cps`]' order) lies on the nearest grid point, the others
+/// The position at which `rep` stands fitted to `grid` alone (a fitted symbol turned; a page's or a paste's items are
+/// fitted together by [`fit`]): moved so that its first connection point ([`rep_cps`]' order) lies on the nearest grid
+/// point, the others
 /// keeping their places relative to it (a symbol whose own pin spacing does not fit the grid has its first pin on
 /// it); a representation without connection points has its position there.
 pub(crate) fn fitted_pos(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -> Result<Pt2, OutOfRange> {
     let at = rep_cps_checked(tx, rep)?.first().map_or(rep.pos, |c| c.pos);
     let to = nearest_grid_point(grid, at)?;
     add(rep.pos, sub(to, at)?)
+}
+
+/// The body of `rep` as its symbol's graphics bound it (a drawn box: its outline), on the page, `[x0, y0, x1, y1]`.
+pub(crate) fn rep_body(tx: &TxBuilder<'_>, rep: &Representation) -> Option<[i64; 4]> {
+    let corners: Vec<Pt2> = match rep.box_.as_ref().filter(|b| !b.outline.is_empty()) {
+        Some(b) => b.outline.iter().map(|p| rep.orient.apply(*p)).collect(),
+        None => {
+            let (lo, hi) = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?.item.graphic_bounds()?;
+            vec![rep.orient.apply(lo), rep.orient.apply(hi)]
+        }
+    };
+    let xs = corners.iter().map(|p| p.x.0 + rep.pos.x.0);
+    let ys = corners.iter().map(|p| p.y.0 + rep.pos.y.0);
+    Some([xs.clone().min()?, ys.clone().min()?, xs.max()?, ys.max()?])
+}
+
+/// One thing the grid fit moves ([`fit`]): the point that goes onto the grid and the box it takes on the page.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct FitItem {
+    /// The point that goes onto the grid: a symbol's first connection point (its position without one), a junction's
+    /// point.
+    at: Pt2,
+    /// The box's least corner.
+    lo: Pt2,
+    /// The box's greatest corner.
+    hi: Pt2,
+}
+
+impl FitItem {
+    /// A representation as the fit moves it: by its first connection point ([`rep_cps`]' order, its position without
+    /// one), taking its body ([`rep_body`]) and its connection points.
+    pub(crate) fn rep(tx: &TxBuilder<'_>, rep: &Representation) -> Result<FitItem, OutOfRange> {
+        let cps = rep_cps_checked(tx, rep)?;
+        let at = cps.first().map_or(rep.pos, |c| c.pos);
+        let mut item = FitItem::point(at);
+        let body = rep_body(tx, rep).map(|[x0, y0, x1, y1]| [Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1))]);
+        for p in cps.iter().map(|c| c.pos).chain(body.into_iter().flatten()) {
+            item.lo = Pt2::new(item.lo.x.min(p.x), item.lo.y.min(p.y));
+            item.hi = Pt2::new(item.hi.x.max(p.x), item.hi.y.max(p.y));
+        }
+        Ok(item)
+    }
+
+    /// A point as the fit moves it (a junction): onto the grid, taking no room but its own.
+    pub(crate) fn point(at: Pt2) -> FitItem {
+        FitItem { at, lo: at, hi: at }
+    }
+}
+
+/// The 1 nm of rounding a grid of fractions of a nanometre leaves between two whole steps, with a nanometre to spare: a
+/// gap that closes by no more is kept.
+const FIT_SLACK: i128 = 2;
+
+/// The grid fit of doc 06 §8 item 3 (a page's grid changed, a paste onto a page of another grid): the displacement
+/// that brings each of `items` onto `grid`, in their order. Axis by axis, x first, each item goes to the grid point
+/// nearest its point; then, taken in the order of their boxes' near edges, each moves on by as few whole steps further
+/// right (down) as keep the gap between it and every item before it that faces it at least what the gap was or two
+/// steps, whichever is less. Two items face each other along x when their boxes share some height, along y when they
+/// share some width after the x pass; items whose boxes overlapped along the axis keep no rule between them. So no two
+/// items that stood apart end on one another, things that face each other keep their order, and two pins with more
+/// than a step between them keep a grid line between them for a wire; what is given up is the exact nearest point of
+/// an item pushed on. [`OutOfRange`] when a point would leave the drawable range.
+pub(crate) fn fit(grid: Grid, items: &[FitItem]) -> Result<Vec<Pt2>, OutOfRange> {
+    let x = |p: Pt2| i128::from(p.x.0);
+    let y = |p: Pt2| i128::from(p.y.0);
+    let across_y: Vec<(i128, i128)> = items.iter().map(|i| (y(i.lo), y(i.hi))).collect();
+    let dx = fit_axis(grid, items, x, &across_y)?;
+    let across_x: Vec<(i128, i128)> = items
+        .iter()
+        .zip(&dx)
+        .map(|(i, d)| (x(i.lo) + d, x(i.hi) + d))
+        .collect();
+    let dy = fit_axis(grid, items, y, &across_x)?;
+    dx.into_iter()
+        .zip(dy)
+        .map(|(a, b)| match (i64::try_from(a), i64::try_from(b)) {
+            (Ok(a), Ok(b)) => Ok(Pt2::new(Nm(a), Nm(b))),
+            _ => Err(OutOfRange),
+        })
+        .collect()
+}
+
+/// [`fit`] along one axis (`axis` reads a point's coordinate on it): the displacement of each item; `across` is each
+/// item's extent on the other axis, by which two items face each other.
+fn fit_axis(
+    grid: Grid,
+    items: &[FitItem],
+    axis: impl Fn(Pt2) -> i128,
+    across: &[(i128, i128)],
+) -> Result<Vec<i128>, OutOfRange> {
+    let at = |k: i64| grid.at(k).map(|v| i128::from(v.0)).ok_or(OutOfRange);
+    let two = at(2)? - at(0)?;
+    let mut order: Vec<usize> = (0..items.len()).collect();
+    order.sort_by_key(|&i| (axis(items[i].lo), axis(items[i].hi), i));
+    let mut shift = vec![0i128; items.len()];
+    for (n, &j) in order.iter().enumerate() {
+        let item = &items[j];
+        let a = axis(item.at);
+        let near = i64::try_from(a).map_err(|_| OutOfRange)?;
+        let mut k = grid.snap(Nm(near));
+        let mut d = at(k)? - a;
+        // The least displacement that keeps every gap before it.
+        let need = order[..n]
+            .iter()
+            .filter(|&&i| across[i].0 <= across[j].1 && across[j].0 <= across[i].1)
+            .filter_map(|&i| {
+                let gap = axis(item.lo) - axis(items[i].hi);
+                (gap >= 0).then(|| axis(items[i].hi) + shift[i] + gap.min(two) - FIT_SLACK - axis(item.lo))
+            })
+            .max();
+        if let Some(need) = need.filter(|need| *need > d) {
+            let to = i64::try_from(a + need).map_err(|_| OutOfRange)?;
+            k = k.max(grid.snap(Nm(to)));
+            while at(k)? - a < need {
+                k = k.checked_add(1).ok_or(OutOfRange)?;
+            }
+            d = at(k)? - a;
+        }
+        if !(-i128::from(MAX_COORD)..=i128::from(MAX_COORD)).contains(&(a + d)) {
+            return Err(OutOfRange);
+        }
+        shift[j] = d;
+    }
+    Ok(shift)
 }
 
 /// The point by which `rep` keeps to `grid`: its position when that is a grid point, else its first connection

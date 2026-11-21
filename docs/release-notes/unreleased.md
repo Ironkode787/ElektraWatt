@@ -15,6 +15,10 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a page's grid changed (`page.set_grid`) and a paste or a macro fitted to another grid move their
+  symbols and junctions onto it together: where the nearest grid points would bring two things nearer than they
+  stood, the later one moves on by whole steps, so no symbol ends on another, a row keeps its order and two pins with
+  more than a step between them keep a grid line between them for a wire (doc 06 §8 item 3, FT-1817)
 - behaviour-change: a Dutch project's lists print the program's own words in their cells in Dutch, as their headings:
   a channel's state and kind, a potential's type and class, "Structuur" and "Apparaat", a revision's state, a bridge
   and its heading ("Bruggen", "insteekbrug, klemmen 1–4"), a wire's source and junction ("ader", "ster bij"), "uit

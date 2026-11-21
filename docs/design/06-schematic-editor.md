@@ -206,7 +206,9 @@ turned by a half turn and a neighbour's tag or body meet, the tag moves off the 
 
 *As built (0.3).* With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
 hand over it) and dragged alone; the tag of a symbol that is not selected is grabbed the same way, the tag under the
-pointer winning over a symbol's body (rc.3), and a click on it selects its symbol: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
+pointer winning over a symbol's body (rc.3), and so is a pin's label (the text of a connection point's designation,
+FT-1796), and a click on either selects its symbol. This rule covers every text of a symbol a drag moves alone, pin
+labels included: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
 counter-clockwise while it is dragged, and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
 representation's `SlotOverride` in symbol coordinates (one undo step). Hide text in the menu over a text sets
 `visible: false`; Put the text back, in the menu over a text (greyed with its reason while the texts stand where the
@@ -1553,6 +1555,22 @@ export start (FR-OUT-001).
    in the paste's undo step; a toast says the paste was fitted, how many items moved and that the wires were redrawn.
    A page's Connection grid changed in Properties while it holds items asks first (what moves, that the wires are
    redrawn; Change and fit or Cancel) and fits the whole page the same way (`page.set_grid`), one undo step.
+
+   *The fit parts what it would push together (FT-1817).* Each item going to its nearest grid point alone put two
+   symbols on one another and two pins so close that a wire found no way. The fit moves the symbols and junctions of
+   the page (of the paste) together, one function for `page.set_grid`, `edit.paste` and `macro.insert`
+   (`geometry::fit`), axis by axis, x first. Each item takes the box of its body and its pins and goes onto the grid by
+   its point (a symbol's first pin, a junction's own point): to the nearest grid point, then, taken in the order of
+   their left (top) edges, as many whole steps further right (down) as keep the gap to every item before it that
+   faces it at least what the gap was, or two steps where it was more. Two items face each other along x where their
+   boxes share some height, along y where they share some width after the x pass. *It keeps* the order of the things
+   that face each other along each axis; two things that stood apart stand apart (touching at most where they
+   touched); two pins with more than a step between them keep a grid line between them for a wire. *It gives up* the
+   exact nearest point of an item pushed on (a row whose pitch the new grid does not hold spreads to whole steps), and
+   the line-up of things that do not face each other (a column above a row may part from it by a step; its wires,
+   routed anew, take the turn). Items that overlapped along an axis before keep no rule between them there. Structure
+   boxes take their corners' nearest grid points and page items keep their places, as before. A copy of pages is no
+   fit: it keeps every position as its source holds it (§3.6).
 4. **QET anchors.** QET-imported symbols keep QET's element-origin anchor so that imported texts match the source,
    including "3-B0"; FR-CHK-035 then reports the empty cell (FR-IMP-038).
 5. **Graphic lines used as wires** (a QET habit). A graphic line ending on a CP has no meaning; the lint EW-CORE-071
