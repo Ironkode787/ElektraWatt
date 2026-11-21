@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Texts placed clear of one another (the persona round of the third 0.3.0 candidate): the number of a terminal in
+//! Texts placed clear of one another: the number of a terminal in
 //! a stack two grid steps apart stands by its own terminal, not under the one above; a turned breaker's part number
 //! and rating, which the turn put on one row, do not lie on each other; an interruption point's name placed at a box's
 //! pin does not lie on the pin's text.

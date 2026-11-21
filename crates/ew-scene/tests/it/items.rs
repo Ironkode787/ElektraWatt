@@ -3,7 +3,7 @@
 
 //! Page items and structure boxes drawn: graphics and box outlines in the symbols layer,
 //! free texts, wire-marker groups and captions in the labels layer, each tagged with its entity, in ID order, and a
-//! page without items unchanged; the image item of part 5 (§11) in the symbols layer.
+//! page without items unchanged; the image item in the symbols layer.
 
 use std::sync::Arc;
 

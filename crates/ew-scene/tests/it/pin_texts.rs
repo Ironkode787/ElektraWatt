@@ -105,7 +105,7 @@ fn near(a: i64, b: i64) -> bool {
     (a - b).abs() <= 1_000
 }
 
-/// The rule for the four sides (as the fourth candidate drew it): a pin text of the top or the bottom side is
+/// The rule for the four sides: a pin text of the top or the bottom side is
 /// turned a quarter, reading from bottom to top; one of the left or the right side is horizontal; each sits inside the
 /// box, 1 mm from its pin.
 #[test]
@@ -214,7 +214,7 @@ fn a_moved_text_and_a_boxs_pin_texts_stay_where_they_were() {
     );
 }
 
-/// rc.5 (the owner's box made smaller had its cross-reference on its edge): a cross-reference text that would cross a
+/// A cross-reference text that would cross a
 /// narrow black box's right edge stands outside it, left of its top-left corner, clear of the outline.
 #[test]
 fn a_narrow_boxs_cross_reference_stands_outside_it() {

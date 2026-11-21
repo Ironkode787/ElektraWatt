@@ -3,7 +3,7 @@
 
 //! The labels layer of a schematic page: the page as the layout sees it ([`ew_drafting::DraftPage`], built here
 //! once from the view, docs/design/06a-drafting.md §2.1 and §2.2) and its texts drawn where
-//! [`ew_drafting::settle_labels`] sets them (§5).
+//! [`ew_drafting::settle_labels`] sets them (doc 06a §5).
 //!
 //! # The model of the page
 //!
@@ -16,7 +16,7 @@
 //!   cells, `locked` when the representation is kept in place. Its role is [`Role::Other`](ew_drafting::Role) here.
 //! - **Wires:** every connection whose ends the page draws: its drawn polyline when it has a stored route, else no
 //!   route (unrouted). **Junctions** at their points. **Marks:** each cable mark, by its line, ticks and core names.
-//! - **Labels** (§5.2): the slot texts that no override moves or turns, by their slot's kind; a drawn box's texts
+//! - **Labels** (doc 06a §5.2): the slot texts that no override moves or turns, by their slot's kind; a drawn box's texts
 //!   (its tag, and its other texts as its data); the strip tags; the wire numbers (along the wire; an unrouted wire's
 //!   beside its dashed line); a cable mark's tag and type line.
 //! - **Fixed texts:** a slot text that an override moves or turns, the pin texts of a drawn box, the texts beside a

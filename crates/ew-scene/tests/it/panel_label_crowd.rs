@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A layout page that can be read (doc 12 §5.3, the owner's finding of the first 0.3.0 candidate: at 1:10 the tags of
-//! one rail ran into each other): crowded labels move apart, item numbers print in balloons, and a label a person
+//! A layout page that can be read (doc 12 §5.3: at 1:10 the tags of
+//! one rail must not run into each other): crowded labels move apart, item numbers print in balloons, and a label a person
 //! moved stands where he put it with a leader to its device.
 
 use ew_dl::{ItemKind, Layer, PathEl};

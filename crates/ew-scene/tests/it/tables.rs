@@ -188,8 +188,7 @@ fn text_that_does_not_fit_is_shrunk_then_cut_and_reported() {
     );
 }
 
-/// The persona runs of the third 0.3.0 candidate: the parts list cut a description ("PLC CPU with PROFINET and …")
-/// beside columns with room to spare. A text that its column would cut takes the room the others spare: it prints
+/// The parts list must not cut a description ("PLC CPU with PROFINET and …") beside columns with room to spare. A text that its column would cut takes the room the others spare: it prints
 /// whole, at the full size, and nothing is reported.
 #[test]
 fn a_text_its_column_would_cut_takes_the_room_the_other_columns_spare() {

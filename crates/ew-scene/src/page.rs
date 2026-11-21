@@ -1240,7 +1240,7 @@ impl Builder<'_> {
         self.item_graphics(view);
     }
 
-    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2, rc.2): the sub-base along the
+    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2): the sub-base along the
     /// bottom of the cells with its galleries (supply 1, exhausts 3 and 5) drawn through it, one row each, each valve
     /// port that ends on it joined to its gallery by a line with a dot, and each cell's number centred under the
     /// galleries; a thin line between two cells above it, the line that closes the supply end (dashed while no supply

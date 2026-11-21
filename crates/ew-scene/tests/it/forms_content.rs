@@ -402,7 +402,7 @@ fn cover_graphics() -> Vec<Value> {
 /// The label of a cover row and the placeholder it prints; `None`: no placeholder path exists yet.
 type CoverRow = (&'static str, Option<&'static str>);
 
-/// The rows of the project data box by group (the separators of §17.3 bound them). The reference prints 15
+/// The rows of the project data box by group (the separators of doc 20 §17.3 bound them). The reference prints 15
 /// properties; three have no placeholder path yet (the manufacturing year, the control current and the
 /// consumption: `title_block` resolves none of them, `Quantity` has no text form), so their rows keep their
 /// slot and print nothing.
