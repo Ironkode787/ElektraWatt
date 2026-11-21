@@ -362,8 +362,10 @@ fn merge_value(
     if a == o {
         return b.cloned();
     }
-    // Both sides changed it: a strategy applies where the member exists at the base (D13).
-    let merged = match o.and_then(|_| strategy_at(kind, path)) {
+    // Both sides changed it: a strategy applies where the member exists at the base (D13); an object absent there
+    // counts as its default, the empty object (doc 05 §11.2), so two sides that each add another member merge.
+    let strategy = strategy_at(kind, path).filter(|s| o.is_some() || *s == MergeStrategy::Object);
+    let merged = match strategy {
         Some(MergeStrategy::Object) => merge_object(kind, path, o, a, b, out),
         Some(MergeStrategy::Keyed { key, order }) => merge_keyed(path, key, order, o, a, b, out),
         Some(MergeStrategy::Set { order }) => merge_set(order, o, a, b),
@@ -424,11 +426,12 @@ fn merge_object(
     b: Option<&Value>,
     out: &mut Vec<Conflict>,
 ) -> Option<Option<Value>> {
-    let om = o?.as_object()?;
+    let om = object_or_absent(o)?;
     let am = object_or_absent(a)?;
     let bm = object_or_absent(b)?;
     let names: BTreeSet<&String> = om
-        .keys()
+        .into_iter()
+        .flat_map(|m| m.keys())
         .chain(am.into_iter().flat_map(|m| m.keys()))
         .chain(bm.into_iter().flat_map(|m| m.keys()))
         .collect();
@@ -439,7 +442,7 @@ fn merge_object(
         let value = merge_value(
             kind,
             &child,
-            om.get(name),
+            om.and_then(|m| m.get(name)),
             am.and_then(|m| m.get(name)),
             bm.and_then(|m| m.get(name)),
             out,

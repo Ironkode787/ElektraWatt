@@ -82,7 +82,7 @@ fn a_record_added_differently_on_both_sides_merges_per_member_with_an_empty_base
     assert_eq!(
         conflict.as_deref(),
         Some(
-            r#"{"$k":"conflict","base":{},"id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","kind":"connection","ours":{"overrides":{"csa":"1.5"}},"theirs":{"overrides":{"csa":"2.5"}}}"#
+            r#"{"$k":"conflict","base":{"overrides":{}},"id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","kind":"connection","ours":{"overrides":{"csa":"1.5"}},"theirs":{"overrides":{"csa":"2.5"}}}"#
         )
     );
 }
@@ -213,16 +213,21 @@ fn an_object_absent_on_one_side_counts_as_empty() {
     );
 }
 
+/// FT-1917: a wire whose record held no overrides takes the cross-section on one side and the colour on the other;
+/// the overrides absent at the base count as the empty object, so the two members merge (doc 05 §11.2).
 #[test]
-fn an_object_strategy_needs_the_member_at_the_base() {
+fn an_object_absent_at_the_base_counts_as_empty() {
     let o = rec("connection", json!({}));
     let a = rec("connection", json!({"overrides": {"csa": "1.5"}}));
     let b = rec("connection", json!({"overrides": {"colour": ["BU"]}}));
     assert_eq!(
         merged(Some(&o), Some(&a), Some(&b)),
         (
-            text(&a),
-            Some(r#"{"$k":"conflict","base":{},"id":"5e07c3b9-1a4d-7f82-a6c3-90d8e2b71f4c","kind":"connection","ours":{"overrides":{"csa":"1.5"}},"theirs":{"overrides":{"colour":["BU"]}}}"#.to_owned())
+            text(&rec(
+                "connection",
+                json!({"overrides": {"csa": "1.5", "colour": ["BU"]}})
+            )),
+            None
         )
     );
 }

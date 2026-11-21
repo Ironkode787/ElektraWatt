@@ -536,7 +536,8 @@ pub struct MergeRule {
 }
 
 /// The merge strategies of WP-S1.17 D13 (decision log ID-1268): every other member merges atomically, and a record of
-/// an unknown kind as a whole. A row applies where the member exists at the base and both sides changed it.
+/// an unknown kind as a whole. A row applies where the member exists at the base and both sides changed it; an
+/// `Object` row also where the base omits the member, which counts as the empty object.
 pub const MERGE_STRATEGIES: &[MergeRule] = &[
     MergeRule {
         kind: Kind::Connection,

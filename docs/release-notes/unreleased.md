@@ -385,3 +385,6 @@ change here.
 - behaviour-change: EW-POT-013 accepts a breaker whose phase pole and neutral pole are two functions of one device (1P+N
   wired with L and N): the poles of one device switch together; it was reported as opening the neutral without the phase
   (doc 08 §8.2, FT-1903)
+- behaviour-change: two sessions or branches that each set another override of one wire whose record held none (the
+  cross-section here, the colour there) merge both; the cross-section was shown as changed on both sides and the later
+  edit refused (doc 05 §11.2, FT-1917)
