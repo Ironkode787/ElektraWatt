@@ -142,6 +142,8 @@ pub struct FormTable {
     pub fixed: bool,
     /// The key of the first column's header (`Value set`).
     pub key_label: Key<'static>,
+    /// The key of the button under a table that is not fixed, which adds a row (`Add value set`).
+    pub add_key: Key<'static>,
     /// The columns after the first: the variable's name and its type's word (`number`), which types the cells.
     pub columns: Vec<(String, String)>,
     /// The rows in order.

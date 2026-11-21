@@ -1421,6 +1421,7 @@ reachable without AltGr on QWERTZ and AZERTY layouts.
 | Find, find and replace | Ctrl+F, Ctrl+H | Ctrl+F, Ctrl+H |
 | Undo, redo | Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y on Windows) | Ctrl+Z, Ctrl+Y |
 | Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X (on Windows also Shift+Delete, as built), Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
+| Paste in place (§3.6) | Edit menu only | — |
 | Delete | Del | Del |
 | Fit page, fit selection | Home, Shift+Home | Home, — |
 | Cancel tool, clear selection | Esc | Esc |

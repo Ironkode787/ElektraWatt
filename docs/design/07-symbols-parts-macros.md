@@ -804,6 +804,11 @@ every pull request (§6.2).
 - **Open ends.** Connections to objects outside the selection are dropped; their CPs become the macro's open ends.
 - **Insertion point.** The user picks it; it is snapped to the macro's grid.
 
+*As built (FT-1862).* A page macro's pages named by folio (`macros.save {pages}`) need no selection and no marked page,
+and without a kind they make a page macro. A copy of pages ([06](06-schematic-editor.md) §3.6) starts from the same
+fragment of the pages, widened by the cables, bonds and connections a second installation keeps together; the page
+macro itself does not carry them.
+
 **Variables are created by picking.**
 1. Select an object property in the property grid.
 2. Choose "make variable".

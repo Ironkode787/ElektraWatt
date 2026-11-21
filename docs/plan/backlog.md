@@ -50,10 +50,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 - FT-1930 `ew`: Three openings do not yet warn about a file `manifest.json` does not list, as the common open does since FT-1879: the editing open of `ew route`, `ew revision`, and the editing part of `ew project assets purge`.
 
-#### A copy of pages
-
-- FT-1862 `ew-commands, ew-viewmodel`: No copy of pages keeps what belongs together (coil and contacts, a strip's terminals, a cable's cores) and renumbers by a rule, so a second, identical installation is built by running the same script twice. Paste hangs by its middle and cannot land in place, and is refused when one text lies in the header band where the Text tool put it; `macros.save` with pages says nothing is selected.
-
 #### Two drawing faults
 
 - FT-1864 `ew-drafting, ew-commands`: A straight wire drawn one step above a row of symbols is rerouted round them without a word, and the taps on it then hang free.

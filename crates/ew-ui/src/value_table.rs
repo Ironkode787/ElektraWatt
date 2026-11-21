@@ -6,7 +6,8 @@
 //! `type.small` SemiBold `color.text.secondary`), the named first column closed by the one vertical line
 //! (`color.table.frozen_edge`), body rows `size.row` high with a 1-px `color.border.subtle` line under each, every cell
 //! an inline field drawn in its editing look while it has the focus (`color.surface.panel`, a 1-px accent border,
-//! `radius.sm`, inset 2 px), a remove button (`x`) at each row's end, and "Add value set" under the table. Columns
+//! `radius.sm`, inset 2 px), a remove button (`x`) at each row's end, and the table's add button under it ("Add value
+//! set", [`FormTable::add_key`]). Columns
 //! share the width the first column and the remove button leave, never under `size.table_column.min`; a table wider
 //! than the dialog scrolls sideways. Each edit is a view event; the shell keeps the table (no preview, no command).
 //!
@@ -269,7 +270,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
         ui,
         components::Kind::Subtle,
         Some(IconId::plus),
-        strings::text(key!("form-value-set-add")),
+        strings::text(table.add_key),
         true,
         0.0,
     )

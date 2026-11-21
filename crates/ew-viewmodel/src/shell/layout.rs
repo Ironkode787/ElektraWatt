@@ -1866,6 +1866,7 @@ impl ShellModel {
                         heading_key: key!("form-locate-devices"),
                         fixed: true,
                         key_label: key!("form-locate-device"),
+                        add_key: key!("form-value-set-add"),
                         columns: vec![(tick, super::TICK.to_owned())],
                         rows: candidates
                             .iter()

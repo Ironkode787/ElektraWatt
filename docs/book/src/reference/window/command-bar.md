@@ -53,6 +53,15 @@ Moves the page shown one place up in the page order.
 
 Moves the page shown one place down in the page order.
 
+### Copy pages…
+
+Copies the marked pages (else the page shown) for a second, identical installation: each device with all its
+functions, so a coil and its contacts stay together, each strip with its terminals, each cable with its cores. The form
+asks for the new folio numbers (a number added to each, or the page the copies follow), a structure node the copy gets
+of its own, and texts to change in frozen tags and in the names of interruption points (24V into 24V.2). The tags follow
+the new pages. The preview says what the copy leaves on pages that are not copied; Apply makes the copy in one undo
+step.
+
 ### Add legend
 
 On a panel layout page, puts the legend beside the layout: each item number of the page with its tag, quantity, part

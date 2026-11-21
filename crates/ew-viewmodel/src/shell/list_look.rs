@@ -178,6 +178,7 @@ impl ShellModel {
                     heading_key: key!("list-columns-table"),
                     fixed: true,
                     key_label: key!("list-columns-column"),
+                    add_key: key!("form-value-set-add"),
                     columns: vec![
                         (words[0].clone(), TICK.to_owned()),
                         (words[1].clone(), String::new()),
@@ -326,6 +327,7 @@ impl ShellModel {
                     heading_key: key!("list-rows-table"),
                     fixed: true,
                     key_label: key!("list-rows-row"),
+                    add_key: key!("form-value-set-add"),
                     columns: headings.iter().map(|(_, h)| (h.clone(), String::new())).collect(),
                     rows,
                 }),

@@ -1156,6 +1156,7 @@ impl ShellModel {
                     heading_key: key!("form-value-sets"),
                     fixed: false,
                     key_label: key!("form-value-set-name"),
+                    add_key: key!("form-value-set-add"),
                     columns,
                     rows,
                 }),

@@ -502,6 +502,7 @@ impl ShellModel {
                             heading_key: key!("form-cable-cores"),
                             fixed: true,
                             key_label: key!("form-cable-wire"),
+                            add_key: key!("form-value-set-add"),
                             columns: vec![(strings::text(key!("form-cable-core")).to_owned(), String::new())],
                             rows,
                         }),

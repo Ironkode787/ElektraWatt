@@ -199,7 +199,7 @@ fn a_script_copies_a_relay_a_strip_over_two_pages_and_a_cable_together() {
     );
     let card = s.properties().card().expect("the copy's card");
     assert!(matches!(card.origin, CardOrigin::PageCopy { .. }));
-    assert_eq!(s.preview_summary().as_deref(), Some("Copy 2 pages"));
+    assert_eq!(s.preview_summary().as_deref(), Some("Copy 2 pages: 11, 12"));
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(common::toast(&s), "Copied 2 pages: 21, 22.");
     assert_eq!(labels(&mut s, "21"), moved(&on11, "11", "21"));

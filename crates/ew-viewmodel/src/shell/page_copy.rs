@@ -13,7 +13,7 @@ use super::forms::{FormDialog, FormField, FormTable};
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::properties::{Card, CardOrigin};
 use crate::strings;
-use crate::{count_key, key};
+use crate::key;
 
 /// The action of Copy pages… (its form dispatches it).
 const ACTION: &str = "pages.copy";
@@ -145,6 +145,7 @@ impl ShellModel {
                     heading_key: key!("form-page-copy-rename"),
                     fixed: false,
                     key_label: key!("form-page-copy-rename-old"),
+                    add_key: key!("form-page-copy-rename-add"),
                     columns: vec![(
                         strings::text(key!("form-page-copy-rename-new")).to_owned(),
                         String::new(),
@@ -212,7 +213,18 @@ impl ShellModel {
                 &[&plan.continued.join(", ")],
             ));
         }
-        let lead = strings::format_count(count_key!("page-copy-lead"), pages.len());
+        let folios: Vec<String> = pages
+            .iter()
+            .filter_map(|id| self.page_rows().iter().find(|r| r.id == *id))
+            .map(|r| r.folio.clone())
+            .collect();
+        let lead = match folios.as_slice() {
+            [one] => strings::format(key!("page-copy-lead-one"), &[one]),
+            _ => strings::format(
+                key!("page-copy-lead"),
+                &[&folios.len().to_string(), &folios.join(", ")],
+            ),
+        };
         self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,

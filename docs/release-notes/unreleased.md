@@ -153,6 +153,18 @@ change here.
   tab and the PDF outline; a title a person types stays as typed
 - text-change: Properties names a report block's printed column by its heading in the window's language ("Column:
   Strip"), never by its key
+- api-add: Page ▸ Copy pages… (`pages.copy {pages, offset | after, node, code, rename}`, also on a page row's
+  right-click menu; the command `page.copy`) copies pages for a second installation in one undo step: a device comes
+  whole (a coil with its contacts), a strip with its terminals and bridges, a cable with its conductors and cores, and
+  bonds and page links come along; the copies take new folios (an offset, or after a page), the tags of their new
+  pages, a structure node of their own and renamed frozen tags and interruption-point names, and a copy whose
+  interruption points would join the points they were copied from is refused in words (doc 06 §3.6, FT-1862)
+- api-add: Edit ▸ Paste in place (`edit.paste_in_place`) puts the clipboard's block down where it was copied, on any
+  page of the same frame (doc 06 §3.6, FT-1862)
+- behaviour-change: Paste no longer refuses a block whose free text or graphic lies in the frame's bands, where the
+  Text tool puts them; a copied fragment names those in its header (`free`, a member an older version ignores)
+- behaviour-change: Save as macro… with `pages` (folios) saves a page macro with nothing selected and no page marked;
+  it said "Nothing is selected"
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
