@@ -39,9 +39,9 @@ that range belong to it.
 ### Connection grid…
 
 Changes the grid of the page shown. It asks for the grid and says what the change does to what the page holds; with a
-fit, the symbols and junctions move to the nearest points of the new grid, except that where two of them would come
-nearer each other than they stood, the one to the right (or below) moves on by whole steps, so none ends on another;
-the wires are drawn anew. See [Pages](panels.md#pages).
+fit, the symbols and junctions move to the nearest points of the new grid, except that where two of them would end on
+one another, or close a gap a wire could pass through, the one to the right (or below) moves on by whole steps; the
+wires are drawn anew. See [Pages](panels.md#pages).
 
 ### Renumber pages…
 
