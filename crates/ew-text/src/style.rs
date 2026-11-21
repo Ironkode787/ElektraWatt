@@ -5,7 +5,7 @@
 //!
 //! Native pt = QET px × 0.75. The em height in nm is `round(px × 793 750 / 3)`, because 1 px = 25.4/96 mm = 0.75 pt.
 //! The printed pt of the doc (× 0.986282578) is a consequence of the frame's page-to-sheet transform, not a second
-//! size. The golden table has no italic style.
+//! size. The built-in table has no italic style.
 //!
 //! A project overrides and extends this table (ADR-0032): `ew_schema::effective_text_styles` computes the
 //! project's rows, and the renderers resolve keys through a table built from them ([`TextStyleTable::from_rows`]).

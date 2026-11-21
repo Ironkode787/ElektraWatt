@@ -4,8 +4,8 @@
 //! Scoring (D12): the hard and soft checks of a gate run against the oracle of its task.
 //!
 //! `score.json` (`ew.blindscore/1`) lists the hard checks H1 to H7 and the soft checks S1 to S8, each as `ok`, `miss` or
-//! `gap`, and the protocol's counts and observations. The score never calls a model and never opens the golden
-//! fixture: the oracle is `tools/blind/tasks/<task>/oracle/` (made by `bless-oracle` from a temporary copy, D16), and
+//! `gap`, and the protocol's counts and observations. The score never calls a model and never opens a
+//! project: the oracle is `tools/blind/tasks/<task>/oracle/` (no task holds one since `bless-oracle` went), and
 //! what the run produced is read from its folder: the agent's own steps and their outcomes, the epilogue's
 //! `page.describe` texts, the exports of `stop` and the answers of the copied `ew` to the task's read-only queries.
 //! A check is `gap` when it is not `ok` and the task lists an open follow-up or an undelivered package part for it, or
@@ -1161,7 +1161,7 @@ fn hard_agent(task: &TaskDef, ev: &Evidence) -> Vec<Raw> {
     out
 }
 
-/// S1 leaves out the terminals of folio 103 (the demo variant places them where the golden strip segments were; H3
+/// S1 leaves out the terminals of folio 103 (a demo variant places them where the strip segments were; H3
 /// counts them) on both sides.
 fn s1_left_out(row: &[String]) -> bool {
     row.first().is_some_and(|f| f == "103")
@@ -1331,10 +1331,10 @@ fn soft_checks(task: &TaskDef, ev: &Evidence, run_folios: &[String]) -> Vec<Raw>
             "markers" => (want_set(set), Ok(markers.clone())),
             "ends" => {
                 // A drafted wire that ends at an interruption point whose partner the oracle puts on a folio
-                // outside the run is out of scope. The golden wire runs on through the pair to the partner's folio, so
-                // the query leaves it out of the oracle; the drafted one stops at the point (its partner is not drawn)
-                // and would count as an extra row. The rule holds on both sides, so an oracle row of that form (none in
-                // Golden A's, by the query) is left out with the drafted one.
+                // outside the run is out of scope. The oracle's wire runs on through the pair to the partner's folio,
+                // so the query leaves it out of the oracle; the drafted one stops at the point (its partner is not drawn)
+                // and would count as an extra row. The rule holds on both sides, so an oracle row of that form (none,
+                // by the query) is left out with the drafted one.
                 let xrefs = want_set("xrefs");
                 let in_scope = |r: &Vec<String>| !ends_at_ip_outside(r, &xrefs, run_folios);
                 (

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09
-//! (docs/design/20-golden-project.md §3.5, 19 LR-12).
+//! (19 LR-12).
 //!
 //! Every committed text file is normalised (Unicode NFC, lower-case), split into words at every character that
 //! is not alphanumeric, and every word n-gram for n = 1, 2, 3 is hashed with SHA-256 (the words joined by one
@@ -252,7 +252,7 @@ mod tests {
         let files = vec![
             ("docs/clean.md".to_owned(), "Nothing to see here.\n".to_owned()),
             (
-                "golden/tables/parties.csv".to_owned(),
+                "fixtures/tables/parties.csv".to_owned(),
                 "id,name\n1,<customer>\n2,Acme\nPanels B.V.\n".to_owned(),
             ),
             ("LICENSES/X.txt".to_owned(), "acme panels".to_owned()),
@@ -261,7 +261,7 @@ mod tests {
         // The 2-gram spans a line break; the line of its first word is reported, never the words.
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
-            v[0].starts_with("golden/tables/parties.csv:3: a 2-word sequence"),
+            v[0].starts_with("fixtures/tables/parties.csv:3: a 2-word sequence"),
             "{v:#?}"
         );
         assert!(!v[0].to_lowercase().contains("acme"));

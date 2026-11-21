@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version = "1.92"
 license = "GPL-3.0-or-later"
-description = "CPU renderer: GPU-less fallback, thumbnails, golden PNGs and banded printing."
+description = "CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing."
 repository.workspace = true
 publish = false
 

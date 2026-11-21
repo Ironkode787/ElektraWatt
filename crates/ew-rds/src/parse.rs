@@ -417,7 +417,7 @@ mod tests {
         RdsSyntax::default()
     }
 
-    fn golden_known() -> KnownCodes {
+    fn known_codes() -> KnownCodes {
         let mut k = KnownCodes::new();
         k.add_code(Aspect::Function, "P01").unwrap();
         k.add_code(Aspect::Location, "J-E-2416").unwrap();
@@ -428,7 +428,7 @@ mod tests {
     }
 
     fn strict(s: &str) -> Result<Designation, ParseError> {
-        parse_strict(s, &syntax(), &golden_known())
+        parse_strict(s, &syntax(), &known_codes())
     }
 
     fn texts(d: &Designation, a: Aspect) -> Vec<&str> {
@@ -441,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn golden_designations() {
+    fn full_designations() {
         let d = strict("=P01+J-E-2416-102G1").unwrap();
         assert_eq!(texts(&d, Aspect::Function), ["P01"]);
         assert_eq!(texts(&d, Aspect::Location), ["J-E-2416"]);
@@ -553,7 +553,7 @@ mod tests {
     fn separators() {
         let mut s = syntax();
         s.set_separator(Aspect::Location, Some(".")).unwrap();
-        let k = golden_known();
+        let k = known_codes();
         let d = parse_strict("+J-E-2416.DOOR-K1", &s, &k).unwrap();
         assert_eq!(texts(&d, Aspect::Location), ["J-E-2416", "DOOR"]);
         assert_eq!(d.format(&s), "+J-E-2416.DOOR-K1");
@@ -572,7 +572,7 @@ mod tests {
     }
 
     fn lenient_of(s: &str) -> LenientParse {
-        parse_lenient(s, &syntax(), &golden_known())
+        parse_lenient(s, &syntax(), &known_codes())
     }
 
     #[test]
@@ -719,8 +719,8 @@ mod tests {
         /// Neither parser panics, and lenient accepts everything strict accepts.
         #[test]
         fn never_panics(s in "[-=+&#%:;./ a-zA-Z0-9_Ü]{0,16}") {
-            let strict = parse_strict(&s, &syntax(), &golden_known());
-            let lenient = parse_lenient(&s, &syntax(), &golden_known());
+            let strict = parse_strict(&s, &syntax(), &known_codes());
+            let lenient = parse_lenient(&s, &syntax(), &known_codes());
             if let Ok(d) = strict {
                 prop_assert_eq!(lenient.designation(), Some(&d));
             }

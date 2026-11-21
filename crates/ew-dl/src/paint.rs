@@ -65,7 +65,7 @@ impl Color {
 }
 
 /// How a path is filled or a glyph run is painted. Only solid colours so far; gradients and patterns are
-/// not needed by any output of the golden project.
+/// not needed by any output yet.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Brush {
     /// One colour.

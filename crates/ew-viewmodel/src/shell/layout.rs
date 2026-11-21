@@ -724,7 +724,7 @@ impl ShellModel {
                     .any(|(f, _)| f.as_uuid().to_string() == id)
             })
         });
-        // The legend a person adds prints the description too (Golden A's block keeps the kind's four columns); a
+        // The legend a person adds prints the description too; a
         // long description is cut with an ellipsis at its column's width, as every table cell is.
         let columns: Vec<Value> = [
             ("pos", 8),

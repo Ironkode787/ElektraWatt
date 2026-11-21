@@ -75,7 +75,7 @@ pub struct ResultSet {
     pub rows: Vec<Vec<Value>>,
 }
 
-/// A field of the golden CSV dialect (`golden/J-E-2416/README.md`, "CSV dialect"): quoted when it holds a
+/// A field of the `ew` CSV dialect: quoted when it holds a
 /// comma, a quote or a line break, or starts or ends with a space; quotes doubled.
 pub fn csv_field(s: &str) -> String {
     if s.contains([',', '"', '\n', '\r']) || s.starts_with(' ') || s.ends_with(' ') {

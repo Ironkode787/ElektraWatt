@@ -49,7 +49,7 @@
 //! - A text line is one display-list item: a glyph run, or, when the symbol fallback face draws part of it,
 //!   a group of runs, one per font (a link or entity goes on the item).
 //!
-//! The title-block cells of the golden project are bindings only (FR-REP-033, FR-REP-035): this module
+//! The title-block cells of the shipped forms are bindings only (FR-REP-033, FR-REP-035): this module
 //! never invents a value; an unresolved placeholder renders as empty text and is reported.
 
 mod bindings;

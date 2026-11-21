@@ -1055,7 +1055,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         page: Option<Id<Page>>,
         kind: &ConnectionKind,
     ) -> Result<Drawn> {
-        // Golden A draws its junctions as dots: the form its source gives them.
+        // Junctions are drawn as dots: the form their source gives them.
         let params = json!({"a": a.param(), "b": b.param(), "page": page, "kind": kind, "dot": true});
         let (connection, done) = self.primary::<Connection>("connection.draw", params)?;
         let junction = Self::created::<Junction>(&done, Kind::Junction).first().copied();
@@ -1081,7 +1081,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             m.remove(k);
         }
         // The builder draws without a route (a junction's connections come from a split); a stored route is set
-        // afterwards by `connection.route`, which checks it against the drawn ends (F1 to F16 of Golden A).
+        // afterwards by `connection.route`, which checks it against the drawn ends.
         if let Some(route) = take(&mut m, "route") {
             self.run("connection.route", json!({"connection": id, "route": route}))?;
         }

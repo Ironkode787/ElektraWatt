@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn golden_tags() {
+    fn device_tags() {
         assert_eq!(
             sorted(&[
                 "-201U9", "-101F1", "-201U10", "-102G1", "-102F2", "-102F1", "-3W1", "-106W1"

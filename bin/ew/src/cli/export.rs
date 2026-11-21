@@ -155,7 +155,7 @@ pub(super) fn rows_json(kind: &ExportKind, s: RowsSummary) -> String {
 }
 
 /// A row export in XLSX or a CSV preset other than `ew`: [`ew_api::output::row_output`] over the
-/// row choice of the golden path, the file written atomically (`<file>.tmp`, synced, renamed).
+/// row choice of the `ew` path, the file written atomically (`<file>.tmp`, synced, renamed).
 pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32 {
     let what = match &a.kind {
         ExportKind::Cables => RowExport::Cables,
@@ -181,7 +181,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
     let file = match ew_api::output::row_output(&session.query(), &what, a.block.as_deref(), &format) {
         Ok(f) => f,
         Err(e) => {
-            // `cables` and `bom` without `--block` refuse a project without the block as the golden path does.
+            // `cables` and `bom` without `--block` refuse a project without the block as the `ew` path does.
             let text = match (&e, &a.kind, &a.block) {
                 (ew_api::output::RowsError::NoBlock(kind), ExportKind::Cables, None) => {
                     export_refusal(Export::Cables, &ew_api::ExportError::NoBlock(kind))

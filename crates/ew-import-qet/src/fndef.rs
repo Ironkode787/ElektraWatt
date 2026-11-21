@@ -105,8 +105,8 @@ impl ContactKindName {
     }
 }
 
-/// QET collection category paths to EW categories, seeded with the functions the golden symbols need (doc
-/// 07 §9.1: switches, MCBs, thermostats, position switches, lamps, heaters, terminals, earth, plug pins,
+/// QET collection category paths to EW categories, seeded with the functions of doc
+/// 07 §9.1 (switches, MCBs, thermostats, position switches, lamps, heaters, terminals, earth, plug pins,
 /// coils). **Extensible:** add rows (more specific keywords before more general ones), never change one.
 pub const CATEGORY_TABLE: &[CategoryRow] = &[
     row(

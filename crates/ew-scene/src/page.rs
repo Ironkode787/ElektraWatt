@@ -824,7 +824,7 @@ pub(crate) type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
 
 /// The point of every function CP the page draws, by `(function, CP index)`: the CP positions of the page scene
 /// without the directions. `ew-derive`'s `cp_point` restates these rules over `Q` (the wire numbers order
-/// wires by the cell of their ends), and a test holds the two equal on the golden pages.
+/// wires by the cell of their ends), and a test holds the two equal on the sample's pages.
 pub fn cp_points(view: &PageView) -> BTreeMap<(Uuid, u16), Pt2> {
     cp_map(view).into_iter().map(|(k, (pos, _))| (k, pos)).collect()
 }
@@ -998,7 +998,7 @@ impl Builder<'_> {
     /// the rectangle is replaced by the outline as a closed polygon in the rectangle's stroke and fill, under a geometry
     /// key of its own (`SymbolGeomId.extra`: a 16-bit value derived from the outline, probed upwards past a key that
     /// holds other geometry), so it is never shared with another box of that symbol. A box whose outline equals the
-    /// rectangle keeps the symbol's own instance (Golden A's four boxes: the output is byte-equal). The text slots stay
+    /// rectangle keeps the symbol's own instance (the output is byte-equal). The text slots stay
     /// where the symbol puts them (a follow-up moves them with a wider box).
     fn symbols(&mut self, view: &PageView) {
         /// The black-box symbol of `rep` with its rectangle replaced by the stored outline; `None` when the

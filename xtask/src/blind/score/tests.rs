@@ -43,7 +43,7 @@ fn task() -> TaskDef {
             row(&["101", "S51", "sym.a", "101-B2"]),
             row(&["101", "L-1", "sym.ip", "101-H16"]),
             row(&["102", "-102G1", "sym.box", "102-B6"]),
-            // The golden strip segment of folio 103 is left out of S1 on both sides.
+            // The strip segment of folio 103 is left out of S1 on both sides.
             row(&["103", "-X1031:1", "ew.gen.strip-segment@qet10", "103-A3"]),
             row(&["103", "L-1", "sym.ip", "103-A1"]),
         ],

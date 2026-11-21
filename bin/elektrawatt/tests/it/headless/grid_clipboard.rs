@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The clipboard headless (acceptance checks CB5, CB6 and the script half of CB8): the sample's -102S1, -102S2 and -102E1
-//! of Golden A's folio 101 copied into folio 1 of a new project by an `ew.uiscript/1` script through the built binary
+//! of its folio 102 copied into folio 1 of a new project by an `ew.uiscript/1` script through the built binary
 //! (three devices with new IDs, no frozen tag, tags of that project's scheme, the part copies embedded once),
 //! byte-identical transcripts on two runs without a raw UUID, and the `--record` log (one `edit.paste` carrying the
 //! fragment) replayed onto a copy of the same new project giving the same records, IDs aside; two shell models as two instances

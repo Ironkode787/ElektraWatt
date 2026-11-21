@@ -8,9 +8,9 @@
 //!
 //! These are the same rules the report kinds of `ew-reports` apply to the wire list, the terminal diagrams,
 //! the cable overview and the potential overview (doc 08 §3.8, §6.5; doc 20 §7.3), read through the same
-//! `ew-derive` queries (orientation and numbering are shared there); the acceptance SQL over the views and
-//! the report rows are compared with the same expected CSVs, so the remaining shared rules (bridges, member
-//! counts, profile defaults) are held equal by the golden tests. Moving those into `ew-derive` is follow-up
+//! `ew-derive` queries (orientation and numbering are shared there). The remaining shared rules (bridges, member
+//! counts, profile defaults) are restated here; no test holds them equal to the report kinds' since the
+//! reference project's acceptance SQL went. Moving those into `ew-derive` is follow-up
 //! work (the dependency rules let `ew-reports` use `ew-sqlview`, not the reverse).
 
 use std::collections::BTreeMap;

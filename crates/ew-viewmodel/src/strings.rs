@@ -1101,7 +1101,7 @@ mod tests {
             text(key!("reason-page-type-no-symbols")),
             "This page type takes no symbols or wires: draw on a schematic page"
         );
-        // A drawn table of contents by name (Golden A's is a generated report page, so the window test cannot
+        // A drawn table of contents by name (the sample's is a generated report page, so the window test cannot
         // reach this kind).
         assert_eq!(
             text(key!("reason-page-type-no-symbols-contents")),

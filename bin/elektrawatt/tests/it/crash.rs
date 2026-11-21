@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The crash log through the debug binary (PV-4, PV-6, PV-8): a forced
-//! panic at the end of a headless run that edited a copy of Golden A exits 101 and leaves one log with its entry and the
-//! end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
+//! panic at the end of a headless run that edited a copy of the sample exits 101 and leaves one log with its entry
+//! and the end line, the journal is kept, and the next start offers the project and the log; Recover replays the journal.
 
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
@@ -73,7 +73,7 @@ fn last_change(journal: &Path) -> String {
     )
 }
 
-/// The edit of the crashed run: a copy of Golden A opened and one page made.
+/// The edit of the crashed run: a copy of the sample opened and one page made.
 fn edit(project: &Path) -> [(&'static str, Value); 2] {
     [
         ("file.open", json!({ "dir": path(project) })),

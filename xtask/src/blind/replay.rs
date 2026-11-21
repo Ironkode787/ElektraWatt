@@ -642,7 +642,7 @@ pub fn with_score_section(report: &str, section: &str) -> String {
 }
 
 /// The refusal for a file that holds a raw UUID where none may be, or `None`. The agent's `steps.uiscript` holds none. The
-/// `prelude.uiscript` may hold the fixed IDs of the golden part copies (its `library.embed` line), but only when it is the
+/// `prelude.uiscript` may hold the fixed IDs of part copies (its `library.embed` line), but only when it is the
 /// task's committed prelude: `start` copies that file verbatim, so the run's prelude equals it.
 fn raw_uuid_refusal(rel: &str, text: &str, task_prelude: Option<&str>) -> Option<String> {
     first_uuid(text)?;

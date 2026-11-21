@@ -650,7 +650,7 @@ struct Project {
     terminal_spacing: u32,
 }
 
-/// The spacing of a terminal row in grid steps until the user sets another (as Golden A's 1X1 draws its terminals).
+/// The spacing of a terminal row in grid steps until the user sets another.
 const TERMINAL_SPACING_DEFAULT: u32 = 2;
 
 /// All state of the application shell.

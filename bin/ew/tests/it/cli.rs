@@ -1074,7 +1074,7 @@ fn export_out_to_an_unwritable_path_is_exit_2() {
 
 /// `ew verify-derived` over the sample: every memoised value equals its cold recomputation with the oracle on.
 /// The oracle re-runs every memoised read, about 90 s in a debug build, so the test is run by hand
-/// (`cargo nextest run -p ew --run-ignored only`) and by the acceptance runner's AC-16 at the library level.
+/// (`cargo nextest run -p ew --run-ignored only`) and by `ew-api`'s `memo_oracle` tests at the library level.
 #[test]
 #[ignore = "deep run: the oracle re-runs every memoised read"]
 fn verify_derived_of_the_sample_is_clean() {

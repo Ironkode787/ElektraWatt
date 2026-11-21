@@ -6,8 +6,7 @@
 //! (`tool.finish`), or Enter on the last vertex, finishes with `layout.carrier.add`.
 //!
 //! **Snapping** is the rail tool's ([`super::rail_draw`]) with the usable edges also inset by half the duct's width
-//! (so a duct lies flush with the plate edge) and the outlines of the other ducts (T joints): Golden A's D1 runs at
-//! v = 880 mm under the plate's top edge, and D2 starts at (20, 860) mm under D1 (D11).
+//! (so a duct lies flush with the plate edge) and the outlines of the other ducts (T joints, D11).
 //!
 //! **Size.** The part's `mech` `W × H`, else the tool option's fields (40 × 60 mm by default, then the last used).
 //!

@@ -390,9 +390,9 @@ mod tests {
         assert_eq!(IdentifierSet::by_key("NFPA79"), None);
     }
 
-    /// Golden A under the default set (ADR-0026 amendment 1, golden EF-18): only T55 is reported.
+    /// A cabinet's letters under the default set (ADR-0026 amendment 1): only the temperature switch T55 is reported.
     #[test]
-    fn golden_letters_under_the_2009_set() {
+    fn letters_under_the_2009_set() {
         let set = IdentifierSet::default_set();
         let preferred = [
             ("ProtectionOvercurrent", "F"), // -101F1, F55, -102F1, -102F2

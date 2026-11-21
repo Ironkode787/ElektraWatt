@@ -14,7 +14,7 @@
 //!   cache, the render on demand and the test readback.
 //! - [`device`]: a headless device for the render-to-texture tests and the bench.
 //!
-//! The CPU raster stays the golden reference (§8): no GPU image reaches a golden, a transcript or a describe text.
+//! The CPU raster stays the reference (§8): no GPU image reaches an expected picture, a transcript or a describe text.
 
 pub mod device;
 pub mod prepare;

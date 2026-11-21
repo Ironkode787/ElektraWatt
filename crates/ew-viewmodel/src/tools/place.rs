@@ -498,7 +498,7 @@ impl PlaceTool {
 
     /// The insertion point of a placement at `at`: a new terminal on a page point
     /// where a terminal of the same strip already sits moves to the right, [`Self::with_spacing`]'s grid steps at a
-    /// time (two unless set; Golden A's 1X1 draws its three terminals of one cell 20 QET px apart), until the point is
+    /// time (two unless set), until the point is
     /// free. A terminal of the same strip is
     /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way); every other target, and a terminal of another strip, stays at `at`.
     fn stacked_pos(&self, cx: &ToolCx<'_>, at: (i64, i64)) -> (i64, i64) {

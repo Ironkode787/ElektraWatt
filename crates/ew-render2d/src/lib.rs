@@ -19,7 +19,7 @@
 //! - [`stats`]: the frame statistics ring and the one clock read of the canvas.
 //! - [`gpu`]: the wgpu renderer, the scene preparation worker and the switch rule.
 //!
-//! The CPU raster is the golden reference: tiles are regions of `ew_render_cpu`'s full-sheet raster, and the
+//! The CPU raster is the reference: tiles are regions of `ew_render_cpu`'s full-sheet raster, and the
 //! headless snapshot is one such region with the overlays composited by integer pixel fills, so equal inputs give
 //! equal bytes on every run of one build target.
 

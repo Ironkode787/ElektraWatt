@@ -577,11 +577,11 @@ pub const POTENTIAL: View = View {
         ),
         t(
             "bus_cable_ids",
-            "the cables of the potential's bus lines (`Bus` connections with a cable, FR-CBL-008), JSON array of UUIDs; a bus line takes its colour and size from them (doc 20 §7.3 \"(cable)\")",
+            "the cables of the potential's bus lines (`Bus` connections with a cable, FR-CBL-008), JSON array of UUIDs; a bus line takes its colour and size from them (the potential overview prints \"(cable)\")",
         ),
         i(
             "member_count",
-            "device CPs (a terminal once) and external points on the potential (doc 20 §7.3)",
+            "device CPs (a terminal once) and external points on the potential",
         ),
         t(
             "pages",
@@ -651,14 +651,14 @@ macro_rules! bom_columns {
 /// `api_v1_bom_component`.
 pub const BOM_COMPONENT: View = View {
     name: "api_v1_bom_component",
-    row: "bill-of-materials row in component mode (doc 20 §14.1), in list order",
+    row: "bill-of-materials row in component mode, in list order",
     columns: bom_columns!(),
 };
 
 /// `api_v1_bom_assembly`.
 pub const BOM_ASSEMBLY: View = View {
     name: "api_v1_bom_assembly",
-    row: "bill-of-materials row in assembly mode (doc 20 §14.2), in list order",
+    row: "bill-of-materials row in assembly mode, in list order",
     columns: bom_columns!(
         t(
             "assembly_tag",
@@ -944,8 +944,7 @@ pub(crate) fn ddl() -> String {
     sql
 }
 
-/// The status of the contract: `api_v1` is Preview until the 1.0 freeze (ADR-0017 amendment 2); the golden
-/// acceptance SQL is its compatibility corpus.
+/// The status of the contract: `api_v1` is Preview until the 1.0 freeze (ADR-0017 amendment 2).
 pub const API_STATUS: &str = "preview";
 
 /// The views and columns beyond the key columns of doc 17 §6.1: a whole view as

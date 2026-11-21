@@ -15,7 +15,7 @@
 //! points down, doc 12 §5.1), computed in i128 with one rounding to the nearest nanometre (half away from zero). A
 //! page of scale 1:n whose frame maps the page to paper at `f` (`page_to_sheet.scale_ppb / 10⁹`, 1 without a map)
 //! has `num/den = 1/(n·f)`, so that the stated scale holds on the printed sheet ([`Projection::on_sheet`]):
-//! on Golden A's frames (`f` = 0.986282578) a 750 mm edge at 1:10 is 76.043 mm on the page and 75.000 mm on
+//! on the shipped QET frames (`f` = 0.986282578) a 750 mm edge at 1:10 is 76.043 mm on the page and 75.000 mm on
 //! paper. The datum stays in page coordinates. A page drawn not to scale draws the surface at 1:1 on the
 //! page.
 //!
