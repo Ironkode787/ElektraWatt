@@ -4,7 +4,8 @@
 //! The station view's To do run to its end on every station kind, by the window's own path at 1920 × 1080:
 //! each line's button clicked, a page chosen where it asks, the box put down where it hangs on the pointer. Every
 //! side of a station (its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on a
-//! fluid page) lands on a page of its kind, and no step ends in a refusal.
+//! fluid page) lands on a page of its kind, and no step ends in a refusal. Not here: Place here on a channel's row and
+//! a Delete that ends its box (`ew-viewmodel`'s `plc_new_project.rs`).
 
 use crate::relays_paste_and_ip_wires::{click, key, new_project};
 use crate::support::Tmp;
@@ -360,89 +361,6 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
         _ => None,
     });
     assert_eq!(entry.as_deref(), Some("Place here"));
-    d.shell_mut().shutdown();
-}
-
-/// A Delete in a navigator of the part a box hangs on the pointer for (Place here) ends the placement, as an Undo that
-/// takes it away does: the click that follows draws nothing and names nothing gone.
-#[test]
-fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
-    use ew_viewmodel::navigators::NavKind;
-    let tmp = Tmp::new();
-    let mut d = new_project(&tmp);
-    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
-    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
-    let cpu = station(&mut d, "cpu", "EW-GEN-CPU-2", &[]);
-    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    d.settle();
-    let place = place_here(&mut d, cpu);
-    assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
-    assert_eq!(d.shell_mut().tool().name(), "black_box", "its box on the pointer");
-    let node = plc_row(&mut d, cpu);
-    let kind = NavKind::Plc.word();
-    let row = json!({"kind": kind, "key": node.key});
-    assert_eq!(d.shell_mut().dispatch("navigator.row", &row), Outcome::Done);
-    let revision = d.shell_mut().revision();
-    let _ = d.shell_mut().dispatch("navigator.delete", &json!({"kind": kind}));
-    if d.shell_mut().revision() == revision {
-        assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
-    }
-    assert_ne!(d.shell_mut().revision(), revision, "the station is deleted");
-    assert_eq!(
-        d.shell_mut().tool().name(),
-        "select",
-        "the placement ends with it"
-    );
-    d.shell_mut().shutdown();
-}
-
-/// The Place here entry of the first PLC panel row of role `role` whose records satisfy `of`, with the row's badges.
-fn place_on_row(
-    d: &mut Driver,
-    role: ew_viewmodel::navigators::NavRole,
-    of: impl Fn(&[Uuid]) -> bool,
-) -> (Option<ew_viewmodel::actions::ActionItem>, Vec<String>) {
-    use ew_viewmodel::navigators::NavKind;
-    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
-    d.settle();
-    let node = d
-        .shell_mut()
-        .nav(NavKind::Plc)
-        .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.role == role && of(&n.records)).cloned())
-        .unwrap_or_else(|| panic!("a {role:?} row"));
-    let menu = ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Plc, &node);
-    let place = menu.into_iter().find(|i| i.id == "plc.module_place");
-    (place, node.badges.clone())
-}
-
-/// A persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
-/// its row says "not drawn"; the entry puts the card's box on the pointer.
-#[test]
-fn a_channel_of_an_undrawn_card_offers_place_here() {
-    use ew_viewmodel::navigators::NavRole;
-    let tmp = Tmp::new();
-    let mut d = new_project(&tmp);
-    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
-    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
-    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    let cpu = station(&mut d, "cpu", "EW-GEN-CPU-2", &["EW-GEN-DI-1"]);
-    let card = d.shell_mut().rack_view(cpu).expect("the rack").rows[0]
-        .module
-        .expect("the card");
-    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
-    d.settle();
-    let (place, badges) = place_on_row(&mut d, NavRole::Channel, |r| r.get(1) == Some(&card));
-    let place = place.expect("Place here on the channel's row");
-    assert!(place.enabled, "{:?}", place.reason);
-    assert_eq!(place.params["device"], json!(card.to_string()), "its card's box");
-    assert!(badges.iter().any(|b| b == "unplaced"), "{badges:?}");
-    assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
-    assert_eq!(
-        d.shell_mut().tool().name(),
-        "black_box",
-        "its card's box on the pointer"
-    );
     d.shell_mut().shutdown();
 }
 

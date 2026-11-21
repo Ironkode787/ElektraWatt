@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! PLC work through the shell on a new project with page 101, from persona runs: a click on what is selected already
-//! brings Properties back to it, the PLC tab's Bus panel brings an open panel to the front, and a terminal on a traced
-//! channel's path prints the channel's address with Project ▸ Channel addresses at terminals. Not here: the station
-//! view, the PLC workspace and their buttons in the window (`ew-ui`'s `plc_rack_first.rs`, `plc_workspace.rs`).
+//! brings Properties back to it, the PLC tab's Bus panel brings an open panel to the front, a terminal on a traced
+//! channel's path prints the channel's address with Project ▸ Channel addresses at terminals, and the PLC panel's Place
+//! here (on a channel's row, and ended by a Delete of its part). Not here: the station view, its To do, the PLC
+//! workspace and their buttons in the window (`ew-ui`'s `plc_rack_first.rs`, `station_todo.rs`, `plc_workspace.rs`).
 
 use crate::common::{Tmp, cursor, done, grid_point};
 
+use ew_viewmodel::command_bar::navigator_row_menu;
+use ew_viewmodel::ew_api::output::{NavNode, Uuid};
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -81,7 +85,6 @@ fn a_click_on_the_selection_brings_its_properties_back() {
 #[test]
 fn the_bus_panel_comes_to_the_front() {
     use ew_viewmodel::layout::PaneKind;
-    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new("rack-first-bus");
     let mut s = new_project(&tmp);
     let bus = PaneKind::Navigator(NavKind::Bus);
@@ -195,5 +198,92 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         json!({"on": true}),
     );
     assert_eq!(at_terminal(&s), 1, "the terminal prints the channel's address");
+    s.shutdown();
+}
+
+/// A station of kind `kind` with head part `head` and the modules `parts` made in its view: the station.
+fn station(s: &mut ShellModel, kind: &str, head: &str, parts: &[&str]) -> Uuid {
+    let _ = s.dispatch("plc.new_station", &json!({"kind": kind}));
+    done(s, "plc.rack_set", json!({"head": head}));
+    done(s, "plc.rack_create", json!({}));
+    for part in parts {
+        done(s, "plc.rack_add", json!({"part": part}));
+    }
+    s.station_tab()
+        .and_then(|t| t.station)
+        .expect("the station's view")
+}
+
+/// The first PLC panel row of role `role` whose records satisfy `of`.
+fn plc_node(s: &mut ShellModel, role: NavRole, of: impl Fn(&[Uuid]) -> bool) -> NavNode {
+    done(s, "rail.show", json!({"pane": "plc"}));
+    let _ = s.shown_rows(NavKind::Plc);
+    s.nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.role == role && of(&n.records)).cloned())
+        .unwrap_or_else(|| panic!("a {role:?} row"))
+}
+
+/// A Delete in a navigator of the part a box hangs on the pointer for (Place here) ends the placement, as an Undo that
+/// takes it away does: the click that follows draws nothing and names nothing gone.
+#[test]
+fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
+    let tmp = Tmp::new("plc-place-delete");
+    let mut s = new_project(&tmp);
+    let cpu = station(&mut s, "cpu", "EW-GEN-CPU-2", &[]);
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    let node = plc_node(&mut s, NavRole::Station, |r| r.first() == Some(&cpu));
+    let place = navigator_row_menu(&s, NavKind::Plc, &node)
+        .into_iter()
+        .find(|i| i.label == "Place here")
+        .unwrap_or_else(|| panic!("Place here on {}", node.label));
+    done(&mut s, place.id, place.params.clone());
+    assert_eq!(s.tool().name(), "black_box", "its box on the pointer");
+    let kind = NavKind::Plc.word();
+    done(
+        &mut s,
+        "navigator.row",
+        json!({"kind": kind, "key": node.key}),
+    );
+    let revision = s.revision();
+    let _ = s.dispatch("navigator.delete", &json!({"kind": kind}));
+    if s.revision() == revision {
+        done(&mut s, "preview.apply", json!({}));
+    }
+    assert_ne!(s.revision(), revision, "the station is deleted");
+    assert_eq!(s.tool().name(), "select", "the placement ends with it");
+    s.shutdown();
+}
+
+/// A persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
+/// its row says "not drawn"; the entry puts the card's box on the pointer.
+#[test]
+fn a_channel_of_an_undrawn_card_offers_place_here() {
+    let tmp = Tmp::new("plc-place-channel");
+    let mut s = new_project(&tmp);
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    let cpu = station(&mut s, "cpu", "EW-GEN-CPU-2", &["EW-GEN-DI-1"]);
+    let card = s.rack_view(cpu).expect("the rack").rows[0]
+        .module
+        .expect("the card");
+    done(&mut s, "ui.dismiss", json!({}));
+    let node = plc_node(&mut s, NavRole::Channel, |r| r.get(1) == Some(&card));
+    let place = navigator_row_menu(&s, NavKind::Plc, &node)
+        .into_iter()
+        .find(|i| i.id == "plc.module_place")
+        .expect("Place here on the channel's row");
+    assert!(place.enabled, "{:?}", place.reason);
+    assert_eq!(place.params["device"], json!(card.to_string()), "its card's box");
+    assert!(
+        node.badges.iter().any(|b| b == "unplaced"),
+        "{:?}",
+        node.badges
+    );
+    done(&mut s, place.id, place.params.clone());
+    assert_eq!(
+        s.tool().name(),
+        "black_box",
+        "its card's box on the pointer"
+    );
     s.shutdown();
 }
