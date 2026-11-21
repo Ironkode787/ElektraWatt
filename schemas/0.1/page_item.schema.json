@@ -71,7 +71,7 @@
               "type": "null"
             }
           ],
-          "description": "The symbol (a representation) a text bound to a symbol belongs to (`device.function_text`, `strip.tag`; doc 06\n§3.8): the text prints that symbol's value, moves with it and goes with it; absent: none (since 0.3.5; an older\nbuild keeps it and prints such a text empty)."
+          "description": "The symbol (a representation) the text belongs to (doc 06 §3.8): it moves with it and goes with it, and with a\nsymbol's `bind` (`device.function_text`, `strip.tag`) prints that symbol's value; absent: the page's (since\n0.3.5; an older build keeps it, leaves the text in place and prints a symbol's `bind` empty)."
         },
         "style": {
           "anyOf": [

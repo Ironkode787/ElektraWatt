@@ -934,12 +934,17 @@ impl Mx<'_, '_> {
                 let key = items::line_key(&format!("qet:el:{}#text{n}", e.ek), i);
                 let at = Pt2::new(Nm(x), Nm(y));
                 let angle = sheet_angle(e, angle);
+                let mut kind = items::free_text(line.trim_end(), at, angle, style.clone(), align.clone());
+                // The element's own text belongs to its symbol (doc 06 §3.8): it moves with it and goes with it.
+                if let ew_schema::PageItemKind::FreeText(t) = &mut kind {
+                    t.of = Some(self.inp.ids.id(&format!("qet:el:{}#rep", e.ek)));
+                }
                 self.out.records.push(Record::PageItem(ew_schema::PageItem {
                     id: self.inp.ids.id(&key),
                     v: 1,
                     page,
                     layer: None,
-                    kind: items::free_text(line.trim_end(), at, angle, style.clone(), align.clone()),
+                    kind,
                     extra: BTreeMap::new(),
                 }));
             }

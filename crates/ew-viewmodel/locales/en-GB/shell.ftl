@@ -1803,7 +1803,6 @@ refusal-items-bind-unknown = `{ $p0 }` is not a bindable name; bindable: { $p1 }
 refusal-items-text-empty = a free text without `bind` needs a text
 refusal-items-bind-needs-part = `{ $p0 }` belongs to a symbol: name the symbol it prints for (`of`)
 refusal-items-part-bind-unknown = `{ $p0 }` is not a symbol's bindable name; a symbol's: { $p1 }
-refusal-items-part-without-bind = a text that names a symbol (`of`) binds one of its names: { $p0 }
 refusal-items-part-gone = the symbol the text belongs to does not exist
 refusal-items-part-other-page = { $p0 } stands on another page than the text
 refusal-items-part-not-terminal = { $p0 } is no terminal of a terminal strip, so it names no strip

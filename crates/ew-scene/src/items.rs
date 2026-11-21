@@ -214,7 +214,7 @@ impl Builder<'_> {
                         .height
                         .map(ew_schema::em_for_cap)
                         .filter(|em| ew_schema::text_style_size_ok(*em));
-                    // A text bound to a part moves with the part (doc 06 §3.8): the layout reads it as the part's.
+                    // A text of a symbol moves with it (doc 06 §3.8): the layout reads it as the symbol's.
                     let owner = t.of.map_or(entity.0, |r| r.as_uuid());
                     self.fixed_of(ctx, text.sized(size), None, owner);
                 }

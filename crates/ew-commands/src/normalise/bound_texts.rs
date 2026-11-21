@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text bound to a part moves with it.
+//! Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text of a symbol moves with it.
 //!
-//! For each representation whose position or page this transaction changed, every free text bound to it (`of`) that
-//! the transaction did not change itself takes the representation's displacement and its page. So a part's function
-//! text over its current path and a strip's name at its terminal follow the part whichever command moved it (the
-//! Select tool, `rep.move`, Arrange and route's `layout.apply`, a turn about the body's middle, a script); a text the
-//! command moved itself (named in `rep.move`'s `items`) is not moved twice. A displacement that would carry the text
-//! out of the drawable range leaves it where it stands.
+//! For each representation whose position or page this transaction changed, every free text of it (`of`) that
+//! the transaction did not change itself takes the representation's displacement and its page. So a device's function
+//! text over its current path, a strip's name at its terminal and an imported element's own texts follow the symbol
+//! whichever command moved it (the Select tool, `rep.move`, Arrange and route's `layout.apply`, a turn about the
+//! body's middle, a script); a text the command moved itself (named in `rep.move`'s `items`) is not moved twice. A
+//! displacement that would carry the text out of the drawable range leaves it where it stands.
 
 use std::collections::BTreeSet;
 

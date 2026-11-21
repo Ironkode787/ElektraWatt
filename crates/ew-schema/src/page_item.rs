@@ -313,9 +313,9 @@ pub struct FreeText {
     /// every text by its middle).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<TextAnchor>,
-    /// The symbol (a representation) a text bound to a symbol belongs to (`device.function_text`, `strip.tag`; doc 06
-    /// §3.8): the text prints that symbol's value, moves with it and goes with it; absent: none (since 0.3.5; an older
-    /// build keeps it and prints such a text empty).
+    /// The symbol (a representation) the text belongs to (doc 06 §3.8): it moves with it and goes with it, and with a
+    /// symbol's `bind` (`device.function_text`, `strip.tag`) prints that symbol's value; absent: the page's (since
+    /// 0.3.5; an older build keeps it, leaves the text in place and prints a symbol's `bind` empty).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub of: Option<Id<Representation>>,

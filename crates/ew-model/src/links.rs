@@ -877,8 +877,8 @@ pub static LINKS: &[LinkDecl] = &[
     // page_item (EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,
-    // A text bound to a part (doc 06 §3.8) goes with the part. Load-tolerant: an older build keeps `of` in `extra`
-    // and leaves the text when it deletes the part; the text then prints nothing.
+    // A text of a symbol (doc 06 §3.8) goes with the symbol. Load-tolerant: an older build keeps `of` in `extra`
+    // and leaves the text when it deletes the symbol; the text then stands alone, a symbol's `bind` printing nothing.
     LinkDecl {
         load_tolerant: true,
         ..link!(PageItem."kind.free_text.of" -> Representation, Cascade, None, |v, out| {

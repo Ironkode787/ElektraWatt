@@ -1746,7 +1746,6 @@ refusal-items-bind-unknown = `{ $p0 }` is geen koppelbare naam; koppelbaar: { $p
 refusal-items-text-empty = een vrije tekst zonder `bind` heeft een tekst nodig
 refusal-items-bind-needs-part = `{ $p0 }` hoort bij een symbool: noem het symbool waarvoor het afdrukt (`of`)
 refusal-items-part-bind-unknown = `{ $p0 }` is geen koppelbare naam van een symbool; die van een symbool: { $p1 }
-refusal-items-part-without-bind = een tekst die een symbool noemt (`of`) koppelt een van zijn namen: { $p0 }
 refusal-items-part-gone = het symbool waar de tekst bij hoort bestaat niet
 refusal-items-part-other-page = { $p0 } staat op een andere pagina dan de tekst
 refusal-items-part-not-terminal = { $p0 } is geen klem van een klemmenstrook en noemt dus geen klemmenstrook
