@@ -1,6 +1,6 @@
 # The class of every step of `prelude.uiscript`, in order: setup only (the first-run flow's company-standard wizard
-# with its defaults, the new project, and the three golden part copies of folio 102 embedded as `gpp-101-103` embeds
-# its parts); the page and the drawing are the tester's work.
+# with its defaults, the new project, and three part copies with fixed IDs embedded, from the retired reference
+# project's folio 102); the page and the drawing are the tester's work.
 
 [[step]]
 action = "tools.company_standard"
