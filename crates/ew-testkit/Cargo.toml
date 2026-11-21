@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version = "1.93"
 license = "GPL-3.0-or-later"
-description = "The golden builders of Golden A and a synthetic parts library, for the tests."
+description = "The builder DSL and a synthetic parts library, for the tests."
 repository.workspace = true
 publish = false
 
@@ -29,15 +29,14 @@ ew-model = { path = "../ew-model" }
 ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
-# The golden builders (WP-S6.01): path (a), the CSV bootstrap, and path (b), the builder DSL, which reads the
-# bootstrap batch as its typed description and speaks the JSON parameters of the commands (doc 17 §3.5).
-ew-import-tables = { path = "../ew-import-tables" }
 serde = { workspace = true }
 serde_json = "1.0.154"
 ew-hack = { version = "0.3.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
+# The command fuzzer's import step reads the test tables (fixtures/tables) with the tables importer.
+ew-import-tables = { path = "../ew-import-tables" }
 # Tests load the generated projects through the Session facade and run commands on them.
 ew-api = { path = "../ew-api" }
 ew-commands = { path = "../ew-commands", features = ["testkit"] }

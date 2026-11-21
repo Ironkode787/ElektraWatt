@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test glue: the golden model loaded through the CSV bootstrap (for the acceptance runner, which goes with it), the
-//! sample project over its records, the bundled fonts and the pages of the page order with their views.
+//! Test glue: the sample project over its records, the bundled fonts and the pages of the page order with their
+//! views.
 //!
 //! The views are the product's: `ew_api::output` owns the glue rules (frame forms,
 //! bindings, slot texts, wire markers, strip segments, report tables, embedded blocks) and builds one memoised
-//! `page_display_list` family per layer. What stays here is test-only: loading the golden tables (with a record
+//! `page_display_list` family per layer. What stays here is test-only: the sample's records (with a record
 //! shuffle for AC-14), and a symbol of `content/symbols` for the hostile page.
 
 use std::collections::BTreeMap;
@@ -17,11 +17,9 @@ use ew_api::output;
 use ew_api::{Session, SessionOptions};
 use ew_derive::{PageEntry, PageOrder, PageRef, Q};
 use ew_dl::{Destination, FontKey};
-use ew_import_tables::ew_interop_api::ImportInput;
-use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use ew_render_cpu::FontBytes;
 use ew_scene::page::{PageView, SymbolRef};
-use ew_schema::{LibCopy, LibDocument, Record};
+use ew_schema::{LibCopy, LibDocument};
 
 pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -63,50 +61,11 @@ pub fn builtin_symbol(key: &str) -> Option<SymbolRef> {
     })
 }
 
-/// The golden session; with `shuffle`, the records are handed over in a permuted order (AC-14).
-pub fn golden_session(shuffle: Option<u64>) -> Session {
-    let inputs: Vec<ImportInput> = json_files(&repo().join("golden/J-E-2416/tables"), "csv")
-        .iter()
-        .map(|p| {
-            let name = p.file_name().unwrap().to_string_lossy().into_owned();
-            ImportInput::new(&name, std::fs::read(p).unwrap()).unwrap()
-        })
-        .collect();
-    let batch = TablesImporter::new(BuiltinLibrary::new(library_docs()).unwrap())
-        .import(&inputs, &bootstrap_context())
-        .expect("the golden tables import");
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
-    if let Some(seed) = shuffle {
-        // A deterministic Fisher–Yates permutation (xorshift64).
-        let mut s = seed | 1;
-        for i in (1..records.len()).rev() {
-            s ^= s << 13;
-            s ^= s >> 7;
-            s ^= s << 17;
-            records.swap(i, (s % (i as u64 + 1)) as usize);
-        }
-    }
-    Session::from_records(
-        project.expect("the batch holds the project"),
-        records,
-        batch.lib.clone(),
-        SessionOptions::default(),
-    )
-    .expect("the golden batch passes the model's integrity check")
-}
-
 /// The sample project over its records; with `shuffle`, the records are handed over in a permuted order (AC-14).
 pub fn sample_session(shuffle: Option<u64>) -> Session {
     let (project, mut records, lib) = crate::common::sample_records();
     if let Some(seed) = shuffle {
-        // The permutation of [`golden_session`].
+        // A deterministic Fisher–Yates permutation (xorshift64).
         let mut s = seed | 1;
         for i in (1..records.len()).rev() {
             s ^= s << 13;

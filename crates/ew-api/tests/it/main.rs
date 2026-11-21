@@ -5,19 +5,8 @@
 
 #[path = "../common/mod.rs"]
 mod common;
-// Allowed: only the tests of the reference project itself still use it; it goes with them
-// (docs/plan/m3.5-reference-project.md, section 5, lane 7).
-#[allow(dead_code)]
-#[path = "../golden_common/mod.rs"]
-mod golden_common;
 #[path = "../qet_synth/mod.rs"]
 mod qet_synth;
-// The bless flag only chooses whether a committed file is rewritten; the compared result never depends on it.
-// Allowed dead code: only the tests of the reference project itself still use it; it goes with them
-// (docs/plan/m3.5-reference-project.md, section 5, lane 7).
-#[allow(clippy::disallowed_methods, dead_code)]
-#[path = "../page_output/golden_files.rs"]
-mod golden_files;
 #[path = "../page_output/pdf_read.rs"]
 mod pdf_read;
 #[path = "../page_output/pdf_support.rs"]

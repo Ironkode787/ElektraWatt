@@ -65,10 +65,6 @@
 // The command fuzzer (and its modules): seeds, steps and the report path come from EW_FUZZ_* variables, and the step timers feed the report's timing lines only; a finding is a function of the seed.
 #![allow(clippy::disallowed_methods)]
 
-// RULE: these modules are also included, as they are, by the cargo-fuzz crate (`fuzz/src/lib.rs`, through
-// `#[path]`), where this file is a module and not the crate root. Name a sibling module through `super::` (never
-// `crate::`), find files through `repo()`, and use no `env!` that only an integration test has (CARGO_TARGET_TMPDIR
-// is read with `option_env!`); then the modules compile and behave the same in both places.
 mod arms;
 mod import;
 mod live;
@@ -182,8 +178,7 @@ fn gen_step(
 // The session and the oracles
 
 /// The repository root: the nearest ancestor of this package's manifest directory that holds the sample
-/// project. The test crate sits two levels below it (`crates/ew-testkit`), the cargo-fuzz crate (`fuzz/`),
-/// which includes these modules, one level below it.
+/// project. The test crate sits two levels below it (`crates/ew-testkit`).
 pub fn repo() -> std::path::PathBuf {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     manifest
@@ -718,9 +713,8 @@ fn run_fuzz_until(seed: u64, steps: usize, cadence: &Cadence, deadline: std::tim
     run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence, Some(deadline))
 }
 
-/// The run of the cargo-fuzz target (`fuzz/`), which includes this module: the random source is
-/// the seeded stream mixed with the bytes of the fuzzer's input ([`SplitMix64::with_tape`]), so that the
-/// coverage-guided mutation of the input steers the draws. `seed` is the identity of the run (the ID source, the
+/// A run over a tape of bytes: the random source is the seeded stream mixed with the tape's bytes
+/// ([`SplitMix64::with_tape`]), so that the tape steers the draws. `seed` is the identity of the run (the ID source, the
 /// scratch directory, the failure text). The tests use it for the seeded fault of the determinism check
 /// (`the_determinism_check_fails_on_a_perturbed_run`).
 pub fn run_fuzz_tape(seed: u64, tape: &[u8], steps: usize, cadence: &Cadence) -> FuzzStats {

@@ -14,7 +14,7 @@ use ew_derive::FunctionCps;
 use ew_import_tables::ew_interop_api::ImportInput;
 use ew_schema::{Endpoint, Record};
 
-/// Rows appended to the test tables: the positional contactor `-102K9` and two wires on it.
+/// Rows appended to the test tables: the positional contactor `-102K9` in a location of its own, and two wires on it.
 const EXTRA: &[(&str, &str)] = &[
     (
         "parts.csv",
@@ -28,7 +28,8 @@ const EXTRA: &[(&str, &str)] = &[
     ("part_cps.csv", "KPOS:5,KPOS,5,14,,,,"),
     ("part_templates.csv", "KPOS:0,KPOS,0,ew.fn.coil,true,0;1"),
     ("part_templates.csv", "KPOS:1,KPOS,1,ew.fn.contact-no,false,4;5"),
-    ("devices.csv", "-102K9,K,9,,,,,,=P01,+J-E-2416,,KPOS,,,,,,,,,,,,,"),
+    ("structure.csv", "+CAB,location,CAB,,,,"),
+    ("devices.csv", "-102K9,K,9,,,,,,=P01,+CAB,,KPOS,,,,,,,,,,,,,"),
     ("functions.csv", "-102K9,-102K9,ew.fn.coil,,,,,,,,"),
     ("functions.csv", "-102K9#aux,-102K9,ew.fn.contact-no,aux,,,,,,,"),
     ("connections.csv", "WK91,WK91,,-102K9:13,-102K9:A1,,,,,,,,,,"),

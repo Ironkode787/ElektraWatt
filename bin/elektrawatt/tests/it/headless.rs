@@ -632,8 +632,8 @@ fn a_headless_run_leaves_the_users_settings_alone() {
 }
 
 /// CI-N-02's deep nightly: the script tests of this package run their script once per gate (with their checks and
-/// their `--record` replay); transcript determinism per gate is `the_transcript_is_deterministic` (A7), `it/canvas.rs`'s
-/// T7 for the snapshot bytes and `blind_replay`. This table runs each of those script tests with its second run on an
+/// their `--record` replay); transcript determinism per gate is `the_transcript_is_deterministic` (A7) and
+/// `blind_replay`. This table runs each of those script tests with its second run on an
 /// equal start and the byte-identical comparison of the two transcripts, as each ran per gate before the test
 /// clean-up of 2026-10-30 (for the property grid script the second run is the alias-substituted one). One case per test,
 /// named as the test; a failing case prints its panic and its name, and the test fails naming every failed case.
@@ -642,42 +642,6 @@ fn a_headless_run_leaves_the_users_settings_alone() {
 fn nightly_every_script_transcript_is_byte_identical_twice() {
     type Case = (&'static str, fn(bool));
     let cases: &[Case] = &[
-        (
-            "canvas::folio_scripts::folio_101_is_placed_by_a_generated_script_twice_identically_and_replays",
-            crate::canvas::folio_cases::folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_case,
-        ),
-        (
-            "canvas::folio_scripts::folio_101_is_wired_by_a_generated_script_twice_identically_and_replays",
-            crate::canvas::folio_cases::folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_case,
-        ),
-        (
-            "canvas::folio_scripts::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays",
-            crate::canvas::folio_cases::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays_case,
-        ),
-        (
-            "canvas::folio_scripts::folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay",
-            crate::canvas::folio_cases::folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay_case,
-        ),
-        (
-            "create::page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays",
-            crate::create::scripts::page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays_case,
-        ),
-        (
-            "create::a_navigator_script_runs_twice_identically_and_its_record_replays",
-            crate::create::scripts::a_navigator_script_runs_twice_identically_and_its_record_replays_case,
-        ),
-        (
-            "create::a_highlight_script_runs_twice_identically_and_records_nothing",
-            crate::create::scripts::a_highlight_script_runs_twice_identically_and_records_nothing_case,
-        ),
-        (
-            "create::a_table_script_runs_twice_identically_and_its_record_replays",
-            crate::create::scripts::a_table_script_runs_twice_identically_and_its_record_replays_case,
-        ),
-        (
-            "image::an_image_is_placed_by_a_script_twice_identically_and_replays",
-            crate::image::placement::im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case,
-        ),
         (
             "headless::grid_properties::pg9_d06_headless",
             grid_properties::pg9_d06_headless_case,

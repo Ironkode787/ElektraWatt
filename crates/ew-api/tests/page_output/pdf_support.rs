@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A project's PDF (doc 20 §3.3 "PDF structure"): the page list and options of a project through the
-//! shipped export job (`ew_api::output`) and the text of its structure. Shared by `tests/it/page_output.rs`,
-//! `tests/it/pdf_output.rs` and the acceptance runner.
+//! shipped export job (`ew_api::output`) and the text of its structure. Shared by `tests/it/page_output.rs` and
+//! `tests/it/pdf_output.rs`.
 
 use ew_api::output::{self, ExportAssets, ExportOptions};
 use ew_derive::Q;
-use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput};
-use sha2::{Digest, Sha256};
+use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions};
 
 use super::view::ViewedPage;
 
@@ -46,18 +45,7 @@ pub fn svg_options() -> SvgOptions {
     output::svg_options(false)
 }
 
-/// The SHA-256 over an SVG export: every file as its name, a newline, its text, in page order.
-pub fn svg_sha256(out: &SvgOutput) -> String {
-    let mut h = Sha256::new();
-    for f in &out.files {
-        h.update(f.name.as_bytes());
-        h.update(b"\n");
-        h.update(f.text.as_bytes());
-    }
-    format!("{:x}", h.finalize())
-}
-
-/// The text of the committed `expected/pdf/structure.json` for a PDF over `pages`.
+/// The text of a PDF's structure over `pages` (its pages, labels, outline and fonts), as JSON.
 pub fn structure_text(pages: &[PdfPage], out: &PdfOutput) -> String {
     let faces: Vec<_> = ew_text::bundled().faces().collect();
     let mut names: Vec<String> = out
@@ -127,32 +115,6 @@ pub fn outline_json(entries: &[ew_export::OutlineEntry], depth: usize) -> String
         })
         .collect();
     format!("[\n{}\n{}]", items.join(",\n"), "  ".repeat(depth))
-}
-
-/// The cross-reference texts of the drawn pages: (linked texts, their link targets, external texts without a
-/// link). Doc 20 §15: 63 linked texts with 64 targets and 4 external ones.
-pub fn xref_counts(pages: &[ViewedPage]) -> (usize, usize, usize) {
-    let (mut linked, mut targets, mut external) = (0, 0, 0);
-    for g in pages {
-        for r in &g.view.reps {
-            let Some(def) = &r.symbol else {
-                continue;
-            };
-            for v in &r.slots {
-                let is_xref = def
-                    .text_slots
-                    .get(usize::from(v.slot))
-                    .is_some_and(|t| t.kind == ew_schema::SlotKind::Xref);
-                if !v.item_links.is_empty() {
-                    linked += 1;
-                    targets += v.item_links.len();
-                } else if is_xref && !v.text.is_empty() {
-                    external += 1;
-                }
-            }
-        }
-    }
-    (linked, targets, external)
 }
 
 /// The report row links the generated pages draw other than the PLC overview's connection-point links, per

@@ -72,9 +72,10 @@ automod.workspace = true
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
-# `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
+# The tests read and count rows through the untracked readers (`tests/it/external.rs`, `persistence.rs`) and apply
+# raw ops to a snapshot (`memo_oracle.rs`).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
-# tests/it/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
+# tests/it/page_output.rs: page display lists, PNG and PDF of the sample's folios (WP-S3.04).
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 png = "0.18.1"
@@ -83,8 +84,8 @@ flate2 = "1.1.10"
 insta = { version = "1.49.0", default-features = false }
 # tests/it/drawn_path_agreement.rs: the scene's path between any two ends is ew-derive's (decision log ID-1110).
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }
-# The acceptance runner builds path (b) of AC-15 with the golden builder DSL of ew-testkit (WP-S6.01); a
-# dev-only edge, as every edge to ew-testkit (doc 04 §3).
+# The builder DSL (`tests/it/part_selection.rs`) and the synthetic parts library (`libraries.rs`,
+# `library_parts.rs`) of ew-testkit; a dev-only edge, as every edge to ew-testkit (doc 04 §3).
 ew-testkit = { path = "../ew-testkit" }
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }

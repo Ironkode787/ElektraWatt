@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the integration tests: the built-in library from `content/`, table inputs from memory,
-//! from the test tables `fixtures/tables/` or from the reference tables `golden/J-E-2416/tables/` (which only
-//! `golden.rs` and `tables.rs` read), and a default import.
+//! Shared helpers of the integration tests: the built-in library from `content/`, table inputs from memory or
+//! from the test tables `fixtures/tables/`, and a default import.
 
 #![allow(dead_code)]
 
@@ -18,11 +17,6 @@ use ew_schema::LibDocument;
 /// The repository root.
 pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-/// The committed golden tables directory.
-pub fn tables_dir() -> PathBuf {
-    repo().join("golden/J-E-2416/tables")
 }
 
 /// The test tables directory `fixtures/tables/`.
@@ -68,11 +62,6 @@ pub fn inputs(files: &[(&str, &str)]) -> Vec<ImportInput> {
         .iter()
         .map(|(n, t)| ImportInput::new(n, t.as_bytes().to_vec()).unwrap())
         .collect()
-}
-
-/// The committed golden tables as inputs, in file-name order.
-pub fn golden_inputs() -> Vec<ImportInput> {
-    csv_inputs(&tables_dir())
 }
 
 /// The test tables `fixtures/tables/` as inputs, in file-name order.

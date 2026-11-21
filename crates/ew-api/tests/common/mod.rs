@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden CSV bootstrap as a session, shared by the report tests (the same loading as
-//! `tests/golden_csv.rs`), the sample project opened in place, and a new project in memory.
+//! The sessions of the api tests: an import batch's records as a session, the sample project opened in place, and a
+//! new project in memory.
 
 use std::path::{Path, PathBuf};
 
@@ -14,11 +14,6 @@ use ew_schema::{LibDocument, Record};
 /// The repository root.
 pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-/// The imported golden batch (doc 20 §3.2 path (a)): [`crate::golden_common::batch`], the one recipe.
-pub fn golden_batch() -> ImportBatch {
-    crate::golden_common::batch()
 }
 
 /// The project and the other records of a batch.
@@ -37,28 +32,7 @@ pub fn split(batch: &ImportBatch) -> (ew_schema::Project, Vec<Record>) {
 /// A session over records (in the given order).
 pub fn session_of(project: ew_schema::Project, records: Vec<Record>, lib: Vec<LibDocument>) -> Session {
     Session::from_records(project, records, lib, SessionOptions::default())
-        .expect("the golden batch passes the model's integrity check")
-}
-
-/// A session over the golden batch.
-pub fn golden_session() -> Session {
-    let batch = golden_batch();
-    let (project, records) = split(&batch);
-    session_of(project, records, batch.lib.clone())
-}
-
-/// The `{table}|{key}` source key (`report_blocks|901`, `devices|-UC1`) of an imported record.
-pub fn source_key(r: &Record) -> Option<&str> {
-    let s = match r {
-        Record::Representation(x) => x.source_ref.as_ref(),
-        Record::Connection(x) => x.source_ref.as_ref(),
-        Record::Device(x) => x.source_ref.as_ref(),
-        Record::Function(x) => x.source_ref.as_ref(),
-        Record::ReportBlock(x) => x.source_ref.as_ref(),
-        Record::Page(x) => x.source_ref.as_ref(),
-        _ => None,
-    }?;
-    Some(s.key.as_str())
+        .expect("the records pass the model's integrity check")
 }
 
 /// A PNG of `w × h` opaque red pixels (synthetic).

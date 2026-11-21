@@ -4,10 +4,8 @@
 //! The headless canvas through the built binary (the viewer and the tool framework): no window, no GPU, no display.
 //! The determinism of the transcripts is `it/headless.rs`'s and that of the snapshot bytes is tested here; the flows
 //! of the viewer and the tools are `ew-viewmodel`'s tests.
-//! Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR` in a temporary directory; nothing is
-//! written into the repository.
-
-pub(crate) mod folio_cases;
+//! Every test works on a temporary copy of the sample project with `EW_CONFIG_DIR` in a temporary directory; nothing
+//! is written into the repository.
 
 use std::path::Path;
 use std::process::{Output, Stdio};
@@ -19,8 +17,6 @@ use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
-
-const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
 fn script(steps: &[(&str, Value)]) -> String {
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"canvas\"}\n");
@@ -136,12 +132,13 @@ fn rgb_at(img: &[u8], width: u32, x: i64, y: i64) -> [u8; 3] {
     [img[i], img[i + 1], img[i + 2]]
 }
 
-/// A6: the canvas snapshot's sheet matches the golden page, the grid dots sit on the QET 10 px pitch, the surround
-/// and the page bounds are where the view says, and the dark theme changes the surround only.
+/// A6: the canvas snapshot's sheet matches the page as `ew render` draws it at 150 dpi, the grid dots sit on the QET
+/// 10 px pitch, the surround and the page bounds are where the view says, and the dark theme changes the surround
+/// only.
 #[test]
-fn the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
+fn the_canvas_snapshot_matches_the_rendered_page_and_shows_the_view() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("a6");
+    let dir = tmp.sample("a6/sample.ew");
     let light = tmp.path("light");
     let dark = tmp.path("dark");
     std::fs::create_dir_all(&light).unwrap();
@@ -155,8 +152,8 @@ fn the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
     let ((ox, oy), r) = settled(zoomed);
     assert_eq!(r, 150);
 
-    // The sheet with the grid off matches the crop of the 150 dpi golden PNG within doc 20's tolerance.
-    let (gw, _, golden) = decode_rgba(&std::fs::read(Path::new(EXPECTED).join("png/103.png")).unwrap());
+    // The sheet with the grid off matches the crop of `ew render`'s 150 dpi PNG of the page within 0.5 %.
+    let (gw, _, rendered) = decode_rgba(&support::exported::png(&dir, "103"));
     let (w, h, plain) = decode_rgba(&std::fs::read(light.join("plain.png")).unwrap());
     assert_eq!((w, h), (1200, 800));
     let mut crop = Vec::with_capacity(plain.len());
@@ -164,16 +161,13 @@ fn the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
         for x in 0..1200i64 {
             let (sx, sy) = (x - ox, y - oy);
             let i = (sy as usize * gw as usize + sx as usize) * 4;
-            crop.extend_from_slice(&golden[i..i + 4]);
+            crop.extend_from_slice(&rendered[i..i + 4]);
         }
     }
     let pct = differing_percent(&plain, &crop, 16);
-    println!(
-        "canvas snapshot at D = 150 against the golden crop: {pct:.4} % of the pixels differ by more than 16"
-    );
     assert!(
         pct <= 0.5,
-        "{pct:.3} % of the sheet pixels differ from the golden crop"
+        "{pct:.3} % of the sheet pixels differ from the rendered crop"
     );
 
     // The grid dots: the pixels the grid adds are grid-dot grey, at the QET 10 px pitch mapped onto the sheet.
@@ -271,7 +265,7 @@ fn the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
 #[test]
 fn the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("a8");
+    let dir = tmp.sample("a8/sample.ew");
     // An entity of folio 103 and its rectangle, from the project itself.
     let (session, _) = Session::open_read_only(&dir, "test").unwrap();
     let pages = session
@@ -385,7 +379,7 @@ fn side_by_side_script(dir: &Path, out: &Path) -> String {
         ("canvas.pointer", json!({"x_mm": 60, "y_mm": 40, "group": 1})),
         ("tab.focus_other", json!({})),
         ("tab.new", json!({})),
-        ("page.goto", json!({"folio": "106"})),
+        ("page.goto", json!({"folio": "104"})),
         ("tab.previous", json!({})),
         ("nav.goto", json!({"text": "102-C15"})),
         ("nav.back", json!({})),
@@ -402,7 +396,7 @@ fn side_by_side_script(dir: &Path, out: &Path) -> String {
 #[test]
 fn side_by_side_headless() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("v8");
+    let dir = tmp.sample("v8/sample.ew");
     let out_dir = tmp.path("v8out");
     std::fs::create_dir_all(&out_dir).unwrap();
     let out = run_script(&tmp, "v8.jsonl", &side_by_side_script(&dir, &out_dir));
@@ -499,7 +493,7 @@ fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
 #[test]
 fn the_snapshot_composites_the_tool_overlay() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("t7");
+    let dir = tmp.sample("t7/sample.ew");
     let (empty, _) = points(&dir, "102");
     let out = tmp.path("t7out");
     std::fs::create_dir_all(&out).unwrap();
@@ -589,7 +583,7 @@ fn the_snapshot_composites_the_tool_overlay() {
 #[test]
 fn the_preview_snapshot_is_deterministic() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("t8");
+    let dir = tmp.sample("t8/sample.ew");
     let (_, link) = points(&dir, "101");
     let out = tmp.path("t8out");
     std::fs::create_dir_all(&out).unwrap();
@@ -642,57 +636,4 @@ fn the_preview_snapshot_is_deterministic() {
     assert_eq!(refused.status.code(), Some(1));
     let steps = transcript(&refused);
     assert_eq!(steps[2]["reason"], "reason-no-preview");
-}
-
-/// Through the built binary: folio 101's
-/// representations placed by a UI script generated from Golden A's records on a new project made by the
-/// company-standard wizard, with its oracle (17 representations, each the golden symbol at the golden
-/// insertion point and orientation), and the `--record` log replayed by the session's command-log replay (what
-/// `ew apply` runs) giving equal records. Each test runs its script once per gate; the second run and the
-/// byte-identical comparison of the two transcripts the docs below name are the deep nightly's
-/// (`headless::nightly_every_script_transcript_is_byte_identical_twice`). The bodies are `canvas/folio_scripts.rs`.
-mod folio_scripts {
-
-    #[test]
-    fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays() {
-        super::folio_cases::folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_case(
-            false,
-        );
-    }
-
-    /// Folio 101 placed, its golden tags typed (`fields.set` through `command.run`
-    /// on `tag:` references), its 21 connections and 2 junctions drawn with the Wire tool from the keyboard; two runs give
-    /// byte-identical transcripts; the oracle: 17 representations, 21 drawn connections and 2 junctions, every
-    /// connection's end labels and every junction's sequence (by far-end labels) as on Golden A; the `--record` log
-    /// replayed on the start gives the same wiring and the same devices and functions, IDs aside.
-    #[test]
-    fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays() {
-        super::folio_cases::folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_case(
-            false,
-        );
-    }
-
-    /// Folio 102 placed by a generated script: its nine interruption points
-    /// with the IP tool, its two black boxes (-102G1, -102F2) with the black box tool from their parts and their CPs
-    /// dragged along the outline to the golden points (Select's CP drag, `box.reshape`), its contact with the Place
-    /// tool. Two runs give byte-identical transcripts without a UUID; the oracle: 12 representations, each the golden
-    /// symbol at the golden point and orientation, the interruption points with their names and directions, and both
-    /// boxes' outlines and CPs (points and directions) as on Golden A; the `--record` log replayed on the start (the
-    /// minted representation of a `box.reshape` mapped by its point) gives the same records.
-    #[test]
-    fn folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays() {
-        super::folio_cases::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays_case(false);
-    }
-
-    /// Folio 101's structure box around the three external connection
-    /// points and its two marker groups (W4/W5 and W7/W9, 2.5 BK BU) appended to the wiring script of
-    /// `folio_101_is_wired_by_a_generated_script_twice_identically_and_replays`; two runs give byte-identical
-    /// transcripts without a UUID; the oracle: one structure box with the caption "External Connection
-    /// (+J-E-206 / JE-N1000-03)", two wire markers "2.5 BK BU", no marker fallback, and the wiring oracle unchanged;
-    /// the `--record` log replayed on a third copy (each `connection.draw` and each `marker.place` mapped) gives the
-    /// same box outline, caption and marker texts and the same records.
-    #[test]
-    fn folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay() {
-        super::folio_cases::folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay_case(false);
-    }
 }
