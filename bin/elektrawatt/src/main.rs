@@ -514,7 +514,7 @@ fn locate_resources(exe: Option<&Path>) -> Resources {
         .or_else(|| tree("PRIVACY.md").filter(|p| p.is_file()))
         .map(|p| p.canonicalize().unwrap_or(p));
     Resources {
-        sample_dir: find_dir("EW_SAMPLE_DIR", "samples/J-E-2416.ew", "golden/J-E-2416.ew"),
+        sample_dir: find_dir("EW_SAMPLE_DIR", "samples/sample.ew", "fixtures/sample/sample.ew"),
         content_dir: find_dir("EW_CONTENT_DIR", "content", "content"),
         docs_dir: find_dir("EW_DOCS_DIR", "docs", "target/book"),
         notices_file: notices.filter(|p| p.is_file()),
@@ -1241,7 +1241,7 @@ mod tests {
             let root = std::env::temp_dir().join(format!("ew-locate-resources-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&root);
             for base in ["x/flat", "inst/share/elektrawatt"] {
-                for dir in ["samples/J-E-2416.ew", "content", "docs"] {
+                for dir in ["samples/sample.ew", "content", "docs"] {
                     std::fs::create_dir_all(root.join(base).join(dir)).unwrap();
                 }
                 std::fs::write(root.join(base).join("THIRD-PARTY-NOTICES.txt"), "notices").unwrap();
@@ -1279,7 +1279,7 @@ mod tests {
                 assert_eq!(
                     found("x/flat"),
                     Resources {
-                        sample_dir: dir("x/flat/samples/J-E-2416.ew"),
+                        sample_dir: dir("x/flat/samples/sample.ew"),
                         content_dir: dir("x/flat/content"),
                         docs_dir: dir("x/flat/docs"),
                         notices_file: notices,
@@ -1291,7 +1291,7 @@ mod tests {
                 assert_eq!(
                     found("inst/bin"),
                     Resources {
-                        sample_dir: dir("inst/share/elektrawatt/samples/J-E-2416.ew"),
+                        sample_dir: dir("inst/share/elektrawatt/samples/sample.ew"),
                         content_dir: dir("inst/share/elektrawatt/content"),
                         docs_dir: dir("inst/share/elektrawatt/docs"),
                         notices_file: None,

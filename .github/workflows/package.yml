@@ -190,7 +190,7 @@ jobs:
           tree="$RUNNER_TEMP/tree"
           test "$("$tree/ew.exe" --version | tr -d '\r')" = "ew $WORKSPACE_VERSION"
           test "$("$tree/elektrawatt.exe" --version | tr -d '\r')" = "elektrawatt $WORKSPACE_VERSION"
-          "$tree/elektrawatt.exe" --smoke "$tree/samples/J-E-2416.ew"
+          "$tree/elektrawatt.exe" --smoke "$tree/samples/sample.ew"
       - name: write the CLI archive
         env:
           VERSION: ${{ steps.pins.outputs.version }}
@@ -400,7 +400,7 @@ jobs:
           tree="$RUNNER_TEMP/tree"
           test "$("$tree/ew" --version)" = "ew $WORKSPACE_VERSION"
           test "$("$tree/elektrawatt" --version)" = "elektrawatt $WORKSPACE_VERSION"
-          "$tree/elektrawatt" --smoke "$tree/samples/J-E-2416.ew"
+          "$tree/elektrawatt" --smoke "$tree/samples/sample.ew"
       - name: write the CLI archive
         env:
           VERSION: ${{ steps.pins.outputs.version }}

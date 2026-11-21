@@ -13,7 +13,7 @@ version of the source it was built from, which `<version>` begins with.
 |---|---|
 | `ew`, `ew.exe` | The program |
 | `content/` | The starter content: symbols, function definitions, forms, profiles and the starter library |
-| `samples/J-E-2416.ew/` | The sample project, Golden A |
+| `samples/sample.ew/` | The sample project, a small control cabinet that the program draws itself |
 | `LICENSES/`, `NOTICE`, `THIRD-PARTY-NOTICES.txt` | The licence texts, the attributions and the licences of the libraries |
 | `PRIVACY.md`, `SECURITY.md` | What the program does with your data, and how to report a security problem |
 
@@ -26,7 +26,7 @@ Set `EW_CONTENT_DIR` to the archive's `content` folder:
 - Windows (PowerShell): `$env:EW_CONTENT_DIR = "<folder>\content"`
 
 where `<folder>` is the folder you unpacked, `ew-<version>-<target>`. `ew --help` lists the commands; `ew export pdf
-<folder>/samples/J-E-2416.ew --out sample.pdf` writes the sample project's drawings as a PDF.
+<folder>/samples/sample.ew --out sample.pdf` writes the sample project's drawings as a PDF.
 
 ## Unsigned
 

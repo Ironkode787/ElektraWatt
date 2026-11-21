@@ -24,7 +24,7 @@ standard library only).
   elektrawatt[.exe], ew[.exe]           from --bin (on Windows also elektrawatt.pdb and ew.pdb, D5)
   THIRD-PARTY-NOTICES.txt               from --bin, where the job writes it beside the binaries (cargo-about)
   content/                              the repository's content/, as is
-  samples/J-E-2416.ew/                  a copy of golden/J-E-2416.ew, which is only read
+  samples/sample.ew/                    a copy of fixtures/sample/sample.ew, which is only read
   docs/                                 the built book, from --book
   NOTICE, PRIVACY.md, SECURITY.md       from the repository
   LICENSES/                             the repository's licence texts (at least the six of D3)
@@ -90,7 +90,7 @@ LICENCES = ("GPL-3.0-or-later", "CC-BY-SA-4.0", "CC0-1.0", "OFL-1.1", "MIT", "CC
 # The CLI archive's tree alone (--cli), per OS.
 LINUX_CLI_BINARIES = ("ew",)
 WINDOWS_CLI_BINARIES = ("ew.exe", "ew.pdb")
-SAMPLE = "J-E-2416.ew"
+SAMPLE = "sample.ew"
 CLI_README = os.path.join("ci", "cli-artefact-README.md")
 # The CLI archive's entries at the root of a tree, besides the executable (D3).
 CLI_ENTRIES = ("content", "samples", NOTICES, "NOTICE", "LICENSES", "PRIVACY.md", "SECURITY.md")
@@ -147,7 +147,7 @@ def readme(version):
         f"ElektraWatt {version}\n"
         "\n"
         "This folder is an installation of ElektraWatt: the program elektrawatt, the command-line program ew, the\n"
-        "starter content (content), the sample project (samples/J-E-2416.ew, opened read-only; Save as makes a copy),\n"
+        "starter content (content), the sample project (samples/sample.ew, opened read-only; Save as makes a copy),\n"
         "the user guide (docs/index.html), the licence texts (LICENSES), NOTICE, the third-party notices\n"
         "(THIRD-PARTY-NOTICES.txt), PRIVACY.md and SECURITY.md.\n"
         "\n"
@@ -173,7 +173,7 @@ def stage_tree(repo, bin_dir, book, version, out, cli=False):
         need(os.path.join(licences, f"{licence}.txt"))
     dirs = [
         (need(os.path.join(repo, "content")), "content"),
-        (need(os.path.join(repo, "golden", SAMPLE)), os.path.join("samples", SAMPLE)),
+        (need(os.path.join(repo, "fixtures", "sample", SAMPLE)), os.path.join("samples", SAMPLE)),
         (licences, "LICENSES"),
     ]
     if not cli:
@@ -565,8 +565,8 @@ class StageTest(unittest.TestCase):
         files = {
             "content/symbols/a.json": "{}\n",
             "content/libraries/p.ewlib/manifest.json": "{}\n",
-            "golden/J-E-2416.ew/project.json": "{}\n",
-            "golden/J-E-2416.ew/pages/1.json": "{}\n",
+            "fixtures/sample/sample.ew/project.json": "{}\n",
+            "fixtures/sample/sample.ew/pages/1.json": "{}\n",
             "NOTICE": "notice\n",
             "PRIVACY.md": "privacy\n",
             "SECURITY.md": "security\n",
@@ -624,8 +624,8 @@ class StageTest(unittest.TestCase):
         "content/symbols/a.json",
         "docs/css/a.css",
         "docs/index.html",
-        "samples/J-E-2416.ew/pages/1.json",
-        "samples/J-E-2416.ew/project.json",
+        "samples/sample.ew/pages/1.json",
+        "samples/sample.ew/project.json",
     ]
 
     def test_the_tree_is_d3s_listing(self):
@@ -643,7 +643,7 @@ class StageTest(unittest.TestCase):
                 "\n"
                 "This folder is an installation of ElektraWatt: the program elektrawatt, the command-line program ew,"
                 " the\n"
-                "starter content (content), the sample project (samples/J-E-2416.ew, opened read-only; Save as makes"
+                "starter content (content), the sample project (samples/sample.ew, opened read-only; Save as makes"
                 " a copy),\n"
                 "the user guide (docs/index.html), the licence texts (LICENSES), NOTICE, the third-party notices\n"
                 "(THIRD-PARTY-NOTICES.txt), PRIVACY.md and SECURITY.md.\n"
@@ -661,7 +661,7 @@ class StageTest(unittest.TestCase):
         cases = [
             os.path.join(self.repo, "PRIVACY.md"),
             os.path.join(self.repo, "LICENSES", "OFL-1.1.txt"),
-            os.path.join(self.repo, "golden", SAMPLE),
+            os.path.join(self.repo, "fixtures", "sample", SAMPLE),
             os.path.join(self.dir, "linux", NOTICES),
             os.path.join(self.dir, "linux", "ew"),
             os.path.join(self.book, "index.html"),

@@ -166,7 +166,7 @@ pub enum Mode {
 /// The application binary finds them; a missing one disables only the feature that needs it.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Resources {
-    /// The sample project directory (`J-E-2416.ew`, CC0, NFR-DOC-04): Open sample project, the tutorials, the
+    /// The sample project directory (`sample.ew`, CC0, NFR-DOC-04): Open sample project, the tutorials, the
     /// wizard's live preview.
     pub sample_dir: Option<PathBuf>,
     /// The starter content (`fndefs`, `forms`, `symbols`) that the QElectroTech import references.
