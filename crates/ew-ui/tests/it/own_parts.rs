@@ -3,7 +3,8 @@
 
 //! The person's own parts, made in the window from nothing (FT-1766, FT-1767): New part… in the device browser opens
 //! the part editor on a new part, whose bus interfaces are a form; Save puts the part into the project and into My
-//! parts. The window's own path: clicks and keys on a new project at 1920 × 1080.
+//! parts. The window's own path: clicks and keys on a new project at 1920 × 1080. Not here: a module part nothing
+//! draws, greyed in the next project's station catalogue (`ew-viewmodel`'s `own_parts.rs`).
 
 use crate::relays_paste_and_ip_wires::{click, key, typed};
 use crate::support::Tmp;
@@ -557,60 +558,6 @@ fn plc_parts_stand_under_plc_and_bus_in_the_device_browser() {
         .map(|c| c.part_number.as_str())
         .collect();
     assert_eq!(other, Vec::<&str>::new());
-}
-
-/// A module part that nothing draws (its channels have no pins, so the part editor gave it no function), in a library
-/// installed for the next project, which holds no copy of it: the station's catalogue lists it greyed with what to do
-/// in the part editor, not left out silently, and taking it is refused with the same words. The library is the first
-/// project's My parts, installed as the installation's own.
-#[test]
-fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
-    let tmp = Tmp::new();
-    let mut first = new_project(&tmp);
-    let s = first.shell_mut();
-    assert_eq!(s.dispatch("part.new", &json!({"plc": "module"})), Outcome::Done);
-    for (field, value) in [
-        ("manufacturer", "Acme"),
-        ("part_number", "DI-NP"),
-        ("description", "Input card without pins"),
-        ("plc.kind", "di"),
-        ("plc.count", "8"),
-        ("plc.pin_of", ""),
-    ] {
-        let set = s.dispatch("part.field", &json!({"field": field, "value": value}));
-        assert_eq!(set, Outcome::Done, "{field}");
-    }
-    assert_eq!(s.dispatch("part.save", &json!({})), Outcome::Done);
-    assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
-    drop(first);
-    let installed = vec![tmp.0.join("data").join("libraries")];
-    let tiers = LibraryTiers::under(&tmp.0.join("next"), &tmp.0.join("cache"), installed, Vec::new());
-    let mut d = Driver::in_folder(tmp.config().with_libraries(Some(tiers)), None, tmp.0.clone()).unwrap();
-    let next = json!({"dir": tmp.0.join("q.ew"), "template": "builtin"});
-    assert_eq!(d.shell_mut().dispatch("file.new", &next), Outcome::Done);
-    d.settle();
-    let held = records(&mut d).iter().any(|v| v["part_number"] == "DI-NP");
-    assert!(!held, "the next project holds no copy of it");
-    let s = d.shell_mut();
-    assert_eq!(s.dispatch("plc.new_station", &json!({})), Outcome::Done);
-    assert_eq!(
-        s.dispatch("plc.rack_add", &json!({"part": "EW-GEN-CPU-1"})),
-        Outcome::Done
-    );
-    let why = "Not offered: nothing draws this part, as it has no pins. In the part editor, give it a Pin pattern or \
-               its supply pins under PLC, then save it";
-    let listed = s
-        .station_catalogue()
-        .into_iter()
-        .find(|p| p.number == "DI-NP")
-        .expect("the station's catalogue lists DI-NP");
-    assert_eq!(listed.unfit.as_deref(), Some(why));
-    assert_eq!(
-        s.dispatch("plc.rack_add", &json!({"part": "DI-NP"})),
-        Outcome::Failed {
-            message: why.to_owned()
-        }
-    );
 }
 
 /// Makes a head station such as an IM 152 in the part editor (New part… in the device browser) and saves it: a PLC
