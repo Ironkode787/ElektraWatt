@@ -53,7 +53,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     );
     assert_eq!(
         refused(&mut shell, "rep.move", far.clone()),
-        "de verplaatsing brengt het symbool van -102G1 buiten het tekenbereik; verplaats minder rasterstappen"
+        "de verplaatsing brengt het symbool van -102F1 buiten het tekenbereik; verplaats minder rasterstappen"
     );
 
     assert!(strings::set_locale("en"));
@@ -67,7 +67,7 @@ fn a_refused_command_shows_its_reason_in_the_window_language() {
     );
     assert_eq!(
         refused(&mut shell, "rep.move", far),
-        "the move takes the symbol of -102G1 outside the drawable range; move it fewer grid steps"
+        "the move takes the symbol of -102F1 outside the drawable range; move it fewer grid steps"
     );
     shell.shutdown();
 }
@@ -131,13 +131,13 @@ fn a_route_off_its_junction_is_refused_with_the_aftakking() {
     assert!(strings::set_locale("nl"));
     assert_eq!(
         refused(&mut shell, "connection.route", route.clone()),
-        "het einde van de draad op x 116.4, y 52.9 mm op pagina 102 sluit niet aan op de aftakking op x 116.4, y \
-         55.6 mm; laat de draad op de aftakking eindigen"
+        "het einde van de draad op x 76.7, y 68.8 mm op pagina 102 sluit niet aan op de aftakking op x 76.7, y \
+         71.4 mm; laat de draad op de aftakking eindigen"
     );
     assert!(strings::set_locale("en"));
     assert_eq!(
         refused(&mut shell, "connection.route", route),
-        "the wire's end at x 116.4, y 52.9 mm on page 102 does not meet the junction at x 116.4, y 55.6 mm; end the \
+        "the wire's end at x 76.7, y 68.8 mm on page 102 does not meet the junction at x 76.7, y 71.4 mm; end the \
          wire at its junction"
     );
     shell.shutdown();

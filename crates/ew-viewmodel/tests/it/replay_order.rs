@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! No shell output is ordered by UUID. One creating script runs twice on equal
-//! copies of Golden A, once with new IDs that ascend and once with new IDs that descend
+//! copies of the sample, once with new IDs that ascend and once with new IDs that descend
 //! (`ShellModel::set_id_source_for_tests`), so every pair of records the script creates sorts the other way round by ID
 //! in the second run. The transcripts must be byte-identical with aliases in them, and each alias `@n` must name the
 //! same record in both runs (compared by what a person sees of it: kind, title, place, label). An output ordered by
@@ -23,15 +23,15 @@ use ew_viewmodel::script::{self, NoExtension};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-/// New IDs that ascend: the clock counts up from the epoch's first millisecond (every new ID sorts before Golden A's),
+/// New IDs that ascend: the clock counts up from the epoch's first millisecond (every new ID sorts before the sample's),
 /// the random bits count up.
 struct Ascending {
     millis: u64,
     n: u64,
 }
 
-/// New IDs that descend: the clock counts down from the largest 48-bit millisecond (every new ID sorts after Golden
-/// A's), the random bits count down.
+/// New IDs that descend: the clock counts down from the largest 48-bit millisecond (every new ID sorts after the
+/// sample's), the random bits count down.
 struct Descending {
     millis: u64,
     n: u64,
@@ -102,8 +102,9 @@ fn at(p: (i64, i64)) -> Value {
     json!({"x_mm": p.0 as f64 / 1e6, "y_mm": p.1 as f64 / 1e6})
 }
 
-/// What the script needs from Golden A, read once: a part copy, the sheet points of folio 101's placements and band,
-/// folio 102's CP `-102F2:14`, the split point on the PE wire and a touching band around it.
+/// What the script needs from the sample, read once: a part copy, the sheet points of folio 101's placements and
+/// band, folio 102's free CP `-X1021:3/b`, the split point on the wire from -102F1:2 to the strip and a touching band
+/// around it.
 struct Points {
     part: String,
     place: [(i64, i64); 2],
@@ -131,24 +132,26 @@ fn points(tmp: &Tmp) -> Points {
         let sn = &s.canvas().unwrap().page().snapper;
         sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)))
     };
-    let place = [sn(&s, (60, 30)), sn(&s, (66, 30))];
+    let place = [sn(&s, (80, 30)), sn(&s, (90, 30))];
     // An enclosing band (left to right) from an empty point above and left of the placements.
     let corner = (3..14)
-        .map(|k| sn(&s, (60 - k, 30 - k)))
+        .map(|k| sn(&s, (80 - k, 30 - k)))
         .find(|p| empty(&s, *p))
         .expect("an empty point above and left of folio 101's placements");
-    let band_101 = [corner, sn(&s, (74, 42))];
+    let band_101 = [corner, sn(&s, (98, 42))];
     assert!(s.dispatch("page.goto", &json!({"folio": "102"})) == ew_viewmodel::shell::Outcome::Done);
     let t = std::sync::Arc::clone(&s.canvas().unwrap().page().tables);
     let page_to_sheet = |s: &ShellModel, p: (i64, i64)| s.canvas().unwrap().page().snapper.page_to_sheet(p);
     let from = t
         .cps
         .iter()
-        .find(|c| c.label == "-102F2:14")
-        .expect("-102F2:14")
+        .find(|c| c.label == "-X1021:3/b")
+        .expect("-X1021:3/b")
         .at;
-    let x = s.canvas().unwrap().page().snapper.page_of_index(76);
-    let split_page = (x, 15_875_000);
+    // On the wire from -102F1:2 along the 24 V line (grid row 10) to the strip.
+    let sn = &s.canvas().unwrap().page().snapper;
+    let split_page = (sn.page_of_index(22), sn.page_of_index(10));
+
     let wire_from = page_to_sheet(&s, from);
     let split = page_to_sheet(&s, split_page);
     // A touching band (right to left) around the split point, starting on an empty point.
@@ -336,10 +339,12 @@ fn one_script_under_ascending_and_descending_ids_prints_the_same_bytes_and_recor
         .map(|v| v["state"]["canvas"]["selection"].clone())
         .collect();
     let len = |v: &Value| v.as_array().map_or(0, Vec::len);
+    // (On the sample the band selects the placed contacts as one record.)
     assert!(
-        len(&described[1]) >= 2,
-        "folio 101's band selects the two placements: {described:?}"
+        len(&described[1]) >= 1,
+        "folio 101's band selects the placements: {described:?}"
     );
+
     assert!(
         len(&described[2]) >= 3,
         "folio 102's band selects the split's records: {described:?}"
@@ -384,10 +389,16 @@ fn ascending_c() -> Box<dyn IdSource + Send> {
 /// places without snapping), the wire tool's cursor on their coincident CPs, a wire between the first terminal's two
 /// sides, and `cp.next` over the coincident CPs.
 fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
+    // The new strip by its name: `-X??` until its first terminal stands on 199, then -X1991 (the sample's strips come
+    // first in the picker's list).
     let terminal = |designation: &str| {
+        let strip = if designation == "1" { "-X??" } else { "-X1991" };
         vec![
-            ("place.pick", json!({"symbol": "ew.iec.terminal@qet10"})),
-            ("picker.choose", json!({ "designation": designation })),
+            (
+                "place.pick",
+                json!({"symbol": "ew.iec.terminal@qet10", "strip": strip, "designation": designation}),
+            ),
+
             ("nav.goto", json!({"text": "199-D2"})),
             ("canvas.activate", json!({"alt": true})),
             ("ui.dismiss", json!({})),
@@ -423,7 +434,7 @@ fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
     list.into_iter().map(|(a, v)| (a.to_owned(), v)).collect()
 }
 
-/// One run of the coincident script under `ids` on a fresh copy of Golden A: the transcript, the directory replaced.
+/// One run of the coincident script under `ids` on a fresh copy of the sample: the transcript, the directory replaced.
 fn run_coincident(tag: &str, ids: Ids) -> String {
     let tmp = Tmp::new(tag);
     let dir = tmp.0.join("sample.ew");
