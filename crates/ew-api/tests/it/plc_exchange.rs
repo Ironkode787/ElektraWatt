@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC exchange on Golden A (doc 10 §4, AC-30): the AML, tag table and PLCopen exports of the valve terminal
-//! -201U1 with the symbol template `{target.process_tag}` (Golden A at 1.0), the file that comes back with its
-//! three-way merge, ownership and the parking list, the drift rule and the instrument list.
+//! The PLC exchange on the sample (doc 10 §4, AC-30): the AML, tag table and PLCopen exports of the CPU station
+//! -104A1 with its input module -104A1-A1 and output module -104A1-A2 and of the valve terminal -201K1, with the
+//! symbol template `{target.process_tag}` and a process tag on the target of each used channel (set in the set-up,
+//! [`exchange`]), the file that comes back with its three-way merge, ownership and the parking list, the drift rule
+//! and the instrument list.
 
 use std::collections::BTreeSet;
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::plc_exchange::{ApcVersion, PlcFormat, PlcImport, PlcOptions};
@@ -21,17 +23,34 @@ use ew_plc::{Choice, State};
 use ew_schema::{Channel, ChannelState, Device, ExchangeDirection, ForeignId, PlcConfigProject};
 use serde_json::{Value, json};
 
-/// The symbols of the eight used channels (doc 20, AC-30; doc 10 §9.2).
-const SYMBOLS: [&str; 8] = [
-    "TA05_V_15",
-    "TA05_V_33",
-    "TA05_V_18",
-    "TA05_V_17",
-    "TA05_V_36",
-    "TA05_V_38",
-    "TA05_V_16",
-    "TA05_V_37",
+/// The target of each used channel of the sample with the process tag and the function text the set-up gives it: the
+/// four valves of -201K1 on Q0.0 … Q0.6, the sensor on I0.1 and the two lamps on Q1.1 and Q1.2 of -104A1.
+const TARGETS: [(&str, &str, &str); 7] = [
+    ("-201K1-Q1", "CL-V-01", "Clamp close"),
+    ("-201K1-Q2", "CL-V-02", "Clamp open"),
+    ("-201K1-Q3", "CL-V-03", "Lift up"),
+    ("-201K1-Q4", "CL-V-04", "Lift down"),
+    ("-104B1", "CV-B-01", "Part present"),
+    ("-104E1", "CV-E-01", "Running"),
+    ("-104E2", "CV-E-02", "Fault"),
 ];
+
+/// The symbol the template makes of a process tag (doc 10 §3.4: an IEC identifier).
+fn symbol(process_tag: &str) -> String {
+    process_tag.replace('-', "_")
+}
+
+/// The symbols of the used channels of the stations `of` (doc 10 §9.2).
+fn symbols(of: &[&str]) -> BTreeSet<String> {
+    TARGETS
+        .iter()
+        .filter(|(t, _, _)| of.iter().any(|st| t.starts_with(st)))
+        .map(|(_, p, _)| symbol(p))
+        .collect()
+}
+
+/// The first valve's symbol, `CL_V_01`, on Q0.0 of -201K1.
+const FIRST: &str = "CL_V_01";
 
 fn run(s: &mut Session, name: &str, params: Value) {
     s.execute(&AnyCommand {
@@ -64,10 +83,10 @@ fn cfg(q: &Q) -> Id<PlcConfigProject> {
     q.table::<PlcConfigProject>().iter().next().expect("PLC1").0
 }
 
-/// Golden A with the symbol template of its 1.0 state.
-fn golden() -> Session {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+/// The sample with the symbol template `{target.process_tag}` and the process tags and function texts of
+/// [`TARGETS`].
+fn exchange() -> Session {
+    let mut s = common::sample();
     let c = cfg(&s.query());
     run(
         &mut s,
@@ -79,6 +98,19 @@ fn golden() -> Session {
             "value": {"template": "{target.process_tag}"},
         }),
     );
+    for (tag, process_tag, text) in TARGETS {
+        let target = device(&s, tag);
+        for (path, value) in [
+            ("process_tag", json!(process_tag)),
+            ("function_text", json!(text)),
+        ] {
+            run(
+                &mut s,
+                "fields.set",
+                json!({"kind": "device", "targets": [target.to_string()], "path": path, "value": value}),
+            );
+        }
+    }
     s
 }
 
@@ -107,11 +139,15 @@ fn image(text: &str) -> ExchangeImage {
 /// The channel whose determined symbol is `symbol`.
 fn channel_of(s: &Session, symbol: &str) -> Id<Channel> {
     let q = s.query();
-    q.get::<PlcRows>(device(s, "-201U1"))
-        .iter()
-        .find(|r| r.text.symbol.as_deref() == Some(symbol))
+    ["-201K1", "-104A1"]
+        .into_iter()
+        .find_map(|station| {
+            q.get::<PlcRows>(device(s, station))
+                .iter()
+                .find(|r| r.text.symbol.as_deref() == Some(symbol))
+                .map(|r| r.channel)
+        })
         .unwrap_or_else(|| panic!("no channel with the symbol {symbol}"))
-        .channel
 }
 
 fn printed(q: &Q, module: Id<Device>) -> Vec<String> {
@@ -132,15 +168,16 @@ fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// AC-30, FR-PLC-029, FR-PLC-056, FR-EXP-009: the AML export of station -201U1 is AR APC 1.4.0 on CAEX 2.15 with the
-/// seven modules on Q0 … Q6, 56 channels and the eight tags linked to their channels; it carries the project's own
-/// IDs and IEC designations and no person field; the same model gives the same bytes; 1.2.0 differs in its version.
+/// AC-30, FR-PLC-029, FR-PLC-056, FR-EXP-009: the AML export of station -104A1 is AR APC 1.4.0 on CAEX 2.15 with its
+/// input module on I0 and its output module on Q1, 16 channels and the three tags linked to their channels; it
+/// carries the project's own IDs and IEC designations and no person field; the same model gives the same bytes; 1.2.0
+/// differs in its version.
 #[test]
-fn the_aml_export_of_the_golden_station_is_ar_apc_on_caex_2_15() {
-    let s = golden();
-    let station = device(&s, "-201U1");
+fn the_aml_export_of_a_station_is_ar_apc_on_caex_2_15() {
+    let s = exchange();
+    let station = device(&s, "-104A1");
     let options = PlcOptions {
-        stations: vec!["-201U1".to_owned()],
+        stations: vec!["-104A1".to_owned()],
         ..PlcOptions::default()
     };
     let export = s
@@ -156,21 +193,26 @@ fn the_aml_export_of_the_golden_station_is_ar_apc_on_caex_2_15() {
     assert_eq!(image.stations.len(), 1);
     let st = &image.stations[0];
     assert_eq!(st.id, station.to_string(), "the station's ID is its device's");
-    assert_eq!(st.iec.designation.as_deref(), Some("-201U1"));
-    assert_eq!(st.iec.location.as_deref(), Some("+J-E-2416"));
-    assert_eq!(st.items.len(), 7);
-    for (i, item) in st.items.iter().enumerate() {
-        let i = u32::try_from(i).unwrap();
-        assert_eq!(item.position, i + 1, "{}", item.name);
-        let ranges: Vec<(u32, u32, IoType)> =
-            item.addresses.iter().map(|a| (a.start, a.bits, a.io)).collect();
-        assert_eq!(ranges, [(i, 8, IoType::Output)], "{}", item.name);
-        assert_eq!(item.channels.len(), 8, "{}", item.name);
-    }
-    assert_eq!(st.items[0].name, "-201U3");
-    assert_eq!(st.items[0].channels[1].name, "Channel_DO_1");
-    let names: BTreeSet<&str> = image.tags.iter().map(|t| t.name.as_str()).collect();
-    assert_eq!(names, SYMBOLS.into_iter().collect());
+    assert_eq!(st.iec.designation.as_deref(), Some("-104A1"));
+    assert_eq!(st.iec.location.as_deref(), Some("+CAB"));
+    let items: Vec<(&str, u32, Vec<(u32, u32, IoType)>, usize)> = st
+        .items
+        .iter()
+        .map(|i| {
+            let ranges = i.addresses.iter().map(|a| (a.start, a.bits, a.io)).collect();
+            (i.name.as_str(), i.position, ranges, i.channels.len())
+        })
+        .collect();
+    assert_eq!(
+        items,
+        [
+            ("-104A1-A1", 1, vec![(0, 8, IoType::Input)], 8),
+            ("-104A1-A2", 2, vec![(1, 8, IoType::Output)], 8),
+        ]
+    );
+    assert_eq!(st.items[0].channels[1].name, "Channel_DI_1");
+    let names: BTreeSet<String> = image.tags.iter().map(|t| t.name.clone()).collect();
+    assert_eq!(names, symbols(&["-104"]));
     let ids: BTreeSet<&str> = st
         .items
         .iter()
@@ -184,10 +226,10 @@ fn the_aml_export_of_the_golden_station_is_ar_apc_on_caex_2_15() {
             tag.name
         );
     }
-    let first = image.tags.iter().find(|t| t.name == "TA05_V_15").unwrap();
-    assert_eq!(first.address.as_deref(), Some("0.1"));
-    assert_eq!(first.io, Some(IoType::Output));
-    assert_eq!(export.counts, [1, 7, 56, 8]);
+    let sensor = image.tags.iter().find(|t| t.name == "CV_B_01").unwrap();
+    assert_eq!(sensor.address.as_deref(), Some("0.1"));
+    assert_eq!(sensor.io, Some(IoType::Input));
+    assert_eq!(export.counts, [1, 2, 16, 3]);
 
     // no person field: none of the project's party texts is in the file
     let parties = serde_json::to_value(&s.query().project().parties).unwrap();
@@ -201,7 +243,7 @@ fn the_aml_export_of_the_golden_station_is_ar_apc_on_caex_2_15() {
             _ => {}
         }
     }
-    assert!(!texts.is_empty(), "Golden A names its parties");
+    assert!(!texts.is_empty(), "the sample names its parties");
     for t in texts {
         assert!(!text.contains(&t), "the file holds the party text `{t}`");
     }
@@ -220,10 +262,10 @@ fn the_aml_export_of_the_golden_station_is_ar_apc_on_caex_2_15() {
 }
 
 /// AC-30, FR-PLC-036, FR-PLC-037: the tag table has exactly the ten columns and one row per used channel with its
-/// symbol and its TIA address; the PLCopen list has the same eight variables with IEC addresses.
+/// symbol and its TIA address; the PLCopen list has the same seven variables with IEC addresses.
 #[test]
-fn the_tag_table_and_the_gvl_hold_the_eight_used_channels() {
-    let mut s = golden();
+fn the_tag_table_and_the_gvl_hold_the_used_channels() {
+    let mut s = exchange();
     let table = s
         .plc_export(PlcFormat::TiaXlsx, &PlcOptions::default())
         .expect("the tag table");
@@ -243,29 +285,31 @@ fn the_tag_table_and_the_gvl_hold_the_eight_used_channels() {
     )
     .expect("the sheet PLC Tags");
     assert_eq!(rows[0][..10], ew_plc::tia::COLUMNS.map(str::to_owned));
-    let names: BTreeSet<&str> = rows[1..].iter().map(|r| r[0].as_str()).collect();
-    assert_eq!(names, SYMBOLS.into_iter().collect());
-    let row = rows.iter().find(|r| r[0] == "TA05_V_15").unwrap();
+    let names: BTreeSet<String> = rows[1..].iter().map(|r| r[0].clone()).collect();
+    let all = symbols(&["-"]);
+    assert_eq!(names, all);
+    let row = rows.iter().find(|r| r[0] == FIRST).unwrap();
     assert_eq!(row[1], "EW_IO");
-    assert_eq!(row[3], "%Q0.1");
-    assert_eq!(row[4], "TA05-V-15", "the comment is the function text");
+    assert_eq!(row[3], "%Q0.0");
+    assert_eq!(row[4], "Clamp close", "the comment is the function text");
     assert_eq!(row[5..8], ["True", "True", "True"].map(str::to_owned));
     assert_eq!(
         row[10],
-        channel_of(&s, "TA05_V_15").to_string(),
+        channel_of(&s, FIRST).to_string(),
         "the hidden ID column"
     );
 
     let gvl = String::from_utf8(export(&mut s, PlcFormat::Plcopen)).unwrap();
     assert!(gvl.contains("<project xmlns=\"http://www.plcopen.org/xml/tc6_0201\">"));
     assert!(gvl.contains("<globalVars name=\"IO_ElektraWatt\">"));
-    assert_eq!(gvl.matches("<variable ").count(), 8);
-    for symbol in SYMBOLS {
+    assert_eq!(gvl.matches("<variable ").count(), all.len());
+    for symbol in &all {
         assert!(gvl.contains(&format!("<variable name=\"{symbol}\"")), "{symbol}");
     }
-    assert!(gvl.contains("<variable name=\"TA05_V_15\" address=\"%QX0.1\">"));
+    assert!(gvl.contains("<variable name=\"CL_V_01\" address=\"%QX0.0\">"));
+    assert!(gvl.contains("<variable name=\"CV_B_01\" address=\"%IX0.1\">"));
     assert!(
-        gvl.contains(">TA05-V-15 · "),
+        gvl.contains(">Clamp close · "),
         "the documentation starts with the function text"
     );
 }
@@ -274,17 +318,17 @@ fn the_tag_table_and_the_gvl_hold_the_eight_used_channels() {
 /// (EW-PLC-005) and not the tag table.
 #[test]
 fn a_symbol_that_is_no_identifier_blocks_the_export() {
-    let mut s = golden();
-    let channel = channel_of(&s, "TA05_V_15");
+    let mut s = exchange();
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "TA05-V-15"}),
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "CL-V-01"}),
     );
     for format in [PlcFormat::Aml(ApcVersion::V1_4_0), PlcFormat::Plcopen] {
         let e = s.plc_export(format, &PlcOptions::default()).expect_err("blocked");
         assert!(e.to_string().contains("EW-PLC-005"), "{e}");
-        assert!(e.to_string().contains("TA05-V-15"), "{e}");
+        assert!(e.to_string().contains("CL-V-01"), "{e}");
     }
     s.plc_export(PlcFormat::TiaXlsx, &PlcOptions::default())
         .expect("the tag table takes any symbol");
@@ -295,15 +339,15 @@ fn a_symbol_that_is_no_identifier_blocks_the_export() {
 /// snapshot; the same symbol renamed on both sides is one conflict.
 #[test]
 fn a_file_that_comes_back_merges_three_ways() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let unchanged = import(&s, exported.as_bytes());
     assert!(unchanged.plan.changes.is_empty(), "{:?}", unchanged.plan.changes);
     assert!(unchanged.plan.parking.is_empty() && unchanged.plan.removed.is_empty());
 
     // the PLC programmer renames the tag; the engineer gives the valve a function text
-    let theirs = exported.replace("TA05_V_15", "TA05_V_15A");
-    let valve = device(&s, "-201U3-Q1");
+    let theirs = exported.replace(FIRST, "CL_V_01A");
+    let valve = device(&s, "-201K1-Q1");
     run(
         &mut s,
         "fields.set",
@@ -314,7 +358,7 @@ fn a_file_that_comes_back_merges_three_ways() {
             "value": {"en-GB": "Feed valve"},
         }),
     );
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     let merged = import(&s, theirs.as_bytes());
     let name = merged
         .plan
@@ -323,7 +367,7 @@ fn a_file_that_comes_back_merges_three_ways() {
         .find(|c| c.field == "name")
         .expect("the renamed symbol");
     assert_eq!((name.state, name.default), (State::Apply, Choice::Theirs));
-    assert_eq!(name.theirs.as_deref(), Some("TA05_V_15A"));
+    assert_eq!(name.theirs.as_deref(), Some("CL_V_01A"));
     assert!(
         merged.plan.changes.iter().all(|c| c.state != State::Conflict),
         "{:?}",
@@ -345,7 +389,7 @@ fn a_file_that_comes_back_merges_three_ways() {
             .outcome
             .notices
             .iter()
-            .any(|n| n.contains("TA05_V_15A") && n.contains("taken from the file")),
+            .any(|n| n.contains("CL_V_01A") && n.contains("taken from the file")),
         "{:?}",
         receipt.outcome.notices
     );
@@ -358,7 +402,7 @@ fn a_file_that_comes_back_merges_three_ways() {
             .as_ref()
             .map(ToString::to_string)
     };
-    assert_eq!(symbol(&q).as_deref(), Some("TA05_V_15A"));
+    assert_eq!(symbol(&q).as_deref(), Some("CL_V_01A"));
     let stamp = |q: &Q| {
         q.table::<PlcConfigProject>()
             .get(cfg(q))
@@ -414,14 +458,14 @@ fn a_file_that_comes_back_merges_three_ways() {
         .plc_import(theirs.as_bytes(), &options)
         .expect("the file is read");
     bulk(&mut s, &taken.apply);
-    assert_eq!(symbol(&s.query()).as_deref(), Some("TA05_V_15A"));
+    assert_eq!(symbol(&s.query()).as_deref(), Some("CL_V_01A"));
 }
 
 /// FR-PLC-056: a file whose IDs the PLC software replaced still matches every object by its IEC designation and
 /// position; applying it keeps the foreign IDs, by which the next file matches.
 #[test]
 fn replaced_ids_match_by_designation() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let uuid = regex::Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
     let foreign = uuid.replace_all(&exported, "tia-$0").into_owned();
@@ -435,7 +479,8 @@ fn replaced_ids_match_by_designation() {
             .iter()
             .filter(|m| m.object.name() == "module")
             .count(),
-        7
+        modules_in(&exported),
+        "every module of the file"
     );
     bulk(&mut s, &back.apply);
     let q = s.query();
@@ -455,10 +500,10 @@ fn replaced_ids_match_by_designation() {
 /// created silently; `create` creates it as an unplaced child of its station, and the next file finds it.
 #[test]
 fn a_module_the_project_lacks_is_parked_and_created_on_request() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
-    let station = device(&s, "-201U1");
-    let first = format!("<InternalElement ID=\"{}\"", device(&s, "-201U3"));
+    let station = device(&s, "-104A1");
+    let first = format!("<InternalElement ID=\"{}\"", device(&s, "-104A1-A1"));
     let module = "<InternalElement ID=\"foreign-module\" Name=\"AI 8xU\">\
         <Attribute Name=\"PositionNumber\"><Value>42</Value></Attribute>\
         <Attribute Name=\"TypeIdentifier\"><Value>OrderNumber:6ES7 531-7KF00-0AB0</Value></Attribute>\
@@ -516,16 +561,11 @@ fn a_module_the_project_lacks_is_parked_and_created_on_request() {
 /// starts are the PLC's: an edit is refused in words until `plc.unlock` lifts the protection.
 #[test]
 fn an_imported_start_is_the_plcs_until_unlocked() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
-    let (u5, u6) = (device(&s, "-201U5"), device(&s, "-201U6"));
-    // -201U5 moves from Q2 to Q10 in the PLC software
-    let at = exported.find("Name=\"-201U5\"").expect("the module");
-    let (head, tail) = exported.split_at(at);
-    let theirs = format!(
-        "{head}{}",
-        tail.replacen("<Value>2</Value>", "<Value>10</Value>", 1)
-    );
+    let (a2, a1) = (device(&s, "-104A1-A2"), device(&s, "-104A1-A1"));
+    // -104A1-A2 moves from Q1 to Q10 in the PLC software
+    let theirs = with_start(&exported, "-104A1-A2", 1, 10);
     let moved = import(&s, theirs.as_bytes());
     let start: Vec<_> = moved
         .plan
@@ -537,20 +577,20 @@ fn an_imported_start_is_the_plcs_until_unlocked() {
     assert_eq!(start[0].state, State::Apply);
     assert_eq!(
         (start[0].ours.as_deref(), start[0].theirs.as_deref()),
-        (Some("2"), Some("10"))
+        (Some("1"), Some("10"))
     );
-    let set_start = |m: Id<Device>| json!({"modules": [m.to_string()], "dir": "output", "spec": "Q20"});
-    run(&mut s, "plc.set_start", set_start(u6));
+    let set_start = |m: Id<Device>| json!({"modules": [m.to_string()], "dir": "input", "spec": "I20"});
+    run(&mut s, "plc.set_start", set_start(a1));
     s.undo(&Origin::Gui)
         .expect("before an import a start is an ordinary edit");
 
     bulk(&mut s, &moved.apply);
     let want: Vec<String> = (0..8).map(|n| format!("Q10.{n}")).collect();
-    assert_eq!(printed(&s.query(), u5), want);
+    assert_eq!(printed(&s.query(), a2), want);
     let c = cfg(&s.query());
-    let refusal = refused(&mut s, "plc.set_start", set_start(u6));
+    let refusal = refused(&mut s, "plc.set_start", set_start(a1));
     assert!(
-        refusal.contains("-201U6: the start address is owned by configuration project PLC1 (PLC import of "),
+        refusal.contains("-104A1-A1: the start address is owned by configuration project PLC1 (PLC import of "),
         "{refusal}"
     );
     let refusal = refused(
@@ -558,9 +598,9 @@ fn an_imported_start_is_the_plcs_until_unlocked() {
         "fields.set",
         json!({
             "kind": "device",
-            "targets": [u6.to_string()],
+            "targets": [a1.to_string()],
             "path": "plc_module.start",
-            "value": {"output": "tbd"},
+            "value": {"input": "tbd"},
         }),
     );
     assert!(
@@ -581,7 +621,7 @@ fn an_imported_start_is_the_plcs_until_unlocked() {
 
     let unlock = json!({"config_project": c.to_string(), "group": "module_starts"});
     run(&mut s, "plc.unlock", unlock.clone());
-    run(&mut s, "plc.set_start", set_start(u6));
+    run(&mut s, "plc.set_start", set_start(a1));
     let refusal = refused(&mut s, "plc.unlock", unlock);
     assert!(
         refusal.contains("the start address is not protected"),
@@ -590,11 +630,20 @@ fn an_imported_start_is_the_plcs_until_unlocked() {
 }
 
 /// FR-PLC-035, EW-PLC-016: after an export the project is as exchanged; an edit of a symbol is reported as drift with
-/// the export's date, and `plc_status` names the object and tells the exchanged file from another.
+/// the export's date (the sample's model has none, so the export is given one, as the CLI gives `SOURCE_DATE_EPOCH`),
+/// and `plc_status` names the object and tells the exchanged file from another.
 #[test]
 fn an_edit_after_an_export_is_drift() {
-    let mut s = golden();
-    let exported = aml(&mut s);
+    let mut s = exchange();
+    let options = PlcOptions {
+        date: Some("2026-03-02".parse().expect("a date")),
+        ..PlcOptions::default()
+    };
+    let e = s
+        .plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &options)
+        .expect("the export");
+    s.execute(e.record.as_ref().expect("a record")).expect("recorded");
+    let exported = String::from_utf8(e.bytes).expect("AML is UTF-8");
     assert!(
         findings(&s, "EW-PLC-016").is_empty(),
         "the project is as exported"
@@ -603,7 +652,7 @@ fn an_edit_after_an_export_is_drift() {
     assert!(status.drift.is_empty());
     assert_eq!(status.same_file, Some(true));
 
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -642,7 +691,7 @@ fn an_edit_after_an_export_is_drift() {
 /// named without one, in en-GB and nl-NL.
 #[test]
 fn drift_after_an_undated_export_names_no_date() {
-    let mut s = golden();
+    let mut s = exchange();
     let options = PlcOptions {
         date: Some("1980-01-01".parse().expect("a date")),
         ..PlcOptions::default()
@@ -651,7 +700,7 @@ fn drift_after_an_undated_export_names_no_date() {
         .plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &options)
         .expect("the export");
     s.execute(e.record.as_ref().expect("a record")).expect("recorded");
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -677,7 +726,7 @@ fn drift_after_an_undated_export_names_no_date() {
 /// its address, and a row without a channel is listed and cannot be created.
 #[test]
 fn a_tag_table_comes_back() {
-    let mut s = golden();
+    let mut s = exchange();
     let table = export(&mut s, PlcFormat::TiaXlsx);
     let unchanged = import(&s, &table);
     assert!(unchanged.plan.changes.is_empty(), "{:?}", unchanged.plan.changes);
@@ -688,7 +737,7 @@ fn a_tag_table_comes_back() {
     for row in &mut rows {
         row.truncate(10);
     }
-    let renamed = rows.iter_mut().find(|r| r[0] == "TA05_V_15").unwrap();
+    let renamed = rows.iter_mut().find(|r| r[0] == FIRST).unwrap();
     renamed[0] = "FEED_15".to_owned();
     rows.push(["GHOST", "EW_IO", "Bool", "%Q99.0"].map(str::to_owned).to_vec());
     let date = ew_reports::xlsx::DateTime {
@@ -704,7 +753,7 @@ fn a_tag_table_comes_back() {
     assert_eq!(back.plan.changes.len(), 1, "{:?}", back.plan.changes);
     let change = &back.plan.changes[0];
     assert_eq!((change.field.as_str(), change.state), ("name", State::Apply));
-    assert_eq!(change.target, channel_of(&s, "TA05_V_15").cast());
+    assert_eq!(change.target, channel_of(&s, FIRST).cast());
     assert_eq!(back.plan.parking.len(), 1);
     assert_eq!(back.plan.parking[0].name, "GHOST");
     assert!(!back.plan.parking[0].creatable);
@@ -712,16 +761,17 @@ fn a_tag_table_comes_back() {
     channel_of(&s, "FEED_15");
 }
 
-/// FR-PLC-050, EW-PRC-002: ten instrument rows with eight DO tags reserve the eight spare channels of -201U5 and
-/// -201U6; the two tags without a spare channel of their kind are open items; applying the list again changes nothing.
+/// FR-PLC-050, EW-PRC-002: eight instrument rows with seven DO tags for -104A1 reserve the six spare channels of
+/// -104A1-A2 (Q1.0 and Q1.3 … Q1.7); the DO tag left over and the AI tag, which the station has no module for, are
+/// open items; applying the list again changes nothing.
 #[test]
 fn an_instrument_list_reserves_spare_channels() {
-    let mut s = golden();
+    let mut s = exchange();
     let mut list = String::from("Tag;Description;Signal type;Range;Field location;Preferred station\n");
-    for n in 40..48 {
-        list.push_str(&format!("TA05-V-{n};Valve {n};DO;;Hall 1;-201U1\n"));
+    for n in 40..47 {
+        list.push_str(&format!("CV-V-{n};Valve {n};DO;;Hall 1;-104A1\n"));
     }
-    list.push_str("TA05-S-01;Level switch;DI;;Hall 1;\nTA05-L-01;Level;AI;4..20 mA;Hall 1;\n");
+    list.push_str("CV-L-01;Level;AI;4..20 mA;Hall 1;-104A1\n");
     let command = s
         .instrument_list(None, list.as_bytes())
         .expect("the list is read");
@@ -730,7 +780,7 @@ fn an_instrument_list_reserves_spare_channels() {
     let notices = &receipt.outcome.notices;
     assert_eq!(
         notices.iter().filter(|n| n.contains("reserved")).count(),
-        8,
+        6,
         "{notices:?}"
     );
     assert_eq!(
@@ -740,23 +790,23 @@ fn an_instrument_list_reserves_spare_channels() {
     );
 
     let q = s.query();
-    assert_eq!(q.devices().len(), devices + 10, "one placeholder per row");
-    let (u5, u6) = (device(&s, "-201U5"), device(&s, "-201U6"));
+    assert_eq!(q.devices().len(), devices + 8, "one placeholder per row");
+    let a2 = device(&s, "-104A1-A2");
     let reserved: Vec<_> = q
         .table::<Channel>()
         .iter()
         .filter(|(_, c)| c.state == Some(ChannelState::Reserved))
         .map(|(_, c)| (c.module, c.symbol.as_ref().map(ToString::to_string)))
         .collect();
-    assert_eq!(reserved.len(), 8);
-    assert!(reserved.iter().all(|(m, _)| *m == u5 || *m == u6), "{reserved:?}");
+    assert_eq!(reserved.len(), 6);
+    assert!(reserved.iter().all(|(m, _)| *m == a2), "{reserved:?}");
     let symbols: BTreeSet<String> = reserved.into_iter().filter_map(|(_, s)| s).collect();
-    assert_eq!(symbols, (40..48).map(|n| format!("TA05_V_{n}")).collect());
+    assert_eq!(symbols, (40..46).map(|n| format!("CV_V_{n}")).collect());
     let placeholder = q
         .devices()
         .iter()
-        .find(|(_, d)| d.process_tag.as_ref().is_some_and(|t| t.as_str() == "TA05-V-40"))
-        .expect("the placeholder of TA05-V-40");
+        .find(|(_, d)| d.process_tag.as_ref().is_some_and(|t| t.as_str() == "CV-V-40"))
+        .expect("the placeholder of CV-V-40");
     assert_eq!(placeholder.1.function_text.as_neutral(), Some("Valve 40"));
 
     let open = findings(&s, "EW-PRC-002");
@@ -764,7 +814,7 @@ fn an_instrument_list_reserves_spare_channels() {
         .iter()
         .map(|f| f.args.iter().find(|(k, _)| *k == "tag").unwrap().1.as_str())
         .collect();
-    assert_eq!(tags, ["TA05-L-01", "TA05-S-01"].into());
+    assert_eq!(tags, ["CV-L-01", "CV-V-46"].into());
     assert!(
         open[0].message.contains("has no channel: no spare"),
         "{}",
@@ -781,7 +831,7 @@ fn an_instrument_list_reserves_spare_channels() {
 /// Doc 14 §11: what is no exchange file is refused in words, and the model stays as it was.
 #[test]
 fn a_file_that_is_no_exchange_file_is_refused() {
-    let s = golden();
+    let s = exchange();
     for (bytes, want) in [
         (&b"<html/>"[..], "no AutomationML file"),
         (b"<!DOCTYPE x><CAEXFile SchemaVersion=\"2.15\"/>", "DOCTYPE"),
@@ -795,35 +845,62 @@ fn a_file_that_is_no_exchange_file_is_refused() {
         .expect_err("no instrument list");
     assert!(e.to_string().contains("it is not an instrument list"), "{e}");
     let e = s
-        .instrument_list(None, b"tag,signal type\nTA05-V-40,relay\n")
+        .instrument_list(None, b"tag,signal type\nCV-V-40,relay\n")
         .expect_err("no signal type");
     assert!(
-        e.to_string().contains("the signal type of TA05-V-40 is `relay`"),
+        e.to_string().contains("the signal type of CV-V-40 is `relay`"),
         "{e}"
     );
 }
 
-/// The function of -201U1 that carries its bus port.
+/// The function of -201K1 that carries its bus port.
 fn bus_function(s: &Session) -> Id<ew_schema::Function> {
     let q = s.query();
     q.idx()
-        .functions_of_device(device(s, "-201U1"))
+        .functions_of_device(device(s, "-201K1"))
         .find(|f| q.functions().get(*f).is_some_and(|f| f.bus_port.is_some()))
-        .expect("the DP port of -201U1")
+        .expect("the DP port of -201K1")
+}
+
+/// [`exchange`] with the DP station address of -201K1 still to be decided, as before the PLC software sets it.
+fn exchange_with_an_open_station_address() -> Session {
+    let mut s = exchange();
+    let port = bus_function(&s);
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "function", "targets": [port.to_string()], "path": "bus_port.address", "value": "tbd"}),
+    );
+    s
+}
+
+/// The first node of an AML file (the DP node of -201K1, the first station) with what it holds.
+fn first_node(aml: &str) -> &str {
+    let at = aml.find("Name=\"Node\">").expect("a node");
+    let end = aml[at..].find("</InternalElement>").expect("the node's end");
+    &aml[at..at + end]
+}
+
+/// The modules of the stations of an AML file.
+fn modules_in(aml: &str) -> usize {
+    image(aml).stations.iter().map(|s| s.items.len()).sum()
 }
 
 /// FR-PLC-031, FR-PLC-033: the DP station address the PLC software sets is applied to the port, which closes its open
 /// item, and from then on the address is the PLC's data.
 #[test]
 fn a_station_address_of_the_plc_is_applied_and_protected() {
-    let mut s = golden();
+    let mut s = exchange_with_an_open_station_address();
     let exported = aml(&mut s);
     let port = bus_function(&s);
     assert!(
-        exported.contains("<Value>Profibus</Value>"),
+        first_node(&exported).contains("<Value>Profibus</Value>"),
         "the DP node is in the file"
     );
-    assert!(!exported.contains("NetworkAddress"), "its address is still TBD");
+    assert!(
+        !first_node(&exported).contains("NetworkAddress"),
+        "its address is still TBD"
+    );
     let node = "Name=\"Node\">";
     let theirs = exported.replacen(
         node,
@@ -860,7 +937,7 @@ fn a_station_address_of_the_plc_is_applied_and_protected() {
     );
     assert!(
         refusal.contains(
-            "-201U1: the PLC's data (firmware, bus address) is owned by configuration project PLC1"
+            "-201K1: the PLC's data (firmware, bus address) is owned by configuration project PLC1"
         ),
         "{refusal}"
     );
@@ -876,7 +953,7 @@ fn a_station_address_of_the_plc_is_applied_and_protected() {
         .expect_err("no station address")
         .to_string();
     assert!(
-        e.contains("the file's value `three` for address of -201U1 DP cannot be written"),
+        e.contains("the file's value `three` for address of -201K1 DP cannot be written"),
         "{e}"
     );
 }
@@ -885,7 +962,7 @@ fn a_station_address_of_the_plc_is_applied_and_protected() {
 /// address the PLC software changes comes back into the port.
 #[test]
 fn a_profinet_station_keeps_its_ip_mask_and_port_labels() {
-    let mut s = golden();
+    let mut s = exchange();
     let port = bus_function(&s);
     run(
         &mut s,
@@ -899,23 +976,28 @@ fn a_profinet_station_keeps_its_ip_mask_and_port_labels() {
                 "port_label": "P1R",
                 "bus": "profinet",
                 "role": "device",
-                "address": {"value": {"profinet": {"name": "cpx-1", "ip": "192.168.0.10", "mask": "255.255.255.0"}}},
+                "address": {"value": {"profinet": {"name": "cpx-1", "ip": "192.168.0.11", "mask": "255.255.255.0"}}},
             },
         }),
     );
     let exported = aml(&mut s);
     let read = image(&exported);
-    let interface = &read.stations[0].interfaces[0];
+    let station = read
+        .stations
+        .iter()
+        .find(|st| st.iec.designation.as_deref() == Some("-201K1"))
+        .expect("-201K1 in the file");
+    let interface = &station.interfaces[0];
     assert_eq!(interface.label, "X1");
     assert_eq!(interface.ports[0].label, "P1R");
     let node = interface.node.as_ref().expect("the node");
     assert_eq!(node.bus.as_deref(), Some("Ethernet"));
-    assert_eq!(node.address.as_deref(), Some("192.168.0.10"));
+    assert_eq!(node.address.as_deref(), Some("192.168.0.11"));
     assert_eq!(node.mask.as_deref(), Some("255.255.255.0"));
     assert_eq!(node.device_name.as_deref(), Some("cpx-1"));
     assert!(import(&s, exported.as_bytes()).plan.changes.is_empty());
 
-    let theirs = exported.replace("192.168.0.10", "192.168.0.20");
+    let theirs = exported.replace("192.168.0.11", "192.168.0.21");
     let moved = import(&s, theirs.as_bytes());
     assert_eq!(moved.plan.changes.len(), 1, "{:?}", moved.plan.changes);
     bulk(&mut s, &moved.apply);
@@ -925,7 +1007,7 @@ fn a_profinet_station_keeps_its_ip_mask_and_port_labels() {
     else {
         panic!("a PROFINET address");
     };
-    assert_eq!(a.ip.map(|ip| ip.to_string()).as_deref(), Some("192.168.0.20"));
+    assert_eq!(a.ip.map(|ip| ip.to_string()).as_deref(), Some("192.168.0.21"));
     assert_eq!(a.mask.map(|ip| ip.to_string()).as_deref(), Some("255.255.255.0"));
     assert_eq!(a.name.as_str(), "cpx-1");
 }
@@ -935,16 +1017,11 @@ fn a_profinet_station_keeps_its_ip_mask_and_port_labels() {
 /// unlock is kept, export pending.
 #[test]
 fn the_owner_of_a_group_decides_its_merge() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let c = cfg(&s.query());
-    let u5 = device(&s, "-201U5");
-    let at = exported.find("Name=\"-201U5\"").expect("the module");
-    let (head, tail) = exported.split_at(at);
-    let theirs = format!(
-        "{head}{}",
-        tail.replacen("<Value>2</Value>", "<Value>10</Value>", 1)
-    );
+    let a2 = device(&s, "-104A1-A2");
+    let theirs = with_start(&exported, "-104A1-A2", 1, 10);
     let owner = |s: &mut Session, value: Value| {
         run(
             s,
@@ -969,8 +1046,8 @@ fn the_owner_of_a_group_decides_its_merge() {
     assert!(start.acceptable);
     bulk(&mut s, &rejected.apply);
     assert_eq!(
-        printed(&s.query(), u5)[0],
-        "Q2.0",
+        printed(&s.query(), a2)[0],
+        "Q1.0",
         "a rejected PLC change changes nothing"
     );
     let refusal = refused(
@@ -1000,7 +1077,7 @@ fn the_owner_of_a_group_decides_its_merge() {
     run(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q30"}),
+        json!({"modules": [a2.to_string()], "dir": "output", "spec": "Q30"}),
     );
     let pending = import(&s, exported.as_bytes());
     let start = pending
@@ -1012,14 +1089,14 @@ fn the_owner_of_a_group_decides_its_merge() {
     assert_eq!((start.state, start.default), (State::Pending, Choice::Ours));
     assert_eq!(
         (start.ours.as_deref(), start.theirs.as_deref()),
-        (Some("30"), Some("2"))
+        (Some("30"), Some("1"))
     );
     // the import protects the starts again
     bulk(&mut s, &pending.apply);
     let refusal = refused(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q31"}),
+        json!({"modules": [a2.to_string()], "dir": "output", "spec": "Q31"}),
     );
     assert!(
         refusal.contains("owned by configuration project PLC1"),
@@ -1031,7 +1108,7 @@ fn the_owner_of_a_group_decides_its_merge() {
 /// damaged instrument list are read or refused in words; the read never panics.
 #[test]
 fn a_damaged_workbook_or_list_never_panics() {
-    let mut s = golden();
+    let mut s = exchange();
     let table = export(&mut s, PlcFormat::TiaXlsx);
     let panicked = |e: &ew_api::plc_exchange::PlcExchangeError| {
         matches!(e, ew_api::plc_exchange::PlcExchangeError::Panicked)
@@ -1054,7 +1131,7 @@ fn a_damaged_workbook_or_list_never_panics() {
             );
         }
     }
-    let list = b"tag;signal type;description\nTA05-V-40;DO;\"Valve 40\"\n";
+    let list = b"tag;signal type;description\nCV-V-40;DO;\"Valve 40\"\n";
     for (i, byte) in (0..list.len()).zip(b"\0\xff\";\n,".iter().cycle()) {
         let mut damaged = list.to_vec();
         damaged[i] = *byte;
@@ -1099,22 +1176,21 @@ fn starts_owner(s: &mut Session, owner: &str) {
 /// What the merge makes of a change: its state, its default and whether the file's value can be taken.
 type Outcome = (State, Choice, bool);
 
-/// The output start of -201U5 in the merge of Golden A's recorded AML export: the project's start set to
-/// `project` (a start spec), the file's moved from byte 2 to `file`; per owner of the starts, the state, the default
-/// and whether the file's value can be taken, `None` for no change.
+/// The output start of -104A1-A2 in the merge of the recorded AML export: the project's start set to `project` (a
+/// start spec), the file's moved from byte 1 to `file`; per owner of the starts, the state, the default and whether the
+/// file's value can be taken, `None` for no change.
 fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Option<Outcome>)> {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
+    let a2 = device(&s, "-104A1-A2");
     if let Some(spec) = project {
-        let u5 = device(&s, "-201U5");
         run(
             &mut s,
             "plc.set_start",
-            json!({"modules": [u5.to_string()], "dir": "output", "spec": spec}),
+            json!({"modules": [a2.to_string()], "dir": "output", "spec": spec}),
         );
     }
-    let theirs = file.map_or_else(|| exported.clone(), |to| with_start(&exported, "-201U5", 2, to));
-    let u5 = device(&s, "-201U5");
+    let theirs = file.map_or_else(|| exported.clone(), |to| with_start(&exported, "-104A1-A2", 1, to));
     ["ecad", "plc", "shared"]
         .into_iter()
         .map(|owner| {
@@ -1123,7 +1199,7 @@ fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Opt
             let change = plan
                 .changes
                 .iter()
-                .find(|c| c.field == "start.output" && c.target == u5.cast())
+                .find(|c| c.field == "start.output" && c.target == a2.cast())
                 .map(|c| (c.state, c.default, c.acceptable));
             (owner, change)
         })
@@ -1184,7 +1260,7 @@ fn the_merge_table_the_same_change_on_both_sides() {
 /// conflict with the owner's default, also one the project has no value for.
 #[test]
 fn without_a_snapshot_a_difference_is_a_conflict_with_the_owners_default() {
-    let s = golden();
+    let s = exchange_with_an_open_station_address();
     let exported = String::from_utf8(
         s.plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &PlcOptions::default())
             .expect("the export")
@@ -1211,8 +1287,8 @@ fn without_a_snapshot_a_difference_is_a_conflict_with_the_owners_default() {
 /// rejected PLC change that keeps the project's value, and only a resolution takes the file's side.
 #[test]
 fn a_value_the_file_leaves_out_is_kept() {
-    let mut s = golden();
-    let channel = channel_of(&s, "TA05_V_15");
+    let mut s = exchange();
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -1237,18 +1313,23 @@ fn a_value_the_file_leaves_out_is_kept() {
     assert_eq!(comment(&s).as_neutral(), Some("Feed"));
 }
 
-/// FR-PLC-032, A6: matching runs in passes over the whole file. A module the PLC software inserted at -201U3's slot
-/// with -201U3's order number, listed first, does not take -201U3, whose own entry carries its ID; a module whose
-/// designation names nothing in the project is parked, not paired by its slot.
+/// FR-PLC-032, A6: matching runs in passes over the whole file. A module the PLC software inserted at -104A1-A1's
+/// slot with -104A1-A1's order number, listed first, does not take -104A1-A1, whose own entry carries its ID; a module
+/// whose designation names nothing in the project is parked, not paired by its slot.
 #[test]
 fn a_weaker_key_never_takes_the_object_of_a_later_entry() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
-    let order = image(&exported).stations[0].items[0]
+    let order = image(&exported)
+        .stations
+        .iter()
+        .find(|st| st.iec.designation.as_deref() == Some("-104A1"))
+        .expect("-104A1 in the file")
+        .items[0]
         .order_number
         .clone()
-        .expect("-201U3's order number");
-    let first = format!("<InternalElement ID=\"{}\"", device(&s, "-201U3"));
+        .expect("-104A1-A1's order number");
+    let first = format!("<InternalElement ID=\"{}\"", device(&s, "-104A1-A1"));
     let module = |id: &str, iec: &str, slot: u32| {
         format!(
             "<InternalElement ID=\"{id}\" Name=\"DQ {slot}\">{iec}\
@@ -1283,12 +1364,12 @@ fn a_weaker_key_never_takes_the_object_of_a_later_entry() {
 /// is a rejected change of the schematic's designation.
 #[test]
 fn modules_without_ids_or_designations_match_by_slot_and_order_number() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let uuid = regex::Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
     let foreign = uuid.replace_all(&exported, "tia-$0").into_owned();
     let designation = regex::Regex::new(
-        "<Attribute Name=\"ProductDesignation IEC\"[^>]*>\\s*<Value>-20[12]U[2-9]</Value>\\s*</Attribute>",
+        "<Attribute Name=\"ProductDesignation IEC\"[^>]*>\\s*<Value>-104A1-A[12]</Value>\\s*</Attribute>",
     )
     .unwrap();
     let bare = designation.replace_all(&foreign, "").into_owned();
@@ -1302,17 +1383,17 @@ fn modules_without_ids_or_designations_match_by_slot_and_order_number() {
         .iter()
         .filter(|m| m.object.name() == "module")
         .count();
-    assert_eq!(modules, 7);
+    assert_eq!(modules, modules_in(&exported), "every module of the file");
     bulk(&mut s, &back.apply);
 
-    let renamed = foreign.replace("<Value>-201U4</Value>", "<Value>-201U4X</Value>");
+    let renamed = foreign.replace("<Value>-104A1-A2</Value>", "<Value>-104A1-A2X</Value>");
     let next = import(&s, renamed.as_bytes());
     assert!(next.plan.parking.is_empty(), "{:?}", next.plan.parking);
     let name = next
         .plan
         .changes
         .iter()
-        .find(|c| c.field == "name" && c.target == device(&s, "-201U4").cast())
+        .find(|c| c.field == "name" && c.target == device(&s, "-104A1-A2").cast())
         .expect("the renamed designation");
     assert_eq!((name.state, name.acceptable), (State::Rejected, false));
 }
@@ -1322,18 +1403,16 @@ fn modules_without_ids_or_designations_match_by_slot_and_order_number() {
 /// file again writes nothing.
 #[test]
 fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let back = import(&s, exported.as_bytes());
     assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
     bulk(&mut s, &back.apply);
-    let modules = [
-        "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2",
-    ]
-    .map(|t| device(&s, t));
-    for m in modules {
+    // The valve terminal's outputs, the input module's inputs and the output module's outputs.
+    let modules = [("-201K1", false), ("-104A1-A1", true), ("-104A1-A2", false)].map(|(t, input)| (device(&s, t), input));
+    for (m, input) in modules {
         let q = s.query();
-        let start = q
+        let starts = q
             .devices()
             .get(m)
             .unwrap()
@@ -1341,23 +1420,24 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
             .plc_module
             .clone()
             .unwrap()
-            .start
-            .output;
+            .start;
+        let start = if input { starts.input } else { starts.output };
         assert!(matches!(start, ew_schema::AddrSpec::Manual(_)), "{start:?}");
     }
+    let modules = modules.map(|(m, _)| m);
     let again = import(&s, exported.as_bytes());
     let preview = s.preview(&again.apply).expect("the preview");
     assert_eq!(preview.op_count(), 0, "the same file again writes nothing");
 
     let before: Vec<Vec<String>> = modules.iter().map(|m| printed(&s.query(), *m)).collect();
+    // A second output module, of -104A1-A2's part, in front of the input module.
     let copy = s
         .query()
-        .parts()
-        .iter()
-        .find(|(_, c)| c.item.part_number.as_str().starts_with("533361"))
-        .map(|(id, _)| id.as_uuid())
-        .expect("the module part");
-    let station = device(&s, "-201U1");
+        .devices()
+        .get(device(&s, "-104A1-A2"))
+        .and_then(|d| d.parts.first().map(|u| u.part.copy.as_uuid()))
+        .expect("the output module's part");
+    let station = device(&s, "-104A1");
     run(
         &mut s,
         "plc.add_module",
@@ -1373,9 +1453,9 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
 /// stays a change of the project when the PLC software's file comes back.
 #[test]
 fn an_export_records_only_what_its_format_carries() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -1393,11 +1473,11 @@ fn an_export_records_only_what_its_format_carries() {
         .expect("the renamed symbol");
     assert_eq!((name.state, name.default), (State::Kept, Choice::Ours));
 
-    let u5 = device(&s, "-201U5");
+    let a2 = device(&s, "-104A1-A2");
     run(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q20"}),
+        json!({"modules": [a2.to_string()], "dir": "output", "spec": "Q20"}),
     );
     export(&mut s, PlcFormat::TiaXlsx);
     let start = import(&s, exported.as_bytes())
@@ -1408,7 +1488,7 @@ fn an_export_records_only_what_its_format_carries() {
         .expect("the moved start");
     assert_eq!(
         (start.state, start.default, start.base.as_deref()),
-        (State::Pending, Choice::Ours, Some("2"))
+        (State::Pending, Choice::Ours, Some("1"))
     );
 }
 
@@ -1437,8 +1517,8 @@ fn row_of<'a>(rows: &'a mut [Vec<String>], symbol: &str) -> &'a mut Vec<String> 
 /// gives its comment to that language only.
 #[test]
 fn a_comment_in_one_language_never_replaces_the_others() {
-    let mut s = golden();
-    let channel = channel_of(&s, "TA05_V_15");
+    let mut s = exchange();
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -1451,7 +1531,7 @@ fn a_comment_in_one_language_never_replaces_the_others() {
     );
     let comment = |s: &Session| s.query().table::<Channel>().get(channel).unwrap().comment.clone();
     let table = export(&mut s, PlcFormat::TiaXlsx);
-    let neutral = edited_table(&table, |rows| row_of(rows, "TA05_V_15")[4] = "Changed".to_owned());
+    let neutral = edited_table(&table, |rows| row_of(rows, FIRST)[4] = "Changed".to_owned());
     let back = import(&s, &neutral);
     let change = back
         .plan
@@ -1484,7 +1564,7 @@ fn a_comment_in_one_language_never_replaces_the_others() {
         .expect("the German table");
     s.execute(e.record.as_ref().unwrap()).unwrap();
     let edited = edited_table(&e.bytes, |rows| {
-        row_of(rows, "TA05_V_15")[4] = "Zufuhr".to_owned()
+        row_of(rows, FIRST)[4] = "Zufuhr".to_owned()
     });
     let applied = s.plc_import(&edited, &german).unwrap().apply;
     bulk(&mut s, &applied);
@@ -1498,9 +1578,9 @@ fn a_comment_in_one_language_never_replaces_the_others() {
 /// it is never deleted.
 #[test]
 fn a_tag_the_complete_table_lacks_is_removed_and_kept() {
-    let mut s = golden();
+    let mut s = exchange();
     let table = export(&mut s, PlcFormat::TiaXlsx);
-    let short = edited_table(&table, |rows| rows.retain(|r| r[0] != "TA05_V_15"));
+    let short = edited_table(&table, |rows| rows.retain(|r| r[0] != FIRST));
     assert!(import(&s, &short).plan.removed.is_empty());
     let complete = PlcOptions {
         complete: true,
@@ -1508,16 +1588,16 @@ fn a_tag_the_complete_table_lacks_is_removed_and_kept() {
     };
     let back = s.plc_import(&short, &complete).unwrap();
     let removed: Vec<&str> = back.plan.removed.iter().map(|(_, _, n)| n.as_str()).collect();
-    assert_eq!(removed, ["TA05_V_15"]);
+    assert_eq!(removed, [FIRST]);
     bulk(&mut s, &back.apply);
-    channel_of(&s, "TA05_V_15");
+    channel_of(&s, FIRST);
 }
 
 /// Doc 10 §3.9 (review of WP-S3.16): when symbols are given to the PLC, an import protects them as it protects the
 /// starts, until `plc.unlock` lifts the protection.
 #[test]
 fn symbols_given_to_the_plc_are_protected() {
-    let mut s = golden();
+    let mut s = exchange();
     let c = cfg(&s.query());
     run(
         &mut s,
@@ -1527,12 +1607,12 @@ fn symbols_given_to_the_plc_are_protected() {
     let exported = aml(&mut s);
     let applied = import(&s, exported.as_bytes()).apply;
     bulk(&mut s, &applied);
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     let rename =
         json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"});
     let refusal = refused(&mut s, "fields.set", rename.clone());
     assert!(
-        refusal.contains("-201U3: a channel's symbol or comment is owned by configuration project PLC1"),
+        refusal.contains("-201K1: a channel's symbol or comment is owned by configuration project PLC1"),
         "{refusal}"
     );
     run(
@@ -1547,7 +1627,7 @@ fn symbols_given_to_the_plc_are_protected() {
 /// tag table carries symbols, which are shared, so the starts stay ordinary edits.
 #[test]
 fn a_tag_table_import_protects_no_start() {
-    let mut s = golden();
+    let mut s = exchange();
     let table = export(&mut s, PlcFormat::TiaXlsx);
     let applied = import(&s, &table).apply;
     bulk(&mut s, &applied);
@@ -1560,19 +1640,19 @@ fn a_tag_table_import_protects_no_start() {
         .as_ref()
         .and_then(|o| o.imported);
     assert_eq!(imported, None);
-    let u6 = device(&s, "-201U6");
+    let a2 = device(&s, "-104A1-A2");
     run(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u6.to_string()], "dir": "output", "spec": "Q20"}),
+        json!({"modules": [a2.to_string()], "dir": "output", "spec": "Q20"}),
     );
 }
 
 /// FR-PLC-032: values that only differ in leading or trailing white space, which the readers drop, are no change.
 #[test]
 fn white_space_around_a_value_is_no_change() {
-    let mut s = golden();
-    let channel = channel_of(&s, "TA05_V_15");
+    let mut s = exchange();
+    let channel = channel_of(&s, FIRST);
     run(
         &mut s,
         "fields.set",
@@ -1592,14 +1672,15 @@ fn white_space_around_a_value_is_no_change() {
     assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
 }
 
-/// FR-PLC-036: a tag table from a German TIA Portal writes `%A0.1` for `%Q0.1` and `%E` for `%I`; it is no change.
+/// FR-PLC-036: a tag table from a German TIA Portal writes `%A0.0` for `%Q0.0` and `%E0.1` for `%I0.1`; it is no
+/// change.
 #[test]
 fn german_mnemonics_are_the_international_addresses() {
-    let mut s = golden();
+    let mut s = exchange();
     let table = export(&mut s, PlcFormat::TiaXlsx);
     let german = edited_table(&table, |rows| {
         for row in rows.iter_mut().skip(1) {
-            row[3] = row[3].replace("%Q", "%A");
+            row[3] = row[3].replace("%Q", "%A").replace("%I", "%E");
         }
     });
     let back = import(&s, &german);
@@ -1611,15 +1692,15 @@ fn german_mnemonics_are_the_international_addresses() {
 /// that symbol: without a snapshot it is a conflict that keeps it, never a value the file silently replaces.
 #[test]
 fn a_tag_on_a_channel_without_an_address_meets_its_symbol() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = String::from_utf8(
         s.plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &PlcOptions::default())
             .expect("the export")
             .bytes,
     )
     .unwrap();
-    let channel = channel_of(&s, "TA05_V_15");
-    let u3 = device(&s, "-201U3");
+    let channel = channel_of(&s, FIRST);
+    let k1 = device(&s, "-201K1");
     run(
         &mut s,
         "fields.set",
@@ -1628,7 +1709,7 @@ fn a_tag_on_a_channel_without_an_address_meets_its_symbol() {
     run(
         &mut s,
         "fields.set",
-        json!({"kind": "device", "targets": [u3.to_string()], "path": "plc_module.start", "value": {"output": "tbd"}}),
+        json!({"kind": "device", "targets": [k1.to_string()], "path": "plc_module.start", "value": {"output": "tbd"}}),
     );
     let back = import(&s, exported.as_bytes());
     let name = back
@@ -1639,7 +1720,7 @@ fn a_tag_on_a_channel_without_an_address_meets_its_symbol() {
         .expect("the symbol");
     assert_eq!(
         (name.ours.as_deref(), name.theirs.as_deref()),
-        (Some("MINE"), Some("TA05_V_15"))
+        (Some("MINE"), Some(FIRST))
     );
     assert_eq!((name.state, name.default), (State::Conflict, Choice::Ours));
 }
@@ -1647,16 +1728,16 @@ fn a_tag_on_a_channel_without_an_address_meets_its_symbol() {
 /// Doc 10 §3.9: after an import a bus port added to a function is no edit of an address the PLC set.
 #[test]
 fn a_bus_port_can_be_added_after_an_import() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let applied = import(&s, exported.as_bytes()).apply;
     bulk(&mut s, &applied);
     let q = s.query();
     let function = q
         .idx()
-        .functions_of_device(device(&s, "-201U3"))
+        .functions_of_device(device(&s, "-104A1-A1"))
         .find(|f| q.functions().get(*f).is_some_and(|f| f.bus_port.is_none()))
-        .expect("a function of -201U3 without a bus port");
+        .expect("a function of -104A1-A1 without a bus port");
     run(
         &mut s,
         "fields.set",
@@ -1672,13 +1753,13 @@ fn a_bus_port_can_be_added_after_an_import() {
 /// Doc 10 §4.2: the foreign ID of an object the file no longer has leaves the snapshot with its record.
 #[test]
 fn the_foreign_id_of_a_removed_object_goes() {
-    let mut s = golden();
+    let mut s = exchange();
     let exported = aml(&mut s);
     let uuid = regex::Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
     let foreign = uuid.replace_all(&exported, "tia-$0").into_owned();
     let applied = import(&s, foreign.as_bytes()).apply;
     bulk(&mut s, &applied);
-    let channel = channel_of(&s, "TA05_V_15");
+    let channel = channel_of(&s, FIRST);
     let named = |s: &Session| {
         s.query()
             .table::<ForeignId>()
@@ -1687,9 +1768,9 @@ fn the_foreign_id_of_a_removed_object_goes() {
     };
     assert!(named(&s), "the tag's foreign ID is kept");
     let interface =
-        regex::Regex::new("(?s)<ExternalInterface ID=\"[^\"]*\" Name=\"TA05_V_15\".*?</ExternalInterface>")
+        regex::Regex::new("(?s)<ExternalInterface ID=\"[^\"]*\" Name=\"CL_V_01\".*?</ExternalInterface>")
             .unwrap();
-    let link = regex::Regex::new("<InternalLink [^>]*TA05_V_15\"[^>]*/>").unwrap();
+    let link = regex::Regex::new("<InternalLink [^>]*CL_V_01\"[^>]*/>").unwrap();
     let without = link
         .replace_all(&interface.replace_all(&foreign, ""), "")
         .into_owned();
@@ -1698,7 +1779,7 @@ fn the_foreign_id_of_a_removed_object_goes() {
         back.plan
             .removed
             .iter()
-            .any(|(o, _, n)| o.name() == "tag" && n == "TA05_V_15"),
+            .any(|(o, _, n)| o.name() == "tag" && n == FIRST),
         "{:?}",
         back.plan.removed
     );
