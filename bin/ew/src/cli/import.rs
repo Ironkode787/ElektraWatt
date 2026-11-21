@@ -355,8 +355,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let Ok(mut session) = open_for_writing(&dir, origin.clone()) else {
         return 2;
     };
-    let id = session.query().project().id.as_uuid();
-    let parts = match ew_api::import::read_parts_tables(&a.file, id) {
+    let parts = match ew_api::import::read_parts_tables(&a.file, &session) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("error: {e}");

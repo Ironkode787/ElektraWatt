@@ -617,7 +617,12 @@ the default. The text interface takes `place.pick device=<tag>` and `function=<t
 `rep.join_device` moves a placed symbol's one function to another device, its wires kept, when its own device has that
 function alone, no part and no other symbol. J on one selected symbol, or Join device… in the page's right-click menu,
 opens the Join chooser of the devices it can join, one row per device (its first slot, else "auxiliary"); typing an
-existing device's tag into the Tag row proposes the same join. **A part's function that a device of the part has
+existing device's tag into the Tag row proposes the same join. **A second symbol of a device's own** (FT-1860): a
+symbol of another kind than a contact (a lamp, a supply drawn once for its input and once for its outputs, an element
+brought in from another program) joins any device but a terminal or a strip as an auxiliary function, by J, by
+`place.pick device=<tag>`, by the Tag row and by `rep.join_device`; a contact keeps D2's family rule, and a terminal, an
+interruption point and a graphic join no device. A library symbol's address `library:<library>:<item>` names it before
+and after its first placement. **A part's function that a device of the part has
 unplaced fills that device** (FT-1658): the browser's function row names it ("join -K1"), the Place tool arms that
 join with the part's new device as its "New device", and once the device has no more of that function the next
 placement is a new device of the part. **From a part:** the picker and the Parts row list the generic starter parts of a system library after the

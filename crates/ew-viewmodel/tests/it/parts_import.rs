@@ -532,8 +532,7 @@ fn the_recorded_command_carries_the_parameters_of_the_read() {
     let dir = tmp.0.join("proj.ew");
     done(&mut shell, "file.save", json!({}));
     let (reopened, _) = Session::open_read_only(&dir, VERSION).unwrap();
-    let id = reopened.query().project().id.as_uuid();
-    let read = read_parts_tables(&table_parts(), id).unwrap();
+    let read = read_parts_tables(&table_parts(), &reopened).unwrap();
     assert_eq!(imports[0].1, read.params());
     shell.shutdown();
 }

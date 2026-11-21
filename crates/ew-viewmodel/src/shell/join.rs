@@ -148,7 +148,8 @@ impl ShellModel {
     }
 
     /// `place.pick device=<tag>` (D4): the join target on the device for symbol row `i`. A device with no unplaced
-    /// function of the symbol's FnDef takes it as a new auxiliary function, which only a contact can be.
+    /// function of the symbol's FnDef takes it as a new auxiliary function: a contact, or a symbol of another kind that
+    /// draws the device once more (FT-1860), which a terminal or a strip never takes.
     pub(super) fn pick_join_device(
         &mut self,
         cat: &PlaceCatalogue,
@@ -170,6 +171,14 @@ impl ShellModel {
             .collect();
         if slots.is_empty() && !project.session.auxiliary_fndef(fndef) {
             return Err(Outcome::refused(key!("reason-join-not-auxiliary")));
+        }
+        // FT-1860: a symbol of another kind than a contact joins any device but a terminal or a strip.
+        let q = project.session.query();
+        let terminal = id.to_string().parse().ok().and_then(|d| q.devices().get(d)).is_some_and(|d| {
+            d.aspects.terminal.is_some() || d.aspects.strip.is_some()
+        });
+        if slots.is_empty() && terminal {
+            return Err(Outcome::refused(key!("reason-join-terminal")));
         }
         let tag = project.session.device_tag(id).unwrap_or_default();
         Ok((

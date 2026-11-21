@@ -347,7 +347,8 @@ reason-no-picker = The picker is not open
 
 # WP-S2.18 part 1.
 reason-no-chooser = No chooser is open
-reason-join-not-auxiliary = Only a contact joins an existing device as an auxiliary function; this symbol is not one
+reason-join-not-auxiliary = This symbol joins no existing device: a terminal goes into a strip, an interruption point and a graphic belong to no device
+reason-join-terminal = A terminal or a strip takes no further function: place the symbol as a device of its own
 reason-port-drawn = This port is drawn on this page already, or its device's part has no such interface
 reason-port-bus-page = A port is drawn on a bus-topology page, as a box with its sockets: open one, or make one with New page… and the type Bus topology
 reason-join-select = Select one placed symbol to join it to another device, or press J while placing a contact
@@ -1775,7 +1776,8 @@ refusal-join-other-function = the representation's device has another function t
 refusal-join-other-rep = the representation's function has another representation
 refusal-join-no-function = device { $p0 } cannot take { $p1 }: it has no unplaced function of it, and { $p2 }
 refusal-join-no-auxiliary = its family takes no auxiliary contacts (no coil, no part naming it)
-refusal-join-contact-only = only a contact joins as an auxiliary function
+refusal-join-target-terminal = a terminal or a strip takes no further function
+refusal-join-no-device-function = a terminal, an interruption point or a graphic joins no device
 refusal-join-no-free-port = its bus part has no port that a function of it does not carry yet
 # fields.set.
 refusal-fields-ip-star = { $p0 }: { $p1 }

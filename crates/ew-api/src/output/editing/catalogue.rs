@@ -437,6 +437,15 @@ pub fn part_interfaces(part: &Part) -> Vec<CatalogueInterface> {
     out
 }
 
+/// The copy ID that the address `library:<library>:<item>` of an installed library's symbol (its catalogue key until it
+/// is embedded) names once the project holds it: `v5(NS_LIBCOPY, library ‖ item)`; `None` for another text. So the
+/// address names the symbol before and after its first placement.
+pub fn address_copy(address: &str) -> Option<Uuid> {
+    let (library, item) = address.strip_prefix("library:")?.split_once(':')?;
+    let id: Id<SymbolDef> = ew_derive::ew_ids::v5::lib_copy_id(library.parse().ok()?, item.parse().ok()?);
+    Some(id.as_uuid())
+}
+
 /// The starter symbol with this key.
 pub(super) fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
     starter_docs().iter().find_map(|(k, _, d)| match d {

@@ -4,7 +4,7 @@
 //! Joining an existing device from the window (FR-DEV-038). One test per branch: a new
 //! auxiliary function by `place.pick device=<tag>` in one undo step (D1, D4); a slot filled before a new auxiliary
 //! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals
-//! (D4); a symbol that cannot be an auxiliary function refused (D2, D4); the Join chooser's rows, type-ahead, Escape
+//! (D4); a lamp joining as a second symbol and a terminal refused (D2, D4, FT-1860); the Join chooser's rows, type-ahead, Escape
 //! and "New device" (D2). Every test works on a writable temporary copy of the sample, folio 101.
 
 use crate::common;
@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 const COIL: &str = "ew.iec.coil@qet10";
 const NO: &str = "ew.iec.contact-no@qet10";
 const LAMP: &str = "ew.iec.lamp@qet10";
+const TERMINAL: &str = "ew.iec.terminal@qet10";
 
 fn shell(tmp: &Tmp) -> ShellModel {
     tmp.sample_in(Mode::Headless, true, "101")
@@ -206,26 +207,31 @@ fn function_tag_forms_resolve_slots_and_refuse_with_reasons() {
     done(&mut s, "ui.dismiss", json!({}));
 }
 
-/// D2, D4: a symbol whose FnDef cannot be an auxiliary function (a coil, a lamp) does not join: `device=` and J are
-/// refused, and the HUD offers no Join key.
+/// D2, D4, FT-1860: a symbol of another kind than a contact (a lamp) joins the named device as a second symbol of its
+/// own, and J is offered for it; a symbol that joins no device (a terminal) is refused, and the HUD offers no Join key.
 #[test]
-fn a_symbol_that_is_no_auxiliary_function_is_refused() {
+fn a_lamp_joins_as_a_second_symbol_and_a_terminal_is_refused() {
     let tmp = Tmp::new("join-refused");
     let mut s = shell(&tmp);
     let coil = new_device(&mut s, COIL, "K", (60, 30));
     let tag = tag_of(&s, &coil);
+    done(&mut s, "place.pick", json!({"symbol": LAMP, "device": tag}));
+    assert_eq!(ghost(&s)["target"], "join");
+    place_at(&mut s, (66, 30));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(rep_at(&s, (66, 30)).unwrap().device, coil.device, "the lamp is the relay's");
     assert_eq!(
-        refused(&mut s, "place.pick", json!({"symbol": LAMP, "device": tag})),
+        refused(&mut s, "place.pick", json!({"symbol": TERMINAL, "device": tag})),
         "reason-join-not-auxiliary"
+    );
+    // A symbol named but not offered is unknown, not a missing parameter.
+    assert_eq!(
+        refused(&mut s, "place.pick", json!({"symbol": "no.such.symbol", "device": tag})),
+        "reason-unknown-symbol"
     );
     done(&mut s, "place.pick", json!({"symbol": COIL, "letter": "K"}));
-    assert!(!s.tool_ghost().unwrap().joinable());
-    assert!(!hud(&s).prompt.contains("Join device"), "{}", hud(&s).prompt);
-    assert_eq!(
-        refused(&mut s, "place.join", json!({})),
-        "reason-join-not-auxiliary"
-    );
-    assert!(s.chooser().is_none());
+    assert!(s.tool_ghost().unwrap().joinable());
+    assert!(hud(&s).prompt.contains("Join device"), "{}", hud(&s).prompt);
 }
 
 /// D2: J opens the chooser list: "New device", the slots ("slot 13-14"), then the devices whose family takes

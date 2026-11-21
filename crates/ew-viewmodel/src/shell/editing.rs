@@ -1489,10 +1489,17 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
+        // A library symbol's address names it before and after its first placement (FT-1860).
         let find = |s: &str| {
+            let held = ew_api::output::address_copy(s);
             cat.symbols
                 .iter()
-                .position(|r| r.key == s || r.copy.is_some_and(|c| c.to_string() == s))
+                .position(|r| r.key == s || r.copy.is_some_and(|c| c.to_string() == s || held == Some(c)))
+        };
+        // A symbol named but not offered on this page is unknown, not missing.
+        let named = |s: Option<&str>| match s {
+            None => Err(failed(key!("error-missing-param"), &["symbol"])),
+            Some(s) => find(s).ok_or_else(|| Outcome::refused(key!("reason-unknown-symbol"))),
         };
         let device = match string_param(p, "device") {
             Ok(v) => v.map(str::to_owned),
@@ -1531,8 +1538,9 @@ impl ShellModel {
         }
         // A device by its printed tag (or its ID) joins it.
         if let Some(device) = device {
-            let Some(i) = symbol.as_deref().and_then(find) else {
-                return failed(key!("error-missing-param"), &["symbol"]);
+            let i = match named(symbol.as_deref()) {
+                Ok(i) => i,
+                Err(e) => return e,
             };
             return match self.pick_join_device(&cat, i, &device) {
                 Ok((cat, i, j)) => {
@@ -1546,8 +1554,9 @@ impl ShellModel {
             (Err(e), _) | (_, Err(e)) => return e,
             // A function by its device's printed tag (`-101K1`, `-101K1:13-14`); an ID keeps the path below.
             (_, Ok(Some(function))) if function.trim().parse::<ew_api::output::Uuid>().is_err() => {
-                let Some(i) = symbol.as_deref().and_then(find) else {
-                    return failed(key!("error-missing-param"), &["symbol"]);
+                let i = match named(symbol.as_deref()) {
+                    Ok(i) => i,
+                    Err(e) => return e,
                 };
                 return match self.pick_function_tag(&cat, i, function) {
                     Ok((cat, i, f)) => {
@@ -1568,8 +1577,9 @@ impl ShellModel {
                 };
                 // A part without a function template is placed with the symbol named beside it.
                 if cat.parts[pi].functions.is_empty() {
-                    let Some(i) = symbol.as_deref().and_then(find) else {
-                        return failed(key!("error-missing-param"), &["symbol"]);
+                    let i = match named(symbol.as_deref()) {
+                        Ok(i) => i,
+                        Err(e) => return e,
                     };
                     Pick::PartSymbol(pi, i)
                 } else {
@@ -1616,18 +1626,16 @@ impl ShellModel {
                         })
                         .map(|s| s.key.clone())
                 });
-                let Some(i) = symbol.as_deref().and_then(find) else {
-                    return failed(key!("error-missing-param"), &["symbol"]);
+                let i = match named(symbol.as_deref()) {
+                    Ok(i) => i,
+                    Err(e) => return e,
                 };
                 Pick::Function(function.to_owned(), i)
             }
-            _ => {
-                let Some(s) = symbol else {
-                    return failed(key!("error-missing-param"), &["symbol"]);
-                };
-                let Some(i) = find(&s) else { return unknown };
-                Pick::Symbol(i)
-            }
+            _ => match named(symbol.as_deref()) {
+                Ok(i) => Pick::Symbol(i),
+                Err(e) => return e,
+            },
         };
         self.tools.picker = None;
         self.arm(cat, pick, p)

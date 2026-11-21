@@ -615,7 +615,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         if unchanged {
-            let read = match read_parts_tables(&map.path, project.session.query().project().id.as_uuid()) {
+            let read = match read_parts_tables(&map.path, &project.session) {
                 Ok(read) => read,
                 Err(e) => return self.map_failed(e.to_string()),
             };

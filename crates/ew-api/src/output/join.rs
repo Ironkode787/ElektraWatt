@@ -33,11 +33,12 @@ pub struct JoinMisfit {
 /// What a symbol drawing one FnDef can join.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct JoinCandidates {
-    /// Whether the FnDef can be an auxiliary function: a contact (contact kind NO, NC or change-over). The chooser
-    /// is offered only then.
+    /// Whether the FnDef can be an auxiliary function: a contact (contact kind NO, NC or change-over), or a function a
+    /// device takes as its own whatever its family (FT-1860). The chooser is offered only then.
     pub auxiliary: bool,
     /// The rows: every unplaced function of the FnDef (a slot), by its device's tag in natural order and then by
-    /// its slot; then every other device whose family takes auxiliary functions, in natural tag order.
+    /// its slot; then every other device whose family takes auxiliary functions of it (for a function of the second
+    /// kind, every device but terminals and strips), in natural tag order.
     pub rows: Vec<JoinCandidate>,
 }
 
@@ -125,11 +126,23 @@ pub(crate) fn slot_of(q: &Q, function: Id<Function>) -> String {
         .join("-")
 }
 
+/// The FnDef copy `def`: the embedded one, else the starter's the placement embeds with its symbol (FT-656).
+fn held_or_starter(q: &Q, def: Id<FnDef>) -> Option<FnDef> {
+    q.fndefs()
+        .get(def)
+        .map(|c| c.item.clone())
+        .or_else(|| super::editing::starter_fndef(def).map(|c| c.item.clone()))
+}
+
 /// Whether `device`'s family takes auxiliary functions of FnDef `def` (D2): its main function is a coil (a relay or
-/// a contactor), or one of its parts' templates has an entry of `def`. Terminals and strips never do.
+/// a contactor), or one of its parts' templates has an entry of `def`; a function a device takes as its own whatever its
+/// family (`ew_commands::commands::joins_any_device`, FT-1860) any device does. Terminals and strips never do.
 fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bool {
     if device.aspects.terminal.is_some() || device.aspects.strip.is_some() {
         return false;
+    }
+    if held_or_starter(q, def).is_some_and(|d| ew_commands::commands::joins_any_device(&d)) {
+        return true;
     }
     let coil = q.idx().functions_of_device(id).any(|f| {
         q.functions().get(f).is_some_and(|f| {
@@ -226,7 +239,8 @@ impl Session {
     /// existing device (the reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has one drawn
     /// function in one representation and nothing else drawn or wired ([`joinable_rep`]), and the named device takes
     /// the function's FnDef by D2's rule (an unplaced function of it, else a contact joining a device whose family
-    /// takes auxiliary functions). `None` otherwise: the Tag field then keeps its other behaviour.
+    /// takes auxiliary functions, or a function of another kind joining any device but a terminal or a strip, FT-1860).
+    /// `None` otherwise: the Tag field then keeps its other behaviour.
     pub fn join_proposal(&self, device: Uuid, text: &str) -> Option<JoinProposal> {
         let target = self.resolve_reference(text.trim()).ok()?;
         let q = self.query();
@@ -280,22 +294,16 @@ impl Session {
     }
 
     /// Whether the FnDef copy `fndef` can be an auxiliary function: an embedded contact (contact kind
-    /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part; FT-831), or a
-    /// starter one the project does not embed yet (FT-656).
+    /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part; FT-831), a function a
+    /// device takes as its own whatever its family (a second symbol of the device, FT-1860:
+    /// `ew_commands::commands::joins_any_device`), or a starter one of these the project does not embed yet (FT-656).
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
-        let id = Id::from_uuid(fndef);
-        let kind = match self.query().fndefs().get(id) {
-            Some(c) => c.item.contact_kind.clone(),
-            // A starter FnDef the placement embeds with its symbol (FT-656).
-            None => match super::editing::starter_fndef(id) {
-                Some(c) => c.item.contact_kind.clone(),
-                None => return false,
-            },
-        };
-        matches!(
-            kind,
-            ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
-        )
+        held_or_starter(&self.query(), Id::from_uuid(fndef)).is_some_and(|d| {
+            matches!(
+                d.contact_kind,
+                ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
+            ) || ew_commands::commands::joins_any_device(&d)
+        })
     }
 
     /// The tag a report prints for `device` (`-101K1`; `Tag::short`); `None` for a missing device.
@@ -315,21 +323,21 @@ impl Session {
     /// function, and the rows of the Join chooser. A slot is an unplaced normal function of the FnDef (no
     /// representation draws it) on a device; its row comes first, so that a slot is filled before a new auxiliary
     /// function is made (D1). The second group is every other device whose main function is a coil, or one of
-    /// whose parts' templates has an entry of the FnDef; terminals and strips are never listed. An FnDef neither
+    /// whose parts' templates has an entry of the FnDef, and for a function a device takes as its own whatever its family
+    /// (FT-1860) every other device; terminals and strips are never listed. An FnDef neither
     /// embedded nor a starter FnDef (which a placement embeds with its symbol, FT-656) is not auxiliary and lists
     /// nothing.
     pub fn join_candidates(&self, fndef: Uuid) -> JoinCandidates {
         let q = self.query();
         let def: Id<FnDef> = Id::from_uuid(fndef);
         // A starter FnDef the placement embeds with its symbol counts as held (FT-656).
-        let kind = match q.fndefs().get(def) {
-            Some(copy) => copy.item.contact_kind.clone(),
-            None => match super::editing::starter_fndef(def) {
-                Some(copy) => copy.item.contact_kind.clone(),
-                None => return JoinCandidates::default(),
-            },
+        let Some(item) = held_or_starter(&q, def) else {
+            return JoinCandidates::default();
         };
-        let auxiliary = matches!(kind, ContactKind::No | ContactKind::Nc | ContactKind::Co);
+        let auxiliary = matches!(
+            item.contact_kind,
+            ContactKind::No | ContactKind::Nc | ContactKind::Co
+        ) || ew_commands::commands::joins_any_device(&item);
         let idx = q.idx();
         let mut slots: Vec<JoinCandidate> = Vec::new();
         for (id, f) in q.functions().iter() {

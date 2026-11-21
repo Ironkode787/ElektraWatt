@@ -104,7 +104,7 @@ use sha2::{Digest, Sha256};
 pub use editing::{
     CatalogueSymbol, CatalogueTemplateFn, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, ShapeCp,
     SlotCell, SupplyPoint, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableItem,
-    TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map, page_type_takes,
+    TableJunction, TablePotential, TableRep, TableStructureBox, address_copy, exchange_map, page_type_takes,
 };
 /// The style a text without one prints with (`text.normal`): a free text's Style row names it.
 pub use ew_text::DEFAULT_STYLE_KEY;

@@ -1910,13 +1910,12 @@ fn import_parts_creates_a_copy_per_row_and_replays_through_apply() {
     let mine = tree(&a.join("lib/parts"));
     assert_eq!(mine.len(), 29);
 
-    let id = {
+    let parts = {
         let (session, _) = ew_api::Session::open_reader(&b, "test", "test").expect("the copy opens");
-        let id = session.query().project().id.as_uuid();
+        let parts = ew_api::import::read_parts_tables(std::path::Path::new(PARTS), &session).unwrap();
         session.close();
-        id
+        parts
     };
-    let parts = ew_api::import::read_parts_tables(std::path::Path::new(PARTS), id).unwrap();
     let log = format!(
         "{}\n{}\n",
         r#"{"$schema":"ew.cmdlog/1","label":"test"}"#,

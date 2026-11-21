@@ -174,9 +174,8 @@ pub fn ids_numbered(text: &str) -> String {
 /// `parts.import`, as project-local copies: the end brackets, the modular valve terminal's parts and the supplier parts
 /// the sample's starter library does not have.
 pub fn import_test_parts(s: &mut Session) {
-    let project = s.query().project().id.as_uuid();
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
-    let parts = ew_api::import::read_parts_tables(&path, project).expect("the test tables' parts read");
+    let parts = ew_api::import::read_parts_tables(&path, s).expect("the test tables' parts read");
     let cmd = ew_api::AnyCommand {
         name: ew_api::import::PARTS_IMPORT.into(),
         params: parts.params(),

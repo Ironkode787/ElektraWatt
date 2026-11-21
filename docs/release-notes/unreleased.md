@@ -43,3 +43,12 @@ change here.
   `samples/J-E-2416.ew`
 - behaviour-change: a print cancelled between two pages ends as cancelled; it could end with the printer's refusal
   of the next page's paper ("The handle is invalid"), because the cancel was only read before each band
+- behaviour-change: a device takes a second symbol of its own: a symbol of another kind than a contact (a lamp, a
+  supply, an element brought in from QElectroTech) joins any device but a terminal or a strip as an auxiliary
+  function, by J while placing, by `place.pick device=<tag>`, by typing the tag in its Tag row and by
+  `rep.join_device`; a contact keeps its rule (a device with a coil or a part naming it), and a terminal, an
+  interruption point and a graphic join no device (FT-1860)
+- behaviour-change: `place.pick` takes a library symbol's address `library:<library>:<item>` also after its first
+  placement, and a symbol it does not find is refused as unknown, no longer as a missing parameter (FT-1860)
+- behaviour-change: `ew import parts` and File ▸ Import ▸ Parts table… take a function template that names a function
+  definition of the project's own by its key; it was refused as an unknown FnDef (FT-1860)

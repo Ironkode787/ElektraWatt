@@ -29,8 +29,7 @@ fn table_parts() -> std::path::PathBuf {
 }
 
 fn import(s: &mut Session) -> ew_api::Receipt {
-    let project = s.query().project().id.as_uuid();
-    let parts = read_parts_tables(&table_parts(), project).expect("the parts table reads");
+    let parts = read_parts_tables(&table_parts(), s).expect("the parts table reads");
     assert_eq!(parts.source, "parts.csv");
     assert_eq!(parts.siblings.len(), 4, "every sibling table lies beside it");
     let cmd = AnyCommand {
@@ -89,8 +88,7 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
     let file = std::fs::File::create(&path).unwrap();
     file.set_len(limit + 1).unwrap();
     drop(file);
-    let project = session().query().project().id.as_uuid();
-    let result = read_parts_tables(&path, project);
+    let result = read_parts_tables(&path, &session());
     std::fs::remove_dir_all(&dir).unwrap();
     assert!(
         matches!(
@@ -120,9 +118,9 @@ fn a_bom_prefixed_parts_table_imports_the_same_copies() {
         assert!(!text.starts_with('\u{feff}'), "{file} has no BOM of its own");
         std::fs::write(dir.join(file), format!("\u{feff}{text}")).unwrap();
     }
-    let project = session().query().project().id.as_uuid();
-    let plain = read_parts_tables(&plain_path, project).expect("the tables read");
-    let marked = read_parts_tables(&dir.join("parts.csv"), project);
+    let s = session();
+    let plain = read_parts_tables(&plain_path, &s).expect("the tables read");
+    let marked = read_parts_tables(&dir.join("parts.csv"), &s);
     std::fs::remove_dir_all(&dir).unwrap();
     let marked = marked.expect("the BOM-prefixed tables read");
     assert_eq!(marked.siblings, plain.siblings);

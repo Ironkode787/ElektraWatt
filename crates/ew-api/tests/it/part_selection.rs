@@ -488,9 +488,8 @@ fn strip_terminal(s: &Session, strip: &str, designation: &str) -> Uuid {
 fn wizard_with_parts() -> Session {
     let mut s =
         Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();
-    let project = s.query().project().id.as_uuid();
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
-    let parts = ew_api::import::read_parts_tables(&path, project).unwrap();
+    let parts = ew_api::import::read_parts_tables(&path, &s).unwrap();
     commit(
         &mut s,
         &AnyCommand {

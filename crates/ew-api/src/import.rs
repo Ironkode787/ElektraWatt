@@ -1172,21 +1172,36 @@ impl std::fmt::Display for PartsReadError {
 
 impl std::error::Error for PartsReadError {}
 
-/// The starter FnDefs (compiled in, `ew_library::starter`) as the built-in library that part templates resolve in.
-fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
-    static LIB: std::sync::OnceLock<ew_import_tables::BuiltinLibrary> = std::sync::OnceLock::new();
-    LIB.get_or_init(|| {
-        let docs = ew_library::starter::items()
-            .iter()
-            .filter(|i| i.kind == ew_library::starter::StarterKind::Fndef)
-            .filter_map(|i| LibDocument::from_json(i.json).ok());
-        ew_import_tables::BuiltinLibrary::new(docs).unwrap_or_default()
-    })
+/// The FnDefs that the part templates of a parts table resolve their keys in: the starter's (compiled in,
+/// `ew_library::starter`), then the project's own, a held FnDef with a key the starter has not (FT-1860: a function
+/// definition of the project's library, such as one a person made for a symbol of their own).
+fn template_fndefs(session: &Session) -> ew_import_tables::BuiltinLibrary {
+    let starter: Vec<LibDocument> = ew_library::starter::items()
+        .iter()
+        .filter(|i| i.kind == ew_library::starter::StarterKind::Fndef)
+        .filter_map(|i| LibDocument::from_json(i.json).ok())
+        .collect();
+    let mut keys: std::collections::BTreeSet<String> = starter
+        .iter()
+        .filter_map(|d| match d {
+            LibDocument::Fndef(c) => c.item.meta.key.as_ref().map(ToString::to_string),
+            _ => None,
+        })
+        .collect();
+    let q = session.query();
+    // Of two held FnDefs with one key, the one of the lowest copy ID (the table's order).
+    let own: Vec<LibDocument> = q
+        .fndefs()
+        .iter()
+        .filter(|(_, c)| c.item.meta.key.as_ref().is_some_and(|k| keys.insert(k.to_string())))
+        .map(|(_, c)| LibDocument::Fndef((**c).clone()))
+        .collect();
+    ew_import_tables::BuiltinLibrary::new(starter.into_iter().chain(own)).unwrap_or_default()
 }
 
 /// Parses a `parts.csv` of the `ew` dialect (text) and its sibling tables into project-local part copies of the
-/// project `project` (`ew_import_tables::parse_parts_tables` with the starter FnDefs). `source` is the chosen file's
-/// name; only its base name is kept.
+/// project of `session` (`ew_import_tables::parse_parts_tables`, the templates' FnDef keys resolved in the starter
+/// FnDefs and the project's own, [`template_fndefs`]). `source` is the chosen file's name; only its base name is kept.
 ///
 /// A table that a spreadsheet saved with a byte-order mark (one leading U+FEFF) is read without it: the
 /// user's path of `parts.import` and `ew import parts` accepts it, while the CSV bootstrap, which calls
@@ -1198,9 +1213,11 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
 pub fn parse_parts_tables(
     parts_csv: &str,
     siblings: &SiblingTables<'_>,
-    project: ew_derive::ew_ids::Uuid,
+    session: &Session,
     source: &str,
 ) -> Result<PartsImport, Refusal> {
+    let project = session.query().project().id;
+    let fndefs = template_fndefs(session);
     fn unmarked(t: &str) -> &str {
         t.strip_prefix('\u{feff}').unwrap_or(t)
     }
@@ -1226,9 +1243,9 @@ pub fn parse_parts_tables(
         ew_import_tables::parse_parts_tables(
             unmarked(parts_csv),
             siblings,
-            ew_derive::ew_ids::Id::from_uuid(project),
+            ew_derive::ew_ids::Id::from_uuid(project.as_uuid()),
             source,
-            starter_fndefs(),
+            &fndefs,
         )
     })?;
     let source = source.rsplit(['/', '\\']).next().unwrap_or(source).to_owned();
@@ -1263,17 +1280,14 @@ pub fn parse_parts_tables(
 
 /// Reads the parts table `path` and the sibling tables that lie in its folder (`part_cps.csv`, `part_templates.csv`,
 /// `cable_cores.csv`, `part_plc.csv`; an absent table is skipped, so the import is parts-only without them) and
-/// parses them for project `project` ([`parse_parts_tables`]). The host's file read: the CLI and the shell call it,
-/// then dispatch `parts.import` with [`PartsImport::params`].
+/// parses them for the project of `session` ([`parse_parts_tables`]). The host's file read: the CLI and the shell call
+/// it, then dispatch `parts.import` with [`PartsImport::params`].
 ///
 /// # Errors
 ///
 /// [`PartsReadError::Io`] for a file that cannot be read (named by its base name), [`PartsReadError::Import`] for
 /// refused tables.
-pub fn read_parts_tables(
-    path: &Path,
-    project: ew_derive::ew_ids::Uuid,
-) -> Result<PartsImport, PartsReadError> {
+pub fn read_parts_tables(path: &Path, session: &Session) -> Result<PartsImport, PartsReadError> {
     let name = |p: &Path| {
         p.file_name()
             .map_or_else(|| "parts.csv".to_owned(), |n| n.to_string_lossy().into_owned())
@@ -1304,7 +1318,7 @@ pub fn read_parts_tables(
     for (file, text) in &texts {
         siblings.set(file, text);
     }
-    parse_parts_tables(&parts, &siblings, project, &name(path)).map_err(PartsReadError::from)
+    parse_parts_tables(&parts, &siblings, session, &name(path)).map_err(PartsReadError::from)
 }
 
 // -------------------------------------------------------------------------------------------------------------------
