@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC navigator and grid on Golden A (acceptance PG1, PG4, PG5): the tree's levels and badges,
+//! The PLC navigator and grid on the sample (acceptance PG1, PG4, PG5): the tree's levels and badges,
 //! the grid's facets (`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `config:<name>`) before and after the
 //! edits that set them, and the typed editors of a channel's address and target and a module's slot and start.
 
@@ -53,21 +53,17 @@ fn set(s: &mut Session, targets: &[&NavNode], path: &str, value: Value) {
     );
 }
 
-/// PG1: the configuration project above -201U1, its role word as the station's badge, the module levels, and the
-/// `unplaced` badge on exactly the channels without a binding (the deactivated ones on Golden A, which no coil binds),
-/// beside `spare` on the 20 spare channels.
-/// The stored form of an address text of Golden A's profile.
+/// The stored form of an address text of the sample's profile.
 fn parsed(text: &str) -> Value {
     let a = ew_derive::parse_plc_address(ew_derive::builtin_profiles(), "siemens-tia-intl@2027.1", text)
         .expect("an address of the profile");
     serde_json::to_value(a).unwrap()
 }
 
-/// A session over Golden A with members merged into the channel records of `edits`: a state that an import or a merge
-/// brings and that the strict edit path refuses (FT-726).
+/// A session over the sample with members merged into the channel records of `edits`: a state that an import or a
+/// merge brings and that the strict edit path refuses (FT-726).
 fn with_channels(edits: &[(&NavNode, Value)]) -> Session {
-    let batch = common::golden_batch();
-    let (project, mut records) = common::split(&batch);
+    let (project, mut records, lib) = common::sample_records();
     for r in &mut records {
         let ew_schema::Record::Channel(c) = r else {
             continue;
@@ -82,12 +78,15 @@ fn with_channels(edits: &[(&NavNode, Value)]) -> Session {
             }
         }
     }
-    common::session_of(project, records, batch.lib.clone())
+    common::session_of(project, records, lib)
 }
 
+/// PG1: the configuration project above the stations -104A1 and -201K1, its role word as a station's badge, the module
+/// levels, and the `unplaced` badge on exactly the channels without a binding (the valve terminal's four deactivated
+/// outputs, which no valve takes), beside `spare` on the spare channels.
 #[test]
 fn the_tree_levels_and_badges() {
-    let s = common::golden_session();
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Plc);
     let top: Vec<&NavNode> = t.nodes.iter().filter(|n| n.parent.is_none()).collect();
     assert_eq!(top.len(), 1);
@@ -97,7 +96,7 @@ fn the_tree_levels_and_badges() {
     assert_eq!(station.parent, Some(0));
     assert_eq!(station.badges.len(), 1, "the station's role word");
     let all = channels(&t);
-    assert_eq!(all.len(), 56);
+    assert_eq!(all.len(), 24, "two cards and the valve terminal, eight channels each");
     for n in &all {
         let state = cell(&t, n, "state");
         let unplaced = n.badges.iter().any(|b| b == "unplaced");
@@ -109,53 +108,54 @@ fn the_tree_levels_and_badges() {
     }
 }
 
-/// PG4: each facet on Golden A, then after the edit that sets it. FR-PLC-021: `spare` shows exactly 20 rows.
+/// PG4: each facet on the sample, then after the edit that sets it. FR-PLC-021: `spare` shows exactly the 13 spare
+/// channels of the two cards (7 inputs, 6 outputs).
 #[test]
-fn each_facet_on_golden_a() {
-    let s = common::golden_session();
+fn each_facet_on_the_sample() {
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Plc);
-    assert_eq!(with(&t, "spare", "").len(), 20, "FR-PLC-021");
-    assert_eq!(with(&t, "unplaced", "").len(), 28);
+    assert_eq!(with(&t, "spare", "").len(), 13, "FR-PLC-021");
+    assert_eq!(with(&t, "unplaced", "").len(), 4);
     let config = t.nodes[0].label.clone();
-    assert_eq!(with(&t, "config", &config).len(), 56);
+    assert_eq!(with(&t, "config", &config).len(), 24);
     assert!(with(&t, "unassigned", "").is_empty());
     assert!(with(&t, "tbd", "").is_empty());
     assert!(with(&t, "duplicate", "").is_empty());
-    let u3_0 = channel(&t, "-201U3", 0).clone();
-    let u3_1 = channel(&t, "-201U3", 1).clone();
-    let u4_0 = channel(&t, "-201U4", 0).clone();
-    let u4_1 = channel(&t, "-201U4", 1).clone();
-    let u5_2 = channel(&t, "-201U5", 2).clone();
-    let other = cell(&t, &u4_1, "address").to_owned();
+    let a2_0 = channel(&t, "-104A1-A2", 0).clone();
+    let a2_1 = channel(&t, "-104A1-A2", 1).clone();
+    let a2_2 = channel(&t, "-104A1-A2", 2).clone();
+    let a2_3 = channel(&t, "-104A1-A2", 3).clone();
+    let k1_2 = channel(&t, "-201K1", 2).clone();
+    let other = cell(&t, &a2_3, "address").to_owned();
 
     // EW-PLC-007's duplicate symbol and EW-PLC-001's overlap (a manual address equal to another channel's): states the
     // strict edit path refuses (FT-726), which a lenient import or a merge brings; the session opens over them.
     let mut s = with_channels(&[
-        (&u4_0, json!({"symbol": "B1_Start"})),
-        (&u5_2, json!({"symbol": "B1_Start"})),
-        (&u3_1, json!({"address": {"manual": parsed(&other)}})),
+        (&a2_2, json!({"symbol": "B1_Start"})),
+        (&k1_2, json!({"symbol": "B1_Start"})),
+        (&a2_1, json!({"address": {"manual": parsed(&other)}})),
     ]);
-    set(&mut s, &[&u3_0], "address", json!("excluded"));
+    set(&mut s, &[&a2_0], "address", json!("excluded"));
     let t = s.navigator_table(NavKind::Plc);
     let keys = |v: Vec<&NavNode>| -> Vec<String> { v.into_iter().map(|n| n.key.clone()).collect() };
-    assert_eq!(keys(with(&t, "unassigned", "")), std::slice::from_ref(&u3_0.key));
-    assert_eq!(cell(&t, channel(&t, "-201U3", 0), "address"), "");
+    assert_eq!(keys(with(&t, "unassigned", "")), std::slice::from_ref(&a2_0.key));
+    assert_eq!(cell(&t, channel(&t, "-104A1-A2", 0), "address"), "");
     let mut dup = keys(with(&t, "duplicate", ""));
     dup.sort();
     let mut want = vec![
-        u3_1.key.clone(),
-        u4_0.key.clone(),
-        u4_1.key.clone(),
-        u5_2.key.clone(),
+        a2_1.key.clone(),
+        a2_2.key.clone(),
+        a2_3.key.clone(),
+        k1_2.key.clone(),
     ];
     want.sort();
     assert_eq!(dup, want, "the duplicate symbol and the overlapping address");
 
-    set(&mut s, &[&u3_1], "address", json!("tbd"));
+    set(&mut s, &[&a2_1], "address", json!("tbd"));
     let t = s.navigator_table(NavKind::Plc);
-    assert_eq!(keys(with(&t, "tbd", "")), std::slice::from_ref(&u3_1.key));
-    assert_eq!(cell(&t, channel(&t, "-201U3", 1), "address"), "TBD");
-    assert_eq!(cell(&t, channel(&t, "-201U4", 0), "symbol"), "B1_Start");
+    assert_eq!(keys(with(&t, "tbd", "")), std::slice::from_ref(&a2_1.key));
+    assert_eq!(cell(&t, channel(&t, "-104A1-A2", 1), "address"), "TBD");
+    assert_eq!(cell(&t, channel(&t, "-104A1-A2", 2), "symbol"), "B1_Start");
 }
 
 /// PG5: the typed editors. A channel's address passes its text to `fields.set`, which reads it by the profile; a
@@ -163,7 +163,7 @@ fn each_facet_on_golden_a() {
 /// profile's start text for `plc.set_start`.
 #[test]
 fn the_typed_editors() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let parse = |s: &Session, kind: &str, path: &str, text: &str| {
         s.parse_field_input(kind, path, text).map(|p| p.value)
     };
@@ -200,7 +200,7 @@ fn the_typed_editors() {
     );
 
     let t = s.navigator_table(NavKind::Plc);
-    let u5_0 = channel(&t, "-201U5", 0).clone();
+    let u5_0 = channel(&t, "-104A1-A2", 0).clone();
     let u5 = u5_0.records[1];
     // The slot through `fields.set` on the module (the route of the Slot column).
     let slot = parse(&s, "device", "plc_module.slot", "9").unwrap();
@@ -217,13 +217,13 @@ fn the_typed_editors() {
         json!({"modules": [u5.to_string()], "dir": "output", "spec": spec}),
     );
     // A target by its device's tag.
-    let target = parse(&s, "channel", "target", "-201U3").unwrap();
+    let target = parse(&s, "channel", "target", "-102E1").unwrap();
     set(&mut s, &[&u5_0], "target", target);
     let t = s.navigator_table(NavKind::Plc);
     let row = t.nodes.iter().find(|n| n.key == u5_0.key).unwrap();
     assert_eq!(cell(&t, row, "slot"), "9");
     assert_eq!(cell(&t, row, "address"), "Q10.0");
-    assert_eq!(cell(&t, row, "target"), "-201U3");
+    assert_eq!(cell(&t, row, "target"), "-102E1");
 }
 
 /// The grid's routes: the channel members through `fields.set`, the slot on the module; the
@@ -231,7 +231,7 @@ fn the_typed_editors() {
 /// read-only with the reason on a channel nothing is wired to.
 #[test]
 fn the_grid_columns_and_routes() {
-    let s = common::golden_session();
+    let s = common::sample();
     let t = s.navigator_table(NavKind::Plc);
     let route = |k: &str| {
         t.columns
@@ -277,20 +277,25 @@ fn the_grid_columns_and_routes() {
 /// the `safety` flag after the edits that set them; the PLC grid shows the PLC navigator's rows and columns.
 #[test]
 fn racks_bus_ports_the_new_columns_and_facets() {
-    let mut s = common::golden_session();
+    let mut s = common::sample();
     let t = s.navigator_table(NavKind::Plc);
-    let station = t.nodes.iter().position(|n| n.role == NavRole::Station).unwrap();
+    let station = t
+        .nodes
+        .iter()
+        .position(|n| n.role == NavRole::Station && n.label.contains("-201K1"))
+        .expect("the valve terminal's station");
     let ports: Vec<&NavNode> = t
         .nodes
         .iter()
         .filter(|n| n.role == NavRole::BusPort && n.parent == u32::try_from(station).ok())
         .collect();
-    assert_eq!(ports.len(), 1, "-201U1's DP port");
+    assert_eq!(ports.len(), 1, "-201K1's DP port");
     assert_eq!(ports[0].label, "DP · PROFIBUS DP");
     assert!(!ports[0].table_row);
+    let on_dp: Vec<&NavNode> = with(&t, "bus", "profibus-dp");
     assert_eq!(
-        with(&t, "bus", "profibus-dp").len(),
-        56,
+        on_dp.iter().filter(|n| cell(&t, n, "module") == "-201K1").count(),
+        8,
         "every channel of the station"
     );
     assert!(
@@ -299,7 +304,7 @@ fn racks_bus_ports_the_new_columns_and_facets() {
     );
     assert!(with(&t, "safety", "").is_empty());
 
-    let u5 = channel(&t, "-201U5", 0).clone();
+    let u5 = channel(&t, "-104A1-A2", 0).clone();
     let module_key = t.nodes[u5.parent.unwrap() as usize].key.clone();
     run(
         &mut s,
@@ -307,7 +312,7 @@ fn racks_bus_ports_the_new_columns_and_facets() {
         json!({"kind": "device", "targets": [u5.records[1].to_string()], "path": "plc_module.slot",
             "value": {"rack": {"rack": 1, "slot": 3}}}),
     );
-    let u3 = channel(&t, "-201U3", 0).clone();
+    let u3 = channel(&t, "-104A1-A1", 0).clone();
     set(&mut s, &[&u3], "data_type", json!("Bool"));
     set(&mut s, &[&u3], "signal_range", json!("24 V DC"));
     set(
@@ -319,13 +324,13 @@ fn racks_bus_ports_the_new_columns_and_facets() {
     let t = s.navigator_table(NavKind::Plc);
     let rack = t.nodes.iter().find(|n| n.role == NavRole::Rack).expect("rack 1");
     assert_eq!(rack.label, "Rack 1");
-    let moved = channel(&t, "-201U5", 0);
+    let moved = channel(&t, "-104A1-A2", 0);
     let module = &t.nodes[moved.parent.unwrap() as usize];
     assert_eq!(module.key, module_key, "the module's key is stable");
     assert_eq!(t.nodes[module.parent.unwrap() as usize].role, NavRole::Rack);
     assert_eq!(cell(&t, moved, "rack"), "1");
     assert_eq!(cell(&t, moved, "slot"), "1.3");
-    let u3 = channel(&t, "-201U3", 0);
+    let u3 = channel(&t, "-104A1-A1", 0);
     assert_eq!(cell(&t, u3, "data_type"), "Bool");
     assert_eq!(cell(&t, u3, "signal_range"), "24 V DC");
     assert_eq!(cell(&t, u3, "safety"), "1oo2 · SIL 2");
