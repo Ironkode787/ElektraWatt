@@ -18,8 +18,8 @@
 //! refuses a brief that does not pass.
 //!
 //! **The usability rounds' tasks:** `task.toml` may name the task (`task_id`, `T1`), its rounds
-//! (`rounds`) and its start project (`start`: `gp-ut` or `golden-a`), which every replay makes as `work/project` from a
-//! copy of the golden project ([`super::start::make_start_project`]) before the prelude opens it. An item may name
+//! (`rounds`) and its start project (`start`: `sample`), which every replay makes as `work/project` from a copy of the
+//! sample project ([`super::start::make_start_project`]) before the prelude opens it. An item may name
 //! `actions`, an ordered list of action IDs (alternatives joined by ` or `) that must be done in that order, decided
 //! from the outcomes. A task may have `hints.toml` (one to three hints, [`super::round`]). [`decide_items`] decides
 //! the items here and at a brief run's `stop`, with the same code.
@@ -76,16 +76,16 @@ pub struct TaskToml {
     /// The usability rounds that run the task (`R0`, `R1`, `R2`): a round task's prompt adds `ROUND.md` (D11).
     #[serde(default)]
     pub rounds: Vec<String>,
-    /// The start project: `gp-ut` or `golden-a` (D5); absent, the prelude makes the project.
+    /// The start project: `sample` (D5); absent, the prelude makes the project.
     #[serde(default)]
     pub start: Option<String>,
 }
 
 /// K9: a `task.toml` with another start.
-pub const START_VALUES: &str = "task.toml: `start` is `gp-ut` or `golden-a`";
+pub const START_VALUES: &str = "task.toml: `start` is `sample`";
 
 /// The start projects a brief may name (D5).
-pub const STARTS: [&str; 2] = ["gp-ut", "golden-a"];
+pub const STARTS: [&str; 1] = ["sample"];
 
 /// The brief's `task.toml`, or `None` for a task without one (every task that is not a brief).
 ///
@@ -566,10 +566,9 @@ fn prove(
     for sub in ["work", "config", "empty-sample", "book", "out"] {
         std::fs::create_dir_all(scratch.join(sub))?;
     }
-    // The start project (D5): a copy of the golden project in `work/project`, which the prelude opens.
+    // The start project (D5): a copy of the sample in `work/project`, which the prelude opens.
     if let Some(start) = start
-        && let Err(e) =
-            super::start::make_start_project(root, start, &exe("ew"), &scratch.join("work/project"))
+        && let Err(e) = super::start::make_start_project(root, start, &scratch.join("work/project"))
     {
         c.problems.push(format!("{e:#}"));
         return Ok(());
@@ -1072,10 +1071,10 @@ mod tests {
         assert_eq!(asked[2], "sql project SELECT 1 --format csv");
     }
 
-    /// K9: a start other than `gp-ut` or `golden-a` makes the brief not runnable; a task's hints are one to three and in
+    /// K9: a start other than `sample` makes the brief not runnable; a task's hints are one to three and in
     /// the user's words.
     #[test]
-    fn a_start_project_is_gp_ut_or_golden_a_and_the_hints_are_words() {
+    fn a_start_project_is_the_sample_and_the_hints_are_words() {
         let (tmp, dir) = copy_brief("brief-valve-switch");
         let t = std::fs::read_to_string(dir.join("task.toml")).unwrap();
         std::fs::write(dir.join("task.toml"), format!("{t}start = \"golden-b\"\n")).unwrap();
@@ -1088,7 +1087,7 @@ mod tests {
         assert_eq!(
             c.problems,
             [
-                "task.toml: `start` is `gp-ut` or `golden-a`",
+                "task.toml: `start` is `sample`",
                 "hints.toml: one to three hints",
                 "hints.toml names the action file.save: a hint is in a user's words",
             ]

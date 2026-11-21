@@ -11,7 +11,8 @@
 //!
 //! `check-task <task>` checks a task folder without a product: the files exist and parse, the prelude's classes fit its
 //! steps, the gaps name checks, and every identifier-shaped token of `task.md` occurs in the golden project's
-//! description (doc 20), which is the sheet's only source (D4), and the sheet holds no other proper name.
+//! description (doc 20), which is the sheet's only source (D4), and the sheet holds no other proper name. The sheet of a
+//! brief that starts on the sample ([`SAMPLE_SCRIPT`]) is held to the sample's script the same way.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -30,6 +31,9 @@ use super::session::Sent;
 
 /// The golden project's folder, relative to the repository root.
 pub const GOLDEN_PROJECT: &str = "golden/J-E-2416.ew";
+
+/// The sample's script: the only source of the sheet of a brief that starts on the sample (`start = "sample"`).
+pub const SAMPLE_SCRIPT: &str = "fixtures/sample/sample.uiscript";
 
 /// The design document that is the task sheet's only source.
 pub const DOC20: &str = "docs/design/20-golden-project.md";
@@ -505,9 +509,10 @@ fn trim_word(w: &str) -> &str {
     })
 }
 
-/// The words of the sheet that doc 20 does not hold: identifier-shaped tokens, and capitalised words that do not begin
-/// a sentence, a table cell or a line. `doc` is the text of doc 20; both searches are case-sensitive.
-pub fn sheet_problems(sheet: &str, doc: &str) -> Vec<String> {
+/// The words of the sheet that its source does not hold: identifier-shaped tokens, and capitalised words that do not
+/// begin a sentence, a table cell or a line. `doc` is the source's text, `source` its name in the problems (doc 20, the
+/// sample's script); both searches are case-sensitive.
+pub fn sheet_problems(sheet: &str, doc: &str, source: &str) -> Vec<String> {
     // Text that is not the sheet's own words: comments and the placeholders of `compose`.
     let mut text = String::new();
     let mut rest = sheet;
@@ -549,9 +554,9 @@ pub fn sheet_problems(sheet: &str, doc: &str) -> Vec<String> {
                 }
                 // `101-B2,` and `S51:1/a` etc.: the word as written, trailing punctuation off.
                 if identifier_shaped(word) && !doc.contains(word) {
-                    problems.insert(format!("`{word}` is not in doc 20"));
+                    problems.insert(format!("`{word}` is not in {source}"));
                 } else if !starts && capitalised(word) && !doc_words.contains(word) {
-                    problems.insert(format!("`{word}` is a name that doc 20 does not hold"));
+                    problems.insert(format!("`{word}` is a name that {source} does not hold"));
                 }
             }
         }
@@ -583,6 +588,28 @@ pub fn check_task(root: &Path, task: &str) -> Result<Vec<String>> {
                 for bad in ["@", "://", "\\"] {
                     if sheet.contains(bad) {
                         problems.push(format!("task.md holds `{bad}` (an address or a path)"));
+                    }
+                }
+                // A brief that starts on the sample: its sheet's tokens come from the sample's script.
+                let starts_on_the_sample = std::fs::read_to_string(dir.join("task.toml"))
+                    .ok()
+                    .and_then(|t| toml::from_str::<toml::Value>(&t).ok())
+                    .is_some_and(|t| t.get("start").and_then(toml::Value::as_str) == Some("sample"));
+                if starts_on_the_sample {
+                    let script = std::fs::read_to_string(root.join(SAMPLE_SCRIPT))
+                        .with_context(|| format!("reading {SAMPLE_SCRIPT}"))?;
+                    // The title and the History name the task, its rounds and its versions, not the project.
+                    let body: String = sheet
+                        .replace("\r\n", "\n")
+                        .split("\n## History")
+                        .next()
+                        .unwrap_or_default()
+                        .lines()
+                        .filter(|l| !l.starts_with("# "))
+                        .map(|l| format!("{l}\n"))
+                        .collect();
+                    for p in sheet_problems(&body, &script, "the sample's script") {
+                        problems.push(format!("task.md: {p}"));
                     }
                 }
             }
@@ -783,7 +810,7 @@ pub fn check_task(root: &Path, task: &str) -> Result<Vec<String>> {
         let doc = std::fs::read_to_string(root.join(DOC20))
             .with_context(|| format!("reading {DOC20}"))?
             .replace("\r\n", "\n");
-        for p in sheet_problems(s, &doc) {
+        for p in sheet_problems(s, &doc, "doc 20") {
             problems.push(format!("task.md: {p}"));
         }
     }

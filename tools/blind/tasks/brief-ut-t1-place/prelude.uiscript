@@ -1,3 +1,6 @@
-{"$schema":"ew.uiscript/1","label":"brief-ut-t1-place prelude"}
+{"$schema":"ew.uiscript/1","label":"brief-ut-t1-place prelude: the sample without the 24 V breaker -102F1"}
 {"action":"file.open","params":{"dir":"project"}}
 {"action":"page.goto","params":{"folio":"102"}}
+{"action":"select.set","params":{"refs":["tag:-102F1","wire:24V -> -102F1:1","wire:-102F1:2 -> -X1021:1/a"]}}
+{"action":"edit.delete_selection","params":{}}
+{"action":"file.save","params":{}}

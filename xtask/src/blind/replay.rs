@@ -101,7 +101,7 @@ pub struct Inputs {
     pub paint_into: Option<PathBuf>,
     /// A visual run's window size and scale, as its `run.json` records it.
     pub geometry: super::visual::Geometry,
-    /// The run's start project (`gp-ut`, `golden-a`): the replay makes it as `work/project` first.
+    /// The run's start project (`sample`): the replay makes it as `work/project` first.
     pub start: Option<String>,
 }
 
@@ -268,10 +268,9 @@ pub fn replay_in(root: &Path, exe: &Path, inputs: &Inputs, dir: &Path) -> Result
     std::fs::create_dir_all(dir.join("config"))?;
     std::fs::create_dir_all(dir.join("empty-sample"))?;
     std::fs::create_dir_all(dir.join("book"))?;
-    // The start project, from a copy of the golden project with the built `ew` beside `exe`.
+    // The start project, from a copy of the sample.
     if let Some(start) = &inputs.start {
-        let ew = exe.with_file_name(format!("ew{}", std::env::consts::EXE_SUFFIX));
-        super::start::make_start_project(root, start, &ew, &dir.join("work/project"))?;
+        super::start::make_start_project(root, start, &dir.join("work/project"))?;
     }
     let mut script = format!("{}\n", script_header("replay"));
     for (a, p) in inputs.prelude.iter().chain(&inputs.steps) {

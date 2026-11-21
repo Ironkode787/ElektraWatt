@@ -1,12 +1,14 @@
-{"$schema":"ew.uiscript/1","label":"brief-ut-t2-wire prelude: GP-UT, then T1's reference steps"}
+{"$schema":"ew.uiscript/1","label":"brief-ut-t2-wire prelude: the sample without the 24 V breaker -102F1, then T1's reference steps"}
 {"action":"file.open","params":{"dir":"project"}}
 {"action":"page.goto","params":{"folio":"102"}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":69.882}}
+{"action":"select.set","params":{"refs":["tag:-102F1","wire:24V -> -102F1:1","wire:-102F1:2 -> -X1021:1/a"]}}
+{"action":"edit.delete_selection","params":{}}
+{"action":"file.save","params":{}}
+{"action":"cursor.set","params":{"x_mm":38.495,"y_mm":36.105}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.mcb-1p@qet10"}}
+{"action":"place.pick","params":{"part":"EW-GEN-MCB-1"}}
+{"action":"tool.rotate_cw","params":{}}
+{"action":"tool.mirror_x","params":{}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
-{"action":"part.choose","params":{}}
-{"action":"part.search","params":{"text":"A9F78116"}}
-{"action":"part.pick","params":{"index":1}}
 {"action":"file.save","params":{}}

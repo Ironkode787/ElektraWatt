@@ -1,20 +1,12 @@
 {"$schema":"ew.uiscript/1","label":"brief-ut-t2-wire reference solution"}
 {"action":"tool.wire","params":{}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":61.944}}
+{"action":"cursor.set","params":{"x_mm":22.838,"y_mm":35.885}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":69.882}}
+{"action":"cursor.set","params":{"x_mm":38.495,"y_mm":35.885}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":129.902,"y_mm":61.944}}
+{"action":"cursor.set","params":{"x_mm":48.933,"y_mm":35.885}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":69.882}}
-{"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":80.465}}
-{"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":140.485,"y_mm":109.569}}
-{"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":124.610,"y_mm":80.465}}
-{"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":145.777,"y_mm":109.569}}
+{"action":"cursor.set","params":{"x_mm":85.467,"y_mm":43.714}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"file.save","params":{}}

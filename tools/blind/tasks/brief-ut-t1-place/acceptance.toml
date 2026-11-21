@@ -4,17 +4,17 @@
 [[item]]
 id = "A1"
 kind = "hard"
-what = "A device with the part A9F78116 is on folio 102."
+what = "A device with the part EW-GEN-MCB-1 is on folio 102."
 how = "connections, pages"
-query = "SELECT tag FROM api_v1_device WHERE part_number = 'A9F78116' AND main_folio = '102'"
+query = "SELECT tag FROM api_v1_device WHERE part_number = 'EW-GEN-MCB-1' AND main_folio = '102'"
 expect = "== 1"
 
 [[item]]
 id = "A2"
 kind = "hard"
-what = "Its main representation lies between -102G1 (102-B6) and -102F2 (102-E7) by cell: row B to E, column 6 or 7."
+what = "Its main representation lies between the incoming 24 V (102-B0) and the strip -X1021 (102-B4) by cell: row B, column 1 to 3."
 how = "pages"
-query = "SELECT tag FROM api_v1_device WHERE part_number = 'A9F78116' AND main_folio = '102' AND substr(main_cell, 1, 1) BETWEEN 'B' AND 'E' AND CAST(substr(main_cell, 2) AS INTEGER) BETWEEN 6 AND 7"
+query = "SELECT tag FROM api_v1_device WHERE part_number = 'EW-GEN-MCB-1' AND main_folio = '102' AND substr(main_cell, 1, 1) = 'B' AND CAST(substr(main_cell, 2) AS INTEGER) BETWEEN 1 AND 3"
 expect = "== 1"
 
 [[item]]
@@ -22,5 +22,5 @@ id = "A3"
 kind = "hard"
 what = "Its tag is -102F1, derived by the numbering rule (the next free counter fills the gap), and not frozen."
 how = "pages"
-query = "SELECT tag FROM api_v1_device WHERE part_number = 'A9F78116' AND tag = '-102F1' AND frozen = 0"
+query = "SELECT tag FROM api_v1_device WHERE part_number = 'EW-GEN-MCB-1' AND tag = '-102F1' AND frozen = 0"
 expect = "== 1"

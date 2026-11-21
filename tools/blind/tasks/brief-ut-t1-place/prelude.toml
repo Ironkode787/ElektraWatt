@@ -1,5 +1,6 @@
-# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of GP-UT
-# (`task.toml`: `start = "gp-ut"`), which the prelude opens in folio 102.
+# The class of every step of `prelude.uiscript`, in order: setup only. The start project is a copy of the sample
+# (`task.toml`: `start = "sample"`); the prelude opens it and deletes the 24 V breaker -102F1 of folio 102 with its two
+# wires (the former GP-UT), the start state of T1.
 
 [[step]]
 action = "file.open"
@@ -7,4 +8,16 @@ class = "setup"
 
 [[step]]
 action = "page.goto"
+class = "setup"
+
+[[step]]
+action = "select.set"
+class = "setup"
+
+[[step]]
+action = "edit.delete_selection"
+class = "setup"
+
+[[step]]
+action = "file.save"
 class = "setup"

@@ -84,7 +84,7 @@ For the orchestrator:
   selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
                                               the visual self-test through the keeper and the visual driver
   bless-oracle <task> [--bin <dir>]           the expected rows of a task's oracle, from a temporary copy of Golden A
-  check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against doc 20
+  check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against its source
 ";
 
 /// Takes `--flag value` and `--flag` out of `args`.
