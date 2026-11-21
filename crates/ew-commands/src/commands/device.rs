@@ -1972,9 +1972,12 @@ pub(crate) fn insert_template_functions(
         return tx.reject(text!("refusal-from-part-mains", number, mains.to_string()));
     }
     let (def, kind) = defs[usize::from(template)].clone();
+    // A symbol of its own drawn for an entry's black-box FnDef (a power supply the user drew) draws it as any symbol:
+    // the entry's function is then a normal one.
+    let mut drawn_by_symbol = false;
     match placed {
         PartEntry::Normal(symbol_def) => {
-            if kind == FunctionKind::BlackBox {
+            if kind == FunctionKind::BlackBox && symbol_def != def {
                 return tx.reject(text!("refusal-from-part-black-box", template.to_string(), number));
             }
             if symbol_def != def {
@@ -1984,6 +1987,7 @@ pub(crate) fn insert_template_functions(
                     number
                 ));
             }
+            drawn_by_symbol = kind == FunctionKind::BlackBox;
         }
         PartEntry::BlackBox => {
             if kind != FunctionKind::BlackBox && !ports[usize::from(template)] {
@@ -2006,6 +2010,11 @@ pub(crate) fn insert_template_functions(
         // The entry index is stored; an index beyond u16 (never in practice) is left out and the derivation
         // falls back to the first entry of the FnDef.
         let entry = u16::try_from(i).ok();
+        let kind = if drawn_by_symbol && i == usize::from(template) {
+            FunctionKind::Normal
+        } else {
+            kind
+        };
         let f = insert_function_of_kind(tx, Some(device), def, role, kind, entry)?;
         if i == usize::from(template) {
             placed_fn = Some(f);

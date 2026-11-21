@@ -322,7 +322,7 @@ impl Command for CreatePage {
 /// cascade, and an interruption-point function goes with its representation. Devices stay, unplaced,
 /// unless `delete_devices` is set: then every device that had a representation of one of its functions on
 /// a deleted page and has none left anywhere is removed too (with its functions and their remaining
-/// connections). The open revision's notes on the deleted pages go in the same transaction;
+/// connections), and so is a strip whose last terminal goes so and that is drawn nowhere. The open revision's notes on the deleted pages go in the same transaction;
 /// the notes of released and withdrawn revisions stay. Bulk: it always previews (doc 06 §3.1).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -368,6 +368,11 @@ impl Command for DeletePages {
         for page in &self.pages {
             tx.delete_if_exists((Kind::Page, page.cast()))?;
         }
+        // The strips of the terminals among them: a strip this delete empties goes with its last terminal.
+        let strips: BTreeSet<Id<Device>> = candidates
+            .iter()
+            .filter_map(|d| tx.get::<Device>(*d)?.aspects.terminal.as_ref().map(|t| t.strip))
+            .collect();
         let mut kept: Vec<Id<Device>> = Vec::new();
         for device in candidates {
             let placed = tx
@@ -379,8 +384,27 @@ impl Command for DeletePages {
             }
             match tx.delete_if_exists((Kind::Device, device.cast())) {
                 Ok(()) => {}
-                // A forbid link (a strip with terminals): the device stays, unplaced.
+                // A forbid link (a strip with terminals): the device stays, unplaced, unless the delete empties it.
                 Err(CmdError::Model(ModelError::Referenced { .. }, _)) => kept.push(device),
+                Err(e) => return Err(e),
+            }
+        }
+        for strip in strips {
+            let emptied = tx.terminals_of_strip(strip).is_empty()
+                && tx
+                    .functions_of_device(strip)
+                    .into_iter()
+                    .all(|f| tx.reps_of_function(f).is_empty());
+            if !emptied {
+                continue;
+            }
+            match tx.delete_if_exists((Kind::Device, strip.cast())) {
+                Ok(()) => kept.retain(|d| *d != strip),
+                Err(CmdError::Model(ModelError::Referenced { .. }, _)) => {
+                    if !kept.contains(&strip) {
+                        kept.push(strip);
+                    }
+                }
                 Err(e) => return Err(e),
             }
         }

@@ -54,7 +54,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Files and the text interface
 
-- FT-1865 `ew-commands`: `cable.from_wires` ignores `cores` given as a list (a string works) and assigns the first colours of another cable; `page.delete` with `delete_devices` leaves the emptied strips; `strip.new` with a tag that exists makes a second strip silently; `layout.enclosure_new` refuses a part of the project's library as "not on offer"; a library symbol is addressed as `library:<id>:<id>` before its first placement and by its key after, and each form is refused in the other state; a part on the starter power-supply function with a symbol of its own is refused by the Place tool ("place it with box.black") and by the Black box tool ("not a black box").
 - FT-1868 `ew-viewmodel, ew`: No action prints the action list; `report_block.new` offers words in its error and takes keys; page rows cannot be reached after `props.project`; `ew import qet --out a/b.ew` with a missing folder `a` imports and then writes nothing.
 
 #### A copy of pages

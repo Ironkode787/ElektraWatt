@@ -410,7 +410,8 @@ impl ShellModel {
     /// already belongs to, else the tag a new cable would take), its type (that cable's, else `<n>X<cross-section>`
     /// of the first wire), and the wires with the core each gets, which the person can change. With `type` it applies:
     /// a typed tag of another existing cable puts the wires in that cable; a tag other than the proposal is frozen.
-    /// `cores` is the form's table, or a text of cores in the wires' order (`BU BN`); absent, each wire keeps its core
+    /// `cores` is the form's table, a list of cores (`["BU", "BN"]`) or a text of cores (`BU BN`), in the wires' order;
+    /// absent, each wire keeps its core
     /// or takes the next free one. A new cable is one undo step; an existing cable that gains cores is two. No wire
     /// selected, a type, a core or a tag the form does not take: refused in words. With `cable` (its ID, a Cables row's
     /// Cable…, FT-1693) the page of its first wire shows first, the cable's wires there selected.
@@ -523,16 +524,19 @@ impl ShellModel {
         } else {
             form.rows.clone()
         };
-        // The cores given: the form's table by row, or a text in the wires' order.
+        // The cores given: the form's table by row, a list of core names or a text, in the wires' order.
         let given_cores: Option<Vec<String>> = match p.get("cores") {
             Some(Value::Array(table)) => Some(
                 table
                     .iter()
                     .map(|r| {
-                        r.get("values")
-                            .and_then(Value::as_object)
-                            .and_then(|v| v.values().next())
-                            .and_then(Value::as_str)
+                        r.as_str()
+                            .or_else(|| {
+                                r.get("values")
+                                    .and_then(Value::as_object)
+                                    .and_then(|v| v.values().next())
+                                    .and_then(Value::as_str)
+                            })
                             .unwrap_or_default()
                             .trim()
                             .to_owned()

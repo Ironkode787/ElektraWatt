@@ -415,7 +415,7 @@ command reference are the exact form.
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
 | `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6; refuses an explicit folio per FR-PAG-012 |
-| `page.copy`, `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025) |
+| `page.copy`, `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025); with `delete_devices` a strip whose terminals all go goes too |
 | `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
 | `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
 | `rep.move`, `rep.transform` | reps, delta or page, or `steps`; rotate, mirror, variant | Interactive | routes follow (FR-CON-004); `steps` moves by whole grid steps and is refused with `page` or a non-zero `delta` |
@@ -639,7 +639,11 @@ before), then the heading Library with the trades and their groups under it, so 
 read as the project's; and
 its empty state names Edit ▸ Choose part…. **A part without a function template** is placed through the symbols it
 can take: `device.place` with `from_part` accepts such a part at template entry 0 and gives the new device the part
-and one main function of the chosen symbol's function definition.
+and one main function of the chosen symbol's function definition. **A black-box entry with a symbol of its own**
+(FT-1865): a symbol drawn for the entry's own function definition, such as a power supply drawn for the starter's
+`ew.fn.psu-ac-dc`, is placed by the Place tool like any symbol, and the entry's function is then a normal one; an
+entry on the generic `ew.fn.blackbox`, or one no own symbol draws, stays the Black box tool's. `place.pick` names an
+installed library's symbol by its key as well as by its address, before its first placement and after it.
 
 ### 3.4 Move, rotate and delete
 

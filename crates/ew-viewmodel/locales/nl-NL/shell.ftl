@@ -4030,6 +4030,7 @@ form-project = Ander project
 new-strip-title = Nieuwe klemmenstrook
 form-tag = Kenmerk
 error-strip-tag = "{ $p0 }" is geen kenmerk. Typ het kenmerk zoals de pagina het moet afdrukken, bijvoorbeeld { $p1 }.
+error-strip-tag-taken = Het project heeft al een klemmenstrook { $p0 }. Plaats haar klemmen met Tekenen ▸ Klem…, of typ een ander kenmerk.
 terminal-form-title = Klemmen plaatsen
 form-terminal-strip = Klemmenstrook
 form-terminal-strip-new = Nieuwe klemmenstrook ({ $p0 })

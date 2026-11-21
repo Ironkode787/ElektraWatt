@@ -141,7 +141,7 @@ impl ShellModel {
     /// holding the tag the strip would take from a terminal on the page on show (empty without one); Create sends
     /// `strip.new {tag}`. A `tag` other than that example is frozen in the creating commit (one Undo step), as the
     /// Properties Tag row freezes a typed tag (`-X5` with the sign shown, `X5` without); the example left as it is, or
-    /// no tag, keeps the tag derived.
+    /// no tag, keeps the tag derived. A tag another strip of the project prints already is refused in words.
     pub(crate) fn act_strip_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let letter = match string_param(p, "letter") {
             Ok(v) => v.unwrap_or("X").to_owned(),
@@ -158,6 +158,14 @@ impl ShellModel {
         let mut params = json!({"letter": letter, "strip": {}});
         let frozen = !tag.is_empty() && example.as_deref() != Some(tag.as_str());
         if frozen {
+            // A tag another strip prints already would make a second strip of that tag: refused, naming it.
+            let bare = |t: &str| t.trim_start_matches('-').to_owned();
+            let taken = self
+                .catalogue()
+                .and_then(|cat| cat.strips.iter().find(|st| bare(&st.tag) == bare(&tag)).map(|st| st.tag.clone()));
+            if let Some(taken) = taken {
+                return self.strip_form_done(failed(key!("error-strip-tag-taken"), &[&taken]));
+            }
             let Some(project) = &self.project else {
                 return Outcome::refused(key!("reason-no-project"));
             };

@@ -92,6 +92,18 @@ change here.
   records file of a library folder that `library.json` does not list is a note of the library in `ew lib list`
 - behaviour-change: `ew fmt` rewrites a member written with the value the canonical form leaves out (a symbol's hidden
   text slot with `"visible": false`, a `null`, `[]` or `{}`) instead of refusing the file as a change of content
+- behaviour-change: `cable.from_wires` takes `cores` as a list of core names (`["BU", "BN"]`) as it takes a text; a
+  list was ignored and the wires got no cores of their own
+- behaviour-change: `page.delete` with `delete_devices` deletes a strip whose terminals all go with the pages, instead
+  of leaving it empty
+- behaviour-change: `strip.new` with the tag of a strip the project has is refused, naming the strip and Draw ▸
+  Terminal…, instead of making a second strip of that tag
+- behaviour-change: Enclosure… offers every part of the project and the libraries with an enclosure section, whatever
+  its kind (a parts import gives `device` when its row names no kind)
+- behaviour-change: `place.pick` names an installed library's symbol by its key before its first placement too
+- behaviour-change: a part whose function is a black box (the starter's power supply) is placed by the Place tool with
+  a symbol of its own drawn for that function; the Place tool refused it as a black box and the Black box tool as a
+  symbol
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
   in the graph
 - format-variant: form Align baseline_centre

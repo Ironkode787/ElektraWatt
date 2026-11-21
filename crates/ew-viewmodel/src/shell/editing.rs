@@ -875,15 +875,17 @@ impl ShellModel {
                 part_cps = f.cps.clone();
                 part_outputs = f.outputs.clone();
                 part_layout.clone_from(&f.layout);
-                if f.black_box {
-                    box_cps = Some(f.cps.clone());
-                }
                 let Some(key) = &f.symbol else {
                     return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
                 let Some(i) = cat.symbols.iter().position(|s| s.key == *key) else {
                     return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
+                // A black-box entry is a box drawn by the frame; a symbol of its own drawn for the entry's own FnDef (a
+                // power supply the user drew, not the generic black box's) draws it as any symbol does (FT-1865).
+                if f.black_box && (cat.symbols[i].black_box || f.fndef_key == "ew.fn.blackbox") {
+                    box_cps = Some(f.cps.clone());
+                }
                 (
                     i,
                     Some((part.copy.to_string(), f.index, part.part_number.clone())),
@@ -1489,12 +1491,19 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
-        // A library symbol's address names it before and after its first placement (FT-1860).
+        // A library symbol's address names it before and after its first placement (FT-1860), and so does its key: an
+        // installed library's symbol not yet embedded is listed by its address.
         let find = |s: &str| {
             let held = ew_api::output::address_copy(s);
-            cat.symbols
-                .iter()
-                .position(|r| r.key == s || r.copy.is_some_and(|c| c.to_string() == s || held == Some(c)))
+            let by_key = |s: &str| {
+                cat.symbols
+                    .iter()
+                    .position(|r| r.key == s || r.copy.is_some_and(|c| c.to_string() == s || held == Some(c)))
+            };
+            by_key(s).or_else(|| {
+                let address = self.project.as_ref()?.session.library_symbol_address(s)?;
+                cat.symbols.iter().position(|r| r.key == address)
+            })
         };
         // A symbol named but not offered on this page is unknown, not missing.
         let named = |s: Option<&str>| match s {

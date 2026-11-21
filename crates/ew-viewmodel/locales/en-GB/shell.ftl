@@ -4211,6 +4211,7 @@ form-project = Other project
 # FT-1090 (ID-1181): the picker's New terminal strip form.
 new-strip-title = New terminal strip
 form-tag = Tag
+error-strip-tag-taken = The project has a terminal strip { $p0 } already. Place its terminals with Draw ▸ Terminal…, or type another tag.
 error-strip-tag = "{ $p0 }" is not a tag. Type the tag as the page is to print it, such as { $p1 }.
 # FT-1695: Draw ▸ Place ▸ Terminal…'s form.
 terminal-form-title = Place terminals

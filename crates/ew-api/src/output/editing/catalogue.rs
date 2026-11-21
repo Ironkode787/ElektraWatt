@@ -881,6 +881,23 @@ pub(super) fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
 }
 
 impl Session {
+    /// The address `library:<library>:<item>` of the installed library's symbol whose key is `key` (`None` for
+    /// another text): its catalogue key until it is embedded, after which its copy's key is `key`. So the key names
+    /// the symbol before its first placement as after it, as [`address_copy`] lets the address do.
+    pub fn library_symbol_address(&self, key: &str) -> Option<String> {
+        self.libraries().libraries().into_iter().find_map(|library| {
+            self.libraries()
+                .documents(library.id, ew_schema::Kind::Symbol)
+                .into_iter()
+                .find_map(|doc| match doc {
+                    LibDocument::Symbol(copy) if copy.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => {
+                        Some(format!("library:{}:{}", copy.library_id, copy.item_id))
+                    }
+                    _ => None,
+                })
+        })
+    }
+
     /// What can be placed on the page labelled `folio`; `None` for an unknown folio or a page
     /// that is not drawn (a generated page, a divider).
     ///

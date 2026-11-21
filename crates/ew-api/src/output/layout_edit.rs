@@ -1413,7 +1413,7 @@ impl Session {
     /// The layout parts of `kind` (`enclosure`, `rail` or `duct`) a set-up dialog or a drawing tool offers: the project's copies
     /// of that kind by part number, then the libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
-    /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New
+    /// `enclosure` the parts with an enclosure section, of any kind; for `rail` only parts with a rail section; for `cable` (New
     /// cable…) only parts with cable cores; for `plug` (a bus line's Cable…) the accessories with a bus interface;
     /// nothing for any other word. A library part whose closure does not
     /// resolve is left out.
@@ -1428,7 +1428,9 @@ impl Session {
         };
         let q = self.query();
         let usable = |c: &LibCopy<Part>| {
-            c.item.kind == kind
+            // An enclosure is made from a part's enclosure section alone (`layout.enclosure.create_from_part`): a part
+            // with one is offered whatever its kind (a parts import gives the kind `device` when its row names none).
+            (c.item.kind == kind || (kind == PartKind::Enclosure && c.item.sections.enclosure.is_some()))
                 && match kind {
                     PartKind::Enclosure => c.item.sections.enclosure.is_some(),
                     PartKind::Rail => c.item.sections.rail.is_some(),
