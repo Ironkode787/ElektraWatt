@@ -53,16 +53,29 @@ fn a_large_text_face_is_taken_and_a_file_over_the_ceiling_is_refused() {
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     let large = tmp.0.join("Large-Regular.ttf");
     std::fs::write(&large, ew_testdir::font_of_size(1_650_000)).unwrap();
-    done(&mut shell, "text_styles.typeface", json!({"path": large.display().to_string()}));
+    done(
+        &mut shell,
+        "text_styles.typeface",
+        json!({"path": large.display().to_string()}),
+    );
     assert!(line(&shell).contains("(Large-Regular.ttf)"), "{}", line(&shell));
     let over = tmp.0.join("Huge.ttf");
     std::fs::write(&over, ew_testdir::font_of_size(3_000_000)).unwrap();
-    let out = shell.dispatch("text_styles.typeface", &json!({"path": over.display().to_string()}));
+    let out = shell.dispatch(
+        "text_styles.typeface",
+        &json!({"path": over.display().to_string()}),
+    );
     let Outcome::Failed { message } = out else {
         panic!("{out:?}");
     };
-    assert!(message.contains("Huge.ttf") && message.contains("2560 KiB"), "{message}");
-    assert!(line(&shell).contains("(Large-Regular.ttf)"), "the earlier typeface stays");
+    assert!(
+        message.contains("Huge.ttf") && message.contains("2560 KiB"),
+        "{message}"
+    );
+    assert!(
+        line(&shell).contains("(Large-Regular.ttf)"),
+        "the earlier typeface stays"
+    );
 }
 
 #[test]

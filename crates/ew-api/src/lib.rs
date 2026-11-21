@@ -256,6 +256,9 @@ pub use release_run::{
 };
 pub use transport::{EwzExport, ExportEwzError};
 
+/// The longest string of a command's parameters: a large file goes to its command in parts of this length
+/// (`project.typeface.set`).
+pub use ew_commands::MAX_PARAM_STRING;
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
     EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
@@ -264,9 +267,6 @@ pub use ew_commands::{
 /// A command's registered metadata, its cost and its exposure class: the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
-/// The longest string of a command's parameters: a large file goes to its command in parts of this length
-/// (`project.typeface.set`).
-pub use ew_commands::MAX_PARAM_STRING;
 /// A command's refusal by key: the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
     TEXTS, Text, TextArg, asset_error_text, comma_joined, ident_error_text, path_error_text,

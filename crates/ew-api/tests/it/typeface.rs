@@ -121,17 +121,26 @@ fn a_font_of_the_size_of_arial_is_taken_from_a_command_log_and_prints() {
     let font = ew_testdir::font_of_size(1_040_000);
     assert!(font.len() > 1_000_000);
     let text = ew_api::base64_encode(&font);
-    let parts: Vec<&str> = text.as_bytes().chunks(ew_api::MAX_PARAM_STRING).map(|c| std::str::from_utf8(c).unwrap()).collect();
+    let parts: Vec<&str> = text
+        .as_bytes()
+        .chunks(ew_api::MAX_PARAM_STRING)
+        .map(|c| std::str::from_utf8(c).unwrap())
+        .collect();
     assert!(parts.len() > 1, "a file over 768 KiB comes in parts");
     let line = json!({"cmd": "project.typeface.set", "params": {"file": parts, "name": "Large.ttf"}});
-    let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{line}\n")).expect("a command log");
+    let log =
+        ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{line}\n")).expect("a command log");
     let mut s = sample();
     s.run_script(&log, "typeface.ewcmd").expect("the line commits");
     let face = FontKey {
         sha256: sha2::Sha256::digest(&font).into(),
         face_index: 0,
     };
-    assert!(matches!(s.typeface(), TypefaceState::Loaded { face: f, .. } if f == face), "{:?}", s.typeface());
+    assert!(
+        matches!(s.typeface(), TypefaceState::Loaded { face: f, .. } if f == face),
+        "{:?}",
+        s.typeface()
+    );
     let pdf = s.export_pdf(&options()).unwrap();
     assert!(pdf.report.fonts.contains(&face), "{:?}", pdf.report.fonts);
     s.undo(&ew_api::Origin::Gui).expect("one step");

@@ -97,7 +97,10 @@ pub fn copy_dir(from: &Path, to: &Path) {
 }
 
 /// A font file of the repository a test may take as a project's typeface (Routed Gothic, OFL-1.1, a bundled file).
-pub const FONT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/RoutedGothic-Regular.ttf");
+pub const FONT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../assets/fonts/RoutedGothic-Regular.ttf"
+);
 
 /// [`FONT`] grown to `len` bytes or a little more, still a valid font of the same face: one more table (`zpad`, zeros,
 /// which no reader asks for) is appended to the table directory and its data at the end, every other table's offset
