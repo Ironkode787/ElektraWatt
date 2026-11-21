@@ -2238,6 +2238,12 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("no PLC output", None, key!("chip-via-no-plc-output")),
     ("the valve's part", None, key!("chip-via-valve-part")),
     ("its plug", None, key!("chip-via-plug")),
+    // An earth symbol's tag row.
+    (
+        "an earth connection, no tag",
+        None,
+        key!("chip-via-earth-connection"),
+    ),
 ];
 
 /// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English

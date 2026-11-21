@@ -26,6 +26,22 @@ struct DeviceRow {
     part: String,
 }
 
+/// A device's row label: its tag; an earth connection, which has none (FT-1820), by its pin's designation (`PE`).
+fn row_label(q: &Q, d: Id<Device>) -> String {
+    let tag = short_tag(q, d);
+    if !tag.is_empty() {
+        return tag;
+    }
+    q.idx()
+        .functions_of_device(d)
+        .find_map(|f| {
+            q.get::<ew_derive::FunctionCps>(f)
+                .first()
+                .map(|c| c.designation.clone())
+        })
+        .unwrap_or_default()
+}
+
 /// The Devices tree: function nodes, location nodes inside them, the devices that are not children of another
 /// listed device in natural tag order; child devices under their parent (position, then natural tag); under each
 /// device its functions (main first, FnDef name, ID), under each function its representations. Terminals are not
@@ -47,7 +63,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder) {
         rows.insert(id, DeviceRow { cells, part });
     }
     let folios = folios(q);
-    let tag = |d: Id<Device>| short_tag(q, d);
+    let tag = |d: Id<Device>| row_label(q, d);
     let aspect_text = |d: Id<Device>, a: Aspect| q.get::<StructureOf>(d).designation(|x| x == a).to_string();
     // The top-level devices by (function, location), in natural tag order.
     let top: Vec<Id<Device>> = rows

@@ -291,7 +291,7 @@ pub fn def_text(q: &Q, def: &PotentialDef) -> String {
 }
 
 /// `<tag>:<designation>` of a CP: its function's device tag as a report prints it (`?` without one) and the CP's
-/// designation (its index without one).
+/// designation (its index without one); the designation alone for a device that has no tag (an earth connection).
 pub fn cp_text(q: &Q, cp: CpRef) -> String {
     let tag = q
         .functions()
@@ -304,6 +304,9 @@ pub fn cp_text(q: &Q, cp: CpRef) -> String {
         .iter()
         .find(|c| c.idx == cp.idx)
         .map_or_else(|| cp.idx.to_string(), |c| c.designation.clone());
+    if tag.is_empty() {
+        return designation;
+    }
     format!("{tag}:{designation}")
 }
 

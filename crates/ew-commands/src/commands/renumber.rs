@@ -68,9 +68,9 @@ impl Default for RenumberOptions {
 
 /// `numbering.renumber` (`RenumberDevices`): renumbers device counters under the page-based scheme.
 ///
-/// The devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no frozen
-/// tag, default scheme; with `include_frozen` also the frozen ones) and are placed are grouped by (page of
-/// the main representation, letter); a cable without a definition line takes the page of its first core, and a cable
+/// The devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no earth
+/// connection, no frozen tag, default scheme; with `include_frozen` also the frozen ones) and are placed are
+/// grouped by (page of the main representation, letter); a cable without a definition line takes the page of its first core, and a cable
 /// on no page the project's group (`numbering::main_page`). In each group the devices are ordered by their
 /// main representation's position, column first (x, then y), then by ID; a cable without a representation comes
 /// after the drawn devices. Counters held by devices of the group outside the scope
@@ -166,7 +166,7 @@ impl Command for RenumberDevices {
             let Some(device) = tx.get::<Device>(*id) else {
                 continue;
             };
-            if !takes_part(&device, self.include_frozen) {
+            if !takes_part(&device, self.include_frozen) || numbering::earth_connection(tx, &device) {
                 continue;
             }
             let (scope, x, y) = match (numbering::main_rep(tx, *id), numbering::main_page(tx, *id)) {

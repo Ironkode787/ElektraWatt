@@ -447,6 +447,9 @@ fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Pr
         Some(TagSource::Scheme { key, .. }) => Provenance::Derived {
             via: format!("numbering scheme '{key}'"),
         },
+        Some(TagSource::EarthConnection) => Provenance::Derived {
+            via: "an earth connection, no tag".into(),
+        },
         None => Provenance::Derived {
             via: "numbering".into(),
         },

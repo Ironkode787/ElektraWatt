@@ -59,10 +59,11 @@ impl Rule for TagDeviates {
         else {
             return Vec::new();
         };
-        let Some((rule, _)) = rule_product(q, device) else {
+        let Some((rule, source)) = rule_product(q, device) else {
             return Vec::new();
         };
-        if rule == frozen {
+        // An earth connection has no tag, frozen or not (FT-1820).
+        if rule == frozen || source == ew_derive::TagSource::EarthConnection {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");

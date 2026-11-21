@@ -235,6 +235,9 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
                 }
             } else if cp.is_empty() {
                 short
+            } else if short.is_empty() {
+                // A device without a tag (an earth connection) is named by its pin alone: `PE`.
+                cp
             } else {
                 format!("{short}:{cp}")
             }

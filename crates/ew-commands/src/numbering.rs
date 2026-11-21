@@ -16,7 +16,8 @@
 //! ([`main_page`]), as `ew_derive::cable_core_page` places it.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
-//! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme. An
+//! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme, and is no earth
+//! connection (an earth symbol without a part has no tag, doc 03 §8.2: it takes no counter and holds none). An
 //! unplaced device (no main representation) has no scope: it keeps its counter, and a device without a
 //! counter gets one when it is placed. An unplaced cable (no definition line, no connected core, no bus line) takes the
 //! project's counter: the scope of the cables on no page, whose tags print no page.
@@ -48,6 +49,19 @@ pub fn numbered(device: &Device) -> bool {
     device.aspects.terminal.is_none()
         && device.tag.frozen.is_none()
         && device.tag.scheme == TagScheme::Default
+}
+
+/// Whether a device is an earth connection, which has no tag and so takes no counter and holds none (FT-1820): no part
+/// use, and every function an earth point (`ew_derive::layout::is_earth_connection` read in the transaction).
+pub(crate) fn earth_connection(tx: &TxBuilder<'_>, device: &Device) -> bool {
+    let functions = tx.functions_of_device(device.id);
+    device.parts.is_empty()
+        && !functions.is_empty()
+        && functions.iter().all(|f| {
+            tx.get::<Function>(*f)
+                .and_then(|f| tx.get::<LibCopy<ew_schema::FnDef>>(f.def))
+                .is_some_and(|d| ew_derive::layout::is_earth_point(&d.item.category))
+        })
 }
 
 /// The main function of a device: role `Main`, the smallest ID if several.
@@ -415,7 +429,11 @@ pub fn devices_in_scope(
         .into_iter()
         .filter_map(|d| {
             let dev = tx.get::<Device>(d)?;
-            if !numbered(&dev) || dev.tag.letter != *letter || main_page(tx, d) != Some(page) {
+            if !numbered(&dev)
+                || dev.tag.letter != *letter
+                || main_page(tx, d) != Some(page)
+                || earth_connection(tx, &dev)
+            {
                 return None;
             }
             Some((d, dev.tag.counter))
@@ -524,7 +542,7 @@ pub fn number_devices(
         let Some(dev) = tx.get::<Device>(*d) else {
             continue;
         };
-        if !numbered(&dev) {
+        if !numbered(&dev) || earth_connection(tx, &dev) {
             continue;
         }
         let page = main_page(tx, *d);

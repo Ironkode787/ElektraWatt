@@ -243,9 +243,15 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
     if this.designation.is_empty() {
         return short;
     }
-    match designation_nth(&cps, this.idx, &this.designation) {
-        Some(n) => format!("{short}:{}#{n}", this.designation),
-        None => format!("{short}:{}", this.designation),
+    let pin = match designation_nth(&cps, this.idx, &this.designation) {
+        Some(n) => format!("{}#{n}", this.designation),
+        None => this.designation.clone(),
+    };
+    // A device without a tag (an earth connection) is named by its pin alone: `PE`.
+    if short.is_empty() {
+        pin
+    } else {
+        format!("{short}:{pin}")
     }
 }
 

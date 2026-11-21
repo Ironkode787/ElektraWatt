@@ -150,6 +150,9 @@ pub enum TagSource {
         /// The format that applied (the scheme's or a rule's).
         format: String,
     },
+    /// No tag: an earth connection (`crate::layout::is_earth_connection`) stands for a connection to earth, not for
+    /// an object, so it has no product designation (doc 03 §8.2, FT-1820).
+    EarthConnection,
 }
 
 /// A derived device tag: the full designation and what is needed for the displayed one.
@@ -167,7 +170,7 @@ pub struct Tag {
     pub sign_on_pages: bool,
     /// Where the product designation came from.
     pub source: TagSource,
-    /// The full designation: `=P01+J-E-2416-101F1`, `=P01+J-E-2416-X1031:1`.
+    /// The full designation: `=P01+J-E-2416-101F1`, `=P01+J-E-2416-X1031:1`; empty for an earth connection.
     pub full: String,
 }
 
@@ -176,6 +179,9 @@ impl Tag {
     /// is omitted (FR-NUM-002). A tag whose sign is hidden prints without "-" when no structure is left
     /// in front of it (`S51`); a structure prefix keeps the sign, so the text stays a designation.
     pub fn displayed(&self, page: &ResolvedStructure) -> String {
+        if self.source == TagSource::EarthConnection {
+            return String::new();
+        }
         let mut kept = false;
         let mut d = self.structure.designation(|a| {
             let keep = page.node(a) != self.structure.node(a);
@@ -210,6 +216,8 @@ fn push_product(d: &mut Designation, product: &str, cp: Option<&str>) {
 /// `device_tag(device)`: the derived tag (doc 03 §8.2); `None` for a missing device.
 ///
 /// Product designation, first match wins:
+/// 0. an **earth connection** (an earth symbol without a part, `crate::layout::is_earth_connection`): none, frozen
+///    or not; it stands for a connection to earth, not for an object (FT-1820);
 /// 1. a **frozen** tag (wins over every other rule, doc 03 §8.2): its text; the sign is hidden on pages for
 ///    `TagSign::Hidden`;
 /// 2. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
@@ -239,9 +247,13 @@ impl Query for DeviceTag {
         };
         let structure = (*q.get::<StructureOf>(*key)).clone();
         let (product, cp, sign_on_pages, source) = product_designation(q, *key, dev);
-        let mut d = structure.designation(|_| true);
-        push_product(&mut d, &product, cp.as_deref());
-        let full = d.format(&RdsSyntax::default());
+        let full = if source == TagSource::EarthConnection {
+            String::new()
+        } else {
+            let mut d = structure.designation(|_| true);
+            push_product(&mut d, &product, cp.as_deref());
+            d.format(&RdsSyntax::default())
+        };
         Arc::new(Some(Tag {
             device: *key,
             structure,
@@ -332,7 +344,9 @@ fn applied_scheme<'a>(
 }
 
 fn product_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
-    if let Some(frozen) = &dev.tag.frozen {
+    if let Some(frozen) = &dev.tag.frozen
+        && !crate::layout::is_earth_connection(q, dev)
+    {
         let sign = !matches!(frozen.sign, TagSign::Hidden);
         return (frozen.text.as_str().to_owned(), None, sign, TagSource::Frozen);
     }
@@ -368,6 +382,9 @@ pub fn numbering_format(q: &Q, aspect: &str, letter: &str) -> String {
 }
 
 fn rule_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
+    if crate::layout::is_earth_connection(q, dev) {
+        return (String::new(), None, true, TagSource::EarthConnection);
+    }
     if let Some(t) = &dev.aspects.terminal {
         // The strip edge of the inheritance graph (EW-INV-015): a cycle prints "?" instead of panicking.
         let (product, sign) = match tag_of(q, t.strip) {

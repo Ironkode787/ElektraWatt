@@ -76,7 +76,8 @@ impl Rule for DuplicateDesignation {
             let Some(tag) = tag.as_ref().as_ref() else {
                 continue;
             };
-            if tag.full.contains('?') {
+            // An unnumbered designation, or none (an earth connection).
+            if tag.full.contains('?') || tag.full.is_empty() {
                 continue;
             }
             let key = match tag.full.parse::<Ident>() {
@@ -163,10 +164,11 @@ fn identifier_set(q: &Q) -> Option<&'static IdentifierSet> {
     IdentifierSet::by_key(&key)
 }
 
-/// A device whose tag is its own letter code and counter: not a terminal (its tag is its strip's) and with a tag.
+/// A device whose tag is its own letter code and counter: not a terminal (its tag is its strip's) and with a tag (an
+/// earth connection has none, `ew_derive::layout::is_earth_connection`, FT-1820).
 fn own_tag_device(q: &Q, device: Id<Device>) -> Option<std::sync::Arc<Device>> {
     let d = q.devices().get(device)?;
-    (d.aspects.terminal.is_none()).then(|| d.clone())
+    (d.aspects.terminal.is_none() && !ew_derive::layout::is_earth_connection(q, d)).then(|| d.clone())
 }
 
 // ---------------------------------------------------------------------------------------------------------
