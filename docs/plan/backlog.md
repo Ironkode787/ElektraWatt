@@ -49,7 +49,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Two drawing faults
 
-- FT-1864 `ew-drafting, ew-commands`: A straight wire drawn one step above a row of symbols is rerouted round them without a word, and the taps on it then hang free.
 - FT-1871 `ew-ui, ew-scene`: A symbol drawn in the symbol editor with pins on its lower edge prints the pin texts across the pins, and a text of the inner drawing above its box; the editor shows neither before the symbol stands on a page.
 
 ### What a person at the window meets

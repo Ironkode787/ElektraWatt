@@ -1514,12 +1514,65 @@ fn tool_router(page: &DraftPage, without: &[PartId]) -> Option<Router> {
     Router::new(&page, &[])
 }
 
-/// The Wire tool's route from `from` to `to` (§7.4): the search of [`route`] against the page as drawn, every routed
-/// wire fixed, a wire of the same pin's run shared where that is the better way; `arrive` the heading a free first end
-/// was arrived at with. `None` where no route keeps free of faults.
+/// Whether the straight line between the Wire tool's ends `a` and `b` crosses nothing on `page` (§7.4): the two ends on
+/// one line, a pin end left along its side and entered against it, no turn back after a fixed bend (`arrive`); on the
+/// line no pin or junction but at its ends, no wire along it, across it or meeting it but at its ends, no body it runs
+/// through or along but an end's own part's (an outline drawn round other parts that holds an end included), no text
+/// that cannot step aside. A pin's stub and the gap round a body close nothing here as they do to the search: a person
+/// who draws a rail one step over a row of pins drops each tap down a stub.
+fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>) -> bool {
+    let (Some(h), Some(back)) = (heading(a.at, b.at), heading(b.at, a.at)) else {
+        return false;
+    };
+    if a.side.is_some_and(|s| s != h) || b.side.is_some_and(|s| s != back) || arrive == Some(back) {
+        return false;
+    }
+    let line = (a.at, b.at);
+    let end = |p: Pt| p == a.at || p == b.at;
+    let own = |id: Uuid| [a, b].iter().any(|t| t.part.is_some_and(|(o, _)| o == id));
+    let holds_end = |r: Rect| [a.at, b.at].iter().any(|p| r.holds(Rect::new(*p, *p)));
+    let mut points = page
+        .parts
+        .iter()
+        .flat_map(|p| p.pins.iter().map(|q| p.at.plus(q.at)))
+        .chain(page.junctions.iter().map(|j| j.at));
+    if points.any(|q| !end(q) && geom::on(q, line)) {
+        return false;
+    }
+    let in_body = page.parts.iter().any(|p| {
+        let body = p.bounds();
+        let solid = if p.frame_only {
+            !holds_end(body)
+        } else {
+            !p.pins.is_empty() && !own(p.id.0)
+        };
+        solid && geom::crosses(line, body.grown(1))
+    });
+    let on_wire = page.wires.iter().any(|w| {
+        geom::segments(&geom::clean(&w.route))
+            .into_iter()
+            .any(|s| geom::overlap(line, s).is_some() || geom::meet(line, s).is_some_and(|p| !end(p)))
+    });
+    let on_text = page
+        .fixed_texts
+        .iter()
+        .any(|t| geom::crosses(line, t.rect.grown(-1)));
+    !in_body && !on_wire && !on_text
+}
+
+/// The Wire tool's route from `from` to `to` (§7.4): the straight line between them where it crosses nothing
+/// ([`crosses_nothing`]), else the search of [`route`] against the page as drawn, every routed wire fixed, a wire of
+/// the same pin's run shared where that is the better way; `arrive` the heading a free first end was arrived at with.
+/// `None` where no route keeps free of faults.
 pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, arrive: Option<Side>) -> Option<WireRoute> {
     let r = tool_router(page, &[])?;
     let (a, b) = (wire_tip(&r, from)?, wire_tip(&r, to)?);
+    if crosses_nothing(&r.page, &a, &b, arrive) {
+        return Some(WireRoute {
+            route: vec![a.at, b.at],
+            over_text: false,
+        });
+    }
     let ask = Ask {
         occ: &r.occ,
         from: a,

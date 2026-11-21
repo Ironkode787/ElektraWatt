@@ -211,6 +211,10 @@ change here.
 - behaviour-change: a project-local part corrected in the part editor keeps each wire at its pin when its pins are
   numbered again (a card given more channels: the wire at L+ ended at an input); a correction that takes away a pin
   something is connected to is refused in words (doc 10 §2.6, FT-1766)
+- behaviour-change: the Wire tool keeps the straight line between two ends in line where it crosses nothing: a rail
+  drawn one step over a row of coils stays as drawn (it went round their pins, and the taps then clicked onto the line
+  found no wire); where something stands on the line the wire goes round and the tool's hint says so (doc 06a §7.4,
+  FT-1864)
 - api-add: a part holds a card of two channel kinds, inputs and outputs (`PlcSection.more_channels`, an optional
   member after `ratings`): the part editor's PLC form has a second channel kind and its count, the outputs numbered on
   after the inputs and each kind addressed from bit 0 of its own range (doc 10 §2.6, FT-1766)

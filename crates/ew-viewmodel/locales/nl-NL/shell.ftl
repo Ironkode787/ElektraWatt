@@ -467,6 +467,7 @@ hint-wire-click-dot = Een klik hier verbindt de lijn onder de aanwijzer met een 
 reason-wire-dot = De punt is voor de aftakking die een draad op een draad maakt: teken eerst een draad
 hint-wire-click-start = Een klik hier is het beginpunt: klik verder ervan af om een knik te plaatsen.
 hint-wire-over-text = De route loopt door een tekst: vrij blijven van de tekst is een veel langere weg.
+hint-wire-round = Op de rechte lijn tussen deze twee punten staat iets, dus de draad gaat eromheen. Klik op vrije punten om hem anders te leiden.
 announce-wire-routing = Draad: routeren vanaf { $p0 }. Klik op een aansluitpunt; { $p1 } verwijdert de laatste knik; { $p2 } annuleert
 wire-readout = { $p0 } mm
 reason-one-junction = Selecteer precies één aftakking

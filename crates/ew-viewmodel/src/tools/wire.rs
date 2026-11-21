@@ -1587,6 +1587,19 @@ impl Tool for WireTool {
         if self.direct {
             return super::Hint::plain(key!("hint-wire-direct"));
         }
+        // Two ends in line joined other than straight: something stands on the straight line (doc 06a §7.4).
+        if let State::Routing {
+            start,
+            end: Some(t),
+            route,
+            ..
+        } = &self.state
+        {
+            let (a, b) = (start.at(), t.at());
+            if (a.0 == b.0 || a.1 == b.1) && clean(route.clone()).len() > 2 {
+                return super::Hint::plain(key!("hint-wire-round"));
+            }
+        }
         match self.state {
             State::Armed { .. } => super::Hint::new(key!("hint-wire-armed"), &[super::ENTER]),
             State::Routing { .. } => {

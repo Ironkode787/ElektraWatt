@@ -443,6 +443,7 @@ hint-wire-click-dot = A click here joins the line under the pointer with a dot; 
 reason-wire-dot = The dot is for the joint a wire makes on a wire: draw a wire first
 hint-wire-click-start = A click here is the start point: click further from it to place a bend.
 hint-wire-over-text = The route crosses a text: keeping clear of it is a far longer way.
+hint-wire-round = Something stands on the straight line between these two points, so the wire goes round it. Click free points to lead it another way.
 announce-wire-routing = Wire: routing from { $p0 }. Click a connection point; { $p1 } removes the last bend; { $p2 } cancels
 wire-readout = { $p0 } mm
 reason-one-junction = Select exactly one junction

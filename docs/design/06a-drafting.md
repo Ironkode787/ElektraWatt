@@ -638,7 +638,8 @@ cost of §1.2:
 
 Not taken at all: a move into a body grown by one step (but straight out of the wire's own pin, through its own
 part's body and texts); onto a pin, a pin's stub or a junction that is not the wire's; along another wire (but a
-shared run); onto another wire's vertex; a turn back; a move that would end a wire on a crossing.
+shared run); onto another wire's vertex; a turn back; a move that would end a wire on a crossing. (The Wire tool's
+straight line between two ends in line passes a stub and the step round a body, §7.4.)
 
 Areas: the box of the two ends grown by 4 steps, then by 16, then the drawing area; the first area with a route
 wins. **The half grid** is searched last and only between close pins, as today: where the whole grid has no route
@@ -1311,6 +1312,17 @@ selected junction) gives the dot to a junction that exists. A move's re-solve ke
 shared run (§3.4): of two wires that turn away from each other there, the one turning right or down takes the bevel;
 of one going on and one turning, the turning one; a run or a way on shorter than a step keeps its corner. A
 symbol dropped on a shared run is refused ("two wires run here; place the symbol where they have parted").
+
+*The straight line (FT-1864).* Between two ends on one line the tool takes the straight line where it crosses
+nothing (`ew_drafting::route`, `crosses_nothing`): it leaves a pin end along its side and enters the other against
+it, takes no turn back after a fixed bend, and on it lies no pin or junction but at its ends, no wire (along it, across
+it, or meeting it but at its ends), no body but its ends' own parts' (nor a body's edge) and no text that cannot step
+aside. A pin's stub and the step round a body close nothing here, as they do to the search (§3.6): a person who draws
+a rail one step over a row of pins gets it as drawn, and each tap he then draws drops down a stub onto it. Before, the
+search took the rail round the stubs without a word, and a tap clicked onto the line it was drawn on found no wire
+there. Where something stands on the straight line the tool goes round, and its hint says so ("Something stands on
+the straight line between these two points, so the wire goes round it"). Route keeps such a rail and its taps: no way
+round costs less (§3.9).
 
 ### 7.5 Cards drawn from the station view
 
