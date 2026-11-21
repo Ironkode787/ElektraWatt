@@ -126,7 +126,7 @@ pub fn sheet_problems(sheet: &str, doc: &str, source: &str) -> Vec<String> {
     problems.into_iter().collect()
 }
 
-/// Checks the folder of a task (§5.7): returns the problems, one per line (empty: the task is sound).
+/// Checks the folder of a task: returns the problems, one per line (empty: the task is sound).
 ///
 /// # Errors
 ///

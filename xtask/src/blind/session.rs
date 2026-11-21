@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The product as a session the harness feeds: one step in, one transcript line out (§6 item 1).
+//! The product as a session the harness feeds: one step in, one transcript line out.
 //!
 //! [`Product`] is the child `elektrawatt --headless --script - --keep-going`; [`Backend`] is what the protocol sends
 //! steps through: the keeper's client, the stateless replay, or a fake in a test. Nothing here waits on time: the

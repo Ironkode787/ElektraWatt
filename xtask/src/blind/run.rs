@@ -144,7 +144,7 @@ pub const VISUAL_WINDOW: [u32; 2] = [1920, 1080];
 #[cfg(test)]
 pub const VISUAL_PPP: f64 = 1.0;
 
-/// The kinds of run (D3, the check run of §5.4 and the open brief of the visual spec §6.1).
+/// The kinds of run (D3: the check run and the open brief of a visual run).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
     /// The agent chooses its own task.
@@ -179,8 +179,8 @@ impl Kind {
         }
     }
 
-    /// The caps of the kind in a run of `senses`: a text run's of §5.2.2 item 7 (a text brief has a free run's), a
-    /// visual run's of the visual spec §4.2 (inputs count as steps; a check run is always text).
+    /// The caps of the kind in a run of `senses`: a text run's (a text brief has a free run's), a
+    /// visual run's (inputs count as steps; a check run is always text).
     pub fn caps_for(self, senses: Senses) -> Caps {
         let caps = |turns, steps, looks, refusals| Caps {
             turns,
@@ -196,7 +196,7 @@ impl Kind {
         }
     }
 
-    /// The caps of the kind in a text run (§5.2.2 item 7).
+    /// The caps of the kind in a text run.
     pub fn caps(self) -> Caps {
         match self {
             Kind::Gate => Caps {
@@ -344,7 +344,7 @@ impl RunJson {
     }
 }
 
-/// What a step the product did not do looked like (the broken rule of §5.2.2 item 4).
+/// What a step the product did not do looked like (the broken rule).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct NotDone {
     /// The action.
@@ -368,7 +368,7 @@ impl NotDone {
     }
 }
 
-/// The "same step" key of the broken rule (§5.2.2 item 4): the action and its canonical parameters, and the
+/// The "same step" key of the broken rule: the action and its canonical parameters, and the
 /// digest of the selection when something was selected, so that a step that acts on the selection (`strip.bridge {}`)
 /// is a new step once the selection changed.
 pub fn step_key(action: &str, params: &str, selection: Option<&str>) -> String {

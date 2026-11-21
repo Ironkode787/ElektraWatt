@@ -179,7 +179,7 @@ pub const APP_CLOSED: &str = "harness: the application has closed";
 /// What `start` prints on a host without an offscreen adapter.
 pub const NO_ADAPTER: &str = "harness: no offscreen adapter for a visual run";
 
-/// The input names of the vocabulary (§4.1).
+/// The input names of the vocabulary.
 pub const INPUTS: [&str; 9] = [
     "click",
     "double_click",
@@ -599,7 +599,7 @@ pub fn frame_name(turn: u32, look: Option<(char, u32)>) -> String {
     }
 }
 
-/// The start frame's line, the first line of a visual run's `steps.uiscript` (§3.1 item 4).
+/// The start frame's line, the first line of a visual run's `steps.uiscript`.
 pub fn start_frame_line() -> String {
     step_line(FRAME_LINE, &json!({ "frame": frame_name(0, None) }))
 }

@@ -562,7 +562,7 @@ pub struct PreludeUse {
     pub drawing: u32,
 }
 
-/// What the harness observed and never judges (§5.9).
+/// What the harness observed and never judges.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Observations {
     /// Whether the project was clean after the agent's last step.
@@ -1417,7 +1417,7 @@ fn soft_checks(task: &TaskDef, ev: &Evidence, run_folios: &[String]) -> Vec<Raw>
     out
 }
 
-/// The outcome of the hard checks and the run's end (§5.9).
+/// The outcome of the hard checks and the run's end.
 pub fn outcome_of(rj: &RunJson, turns: &[Turn], run_folios: &[String], hard: &[Check]) -> Outcome {
     let stopped_early = matches!(
         rj.end.as_deref(),

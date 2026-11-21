@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The harness filter and the typed `key=value` arguments (§5.2.1).
+//! The harness filter and the typed `key=value` arguments.
 //!
 //! The reference file `actions.txt` (of the reference, written by `ew-viewmodel`'s `blind_reference` test) is the only source of the
 //! actions and their parameter signatures: the filter never imports the product. Every step the agent sends is
@@ -73,7 +73,7 @@ fn valid_type(ty: &str) -> bool {
     false
 }
 
-/// Parses a signature by the grammar of §5.5.2.
+/// Parses a signature by its grammar.
 pub fn parse_signature(sig: &str) -> Result<Vec<Param>> {
     if sig.is_empty() {
         return Ok(Vec::new());
@@ -215,7 +215,7 @@ pub fn bare_name(name: &str) -> bool {
     !name.is_empty() && !name.contains(['/', '\\', ':']) && !name.contains("..")
 }
 
-/// Checks one step against §5.3 in the table's order. `broken` holds the keys of the steps marked broken and
+/// Checks one step against the filter's rules in the table's order. `broken` holds the keys of the steps marked broken and
 /// `selection` the digest of the selection the step would act on.
 ///
 /// # Errors
@@ -272,7 +272,7 @@ pub fn check_step(
     Ok(())
 }
 
-/// Types the `key=value` arguments of `do <run> <action> …` by the action's signature (§5.2.1): `mm`, `int` and `uint`
+/// Types the `key=value` arguments of `do <run> <action> …` by the action's signature: `mm`, `int` and `uint`
 /// as numbers, `bool` as `true` or `false`, `text`, `path`, `ref` and `enum(…)` as strings (`folio=101` is the string
 /// `"101"`), `json` and `list(…)` as JSON; `null` leaves an optional parameter out.
 ///
@@ -455,7 +455,7 @@ mod tests {
         check_step(&test_reference(), kind, s, &BTreeSet::new(), None)
     }
 
-    /// BD6: every refusal of §5.3 with its text.
+    /// BD6: every refusal of the filter with its text.
     #[test]
     fn every_refusal_of_the_filter_has_its_text() {
         let free = Kind::Free;
@@ -610,7 +610,7 @@ mod tests {
             check(Kind::Check, &step("file.save_as", json!({"dir": "x"}))),
             refusal
         );
-        // Only the registry's kind decides (§5.3): a canvas action is a `View`, and the checker works on a copy.
+        // Only the registry's kind decides: a canvas action is a `View`, and the checker works on a copy.
         assert_eq!(
             check(
                 Kind::Check,

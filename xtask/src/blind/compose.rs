@@ -66,7 +66,7 @@ pub const ACTIONS_MISSING: &str =
 /// The reference files the harness copies and the run records.
 pub const REFERENCE_FILES: [&str; 1] = [ACTIONS];
 
-/// Leaves out the folio blocks of `body` that are not for `folios` (§5.4: `--folios`). A block is the lines from
+/// Leaves out the folio blocks of `body` that are not for `folios` (`--folios`). A block is the lines from
 /// `<!-- folio 102 -->` to `<!-- /folio -->`; the marker lines themselves never reach the prompt. With no folios every
 /// block stays.
 ///
@@ -280,7 +280,7 @@ mod tests {
         }
     }
 
-    /// `--folios` leaves the sheet's blocks of other folios out of the prompt (§5.4); the markers never reach it.
+    /// `--folios` leaves the sheet's blocks of other folios out of the prompt; the markers never reach it.
     #[test]
     fn folio_blocks_of_other_folios_are_left_out() {
         let sheet = "Intro.\n<!-- folio 101 -->\nOne.\n<!-- /folio -->\n<!-- folio 102 -->\nTwo.\n<!-- /folio -->\nEnd.\n";

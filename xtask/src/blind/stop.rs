@@ -19,7 +19,7 @@ use super::run::{Run, Turn, append, sha256_hex, step_line};
 use super::score::{ExportFacts, score_markdown, score_run};
 use super::session::{Backend, Sent, Step};
 
-/// The headings of the checker's audit (§5.6).
+/// The headings of the checker's audit.
 pub const CHECKER_HEADINGS: [&str; 5] = [
     "1. Verdict per folio",
     "2. Misses against the task sheet",
@@ -332,7 +332,7 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         j.clean_before_epilogue = dirty.map(|d| !d);
         j.child_exit = code;
     })?;
-    // The score (§5.9): a gate run against its oracle, a brief run its acceptance list decided mechanically,
+    // The score: a gate run against its oracle, a brief run its acceptance list decided mechanically,
     // any other run only its protocol; a check run has none.
     let scored = if check {
         None
@@ -528,7 +528,7 @@ mod tests {
         assert!(report.contains("turns 1, steps 1, looks 0"), "{report}");
         assert!(report.contains("no (the epilogue saved it)"), "{report}");
         assert!(report.contains("not exported"), "{report}");
-        // §5.9: a run without an oracle holds its protocol in `score.json`, and the report has a score section.
+        // A run without an oracle holds its protocol in `score.json`, and the report has a score section.
         assert!(
             report.contains("## Score") && report.contains("holds no oracle"),
             "{report}"

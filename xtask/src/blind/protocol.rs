@@ -21,7 +21,7 @@ use super::run::{
 use super::session::{Backend, Diverged, Lost, Sent, Step};
 use super::stop::CHECKER_HEADINGS;
 
-/// The headings of the fixed hand-back, in order (§5.6).
+/// The headings of the fixed hand-back, in order.
 pub const HANDBACK_HEADINGS: [&str; 7] = [
     "1. Keep or drop",
     "2. Where it lost me",
@@ -117,7 +117,7 @@ fn last_state(run: &Run) -> Value {
         .unwrap_or(Value::Null)
 }
 
-/// One `do` step's line (§5.2.3): `<n> <action> <outcome>[ <reason>[: <sentence>]][ "<message>"]`, then (G-PP triage
+/// One `do` step's line: `<n> <action> <outcome>[ <reason>[: <sentence>]][ "<message>"]`, then (G-PP triage
 /// row 10) `  preview: <card summary>; Apply or Cancel` when the step leaves a preview card open.
 fn step_text(n: usize, sent: &Sent) -> String {
     let action = sent.value["action"].as_str().unwrap_or("?");

@@ -417,7 +417,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let run = locate(&run_arg, out.as_deref())?;
             check_stateless_flag(&run, stateless_flag)?;
             if run.load()?.visual() {
-                // Nothing textual in a visual run (§3.3): a plain look paints the frame again.
+                // Nothing textual in a visual run: a plain look paints the frame again.
                 let text = if opts == protocol::LookOpts::default() {
                     with_backend(&run, |b| visual::look(&run, b, None))?
                 } else {

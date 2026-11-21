@@ -49,7 +49,7 @@ pub const FORM: &str = "harness: the questionnaire has the answers Q1 to Q10, ea
 /// K6.
 pub const FILED_ALREADY: &str = "harness: the questionnaire is filed";
 
-/// The choices of part B's questions B1 to B4 (§5.5).
+/// The choices of part B's questions B1 to B4.
 pub const CHOICES: [&[&str]; 4] = [
     &["connect", "ask", "never", "not-seen"],
     &["keep", "choose", "off", "not-seen"],

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `start` (§5.4): a run folder outside the repository with the copies the run needs, the composed
+//! `start`: a run folder outside the repository with the copies the run needs, the composed
 //! prompt, the prelude and, unless `--stateless`, a keeper.
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
@@ -634,7 +634,7 @@ mod tests {
         }
     }
 
-    /// BD9: the run folder is outside the repository and holds the copies of §5.1; no time stamp or host name.
+    /// BD9: the run folder is outside the repository and holds the copies the run needs; no time stamp or host name.
     #[test]
     fn a_run_folder_holds_the_copies_and_lives_outside_the_repository() {
         let tmp = Tmp::new("start");

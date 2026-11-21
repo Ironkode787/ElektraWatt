@@ -37,7 +37,7 @@ use super::compose::{ACTIONS, ACTIONS_MISSING};
 use super::run::{parse_script, script_header, step_line};
 use super::score::{PreludeFile, read_toml, task_dir};
 
-/// The outputs an acceptance item may be decided from (§6.2).
+/// The outputs an acceptance item may be decided from.
 pub const HOW: [&str; 8] = [
     "check",
     "bom",
