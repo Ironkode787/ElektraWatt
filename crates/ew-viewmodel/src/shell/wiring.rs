@@ -127,6 +127,21 @@ impl ShellModel {
         })
     }
 
+    /// Whether the project numbers its wires by potential (`settings.extra.drawing.wire_numbering`, doc 08 §5.2).
+    pub fn wire_numbering_per_potential(&self) -> bool {
+        self.project.as_ref().is_some_and(|p| {
+            p.session
+                .query()
+                .project()
+                .settings
+                .extra
+                .get("drawing")
+                .and_then(|d| d.get("wire_numbering"))
+                .and_then(Value::as_str)
+                == Some("per_potential")
+        })
+    }
+
     /// Whether the project draws crossings as hops (`settings.extra.drawing.crossings`).
     pub fn crossings_hops(&self) -> bool {
         self.crossings_word() == Some("hops")
@@ -442,6 +457,22 @@ impl ShellModel {
         let cmd = ew_api::AnyCommand {
             name: "project.drawing.set".into(),
             params: json!({ "wire_numbers": if on { json!(true) } else { Value::Null } }),
+        };
+        self.run_commit(&cmd)
+    }
+
+    /// `project.wire_numbering {on?}` (Draw ▸ Connect ▸ Number wires by potential, doc 08 §5.2): commits
+    /// `project.drawing.set` with `wire_numbering: per_potential` (every wire of a potential prints its potential's
+    /// code), or with `null` (each wire its own number) to turn it off; without `on` it toggles.
+    pub(crate) fn act_wire_numbering(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = if p.contains_key("on") {
+            flag(p, "on")
+        } else {
+            !self.wire_numbering_per_potential()
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "project.drawing.set".into(),
+            params: json!({ "wire_numbering": if on { json!("per_potential") } else { Value::Null } }),
         };
         self.run_commit(&cmd)
     }

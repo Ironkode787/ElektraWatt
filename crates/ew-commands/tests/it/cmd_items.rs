@@ -1264,6 +1264,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: None,
         marker_mode: Some(Some(MarkerModeParam::Deviations)),
         wire_numbers: None,
+        wire_numbering: None,
         plc_address_at_terminals: None,
     })
     .unwrap();
@@ -1273,6 +1274,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: Some(Some(ew_commands::commands::Crossings::Hops)),
         marker_mode: None,
         wire_numbers: None,
+        wire_numbering: None,
         plc_address_at_terminals: None,
     })
     .unwrap();
@@ -1284,6 +1286,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: Some(None),
         marker_mode: Some(None),
         wire_numbers: None,
+        wire_numbering: None,
         plc_address_at_terminals: None,
     })
     .unwrap();
@@ -1293,6 +1296,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: None,
         marker_mode: None,
         wire_numbers: Some(on),
+        wire_numbering: None,
         plc_address_at_terminals: None,
     };
     e.execute(&numbers(Some(true))).unwrap();
@@ -1304,6 +1308,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: None,
         marker_mode: None,
         wire_numbers: None,
+        wire_numbering: None,
         plc_address_at_terminals: Some(Some(true)),
     })
     .unwrap();
@@ -1313,6 +1318,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
             crossings: None,
             marker_mode: None,
             wire_numbers: None,
+            wire_numbering: None,
             plc_address_at_terminals: None,
         })
         .unwrap_err();

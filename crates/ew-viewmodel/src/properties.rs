@@ -1937,8 +1937,9 @@ fn json_words(json: &Value) -> String {
 }
 
 /// Writes the sheet's header in words: a record without a title of its own by its kind as a heading
-/// in the UI language ("Project", not `project`), a fluid line by its line kind ("Working line", "Werkleiding"), its
-/// ID row likewise, and a selection of several records by its count and kind ("2 apparaten").
+/// in the UI language ("Project", not `project`), a wire without a number and a fluid line by its line kind ("Working
+/// line", "Werkleiding") in words, its ID row likewise, and a selection of several records by its count and kind ("2
+/// apparaten").
 pub fn header_in_words(sheet: &mut PropertySheet) {
     // A selection of several records is titled by its first section's count and kind in the UI
     // language ("2 apparaten"), as the card lines are (FT52i), or by its count when it has no section.
@@ -1961,6 +1962,18 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
     };
     if sheet.header.title == *kind {
         sheet.header.title = strings::kind_heading(kind);
+    } else if kind == "connection" && sheet.header.title == ew_api::output::UNNUMBERED_WIRE {
+        // A wire without a number in words (FT-1799), its ID row likewise.
+        let words = strings::text(key!("props-wire-unnumbered")).to_owned();
+        let english = std::mem::replace(&mut sheet.header.title, words.clone());
+        for row in sheet.sections.iter_mut().flat_map(|s| &mut s.rows) {
+            if let RowValue::One { text, .. } = &mut row.value
+                && row.path == "id"
+                && *text == english
+            {
+                *text = words.clone();
+            }
+        }
     } else if kind == "connection"
         && let Some(RowValue::One {
             json: Value::String(word),

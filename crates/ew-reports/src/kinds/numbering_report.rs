@@ -69,7 +69,7 @@ impl ReportKindDef for NumberingReport {
             .collect();
         wires.sort();
         for (id, frozen) in wires {
-            let rule = numbers.number(id).map(|n| n.label.clone()).unwrap_or_default();
+            let rule = numbers.number(id).and_then(|n| n.rule.clone()).unwrap_or_default();
             set.rows
                 .push(row(RowId::entity(id), Cell::Empty, "wire number", &frozen, &rule));
         }

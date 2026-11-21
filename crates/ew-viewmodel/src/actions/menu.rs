@@ -228,6 +228,7 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
         "view.wire_colours" => model.wire_colours_on(),
         "project.crossings" => model.crossings_hops(),
         "project.wire_numbers" => model.wire_numbers_on(),
+        "project.wire_numbering" => model.wire_numbering_per_potential(),
         "project.plc_addresses_at_terminals" => model.plc_addresses_at_terminals_on(),
         "rep.keep_in_place" => model.selection_kept_in_place(),
         // The command bar's collapse.

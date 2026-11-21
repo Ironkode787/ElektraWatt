@@ -344,7 +344,7 @@ pub(super) fn connection_filter(q: &Q, c: Id<Connection>) -> Option<String> {
 }
 
 /// The printed wire number of a connection (its first wire's), `None` when unassigned.
-fn wire_number(q: &Q, conn: Id<Connection>) -> Option<String> {
+pub(super) fn wire_number(q: &Q, conn: Id<Connection>) -> Option<String> {
     let numbers = q.get::<WireNumbers>(());
     wires_of(q, conn)
         .first()

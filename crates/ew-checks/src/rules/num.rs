@@ -130,7 +130,7 @@ impl Rule for FrozenValueDeviates {
         let mut rows: Vec<(String, String, Id<Connection>)> = frozen
             .into_iter()
             .filter_map(|(id, text)| {
-                let rule = numbers.number(id).map(|n| n.label.clone()).unwrap_or_default();
+                let rule = numbers.number(id).and_then(|n| n.rule.clone()).unwrap_or_default();
                 (rule != text).then_some((text, rule, id))
             })
             .collect();

@@ -168,7 +168,8 @@ pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{
     CABLE_SOURCE_ROW, CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction,
-    RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
+    RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, UNNUMBERED_WIRE, WireColours,
+    WireEnd,
 };
 pub use rack::{
     CardPins, FluidMenu, PlcOffer, RackCell, RackChannel, RackPosition, RackRow, RackView, SolenoidSeat,

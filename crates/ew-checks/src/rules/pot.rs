@@ -2363,11 +2363,11 @@ pub const WIRE_NUMBER_CONFLICT: RuleMeta = RuleMeta {
 };
 
 /// EW-POT-015: one printed wire number on two numbering units, or two numbers within one unit (doc 08 §5.3,
-/// FR-NUM-019, FR-NUM-020). The numbering unit of the shipped scheme is the physical wire (connection-oriented
-/// `{page}.{counter}`), and a wire carries one derived number, so the rule checks the first half: a label printed
-/// on two or more wires is one finding, targets those wires' carrier connections. The derivation gives unique
-/// labels; stored and frozen numbers (FR-NUM-011, FR-NUM-022) and the other numbering units arrive with the
-/// numbering schemes of FR-NUM-020, which this rule then covers unchanged.
+/// FR-NUM-019, FR-NUM-020). The numbering unit is the physical wire (`{page}.{counter}`), or the potential under the
+/// per-potential scheme (`drawing.wire_numbering`), and a wire prints one number, so the rule checks the first half: a
+/// label printed on two or more units is one finding, targets those wires' carrier connections (one wire of each
+/// potential). The scheme gives unique labels per wire; a frozen number (FR-NUM-011) and two potentials of one name
+/// can repeat one.
 #[derive(Clone, Copy, Debug)]
 pub struct WireNumberConflict;
 
@@ -2381,12 +2381,20 @@ impl Rule for WireNumberConflict {
             return Vec::new();
         }
         let numbers = q.get::<WireNumbers>(());
-        duplicate_numbers(
-            numbers
-                .wires
-                .iter()
-                .filter_map(|w| w.number.as_ref().map(|n| (n.label.clone(), w.wire))),
-        )
+        let printed = numbers
+            .wires
+            .iter()
+            .filter_map(|w| w.number.as_ref().map(|n| (n.label.clone(), w)));
+        if !q.get::<ew_derive::DrawingSettingsQ>(()).per_potential {
+            return duplicate_numbers(printed.map(|(label, w)| (label, w.wire)));
+        }
+        // Per potential the unit is the potential: its wires print one code, so one wire stands for each (label,
+        // potential).
+        let mut units: BTreeMap<(String, &[ew_derive::PotentialId]), Id<Connection>> = BTreeMap::new();
+        for (label, w) in printed {
+            units.entry((label, &w.potentials)).or_insert(w.wire);
+        }
+        duplicate_numbers(units.into_iter().map(|((label, _), wire)| (label, wire)))
     }
 }
 

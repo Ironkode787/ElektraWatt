@@ -147,6 +147,9 @@ pub struct SheetSection {
 /// its cores ("Change it at cable -W1").
 pub const CABLE_SOURCE_ROW: &str = "device/parts";
 
+/// The title of a wire without a number (FT-1799), in English; a window writes it in its language.
+pub const UNNUMBERED_WIRE: &str = "wire without a number";
+
 /// One row (doc 16 §6.2).
 #[derive(Clone, PartialEq, Debug)]
 pub struct PropRow {

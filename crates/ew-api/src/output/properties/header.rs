@@ -13,7 +13,7 @@ use ew_schema::{Device, Kind};
 use serde_json::Value;
 
 use super::context::SheetCx;
-use super::selection::{connection_filter, wire_number_text};
+use super::selection::{connection_filter, wire_number};
 use super::{
     FindingChip, Picked, SheetHeader, SheetSection, SheetWhat, device_tag_text, folio_of, kind_plural,
     lookup, main_location, ml_text, page_item_kind_words,
@@ -58,7 +58,8 @@ pub(in crate::output) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> 
                     .and_then(Value::as_str)
                     .unwrap_or("working")
             ),
-            None => wire_number_text(q, Id::from_uuid(id)),
+            // An unnumbered wire in words, not `?` (FT-1799).
+            None => wire_number(q, Id::from_uuid(id)).unwrap_or_else(|| super::UNNUMBERED_WIRE.to_owned()),
         },
         // A layout record by its device's tag, its label or its words.
         k if crate::output::layout_edit::LAYOUT_KINDS.contains(&k) => {

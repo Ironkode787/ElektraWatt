@@ -31,22 +31,38 @@
 //! rows); only the numbered ones carry a [`WireNumber`]. A wire none of whose constituents is drawn on a page
 //! is placed last and not numbered.
 //!
-//! Numbers are derived, never stored in the model at this stage (the stored `NumberSpec` of doc 08 §5.1 and the
+//! Numbers are derived, never stored in the model at this stage (the stored counters of doc 08 §5.1 and the
 //! `NumberWires` command follow with the numbering schemes of FR-NUM-020); a drawing edit that moves a CP into
 //! another cell can renumber, which is why the query is memoised over what it reads.
+//!
+//! # What a wire prints
+//!
+//! - **The scheme** (doc 08 §5.2), the project's `drawing.wire_numbering`: absent, each wire its own
+//!   `{page}.{counter}`; `per_potential`, every wire of a potential its potential's code: the potential's name by steps
+//!   1 to 2c of doc 08 §3.5 (a definition's name, an interruption point's name, a supply's name), written as the
+//!   specification codes it (`D01`, `6A03`: a circuit number is written in front of the code in the name). A
+//!   potential named only by its fallback (`-K1:A1`), a protective earth (type PE or PEN) and a bond wire, which joins
+//!   two potentials, have no code. That is [`WireNumber::rule`].
+//! - **A frozen number** (`NumberSpec::Frozen` on the wire's carrier, doc 08 §5.3) prints in place of the scheme's,
+//!   on the page, in the lists and the SQL views ([`WireNumber::label`]); the wire keeps its place in the count, so
+//!   freezing one wire renumbers no other. A core and a wire drawn on no page stay unnumbered, frozen or not.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
-use ew_schema::{Connection, Endpoint, Page};
+use ew_schema::{Connection, Endpoint, NumberSpec, Page, PotentialType};
 
 use crate::cp_point::cp_cell;
+use crate::flow::PotentialFlow;
 use crate::flow_distance::CpFlowDistanceOf;
 use crate::joins::cp_label;
+use crate::names::PotentialNameOf;
 use crate::pages::DrawnPageOrder;
+use crate::potentials::{NameSource, PotentialId};
 use crate::query::{Policy, Query};
+use crate::settings::DrawingSettingsQ;
 use crate::wires::{PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{PageRef, PotentialPartition, Q, RepAnchorCell};
 
@@ -57,8 +73,11 @@ pub struct WireNumber {
     pub page: Id<Page>,
     /// The counter on that page, from 1.
     pub counter: u32,
-    /// The printed number, `{page}.{counter}` (`102.5`).
+    /// The printed number: the frozen one, else the scheme's (`102.5`, `D02`).
     pub label: String,
+    /// The number the scheme gives the wire (module documentation); `None` where the per-potential scheme has no
+    /// code for it.
+    pub rule: Option<String>,
     /// The counters (first, last) of the group of wires whose From and To cells are the same, when the group
     /// has more than one wire: the labels, the route or the wire ID decided among them (doc 20 §8.1 "tie").
     pub tie: Option<(u32, u32)>,
@@ -69,8 +88,11 @@ pub struct WireNumber {
 pub struct NumberedWire {
     /// The wire ID (its carrier connection).
     pub wire: Id<Connection>,
-    /// Its number; `None` for a cable core and for a wire that is drawn on no page.
+    /// Its number; `None` for a cable core, for a wire that is drawn on no page and for one the per-potential scheme
+    /// gives no code and no frozen number names.
     pub number: Option<WireNumber>,
+    /// The potentials of its ends: its numbering unit under the per-potential scheme.
+    pub potentials: Vec<PotentialId>,
 }
 
 /// The value of [`WireNumbers`].
@@ -139,6 +161,10 @@ struct Entry {
     key: Key,
     page: Option<Id<Page>>,
     core: bool,
+    /// The carrier's frozen number.
+    frozen: Option<String>,
+    /// The potentials of the wire's ends.
+    potentials: Vec<PotentialId>,
 }
 
 fn number_wires(q: &Q) -> WireNumbersV {
@@ -188,18 +214,44 @@ fn number_wires(q: &Q) -> WireNumbersV {
         i = j;
     }
 
+    let per_potential = q.get::<DrawingSettingsQ>(()).per_potential;
     let mut out = WireNumbersV::default();
-    for (n, ((id, _), (number, tie))) in entries.iter().zip(numbers.into_iter().zip(ties)).enumerate() {
-        let number = number.map(|(page, counter)| WireNumber {
-            page,
-            counter,
-            label: format!("{}.{counter}", folio_of(&order, page)),
-            tie,
+    for (n, ((id, e), (number, tie))) in entries.iter().zip(numbers.into_iter().zip(ties)).enumerate() {
+        let number = number.and_then(|(page, counter)| {
+            let rule = if per_potential {
+                potential_code(q, &e.potentials)
+            } else {
+                Some(format!("{}.{counter}", folio_of(&order, page)))
+            };
+            Some(WireNumber {
+                page,
+                counter,
+                label: e.frozen.clone().or_else(|| rule.clone())?,
+                rule,
+                tie,
+            })
         });
         out.index.insert(*id, n);
-        out.wires.push(NumberedWire { wire: *id, number });
+        out.wires.push(NumberedWire {
+            wire: *id,
+            number,
+            potentials: e.potentials.clone(),
+        });
     }
     out
+}
+
+/// The code of the per-potential scheme for a wire whose ends lie on `potentials` (module documentation): the name of
+/// its one potential where a definition, an interruption point or a supply names it, and the potential is no
+/// protective earth.
+fn potential_code(q: &Q, potentials: &[PotentialId]) -> Option<String> {
+    let [p] = potentials else { return None };
+    let earth = (*q.get::<PotentialFlow>(*p))
+        .as_ref()
+        .and_then(|f| f.ptype.as_ref())
+        .is_some_and(|t| matches!(t.value, PotentialType::Pe | PotentialType::Pen));
+    let name = q.get::<PotentialNameOf>(*p);
+    (!earth && !matches!(name.name.source, NameSource::Fallback(_))).then(|| name.name.text.clone())
 }
 
 fn folio_of(order: &crate::pages::PageOrderV, page: Id<Page>) -> String {
@@ -253,6 +305,11 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
         ),
         page: from_page.filter(|_| pos != usize::MAX),
         core: w.core.is_some(),
+        frozen: q.connections().get(w.id).and_then(|c| match &c.number {
+            NumberSpec::Frozen(t) => Some(t.as_str().to_owned()),
+            _ => None,
+        }),
+        potentials: w.potentials.clone(),
     }
 }
 

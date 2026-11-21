@@ -34,6 +34,11 @@ impl Session {
         {
             return parsed;
         }
+        if (kind, row_path) == ("connection", "number")
+            && let Some(parsed) = wire_number_input(text)
+        {
+            return parsed;
+        }
         if (kind, row_path) == ("device", "cable.length")
             && let Some(parsed) = cable_length_input(text)
         {
@@ -256,6 +261,33 @@ fn frozen_tag_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
             })
         }
     })
+}
+
+/// A wire's number typed as the page should print it (doc 08 §5.3): `6A03` freezes that number; a JSON string
+/// (`"6A03"`) is read as its text; an empty text unfreezes (`null`, the scheme's number again). `None` for a JSON
+/// object, the field's own form (`{"frozen": "6A03"}`), parsed as before.
+fn wire_number_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
+    let t = text.trim();
+    if t.starts_with('{') {
+        return None;
+    }
+    let t = match serde_json::from_str::<Value>(t) {
+        Ok(Value::String(s)) => s,
+        _ => t.to_owned(),
+    };
+    let t = t.trim();
+    let value = if t.is_empty() {
+        Value::Null
+    } else {
+        match ew_mltext::Ident::from_input(t) {
+            Err(e) => return Some(Err(InputError::Invalid(crate::ident_error_text(&e)))),
+            Ok(ident) => serde_json::json!({ "frozen": ident.as_str() }),
+        }
+    };
+    Some(Ok(ParsedInput {
+        value,
+        notes: Vec::new(),
+    }))
 }
 
 /// The last member of a row path (`structure.location` → `location`).

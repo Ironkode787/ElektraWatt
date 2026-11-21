@@ -990,6 +990,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wire_numbers(p),
         ),
     )),
+    // Draw ▸ Connect ▸ Number wires by potential (doc 08 §5.2): every wire of a potential prints its potential's code.
+    keeps_banner(with_params(
+        "on?:bool",
+        act(
+            "project.wire_numbering",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            grp(Group::Connect),
+            |s, p| s.act_wire_numbering(p),
+        ),
+    )),
     // End.
     // Supply beside Interruption, what comes in from the mains as supply marks placed in one go.
     keeps_banner(with_params(

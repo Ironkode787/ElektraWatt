@@ -30,6 +30,8 @@
 //! - The orientation's step 3 without minted IDs:
 //!   `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids` and
 //!   `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
+//! - What a wire prints (FT-1858): `a_frozen_number_prints_and_keeps_its_place_in_the_count` and
+//!   `per_potential_every_wire_of_a_potential_prints_its_code` (no code for a protective earth or a fallback name).
 //! - `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`: `cp_label` of a terminal whose FnDef
 //!   repeats a clamp letter on one level (a third-party FnDef) prints `/a#1`, `/a#2`; distinct letters print
 //!   `/a`, `/b`.
@@ -1011,4 +1013,73 @@ fn label_parts_split_a_shared_designation_and_skip_a_terminal() {
     let (tag, _, _) = cpr(0x5001, 2).label_parts(&q).expect("a device CP");
     assert!(cp_label(&q, cpr(0x5001, 2)).starts_with(&format!("{tag}:")));
     assert_eq!(cpr(0x4011, 0).label_parts(&q), None, "a terminal keeps its label");
+}
+
+/// The scheme's number of a wire (`WireNumber::rule`).
+fn rule(m: &Model, wire: u128) -> Option<String> {
+    let q = Q::new(m);
+    q.get::<WireNumbers>(())
+        .number(id(wire))
+        .and_then(|n| n.rule.clone())
+}
+
+#[test]
+fn a_frozen_number_prints_and_keeps_its_place_in_the_count() {
+    let mut fx = fixture();
+    for i in 0..3 {
+        node(&mut fx, 0x1001 + i, P1, 1 + i as i64, 0);
+        node(&mut fx, 0x1011 + i, P1, 16, 7);
+        wire(&mut fx, 0x2001 + i, Some(P1), 0x1001 + i, 0x1011 + i);
+    }
+    fx.record(0x2002)["number"] = json!({"frozen": "6A03"});
+    let m = fx.build();
+    let rows = order(&m);
+    let labels: Vec<Option<String>> = rows.iter().map(|r| r.1.clone()).collect();
+    let want = ["101.1", "6A03", "101.3"].map(|s| Some(s.to_owned()));
+    assert_eq!(labels, want, "the frozen number prints, the next wire keeps 101.3");
+    assert_eq!(
+        rule(&m, 0x2002).as_deref(),
+        Some("101.2"),
+        "the scheme's number stays beside it"
+    );
+}
+
+#[test]
+fn per_potential_every_wire_of_a_potential_prints_its_code() {
+    let mut fx = fixture();
+    fx.project_set(
+        "settings",
+        json!({"drawing": {"wire_numbering": "per_potential"}}),
+    );
+    // D02: a source and two loads wired from it, one potential named by its definition.
+    node(&mut fx, 0x1001, P1, 1, 0);
+    node(&mut fx, 0x1011, P1, 5, 7);
+    node(&mut fx, 0x1012, P1, 6, 7);
+    wire(&mut fx, 0x2001, Some(P1), 0x1001, 0x1011);
+    wire(&mut fx, 0x2002, Some(P1), 0x1001, 0x1012);
+    fx.push(json!({"$k": "potential_def", "id": uid(0x5001), "at": {"cp": [uid(0x1001), 0]}, "name": "D02"}));
+    // A protective earth, named PE and typed so: no code.
+    node(&mut fx, 0x1002, P1, 2, 0);
+    node(&mut fx, 0x1013, P1, 7, 7);
+    wire(&mut fx, 0x2003, Some(P1), 0x1002, 0x1013);
+    fx.push(json!({
+        "$k": "potential_def", "id": uid(0x5002), "at": {"cp": [uid(0x1002), 0]}, "name": "PE", "ptype": "pe",
+    }));
+    // A potential known only by its fallback `<tag>:<cp>`: no code.
+    node(&mut fx, 0x1003, P1, 3, 0);
+    node(&mut fx, 0x1014, P1, 8, 7);
+    wire(&mut fx, 0x2004, Some(P1), 0x1003, 0x1014);
+    // A frozen number still prints in place of the code.
+    node(&mut fx, 0x1004, P1, 4, 0);
+    node(&mut fx, 0x1015, P1, 9, 7);
+    wire(&mut fx, 0x2005, Some(P1), 0x1004, 0x1015);
+    fx.record(0x2005)["number"] = json!({"frozen": "X9"});
+    let m = fx.build();
+    let rows = order(&m);
+    assert_eq!(label(&rows, 0x2001).as_deref(), Some("D02"));
+    assert_eq!(label(&rows, 0x2002).as_deref(), Some("D02"), "one code per potential");
+    assert_eq!(label(&rows, 0x2003), None, "a protective earth is not coded");
+    assert_eq!(label(&rows, 0x2004), None, "a fallback name is no code");
+    assert_eq!(label(&rows, 0x2005).as_deref(), Some("X9"));
+    assert_eq!(rule(&m, 0x2005), None, "its potential has no code");
 }
