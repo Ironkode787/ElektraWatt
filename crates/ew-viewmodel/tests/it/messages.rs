@@ -63,19 +63,11 @@ fn with_a_cable_without_length(tmp: &Tmp, folio: &str) -> ShellModel {
     shell
 }
 
-/// A writable copy of the sample on folio 102 with a push button placed in its empty right half: -102S3, whose pins
-/// 13 and 14 no wire reaches, so that EW-POT-009 reports both on the page (a finding of a drawn record).
+/// A writable copy of the sample on folio 102 with [`common::place_free_button`]'s -102S3, whose pins 13 and 14 no
+/// wire reaches, so that EW-POT-009 reports both on the page (a finding of a drawn record).
 fn with_a_free_button(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
-    done(&mut shell, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
-    done(&mut shell, "tool.place", json!({}));
-    done(
-        &mut shell,
-        "place.pick",
-        json!({"part": "EW-GEN-PB-1", "letter": "S"}),
-    );
-    done(&mut shell, "canvas.activate", json!({"alt": true}));
-    done(&mut shell, "ui.dismiss", json!({}));
+    common::place_free_button(&mut shell);
     // Away and back: 102 is no longer the editing page, so its findings are not pending.
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "page.goto", json!({"folio": "102"}));

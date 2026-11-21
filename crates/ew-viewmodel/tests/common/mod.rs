@@ -142,6 +142,16 @@ pub fn actual_size(tmp: &Tmp, folio: &str) -> ShellModel {
     s
 }
 
+/// Places a push button in the empty right half of folio 102 (shown), at (200, 80) mm, without autoconnect: -102S3,
+/// whose pins 13 and 14 no wire reaches (every connection point of the sample is wired).
+pub fn place_free_button(s: &mut ShellModel) {
+    done(s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
+    done(s, "tool.place", json!({}));
+    done(s, "place.pick", json!({"part": "EW-GEN-PB-1", "letter": "S"}));
+    done(s, "canvas.activate", json!({"alt": true}));
+    done(s, "ui.dismiss", json!({}));
+}
+
 /// Imports `rows` (parts-table CSV rows, without the header) into the project open in `s` and applies them: the parts
 /// a test needs that the sample does not hold (a screw-mounted device, an end bracket, a bridge).
 pub fn import_parts(s: &mut ShellModel, tmp: &Tmp, rows: &str) {

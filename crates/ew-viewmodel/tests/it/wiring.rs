@@ -6,7 +6,7 @@
 //! FR-CON-006's drawing order, the autoconnect proposals of a placement and of a move, route edit (pointer and
 //! keyboard) and the split of a routed wire on insert, the junction sequence editor, the crossings setting, the
 //! transcript members and the describe lines with their 21 words, and the exact `Session` counts of the Wire tool.
-//! Every test works on a writable temporary copy of Golden A.
+//! Every test works on a writable temporary copy of the sample.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -68,14 +68,54 @@ fn orthogonal(r: &[(i64, i64)]) -> bool {
     r.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1)
 }
 
+/// Folio 102 at actual size with [`common::place_free_button`]'s -102S3, whose two CPs no wire reaches.
+fn with_free_cps(tmp: &Tmp) -> ShellModel {
+    let mut s = actual_size(tmp, "102");
+    common::place_free_button(&mut s);
+    s
+}
+
+/// The page point `k` grid steps from the grid point nearest the sheet point (200, 60) mm: folio 102's empty right
+/// half.
+fn right_half(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
+    let sn = &s.canvas().unwrap().page().snapper;
+    let base = sn.sheet_to_page((200_000_000, 60_000_000));
+    (
+        sn.page_of_index(sn.grid_index_of(base.0) + k.0),
+        sn.page_of_index(sn.grid_index_of(base.1) + k.1),
+    )
+}
+
+/// The page point `k` grid steps from the page point `p`, which lies on the grid.
+fn steps_from(s: &ShellModel, p: (i64, i64), k: (i64, i64)) -> (i64, i64) {
+    let sn = &s.canvas().unwrap().page().snapper;
+    (
+        sn.page_of_index(sn.grid_index_of(p.0) + k.0),
+        sn.page_of_index(sn.grid_index_of(p.1) + k.1),
+    )
+}
+
+/// The connection between the CPs labelled `a` and `b`, either way round.
+fn wire_between(s: &ShellModel, a: &str, b: &str) -> TableConnection {
+    let t = tables(s);
+    t.connections
+        .iter()
+        .find(|c| {
+            let ends = [end_label(&t, &c.a), end_label(&t, &c.b)];
+            ends.contains(&a.to_owned()) && ends.contains(&b.to_owned())
+        })
+        .unwrap_or_else(|| panic!("no wire {a} to {b}"))
+        .clone()
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The Wire tool (WR2, WR3's view-model part)
 
 #[test]
 fn the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
     let tmp = Tmp::new("wire");
-    let mut s = actual_size(&tmp, "102");
-    let (a, b) = (cp(&s, "-102F1:2"), cp(&s, "-102F2:24VDC#1"));
+    let mut s = with_free_cps(&tmp);
+    let (a, b) = (cp(&s, "-102F1:2"), cp(&s, "-102S3:13"));
     let before = tables(&s);
     let rev = s.revision();
     done(&mut s, "tool.wire", json!({}));
@@ -93,12 +133,12 @@ fn the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
     assert_eq!(canvas(&s)["route"]["from"], "-102F1:2");
     cursor(&mut s, b.at);
     let route = canvas(&s)["route"].clone();
-    assert_eq!(route["end"], "-102F2:24VDC#1");
+    assert_eq!(route["end"], "-102S3:13");
     assert_eq!(route["bends"], 0);
     let line_text = describe_line(&s, "canvas route ").expect("the route line");
     assert!(
         line_text.starts_with("canvas route from \"-102F1:2\" bends 0 points ")
-            && line_text.ends_with(" end \"-102F2:24VDC#1\""),
+            && line_text.ends_with(" end \"-102S3:13\""),
         "{line_text}"
     );
     // The ghost is drawn and its length is read out.
@@ -130,7 +170,7 @@ fn the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
     assert!(c.stored_route);
     let mut ends = [end_label(&after, &c.a), end_label(&after, &c.b)];
     ends.sort();
-    assert_eq!(ends, ["-102F1:2".to_owned(), "-102F2:24VDC#1".to_owned()]);
+    assert_eq!(ends, ["-102F1:2".to_owned(), "-102S3:13".to_owned()]);
     // The committed route is the ghost, ends exact, orthogonal.
     assert_eq!(line(c), ghost);
     assert_eq!(ghost.first(), Some(&a.at));
@@ -144,19 +184,19 @@ fn the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
 #[test]
 fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let tmp = Tmp::new("ends");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = with_free_cps(&tmp);
     done(&mut s, "tool.wire", json!({}));
     // A wire needs two endpoints: Enter on the empty grid does not start one.
-    let empty = grid_point(&s, (20, 60));
+    let empty = right_half(&s, (12, 30));
     let rev = s.revision();
     click_at(&mut s, empty);
     assert_eq!(canvas(&s)["snap"]["kind"], "grid");
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(s.revision(), rev);
     // From a free CP, a bend on the grid, Backspace, the bend again, then onto a junction.
-    let start = cp(&s, "-102F2:13");
+    let start = cp(&s, "-102S3:13");
     click_at(&mut s, start.at);
-    let bend = grid_point(&s, (58, 33));
+    let bend = right_half(&s, (4, 0));
     click_at(&mut s, bend);
     assert_eq!(canvas(&s)["route"]["bends"], 1);
     done(&mut s, "tool.back", json!({}));
@@ -167,13 +207,13 @@ fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         "routing",
         "Backspace without a bend does nothing"
     );
-    let bend = grid_point(&s, (58, 33));
+    let bend = right_half(&s, (4, 0));
     click_at(&mut s, bend);
     let junction = tables(&s)
         .junctions
         .iter()
-        .find(|j| j.style == "bevel" && j.wiring == "chain")
-        .unwrap()
+        .find(|j| j.sequence.len() >= 3)
+        .expect("a junction of three wires on 102")
         .clone();
     // A junction that already joins three wires is no end, and the hint says so.
     assert!(junction.sequence.len() >= 3);
@@ -190,17 +230,20 @@ fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     );
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().state(), "armed");
-    // From another free CP onto a point of a wire: a junction there and the wire split.
+    // From another free CP onto a point of a wire: a junction there and the wire split. The PELV wire from -X1021:8
+    // to PE runs along the bottom of the page: a grid point of its horizontal stretch.
     let before = tables(&s);
-    let w = before
-        .connections
-        .iter()
-        .find(|c| line(c).len() == 3 && line(c)[1].1 == line(c)[2].1 && line(c)[2].1 == 15_875_000)
-        .expect("-102G1:PE to PE-1.2")
-        .clone();
-    let x = s.canvas().unwrap().page().snapper.page_of_index(76);
-    let point = (x, 15_875_000);
-    let free = cp(&s, "-102F2:14");
+    let w = wire_between(&s, "-X1021:8/a", "PE");
+    let along = line(&w)
+        .windows(2)
+        .filter(|p| p[0].1 == p[1].1)
+        .max_by_key(|p| (p[0].0 - p[1].0).abs())
+        .map(|p| (p[0], p[1]))
+        .expect("a horizontal stretch");
+    let sn = s.canvas().unwrap().page().snapper.clone();
+    let x = sn.page_of_index((sn.grid_index_of(along.0.0) + sn.grid_index_of(along.1.0)) / 2);
+    let point = (x, along.0.1);
+    let free = cp(&s, "-102S3:14");
     click_at(&mut s, free.at);
     cursor(&mut s, point);
     assert_eq!(
@@ -230,18 +273,18 @@ fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
 #[test]
 fn backspace_after_two_collinear_bends_keeps_the_first() {
     let tmp = Tmp::new("bends");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = with_free_cps(&tmp);
     done(&mut s, "tool.wire", json!({}));
-    let start = cp(&s, "-102F2:13");
+    let start = cp(&s, "-102S3:13");
     click_at(&mut s, start.at);
     // Bends straight above the CP, on rows no wire runs along.
-    let (b1, b2) = (grid_point(&s, (58, 33)), grid_point(&s, (58, 32)));
+    let (b1, b2) = (steps_from(&s, start.at, (0, -5)), steps_from(&s, start.at, (0, -6)));
     click_at(&mut s, b1);
     click_at(&mut s, b2);
     assert_eq!(canvas(&s)["route"]["bends"], 2);
     done(&mut s, "tool.back", json!({}));
     assert_eq!(canvas(&s)["route"]["bends"], 1);
-    let aside = grid_point(&s, (64, 32));
+    let aside = steps_from(&s, b2, (6, 0));
     cursor(&mut s, aside);
     let ghost = s.wire_ghost_route().expect("routing");
     assert!(
@@ -255,13 +298,13 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
 }
 
 /// Fix round item 1: the Wire tool draws the page type's connection kind (doc 06 §2.2): a bus line on a bus-topology
-/// page (folio 3, FT-434), refused on a generated report page (folio 908, with the page type's reason), `overview` on an assembly overview (folio
-/// 201, whose overview symbols draw no connection points in Golden A, so the kind is read from the host), a fluid line
-/// on a fluid page (folio 203), a wire (no `kind` sent) on a multi-line page.
+/// page (folio 105, FT-434), refused on a generated report page (folio 908, with the page type's reason), a fluid line
+/// on a fluid page (folio 201), a wire (no `kind` sent) on a multi-line page. (The sample has no assembly overview,
+/// whose kind is `overview`.)
 #[test]
 fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     let tmp = Tmp::new("kinds");
-    let mut s = actual_size(&tmp, "3");
+    let mut s = actual_size(&tmp, "105");
     assert_eq!(s.wire_kind(), Ok(Some("bus")), "a bus-topology page");
     done(&mut s, "tool.wire", json!({}));
     assert_eq!(s.tool().name(), "wire");
@@ -273,11 +316,6 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     );
     assert!(s.describe().contains("item tool.wire \"Wire\" [W] disabled: "));
     done(&mut s, "page.goto", json!({"folio": "201"}));
-    assert_eq!(s.wire_kind(), Ok(Some("overview")));
-    done(&mut s, "tool.wire", json!({}));
-    assert_eq!(s.tool().name(), "wire");
-    done(&mut s, "ui.dismiss", json!({}));
-    done(&mut s, "page.goto", json!({"folio": "203"}));
     assert_eq!(s.wire_kind(), Ok(Some("fluid")), "a fluid page");
     done(&mut s, "tool.wire", json!({}));
     assert_eq!(s.tool().name(), "wire");
@@ -285,9 +323,10 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     done(&mut s, "page.goto", json!({"folio": "102"}));
     assert_eq!(s.wire_kind(), Ok(None));
     done(&mut s, "view.zoom_actual", json!({}));
+    common::place_free_button(&mut s);
     done(&mut s, "tool.wire", json!({}));
     let t = tables(&s);
-    let (a, b) = (cp(&s, "-102F2:13"), cp(&s, "-102F2:14"));
+    let (a, b) = (cp(&s, "-102S3:13"), cp(&s, "-102S3:14"));
     click_at(&mut s, a.at);
     click_at(&mut s, b.at);
     let new = new_connections(&t, &tables(&s));
@@ -298,11 +337,11 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
 #[test]
 fn fr_con_006_two_wires_to_one_cp_are_listed_in_drawing_order() {
     let tmp = Tmp::new("order");
-    let mut s = actual_size(&tmp, "102");
+    let mut s = with_free_cps(&tmp);
     let target = cp(&s, "-102F1:1");
     done(&mut s, "tool.wire", json!({}));
     let mut drawn = Vec::new();
-    for from in ["-102F2:13", "-102F2:14"] {
+    for from in ["-102S3:13", "-102S3:14"] {
         let before = tables(&s);
         let start = cp(&s, from);
         click_at(&mut s, start.at);
@@ -341,14 +380,14 @@ fn ghost_cps(s: &ShellModel, p: (i64, i64)) -> Vec<(i64, i64)> {
 #[test]
 fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commits_none() {
     let tmp = Tmp::new("auto");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
     );
     // The contact's CP 1 lies `span` grid rows below its CP 0.
-    let p0 = grid_point(&s, (60, 38));
+    let p0 = right_half(&s, (0, 0));
     cursor(&mut s, p0);
     let rel = ghost_cps(&s, p0);
     assert_eq!(rel.len(), 2, "{rel:?}");
@@ -358,11 +397,11 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
     let before = tables(&s).connections.len();
     done(&mut s, "canvas.activate", json!({}));
     // B with Alt (Ctrl+Enter, the keyboard's Alt click): its CP 0 would autoconnect to A's CP 1.
-    let pb = grid_point(&s, (60, 38 + 3 * span + 2));
+    let pb = right_half(&s, (0, 3 * span + 2));
     cursor(&mut s, pb);
     done(&mut s, "canvas.activate_alt", json!({}));
     assert_eq!(tables(&s).connections.len(), before, "nothing to connect yet");
-    let mid = grid_point(&s, (60, 38 + span + 1));
+    let mid = right_half(&s, (0, span + 1));
     cursor(&mut s, mid);
     assert_eq!(canvas(&s)["ghost"]["hints"], 2, "{}", s.describe());
     let line_text = describe_line(&s, "canvas proposals ").expect("the proposals line");
@@ -454,7 +493,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
     assert_eq!(tables(&s).connections.len(), n, "connect on move off");
 }
 
-/// On an empty stretch of Golden A's folio 103, coils -103K1 and -103K2 side by side joined twice,
+/// On an empty stretch of the sample's folio 103, coils -103K1 and -103K2 side by side joined twice,
 /// under the A2s and over the A1s, and -103K3 below between them. A drag of the first two four steps down would carry
 /// the lower wire through -103K3: the release re-solves it in the same undo step, and the upper wire, clean where it
 /// follows, keeps its vertices translated.
@@ -768,20 +807,21 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
-    // Nothing changes, and it says the person's wires keep their routes, in both languages.
+    // Nothing changes, and it says the person's wire keeps its route, in both languages: on the sample's 103 the one
+    // the first Route found no way for (the sample's own wires are the route tool's).
     let rev = s.revision();
     done(&mut s, "layout.route", json!({}));
     assert_eq!(s.revision(), rev, "nothing committed");
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Nothing changed: ") && said.contains("keep the routes they have."),
+        said.starts_with("Nothing changed: ") && said.contains("1 wire keeps the route it has."),
         "{said}"
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "layout.route", json!({}));
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Niets veranderd: ") && said.contains("houden de route die ze hebben."),
+        said.starts_with("Niets veranderd: ") && said.contains("1 draad houdt de route die hij heeft."),
         "{said}"
     );
 }
@@ -1147,22 +1187,23 @@ fn route_with_nothing_selected_takes_the_page() {
 fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = actual_size(&tmp, "101");
-    // W13: from J1 to E55:L, routed by Golden A's route tool.
-    let e55 = cp(&s, "E55:L");
+    // W13: the wire from -101G1:PE up to a junction, routed by the sample's script.
+    let e55 = cp(&s, "-101G1:PE");
+    let at_e55 = |e: &TableEnd| matches!(e, TableEnd::Cp { function, idx } if *function == e55.function && *idx == e55.idx);
     let w13 = tables(&s)
         .connections
         .iter()
         .find(|c| {
-            matches!(c.a, TableEnd::Junction { .. })
-                && matches!(c.b, TableEnd::Cp { function, idx } if function == e55.function && idx == e55.idx)
+            (matches!(c.a, TableEnd::Junction { .. }) && at_e55(&c.b))
+                || (matches!(c.b, TableEnd::Junction { .. }) && at_e55(&c.a))
         })
         .expect("W13")
         .clone();
     let drawn = line(&w13);
     // W13's printed number before the insert.
     let number_before = {
-        let (golden, _) = ew_api::Session::open_read_only(&tmp.0.join("sample.ew"), "test").unwrap();
-        golden
+        let (sample, _) = ew_api::Session::open_read_only(&tmp.0.join("sample.ew"), "test").unwrap();
+        sample
             .property_sheet(&[w13.id.to_string().parse().unwrap()])
             .header
             .title
@@ -1223,12 +1264,16 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
         .iter()
         .find(|c| c.id == w13.id)
         .expect("W13 keeps its ID");
-    assert!(matches!(kept.a, TableEnd::Junction { .. }), "on the J1 side");
+    assert_eq!(
+        end_label(&after, &kept.a),
+        end_label(&before, &w13.a),
+        "on its first side"
+    );
     let new = new_connections(&before, &after);
     assert_eq!(new.len(), 1);
-    assert_eq!(end_label(&after, &new[0].b), "E55:L");
+    assert_eq!(end_label(&after, &new[0].b), end_label(&before, &w13.b));
     // The records: W13's number spec stays on the kept side, both halves carry the override, the new half's number is
-    // unassigned. (Golden A prints connection-oriented numbers derived for every wire, so the new half prints the
+    // unassigned. (The sample prints connection-oriented numbers derived for every wire, so the new half prints the
     // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
     done(&mut s, "file.save", json!({}));
     let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("sample.ew"), "test").unwrap();
@@ -1250,13 +1295,18 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     assert_eq!(
         kept.get("number"),
         None,
-        "W13's number spec is kept (unassigned, as Golden A's)"
+        "W13's number spec is kept (unassigned, as the sample's)"
     );
     assert_eq!(half.get("number"), None, "the new half is unnumbered");
     drop(q);
     let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
     let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
-    assert_eq!(kept_number, number_before, "W13's number stays on the kept side");
+    // The numbers are derived for every wire in page order, so W13's printed number goes on with one of its halves.
+    assert!(
+        [&kept_number, &half_number].contains(&&number_before),
+        "{number_before}: {kept_number}, {half_number}"
+    );
+
     assert!(
         kept_number.starts_with("101."),
         "W13 prints a number: {kept_number}"
@@ -1271,16 +1321,13 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
 fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     let tmp = Tmp::new("drag");
     let mut s = actual_size(&tmp, "102");
-    // -102G1:PE to PE-1.2 given a Z route with a middle segment on grid row 8.
-    let w = tables(&s)
-        .connections
-        .iter()
-        .find(|c| line(c).len() == 3 && line(c)[2].1 == 15_875_000 && line(c)[0].0 == 127_000_000)
-        .expect("-102G1:PE to PE-1.2")
-        .clone();
+    // -102F1:2 to -X1021:1/a (one bend) given a Z route with a middle segment four grid rows above its upper end.
+    let w = wire_between(&s, "-102F1:2", "-X1021:1/a");
     let pts = line(&w);
+    assert_eq!(pts.len(), 3, "{pts:?}");
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let row = sn.page_of_index(8);
+    let top = sn.grid_index_of(pts[0].1.min(pts[2].1)) - 4;
+    let row = sn.page_of_index(top);
     let z = [pts[0], (pts[0].0, row), (pts[2].0, row), pts[2]];
     let route: Vec<Value> = z.iter().map(|p| json!([p.0, p.1])).collect();
     done(
@@ -1290,7 +1337,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     );
     done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
     let on = sheet(&s, ((pts[0].0 + pts[2].0) / 2, row));
-    let down = sheet(&s, ((pts[0].0 + pts[2].0) / 2, sn.page_of_index(10)));
+    let down = sheet(&s, ((pts[0].0 + pts[2].0) / 2, sn.page_of_index(top + 2)));
     // The selected wire shows a round handle on each segment and bend; the one under the pointer is hot, and
     // the pointer says the middle segment moves up and down.
     done(&mut s, "canvas.pointer", at(on, json!({})));
@@ -1328,7 +1375,8 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
         .find(|c| c.id == w.id)
         .unwrap()
         .clone();
-    let new_row = sn.page_of_index(10);
+    let new_row = sn.page_of_index(top + 2);
+
     assert_eq!(
         line(&moved),
         vec![pts[0], (pts[0].0, new_row), (pts[2].0, new_row), pts[2]]
@@ -1390,7 +1438,8 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
 fn the_junction_editor_lists_reorders_and_restyles() {
     let tmp = Tmp::new("junction");
     let mut s = actual_size(&tmp, "101");
-    let f55 = cp(&s, "F55:2");
+    // J1: the junction of the power supply's two + pins and the 24V source (the sample's script).
+    let f55 = cp(&s, "-101G1:+#1");
     let j1 = tables(&s)
         .junctions
         .iter()
@@ -1411,23 +1460,24 @@ fn the_junction_editor_lists_reorders_and_restyles() {
     // Enter on the selected junction opens the editor.
     done(&mut s, "canvas.activate", json!({}));
     let e = s.junction_editor().expect("the editor");
-    assert_eq!(e.sequence_labels(), ["F55:2", "E55:L", "E56:X2"]);
-    assert_eq!(e.style, "dot");
-    assert_eq!(e.wiring, "star");
-    assert_eq!(e.wires.len(), 2);
+    assert_eq!(e.sequence_labels(), ["-101G1:+#1", "24V", "-101G1:+#2"]);
+    assert_eq!(e.style, "bevel");
+    assert_eq!(e.wiring, "chain");
+    // The physical wires run on through the 24V source to its two targets on 102 and 104.
+    assert_eq!(e.wires.len(), 3);
     assert_eq!(s.session_calls().junction_wires, calls.junction_wires + 1);
     let editor = canvas(&s)["junction_editor"].clone();
-    assert_eq!(editor["sequence"], json!(["F55:2", "E55:L", "E56:X2"]));
+    assert_eq!(editor["sequence"], json!(["-101G1:+#1", "24V", "-101G1:+#2"]));
     let cell = editor["junction"].as_str().unwrap();
     assert!(cell.len() < 12 && !cell.is_empty(), "a cell, no UUID: {cell}");
     let text = s.describe();
     let head = text.lines().find(|l| l.starts_with("canvas junction ")).unwrap();
     assert!(
-        head.ends_with("style dot wiring star sequence \"F55:2\" \"E55:L\" \"E56:X2\""),
+        head.ends_with("style bevel wiring chain sequence \"-101G1:+#1\" \"24V\" \"-101G1:+#2\""),
         "{head}"
     );
-    assert_eq!(text.lines().filter(|l| l.starts_with("  wire \"")).count(), 2);
-    // A reorder: one `junction.edit`, the editor follows, the wires follow (star: the first member is the hub).
+    assert_eq!(text.lines().filter(|l| l.starts_with("  wire \"")).count(), 3);
+    // A reorder: one `junction.edit`, the editor follows, the wires follow (chain: the order is the run).
     let wires_before = e.wires.clone();
     let rev = s.revision();
     let runs = s.session_calls().run_script;
@@ -1435,7 +1485,8 @@ fn the_junction_editor_lists_reorders_and_restyles() {
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     assert_eq!(s.session_calls().run_script, runs + 1, "one commit");
     let e = s.junction_editor().unwrap();
-    assert_eq!(e.sequence_labels(), ["E55:L", "E56:X2", "F55:2"]);
+    assert_eq!(e.sequence_labels(), ["24V", "-101G1:+#2", "-101G1:+#1"]);
+
     assert_eq!(e.row, 2, "the moved member stays focused");
     assert_ne!(e.wires, wires_before, "the physical wires follow");
     // Style and wiring.
@@ -1507,18 +1558,18 @@ fn the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
     let routes = s.wire_route_calls().unwrap();
     // Ten cursor steps: ten changed targets, ten routes; the same point again routes nothing.
     for k in 0..10 {
-        let q = grid_point(&s, (60 + k, 40));
+        let q = right_half(&s, (k, 0));
         cursor(&mut s, q);
     }
     assert_eq!(s.wire_route_calls().unwrap(), routes + 10);
-    let q = grid_point(&s, (69, 40));
+    let q = right_half(&s, (9, 0));
     cursor(&mut s, q);
     assert_eq!(
         s.wire_route_calls().unwrap(),
         routes + 10,
         "an unchanged target is not routed again"
     );
-    let b = cp(&s, "-102F2:24VDC#1");
+    let b = cp(&s, "-102E1:X1");
     cursor(&mut s, b.at);
     let after = s.session_calls();
     assert_eq!(after.page_content, calls.page_content);
@@ -1539,18 +1590,14 @@ fn the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
 fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
     let tmp = Tmp::new("band");
     let mut s = actual_size(&tmp, "102");
-    // The routed wire from -102F2:Out1 to 24VDC-1, then -102F2's box moved one step right: the far end stays and the
+    // The routed wire from the 24V target to -102F1:1, then -102F1 moved one step right: the far end stays and the
     // wire's route follows, in the rubber band and in the stored route alike.
-    let a = cp(&s, "-102F2:Out1");
-    let target = cp(&s, "24VDC-1");
+    let a = cp(&s, "-102F1:1");
+    let target = cp(&s, "24V");
+    let wire = wire_between(&s, "-102F1:1", "24V");
+    assert!(wire.stored_route);
     let t = tables(&s);
-    let wire = t
-        .connections
-        .iter()
-        .filter(|c| c.stored_route)
-        .find(|c| end_label(&t, &c.a) == "-102F2:Out1")
-        .unwrap()
-        .clone();
+
     let rep = t.reps.iter().find(|r| r.id == a.rep).unwrap().clone();
     let centre = sheet(
         &s,
