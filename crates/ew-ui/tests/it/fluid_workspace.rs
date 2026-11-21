@@ -4,7 +4,9 @@
 //! The Fluid workspace in the window (FR-UI-003, FR-UI-006, doc 11 §7), at 1920 × 1080: View ▸ Workspaces ▸ Fluid power
 //! shows the fluid navigator with the sample's valve terminal and its valves with their lines, and the tube
 //! and medium tables in the bottom dock; a tube's length typed into its cell becomes manual; New medium… adds a medium,
-//! a fluid line's context menu sets it and picks the line's kind, and the medium's row highlights its zones.
+//! a fluid line's context menu sets it and picks the line's kind, and the medium's row highlights its zones. Not here:
+//! the silencer's autoconnect, the interruption point's fluid form and an overview generated again on page 201
+//! (`ew-viewmodel`'s `fluid_page.rs`).
 
 use crate::support;
 
@@ -285,75 +287,6 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1733: on fluid page 201 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
-/// connection is a fluid line, not a wire.
-#[test]
-fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
-    use ew_viewmodel::tools::Ghost;
-    let tmp = Tmp::new();
-    let mut h = on_sample(&tmp, "201");
-    let (free, step) = {
-        let c = h.state().shell().canvas().unwrap();
-        let t = &c.page().tables;
-        let free: Vec<(i64, i64)> = t
-            .cps
-            .iter()
-            .filter(|p| p.fluid && p.connections.is_empty() && p.dir.is_some())
-            .map(|p| p.at)
-            .collect();
-        (free, t.grid.0 / t.grid.1.max(1))
-    };
-    assert!(!free.is_empty(), "free fluid ports");
-    let before: usize = {
-        let c = h.state().shell().canvas().unwrap();
-        c.page()
-            .tables
-            .connections
-            .iter()
-            .filter(|c| c.kind == "fluid")
-            .count()
-    };
-    dispatch(&mut h, "tool.place", json!({}));
-    dispatch(
-        &mut h,
-        "place.pick",
-        json!({"symbol": "ew.iso.silencer@qet10", "letter": "R"}),
-    );
-    settle(&mut h);
-    let mut found = false;
-    'search: for at in &free {
-        for dy in (-10..=10).filter(|d| *d != 0) {
-            for dx in -3..=3 {
-                let p = (at.0 + dx * step, at.1 + dy * step);
-                let (x, y) = {
-                    let c = h.state().shell().canvas().unwrap();
-                    let s = c.page().snapper.page_to_sheet(p);
-                    (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
-                };
-                dispatch(&mut h, "cursor.set", json!({"x_mm": x, "y_mm": y}));
-                if matches!(h.state().shell().tool_ghost(), Some(Ghost::Place { hints, .. }) if hints > 0) {
-                    found = true;
-                    break 'search;
-                }
-            }
-        }
-    }
-    assert!(found, "a place where the silencer faces a free fluid port");
-    dispatch(&mut h, "canvas.activate", json!({}));
-    settle(&mut h);
-    let after: usize = {
-        let c = h.state().shell().canvas().unwrap();
-        c.page()
-            .tables
-            .connections
-            .iter()
-            .filter(|c| c.kind == "fluid")
-            .count()
-    };
-    assert_eq!(after, before + 1, "the hint is a fluid line");
-    h.state_mut().shell_mut().shutdown();
-}
-
 /// FT-1733, rc.2: Fluid ▸ Tube draws at once; the HUD's Line kind steps to Pilot, and the Wire tool then draws a
 /// pilot line between two free fluid ports of fluid page 201.
 #[test]
@@ -548,57 +481,6 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
             .any(|r| r.rep_type == "overview" && r.symbol_key.starts_with("ew.ovw."))
     });
     assert!(drawn, "the overview drawn on {page}");
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// Doc 11 §11, AC-32: Generate overview… on a valve terminal whose overview is drawn keeps every member where it
-/// stands: the preview names the same members on the same pages, and changes no record.
-#[test]
-fn a_drawn_overview_is_refreshed_without_a_change() {
-    let tmp = Tmp::new();
-    let mut h = on_sample(&tmp, "201");
-    let generate = json!({"station": "tag:-201K1"});
-    dispatch(&mut h, "fluid.generate_overview", generate.clone());
-    settle(&mut h);
-    let drawn = overview_pages(&h);
-    assert!(!drawn.is_empty(), "the first overview's pages");
-    dispatch(&mut h, "preview.apply", json!({}));
-    dispatch(&mut h, "fluid.generate_overview", generate);
-    settle(&mut h);
-    assert_eq!(overview_pages(&h), drawn);
-    let pane = h.state().shell().preview_pane();
-    assert!(pane.entities().is_empty(), "{:?}", pane.entities());
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// FT-1757: on a fluid page (the sample's 201) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
-/// the wire's.
-#[test]
-fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {
-    let tmp = Tmp::new();
-    let mut h = on_sample(&tmp, "201");
-    let forms = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
-        h.state()
-            .shell()
-            .canvas()
-            .unwrap()
-            .page()
-            .tables
-            .reps
-            .iter()
-            .filter(|r| r.ip.is_some())
-            .map(|r| r.symbol_key.clone())
-            .collect::<Vec<_>>()
-    };
-    let before = forms(&h).len();
-    dispatch(&mut h, "tool.ip", json!({}));
-    crate::navigators::cursor_k(&mut h, (60, 6));
-    dispatch(&mut h, "canvas.activate_alt", json!({}));
-    dispatch(&mut h, "tool.select", json!({}));
-    settle(&mut h);
-    let after = forms(&h);
-    assert_eq!(after.len(), before + 1, "{after:?}");
-    assert!(after.iter().all(|k| k.starts_with("ew.iso.ip")), "{after:?}");
     h.state_mut().shell_mut().shutdown();
 }
 
