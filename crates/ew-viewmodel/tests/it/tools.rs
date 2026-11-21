@@ -120,7 +120,7 @@ fn select_clicks_shift_and_ctrl() {
     // The live region announces the change: one selected record in words.
     assert_eq!(
         shell.tool_announcement(),
-        Some("Interruption point 24VDC-4, folio 103")
+        Some("Interruption point 1L3, folio 103")
     );
     click(&mut shell, empty, json!({}));
     assert!(shell.selection().is_empty());
@@ -465,7 +465,13 @@ fn the_link_hover_preview() {
     assert_eq!(lp.target, target);
     assert_eq!(lp.canvas.page().folio, target.folio);
     assert_eq!(lp.canvas.pane(), (320.0, 200.0));
-    assert_eq!(lp.canvas.centre(), target.at_nm.unwrap(), "centred on the target");
+    // Centred on the target where the sheet allows; the sample's link stands near the sheet's left edge, where the
+    // view stops at the edge and the target stands off centre, still in the pane.
+    let (c, t) = (lp.canvas.centre(), target.at_nm.unwrap());
+    let k = lp.canvas.points_per_nm();
+    assert_eq!(c.1, t.1, "centred down the page");
+    assert!(c.0 >= t.0 && (c.0 - t.0) as f64 * k <= 160.0, "{c:?} {t:?}");
+
     assert!(lp.canvas.zoom() >= 2.0 * lp.canvas.fit_zoom() - 1e-12);
     assert_eq!(shell.session_calls().page_content, calls.page_content + 1);
     assert_eq!(state(&shell)["canvas"]["link_preview"], json!(target.folio));

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its optional reason and author,
+//! Waive… and Unwaive in the Messages pane on copies of the sample (the reason prompt, its optional reason and author,
 //! the author preference, the date the window passes, one `check.waive` or `check.unwaive` per step, the check toast's
-//! waived count). The canvas's conflict overlay of an unbonded merged 0 V/PE potential (Golden A without its
-//! bond B1), which never reaches the page's display list.
+//! waived count). The canvas's conflict overlay of an unbonded merged 0 V/PE potential (the sample without its
+//! PELV bond), which never reaches the page's display list.
 
 use crate::common;
 
@@ -15,6 +15,16 @@ use serde_json::json;
 
 /// The date the window would pass (a fixed one: the shell never reads a clock).
 const DATE: &str = "2026-10-30";
+
+/// The supply cable -101W1 made to lack its length, so that EW-CORE-033 reports it (the sample has no finding).
+fn without_cable_length(shell: &mut ShellModel) {
+    done(
+        shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101W1"}],
+            "path": "cable.length", "value": "missing"}}),
+    );
+}
 
 /// The finding row of rule `rule` whose subject ends with `subject`.
 fn finding(shell: &ShellModel, rule: &str, subject: &str) -> NavNode {
@@ -57,9 +67,10 @@ fn last_waive(shell: &ShellModel) -> serde_json::Value {
 #[test]
 fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_again() {
     let tmp = Tmp::new("waive-prompt");
-    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
+    without_cable_length(&mut shell);
     done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-033", "-3W1");
+    let row = finding(&shell, "EW-CORE-033", "-101W1");
     done(
         &mut shell,
         "navigator.row",
@@ -150,9 +161,10 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
 #[test]
 fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_commit() {
     let tmp = Tmp::new("waive-refusals");
-    let mut shell = tmp.sample_in(Mode::Gui, true, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
+    without_cable_length(&mut shell);
     done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-033", "-3W1");
+    let row = finding(&shell, "EW-CORE-033", "-101W1");
     let rev = shell.revision();
     // No date.
     let reason = "Cable length is set on site";
@@ -185,9 +197,10 @@ fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_
 
     // Headless: `check.waive` is `HumanOnly`.
     let tmp = Tmp::new("waive-headless");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    without_cable_length(&mut shell);
     done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-033", "-3W1");
+    let row = finding(&shell, "EW-CORE-033", "-101W1");
     assert_eq!(
         refused(
             &mut shell,
@@ -199,15 +212,15 @@ fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_
     shell.shutdown();
 }
 
-/// A writable window copy of Golden A on folio 103 with the bond B1 deleted: 0 V and PE merge over W27 and EW-POT-001
-/// reports (as in `tests/bond.rs`).
+/// A writable window copy of the sample on folio 103 with its one bond deleted: 0 V and PE merge over the PELV wire
+/// on 102 and EW-POT-001 reports (as in `tests/bond.rs`).
 fn without_b1(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let bond = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
-        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        assert_eq!(rows.len(), 1, "the sample has the one PELV bond");
         rows[0].records[0]
     };
     done(
@@ -220,12 +233,12 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
 
 /// While EW-POT-001 stands, the wires of the merged potential on 103 are in the conflict overlay; the page's
 /// display list (what the canvas renders, prints and exports) is the same with the finding open and waived; once the
-/// bond is declared the overlay is empty. Golden A itself has no overlay.
+/// bond is declared the overlay is empty. The sample itself has no overlay.
 #[test]
 fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_declared() {
     let tmp = Tmp::new("conflict-golden");
     let mut shell = tmp.sample_in(Mode::Gui, true, "103");
-    assert!(shell.conflict_members().is_empty(), "Golden A has its bond");
+    assert!(shell.conflict_members().is_empty(), "the sample has its bond");
     assert!(shell.conflict_overlay(0).is_empty());
     shell.shutdown();
 
@@ -234,7 +247,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     let members = shell.conflict_members();
     assert!(!members.is_empty(), "the merged potential's wires");
     let overlay = shell.conflict_overlay(0);
-    assert!(!overlay.is_empty(), "W27 and the 0 V/PE wires on 103");
+    assert!(!overlay.is_empty(), "the 0 V/PE wires on 103");
     assert!(overlay.iter().all(|line| line.len() >= 2));
     let page = shell.page_content("103").expect("the page's display list");
 
@@ -266,11 +279,12 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(shell.conflict_overlay(0), overlay, "open again");
 
-    // The bond declared on W27 (the finding's fix): the PE colour returns, no overlay.
+    // The bond declared on the PELV wire of 102 (the finding's fix): the PE colour returns, no overlay.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["wire:\"PE-0VDC\" -> \"-X1032:2/a\""]}),
+        json!({"refs": ["wire:-X1021:8/a -> PE"]}),
     );
     done(&mut shell, "bond.draw", json!({}));
     done(&mut shell, "preview.apply", json!({}));
@@ -288,8 +302,8 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
 #[test]
 fn a_named_connection_point_draws_its_wires_or_its_ring() {
     let tmp = Tmp::new("ft696");
-    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
-    let page = std::sync::Arc::clone(shell.canvas().expect("folio 103").page());
+    let mut shell = tmp.sample_in(Mode::Gui, true, "104");
+    let page = std::sync::Arc::clone(shell.canvas().expect("folio 104").page());
     let sheet = |p: &(i64, i64)| page.snapper.page_to_sheet(*p);
     let wired = page
         .tables
@@ -331,7 +345,7 @@ fn a_named_connection_point_draws_its_wires_or_its_ring() {
     shell.shutdown();
 }
 
-/// A real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
+/// A real EW-POT-001 finding on a potential without a definition (the sample without its bond and
 /// without its potential definitions, so 0 V and PE merge with no definition to key them) draws, through
 /// `conflict_overlay`, exactly the wires of the connection point its discriminator names: the overlay is that of one
 /// point of the page, and no definition gives members.
@@ -397,9 +411,11 @@ fn a_scripted_window_shows_the_waive_refusal_in_words() {
         "file.open",
         json!({"dir": dir.to_string_lossy(), "read_only": false}),
     );
-    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    without_cable_length(&mut shell);
     done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-033", "-3W1");
+    let row = finding(&shell, "EW-CORE-033", "-101W1");
+
     done(
         &mut shell,
         "navigator.row",

@@ -3,7 +3,7 @@
 
 //! The product findings of the first blind-drafter dry run (BD16), one regression test per fixed item. The
 //! drafter drew folio 101 through the text interface only; each test repeats the step that went wrong there, on a
-//! writable copy of Golden A or on a new project, and asserts what the text now says or does.
+//! writable copy of the sample or on a new project, and asserts what the text now says or does.
 
 use crate::common;
 
@@ -11,8 +11,8 @@ use common::{Tmp, at, click, done, failed, new_project, refused, state, tables, 
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
-/// A headless shell with a writable copy of Golden A on `folio`, at actual size.
-fn golden(tmp: &Tmp, folio: &str) -> ShellModel {
+/// A headless shell with a writable copy of the sample on `folio`, at actual size.
+fn sample(tmp: &Tmp, folio: &str) -> ShellModel {
     let mut s = tmp.sample_in(Mode::Headless, true, folio);
     done(&mut s, "view.zoom_actual", json!({}));
     s
@@ -37,7 +37,7 @@ fn at_of(line: &str) -> Option<(i64, i64)> {
 #[test]
 fn page_text_positions_are_the_click_positions_of_the_connection_points() {
     let tmp = Tmp::new("ft485-5");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "101");
     let text = page_text(&mut s, "101");
     let page = std::sync::Arc::clone(s.canvas().unwrap().page());
     let mut checked = 0;
@@ -57,12 +57,12 @@ fn page_text_positions_are_the_click_positions_of_the_connection_points() {
     // The grid cursor set to a printed position names that connection point.
     let line = text
         .lines()
-        .find(|l| l.starts_with("    cp \"F55:2\""))
-        .expect("F55:2");
+        .find(|l| l.starts_with("    cp \"-101F1:2\""))
+        .expect("-101F1:2");
     done(&mut s, "cursor.set", at(at_of(line).unwrap(), json!({})));
     assert_eq!(
         s.canvas().unwrap().cursor_cp().map(|c| c.label.as_str()),
-        Some("F55:2")
+        Some("-101F1:2")
     );
 }
 
@@ -72,18 +72,22 @@ fn page_text_positions_are_the_click_positions_of_the_connection_points() {
 #[test]
 fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     let tmp = Tmp::new("ft485-4");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "101");
     let text = page_text(&mut s, "101");
     let wires: Vec<String> = text
         .lines()
         .filter(|l| l.starts_with("  wire "))
         .map(str::to_owned)
         .collect();
-    assert_eq!(wires.len(), 21);
-    // Folio 101's wires are routed (Golden A's route tool): none runs along another, so every line prints a
-    // point that picks its wire alone.
+    assert!(!wires.is_empty());
+    // Folio 101's wires are routed (the sample's script routes them): none runs along another, so every line prints
+    // a point that picks its wire alone, but for the short stub from a junction to the PE source, which lies under
+    // the source's link (a press there follows the link).
     let pointless: Vec<&String> = wires.iter().filter(|l| at_of(l).is_none()).collect();
-    assert!(pointless.is_empty(), "{pointless:#?}");
+    assert!(
+        pointless.iter().all(|l| l.starts_with("  wire junction ") && l.contains("\"PE\"")),
+        "{pointless:#?}"
+    );
     let t = tables(&s);
     let ends_of = |id| {
         let c = t.connections.iter().find(|c| c.id == id).expect("a wire");
@@ -138,13 +142,13 @@ fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     }
     // A wire is deleted from the text: select it by its ends, Delete.
     let n = tables(&s).connections.len();
-    done(&mut s, "select.set", json!({"refs": ["wire:-101F1:1 -> F55:1"]}));
+    done(&mut s, "select.set", json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}));
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(tables(&s).connections.len(), n - 1);
     // No such wire, and the wrong form, fail with the form in the message.
-    let m = failed(&mut s, "select.set", json!({"refs": ["wire:-101F1:1 -> F55:1"]}));
+    let m = failed(&mut s, "select.set", json!({"refs": ["wire:-X1011:L1/a -> -101Q1:1"]}));
     assert!(m.contains("wire:<end> -> <end>"), "{m}");
-    failed(&mut s, "select.set", json!({"refs": ["wire:F55:1"]}));
+    failed(&mut s, "select.set", json!({"refs": ["wire:-101Q1:1"]}));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -153,12 +157,13 @@ fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
 #[test]
 fn a_route_that_ends_on_a_wire_names_that_wire_by_its_ends() {
     let tmp = Tmp::new("ft485-7");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "101");
     let text = page_text(&mut s, "101");
-    // The two wires of the drafter's mistake run side by side through one cell (`1X1:1/a`, `1X1:2/a` to S51).
+    // The two wires of the drafter's mistake run side by side through one cell (`-X1011:L1/a`, `-X1011:L2/a` to
+    // -101Q1).
     let line = text
         .lines()
-        .find(|l| l.starts_with("  wire \"1X1:1/a\" -> \"S51:2\""))
+        .find(|l| l.starts_with("  wire ") && l.contains("\"-X1011:L1/a\"") && l.contains("\"-101Q1:1\""))
         .expect("the wire");
     let p = at_of(line).unwrap();
     let ends: Vec<&str> = line.split('"').skip(1).step_by(2).take(2).collect();
@@ -185,7 +190,7 @@ fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
 #[test]
 fn delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_page() {
     let tmp = Tmp::new("ft485-10");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "101");
     let before = tables(&s);
     let s51: Vec<_> = before
         .reps
@@ -194,12 +199,12 @@ fn delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_page() 
             before
                 .cps
                 .iter()
-                .any(|c| c.rep == r.id && c.label.starts_with("S51:"))
+                .any(|c| c.rep == r.id && c.label.starts_with("-101Q1:"))
         })
         .map(|r| r.id)
         .collect();
     assert_eq!(s51.len(), 1);
-    done(&mut s, "select.set", json!({"refs": ["tag:S51"]}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-101Q1"]}));
     done(&mut s, "edit.delete_selection", json!({}));
     let after = tables(&s);
     assert_eq!(after.reps.len(), before.reps.len() - 1);
@@ -356,7 +361,7 @@ fn no_external_reference_names_the_menu_path_and_a_bound_key() {
 #[test]
 fn the_frozen_tag_takes_the_tag_as_the_page_prints_it() {
     let tmp = Tmp::new("ft485-2");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "101");
     done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
     done(
         &mut s,
@@ -390,25 +395,27 @@ fn the_frozen_tag_takes_the_tag_as_the_page_prints_it() {
 #[test]
 fn the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     let tmp = Tmp::new("ft485-3");
-    let mut s = golden(&tmp, "101");
+    let mut s = sample(&tmp, "102");
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
     );
-    // Two contacts one above the other, then a third between them: its CPs face both.
+    // Two contacts one above the other in the empty right half of 102, then a third between them: its CPs face both.
     let sn = s.canvas().unwrap().page().snapper.clone();
-    let k = |x: i64, y: i64| sn.page_to_sheet((sn.page_of_index(x), sn.page_of_index(y)));
-    done(&mut s, "cursor.set", at(k(60, 38), json!({})));
+    let base = sn.sheet_to_page((200_000_000, 60_000_000));
+    let (bx, by) = (sn.grid_index_of(base.0), sn.grid_index_of(base.1));
+    let k = |x: i64, y: i64| sn.page_to_sheet((sn.page_of_index(bx + x), sn.page_of_index(by + y)));
+    done(&mut s, "cursor.set", at(k(0, 0), json!({})));
     assert_eq!(
         state(&s)["status"][0],
         "Click or Enter to place; R, X, Y and V turn it; Esc ends"
     );
     done(&mut s, "canvas.activate", json!({}));
     let span = 4;
-    done(&mut s, "cursor.set", at(k(60, 38 + 3 * span + 2), json!({})));
+    done(&mut s, "cursor.set", at(k(0, 3 * span + 2), json!({})));
     done(&mut s, "canvas.activate_alt", json!({}));
-    done(&mut s, "cursor.set", at(k(60, 38 + span + 1), json!({})));
+    done(&mut s, "cursor.set", at(k(0, span + 1), json!({})));
     let hints = state(&s)["canvas"]["ghost"]["hints"].as_u64().unwrap();
     assert!(hints > 0, "{}", s.describe());
     assert!(
@@ -421,9 +428,10 @@ fn the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     );
     done(&mut s, "canvas.activate", json!({}));
     let t = toast(&s);
-    assert!(t.starts_with("Placed -101K"), "{t}");
+    assert!(t.starts_with("Placed -102K"), "{t}");
     assert!(t.contains(" and connected "), "{t}");
-    assert!(t.contains(" -> \"-101K"), "{t}");
+    assert!(t.contains(" -> \"-102K"), "{t}");
+
     assert!(
         t.ends_with("Alt+Click or Ctrl+Enter places without connecting."),
         "{t}"

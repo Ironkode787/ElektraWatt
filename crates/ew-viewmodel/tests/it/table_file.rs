@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On copies of Golden A: `navigator.export_table` writes the Terminal strips table on
-//! show byte for byte as `ew export table strips --strip -X1031` writes it (TW-1; the CLI's path, run here through the
+//! On copies of the sample: `navigator.export_table` writes the Terminal strips table on
+//! show byte for byte as `ew export table strips --strip -X1021` writes it (TW-1; the CLI's path, run here through the
 //! same `ew-api` calls on a reader session of the saved project), `navigator.import_table` of a file with five changed
 //! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing (TW-1); a cell changed in
 //! the project and in the file is one conflict and Accept keeps the project's value (TW-2); the export is a
@@ -20,7 +20,8 @@ use ew_viewmodel::script::card_summary;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
-/// A writable copy of Golden A, headless, with the Terminal strips table on show, filtered `-X1031`, in node order.
+/// A writable copy of the sample, headless, with the Terminal strips table on show, filtered to the strip -X1021, in
+/// node order.
 fn strips(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
@@ -32,7 +33,7 @@ fn strips(tmp: &Tmp) -> ShellModel {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "-X1031"}),
+        json!({"kind": "strips", "text": "strip:-x1021"}),
     );
     done(
         &mut shell,
@@ -46,11 +47,11 @@ fn text(p: &Path) -> String {
     p.to_string_lossy().into_owned()
 }
 
-/// The workbook `ew export table strips --strip -X1031` writes without `SOURCE_DATE_EPOCH`, by the CLI's own calls
+/// The workbook `ew export table strips --strip -X1021` writes without `SOURCE_DATE_EPOCH`, by the CLI's own calls
 /// (`bin/ew/src/cli.rs`, `run_export_nav_table`) on a reader session of the project at `dir`.
 fn cli_workbook(dir: &Path) -> Vec<u8> {
     let (session, _) = ew_api::Session::open_reader(dir, "0.0.0-test", "export").unwrap();
-    let key = session.navigator_table_key("strips", Some("-X1031")).unwrap();
+    let key = session.navigator_table_key("strips", Some("-X1021")).unwrap();
     let table = session.table_export(&key).unwrap();
     let tables = std::slice::from_ref(&table);
     let meta = ew_api::output::with_base_digest(&session.workbook_meta(None), tables);
@@ -179,14 +180,14 @@ fn steps(shell: &ShellModel) -> usize {
     shell.recorded_commands().len()
 }
 
-/// TW-1: the table on show filtered to -X1031 in node order is the CLI's `--strip -X1031` workbook byte for byte (the
+/// TW-1: the table on show filtered to -X1021 in node order is the CLI's `--strip -X1021` workbook byte for byte (the
 /// filter shows no row of another strip, so no narrowing is needed); a file with five changed labels opens
 /// the card with "5 changed"; Escape commits nothing; Accept commits one `fields.set_many`, one undo step.
 #[test]
 fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let tmp = Tmp::new("tw1");
     let mut shell = strips(&tmp);
-    // Every row on show sits under the strip -X1031.
+    // Every row on show sits under the strip -X1021.
     let n = shell.nav(NavKind::Strips).unwrap();
     let table = n.table().unwrap();
     let parents: Vec<Option<u32>> = n
@@ -196,12 +197,12 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         .collect();
     let strip = parents[0].unwrap() as usize;
     assert_eq!(table.nodes[strip].role, NavRole::Strip);
-    assert_eq!(table.nodes[strip].label, "-X1031");
+    assert_eq!(table.nodes[strip].label, "-X1021");
     assert!(
         parents.iter().all(|p| *p == Some(strip as u32)),
-        "the filter -X1031 shows rows of another strip"
+        "the filter -X1021 shows rows of another strip"
     );
-    assert_eq!(parents.len(), 20, "the 20 terminals of -X1031");
+    assert_eq!(parents.len(), 8, "the 8 terminals of -X1021");
 
     let out = tmp.0.join("x.xlsx");
     done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
@@ -210,7 +211,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     assert_eq!(first_difference(&bytes, &cli), None);
     assert_eq!(
         bytes, cli,
-        "byte-equal to `ew export table strips --strip -X1031`"
+        "byte-equal to `ew export table strips --strip -X1021`"
     );
     done(&mut shell, "jobs.show", json!({}));
     let kib = bytes.len().div_ceil(1024);
@@ -246,7 +247,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     assert_eq!(
         ew_viewmodel::properties::TableImportCard::cell_line(first),
         format!(
-            "-X1031:1 · Function text · \"{}\" → \"Valve 1\" · Apply takes the file's value",
+            "-X1021:1 · Function text · \"{}\" → \"Valve 1\" · Apply takes the file's value",
             first.ew
         )
     );
@@ -258,7 +259,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         ),
         "{d}"
     );
-    assert!(d.contains("  cell \"-X1031:1\" \"Function text\" "), "{d}");
+    assert!(d.contains("  cell \"-X1021:1\" \"Function text\" "), "{d}");
     assert!(d.contains("\"Valve 1\" applied"), "{d}");
     // Escape commits nothing.
     done(&mut shell, "ui.dismiss", json!({}));
@@ -551,11 +552,11 @@ fn the_export_is_cut_to_the_rows_and_columns_on_show() {
     let tmp = Tmp::new("tfc");
     let mut shell = strips(&tmp);
     let all = shown_rows(&shell);
-    // The Pneumatics terminals of -X1031 (1 to 4 and 11 to 14), the last first.
+    // The 0 V terminals of -X1021 (5 to 8, the bridge BR2 of the sample's script), the last first.
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "-X1031 Pneumatics"}),
+        json!({"kind": "strips", "text": "strip:-x1021 0V"}),
     );
     done(
         &mut shell,
@@ -577,7 +578,7 @@ fn the_export_is_cut_to_the_rows_and_columns_on_show() {
         json!({"kind": "strips", "hide": [bridge]}),
     );
     let rows = shown_rows(&shell);
-    assert_eq!(rows.len(), 8, "the filter shows a subset: {rows:?}");
+    assert_eq!(rows.len(), 4, "the filter shows a subset: {rows:?}");
     let mut in_table_order: Vec<String> = all.iter().filter(|k| rows.contains(k)).cloned().collect();
     in_table_order.reverse();
     assert_eq!(rows, in_table_order, "the order on show is the table's, reversed");
@@ -866,7 +867,7 @@ fn a_table_without_a_file_form_refuses_its_export() {
     shell.shutdown();
 }
 
-/// An XLSX exported from Golden A, imported into a new project's Terminal strips table, fails with
+/// An XLSX exported from the sample, imported into a new project's Terminal strips table, fails with
 /// the other project's error, whole.
 #[test]
 fn a_file_of_another_project_is_refused() {
