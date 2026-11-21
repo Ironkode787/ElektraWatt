@@ -50,6 +50,18 @@ change here.
   titles, headers and cells in the project's language; the CSV and XLSX stay English (doc 09 §3.8, FT-1955)
 - behaviour-change: `ew route` names on stderr a file of the project that `manifest.json` does not list, and refuses a
   crashed session's unsaved journal and an older format as the other writers do (FT-1930)
+- behaviour-change: the window's finish (FT-1761): a row's right-click menu opens under its row, not over it; a
+  greyed entry of the canvas's menu, a command bar button's menu or a panel's More says why on a line under it; the
+  check's toast offers Show messages; no tooltip stands over a dialog's backdrop; a report page's Properties say
+  "generated" once in their header; Insert symbol opens on a row that can be placed; the Preview tab and the cards
+  leave a count of none out, start an entry with a capital and say Cross-references for Xrefs; a medium's badge in
+  the Fluid navigator counts its consumers as the medium table does; a medium's Colour stands under Identity; the
+  parts import's Map columns card stands in the window's centre (doc 16a §6.8, §6.10, §6.13, §6.23)
+- behaviour-change: the symbol editor's start card keeps its ways in where they stand when a draft is in hand, and
+  Copy a library symbol… lists the symbols in the symbol browser's order with its picture of the one under the
+  pointer (doc 07 §5, FT-1810)
+- behaviour-change: the page has scroll bars while part of it is out of view, and the mouse wheel's first zoom
+  offers once to make it scroll the page instead (View ▸ Mouse wheel scrolls) (doc 16a §5.5, FT-1830)
 - behaviour-change: a table's columns fill its grid: a table without a column that takes the rest shares the room its
   columns leave among them, at 2560 × 1440 as at 1920 (the Bus, Devices and Medium tables) (doc 16a §6.21, FT-1761)
 - behaviour-change: Select and Wire lead the Draw, PLC and Fluid tabs alike, so a tool keeps its place when the
