@@ -498,6 +498,33 @@ fn n_def() -> Value {
     json!({"name": "N", "ptype": "n"})
 }
 
+/// A 1P+N breaker drawn as two functions of one device (FT-1903): 0x1003's pole 0→1 switches N towards the load
+/// -K4098 (CP 0), 0x1004's pole 0→1 switches L towards it (CP 1). With `one_device` false, 0x1004 has its own device.
+fn poles(one_device: bool) -> Model {
+    let mut fx = base(&none());
+    fx.func_of(0x1001, FNDEF_SUPPLY, SYM_SUPPLY, P1); // CP 0 N, CP 1 L
+    fx.func(0x1002, P1); // the load
+    fx.func_of(0x1003, FNDEF_2P, SYM_2P, P1);
+    if one_device {
+        fx.push(json!({
+            "$k": "function", "id": us(0x1004), "device": us(0x1003 + 0x20_000), "def": us(FNDEF_2P), "role": "aux",
+        }));
+        fx.push(json!({
+            "$k": "representation", "id": us(0x1004 + 0x10_000), "functions": [us(0x1004)], "page": us(P1),
+            "symbol": us(SYM_2P), "pos": [0, 0x1004_i64 * 1_000_000],
+        }));
+    } else {
+        fx.func_of(0x1004, FNDEF_2P, SYM_2P, P1);
+    }
+    fx.conn(0x2001, P1, cp(0x1001), Ep::Cp(0x1003, 0), &none());
+    fx.conn(0x2002, P1, Ep::Cp(0x1003, 1), cp(0x1002), &none());
+    fx.conn(0x2003, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1004, 0), &none());
+    fx.conn(0x2004, P1, Ep::Cp(0x1004, 1), Ep::Cp(0x1002, 1), &none());
+    fx.def(0x5001, cp(0x1001), &n_def());
+    fx.def(0x5002, Ep::Cp(0x1001, 1), &json!({"name": "L", "ptype": "l"}));
+    fx.build()
+}
+
 #[test]
 fn pot013_cases() {
     let flags = json!({"switches_n_with_l": true});
@@ -530,6 +557,15 @@ fn pot013_cases() {
             Case::silent(
                 "a two-pole breaker that opens L and N, without the flag",
                 switch(&none(), &n_def(), true),
+            ),
+            Case::silent(
+                "a 1P+N breaker whose phase and neutral poles are two functions of one device",
+                poles(true),
+            ),
+            Case::reports(
+                "a phase pole of another device does not excuse it",
+                poles(false),
+                |c, f| assert_eq!(f.len(), 1, "case {c}: {f:#?}"),
             ),
             Case::reports(
                 "the flag without a line pole does not excuse it",

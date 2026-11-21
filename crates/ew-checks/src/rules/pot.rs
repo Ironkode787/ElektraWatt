@@ -2132,8 +2132,9 @@ fn opening_pairs(q: &Q, f: Id<Function>) -> Vec<OpeningPair> {
 /// (doc 08 §8.2, FR-CHK-019, D-13).
 ///
 /// For each function with an opening pair whose upstream side (by the flow) is the potential `p` of type N or PEN:
-/// it is accepted when the function also opens a pair whose upstream type is L, L1, L2 or L3 (its poles are one
-/// mechanism: a two- or four-pole breaker or switch opens phase and neutral together, whatever its definition's
+/// it is accepted when the function, or another function of its device, also opens a pair whose upstream type is
+/// L, L1, L2 or L3 (its poles are one mechanism: a two- or four-pole breaker or switch, a 1P+N breaker drawn as a
+/// phase pole and a neutral pole, opens phase and neutral together, whatever its definition's
 /// `switches_n_with_l` says); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
 /// error. The loads are the devices with a CP in the downstream potential whose line CPs lie in a potential the
 /// function does not switch, named in natural order. One finding per pair, target the function, discriminator
@@ -2167,9 +2168,19 @@ impl Rule for NSwitching {
             };
             let flags = q.fndefs().get(function.def).map(|d| d.item.flags.clone());
             let isolating = flags.as_ref().is_some_and(|x| x.n_isolation);
-            let opens_line = pairs
-                .iter()
-                .any(|x| final_type(q, x.up).as_ref().is_some_and(is_line));
+            // The poles of one device are one mechanism, whether drawn as one function or as one per pole (a 1P+N
+            // breaker's phase pole and neutral pole).
+            let line_pole = |pairs: &[OpeningPair]| {
+                pairs
+                    .iter()
+                    .any(|x| final_type(q, x.up).as_ref().is_some_and(is_line))
+            };
+            let opens_line = line_pole(&pairs)
+                || function.device.is_some_and(|d| {
+                    q.idx()
+                        .functions_of_device(d)
+                        .any(|g| g != f && line_pole(&opening_pairs(q, g)))
+                });
             let switched: BTreeSet<PotentialId> = pairs.iter().map(|x| x.down).collect();
             let name = function
                 .device

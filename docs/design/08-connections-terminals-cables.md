@@ -1322,7 +1322,8 @@ references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-00
 for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def.internal:
   P_up = upstream side of p (potential_flow)
   if ptype(P_up) ∈ {N, PEN}:
-     ok = f has an opening pair whose upstream type ∈ {L, L1, L2, L3}   // rc.5: its poles are one mechanism
+     ok = f, or another function of f's device, has an opening pair whose upstream type ∈ {L, L1, L2, L3}
+          // rc.5: its poles are one mechanism; 0.3.5 (FT-1903): also a 1P+N breaker drawn as a pole per function
      if f.def.flags.n_isolation: report info "N isolating terminal" and continue
      if not ok: report error {function f, potential P_up → P_d, loads}
   loads = devices with CPs in P_d whose line CPs lie in a potential that f does not switch

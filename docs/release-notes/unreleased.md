@@ -382,3 +382,6 @@ change here.
   it made a node `+UP` that printed `++UP` (doc 06 §3.5, FT-1901)
 - behaviour-change: `bus.cable` takes its cable part and its plugs by part number, in any case, as every part parameter
   does; a plug was found only by its record ID and the cable part only with its description (doc 10 §2.7, FT-1902)
+- behaviour-change: EW-POT-013 accepts a breaker whose phase pole and neutral pole are two functions of one device (1P+N
+  wired with L and N): the poles of one device switch together; it was reported as opening the neutral without the phase
+  (doc 08 §8.2, FT-1903)
