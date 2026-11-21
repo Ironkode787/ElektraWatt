@@ -861,7 +861,7 @@ fn transform_makes_the_route_follow_the_moved_cp() {
     );
 }
 
-/// rc.3: a turned symbol jumped onto its neighbour, turned about its insertion point. It turns about the grid point
+/// A turned symbol does not jump onto its neighbour, as it did when turned about its insertion point. It turns about the grid point
 /// nearest the middle of its body, its wire follows its connection point, and four quarter turns bring it back.
 #[test]
 fn a_turned_symbol_keeps_the_middle_of_its_body_and_four_turns_bring_it_back() {
@@ -1104,7 +1104,7 @@ fn marks_on(e: &Engine, page: ew_ids::Id<ew_schema::Page>) -> Vec<Vec<ew_ids::Id
         .collect()
 }
 
-/// rc.3: wires made a cable's cores get the cable's mark on their page in the same step, one per page they lie on,
+/// Wires made a cable's cores get the cable's mark on their page in the same step, one per page they lie on,
 /// over the wires that run side by side in the order the line crosses them; a core added later on a page with a mark
 /// joins that mark.
 #[test]
@@ -1168,7 +1168,7 @@ fn cable_part(item: u128, cores: &[&str]) -> LibCopy<ew_schema::Part> {
     c
 }
 
-/// rc.3 (G5): wires made a cable's cores by `fields.set_many` (Connect cores…) get the cable's mark on their page, as
+/// Wires made a cable's cores by `fields.set_many` (Connect cores…) get the cable's mark on their page, as
 /// the Cable form's do; a wire set back to a plain wire leaves the mark, and the mark goes with its last core.
 #[test]
 fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
@@ -1227,7 +1227,7 @@ fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
     assert!(marks_on(&e, PAGE_102).is_empty(), "no core left, no mark");
 }
 
-/// rc.3 (G6): a part given to a cable that exists sets its cores from the part: a wire's core keeps its wire and takes
+/// A part given to a cable that exists sets its cores from the part: a wire's core keeps its wire and takes
 /// the part's designation, cross-section and colour; the cores the cable lacks are added. A part with fewer cores than
 /// the cable has wires is refused and nothing changes.
 #[test]

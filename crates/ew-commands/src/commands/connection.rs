@@ -356,8 +356,8 @@ pub(crate) fn cp_fluid_class(tx: &TxBuilder<'_>, f: Id<Function>, idx: u16) -> F
     fluid_port_class(&function, def.as_ref().map(|d| &d.item), &parts, idx)
 }
 
-/// Refuses a fluid port in words where only an electrical point is meant (a potential's definition, a bond's end; rc.2,
-/// F9: Define potential… on an air supply).
+/// Refuses a fluid port in words where only an electrical point is meant (a potential's definition, a bond's end:
+/// Define potential… on an air supply).
 fn refuse_fluid_port(tx: &TxBuilder<'_>, at: &Endpoint) -> Result<(), CmdError> {
     match at {
         Endpoint::Cp(f, idx) if matches!(cp_fluid_class(tx, *f, *idx), FluidPortClass::Fluid(_)) => tx

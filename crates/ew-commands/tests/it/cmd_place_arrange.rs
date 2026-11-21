@@ -2405,7 +2405,7 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
     );
 }
 
-/// rc.2: an update of a symbol that draws its CPs elsewhere (the fluid symbols redrawn smaller) takes the routes at them
+/// An update of a symbol that draws its CPs elsewhere (the fluid symbols redrawn smaller) takes the routes at them
 /// along as a moved symbol does: the wire still ends on its CP, its far end and its other vertices stay.
 #[test]
 fn a_symbol_update_that_moves_its_cps_takes_the_routes_along() {

@@ -252,7 +252,7 @@ fn a_library_copy_forks_and_every_part_copy_link_is_repointed() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// §9.3's refusals, each at its pointer, and the unchanged item refused as a whole.
+/// The refusals, each at its pointer, and the unchanged item refused as a whole.
 #[test]
 fn every_refusal_has_its_pointer() {
     let mut e = engine(model());

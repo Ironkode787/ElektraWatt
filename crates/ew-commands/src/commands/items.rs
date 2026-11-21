@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page items (§10.1): `item.place` (`PlaceItem`; graphics and free texts, FR-SYM-023,
+//! Page items: `item.place` (`PlaceItem`; graphics and free texts, FR-SYM-023,
 //! FR-SYM-024, and from part 5 images, FR-SYM-025) and `marker.place` (`PlaceMarker`; the group wire marker, FR-CON-023, FR-CON-039), with the checks
 //! that `fields.set` repeats after it writes a page item, and the translation `rep.move` applies to the page items
 //! and structure boxes it moves.

@@ -1019,7 +1019,7 @@ impl Command for SetManyFields {
     }
 }
 
-/// The cable marks follow the connections whose kind `edits` set (a wire made a core or taken out of a cable, rc.3:
+/// The cable marks follow the connections whose kind `edits` set (a wire made a core or taken out of a cable:
 /// [`crate::commands::cable_mark::follow_kinds`]).
 fn follow_cable_marks(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
     let connections: Vec<ew_ids::Id<Connection>> = edits
@@ -1033,8 +1033,8 @@ fn follow_cable_marks(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(),
     crate::commands::cable_mark::follow_kinds(tx, &connections)
 }
 
-/// A cable whose parts `edits` set (its part uses, or the part of one) takes its cores from its first cable part, as `part.assign` gives them (rc.3:
-/// a part swapped at the Part row left the old cores, and the cable's mark read both types):
+/// A cable whose parts `edits` set (its part uses, or the part of one) takes its cores from its first cable part, as `part.assign` gives them (a part
+/// swapped at the Part row would leave the old cores, and the cable's mark would read both types):
 /// [`crate::commands::terminal::cores_from_part`], which refuses a part with fewer cores than the cable has wires.
 fn cores_follow_parts(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
     let cables: BTreeSet<ew_ids::Id<Device>> = edits
@@ -1210,8 +1210,8 @@ fn check_port(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), 
     Ok(())
 }
 
-/// An address set on a port has the form of the port's bus system: a PROFINET name typed on a PROFIBUS DP port was
-/// stored, and the port then had no station address (the persona round of M3: "2" typed behind "TBD"). The buses
+/// An address set on a port has the form of the port's bus system: a PROFINET name typed on a PROFIBUS DP port would be
+/// stored, and the port then had no station address ("2" typed behind "TBD"). The buses
 /// without a typed address form take any.
 fn check_address_form(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), CmdError> {
     let f = tx.require::<Function>(function)?;
@@ -1382,7 +1382,7 @@ fn refuse_bad_stars(tx: &TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
 
 /// Sets `value` at the dotted `path` of one record: serialise, edit the JSON, read it back, put.
 /// `fields.set` path `line_kind` of a connection: the line kind of a fluid line, one of `working`,
-/// `pilot`, `exhaust`, `drain` and `flexible`. Refused on a connection that is no fluid line (§5 T11).
+/// `pilot`, `exhaust`, `drain` and `flexible`. Refused on a connection that is no fluid line.
 fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Value) -> Result<(), CmdError> {
     let c = tx.require::<Connection>(id)?;
     if !matches!(c.kind, ew_schema::ConnectionKind::Fluid(_)) {

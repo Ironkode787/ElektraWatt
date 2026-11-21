@@ -18,8 +18,8 @@
 //!   one station in the project, the device becomes that station's last child (`parent` = the station, `position`
 //!   = its highest child position + 1, `assembly.attach`'s members) with the notice "attached to {tag} as module
 //!   {n}"; with none, the notice "no PLC station: place a CPU first"; with several, the station drawn beside it (a
-//!   representation on the page of the module's first representation, the nearest by insertion point, ties by ID;
-//!   the persona run m3-p4), else "attach the module to a station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
+//!   representation on the page of the module's first representation, the nearest by insertion point, ties by ID),
+//!   else "attach the module to a station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
 //!   would close a cycle (EW-INV-009).
 //! - `station`: `plc_station {config_project, role}` and, when the section declares I/O ranges,
 //!   `plc_module {integrated: true}` on the same device. The role is `valve_terminal` when the section maps solenoids
@@ -252,7 +252,7 @@ pub(crate) fn create_config_project(
     Ok(id)
 }
 
-/// The station of `stations` drawn beside `module` (the persona run m3-p4 placed a card beside his head station in a
+/// The station of `stations` drawn beside `module` (a card placed beside its head station in a
 /// project with a CPU too): the one with a representation on the page of the module's first representation nearest to
 /// it (squared distance between insertion points, ties by station ID); `None` when no station is drawn on that page.
 fn beside(tx: &TxBuilder<'_>, module: Id<Device>, stations: &[Arc<Device>]) -> Option<Arc<Device>> {

@@ -270,7 +270,7 @@ fn a_contact_fills_the_first_slot_and_its_wires_follow_cp_for_cp() {
     assert_eq!(lines(e.model()), before, "one undo step restores the source");
 }
 
-/// rc.2 (F11): a device whose other functions are neither drawn nor wired (-K4's second contact; a part's unplaced
+/// A device whose other functions are neither drawn nor wired (-K4's second contact; a part's unplaced
 /// slots) joins, and goes with them; the notice names them.
 #[test]
 fn free_other_functions_go_with_the_join() {

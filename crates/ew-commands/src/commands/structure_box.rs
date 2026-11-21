@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `box.structure` (`CreateStructureBox`, §10.1; FR-PRJ-020): a dotted or dash-dot box that assigns
+//! `box.structure` (`CreateStructureBox`, FR-PRJ-020): a dotted or dash-dot box that assigns
 //! a structure to the representations it encloses, and the checks `fields.set` repeats after it writes a box.
 
 use ew_ids::Id;
@@ -119,7 +119,7 @@ pub(crate) fn check_box(
     Ok(())
 }
 
-/// `box.structure` (`CreateStructureBox`, §10.1; FR-PRJ-020): creates a structure box on a page: its
+/// `box.structure` (`CreateStructureBox`, FR-PRJ-020): creates a structure box on a page: its
 /// outline (absolute page nm, at least three vertices, which need not lie on the connection grid), its style (`dotted`
 /// or `dash_dot`), an optional caption, the structure it assigns (one slot per aspect: a node, `none`, or absent to
 /// leave the page's) and the external point it stands for. Which representations it encloses is derived, never

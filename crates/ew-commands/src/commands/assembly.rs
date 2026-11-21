@@ -627,8 +627,8 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
     Ok(())
 }
 
-/// The `into` of `device.place` and `rep.move` (the persona round: valves placed inside a valve terminal's box stayed
-/// loose devices): `device`, drawn by representation `rep` inside the box of the valve terminal `terminal`, joins it as
+/// The `into` of `device.place` and `rep.move` (a valve placed inside a valve terminal's box would stay
+/// a loose device): `device`, drawn by representation `rep` inside the box of the valve terminal `terminal`, joins it as
 /// `assembly.attach` makes it (with its checks), in the same transaction. A valve that fits a terminal
 /// ([`fits_terminal`]) takes the position of the cell `rep` stands in when the terminal is drawn as its positions (a
 /// valve of the terminal at another position swaps with the cell's holder; with `replace` the holder is removed with its
@@ -722,7 +722,7 @@ pub(crate) fn seat_on_terminal(
 }
 
 /// `valve_terminal.draw_slots` (`DrawSlots`, doc 11 §3.2): redraws the free box of a valve terminal as its valve
-/// positions, which a page drawn before rc.2 shows as one box (a page that exists is never redrawn by itself).
+/// positions, which a page drawn before the cells existed shows as one box (a page that exists is never redrawn by itself).
 ///
 /// The box representation `rep` keeps its ID, page and insertion point (its top-left corner) and becomes a box with one
 /// cell per position (`BoxSpec.slots`, [`ew_derive::SlotFrame`]: the supply end, then the cells of the terminal's
@@ -809,7 +809,7 @@ impl Command for DrawSlots {
 
 /// `valve_terminal.draw_valves` (`DrawValves`, doc 11 §3.2): Draw its valves in the terminal. A valve terminal
 /// drawn as its positions whose valves were put on their positions without a symbol (from the rack, the PLC list, a
-/// project made before rc.3) has them drawn in their cells, and its supply in its supply end ([`seat_reps`]); `copies`
+/// project made before the cells drew their valves) has them drawn in their cells, and its supply in its supply end ([`seat_reps`]); `copies`
 /// embeds their symbols first, as `part.assign` embeds. A valve drawn on another page stays there. Refused, in words: a
 /// device that is no valve terminal, and a terminal drawn as its positions on no page. One undo step. Outcome: the
 /// terminal.

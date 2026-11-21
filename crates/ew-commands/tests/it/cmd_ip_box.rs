@@ -756,7 +756,7 @@ fn reshape_with_cps_replaces_the_outline_and_the_cps_and_routes_follow() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// rc.5 (the owner made a CPU's box smaller and a pin ended on its corner): the pins of a side stay centred on it as
+/// The pins of a side stay centred on it as
 /// a group when the box is resized, on grid points; a side whose extent did not change keeps them where they are.
 #[test]
 fn reshape_without_cps_keeps_each_sides_pins_centred() {
@@ -847,7 +847,7 @@ fn a_box_made_smaller_from_the_left_takes_its_new_corner_as_its_position() {
     );
 }
 
-/// Centre the pins: a box as stored with a pin on its corner (made smaller before rc.5) puts its pins right without a
+/// Centre the pins: a box as stored with a pin on its corner (made smaller before the pins were centred) puts its pins right without a
 /// resize; a pin moved onto a corner is refused.
 #[test]
 fn centre_the_pins_puts_a_pin_off_its_corner() {

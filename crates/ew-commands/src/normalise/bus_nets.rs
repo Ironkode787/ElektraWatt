@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "As built (persona round)"; doc 06 §3.2 after
+//! Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after
 //! row 14a).
 //!
 //! **Trigger.** A `Bus` connection that is new or changed in the transaction, both of whose ends are CPs of functions

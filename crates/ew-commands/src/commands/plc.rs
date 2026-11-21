@@ -1266,7 +1266,7 @@ pub struct StationModule {
     pub part: PartUse,
 }
 
-/// `plc.add_station` (`AddStation`, F18 and F19 of the rc.1 test, doc 10 §2.3 "The rack comes first"): makes a station
+/// `plc.add_station` (`AddStation`, doc 10 §2.3 "The rack comes first"): makes a station
 /// of a PLC with its modules, in one undo step.
 ///
 /// The station is a new device of `part`, drawn on no page yet (the tag letter a device placed from the part takes,
@@ -1430,7 +1430,7 @@ pub struct StationBox {
     pub box_: ew_schema::BoxSpec,
 }
 
-/// `plc.draw_station` (`DrawStation`, rc.2 after F18): draws a station and its modules on a page, in one undo step.
+/// `plc.draw_station` (`DrawStation`): draws a station and its modules on a page, in one undo step.
 ///
 /// Each of `boxes` that the station holds (the station itself or a device under it) and that no electrical page
 /// (multi-line or single-line) draws yet becomes a black box of the symbol `symbol` at its place, as `box.black` draws
@@ -1666,7 +1666,7 @@ impl Command for BindPins {
     }
 }
 
-/// `plc.remove_from_rack` (`RemoveFromRack`, F17 of the rc.1 test, the quick fix of EW-PLC-017): takes a device out of
+/// `plc.remove_from_rack` (`RemoveFromRack`, the quick fix of EW-PLC-017): takes a device out of
 /// its station's rack.
 ///
 /// The device leaves the station it sits under (`parent` and `position` absent). A device that nothing describes as a

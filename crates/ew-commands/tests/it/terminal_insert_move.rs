@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal.insert` and `terminal.move` (§5.2, D4; acceptance SE1, SE2) and `strip.accessories`
+//! `terminal.insert` and `terminal.move` (D4; acceptance SE1, SE2) and `strip.accessories`
 //! through `fields.set` (D5; SE3), on the mini project's -X1031 grown to twenty terminals
 //! designated 1 … 20 at seq 1 … 20, the groups 1–4 "Pneumatics", 5–10 "Spare", 11–14 "Pneumatics" and 15–20
 //! "Spare", and the bridge BR1 from :1 to :3. The same examples on a whole project run in `ew-testkit`
@@ -183,7 +183,7 @@ fn accessory(after_seq: u32) -> serde_json::Value {
 // ---------------------------------------------------------------------------------------------------------
 // SE1: terminal.insert
 
-/// §5.1's example: before :5 with one terminal designated 21.
+/// The insert example: before :5 with one terminal designated 21.
 #[test]
 fn insert_before_5_shifts_the_following_terminals_and_groups() {
     let mut e = twenty_terminal_strip();
@@ -371,7 +371,7 @@ fn insert_rejects_a_seq_beyond_u32_max() {
 // ---------------------------------------------------------------------------------------------------------
 // SE2: terminal.move
 
-/// §5.2's example: :13 before :11.
+/// The move example: :13 before :11.
 #[test]
 fn move_13_before_11_permutes_the_changed_range() {
     let mut e = twenty_terminal_strip();

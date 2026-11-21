@@ -529,7 +529,7 @@ impl Command for ReshapeBox {
     }
 }
 
-/// `box.redraw` (`RedrawBoxes`, rc.3: Redraw them, after a part's device box changed): several black boxes reshaped as
+/// `box.redraw` (`RedrawBoxes`: Redraw them, after a part's device box changed): several black boxes reshaped as
 /// `box.reshape` reshapes each, in turn on one transaction, so they are one preview and one undo step, all or none.
 /// Rejected: no box; a box that `box.reshape` refuses (the whole step, in that command's words). Interactive. Outcome:
 /// the last box's representation.

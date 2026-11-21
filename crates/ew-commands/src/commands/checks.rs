@@ -235,7 +235,7 @@ pub struct FixCommand {
     pub params: Value,
 }
 
-/// `check.fix_all` (`FixAll`, the rc.2 persona run: 29 "pin is not connected" warnings, each with its own Fix and
+/// `check.fix_all` (`FixAll`: 29 "pin is not connected" warnings in one project, each with its own Fix and
 /// Apply): the quick fixes of a group of findings, each command run in turn on one transaction, so they are one
 /// preview and one undo step. Rejected: no fix; a fix that is itself `check.fix_all`; a fix its command refuses (the
 /// whole step, in that command's words). Outcome: the last fix's.

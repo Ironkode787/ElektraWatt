@@ -192,7 +192,7 @@ impl Command for CreateRevision {
 /// EW-REL-004's prevent half for `fields.set label` on the open revision `target` (ADR-0009: a prevent rule
 /// holds for every interactive transaction): the new label is judged as an open revision's among the other revisions,
 /// and the refusal's next free label follows every revision's, the target's own too (it named the label the open
-/// revision already had: "the next label is V1.0" for an edit of V1.0, the persona round of 0.2.0-rc.2).
+/// revision already had: "the next label is V1.0" for an edit of V1.0).
 /// A value that is not a label is left to the field's own refusal, and a label another revision has to EW-INV-017.
 pub(crate) fn refuse_label_edit_out_of_order(
     tx: &TxBuilder<'_>,

@@ -60,7 +60,7 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
 ///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay.
 ///
 /// The source device has no other representation and its other functions (of its part) are neither drawn nor wired
-/// (D3, widened in rc.2 so that a coil placed from a valve part joins another valve); it is removed in the same
+/// (D3, widened so that a coil placed from a valve part joins another valve); it is removed in the same
 /// transaction with its part use and those functions, and with the old function in the slot case. What the removed records carry
 /// besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
 /// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead

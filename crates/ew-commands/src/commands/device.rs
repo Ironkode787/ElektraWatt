@@ -1251,8 +1251,8 @@ impl MoveReps {
 /// replaces the stored variant.
 ///
 /// **The pivot.** A representation turns about the centre of its body's bounding box: a black box's (a
-/// representation with a `box`: the outline's, else its CPs'), a symbol's graphics (texts left out; rc.3: about its
-/// insertion point a turned cylinder jumped onto its neighbour). `pos` becomes the grid point that keeps that centre,
+/// representation with a `box`: the outline's, else its CPs'), a symbol's graphics (texts left out: turned about its
+/// insertion point, a cylinder would jump onto its neighbour). `pos` becomes the grid point that keeps that centre,
 /// computed in whole grid half-steps, so a mirror and a half turn keep the bounding box (to the 1 nm of a rational
 /// grid's rounding) and a quarter turn turns it about its centre; when the centre falls between two grid points (a
 /// body whose width plus height is an odd number of steps) the tie goes up toward an odd number of quarter turns and
