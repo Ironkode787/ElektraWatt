@@ -4,7 +4,8 @@
 //! F18 and F19 of a test in the window, at 1920 × 1080: a station is made as a rack and filled (New station…,
 //! its head part and its modules from the catalogue, Create, one undo step), and a bus device without PLC data is
 //! given to a PLC from its symbol's menu, whose view then opens and takes a module. The rack is a view in a tab
-//! beside the page tabs (doc 10 §6).
+//! beside the page tabs (doc 10 §6). Not here: a click on the selection that brings its Properties back, and the Bus
+//! panel brought to the front (`ew-viewmodel`'s `plc_rack_first.rs`).
 
 use crate::support;
 
@@ -474,37 +475,6 @@ fn the_station_view_names_its_station_and_holds_still() {
     for (a, b) in before.iter().zip(&after) {
         assert!((a - b).abs() < 1.0, "the columns moved: {before:?} → {after:?}");
     }
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// A persona run: Properties stayed on the project while the switch was selected, until he selected something else
-/// first. A click on what is selected already brings Properties back to it.
-#[test]
-fn a_click_on_the_selection_brings_its_properties_back() {
-    let tmp = Tmp::new();
-    let mut h = new_project(&tmp);
-    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-ESW-8", (10, 10));
-    dispatch(&mut h, "props.show", json!({"on": true}));
-    let click = |h: &mut egui_kittest::Harness<'static, ew_ui::app::App>| {
-        crate::navigators::cursor_k(h, (13, 14));
-        dispatch(h, "canvas.activate", json!({}));
-        settle(h);
-    };
-    click(&mut h);
-    let kinds = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| -> Vec<String> {
-        h.state()
-            .shell()
-            .properties()
-            .sheet()
-            .map(|s| s.sections.iter().map(|x| x.kind.clone()).collect())
-            .unwrap_or_default()
-    };
-    assert!(kinds(&h).iter().any(|k| k == "device"), "{:?}", kinds(&h));
-    dispatch(&mut h, "props.project", json!({}));
-    settle(&mut h);
-    assert!(!kinds(&h).iter().any(|k| k == "device"), "the project's sheet");
-    click(&mut h);
-    assert!(kinds(&h).iter().any(|k| k == "device"), "{:?}", kinds(&h));
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -1187,38 +1157,6 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
     two_corners(&mut h);
     let cpu: Uuid = cpu.parse().expect("the station's ID");
     assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// A small one of a persona run: the PLC tab's Bus panel closed the panel that stood open behind another tab.
-/// Bus panel brings the panel to the front and the status bar says so.
-#[test]
-fn the_bus_panel_comes_to_the_front() {
-    use ew_viewmodel::layout::PaneKind;
-    use ew_viewmodel::navigators::NavKind;
-    let tmp = Tmp::new();
-    let mut h = new_project(&tmp);
-    let bus = PaneKind::Navigator(NavKind::Bus);
-    dispatch(&mut h, "bus.panel", json!({}));
-    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
-    settle(&mut h);
-    assert_ne!(
-        h.state().shell().layout().shown_in_place_of(bus),
-        Some(bus),
-        "behind the PLC panel"
-    );
-    dispatch(&mut h, "bus.panel", json!({}));
-    settle(&mut h);
-    let shell = h.state().shell();
-    assert_eq!(
-        shell.layout().shown_in_place_of(bus),
-        Some(bus),
-        "in front, not closed"
-    );
-    assert_eq!(
-        shell.status_note(),
-        Some("The Bus panel was open already: it is in front now.")
-    );
     h.state_mut().shell_mut().shutdown();
 }
 
