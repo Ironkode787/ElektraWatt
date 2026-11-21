@@ -618,6 +618,99 @@ fn bridges_draw_on_terminals_placed_by_symbol() {
     assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
 }
 
+/// A terminal part with a bridge shaft, TRM-TWIN, imported into the project of `s` (the sample's terminal parts have
+/// none): a parts table with its CP pattern beside it (`part_cps.csv`: clamps a, b and c on the sides, the shaft-1
+/// entry at index 3, as twin terminals have them) and its template (`part_templates.csv`, `ew.fn.terminal` on all
+/// four).
+fn with_a_shaft_part(s: &mut ShellModel, tmp: &Tmp) {
+    std::fs::write(
+        tmp.0.join("part_cps.csv"),
+        "key,part,idx,designation,potential_role,level,side,clamp\n\
+         TRM-TWIN:0,TRM-TWIN,0,a,,1,side1,a\n\
+         TRM-TWIN:1,TRM-TWIN,1,b,,1,side2,b\n\
+         TRM-TWIN:2,TRM-TWIN,2,c,,1,side2,c\n\
+         TRM-TWIN:3,TRM-TWIN,3,s1,,1,,s1\n",
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.0.join("part_templates.csv"),
+        "key,part,n,fndef,main,cps\nTRM-TWIN:t0,TRM-TWIN,0,ew.fn.terminal,true,0;1;2;3\n",
+    )
+    .unwrap();
+    common::import_parts(
+        s,
+        tmp,
+        "TRM-TWIN,Generic,TRM-TWIN,terminal,,Twin terminal with a bridge shaft,piece,,,,,,ts35x7_5,,,,,\n",
+    );
+}
+
+/// A bridge joins terminals, not CPs.
+/// Two part-less terminals are bridged at their side-1 CP (index 0); once they carry TRM-TWIN, whose shaft-1 entry
+/// is CP index 3, Bridge terminals on the pair is refused as "already bridged"; on the pair and a third terminal it
+/// draws one connection, into the same group, from the second terminal's shaft CP; the side-1 bridge stays as drawn.
+#[test]
+fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
+    let tmp = Tmp::new("bridge-partless-then-part");
+    let mut s = actual_size(&tmp, "101");
+    with_a_shaft_part(&mut s, &tmp);
+    let reps = partless_strip(&mut s, 3);
+    let ids: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
+    select_ids(&mut s, &ids[..2]);
+    done(&mut s, "strip.bridge", json!({}));
+    let first = s.recorded_commands().last().expect("the first bridge").clone();
+    assert_eq!(first.params["a"]["cp"]["idx"], 0, "{}", first.params);
+    assert_eq!(
+        first.params["kind"],
+        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
+    );
+    for id in &ids {
+        select_ids(&mut s, std::slice::from_ref(id));
+        done(
+            &mut s,
+            "props.set",
+            json!({"row": "device/parts", "value": "TRM-TWIN"}),
+
+        );
+    }
+    // The pair: bridged already (terminal identity, not the CP).
+    select_ids(&mut s, &ids[..2]);
+    let rev = s.revision();
+    assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
+    assert_eq!(s.revision(), rev, "nothing committed");
+    // The pair and a third terminal: one connection, the second to the third, in the pair's group.
+    select_ids(&mut s, &ids);
+    done(&mut s, "strip.bridge", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    let second = s.recorded_commands().last().expect("the second bridge").clone();
+    assert_eq!(second.cmd, "connection.draw", "{}", second.params);
+    assert_eq!(
+        second.params["a"],
+        json!({"cp": {"function": function_of(&reps[1]), "idx": 3}})
+    );
+    assert_eq!(
+        second.params["b"],
+        json!({"cp": {"function": function_of(&reps[2]), "idx": 3}})
+    );
+    assert_eq!(
+        second.params["kind"],
+        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}}),
+        "the same group: the chain touches the side-1 bridge's terminals"
+    );
+    // The side-1 bridge is unchanged: no command after it deleted or re-seated a connection.
+    let after: Vec<&str> = s
+        .recorded_commands()
+        .iter()
+        .skip_while(|c| c.params != first.params)
+        .map(|c| c.cmd.as_str())
+        .collect();
+    assert!(
+        after
+            .iter()
+            .all(|c| *c != "edit.delete" && *c != "connection.reconnect"),
+        "{after:?}"
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Selection by records (D9), the shaft rule and Remove bridge (D11)
 
