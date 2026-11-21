@@ -21,7 +21,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// The strips are the devices of the block's manual selection (`manual.include`) that have a strip aspect,
 /// else every strip in natural order of its tag; one row per terminal of a strip in `(seq, ID)` order, and for a block
 /// of several levels (doc 08 §6.3, FR-TRM-004) one row per level ([`row_levels`]): the level's designation, potential,
-/// sides, bridge and state, its CPs without a level on its first row.
+/// sides, bridge and state, its part and its CPs without a level on its first row.
 /// Row ID: `(strip, terminal, level)`, the level being 1 for a terminal of one level.
 ///
 /// `strip` is the strip's tag, so that two strips' terminals of one number read apart (FT-1805). `label` is the
@@ -161,7 +161,8 @@ impl ReportKindDef for TerminalDiagram {
                                 Cell::Text(dev.function_text.clone())
                             },
                             group.clone(),
-                            part.clone(),
+                            // The block's one part, on its first row.
+                            if first { part.clone() } else { Cell::Empty },
                             potential,
                             text_cell(side1.join(", ")),
                             text_cell(side2.join(", ")),

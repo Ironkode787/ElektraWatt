@@ -249,22 +249,56 @@ pub(crate) fn chooser(
                 .color(t.text_secondary.color32()),
         );
     }
-    // FT-1766: a part the lists do not have is made here, and the dialog comes back on it.
+    // FT-1766: a part the lists do not have is made here, and the dialog comes back on it. FT-1878: for devices, a part
+    // whose type is not known yet is named in a few words and given as a placeholder; while its field is open, Enter
+    // gives it rather than choosing the active row.
     ui.add_space(t.space_2);
-    if crate::components::button(
-        ui,
-        crate::components::Kind::Secondary,
-        strings::text(key!("action-part-new")),
-        true,
-        0.0,
-    )
-    .clicked()
-    {
-        events.push(Event::Action("part.new", serde_json::Value::Null));
+    let id = egui::Id::unique("part-placeholder-words");
+    let devices = matches!(c.target, ew_viewmodel::ew_api::PartTarget::Devices { .. });
+    let mut words: Option<String> = if just_opened || !devices {
+        None
+    } else {
+        ctx.data(|d| d.get_temp(id))
+    };
+    let mut opened = false;
+    ui.horizontal(|ui| {
+        if crate::components::button(
+            ui,
+            crate::components::Kind::Secondary,
+            strings::text(key!("action-part-new")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::Action("part.new", serde_json::Value::Null));
+        }
+        opened = devices
+            && words.is_none()
+            && crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("action-part-placeholder")),
+                true,
+                0.0,
+            )
+            .clicked();
+    });
+    let naming = words.is_some();
+    if opened {
+        words = Some(String::new());
     }
-    // FT-1878: a part whose type is not known yet is named in a few words and given as a placeholder; while its field
-    // is open, Enter gives it rather than choosing the active row.
-    let naming = placeholder(ui, c, just_opened, enter, events);
+    if let Some(text) = &mut words
+        && placeholder(ui, text, opened, naming && enter, events)
+    {
+        words = None;
+    }
+    ctx.data_mut(|d| match &words {
+        Some(text) => {
+            d.insert_temp(id, text.clone());
+        }
+        None => d.remove::<String>(id),
+    });
     set_active(&ctx, act);
     if enter && n > 0 && !naming {
         picked = Some(act);
@@ -274,71 +308,47 @@ pub(crate) fn chooser(
     }
 }
 
-/// Type not known yet… of the part dialog (doc 07 §3.3): for devices, the button that opens a field for what the part
-/// is, with a note and Use as placeholder (`part.placeholder {description}`, also on Enter in the field). The field's
-/// text is the window's, kept in its memory while the dialog is open. `true` while the field is open.
-fn placeholder(ui: &mut Ui, c: &PartChooser, just_opened: bool, enter: bool, events: &mut Vec<Event>) -> bool {
-    if !matches!(c.target, ew_viewmodel::ew_api::PartTarget::Devices { .. }) {
-        return false;
-    }
+/// The field of Type not known yet… (doc 07 §3.3): what the part is, a note, and Use as placeholder, which (or `enter`)
+/// gives it (`part.placeholder {description}`); `true` when it is given. `opened`: the field opened in this frame and
+/// takes the focus.
+fn placeholder(ui: &mut Ui, text: &mut String, opened: bool, enter: bool, events: &mut Vec<Event>) -> bool {
     let t = theme::current(ui.ctx());
-    let id = egui::Id::unique("part-placeholder-words");
-    let mut words: Option<String> = if just_opened {
-        None
-    } else {
-        ui.ctx().data(|d| d.get_temp(id))
-    };
-    let open = words.is_some();
-    let opened = !open
-        && crate::components::button(
-            ui,
-            crate::components::Kind::Secondary,
-            strings::text(key!("action-part-placeholder")),
-            true,
-            0.0,
-        )
-        .clicked();
+    ui.add_space(t.space_2);
+    let label = strings::text(key!("part-placeholder-description"));
+    ui.label(label);
+    let before = text.clone();
+    let field = ui.add(
+        TextEdit::singleline(text)
+            .desired_width(ui.available_width())
+            .min_size(vec2(0.0, t.size_control)),
+    );
+    field.widget_info(|| egui::WidgetInfo::text_edit(true, before.as_str(), text.as_str(), label));
     if opened {
-        words = Some(String::new());
+        field.request_focus();
     }
-    if let Some(text) = &mut words {
-        ui.add_space(t.space_2);
-        let label = strings::text(key!("part-placeholder-description"));
-        ui.label(label);
-        let before = text.clone();
-        let field = ui.add(
-            TextEdit::singleline(text)
-                .desired_width(ui.available_width())
-                .min_size(vec2(0.0, t.size_control)),
-        );
-        field.widget_info(|| egui::WidgetInfo::text_edit(true, before.as_str(), text.as_str(), label));
-        if opened {
-            field.request_focus();
-        }
-        note(ui, strings::text(key!("part-placeholder-note")));
-        let used = crate::components::button(
-            ui,
-            crate::components::Kind::Secondary,
-            strings::text(key!("part-placeholder-use")),
-            !text.trim().is_empty(),
-            0.0,
-        )
-        .clicked();
-        if (used || (open && enter)) && !text.trim().is_empty() {
-            events.push(Event::Action(
-                "part.placeholder",
-                json!({ "description": text.trim() }),
-            ));
-            words = None;
-        }
+    // In the style of the active row's detail line above.
+    ui.label(
+        RichText::new(strings::text(key!("part-placeholder-note")))
+            .font(theme::font(&t.type_small))
+            .color(t.text_secondary.color32()),
+    );
+    let words = text.trim();
+    let used = crate::components::button(
+        ui,
+        crate::components::Kind::Secondary,
+        strings::text(key!("part-placeholder-use")),
+        !words.is_empty(),
+        0.0,
+    )
+    .clicked();
+    let given = (used || enter) && !words.is_empty();
+    if given {
+        events.push(Event::Action(
+            "part.placeholder",
+            json!({ "description": words }),
+        ));
     }
-    ui.ctx().data_mut(|d| match &words {
-        Some(text) => {
-            d.insert_temp(id, text.clone());
-        }
-        None => d.remove::<String>(id),
-    });
-    open
+    given
 }
 
 /// One labelled row of the editor: the label column, then the field; `true` when Enter was pressed in it.

@@ -969,7 +969,8 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
     (Terminal ▸ Levels) or by `fields.set` on `terminal.levels`.
   - *What prints.* The symbol that draws a level prints that level's designation (or the function text, by
     `label_mode`); a wire end at a level's CP reads `-X1:2/a`; the terminal diagram has a row per level (§6.9) with the
-    level's designation, potential, sides, bridge and state; the parts list counts the block's part once.
+    level's designation, potential, sides, bridge and state, the block's part on its first row; the parts list counts
+    the block's part once.
   - *The check.* EW-TERM-002 counts each level's designation as a designation of the strip.
   - *What an older build shows.* 0.3.0 opens such a project, keeps a level's `designation` in the level's `extra` and
     writes it back. It derives the CPs of the FnDef or the part only, so the copies of a block drawn from a one-level

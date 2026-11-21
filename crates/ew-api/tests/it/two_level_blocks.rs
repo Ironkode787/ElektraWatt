@@ -138,6 +138,17 @@ fn diagram(s: &Session) -> Vec<(String, String, String)> {
         .collect()
 }
 
+/// The Part cell of the strip's terminal-diagram row `terminal`.
+fn diagram_part(s: &Session, terminal: &str) -> String {
+    let q = s.query();
+    let out = row_export(&q, &RowExport::Terminals { strip: Some(STRIP.into()) }, None).expect("the terminal diagram");
+    rows(&out.csv)
+        .iter()
+        .find(|r| cell(r, "Terminal") == terminal)
+        .map(|r| cell(r, "Part").to_owned())
+        .unwrap_or_else(|| panic!("a row {terminal}"))
+}
+
 /// The parts list's quantity of the part numbered `number`.
 fn bom_qty(s: &Session, number: &str) -> String {
     let q = s.query();
@@ -212,6 +223,8 @@ fn a_terminal_joined_into_another_is_its_second_level_with_its_number() {
     assert_eq!(row_of(&after, "5"), row5);
     assert_eq!(row_of(&after, "6"), row6);
     assert_eq!(after.len(), before.len());
+    assert_eq!(diagram_part(&s, "5"), "EW-GEN-TRM-1", "the block's part on its first row");
+    assert_eq!(diagram_part(&s, "6"), "", "and on no other");
     // The parts list: the block's one part.
     let parts_after: u32 = bom_qty(&s, "EW-GEN-TRM-1").parse().expect("a count");
     assert_eq!(parts_after + 1, parts_before);
