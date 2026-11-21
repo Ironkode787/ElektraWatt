@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On a copy of Golden A: structure
+//! On the sample: structure
 //! boxes and `ip_structure`, bound free texts, graphics and texts without electrical meaning, group wire markers and
 //! the marker modes, the load finding of a stale marker entry, and the page tables' item and box rows.
 
-use crate::golden_common;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -24,7 +23,7 @@ use ew_dl::{ItemKind, Layer};
 use ew_schema::{Connection, ConnectionKind, Device, Function, Page, Record, StructureNode};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{ManualClock, Vfs};
-use golden_common::{batch, ids_by_key, session, session_with};
+
 use serde_json::{Value, json};
 
 fn cmd(name: &str, params: Value) -> AnyCommand {
@@ -39,11 +38,25 @@ fn run(s: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
         .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
-fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
-    ids.get(key)
-        .unwrap_or_else(|| panic!("no record {key}"))
-        .parse()
-        .unwrap_or_else(|_| panic!("{key} is an ID"))
+/// The drawn page printed `folio`.
+fn page_id(s: &Session, folio: &str) -> Id<Page> {
+    let page = s.page_rows().into_iter().find(|r| r.folio == folio).expect("the folio");
+    Id::from_uuid(page.id)
+}
+
+/// The wire numbered `number`.
+fn wire(s: &Session, number: &str) -> Id<Connection> {
+    s.navigator_table(ew_api::output::NavKind::Connections)
+        .nodes
+        .iter()
+        .find(|n| n.table_row && n.label == number)
+        .map(|n| Id::from_uuid(n.records[0]))
+        .unwrap_or_else(|| panic!("no wire {number}"))
+}
+
+/// The sample over its records, with commands that run in memory and a store to create.
+fn sample() -> Session {
+    crate::view::sample_session(None)
 }
 
 /// The texts of the glyph runs of a layer of a drawn page.
@@ -108,14 +121,23 @@ fn structures(q: &Q) -> Structures {
 
 #[test]
 fn a_structure_box_around_the_external_points_assigns_their_location() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
-    let externals: Vec<Id<Function>> = ["J-E-206-L@101", "J-E-206-N@101", "J-E-206-PE@101"]
-        .iter()
-        .map(|k| id(&ids, &format!("functions|{k}")))
-        .collect();
+    let mut s = sample();
+    let page = page_id(&s, "101");
+    // The supply's incoming marks from the upstream cabinet, on 101.
+    let externals: Vec<Id<Function>> = {
+        let q = s.query();
+        q.functions()
+            .iter()
+            .filter(|(id, f)| {
+                serde_json::to_value(&**f).is_ok_and(|v| v["kind"]["ip"]["external"].is_string())
+                    && q.idx()
+                        .reps_of_function(*id)
+                        .any(|r| q.reps().get(r).is_some_and(|r| r.page == page))
+            })
+            .map(|(id, _)| id)
+            .collect()
+    };
+    assert!(!externals.is_empty());
     let (outline, je206, je2416, before_ips, before_devs) = {
         let q = s.query();
         let anchors: Vec<Pt2> = externals
@@ -127,8 +149,8 @@ fn a_structure_box_around_the_external_points_assigns_their_location() {
             .collect();
         (
             around(&anchors, 1_000_000),
-            node(&q, "J-E-206"),
-            node(&q, "J-E-2416"),
+            node(&q, "UP"),
+            node(&q, "CAB"),
             ip_structures(&q),
             structures(&q),
         )
@@ -150,7 +172,7 @@ fn a_structure_box_around_the_external_points_assigns_their_location() {
         assert_eq!(
             changed,
             externals.iter().copied().collect(),
-            "only the three points change"
+            "only the external points change"
         );
         for f in &externals {
             assert_eq!(after_ips[f], Some(je206));
@@ -163,7 +185,7 @@ fn a_structure_box_around_the_external_points_assigns_their_location() {
     }
 
     // A device whose main representation lies inside a box takes the box's location; moved out, the page's. The
-    // golden devices state their location; the first one placed on 101 is made to inherit it.
+    // sample's devices state their location; the first one placed on 101 is made to inherit it.
     let (dev, rep, at, own) = {
         let q = s.query();
         q.idx()
@@ -220,19 +242,17 @@ fn a_structure_box_around_the_external_points_assigns_their_location() {
 /// A wire marker of an older file that lists a deleted connection loads, and the entry is ignored.
 #[test]
 fn a_stale_marker_entry_is_ignored() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page: String = ids["pages|101"].clone();
-    let s = session_with(&batch, |_, records| {
-        let item: ew_schema::PageItem = serde_json::from_value(json!({
-            "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page,
-            "kind": {"wire_marker": {"connections": ["0192f3a0-0000-7000-8000-00000000a0ff"], "at": [0, 0],
-                "fields": ["csa", "colour"]}}}))
-        .unwrap();
-        records.push(Record::PageItem(item));
-    });
-    // The stale entry is ignored: the marker lists no live connection.
-    let tables = s.page_tables("101").unwrap();
+    let page = page_id(&sample(), "102").to_string();
+    let (project, mut records, lib) = crate::common::sample_records();
+    let item: ew_schema::PageItem = serde_json::from_value(json!({
+        "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page,
+        "kind": {"wire_marker": {"connections": ["0192f3a0-0000-7000-8000-00000000a0ff"], "at": [0, 0],
+            "fields": ["csa", "colour"]}}}))
+    .unwrap();
+    records.push(Record::PageItem(item));
+    let s = crate::common::session_of(project, records, lib);
+    // The stale entry is ignored: the marker lists no live connection (102 holds no other page item).
+    let tables = s.page_tables("102").unwrap();
     assert_eq!(tables.items.len(), 1);
     assert!(tables.items[0].connections.is_empty());
 }
@@ -251,20 +271,26 @@ fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {
 
 /// A `fuzz-smoke` finding as a plain test (its input is
 /// `fuzz/regressions/command_sequence/structure-box-dropped-by-save`): the structure box of the finding, with a
-/// location assignment and an external reference on page 202 of a copy of Golden A, survives `Session::create` and
+/// location assignment and an external reference on page 201 of a copy of the sample, survives `Session::create` and
 /// a reload, then a later save of its page's file by the reopened session and a second reload; each reload equals
 /// the saving session's model (`Model::content_eq`; a failure prints `Model::content_diff`).
 #[test]
 fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_reload() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let page: String = ids["pages|202"].clone();
-    let location: String = ids["structure|+J-E-206"].clone();
-    let external: String = ids["external_refs|J-E-206-N"].clone();
+    let mut s = sample();
+    let page = page_id(&s, "201").to_string();
+    let (location, external) = {
+        let q = s.query();
+        let external = q
+            .external_refs()
+            .iter()
+            .map(|(id, _)| id.to_string())
+            .next()
+            .expect("the supply's external reference");
+        (node(&q, "UP").to_string(), external)
+    };
     let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
     vfs.put_dir(Path::new("/state"));
     let dir = PathBuf::from("/p");
-    let mut s = session(&batch);
     run(
         &mut s,
         "box.structure",
@@ -319,10 +345,8 @@ fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_r
 
 #[test]
 fn a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
+    let mut s = sample();
+    let page = page_id(&s, "101");
     run(
         &mut s,
         "item.place",
@@ -337,7 +361,7 @@ fn a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
     let description = ew_derive::bound_text(&q, page, "project.description").expect("a description");
     let labels = texts(&q, page, Layer::Labels);
     assert!(labels.contains(&description), "{description:?} in {labels:?}");
-    assert!(labels.iter().any(|t| t == "Power Supply 1 - Main Current"));
+    assert!(labels.iter().any(|t| t == "Supply 400 V AC"));
     drop(q);
     // The page title is edited by `fields.set`: the bound text follows in that commit.
     run(
@@ -347,7 +371,7 @@ fn a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
     );
     let labels = texts(&s.query(), page, Layer::Labels);
     assert!(labels.iter().any(|t| t == "Feed"), "{labels:?}");
-    assert!(!labels.iter().any(|t| t == "Power Supply 1 - Main Current"));
+    assert!(!labels.iter().any(|t| t == "Supply 400 V AC"));
     // The project description is edited by `fields.set` on the project: the bound text follows too.
     let project = s.query().project().id.to_string();
     run(
@@ -373,10 +397,8 @@ fn a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
 
 #[test]
 fn a_line_onto_a_cp_and_a_text_change_no_net_potential_or_wire() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
+    let mut s = sample();
+    let page = page_id(&s, "101");
     let snapshot = |s: &Session| {
         let q = s.query();
         let partition = format!("{:?}", q.get::<PotentialPartition>(()));
@@ -436,10 +458,8 @@ fn colour_of(q: &Q, c: Id<Connection>) -> Option<String> {
 /// what it is; in a rule mode the tick adds the wire to those the rule selects; `none` draws no marker at all.
 #[test]
 fn a_ticked_wire_always_prints_a_marker() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let p101: Id<Page> = id(&ids, "pages|101");
+    let mut s = sample();
+    let p101 = page_id(&s, "101");
     // A wire of folio 101 that prints no marker and states no cross-section or colour of its own.
     let (plain, what_it_is) = {
         let q = s.query();
@@ -449,6 +469,7 @@ fn a_ticked_wire_always_prints_a_marker() {
             .find(|c| {
                 let o = &c.connection.overrides;
                 c.marker.is_none()
+                    && !matches!(c.connection.kind, ConnectionKind::Core(_))
                     && !o.show_marker
                     && o.csa.is_none()
                     && o.colour.is_none()
@@ -502,15 +523,13 @@ fn a_ticked_wire_always_prints_a_marker() {
 
 #[test]
 fn a_group_marker_prints_once_for_its_connections() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let p101: Id<Page> = id(&ids, "pages|101");
-    let w4: Id<Connection> = id(&ids, "connections|W4");
-    let w5: Id<Connection> = id(&ids, "connections|W5");
-    let w7: Id<Connection> = id(&ids, "connections|W7");
+    let mut s = sample();
+    let p101 = page_id(&s, "101");
+    // 101.1 (L1, black) and 101.4 (PE, green-yellow), both 1.5 mm²; 101.3 stays as it is.
+    let w4 = wire(&s, "101.1");
+    let w5 = wire(&s, "101.4");
+    let w7 = wire(&s, "101.3");
     let before = markers(&s.query(), p101);
-    assert_eq!(before[&w4].as_deref(), Some("2.5"));
     run(
         &mut s,
         "marker.place",
@@ -519,24 +538,21 @@ fn a_group_marker_prints_once_for_its_connections() {
     let q = s.query();
     let labels = texts(&q, p101, Layer::Labels);
     assert_eq!(
-        labels.iter().filter(|t| *t == "2.5 BK BU").count(),
+        labels.iter().filter(|t| *t == "1.5 BK GNYE").count(),
         1,
         "{labels:?}"
     );
     let after = markers(&q, p101);
-    assert_eq!(after[&w4], None, "W4 draws no marker of its own");
-    assert_eq!(after[&w5], None, "W5 draws no marker of its own");
-    assert_eq!(after[&w7], before[&w7], "W7 keeps its marker");
+    assert_eq!(after[&w4], None, "101.1 draws no marker of its own");
+    assert_eq!(after[&w5], None, "101.4 draws no marker of its own");
+    assert_eq!(after[&w7], before[&w7], "101.3 keeps its marker");
     drop(q);
 
-    // Four connections below -102G1: two 24 V (DBU) and two 0 V (WH) wires, in that printed order.
-    let p102: Id<Page> = id(&ids, "pages|102");
+    // Four connections on 102: two 24 V (DBU) and two 0 V (BU) wires, in that printed order.
+    let p102 = page_id(&s, "102");
     let (dbu, wh) = {
         let q = s.query();
-        let candidates: Vec<Id<Connection>> = ["W20", "W21", "W22", "W23", "W24", "W25"]
-            .iter()
-            .map(|k| id(&ids, &format!("connections|{k}")))
-            .collect();
+        let candidates: Vec<Id<Connection>> = (1..=9).map(|n| wire(&s, &format!("102.{n}"))).collect();
         let of = |code: &str| -> Vec<Id<Connection>> {
             candidates
                 .iter()
@@ -545,9 +561,9 @@ fn a_group_marker_prints_once_for_its_connections() {
                 .take(2)
                 .collect()
         };
-        (of("DBU"), of("WH"))
+        (of("DBU"), of("BU"))
     };
-    assert_eq!((dbu.len(), wh.len()), (2, 2), "two DBU and two WH wires on 102");
+    assert_eq!((dbu.len(), wh.len()), (2, 2), "two DBU and two BU wires on 102");
     let group: Vec<String> = dbu.iter().chain(&wh).map(ToString::to_string).collect();
     run(
         &mut s,
@@ -555,7 +571,7 @@ fn a_group_marker_prints_once_for_its_connections() {
         json!({"page": p102.to_string(), "connections": group, "at": [60_000_000, 40_000_000], "angle": 90_000}),
     );
     let labels = texts(&s.query(), p102, Layer::Labels);
-    assert!(labels.iter().any(|t| t == "1.5 DBU DBU WH WH"), "{labels:?}");
+    assert!(labels.iter().any(|t| t == "0.75 DBU DBU BU BU"), "{labels:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -583,10 +599,10 @@ fn marked(s: &Session) -> BTreeSet<Id<Connection>> {
 
 #[test]
 fn the_marker_modes_select_the_wires() {
-    let batch = batch();
-    let mut s = session(&batch);
+    let mut s = sample();
+    // The sample's wires print no marker of their own: its markers are page items.
     let as_built = marked(&s);
-    assert_eq!(as_built.len(), 10, "the four reference groups' ten wires");
+    assert!(as_built.is_empty(), "{as_built:?}");
     let mode = |s: &mut Session, m: &str| {
         run(s, "project.drawing.set", json!({"marker_mode": m}));
         marked(s)
@@ -597,12 +613,21 @@ fn the_marker_modes_select_the_wires() {
         "explicit prints the absent setting's wires"
     );
     assert!(mode(&mut s, "none").is_empty());
+    // The wires a group marker lists print through it, never on their own.
+    let grouped: BTreeSet<Id<Connection>> = s
+        .page_labels()
+        .iter()
+        .filter_map(|f| s.page_tables(f))
+        .flat_map(|t| t.items.into_iter().flat_map(|i| i.connections))
+        .map(Id::from_uuid)
+        .collect();
+    assert!(!grouped.is_empty(), "the sample's group markers");
     let (wired, deviating) = {
         let q = s.query();
         let mut wired = BTreeSet::new();
         let mut deviating = BTreeSet::new();
         for (cid, c) in q.connections().iter() {
-            if c.page.is_none() {
+            if c.page.is_none() || grouped.contains(&cid) {
                 continue;
             }
             let props = q.get::<ConnWireProps>(cid);
@@ -630,11 +655,9 @@ fn the_marker_modes_select_the_wires() {
 
 #[test]
 fn the_page_tables_list_items_and_boxes_by_position() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let page: Id<Page> = id(&ids, "pages|102");
-    let w20: Id<Connection> = id(&ids, "connections|W20");
+    let mut s = sample();
+    let page = page_id(&s, "102");
+    let w20 = wire(&s, "102.1");
     let low = run(
         &mut s,
         "item.place",
@@ -688,12 +711,10 @@ fn the_page_tables_list_items_and_boxes_by_position() {
 
 #[test]
 fn table_items_carry_the_printed_text_and_the_binding() {
-    let batch = batch();
-    let ids = ids_by_key(&batch);
-    let mut s = session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
-    let w4: Id<Connection> = id(&ids, "connections|W4");
-    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let mut s = sample();
+    let page = page_id(&s, "101");
+    let w4 = wire(&s, "101.1");
+    let w5 = wire(&s, "101.4");
     let line = run(
         &mut s,
         "item.place",
@@ -745,14 +766,14 @@ fn table_items_carry_the_printed_text_and_the_binding() {
     assert_eq!(row(&bound).text.as_deref(), Some(description.as_str()));
     assert_eq!(row(&bound).bind.as_deref(), Some("project.description"));
     assert_eq!(row(&marker).kind, "wire_marker");
-    assert_eq!(row(&marker).text.as_deref(), Some("2.5 BK BU"));
+    assert_eq!(row(&marker).text.as_deref(), Some("1.5 BK GNYE"));
     assert_eq!(row(&marker).bind, None);
 }
 
 #[test]
 fn starter_embed_part_names_every_missing_fndef() {
-    let batch = batch();
-    let mut s = session(&batch);
+    // A new project, which holds none of the contact symbols and definitions (the sample holds them).
+    let mut s = crate::common::new_project(1);
     let expected = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected");
     // The two-function part alone; its contact FnDef is not embedded.
     let fixture: Value = serde_json::from_str(
@@ -779,13 +800,20 @@ fn starter_embed_part_names_every_missing_fndef() {
             .map(|c| c["meta"]["key"].as_str().expect("a key").to_owned())
             .collect()
     };
-    assert_eq!(keys(&first), ["ew.iec.contact-no@qet10", "ew.fn.contact-no"]);
-    // The embedded black-box symbol needs only the template's missing FnDef.
+    // The new project holds no black-box FnDef either: the template's entry 0 adds it.
+    assert_eq!(
+        keys(&first),
+        ["ew.iec.contact-no@qet10", "ew.fn.contact-no", "ew.fn.blackbox"]
+    );
+    // The black-box symbol, which the new project does not hold either, with the template's two FnDefs, each once.
     let second = s
         .starter_embed_part(part, "ew.gen.blackbox@qet10")
         .expect("the contact FnDef")
         .expect("the contact FnDef");
-    assert_eq!(keys(&second), ["ew.fn.contact-no"]);
+    assert_eq!(
+        keys(&second),
+        ["ew.gen.blackbox@qet10", "ew.fn.blackbox", "ew.fn.contact-no"]
+    );
     // A template that names two starter FnDefs and no black box: the symbol and both definitions, in template order.
     let fixture: Value = serde_json::from_str(
         &std::fs::read_to_string(expected.join("two_starter_fndef_part.json")).expect("the fixture"),
@@ -805,13 +833,20 @@ fn starter_embed_part_names_every_missing_fndef() {
         keys(&starter),
         ["ew.iec.contact-no@qet10", "ew.fn.contact-no", "ew.fn.contact-nc"]
     );
-    // Embedding it leaves both calls nothing to embed.
+    // Embedding the first leaves the contact nothing to embed and the black box its symbol only; embedding that leaves
+    // both calls nothing.
     run(&mut s, "library.embed", first);
     assert!(
         s.starter_embed_part(part, "ew.iec.contact-no@qet10")
             .expect("nothing more")
             .is_none()
     );
+    let symbol_only = s
+        .starter_embed_part(part, "ew.gen.blackbox@qet10")
+        .expect("the black-box symbol")
+        .expect("the black-box symbol");
+    assert_eq!(keys(&symbol_only), ["ew.gen.blackbox@qet10"]);
+    run(&mut s, "library.embed", symbol_only);
     assert!(
         s.starter_embed_part(part, "ew.gen.blackbox@qet10")
             .expect("nothing more")
