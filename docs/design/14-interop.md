@@ -531,7 +531,8 @@ preview stay on the window thread, since a `Session` cannot move between threads
 transaction, `import.apply` (origin `import`, not in the public command catalogue): it embeds the batch's library
 documents, creates or updates the lineage, runs the normalisers, checks the structural invariants without the
 prevent hook, so prevent violations stay as findings, and writes the run. **Into a new project:** `ew import qet
-<file> --out <dir>` writes the project after the report; in the window the import card is a modal (not the Preview
+<file> --out <dir>` writes the project after the report (a folder of `<dir>` that does not exist is made, and removed
+again when the write fails); in the window the import card is a modal (not the Preview
 tab's card). It says what its button makes (a new project in the chosen folder, with its pages, devices and
 connections), gives a verdict (everything imported; points worth a look; points that need a fix), names a missing
 starter library, and lists the kinds of findings of the migration report under what they ask of the reader (Needs a

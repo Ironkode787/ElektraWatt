@@ -547,7 +547,9 @@ the first focus, so Enter runs it. Headless, the dialog is a pending prompt that
 **The headless mode**. `elektrawatt --headless --script <file|->` runs the same registry
 actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the
 script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after
-each step, `ui.describe` returns the visible UI as text for agents and `view.snapshot` a PNG; `--record` keeps the
+each step, `ui.describe` returns the visible UI as text for agents, `ui.actions` the list of every action (its ID,
+label, shortcut, whether it runs now with the reason when not, and its parameters as `name[?]:type`) in the same
+member `describe`, and `view.snapshot` a PNG; `--record` keeps the
 committed model commands as an `ew.cmdlog/1` log, and a headless run uses no user settings unless `EW_CONFIG_DIR` or
 `--config-dir` names a directory. The structural words of `ui.describe` are fixed machine text;
 quoted text is user text, including the option lists of a choice, every dialog-text line and an

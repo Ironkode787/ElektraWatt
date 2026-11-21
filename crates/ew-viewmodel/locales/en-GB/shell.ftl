@@ -1003,6 +1003,7 @@ action-help-about = About ElektraWatt
 action-command-run = Run model command
 action-view-snapshot = Write page snapshot
 action-ui-describe = Describe the user interface
+action-ui-actions = List the actions
 action-script-expect-refused = Expect a refusal
 action-script-expect-failed = Expect a failure
 action-ui-dismiss = Dismiss popup or dialog

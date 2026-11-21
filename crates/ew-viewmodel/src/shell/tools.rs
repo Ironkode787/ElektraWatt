@@ -888,9 +888,10 @@ impl ShellModel {
                 self.tools.overlay = Overlay::default();
                 if self.tools.selection.apply(&change) {
                     self.announce_selection();
-                } else if !self.tools.selection.is_empty() {
-                    // A click on what is selected already brings Properties back to it from the project's sheet (Properties
-                    // must not stay on the project until something else is selected first).
+                } else {
+                    // A click on what is selected already, or on the empty page with nothing selected, brings Properties
+                    // back to it from the project's sheet (Properties must not stay on the project until something else
+                    // is selected first).
                     self.props.project_mode = None;
                 }
                 // A click on an empty cell of a valve terminal drawn as its positions fills it.

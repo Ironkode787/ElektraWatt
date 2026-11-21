@@ -21,7 +21,7 @@
 //! refusal or null), `reason_text` (the sentence of that key, or null; G-PP triage row 10), `message` (the text of a
 //! failure or null), `pending` (the summary line of a preview card left open after the step, as the window shows it,
 //! or null), `state`, and for `ui.describe` the member
-//! `describe`; for a done `help.documentation` the member `doc`: the file the request opens below the
+//! `describe` (for `ui.actions` the action list, [`crate::describe::actions`]); for a done `help.documentation` the member `doc`: the file the request opens below the
 //! installed user guide's folder (`nl/` first in a Dutch window that has the Dutch guide), or null when no guide is
 //! installed. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
 //! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`, `tabs`,
@@ -1148,6 +1148,10 @@ pub fn run_step(
     ];
     if step.action == "ui.describe" && outcome == Outcome::Done {
         members.push(member("describe", &Value::from(crate::describe::describe(shell))));
+    }
+    // `ui.actions` carries the action list in the same member.
+    if step.action == "ui.actions" && outcome == Outcome::Done {
+        members.push(member("describe", &Value::from(crate::describe::actions(shell))));
     }
     // A done step that changed the same project answers with what it changed, the undo steps it
     // committed in words (a finished wire, a chosen part), never a bare "done".

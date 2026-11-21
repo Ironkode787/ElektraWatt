@@ -50,6 +50,21 @@ fn item_line(indent: &str, item: &ActionItem) -> String {
     line
 }
 
+/// The text of `ui.actions`: every action of the registry, one line each in registry order, as the describe text
+/// prints a menu item (its ID, label, shortcut, and whether it runs now, with the reason when not), then its
+/// parameters as `name[?]:type`, when it has any.
+pub fn actions(model: &ShellModel) -> String {
+    let mut out = String::new();
+    for meta in crate::actions::ACTIONS {
+        out.push_str(&item_line("", &crate::actions::item_of(meta, model)));
+        if !meta.params.is_empty() {
+            out.push_str(&format!(" params: {}", meta.params));
+        }
+        out.push('\n');
+    }
+    out
+}
+
 /// `"a" | "b"`: the options of a choice, each quoted as user text.
 fn quoted_list(items: impl Iterator<Item = String>) -> String {
     items.map(|i| format!("\"{i}\"")).collect::<Vec<_>>().join(" | ")

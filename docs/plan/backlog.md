@@ -54,7 +54,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Files and the text interface
 
-- FT-1868 `ew-viewmodel, ew`: No action prints the action list; `report_block.new` offers words in its error and takes keys; page rows cannot be reached after `props.project`; `ew import qet --out a/b.ew` with a missing folder `a` imports and then writes nothing.
 
 #### A copy of pages
 

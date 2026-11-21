@@ -2197,7 +2197,7 @@ impl ShellModel {
     }
 
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
-    /// of the report kind `kind` from folio `folio` on, titled `title` (else the report's name), on the shipped frame without the grid (embedded
+    /// of the report kind `kind` (its key, `tube_list`, or its name, `Tube list`) from folio `folio` on, titled `title` (else the report's name), on the shipped frame without the grid (embedded
     /// with its title block where the project does not hold it, as the company-standard wizard's blocks are), in the
     /// section whose folio range holds the folio. In the window without a kind or a folio its form opens, the first
     /// folio after the last page proposed.
@@ -2241,14 +2241,21 @@ impl ShellModel {
                 return self.form_missing(&REPORT_NEW, p, name);
             }
         }
+        // The kind by its key (`tube_list`) or by its name as the form lists it (`Tube list`); the refusal names both.
         let kinds = report_kinds();
-        if !kinds.contains(&kind.as_str()) {
-            let words: Vec<String> = kinds.iter().map(|k| report_kind_words(k)).collect();
+        let named = kinds
+            .iter()
+            .find(|k| **k == kind || report_kind_words(k).to_lowercase() == kind.trim().to_lowercase());
+        let Some(kind) = named.map(|k| (*k).to_owned()) else {
+            let words: Vec<String> = kinds
+                .iter()
+                .map(|k| format!("{} ({k})", report_kind_words(k)))
+                .collect();
             return self.form_failed(
                 REPORT_NEW.action,
                 strings::format(key!("error-report-kind"), &[&kind, &words.join(", ")]),
             );
-        }
+        };
         let Ok(number) = folio.parse::<u32>() else {
             return self.form_failed(
                 REPORT_NEW.action,

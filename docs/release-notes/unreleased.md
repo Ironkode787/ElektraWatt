@@ -104,6 +104,14 @@ change here.
 - behaviour-change: a part whose function is a black box (the starter's power supply) is placed by the Place tool with
   a symbol of its own drawn for that function; the Place tool refused it as a black box and the Black box tool as a
   symbol
+- api-add: the headless action `ui.actions` prints every action with its label, shortcut, parameters and whether it
+  runs now (the reason when not) into the transcript's `describe`, as `ui.describe` prints the window
+- behaviour-change: `report_block.new` takes a report's kind by its name too (`Tube list`, as its refusal lists them,
+  now each with its key)
+- behaviour-change: after Project properties (`props.project`) the page's own rows show again on another page, on a
+  click on the empty page and on `select.set {"ids": []}`
+- behaviour-change: `ew import qet --out a/b.ew` makes the folder `a` when it does not exist; the import ran and then
+  wrote nothing
 - dependency: `ew-commands` reads the font file `project.typeface.set` takes with skrifa 0.44.0, the version already
   in the graph
 - format-variant: form Align baseline_centre

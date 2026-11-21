@@ -958,6 +958,7 @@ action-help-about = Over ElektraWatt
 action-command-run = Modelopdracht uitvoeren
 action-view-snapshot = Momentopname van de pagina schrijven
 action-ui-describe = De gebruikersinterface beschrijven
+action-ui-actions = De acties opsommen
 action-script-expect-refused = Een weigering verwachten
 action-script-expect-failed = Een mislukking verwachten
 action-ui-dismiss = Pop-up of dialoog sluiten

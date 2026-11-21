@@ -1599,7 +1599,7 @@ impl std::error::Error for CreateError {}
 
 /// Writes `batch` as a new project (generation 1) into `out`, which must not exist or be an empty directory: the
 /// project is written into a new sibling directory and renamed to `out` once complete, so `out` never holds a part of
-/// a project. The project is not journalled and its lock is released afterwards. Returns whether the manifest written is
+/// a project. A folder of `out` that does not exist is made, and removed again when the write fails. The project is not journalled and its lock is released afterwards. Returns whether the manifest written is
 /// marked `unstable` (an unreleased format: the CLI warns).
 ///
 /// # Errors
@@ -1682,8 +1682,18 @@ fn write_new(
         path: out.to_path_buf(),
         error,
     };
+    // A folder of `out` that does not exist yet is made (`--out a/b.ew` without `a`), and taken back with the rest when
+    // the write fails: the topmost of them holds only what this call writes.
+    let made = parent.ancestors().take_while(|a| !a.as_os_str().is_empty() && !a.exists()).last();
+    let made = made.map(Path::to_path_buf);
+    std::fs::create_dir_all(parent).map_err(|e| write_err(format!("{}: {e}", parent.display())))?;
     // A new directory of ours: `create_dir` fails when anything is at that name.
-    std::fs::create_dir(&temp).map_err(|e| write_err(format!("{}: {e}", temp.display())))?;
+    if let Err(e) = std::fs::create_dir(&temp) {
+        if let Some(made) = &made {
+            let _ = std::fs::remove_dir_all(made);
+        }
+        return Err(write_err(format!("{}: {e}", temp.display())));
+    }
     store.state_dir = None;
     let written = match session.create(&temp, store) {
         Ok(()) => {
@@ -1702,8 +1712,11 @@ fn write_new(
         }
     };
     if written.is_err() {
-        // Only the directory created above, which holds only what this call wrote.
+        // Only the directories created above, which hold only what this call wrote.
         let _ = std::fs::remove_dir_all(&temp);
+        if let Some(made) = &made {
+            let _ = std::fs::remove_dir_all(made);
+        }
     } else {
         use ew_store::Vfs as _;
         let _ = ew_store::OsVfs.sync_dir(parent);

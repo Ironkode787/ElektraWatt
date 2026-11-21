@@ -169,6 +169,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_ui_describe(p),
     ))))),
+    keeps_link_preview(answers_recovery(keeps_banner(headless(act(
+        "ui.actions",
+        View,
+        Menu::View,
+        &[],
+        always,
+        None,
+        |s, p| s.act_ui_describe(p),
+    ))))),
     with_params(
         "folio:text",
         hidden(act(

@@ -283,6 +283,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `script.expect_refused` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_script_expect_refused` `crates/ew-viewmodel/src/shell.rs` | `action-script-expect-refused` |
 | `script.expect_failed` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_script_expect_failed` `crates/ew-viewmodel/src/shell.rs` | `action-script-expect-failed` |
 | `ui.describe` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_ui_describe` `crates/ew-viewmodel/src/shell.rs` | `action-ui-describe` |
+| `ui.actions` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_ui_describe` `crates/ew-viewmodel/src/shell.rs` | `action-ui-actions` |
 | `page.goto` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_page_goto` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-page-goto` |
 | `tab.activate` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_tab_activate` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-tab-activate` |
 | `tab.move` | `crates/ew-viewmodel/src/actions/table/panes.rs` | `act_tab_move` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-tab-move` |

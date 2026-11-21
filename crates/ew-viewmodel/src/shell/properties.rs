@@ -360,7 +360,7 @@ impl ShellModel {
             return Vec::new();
         };
         let generation = self.tools.selection.generation;
-        if self.props.project_mode == Some(generation) {
+        if self.props.project_mode == Some((generation, self.current_page())) {
             return vec![EntityRef(p.session.query().project().id.as_uuid())];
         }
         let made_here = self
@@ -705,9 +705,10 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `props.project` (Project properties): the project record until the selection changes.
+    /// `props.project` (Project properties): the project record until the selection changes, `select.set` sets it
+    /// (`{"ids": []}` too), or another page shows; the page's own rows show again then.
     pub(crate) fn act_props_project(&mut self) -> Outcome {
-        self.props.project_mode = Some(self.tools.selection.generation);
+        self.props.project_mode = Some((self.tools.selection.generation, self.current_page()));
         self.act_props_focus()
     }
 
@@ -763,6 +764,8 @@ impl ShellModel {
         if self.tools.selection.apply(&change) {
             self.announce_selection();
         }
+        // A selection set, even the empty one it was, ends the project's sheet (`props.project`).
+        self.props.project_mode = None;
         Outcome::Done
     }
 

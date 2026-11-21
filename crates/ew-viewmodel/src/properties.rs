@@ -665,8 +665,9 @@ pub struct PropertiesState {
     pub(crate) popup: Option<Popup>,
     pub(crate) card: Option<Card>,
     pub(crate) notes: Vec<String>,
-    /// `props.project` shows the project record until the selection changes (its generation then).
-    pub(crate) project_mode: Option<u64>,
+    /// `props.project` shows the project record until the selection changes or another page shows (the selection's
+    /// generation and the page on show then).
+    pub(crate) project_mode: Option<(u64, Option<PageId>)>,
     /// The selection generation and the page it was made on: the pane shows the selection only while that page is on
     /// show; a page change with nothing selected there shows the page's own sheet (window check, item 6).
     pub(crate) selection_page: Option<(u64, Option<PageId>)>,
