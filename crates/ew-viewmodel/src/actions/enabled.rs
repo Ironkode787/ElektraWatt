@@ -51,6 +51,16 @@ pub(super) fn writable_list(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// The project can be written and shows a page of a list, or a legend is selected on its page (List columns…).
+pub(super) fn writable_columns(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    if m.shows_list() || m.selected_legend().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-list-or-legend"))
+    }
+}
+
 /// The selection is one valve terminal (Generate overview… without a row), else why not in words.
 pub(super) fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;

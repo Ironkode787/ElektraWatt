@@ -285,7 +285,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Command,
                 Menu::Output,
                 &[],
-                writable_list,
+                writable_columns,
                 None,
                 |s, p| s.act_report_block_columns(p),
             ),

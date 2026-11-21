@@ -829,7 +829,12 @@ two strips' terminals 1 read apart; a block of one strip may leave the column ou
 
 **In the window.** On a page of a list, Output ▸ List columns… (the Output tab's Reports group) shows the caption, the
 legend and a row per column of the kind (its heading in the window's language): a tick to print it, a heading of its
-own, its width and its order; Apply writes them in one undo step (`fields.set_many`). Output ▸ Rows of your own…
+own, its width and its order; Apply writes them in one undo step (`fields.set_many`). **A legend takes the same
+choice** (FT-1772): with a legend selected on its panel page, List columns… (also in the legend's context menu) shows
+its table without the caption and the legend line, which a legend does not print; a legend without columns of its own
+(made before 0.3) shows the four it prints (position, DT, quantity, part number) ticked and the description among the
+others, and keeps printing them in two flow columns until Apply writes a choice, which makes it a lookup table (§2.2).
+Output ▸ Rows of your own…
 shows the printed columns and the list's own rows with three empty rows to fill; a row left empty is left out.
 Properties of a block shows its caption, legend, printed columns, each printed column and its rows by the report's
 column headings in the window's language, never a column's key. **By a command:** `fields.set` on the block, paths

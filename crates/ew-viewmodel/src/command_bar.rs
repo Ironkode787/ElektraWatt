@@ -659,8 +659,8 @@ pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::Entity
 /// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
 ///   terminal's, a device's), then, where the selection holds a symbol, the commands the command bar offers for it
 ///   (the buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then
-///   its other variants) and Keep in place, then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel
-///   page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
+///   its other variants) and Keep in place, over a legend List columns…, then Cut, Copy, Paste, Delete and Properties
+///   of selection. Over a placement of a panel page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
 /// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
 ///   numbers; on a panel layout, Add legend and Reset label positions.
@@ -801,6 +801,10 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
     }
     if over_text.is_some() || !model.selected_reps_with_moved_texts().is_empty() {
         items.extend(item("rep.reset_texts"));
+    }
+    // A legend chooses its printed columns as a list does (doc 09 §3.8).
+    if model.selected_legend().is_some() {
+        items.extend(item("report_block.columns"));
     }
     for id in [
         "edit.cut",

@@ -37,7 +37,7 @@ fn list_columns_and_rows_of_your_own_write_the_list_on_show() {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     assert_eq!(
         common::refused(&mut s, "report_block.columns", json!({})),
-        "reason-no-list-page"
+        "reason-no-list-or-legend"
     );
     done(&mut s, "page.goto", json!({"folio": "903"}));
     done(&mut s, "report_block.columns", json!({}));

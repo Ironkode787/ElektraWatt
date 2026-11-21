@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What the window's List columns and Rows of your own forms read of a list page (doc 09 §3.8): the page's report
+//! What the window's List columns and Rows of your own forms read of a list page or a legend (doc 09 §3.8): the report
 //! block, every column of its report kind with the block's own choice (printed or not, its heading, its width), its
 //! caption and legend, and the rows it holds that the model does not. The forms write them back with `fields.set_many`
 //! on the block; this module writes nothing. Also the form a new list starts on and the words of a block's columns.
@@ -89,43 +89,67 @@ impl Session {
     }
 
     /// The look of the list whose page has the ID `page` (a generated page's, [`page_uuid`]), its texts in `lang`
-    /// (`nl-NL`); `None` for another page, an embedded block and a list without a report kind of this build (a user
-    /// SQL report).
+    /// (`nl-NL`); `None` for another page and a list without a report kind of this build (a user SQL report).
     pub fn list_look(&self, page: Uuid, lang: &str) -> Option<ListLook> {
-        let q = self.query();
-        let order = q.get::<PageOrder>(());
+        let order = self.query().get::<PageOrder>(());
         let block = order.entries.iter().find_map(|e| match e.page {
             PageRef::Generated { block, .. } if page_uuid(e.page) == page => Some(block),
             _ => None,
         })?;
+        self.block_look(block.as_uuid(), lang)
+    }
+
+    /// The look of the report block `block` (a list's, or a legend's embedded on its page), its texts in `lang`
+    /// (`nl-NL`); `None` for no such block and one without a report kind of this build. A block that chooses no columns
+    /// prints its kind's: every column of a list, the columns of the kind's box of an embedded block (a legend made
+    /// before 0.3 prints position, tag, quantity and part number, doc 09 §2.2), the others unticked.
+    pub fn block_look(&self, block: Uuid, lang: &str) -> Option<ListLook> {
+        let q = self.query();
+        let block: Id<ReportBlock> = Id::from_uuid(block);
         let b: &ReportBlock = q.report_blocks().get(block)?;
         let ReportSource::Kind(kind) = &b.source else {
             return None;
         };
-        let defs = Registry::builtin().get(kind)?.columns();
+        let def = Registry::builtin().get(kind)?;
+        let defs = def.columns();
         let lang: Option<LangTag> = lang.parse().ok();
         let words = |m: &MlText| text_in(m, lang.as_ref()).to_owned();
-        let mut columns: Vec<ListColumn> = b
-            .columns
+        // The columns the block prints, its own else its kind's, as `(key, width, heading)`.
+        let printed: Vec<(String, u32, MlText)> = if !b.columns.is_empty() {
+            b.columns
+                .iter()
+                .map(|c| (c.key.clone(), c.weight, c.heading.clone()))
+                .collect()
+        } else if b.embedded.is_some() {
+            def.embedded_layout()
+                .columns
+                .into_iter()
+                .map(|(key, weight)| (key, weight, MlText::default()))
+                .collect()
+        } else {
+            defs.iter()
+                .map(|d| (d.key.clone(), d.weight, MlText::default()))
+                .collect()
+        };
+        let mut columns: Vec<ListColumn> = printed
             .iter()
-            .filter_map(|c| {
-                let def = defs.iter().find(|d| d.key == c.key)?;
+            .filter_map(|(key, width, heading)| {
+                let def = defs.iter().find(|d| d.key == *key)?;
                 Some(ListColumn {
-                    key: c.key.clone(),
+                    key: key.clone(),
                     label: words(&def.label),
                     shown: true,
-                    heading: words(&c.heading),
-                    width: c.weight,
+                    heading: words(heading),
+                    width: *width,
                 })
             })
             .collect();
-        let chosen = !columns.is_empty();
         for def in &defs {
             if !columns.iter().any(|c| c.key == def.key) {
                 columns.push(ListColumn {
                     key: def.key.clone(),
                     label: words(&def.label),
-                    shown: !chosen,
+                    shown: false,
                     heading: String::new(),
                     width: def.weight,
                 });

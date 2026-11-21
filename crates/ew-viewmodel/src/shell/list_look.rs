@@ -6,7 +6,9 @@
 //!
 //! - **List columns…**: the caption and the legend, and a table of every column of the list's report kind, one row each
 //!   (its heading in the window's language): a tick to print it, a heading of its own (empty: the kind's), its width (a
-//!   share of the table's width) and its order (a number; empty after the numbered ones, in the table's order).
+//!   share of the table's width) and its order (a number; empty after the numbered ones, in the table's order). With a
+//!   legend selected on its panel page, the same table for the legend (its description one of its columns), without
+//!   the caption and the legend line, which a legend does not print.
 //! - **Rows of your own…**: a table of the printed columns, one row per row the list holds that the model does not, and
 //!   three empty rows to fill; a row left empty is left out. A cell of a column the list does not print stays as it is.
 //!
@@ -103,13 +105,24 @@ impl ShellModel {
             .is_some_and(|r| r.generated)
     }
 
-    /// The look of the list on show, its texts in the window's language; `None` on any other page.
-    fn list_on_show(&self) -> Option<ListLook> {
-        let page = self.focused_page_id()?;
-        self.project
-            .as_ref()?
-            .session
-            .list_look(page, strings::rule_language())
+    /// The legend selected alone on the panel page on show (an embedded report block there).
+    pub(crate) fn selected_legend(&self) -> Option<ew_api::output::Uuid> {
+        let panel = self.panel_tables()?;
+        match self.tools.selection.items.as_slice() {
+            [one] if panel.block(one.0).is_some() => Some(one.0),
+            _ => None,
+        }
+    }
+
+    /// The look of the list on show, its texts in the window's language: the list of a list page; else, with `legend`,
+    /// the legend selected on its page; `None` otherwise.
+    fn list_on_show(&self, legend: bool) -> Option<ListLook> {
+        let session = &self.project.as_ref()?.session;
+        let lang = strings::rule_language();
+        if self.shows_list() {
+            return session.list_look(self.focused_page_id()?, lang);
+        }
+        session.block_look(self.selected_legend().filter(|_| legend)?, lang)
     }
 
     /// The folio of the page on show.
@@ -138,12 +151,15 @@ impl ShellModel {
 
     /// `report_block.columns {caption?, legend?, columns?}` (Output ▸ List columns…): without a parameter the
     /// window opens the form of the list on show (see the module documentation); its Apply writes the caption, the
-    /// legend and the printed columns in one step, a field left empty clearing its member. Refused in words: no list on
-    /// show, a width that is not a whole number of 1 or more, an order that is not a whole number, no column ticked.
+    /// legend and the printed columns in one step, a field left empty clearing its member; of a legend selected on its
+    /// page, its printed columns only. Refused in words: no list on show and no legend selected, a width that is not a
+    /// whole number of 1 or more, an order that is not a whole number, no column ticked.
     pub(crate) fn act_report_block_columns(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(look) = self.list_on_show() else {
-            return Outcome::refused(key!("reason-no-list-page"));
+        let Some(look) = self.list_on_show(true) else {
+            return Outcome::refused(key!("reason-no-list-or-legend"));
         };
+        // A legend prints neither a caption nor a legend line: its form offers its columns only.
+        let legend = !self.shows_list();
         let words = column_words();
         if p.is_empty() && !self.in_form_of(COLUMNS) {
             let rows = look
@@ -168,10 +184,14 @@ impl ShellModel {
                 action: COLUMNS,
                 title_key: key!("list-columns-title"),
                 ok_key: key!("dialog-apply"),
-                fields: vec![
-                    text_field("caption", key!("form-list-caption"), look.caption.clone()),
-                    text_field("legend", key!("form-list-legend"), look.legend.clone()),
-                ],
+                fields: if legend {
+                    Vec::new()
+                } else {
+                    vec![
+                        text_field("caption", key!("form-list-caption"), look.caption.clone()),
+                        text_field("legend", key!("form-list-legend"), look.legend.clone()),
+                    ]
+                },
                 error: None,
                 table: Some(FormTable {
                     name: "columns",
@@ -192,20 +212,26 @@ impl ShellModel {
         // In the form a field left empty clears its member; given as parameters, a member not named keeps its value.
         let in_form = self.in_form_of(COLUMNS);
         let text = |name: &str, now: &str| match p.get(name) {
-            Some(Value::String(s)) => s.trim().to_owned(),
+            Some(Value::String(s)) if !legend => s.trim().to_owned(),
             None if !in_form => now.to_owned(),
+            _ if legend => now.to_owned(),
             _ => String::new(),
         };
-        let (caption, legend) = (text("caption", &look.caption), text("legend", &look.legend));
+        let (caption, legend_line) = (text("caption", &look.caption), text("legend", &look.legend));
         let block = look.block.to_string();
         let mut edits = Vec::new();
         if caption != look.caption {
             edits.push(edit(&block, "caption", text_or_null(&caption)));
         }
-        if legend != look.legend {
-            edits.push(edit(&block, "legend", text_or_null(&legend)));
+        if legend_line != look.legend {
+            edits.push(edit(&block, "legend", text_or_null(&legend_line)));
         }
-        let toast = strings::format(key!("toast-list-columns"), &[&self.folio_on_show()]);
+        let toast_key = if legend {
+            key!("toast-legend-columns")
+        } else {
+            key!("toast-list-columns")
+        };
+        let toast = strings::format(toast_key, &[&self.folio_on_show()]);
         let Some(table) = p.get("columns").and_then(Value::as_array) else {
             return self.commit_look(COLUMNS, edits, toast);
         };
@@ -283,7 +309,7 @@ impl ShellModel {
     /// of the list on show (see the module documentation); its Apply writes the rows the list holds that the model does
     /// not, in one step, the empty ones left out. Refused in words: no list on show, a table of contents.
     pub(crate) fn act_report_block_rows(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(look) = self.list_on_show() else {
+        let Some(look) = self.list_on_show(false) else {
             return Outcome::refused(key!("reason-no-list-page"));
         };
         if look.contents {
