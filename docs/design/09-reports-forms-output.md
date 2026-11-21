@@ -472,8 +472,8 @@ tracked reads only (FR-EXT-011).
   draws the characters the style's face lacks, for Latin, Greek and Cyrillic text only; a text line drawn with two
   faces is a group of glyph runs, one per face (§4.3 rule 5). Export reports only the characters no bundled face
   drew (FR-OUT-027, EW-CORE-066).
-- A system font chosen by the user is allowed; the export then states "output depends on system font X" and the
-  byte-identity guarantee no longer holds (NFR-REL-11 requires a project to export without system fonts).
+- **The project's typeface as built** (§4.8): one font file of the user's, held in the project, prints every text of
+  the Standard typeface. System fonts are not used (NFR-REL-11 requires a project to export without them).
 - **Font versions are pinned** by the derivation profile (ADR-0028 recommendation 6): an EW release that updates a
   bundled font ships it as a new version, so line breaks and shrink-to-fit results of reopened projects do not
   shift.
@@ -853,7 +853,7 @@ profile, font files by hash). Rules:
    even) before f32 values reach krilla. Arcs and rotations use a pure-Rust `libm`-style implementation in `ew-dl`,
    never the platform's `sin`/`cos`, whose last bit can differ between platforms; kurbo's arc-to-Bézier conversion
    calls `f64::sin_cos` and is therefore not used on the export path.
-5. **Fonts.** Bundled or project-embedded font files only; subset tags are content hashes (krilla 0.8.2, ADR-0015 amendment 5). A glyph run holds one font, so **a text line may be a group of runs, one per
+5. **Fonts.** Bundled font files and the project's typeface (§4.8) only; subset tags are content hashes (krilla 0.8.2, ADR-0015 amendment 5). A glyph run holds one font, so **a text line may be a group of runs, one per
    font**: a line whose characters come from the style's face and the symbol fallback is one `Group` with the
    origin, the angle, the entity and the one link of the text, holding one run per face in text order; a line drawn
    by one face stays one run (ADR-0015 amendment 8).
@@ -983,6 +983,86 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 - **Translation exchange.** Translations travel in the XLIFF 2.1 and CSV exchange format of
   [14](14-interop.md) §8.5 (a round trip with base values). This document owns the per-language output and
   [16](16-ux-ui.md) the translation UI.
+
+### 4.8 The project's typeface and the baseline anchor
+
+A drawing set that must match an existing print in another typeface (a QElectroTech set printed in Liberation Sans)
+needs the program to print that typeface, and its texts to stand where that print has them whatever typeface prints
+them. Both are built (FT-1872).
+
+**The setting.** `ProjectSettings.typeface` is an optional member of the project record: `{"asset":
+"sha256:<64 hex>", "name": "LiberationSans-Regular.ttf"}`, the font file as an asset of the project
+(`assets/<sha256>.ttf` or `.otf`, [05](05-project-format-and-persistence.md) §13.3) and the file's name as the person
+chose it, without its folder. Absent, the project prints as before. An older build keeps the member in
+`settings.extra` and the file as an opaque file, and prints with the bundled faces.
+
+- **In the window:** Project ▸ Text styles… has the line *Standard typeface* above the styles: "Noto Sans, comes
+  with the program" or the file's family and name, with **Choose a font file…** (`text_styles.typeface {path}`, the
+  file dialog) and **Use Noto Sans** (`text_styles.typeface_clear`). **By a command:** `project.typeface.set {file,
+  name}`, `file` the font file in base64 and `name` its file name; an empty `file` removes the setting. One undo step;
+  bulk, so the window previews it.
+- **Refused in words** (both languages, at `/file` or `/name`): a file over 768 KiB (the most one parameter of a
+  command carries in base64; FT-1940 is the row for larger files); text that is not base64; a file that is no font of
+  one typeface (a TrueType or OpenType file: not a collection `.ttc`, not a web font `.woff`); a font whose tables
+  cannot be read; a font without the letters A to Z, a to z and the digits; a font whose embedding permission forbids
+  what the PDF does (below); an empty name, or one with a folder in it or over 255 characters.
+- **Missing or unusable later.** A project whose file is gone (deleted by hand, a partial copy) or whose bytes are no
+  font prints with the bundled faces, and the *Standard typeface* line says so; nothing is refused and nothing is
+  lost (the setting stays, so the file can be added back).
+
+**What the typeface replaces.** It is the face of the Standard typeface (`Family::Default` of `ew-text`) in both
+weights: every text style whose face is Standard prints in it. Narrow, Mono and Technical drawing keep their bundled
+faces, and Noto Sans Math stays the fallback for a character the file lacks (a character neither has prints `.notdef`
+and is reported, FR-OUT-027). The file is one face: a bold Standard style prints in it regular and keeps its weight,
+as with Technical drawing (ADR-0028 amendment 3). The font set of a typeface is built once per file per process and
+kept (`ew_text::typeface_set`); the project's set is the memoised query `ProjectFontsQ`, which every page layer, the
+panel labels and the export read, so a change of the setting redraws every page and an image added to the project
+redraws none.
+
+**The PDF** embeds the subset of the glyphs a page prints, as for the bundled faces (krilla; §4.3 rule 5), so the
+document carries only those glyphs. The SVG embeds a TrueType file's subset (an OpenType file with PostScript outlines
+is named only, §4.4); the PNG, the print and the window draw the outlines from the file.
+
+**The licence.** The program ships no such font: the file is the user's, and the project carries the whole file, so
+whoever gets the project, its `.ewz` or its as-built archive gets the file. The *Standard typeface* line says so.
+The program honours the font's own embedding permission (`OS/2.fsType`, read as the OpenType specification says):
+a font whose permission is *restricted* (the permission field 2), may be embedded as bitmaps only (bit 9) or may not
+be subset (bit 8) is refused; *installable*, *editable* and *preview and print* fonts are taken. Whether the user may
+pass the file on with the project is the user's licence question; the program cannot answer it.
+
+**The DXF** cannot carry a font. Each face a page prints with is a `STYLE` that names it: `EW-<FAMILY>[-BOLD]`, its
+font file (group 3: the typeface's own file name, a bundled face's `<Family>-<Regular|Bold>.ttf`). A `TEXT` stands at
+its run's baseline start with the face's own cap height (the face's `OS/2` cap height over its units per em: 714/1000
+for the Noto faces as before, the file's own for a typeface), so a reader that has the same font file draws every text
+where the PDF has it; a reader without it substitutes a font of its own, and only the widths differ.
+
+**The window** shapes and draws with the project's font set: the canvas, the page pictures and the print preview
+draw the display lists the export writes, so the page on screen and the page on paper agree. The Text styles samples
+of the Standard rows are drawn in the typeface. Nothing else of the window's own type changes: its menus and panes
+keep Noto Sans.
+
+**The baseline anchor.** A text says where its point lies on it vertically.
+
+- A free text has the optional member `anchor`: `baseline` puts the first line's baseline on `at` (more lines go down
+  from it); absent (or `middle`) centres the text from the first line's cap height to its last baseline on `at`, as
+  before. `item.place` takes `anchor`; Properties shows it as *Anchor*.
+- A symbol's text (a static text or a text slot) has three more alignments, `baseline_left`, `baseline_centre` and
+  `baseline_right`: the baseline of the text's first line on its point, left, centred or right; the symbol editor
+  offers *Baseline* beside top, middle and bottom.
+- Turned upright or placed in a variant that brings its body to the other side of its point (a text at 180°, a
+  symbol turned half round or mirrored top to bottom), a baseline text is placed as a bottom-aligned text is: by
+  the top of its box ([`ew_scene::symbol::placed_align`]); turned a quarter, by the middle of its side.
+- In a box (a form's cell), a baseline alignment puts the first line's baseline on the box's top edge less the
+  padding; no shipped form uses it.
+- The QElectroTech import writes it ([14](14-interop.md) §4.4.2, §4.10): a free text and an element's texts stand on
+  QET's own baseline, so they keep their place in any typeface.
+- A project made by 0.3.0 has neither the member nor the alignments: every text prints where it did, to the
+  nanometre, and the sample's pages print byte for byte as before (`tests/it/typeface.rs`).
+
+**What it does not do.** No system fonts (NFR-REL-11 holds: the file is in the project). One file only: no second
+file for the bold or italic cut, no typeface for Narrow, Mono or Technical drawing, no font of a frame or title block
+of its own. No font over 768 KiB (FT-1940). The DXF does not embed or outline the texts. The window's own type is not
+the typeface. A text placed with the Text tool keeps the middle anchor.
 
 ---
 
