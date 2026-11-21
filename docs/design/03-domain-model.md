@@ -1283,6 +1283,11 @@ derived:
    page, and renumbering groups cables by that scope, so `include_frozen` also numbers a frozen cable without a
    drawing.
 
+   *As built (0.3.5, FT-1899).* **An enclosure's device** is drawn on no page either: its tag prints no page (`-UC1`),
+   and Enclosure… gives it the lowest counter no `UC` tag holds; online numbering and renumbering leave a page-less
+   device's counter as it is. Its mounting plate is its child (`-UC1-U1`). Neither is frozen: a frozen tag (step 1)
+   is a fixed text a person or an import chose, and EW-NUM-001 lists every frozen tag that differs from the scheme's.
+
 5. **Structure:** each aspect slot of `Device.structure` resolves to an explicit node, else the structure box around
    the main representation, else the main representation's page. A slot left `Inherit` on a `Child`-scheme device
    takes its parent's resolved slot (`=P01+J-E-2416-201U3-Q1`), and an unplaced device with a parent takes the

@@ -26,9 +26,9 @@ use ew_model::{AnyKey, Model};
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure,
-    EnclosureSection, Extra, FnDef, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
+    EnclosureSection, Extra, FnDef, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
     MountingSurface, Open, Page, Part, PartRef, PartUse, Placement, RailParams, Representation, Section,
-    Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme, TagSign, TagSpec,
+    Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme, TagSpec,
 };
 use ew_units::{Dec3, Nm, Pose3, Pt2};
 use schemars::JsonSchema;
@@ -2703,10 +2703,11 @@ fn one_of(part: Id<Part>) -> PartUse {
 /// enclosure from an enclosure part in one step.
 ///
 /// `copies` (the `lib/` JSON form, as `device.place` takes them) are embedded first. Then, in order: the location's
-/// layout space (created without a name when the location has none); the enclosure device, tag letter U with the
-/// lowest counter `n ≥ 1` whose frozen tag `UC<n>` no device holds, frozen `UC<n>` (a page-less device is
-/// never numbered), its location the given one and its function `function`, one piece of `part`; when the part's
-/// enclosure section names a plate part, the plate device, a child of the enclosure device frozen `UC<n>-plate` with
+/// layout space (created without a name when the location has none); the enclosure device, tag letter UC with the
+/// lowest counter `n ≥ 1` whose tag `UC<n>` no device holds (a counter of the letter, or a frozen tag), not frozen: the
+/// scheme's tag, which prints no page for an enclosure's device (`-UC1`; online numbering never renumbers a page-less
+/// device), its location the given one and its function `function`, one piece of `part`; when the part's enclosure
+/// section names a plate part, the plate device, the child U1 of the enclosure device (`-UC1-U1`) with
 /// one piece of the plate part and the same structure; then the enclosure and its plate surface exactly as
 /// `layout.enclosure.create` makes them. One undo removes all of it, the embedded copies included.
 ///
@@ -2815,16 +2816,24 @@ impl Command for CreateEnclosureFromPart {
             Some(s) => s,
             None => insert_space(tx, self.location, None)?,
         };
-        // The lowest n ≥ 1 whose frozen tag UC<n> no device holds.
-        let frozen: BTreeSet<String> = tx
+        // The scheme's tags, not frozen ones (FT-1899): the enclosure UC<n>, whose page-less tag prints no page, with
+        // the lowest n ≥ 1 that no device's tag UC<n> holds (another enclosure's counter, or a frozen UC<n> of an
+        // older project); its plate the child U1.
+        let letter = ident(name, "UC")?;
+        let held: BTreeSet<String> = tx
             .iter::<Device>()
             .into_iter()
-            .filter_map(|d| d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()))
+            .filter_map(|d| match &d.tag.frozen {
+                Some(f) => Some(f.text.as_str().to_owned()),
+                None if d.tag.letter == letter && d.tag.scheme == TagScheme::Default => {
+                    d.tag.counter.map(|c| format!("UC{c}"))
+                }
+                None => None,
+            })
             .collect();
         let n = (1u32..)
-            .find(|n| !frozen.contains(&format!("UC{n}")))
+            .find(|n| !held.contains(&format!("UC{n}")))
             .unwrap_or(1);
-        let letter = ident(name, "U")?;
         let structure = StructureAssignment {
             location: Some(Slot::Node(self.location)),
             function: self.function.map(Slot::Node),
@@ -2835,7 +2844,7 @@ impl Command for CreateEnclosureFromPart {
             letter: letter.clone(),
             counter: Some(n),
             scheme: TagScheme::Default,
-            frozen: Some(frozen_tag(name, &format!("UC{n}"))?),
+            frozen: None,
             extra: Extra::new(),
         };
         tx.insert(enclosure_device(
@@ -2848,10 +2857,10 @@ impl Command for CreateEnclosureFromPart {
         if let Some(p) = plate {
             let child: Id<Device> = tx.mint();
             let plate_tag = TagSpec {
-                letter,
-                counter: None,
+                letter: ident(name, "U")?,
+                counter: Some(1),
                 scheme: TagScheme::Child,
-                frozen: Some(frozen_tag(name, &format!("UC{n}-plate"))?),
+                frozen: None,
                 extra: Extra::new(),
             };
             tx.insert(enclosure_device(child, plate_tag, Some(device), &structure, p))?;
@@ -2868,14 +2877,6 @@ impl Command for CreateEnclosureFromPart {
     }
 }
 
-/// A frozen tag with its sign shown.
-fn frozen_tag(name: &'static str, text: &str) -> Result<FrozenTag, CmdError> {
-    Ok(FrozenTag {
-        text: ident(name, text)?,
-        sign: TagSign::Shown,
-        extra: Extra::new(),
-    })
-}
 
 /// The enclosure device or its plate device as `layout.enclosure.create_from_part` makes it: one piece of `part`.
 fn enclosure_device(
