@@ -336,10 +336,7 @@ impl Command for EditPartCopy {
             &mut blocked,
         )?;
         if !blocked.is_empty() {
-            return tx.reject(text!(
-                "refusal-part-edit-blocked",
-                crate::words::list(blocked)
-            ));
+            return tx.reject(text!("refusal-part-edit-blocked", crate::words::list(blocked)));
         }
         apply_remap(tx, &remap)?;
         let primary = match fork_copy {

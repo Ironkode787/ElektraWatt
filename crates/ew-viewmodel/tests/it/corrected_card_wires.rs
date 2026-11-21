@@ -17,7 +17,12 @@ fn pin_at(s: &ShellModel, device: &str, pin: &str) -> (i64, i64) {
         .iter()
         .find(|c| c.label == label)
         .map(|c| c.at)
-        .unwrap_or_else(|| panic!("no {label}: {:?}", t.cps.iter().map(|c| &c.label).collect::<Vec<_>>()))
+        .unwrap_or_else(|| {
+            panic!(
+                "no {label}: {:?}",
+                t.cps.iter().map(|c| &c.label).collect::<Vec<_>>()
+            )
+        })
 }
 
 /// The labels of both ends of every wire of the page shown.
@@ -71,7 +76,11 @@ fn a_wire_keeps_its_pin_when_the_card_s_pins_are_numbered_again() {
     let p = grid_point(&s, (60, 50));
     cursor(&mut s, p);
     done(&mut s, "tool.place", json!({}));
-    done(&mut s, "place.pick", json!({"part": "EW-GEN-PB-1", "letter": "S"}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-PB-1", "letter": "S"}),
+    );
     done(&mut s, "canvas.activate", json!({"alt": true}));
     done(&mut s, "tool.select", json!({}));
     let card = tables(&s)
