@@ -4,11 +4,12 @@
 //! The release gate on the saved generation and the checker's sign-off bound to its
 //! content digest, through the `Session` facade (RG-1 to RG-5).
 //!
-//! Golden A is opened read-only only (RG-4). The approvals run on a **copy** of Golden A in a fresh directory whose
-//! release-scheme errors are each waived first (Golden A's EW-POT-006 and EW-POT-013 are safety-kind, so their
-//! waivers are the ones a checker acknowledges). Nothing under `golden/` changes.
+//! The sample is opened read-only only (RG-4). The approvals run on a **copy** of the sample in a fresh directory
+//! whose open revision V1.0 gets the engineer as its author and whose shield wire on 103 loses its cross-section
+//! override, so that EW-POT-006, a safety-kind error, counts it as an undersized protective-earth wire; the
+//! release-scheme errors are each waived first, and the safety-kind waivers are the ones a checker acknowledges.
 
-use crate::{common, golden_common};
+use crate::common;
 
 use std::path::{Path, PathBuf};
 
@@ -22,8 +23,41 @@ use ew_schema::{Date, PartyRole, Revision, Waiver};
 use ew_store::StoreOptions;
 use ew_store::ew_format::{Limits, Manifest, content_digest};
 
-fn golden() -> PathBuf {
-    golden_common::repo().join("golden/J-E-2416.ew")
+fn sample() -> PathBuf {
+    PathBuf::from(ew_testdir::SAMPLE)
+}
+
+/// A copy of the sample at `copy`, prepared for an approval: V1.0's author is the engineer, the shield wire's
+/// cross-section override is removed, and both are saved.
+fn release_copy(copy: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
+    common::copy_dir(&sample(), copy);
+    let (mut s, _) = open(copy, state);
+    let revision = open_revision(&s).id;
+    let shield = s
+        .query()
+        .connections()
+        .iter()
+        .find(|(_, c)| c.overrides.csa.is_some())
+        .map(|(id, _)| id)
+        .expect("the shield wire with its override");
+    // The author is set as a person at the window sets it (the command is human-only).
+    s.execute_with(
+        &cmd(
+            "revision.set_author",
+            serde_json::json!({"revision": revision.to_string(), "role": "engineer"}),
+        ),
+        Submit::from(Origin::Gui),
+    )
+    .expect("the author is set");
+    s.execute(&cmd(
+        "fields.set",
+        serde_json::json!({"kind": "connection", "targets": [shield.to_string()], "path": "overrides.csa",
+            "value": null}),
+    ))
+    .expect("the override is removed");
+    s.save().expect("the prepared copy saves");
+    s.close();
+    open(copy, state)
 }
 
 fn open(dir: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
@@ -83,7 +117,7 @@ fn date() -> Date {
 
 fn approval(checker: PartyRole, waivers_ack: Vec<Id<Waiver>>) -> Approval {
     Approval {
-        label: "V2.0".into(),
+        label: "V1.0".into(),
         checker,
         date: date(),
         waivers_ack,
@@ -99,14 +133,14 @@ fn open_revision(s: &Session) -> std::sync::Arc<Revision> {
         .expect("an open revision")
 }
 
-/// RG-4 (D15's refusal half): the gate on Golden A lists exactly the findings of `ew check --scheme pre-delivery --mode
-/// release` (with the integrity findings of opening) plus EW-REL-001 "checker not set"; it refuses. The gate runs on a
-/// read-only session (no lock); the label must be the open revision's.
+/// RG-4 (D15's refusal half): the gate on the sample lists exactly the findings of `ew check --scheme pre-delivery
+/// --mode release` (with the integrity findings of opening) plus EW-REL-001 "author not set" and "checker not set";
+/// it refuses. The gate runs on a read-only session (no lock); the label must be the open revision's.
 #[test]
-fn the_gate_on_golden_a_is_the_release_run_plus_checker_not_set() {
-    let (s, report) = Session::open_read_only(&golden(), "wp-s1-18-part3").expect("Golden A opens read-only");
+fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
+    let (s, report) = Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
     let integrity = ew_api::integrity_items(&report);
-    let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
+    let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     let check = s
         .check(&PRE_DELIVERY, CheckMode::Release)
         .with_integrity(integrity.clone());
@@ -119,29 +153,36 @@ fn the_gate_on_golden_a_is_the_release_run_plus_checker_not_set() {
     assert_eq!(release, check.findings.iter().collect::<Vec<_>>());
     assert_eq!(
         rel(&gate.report.findings),
-        [(
-            "EW-REL-001",
-            "checker".to_owned(),
-            "revision V2.0: checker not set; the checker approves the revision".to_owned()
-        )]
+        [
+            (
+                "EW-REL-001",
+                "author".to_owned(),
+                "revision V1.0: author not set; set it with Check ▸ Revision ▸ Set revision author…".to_owned()
+            ),
+            (
+                "EW-REL-001",
+                "checker".to_owned(),
+                "revision V1.0: checker not set; the checker approves the revision".to_owned()
+            )
+        ]
     );
-    assert_eq!(gate.report.counts.errors, check.counts.errors + 1);
-    assert_eq!(gate.blockers().len(), check.counts.errors as usize + 1);
+    assert_eq!(gate.report.counts.errors, check.counts.errors + 2);
+    assert_eq!(gate.blockers().len(), check.counts.errors as usize + 2);
     assert!(!gate.passes());
     assert_eq!(gate.report.scheme, "pre-delivery");
-    assert_eq!(gate.content_digest, digest_on_disk(&golden()));
-    assert_eq!(gate.author, Some(PartyRole::Engineer));
+    assert_eq!(gate.content_digest, digest_on_disk(&sample()));
+    assert_eq!(gate.author, None, "only a person at the window sets the sample's author");
     assert!(
         gate.safety_waivers.is_empty(),
-        "Golden A waives no safety-kind finding"
+        "the sample waives no safety-kind finding"
     );
     // `ew check` itself never reports EW-REL (doc 15 §3.2).
     assert!(rel(&check.findings).is_empty());
     assert_eq!(
-        s.release_gate("V1.0", &integrity),
+        s.release_gate("V2.0", &integrity),
         Err(GateError::NotTheOpenRevision {
-            label: "V1.0".into(),
-            open: "V2.0".into()
+            label: "V2.0".into(),
+            open: "V1.0".into()
         })
     );
     s.close();
@@ -162,7 +203,7 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
             .map(|_| ()),
         Err(ApproveError::Gate(GateError::NoProject))
     );
-    let (mut s, _) = Session::open_read_only(&golden(), "wp-s1-18-part3").expect("Golden A opens read-only");
+    let (mut s, _) = Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
     assert_eq!(
         s.approve(&approval(PartyRole::Checker, Vec::new()), &[])
             .map(|_| ()),
@@ -171,7 +212,7 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
     s.close();
 }
 
-/// RG-1, RG-2, RG-3 and RG-5 on a copy of Golden A whose release-scheme errors are waived:
+/// RG-1, RG-2, RG-3 and RG-5 on a prepared copy of the sample whose release-scheme errors are waived:
 /// - RG-2: approval is refused with unsaved edits, for the author's party, and with the gate's errors (listed);
 /// - safety-kind waivers in force must be acknowledged ("unacknowledged safety waivers: …");
 /// - RG-1: after a save, the approval writes the checker and the sign-off with the saved manifest's content digest, the
@@ -183,11 +224,10 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
 fn approve_the_saved_revision_bound_to_its_content() {
     let copy = ew_testdir::Tmp::new("ew-part3-approve");
     let state = ew_testdir::Tmp::new("ew-part3-approve-state");
-    common::copy_dir(&golden(), &copy);
-    let (mut s, integrity) = open(&copy, &state);
+    let (mut s, integrity) = release_copy(&copy, &state);
 
     // RG-2: the gate's errors besides EW-REL-001 refuse the approval, listed.
-    let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
+    let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     let blocked = gate.approval_blockers().len();
     assert!(blocked > 0);
     match s.approve(&approval(PartyRole::Checker, Vec::new()), &integrity) {
@@ -224,7 +264,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     );
     s.save().expect("the waivers save");
 
-    let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
+    let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     assert!(
         gate.approval_blockers().is_empty(),
         "{:#?}",
@@ -237,7 +277,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
         gate.blockers()
     );
     assert_eq!(gate.content_digest, digest_on_disk(&copy));
-    // Golden A's safety-kind findings (EW-POT-006, EW-POT-013) are now waived: their waivers are in force.
+    // The safety-kind finding (EW-POT-006) is now waived: its waiver is in force.
     let safety: Vec<String> = waive
         .iter()
         .filter(|(rule, _)| checks::rule(rule).is_some_and(|r| r.meta().kind == checks::RuleKind::Safety))
@@ -313,7 +353,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     // The sign-off lives in revisions.jsonl, which is not content: saving it leaves the digest as it is.
     s.save().expect("the sign-off saves");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
-    let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
+    let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     assert!(gate.passes(), "{:#?}", gate.blockers());
 
     // RG-5: only the approval submits `revision.approve`.
@@ -357,7 +397,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     .expect("the page notes change");
     s.save().expect("saved");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
-    assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
+    assert!(s.release_gate("V1.0", &integrity).expect("gate").passes());
     // A comment (comments.jsonl, not content) keeps the sign-off too. No command writes
     // the reserved `comment` kind yet, so the comment arrives on disk as a review tool writes it, listed in the
     // manifest; the session reopens it, keeps it through a save, and the gate still passes.
@@ -365,7 +405,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     add_comment(&copy);
     let (mut s, integrity) = open(&copy, &state);
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
-    assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
+    assert!(s.release_gate("V1.0", &integrity).expect("gate").passes());
     s.execute(&cmd(
         "fields.set",
         serde_json::json!({"kind": "revision", "targets": [r.id.to_string()], "path": "page_notes", "value": []}),
@@ -375,7 +415,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     let comments = std::fs::read_to_string(copy.join("comments.jsonl")).expect("the comment is kept");
     assert!(comments.contains(COMMENT_ID), "{comments}");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
-    assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
+    assert!(s.release_gate("V1.0", &integrity).expect("gate").passes());
     // RG-3: a content edit voids it.
     let device = s.query().devices().ids().next().expect("a device");
     s.execute(&cmd(
@@ -386,13 +426,13 @@ fn approve_the_saved_revision_bound_to_its_content() {
     .expect("a content edit");
     s.save().expect("saved");
     assert_ne!(digest_on_disk(&copy), approved.content_digest);
-    let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
+    let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     assert_eq!(
         rel(&gate.report.findings),
         [(
             "EW-REL-001",
             "stale".to_owned(),
-            "revision V2.0: the sign-off does not match the saved content (edited after approval); approve it again"
+            "revision V1.0: the sign-off does not match the saved content (edited after approval); approve it again"
                 .to_owned()
         )]
     );
