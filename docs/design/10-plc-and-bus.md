@@ -532,9 +532,11 @@ pub struct PartBusPort {
   `function_template`. Members the forms do not show are kept; the pins and the template are made again only when
   the channels, the pin pattern or the supply pins changed. *As built (persona run m3-p4):* a device already drawn
   follows the correction by either route, as its CPs are derived (`function_cps`, `port_cps`), and its drawn boxes
-  follow in the same step (FT-1766, `follow_part_boxes` of `part.edit_copy` and `library.update`): a box keeps the
-  CPs the part still has where they stand (a pin the update pairs with another index by its designation under that
-  index); a box CP whose CP the part no longer has leaves the box, so no mark of it stays, unless a bus line ends
+  follow in the same step (FT-1766, `follow_part_boxes` of `part.edit_copy` and `library.update`): both commands pair
+  the old and the new pattern by designation (`pin_moves`), so a pin the correction numbers again (a card given more
+  channels: its L+ was the fifth pin and is the seventh) keeps its wires, bindings and box CP under its new index, and
+  a correction that takes away a pin something is connected to is refused in words; a box keeps the
+  CPs the part still has where they stand; a box CP whose CP the part no longer has leaves the box, so no mark of it stays, unless a bus line ends
   there, which keeps its end and which the card names before Apply (`lost_sockets`, "A bus line ends at a socket the
   part no longer has"); a CP the part adds stands after the last CP of the edge of the highest-numbered one, one pitch
   on, the box growing past its far end where it needs to (a turned box, or one that is no rectangle, takes it when it
@@ -543,8 +545,12 @@ pub struct PartBusPort {
   row that changes as its columns that differ. A starter part or another
   library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the
   interface's address in its caption (the black-box frame's `bus_address` slot), "Node TBD" while it is open.
-  *Removed (FT-1766).* The part editor of a part of My parts has **Remove from my parts library** apart from Save
-  (`part.remove_own {part?}`): the item is taken out of My parts as a library write is made, all or nothing
+  *Removed (FT-1766).* The part editor of a part of My parts has **Remove from my parts library…** apart from Save
+  (`part.remove_own {part?, confirm?}`). Undo does not bring the part back, so it asks first (doc 16a §6.12):
+  "Remove SW-6 from your parts library?", the next projects no longer offer it and a project that uses it keeps its
+  copy; Cancel is the Primary and returns to the part editor, Remove the danger button. A script gives `confirm`, as
+  the journal's discard does, and is refused in words without it. Confirmed, the item is taken out of My parts as a
+  library write is made, all or nothing
   (`ew_library::Registry::remove`), and the next projects no longer offer it. A project that holds a copy of it keeps
   the copy and its devices their part, because every project embeds the parts it uses; the toast names the devices of
   the open project that keep it, and the copy's state in the Libraries navigator reads that no library holds it.

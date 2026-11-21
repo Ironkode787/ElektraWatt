@@ -196,12 +196,15 @@ change here.
   the part's PLC section… in its row menu, which opens the module's part in the part editor (doc 10 §3.10, FT-1766)
 - behaviour-change: a station placed first on a bus page whose box is then drawn on a schematic page takes that
   page's tag, and the toast says so with both tags and why (doc 10 §2.7, FT-1766)
-- api-add: Remove from my parts library in the part editor of a part of My parts (`part.remove_own`) takes the part
-  out of My parts; the next projects no longer offer it, and a project that uses it keeps its copy, which the toast
-  says (doc 10 §2.6, FT-1766)
+- api-add: Remove from my parts library… in the part editor of a part of My parts (`part.remove_own {confirm}`) asks
+  first, then takes the part out of My parts; the next projects no longer offer it, and a project that uses it keeps
+  its copy, which the toast says; a script gives `"confirm": true` (doc 10 §2.6, FT-1766)
 - behaviour-change: a drawn box follows its corrected part at once: a socket or pin the part adds stands on the box
   after the last one of its edge, the box growing where it needs to, and one the part no longer has leaves the box
   unless a bus line ends there (doc 10 §2.6, FT-1766)
+- behaviour-change: a project-local part corrected in the part editor keeps each wire at its pin when its pins are
+  numbered again (a card given more channels: the wire at L+ ended at an input); a correction that takes away a pin
+  something is connected to is refused in words (doc 10 §2.6, FT-1766)
 - api-add: a part holds a card of two channel kinds, inputs and outputs (`PlcSection.more_channels`, an optional
   member after `ratings`): the part editor's PLC form has a second channel kind and its count, the outputs numbered on
   after the inputs and each kind addressed from bit 0 of its own range (doc 10 §2.6, FT-1766)

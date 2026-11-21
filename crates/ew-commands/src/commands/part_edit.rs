@@ -20,6 +20,7 @@ use serde_json::{Map, Value, json};
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
 use crate::commands::library::library_copy_hash;
+use crate::commands::library_update::{apply_remap, pin_moves};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
@@ -317,6 +318,30 @@ impl Command for EditPartCopy {
         if part == held.item {
             return tx.reject(text!("refusal-part-edit-unchanged"));
         }
+        // A pin the correction numbers again keeps what is connected to it, the patterns paired by designation as
+        // `library.update` pairs them (FT-1766: a wire at L+ stayed at the pin that took L+'s number); a pin it takes
+        // away while something is connected to it is refused in words.
+        let mut remap = std::collections::BTreeMap::new();
+        let mut blocked = Vec::new();
+        let corrected = LibDocument::Part(LibCopy {
+            item: part.clone(),
+            ..(*held).clone()
+        });
+        pin_moves(
+            tx,
+            &LibDocument::Part((*held).clone()),
+            &corrected,
+            &std::collections::BTreeMap::new(),
+            &mut remap,
+            &mut blocked,
+        )?;
+        if !blocked.is_empty() {
+            return tx.reject(text!(
+                "refusal-part-edit-blocked",
+                crate::words::list(blocked)
+            ));
+        }
+        apply_remap(tx, &remap)?;
         let primary = match fork_copy {
             None => {
                 let mut copy = (*held).clone();
@@ -379,8 +404,9 @@ impl Command for EditPartCopy {
                 id
             }
         };
-        // The drawn boxes of its devices take the pins and sockets the part has now (FT-1766).
-        crate::commands::box_follow::follow_part_boxes(tx, primary, &Default::default())?;
+        // The drawn boxes of its devices take the pins and sockets the part has now, each kept pin under its new
+        // index (FT-1766).
+        crate::commands::box_follow::follow_part_boxes(tx, primary, &remap)?;
         Ok(Outcome::primary((Kind::Part, primary.cast())))
     }
 }

@@ -583,6 +583,60 @@ fn function_moves(
         .collect()
 }
 
+/// The moves of the pins of the functions that use the copy `held` when it becomes `new`, the patterns paired by
+/// designation (`cp_mapping`, with the explicit pairs `explicit`): each endpoint that moves into `remap` ((function, old
+/// endpoint) → new endpoint); a pin that goes while something is attached to it, in words, into `blocked`. Shared by
+/// `library.update` and `part.edit_copy` (FT-1766: a corrected card's wire stays at its pin). Rejected: one endpoint
+/// moved to two places.
+pub(crate) fn pin_moves(
+    tx: &TxBuilder<'_>,
+    held: &LibDocument,
+    new: &LibDocument,
+    explicit: &BTreeMap<u16, u16>,
+    remap: &mut BTreeMap<(Id<Function>, u16), u16>,
+    blocked: &mut Vec<TextArg>,
+) -> Result<(), CmdError> {
+    let (old_cps, new_cps) = (
+        copy_cps(held).unwrap_or_default(),
+        copy_cps(new).unwrap_or_default(),
+    );
+    let target = cp_mapping(&old_cps, &new_cps, explicit);
+    for f in affected_functions(tx, held) {
+        for (endpoint, _, to) in function_moves(tx, f, held, new, &old_cps, &new_cps, &target) {
+            match to {
+                None => {
+                    // The pin by its printed designation, an interruption point's by its name (FT-1556).
+                    for what in attached(tx, f, endpoint) {
+                        blocked.push(
+                            text!(
+                                "refusal-library-update-blocked-pin",
+                                crate::words::cp(tx, f, endpoint),
+                                what
+                            )
+                            .into(),
+                        );
+                    }
+                }
+                Some(to) => {
+                    if to != endpoint
+                        && let Some(prev) = remap.insert((f, endpoint), to)
+                        && prev != to
+                    {
+                        return tx.reject(text!(
+                            "refusal-library-update-cp-twice",
+                            endpoint.to_string(),
+                            crate::words::function(tx, f),
+                            prev.to_string(),
+                            to.to_string()
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// What is attached at a function CP: connections, potential definitions, bonds and channel bindings, in words.
 fn attached(tx: &TxBuilder<'_>, f: Id<Function>, ep: u16) -> Vec<Text> {
     let at = EndpointKey::Cp(f, ep);
@@ -713,41 +767,7 @@ impl Command for UpdateLibraryCopies {
             if !changed {
                 continue;
             }
-            let target = cp_mapping(&old_cps, &new_cps, &explicit);
-            for f in affected_functions(tx, held) {
-                for (endpoint, _, to) in function_moves(tx, f, held, new, &old_cps, &new_cps, &target) {
-                    match to {
-                        None => {
-                            // The pin by its printed designation, an interruption point's by its name (FT-1556).
-                            for what in attached(tx, f, endpoint) {
-                                blocked.push(
-                                    text!(
-                                        "refusal-library-update-blocked-pin",
-                                        crate::words::cp(tx, f, endpoint),
-                                        what
-                                    )
-                                    .into(),
-                                );
-                            }
-                        }
-                        Some(to) => {
-                            if to != endpoint {
-                                if let Some(prev) = remap.insert((f, endpoint), to) {
-                                    if prev != to {
-                                        return tx.reject(text!(
-                                            "refusal-library-update-cp-twice",
-                                            endpoint.to_string(),
-                                            crate::words::function(tx, f),
-                                            prev.to_string(),
-                                            to.to_string()
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            pin_moves(tx, held, new, &explicit, &mut remap, &mut blocked)?;
         }
         if !blocked.is_empty() {
             return tx.reject(text!(
@@ -921,7 +941,10 @@ fn held_sha_of(doc: &LibDocument) -> Option<Sha256> {
 
 /// Rewrites the CP endpoints `(function, old) → new` of connections, potential definitions, bonds and channel
 /// bindings, and the functions' `cp_overrides`, each record once (a swap maps both ends from the state before).
-fn apply_remap(tx: &mut TxBuilder<'_>, remap: &BTreeMap<(Id<Function>, u16), u16>) -> Result<(), CmdError> {
+pub(crate) fn apply_remap(
+    tx: &mut TxBuilder<'_>,
+    remap: &BTreeMap<(Id<Function>, u16), u16>,
+) -> Result<(), CmdError> {
     if remap.is_empty() {
         return Ok(());
     }
