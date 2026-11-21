@@ -8,20 +8,38 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::support::{EwTmp, GOLDEN_PARTS, Tmp, args, stderr, stdout, tree};
+use crate::support::{EwTmp, PARTS, Tmp, args, stderr, stdout, tree};
 
-const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
-/// Golden A's copy packed with `ew export ewz` into `J-E-2416.ewz`.
+/// The generation the project in `dir` was saved at (its manifest's).
+fn generation(dir: &Path) -> u64 {
+    let manifest: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap()).unwrap();
+    manifest["generation"].as_u64().unwrap()
+}
+
+/// A command log of one new page, written into `t` as `page.ewcmd`.
+fn page_log(t: &Tmp) -> PathBuf {
+    let log = t.path("page.ewcmd");
+    std::fs::write(
+        &log,
+        "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"a page\"}\n\
+         {\"cmd\":\"page.create\",\"params\":{\"number\":300,\"title\":\"Notes\"}}\n",
+    )
+    .unwrap();
+    log
+}
+
+/// The sample's copy packed with `ew export ewz` into `sample.ewz`.
 fn packed(t: &Tmp, project: &Path) -> PathBuf {
-    let ewz = t.path("J-E-2416.ewz");
+    let ewz = t.path("sample.ewz");
     let o = t.ew(&args([&"export", &"ewz", &project, &"--out", &ewz]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(
         stdout(&o),
         format!(
-            ".ewz written to {}: generation 1, {} files
-",
+            ".ewz written to {}: generation {}, {} files\n",
             ewz.display(),
+            generation(project),
             tree(project).len()
         )
     );
@@ -53,16 +71,17 @@ type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 
 /// Every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
 /// `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade --check`) gives the same
-/// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
+/// exit code, stdout, stderr and output bytes on the sample's `.ewz` as on its directory; nothing is written beside
+/// the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn every_reader_gives_the_same_output_on_the_ewz() {
     let t = Tmp::new("ew-ewz");
-    let dir = t.golden("J-E-2416.ew");
+    let dir = t.sample("sample.ew");
     let ewz = packed(&t, &dir);
     let (tiny, tiny_ewz) = tiny_and_ewz(&t);
     let outs = t.0.join("outs");
     std::fs::create_dir_all(&outs).unwrap();
-    // The words of the line after `ew`: `{p}` is Golden A, `{tiny}` the small project (for the memo oracle's cold
+    // The words of the line after `ew`: `{p}` is the sample, `{tiny}` the small project (for the memo oracle's cold
     // recomputation), `{out}` the output path.
     let cases: &[&[&str]] = &[
         &["check", "{p}"],
@@ -131,10 +150,10 @@ fn every_reader_gives_the_same_output_on_the_ewz() {
     assert_eq!(
         names(&t.0),
         [
-            "J-E-2416.ew",
-            "J-E-2416.ewz",
             "home",
             "outs",
+            "sample.ew",
+            "sample.ewz",
             "tiny.ew",
             "tiny.ewz"
         ],
@@ -148,10 +167,10 @@ fn every_reader_gives_the_same_output_on_the_ewz() {
 #[test]
 fn every_other_subcommand_refuses_the_ewz() {
     let t = Tmp::new("ew-ewz");
-    let dir = t.golden("J-E-2416.ew");
+    let dir = t.sample("sample.ew");
     let ewz = packed(&t, &dir);
     let before = std::fs::read(&ewz).unwrap();
-    let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = page_log(&t);
     let refusal = format!(
         "error: {}: an .ewz opens read-only; extract it first\n",
         ewz.display()
@@ -174,7 +193,7 @@ fn every_other_subcommand_refuses_the_ewz() {
         args([&"upgrade", &ewz]),
         args([&"update-copies", &ewz]),
         args([&"project", &"assets", &"purge", &ewz, &"--preview"]),
-        args([&"import", &"parts", &GOLDEN_PARTS, &"--project", &ewz]),
+        args([&"import", &"parts", &PARTS, &"--project", &ewz]),
         args([&"import", &"table", &table, &ewz]),
         args([&"import", &"table", &table, &ewz, &"--apply"]),
         args([&"export", &"ewz", &ewz, &"--out", &copy]),
@@ -194,7 +213,7 @@ fn every_other_subcommand_refuses_the_ewz() {
 #[test]
 fn export_ewz_needs_out_and_is_deterministic() {
     let t = Tmp::new("ew-ewz");
-    let dir = t.golden("J-E-2416.ew");
+    let dir = t.sample("sample.ew");
     let o = t.ew(&args([&"export", &"ewz", &dir]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -219,9 +238,11 @@ fn export_ewz_needs_out_and_is_deterministic() {
     assert_eq!(
         stdout(&o),
         format!(
-            "{{\n  \"$schema\": \"ew.export-ewz-result/1\",\n  \"bytes\": {},\n  \"files\": 184,\n  \"generation\": 1,\n  \
+            "{{\n  \"$schema\": \"ew.export-ewz-result/1\",\n  \"bytes\": {},\n  \"files\": {},\n  \"generation\": {},\n  \
              \"out\": {}\n}}\n",
             first.len(),
+            tree(&dir).len(),
+            generation(&dir),
             serde_json::to_string(&json.display().to_string()).unwrap()
         )
     );
@@ -233,11 +254,11 @@ fn export_ewz_needs_out_and_is_deterministic() {
 #[test]
 fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     let t = Tmp::new("ew-ewz");
-    let dir = t.golden("J-E-2416.ew");
+    let dir = t.sample("sample.ew");
     let source = tree(&dir);
     let ewz = packed(&t, &dir);
 
-    // The default target is Golden A's copy itself: refused, nothing written.
+    // The default target is the sample's copy itself: refused, nothing written.
     let o = t.ew(&args([&"extract", &ewz]));
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
@@ -251,7 +272,7 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
         )
     );
     assert_eq!(tree(&dir), source);
-    assert_eq!(names(&t.0), ["J-E-2416.ew", "J-E-2416.ewz", "home"]);
+    assert_eq!(names(&t.0), ["home", "sample.ew", "sample.ewz"]);
 
     let into = t.0.join("new.ew");
     let o = t.ew(&args([&"extract", &ewz, &"--into", &into]));
@@ -259,8 +280,9 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     assert_eq!(
         stdout(&o),
         format!(
-            "extracted into {}: generation 1, {} files\n",
+            "extracted into {}: generation {}, {} files\n",
             into.display(),
+            generation(&dir),
             source.len()
         )
     );
@@ -269,27 +291,29 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     // The default target beside an archive elsewhere, with the JSON result.
     let sub = t.0.join("sub");
     std::fs::create_dir_all(&sub).unwrap();
-    let moved = sub.join("J-E-2416.ewz");
+    let moved = sub.join("sample.ewz");
     std::fs::copy(&ewz, &moved).unwrap();
     let o = t.ew(&args([&"extract", &moved, &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let target = sub.join("J-E-2416.ew");
+    let target = sub.join("sample.ew");
     assert_eq!(
         stdout(&o),
         format!(
-            "{{\n  \"$schema\": \"ew.extract-result/1\",\n  \"files\": 184,\n  \"generation\": 1,\n  \"into\": {}\n}}\n",
+            "{{\n  \"$schema\": \"ew.extract-result/1\",\n  \"files\": {},\n  \"generation\": {},\n  \"into\": {}\n}}\n",
+            source.len(),
+            generation(&dir),
             serde_json::to_string(&target.display().to_string()).unwrap()
         )
     );
     assert_eq!(tree(&target), source);
     assert_eq!(
         names(&sub),
-        ["J-E-2416.ew", "J-E-2416.ewz"],
+        ["sample.ew", "sample.ewz"],
         "no staging folder is left"
     );
 
     // The extracted project opens and saves as a project directory: a writer takes it.
-    let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let log = page_log(&t);
     let o = t.ew(&args([&"apply", &into, &log]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
 }
@@ -299,7 +323,7 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
 #[test]
 fn a_refused_archive_is_named_and_nothing_is_written() {
     let t = Tmp::new("ew-ewz");
-    let dir = t.golden("J-E-2416.ew");
+    let dir = t.sample("sample.ew");
     let ewz = packed(&t, &dir);
     let mut bytes = std::fs::read(&ewz).unwrap();
     // An entry the manifest does not list: `project.jsonl` renamed in both of its headers.
@@ -341,5 +365,5 @@ fn a_refused_archive_is_named_and_nothing_is_written() {
     assert!(!into.exists());
     let o = t.ew(&args([&"extract", &t.0.join("missing.ewz")]));
     assert_eq!(o.status.code(), Some(2));
-    assert_eq!(names(&t.0), ["J-E-2416.ew", "J-E-2416.ewz", "bad.ewz", "home"]);
+    assert_eq!(names(&t.0), ["bad.ewz", "home", "sample.ew", "sample.ewz"]);
 }

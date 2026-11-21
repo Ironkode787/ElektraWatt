@@ -12,6 +12,12 @@ use std::process::{Command, Output};
 
 pub use ew_testdir::{CONTENT, GOLDEN_A, SAMPLE, Tmp, copy_dir};
 
+/// The test tables' parts table (`fixtures/tables/`, the importer's test inputs).
+pub const PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables/parts.csv");
+
+/// The test tables: one small control cabinet in the table importer's format, written by hand.
+pub const TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables");
+
 /// Golden A's parts table.
 pub const GOLDEN_PARTS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
