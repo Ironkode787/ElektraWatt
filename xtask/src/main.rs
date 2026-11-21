@@ -17,6 +17,7 @@ mod api_guard;
 mod blind;
 mod book_po;
 mod check;
+mod code_map;
 mod crate_map;
 mod deps;
 mod docs_gen;
@@ -52,6 +53,14 @@ the loop:
                        (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model,
                        confidential tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`
 
+reading the code:
+  outline [--tests] <path>...
+                       every item of a Rust file (or of each under a directory) with its line span, signature and
+                       first doc sentence; a tests module as one line unless --tests
+  where [--in <crate>] <name>...
+                       a name's definitions with their spans, its row of the action map, then every use as line
+                       numbers grouped by file
+
 single steps:
   docs-gen             the reference (target/reference) and from it the generated reference pages of the user
                        guide (docs/book/src/reference/) and the lists of its SUMMARY.md
@@ -79,6 +88,8 @@ fn main() -> ExitCode {
             None => usage("gen takes only --check"),
         },
         "rules" => rules(&root),
+        "outline" => code_map::outline(&args[1..], &root),
+        "where" => code_map::find(&args[1..], &root),
         "docs-gen" => generate::reference(&root).and_then(|ok| Ok(ok && docs_gen::run(&root, false)?)),
         "gen-maps" => match flag(&args[1..], "--check") {
             Some(check) => generate::maps(&root, check),

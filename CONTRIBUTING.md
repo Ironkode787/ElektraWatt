@@ -38,6 +38,10 @@ cargo xtask rules                               # the repository rules alone, in
   until they do.
 - **`rules`** checks the crate layers and the licence boundary, test-only features, raw reads of the model,
   confidential tokens, and that the generated files xtask writes are current. It builds nothing.
+- **`outline <path>...`** prints a Rust file's items (or each file's under a directory) with their line spans and
+  first doc sentence; **`where <name>...`** a name's definitions with their spans, then its uses as line numbers by
+  file. Before you open a file you do not know, outline it and read the span you need; before you grep for a name,
+  ask `where`. Both read the worktree's files on every run and keep no index.
 
 There is no continuous integration until 1.0. `check` is the check.
 

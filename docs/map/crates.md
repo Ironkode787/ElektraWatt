@@ -1311,6 +1311,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/visual.rs` | large | The visual run's side of the protocol (visual spec §3 and §4): `do` sends mouse and key inputs and answers with one frame, `look` paints the current frame again (or a zoom of it), and nothing textual reaches the agent. |
 | `src/book_po.rs` |  | `book-po`: the user guide's translation catalogue, made from the pages and never kept by hand. |
 | `src/check.rs` |  | `check [-p <package>]... |
+| `src/code_map.rs` |  | `outline` and `where`: the items of a Rust file with their line spans, and a name's definitions and uses, read from the files of the worktree on every run (no index kept), so that a reader opens only the lines it needs. |
 | `src/crate_map.rs` |  | `gen-maps`, its second half: the crate map `docs/map/crates.md`, every workspace crate with the first sentences of its crate comment, its licence, the workspace crates it depends on and is used by, and under it each source file with the first sentence of its head comment, a file of more than 1,000 lines marked large. |
 | `src/deps.rs` |  | The rule `layers`: the rules between crates of `ci/dep-rules.toml`. |
 | `src/docs_gen.rs` | large | `docs-gen`: the generated reference pages of the user documentation book (NFR-DOC-06). |

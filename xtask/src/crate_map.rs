@@ -49,7 +49,7 @@ fn head_paragraph(text: &str) -> Option<String> {
 
 /// The first `n` sentences of `text`: a sentence ends at a full stop, a question or an exclamation mark followed by
 /// a space, or at the end.
-fn sentences(text: &str, n: usize) -> String {
+pub(crate) fn sentences(text: &str, n: usize) -> String {
     let mut ends = 0;
     for (i, c) in text.char_indices() {
         if matches!(c, '.' | '?' | '!') && text[i + 1..].starts_with(' ') {
