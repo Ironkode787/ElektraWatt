@@ -25,7 +25,8 @@ impl ShellModel {
     /// pins, is drawn as docs/design/06a-drafting.md §7.5 says (`ew_api::part_box::card_box`): its inputs in one row on
     /// the upper edge of a box at the foot of the drawing area, its outputs on the lower edge of a box at its head, its
     /// other pins down the left side of the first; of a row wider than the drawing area one box takes as many pins as
-    /// fit, at most sixteen, and the rest waits for a page of its own (`part_box::card_share`). Any other device is a box
+    /// fit, at most sixteen, and the rest waits for a page of its own (`part_box::card_share`). A device whose part lays
+    /// out its device box (doc 07 §2.5, FT-1788) is one box as it lays it out, placed as a card. Any other device is a box
     /// 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
     /// connection points laid out as the black box tool lays them (`tools::black_box::layout`); these stand in slot
     /// order beside each other from the next free place, a new row under the first where the next would pass the drawing
@@ -64,12 +65,16 @@ impl ShellModel {
             .collect();
         let head_line = crate::tools::ip::drawing_area(self.canvas()?.page())?[1] + 2 * SIZE.2;
         let grid_x = |k: i64| grid.coord(k);
-        // The pins of each device's black-box entry, from the catalogue.
-        let entries: Vec<(Uuid, Vec<(u16, String)>)> = {
+        // The pins of each device's black-box entry and the part's device box, from the catalogue.
+        type Entry = (Uuid, Vec<(u16, String)>, Option<ew_api::part_box::PartBox>);
+        let entries: Vec<Entry> = {
             let cat = self.catalogue()?;
             cat.parts
                 .iter()
-                .filter_map(|r| Some((r.copy, r.functions.iter().find(|f| f.black_box)?.cps.clone())))
+                .filter_map(|r| {
+                    let f = r.functions.iter().find(|f| f.black_box)?;
+                    Some((r.copy, f.cps.clone(), f.layout.clone()))
+                })
                 .collect()
         };
         let session = self.project_session()?;
@@ -90,7 +95,7 @@ impl ShellModel {
             else {
                 continue;
             };
-            let Some((_, entry)) = entries.iter().find(|(copy, _)| *copy == part) else {
+            let Some((_, entry, layout)) = entries.iter().find(|(copy, ..)| *copy == part) else {
                 continue;
             };
             let drawn: Vec<u64> = d[2]
@@ -102,6 +107,13 @@ impl ShellModel {
                 .filter(|(i, _)| !drawn.contains(&u64::from(*i)))
                 .cloned()
                 .collect();
+            // A part whose device box is laid out (FT-1788) is drawn as it lays it out, one box.
+            if let Some(layout) = layout {
+                let pins: Vec<u16> = cps.iter().map(|c| c.0).collect();
+                let s = ew_api::part_box::steps(&pins, &[], Some(layout), grid.step().max(1));
+                pieces.push((device.to_owned(), Piece::Card(s), false));
+                continue;
+            }
             let pins = device
                 .parse::<Uuid>()
                 .map(|id| session.card_pins(id, &cps))
@@ -578,13 +590,13 @@ impl ShellModel {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
         };
-        let cps = cat
+        let entry = cat
             .parts
             .iter()
             .find(|r| r.copy == part)
             .and_then(|r| r.functions.iter().find(|f| f.black_box))
-            .map(|f| f.cps.clone());
-        let (Some(cps), Some(symbol)) = (cps, params["symbol"].as_str()) else {
+            .map(|f| (f.cps.clone(), f.layout.clone()));
+        let (Some((cps, layout)), Some(symbol)) = (entry, params["symbol"].as_str()) else {
             return Outcome::refused(key!("reason-place-no-box"));
         };
         let copies = params["copies"].as_array().cloned().unwrap_or_default();
@@ -593,6 +605,7 @@ impl ShellModel {
             device: device.to_string(),
             label,
             cps,
+            layout,
         };
         self.tools.picker = None;
         self.activate_tool(Box::new(

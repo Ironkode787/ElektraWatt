@@ -1339,7 +1339,9 @@ place, in slot order; then each card's box takes the first place that keeps a ga
 of inputs as near the foot as there is room and one of outputs as near the head, each line from the left; a card that
 finds no room waits for another page, which a toast and the To do list say. A row wider than the drawing area takes as
 many pins as fit, `CARD_PINS_MOST` at most; "asks for the page" is the station view's To do list, which offers the
-rest on another page, and a toast after the draw says so. `plc.draw_station` draws a box of a card whose black-box
+rest on another page, and a toast after the draw says so. A card whose part lays out its device box (doc 07 §2.5,
+FT-1788: a person placed its pins in the box) is one box as the part lays it out, placed as a card of outputs is; so
+is it placed by Place here, with one click. `plc.draw_station` draws a box of a card whose black-box
 function a page draws already as another drawing of it when none of its pins is drawn yet, which also gives a card
 with inputs and outputs its two boxes in one step. The starter symbols that have a pin leaving upward (not the
 terminals, the earth symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their

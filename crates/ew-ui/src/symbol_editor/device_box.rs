@@ -154,6 +154,8 @@ impl EditorView {
         let outline = b.outline();
         let table = b.pin_table();
         let editable = b.pins_from().is_none();
+        // A card's or a bus device's pins take another place on the box (FT-1788).
+        let placed = b.places_pins();
         panels::panel_header(ui, label(key!("box-outline")));
         panels::body(ui, "box-outline", |ui| {
             panels::title_lines(ui, &outline.title, &outline.what);
@@ -188,7 +190,7 @@ impl EditorView {
                         );
                     }
                     // A row dragged onto another takes its place there: on that pin's edge, before it.
-                    if editable {
+                    if placed {
                         row.dnd_set_drag_payload(PinDrag(line.idx));
                         if row
                             .dnd_hover_payload::<PinDrag>()
@@ -316,7 +318,8 @@ impl EditorView {
 
         let steps = b.steps();
         let table = b.pin_table();
-        let editable = b.pins_from().is_none();
+        // A card's or a bus device's pins are dragged as any box's (FT-1788).
+        let editable = b.places_pins();
         // The box with a step of room for its pins' wires and two for the eye, as large as the drawing allows.
         let (w, h) = (steps.w as f32 * STEP_MM, steps.h as f32 * STEP_MM);
         let room = 4.0 * STEP_MM;

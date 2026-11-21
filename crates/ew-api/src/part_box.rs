@@ -7,7 +7,8 @@
 //! **The pins** are the part's CP pattern, drawn by its main function, a black box. The part editor's draft holds
 //! them as rows ([`PinRow`]: name and potential) which a person adds to, removes from and renames; Save writes the
 //! pattern and the main template entry's pins. A part with a PLC section, with bus interfaces, or drawn with a
-//! symbol of its own keeps its pins: they come from its channels, its ports or its symbol ([`PinsFrom`]).
+//! symbol of its own keeps its pins: they come from its channels, its ports or its symbol ([`PinsFrom`]). Where a
+//! card's or a bus device's pins stand on its box is the box's, edited as any box's ([`PartDraft::places_pins`]).
 //!
 //! **The layout** ([`ew_schema::PartBox`], `Part.box`) is the box's size and, for each pin, the edge it stands on
 //! and its distance along that edge. [`steps`] reads it onto a connection grid: distances taken up to whole grid
@@ -347,6 +348,14 @@ impl PartDraft {
         }
     }
 
+    /// Whether the places of the pins on the box (each pin's edge and its distance along it) and the box's size are
+    /// edited here: on a part drawn as a box, and on a PLC card's or a bus device's box, whose pins' names and
+    /// potentials come from its channels or interfaces (FT-1788); not on a part drawn with a symbol, whose connection
+    /// points are the symbol's.
+    pub fn places_pins(&self) -> bool {
+        !matches!(self.pins_from(), Some(PinsFrom::Symbol))
+    }
+
     /// Whether a device of the part is drawn as a box with pins that are edited here: pins of its own, or a black box
     /// for its main function.
     pub fn drawn_as_box(&self) -> bool {
@@ -551,14 +560,17 @@ pub(crate) fn pin_rows(part: &Part) -> Vec<PinRow> {
 impl Session {
     /// The draft's pins and device box over the part `p`: the CP pattern with the rows' names and potentials (a kept
     /// pin keeps its other members), the main template entry drawing every pin (a part without a template gets the
-    /// black box as its main function), and the layout. A part whose pins come from elsewhere
-    /// ([`PartDraft::pins_from`]) is left as it is.
+    /// black box as its main function), and the layout. A part whose pins come from its channels or interfaces
+    /// ([`PartDraft::pins_from`]) keeps its pins and takes the layout; one drawn with a symbol is left as it is.
     ///
     /// # Errors
     ///
     /// [`PartDraftError::Field`] on `pins` for a name that is no designation.
     pub(crate) fn apply_pins(&self, draft: &PartDraft, p: &mut Part) -> Result<(), PartDraftError> {
         if draft.pins_from().is_some() {
+            if draft.places_pins() && draft.box_ != draft.original.box_ {
+                p.box_.clone_from(&draft.box_);
+            }
             return Ok(());
         }
         let bad = |why: String| {

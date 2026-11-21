@@ -103,6 +103,8 @@ pub enum BoxTarget {
         label: String,
         /// The CPs of its part's black-box entry: (function CP index, designation).
         cps: Vec<(u16, String)>,
+        /// The part's device box (doc 07 §2.5, FT-1788): one click places the box as the part lays it out.
+        layout: Option<ew_api::part_box::PartBox>,
     },
     /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
     Ports {
@@ -375,10 +377,10 @@ impl BlackBoxTool {
         self
     }
 
-    /// The device box of a part target that lays one out.
+    /// The device box of a part target, or of a station's device, that lays one out.
     fn part_layout(&self) -> Option<&ew_api::part_box::PartBox> {
         match &self.target {
-            BoxTarget::Part { layout, .. } => layout.as_ref(),
+            BoxTarget::Part { layout, .. } | BoxTarget::Station { layout, .. } => layout.as_ref(),
             _ => None,
         }
     }

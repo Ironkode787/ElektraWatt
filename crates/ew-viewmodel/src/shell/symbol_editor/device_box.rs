@@ -126,15 +126,15 @@ impl DeviceBox {
         self.draft.box_steps()
     }
 
-    /// Where the pins come from when they are not edited here, in a sentence; `None` when they are.
+    /// Where the pins come from when they are not added, named and removed here, in a sentence; `None` when they are.
     pub fn pins_from(&self) -> Option<String> {
-        self.draft.pins_from().map(|from| {
-            words(match from {
-                PinsFrom::Channels => key!("box-pins-from-channels"),
-                PinsFrom::Ports => key!("box-pins-from-ports"),
-                PinsFrom::Symbol => key!("box-pins-from-symbol"),
-            })
-        })
+        self.draft.pins_from().map(from_words)
+    }
+
+    /// Whether the pins' places on the box and the box's size are edited here (FT-1788): also on a PLC card's or a bus
+    /// device's box, whose pins' names and potentials are the part's.
+    pub fn places_pins(&self) -> bool {
+        self.draft.places_pins()
     }
 
     /// The pin table: the pins in the order they stand on the box, the edges top, bottom, left, right, each from its
@@ -241,7 +241,10 @@ impl DeviceBox {
             help: None,
             locked: None,
         };
+        // A card's or a bus device's pins keep their names and potentials, which are the part's; their places and
+        // the box's size are the box's (FT-1788).
         let locked = self.pins_from();
+        let placed = locked.clone().filter(|_| !self.places_pins());
         let b = self.steps();
         let mm = |steps: i64| RowValue::Mm(Some((steps * EDIT_STEP) as f64 / 1e6));
         if self.selection.is_empty() {
@@ -264,7 +267,7 @@ impl DeviceBox {
             ] {
                 rows.push(SheetRow {
                     value: mm(steps),
-                    locked: locked.clone(),
+                    locked: placed.clone(),
                     ..text(key, label, String::new())
                 });
             }
@@ -323,7 +326,7 @@ impl DeviceBox {
                     value: same(&|p| side_word(&p.side).to_owned()),
                     options: sides,
                 },
-                locked: locked.clone(),
+                locked: placed.clone(),
                 ..text("side", key!("box-pin-side"), String::new())
             },
             SheetRow {
@@ -333,7 +336,7 @@ impl DeviceBox {
                         .map(|k| (k * EDIT_STEP) as f64 / 1e6),
                 ),
                 help: Some(words(key!("box-pin-at-help"))),
-                locked,
+                locked: placed,
                 ..text("at", key!("box-pin-at"), String::new())
             },
         ];
@@ -358,6 +361,15 @@ impl SymbolEditor {
     pub fn device_box(&self) -> Option<&DeviceBox> {
         self.device_box.as_ref()
     }
+}
+
+/// Where a part's pins come from, in a sentence that says what is changed where.
+fn from_words(from: PinsFrom) -> String {
+    words(match from {
+        PinsFrom::Channels => key!("box-pins-from-channels"),
+        PinsFrom::Ports => key!("box-pins-from-ports"),
+        PinsFrom::Symbol => key!("box-pins-from-symbol"),
+    })
 }
 
 /// A draft's refusal in the window's words.
@@ -614,7 +626,8 @@ impl ShellModel {
     /// adds a pin (named `name`, else the next free number); `remove` removes pin `remove`; with `pin`: `name` and
     /// `role` name it and say what it carries, `side` with `at` (millimetres along the edge) puts it there, and
     /// `side` alone moves it in the pin table's order onto that edge, before pin `before` or last. Refused in words
-    /// for a part whose pins come from its channels, its ports or its symbol.
+    /// for a part whose pins come from its channels, its ports or its symbol, except that a card's or a bus device's
+    /// pin is put on its edge and moved along it (its name and what it carries are the part's, FT-1788).
     pub(crate) fn act_part_pin(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = |name: &str| {
             p.get(name)
@@ -630,13 +643,15 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
         if let Some(from) = draft.pins_from() {
-            return Outcome::Failed {
-                message: words(match from {
-                    PinsFrom::Channels => key!("box-pins-from-channels"),
-                    PinsFrom::Ports => key!("box-pins-from-ports"),
-                    PinsFrom::Symbol => key!("box-pins-from-symbol"),
-                }),
-            };
+            let names = p.get("add") == Some(&Value::Bool(true))
+                || p.contains_key("remove")
+                || text("name").is_some()
+                || text("role").is_some();
+            if names || !draft.places_pins() {
+                return Outcome::Failed {
+                    message: from_words(from),
+                };
+            }
         }
         let change = |d: &mut PartDraft| -> Result<Option<u16>, String> {
             if p.get("add") == Some(&Value::Bool(true)) {
@@ -707,7 +722,7 @@ impl ShellModel {
         let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.as_mut()) else {
             return Outcome::refused(key!("reason-no-device-box"));
         };
-        if b.draft.pins_from().is_some() {
+        if !b.places_pins() {
             return Outcome::Failed {
                 message: b.pins_from().unwrap_or_default(),
             };
@@ -794,7 +809,7 @@ impl ShellModel {
                     .into_iter()
                     .filter(|pin| b.selection.contains(&pin.0))
                     .collect();
-                if b.draft.pins_from().is_none() {
+                if b.places_pins() {
                     b.edit(|d| {
                         for (idx, side, at) in moved {
                             let along = if matches!(side, Dir4::Up | Dir4::Down) {
@@ -1006,7 +1021,7 @@ impl ShellModel {
             return Err(todo.text.clone());
         }
         // The box is saved as the screen shows it: a part that had no layout takes the one drawn here.
-        if draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
+        if draft.box_.is_none() && draft.places_pins() && !draft.pins.is_empty() {
             draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
         }
         let from_project = b.from_project;

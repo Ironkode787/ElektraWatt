@@ -479,7 +479,14 @@ placed box is the page's: its edges and pins are still dragged there (`box.resha
 part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):
 an older build keeps it in `extra`, writes it back where it stands, and lays the pins out its own way. A part with a
 PLC section or bus interfaces takes its pins from its channels and ports, and a part drawn with a symbol from that
-symbol: the box editor shows such a part and says so. `part.edit_copy` lets the fork of a library copy change
+symbol: the box editor shows such a part and says so. *Editing a pin that comes from a channel or an interface*
+(FT-1788): what is the pin's own is its place, the edge it stands on and its distance along it, and with them its
+text's place, which stands inside the box at the pin, turned by its edge; with the box's size these are edited in the
+box as on any box, saved as the part's `box`, and drawn that way wherever the card is drawn by its box (a click of the
+Device tool, Place here, Draw on a page…, Redraw them). What is the part's is the pin's name (the pin pattern's), what
+it carries (a supply pin's potential), its channel and that channel's address and kind: the box shows them and says
+that they are changed in the part editor, under PLC or Bus interfaces; such a box takes no pin and loses none. A part
+drawn with a symbol has no device box to edit. `part.edit_copy` lets the fork of a library copy change
 `cp_pattern`, `function_template` and `box` as it does the identity, so a library part's box is changed for the
 project; its sections stay the library's.
 

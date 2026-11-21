@@ -185,6 +185,10 @@ change here.
   it said "Nothing is selected"
 - text-change: Properties titles a wire without a number "Wire without a number" ("Draad zonder nummer"), not "?"
   (FT-1799)
+- behaviour-change: a PLC card's or a bus device's device box is edited in the box: each pin is put on its edge and
+  moved along it and the box is sized, saved as the part's layout and drawn so by the Device tool, Place here and
+  Draw on a page…; the pins' names and what they carry stay the part's, changed in the part editor (doc 07 §2.5,
+  FT-1788)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
