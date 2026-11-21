@@ -531,8 +531,7 @@ fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<String> {
 ///
 /// The graphic representations on MultiLine and BusTopology pages (cable markers, the screen graphic) and
 /// the multi-line ones on Fluid pages (the CPX black boxes of a valve terminal drawn on its fluid pages) are
-/// allowed: the reference drawings contain exactly these,
-/// and Golden A's tables place them so (doc 20, build path (b)).
+/// allowed: the reference drawings contain exactly these.
 pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
     Some(match page {
         PageType::MultiLine => &[

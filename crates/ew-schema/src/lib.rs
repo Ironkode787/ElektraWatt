@@ -4,7 +4,7 @@
 //! The persisted record type of every entity kind (plain serde structs), the kind registry, per-kind schema
 //! versions and JSON Schemas.
 //!
-//! `ew-schema` v0 (WP-S1.02) holds the golden subset: the contract between the core and the output lanes
+//! `ew-schema` v0 (WP-S1.02) holds the implemented kinds: the contract between the core and the output lanes
 //! of the spine. It implements ADR-0001 (records are the schema types: typed, not property bags, with an
 //! `extra` map), ADR-0006 (devices with typed aspects, functions, representations), ADR-0007 (explicit
 //! connections and junctions), ADR-0011 (per-kind `$v`, `Unknown` catch-alls, append-only members) and the

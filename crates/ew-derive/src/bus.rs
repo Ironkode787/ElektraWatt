@@ -551,8 +551,7 @@ pub fn bus_termination_text(port: &BusPort) -> Option<String> {
 /// one member whatever its clamps and sides, and the external interruption points; the interruption points between
 /// pages are not members. A potential that a bus segment carries counts the segment's members instead of their
 /// CPs (D11: the DP potential reads segments): every function and cable of each segment one of whose functions has
-/// a CP on the potential, so the cable between the external end and the connector is a member (Golden A's DP row:
-/// the external end, -3W1, -3X1 and -201U1:DP).
+/// a CP on the potential, so the cable between the external end and the connector is a member.
 pub fn potential_member_count(q: &Q, p: &Potential) -> usize {
     #[derive(PartialEq, Eq, PartialOrd, Ord)]
     enum Member {

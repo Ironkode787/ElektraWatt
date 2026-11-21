@@ -31,7 +31,7 @@ pub struct SettableSetting {
 ///
 /// | Member | Controls | Derived values that follow |
 /// |---|---|---|
-/// | `numbering` | the device-numbering schemes: the default key, per-scheme formats and per-class rules (the strip rule `{select: {aspect: "strip"}, format: "{letter}{page}{counter}"}` of Golden A), the child separator (doc 03 §5.1, §8.2) | device tags, and every text that prints one |
+/// | `numbering` | the device-numbering schemes: the default key, per-scheme formats and per-class rules (the strip rule `{select: {aspect: "strip"}, format: "{letter}{page}{counter}"}` of the wizard's default), the child separator (doc 03 §5.1, §8.2) | device tags, and every text that prints one |
 /// | `colour_profile` | the pinned colour profile (doc 08 §4, doc 20 §7.1) | wire colours, reports 906 … 909 |
 /// | `size_profile` | the pinned size profile and its class rules (doc 08 §4.2, doc 20 §7.2) | wire cross-sections, reports |
 /// | `xref_format` | the cross-reference format (doc 03 §5.1 `XrefFormat`, FR-XRF-003) | cross-reference texts |

@@ -93,7 +93,7 @@ impl Default for RenumberOptions {
 /// its frozen tag, because without it the tag would print "?".
 ///
 /// Only counters (and, with `include_frozen`, frozen tags) change: identities and every reference by ID
-/// stay, so the topology is identical and no reference is orphaned (Golden B, FR-NUM-008). Running it
+/// stay, so the topology is identical and no reference is orphaned (FR-NUM-008). Running it
 /// twice changes nothing the second time. Bulk. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

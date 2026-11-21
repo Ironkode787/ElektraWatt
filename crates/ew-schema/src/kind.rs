@@ -128,7 +128,7 @@ pub enum Kind {
 /// Whether v0 has a record struct for a kind.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum KindStatus {
-    /// `ew-schema` v0 implements the kind (the golden subset, WP-S1.02).
+    /// `ew-schema` v0 implements the kind (WP-S1.02).
     Implemented,
     /// The rank and ownership are fixed; the struct arrives with a later work package. Records of the
     /// kind are kept verbatim as unknown kinds until then (doc 05 §10.3).

@@ -15,7 +15,7 @@
 //!   `ew_derive::SolenoidPositions`, so the derivation's step 4 and this normaliser agree.
 //! - **Trigger.** A pair is considered when its valve is new in the transaction, moved (parent or position
 //!   changed), changed its parts, or gained a function; or when the pair's channel is new in the
-//!   transaction (N1 created the module's channels after the valves existed, as the golden builder does).
+//!   transaction (N1 created the module's channels after the valves existed).
 //!   Pairs of untouched valves and old channels are never reconsidered, so an explicit unbinding stays
 //!   (accepted as a deviation from FR-PLC-051, which the design pass rewords; a
 //!   moved valve whose coil stays bound elsewhere gets a notice).

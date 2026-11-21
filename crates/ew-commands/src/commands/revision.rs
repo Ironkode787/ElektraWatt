@@ -50,7 +50,7 @@ pub enum NewRevisionState {
     #[default]
     Open,
     /// A historic released revision: released before the project came to ElektraWatt, so it has no
-    /// release record and no as-built archive (Golden A's V1.0).
+    /// release record and no as-built archive.
     Released,
 }
 

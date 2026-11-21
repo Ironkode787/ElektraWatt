@@ -37,7 +37,7 @@ use crate::tx::TxBuilder;
 /// the last (with its frame, grid, structure and `title`, else, when it is an overview page, its title), the first new one after
 /// the station's own page when there is none. A member already drawn in member order inside the band (on a later page
 /// than the member before, or on the same page right of it) stays where it stands, so that a refresh of an overview
-/// in order, Golden A's 201 and 202 among them, changes nothing; a refresh moves the representations that stand
+/// in order changes nothing; a refresh moves the representations that stand
 /// elsewhere; break marks and page-based tags follow from the pages. The notices name each page's members, the pages it creates and a page
 /// it empties.
 ///

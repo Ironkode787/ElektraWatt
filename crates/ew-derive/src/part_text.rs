@@ -12,8 +12,8 @@
 //!
 //! The part a device's slots print is its main part ([`main_part`]): the first part use
 //! whose copy's function template has a `main` function with the FnDef of the device's main function, else the
-//! first part use whose copy exists (doc 07 §3.3 step 6). A device with one part use (every printed device of the
-//! golden project) prints that part.
+//! first part use whose copy exists (doc 07 §3.3 step 6). A device with one part use prints
+//! that part.
 //!
 //! # The manufacturer
 //!

@@ -45,7 +45,7 @@ pub struct PlcConfigProject {
     /// The pinned address profile, `id@version` ("siemens-tia-intl@2027.1"; doc 10 §2.5).
     #[schemars(with = "IdentS")]
     pub profile: Ident,
-    /// The CPU device; absent when the master sits outside the project (Golden A).
+    /// The CPU device; absent when the master sits outside the project.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub cpu: Option<Id<Device>>,
@@ -856,8 +856,8 @@ pub enum SupplyFeeds {
 
 /// The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel
 /// that each solenoid of the valve at position index `p` drives. The position index is 0-based: the valve
-/// child at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). Part 533361 of Golden A carries the test
-/// input H1, `count = 4`, solenoid 14 → `2p`, solenoid 12 → `2p+1` (doc 20 §11.2).
+/// child at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). For example `count = 4`,
+/// solenoid 14 → `2p`, solenoid 12 → `2p+1`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PositionMap {
     /// The number of valve positions (p = 0 … count − 1).

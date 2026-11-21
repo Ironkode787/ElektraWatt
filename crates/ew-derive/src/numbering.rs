@@ -5,7 +5,7 @@
 //!
 //! # Rule
 //!
-//! The golden scheme is connection-oriented `{page}.{counter}` with the counter scope page: each physical wire
+//! The default scheme is connection-oriented `{page}.{counter}` with the counter scope page: each physical wire
 //! gets its own number, the counters run 1, 2, … per page. Cable cores are identified by cable and core and
 //! are never numbered (FR-NUM-019); bridges are not wires. The wires are taken in the **numbering order**
 //! (FR-NUM-028):

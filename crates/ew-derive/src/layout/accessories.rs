@@ -181,7 +181,7 @@ impl std::ops::Deref for RailBrackets {
 /// `group_accessories(carrier)`: the end brackets of a rail (D3, FR-LAY-060), sorted by `s0` (then `s1`, then the
 /// strip's place in the occupancy): per run of strips, one at the run's start attributed to its first strip and one
 /// after each strip attributed to it, from [`rail_items`] and each strip's declaring part use. Empty for a duct, a rail
-/// without a valid axis and a rail without strips. On Golden A's R2: four, attributed 1X1, 1X1, -X1031, -X1032. The
+/// without a valid axis and a rail without strips. The
 /// value also counts the brackets per strip ([`RailBrackets::count_of`]).
 #[derive(Debug)]
 pub struct GroupAccessories;

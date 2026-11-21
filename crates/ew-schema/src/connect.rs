@@ -565,8 +565,8 @@ pub struct Conductor {
 // ---------------------------------------------------------------------------------------------------------
 // Potential definition and bond
 
-/// Names and types a potential (doc 03 §9, doc 08 §2.2, rank 38). The golden potentials L-S … N-55S are
-/// naming-only definitions (`ptype` absent).
+/// Names and types a potential (doc 03 §9, doc 08 §2.2, rank 38). A potential such as L-S is a
+/// naming-only definition (`ptype` absent).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PotentialDef {
     /// The record ID.

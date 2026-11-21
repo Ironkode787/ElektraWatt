@@ -4,7 +4,7 @@
 //! The derived consequences of a transaction (doc 03 §8.6 "diff_query", doc 17 §3.5 `--preview`), v0
 //! subset: the printed device tags and the cross-reference texts. A preview shows them next to its
 //! [`ModelDiff`](crate::ModelDiff): a settings edit or a renumber changes one record and many derived values
-//! (doc 20 §2.2: the tags of Golden B, the "106-…" cross-references).
+//! (the tags, the cross-references).
 //!
 //! Values are read through two tracked-read contexts, one over the snapshot before and one over the
 //! candidate, so the diff never reads rows directly (ARCH §3 rule 1). The BOM, wire and TOC rows of

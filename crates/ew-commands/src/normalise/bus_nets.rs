@@ -10,7 +10,7 @@
 //! **Effect.** The ports that bus lines join are one network, as a person who draws a bus between them means. The
 //! line's segment is every port of its bus system reached over `Bus` lines from its ends, through any port on the
 //! way. A passive port (a bus plug, role `passive`) passes the net through and never takes one: it has no address
-//! (Golden A's plug -3X1 names the physical net only). Among the segment's other ports: when exactly one logical net
+//! (a plug names the physical net only). Among the segment's other ports: when exactly one logical net
 //! is named (and exists), the ports that name none take it; when none is named and the segment has two such ports, a
 //! new `LogicalNet` of their bus system is made, named for the bus system (`PROFIBUS DP`, then `PROFIBUS DP 2` …),
 //! with the CP of the segment's one `master` or `controller` port as its master, and all take it. Ports in different

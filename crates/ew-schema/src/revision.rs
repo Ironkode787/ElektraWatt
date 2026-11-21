@@ -20,7 +20,7 @@
 //! (WP-S1.18 part 3), not the reader's.
 //!
 //! **The label format** ([`LabelFormat`], `ProjectSettings.revision_label`, FR-REV-002): the order and the next
-//! label of each of the three forms; absent means `v_major_minor`, the golden form.
+//! label of each of the three forms; absent means `v_major_minor`.
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -360,7 +360,7 @@ impl JsonSchema for Digest128 {
 // The label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2)
 
 /// The project's one revision label format (doc 15 §5.2, FR-REV-002), `ProjectSettings.revision_label`;
-/// absent means [`LabelFormat::VMajorMinor`], the golden form, so every file written before the setting existed
+/// absent means [`LabelFormat::VMajorMinor`], so every file written before the setting existed
 /// reads as it did.
 ///
 /// Labels increase in the format's own order ([`LabelFormat::order_key`]): `V2.0 < V10.0`, `09 < 10`, `Z < AA`.

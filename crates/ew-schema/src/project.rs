@@ -294,7 +294,7 @@ pub struct ProjectSettings {
     #[serde(default, skip_serializing_if = "Formatting::is_empty")]
     pub formatting: Formatting,
     /// The project's one revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2); absent means
-    /// `v_major_minor`, the golden form ([`ProjectSettings::revision_label_format`]).
+    /// `v_major_minor` ([`ProjectSettings::revision_label_format`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revision_label: Option<LabelFormat>,
     /// The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the

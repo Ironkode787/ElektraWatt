@@ -152,8 +152,8 @@ impl std::fmt::Display for CarrierLabel {
 
 /// `carrier_labels(surface)`: the surface's rails and ducts in legend order ([`carriers_in_order`]: rails,
 /// then ducts, each top to bottom then left to right by `path[0]`), each kind numbered from 1. A carrier of a kind this
-/// build does not know gets no label (it carries no placements). On Golden A: R1 … R3 are Rail 1 … 3 and D1 … D5 are
-/// Duct 1 … 5 (doc 20 §13).
+/// build does not know gets no label (it carries no placements): three rails and five ducts are Rail 1 … 3
+/// and Duct 1 … 5.
 pub fn carrier_labels(q: &Q, surface: Id<MountingSurface>) -> Vec<(Id<Carrier>, CarrierLabel)> {
     let carriers = q.table::<Carrier>();
     let (mut rails, mut ducts) = (0u32, 0u32);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rail model and the resolver over Golden A's rail intervals (doc 20 §13; the spec's SN-1
+//! The rail model and the resolver over two hand-made 570 mm rails (the spec's SN-1
 //! to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules).
 
 use ew_ids::{Id, Uuid};
@@ -45,7 +45,7 @@ fn new_item(w: i128) -> RailItem {
     }
 }
 
-// Golden A's R1 (570 mm): -102G1, -101F1, -102F1, -102F2, T55, S51.
+// R1 (570 mm): -102G1, -101F1, -102F1, -102F2, T55, S51.
 const G1: u128 = 1;
 const F1_101: u128 = 2;
 const F1_102: u128 = 3;
@@ -65,7 +65,7 @@ fn r1() -> Vec<RailItem> {
     ]
 }
 
-// Golden A's R2 (570 mm): 1X1, -X1031, -X1032, each declaring a 10 mm end bracket.
+// R2 (570 mm): 1X1, -X1031, -X1032, each declaring a 10 mm end bracket.
 const X1: u128 = 11;
 const X1031: u128 = 12;
 const X1032: u128 = 13;
@@ -167,7 +167,7 @@ fn brackets_at_the_strip_boundaries() {
 
 /// D12's free lengths, for part 4: R1 341 mm, R2 381.4 mm.
 #[test]
-fn free_lengths_of_golden_a() {
+fn free_lengths_of_two_rails() {
     assert_eq!(free_length(L1, &r1(), &brackets(&r1())), 341 * MM);
     assert_eq!(free_length(L1, &r2(), &brackets(&r2())), mm10(3814));
 }
@@ -520,7 +520,7 @@ proptest! {
 fn next_fit_takes_the_first_fit_after_the_floor() {
     let m = new_item(180);
     assert_eq!(next_fit(&[], L1, &m, i128::MIN), Some(0));
-    // Golden A's R1: the first gap is before -102G1 (61 mm), then after S51 (290 mm).
+    // R1: the first gap is before -102G1 (61 mm), then after S51 (290 mm).
     assert_eq!(next_fit(&r1(), L1, &m, i128::MIN), Some(0));
     assert_eq!(next_fit(&r1(), L1, &m, mm10(500)), Some(mm10(2900)));
     // A floor inside a gap starts there.

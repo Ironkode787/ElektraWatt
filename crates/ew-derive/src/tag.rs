@@ -62,7 +62,7 @@ impl Query for MainFunction {
 /// image (doc 03 §5.1); `None` for an unplaced device.
 ///
 /// **A strip without a segment** (a device with a strip aspect whose main function has no such
-/// representation, Golden A's 1X1, ▲U-43) takes the main representation of its first placed terminal: the
+/// representation, ▲U-43) takes the main representation of its first placed terminal: the
 /// terminal whose own main representation is on the lowest page (folio number, then folio label in natural
 /// order, then page ID), then with the lowest designation (natural order), then the smallest ID. So the
 /// strip has a page for `{page}` and for numbering.

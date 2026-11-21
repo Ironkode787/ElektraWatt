@@ -185,8 +185,8 @@ pub fn brackets(items: &[RailItem]) -> Vec<BracketSpan> {
     out
 }
 
-/// The free length of a rail (D12): `L − Σ item widths − Σ bracket widths`, in nanometres (R1 of Golden A: 341 mm,
-/// R2: 381.4 mm). Overlapping items count each.
+/// The free length of a rail (D12): `L − Σ item widths − Σ bracket widths`, in nanometres.
+/// Overlapping items count each.
 pub fn free_length(length: i128, items: &[RailItem], brackets: &[BracketSpan]) -> i128 {
     let used = items
         .iter()

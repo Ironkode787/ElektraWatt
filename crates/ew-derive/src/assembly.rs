@@ -12,8 +12,7 @@
 //! form *segments*, the maximal runs of consecutive members drawn on one page. With two or more segments the
 //! overview continues across pages, and every open end gets a break mark (doc 11 §5.5 step 5, FR-DEV-023):
 //! a [`BreakSide::Right`] mark after the last representation of every segment but the last, and a
-//! [`BreakSide::Left`] mark before the first representation of every segment but the first (Golden A: right
-//! after -201U9 on 201, left before -202U1 on 202). The marks are derived, never stored, so moving a module
+//! [`BreakSide::Left`] mark before the first representation of every segment but the first. The marks are derived, never stored, so moving a module
 //! to another page moves its marks (store intent, derive presentation).
 
 use std::sync::Arc;
@@ -160,7 +159,7 @@ pub fn order_code_text(q: &Q, device: Id<Device>) -> String {
 
 /// The configured part of a device's order code: the part copy of its assembly aspect's first config, if the
 /// config names one and the project holds it. The `manufacturer` slot beside an `order_code` slot prints its
-/// manufacturer, not the main part's (folio 3 of the golden project).
+/// manufacturer, not the main part's.
 pub fn order_code_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {
     let copy = q
         .devices()

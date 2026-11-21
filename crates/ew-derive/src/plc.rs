@@ -24,8 +24,8 @@
 //! [`ChannelStates`] applies A3: an explicit state, a `Tbd` address, the state of the bound target device, a
 //! channel that the solenoid-position map claims gives `Reserved` (step 4), else the part's
 //! `unbound` state (spare by default). [`SolenoidPositions`] applies the part's position map
-//! (`PlcSection.positions`) to the module's valve children; on the golden project (test input H1) it claims
-//! no channel, because every coil is bound to channel 2p + 1 (doc 10 §3.2). [`ChannelTargets`] takes the manual target, else
+//! (`PlcSection.positions`) to the module's valve children (doc 10 §3.2).
+//! [`ChannelTargets`] takes the manual target, else
 //! the function of the bound CP (direct targets, MVP; traced targets are 1.0). [`ChannelTexts`] determines
 //! the designation (manual, else the part pattern over `{n}`), the symbol (manual only: templates are 1.0),
 //! the function text (the target device's function text, else the process tag of the device it drives

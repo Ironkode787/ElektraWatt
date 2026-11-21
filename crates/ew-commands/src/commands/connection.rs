@@ -1061,7 +1061,7 @@ impl Command for DefinePotential {
 ///
 /// Creates `Bond {a, b, kind, via}`. `a` and `b` must each be a CP of an existing function or an existing
 /// junction (a point on a connection is rejected) and must differ; `via`, the connection that realises the
-/// bond (W27 for PE-0VDC of Golden A), must exist when given. The bond's label (`B1`) is derived. Whether
+/// bond, must exist when given. The bond's label (`B1`) is derived. Whether
 /// the two ends lie on different potentials, and the PELV rule of exactly one 0 V-PE bond, are checks
 /// (EW-POT-001, EW-POT-002), not refusals. Outcome: the bond.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
