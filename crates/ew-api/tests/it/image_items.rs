@@ -188,7 +188,6 @@ fn the_page_tables_list_an_image_item() {
         images[0].bounds,
         [20_000_000, 40_000_000, 100_000_000, 60_000_000]
     );
-
 }
 
 /// A page's views are memoised, and an image's format comes from the asset the project holds. An

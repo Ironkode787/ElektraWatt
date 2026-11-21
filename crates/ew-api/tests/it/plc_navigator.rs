@@ -96,7 +96,11 @@ fn the_tree_levels_and_badges() {
     assert_eq!(station.parent, Some(0));
     assert_eq!(station.badges.len(), 1, "the station's role word");
     let all = channels(&t);
-    assert_eq!(all.len(), 24, "two cards and the valve terminal, eight channels each");
+    assert_eq!(
+        all.len(),
+        24,
+        "two cards and the valve terminal, eight channels each"
+    );
     for n in &all {
         let state = cell(&t, n, "state");
         let unplaced = n.badges.iter().any(|b| b == "unplaced");

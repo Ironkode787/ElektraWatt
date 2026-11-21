@@ -5,7 +5,6 @@
 //! boxes and `ip_structure`, bound free texts, graphics and texts without electrical meaning, group wire markers and
 //! the marker modes, the load finding of a stale marker entry, and the page tables' item and box rows.
 
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -40,7 +39,11 @@ fn run(s: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
 
 /// The drawn page printed `folio`.
 fn page_id(s: &Session, folio: &str) -> Id<Page> {
-    let page = s.page_rows().into_iter().find(|r| r.folio == folio).expect("the folio");
+    let page = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == folio)
+        .expect("the folio");
     Id::from_uuid(page.id)
 }
 

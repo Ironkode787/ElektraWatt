@@ -19,10 +19,7 @@ fn before_part_3(lib: &[LibDocument]) -> Vec<LibDocument> {
     let names: Vec<(ew_ids::Uuid, String)> = old
         .iter()
         .filter_map(|d| match d {
-            LibDocument::Manufacturer(m) => Some((
-                m.item_id.as_uuid(),
-                m.item.key.as_str().to_owned(),
-            )),
+            LibDocument::Manufacturer(m) => Some((m.item_id.as_uuid(), m.item.key.as_str().to_owned())),
             _ => None,
         })
         .collect();
@@ -104,5 +101,4 @@ fn every_page_and_export_equals_the_file_written_before_part_3() {
     // The manufacturer's name prints, from the copy now and from the key before.
     let bom = now.export_csv(Export::Bom(BomMode::Component)).expect("the BOM");
     assert!(bom.contains("Generic"), "{bom}");
-
 }

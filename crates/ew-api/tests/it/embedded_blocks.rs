@@ -17,8 +17,8 @@
 
 use crate::common;
 
-use ew_api::output::{RowExport, page_layer, page_view, row_export};
 use ew_api::Session;
+use ew_api::output::{RowExport, page_layer, page_view, row_export};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, Q};
@@ -95,7 +95,13 @@ fn page_id(records: &[Record], folio: u32) -> Id<Page> {
 }
 
 /// A block of the legend's form with its own ID, source, page and rect, and the kind's own columns and title.
-fn fixture_block(records: &[Record], n: u128, source: ReportSource, page: Id<Page>, rect: Bounds) -> ReportBlock {
+fn fixture_block(
+    records: &[Record],
+    n: u128,
+    source: ReportSource,
+    page: Id<Page>,
+    rect: Bounds,
+) -> ReportBlock {
     let mut b = legend(records);
     b.id = Id::from_uuid(Uuid::from_u128(0x4b42_0000 + n));
     b.source = source;

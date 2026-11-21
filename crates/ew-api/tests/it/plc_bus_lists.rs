@@ -38,7 +38,10 @@ fn the_network_address_and_bus_cable_lists() {
             .unwrap_or_else(|| panic!("no row of {station} at {address}: {net:#?}"))
     };
     assert!(row("-104A1", "2").contains(",yes,"), "the CPU is the DP master");
-    assert!(row("-201K1", "3").contains(",no,"), "the valve terminal is a slave");
+    assert!(
+        row("-201K1", "3").contains(",no,"),
+        "the valve terminal is a slave"
+    );
     assert!(row("-104A1", "192.168.0.10").contains(",yes,"));
     let cables = sample_rows("bus_cable_list");
     assert_eq!(cables.len(), 1, "{cables:#?}");

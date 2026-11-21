@@ -44,9 +44,7 @@ fn wire_to_switch(s: &Session, tag: &str) -> Id<Connection> {
         .find(|r| r.device == Some(terminal))
         .expect("the terminal on 101")
         .functions[0];
-    let at = |e: &ew_api::output::TableEnd| {
-        matches!(e, ew_api::output::TableEnd::Cp { function: f, idx: 0 } if *f == function)
-    };
+    let at = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function: f, idx: 0 } if *f == function);
     let c = tables
         .connections
         .iter()

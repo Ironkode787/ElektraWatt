@@ -32,7 +32,6 @@ fn fresh() -> Session {
     Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()
 }
 
-
 #[test]
 fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     let s = common::sample();
@@ -539,7 +538,6 @@ fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
     assert_eq!(
         seen,
         ["-101G1:PE -X1011:PE/a | -X1011:PE/a -X1021:8/a | -X1011:PE/a -X1031:PE/a"]
-
     );
 
     // An unknown junction has none.

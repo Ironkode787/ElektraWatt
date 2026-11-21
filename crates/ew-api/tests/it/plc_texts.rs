@@ -288,7 +288,11 @@ fn the_sample_prints_the_addresses_of_its_bound_devices() {
         // A black box's pin prints its CP designation, and after one space the address of the channel bound to it.
         for pin in slots.iter().flat_map(|(_, _, pins)| pins.iter()) {
             if let Some((_, address)) = pin.text.split_once(' ') {
-                assert!(address.starts_with('I') || address.starts_with('Q'), "{page}: {}", pin.text);
+                assert!(
+                    address.starts_with('I') || address.starts_with('Q'),
+                    "{page}: {}",
+                    pin.text
+                );
                 pin_addresses += 1;
             }
         }
@@ -312,7 +316,10 @@ fn the_sample_prints_the_addresses_of_its_bound_devices() {
     folios.sort_unstable();
     folios.dedup();
     assert_eq!(folios, [104, 201]);
-    assert!(pin_addresses > 0, "the PLC cards' pins print their channels' addresses");
+    assert!(
+        pin_addresses > 0,
+        "the PLC cards' pins print their channels' addresses"
+    );
     // The PLC overview's rows (folio 908): each channel bound to a device, with its printed address.
     let mut listed: Vec<(Id<Device>, String)> = Vec::new();
     for (station, d) in q.devices().iter() {

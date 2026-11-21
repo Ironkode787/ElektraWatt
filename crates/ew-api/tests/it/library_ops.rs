@@ -132,7 +132,10 @@ fn held_copy(number: &str) -> Uuid {
 }
 
 fn device(s: &Session, tag: &str) -> Id<Device> {
-    Id::from_uuid(s.resolve_reference(tag).unwrap_or_else(|_| panic!("no device {tag}")))
+    Id::from_uuid(
+        s.resolve_reference(tag)
+            .unwrap_or_else(|_| panic!("no device {tag}")),
+    )
 }
 
 /// The slot texts printed by the representations of a device, on every page.
@@ -258,7 +261,8 @@ fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
     assert_eq!(held(&replay), held(&s));
     // Asking again: the project holds everything.
     assert_eq!(
-        s.embed_command(&[lib_ref(lib, item_of("EW-GEN-PSU-1"))]).unwrap_err(),
+        s.embed_command(&[lib_ref(lib, item_of("EW-GEN-PSU-1"))])
+            .unwrap_err(),
         ApiError::NothingToDo
     );
 }
@@ -392,7 +396,10 @@ fn assigning_from_a_company_library_embeds_and_prints() {
     // The part number prints; the starter's maker Generic names no maker, so its slot stays empty.
     let after = slot_texts(&s, f55);
     assert!(after.iter().any(|t| t == "EW-GEN-MCB-4"), "{after:?}");
-    assert!(!after.iter().any(|t| t == "EW-GEN-MCB-1" || t == "Generic"), "{after:?}");
+    assert!(
+        !after.iter().any(|t| t == "EW-GEN-MCB-1" || t == "Generic"),
+        "{after:?}"
+    );
 }
 
 /// EM-4 (FR-PRT-023): replacing EW-GEN-MCB-4 by another MCB across the devices that use it lists -101F1 in the preview and
@@ -630,7 +637,9 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
     assert_eq!(pieces.len(), 6, "{reason}");
     for name in ["1L1", "1L2", "1L3", "PE", "0V", "24V"] {
         assert!(
-            pieces.iter().any(|p| p.starts_with(&format!("interruption point {name}:"))),
+            pieces
+                .iter()
+                .any(|p| p.starts_with(&format!("interruption point {name}:"))),
             "{name}: {reason}"
         );
     }

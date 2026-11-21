@@ -456,7 +456,10 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
         assert!(route.len() >= 2, "{id}: {route:?}");
         assert_eq!((path[0], path[k - 1]), (route[0], route[route.len() - 1]), "{id}");
         for w in route.windows(2) {
-            assert!(w[0].x == w[1].x || w[0].y == w[1].y, "{id}: {w:?} is not orthogonal");
+            assert!(
+                w[0].x == w[1].x || w[0].y == w[1].y,
+                "{id}: {w:?} is not orthogonal"
+            );
             for (lo, hi) in &bodies {
                 assert!(!meets(w[0], w[1], *lo, *hi), "{id}: {w:?} meets a cylinder body");
             }

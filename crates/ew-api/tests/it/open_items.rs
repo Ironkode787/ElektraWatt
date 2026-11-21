@@ -341,7 +341,11 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
             _ => None,
         }));
     }
-    assert_eq!(overflows, Vec::<(usize, String, OverflowKind)>::new(), "no overflow");
+    assert_eq!(
+        overflows,
+        Vec::<(usize, String, OverflowKind)>::new(),
+        "no overflow"
+    );
     let caught: Vec<String> = s
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings

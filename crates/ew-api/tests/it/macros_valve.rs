@@ -19,10 +19,10 @@ use crate::common::{self, Dir, tiers};
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use ew_api::SessionOptions;
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::TableEnd;
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, SavedMacro, Session};
-use ew_api::SessionOptions;
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
 use ew_schema::{Endpoint, LibDocument, Page, Representation};
@@ -189,7 +189,12 @@ fn a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
         orient: Orient2::R0,
     };
     let cmd = s
-        .insert_macro(&saved.reference, &at, &card_values(station, slot), Uuid::from_u128(5))
+        .insert_macro(
+            &saved.reference,
+            &at,
+            &card_values(station, slot),
+            Uuid::from_u128(5),
+        )
         .unwrap();
     let conflicts = s.macro_conflicts(&cmd).unwrap();
     let addresses: Vec<&str> = conflicts

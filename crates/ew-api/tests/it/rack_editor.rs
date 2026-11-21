@@ -148,7 +148,10 @@ fn a_module_into_a_slot_another_module_holds_is_refused() {
         })
         .expect_err("slot 2 holds -104A1-A2");
     let err = format!("{err}");
-    assert!(err.contains("-104A1-A2") && err.contains("the same slot 2"), "{err}");
+    assert!(
+        err.contains("-104A1-A2") && err.contains("the same slot 2"),
+        "{err}"
+    );
     assert_eq!(s.world().rev, rev, "nothing committed");
 }
 

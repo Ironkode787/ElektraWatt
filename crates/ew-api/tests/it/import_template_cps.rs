@@ -62,7 +62,8 @@ fn inputs() -> Vec<ImportInput> {
 
 #[test]
 fn imported_connection_ends_are_derived_cps_of_a_positional_template() {
-    let library = StarterLibrary::from_dir(&common::repo().join("content")).expect("the starter content reads");
+    let library =
+        StarterLibrary::from_dir(&common::repo().join("content")).expect("the starter content reads");
     let batch = import_tables(&inputs(), &library, ImportMode::Strict).expect("the extended tables import");
     // The importer records no template entry: both it and the derivation take the first entry naming the FnDef.
     let k9: Vec<&ew_schema::Function> = batch

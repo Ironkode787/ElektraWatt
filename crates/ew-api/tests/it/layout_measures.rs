@@ -33,7 +33,14 @@ fn a_wire_s_words_name_each_device_with_its_tag_s_prefix() {
     let tables = s.page_tables("101").unwrap();
     let switch = s.resolve_reference("-101Q1").unwrap();
     let terminal = s.resolve_reference("-X1011:L1").unwrap();
-    let function = |d| tables.reps.iter().find(|r| r.device == Some(d)).unwrap().functions[0];
+    let function = |d| {
+        tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(d))
+            .unwrap()
+            .functions[0]
+    };
     let (q1, l1) = (function(switch), function(terminal));
     let end = |e: &ew_api::output::TableEnd, f| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if *function == f);
     let wire = tables
@@ -722,7 +729,6 @@ fn an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver() {
 /// RK2: the sample's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
 #[test]
 fn the_sample_s_check_report_holds_no_layout_finding() {
-
     use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
     let s = common::sample();
     for report in [

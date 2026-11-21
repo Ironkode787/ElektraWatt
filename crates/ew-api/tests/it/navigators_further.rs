@@ -99,7 +99,11 @@ fn connections_are_the_wire_list() {
     assert_eq!(br, ["BR1", "BR2"]);
     let p = find(&t, NavRole::Potential, "24V");
     let wires = children(&t, p);
-    assert!(wires.iter().all(|n| n.facets.contains(&("potential".to_owned(), "24v".to_owned()))));
+    assert!(
+        wires
+            .iter()
+            .all(|n| n.facets.contains(&("potential".to_owned(), "24v".to_owned())))
+    );
     // The power supply's + to the breaker -102F1, over the marks 24V: its three constituent connections, to the
     // junction and on to the outgoing mark on 101, from the incoming mark on 102; Enter opens the first page.
     let w = wires
@@ -298,7 +302,10 @@ fn cables_plc_potentials_parts() {
         ["-104A1-A1", "-104A1-A2"]
     );
     let channels: usize = modules.iter().map(|m| children(&t, m).len()).sum();
-    assert_eq!(channels, 16, "FR-UI-005: two cards of eight channels under -104A1");
+    assert_eq!(
+        channels, 16,
+        "FR-UI-005: two cards of eight channels under -104A1"
+    );
     let i01 = find(&t, NavRole::Channel, "I0.1");
     assert_eq!(i01.records.len(), 2, "the channel and its module device");
     assert_eq!(i01.records[1], find(&t, NavRole::Module, "-104A1-A1").records[0]);
@@ -492,7 +499,10 @@ fn connections_cover_every_wire_and_core_connection() {
         .filter(|(c, n)| **n > 1 && wire_or_core.contains(*c))
         .map(|(c, _)| *c)
         .collect();
-    assert!(!shared.is_empty(), "the sample's star and chain junctions share arms");
+    assert!(
+        !shared.is_empty(),
+        "the sample's star and chain junctions share arms"
+    );
     let at_ip = |e: &Endpoint| match e {
         Endpoint::Cp(f, _) => q
             .functions()
@@ -513,7 +523,6 @@ fn connections_cover_every_wire_and_core_connection() {
             con.id
         );
     }
-
 }
 
 #[test]

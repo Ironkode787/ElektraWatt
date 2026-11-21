@@ -210,7 +210,11 @@ fn derived_tags_and_part_numbers_are_found_but_not_replaced() {
         replace: Some("UC2".into()),
         ..query("UC1$")
     });
-    let h = frozen.hits.iter().find(|h| h.subject == "-UC1").unwrap_or_else(|| panic!("{:?}", subjects(&frozen)));
+    let h = frozen
+        .hits
+        .iter()
+        .find(|h| h.subject == "-UC1")
+        .unwrap_or_else(|| panic!("{:?}", subjects(&frozen)));
     assert_eq!(h.row_path, "tag.frozen.text");
     assert_eq!(h.replaceable, Ok(()));
     assert_eq!(h.after.as_deref(), Some("-UC2"));

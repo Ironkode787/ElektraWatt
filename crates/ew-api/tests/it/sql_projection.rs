@@ -147,7 +147,11 @@ fn messages_carry_the_check_run() {
         )
         .unwrap();
     // The enclosure's tags, which Enclosure… freezes and the numbering cannot derive (EW-NUM-001, an info).
-    let rows: Vec<Vec<String>> = set.rows.iter().map(|r| r.iter().map(|v| v.text()).collect()).collect();
+    let rows: Vec<Vec<String>> = set
+        .rows
+        .iter()
+        .map(|r| r.iter().map(|v| v.text()).collect())
+        .collect();
     assert_eq!(
         rows,
         [

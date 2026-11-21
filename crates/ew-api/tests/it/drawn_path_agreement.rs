@@ -240,8 +240,7 @@ fn ew_term_006_s_row_names_the_terminal_once() {
         .filter(|n| n.role == NavRole::Finding && n.cells[1] == "EW-TERM-006")
         .map(|n| (n.label.as_str(), n.cells[2].as_str(), n.cells[3].as_str()))
         .collect();
-    let message =
-        "+CAB-X1031:71 lies on wire 103.8 without joining it; connect it to the wire or move it";
+    let message = "+CAB-X1031:71 lies on wire 103.8 without joining it; connect it to the wire or move it";
     // The row's text, the message cell (the detail card's text) and the subject cell.
     assert_eq!(rows, [(message, message, "+CAB-X1031:71")]);
 }

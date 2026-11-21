@@ -72,7 +72,8 @@ fn column(out: &ew_api::output::RowsCsv, column: usize) -> Vec<String> {
 
 /// The numbers of the wire list's wires on folio `folio`.
 fn wire_numbers(s: &Session, folio: &str) -> Vec<String> {
-    let out = ew_api::output::row_export(&s.query(), &ew_api::output::RowExport::Wires, None).expect("the wire list");
+    let out = ew_api::output::row_export(&s.query(), &ew_api::output::RowExport::Wires, None)
+        .expect("the wire list");
     column(&out, 1)
         .into_iter()
         .filter(|n| n.starts_with(&format!("{folio}.")))
@@ -103,7 +104,6 @@ fn csv_fields(line: &str) -> Vec<String> {
     }
     fields
 }
-
 
 // ---------------------------------------------------------------------------------------------------------
 // QU-5: the registry and its snapshot
@@ -174,9 +174,9 @@ fn every_query_answers_on_the_sample() {
                 assert_eq!(
                     folios,
                     [
-                        "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901",
-                        "901.1", "902", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1",
-                        "910", "910.1", "911"
+                        "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900",
+                        "901", "901.1", "902", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909",
+                        "909.1", "910", "910.1", "911"
                     ]
                 );
                 assert_eq!(folios, s.page_labels());

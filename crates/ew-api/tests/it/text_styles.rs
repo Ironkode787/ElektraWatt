@@ -16,7 +16,6 @@ use ew_dl::{Item, ItemKind};
 use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
-
 /// The em heights of the built-in table that the tests follow: 5, 7 and 13 QET px.
 const PX5: i64 = 1_322_917;
 const PX7: i64 = 1_852_083;

@@ -25,13 +25,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
+use crate::common::repo;
 use ew_api::Session;
 use ew_api::import::{StarterLibrary, import_qet};
 use ew_derive::{DeviceTag, PageOrder, PageRef, PotentialPartition};
-use ew_schema::ConnectionKind;
-use crate::common::repo;
 use ew_import_tables::ew_interop_api::ImportInput;
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
+use ew_schema::ConnectionKind;
 use qet_synth::scan::{Tag, norm_uuid, scan};
 use qet_synth::{FOLIOS, Fixture, build};
 

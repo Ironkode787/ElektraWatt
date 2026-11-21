@@ -43,7 +43,9 @@ fn with_accessory() -> Session {
         "manufacturer": maker, "part_number": "ACC-1", "description": "Auxiliary contact block",
         "mech": {"width": 9000000, "height": 45000000, "depth": 40000000, "mount_kind": "on_parent"}
     });
-    let hash = ew_store::ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap()).unwrap();
+    let hash =
+        ew_store::ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap())
+            .unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     lib.push(ew_schema::LibDocument::from_value(doc).unwrap());
     common::session_of(project, records, lib)
@@ -117,27 +119,49 @@ fn carrier(s: &Session, kind: CarrierKind, n: usize) -> Uuid {
 /// A carrier's stored path as (start x, start y, length) in whole mm.
 fn rail_mm(s: &Session, id: Uuid) -> (i64, i64, i64) {
     let q = s.query();
-    let c = q.table::<Carrier>().get(Id::from_uuid(id)).expect("the carrier").clone();
+    let c = q
+        .table::<Carrier>()
+        .get(Id::from_uuid(id))
+        .expect("the carrier")
+        .clone();
     let (a, b) = (c.path[0], c.path[c.path.len() - 1]);
     (a.x.0 / 1_000_000, a.y.0 / 1_000_000, (b.x.0 - a.x.0) / 1_000_000)
 }
 
 /// A length row's millimetres.
 fn mm_of(text: &str) -> f64 {
-    text.strip_suffix(" mm").expect("a length").parse().expect("a number")
+    text.strip_suffix(" mm")
+        .expect("a length")
+        .parse()
+        .expect("a number")
 }
 
 /// The sample's one layout space, enclosure and plate.
 fn space(s: &Session) -> Uuid {
-    s.query().table::<LayoutSpace>().ids().next().expect("the layout space").as_uuid()
+    s.query()
+        .table::<LayoutSpace>()
+        .ids()
+        .next()
+        .expect("the layout space")
+        .as_uuid()
 }
 
 fn enclosure(s: &Session) -> Uuid {
-    s.query().table::<Enclosure>().ids().next().expect("the enclosure").as_uuid()
+    s.query()
+        .table::<Enclosure>()
+        .ids()
+        .next()
+        .expect("the enclosure")
+        .as_uuid()
 }
 
 fn plate(s: &Session) -> Uuid {
-    s.query().table::<MountingSurface>().ids().next().expect("-UC1's plate").as_uuid()
+    s.query()
+        .table::<MountingSurface>()
+        .ids()
+        .next()
+        .expect("-UC1's plate")
+        .as_uuid()
 }
 
 /// The placement of the device printed as `tag`.
@@ -232,7 +256,15 @@ fn length_lengthens_the_rail_and_a_bad_text_is_refused_in_words() {
 fn a_placements_locked_and_rotation_rows_commit_their_commands() {
     let mut s = common::sample();
     let f1 = placement_of(&s, "-102F1");
-    let along = s.query().table::<Placement>().get(Id::from_uuid(f1)).unwrap().pose.t[0].0 / 1_000_000;
+    let along = s
+        .query()
+        .table::<Placement>()
+        .get(Id::from_uuid(f1))
+        .unwrap()
+        .pose
+        .t[0]
+        .0
+        / 1_000_000;
     let keys: Vec<String> = rows(&s, f1).into_iter().map(|r| r.0).collect();
     assert_eq!(
         keys,
@@ -250,7 +282,10 @@ fn a_placements_locked_and_rotation_rows_commit_their_commands() {
     );
     // Auto-fill puts the schematic's first devices, 101's and 102's, on rail 1.
     assert_eq!(text_of(&s, f1, "placement/derived.carrier"), "Rail 1");
-    assert_eq!(text_of(&s, f1, "placement/derived.position"), format!("{along} mm"));
+    assert_eq!(
+        text_of(&s, f1, "placement/derived.position"),
+        format!("{along} mm")
+    );
     let lock = edit(&s, "placement", f1, "locked", "true").unwrap();
     assert_eq!(
         (lock.name.as_str(), &lock.params),
@@ -819,8 +854,8 @@ fn part_named(number: &'static str) -> impl Fn(&ew_schema::LibDocument) -> bool 
 /// creates +FLD's enclosure with its plate in one command.
 #[test]
 fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure() {
-    use ew_api::library::{LibraryTiers, Registry};
     use ew_api::SessionOptions;
+    use ew_api::library::{LibraryTiers, Registry};
     let root = Dir(ew_testdir::fresh_dir("layout-edit-library"));
     let tiers = |system: Vec<std::path::PathBuf>| LibraryTiers {
         system,
@@ -859,7 +894,9 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .collect();
     // The project's held copy brings no copies; the library's, with its copies, is offered beside it.
     assert!(
-        offers.iter().any(|o| o.number == "EW-GEN-ENC-1" && o.copies.is_empty()),
+        offers
+            .iter()
+            .any(|o| o.number == "EW-GEN-ENC-1" && o.copies.is_empty()),
         "the held enclosure: {numbers:?}"
     );
     let library = offers
@@ -872,7 +909,11 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .iter()
         .filter_map(|c| c["part_number"].as_str().map(str::to_owned))
         .collect();
-    assert_eq!(embedded, ["EW-GEN-ENC-1", "EW-GEN-PLT-1"], "the part and its plate");
+    assert_eq!(
+        embedded,
+        ["EW-GEN-ENC-1", "EW-GEN-PLT-1"],
+        "the part and its plate"
+    );
     let field = location(&s, "FLD");
     let before = s.query().table::<MountingSurface>().iter().count();
     let cmd = AnyCommand {
@@ -888,7 +929,6 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
 }
 
 /// The scale of the drawn page `page`.
-
 fn scale_of(s: &Session, page: Uuid) -> ew_schema::Scale {
     s.query()
         .pages()
@@ -940,7 +980,6 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
         json!({"page": new.to_string(), "surface": plate.to_string(), "datum_at": [datum.0, datum.1],
             "label_mode": "abbreviated", "scale": {"one_to": n}, "labels": "item_numbers"}),
         "a new view numbers its devices"
-
     );
     run(&mut s, &cmd);
     assert_eq!(scale_of(&s, new), ew_schema::Scale::OneTo(n));

@@ -136,7 +136,6 @@ fn a_part_of_any_other_maker_prints_its_maker() {
         }
     }
 
-
     let s = crate::common::session_of(project, records, lib);
     let q = s.query();
     let makers: std::collections::BTreeSet<String> = q

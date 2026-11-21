@@ -33,7 +33,8 @@ fn fixture(name: &str) -> ImportInput {
 
 /// A library copy of `doc` with its hash.
 fn copy(mut doc: serde_json::Value) -> LibDocument {
-    let hash = ew_store::ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
+    let hash =
+        ew_store::ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     LibDocument::from_value(doc).unwrap()
 }
@@ -59,7 +60,15 @@ fn with_held_2904602() -> Session {
     let fndef = lib
         .iter()
         .find_map(|d| match d {
-            LibDocument::Fndef(f) if f.item.meta.key.as_ref().is_some_and(|k| k.as_str() == "ew.fn.psu-ac-dc") => Some(f.clone()),
+            LibDocument::Fndef(f)
+                if f.item
+                    .meta
+                    .key
+                    .as_ref()
+                    .is_some_and(|k| k.as_str() == "ew.fn.psu-ac-dc") =>
+            {
+                Some(f.clone())
+            }
             _ => None,
         })
         .expect("the power supply's FnDef");

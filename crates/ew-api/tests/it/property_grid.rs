@@ -22,8 +22,6 @@ fn catalogue_kinds() -> impl Iterator<Item = ew_schema::Kind> {
         .filter(|k| k.status() == ew_schema::KindStatus::Implemented && !k.is_library())
 }
 
-
-
 /// The catalogue text: one line per node, `<kind> <path> <type> <category> <route>`.
 fn catalogue_text() -> String {
     let mut out = String::new();

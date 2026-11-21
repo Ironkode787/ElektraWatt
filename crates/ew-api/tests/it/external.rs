@@ -65,7 +65,7 @@ fn sample_files() -> BTreeMap<String, Vec<u8>> {
     }
     let dir = Path::new(ew_testdir::SAMPLE);
     let mut out = BTreeMap::new();
-    walk(&dir, &dir, &mut out);
+    walk(dir, dir, &mut out);
     out
 }
 
@@ -129,7 +129,6 @@ fn wire_on(s: &Session, folio: &str, nth: usize) -> String {
         .expect("a wire on the folio")
         .to_string()
 }
-
 
 fn colour(wire: &str, value: Value) -> AnyCommand {
     AnyCommand {

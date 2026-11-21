@@ -65,7 +65,9 @@ impl Sample {
         self.records
             .iter()
             .find_map(|r| match r {
-                Record::Function(f) if f.device == Some(device) && f.role == ew_schema::FnRole::Main => Some(f.id),
+                Record::Function(f) if f.device == Some(device) && f.role == ew_schema::FnRole::Main => {
+                    Some(f.id)
+                }
                 _ => None,
             })
             .unwrap_or_else(|| panic!("no function of {tag}"))
@@ -111,7 +113,8 @@ impl Sample {
             "fndefs/ew.fn.strip-segment.json",
         ] {
             let text = std::fs::read_to_string(content.join(file)).expect("a built-in library file");
-            self.lib.push(LibDocument::from_json(&text).expect("a library document"));
+            self.lib
+                .push(LibDocument::from_json(&text).expect("a library document"));
         }
         let symbol = symbol_copy(self, "ew.gen.strip-segment@qet10");
         let strip = self.device_mut("-X1031").id;
@@ -406,13 +409,7 @@ fn a_first_terminal_without_a_shown_tag_slot_passes_the_strip_tag_on() {
 #[test]
 fn no_shown_tag_slot_no_strip_tag() {
     let (mut g, reps) = sample_with_terminal_reps();
-    for tag in [
-        "-X1011:L1",
-        "-X1011:L2",
-        "-X1011:L3",
-        "-X1011:N",
-        "-X1011:PE",
-    ] {
+    for tag in ["-X1011:L1", "-X1011:L2", "-X1011:L3", "-X1011:N", "-X1011:PE"] {
         hide_tag(&mut g, tag);
     }
     let s = g.session();

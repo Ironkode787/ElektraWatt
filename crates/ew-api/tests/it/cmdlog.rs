@@ -351,7 +351,7 @@ fn short_tag(s: &Session, id: ew_derive::ew_ids::Id<ew_schema::Device>) -> Strin
 #[test]
 fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
     let mut s = common::sample();
-    let set =|target: &str, kind: &str, path: &str, value: &str| {
+    let set = |target: &str, kind: &str, path: &str, value: &str| {
         format!(
             r#"{{"cmd":"fields.set","params":{{"kind":"{kind}","targets":[{{"ref":"{target}"}}],"path":"{path}","value":{value}}}}}"#
         )
@@ -361,12 +361,7 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
         &set("tag:-UC1", "device", "function_text", r#"{"en":"a"}"#),
         &set("tag:-X1031", "device", "function_text", r#"{"en":"b"}"#),
         &set("tag:-X1031:U", "device", "function_text", r#"{"en":"c"}"#),
-        &set(
-            "tag:+CAB-102F1",
-            "device",
-            "function_text",
-            r#"{"en":"d"}"#,
-        ),
+        &set("tag:+CAB-102F1", "device", "function_text", r#"{"en":"d"}"#),
         &set("folio:902", "page", "title", r#"{"en":"Layout"}"#),
     ]);
     assert_eq!(s.run_script(&l, "x.ewcmd").unwrap().len(), 5);
@@ -392,7 +387,6 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
             ("-UC1".to_owned(), "a".to_owned()),
             ("-X1031".to_owned(), "b".to_owned()),
             ("-X1031:U".to_owned(), "c".to_owned()),
-            
         ]
     );
     let titled: Vec<u32> = q
@@ -455,7 +449,7 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
 #[test]
 fn a_set_many_above_500_targets_runs_from_a_log_as_one_step() {
     let mut s = session();
-    let pages: Vec<String> = (1..=501).map(|n| page(n)).collect();
+    let pages: Vec<String> = (1..=501).map(page).collect();
     let lines: Vec<&str> = pages.iter().map(String::as_str).collect();
     s.run_script(&log(&lines), "pages.ewcmd").expect("501 pages");
     let q = s.query();

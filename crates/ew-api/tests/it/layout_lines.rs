@@ -27,7 +27,9 @@ use serde_json::{Value, json};
 fn session_with(memo: MemoMode, unplace: Option<&str>) -> Session {
     let (project, mut records, lib) = common::sample_records();
     if let Some(tag) = unplace {
-        let d = common::sample().resolve_reference(&format!("tag:{tag}")).expect("the device");
+        let d = common::sample()
+            .resolve_reference(&format!("tag:{tag}"))
+            .expect("the device");
         records.retain(|r| !matches!(r, Record::Placement(p) if p.device.as_uuid() == d));
     }
     Session::from_records(
@@ -71,11 +73,21 @@ fn carriers(s: &Session) -> Vec<Id<Carrier>> {
 }
 
 fn page(s: &Session, folio: &str) -> Id<Page> {
-    Id::from_uuid(s.page_rows().into_iter().find(|r| r.folio == folio).expect("the folio").id)
+    Id::from_uuid(
+        s.page_rows()
+            .into_iter()
+            .find(|r| r.folio == folio)
+            .expect("the folio")
+            .id,
+    )
 }
 
 fn space(q: &Q) -> Id<LayoutSpace> {
-    q.table::<LayoutSpace>().iter().map(|(id, _)| id).next().expect("the layout space")
+    q.table::<LayoutSpace>()
+        .iter()
+        .map(|(id, _)| id)
+        .next()
+        .expect("the layout space")
 }
 
 fn id_json<T>(id: Id<T>) -> Value {
@@ -106,7 +118,14 @@ fn rails_and_ducts_come_from_the_carriers_and_print_902() {
     let s = session(MemoMode::Off);
     let q = s.query();
     let uc1 = dev(&s, "-UC1");
-    let uses: Vec<Id<Part>> = q.devices().get(uc1).expect("-UC1").parts.iter().map(|u| u.part.copy).collect();
+    let uses: Vec<Id<Part>> = q
+        .devices()
+        .get(uc1)
+        .expect("-UC1")
+        .parts
+        .iter()
+        .map(|u| u.part.copy)
+        .collect();
     assert_eq!(
         uses,
         vec![part_of(&q, "EW-GEN-ENC-1")],
@@ -219,10 +238,14 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
     // The enclosure, the plate, two rails, one duct, then the placements.
     assert_eq!(rows.len(), 5 + placed);
     let positions: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
-    assert_eq!(positions, (1..=rows.len()).map(|n| n.to_string()).collect::<Vec<_>>());
+    assert_eq!(
+        positions,
+        (1..=rows.len()).map(|n| n.to_string()).collect::<Vec<_>>()
+    );
     assert_eq!(rows[0].1, Some(dev(&s, "-UC1")));
     assert_eq!(rows[1].1, Some(dev(&s, "-UC1-plate")));
-    let carrier_rows: Vec<(Option<Id<Device>>, String)> = rows[2..5].iter().map(|r| (r.1, r.2.clone())).collect();
+    let carrier_rows: Vec<(Option<Id<Device>>, String)> =
+        rows[2..5].iter().map(|r| (r.1, r.2.clone())).collect();
     let want: Vec<(Option<Id<Device>>, String)> =
         rails.iter().map(|c| (None, c.as_uuid().to_string())).collect();
     assert_eq!(carrier_rows, want);
@@ -321,7 +344,11 @@ fn the_carrier_lines_memoise_as_they_run_cold() {
         );
         assert_eq!(memo.get::<DevicePartLines>(uc1)[1].qty, m(length), "{state}");
         for mode in [BomMode::Component, BomMode::Assembly] {
-            assert_eq!(memo.get::<BomRows>(mode), cold.get::<BomRows>(mode), "{state}: BOM");
+            assert_eq!(
+                memo.get::<BomRows>(mode),
+                cold.get::<BomRows>(mode),
+                "{state}: BOM"
+            );
         }
         assert!(
             s.take_oracle_mismatches().is_empty(),
@@ -329,7 +356,13 @@ fn the_carrier_lines_memoise_as_they_run_cold() {
         );
     };
     check(&mut s, "open", "0.94");
-    let path = s.query().table::<Carrier>().get(rail).expect("rail 1").path.clone();
+    let path = s
+        .query()
+        .table::<Carrier>()
+        .get(rail)
+        .expect("rail 1")
+        .path
+        .clone();
     let (a, b) = (path[0], path[path.len() - 1]);
     let shortened = if b.x.0 > a.x.0 {
         json!([[a.x.0, a.y.0], [b.x.0 - 10_000_000, b.y.0]])

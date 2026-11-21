@@ -146,8 +146,10 @@ fn a_renumber_rebuilds_only_the_title_blocks_and_tables_that_change() {
         "cmd": "page.renumber",
         "params": {"scope": {"section": {"ref": "section:1"}}, "start": 101, "step": 2, "keep_gaps": false},
     });
-    let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{renumber}\n")).expect("a command log");
-    s.run_script(&log, "renumber.ewcmd").expect("the renumber commits");
+    let log = ew_api::CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{renumber}\n"))
+        .expect("a command log");
+    s.run_script(&log, "renumber.ewcmd")
+        .expect("the renumber commits");
     let new = inputs(&s);
     let changed = |pick: &dyn Fn(&(TitleBlock, Tables)) -> String| {
         new.iter()

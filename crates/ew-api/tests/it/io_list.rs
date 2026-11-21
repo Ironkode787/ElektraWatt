@@ -150,7 +150,11 @@ fn include_deactivated_lists_24_rows_in_place() {
         .filter(|r| r[19] == "deactivated")
         .map(|r| r[7].as_str())
         .collect();
-    assert_eq!(deactivated, ["1", "3", "5", "7"], "the valve terminal's odd channels, in place");
+    assert_eq!(
+        deactivated,
+        ["1", "3", "5", "7"],
+        "the valve terminal's odd channels, in place"
+    );
     let terminal: Vec<&str> = rows
         .iter()
         .filter(|r| r[5] == "-201K1")
@@ -210,7 +214,10 @@ fn the_export_by_block_writes_the_header_and_20_rows() {
          Data type,Comment,Function text,Process tag,Target,Target pin,Target page,State"
     );
     let rows = printed(&q, block.id);
-    let switch = rows.iter().position(|r| r[16] == "-104B1").expect("the switch's row");
+    let switch = rows
+        .iter()
+        .position(|r| r[16] == "-104B1")
+        .expect("the switch's row");
     assert_eq!(lines[switch + 1], format!("data,{}", rows[switch].join(",")));
 }
 

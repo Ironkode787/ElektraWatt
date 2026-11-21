@@ -187,7 +187,9 @@ fn a_fixture_library_offers_an_update() {
     let fixture_copy = |t: &NavTable| -> NavNode {
         t.nodes
             .iter()
-            .find(|n| n.role == NavRole::LibCopy && n.label == "EW-GEN-PSU-1" && cell(t, n, "used_by") == "-101G1")
+            .find(|n| {
+                n.role == NavRole::LibCopy && n.label == "EW-GEN-PSU-1" && cell(t, n, "used_by") == "-101G1"
+            })
             .cloned()
             .expect("the fixture library's copy, used by -101G1")
     };
@@ -208,7 +210,10 @@ fn a_fixture_library_offers_an_update() {
     let table = s.navigator_table(NavKind::Libraries);
     let copy = fixture_copy(&table);
     assert_eq!(copy.badges, ["update_available"]);
-    assert_eq!(cell(&table, &copy, "state"), format!("Update available ({bumped})"));
+    assert_eq!(
+        cell(&table, &copy, "state"),
+        format!("Update available ({bumped})")
+    );
 
     assert!(
         copy.facets
@@ -247,9 +252,7 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
         .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
         .flat_map(|r| r.functions.clone())
         .collect();
-    let inside = |e: &ew_api::output::TableEnd| {
-        matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function))
-    };
+    let inside = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function));
     let ids: Vec<Uuid> = page
         .reps
         .iter()

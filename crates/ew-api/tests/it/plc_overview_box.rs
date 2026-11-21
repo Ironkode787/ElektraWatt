@@ -70,7 +70,12 @@ fn overview_box(include: &[&str]) -> ReportBlock {
         .map(|tag| AnyId::from_uuid(s.resolve_reference(&format!("tag:{tag}")).expect("the device")))
         .collect::<Vec<_>>()
         .into();
-    let page = s.page_rows().into_iter().find(|r| r.folio == "201").expect("folio 201").id;
+    let page = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == "201")
+        .expect("folio 201")
+        .id;
     let embed = b.embedded.as_mut().expect("embedded");
     embed.page = Id::from_uuid(page);
     embed.rect = printed_rect(10_000, 1_631, 23_000, 9_300);

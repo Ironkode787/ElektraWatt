@@ -138,7 +138,8 @@ fn open_revision(s: &Session) -> std::sync::Arc<Revision> {
 /// it refuses. The gate runs on a read-only session (no lock); the label must be the open revision's.
 #[test]
 fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
-    let (s, report) = Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
+    let (s, report) =
+        Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
     let integrity = ew_api::integrity_items(&report);
     let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     let check = s
@@ -157,7 +158,8 @@ fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
             (
                 "EW-REL-001",
                 "author".to_owned(),
-                "revision V1.0: author not set; set it with Check ▸ Revision ▸ Set revision author…".to_owned()
+                "revision V1.0: author not set; set it with Check ▸ Revision ▸ Set revision author…"
+                    .to_owned()
             ),
             (
                 "EW-REL-001",
@@ -171,7 +173,10 @@ fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
     assert!(!gate.passes());
     assert_eq!(gate.report.scheme, "pre-delivery");
     assert_eq!(gate.content_digest, digest_on_disk(&sample()));
-    assert_eq!(gate.author, None, "only a person at the window sets the sample's author");
+    assert_eq!(
+        gate.author, None,
+        "only a person at the window sets the sample's author"
+    );
     assert!(
         gate.safety_waivers.is_empty(),
         "the sample waives no safety-kind finding"
@@ -203,7 +208,8 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
             .map(|_| ()),
         Err(ApproveError::Gate(GateError::NoProject))
     );
-    let (mut s, _) = Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
+    let (mut s, _) =
+        Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
     assert_eq!(
         s.approve(&approval(PartyRole::Checker, Vec::new()), &[])
             .map(|_| ()),

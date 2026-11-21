@@ -93,7 +93,6 @@ fn the_tables_import_to_a_project_with_the_bootstrapped_model() {
     opened.close();
 }
 
-
 /// An unreadable table refuses the import with the reader's line (FM-6), before anything is written; a non-empty
 /// target refuses the write and keeps what is there; an empty one is replaced by the project.
 #[test]

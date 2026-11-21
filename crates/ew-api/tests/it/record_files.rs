@@ -39,7 +39,7 @@ fn sample_files() -> BTreeMap<FilePath, Vec<u8>> {
     }
     let dir = Path::new(ew_testdir::SAMPLE);
     let mut out = BTreeMap::new();
-    walk(&dir, &dir, &mut out);
+    walk(dir, dir, &mut out);
     out
 }
 

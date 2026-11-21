@@ -6,7 +6,6 @@
 //! `Cancelled`; a job made before an edit exports the earlier revision (snapshot isolation). The job runs on a thread
 //! of `ew_jobs`, so the snapshot crosses threads and no `Session` call happens there.
 
-
 use ew_api::ew_jobs::{Gate, Job, JobEnd, JobOptions, Progress};
 use ew_api::output::ExportOptions;
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
@@ -25,7 +24,6 @@ fn sample_copy(tmp: &Tmp) -> Session {
     assert!(report.recovery.is_none());
     session
 }
-
 
 fn pdf_job(name: &str, gate: Option<Gate>, job: ew_api::output::ExportJob) -> Job<ew_api::output::PdfExport> {
     Job::spawn(
@@ -57,7 +55,11 @@ fn the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_sna
     assert_eq!(s.page_labels().len(), labels + 1, "the edit added a page");
     let end = pdf_job("pdf", None, job).wait();
     let JobEnd::Done(out) = end else { panic!("{end:?}") };
-    assert_eq!(u32::try_from(out.pages).unwrap(), PAGES, "the snapshot's pages, not the edited model's");
+    assert_eq!(
+        u32::try_from(out.pages).unwrap(),
+        PAGES,
+        "the snapshot's pages, not the edited model's"
+    );
     assert!(
         out.bytes == sync.bytes,
         "the job's bytes are the synchronous export's"
@@ -113,7 +115,6 @@ fn a_selection_the_page_order_does_not_have_fails_with_its_cause() {
 }
 
 // The print set as a job.
-
 
 /// PW-1's set: section 1 on A5, scaled to fit.
 fn section_1_on_a5() -> ew_api::output::print::PrintOptions {

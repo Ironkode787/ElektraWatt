@@ -678,7 +678,11 @@ fn a_library_copy_forks() {
         json!({"library": held.library_id.as_uuid().to_string(), "item": held.item_id.as_uuid().to_string(),
                "version": held.version})
     );
-    assert_eq!(part_uses(&s, f55), [fork_copy], "-102F1's part use names the fork");
+    assert_eq!(
+        part_uses(&s, f55),
+        [fork_copy],
+        "-102F1's part use names the fork"
+    );
     let still = s
         .query()
         .parts()

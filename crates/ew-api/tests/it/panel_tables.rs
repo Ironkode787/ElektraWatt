@@ -49,7 +49,11 @@ fn the_carriers_are_labelled_with_their_rail_data() {
     for rail in &t.carriers[..2] {
         let items: Vec<(i128, i128)> = rail.items.iter().map(|i| (i.s0, i.s1)).collect();
         assert_eq!(items.first().map(|i| i.0), Some(0), "{}", rail.label);
-        assert!(items.windows(2).all(|w| w[0].1 == w[1].0), "{}: {items:?}", rail.label);
+        assert!(
+            items.windows(2).all(|w| w[0].1 == w[1].0),
+            "{}: {items:?}",
+            rail.label
+        );
         let end = items.last().map_or(0, |i| i.1);
         assert_eq!(rail.free_length, Some(RAIL - end), "{}", rail.label);
     }
@@ -71,10 +75,7 @@ fn an_unplaced_device_comes_with_its_size_and_mount_kind() {
         (f1.label.as_str(), f1.strip, f1.assembly, f1.mount_label.as_str()),
         ("-102F1", false, false, "TS 35×7.5")
     );
-    assert_eq!(
-        f1.device,
-        s.resolve_reference("tag:-102F1").expect("-102F1")
-    );
+    assert_eq!(f1.device, s.resolve_reference("tag:-102F1").expect("-102F1"));
     assert_eq!(f1.part_number.as_deref(), Some("EW-GEN-MCB-1"));
     assert_eq!(f1.mount_kind, Some(MountKind::Ts35x7_5));
     let (width, _) = f1.size.expect("the part's size");

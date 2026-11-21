@@ -208,11 +208,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
     let order = q.get::<PageOrder>(());
     assert_eq!(serial.len(), order.entries.len(), "one digest per page");
     let distinct: BTreeSet<Digest128> = serial.values().copied().collect();
-    assert_eq!(
-        distinct.len(),
-        serial.len(),
-        "no two pages print the same"
-    );
+    assert_eq!(distinct.len(), serial.len(), "no two pages print the same");
     assert_eq!(page_digests(&q, Parallelism::threads(4)), serial, "4 threads");
     for e in &order.entries {
         assert_eq!(

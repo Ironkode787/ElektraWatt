@@ -9,7 +9,6 @@
 // Test target: the bless flag and diagnostic counters (EW_*) only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
 #![allow(clippy::disallowed_methods)]
 
-
 use crate::{pdf_read, pdf_support, view};
 use std::sync::Arc;
 
@@ -86,8 +85,6 @@ fn a_page_selection_exports_those_folios_in_page_order() {
         );
     }
 }
-
-
 
 /// The link boxes of a cross-reference list (the contactor -102Q1's coil lists its contacts on 102 and 103) cover
 /// their own item's glyph span: each lies inside the text's own box, they are disjoint and ordered in reading order.
@@ -667,7 +664,6 @@ fn the_print_set_of_section_1_on_a5_is_stamped_and_stable() {
         );
     }
 }
-
 
 /// PR-1's other cases and PR-3's monochrome: A4 with the fit is 100 % with no stamp; the folio range prints its five
 /// folios; a set on its own sheets at actual size, in monochrome, is the monochrome export PDF byte for byte.

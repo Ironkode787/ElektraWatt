@@ -49,7 +49,12 @@ fn tags(s: &Session) -> Vec<String> {
     let mut out: Vec<String> = q
         .devices()
         .ids()
-        .filter_map(|id| q.get::<ew_derive::DeviceTag>(id).as_ref().as_ref().map(|t| t.short()))
+        .filter_map(|id| {
+            q.get::<ew_derive::DeviceTag>(id)
+                .as_ref()
+                .as_ref()
+                .map(|t| t.short())
+        })
         .collect();
     out.sort();
     out
@@ -95,9 +100,7 @@ fn psu_core(s: &Session) -> Vec<Uuid> {
         .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
         .flat_map(|r| r.functions.clone())
         .collect();
-    let inside = |e: &ew_api::output::TableEnd| {
-        matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function))
-    };
+    let inside = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function));
     t.reps
         .iter()
         .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
@@ -242,7 +245,11 @@ fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
     }
     // The control page's incoming marks pair with 101's sources.
     let control = s.save_macro(lib, &page_block(&s, "102")).unwrap();
-    let cmd = insert(&s, &control.reference, Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0102));
+    let cmd = insert(
+        &s,
+        &control.reference,
+        Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0102),
+    );
     let conflicts = s.macro_conflicts(&cmd).unwrap();
     let pairs: Vec<&str> = conflicts
         .iter()

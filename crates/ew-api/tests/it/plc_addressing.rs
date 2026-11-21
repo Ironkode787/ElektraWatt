@@ -246,7 +246,10 @@ fn ac29_ew_plc_012_follows_the_part_map() {
     assert!(h2.iter().all(|f| f.discriminator == "binding"
         && f.fix.as_ref().is_some_and(|x| x.command == "plc.bind_channel")
         && !f.unverified_data));
-    let first = h2.iter().find(|f| on_channel(f, 0)).expect("a finding on -201K1:0");
+    let first = h2
+        .iter()
+        .find(|f| on_channel(f, 0))
+        .expect("a finding on -201K1:0");
     assert!(first.message.contains("-201K1:1"), "{}", first.message);
     assert_eq!(
         all_texts(&s2.query()),
@@ -553,7 +556,10 @@ fn readdress_and_convert_manual_to_auto() {
             .map(|p| p.start)
     };
     assert_eq!(start(u6).map(|s| s.input), Some(ew_schema::AddrSpec::Auto));
-    assert!(matches!(start(u5).map(|s| s.output), Some(ew_schema::AddrSpec::Manual(_))));
+    assert!(matches!(
+        start(u5).map(|s| s.output),
+        Some(ew_schema::AddrSpec::Manual(_))
+    ));
 }
 
 /// Under the tag-based `rockwell-logix` profile `plc.freeze` is refused in words (its addresses follow the station

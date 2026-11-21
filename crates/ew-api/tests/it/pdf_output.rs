@@ -15,7 +15,8 @@ use ew_units::{Nm, Pt2};
 
 use crate::pdf_read::{PageRead, PdfFile, Segment};
 use crate::pdf_support::{
-    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, report_row_link_count, structure_text, svg_options,
+    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, report_row_link_count, structure_text,
+    svg_options,
 };
 use crate::view::{fonts, golden_pages, sample_session};
 
@@ -100,7 +101,10 @@ fn the_frame_lines_of_a_written_page_lie_on_the_form_geometry() {
         let p = map.apply(Pt2::new(x, y));
         (mm(p.x), mm(p.y))
     };
-    let ((x0, y0), (x1, y1)) = (at(g.outer.min().x, g.outer.min().y), at(g.outer.max().x, g.outer.max().y));
+    let ((x0, y0), (x1, y1)) = (
+        at(g.outer.min().x, g.outer.min().y),
+        at(g.outer.max().x, g.outer.max().y),
+    );
     let ((dx0, dy0), (dx1, dy1)) = (
         at(g.drawing_area.min().x, g.drawing_area.min().y),
         at(g.drawing_area.max().x, g.drawing_area.max().y),
@@ -144,15 +148,25 @@ fn the_frame_lines_of_a_written_page_lie_on_the_form_geometry() {
             .min_by(|a, b| a.0.total_cmp(&b.0))
             .expect("the page strokes lines");
         assert!(d <= TOLERANCE_MM, "the frame line {l:?} is {d:.3} mm off");
-        assert!((s.width - width).abs() <= 0.01, "the frame line {l:?} is {} mm wide, the frame {width} mm", s.width);
+        assert!(
+            (s.width - width).abs() <= 0.01,
+            "the frame line {l:?} is {} mm wide, the frame {width} mm",
+            s.width
+        );
     }
     // The reverse direction: a stroked segment in the header bands is a frame line. A segment along the drawing area's
     // or the title block's edge is not judged.
     let inside = |(a0, b0, a1, b1): (f64, f64, f64, f64), p: (f64, f64)| {
-        p.0 > a0 + TOLERANCE_MM && p.0 < a1 - TOLERANCE_MM && p.1 > b0 + TOLERANCE_MM && p.1 < b1 - TOLERANCE_MM
+        p.0 > a0 + TOLERANCE_MM
+            && p.0 < a1 - TOLERANCE_MM
+            && p.1 > b0 + TOLERANCE_MM
+            && p.1 < b1 - TOLERANCE_MM
     };
     let near = |(a0, b0, a1, b1): (f64, f64, f64, f64), p: (f64, f64)| {
-        p.0 >= a0 - TOLERANCE_MM && p.0 <= a1 + TOLERANCE_MM && p.1 >= b0 - TOLERANCE_MM && p.1 <= b1 + TOLERANCE_MM
+        p.0 >= a0 - TOLERANCE_MM
+            && p.0 <= a1 + TOLERANCE_MM
+            && p.1 >= b0 - TOLERANCE_MM
+            && p.1 <= b1 + TOLERANCE_MM
     };
     let (outer, area, title) = ((x0, y0, x1, y1), (dx0, dy0, dx1, dy1), (x0, ty, x1, y1));
     let in_band = |p| near(outer, p) && !inside(area, p) && !inside(title, p);
@@ -181,32 +195,57 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
     let pages = pdf_pages(&q, Parallelism::Serial);
     let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the PDF is written");
 
-    let order: Vec<String> = q.get::<ew_derive::PageOrder>(()).entries.iter().map(|e| e.folio.clone()).collect();
+    let order: Vec<String> = q
+        .get::<ew_derive::PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| e.folio.clone())
+        .collect();
     let labels: Vec<String> = pages.iter().map(|p| p.label.clone()).collect();
     assert_eq!(labels, order, "page labels are the folio labels of page_order");
 
     let mut seen = Vec::new();
     for e in ew_export::outline_entries(&pages) {
         if e.children.is_empty() && pages[e.page].section.is_none() {
-            assert_eq!(e.title, pages[e.page].title, "a front-matter page is a top-level entry");
+            assert_eq!(
+                e.title, pages[e.page].title,
+                "a front-matter page is a top-level entry"
+            );
             seen.push(e.page);
             continue;
         }
-        assert!(!e.children.is_empty(), "{}: a section entry holds its pages", e.title);
+        assert!(
+            !e.children.is_empty(),
+            "{}: a section entry holds its pages",
+            e.title
+        );
         for c in &e.children {
-            assert_eq!(pages[c.page].section.as_deref(), Some(e.title.as_str()), "{}", c.title);
+            assert_eq!(
+                pages[c.page].section.as_deref(),
+                Some(e.title.as_str()),
+                "{}",
+                c.title
+            );
             assert_eq!(c.title, pages[c.page].title);
             seen.push(c.page);
         }
     }
-    assert_eq!(seen, (0..pages.len()).collect::<Vec<_>>(), "every page once, in page order");
+    assert_eq!(
+        seen,
+        (0..pages.len()).collect::<Vec<_>>(),
+        "every page once, in page order"
+    );
     assert!(pages.iter().any(|p| p.section.is_some()) && pages.iter().any(|p| p.section.is_none()));
 
     let mut drawn = Vec::new();
     for p in &pages {
         link_sources(&p.content.items, &mut drawn);
     }
-    assert_eq!(out.report.links, drawn.len(), "one link annotation per drawn link");
+    assert_eq!(
+        out.report.links,
+        drawn.len(),
+        "one link annotation per drawn link"
+    );
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
     // What the links are: one per printed cross-reference item of the drawn pages (a slot the representation hides
     // prints none), one per linked row of the PLC overview (to the channel's connection point) and one per report
@@ -221,7 +260,11 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
                 .iter()
                 .filter(|v| {
                     let default = def.text_slots.get(usize::from(v.slot)).is_some_and(|t| t.visible);
-                    r.rep.text_slots.get(&v.slot).and_then(|o| o.visible).unwrap_or(default)
+                    r.rep
+                        .text_slots
+                        .get(&v.slot)
+                        .and_then(|o| o.visible)
+                        .unwrap_or(default)
                 })
                 .map(|v| v.item_links.len() + usize::from(v.link.is_some()))
                 .sum::<usize>()
@@ -238,7 +281,10 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
         set.rows.iter().filter(|r| !r.links.is_empty()).count()
     };
     let to_cp = drawn.iter().filter(|d| matches!(d, Destination::Cp(_))).count();
-    assert!(plc_rows > 0 && to_cp == plc_rows, "{to_cp} links to a connection point, {plc_rows} linked PLC rows");
+    assert!(
+        plc_rows > 0 && to_cp == plc_rows,
+        "{to_cp} links to a connection point, {plc_rows} linked PLC rows"
+    );
     let rows = report_row_link_count(&views);
     assert!(xref_items > 0 && rows > 0);
     assert_eq!(
@@ -247,10 +293,17 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
         "{xref_items} cross-reference items, {plc_rows} PLC rows, {rows} report rows"
     );
 
-    assert!(out.report.missing_fonts.is_empty(), "{:?}", out.report.missing_fonts);
+    assert!(
+        out.report.missing_fonts.is_empty(),
+        "{:?}",
+        out.report.missing_fonts
+    );
     assert!(!out.report.fonts.is_empty());
     assert_eq!(out.report.dropped_notdef_glyphs, EXPECTED_DROPPED_NOTDEF_GLYPHS);
-    assert!(!structure_text(&pages, &out).contains("Tahoma"), "a Tahoma font is embedded");
+    assert!(
+        !structure_text(&pages, &out).contains("Tahoma"),
+        "a Tahoma font is embedded"
+    );
 }
 
 /// AC-13, AC-06: the text layer of folio 101, read back from its content stream through the fonts' ToUnicode maps,
@@ -263,8 +316,14 @@ fn the_text_layer_of_a_written_page_equals_its_printed_texts_with_spaces() {
     printed_runs(&page.content.items, &mut printed);
     let read: Vec<String> = read_back(&out)[0].runs.iter().map(|r| r.text.clone()).collect();
     assert_eq!(read, printed);
-    assert!(printed.iter().any(|t| t.contains(' ')), "the page prints a text with a space");
-    assert!(printed.iter().any(|t| t == "-101F1"), "the page prints a device tag");
+    assert!(
+        printed.iter().any(|t| t.contains(' ')),
+        "the page prints a text with a space"
+    );
+    assert!(
+        printed.iter().any(|t| t == "-101F1"),
+        "the page prints a device tag"
+    );
 }
 
 /// AC-14: the sample loaded with its records in a shuffled order, and the export's page phase on 2 and 8 threads,
@@ -277,10 +336,21 @@ fn a_record_shuffle_and_a_parallel_export_give_the_same_files() {
         let mut out: BTreeMap<String, String> = q
             .report_blocks()
             .iter()
-            .map(|(id, _)| (id.to_string(), ew_reports::csv::rows_csv(&q, &q.get::<ew_reports::BlockRows>(id))))
+            .map(|(id, _)| {
+                (
+                    id.to_string(),
+                    ew_reports::csv::rows_csv(&q, &q.get::<ew_reports::BlockRows>(id)),
+                )
+            })
             .collect();
-        for what in [ew_api::Export::Cables, ew_api::Export::Bom(ew_api::BomMode::Component)] {
-            out.insert(format!("{what:?}"), s.export_csv(what).expect("the sample exports it"));
+        for what in [
+            ew_api::Export::Cables,
+            ew_api::Export::Bom(ew_api::BomMode::Component),
+        ] {
+            out.insert(
+                format!("{what:?}"),
+                s.export_csv(what).expect("the sample exports it"),
+            );
         }
         out
     }
@@ -292,21 +362,42 @@ fn a_record_shuffle_and_a_parallel_export_give_the_same_files() {
     let svg_of = |pages: &[PdfPage], p| svg(pages, &svg_options(), None, p).expect("the SVG is written");
     let svgs = svg_of(&pages, Parallelism::Serial);
     assert_eq!(svgs.files.len(), pages.len(), "one SVG file per page");
-    assert!(pdf(&pages, &options, &f, None).unwrap().bytes == written.bytes, "two runs differ");
+    assert!(
+        pdf(&pages, &options, &f, None).unwrap().bytes == written.bytes,
+        "two runs differ"
+    );
 
     let shuffled = sample_session(Some(SHUFFLE_SEED));
     let qs = shuffled.query();
     let pages_s = pdf_pages(&qs, Parallelism::Serial);
-    assert!(pages_s == pages, "a record shuffle changes the page display lists");
-    assert!(pdf(&pages_s, &pdf_options(&qs), &f, None).unwrap().bytes == written.bytes, "a record shuffle changes the PDF");
-    assert!(svg_of(&pages_s, Parallelism::Serial) == svgs, "a record shuffle changes the SVG files");
+    assert!(
+        pages_s == pages,
+        "a record shuffle changes the page display lists"
+    );
+    assert!(
+        pdf(&pages_s, &pdf_options(&qs), &f, None).unwrap().bytes == written.bytes,
+        "a record shuffle changes the PDF"
+    );
+    assert!(
+        svg_of(&pages_s, Parallelism::Serial) == svgs,
+        "a record shuffle changes the SVG files"
+    );
     assert_eq!(csvs(&shuffled), csvs(&base), "a record shuffle changes a CSV");
 
     for threads in [2, 8] {
         let p = Parallelism::threads(threads);
         let pages_p = pdf_pages(&q, p);
-        assert!(pages_p == pages, "{threads} threads: the page display lists differ");
-        assert!(pdf(&pages_p, &options, &f, None).unwrap().bytes == written.bytes, "{threads} threads: the PDF differs");
-        assert!(svg_of(&pages_p, p) == svgs, "{threads} threads: the SVG files differ");
+        assert!(
+            pages_p == pages,
+            "{threads} threads: the page display lists differ"
+        );
+        assert!(
+            pdf(&pages_p, &options, &f, None).unwrap().bytes == written.bytes,
+            "{threads} threads: the PDF differs"
+        );
+        assert!(
+            svg_of(&pages_p, p) == svgs,
+            "{threads} threads: the SVG files differ"
+        );
     }
 }

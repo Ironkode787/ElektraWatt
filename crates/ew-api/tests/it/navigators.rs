@@ -190,15 +190,15 @@ fn the_102q1_row_has_its_representations_and_the_index_finds_them() {
         .iter()
         .map(|d| format!("{}-{}", d.folio, d.cell))
         .collect();
-    assert_eq!(
-        reps,
-        ["102-E4", "103-D2", "103-D3", "103-D3", "102-D5"],
-        "D16"
-    );
+    assert_eq!(reps, ["102-E4", "103-D2", "103-D3", "103-D3", "102-D5"], "D16");
     assert_eq!(cells, ["102-E4", "102-D5", "103-D2", "103-D3", "103-D3"]);
 
     assert!(dev.facets.contains(&("page".to_owned(), "102".to_owned())));
-    assert_eq!(dev.open.as_ref().map(|o| o.select.len()), Some(2), "its two representations on 102");
+    assert_eq!(
+        dev.open.as_ref().map(|o| o.select.len()),
+        Some(2),
+        "its two representations on 102"
+    );
     // The index maps a representation to every node that carries it, the deepest last.
     let rep = dev.drawables[0].record;
     let carriers = &t.index[&rep];

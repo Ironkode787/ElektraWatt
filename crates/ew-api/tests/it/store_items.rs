@@ -31,7 +31,11 @@ fn run(s: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
 
 /// The sample's folio 101.
 fn page_101(s: &Session) -> Id<Page> {
-    let page = s.page_rows().into_iter().find(|r| r.folio == "101").expect("folio 101");
+    let page = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == "101")
+        .expect("folio 101");
     Id::from_uuid(page.id)
 }
 
