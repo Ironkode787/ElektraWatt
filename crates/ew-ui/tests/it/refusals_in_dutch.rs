@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Refusals in Dutch in the window, on a writable copy of the sample with the UI in Dutch: a
-//! command's own refusal shows in the window's banner in Dutch, whole, a record named in words in Dutch too; the
-//! refusal (a point that defines a potential already) is one of them.
+//! Refusals in Dutch in the window, on a writable copy of the sample with the UI in Dutch: a command's own refusal
+//! (a point that defines a potential already) shows in the window's banner in Dutch, whole. Not here: the Dutch
+//! words of the other refusals (`ew-viewmodel`'s `refusals_in_dutch.rs`).
 
 use crate::support;
 
@@ -45,15 +45,6 @@ fn a_refused_command_shows_its_reason_in_dutch_in_the_window() {
     assert_eq!(
         refused_in_window(&mut h, "potential.define", json!({"at": at, "name": "FT1241-B"})),
         "dit punt definieert de potentiaal FT1241 al; wijzig in plaats daarvan die definitie"
-    );
-    assert_eq!(
-        refused_in_window(
-            &mut h,
-            "page.surface_view.set",
-            json!({"page": {"ref": "folio:101"}, "surface": "00000000-0000-0000-0000-0000000000ab",
-                "datum_at": [0, 0]})
-        ),
-        "folio 101 is geen paneellayoutpagina; een paneelaanzicht hoort op een paneellayoutpagina"
     );
     h.state_mut().shell_mut().shutdown();
 }
