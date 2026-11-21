@@ -109,7 +109,17 @@ fn strips(s: &Session) -> Vec<(Id<Device>, Vec<String>)> {
             let designations = q
                 .idx()
                 .terminals_of_strip(id)
-                .filter_map(|t| Some(q.devices().get(t)?.aspects.terminal.as_ref()?.designation.to_string()))
+                .filter_map(|t| {
+                    Some(
+                        q.devices()
+                            .get(t)?
+                            .aspects
+                            .terminal
+                            .as_ref()?
+                            .designation
+                            .to_string(),
+                    )
+                })
                 .collect();
             (id, designations)
         })
@@ -126,7 +136,10 @@ fn a_strip_with_two_terminals_of_one_designation_copies_as_it_is() {
     run(&mut s, &plan.command).expect("the copy commits");
     let strips = strips(&s);
     assert_eq!(strips.len(), 2, "the strip and its copy");
-    let copy = strips.iter().find(|(id, _)| id.as_uuid() != strip).expect("the copy");
+    let copy = strips
+        .iter()
+        .find(|(id, _)| id.as_uuid() != strip)
+        .expect("the copy");
     assert_eq!(copy.1, ["12", "12"], "the copy's terminals as the source's");
     let duplicates = s
         .check(&PRE_DELIVERY, CheckMode::Online)
@@ -168,7 +181,11 @@ fn a_frozen_tag_keeps_in_a_node_of_its_own_and_is_cleared_without_one() {
     let plan = s.copy_pages(&spec(page, Vec::new())).expect("composed");
     assert_eq!(plan.cleared_frozen, ["X5"]);
     run(&mut s, &plan.command).expect("the copy commits");
-    assert_eq!(frozen_of(&s, strip), None, "the copy's -X5 would be its original's: cleared");
+    assert_eq!(
+        frozen_of(&s, strip),
+        None,
+        "the copy's -X5 would be its original's: cleared"
+    );
     let (mut s, page, strip, location) = small(true);
     let plan = s
         .copy_pages(&spec(page, vec![(location, "CAB2".to_owned())]))
@@ -206,9 +223,15 @@ fn an_incoming_supply_of_targets_only_continues() {
     })
     .expect("1L1 becomes a target");
     let page = |folio: &str| -> Uuid { s.page_tables(folio).expect("a page").page };
-    let rename = [("1L2", "2L2"), ("1L3", "2L3"), ("24V", "24V.2"), ("0V", "0V.2"), ("PE", "PE.2")]
-        .map(|(a, b)| (a.to_owned(), b.to_owned()))
-        .to_vec();
+    let rename = [
+        ("1L2", "2L2"),
+        ("1L3", "2L3"),
+        ("24V", "24V.2"),
+        ("0V", "0V.2"),
+        ("PE", "PE.2"),
+    ]
+    .map(|(a, b)| (a.to_owned(), b.to_owned()))
+    .to_vec();
     let spec = PageCopySpec {
         pages: vec![page("101"), page("102"), page("103")],
         folios: CopyFolios::Offset(10),

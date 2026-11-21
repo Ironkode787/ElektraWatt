@@ -114,7 +114,11 @@ pub const REPRODUCED: [&str; 6] = [
 /// Whether the copy of device `d` stands in a structure node of the copy's own: a node of `d`'s resolved structure
 /// (its own slots, else its strip's or parent's, its structure box's or its page's, `ew_derive::StructureOf`) is one
 /// the rule `swapped` replaces, so its full designation differs from its original's.
-pub fn designation_moves(q: &ew_derive::Q, d: Id<ew_schema::Device>, swapped: &BTreeSet<Id<StructureNode>>) -> bool {
+pub fn designation_moves(
+    q: &ew_derive::Q,
+    d: Id<ew_schema::Device>,
+    swapped: &BTreeSet<Id<StructureNode>>,
+) -> bool {
     q.get::<ew_derive::StructureOf>(d)
         .slots
         .values()
@@ -183,9 +187,9 @@ pub fn text_names(q: &ew_derive::Q, fragment: &Fragment, rename: &[Rename]) -> V
     texts
         .into_iter()
         .filter_map(|(item, text)| {
-            let device = tags
-                .iter()
-                .find_map(|(tag, devices)| names_tag(&text, tag).map(|sign| TextNames::Devices(devices.clone(), sign)));
+            let device = tags.iter().find_map(|(tag, devices)| {
+                names_tag(&text, tag).map(|sign| TextNames::Devices(devices.clone(), sign))
+            });
             device
                 .or_else(|| names.get(&text).map(|n| TextNames::Point(n.clone())))
                 .map(|named| (item, named))

@@ -452,11 +452,7 @@ fn free_texts_that_name_a_copied_strip_or_cable_take_the_copys_names() {
         write(&mut s, text, k);
     }
     let before = texts(&mut s, "12");
-    done(
-        &mut s,
-        "pages.copy",
-        json!({"pages": ["11", "12"], "offset": 10}),
-    );
+    done(&mut s, "pages.copy", json!({"pages": ["11", "12"], "offset": 10}));
     let notices = s.preview_pane().notices().join("\n");
     assert!(
         notices.contains("2 texts that name a copied device or interruption point"),

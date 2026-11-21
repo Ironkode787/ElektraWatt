@@ -172,7 +172,9 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     let belongs = |folio: &str| -> Option<Id<Device>> {
         let p = page(&s, folio);
         q.page_items().iter().find_map(|(_, i)| match &i.kind {
-            ew_schema::PageItemKind::FreeText(t) if i.page == p && t.text.as_neutral() == Some("Belt motor") => {
+            ew_schema::PageItemKind::FreeText(t)
+                if i.page == p && t.text.as_neutral() == Some("Belt motor") =>
+            {
                 let rep = q.reps().get(t.of?)?;
                 q.functions().get(*rep.functions.first()?)?.device
             }

@@ -182,7 +182,9 @@ impl Session {
             q.devices()
                 .get(Id::from_uuid(*d))
                 .and_then(|dev| dev.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()))
-                .is_some_and(|f| renamed(&f, &rename) == f && designation_moves(&q, Id::from_uuid(*d), &swapped))
+                .is_some_and(|f| {
+                    renamed(&f, &rename) == f && designation_moves(&q, Id::from_uuid(*d), &swapped)
+                })
         };
         let mut texts_named = 0;
         let mut texts_left = BTreeSet::new();
@@ -193,10 +195,16 @@ impl Session {
                     texts_named += usize::from(!kept_frozen(&devices[0]));
                 }
                 TextNames::Devices(..) => {
-                    texts_left.extend(q.page_items().get(Id::from_uuid(item)).and_then(|i| match &i.kind {
-                        ew_schema::PageItemKind::FreeText(t) => t.text.as_neutral().map(str::to_owned),
-                        _ => None,
-                    }));
+                    texts_left.extend(
+                        q.page_items()
+                            .get(Id::from_uuid(item))
+                            .and_then(|i| match &i.kind {
+                                ew_schema::PageItemKind::FreeText(t) => {
+                                    t.text.as_neutral().map(str::to_owned)
+                                }
+                                _ => None,
+                            }),
+                    );
                 }
             }
         }
@@ -363,9 +371,12 @@ fn ip_groups(
                 .is_some_and(|i| i.star_source || i.direction == IpDirection::Source)
         };
         let incoming = !g.members.iter().any(is_source)
-            && mine
-                .iter()
-                .all(|f| pairing.ips.get(f).is_some_and(|i| i.direction == IpDirection::Target));
+            && mine.iter().all(|f| {
+                pairing
+                    .ips
+                    .get(f)
+                    .is_some_and(|i| i.direction == IpDirection::Target)
+            });
         if !incoming && (mine.iter().any(is_source) || mine.len() == g.members.len()) {
             joins.insert(g.name.clone());
         } else {
