@@ -5,7 +5,7 @@
 //! Free, push and swap with every refusal text whole, one undo step per drop, clearance pads, the read set
 //! that makes a neighbour's concurrent edit conflict, and the property that the
 //! resolver a tool runs for its ghost gives exactly the committed poses. The numbers on a
-//! whole project are `ew-api`'s `tests/it/golden_rail_snap.rs`.
+//! whole project are `ew-api`'s `tests/it/rail_snap.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 

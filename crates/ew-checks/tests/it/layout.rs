@@ -341,7 +341,7 @@ fn removing_the_other_part_changes_nothing_removing_the_placed_one_is_reported()
 
 /// When the device has a primary part, EW-LAY-003 offers "Realise the primary part":
 /// `layout.move` of the placement at its own pose with the primary part's copy (`ew-api`'s
-/// `golden_layout_assembly.rs` runs it and the finding clears).
+/// `layout_assembly.rs` runs it and the finding clears).
 #[test]
 fn the_quick_fix_realises_the_primary_part() {
     let mut fx = plate();

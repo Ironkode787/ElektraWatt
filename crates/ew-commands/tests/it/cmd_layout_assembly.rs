@@ -4,7 +4,7 @@
 //! The layout assembly commands at the command layer, on a fixture: `layout.place_assembly` and
 //! `layout.auto_fill`, `layout.enclosure.create_from_part` and `layout.move {part}`, the FT-840 edits and
 //! `edit.delete` on the layout kinds. Every refusal is asserted whole; each command is one undo step. The
-//! numbers on a whole project are `ew-api`'s `tests/it/golden_layout_assembly.rs`.
+//! numbers on a whole project are `ew-api`'s `tests/it/layout_assembly.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
