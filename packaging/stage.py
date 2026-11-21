@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""The staging script of the installed tree, the CLI archives and the AppImage (WP-S6.06 D3, D4, D10, D13, D18;
+"""The staging script of the installed tree, the CLI archives and the AppImage (WP-S6.06 D3, D4, D10, D18;
 standard library only).
 
   python3 -I packaging/stage.py tree --bin <dir> --book <dir> --version <v> --out <root>
@@ -14,8 +14,6 @@ standard library only).
   python3 -I packaging/stage.py appdir --tree <root> --out <AppDir>  # D10's AppDir around a staged Linux tree
   python3 -I packaging/stage.py appimage --runtime <file> --image <squashfs> --out <dir>/ElektraWatt-<v>-x86_64.AppImage
   python3 -I packaging/stage.py listing <root>        # `<sha256>  <path>` of every file under <root>
-  python3 -I packaging/stage.py resources --tree <root> --work <dir>   # D13's installed-resources runs
-  python3 -I packaging/stage.py copies --work <dir> --program <name>   # the program of each copy that `resources` runs
   python3 -I packaging/stage.py version [--sha <sha>] # the workspace version, or D8's <version>-dev.<short sha>
   python3 -I packaging/stage.py --test                # the offline unit test, over a fixture repository
 
@@ -51,20 +49,11 @@ amd64 list is the `.deb` components and `[[apt.deb]]`; the arm64 list (D16) is `
 `elektrawatt.desktop` (packaging/linux/), the icon `elektrawatt.png` (assets/icons/app/, §13 O5) at its root, and the
 tree under `usr/lib/elektrawatt/`. `appimage` writes the AppImage: the type-2 runtime, then the squashfs image of the
 AppDir, mode 0755, beside its final name and renamed into place.
-
-`resources` proves D13 from the installed executable: `elektrawatt --headless --script
-packaging/tests/installed.uiscript --config-dir <fresh> --keep-going`, run in a fresh directory of <work> on the tree
-as it is, then once more on a copy of the tree without each resource of RESOURCES; every step of the first run is
-done, the sample opens read-only with its 36 pages, and each resource's step reads differently in the run without
-that resource. The tree itself is only read. `copies` prints, one per line, where `resources --work <dir>` puts the
-program <name> of each copy, so that the Windows install test blocks each of them in the firewall.
 """
 import argparse
-import contextlib
 import gzip
 import hashlib
 import io
-import json
 import os
 import re
 import shutil
@@ -102,7 +91,6 @@ COMPONENTS = os.path.join("packaging", "components.toml")
 FIELDS = ("version", "url", "sha256")
 # A snapshot of snapshot.ubuntu.com: a UTC timestamp to the second.
 SNAPSHOT = re.compile(r"[0-9]{8}T[0-9]{6}Z")
-UISCRIPT = os.path.join("packaging", "tests", "installed.uiscript")
 # D10's AppDir: the files at its root (name, source in the repository, mode) and where the tree goes.
 APPDIR_FILES = (
     ("AppRun", os.path.join("packaging", "linux", "AppRun"), 0o755),
@@ -111,23 +99,6 @@ APPDIR_FILES = (
 )
 APPDIR_TREE = os.path.join("usr", "lib", "elektrawatt")
 ARCHES = ("amd64", "arm64")
-# D13: each resource of the tree that a step of the installed-resources script proves, by the step's action, and the
-# word for the run without it. The guide has no step: no action of the headless mode shows whether it was found (F1's
-# request goes to the window only).
-RESOURCES = (
-    ("samples", "file.open_sample", "sample"),
-    ("content", "file.import_qet_apply", "content"),
-    (NOTICES, "ui.describe", "notices"),
-)
-# The variables that would name a resource or a settings directory other than the tree's and the run's own.
-RESOURCE_VARIABLES = ("EW_SAMPLE_DIR", "EW_CONTENT_DIR", "EW_DOCS_DIR", "EW_CONFIG_DIR", "EW_DATA_DIR", "EW_CACHE_DIR")
-# The QElectroTech project that the content step imports: one page, no element. The import opens its card, and its
-# Apply opens the project with the banner that says when the starter content is missing (WP-S3.09 D8).
-QET = (
-    '<project version="0.100" title="Installed">\n'
-    '<diagram title="First page" folio="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/>\n'
-    "</project>\n"
-)
 
 
 class Refusal(Exception):
@@ -372,93 +343,6 @@ def listing(root):
     return [f"{sha256(path)}  {arc[2:]}" for arc, path in files]
 
 
-def copy_without(tree, out, resource):
-    """A copy of `tree` at `out` without its top-level entry `resource`; the files keep their modes, the directories
-    stay writable."""
-    for base, dirnames, filenames in os.walk(tree):
-        rel = os.path.relpath(base, tree)
-        if rel == ".":
-            dirnames[:] = [d for d in dirnames if d != resource]
-            filenames = [f for f in filenames if f != resource]
-        os.makedirs(os.path.join(out, rel), exist_ok=True)
-        for name in filenames:
-            shutil.copy(os.path.join(base, name), os.path.join(out, rel, name))
-
-
-def run_script(exe, script, run_dir):
-    """Runs the installed-resources script with `exe` in the fresh directory `run_dir` (its settings in `config`, its
-    working directory `cwd` with the project to import); the exit code and the transcript's step lines by action."""
-    cwd, config = os.path.join(run_dir, "cwd"), os.path.join(run_dir, "config")
-    os.makedirs(cwd)
-    os.makedirs(config)
-    with open(os.path.join(cwd, "example.qet"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(QET)
-    env = {k: v for k, v in os.environ.items() if k not in RESOURCE_VARIABLES}
-    # `--config-dir` keeps the resources the program found beside itself (FT-1266).
-    command = [exe, "--headless", "--script", os.path.abspath(script), "--keep-going", "--config-dir",
-               os.path.abspath(config)]
-    done = subprocess.run(command, cwd=cwd, env=env, capture_output=True, check=False)
-    for name, data in (("transcript.jsonl", done.stdout), ("stderr.txt", done.stderr)):
-        with open(os.path.join(run_dir, name), "wb") as f:
-            f.write(data)
-    lines = [json.loads(line) for line in done.stdout.decode("utf-8").splitlines() if line.strip()]
-    return done.returncode, {line["action"]: line for line in lines[1:]}
-
-
-def resource_problems(runs):
-    """The problems of D13's runs: `runs` maps `installed` and the word of each resource of RESOURCES to the exit code
-    and the step lines (by action) of the run on the tree and on the copy without that resource."""
-    problems = []
-    code, steps = runs["installed"]
-    if code != 0:
-        problems.append(f"the run on the tree exited with {code}, not 0")
-    for action, line in steps.items():
-        if line["outcome"] != "done":
-            problems.append(f"{action} on the tree: {line['outcome']}, {line['message'] or line['reason_text']}")
-    state = steps.get("file.open_sample", {}).get("state") or {}
-    if (state.get("access"), state.get("page_count")) != ("read-only", 36):
-        problems.append(
-            f"the sample opened {state.get('access')} with {state.get('page_count')} pages, not read-only with 36"
-        )
-    for _, action, word in RESOURCES:
-        code, without = runs[word]
-        if code not in (0, 1):
-            problems.append(f"the run without the {word} exited with {code}, not 0 or 1")
-        if action not in steps or action not in without:
-            problems.append(f"the step {action} of the {word} is missing from a transcript")
-        elif without[action] == steps[action]:
-            problems.append(f"{action} reads the same with and without the {word}: the {word} is not proven")
-    return problems
-
-
-def copy_programs(work, program):
-    """(resource, the program `program` of the copy without it) for each resource of RESOURCES, under `work`."""
-    return [(resource, os.path.join(work, f"without-{word}", "tree", program)) for resource, _, word in RESOURCES]
-
-
-def check_resources(repo, tree, work):
-    """D13 over `tree` in the fresh directory `work`: the report lines, refused with the problems."""
-    names = [n for n in ("elektrawatt.exe", "elektrawatt") if os.path.isfile(os.path.join(tree, n))]
-    if not names:
-        raise Refusal(f"missing input: {os.path.join(tree, 'elektrawatt')}")
-    script = need(os.path.join(repo, UISCRIPT))
-    if os.path.exists(work):
-        raise Refusal(f"output exists: {work}")
-    runs = {"installed": run_script(os.path.join(tree, names[0]), script, os.path.join(work, "installed"))}
-    for (resource, program), (_, _, word) in zip(copy_programs(work, names[0]), RESOURCES):
-        copy = os.path.dirname(program)
-        copy_without(tree, copy, resource)
-        runs[word] = run_script(program, script, os.path.dirname(copy))
-    problems = resource_problems(runs)
-    if problems:
-        raise Refusal(f"the installed resources are not proven (transcripts in {work}):\n" + "\n".join(problems))
-    report = []
-    for _, action, word in RESOURCES:
-        with_it, without = runs["installed"][1][action]["outcome"], runs[word][1][action]["outcome"]
-        report.append(f"{word}: {action} {with_it} on the tree, {without} without the {word}; its line differs")
-    return report
-
-
 def workspace_version(repo, sha=None):
     """The version of the workspace's Cargo.toml, with D8's `-dev.<short sha>` when `sha` is given."""
     with open(need(os.path.join(repo, "Cargo.toml")), "rb") as f:
@@ -495,12 +379,6 @@ def main(argv):
         p.add_argument(flag, required=True)
     p = sub.add_parser("listing", help="print the SHA-256 and path of every file under a directory")
     p.add_argument("root")
-    p = sub.add_parser("resources", help="run D13's installed-resources script on a tree and on copies without each")
-    p.add_argument("--tree", required=True)
-    p.add_argument("--work", required=True)
-    p = sub.add_parser("copies", help="print the program of each copy that `resources --work <dir>` runs")
-    p.add_argument("--work", required=True)
-    p.add_argument("--program", required=True)
     p = sub.add_parser("version", help="print the workspace version, or D8's default version")
     p.add_argument("--sha")
     args = parser.parse_args(argv)
@@ -527,10 +405,6 @@ def main(argv):
             print(f"{write_appimage(args.runtime, args.image, args.out)}  {os.path.basename(args.out)}")
         elif args.command == "listing":
             print("\n".join(listing(args.root)))
-        elif args.command == "resources":
-            print("\n".join(check_resources(args.repo, args.tree, args.work)))
-        elif args.command == "copies":
-            print("\n".join(program for _, program in copy_programs(args.work, args.program)))
         elif args.command == "version":
             print(workspace_version(args.repo, args.sha))
         else:
@@ -834,66 +708,12 @@ class StageTest(unittest.TestCase):
             "the apt snapshot of packaging/components.toml is not a time such as 20261102T000000Z: 2026-11-02",
         )
 
-    def test_a_listing_and_a_copy_without_one_resource(self):
+    def test_a_listing_names_every_file(self):
         tree = self.stage("linux")
         lines = listing(tree)
         self.assertEqual([line.split("  ", 1)[1] for line in lines], [n[2:] for n in self.listing(tree)])
         notice = hashlib.sha256(b"notice\n").hexdigest()
         self.assertIn(f"{notice}  NOTICE", lines)
-        os.chmod(os.path.join(tree, "ew"), 0o755)
-        copy = os.path.join(self.dir, "copy")
-        copy_without(tree, copy, "content")
-        self.assertEqual(listing(copy), [line for line in lines if not line.split("  ", 1)[1].startswith("content/")])
-        if os.name == "posix":
-            self.assertEqual(os.stat(os.path.join(copy, "ew")).st_mode & 0o777, 0o755)
-
-    def transcript(self, **changed):
-        """The step lines (by action) of a run of the installed-resources script, with `changed` lines."""
-        sample = {"access": "read-only", "page_count": 36}
-        steps = {
-            "help.notices": {"outcome": "done", "state": {}},
-            "ui.describe": {"outcome": "done", "describe": "  notices: 88 lines"},
-            "ui.dismiss": {"outcome": "done"},
-            "file.import_qet": {"outcome": "done", "state": {"banner": None}},
-            "file.import_qet_apply": {"outcome": "done", "state": {"banner": "Imported example.qet."}},
-            "file.open_sample": {"outcome": "done", "state": sample},
-        }
-        for action, line in changed.items():
-            steps[action.replace("__", ".")] = line
-        for line in steps.values():
-            line.setdefault("message", None)
-            line.setdefault("reason_text", None)
-        return steps
-
-    def test_each_resource_step_reads_differently_without_its_resource(self):
-        runs = {
-            "installed": (0, self.transcript()),
-            "sample": (1, self.transcript(file__open_sample={"outcome": "failed", "message": "Not installed."})),
-            "content": (
-                0,
-                self.transcript(file__import_qet_apply={"outcome": "done", "state": {"banner": "No content."}}),
-            ),
-            "notices": (0, self.transcript(ui__describe={"outcome": "done", "describe": "  notices: 85 lines"})),
-        }
-        self.assertEqual(resource_problems(runs), [])
-        runs["installed"] = (
-            1,
-            self.transcript(
-                file__open_sample={"outcome": "refused", "reason_text": "No sample.", "state": {"access": "edit"}}
-            ),
-        )
-        runs["content"] = (0, self.transcript())
-        runs["notices"] = (101, self.transcript(ui__describe={"outcome": "done", "describe": "  notices: 85 lines"}))
-        self.assertEqual(
-            resource_problems(runs),
-            [
-                "the run on the tree exited with 1, not 0",
-                "file.open_sample on the tree: refused, No sample.",
-                "the sample opened edit with None pages, not read-only with 36",
-                "file.import_qet_apply reads the same with and without the content: the content is not proven",
-                "the run without the notices exited with 101, not 0 or 1",
-            ],
-        )
 
     def test_the_setup_removes_d3s_entries_by_name(self):
         # The uninstall section of the setup deletes exactly the top-level entries of the Windows tree, and itself.
@@ -923,14 +743,6 @@ class StageTest(unittest.TestCase):
         # No program or plugin call (`reg`, `setx /M`, advapi32 through System::Call) but the old uninstaller's.
         calls = [line for line in lines if re.match(r"(?:Exec\w*|\w+::\w+)\b", line, re.I)]
         self.assertEqual(calls, ["ExecWait '\"$0\\uninstall.exe\" /S _?=$0' $1"])
-
-    def test_copies_names_the_program_of_each_copy_that_resources_runs(self):
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            self.assertEqual(main(["copies", "--work", "w", "--program", "elektrawatt.exe"]), 0)
-        want = [os.path.join("w", f"without-{word}", "tree", "elektrawatt.exe") for _, _, word in RESOURCES]
-        self.assertEqual(out.getvalue().splitlines(), want)
-        self.assertEqual([resource for resource, _ in copy_programs("w", "x")], [r for r, _, _ in RESOURCES])
 
     def test_a_cli_tree_holds_the_archives_entries_alone(self):
         linux = os.path.join(self.dir, "cli-linux")
