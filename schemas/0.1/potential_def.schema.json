@@ -429,7 +429,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Names and types a potential (doc 03 §9, doc 08 §2.2, rank 38). The golden potentials L-S … N-55S are\nnaming-only definitions (`ptype` absent).",
+  "description": "Names and types a potential (doc 03 §9, doc 08 §2.2, rank 38). A potential such as L-S is a\nnaming-only definition (`ptype` absent).",
   "properties": {
     "$k": {
       "const": "potential_def",

@@ -254,7 +254,7 @@
           "type": "null"
         }
       ],
-      "description": "The CPU device; absent when the master sits outside the project (Golden A)."
+      "description": "The CPU device; absent when the master sits outside the project."
     },
     "exchange": {
       "anyOf": [

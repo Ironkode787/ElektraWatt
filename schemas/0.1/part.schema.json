@@ -2379,7 +2379,7 @@
     },
     "PositionMap": {
       "additionalProperties": true,
-      "description": "The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel\nthat each solenoid of the valve at position index `p` drives. The position index is 0-based: the valve\nchild at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). Part 533361 of Golden A carries the test\ninput H1, `count = 4`, solenoid 14 → `2p`, solenoid 12 → `2p+1` (doc 20 §11.2).",
+      "description": "The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel\nthat each solenoid of the valve at position index `p` drives. The position index is 0-based: the valve\nchild at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). For example `count = 4`,\nsolenoid 14 → `2p`, solenoid 12 → `2p+1`.",
       "properties": {
         "count": {
           "description": "The number of valve positions (p = 0 … count − 1).",
