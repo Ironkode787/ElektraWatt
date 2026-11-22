@@ -1,21 +1,81 @@
 # ElektraWatt
 
+ElektraWatt is an open-source desktop program for designing electrical control cabinets: you draw the schematic,
+and the program keeps the devices, terminals, cables, PLC addresses, panel layout and lists in step with it. It
+works offline, runs on Windows and Linux, and stores a project as plain text that works with Git.
+
 > **Funded by [TWE-O B.V.](https://www.twe-o.nl)** All funding for ElektraWatt comes from TWE-O B.V.; the project
 > has no other funders or sponsors.
 
-ElektraWatt (EW) is an open-source, offline-first desktop application for electrical control-cabinet design, written
-in Rust. It aims at the functionality of EPLAN Electric P8 class tools: schematics, devices and parts, terminals and
-cables, PLC and fluid power, panel layout, reports, manufacturing outputs and checks, in a plain-text project format
-that works with Git.
+![The ElektraWatt window with the sample project open: the pages and the properties on the left, and on the canvas
+the 400 V supply page with its main switch, a breaker, a power supply and the page links to the other
+pages](docs/images/window-schematic.png)
 
-![The ElektraWatt window with the sample project open: the page list and the properties on the left, the 400 V supply
-page on the canvas, and the findings of a project check in the Messages panel below it: no error, no warning, four
-infos that the pneumatic tubes run from the cabinet into the field without a bulkhead](docs/images/screenshot-schematic-checks.png)
+**It is an early alpha.** The latest release is
+[0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0) of 2026-11-20; a round of fixes, 0.3.5, is
+in work. Use it to try things out, not yet for a job that has to be right.
 
-## Download
+## What it does
 
-**[ElektraWatt 0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0)**, released on 2026-11-20, is
-an early alpha for Windows 10 and 11 and for Linux on x86-64:
+- **Schematics.** Place symbols and devices, draw wires, and let Arrange and route tidy a page. Page links,
+  cross-references between a relay's coil and its contacts, wire numbers and device tags are worked out for you
+  and follow every change.
+- **Terminals and cables.** Add a strip's terminals in one step, turn selected wires into the cores of a cable, and
+  get the terminal diagram and the cable list from the drawing.
+- **Parts.** Give a device a part from the starter library, from an imported catalogue or one of your own; the
+  parts list counts what the drawing uses.
+- **PLC and bus.** Build a station from a CPU and its cards, let the program give the addresses, draw the cards on
+  a page, and exchange tags with PLC software (AutomationML, TIA Portal tag tables, PLCopen XML).
+- **Fluid power.** Draw valve terminals, cylinders and tubes on pneumatic pages that share devices with the
+  electrical ones.
+- **Panel layout.** Put an enclosure, rails, ducts and the devices on a mounting plate at scale, with a legend.
+- **Checks.** A project check reports what is missing or contradictory, in words, with a fix where there is one.
+- **Lists and output.** Parts list, terminal diagram, cable and wire lists, PLC overviews and more as pages of the
+  set; the whole set as PDF/A, SVG, PNG or DXF, and the lists as CSV or XLSX.
+- **Import.** QElectroTech projects, EPLAN parts and reports, DXF and PDF drawings as underlays, and parts
+  catalogues.
+- **Your own symbols.** A symbol editor for symbols and for the boxes of your own devices.
+- **Scripting.** Everything the window does is a recorded command: the `ew` command-line tool checks, exports and
+  changes a project without a window, and the window itself can run from a script.
+
+## What comes out
+
+The pages below are from the sample project, a small conveyor drive with a pneumatic clamp. The program drew the
+sample itself, from a script of its own actions.
+
+| | |
+|---|---|
+| ![The supply page: three phases, neutral and earth come in through a cable and a terminal strip, pass the main switch and feed a 24 V power supply; arrows link to the pages that carry on](docs/images/page-supply.png) | ![The pneumatics page: a valve terminal with four valves, two of them spare, drives two cylinders](docs/images/page-pneumatics.png) |
+| **A schematic page** | **A pneumatic page** |
+| ![The panel layout: an enclosure and its mounting plate at scale 1:5 with two rails, a duct and the devices, each with its tag or a numbered balloon](docs/images/page-panel-layout.png) | ![The terminal diagram: one row per terminal with its strip, part, potential, what is wired to each side, its bridge and its state](docs/images/page-terminal-diagram.png) |
+| **The panel layout** | **The terminal diagram, made from the drawing** |
+
+## In the window
+
+**The PLC station.** Slots, cards, addresses and where each card is drawn, with the parts you can add beside it.
+
+![The station view of the sample's PLC: a CPU with a digital input card and a digital output card in its slots, a
+free slot, the address range of each card and the page each is drawn on, and the catalogue of cards on the
+right](docs/images/window-plc-station.png)
+
+**The symbol editor.** Draw a symbol, give it connection points and text fields, and see it turned and mirrored
+before you save it.
+
+![The symbol editor with a copy of the starter coil: the drawing with its connection points A1 and A2 and its
+texts, and below it the coil in its eight turned and mirrored variants](docs/images/window-symbol-editor.png)
+
+**The dark theme.**
+
+![The pneumatics page of the sample project in the dark theme](docs/images/window-dark-theme.png)
+
+All pictures show the sample project `fixtures/sample/sample.ew` as the program in this repository draws it today,
+which is newer than the 0.3.0 download. The window pictures are 1920 × 1080 and were drawn by the program's own
+offscreen renderer (`elektrawatt --headless --visual`); the pages are the output of `ew render`.
+
+## Get it
+
+**[ElektraWatt 0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0)** for Windows 10 and 11 and
+for Linux on x86-64:
 
 | File | What it is |
 |---|---|
@@ -26,76 +86,26 @@ an early alpha for Windows 10 and 11 and for Linux on x86-64:
 
 Nothing is signed yet, so Windows may warn before it runs the setup: check a download against `SHA256SUMS` first, as
 the guide's [Install ElektraWatt](docs/book/src/how-to/install.md) page shows. ElektraWatt makes no network
-connection of its own ([PRIVACY.md](PRIVACY.md)). The [release notes](docs/release-notes/0.3.0.md) list what changed
-and what is known not to work yet.
+connection of its own and has no telemetry ([PRIVACY.md](PRIVACY.md)). The
+[release notes](docs/release-notes/0.3.0.md) list what changed and, in section 7, what is known not to work yet.
 
-## Screenshots
+The guide's [tutorials](docs/book/src/tutorials/index.md) start from a copy of the sample project that comes with
+the download.
 
-| The right-click menu | Cable… |
+## Where it stands
+
+| | |
 |---|---|
-| ![A wire of the sample's 24 V control page right-clicked: its menu offers Route, Wire marker, Define potential, Cable and Print wire numbers first, then the general entries](docs/images/screenshot-right-click.png) | ![The Cable form over the two selected wires of a position switch in the field: the proposed tag -104W1, the two-core cable type and each wire's core, brown and blue](docs/images/screenshot-cable-form.png) |
-| **The symbol editor** | **The panel layout** |
-| ![The symbol editor with a copy of the starter coil: its drawing with the connection points A1 and A2 and its texts, the category Relays, the library folder, and the coil turned and mirrored in its eight variants, the turned ones with the tag above and the data below](docs/images/screenshot-symbol-editor.png) | ![The panel layout page of the sample project: the enclosure and its mounting plate centred on the sheet with two rails, a duct and the devices, each with its tag or, where the tag does not fit, a numbered balloon; its legend follows on pages 902.1 and 902.2](docs/images/screenshot-panel-layout.png) |
-| **The dark theme** | |
-| ![The pneumatics page of the sample project in the dark theme: a valve terminal with four solenoid valves, two of them spare, driving two cylinders](docs/images/screenshot-dark-theme.png) | |
+| **Released** | 0.3.0 (2026-11-20): schematics, terminals and cables, parts, the symbol editor, the 2D panel layout, lists and output, the PLC workspace with bus networks and the exchange with PLC software, fluid power, the imports, and Arrange and route |
+| **In work** | 0.3.5: fixes from the first real job done with the program, among them a copy of pages for a second installation, lists on your own frame, a DXF that equals the PDF, the legend as pages of its own, and terminals with two levels ([plan](docs/plan/m3.5.md)) |
+| **Next** | Manufacturing outputs and the 3D panel ([roadmap](ROADMAP.md)) |
 
-The screenshots show a copy of the sample project `fixtures/sample/sample.ew` at 1920 × 1080; the symbol editor's
-is older and shows release 0.2.0. The application drew them itself, with its offscreen renderer
-(`elektrawatt --headless --visual`), the same one its window tests use.
+The aim for 1.0 is the scope of the established tools of this class: schematics, PLC and I/O, fluid power, a 3D
+panel layout and manufacturing outputs ([vision](docs/design/00-vision-and-scope.md)).
 
-## Status
+## Build it yourself
 
-**0.3.0 was released on 2026-11-20.** It brings the automation breadth of milestone M3: the PLC workspace with
-stations, racks, modules and addresses, bus networks, your own PLC and bus parts, the exchange with AutomationML, TIA
-Portal tag tables and PLCopen XML, fluid power with valve terminals and tubes, DXF, DWG and PDF imports and underlays,
-EPLAN parts and reports, and Arrange and route. It is still an early alpha: the
-[release notes](docs/release-notes/0.3.0.md), section 7, list the known limitations. 0.3.5 is in work: a hygiene
-milestone and a round of fixes ([docs/plan/m3.5.md](docs/plan/m3.5.md)). The [roadmap](ROADMAP.md) lists the
-milestones and [docs/plan](docs/plan/README.md) the open work.
-
-What works today:
-
-- **The window**, `elektrawatt`: opens a project with the page list, a zoomable canvas, navigators, table mode and a
-  status bar; creates new projects through the first-run and company-standard wizards; docks panels into named
-  workspaces; and edits: places devices, symbols and terminals, draws and routes wires with interruption points,
-  edits properties, finds and replaces, copies and pastes, and undoes with a history. Every change is a recorded
-  command.
-- **The right-click menu** offers what fits the thing under the pointer first: Add terminal and Edit strip on a
-  terminal, a relay's free contacts on its coil, Choose part and Edit symbol on a device, Edit route, Wire marker,
-  Define potential and Cable on a wire, the partner and the direction of an interruption point, Title block fields on
-  the title block. The rows of the navigators offer the same as the page; Shift+F10 opens the menu at the selection.
-- **Wires, cables and potentials**: Cable… makes the selected wires a cable's cores in one form (the type as a person
-  writes it, `3G1.5`; N on blue, PE on green-yellow); a wire takes its core's or its potential's cross-section and
-  colour; wire markers and wire numbers print on the wires; Define potential… chooses the type from a list; a wire
-  without a named potential is offered one with its reason, to accept or decline; Supply comes in here… marks the
-  interruption points where the supply enters from another drawing set.
-- **Terminals**: Terminal… asks for the strip, the kind, the part, how many and from which number, then places the
-  row with one click.
-- **The title block**: Title block fields… edits what a page's title block prints, for a project imported from
-  QElectroTech too.
-- **The symbol editor**: draws a symbol with its connection points and text slots on a snap grid, files it under a
-  category, and checks it before saving it to a library; Edit symbol and Copy and edit open it from the browsers.
-- **The 2D panel layout**: a panel layout page from New page, enclosures, rails, ducts and mounting plates, with
-  placing tools and the checks that go with them.
-- **QElectroTech import**: File ▸ Import… reads a `.qet` project with its title blocks, logos, tables and free
-  graphics, and opens a project archive (`.ewz`).
-- **The `ew` command-line tool**: import of QElectroTech projects, checks with the pre-delivery scheme, a read-only SQL
-  projection, cable list, bill-of-materials and table exports, PDF/A-2b and SVG export of every page, a print set,
-  applying recorded command files, revisions and verification of the derived data. Run `ew help` for the full usage.
-- **Outputs**: reports (parts list, terminal and cable lists, cover tables and back-links) drawn on report pages and
-  written as PDF/A-2b and SVG.
-- **The sample project** `fixtures/sample/sample.ew`, a small conveyor drive with a pneumatic clamp that the program
-  draws itself from a script of its own actions (`fixtures/sample/sample.uiscript`); the tests, the guide and the
-  release use it.
-- **Headless operation**: the window runs the same actions from a UI script without a display
-  (`elektrawatt --headless --script <file>`), which is how the UI is tested.
-- **Tests**: about 7,000 across the workspace, with determinism lints (no wall clock, no environment reads and no
-  hash-ordered collections in the model, derivation, format and export paths), window tests driven by the pointer
-  and the keys, property tests and a command fuzzer with the memo oracle.
-
-## Building and running
-
-The pinned toolchain in `rust-toolchain.toml` is installed automatically by rustup. Tests run with
+The pinned toolchain in `rust-toolchain.toml` is installed by rustup. Tests run with
 [cargo-nextest](https://nexte.st).
 
 ```sh
@@ -104,8 +114,8 @@ cargo xtask check -p <crate>   # format, clippy, that crate's tests and the repo
 cargo xtask check              # the same over the whole workspace, several minutes
 ```
 
-To look at the sample project, work on a copy of it, because the application and the tool keep a lock and a
-journal beside an open project:
+To look at the sample project, work on a copy of it, because the program keeps a lock and a journal beside an open
+project:
 
 ```sh
 cp -r fixtures/sample/sample.ew /tmp/sample.ew
@@ -116,13 +126,11 @@ cargo run -p elektrawatt -- /tmp/sample.ew
 The window needs a graphics adapter; without one it exits with code 3 and names the headless mode. `--no-gpu` draws
 the canvas on the CPU. The user guide is built from [docs/book](docs/book) with mdBook.
 
-## Checks
-
 There is no continuous integration until 1.0: `cargo xtask check` is the check, and
 [CONTRIBUTING.md](CONTRIBUTING.md) describes the loop. A release is built by the release workflow from a candidate
-tag ([docs/release](docs/release/README.md)). Performance is deliberately not measured during development.
+tag ([docs/release](docs/release/README.md)).
 
-## Key decisions
+## How it is built
 
 | Topic | Decision |
 |---|---|
@@ -130,7 +138,6 @@ tag ([docs/release](docs/release/README.md)). Performance is deliberately not me
 | Platforms | Desktop for Windows and Linux (macOS is not supported), offline-first ([ADR-0022](docs/adr/0022-platform-matrix-and-performance-budgets.md)) |
 | Project format | Plain-text JSONL records in a directory, lossless on open, Git-friendly ([ADR-0010](docs/adr/0010-project-storage-jsonl-directory.md)) |
 | UI toolkit | egui on wgpu with a CPU fallback for the canvas ([ADR-0014](docs/adr/0014-gui-toolkit-egui.md), [ADR-0015](docs/adr/0015-display-list-renderers-pdf.md)) |
-| v1 scope | Electric P8-class schematics, PLC and I/O, fluid power, 3D panel layout, manufacturing outputs, QET/EDZ/DXF import ([vision](docs/design/00-vision-and-scope.md)) |
 | Application licence | GPL-3.0-or-later |
 | Format crates | MIT OR Apache-2.0 |
 | Symbols and templates | CC-BY-SA-4.0, with a design exception |
@@ -139,16 +146,14 @@ tag ([docs/release](docs/release/README.md)). Performance is deliberately not me
 
 The licence texts are in `LICENSES/`, indexed by [LICENSE.md](LICENSE.md); the licence set and the boundary between
 the permissive and the GPL crates are in [ADR-0024](docs/adr/0024-licence-set-and-permissive-gpl-boundary.md) and
-checked by `cargo xtask rules`. The architecture decision records are listed in the [ADR index](docs/adr/README.md).
+checked by `cargo xtask rules`.
 
-## Where to start
+Where to read on:
 
 - [Documentation map](docs/README.md): what to read for which task.
-- [ADR index](docs/adr/README.md) and the [plan](docs/plan/README.md).
+- [ADR index](docs/adr/README.md) for the decisions and the [plan](docs/plan/README.md) for the open work.
 - [CLAUDE.md](CLAUDE.md), [.claude/orchestration.md](.claude/orchestration.md) and [.claude/agents](.claude/agents):
-  the setup for AI-assisted work.
-
-## Branches
+  the project is developed with AI assistance, and this is its setup.
 
 Work happens on a working branch. `main` is fast-forwarded to it at a delivery; a release is cut from its own
 branch `release/<X.Y>`.
