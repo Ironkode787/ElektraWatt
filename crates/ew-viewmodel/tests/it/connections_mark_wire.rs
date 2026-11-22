@@ -9,13 +9,19 @@ use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::Mode;
 use serde_json::json;
 
+/// A Connections row: its key, its label and where it is drawn, each `(folio, record)`.
+type Row = (String, String, Vec<(String, String)>);
+
 #[test]
 fn every_selected_wire_marks_its_connections_row() {
     let tmp = Tmp::new("connections-mark-wire");
     let mut s = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "connections"}));
-    let rows: Vec<(String, String, Vec<(String, String)>)> = {
-        let table = s.nav(NavKind::Connections).and_then(|n| n.table()).expect("its table");
+    let rows: Vec<Row> = {
+        let table = s
+            .nav(NavKind::Connections)
+            .and_then(|n| n.table())
+            .expect("its table");
         table
             .nodes
             .iter()
