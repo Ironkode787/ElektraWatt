@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- text-change: the guide's picture of a station's rack shows the station view as it is, To do under the cards and the
+  channels' Function text column, and its text names that column (FT-2000)
 - text-change: the help of the Project's rows (the pointer resting on a row's name, and F1) says what the program
   does with the value, its unit and an example, in English and Dutch: the title block's or the cover page's cell that
   prints it, or that the program keeps it as a note (Control voltage, Rated consumption, the supply's earthing and

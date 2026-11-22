@@ -5063,8 +5063,9 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:105
 msgid ""
-"**Channels** lists the channels of the selected module: address, symbol name "
-"and what is wired to it, which is a link to its place on its page."
+"**Channels** lists the channels of the selected module: address, symbol "
+"name, function text (the wired device's, as the PLC overview prints it) and "
+"what is wired to it, which is a link to its place on its page."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:107

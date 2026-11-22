@@ -102,8 +102,8 @@ double-click the station in the PLC panel. Its rack opens in a tab beside the pa
   its part does not allow, a module drawn on no page, a station on no bus page.
 - **The table** under it lists the same places: slot, module, part (number and description), what it gives, its
   addresses and the page it is drawn on. A module without a part says **No part**, with **Choose part…** beside it.
-- **Channels** lists the channels of the selected module: address, symbol name and what is wired to it, which is a
-  link to its place on its page.
+- **Channels** lists the channels of the selected module: address, symbol name, function text (the wired device's, as
+  the PLC overview prints it) and what is wired to it, which is a link to its place on its page.
 - **The catalogue** at the right lists the parts that fit the station, by kind, under a filter. Parts that do not fit
   the selected slot are greyed and say why, as is a library part that nothing can draw yet because it has no pins,
   with what to do in the part editor.
