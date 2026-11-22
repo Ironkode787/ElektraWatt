@@ -68,6 +68,8 @@ pub enum NoteAction {
     ShowMessages,
     /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom (FT-1830).
     WheelScrolls,
+    /// Fit the layout to the sheet, after a scale at which the layout runs over the frame's drawing area.
+    FitSheet,
 }
 
 impl NoteAction {
@@ -94,6 +96,7 @@ impl NoteAction {
             NoteAction::RouteHis => "route_his",
             NoteAction::ShowMessages => "show_messages",
             NoteAction::WheelScrolls => "wheel_scrolls",
+            NoteAction::FitSheet => "fit_sheet",
         }
     }
 
@@ -120,6 +123,7 @@ impl NoteAction {
             "route_his" => Some(NoteAction::RouteHis),
             "show_messages" => Some(NoteAction::ShowMessages),
             "wheel_scrolls" => Some(NoteAction::WheelScrolls),
+            "fit_sheet" => Some(NoteAction::FitSheet),
             _ => None,
         }
     }
@@ -147,6 +151,7 @@ impl NoteAction {
             NoteAction::RouteHis => key!("note-action-route-his"),
             NoteAction::ShowMessages => key!("note-action-show-messages"),
             NoteAction::WheelScrolls => key!("note-action-wheel-scrolls"),
+            NoteAction::FitSheet => key!("action-layout-fit-sheet"),
         }
     }
 }

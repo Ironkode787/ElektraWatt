@@ -1510,7 +1510,17 @@ impl ShellModel {
             }
             (_, v) => v,
         };
-        self.commit_value(key, value, text.to_owned(), parsed.notes)
+        let out = self.commit_value(key, value, text.to_owned(), parsed.notes);
+        // A panel page's scale at which its layout runs over the frame says so, with Fit the layout to the sheet.
+        if out == Outcome::Done
+            && row.key == "page/scale"
+            && let [page] = section.targets.as_slice()
+            && let Some((now, fit)) = self.project_session().and_then(|s| s.layout_overruns(*page))
+        {
+            let said = strings::format(key!("toast-layout-overruns"), &[&now.to_string(), &fit.to_string()]);
+            self.notify_fit_sheet(said, *page);
+        }
+        out
     }
 
     /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path.

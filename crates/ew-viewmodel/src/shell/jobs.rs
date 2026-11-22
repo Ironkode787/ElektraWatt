@@ -309,6 +309,20 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action is Fit the layout to the sheet on the panel page `page`.
+    pub(super) fn notify_fit_sheet(&mut self, text: String, page: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::FitSheet,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![page],
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows `text` as a toast of key `edit` whose action is New station….
     pub(super) fn notify_new_station(&mut self, text: String) {
         let action = self.project.as_ref().map(|p| {
@@ -489,6 +503,14 @@ impl ShellModel {
             Some(NoteAction::ItemNumbers) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("layout.labels", &serde_json::json!({ "show": "item_numbers" }))
+            }
+            // Fit the layout to the sheet, on the page whose scale ran over, while that page is on show.
+            Some(NoteAction::FitSheet) => {
+                if entry.selects(action).first().copied() != self.focused_page_id() {
+                    return Outcome::refused(key!("reason-action-expired"));
+                }
+                self.notes.dismiss(entry.serial);
+                self.dispatch("layout.fit_sheet", &Value::Null)
             }
             // Two valves swap their positions: the first takes the second's, the second the first's.
             Some(NoteAction::Swap) => {

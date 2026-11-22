@@ -68,4 +68,13 @@ fn the_scale_is_typed_as_it_shows() {
         ),
         other => panic!("{other:?}"),
     }
+    // A ratio the page cannot draw is refused in the same words (a persona run read "Not strict JSON").
+    for typed in ["1:4.5", "2:9", "1:4,5"] {
+        match value(typed) {
+            Err(e @ InputError::Invalid(_)) => {
+                assert!(e.text().unwrap().starts_with(&format!("`{typed}` is not a scale")), "{typed}");
+            }
+            other => panic!("{typed}: {other:?}"),
+        }
+    }
 }

@@ -13,7 +13,7 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageRef, Q};
 use ew_scene::forms::{FrameGeometry, SheetMap};
-use ew_schema::{Extra, FormDef, FormKind, FrameGrid, ItemMeta, MountingSurface, Page, SheetSpec};
+use ew_schema::{Extra, FormDef, FormKind, FrameGrid, ItemMeta, MountingSurface, Page, Scale, SheetSpec};
 
 use super::view::PageFrameOf;
 use crate::Session;
@@ -24,18 +24,25 @@ pub const FIT_SCALES: [u32; 7] = [1, 2, 5, 10, 20, 50, 100];
 /// The first n of [`FIT_SCALES`] at which the bounding box of `usable` (surface nm) fits a drawing area of `area`
 /// (width, height on the sheet, nm) at 1:n on paper; the last, 1:100, when none fits; `None` for an empty outline.
 pub fn fitting_scale(area: (i64, i64), usable: &[Pt2]) -> Option<u32> {
+    fits_at(area, usable, 1)?;
+    let last = FIT_SCALES[FIT_SCALES.len() - 1];
+    Some(
+        FIT_SCALES
+            .into_iter()
+            .find(|n| fits_at(area, usable, *n) == Some(true))
+            .unwrap_or(last),
+    )
+}
+
+/// Whether the bounding box of `usable` (surface nm), drawn at 1:`n` on paper, fits a drawing area of `area` (width,
+/// height on the sheet, nm); `None` for an empty outline.
+fn fits_at(area: (i64, i64), usable: &[Pt2], n: u32) -> Option<bool> {
     let xs = usable.iter().map(|p| i128::from(p.x.0));
     let ys = usable.iter().map(|p| i128::from(p.y.0));
     let w = xs.clone().max()? - xs.min()?;
     let h = ys.clone().max()? - ys.min()?;
     let (aw, ah) = (i128::from(area.0), i128::from(area.1));
-    let last = FIT_SCALES[FIT_SCALES.len() - 1];
-    Some(
-        FIT_SCALES
-            .into_iter()
-            .find(|n| w <= aw * i128::from(*n) && h <= ah * i128::from(*n))
-            .unwrap_or(last),
-    )
+    Some(w <= aw * i128::from(n) && h <= ah * i128::from(n))
 }
 
 /// The drawing area of `page` in page coordinates (the frame's geometry, as the scene emits it before the frame's
@@ -92,6 +99,25 @@ impl Session {
     /// records no usable outline.
     pub fn fitting_scale(&self, page: Uuid, surface: Uuid) -> Option<u32> {
         page_fitting_scale(&self.query(), Id::from_uuid(page), Id::from_uuid(surface))
+    }
+
+    /// The panel page `page` drawn at a scale at which its surface's usable outline runs over the frame's drawing area:
+    /// its scale's n and the fitting scale's n (Fit the layout to the sheet's); `None` for a page whose layout fits, one
+    /// drawn not to scale, without a surface view or without a frame grid.
+    pub fn layout_overruns(&self, page: Uuid) -> Option<(u32, u32)> {
+        let q = self.query();
+        let id: Id<Page> = Id::from_uuid(page);
+        let Scale::OneTo(k) = q.pages().get(id)?.scale.clone() else {
+            return None;
+        };
+        let view = q.get::<super::panel::PageSurfaceView>(id).as_ref().clone()?;
+        let s = q.table::<MountingSurface>().get(view.surface)?;
+        let (area, _) = drawing_area(&q, id)?;
+        let area = (area.width().0, area.height().0);
+        if fits_at(area, &s.usable, k)? {
+            return None;
+        }
+        Some((k, fitting_scale(area, &s.usable)?))
     }
 }
 

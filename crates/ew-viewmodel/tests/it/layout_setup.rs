@@ -120,7 +120,7 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     // The enclosure and the plate stand where the layout tools are (not by the search only).
     assert_eq!(
         layout_group(&s),
-        [on("Enclosure"), on("Auto-fill rail"), on("Rail"), on("Duct")]
+        [on("Enclosure"), on("Auto-fill rail"), on("Rail"), on("Duct"), on("Fit to sheet")]
     );
     assert_eq!(plate_entry(&s), (true, None));
     done(&mut s, "page.goto", json!({"folio": "101"}));
@@ -134,7 +134,7 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     // Enclosure… makes an enclosure from any page; the page's tools wait for a layout page.
     assert_eq!(
         layout_group(&s),
-        [on("Enclosure"), off("Auto-fill rail"), off("Rail"), off("Duct")]
+        [on("Enclosure"), off("Auto-fill rail"), off("Rail"), off("Duct"), off("Fit to sheet")]
     );
     assert_eq!(
         plate_entry(&s),

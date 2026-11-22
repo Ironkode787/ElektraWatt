@@ -513,11 +513,16 @@ rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26
 Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet** (0.3.5): a new view fits
 its enclosure to the frame's whole drawing area at the first ratio of the series that holds it and centres it there;
 nothing is kept free for a legend, which is a list page of its own (§5.4). **Fit the layout to the sheet**
-(`layout.fit_sheet`, a panel page's context menu and Page ▸ Order) does the same to the view a page has: one
+(`layout.fit_sheet`, a panel page's context menu, Page ▸ Order and the button Fit to sheet of the Draw tab's layout
+group beside Rail and Duct) does the same to the view a page has: one
 `page.surface_view.set` with the fitting scale and the centred datum, its labels and label mode kept, so it changes the
 datum and the scale and never a stored pose; on a page drawn so already it is refused in words ("The layout takes the
 whole sheet already"), and so it is while a legend box still stands beside the layout, whose room the plate would take
-("The legend stands beside the layout: choose Move the legend to its own page first, …", §5.4).
+("The legend stands beside the layout: choose Move the legend to its own page first, …", §5.4). A Scale typed in the
+page's Properties at which the plate's usable outline runs over the drawing area says so in a toast whose action is
+Fit the layout to the sheet ("At 1:2 the layout runs over the frame's drawing area. Fit the layout to the sheet draws
+it at 1:5, centred."; `Session::layout_overruns`), and a ratio that is no scale (`1:4.5`, `2:9`) is refused in words
+("`1:4.5` is not a scale; type 1:n …") where it read "Not strict JSON" (a persona run).
 
 *As built.* The page item `surface_view`
 is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each
