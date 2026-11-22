@@ -93,7 +93,7 @@ fn target_drawables(
             let device = Id::from_uuid(id);
             let own = device_drawables(q, folios, device);
             match q.devices().get(device) {
-                Some(d) if own.is_empty() => drawn_as_members(q, folios, &d),
+                Some(d) if own.is_empty() => drawn_as_members(q, folios, d),
                 _ => own,
             }
         }
