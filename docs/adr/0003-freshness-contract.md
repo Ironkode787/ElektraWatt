@@ -92,13 +92,11 @@ Accepted on 2026-10-19. The decision text above is unchanged; these entries refi
    change of a rule that affects output is made in the one shipped profile, and a project made by an earlier
    version prints by the new rule when a newer version opens it: no new profile version is shipped for it, no
    second code path is kept, and the previewed profile upgrade has nothing to offer yet. The release notes say, for
-   each release, what changes in a project that already exists (0.3.5: a wire's proposed cross-section by its
-   circuit and by the rating of the device that protects it, an earth symbol without a tag, a 0 V rail bonded to
-   earth that stays 0 V, a protective earth named PE, the texts of a symbol turned a quarter). What stays as
-   decided: an identifier that is frozen on purpose never changes, a committed computation keeps its result, and a
-   released revision keeps its archived PDF (ADR-0013), so what left the building does not change behind anyone's
-   back. From 1.0 the decision above holds in full: an output-changing rule ships as a new profile version.
-   It goes with ADR-0011's amendment on the file format (the latest version leads there too).
+   each release, what changes in a project that already exists (`docs/release-notes/`, one line per change). What
+   stays as decided: an identifier that is frozen on purpose never changes, a committed computation keeps its
+   result, and a released revision keeps its archived PDF (ADR-0013), so what left the building does not change
+   behind anyone's back. From 1.0 the decision above holds in full: an output-changing rule ships as a new profile
+   version. It goes with ADR-0011's amendment on the file format (the latest version leads there too).
 
 ## Consequences
 

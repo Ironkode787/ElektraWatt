@@ -365,14 +365,16 @@ change here.
 - behaviour-change: a wire from a 0 V to an earth symbol is the bond also when the 0 V comes in through interruption
   points from another page, and when only its name says 0 V (`0VDC-6`, an imported supply whose pins say nothing):
   the 0 V stays 0 V and is no longer typed PE as a whole, and Draw ▸ Connect ▸ Bond is not needed (doc 08 §3.7,
-  FT-1821, FT-1867); the supply marks' panel proposes such a mark as 0 V (M), where it proposed a plus of 0 V
+  FT-1821, FT-1867); the supply marks' panel proposes such a mark as 0 V (M), where it proposed a plus of 0 V. A
+  project of 0.3.0 shows such a 0 V as 0 V when this version opens it
 - api-add: technical data takes a current in milliampere (`mA`), printed "20 mA" on the page and in the lists, typed
   in Properties and read from a parts catalogue; a value typed without a unit is refused with the units listed from
   the one list of units (FT-1867)
 - behaviour-change: an earth symbol without a part has no tag unless a frozen one names it: it takes no number of the
   cables' letter W (a page's first cable is W1 again), prints none, is named by its pin (`PE`) in the wire list, the
   messages and Properties, and no check asks for its letter, an imported earth point (letter A) included; its Tag row
-  says why it is empty (doc 03 §8.2, FT-1820)
+  says why it is empty. A project of 0.3.0 prints its earth symbols so when this version opens it (doc 03 §8.2,
+  FT-1820)
 - behaviour-change: an external point's reference holds what is known of the far end: the device or an address alone
   ("Q4.1"), a location alone, or nothing for a far end not known; the point prints what it holds under its mark, and
   Supply comes in here… takes an empty field as not known (`ip.supply_in`, `external_ref.create`: `location` and
@@ -476,7 +478,8 @@ change here.
 - behaviour-change: a bus line drawn between two ports gives them a physical net as well as the logical one (the one
   they name, else a new one of copper named for the bus system), so its segments, EW-BUS-004 and the bus overview see
   it without `bus.physical_net.create`; EW-BUS-004 checks the termination of PROFIBUS DP and CANopen only, so a drawn
-  PROFINET star reports no unterminated ends (doc 10 §2.7, FT-1922)
+  PROFINET star reports no unterminated ends. In a project of 0.3.0 a bus line already drawn takes its physical net
+  when it is drawn or changed again (doc 10 §2.7, FT-1922)
 - behaviour-change: a Messages row of a finding on a cable (EW-CORE-033, a cable without its length) names the page of
   the cable's cores and Enter opens it with the core wires selected; it named no page and opened nothing (doc 16 §5,
   FT-1924)
@@ -541,7 +544,8 @@ change here.
   valve module (the starter EW-GEN-VTM-1) list a row per position with its valve, part, solenoids and address; its
   valves were listed as modules with those cells empty (doc 11 §8.2, FT-1927)
 - behaviour-change: a protective earth that only an earth symbol names (an imported earth point, whose pin is `1`) is
-  called PE in the potential list, on the page and in the SQL views; it was called `1` (doc 08 §3.5, FT-1933)
+  called PE in the potential list, on the page and in the SQL views; it was called `1`. A project of 0.3.0 calls it PE
+  when this version opens it (doc 08 §3.5, FT-1933)
 - behaviour-change: a parts catalogue's technical data takes every unit of the format, by its spelling or its symbol:
   `8.5 mm`, `10 pc` and `2 set` were refused as no unit of the format (doc 03 §3.2, FT-1981)
 - behaviour-change: New part… makes a card of two channel kinds that go the same way (inputs with analogue inputs,
@@ -549,7 +553,8 @@ change here.
   range from the next word; only the first kind again is refused (doc 10 §2.6, FT-1970)
 - behaviour-change: a wire on a single phase L or a neutral N whose voltage is not known takes the mains class's
   cross-section (1.5 mm² built in), as a phase L1, L2 or L3 does; it took the control size, 0.75 mm², so the sample's
-  N wires were thinner than their phases (doc 08 §4.2, FT-1834)
+  N wires were thinner than their phases. A project of 0.3.0 shows the larger size where it set none (doc 08 §4.2,
+  FT-1834)
 - text-change: a list page or a box whose rows do not derive prints its reason in words in the project's language ("Not
   derived: this build does not make this list", "Niet afgeleid: …"); it printed it in English with a family or kind name
   in backquotes (doc 09 §2.4, FT-1995)
@@ -599,7 +604,7 @@ change here.
 - behaviour-change: a PLC card drawn in one row (Draw on a page from the station view) prints its channels in cells: a
   thin line between each two channel pins across the box, and in each cell, level, the pin's designation and address
   and under it the channel's function text, made smaller or wrapped to fit the cell; its pin texts read turned a quarter
-  before (doc 10 §3.6, FT-1898)
+  before. A card a project of 0.3.0 drew so prints in cells when this version opens it (doc 10 §3.6, FT-1898)
 - behaviour-change: a bevel junction is drawn half a step on each leg, as the bevel where two wires of one pin part; it
   was a quarter step. An existing project draws its junctions so when this version opens it (doc 06a §3.4, FT-1898)
 - behaviour-change: Draw the card in one row (`plc.card_redraw`, in a card box's menu) draws a PLC card
@@ -607,3 +612,7 @@ change here.
   device, channels and connections (doc 10 §3.6, FT-1897)
 - api-add: `plc.draw_station` has the optional member `replace`, the drawings on the page that its boxes draw again
   (FT-1897)
+- behaviour-change: until 1.0 a project made by an earlier version prints by this version's rules when this version
+  opens it: every change above to what a page, a list or an export prints applies to a project of 0.3.0 as well, with
+  no new derivation profile to choose. Frozen tags and numbers, committed computations and the PDF of a released
+  revision stay as they are (ADR-0003 amendment 3)
