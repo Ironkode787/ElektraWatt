@@ -196,9 +196,10 @@ height comes from the text style bound to the slot kind (FR-SYM-013, D-29), so d
 resizes it. A text stays upright: turning or mirroring a symbol never turns its texts (owner, 2026-11-15), which keep
 the angle they have in the unturned symbol, read from the bottom or the right of the sheet (common drawing practice;
 the governing clause is unverified); a mirror never mirrors glyphs. The anchor moves with the symbol and the
-alignment is chosen so the text keeps its side of the symbol and of its connection point (a tag left of the body
-that a quarter turn brings above it stands centred above; the table for all eight variants is in
-[07](07-symbols-parts-macros.md) §4.1). A device tag the page would put on a wire or another text is never turned to
+alignment is chosen so the text keeps its side of the symbol and of its connection point (the table for all eight
+variants is in [07](07-symbols-parts-macros.md) §4.1). A symbol turned a quarter has its texts placed anew round its
+body: lying flat, its tag centred above it and its data and cross-reference centred below it, line under line, its
+pins' numbers at its pins (owner, 2026-11-22; [07](07-symbols-parts-macros.md) §4.1). A device tag the page would put on a wire or another text is never turned to
 make room: it moves, upright, to the other side of its symbol, above or below what is in its way, or centred above or
 below its symbol, and stays where it is when none of these is free. It never moves onto its own symbol; where a symbol
 turned by a half turn and a neighbour's tag or body meet, the tag moves off the body and takes no place on a body

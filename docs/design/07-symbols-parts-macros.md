@@ -727,7 +727,8 @@ preview shows:
    turning or mirroring a placement leaves every text at the angle it has in the unturned symbol (owner,
    2026-11-15: "it should always remain upright"), made readable from the bottom or the right of the sheet
    ([06](06-schematic-editor.md) §2.5). The anchor moves with the symbol and the alignment is chosen as §4.1 decides
-   for all eight variants, so the text stays on the same side of the symbol and of its connection point.
+   for all eight variants, so the text stays on the same side of the symbol and of its connection point. Turned a
+   quarter, a symbol's slot texts are placed anew round its body (§4.1).
 7. **Exchange** (FR-SYM-022) maps CPs by `fn_cp`, then by designation. The preview lists unmapped CPs, and a CP that
    carries a connection must be mapped.
 8. **Linkages** (FR-SYM-014) are derived lines between `link_points` of the functions related by a `DeviceLink`
@@ -1008,6 +1009,24 @@ middle right:
 | Alignment | middle right | bottom centre | middle left | top centre | middle left | top centre | middle right | bottom centre |
 
 Under A, C, E and G this is the earlier flip (left ↔ right under the plain mirror E, both under the half turn C).
+
+**Texts of a symbol turned a quarter** (owner, 2026-11-22, from a sketch). Under B, D, F and H the texts that stand
+under each other beside an upright symbol would stand side by side on one line and run into each other. So a symbol
+with connection points turned a quarter places its slot texts that print level anew round its body (`slot_places` of
+`ew-scene`), so that none stands on another or on the symbol:
+- Lying flat (no pin leaves up or down), its tag stands centred above the body, and its other texts (technical data,
+  cross-reference, function text, PLC address, part data) centred below it, line under line in the order they stand
+  down the unturned symbol. A symbol drawn lying that a quarter turn stands up has all of them right-aligned left of
+  its body from its top, the tag first.
+- The body is the bounds of the graphics and of the static texts' anchors, and a step above or below the point of
+  each pin's designation that prints there. Each text stands a quarter step clear of it and a line (a step and a half,
+  the starter symbols' pitch) from the one before; only the texts that print take a line.
+- A pin's designation keeps its place at its pin (step 3 above). A text a person dragged keeps its place and takes the
+  alignment of its group, so it does not jump when dropped; a slot whose angle an override sets keeps its turned point.
+  A symbol without connection points (a drawn box) keeps the steps above.
+
+The symbol editor's strip "Turned and mirrored" and a page show the same places; on a page they are the texts' first
+places, which the text placer leaves only where something stands there ([06a](06a-drafting.md) §5.2).
 
 **Invariance.** Every CP offset and the anchor offset from the symbol origin are multiples of the connection grid
 `g` (§3.2 rules 1 and 5), and the matrix entries are 0 or ±1. Every transformed offset is therefore again a

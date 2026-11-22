@@ -578,3 +578,9 @@ change here.
   wire by the highest rating at its ends; Properties names the device and its rating as the source, and a wire's own
   cross-section, a core's or a potential definition's still wins. Projects of 0.3.0 show the raised size where they
   set none (doc 08 §4.2, FT-2055)
+- behaviour-change: a symbol turned a quarter places its texts anew round its body, on a page and in the symbol
+  editor's strip "Turned and mirrored" alike: lying flat, its tag stands centred above it and its technical data,
+  cross-reference and other texts centred below it, line under line, its pins' numbers at its pins; they stood side by
+  side on one line and ran into each other. A text a person dragged keeps its place. Where wires run under a part
+  lying flat, its data may stand over its tag, and a strip's tag stands over the name of its first terminal (doc 07
+  §4.1, doc 06a §5.2, FT-1929)

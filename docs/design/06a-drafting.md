@@ -1135,9 +1135,14 @@ the labels with their sizes and places. So a page looks the same on the canvas, 
 
 The first place of each kind is this program's default, taken from the pilot's reference set; the starter
 symbols' slots are set to these first places (step 7), and a library symbol whose author chose another slot keeps its slot as first place.
+A symbol turned a quarter has the first places [07](07-symbols-parts-macros.md) §4.1 places anew (owner, 2026-11-22):
+lying flat, its tag centred above the body and its other texts centred below it, line under line; the symbol editor's
+strip of variants and a page show the same.
 The other places follow from the part's shape. "Free side" means a side of the body without a pin. For a part
 whose pins leave up and down, "left" and "right" are meant as written; for a part turned a quarter they turn with
-it, and a text always reads from the bottom or from the right (D-16).
+it, and a text always reads from the bottom or from the right (D-16). A part lying flat has, last, the place centred
+above over its tag for each of its texts: where wires run under it (a switch across the phases of a supply), its data
+stand over its tag.
 
 | Label | Places, in order | Priority |
 |---|---|---|
@@ -1152,7 +1157,7 @@ it, and a text always reads from the bottom or from the right (D-16).
 | Name of a mark (interruption point, supply mark) | in line with the wire beyond the arrow: left of an incoming mark, right of an outgoing one; above the arrow | 3 |
 | Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there | 3 |
 | Name of a terminal | right below the terminal's point; left below it | 1 |
-| Strip designation | left of the strip's first terminal, level with it; above it | 4 |
+| Strip designation | left of the strip's first terminal, level with it; above it; above the terminal's name, where it stands over the terminal; above it, ending at its left edge | 4 |
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
 | Type text of a cable mark; the cable's tag | the type left of the row of ticks, the tag right of it; both right; both left | 5 |
 

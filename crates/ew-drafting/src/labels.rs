@@ -15,7 +15,8 @@
 //! level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
 //! (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
 //! corners, centred below one line lower, the upper corners half a step lower; for a part whose pins leave sideways: centred above, centred below, above
-//! and below at either end, centred below one line lower. Every gap to the owner is [`LABEL_CLEAR`].
+//! and below at either end, centred below one line lower, centred above past its tag. Every gap to the owner is
+//! [`LABEL_CLEAR`].
 //!
 //! | Kind | Places after the adapter's |
 //! |---|---|
@@ -27,7 +28,7 @@
 //! | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
 //! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
 //! | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
-//! | strip designation | left of the terminal at its middle; centred above it; above it, ending at its left edge |
+//! | strip designation | left of the terminal at its middle; centred above it; the same past the terminal's name; above it, ending at its left edge |
 //! | wire number | along the wire ([`along_wire`]) |
 //! | cable tag and type | the type before the mark's line and the tag after it; both after it (tag over type); both before it |
 //!
@@ -359,8 +360,9 @@ fn half(v: Tick) -> Tick {
     v.div_euclid(2)
 }
 
-/// The corners of a part (module documentation), for a unit `w` by `h` whose first line is `line` high.
-fn corners(s: &Shape, (w, h): (Tick, Tick), line: Tick) -> Vec<Rect> {
+/// The corners of a part (module documentation), for a unit `w` by `h` whose first line is `line` high, of a part whose
+/// tag's first place has its top at `tag_top`.
+fn corners(s: &Shape, (w, h): (Tick, Tick), (line, tag_top): (Tick, Tick)) -> Vec<Rect> {
     let (b, g, size) = (s.body, LABEL_CLEAR, (w, h));
     let cx = b.centre().x;
     let above = bx(cx - half(w), b.y0 - g - h, size);
@@ -396,6 +398,9 @@ fn corners(s: &Shape, (w, h): (Tick, Tick), line: Tick) -> Vec<Rect> {
             bx(b.x0, b.y1 + g, size),
             bx(b.x1 - w, b.y1 + g, size),
             lower,
+            // Centred above, past the tag over the body: where wires run under a part lying flat (a switch across the
+            // phases of a supply), its data stand over its tag.
+            bx(cx - half(w), tag_top.min(b.y0) - g - h, size),
         ]
     }
 }
@@ -418,6 +423,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
     let c = b.centre();
     let first_pin = s.pins.first().copied();
     let line = ground.page.labels[unit.members[0].0].size.1;
+    let tag_top = first_top(ground, unit.owner, LabelKind::Tag).unwrap_or(b.y0 - g - line);
     match unit.kind {
         LabelKind::PinNumber(pin) => match ground.pins.get(&pin) {
             Some(&(q, side, _)) => pin_places(q, side, unit.size),
@@ -446,7 +452,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(c.x - half(w), b.y1 + g, unit.size),
                 bx(b.x1 + g, c.y - half(h), unit.size),
             ];
-            out.extend(corners(s, unit.size, line));
+            out.extend(corners(s, unit.size, (line, tag_top)));
             out
         }
         LabelKind::BoxTag => {
@@ -534,21 +540,43 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(q.x + g, b.y0 - g - h, unit.size),
                 bx(q.x - g - w, b.y0 - g - h, unit.size),
             ],
-            _ => corners(s, unit.size, line),
+            _ => corners(s, unit.size, (line, tag_top)),
         },
-        LabelKind::StripTag => vec![
-            bx(b.x0 - g - w, c.y - half(h), unit.size),
-            bx(c.x - half(w), b.y0 - g - h, unit.size),
-            // Above it, ending at its left edge: clear of a wire that leaves the terminal upward.
-            bx(b.x0 - g - w, b.y0 - g - h, unit.size),
-        ],
+        LabelKind::StripTag => {
+            let name = first_top(ground, unit.owner, LabelKind::TerminalName).unwrap_or(b.y0 - g);
+            vec![
+                bx(b.x0 - g - w, c.y - half(h), unit.size),
+                bx(c.x - half(w), b.y0 - g - h, unit.size),
+                // Centred above, over the terminal's name where it stands over it (a terminal turned a quarter, doc 07
+                // §4.1).
+                bx(c.x - half(w), name.min(b.y0) - g - h, unit.size),
+                // Above it, ending at its left edge: clear of a wire that leaves the terminal upward.
+                bx(b.x0 - g - w, b.y0 - g - h, unit.size),
+            ]
+        }
         LabelKind::Tag
         | LabelKind::Xref
         | LabelKind::Data
         | LabelKind::ContactList
         | LabelKind::WireNumber
         | LabelKind::CableType
-        | LabelKind::CableTag => corners(s, unit.size, line),
+        | LabelKind::CableTag => corners(s, unit.size, (line, tag_top)),
+    }
+}
+
+/// The top of the first place of `owner`'s first label of kind `kind` on the page, where it has one.
+fn first_top(ground: &Ground<'_>, owner: Owner, kind: LabelKind) -> Option<Tick> {
+    let Owner::Part(p) = owner else { return None };
+    let part = ground.parts.get(&p)?;
+    let label = ground
+        .page
+        .labels
+        .iter()
+        .filter(|l| l.owner == owner && l.kind == kind)
+        .min_by_key(|l| l.id)?;
+    match &label.places {
+        Places::At(at) => at.first().map(|a| Rect::sized(part.at.plus(*a), label.size).y0),
+        Places::AlongWire => None,
     }
 }
 

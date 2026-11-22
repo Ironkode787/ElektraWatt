@@ -566,6 +566,18 @@ impl Builder<'_> {
             let origin = ctx.origins.get(&rep.id.as_uuid()).copied().unwrap_or_default();
             let mut values: Vec<_> = rv.slots.iter().collect();
             values.sort_by_key(|v| v.slot);
+            // The slots that print where their symbol puts them: shown, with a value, and no override moving or turning
+            // them (on a symbol turned a quarter only these take a line, `symbol::slot_places`).
+            let printed = |i: usize| {
+                let n = u16::try_from(i).unwrap_or(u16::MAX);
+                ew_derive::slot_shown(rep, def, n)
+                    && rv.slots.iter().any(|v| v.slot == n && !v.text.is_empty())
+                    && !rep
+                        .text_slots
+                        .iter()
+                        .any(|o| o.slot == n && (o.pos.is_some() || o.angle.is_some()))
+            };
+            let places = symbol::slot_places(def, frame.orient, printed);
             for value in values {
                 let Some(slot) = def.text_slots.get(usize::from(value.slot)) else {
                     continue;
@@ -576,20 +588,24 @@ impl Builder<'_> {
                 let ov = rep.text_slots.iter().find(|o| o.slot == value.slot);
                 let moved = ov.and_then(|o| o.pos).is_some();
                 let turned = ov.and_then(|o| o.angle).is_some();
-                let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
+                let (place, align) = places[usize::from(value.slot)].clone();
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
                 let (style_key, unknown) = symbol::slot_style_key(def, slot, self.styles);
                 let conflict = value.link.is_some() && !value.item_links.is_empty();
                 let xref = matches!(slot.kind, SlotKind::Xref);
                 let text = Text {
                     text: value.text.clone(),
-                    at: frame.origin + frame.orient.apply(pos),
+                    at: match ov.and_then(|o| o.pos) {
+                        Some(pos) => frame.origin + frame.orient.apply(pos),
+                        None if turned => frame.origin + frame.orient.apply(slot.pos),
+                        None => frame.origin + place,
+                    },
                     angle: symbol::upright_angle(rot),
                     // An angle a person set (or an import) is the sheet's: the text keeps its own alignment.
                     align: if turned {
                         symbol::placed_align(&slot.align, rot, Orient2::R0)
                     } else {
-                        symbol::slot_align(def, slot, rot, frame.orient)
+                        align
                     },
                     style_key: style_key.to_owned(),
                     entity,
@@ -666,14 +682,19 @@ impl Builder<'_> {
             };
             let frame = ew_derive::text_frame(rep, def);
             let ov = rep.text_slots.iter().find(|o| o.slot == i);
-            let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
+            let (place, slot_align) =
+                symbol::slot_places(def, frame.orient, |n| n == usize::from(i)).swap_remove(usize::from(i));
             let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
             let angle = symbol::upright_angle(rot);
             let align = match ov.and_then(|o| o.angle) {
                 Some(_) => bottom_align(&symbol::placed_align(&slot.align, rot, Orient2::R0)),
-                None => bottom_align(&symbol::slot_align(def, slot, rot, frame.orient)),
+                None => bottom_align(&slot_align),
             };
-            let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
+            let at = match ov.and_then(|o| o.pos) {
+                Some(pos) => frame.origin + frame.orient.apply(pos),
+                None if ov.and_then(|o| o.angle).is_some() => frame.origin + frame.orient.apply(slot.pos),
+                None => frame.origin + place,
+            } + up_by(angle, step);
             let (style_key, _) = symbol::slot_style_key(def, slot, self.styles);
             let text = Text::plain(
                 &tag.text,

@@ -67,6 +67,9 @@
 //! | Text angle | 0° | 0° | 0° | 0° | 0° | 0° | 0° | 0° |
 //! | Middle right becomes | middle right | bottom centre | middle left | top centre | middle left | top centre | middle right | bottom centre |
 //!
+//! On a symbol turned a quarter the slot texts that print level are placed anew round the body instead
+//! ([`slot_places`]): its tags centred above a body lying flat, its other texts centred below it, line under line.
+//!
 //! Slot texts come after static texts; a slot text's style key is the slot's own `style`, else the binding of
 //! [`default_style_key`]. The page resolves it against the project's table ([`slot_style_key`], ADR-0032), which
 //! a symbol's geometry does not depend on.
@@ -190,12 +193,13 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             });
         }
     }
-    for slot in &def.text_slots {
+    let places = slot_places(def, variant, |i| def.text_slots[i].visible);
+    for (slot, (pos, align)) in def.text_slots.iter().zip(places) {
         texts.push(PlacedText {
             source: TextSource::Slot(slot.kind.clone()),
-            pos: variant.apply(slot.pos),
+            pos,
             angle: upright_angle(slot.rot),
-            align: slot_align(def, slot, slot.rot, variant),
+            align,
             style_key: slot.style.as_ref().map_or_else(
                 || default_style_key(def, &slot.kind).to_owned(),
                 |s| s.as_str().to_owned(),
@@ -501,6 +505,107 @@ pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orie
         _ => placed,
     };
     keep_baseline(&slot.align, along)
+}
+
+/// Where each slot of `def` prints on a symbol in `variant` where no override moves or turns it, by slot index: its
+/// anchor in the symbol's frame after the variant and its alignment, which a slot an override only moves keeps as well.
+/// A slot stands at its point turned by the variant, aligned by [`slot_align`], except on a symbol with connection
+/// points turned a quarter (B, D, F, H): there its texts that print level are placed anew round its body so that none
+/// stands on another or on the symbol (owner, 2026-11-22). The body is the bounds of its graphics and its static texts'
+/// anchors in `variant`, and a step above or below the point of each pin's designation that prints there. Lying flat (no
+/// pin leaves up or down), its tags stand centred above the body and its other texts centred below it; standing up (a
+/// symbol drawn lying), all stand right-aligned left of the body from its top, the tags first. Each stands a quarter
+/// step clear of the body and a line from the one before it, in the order they stand down the unturned symbol; a line
+/// is a step and a half, and only the slots that `shown` takes take one. A pin's designation keeps its place at its pin.
+pub fn slot_places(def: &SymbolDef, variant: Orient2, shown: impl Fn(usize) -> bool) -> Vec<(Pt2, Align)> {
+    let mut places: Vec<(Pt2, Align)> = def
+        .text_slots
+        .iter()
+        .map(|s| (variant.apply(s.pos), slot_align(def, s, s.rot, variant)))
+        .collect();
+    let Some((body, flat)) = turned_body(def, variant) else {
+        return places;
+    };
+    let quarters = |n: i64| def.grid.nm_of_tick(n, 4).map_or(0, |d| d.0);
+    let (clear, step, pitch) = (quarters(1), quarters(4), quarters(6));
+    let (mut top, mut bottom) = (body.min().y.0, body.max().y.0);
+    for (i, (at, align)) in places.iter().enumerate() {
+        let s = &def.text_slots[i];
+        if !matches!(s.kind, SlotKind::CpDesignation(_)) || !shown(i) {
+            continue;
+        }
+        let (up, down) = match align_parts(align).map_or(0, |(_, v)| v) {
+            1 => (step, 0),
+            -1 => (0, step),
+            _ => (step / 2, step / 2),
+        };
+        top = top.min(at.y.0.saturating_sub(up));
+        bottom = bottom.max(at.y.0.saturating_add(down));
+    }
+    let tag = |i: usize| matches!(def.text_slots[i].kind, SlotKind::Tag);
+    let mut anew: Vec<usize> = (0..def.text_slots.len())
+        .filter(|&i| {
+            let s = &def.text_slots[i];
+            !matches!(s.kind, SlotKind::CpDesignation(_)) && upright_angle(s.rot) == Angle2::ZERO
+        })
+        .collect();
+    anew.sort_by_key(|&i| (!tag(i), def.text_slots[i].pos.y, def.text_slots[i].pos.x, i));
+    let left = body.min().x.0.saturating_sub(clear);
+    let centre = body.min().x.0.saturating_add(body.width().0 / 2);
+    let (mut above, mut below) = (0i64, 0i64);
+    for i in anew {
+        let up = flat && tag(i);
+        let line = if up { &mut above } else { &mut below };
+        let off = pitch.saturating_mul(*line);
+        let (at, align) = if !flat {
+            (
+                Pt2::new(Nm(left), Nm(body.min().y.0.saturating_add(off))),
+                Align::TopRight,
+            )
+        } else if up {
+            (
+                Pt2::new(Nm(centre), Nm(top.saturating_sub(clear).saturating_sub(off))),
+                Align::BottomCentre,
+            )
+        } else {
+            (
+                Pt2::new(Nm(centre), Nm(bottom.saturating_add(clear).saturating_add(off))),
+                Align::TopCentre,
+            )
+        };
+        places[i].1 = align;
+        if shown(i) {
+            places[i].0 = at;
+            *line += 1;
+        }
+    }
+    places
+}
+
+/// The body a symbol turned a quarter places its texts round ([`slot_places`]): the bounds of its graphics in
+/// `variant`, its own texts' anchors included, and whether it lies flat (none of its pins leaves up or down). `None`
+/// for a variant that is no quarter turn and for a symbol without connection points or graphics.
+fn turned_body(def: &SymbolDef, variant: Orient2) -> Option<(Rect, bool)> {
+    if variant.quarter_turns() % 2 == 0 || def.cps.is_empty() {
+        return None;
+    }
+    let body = def
+        .graphics
+        .iter()
+        .flat_map(lower_primitive)
+        .map(|item| place_item(item, variant))
+        .flat_map(|item| item_points(&item))
+        .chain(def.graphics.iter().filter_map(|prim| match prim {
+            Primitive::Text(text) => Some(variant.apply(text.pos)),
+            _ => None,
+        }))
+        .map(Rect::from_point)
+        .reduce(Rect::union)?;
+    let flat = !def
+        .cps
+        .iter()
+        .any(|cp| matches!(transform_dir(&cp.dir, variant), Dir4::Up | Dir4::Down));
+    Some((body, flat))
 }
 
 /// The horizontal and vertical parts of `align`, each −1 (left, top), 0 (centre, middle) or 1 (right, bottom), a

@@ -108,9 +108,9 @@ fn synthetic_symbol_in_all_variants() {
           cp 0 (7937500,0) Right
           cp 1 (-7937500,0) Left
           text static "K" (0,-5291667) 0 TopCentre
-          text slot Tag (2645833,5291667) 0 TopCentre
+          text slot Tag (1322916,-5953125) 0 BottomCentre
           anchor (0,0)
-          bounds (-7937500,-5291667) (7937500,5291667)
+          bounds (-7937500,-5953125) (7937500,2645833)
           path M(5291667,-2645833) L(-5291667,-2645833) L(-5291667,2645833) L(5291667,2645833) Z
           path M(7937500,0) L(5291667,0)
         C
@@ -126,9 +126,9 @@ fn synthetic_symbol_in_all_variants() {
           cp 0 (-7937500,0) Left
           cp 1 (7937500,0) Right
           text static "K" (0,5291667) 0 BottomCentre
-          text slot Tag (-2645833,-5291667) 0 BottomCentre
+          text slot Tag (-1322917,-3307291) 0 BottomCentre
           anchor (0,0)
-          bounds (-7937500,-5291667) (7937500,5291667)
+          bounds (-7937500,-3307291) (7937500,5291667)
           path M(-5291667,2645833) L(5291667,2645833) L(5291667,-2645833) L(-5291667,-2645833) Z
           path M(-7937500,0) L(-5291667,0)
         E
@@ -144,9 +144,9 @@ fn synthetic_symbol_in_all_variants() {
           cp 0 (7937500,0) Right
           cp 1 (-7937500,0) Left
           text static "K" (0,5291667) 0 BottomCentre
-          text slot Tag (2645833,-5291667) 0 BottomCentre
+          text slot Tag (1322916,-3307291) 0 BottomCentre
           anchor (0,0)
-          bounds (-7937500,-5291667) (7937500,5291667)
+          bounds (-7937500,-3307291) (7937500,5291667)
           path M(5291667,2645833) L(-5291667,2645833) L(-5291667,-2645833) L(5291667,-2645833) Z
           path M(7937500,0) L(5291667,0)
         G
@@ -162,9 +162,9 @@ fn synthetic_symbol_in_all_variants() {
           cp 0 (-7937500,0) Left
           cp 1 (7937500,0) Right
           text static "K" (0,-5291667) 0 TopCentre
-          text slot Tag (-2645833,5291667) 0 TopCentre
+          text slot Tag (-1322917,-5953125) 0 BottomCentre
           anchor (0,0)
-          bounds (-7937500,-5291667) (7937500,5291667)
+          bounds (-7937500,-5953125) (7937500,2645833)
           path M(-5291667,-2645833) L(5291667,-2645833) L(5291667,2645833) L(-5291667,2645833) Z
           path M(-7937500,0) L(-5291667,0)
     "#);

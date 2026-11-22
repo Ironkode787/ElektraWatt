@@ -612,8 +612,9 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
 
 /// The page point of the tag text `rep` prints with `def`, by the scene's rules (`ew_scene::page`'s
 /// labels): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
-/// slot's default; the override's position, else the slot's, placed in the representation's text frame
-/// (`ew_derive::text_frame`: on a half-turned black box, as on the box unturned). With it the em height (nm)
+/// slot's default; the override's position, else the slot's place (`ew_scene::symbol::slot_places`), in the
+/// representation's text frame (`ew_derive::text_frame`: on a half-turned black box, as on the box unturned). With it
+/// the em height (nm)
 /// of the slot's text style in the project's table `styles`.
 fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyleTable) -> Option<(Pt2, i64)> {
     let (i, slot) = def
@@ -631,7 +632,17 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyle
     });
     let (style, _) = ew_scene::symbol::slot_style_key(def, slot, styles);
     let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
-    let at = ew_derive::text_frame(rep, def).place(ov.and_then(|o| o.pos).unwrap_or(slot.pos))?;
+    let frame = ew_derive::text_frame(rep, def);
+    let at = match ov.and_then(|o| o.pos) {
+        Some(pos) => frame.place(pos)?,
+        None if ov.and_then(|o| o.angle).is_some() => frame.place(slot.pos)?,
+        // Where the symbol puts it: on a symbol turned a quarter, placed anew round its body.
+        None => frame.origin.checked_add(
+            ew_scene::symbol::slot_places(def, frame.orient, |n| n == i)
+                .swap_remove(i)
+                .0,
+        )?,
+    };
     visible.then_some((at, em))
 }
 

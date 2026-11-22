@@ -70,7 +70,6 @@ Faults met while `fixtures/sample/sample.uiscript` was written; each has its ste
 
 Faults met while the tests moved from the reference project to the sample (M3.5, step 9); each test took another way round its fault, so a fix adds the test that goes straight.
 
-- FT-1929 `ew-scene, ew-ui`: In the symbol editor the turned variants of a symbol print their texts horizontal and on top of each other: Symbol editor on a copy of the starter coil (`symbol.copy_edit` of `ew.iec.coil@qet10`), the strip "Turned and mirrored", variants B, D, F and H. In 0.2.0 those texts stood turned a quarter beside the symbol and could be read. Whether a turned coil on a page draws the same is not looked at. The README's symbol-editor picture is still 0.2.0's and is shot again with the fix, with a library folder that is no local path. Found in M3.5 step 13: the change is fabf4c4da (2026-11-15, the owner's finding that a turned part's tag and designations must read level): a slot text keeps its angle in every variant while its anchor turns, so the texts that stand under each other beside an upright coil (tag, Text, Technical data, Cross-reference) stand side by side on one line in B, D, F and H and run into each other ("Technical dataText -U1"); the pin designations A1 and A2 read well. Turning them a quarter again, as 0.2.0 did, undoes that rule on the pages too; keeping them level needs a rule that stacks them again beside a turned symbol. Which one is the owner's to choose, with the two pictures.
 
 #### The page's drawing
 

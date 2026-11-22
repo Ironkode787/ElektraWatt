@@ -34,16 +34,17 @@ fn symbol_with_slot(rot: i32, align: &str) -> SymbolDef {
 #[test]
 fn alignment_and_angle_per_variant_for_a_top_left_slot() {
     // Variant, rendered angle, alignment of a TopLeft text (doc 07 §4.1: the text stays upright and lies on the side
-    // of its anchor that the variant maps its side to; a TopLeft text lies right of and below its anchor).
+    // of its anchor that the variant maps its side to; a TopLeft text lies right of and below its anchor). Turned a
+    // quarter, the symbol lies flat and its tag is placed anew, centred above it.
     let table = [
         (Orient2::R0, 0, Align::TopLeft),
-        (Orient2::R90, 0, Align::TopRight),
+        (Orient2::R90, 0, Align::BottomCentre),
         (Orient2::R180, 0, Align::BottomRight),
-        (Orient2::R270, 0, Align::BottomLeft),
+        (Orient2::R270, 0, Align::BottomCentre),
         (Orient2::M0, 0, Align::TopRight),
-        (Orient2::M90, 0, Align::BottomRight),
+        (Orient2::M90, 0, Align::BottomCentre),
         (Orient2::M180, 0, Align::BottomLeft),
-        (Orient2::M270, 0, Align::TopLeft),
+        (Orient2::M270, 0, Align::BottomCentre),
     ];
     let def = symbol_with_slot(0, "top_left");
     for (variant, angle, align) in table {
@@ -58,8 +59,8 @@ fn alignment_and_angle_per_variant_for_a_top_left_slot() {
 
 #[test]
 fn alignments_keep_their_side_of_the_anchor() {
-    // E (plain mirror): left <-> right, vertical stays; under a quarter turn a text beside its anchor goes above or
-    // below it, centred.
+    // E (plain mirror): left <-> right, vertical stays; under a half turn both. Under a quarter turn the tag is placed
+    // anew, centred above its body, whatever its alignment.
     let cases = [
         ("middle_left", Orient2::M0, Align::MiddleRight),
         ("middle_right", Orient2::M0, Align::MiddleLeft),
@@ -69,7 +70,7 @@ fn alignments_keep_their_side_of_the_anchor() {
         ("middle_left", Orient2::R180, Align::MiddleRight),
         ("top_centre", Orient2::R180, Align::BottomCentre),
         ("middle_left", Orient2::M90, Align::BottomCentre),
-        ("top_left", Orient2::M90, Align::BottomRight),
+        ("top_left", Orient2::M90, Align::BottomCentre),
     ];
     for (align, variant, want) in cases {
         let g = lower(&symbol_with_slot(0, align), variant);
@@ -136,8 +137,8 @@ fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
         assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO), "{variant:?}");
     }
     let r90 = lower(&def, Orient2::R90);
-    // The tag, at the upper left of the body, stands above it.
-    assert_eq!(align_of(&r90, &Tag), Align::BottomLeft);
+    // The tag, at the upper left of the body, stands centred above it.
+    assert_eq!(align_of(&r90, &Tag), Align::BottomCentre);
     // The points' lines leave right: the designations, right of their lines unturned, run right along them below.
     assert_eq!(align_of(&r90, &CpDesignation(0)), Align::TopLeft);
     assert_eq!(align_of(&r90, &CpDesignation(2)), Align::TopLeft);
@@ -153,7 +154,7 @@ fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
 }
 
 /// An air supply turned by 270° shows its tag and its port's designation horizontally, the designation above the
-/// port's line, which now leaves right.
+/// port's line, which now leaves right, and the tag centred above the supply lying flat.
 #[test]
 fn an_air_supply_turned_by_270_degrees_reads_horizontally() {
     use ew_schema::SlotKind::{CpDesignation, Tag};
@@ -161,5 +162,5 @@ fn an_air_supply_turned_by_270_degrees_reads_horizontally() {
     let g = lower(&def, Orient2::R270);
     assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO));
     assert_eq!(align_of(&g, &CpDesignation(0)), Align::BottomLeft);
-    assert_eq!(align_of(&g, &Tag), Align::TopCentre);
+    assert_eq!(align_of(&g, &Tag), Align::BottomCentre);
 }
