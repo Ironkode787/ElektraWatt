@@ -398,6 +398,8 @@ change here.
 - behaviour-change: Draw on a page from the station view puts a station's CPU, and any box that is no card, inside the
   drawing area where under what the page draws there is no room: the first clear place from the area's head; it stood
   below the frame, off the sheet (doc 10 §2.3, FT-1907)
+- behaviour-change: the Potential panel of a supply mark names its Conductor list and Voltage field for a screen
+  reader by column and mark ("Conductor, 24V"); on some marks they had no name (FT-1910)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

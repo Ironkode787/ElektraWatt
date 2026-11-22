@@ -2307,7 +2307,13 @@ impl CanvasHost {
                                     .iter()
                                     .find(|(w, _)| *w == row.kind)
                                     .map_or(row.kind.as_str(), |(_, text)| text.as_str());
-                                crate::components::choice(
+                                // Each field named by its column and its row for a screen reader ("Conductor, 24V",
+                                // FT-1910).
+                                let name = |k| {
+                                    strings::format(key!("form-table-cell"), &[strings::text(k), &row.name])
+                                };
+                                let conductor = name(key!("supply-potential-kind"));
+                                let kind_choice = crate::components::choice(
                                     ui,
                                     egui::ComboBox::from_id_salt(("supply-kind", i))
                                         .selected_text(shown)
@@ -2323,11 +2329,23 @@ impl CanvasHost {
                                         }
                                     },
                                 );
+                                kind_choice.response.widget_info(|| {
+                                    let mut info = egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &conductor);
+                                    info.current_text_value = Some(shown.to_owned());
+                                    info
+                                });
                                 let mut voltage = row.voltage.clone();
                                 let edit = egui::TextEdit::singleline(&mut voltage)
                                     .id_salt(("supply-voltage", i))
                                     .desired_width(5.0 * t.size_control);
-                                if ui.add(edit).changed() {
+                                let edit = ui.add(edit);
+                                let named = name(key!("supply-potential-voltage"));
+                                edit.widget_info(|| {
+                                    let mut info = egui::WidgetInfo::labeled(egui::Role::TextInput, true, &named);
+                                    info.current_text_value = Some(voltage.clone());
+                                    info
+                                });
+                                if edit.changed() {
                                     events.push(Event::Action(
                                         "ip.supply_potential",
                                         json!({"row": i, "voltage": voltage}),
