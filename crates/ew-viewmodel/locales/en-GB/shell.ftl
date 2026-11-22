@@ -1395,6 +1395,7 @@ refusal-input-scale = `{ $p0 }` is not a scale; type 1:n with n a whole number f
 refusal-input-decimal = `{ $p0 }` is not a decimal number
 refusal-input-awg = `{ $p0 }` is not an AWG size
 refusal-input-mm = `{ $p0 }` is not a length: type millimetres (at most 6 decimals), or the length with its unit, such as 2 m or 35 cm
+refusal-input-rect = `{ $p0 }` is not a rectangle: type its place and its size in millimetres, such as 20, 15 mm · 60 × 40 mm
 refusal-input-colour-alias = `{ $p0 }` is not a colour code; did you mean { $p1 } { $p2 }? Accepted: { $p3 }
 refusal-input-colour = `{ $p0 }` is not a colour code; accepted: { $p1 }
 refusal-input-colour-none = give one or two colour codes

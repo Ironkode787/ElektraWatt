@@ -1336,6 +1336,7 @@ refusal-input-scale = `{ $p0 }` is geen schaal; typ 1:n met n een geheel getal v
 refusal-input-decimal = `{ $p0 }` is geen decimaal getal
 refusal-input-awg = `{ $p0 }` is geen AWG-maat
 refusal-input-mm = `{ $p0 }` is geen lengte: typ millimeters (ten hoogste 6 decimalen), of de lengte met haar eenheid, zoals 2 m of 35 cm
+refusal-input-rect = `{ $p0 }` is geen rechthoek: typ de plaats en de grootte in millimeters, zoals 20, 15 mm · 60 × 40 mm
 refusal-input-colour-alias = `{ $p0 }` is geen kleurcode; bedoelt u { $p1 } { $p2 }? Toegestaan: { $p3 }
 refusal-input-colour = `{ $p0 }` is geen kleurcode; toegestaan: { $p1 }
 refusal-input-colour-none = geef één of twee kleurcodes

@@ -392,6 +392,9 @@ change here.
 - behaviour-change: the Place tool's command bar names a terminal for a strip without a tag yet in words ("terminal 1
   on the new strip (no tag yet)") until the preview predicts its tag, not as "-?X?:1"; the project's Kind row reads
   Schematic for a project whose kind is not written, not a dash (doc 16a §5.5, FT-1813)
+- behaviour-change: a legend's Rectangle row in Properties reads its place and size in millimetres
+  (`20.000, 15.000 mm · 60.000 × 40.000 mm`) and is typed back that way; it showed the stored nanometres as JSON
+  (doc 16 §6, FT-1936)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

@@ -1231,6 +1231,7 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
         FieldType::Json => length_source_text(value)
             .or_else(|| scale_text(value))
+            .or_else(|| rect_text(value))
             // A connection that is a cable's core by its cable and core (`-1W1 BN`, FT-1685), as the strip editor
             // names it.
             .or_else(|| cx.record_label(value.get("core")?.as_str()?))
@@ -1289,6 +1290,47 @@ fn length_source_text(value: &Value) -> Option<String> {
         }
         _ => None,
     }
+}
+
+/// A rectangle (`[[x1, y1], [x2, y2]]` in nanometres, a legend's area) as its place and size in millimetres, as its
+/// editor reads it back: `20.000, 15.000 mm · 60.000 × 40.000 mm` (FT-1936); `None` for any other JSON value.
+fn rect_text(value: &Value) -> Option<String> {
+    let corner = |i: usize| -> Option<(i64, i64)> {
+        let p = value.get(i)?.as_array().filter(|p| p.len() == 2)?;
+        Some((p[0].as_i64()?, p[1].as_i64()?))
+    };
+    let ((x1, y1), (x2, y2)) = (corner(0)?, corner(1)?);
+    if value.as_array()?.len() != 2 || x2 < x1 || y2 < y1 {
+        return None;
+    }
+    Some(format!(
+        "{}, {} mm · {} × {} mm",
+        nm_text(x1),
+        nm_text(y1),
+        nm_text(x2.checked_sub(x1)?),
+        nm_text(y2.checked_sub(y1)?)
+    ))
+}
+
+/// A rectangle typed in the words [`rect_text`] shows: its place, a comma and a space, its other coordinate, then `·`
+/// and its width `×` (or `x`) its height, each in millimetres or with its unit; `None` for any other text (a JSON
+/// value, parsed as before).
+fn rect_input(text: &str) -> Option<Result<Value, InputError>> {
+    let t = text.trim();
+    let (place, size) = t.split_once('·')?;
+    let place = place.trim();
+    let place = place.strip_suffix("mm").unwrap_or(place);
+    let (x, y) = place.split_once(", ")?;
+    let (w, h) = size.split_once(['×', 'x'])?;
+    let bad = || invalid(api_text!("refusal-input-rect", t));
+    let nm = |s: &str| parse_nm(s).ok().and_then(|v| v.as_i64());
+    Some(match (nm(x), nm(y), nm(w), nm(h)) {
+        (Some(x), Some(y), Some(w), Some(h)) if w > 0 && h > 0 => match (x.checked_add(w), y.checked_add(h)) {
+            (Some(x2), Some(y2)) => Ok(serde_json::json!([[x, y], [x2, y2]])),
+            _ => Err(bad()),
+        },
+        _ => Err(bad()),
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1617,6 +1659,12 @@ pub(crate) fn parse_input(
         && let Some(scale) = scale_input(text)
     {
         return scale.and_then(plain);
+    }
+    // A rectangle is typed as it shows ("20, 15 mm · 60 × 40 mm", FT-1936).
+    if matches!(ty, FieldType::Json)
+        && let Some(rect) = rect_input(text)
+    {
+        return rect.and_then(plain);
     }
     match ty {
         FieldType::Optional(inner) => {
