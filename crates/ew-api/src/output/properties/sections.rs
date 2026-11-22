@@ -521,6 +521,13 @@ impl Session {
                 },
                 Vec::new(),
             ));
+            // Its title is what the page prints ("Legend of layout 920"), not the block's format with its
+            // placeholders (FT-2095).
+            if let Some(row) = built.iter_mut().find(|b| b.row.key == "report_block/title")
+                && let RowValue::One { text, .. } = &mut row.row.value
+            {
+                block.clone_into(text);
+            }
         }
         // A block's printed columns in words, the report's own column names ("Pos, DT, Qty, …"), and each row of its
         // own as its column names with their texts ("Terminal 3; Side 1 (clamp a) spare", doc 09 §3.8).

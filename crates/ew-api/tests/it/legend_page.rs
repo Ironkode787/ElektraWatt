@@ -361,3 +361,63 @@ fn a_second_legend_list_of_one_layout_page_is_refused() {
     let after: BTreeSet<Id<ReportBlock>> = s.query().report_blocks().ids().collect();
     assert_eq!(after, before);
 }
+
+/// FT-2095: a generated legend page's Properties show its title as the page prints it, its layout's folio in place
+/// of `{layout}`.
+#[test]
+fn a_legend_pages_properties_show_the_title_it_prints() {
+    let (s, _, _, block) = cabinet();
+    let page = ew_api::output::page_uuid(PageRef::Generated { block, index: 0 });
+    let sheet = s.property_sheet(&[page]);
+    let title = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == "report_block/title")
+        .expect("the title row");
+    match &title.value {
+        ew_api::output::RowValue::One { text, .. } => assert_eq!(text, "Legend of layout 920"),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// FT-2095: the legend's whole-project rows (`ew export report --kind enclosure_legend`) list every plate a layout page
+/// shows, in page order, each after a heading that names its layout page and with the rows its legend page lists.
+#[test]
+fn the_legend_by_kind_lists_every_layout_as_its_legend_page_does() {
+    let (s, page, _, block) = cabinet();
+    let q = s.query();
+    let (sample_block, sample_layout) = q
+        .report_blocks()
+        .iter()
+        .find_map(|(id, b)| b.layout_page.filter(|p| p.as_uuid() != page).map(|p| (id, p)))
+        .expect("the sample's legend list");
+    let set = ew_reports::project_rows(&q, "enclosure_legend", None).expect("the kind's rows");
+    let mut runs: Vec<(Vec<Uuid>, Vec<String>)> = Vec::new();
+    for row in &set.rows {
+        if row.kind == ew_reports::RowKind::Heading {
+            runs.push((row.sources.iter().map(|a| a.as_uuid()).collect(), Vec::new()));
+        } else if let Some((_, ids)) = runs.last_mut() {
+            ids.push(row.id.to_string());
+        } else {
+            panic!("a row before the first heading: {}", row.id);
+        }
+    }
+    let order = q.get::<PageOrder>(());
+    let at = |p: Uuid| order.position(PageRef::Drawn(Id::from_uuid(p)));
+    drop(q);
+    let mut want = vec![
+        (vec![sample_layout.as_uuid()], row_ids(&s, sample_block)),
+        (vec![page], row_ids(&s, block)),
+    ];
+    want.sort_by_key(|(layout, _)| at(layout[0]));
+    assert_eq!(runs, want);
+    let csv = ew_api::output::row_export(
+        &s.query(),
+        &ew_api::output::RowExport::Kind("enclosure_legend".to_owned()),
+        None,
+    )
+    .expect("the export by kind")
+    .csv;
+    assert!(csv.lines().any(|l| l.starts_with("heading,Layout 920,")), "{csv}");
+}

@@ -1,1 +1,32 @@
 row,Pos,DT,Manufacturer,Part number,Description,Qty,Unit
+heading,Layout 902,,,,,,
+data,1,-UC1,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm,1,pc
+data,2,-UC1-U1,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm,1,pc
+data,3,,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,0.47 m,m
+data,4,,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,0.47 m,m
+data,5,,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm,0.47 m,m
+data,6,-101F1,Generic,EW-GEN-MCB-4,"Miniature circuit breaker, 2 poles",1,pc
+data,7,-101G1,Generic,EW-GEN-PSU-1,"Power supply unit, AC to DC",1,pc
+data,8,-101Q1,Generic,EW-GEN-SW-3,"Main switch, 3 poles",1,pc
+data,9,-102E1,Generic,EW-GEN-LMP-1,Pilot lamp,1,pc
+data,10,-102F1,Generic,EW-GEN-MCB-1,"Miniature circuit breaker, 1 pole",1,pc
+data,11,-102Q1,Generic,EW-GEN-CON-1,Contactor with three main contacts and one auxiliary normally open contact,1,pc
+data,12,-102S1,Generic,EW-GEN-PB-1,Pushbutton with one normally open contact,1,pc
+data,13,-102S2,Generic,EW-GEN-PB-2,Pushbutton with one normally closed contact,1,pc
+data,14,-103F1,Generic,EW-GEN-MCB-3,"Miniature circuit breaker, 3 poles",1,pc
+data,15,-104A1,Generic,EW-GEN-CPU-2,"PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O",1,pc
+data,16,-104A1-A1,Generic,EW-GEN-DI-1,"PLC digital input card, 8 channels",1,pc
+data,17,-104A1-A2,Generic,EW-GEN-DO-1,"PLC digital output card, 8 channels",1,pc
+data,18,-104E1,Generic,EW-GEN-LMP-3,"Signal lamp, green",1,pc
+data,19,-104E2,Generic,EW-GEN-LMP-2,"Signal lamp, red",1,pc
+data,20,-201K1,Generic,EW-GEN-VTM-1,"Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",1,pc
+data,21,-201K1-Q1,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",1,pc
+data,22,-201K1-Q2,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",1,pc
+data,23,-201K1-Q3,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",1,pc
+data,24,-201K1-Q4,Generic,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",1,pc
+data,25,-201X1,Generic,EW-GEN-AIR-1,Air supply: service unit G1/4 with shut-off valve and filter regulator,1,pc
+data,26,-201X2,Generic,EW-GEN-SIL-1,Silencer G1/8,1,pc
+data,27,-201X3,Generic,EW-GEN-SIL-1,Silencer G1/8,1,pc
+data,28,-X1011,,,,1,pc
+data,29,-X1021,,,,1,pc
+data,30,-X1031,,,,1,pc

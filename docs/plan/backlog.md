@@ -57,7 +57,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The layout page
 
-- FT-2095 `ew-viewmodel, ew-reports, ew`: Two faults of the legend as a list page (doc 12 §5.4), seen by lanes and not examined. A generated legend page's Properties shows its title as the format, "Legend of layout {layout}", with the braces, where the page and the page list print the layout's folio. `ew export report --kind enclosure_legend` writes the header row only, for a project whose legend page prints its rows.
 
 #### What a new item takes
 

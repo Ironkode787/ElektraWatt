@@ -686,8 +686,10 @@ folio, 902.1, or the layout page's number, 902, its `first_folio`) writes it as 
 layout page, 902.1, 902.2 … after 902 (09 §3.2 says where those are taken). Its Properties show the layout page it
 follows (Layout page) and not its first folio and section, which it keeps for older builds and this build does not
 read (FT-2032). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
-`Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it). Deleting the layout
-page deletes its legend list.
+`Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it); a legend page's
+Properties show the title as the page prints it, and the title row's explanation names `{layout}` (FT-2095). `ew export
+report --kind enclosure_legend` writes the legend of every plate a layout page shows, in page order, each after a
+heading row "Layout 902" (09 §2.2). Deleting the layout page deletes its legend list.
 - **Enclosure…** makes the legend page with the view: the plate drawn on the layout page and its legend page are one
   undo step (a location, a layout page and an enclosure the act makes stay steps of their own before it). A page's
   Surface row that gives a page its first view makes the legend page the same way.

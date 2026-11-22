@@ -156,7 +156,6 @@ fn the_rows_of_the_plate_cell_by_cell() {
 fn a_block_without_a_viewed_surface_has_no_rows() {
     let m = model();
     let q = Q::new(&m);
-    assert!(rows(&q, None).rows.is_empty(), "not embedded");
     assert!(
         rows(&q, Some(SCHEMATIC)).rows.is_empty(),
         "a page without a surface view"
@@ -180,4 +179,22 @@ fn a_length_prints_with_its_unit_and_stays_a_number_in_the_table() {
         table.rows[2].cells[qty],
         ew_reports::table::TableCell::Number("0.5".to_owned())
     );
+}
+
+/// A block that names no page (the kind's whole-project rows, `ew export report --kind enclosure_legend`, FT-2095)
+/// lists the legend of the plate the panel page shows, after a heading row that names that page.
+#[test]
+fn a_block_that_names_no_page_lists_every_viewed_plate_after_its_heading() {
+    let m = model();
+    let q = Q::new(&m);
+    let all = rows(&q, None);
+    let panel = rows(&q, Some(PANEL));
+    assert!(!panel.rows.is_empty());
+    let (heading, rest) = all.rows.split_first().expect("a heading row");
+    assert_eq!(heading.kind, ew_reports::RowKind::Heading);
+    assert_eq!(
+        heading.sources,
+        vec![ew_derive::ew_schema::AnyId::from_uuid(Uuid::from_u128(PANEL))]
+    );
+    assert_eq!(rest, panel.rows.as_slice());
 }

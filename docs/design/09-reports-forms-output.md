@@ -144,7 +144,9 @@ copy), one row per carrier (rails, then ducts, then carrier kinds the build does
 to right by its first point; the DT cell empty; the length in metres as the quantity, "Missing" without one), then
 the placements by DT in natural order; positions 1 … n, derived; a row that is not a carrier has quantity 1. The
 block takes its surface from the page it is embedded on, or, as a list of its own (0.3.5), from the layout page it
-names, so a block on no page, or on a page without a surface view, lists no rows. Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
+names, so a block on a page without a surface view lists no rows; a block that names no page (the kind's whole-project
+rows, `ew export report --kind enclosure_legend`) lists every plate a layout page shows, in page order, each after a
+heading row that names its first layout page ("Layout 902"; FT-2095). Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
 902 and its export are WP-S4.01 part 4b's. In the BOM, a layout object's line (the enclosure, the plate, the carrier
 part lines) prints the panel pages that view its surface in its Folios cell only.
 

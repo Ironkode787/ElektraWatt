@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The property sheet of a generated page of the sample is titled by the page's folio and
-//! derived title ("901 Partlist 1"), not by its report block's title format; the block's own Title row keeps the
-//! format, which is what the block stores.
+//! derived title ("901 Partlist 1"), not by its report block's title format, and its Title row shows the title the
+//! page prints (FT-2095).
 
 use crate::common;
 
@@ -47,9 +47,8 @@ fn a_generated_page_is_titled_by_its_folio_and_derived_title() {
     let s = common::sample();
     let first = sheet_of(&s, "901");
     assert_eq!(first.header.title, "901 Partlist 1");
-    // The standard layout's title, in English and Dutch (doc 09 §3.8): its English and the other language counted.
-    assert_eq!(block_title(&first), "Partlist {n} [+1]");
+    assert_eq!(block_title(&first), "Partlist 1");
     let second = sheet_of(&s, "901.1");
     assert_eq!(second.header.title, "901.1 Partlist 2");
-    assert_eq!(block_title(&second), "Partlist {n} [+1]");
+    assert_eq!(block_title(&second), "Partlist 2");
 }
