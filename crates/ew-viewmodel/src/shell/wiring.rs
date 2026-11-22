@@ -804,6 +804,10 @@ impl ShellModel {
     /// changes until Apply.
     pub(crate) fn act_layout_route(&mut self) -> Outcome {
         let ids = self.route_selection_ids();
+        // A Route on a selection says so, and how to route the page (a persona run read "Routed 1 wire" and had to
+        // guess that the selection was the scope).
+        let selected = ids.len();
+        let hint = (selected > 0).then(|| strings::text(key!("route-selection-hint")).to_owned());
         let scope = if ids.is_empty() {
             ew_api::routing::RouteScope::Page
         } else {
@@ -829,11 +833,18 @@ impl ShellModel {
                     .route_plan(&folio, &ew_api::routing::RouteScope::Selection(plan.kept.clone()))
                     .is_some_and(|p| p.params.is_some());
             let lead = match (gain, kept) {
+                (false, _) if selected > 0 => {
+                    strings::format_count(crate::count_key!("toast-route-nothing-selected"), selected)
+                }
                 (false, _) => strings::text(key!("toast-route-nothing")).to_owned(),
                 (true, 1) => strings::text(key!("toast-route-kept-one")).to_owned(),
                 (true, n) => strings::format(key!("toast-route-kept"), &[&n.to_string()]),
             };
-            let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
+            let text = std::iter::once(lead)
+                .chain(rows)
+                .chain(hint)
+                .collect::<Vec<_>>()
+                .join(" ");
             let page = PageRow::by_folio(self.page_rows(), &folio).map(|r| r.id);
             match page.filter(|_| gain) {
                 Some(page) => self.notify_route_his(text, page),
@@ -868,10 +879,12 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        let lead = if changed.len() == 1 {
-            strings::format(key!("toast-route-done-one"), &[&names])
-        } else {
-            strings::format(key!("toast-route-done"), &[&changed.len().to_string(), &names])
+        let n = changed.len().to_string();
+        let lead = match (changed.len(), selected > 0) {
+            (1, false) => strings::format(key!("toast-route-done-one"), &[&names]),
+            (_, false) => strings::format(key!("toast-route-done"), &[&n, &names]),
+            (1, true) => strings::format(key!("toast-route-done-selected-one"), &[&names]),
+            (_, true) => strings::format(key!("toast-route-done-selected"), &[&n, &names]),
         };
         let kept = match kept {
             0 => None,
@@ -881,6 +894,7 @@ impl ShellModel {
         let text = std::iter::once(lead)
             .chain(rows)
             .chain(kept)
+            .chain(hint)
             .collect::<Vec<_>>()
             .join(" ");
         self.notify(text, true);

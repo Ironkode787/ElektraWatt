@@ -1364,6 +1364,10 @@ button to say which.
 4. *A route the person shaped would change* (it is broken, §3.2): a preview card as in §7.3 with those wires as
    ticked rows; nothing changes until Apply.
 
+On a selection the toasts of 2 and 3 say so and how to route the page: "Routed 1 selected wire: 1.8. Select nothing to
+route the whole page.", "Nothing to route among the 14 selected items: no wire would run better. Select nothing to
+route the whole page." (a persona run read "Routed 1 wire" and had to guess that the selection was the scope).
+
 ### 7.3 Arrange and route: the preview
 
 Always a preview (ADR-0008's fork). The canvas shows the page as it would become: the parts that move tinted,
