@@ -2254,6 +2254,39 @@ impl ShellModel {
         Some((form, copies))
     }
 
+    /// The first pages of the lists of report kind `kind` that print on pages of their own, each its folio and its
+    /// page, in page order.
+    pub(super) fn list_pages_of(&self, kind: &str) -> Vec<(String, ew_api::output::Uuid)> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let rows = self.page_rows();
+        let mut out: Vec<(usize, String, ew_api::output::Uuid)> = q
+            .report_blocks()
+            .iter()
+            .filter(|(_, b)| b.embedded.is_none() && ew_api::output::block_kind(b) == kind)
+            .filter_map(|(id, _)| {
+                let first = ew_api::output::report_folios(&q, &id.to_string()).ok()?.into_iter().next()?;
+                let at = rows.iter().position(|r| r.folio == first)?;
+                Some((at, first, rows[at].id))
+            })
+            .collect();
+        out.sort();
+        out.into_iter().map(|(_, folio, page)| (folio, page)).collect()
+    }
+
+    /// The Report form's line under its Report field while a list of the kind chosen is already a page of the set:
+    /// where, and that Create adds another; `None` otherwise.
+    pub(super) fn report_had_note(&self, form: &FormDialog) -> Option<String> {
+        let kind = form.fields.iter().find(|f| f.name == "kind")?.value.clone();
+        let (folio, _) = self.list_pages_of(&kind).into_iter().next()?;
+        Some(strings::format(
+            key!("form-report-had"),
+            &[&report_kind_words(&kind), &folio],
+        ))
+    }
+
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
     /// of the report kind `kind` (its key, `tube_list`, or its name, `Tube list`) from folio `folio` on, titled `title` (else
     /// the report's name in every shipped language), on the set's own frame (`Session::new_list_form`, doc 09 §3.8), else
@@ -2341,7 +2374,20 @@ impl ShellModel {
         if let Some(id) = section_of(self, number) {
             params["section"] = Value::String(id);
         }
+        let had = self.list_pages_of(&kind);
         let out = self.host_create("report_block.create", params);
+        // A list of that kind already a page of the set (a persona run made a second cable overview beside the
+        // generated one): the toast says where, with Go to page beside Undo.
+        if out == Outcome::Done
+            && let Some((folio_had, page)) = had.first()
+        {
+            let text = strings::format(
+                key!("toast-report-block-had"),
+                &[&report_kind_words(&kind), &folio, folio_had],
+            );
+            self.notify_undo_or_go_to(text, *page);
+            return self.form_done(REPORT_NEW.action, out);
+        }
         if out == Outcome::Done {
             // A block with nothing to list makes no page: the toast says so and what gives it rows.
             let empty = self.project_session().is_some_and(|s| {

@@ -6450,6 +6450,8 @@ error-report-kind = "{ $p0 }" is not a report; use one of: { $p1 }.
 error-first-folio = The first folio is a number: "{ $p0 }" is not.
 toast-report-block-new = Added the report block { $p0 } from folio { $p1 }.
 toast-report-block-empty = Added the report block { $p0 } from folio { $p1 }; it has nothing to list yet, so it makes no page. { $p2 }.
+toast-report-block-had = Added the report block { $p0 } from folio { $p1 }. The set already had one on page { $p2 }: go to it, or undo this one.
+form-report-had = This set already has { $p0 } on page { $p1 }. Create adds another; Cancel and Go to page { $p1 } opens it.
 toast-parts-unlisted = { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one.
 toast-parts-unlisted-one = 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one.
 

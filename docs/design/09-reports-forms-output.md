@@ -818,6 +818,11 @@ its lists on its own frame and title block. The QElectroTech import does not wri
 page the frame of its diagram, and the diagrams of one project may have different frames; the rule above finds the
 set's frame from its pages, however the set was made.
 
+**A list the set already has.** While a list of the kind chosen in Report block… already prints on pages of its own,
+the form says so under its Report field ("This set already has Cable overview and diagrams on page 906. Create adds
+another; …"), and after Create the toast names that page with Go to page beside Undo (a persona run made a second
+cable overview beside the one the company standard generates, and nothing said so). Another list of a kind is allowed.
+
 **The Form row.** A page's and a report block's Form row in Properties is a choice of the project's forms (every held
 form but a title block and a label), by name: a starter form by its kind and its key in words ("Frame QET A4 landscape
 nogrid"), a form of the project's own, which carries no name, by its kind, its paper and the pages that print on it

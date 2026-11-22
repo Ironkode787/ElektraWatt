@@ -336,6 +336,9 @@ impl ShellModel {
         if form.action == "page.new" && field == "folio" {
             return self.new_page_place(form);
         }
+        if form.action == "report_block.new" && field == "kind" {
+            return self.report_had_note(form);
+        }
         if form.action != TITLE_BLOCK {
             return None;
         }

@@ -261,6 +261,36 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` with Undo (the step just made) and Go to page `page`.
+    pub(super) fn notify_undo_or_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
+        let Some(p) = &self.project else {
+            return;
+        };
+        let h = p.session.history();
+        let cursor = h.cursor();
+        let undo = cursor
+            .checked_sub(1)
+            .and_then(|i| h.entries().get(i))
+            .map(|e| {
+                (
+                    NoteAction::Undo,
+                    Validity::Undo {
+                        epoch: p.epoch,
+                        cursor,
+                        rev: e.rev().0,
+                    },
+                )
+            });
+        let go_to = (
+            NoteAction::GoTo,
+            Validity::Session {
+                epoch: p.epoch,
+                select: vec![page],
+            },
+        );
+        self.notes.push_two(text, "edit", undo, Some(go_to));
+    }
+
     /// Shows `text` as a toast of key `edit` whose action goes to page `page` (its row's ID), the page an Undo or a
     /// Redo changed.
     pub(super) fn notify_go_to(&mut self, text: String, page: ew_api::output::Uuid) {

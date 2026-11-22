@@ -267,9 +267,11 @@ fn a_report_block_from_its_form_adds_its_pages() {
         "{:?}",
         s.page_labels()
     );
+    // The sample has a terminal diagram on 903 already, and the toast says so.
     assert_eq!(
         state(&s)["toast"]["text"],
-        "Added the report block Terminal diagram from folio 950."
+        "Added the report block Terminal diagram from folio 950. The set already had one on page 903: go to it, or \
+         undo this one."
     );
     done(&mut s, "edit.undo", json!({}));
     assert!(!s.page_labels().iter().any(|l| l.starts_with("950")));

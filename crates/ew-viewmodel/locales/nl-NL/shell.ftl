@@ -6182,6 +6182,8 @@ error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
 error-first-folio = Het eerste folio moet een nummer zijn; "{ $p0 }" is dat niet.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }.
 toast-report-block-empty = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }; het heeft nog niets te tonen en maakt dus geen pagina. { $p2 }.
+toast-report-block-had = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }. De set had er al een op pagina { $p2 }: ga ernaartoe, of maak dit ongedaan.
+form-report-had = Deze set heeft al { $p0 } op pagina { $p1 }. Maken voegt er nog een toe; Annuleren en Naar pagina { $p1 } opent het.
 toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een.
 toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een.
 
