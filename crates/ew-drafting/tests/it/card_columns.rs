@@ -26,7 +26,12 @@ fn a_card_whose_used_column_falls_among_another_card_s_steps_aside() {
     for k in 0..3 {
         let sensor = format!("B{k}");
         b.device(&sensor, p(60 + 9 * k, 36));
-        b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(&format!("X{k}"), "1"), &[]);
+        b.wire(
+            &format!("s{k}"),
+            b.pin(&sensor, "2"),
+            b.pin(&format!("X{k}"), "1"),
+            &[],
+        );
         b.wire(
             &format!("c{k}"),
             b.pin(&format!("X{k}"), "2"),
@@ -39,13 +44,20 @@ fn a_card_whose_used_column_falls_among_another_card_s_steps_aside() {
     b.wire("e", b.pin("X4", "2"), b.pin("E", "1"), &[]);
     let (_, done) = run(&b.page, &[]);
     assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
-    assert_eq!(at(&done, "A1"), p(10, 50), "the card with more channels in use stays");
+    assert_eq!(
+        at(&done, "A1"),
+        p(10, 50),
+        "the card with more channels in use stays"
+    );
     for k in 0..3 {
         assert_eq!(at(&done, &format!("X{k}")).x, s(15 + 8 * k), "input {k}'s column");
     }
     let output = at(&done, "A2").x + s(13);
     assert_eq!((at(&done, "X4").x, at(&done, "E").x), (output, output));
-    assert!(output >= at(&done, "X2").x + s(2), "the output's column right of the inputs'");
+    assert!(
+        output >= at(&done, "X2").x + s(2),
+        "the output's column right of the inputs'"
+    );
     for w in ["c0", "c1", "c2", "q", "e"] {
         assert_eq!(corners(&done, w), 0, "{w}");
     }

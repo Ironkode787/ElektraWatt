@@ -16,17 +16,22 @@ fn a_box_s_caption_stands_clear_of_the_way_out_of_a_wired_top_pin() {
         "U1",
         p(1, 24),
         (p(0, 0), p(12, 6)),
-        &[("0", p(1, 0), ew_drafting::Side::Up), ("1", p(6, 0), ew_drafting::Side::Up)],
+        &[
+            ("0", p(1, 0), ew_drafting::Side::Up),
+            ("1", p(6, 0), ew_drafting::Side::Up),
+        ],
     );
-    let tag = b.label(Owner::Part(part), 0, LabelKind::BoxTag, TAG, Places::At(Vec::new()));
+    let tag = b.label(
+        Owner::Part(part),
+        0,
+        LabelKind::BoxTag,
+        TAG,
+        Places::At(Vec::new()),
+    );
     b.device("D", p(2, 10));
     b.wire("w", b.pin("D", "2"), b.pin("U1", "0"), &[]);
     let settled = settle_labels(&b.page);
-    let at = settled
-        .iter()
-        .find(|x| x.id == tag)
-        .expect("the caption")
-        .rect;
+    let at = settled.iter().find(|x| x.id == tag).expect("the caption").rect;
     let pin = p(2, 24);
     assert!(
         !(at.y1 <= pin.y && at.x0 <= pin.x && pin.x <= at.x1),

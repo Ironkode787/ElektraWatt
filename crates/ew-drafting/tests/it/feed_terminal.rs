@@ -49,7 +49,14 @@ fn a_feed_terminal_in_the_middle_of_a_strip_stands_at_its_end_and_crosses_no_cha
     let (_, done) = run(&b.page, &[]);
     assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
     for k in 0..4 {
-        assert_eq!(at(&done, &format!("X{}", k + 1)).x, s(32 + 2 * k), "channel {k}'s column");
+        assert_eq!(
+            at(&done, &format!("X{}", k + 1)).x,
+            s(32 + 2 * k),
+            "channel {k}'s column"
+        );
     }
-    assert!(at(&done, "X0").x < at(&done, "X1").x, "the feed terminal at the strip's end");
+    assert!(
+        at(&done, "X0").x < at(&done, "X1").x,
+        "the feed terminal at the strip's end"
+    );
 }

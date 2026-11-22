@@ -1287,8 +1287,7 @@ impl Router {
                     continue;
                 };
                 let ends = self.ends.get(w).map(|e| e.map(|e| self.point(e)));
-                let meets =
-                    ends.is_some_and(|[a, b]| a == s.first().copied() && b == s.last().copied());
+                let meets = ends.is_some_and(|[a, b]| a == s.first().copied() && b == s.last().copied());
                 if !meets || self.route_of(*w) == s.as_slice() {
                     continue;
                 }

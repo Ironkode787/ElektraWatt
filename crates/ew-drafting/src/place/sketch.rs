@@ -2819,7 +2819,11 @@ impl<'a> Sketch<'a> {
                     }
                 }
                 // On a unit that is set (two of a row set down on each other), it steps away from its host.
-                let away = if toward < 0 { -TICKS_PER_STEP } else { TICKS_PER_STEP };
+                let away = if toward < 0 {
+                    -TICKS_PER_STEP
+                } else {
+                    TICKS_PER_STEP
+                };
                 let away = if down { Pt::new(away, 0) } else { Pt::new(0, away) };
                 let mut more = 0;
                 while more < 2 * ROW_PULL

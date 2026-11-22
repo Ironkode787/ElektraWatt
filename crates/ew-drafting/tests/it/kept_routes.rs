@@ -15,7 +15,12 @@ fn two_rows(b: &mut Page, name: &str, at: Pt, (w, h): (Tick, Tick), top: &[Tick]
         .iter()
         .enumerate()
         .map(|(i, x)| (format!("t{i}"), *x, true))
-        .chain(bottom.iter().enumerate().map(|(i, x)| (format!("b{i}"), *x, false)))
+        .chain(
+            bottom
+                .iter()
+                .enumerate()
+                .map(|(i, x)| (format!("b{i}"), *x, false)),
+        )
         .collect();
     let pins: Vec<(&str, Pt, Side)> = names
         .iter()
@@ -36,7 +41,13 @@ fn two_rows(b: &mut Page, name: &str, at: Pt, (w, h): (Tick, Tick), top: &[Tick]
             rect: Rect::new(Pt::new(x - 10, y0), Pt::new(x + 11, y0 + 38)),
         });
     }
-    b.label(Owner::Part(part), 0, LabelKind::BoxTag, TAG, Places::At(Vec::new()));
+    b.label(
+        Owner::Part(part),
+        0,
+        LabelKind::BoxTag,
+        TAG,
+        Places::At(Vec::new()),
+    );
 }
 
 /// A two-pin upright symbol three steps high (a lamp, a contact): pins `1` on top and `2` at the bottom.
@@ -58,8 +69,22 @@ fn older_card_page() -> (DraftPage, Vec<WireId>) {
     b.mark_in("24V", p(5, 6));
     b.mark_in("0V", p(5, 62));
     two_rows(&mut b, "CPU", p(11, 30), (12, 8), &[6], &[6]);
-    two_rows(&mut b, "DI", p(35, 30), (18, 8), &[3, 6, 9, 12, 15], &[4, 7, 10, 13]);
-    two_rows(&mut b, "DO", p(65, 30), (18, 8), &[3, 6, 9, 12, 15], &[3, 6, 9, 12, 15]);
+    two_rows(
+        &mut b,
+        "DI",
+        p(35, 30),
+        (18, 8),
+        &[3, 6, 9, 12, 15],
+        &[4, 7, 10, 13],
+    );
+    two_rows(
+        &mut b,
+        "DO",
+        p(65, 30),
+        (18, 8),
+        &[3, 6, 9, 12, 15],
+        &[3, 6, 9, 12, 15],
+    );
     upright(&mut b, "B1", p(35, 14));
     upright(&mut b, "E1", p(65, 54));
     upright(&mut b, "E2", p(71, 54));
@@ -72,11 +97,36 @@ fn older_card_page() -> (DraftPage, Vec<WireId>) {
             &[p(17, 29), p(29, 29), p(29, 40), p(77, 40)],
         ),
         b.run("w0V", b.pin("0V", "1"), b.pin("CPU", "b0"), &[p(17, 62)]),
-        b.run("wM1", b.pin("CPU", "b0"), b.pin("DI", "b3"), &[p(17, 41), p(48, 41)]),
-        b.run("wM2", b.pin("DI", "b3"), b.pin("DO", "b4"), &[p(48, 41), p(80, 41)]),
-        b.run("wB1", b.pin("CPU", "t0"), b.pin("B1", "1"), &[p(17, 13), p(35, 13)]),
-        b.run("wI0", b.pin("B1", "2"), b.pin("DI", "t0"), &[p(35, 18), p(38, 18)]),
-        b.run("wQ5", b.pin("DO", "b0"), b.pin("E1", "1"), &[p(68, 53), p(65, 53)]),
+        b.run(
+            "wM1",
+            b.pin("CPU", "b0"),
+            b.pin("DI", "b3"),
+            &[p(17, 41), p(48, 41)],
+        ),
+        b.run(
+            "wM2",
+            b.pin("DI", "b3"),
+            b.pin("DO", "b4"),
+            &[p(48, 41), p(80, 41)],
+        ),
+        b.run(
+            "wB1",
+            b.pin("CPU", "t0"),
+            b.pin("B1", "1"),
+            &[p(17, 13), p(35, 13)],
+        ),
+        b.run(
+            "wI0",
+            b.pin("B1", "2"),
+            b.pin("DI", "t0"),
+            &[p(35, 18), p(38, 18)],
+        ),
+        b.run(
+            "wQ5",
+            b.pin("DO", "b0"),
+            b.pin("E1", "1"),
+            &[p(68, 53), p(65, 53)],
+        ),
         b.run("wQ6", b.pin("DO", "b1"), b.pin("E2", "1"), &[]),
         b.run("wE1", b.pin("E1", "2"), b.pin("0V", "1"), &[p(65, 62)]),
         b.run("wE2", b.pin("E2", "2"), b.pin("0V", "1"), &[p(71, 62)]),
@@ -131,4 +181,3 @@ fn whichever_wire_lost_its_route_route_routes_it_again_with_no_fault() {
         assert_eq!((plan.after.faults, plan.after.unrouted), (0, 0), "{w:?}");
     }
 }
-

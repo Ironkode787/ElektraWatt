@@ -19,7 +19,12 @@ fn the_wires_round_a_card_are_laid_as_nested_rings() {
     for (k, x) in xs.iter().enumerate() {
         let t = format!("X{k}");
         b.terminal(&t, p(30 + x, 40));
-        b.wire(&format!("c{k}"), b.pin("A1", &format!("{k}")), b.pin(&t, "1"), &[]);
+        b.wire(
+            &format!("c{k}"),
+            b.pin("A1", &format!("{k}")),
+            b.pin(&t, "1"),
+            &[],
+        );
     }
     let done = routed(&b.page);
     let (top, bottom, left, right) = (s(20), s(26), s(30), s(49));
