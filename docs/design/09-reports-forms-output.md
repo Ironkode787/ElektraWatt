@@ -807,7 +807,7 @@ nogrid"), a form of the project's own, which carries no name, by its kind, its p
 paper are in the window's language ("Kader A4 liggend, op 101, 102"), in English on the command line; the key's words of
 a starter form stay as the key has them. Typed, the row takes such a name or the form's ID and refuses anything else in
 words, listing the forms. A block's Form row stands in the open; a page's waits under Advanced, as a page without a form
-of its own takes the frame defaults.
+of its own takes the frame defaults, and such a page's row names the frame those defaults give it (FT-1915).
 
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its

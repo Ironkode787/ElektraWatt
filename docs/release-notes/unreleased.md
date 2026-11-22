@@ -407,6 +407,10 @@ change here.
   such as the sample's 101.16 on page 104 left its own row unmarked (doc 16 §5, FT-1912)
 - text-change: in Dutch a function's kind whose generic part has no Dutch words reads as written after its pole count,
   "3P manualswitch" and "3P mcb", not "3P- manualswitch" (FT-1913)
+- behaviour-change: a page's Form row in Properties names the frame the page draws with when it names none of its
+  own ("Frame QET A4 landscape grid" on the sample's 902); it was empty (doc 09 §3.8, FT-1915)
+- api-add: `Session::page_default_frame(page)`, the frame form a page draws with while it names none of its own
+  (FT-1915)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

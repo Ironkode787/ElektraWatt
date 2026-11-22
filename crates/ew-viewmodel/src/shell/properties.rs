@@ -474,7 +474,11 @@ impl ShellModel {
         crate::properties::report_columns_in_words(&mut sheet, |id| {
             p.session.report_column_words(id, strings::rule_language())
         });
-        crate::properties::forms_in_words(&mut sheet, || form_choices(&p.session));
+        crate::properties::forms_in_words(
+            &mut sheet,
+            || form_choices(&p.session),
+            |page| p.session.page_default_frame(page),
+        );
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);

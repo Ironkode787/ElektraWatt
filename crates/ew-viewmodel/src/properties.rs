@@ -1600,10 +1600,13 @@ pub fn report_columns_in_words(
 }
 
 /// Writes a page's and a report block's Form row by the form's name in the window's language (doc 09 §3.8), never its
-/// ID; `forms` gives the project's forms by name, asked only when a Form row names one. The JSON value is unchanged.
+/// ID; `forms` gives the project's forms by name, asked only when a Form row names one. A page that names no frame of
+/// its own reads the frame it draws with, which `default_frame` gives (FT-1915: the row was empty). The JSON value of
+/// a named form is unchanged.
 pub fn forms_in_words(
     sheet: &mut PropertySheet,
     forms: impl FnOnce() -> Vec<(ew_api::output::Uuid, String)>,
+    default_frame: impl Fn(ew_api::output::Uuid) -> Option<ew_api::output::Uuid>,
 ) {
     let (mut forms, mut names) = (Some(forms), None);
     for section in sheet
@@ -1611,7 +1614,17 @@ pub fn forms_in_words(
         .iter_mut()
         .filter(|s| s.kind == "page" || s.kind == "report_block")
     {
+        let page = match section.targets.as_slice() {
+            [one] if section.kind == "page" => Some(*one),
+            _ => None,
+        };
         for row in section.rows.iter_mut().filter(|r| r.path == "form") {
+            if let (RowValue::Absent, Some(frame)) = (&row.value, page.and_then(&default_frame)) {
+                row.value = RowValue::One {
+                    json: Value::String(frame.to_string()),
+                    text: String::new(),
+                };
+            }
             let RowValue::One {
                 json: Value::String(id),
                 text,

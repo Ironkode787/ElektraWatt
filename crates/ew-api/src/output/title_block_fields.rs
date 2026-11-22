@@ -68,6 +68,15 @@ fn placeholder_paths(template: &str, out: &mut Vec<String>) {
 }
 
 impl Session {
+    /// The frame form the drawn page `page` draws with while it names none of its own (FR-PAG-018: its page type's
+    /// default, else the project's); `None` for a page that is not in the project or a project without a default
+    /// frame. Its Form row names it (FT-1915).
+    pub fn page_default_frame(&self, page: Uuid) -> Option<Uuid> {
+        let q = self.query();
+        let record = q.pages().get(Id::from_uuid(page))?;
+        ew_derive::frame_form_of(&q, None, &record.kind, true).map(|form| form.as_uuid())
+    }
+
     /// The title block's facts of the drawn page `page` (see [`TitleBlockFacts`]); `None` for a page that is not in the
     /// project.
     pub fn title_block_facts(&self, page: Uuid) -> Option<TitleBlockFacts> {
