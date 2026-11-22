@@ -548,7 +548,7 @@ QElectroTech `.qet` and `.qetz` importer behind `ew-interop-api`.
 | `src/prims/mod.rs` |  | The children of an element definition's `<description>`: one parser per QET primitive (doc 14 §4.3). |
 | `src/prims/shapes.rs` |  | Shape primitives: `line` (with end markers), `rect`, `ellipse`, `circle`, `arc`, `polygon`. |
 | `src/prims/terminal.rs` |  | `terminal`: a connection point. |
-| `src/prims/text.rs` |  | Text primitives: static `text`, `dynamic_text` and the legacy `input` (doc 14 §4.3, §4.10). |
+| `src/prims/text.rs` | large | Text primitives: static `text`, `dynamic_text` and the legacy `input` (doc 14 §4.3, §4.10). |
 | `src/project/builtins.rs` |  | The built-in starter documents a project import references by key: the interruption-point FnDef `ew.fn.ip` and QET's default title block. |
 | `src/project/cables.rs` |  | Cable marks → cables with cores, for projects without QET 0.200 cable data (doc 14 §4.11 "Cables, older"). |
 | `src/project/cx.rs` |  | What the project mappers share: record IDs from source keys ([`Ids`]), the capped findings collector ([`Findings`]) and the registry of placed elements that the conductor mapper resolves ends against ([`Placed`]). |
