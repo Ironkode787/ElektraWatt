@@ -26,8 +26,18 @@ fn three_potentials_over_one_row_of_poles_lie_on_three_trunks_side_by_side() {
     let names = ["Q10", "Q20", "Q30"];
     let mut poles: Vec<[WireId; 2]> = Vec::new();
     for pin in ["1", "3", "5"] {
-        let a = b.wire(&format!("{pin}a"), b.pin(names[0], pin), b.pin(names[1], pin), &[]);
-        let c = b.wire(&format!("{pin}b"), b.pin(names[1], pin), b.pin(names[2], pin), &[]);
+        let a = b.wire(
+            &format!("{pin}a"),
+            b.pin(names[0], pin),
+            b.pin(names[1], pin),
+            &[],
+        );
+        let c = b.wire(
+            &format!("{pin}b"),
+            b.pin(names[1], pin),
+            b.pin(names[2], pin),
+            &[],
+        );
         poles.push([a, c]);
     }
     let page = routed(&b.page);
@@ -47,5 +57,9 @@ fn three_potentials_over_one_row_of_poles_lie_on_three_trunks_side_by_side() {
             line(*a)
         })
         .collect();
-    assert_eq!(ys, vec![s(22), s(20), s(18)], "the first pole's trunk nearest, two steps apart");
+    assert_eq!(
+        ys,
+        vec![s(22), s(20), s(18)],
+        "the first pole's trunk nearest, two steps apart"
+    );
 }

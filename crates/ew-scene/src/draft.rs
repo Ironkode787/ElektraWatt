@@ -43,7 +43,8 @@ use ew_dl::{EntityRef, Item, Link, Path};
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{
     Anchor, DraftPage, End, FixedText, Follow, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkAt,
-    MarkId, Owner, Part, PartId, Piece, Pin, PinId, Places, Role, Settled, Side, Tick, Wire, WireClass, WireId,
+    MarkId, Owner, Part, PartId, Piece, Pin, PinId, Places, Role, Settled, Side, Tick, Wire, WireClass,
+    WireId,
 };
 use ew_ids::Id;
 use ew_schema::{Align, ConnectionKind, Dir4, Endpoint, SlotKind};
@@ -719,15 +720,7 @@ impl Builder<'_> {
                     (MarkerText::Above, at.y)
                 };
                 let wires = [WireId(c.id.as_uuid())];
-                self.wire_marker(
-                    view,
-                    ctx,
-                    (at, &[crossing]),
-                    (place, &wires),
-                    &text,
-                    entity,
-                    true,
-                );
+                self.wire_marker(view, ctx, (at, &[crossing]), (place, &wires), &text, entity, true);
                 continue;
             }
             // A bus line's number is its cable's tag (it was too small to read).
@@ -865,8 +858,16 @@ impl Builder<'_> {
         let mut line = Rect::from_points(start, end);
         // It follows its wires: its line's ends past the outer crossings, a tick and a core name at each crossing.
         let mut pieces = vec![
-            (Anchor::First, Rect::from_points(start, on_line(lo + MARKER_REACH)), false),
-            (Anchor::Last, Rect::from_points(on_line(hi - MARKER_REACH), end), false),
+            (
+                Anchor::First,
+                Rect::from_points(start, on_line(lo + MARKER_REACH)),
+                false,
+            ),
+            (
+                Anchor::Last,
+                Rect::from_points(on_line(hi - MARKER_REACH), end),
+                false,
+            ),
         ];
         for (wire, along, core) in &crossings {
             let p = on_line(*along);

@@ -53,7 +53,11 @@ fn a_page_wide_route_draws_a_route_that_misses_its_end_to_it() {
         })
         .expect("the wire's page");
     let plan = s.route_plan(&folio, &RouteScope::Page).expect("a drawn page");
-    assert!(plan.plan.his.iter().any(|w| w.0 == id), "flagged as the person's: {:?}", plan.plan.his);
+    assert!(
+        plan.plan.his.iter().any(|w| w.0 == id),
+        "flagged as the person's: {:?}",
+        plan.plan.his
+    );
     let params = plan.params.expect("a plan");
     s.execute(&AnyCommand {
         name: "layout.apply".into(),
@@ -64,5 +68,9 @@ fn a_page_wide_route_draws_a_route_that_misses_its_end_to_it() {
     let c = t.connections.iter().find(|c| c.id == id).expect("the wire");
     let draft = s.page_draft(&folio).expect("a drawn page");
     let wire = draft.wires.iter().find(|w| w.id.0 == id).expect("the wire");
-    assert!(c.stored_route && !wire.stale, "its route meets its ends: {:?}", c.polyline);
+    assert!(
+        c.stored_route && !wire.stale,
+        "its route meets its ends: {:?}",
+        c.polyline
+    );
 }

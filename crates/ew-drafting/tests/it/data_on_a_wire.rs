@@ -24,8 +24,15 @@ fn a_data_text_set_on_its_own_pin_s_line_gives_way_to_the_pin_s_wire() {
         Places::At(vec![Pt::new(-s(3) / 2, -s(1) - 10)]),
     );
     let settled = settle_labels(&b.page);
-    let placed = settled.iter().find(|x| x.id == data).expect("the data text is placed");
+    let placed = settled
+        .iter()
+        .find(|x| x.id == data)
+        .expect("the data text is placed");
     assert!(placed.rank > 0, "not at its author's place: {placed:?}");
     let q = measure(&b.page);
-    assert!(q.findings.across_texts.is_empty(), "{:?}", q.findings.across_texts);
+    assert!(
+        q.findings.across_texts.is_empty(),
+        "{:?}",
+        q.findings.across_texts
+    );
 }

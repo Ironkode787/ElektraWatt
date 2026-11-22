@@ -27,5 +27,8 @@ fn a_straight_keeps_its_line_where_a_stepping_wire_s_first_track_lies_on_it() {
     assert_eq!(route(straight), vec![p(2, 10), p(40, 10)], "one straight segment");
     let r = route(step);
     assert_eq!(r.len(), 4, "out, across, in: {r:?}");
-    assert!(r[1].y > p(0, 10).y, "the stepping wire's track beyond the straight: {r:?}");
+    assert!(
+        r[1].y > p(0, 10).y,
+        "the stepping wire's track beyond the straight: {r:?}"
+    );
 }

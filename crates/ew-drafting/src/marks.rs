@@ -70,7 +70,10 @@ fn middle(line: &[Pt]) -> Option<Pt> {
     let mut best: Option<(i128, Pt)> = None;
     for w in line.windows(2) {
         let (a, b) = (w[0], w[1]);
-        let (dx, dy) = (i128::from(b.x) - i128::from(a.x), i128::from(b.y) - i128::from(a.y));
+        let (dx, dy) = (
+            i128::from(b.x) - i128::from(a.x),
+            i128::from(b.y) - i128::from(a.y),
+        );
         let len = dx * dx + dy * dy;
         if best.is_none_or(|(l, _)| len > l) {
             let mid = |p: Tick, q: Tick| p + (q - p).div_euclid(2);
