@@ -171,7 +171,9 @@ fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
     let target = projects.join("pumpstation").join("stage 1").join("Pump station");
     assert!(reason(&h, &target.to_string_lossy()), "the line says where");
     assert!(!h.get_by_label("Create").accesskit_node().is_disabled());
-    assert_eq!(h.get_by_label("Browse…").rect(), browse, "the rows stay put");
+    // No "the rows stay put" here: this line names the folder, and whether it takes one line or two follows from the
+    // length of the temporary folder's path, which holds the process's number. The line without a path, above, is
+    // the one that shows the room is kept.
     h.get_by_label("Create").click();
     settle(&mut h);
     assert!(
