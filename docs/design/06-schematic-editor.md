@@ -852,7 +852,8 @@ pasted by `edit.paste`'s engine with the pages' positions kept: no second machin
 - **Folio offset**: a whole number added to each copied page's folio number (1000 makes 6001 into 7001; a label that
   begins with the folio number follows it, 6001.1 becomes 7001.1). The copy goes into the section whose folio range
   holds its new folio; a page of no section stays in none. Without an offset, **After** names the page after which the
-  copies go, default the last copied page, and the folios are proposed after it as a page macro's are (§5.6).
+  copies go, default the last copied page, and the folios are proposed after it as a page macro's are (§5.6). The two
+  are one choice: typing into one clears the other (a persona run filled both, and nothing said the offset won).
 - **Structure**: a structure node the copied pages or their devices name, and the code of the copy's node (CAB and
   CAB2): the copy names the node of that code beside it (same aspect, same parent), which is created in the same step
   when there is none.

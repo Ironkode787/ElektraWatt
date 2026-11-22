@@ -16,7 +16,7 @@ use crate::properties::{Card, CardOrigin};
 use crate::strings;
 
 /// The action of Copy pages… (its form dispatches it).
-const ACTION: &str = "pages.copy";
+pub(super) const ACTION: &str = "pages.copy";
 
 /// The `rename` parameter: an object of old and new texts (`{"6": "7"}`, a script), or the form table's rows
 /// (`[{"name": old, "values": {<the column's words>: new}}]`); rows without an old text are skipped.

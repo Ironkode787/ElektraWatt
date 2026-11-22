@@ -504,6 +504,30 @@ fn the_forms_refusals_name_its_fields() {
     s.shutdown();
 }
 
+/// The form takes a folio offset or a folio to go after, never both: typing into one clears the other (a persona run
+/// typed an offset beside the prefilled "after" and nothing said which won).
+#[test]
+fn the_offset_and_the_folio_after_clear_each_other() {
+    let tmp = Tmp::new("copy-offset-or-after");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    done(&mut s, "pages.copy", json!({}));
+    let value = |s: &ShellModel, name: &str| {
+        common::form(s)
+            .fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| f.value.clone())
+            .unwrap_or_default()
+    };
+    assert_eq!(value(&s, "after"), "102", "prefilled");
+    s.set_form_field("offset", "10");
+    assert_eq!(value(&s, "after"), "");
+    s.set_form_field("after", "103");
+    assert_eq!(value(&s, "offset"), "");
+    assert_eq!(value(&s, "after"), "103");
+    s.shutdown();
+}
+
 /// A refusal of the copy names it: "Copy pages: …".
 #[test]
 fn a_refused_copy_says_so() {

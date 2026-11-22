@@ -348,6 +348,19 @@ impl ShellModel {
             if name == "system" {
                 super::supply_place::own_names_field(form);
             }
+            // Copy pages takes a folio offset or a folio to go after, never both: typing into one clears the other (a
+            // persona run filled both and nothing said that the offset won).
+            if form.action == super::page_copy::ACTION
+                && !value.trim().is_empty()
+                && let Some(other) = match name {
+                    "offset" => Some("after"),
+                    "after" => Some("offset"),
+                    _ => None,
+                }
+                && let Some(f) = form.fields.iter_mut().find(|f| f.name == other)
+            {
+                f.value.clear();
+            }
             if let Some(free) = free
                 && let Some(f) = form.fields.iter_mut().find(|f| f.name == "folio")
             {
