@@ -1,0 +1,2 @@
+{"$k":"page","id":"019b76da-a95f-7000-8000-00000000015f","folio":{"section":"3fe22b07-a984-5440-9502-a377f5109346","number":902},"kind":"panel_layout","structure":{"location":"019b76da-a807-7000-8000-000000000007"},"title":"Panel layout","scale":{"one_to":5},"grid":{"num":7937500,"den":3}}
+{"$k":"page_item","id":"019b76da-a96a-7000-8000-00000000016a","page":"019b76da-a95f-7000-8000-00000000015f","kind":{"surface_view":{"surface":"019b76da-a969-7000-8000-000000000169","datum_at":[87505940,162959724],"labels":"tags_or_numbers"}}}
