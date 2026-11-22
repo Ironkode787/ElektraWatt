@@ -389,6 +389,9 @@ change here.
   one of its own (doc 07 §2.5, FT-1811)
 - behaviour-change: F1 over the symbol editor's outline with a connection point or a shape selected opens the guide's
   section of that thing; it opened the outline's (doc 16 §13, FT-1812)
+- behaviour-change: the Place tool's command bar names a terminal for a strip without a tag yet in words ("terminal 1
+  on the new strip (no tag yet)") until the preview predicts its tag, not as "-?X?:1"; the project's Kind row reads
+  Schematic for a project whose kind is not written, not a dash (doc 16a §5.5, FT-1813)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

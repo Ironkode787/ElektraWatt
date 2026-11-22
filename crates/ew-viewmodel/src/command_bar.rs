@@ -1242,7 +1242,17 @@ pub fn hud(model: &ShellModel) -> HudModel {
             joinable,
             ..
         }) => {
-            target = tag.or(strip);
+            // A terminal of a strip without a tag yet reads in words until the preview predicts its tag, never as
+            // "-?X?:1" (FT-1813).
+            target = tag.or_else(|| {
+                strip.map(|text| match text.rsplit_once(':') {
+                    Some((strip, designation)) if strip.contains('?') => strings::format(
+                        key!("place-target-terminal"),
+                        &[strings::text(key!("place-target-new-strip")), designation],
+                    ),
+                    _ => text,
+                })
+            });
             // M39: the symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
             // segment in sentence case (`Contact no`), never the key.
             let mut what = target.clone().unwrap_or_else(|| {

@@ -754,8 +754,9 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
   `icon.sm` and its name (`color.accent` fill, `color.text.on_accent`, SemiBold), three quick tools as 28-px icon
   pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
   and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
-  ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and it stays where it is, so its
-  buttons can be reached. (Until M2.5-Fix it floated over the sheet's foot. First it moved under the tab bar while
+  ("Place -X1031:21 · R rotates · V variant · Esc done"; a terminal of a strip without a tag yet in words, "terminal 1
+  on the new strip (no tag yet)", until the preview predicts its tag, FT-1813). It never takes focus and it stays
+  where it is, so its buttons can be reached. (Until M2.5-Fix it floated over the sheet's foot. First it moved under the tab bar while
   the pointer was within 48 px of it, which put its own buttons out of reach: the owner's hands-on test, FT-1639.
   Staying put, it then covered the title block, or the drawing itself once a lower pane shortened the canvas; a
   strip of its own ended both, FT-1656; the owner's test of 0.3.0-rc.2 then found the strip's band lying across the

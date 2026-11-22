@@ -299,9 +299,14 @@ impl RowAction {
 /// The kind and JSON of the record `id` of a sheet kind; `None` for a library copy or an unknown ID.
 fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
     if q.project().id.as_uuid() == id {
-        return serde_json::to_value(&**q.project())
-            .ok()
-            .map(|v| (Kind::Project, v));
+        let project = q.project();
+        let mut value = serde_json::to_value(&**project).ok()?;
+        // The kind is not written while it is the default (a schematic project): its row names it, not a dash
+        // (FT-1813).
+        if let (Value::Object(members), Ok(kind)) = (&mut value, serde_json::to_value(&project.kind)) {
+            members.entry("kind").or_insert(kind);
+        }
+        return Some((Kind::Project, value));
     }
     macro_rules! try_kinds {
         ($($kind:ident => $ty:ty),* $(,)?) => {
