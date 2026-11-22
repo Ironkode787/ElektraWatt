@@ -9,7 +9,8 @@
 //! # The places (§5.2)
 //!
 //! A label's places are the ones its adapter gives ([`Places::At`]: a symbol's slot as its author set it), those of
-//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line, "one line lower" for the second
+//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line (not onto its own part's body),
+//! "one line lower" for the second
 //! of a row (the two-rows rule), then the places of its kind, each once. For a part whose pins leave up or down (or
 //! that has none with a side) the corners are: upper left (right of the box against the body's left edge, its top
 //! level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
@@ -1196,12 +1197,17 @@ fn repair(
 fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -> Vec<(Rect, bool)> {
     let mut list: Vec<(Rect, bool)> = unit.given.iter().map(|r| (*r, false)).collect();
     // A given place that leaves the drawing area, moved in by the least distance, to stand LABEL_CLEAR off the frame's
-    // line as a text beside a line does.
+    // line as a text beside a line does; not where that sets it on its own part's body, which its author kept it off (a
+    // symbol placed near the area's edge: its tag and data go to the kind's places beside it).
     let area = ground.page.area;
     let into = |r: Rect| {
         let dx = (area.x0 + LABEL_CLEAR - r.x0).max(0) - (r.x1 - area.x1 + LABEL_CLEAR).max(0);
         let dy = (area.y0 + LABEL_CLEAR - r.y0).max(0) - (r.y1 - area.y1 + LABEL_CLEAR).max(0);
         r.moved(Pt::new(dx, dy))
+    };
+    let own = match unit.owner {
+        Owner::Part(p) => ground.parts.get(&p).map(|x| x.bounds()),
+        _ => None,
     };
     let moved_in: Vec<(Rect, bool)> = unit
         .given
@@ -1209,6 +1215,7 @@ fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -
         .filter(|r| {
             !area.holds(**r) && r.w() + 2 * LABEL_CLEAR <= area.w() && r.h() + 2 * LABEL_CLEAR <= area.h()
         })
+        .filter(|r| own.is_none_or(|b| r.overlaps(b) || !into(**r).overlaps(b)))
         .map(|r| (into(*r), false))
         .collect();
     list.extend(moved_in);

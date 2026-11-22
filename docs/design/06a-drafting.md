@@ -1190,10 +1190,13 @@ draughtsman staggers them.
 
 Labels are placed in the order of priority, then of their owner's place (top, then left), then of their ID. Each
 takes its first place that is clear by `LABEL_CLEAR` of every part's body but its own, every wire, every fixed
-text and every label placed before it, and inside the drawing area. A label with no clear place takes the place of
-least cost (C4, C5) and is then counted. One repair round follows: for each such label, each label it stands on
-that came later in the order is tried at its next clear place, and the change is kept when the page's cost is
-lower. The result does not depend on the order of the page's lists.
+text and every label placed before it, and inside the drawing area. A first place that leaves the drawing area is
+tried next moved in to stand `LABEL_CLEAR` inside the area's line, but not where that sets it on its own part's body,
+which its author kept it off: the tag and data of a symbol placed near the area's edge stand at the places of their
+kind beside it, clear of the symbol and its pins' numbers (a persona run, 2026-11-22). A label with no clear place
+takes the place of least cost (C4, C5) and is then counted. One repair round follows: for each such label, each label
+it stands on that came later in the order is tried at its next clear place, and the change is kept when the page's
+cost is lower. The result does not depend on the order of the page's lists.
 
 A label leaves its first place only when something stands there, so a change elsewhere on the page does not move
 it.
