@@ -1007,6 +1007,10 @@ rule-ew-pot-021 = { $cp_shared ->
     .title = Load not returned
     .hint = Wire the load's return side to the return conductor of its supply (0 V, N), or link it to the module's return pin.
 
+rule-ew-pot-022 = Wire { $wire } has its cross-section { $size } set by hand, below the { $needed } that the { $current } A rating of { $device } needs by the current table (IEC 60204-1 Table 6, method B2). Take the proposed size.
+    .title = Cross-section below its protection
+    .hint = Take the proposed size, or a larger one, or protect the wire by a device of a lower rating.
+
 ## EW-RDS (EW-IEC81346): reference designations
 
 rule-ew-rds-001 = { $device } does not parse as an IEC 81346 designation: { $detail }
@@ -1231,6 +1235,7 @@ rule-ew-imp-114 =
 
 # The quick fixes' labels (FT-1482, ID-1457): the window's text of a fix by its key (`QuickFix::key`); the en-GB
 # text is the fix's English label, which the CLI and the JSON print.
+fix-take-proposed-size = Take the proposed size
 fix-drop-override = drop override
 fix-anchor-graphics-centre = anchor at the graphics centre
 fix-renumber-newer = Renumber the newer

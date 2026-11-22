@@ -346,6 +346,7 @@
       - [EW-POT-016](reference/rules/ew-pot-016.md)
       - [EW-POT-017](reference/rules/ew-pot-017.md)
       - [EW-POT-021](reference/rules/ew-pot-021.md)
+      - [EW-POT-022](reference/rules/ew-pot-022.md)
     - [EW-REL](reference/rules/ew-rel.md)
       - [EW-REL-001](reference/rules/ew-rel-001.md)
       - [EW-REL-002](reference/rules/ew-rel-002.md)

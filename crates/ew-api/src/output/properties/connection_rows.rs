@@ -266,9 +266,19 @@ impl Session {
                     },
                     other => {
                         can_override = true;
-                        Provenance::Derived {
-                            via: prop_via(q, other, &potential, class.as_ref()),
+                        let mut via = prop_via(q, other, &potential, class.as_ref());
+                        // A size from the profile behind a protective device that nothing feeds: its rating is not
+                        // read, and the row says why (doc 08 §4.2).
+                        if name == "csa"
+                            && other.level() < 3
+                            && let Some(device) = ew_derive::unfed_protection(q, *c)
+                        {
+                            via.push_str(&format!(
+                                " · no supply found upstream of {}, so its rating is not used",
+                                device_tag_text(q, device)
+                            ));
                         }
+                        Provenance::Derived { via }
                     }
                 };
                 per.push((Some(value), provenance));

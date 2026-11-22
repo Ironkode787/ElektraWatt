@@ -780,6 +780,29 @@ pub(crate) fn csa_raised(size: Dec3, rating: Dec3) -> Option<(&'static str, Csa)
         .map(|r| (table.id.as_str(), Csa::Mm2(r.csa)))
 }
 
+/// The cross-section a wire of `size` mm² set by hand falls short of for `rating` amperes (EW-POT-022): the current
+/// table's least row that carries the rating where the size's own row (the largest at or below it) carries less. A
+/// size below the table's first row carries less than that row, so it falls short of a rating above the first row's
+/// current; `None` where the size carries the rating or may, and for a rating above the table's last row.
+pub fn csa_short_of(size: Dec3, rating: Dec3) -> Option<Csa> {
+    let table = current_table();
+    let first = table.rows.first()?;
+    let carried = table
+        .rows
+        .iter()
+        .rev()
+        .find(|r| r.csa <= size)
+        .map_or(first.current, |r| r.current);
+    if rating <= carried {
+        return None;
+    }
+    table
+        .rows
+        .iter()
+        .find(|r| r.current >= rating)
+        .map(|r| Csa::Mm2(r.csa))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -698,6 +698,15 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
     core's and the wire's own override win over it. So it is a proposal the person changes in Properties, whose chip
     names its source: "potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2,
     PVC-insulated copper, 40 °C"; its link goes to the protecting device's Parts row.
+  - *Behind a device that nothing feeds* (0.3.5). The protecting device is found by the flow from a supply; behind a
+    breaker that no supply reaches there is no circuit to follow and the rating is not read. Where the wire's size
+    comes from below level 3 and a protective device with a rating ends the wire on a potential the flow does not
+    reach, its Cross-section row's chip reads "no supply" in place of "profile", and its text adds "no supply found
+    upstream of -101F1, so its rating is not used" (`unfed_protection`).
+  - *A size set by hand below it* (0.3.5). A wire whose own cross-section (level 7, in mm²) is below the least size
+    the current table gives for its protecting device's rating is EW-POT-022 (warning, online and at release; a size
+    below the table's first row is reported where the rating is above what that row carries). Its fix "Take the
+    proposed size" removes the override where the size without it carries the rating, else sets the proposed size.
   - *What it does not do.* Size by the load's current, by the length (voltage drop) or by a short-circuit check; read a
     motor-protective device's setting range; choose another installation method or table.
 - **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
@@ -1334,6 +1343,7 @@ p = prevent and r = release.
 | EW-POT-017 | Two definitions with different names in one potential | FR-CON-012 | o r | warning | 0 |
 | EW-POT-019 | Cross-section units mixed within one potential (mm², AWG, kcmil) (1.0) | FR-CON-032 | o | warning | 0 |
 | EW-POT-020 | Voltage drop of a cable above the profile's threshold; threshold table unverified (1.x, §7.6) | FR-CHK-059 | f r | warning | 0 |
+| EW-POT-022 | Cross-section set by hand below the size the rating of the wire's protecting device needs by the current table (§4.2); fix "Take the proposed size" (0.3.5) | — | o r | warning | — |
 | EW-TERM-001 | Terminal without designation | FR-TRM-002, FR-CHK-016 | p o r | error | 0 (C: MF-08) |
 | EW-TERM-002 | Duplicate designation within a strip | FR-TRM-002, FR-CHK-016 | p o r | error | 0 (C: MF-09) |
 | EW-TERM-003 | Spare terminal wired on its field side | FR-TRM-009 | o | warning | 0 |

@@ -26,8 +26,8 @@ use ew_derive::{
     DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
     PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
     PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text,
-    cp_label, cp_point, cp_text, csa_text, device_location, potential_id_at, potential_part, ranked_defs,
-    wire_props_below_overrides,
+    cp_label, cp_point, cp_text, csa_short_of, csa_text, device_location, potential_id_at, potential_part,
+    ranked_defs, wire_props_below_overrides, wire_rating,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
@@ -2827,6 +2827,110 @@ impl Rule for LoadNotReturned {
                 ))
                 .arg("cp", label)
                 .arg("potential", name.clone()),
+            );
+        }
+        out
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-POT-022
+
+/// EW-POT-022 "Cross-section below its protection" (doc 15 §4.3): safety, o r, warning, potential.
+pub const CSA_BELOW_PROTECTION: RuleMeta = RuleMeta {
+    id: "EW-POT-022",
+    code: "005022",
+    pack: "EW-POT",
+    title: "Cross-section below its protection",
+    kind: RuleKind::Safety,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Potential,
+    supersedes: &[],
+    release: Release::Mvp,
+    docs: "reference/rules/ew-pot-022",
+};
+
+/// EW-POT-022: a wire whose cross-section set by hand (level 7, in mm²) is below what the rating of its protecting
+/// device needs by the current table (doc 08 §4.2, §8.1): the size the derivation proposes for that rating
+/// (`wire_rating`, `csa_short_of`; a size below the table's first row falls short of a rating above that row's
+/// current). A core takes its cable's size and a bond wire no rating, so neither is checked. One finding per wire,
+/// target the connection that carries the override, with the fix "Take the proposed size": the override goes where
+/// the wire's size without it carries the rating, else it is set to the proposed size.
+#[derive(Clone, Copy, Debug)]
+pub struct CsaBelowProtection;
+
+impl Rule for CsaBelowProtection {
+    fn meta(&self) -> &'static RuleMeta {
+        &CSA_BELOW_PROTECTION
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Potential(p) = *scope else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for (w, _) in owned_wires(q, p) {
+            let Some(Csa::Mm2(size)) = w.overrides.csa.clone() else {
+                continue;
+            };
+            if w.core.is_some() {
+                continue;
+            }
+            let Some((device, current)) = wire_rating(q, p, &w) else {
+                continue;
+            };
+            let Some(needed) = csa_short_of(size, current) else {
+                continue;
+            };
+            let below = wire_props_below_overrides(q, p, &w);
+            let carried = match below.csa.as_ref().map(|c| &c.value) {
+                Some(Csa::Mm2(s)) => csa_short_of(*s, current).is_none(),
+                _ => false,
+            };
+            let at = w.override_sources.csa.unwrap_or(w.id);
+            let mm2 = |c: &Csa| csa_text(c).map(|t| format!("{t} mm²")).unwrap_or_default();
+            let size_text = mm2(&Csa::Mm2(size));
+            let needed_text = mm2(&needed);
+            let tag = q
+                .get::<DeviceTag>(device)
+                .as_ref()
+                .as_ref()
+                .map(|t| t.short())
+                .unwrap_or_else(|| "?".to_owned());
+            let wire = wire_text(q, &w);
+            let value = if carried {
+                serde_json::Value::Null
+            } else {
+                serde_json::to_value(&needed).unwrap_or_default()
+            };
+            out.push(
+                worded(
+                    Finding::new(
+                        &CSA_BELOW_PROTECTION,
+                        [Target::new(Kind::Connection, at)],
+                        "csa",
+                        wire.clone(),
+                        String::new(),
+                    )
+                    .arg("wire", wire)
+                    .arg("size", size_text)
+                    .arg("needed", needed_text)
+                    .arg("current", current.to_string())
+                    .arg("device", tag),
+                )
+                .with_fix(QuickFix {
+                    label: "Take the proposed size".to_owned(),
+                    key: Some("fix-take-proposed-size"),
+                    command: "fields.set".to_owned(),
+                    params: serde_json::json!({
+                        "kind": "connection",
+                        "targets": [at.to_string()],
+                        "path": "overrides.csa",
+                        "value": value,
+                    }),
+                }),
             );
         }
         out

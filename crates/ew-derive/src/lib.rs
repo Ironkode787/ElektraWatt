@@ -239,11 +239,11 @@ pub use valve_cells::{
 };
 pub use wire_profile::{
     Attrs, ColourProfile, ProfileKey, ProfileRow, ProfileRowFor, SizeProfile, WireDefaultProps,
-    WireProfileNotes, WireProfiles, WireProfilesQ, current_table_basis,
+    WireProfileNotes, WireProfiles, WireProfilesQ, csa_short_of, current_table_basis,
 };
 pub use wire_props::{
     ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap,
-    WirePropsOf, pick, wire_props_below_overrides,
+    WirePropsOf, pick, unfed_protection, wire_props_below_overrides, wire_rating,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 

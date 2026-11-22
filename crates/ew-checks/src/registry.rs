@@ -148,6 +148,7 @@ static RULES: &[&dyn Rule] = &[
     &shipped::pot::RedundantOverride,
     &shipped::pot::TwoPotentialNames,
     &shipped::pot::LoadNotReturned,
+    &shipped::pot::CsaBelowProtection,
     &shipped::process::ProcessTag,
     &shipped::plc_exchange::OpenInstrumentTag,
     &shipped::rds::DesignationDoesNotParse,

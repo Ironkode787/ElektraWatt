@@ -2289,6 +2289,11 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("colour profile '", Some("'"), key!("chip-via-colour-profile")),
     ("size profile '", Some("'"), key!("chip-via-size-profile")),
     ("class ", Some(""), key!("chip-via-class")),
+    (
+        "no supply found upstream of ",
+        Some(", so its rating is not used"),
+        key!("chip-via-no-supply-upstream"),
+    ),
     ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
     // A tube's medium and tube.
     (
@@ -2378,6 +2383,10 @@ pub fn chip_word(p: &Provenance) -> &'static str {
             strings::text(key!("chip-word-page"))
         }
         Provenance::Inherited { .. } => strings::text(key!("chip-word-inherited")),
+        // A size that leaves a protective device's rating unread for want of a supply says so where it shows.
+        Provenance::Derived { via } if via.contains("no supply found upstream of ") => {
+            strings::text(key!("chip-word-no-supply"))
+        }
         // A wire property names the level of the chain it comes from (FT-1651).
         Provenance::Derived { via } if via.contains(" profile '") => strings::text(key!("chip-word-profile")),
         Provenance::Derived { via } if via.starts_with("potential definition ") => {

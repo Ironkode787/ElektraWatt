@@ -997,6 +997,10 @@ rule-ew-pot-021 = { $cp_shared ->
     .title = Belasting niet teruggevoerd
     .hint = Verbind de retourzijde van de belasting met de retourgeleider van de voeding (0 V, N), of met de retourpin van de module.
 
+rule-ew-pot-022 = Draad { WORD($wire) } heeft zijn doorsnede { DECIMAL($size) } met de hand ingesteld, kleiner dan de { DECIMAL($needed) } die de nominale stroom van { DECIMAL($current) } A van { WORD($device) } volgens de stroomtabel vraagt (IEC 60204-1 tabel 6, methode B2). Neem de voorgestelde doorsnede.
+    .title = Doorsnede kleiner dan de beveiliging vraagt
+    .hint = Neem de voorgestelde doorsnede of een grotere, of beveilig de draad met een apparaat van een lagere nominale stroom.
+
 rule-ew-rds-001 = { WORD($device) } is geen geldige IEC 81346-aanduiding: { $reason ->
         [empty] lege referentieaanduiding
         [prefix] het voorteken ontbreekt (zoals '-' of '+')
@@ -1250,6 +1254,7 @@ rule-ew-imp-114 =
     .hint = Pas de tekststijl toe die de slotsoort noemt.
 
 # De labels van de snelle oplossingen (FT-1482, ID-1457), per sleutel (`QuickFix::key`).
+fix-take-proposed-size = De voorgestelde doorsnede nemen
 fix-drop-override = overschrijving verwijderen
 fix-anchor-graphics-centre = anker op het midden van de grafische elementen
 fix-renumber-newer = De nieuwere hernummeren

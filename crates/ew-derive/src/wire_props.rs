@@ -389,6 +389,84 @@ fn potentials_of_functions(q: &Q, functions: impl IntoIterator<Item = Id<Functio
     potentials
 }
 
+/// The rating a wire's size must carry (FT-2055): for a wire of its class, its potential's protecting device and
+/// rated current; for a PE wire, the highest rating at its two ends (the potentials of each end's function and
+/// [`EndRating`] of its device or strip), as the PE rule reads the class there. `None` without a rated device.
+fn rating(
+    q: &Q,
+    wire: &PhysicalWire,
+    key: PotentialId,
+    rule: SizeRule,
+) -> Option<(Id<Device>, ew_units::Dec3)> {
+    match rule {
+        SizeRule::Class => protection(q, key),
+        SizeRule::PeHighestAtEnds => wire
+            .ends
+            .iter()
+            .filter(|e| e.kind == EndKind::Device)
+            .flat_map(|e| {
+                let own = potentials_of_functions(q, [e.cp.function])
+                    .into_iter()
+                    .filter_map(|p| protection(q, p).map(|(d, c)| (c, d)));
+                let scope = q
+                    .functions()
+                    .get(e.cp.function)
+                    .and_then(|f| f.device)
+                    .and_then(|d| {
+                        q.devices().get(d).map(|dev| match &dev.aspects.terminal {
+                            Some(t) => EndScope::Strip(t.strip),
+                            None => EndScope::Device(d),
+                        })
+                    });
+                own.chain(scope.and_then(|s| *q.get_value_part::<EndRating>(s)))
+                    .collect::<Vec<_>>()
+            })
+            .max()
+            .map(|(c, d)| (d, c)),
+        SizeRule::Bond | SizeRule::Rating { .. } => None,
+    }
+}
+
+/// The protecting device of `wire` (a physical wire of the potential `key`) and its rated current, as the wire's size
+/// reads them ([`rating`]: the potential's for a wire of its class, the highest at its ends for a PE wire); `None` for
+/// a bond wire and without a rated device. EW-POT-022 holds a size set by hand against it.
+pub fn wire_rating(q: &Q, key: PotentialId, wire: &PhysicalWire) -> Option<(Id<Device>, ew_units::Dec3)> {
+    if wire.bond.is_some() {
+        return None;
+    }
+    let row = q.get_value_part::<ProfileRowFor>(ProfileKey::new(&attrs_of(q, key), own_class(q, key)));
+    let rule = if row.class == CircuitClass::Pe {
+        SizeRule::PeHighestAtEnds
+    } else {
+        SizeRule::Class
+    };
+    rating(q, wire, key, rule)
+}
+
+/// The protective device at an end of the connection `conn` whose rating no size takes because no supply feeds its
+/// potential (doc 08 §4.2): a function of a protective device (its FnDef's category) whose device has a rated current,
+/// ending the connection on a potential the flow does not reach. Properties says so on the wire's Cross-section row;
+/// `None` otherwise.
+pub fn unfed_protection(q: &Q, conn: Id<Connection>) -> Option<Id<Device>> {
+    let c = q.connections().get(conn)?;
+    [&c.a, &c.b].into_iter().find_map(|end| {
+        let at = EndpointKey::of(end)?;
+        let EndpointKey::Cp(f, _) = at else {
+            return None;
+        };
+        if !q.get::<crate::FunctionLinksOf>(f).protection {
+            return None;
+        }
+        let device = q.functions().get(f)?.device?;
+        crate::part_text::rated_current(q, device)?;
+        let potential = potential_id_at(q, at)?;
+        let reached = (*q.get::<crate::PotentialFlow>(potential))
+            .as_ref()
+            .is_some_and(|flow| flow.distance.is_some());
+        (!reached).then_some(device)
+    })
+}
+
 /// The reads shared by the wires of one query.
 struct Ctx<'a> {
     q: &'a Q,
@@ -525,45 +603,6 @@ impl Ctx<'_> {
         highest(wire.ends.iter().flat_map(|e| self.end_classes(e)))
     }
 
-    /// The rating a wire's size must carry (FT-2055): for a wire of its class, its potential's protecting device and
-    /// rated current; for a PE wire, the highest rating at its two ends (the potentials of each end's function and
-    /// [`EndRating`] of its device or strip), as the PE rule reads the class there. `None` without a rated device.
-    fn rating(
-        &self,
-        wire: &PhysicalWire,
-        key: PotentialId,
-        rule: SizeRule,
-    ) -> Option<(Id<Device>, ew_units::Dec3)> {
-        let q = self.q;
-        match rule {
-            SizeRule::Class => protection(q, key),
-            SizeRule::PeHighestAtEnds => wire
-                .ends
-                .iter()
-                .filter(|e| e.kind == EndKind::Device)
-                .flat_map(|e| {
-                    let own = potentials_of_functions(q, [e.cp.function])
-                        .into_iter()
-                        .filter_map(|p| protection(q, p).map(|(d, c)| (c, d)));
-                    let scope = q
-                        .functions()
-                        .get(e.cp.function)
-                        .and_then(|f| f.device)
-                        .and_then(|d| {
-                            q.devices().get(d).map(|dev| match &dev.aspects.terminal {
-                                Some(t) => EndScope::Strip(t.strip),
-                                None => EndScope::Device(d),
-                            })
-                        });
-                    own.chain(scope.and_then(|s| *q.get_value_part::<EndRating>(s)))
-                        .collect::<Vec<_>>()
-                })
-                .max()
-                .map(|(c, d)| (d, c)),
-            SizeRule::Bond | SizeRule::Rating { .. } => None,
-        }
-    }
-
     /// The effective properties of one wire of the potential `key`.
     fn props_of(&self, wire: &PhysicalWire, key: PotentialId) -> EffectiveProps {
         let q = self.q;
@@ -694,7 +733,7 @@ impl Ctx<'_> {
             _ => None,
         };
         let raised = size.and_then(|size| {
-            let (device, current) = self.rating(wire, key, rule)?;
+            let (device, current) = rating(q, wire, key, rule)?;
             let (table, csa) = csa_raised(size, current)?;
             Some(Prov::new(
                 csa,
