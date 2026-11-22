@@ -115,6 +115,18 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
+        // The Surface row on show whatever the pane held: the pane shown and its filter cleared (a persona run's
+        // filter "scale" hid the row, and the command did nothing he could see).
+        let out = self.dispatch("props.show", &json!({"on": true}));
+        if out != Outcome::Done {
+            return out;
+        }
+        if !self.properties_filter().is_empty() {
+            let out = self.dispatch("props.filter", &json!({"text": ""}));
+            if out != Outcome::Done {
+                return out;
+            }
+        }
         self.dispatch("props.edit", &json!({"row": "page/derived.surface"}))
     }
 

@@ -22,7 +22,7 @@ the parts list and the enclosure legend read it from there.
    shows its tag where the tag fits inside it, and a numbered balloon where it does not (a terminal, a small part).
    A new location, the enclosure, and the plate on the page with its legend page are three steps of Undo. Another
    plate goes on the page through the page's **Surface** row in Properties, or **Mounting plate…** in the menu of
-   Enclosure's arrow.
+   Enclosure's arrow or the command search, which opens that row whatever Properties showed.
 
    A location that has its enclosure already (made from another page) is not made twice: with that location
    chosen, the dialog's button reads **Draw -UC1 of +CAB1 on this page** and puts its mounting plate on the page.
