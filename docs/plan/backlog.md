@@ -75,6 +75,8 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### The page's drawing
 
+- FT-2135 `ew-commands, ew-viewmodel, ew-ui`: Moving symbols to another page loses their wires to what stays behind. A persona run cut a strip of twelve terminals, wired to sensors, a button and a lamp, and pasted it on a page of its own: a cut and its paste bring the same terminals back (doc 06 §3.6), but the fourteen wires went with the cut, and the devices on the first page stood unwired. What a draughtsman expects is a move: Move to page… for a selection, in which each wire that would cross pages becomes a pair of interruption points named by its potential (the source where the wire left, the target at the moved pin), listed in a preview before anything changes. It is the cross-page move of doc 06 §3.4 that `rep.move` rejects since v0 (FR-CON-043), and FT-2134 (a card's Move to page) waits for the same. Design first: the names of the points, where the marks stand on both pages, what a wire with a junction does, one undo step. Planned for the third candidate of 0.3.5.
+
 
 #### A command's words
 
