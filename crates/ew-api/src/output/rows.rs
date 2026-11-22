@@ -11,7 +11,8 @@
 //! `ew export wires` is `expected/csv/wires.csv` byte for byte. Without `--block` the block is the project's
 //! page-oriented block of the kind with the lowest first folio (ties by ID), the rule of `ew export cables|bom`.
 //!
-//! **Naming a block** ([`find_block`]): its ID (any UUID spelling), else its first folio (`908`). **Terminals**: the
+//! **Naming a block** ([`find_block`]): its ID (any UUID spelling), else its first folio (`908`), else the printed
+//! folio of one of its pages (a legend list's `902.1`). **Terminals**: the
 //! rows of each terminal-diagram block are split by strip (a data row's first row-ID component is its strip; a heading
 //! row goes with the strip of the next data row); with `--strip <tag>` the output is that strip's rows alone,
 //! without it every strip of the blocks in block order, each strip's rows after a
@@ -105,7 +106,7 @@ pub struct RowsCsv {
 pub enum RowsError {
     /// The project has no page-oriented report block of the kind.
     NoBlock(&'static str),
-    /// No report block has this ID or first folio.
+    /// No report block has this ID, first folio or page folio.
     UnknownBlock(String),
     /// More than one report block has this first folio (their IDs).
     AmbiguousBlock(String, Vec<String>),
@@ -149,7 +150,7 @@ impl fmt::Display for RowsError {
             RowsError::NoBlock(kind) => write!(f, "the project has no report block of kind `{kind}`"),
             RowsError::UnknownBlock(name) => write!(
                 f,
-                "no report block `{name}` (name a block by its ID or its first folio)"
+                "no report block `{name}` (name a block by its ID, its first folio or the folio of one of its pages)"
             ),
             RowsError::AmbiguousBlock(name, ids) => write!(
                 f,
@@ -205,7 +206,8 @@ pub fn block_kind(b: &ReportBlock) -> &'static str {
     }
 }
 
-/// The report block `name` names: its ID (any UUID spelling), else its first folio.
+/// The report block `name` names: its ID (any UUID spelling), else its first folio, else the printed folio of one of
+/// its pages (`902.1`).
 ///
 /// # Errors
 ///
@@ -223,8 +225,16 @@ pub fn find_block(q: &Q, name: &str) -> Result<(Id<ReportBlock>, Arc<ReportBlock
         .filter(|(_, b)| b.first_folio.is_some_and(|n| n.to_string() == name))
         .map(|(id, b)| (id, Arc::clone(b)))
         .collect();
+    // A block whose pages follow another page (a legend list's 902.1, doc 12 §5.4) is named by a printed folio.
+    let printed = || match q.get::<PageOrder>(()).by_folio(name).map(|e| e.page) {
+        Some(PageRef::Generated { block, .. }) => blocks
+            .get(block)
+            .map(|b| (block, Arc::clone(b)))
+            .ok_or_else(|| RowsError::UnknownBlock(name.to_owned())),
+        _ => Err(RowsError::UnknownBlock(name.to_owned())),
+    };
     match matching.as_slice() {
-        [] => Err(RowsError::UnknownBlock(name.to_owned())),
+        [] => printed(),
         [one] => Ok(one.clone()),
         many => Err(RowsError::AmbiguousBlock(
             name.to_owned(),

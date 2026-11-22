@@ -676,9 +676,11 @@ page block of kind `enclosure_legend` that names its layout page (`ReportBlock.l
 §2.2) lists the surface that page's view shows, and is a list like any other: it runs on over as many pages as its rows
 need, on the set's own frame (09 §3.8), with its own printed columns and caption (made with position, tag, quantity,
 part number and description; the manufacturer and the unit are among the others List columns… offers), in the
-project's language, in the contents and the PDF outline, and `ew export report --block <its ID>` (or the layout page's
-number, 902, its `first_folio`) writes it as CSV or XLSX. Its pages follow the layout page, 902.1, 902.2 … after 902 (09 §3.2 says
-where those are taken). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
+project's language, in the contents and the PDF outline, and `ew export report --block <its ID>` (or its printed
+folio, 902.1, or the layout page's number, 902, its `first_folio`) writes it as CSV or XLSX. Its pages follow the
+layout page, 902.1, 902.2 … after 902 (09 §3.2 says where those are taken). Its Properties show the layout page it
+follows (Layout page) and not its first folio and section, which it keeps for older builds and this build does not
+read (FT-2032). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
 `Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it). Deleting the layout
 page deletes its legend list.
 - **Enclosure…** makes the legend page with the view: the plate drawn on the layout page and its legend page are one

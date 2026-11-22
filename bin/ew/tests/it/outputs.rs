@@ -355,7 +355,7 @@ fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: no report block `777` (name a block by its ID or its first folio)\n"
+        "error: no report block `777` (name a block by its ID, its first folio or the folio of one of its pages)\n"
     );
 }
 

@@ -276,3 +276,54 @@ fn a_legend_of_sixty_devices_runs_on_over_its_pages_with_every_text_whole() {
         assert!(printed.contains(&description), "{description}");
     }
 }
+
+/// A legend list is named by its printed folio, and its Properties name its layout page, not the first folio and
+/// section that nothing reads (FT-2032).
+#[test]
+fn a_legend_list_is_named_by_its_printed_folio_and_shows_its_layout_page() {
+    let s = common::sample();
+    let q = s.query();
+    let (block, layout) = q
+        .report_blocks()
+        .iter()
+        .find_map(|(id, b)| b.layout_page.map(|p| (id, p)))
+        .expect("the sample's legend list");
+    let order = q.get::<PageOrder>(());
+    let printed = order
+        .entry(PageRef::Generated { block, index: 0 })
+        .map(|e| e.folio.clone())
+        .expect("the legend's first page");
+    let layout_folio = order
+        .entry(PageRef::Drawn(layout))
+        .map(|e| e.folio.clone())
+        .expect("the layout page");
+    assert_ne!(printed, layout_folio, "the legend's own folio, not its layout's");
+    let (found, _) = ew_api::output::find_block(&q, &printed).expect("a printed folio names its block");
+    assert_eq!(found, block);
+    drop(q);
+    let sheet = s.property_sheet(&[block.as_uuid()]);
+    let keys: Vec<&str> = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .map(|r| r.key.as_str())
+        .collect();
+    let layout_row = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == "report_block/layout_page")
+        .unwrap_or_else(|| panic!("no layout page row: {keys:?}"));
+    match &layout_row.value {
+        ew_api::output::RowValue::One { text, .. } => {
+            assert!(
+                text.starts_with(&layout_folio),
+                "the layout page by its folio: {text}"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    for unread in ["report_block/first_folio", "report_block/section"] {
+        assert!(!keys.contains(&unread), "{unread}: {keys:?}");
+    }
+}

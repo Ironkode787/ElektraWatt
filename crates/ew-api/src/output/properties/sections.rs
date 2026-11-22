@@ -548,6 +548,16 @@ impl Session {
                     .collect();
                 in_words(&format!("report_block/added_rows[{i}].cells"), cells.join("; "));
             }
+            // A legend list's pages follow its layout page, which its row names (doc 12 §5.4): the first folio and
+            // the section it keeps for older builds are read by nothing (FT-2032).
+            if b.layout_page.is_some() {
+                built.retain(|r| {
+                    !matches!(
+                        r.row.key.as_str(),
+                        "report_block/first_folio" | "report_block/section"
+                    )
+                });
+            }
         }
         // A panel layout page's Surface view rows.
         if kind == Kind::Page
