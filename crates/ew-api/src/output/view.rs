@@ -1095,8 +1095,9 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
             .filter_map(|cp| texts.iter().find(|t| t.idx == cp.idx))
             .map(|t| {
                 let signs = !t.text.chars().any(char::is_alphanumeric);
-                let reach = if t.cell.is_some() {
-                    // Level in a card's cell: its line and the function text's under it.
+                let reach = if turned && t.cell.is_some() {
+                    // Level in a card's cell: its line and the function text's under it. A card's box turned a
+                    // quarter prints no cells (the scene's `cell_pins`), so its pins take the rule of any box.
                     2 * line
                 } else if turned && signs {
                     line
