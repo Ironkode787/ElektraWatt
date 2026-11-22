@@ -54,7 +54,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 #### Properties and the title block's words
 
 - FT-2065 `docs/book`: The Project rows' help says what the program does with the value, its unit and an example (FT-1809); the other kinds' rows still often repeat their label (a device's Tag counter, a page's Scale and Grid step, a report block's Title, a terminal strip's Label mode, the shared Key and Value): do the same for them, checking each against the code that reads it.
-- FT-1939 `ew-viewmodel`: A device's Properties shows a row labelled `$v` under Identity (seen in a Dutch window on a breaker of the sample): a record's own key printed as a row. Leave such a member out of Properties, or name it in words where a person may read it.
 
 #### The layout page
 

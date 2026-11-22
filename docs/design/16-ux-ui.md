@@ -1034,7 +1034,8 @@ selection generation; a page switch puts the Pages cursor on the current page.
   ("102-B6" for -102G1), finding chips.
 - **Categories:** Identity, Part, Electrical, Connection points, Texts, Structure, Placement, PLC, Manufacturing,
   user properties, Extra (unknown fields, read-only). They come from `ew-schema` metadata (type, unit, enum options,
-  Fluent label key; FR-UI-009). Collapse states persist per entity kind.
+  Fluent label key; FR-UI-009). Collapse states persist per entity kind. A record's own bookkeeping, the members
+  whose name starts with `$` (its kind `$k`, its schema version `$v`), is no row (FT-1939).
 
 *As built.* The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected or when the selection was made on another page (the selection survives page switches, §4.6; the pane shows it again on returning to its page). The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members yet. Labels are English from `ew_viewmodel::strings` (an exact entry, else the humanised last path segment); Fluent keys come with WP-S2.08. Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
 

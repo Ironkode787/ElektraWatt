@@ -255,6 +255,29 @@ fn page(s: &Session, folio: &str) -> ew_derive::ew_ids::Uuid {
     s.resolve_reference(&format!("folio:{folio}")).unwrap()
 }
 
+/// A record's own bookkeeping (`$k`, `$v`) is no row of Properties (FT-1939: a breaker showed a row `$v`).
+#[test]
+fn a_records_bookkeeping_members_are_no_rows() {
+    for k in catalogue_kinds() {
+        let catalogue = field_catalogue(k.name()).unwrap();
+        let own: Vec<&str> = catalogue
+            .iter()
+            .map(|f| f.path.as_str())
+            .filter(|p| p.starts_with('$'))
+            .collect();
+        assert!(own.is_empty(), "{}: {own:?}", k.name());
+    }
+    let s = crate::common::sample();
+    let sheet = s.property_sheet(&[main_rep(&s, device(&s, "-101F1"))]);
+    let keys: Vec<&str> = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .map(|r| r.key.as_str())
+        .collect();
+    assert!(keys.iter().all(|k| !k.starts_with('$')), "{keys:?}");
+}
+
 #[test]
 fn a_representation_reaches_three_sections_with_derived_rows() {
     let s = crate::common::sample();
@@ -1153,7 +1176,6 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
     assert_eq!(
         keys,
         [
-            "connection/$v",
             "connection/id",
             "connection/line_kind",
             "connection/derived.medium",

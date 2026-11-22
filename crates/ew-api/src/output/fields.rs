@@ -849,7 +849,8 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
         return out;
     };
     for (member, node) in props {
-        if member == "$k" {
+        // The record's own bookkeeping (`$k` its kind, `$v` its schema version) is no property (FT-1939).
+        if member.starts_with('$') {
             continue;
         }
         let ty = node_type(schema, node, 1);

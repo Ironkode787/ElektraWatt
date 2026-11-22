@@ -217,7 +217,7 @@ impl SectionCx<'_, '_> {
             if let Some(Value::Object(m)) = obj {
                 names.extend(
                     m.keys()
-                        .filter(|k| !listed.contains(&k.as_str()) && k.as_str() != "$k")
+                        .filter(|k| !listed.contains(&k.as_str()) && !k.starts_with('$'))
                         .cloned(),
                 );
             }
