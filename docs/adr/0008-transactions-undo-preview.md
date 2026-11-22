@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes), 2026-10-25 (amendment 3's note as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes), 2026-10-25 (amendment 3's note as built), 2026-11-22 (amendment 6, the supply's members) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -66,7 +66,7 @@
 ## Amendments
 
 Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21, amendment 4 on 2026-10-22, amendment 5 on
-2026-10-23. The decision
+2026-10-23, amendment 6 on 2026-11-22. The decision
 text above is unchanged;
 these entries refine it.
 
@@ -187,6 +187,15 @@ these entries refine it.
      finding (EW-CORE-015), not a refused replay.
    - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one
      named exception `Q::logo_asset` until FT-382 makes the restriction mechanical).
+6. **The supply's members are edited as amendment 3 edits a settings member** (2026-11-22, the 0.3.5 fix round, FT-1928;
+   [schematic editor](../design/06-schematic-editor.md) §3.1). `project.supply.set` edited only the supply's
+   `origin.source`, because its electrical members change what every page prints (the cover page's Supply line, the
+   title blocks) and waited for amendment 3's form. They take it: one member per command (`phases`, `neutral`, `pe`,
+   `earthing`, `u_nom`, `frequency`, `origin.upstream_rating`, `origin.ik_max`, `origin.source`), validated by the
+   supply type and then in words (one to three phases, a nominal voltage above 0, a frequency of 0 for DC or above, a
+   current above 0), `Cost::Bulk`, previewed, one undo step, exposure `Edit`; only the project record changes. A schematic
+   project without a supply (a new one's) takes one of one phase with N and PE, 230 V, 50 Hz, its earthing unset, with
+   the first member set; a basic or macro project, which has none (FR-PRJ-026), is refused.
 
 ## Consequences
 

@@ -7,7 +7,7 @@ use super::*;
 
 pub(super) fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
-        // The command refuses: a member that is not settable in v0.
+        // A member set to 1: one phase is taken, any other member or a whole group is refused.
         0 => {
             let path = *rng.pick(&["phases", "u_nom", "earthing", "origin", "origin.ik_max", "bogus"])?;
             Some(Step::cmd("project.supply.set", json!({"path": path, "value": 1})))

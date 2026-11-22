@@ -128,6 +128,19 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
             node.ty
         );
     }
+    // Each member `project.supply.set` takes is its row's route (FT-1928).
+    for path in ew_commands::commands::SETTABLE_SUPPLY {
+        let node = project
+            .iter()
+            .find(|f| f.path == format!("supply.{path}"))
+            .unwrap_or_else(|| panic!("supply.{path}: no catalogue node"));
+        assert_eq!(
+            node.route,
+            EditRoute::SupplyMember {
+                path: (*path).to_owned()
+            }
+        );
+    }
     let checks = project.iter().find(|f| f.path == "settings.checks").unwrap();
     assert!(matches!(
         &checks.route,
@@ -174,6 +187,7 @@ fn the_catalogue_follows_the_registry() {
             match &b.route {
                 EditRoute::FieldsSet { .. }
                 | EditRoute::SettingsMember { .. }
+                | EditRoute::SupplyMember { .. }
                 | EditRoute::ReadOnly(FieldReadOnly::Command { .. } | FieldReadOnly::HumanOnly { .. }) => {
                     assert_eq!(
                         h.route,

@@ -704,14 +704,26 @@ fn attach_moves_the_counter_of_a_child_tag_with_its_position() {
 // ---------------------------------------------------------------------------------------------------------
 // project.supply.set
 
+/// `project.supply.set` of `path` to `value`: Bulk, so previewed and committed (ADR-0008 amendment 6).
+fn supply(e: &mut Engine, path: &str, value: Value) -> Result<Receipt, CmdError> {
+    let p = e.preview(&SetProjectSupply {
+        path: path.into(),
+        value,
+    })?;
+    e.commit(p)
+}
+
 #[test]
 fn supply_set_edits_one_member() {
     let mut e = engine(plc_model());
-    e.execute(&SetProjectSupply {
-        path: "origin.source".into(),
-        value: json!(XREF),
-    })
-    .expect("origin.source");
+    assert!(matches!(
+        e.execute(&SetProjectSupply {
+            path: "origin.source".into(),
+            value: json!(XREF),
+        }),
+        Err(CmdError::NeedsPreview { .. })
+    ));
+    supply(&mut e, "origin.source", json!(XREF)).expect("origin.source");
     let origin = e
         .model()
         .project()
@@ -721,37 +733,63 @@ fn supply_set_edits_one_member() {
         .expect("origin");
     assert_eq!(origin.source, Some(XREF));
     let c = "project.supply.set";
-    let set = |path: &str, value: Value| SetProjectSupply {
-        path: path.into(),
-        value,
-    };
-    assert_eq!(invalid_path(e.execute(&set("bogus", json!(1))), c), "/path");
-    // The electrical members wait for an ADR-0008 amendment
-    for path in ["phases", "u_nom", "earthing", "origin", "origin.ik_max"] {
+    assert_eq!(invalid_path(supply(&mut e, "bogus", json!(1)), c), "/path");
+    // A whole member group is no member.
+    assert_eq!(invalid_path(supply(&mut e, "origin", json!({})), c), "/path");
+    // The electrical members (ADR-0008 amendment 6, FT-1928), each set alone.
+    for (path, value) in [
+        ("phases", json!(3)),
+        ("u_nom", json!("400")),
+        ("frequency", json!("60")),
+        ("earthing", json!("tn_s")),
+        ("origin.ik_max", json!("10")),
+    ] {
+        supply(&mut e, path, value.clone()).unwrap_or_else(|err| panic!("{path}: {err:?}"));
+    }
+    let s = e.model().project().supply.clone().expect("the supply");
+    assert_eq!((s.phases, s.u_nom, s.frequency), (3, dec3("400"), dec3("60")));
+    assert_eq!(s.origin.and_then(|o| o.ik_max), Some(dec3("10")));
+    // What a supply cannot be is refused at the value.
+    for (path, value) in [
+        ("phases", json!(0)),
+        ("phases", json!(4)),
+        ("u_nom", json!("0")),
+        ("frequency", json!("-50")),
+        ("origin.upstream_rating", json!("0")),
+    ] {
         assert_eq!(
-            invalid_path(e.execute(&set(path, json!(1))), c),
-            "/path",
-            "{path}"
+            invalid_path(supply(&mut e, path, value.clone()), c),
+            "/value",
+            "{path} {value}"
         );
     }
     assert_eq!(
-        invalid_path(e.execute(&set("origin.source", json!(5))), c),
+        invalid_path(supply(&mut e, "origin.source", json!(5)), c),
         "/value"
     );
-    not_found(e.execute(&set("origin.source", json!(id::<ExternalRef>(0xdead)))));
-    e.execute(&set("origin.source", Value::Null))
-        .expect("null removes it");
+    not_found(supply(&mut e, "origin.source", json!(id::<ExternalRef>(0xdead))));
+    supply(&mut e, "origin.source", Value::Null).expect("null removes it");
     let origin = e.model().project().supply.as_ref().and_then(|s| s.origin.clone());
     assert_eq!(origin.and_then(|o| o.source), None);
 }
 
+/// A schematic project without a supply (a new one's) takes one with its first member set (FT-1928); a basic project
+/// has none to set.
 #[test]
-fn supply_set_is_rejected_without_a_supply() {
+fn supply_set_makes_a_new_projects_supply_and_is_rejected_on_a_basic_one() {
     let mut e = engine(mini_model());
-    rejected(e.execute(&SetProjectSupply {
-        path: "origin.source".into(),
-        value: json!(XREF),
-    }));
+    assert_eq!(e.model().project().supply, None, "the fixture has no supply");
+    supply(&mut e, "phases", json!(3)).expect("the first member makes the supply");
+    let s = e.model().project().supply.clone().expect("the supply");
+    assert_eq!(
+        (s.phases, s.neutral, s.pe, s.u_nom, s.frequency),
+        (3, true, true, dec3("230"), dec3("50"))
+    );
+    assert_eq!(s.earthing, None, "unset while unverified");
+    let (mut p, records, _) = mini_project_parts();
+    p.kind = ew_schema::ProjectKind::Basic;
+    let mut basic = engine(Model::from_records(p, records, library()).expect("a basic project"));
+    rejected(supply(&mut basic, "phases", json!(3)));
 }
 
 // ---------------------------------------------------------------------------------------------------------

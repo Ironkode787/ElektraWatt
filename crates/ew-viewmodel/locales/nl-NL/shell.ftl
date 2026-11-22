@@ -2146,6 +2146,10 @@ refusal-report-block-form-not-given = `form` is { $p0 }, en dat is geen van de `
 refusal-report-block-not-form = geen bibliotheekdocument van de soort form
 # project.supply.set.
 refusal-supply-none = het project heeft geen voeding (een basis- of macroproject); er is niets in te stellen
+refusal-supply-phases = een voeding heeft één, twee of drie fasen
+refusal-supply-voltage = de nominale spanning van de voeding moet boven 0 V liggen, zoals 230 of 400
+refusal-supply-frequency = de frequentie van de voeding is 0 voor gelijkspanning of een aantal hertz, zoals 50
+refusal-supply-current = de voorbeveiliging en de kortsluitstroom moeten boven 0 liggen, zoals 63 A of 10 kA
 refusal-supply-member-unknown = `{ $p0 }` is geen instelbaar veld van de voeding; instelbaar: { $p1 }
 # terminal.add, terminal.insert, terminal.move and conductor.add.
 refusal-terminal-add-none = geef ten minste één klem om toe te voegen

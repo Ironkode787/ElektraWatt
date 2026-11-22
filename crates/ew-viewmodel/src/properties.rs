@@ -1377,7 +1377,10 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
         return None;
     }
     match &row.route {
-        EditRoute::FieldsSet { .. } | EditRoute::SettingsMember { .. } | EditRoute::Command { .. } => None,
+        EditRoute::FieldsSet { .. }
+        | EditRoute::SettingsMember { .. }
+        | EditRoute::SupplyMember { .. }
+        | EditRoute::Command { .. } => None,
         EditRoute::ReadOnly(reason) => Some(reason_text(reason)),
     }
 }
@@ -1421,11 +1424,12 @@ pub fn reason_text(reason: &FieldReadOnly) -> String {
     }
 }
 
-/// The settable member of a route: the `fields.set` path, or the settings member's row path.
+/// The settable member of a route: the `fields.set` path, or the settings or supply member's row path.
 pub fn member_path(route: &EditRoute) -> Option<String> {
     match route {
         EditRoute::FieldsSet { path, .. } => Some(path.clone()),
         EditRoute::SettingsMember { member } => Some(format!("settings.{member}")),
+        EditRoute::SupplyMember { path } => Some(format!("supply.{path}")),
         // A layout row has no settable member; `Session::layout_edit` compiles its text.
         EditRoute::Command { .. } | EditRoute::ReadOnly(_) => None,
     }

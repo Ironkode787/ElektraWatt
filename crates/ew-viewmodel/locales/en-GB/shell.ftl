@@ -2205,6 +2205,10 @@ refusal-report-block-form-not-given = `form` is { $p0 }, which none of `form_cop
 refusal-report-block-not-form = not a library document of kind form
 # project.supply.set.
 refusal-supply-none = the project has no supply (a basic or macro project); there is nothing to set
+refusal-supply-phases = a supply has one, two or three phases
+refusal-supply-voltage = the supply's nominal voltage must be above 0 V, such as 230 or 400
+refusal-supply-frequency = the supply's frequency is 0 for DC or a number of hertz, such as 50
+refusal-supply-current = the upstream rating and the short-circuit current must be above 0, such as 63 A or 10 kA
 refusal-supply-member-unknown = `{ $p0 }` is not a settable supply member; settable: { $p1 }
 # terminal.add, terminal.insert, terminal.move and conductor.add.
 refusal-terminal-add-none = give at least one terminal to add

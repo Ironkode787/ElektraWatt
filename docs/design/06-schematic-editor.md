@@ -353,9 +353,15 @@ gets the child tag scheme with its counter equal to its position); `device.link`
 from, to, kind; no self-link, no duplicate); `plc.config_project.create` (name unique, profile `id@version`,
 optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef on the
 channel's module or one of its descendants, or `null` to unbind; another channel on the same CP is unbound in the
-same transaction, FR-PLC-005); `project.supply.set` (v0: only `origin.source`; the electrical
-members wait for an ADR-0008 amendment that makes them Bulk with a preview; a project without a supply is
-refused); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
+same transaction, FR-PLC-005); `project.supply.set` (one member of the supply per command, Bulk with a preview,
+ADR-0008 amendment 6, FT-1928: its phases, neutral, protective earth, earthing system, nominal voltage, frequency,
+upstream rating, short-circuit current and the external reference it comes from; refused in words at `/value`: other
+than one to three phases, a nominal voltage of 0 V or less, a frequency below 0 (0 is DC), an upstream rating or a
+short-circuit current of 0 or less. A schematic project without a supply, a new one's, takes the supply of one phase
+with N and PE, 230 V, 50 Hz, its earthing unset, with the first member set, so that Properties, whose Project rows show
+the supply's members while it has none, can give a new project its supply; a basic or macro project has none and is
+refused, FR-PRJ-026. A new project is still made without one: a supply guessed at its creation would print on its
+cover page before the person chose it); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
 must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
 project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
 `assembly`, `plc_station`, `plc_module` (as a whole or member by member; a cover that the edit adds outside the
@@ -455,7 +461,7 @@ command reference are the exact form.
 | `device.link` (`LinkDevices`) | from, to, kind | Interactive | [11](11-fluid-power.md) §4.3; no self-link, no duplicate of the same kind |
 | `plc.config_project.create` (`CreatePlcConfigProject`) | name, profile (`id@version`), cpu? | Interactive | [10](10-plc-and-bus.md) §2.2; names unique; the command form of what `ew new` creates |
 | `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005) |
-| `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280) |
+| `project.supply.set` (`SetProjectSupply`) | path, value | Bulk | one member: `phases`, `neutral`, `pe`, `earthing`, `u_nom`, `frequency`, `origin.upstream_rating`, `origin.ik_max`, `origin.source` (ADR-0008 amendment 6, FT-1928); a schematic project without a supply takes one with its first member |
 | `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure |
 | `part.assign` (`AssignPart`) | devices, part, copies?, mode? (`append`, `replace_all`, `replace`), from?, qty? | Interactive; Bulk from 50 devices | [07](07-symbols-parts-macros.md) §3.3; embeds the closure it carries, reuses a held copy of the same hash, refuses another held version |
 | `library.update` (`UpdateLibraryCopies`) | copies, cp_maps? | Bulk | [07](07-symbols-parts-macros.md) §3.1, §4.5; replaces held copies in place, maps CPs and rewrites endpoints; refuses a connected CP left unmapped, a downgrade and a copy not held |

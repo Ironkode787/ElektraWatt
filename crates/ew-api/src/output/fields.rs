@@ -313,6 +313,11 @@ pub enum EditRoute {
         /// The settings member.
         member: String,
     },
+    /// `project.supply.set` with this member path of the supply (`phases`, `origin.ik_max`).
+    SupplyMember {
+        /// The supply's member path.
+        path: String,
+    },
     /// A layout row: its text compiles through `Session::layout_edit` into exactly this one command (`layout.move`,
     /// `layout.carrier.edit`, `page.surface_view.set`, …), never `fields.set`.
     Command {
@@ -360,6 +365,7 @@ impl EditRoute {
         match self {
             EditRoute::FieldsSet { path, .. } => format!("fields.set:{path}"),
             EditRoute::SettingsMember { member } => format!("settings:{member}"),
+            EditRoute::SupplyMember { path } => format!("supply:{path}"),
             EditRoute::Command { command } => format!("command:{command}"),
             EditRoute::ReadOnly(FieldReadOnly::Identity) => "read-only:identity".into(),
             EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. }) => "read-only:narrowed".into(),
@@ -716,7 +722,6 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     // A channel is bound by dragging its row onto a pin (the PLC panel), which runs `plc.bind_channel`.
     ("channel", "binding", "plc.bind_channel", None),
     ("device", "position", "assembly.attach", None),
-    ("project", "supply.origin.source", "project.supply.set", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
     // An external connection point's target is chosen when it is placed (the IP tool's external field); a placed
     // point is marked as where the supply comes in by `ip.supply_in` (FT-1699).
@@ -811,6 +816,19 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
             None,
             EditRoute::SettingsMember {
                 member: member.to_owned(),
+            },
+        );
+    }
+    // The members of `project.supply.set` (ADR-0008 amendment 6).
+    if kind == "project"
+        && let Some(member) = path.strip_prefix("supply.")
+        && ew_commands::commands::SETTABLE_SUPPLY.contains(&member)
+    {
+        return through(
+            "project.supply.set",
+            None,
+            EditRoute::SupplyMember {
+                path: member.to_owned(),
             },
         );
     }

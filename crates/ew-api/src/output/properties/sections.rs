@@ -162,7 +162,9 @@ impl SectionCx<'_, '_> {
             depth == 0 && self.kind == "device" && ew_commands::commands::ASPECTS.contains(&rpath);
         match spec.ty.inner() {
             FieldType::Group(children) => {
-                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) {
+                // The project's supply shows its members while it has none: setting one makes it (FT-1928).
+                let supply = self.kind == "project" && (rpath == "supply" || rpath.starts_with("supply."));
+                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply {
                     return;
                 }
                 if device_aspect && values.iter().any(Option::is_none) {
