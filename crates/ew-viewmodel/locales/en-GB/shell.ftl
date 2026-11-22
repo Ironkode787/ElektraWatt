@@ -8269,6 +8269,11 @@ arrange-routed = { $p0 } wires routed
 arrange-routed-one = 1 wire routed
 toast-arrange-applied = Arranged { $p0 }: { $p1 }, { $p2 }.
 toast-arrange-nothing = Nothing to arrange: the page is already arranged as well as the rules allow.
+arrange-blocked = Nothing to arrange: no plan was better than the page as it stands. { $p0 }
+arrange-blocked-symbol = { $p0 }: { $p1 }.
+arrange-blocked-unrouted = { $p0 } has no route: it is drawn as a dashed line.
+arrange-blocked-faults = { $p0 } faults stay on the page; Check project names them.
+arrange-blocked-faults-one = 1 fault stays on the page; Check project names it.
 toast-arrange-none-left = Nothing is left to apply: every change of this preview is unticked.
 
 # Doc 09 §3.8: Output ▸ List columns… and Rows of your own… of the list on show.

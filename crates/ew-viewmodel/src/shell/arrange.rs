@@ -70,12 +70,15 @@ impl ShellModel {
         };
         let Some(params) = plan.params.clone() else {
             self.props.card = None;
-            let why = if unticked.is_empty() {
-                key!("toast-arrange-nothing")
+            let why = in_the_way(session, &folio, &plan);
+            let text = if !unticked.is_empty() {
+                strings::text(key!("toast-arrange-none-left")).to_owned()
+            } else if why.is_empty() {
+                strings::text(key!("toast-arrange-nothing")).to_owned()
             } else {
-                key!("toast-arrange-none-left")
+                strings::format(key!("arrange-blocked"), &[&why.join(" ")])
             };
-            self.notify(strings::text(why).to_owned(), false);
+            self.notify(text, false);
             return Outcome::Done;
         };
         let card = arrange_card(session, &folio, scope, &plan, &unticked, &listed);
@@ -250,6 +253,52 @@ fn move_words(d: ew_api::routing::Pt) -> String {
     parts.join(", ")
 }
 
+/// The words of a symbol left against a rule: no better place on `side` of its host's pin.
+fn no_room(side: Side) -> strings::Key<'static> {
+    match side {
+        Side::Up => key!("arrange-no-room-up"),
+        Side::Down => key!("arrange-no-room-down"),
+        Side::Left => key!("arrange-no-room-left"),
+        Side::Right => key!("arrange-no-room-right"),
+    }
+}
+
+/// What stands in the way of a plan that changes nothing (doc 06a §4.9), one sentence each: the symbols left against a
+/// rule, the wires without a way (with what is in it, where the router found that), and the faults the page keeps;
+/// empty for a page that is in order.
+fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<String> {
+    let name = |id: Uuid| {
+        session
+            .symbol_name(id)
+            .unwrap_or_else(|| strings::text(key!("arrange-a-symbol")).to_owned())
+    };
+    let mut out: Vec<String> = plan
+        .left
+        .iter()
+        .map(|(id, side)| {
+            strings::format(
+                key!("arrange-blocked-symbol"),
+                &[&name(id.0), strings::text(no_room(*side))],
+            )
+        })
+        .collect();
+    out.extend(super::wiring::route_rows(session, folio, plan));
+    for w in &plan.plan.after.findings.unrouted {
+        if !plan.plan.unrouted.iter().any(|(x, _)| x == w) {
+            let wire = session
+                .connection_words(folio, w.0)
+                .map(|t| super::tools::rejected_words("", Some(&t)))
+                .unwrap_or_default();
+            out.push(strings::format(key!("arrange-blocked-unrouted"), &[&wire]));
+        }
+    }
+    let faults = plan.plan.after.faults;
+    if faults > 0 {
+        out.push(strings::format_count(count_key!("arrange-blocked-faults"), faults));
+    }
+    out
+}
+
 /// The card of `plan` on page `folio` (module documentation).
 fn arrange_card(
     session: &ew_api::Session,
@@ -346,16 +395,10 @@ fn arrange_card(
         }
     }
     for (id, side) in &plan.left {
-        let k = match side {
-            Side::Up => key!("arrange-no-room-up"),
-            Side::Down => key!("arrange-no-room-down"),
-            Side::Left => key!("arrange-no-room-left"),
-            Side::Right => key!("arrange-no-room-right"),
-        };
         left.push(ArrangeRow {
             id: id.0,
             name: name(id.0),
-            words: strings::text(k).to_owned(),
+            words: strings::text(no_room(*side)).to_owned(),
             ticked: false,
             kept: false,
         });

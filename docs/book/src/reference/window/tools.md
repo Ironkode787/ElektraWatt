@@ -306,7 +306,9 @@ apply: every change of this preview is unticked." Apply stores it in one step, a
 moved and what was routed ("Arranged folio 102: 4 symbols moved, 9 wires routed."); one Undo takes all of it back. In
 the history the step is called Arrange and route, or Route wires when no symbol moved. When the card closes, a page
 that was shown whole is shown whole again. When nothing would make the page better, it says "Nothing to arrange: the
-page is already arranged as well as the rules allow."
+page is already arranged as well as the rules allow." Where something stands in the way, it says "Nothing to arrange:
+no plan was better than the page as it stands." and names it: a symbol left against a rule, a wire without a route,
+the faults the page keeps.
 
 ## Interruption point
 

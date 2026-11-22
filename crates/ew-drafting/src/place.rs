@@ -12,7 +12,8 @@
 //! 3. **The rules** (§1.6). The parts a broken rule names go back with what hangs on them until [`rules_kept`] holds
 //!    (the rules read the parts and the nets alone).
 //! 4. **Routed and judged.** The arrangement is routed for real and measured. It is taken when the rules hold on the
-//!    routed page, no wire or text gains a finding, it has no more faults and (where it routes no more wires) no more
+//!    routed page, no wire or text gains a finding (where it routes more wires than Route's plan, a wire newly across a
+//!    text does not count), it has no more faults and (where it routes no more wires) no more
 //!    crossings than Route's plan, and it is better than Route's plan by the measure with the price of its moves added
 //!    ([`MOVE_PRICE`] for each part). Where the whole arrangement is not taken, its trees are tried one after another,
 //!    each kept when the page gets better with it; then the arrangement without one branch, and one branch alone.
@@ -264,7 +265,13 @@ fn arrange_try(
             return None;
         }
         let quality = measure(&after);
-        let (bad, texts) = route::worse(page, &before, &quality);
+        let (mut bad, texts) = route::worse(page, &before, &quality);
+        if quality.unrouted < baseline.unrouted {
+            // A plan that routes a wire Route's plan leaves without a way may lay another across a text (C4), as it may
+            // cross more wires: the dashed wire weighs more (§3.8). A new fault still holds it back.
+            let faulty = route::wires_with_faults(&quality);
+            bad.retain(|w| faulty.contains(w));
+        }
         let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves.len() as i64;
         let score = (quality.faults, quality.unrouted, quality.cost + price);
         let crossed =

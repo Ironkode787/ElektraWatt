@@ -1879,6 +1879,34 @@ fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
     }
 }
 
+/// Arrange and route that finds no better plan says what stands in the way (doc 06a §4.9), not that the page is
+/// arranged as well as the rules allow: here, with the far coil selected, the wire of a coil whose lower pin another
+/// coil stands on, in both languages.
+#[test]
+fn arrange_without_a_better_plan_says_what_stands_in_the_way() {
+    let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    for (language, words) in [
+        ("en", "-103K3:A2 → -103K2:A2 has no route: it is drawn as a dashed line."),
+        ("nl", "-103K3:A2 → -103K2:A2 heeft geen route: hij is als gestreepte lijn getekend."),
+    ] {
+        let tmp = Tmp::new("ar7");
+        let mut s = actual_size(&tmp, "103");
+        coils_and_wires(
+            &mut s,
+            &[(55, 20), (55, 29), (70, 20), (70, 24)],
+            &[("-103K3:A2", "-103K2:A2", &[])],
+        );
+        done(&mut s, "ui.dismiss", json!({}));
+        done(&mut s, "view.language", json!({"value": language}));
+        let far = cp(&s, "-103K2:A2").rep.to_string();
+        done(&mut s, "select.set", json!({"ids": [far]}));
+        done(&mut s, "layout.arrange", json!({}));
+        assert_eq!(describe_line(&s, "card "), None, "no plan");
+        assert!(said(&s).contains(words), "{}", said(&s));
+        assert!(!said(&s).contains(" rules "), "{}", said(&s));
+    }
+}
+
 /// The undo step of Arrange and route is named "Arrange and route" when symbols moved; Route's, which moves none,
 /// "Route wires" (doc 06a §7.3), in both languages.
 #[test]

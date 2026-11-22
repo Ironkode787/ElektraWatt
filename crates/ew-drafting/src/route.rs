@@ -1360,7 +1360,7 @@ fn is_fan(net: &Net) -> bool {
 }
 
 /// The wires with a fault (F2 to F6) in `q`.
-fn wires_with_faults(q: &Quality) -> BTreeSet<WireId> {
+pub(crate) fn wires_with_faults(q: &Quality) -> BTreeSet<WireId> {
     let f = &q.findings;
     let mut out = BTreeSet::new();
     out.extend(f.through_points.iter().map(|x| x.0));

@@ -7995,6 +7995,11 @@ arrange-routed = { $p0 } draden gerouteerd
 arrange-routed-one = 1 draad gerouteerd
 toast-arrange-applied = { $p0 } geschikt: { $p1 }, { $p2 }.
 toast-arrange-nothing = Niets te schikken: de pagina staat al zo goed als de regels toelaten.
+arrange-blocked = Niets te schikken: geen plan was beter dan de pagina zoals hij nu staat. { $p0 }
+arrange-blocked-symbol = { $p0 }: { $p1 }.
+arrange-blocked-unrouted = { $p0 } heeft geen route: hij is als gestreepte lijn getekend.
+arrange-blocked-faults = { $p0 } fouten blijven op de pagina; Project controleren noemt ze.
+arrange-blocked-faults-one = 1 fout blijft op de pagina; Project controleren noemt hem.
 toast-arrange-none-left = Er blijft niets over om toe te passen: elke wijziging van dit voorbeeld is uitgevinkt.
 
 # Doc 09 §3.8: Uitvoer ▸ Lijstkolommen… en Eigen rijen… van de getoonde lijst.

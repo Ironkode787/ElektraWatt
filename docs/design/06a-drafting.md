@@ -1023,7 +1023,11 @@ where its lead leaves it the room (the coils of a control page on one line).
    (§1.6; the rules read the parts and the nets, so this needs no routing).
 3. **Routed and judged.** The arrangement is routed and measured. It is taken when
    - the rules hold on the routed page;
-   - no wire and no text gains a finding (the never-worse rule of §1.2, with F7);
+   - no wire and no text gains a finding (the never-worse rule of §1.2, with F7); where it leaves fewer wires
+     without a way than Route's plan, a wire newly across a text does not count, as a new crossing does not: the
+     dashed wire weighs more (§3.8). A supply page drawn side by side, whose first mark's wire had no way into the
+     main switch, got no plan, because the plan that set the feeder in one column and routed that wire laid two
+     other wires across a mark's and a breaker's text (a persona run, 2026-11-22);
    - it has no more faults than Route's plan over the same wires, and, where it leaves no more wires without a
      way, no more crossings;
    - and it is better than Route's plan by the measure with the **price** of its moves added: `MOVE_PRICE` (2
@@ -1109,8 +1113,11 @@ it may (§4.4), and where they stay behind it opens the rings' room (§3.5, FT-2
 
 `arrange(page, scope, fixed) -> Arranged`: the parts' moves, the parts left against a rule with the side their
 host's pin faces, and the plan of the page as it would become (the routes, junctions and marks, with the
-quality before and after). The plan is empty when nothing better than the page as it is was found, and the
-message says that the page is already arranged as well as the rules allow.
+quality before and after). The plan is empty when nothing better than the page as it is was found. The message
+says that the page is already arranged as well as the rules allow only where nothing stands in the way; else it says
+that no plan was better than the page as it stands and names what stands in the way: each part left against a rule
+(as the preview's rows do), each wire without a way (with what is in it, where the router found that), and the faults
+the page keeps.
 
 **A selection** makes only the selected parts movable; everything else is fixed and can be a host. A selection of
 one feeder arranges that feeder and leaves the page.
