@@ -62,7 +62,11 @@ fn view() -> PageView {
             pins: vec![
                 pin(0, "0 Q0.0", Some("Pump on")),
                 pin(1, "1 Q0.1", Some("")),
-                pin(2, "2 Q0.2", Some("Conveyor belt runs forward to the clamp station")),
+                pin(
+                    2,
+                    "2 Q0.2",
+                    Some("Conveyor belt runs forward to the clamp station"),
+                ),
                 pin(3, "L+", None),
             ],
         }],
@@ -104,15 +108,24 @@ fn a_card_in_one_row_prints_its_channels_level_in_cells() {
     {
         let pin_x = x0 + g(5 + 8 * i64::try_from(k).unwrap());
         let (left, right) = (pin_x - g(4), pin_x + g(4));
-        let run = r.iter().find(|t| t.0 == line).unwrap_or_else(|| panic!("{line}: {r:?}"));
+        let run = r
+            .iter()
+            .find(|t| t.0 == line)
+            .unwrap_or_else(|| panic!("{line}: {r:?}"));
         assert!(run.3, "{line} reads level");
         // Inside the box, in its own cell, centred on its pin, next to the pin's edge.
         assert!(run.1.x.0 > left && run.2.x.0 < right, "{line}: {run:?}");
-        assert!((run.1.x.0 + run.2.x.0) / 2 - pin_x < 50_000, "{line} centred: {run:?}");
+        assert!(
+            (run.1.x.0 + run.2.x.0) / 2 - pin_x < 50_000,
+            "{line} centred: {run:?}"
+        );
         assert!(run.1.y.0 > top && run.2.y.0 < bottom, "{line}: {run:?}");
         if let Some(function) = function {
             // A function text too wide for its cell is made smaller, and below half its size wrapped at its words.
-            let lines: Vec<_> = r.iter().filter(|t| t.0 != line && function.contains(t.0.as_str())).collect();
+            let lines: Vec<_> = r
+                .iter()
+                .filter(|t| t.0 != line && function.contains(t.0.as_str()))
+                .collect();
             assert_eq!(
                 lines.iter().map(|t| t.0.as_str()).collect::<Vec<_>>().join(" "),
                 function,
@@ -120,7 +133,10 @@ fn a_card_in_one_row_prints_its_channels_level_in_cells() {
             );
             for f in lines {
                 assert!(f.3, "{function} reads level");
-                assert!(f.1.x.0 > left && f.2.x.0 < right, "{function} within its cell: {f:?}");
+                assert!(
+                    f.1.x.0 > left && f.2.x.0 < right,
+                    "{function} within its cell: {f:?}"
+                );
                 // Further inside than the channel's line: an output card's pins are on its lower edge.
                 assert!(f.2.y.0 <= run.1.y.0, "{function} over {line}: {f:?} {run:?}");
                 assert!(f.1.y.0 > top, "{function}: {f:?}");
@@ -137,7 +153,9 @@ fn a_card_in_one_row_prints_its_channels_level_in_cells() {
         .iter()
         .filter_map(|i| match &i.kind {
             ItemKind::Path(p) => match p.path.els.as_slice() {
-                [PathEl::MoveTo(a), PathEl::LineTo(b)] if a.x == b.x && a.y.0 == top && b.y.0 == bottom => Some(a.x.0),
+                [PathEl::MoveTo(a), PathEl::LineTo(b)] if a.x == b.x && a.y.0 == top && b.y.0 == bottom => {
+                    Some(a.x.0)
+                }
                 _ => None,
             },
             _ => None,

@@ -18,7 +18,10 @@ fn card(s: &ShellModel) -> Option<ew_api::output::TableRep> {
     t.reps
         .iter()
         .find(|r| {
-            r.black_box.is_some() && t.cps.iter().any(|c| c.rep == r.id && c.label.starts_with("-104A1-A1:"))
+            r.black_box.is_some()
+                && t.cps
+                    .iter()
+                    .any(|c| c.rep == r.id && c.label.starts_with("-104A1-A1:"))
         })
         .cloned()
 }
@@ -29,7 +32,11 @@ fn a_card_in_two_rows_is_drawn_again_in_one_row_and_keeps_its_wires() {
     let mut s = tmp.sample_in(Mode::Headless, true, "104");
     let rep = card(&s).expect("the input card");
     let b = rep.black_box.clone().unwrap();
-    assert!(b.cps.iter().filter(|c| c.2 == Dir::Up).count() >= 2, "{:?}", b.cps);
+    assert!(
+        b.cps.iter().filter(|c| c.2 == Dir::Up).count() >= 2,
+        "{:?}",
+        b.cps
+    );
     // The older form: every second pin of the upper edge moved to the lower edge, leaving downward.
     let (x0, y0) = rep.pos;
     let bottom = b.outline.iter().map(|p| p.1).max().unwrap() - y0;
@@ -57,15 +64,31 @@ fn a_card_in_two_rows_is_drawn_again_in_one_row_and_keeps_its_wires() {
     let connections = tables(&s).connections.len();
     // Offered only for the older form.
     let older = card(&s).unwrap();
-    assert!(older.black_box.as_ref().unwrap().cps.iter().any(|c| c.2 == Dir::Down));
-    done(&mut s, "select.set", json!({"refs": [format!("id:{}", older.id)]}));
+    assert!(
+        older
+            .black_box
+            .as_ref()
+            .unwrap()
+            .cps
+            .iter()
+            .any(|c| c.2 == Dir::Down)
+    );
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": [format!("id:{}", older.id)]}),
+    );
     done(&mut s, "plc.card_redraw", json!({}));
     let new = card(&s).expect("the card drawn again");
     assert_ne!(new.id, older.id, "the old box is replaced");
     assert_eq!(new.pos, rep.pos, "in its place");
     let nb = new.black_box.unwrap();
     assert!(!nb.cps.iter().any(|c| c.2 == Dir::Down), "one row: {:?}", nb.cps);
-    assert_eq!(tables(&s).connections.len(), connections, "every connection stays");
+    assert_eq!(
+        tables(&s).connections.len(),
+        connections,
+        "every connection stays"
+    );
     // One undo step gives the older box back.
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(card(&s).map(|r| r.id), Some(older.id));

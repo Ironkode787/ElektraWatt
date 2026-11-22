@@ -277,7 +277,10 @@ fn free_other_functions_go_with_the_join() {
     let mut e = engine(join_model());
     let r = e.execute(&join(REP_K4, DEV_K1)).expect("rep.join_device");
     assert!(
-        r.outcome.notices.iter().any(|n| n.to_string().contains("unplaced functions")),
+        r.outcome
+            .notices
+            .iter()
+            .any(|n| n.to_string().contains("unplaced functions")),
         "{:?}",
         r.outcome.notices
     );

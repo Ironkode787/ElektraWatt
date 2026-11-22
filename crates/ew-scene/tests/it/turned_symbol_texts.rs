@@ -65,12 +65,20 @@ fn a_symbol_turned_a_quarter_stacks_its_texts_above_and_below_its_body() {
                     SlotKind::CpDesignation(_) => assert_eq!(t.pos, v.apply(r0.pos), "{kind:?} {v:?}"),
                     SlotKind::Tag => {
                         assert_eq!(t.align, Align::BottomCentre, "{v:?}");
-                        assert!(t.pos.y < body.min().y, "{kind:?} {v:?}: {:?} over {body:?}", t.pos);
+                        assert!(
+                            t.pos.y < body.min().y,
+                            "{kind:?} {v:?}: {:?} over {body:?}",
+                            t.pos
+                        );
                         assert_eq!(t.pos.x.0, centre, "{v:?}");
                     }
                     _ => {
                         assert_eq!(t.align, Align::TopCentre, "{kind:?} {v:?}");
-                        assert!(t.pos.y > body.max().y, "{kind:?} {v:?}: {:?} under {body:?}", t.pos);
+                        assert!(
+                            t.pos.y > body.max().y,
+                            "{kind:?} {v:?}: {:?} under {body:?}",
+                            t.pos
+                        );
                         assert_eq!(t.pos.x.0, centre, "{kind:?} {v:?}");
                         below.push((r0.pos.y.0, t.pos.y.0));
                     }
@@ -104,7 +112,14 @@ fn runs(view: &PageView) -> Vec<(EntityRef, String, Rect, bool)> {
 
 /// A representation `n` of `s` at grid `(x, 40)` in `orient`, with `extra` fields, its slots filled by `texts`
 /// (kind and text).
-fn rep(s: &SymbolRef, n: u128, x: i64, orient: &str, texts: &[(SlotKind, &str)], extra: serde_json::Value) -> RepView {
+fn rep(
+    s: &SymbolRef,
+    n: u128,
+    x: i64,
+    orient: &str,
+    texts: &[(SlotKind, &str)],
+    extra: serde_json::Value,
+) -> RepView {
     let step = 7_937_500 / 3;
     let mut v = json!({
         "id": Uuid::from_u128(n).hyphenated().to_string(),
@@ -154,7 +169,14 @@ fn turned_symbols_on_a_page_print_their_texts_apart() {
     let mut n = 1;
     for s in [symbol(COIL), symbol(CONTACT)] {
         for orient in ["r90", "r270"] {
-            reps.push(rep(&s, n, 30 * i64::try_from(n).unwrap(), orient, &texts, json!({})));
+            reps.push(rep(
+                &s,
+                n,
+                30 * i64::try_from(n).unwrap(),
+                orient,
+                &texts,
+                json!({}),
+            ));
             n += 1;
         }
     }
@@ -184,7 +206,12 @@ fn turned_symbols_on_a_page_print_their_texts_apart() {
             assert!(a.3, "{} reads level", a.1);
             // A pin's number stands at its pin, beside the line and so inside the drawing's bounds.
             let pin = a.1 == "13" || a.1 == "14";
-            assert!(pin || !overlap(a.2, body), "{} on its symbol, {:?}", a.1, rv.rep.orient);
+            assert!(
+                pin || !overlap(a.2, body),
+                "{} on its symbol, {:?}",
+                a.1,
+                rv.rep.orient
+            );
             for b in &own[i + 1..] {
                 assert!(!overlap(a.2, b.2), "{} on {}, {:?}", a.1, b.1, rv.rep.orient);
             }

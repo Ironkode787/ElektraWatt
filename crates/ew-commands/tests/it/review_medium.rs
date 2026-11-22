@@ -258,7 +258,11 @@ fn a_hint_whose_target_vanished_is_dropped_and_reported() {
     }];
     let r = e.execute(&cmd).expect("the command still succeeds");
     assert_eq!(r.outcome.notices.len(), 1, "{:?}", r.outcome.notices);
-    assert!(r.outcome.notices[0].to_string().contains("hint 1"), "{:?}", r.outcome.notices);
+    assert!(
+        r.outcome.notices[0].to_string().contains("hint 1"),
+        "{:?}",
+        r.outcome.notices
+    );
     assert!(
         r.created.iter().all(|k| k.0 != Kind::Connection),
         "no wire for the dropped hint"

@@ -216,6 +216,12 @@ fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
     }
     assert_eq!(pages(&s), before + 2, "three members two at a time");
     let receipt = run(&mut s);
-    assert!(!receipt.outcome.notices.iter().any(|n| n.to_string().contains("(new page)")));
+    assert!(
+        !receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n.to_string().contains("(new page)"))
+    );
     assert_eq!(pages(&s), before + 2, "a refresh adds no page");
 }
