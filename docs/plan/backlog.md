@@ -90,7 +90,7 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### Work on the window's thread
 
-- FT-1763 `ew-viewmodel, ew-ui, ew-api`: Reading an EDZ or a parts XML (twice), a PLC import's read and merge, and a report spreadsheet becoming a project still run on the window's thread; each needs its session-bound step split out before it can be a job.
+- FT-1763 `ew-viewmodel, ew-ui, ew-api`: Reading an EDZ or a parts XML (twice), a PLC import's read and merge, and a report spreadsheet becoming a project still run on the window's thread; each needs its session-bound step split out before it can be a job. Looked at in M3.5 step 13 (not built): for the EDZ and parts XML the split is small, `Session::eplan_parts` takes from the session only the manufacturer master and the project ID before the pure `parts_import`, so those two can be handed to a thread and `update_parts_from_import` run at the end; but the shell's jobs (`JobsState::spawn`) end in an `ExportDone` and a written file, so a job that hands back an import's result and opens a dialog at its end needs a job kind of its own first; the report spreadsheet and the PLC import then follow the same way.
 
 ### The placer and the router
 
