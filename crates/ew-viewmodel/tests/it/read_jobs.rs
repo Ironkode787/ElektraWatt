@@ -116,7 +116,11 @@ fn an_edit_made_while_a_report_is_read_is_asked_about_and_kept() {
     );
     assert_eq!(s.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
     assert_eq!(s.project_name(), Some("sample.ew"), "not closed unasked");
-    assert!(s.page_labels().iter().any(|l| l == "990"), "{:?}", s.page_labels());
+    assert!(
+        s.page_labels().iter().any(|l| l == "990"),
+        "{:?}",
+        s.page_labels()
+    );
     assert!(s.is_dirty() && !dir.exists());
     let toast = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert_eq!(
@@ -144,14 +148,18 @@ fn a_plc_exchange_file_that_cannot_be_read_or_parsed_says_why_in_the_banner() {
     let missing = tmp.0.join("absent.csv");
     let banner = read_in_window(&mut s, "plc.import", json!({"path": missing.to_string_lossy()}));
     assert!(
-        banner.as_deref().is_some_and(|b| b.starts_with("absent.csv cannot be read: ")),
+        banner
+            .as_deref()
+            .is_some_and(|b| b.starts_with("absent.csv cannot be read: ")),
         "{banner:?}"
     );
     let malformed = tmp.0.join("malformed.csv");
     std::fs::write(&malformed, "not a PLC exchange file\n\u{0}\u{1}").unwrap();
     let banner = read_in_window(&mut s, "plc.import", json!({"path": malformed.to_string_lossy()}));
     assert!(
-        banner.as_deref().is_some_and(|b| b.starts_with("The PLC import cannot be previewed: ")),
+        banner
+            .as_deref()
+            .is_some_and(|b| b.starts_with("The PLC import cannot be previewed: ")),
         "{banner:?}"
     );
     s.shutdown();
@@ -165,7 +173,9 @@ fn a_reader_that_panics_says_so_in_the_banner() {
     let banner = read_in_window(&mut s, "file.import_eplan", json!({ "file": EDZ }));
     assert_eq!(
         banner.as_deref(),
-        Some("The importer stopped on an internal error while reading synthetic-psu-7z.edz; nothing was imported.")
+        Some(
+            "The importer stopped on an internal error while reading synthetic-psu-7z.edz; nothing was imported."
+        )
     );
     s.shutdown();
 }
