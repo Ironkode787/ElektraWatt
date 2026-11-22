@@ -79,9 +79,10 @@ fn a_size_below_the_table_is_not_raised() {
         .insert("wire_default".into(), json!({"csa": "0.5"}));
     for r in &mut records {
         if let ew_schema::Record::Device(d) = r {
-            d.tech_data =
-                serde_json::from_value(json!([{"key": "rated_current", "value": {"value": "2", "unit": "A"}}]))
-                    .expect("technical data");
+            d.tech_data = serde_json::from_value(
+                json!([{"key": "rated_current", "value": {"value": "2", "unit": "A"}}]),
+            )
+            .expect("technical data");
         }
     }
     let s = common::session_of(project, records, lib);
