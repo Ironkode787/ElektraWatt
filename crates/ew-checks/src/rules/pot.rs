@@ -2132,10 +2132,11 @@ fn opening_pairs(q: &Q, f: Id<Function>) -> Vec<OpeningPair> {
 /// (doc 08 §8.2, FR-CHK-019, D-13).
 ///
 /// For each function with an opening pair whose upstream side (by the flow) is the potential `p` of type N or PEN:
-/// it is accepted when the function, or another function of its device, also opens a pair whose upstream type is
-/// L, L1, L2 or L3 (its poles are one mechanism: a two- or four-pole breaker or switch, a 1P+N breaker drawn as a
-/// phase pole and a neutral pole, opens phase and neutral together, whatever its definition's
-/// `switches_n_with_l` says); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
+/// it is accepted when the function also opens a pair whose upstream type is L, L1, L2 or L3 (its poles are one
+/// mechanism: a two- or four-pole breaker or switch opens phase and neutral together, whatever its definition's
+/// `switches_n_with_l` says), or when another function of its device opens such a pair and the device's poles open
+/// the line of every load the N pole feeds (a 1P+N breaker drawn as a phase pole and a neutral pole; not a relay
+/// whose other contact switches another load's line); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
 /// error. The loads are the devices with a CP in the downstream potential whose line CPs lie in a potential the
 /// function does not switch, named in natural order. One finding per pair, target the function, discriminator
 /// `pair:<up>-<down>` (the CP indices). There is no quick fix: the correct wiring is a human decision (▲U-11).
@@ -2168,27 +2169,45 @@ impl Rule for NSwitching {
             };
             let flags = q.fndefs().get(function.def).map(|d| d.item.flags.clone());
             let isolating = flags.as_ref().is_some_and(|x| x.n_isolation);
-            // The poles of one device are one mechanism, whether drawn as one function or as one per pole (a 1P+N
-            // breaker's phase pole and neutral pole).
             let line_pole = |pairs: &[OpeningPair]| {
                 pairs
                     .iter()
                     .any(|x| final_type(q, x.up).as_ref().is_some_and(is_line))
             };
-            let opens_line = line_pole(&pairs)
-                || function.device.is_some_and(|d| {
-                    q.idx()
-                        .functions_of_device(d)
-                        .any(|g| g != f && line_pole(&opening_pairs(q, g)))
-                });
+            let opens_line = line_pole(&pairs);
+            // The poles of a device drawn as one function per pole (a 1P+N breaker's phase pole and neutral pole) are
+            // one mechanism only where they open one circuit: when another function of the device opens a line, the
+            // downstream potentials of all the device's opening pairs (a relay's other contact may switch another
+            // load's line).
+            let device_switched: Option<BTreeSet<PotentialId>> = function.device.and_then(|d| {
+                let others: Vec<Vec<OpeningPair>> = q
+                    .idx()
+                    .functions_of_device(d)
+                    .filter(|g| *g != f)
+                    .map(|g| opening_pairs(q, g))
+                    .collect();
+                others.iter().any(|x| line_pole(x)).then(|| {
+                    pairs
+                        .iter()
+                        .chain(others.iter().flatten())
+                        .map(|x| x.down)
+                        .collect()
+                })
+            });
             let switched: BTreeSet<PotentialId> = pairs.iter().map(|x| x.down).collect();
             let name = function
                 .device
                 .map_or_else(|| "?".to_owned(), |d| full_or_short(q, d));
             for pair in pairs.iter().filter(|x| x.up == p) {
                 // A function that opens a line conductor as well switches the neutral with it: its poles are one
-                // mechanism (a two- or four-pole breaker, a main switch), whether or not its definition says so.
-                if opens_line {
+                // mechanism (a two- or four-pole breaker, a main switch), whether or not its definition says so. The
+                // poles of other functions of its device excuse it only when no load of this pair stays on a line
+                // they do not open.
+                if opens_line
+                    || device_switched
+                        .as_ref()
+                        .is_some_and(|s| stranded_loads(q, pair.down, function.device, s).is_empty())
+                {
                     continue;
                 }
                 let (up, down) = (potential_name(q, pair.up), potential_name(q, pair.down));

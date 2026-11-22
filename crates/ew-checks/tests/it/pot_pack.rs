@@ -525,6 +525,33 @@ fn poles(one_device: bool) -> Model {
     fx.build()
 }
 
+/// A relay with two contacts, two functions of one device, for two lamps: 0x1003's contact 0→1 opens N towards the
+/// lamp -K4098 (CP 0), whose CP 1 stays on L; 0x1004's contact 0→1 switches L towards the other lamp -K4101 (CP 1),
+/// whose CP 0 is on N. The relay opens a line, but not the line of the load whose neutral it opens.
+fn relay() -> Model {
+    let mut fx = base(&none());
+    fx.func_of(0x1001, FNDEF_SUPPLY, SYM_SUPPLY, P1); // CP 0 N, CP 1 L
+    fx.func(0x1002, P1); // the lamp whose neutral is opened
+    fx.func_of(0x1003, FNDEF_2P, SYM_2P, P1);
+    fx.push(json!({
+        "$k": "function", "id": us(0x1004), "device": us(0x1003 + 0x20_000), "def": us(FNDEF_2P), "role": "aux",
+    }));
+    fx.push(json!({
+        "$k": "representation", "id": us(0x1004 + 0x10_000), "functions": [us(0x1004)], "page": us(P1),
+        "symbol": us(SYM_2P), "pos": [0, 0x1004_i64 * 1_000_000],
+    }));
+    fx.func(0x1005, P1); // the lamp whose line is switched
+    fx.conn(0x2001, P1, cp(0x1001), Ep::Cp(0x1003, 0), &none());
+    fx.conn(0x2002, P1, Ep::Cp(0x1003, 1), cp(0x1002), &none());
+    fx.conn(0x2003, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &none());
+    fx.conn(0x2004, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1004, 0), &none());
+    fx.conn(0x2005, P1, Ep::Cp(0x1004, 1), Ep::Cp(0x1005, 1), &none());
+    fx.conn(0x2006, P1, cp(0x1001), cp(0x1005), &none());
+    fx.def(0x5001, cp(0x1001), &n_def());
+    fx.def(0x5002, Ep::Cp(0x1001, 1), &json!({"name": "L", "ptype": "l"}));
+    fx.build()
+}
+
 #[test]
 fn pot013_cases() {
     let flags = json!({"switches_n_with_l": true});
@@ -561,6 +588,20 @@ fn pot013_cases() {
             Case::silent(
                 "a 1P+N breaker whose phase and neutral poles are two functions of one device",
                 poles(true),
+            ),
+            Case::reports(
+                "a relay contact that opens the neutral of a lamp left on L, though another contact opens a line",
+                relay(),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)], "case {c}");
+                    assert!(
+                        f[0].message.contains("K4098") && f[0].message.contains("stays connected to L)"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
             ),
             Case::reports(
                 "a phase pole of another device does not excuse it",

@@ -1329,12 +1329,19 @@ references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-00
 for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def.internal:
   P_up = upstream side of p (potential_flow)
   if ptype(P_up) ∈ {N, PEN}:
-     ok = f, or another function of f's device, has an opening pair whose upstream type ∈ {L, L1, L2, L3}
-          // rc.5: its poles are one mechanism; 0.3.5 (FT-1903): also a 1P+N breaker drawn as a pole per function
+     ok = f has an opening pair whose upstream type ∈ {L, L1, L2, L3}   // rc.5: its poles are one mechanism
+       or (another function of f's device has one and loads(P_d, S) = ∅, S = the downstream potentials of all
+           the device's opening pairs)   // 0.3.5 (FT-1903): a 1P+N breaker drawn as a pole per function
      if f.def.flags.n_isolation: report info "N isolating terminal" and continue
      if not ok: report error {function f, potential P_up → P_d, loads}
-  loads = devices with CPs in P_d whose line CPs lie in a potential that f does not switch
+  loads = loads(P_d, the downstream potentials of f's opening pairs)
+  loads(P, S) = devices with CPs in P whose line CPs lie in a potential outside S
 ```
+
+- **Poles of one device.** Another function's line pole excuses an N pole only where the device's poles open the
+  line of every load that N pole feeds: a 1P+N breaker drawn as a phase pole and a neutral pole is accepted, a relay
+  whose contact 13-14 switches the line of one lamp and whose contact 23-24 opens the neutral of another lamp left on
+  its line is reported.
 
 - **Golden.** T55 is reported: pair 5–3 opens N-55 into N-55T, and E55:L stays on L-55, which T55 does not switch.
   S56 is reported: pair 13–14 opens N-55 into N-55S, and E56:X2 stays on L-55.
