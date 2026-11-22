@@ -15,6 +15,10 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- text-change: the help of the Project's rows (the pointer resting on a row's name, and F1) says what the program
+  does with the value, its unit and an example, in English and Dutch: the title block's or the cover page's cell that
+  prints it, or that the program keeps it as a note (Control voltage, Rated consumption, the supply's earthing and
+  short-circuit current), where it repeated the row's label (FT-1809)
 - behaviour-change: a three-wire PNP proximity sensor is among the starter parts (EW-GEN-PRX-1, 24 V DC), on its own
   symbol under the position sensors, its pins the cores BN (L+), BK (the output) and BU (M) (doc 07 §2.3, FT-1840)
 - text-change: every starter part has a Dutch description and every starter symbol a Dutch name, so a Dutch
