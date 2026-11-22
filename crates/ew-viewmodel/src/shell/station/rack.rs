@@ -130,6 +130,53 @@ impl ShellModel {
         }
     }
 
+    /// `plc.module_move {folio}` (Move to page, FT-2134): the drawings on electrical pages of the module or the head
+    /// under the cursor move to the schematic page `folio` where they stand, with one `rep.move` (one undo step), so the
+    /// device keeps its channels, bindings, slot and wires drawn with it; the page is shown. A wire whose other end
+    /// stays behind is refused in the move's words, the view staying; a module drawn on that page already is refused.
+    pub(crate) fn act_plc_module_move(&mut self, p: &Map<String, Value>) -> Outcome {
+        let cursor = self.station_tab().and_then(|t| t.cursor);
+        let Some(device) = self.station_device() else {
+            return Outcome::refused(key!("reason-rack-no-module"));
+        };
+        let folio = match string_param(p, "folio") {
+            Ok(Some(f)) => f.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["folio"]),
+            Err(e) => return e,
+        };
+        let page = self
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == folio && matches!(r.kind.as_str(), "multi_line" | "single_line"))
+            .map(|r| r.id);
+        let Some(page) = page else {
+            return failed(key!("error-bad-param"), &["folio"]);
+        };
+        let reps: Vec<String> = self
+            .project_session()
+            .map(|s| s.electrical_drawings(device))
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(_, on)| *on != page)
+            .map(|(rep, _)| rep.to_string())
+            .collect();
+        if reps.is_empty() {
+            return self.rack_refuse(
+                cursor,
+                strings::text(key!("reason-rack-move-same-page")).to_owned(),
+            );
+        }
+        let out = self.rack_commit(
+            cursor,
+            "rep.move",
+            json!({"reps": reps, "page": page.to_string()}),
+        );
+        if out == Outcome::Done {
+            let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
+        }
+        out
+    }
+
     /// The end of every dispatch for the station views: a tab whose station is gone (deleted, its making undone)
     /// closes.
     pub(in crate::shell) fn drop_gone_stations(&mut self) {

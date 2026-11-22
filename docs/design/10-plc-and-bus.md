@@ -1896,9 +1896,14 @@ the table's columns and the catalogue both; what is done in it gives it the focu
 **The cursor** (`StationCursor`: the head, a slot, a valve position) is set by a click on a card or a row or by the
 arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the
 view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`,
-`plc.module_goto`, `plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or `nav.show`; declared
-actions of the view's own controls); a right click gives the same commands, drawn as the window's other menus (Replace
-and Draw on a page a list beside their entry, the part the module has checked), Delete empties the slot. On a valve
+`plc.module_move`, `plc.module_goto`, `plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or
+`nav.show`; declared actions of the view's own controls); a right click gives the same commands, drawn as the window's
+other menus (Replace, Draw on a page and Move to page a list beside their entry, the part the module has checked),
+Delete empties the slot. *Move to page* (FT-2134) puts a drawn module's or head's boxes on electrical pages on the
+schematic page chosen where they stand, with one `rep.move` (one undo step): the device, its channels, bindings and
+slot stay, and a wire between its pins and something that stays behind is refused in the move's words; a cut and paste
+gives a new device out of the rack (doc 06 §3.6). Not built: such a wire kept as a pair of interruption points or
+dropped with a count in a preview (doc 06 §3.4's cross-page move). On a valve
 position they speak of the valve (Replace valve, Empty the position), and a move or a drawing of its own, which a
 position does not take, is greyed with the reason; on a free place each says to take a part from the catalogue. They
 are no buttons of the PLC tab: with six more the tab folds at 1920 × 1080 in Dutch and in the long-text locale (doc

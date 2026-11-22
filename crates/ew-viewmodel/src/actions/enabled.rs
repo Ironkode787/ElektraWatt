@@ -86,6 +86,18 @@ pub(super) fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>>
     }
 }
 
+/// The project can be written, and the module or the head under the cursor of a made station's view is drawn on a page
+/// (Move to page, FT-2134); a valve is drawn in its terminal's cell.
+pub(super) fn station_module_movable(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    match m.station_taken()? {
+        _ if m.station_draft().is_some() => Err(key!("reason-rack-draft")),
+        _ if on_valve_position(m) => Err(key!("reason-rack-valve-draw")),
+        true => Ok(()),
+        false => Err(key!("reason-nav-not-placed")),
+    }
+}
+
 /// The project can be written and, in a station's view, the page the view stands on takes the device under its
 /// cursor (Place here); a navigator's row names its device and says the same itself.
 pub(super) fn station_module_placeable(m: &ShellModel) -> Result<(), Key<'static>> {

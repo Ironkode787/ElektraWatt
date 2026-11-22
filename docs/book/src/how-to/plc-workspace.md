@@ -114,8 +114,9 @@ room is short it leaves out the catalogue until you click in it.
 To change it:
 
 1. Click a card or a row: the module is selected as a click on a page selects a device. Properties shows it, and the
-   buttons above the rack act on it: **Replace** (the parts that fit its slot), **Remove**, **Draw on page**, **Go to
-   page**, **Move left** and **Move right**. A right click gives the same commands. `Delete` empties the slot, and
+   buttons above the rack act on it: **Replace** (the parts that fit its slot), **Remove**, **Draw on page**, **Move
+   to page** (a drawn card's box onto another schematic page, the same card; a card with a wire to something left
+   behind is refused), **Go to page**, **Move left** and **Move right**. A right click gives the same commands. `Delete` empties the slot, and
    the arrow keys go from slot to slot.
 2. Double-click a part in the catalogue to put it into the selected free slot, else into the first free one; or drag
    it onto a slot. Dropped on a module, it replaces that module's part.

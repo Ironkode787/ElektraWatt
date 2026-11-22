@@ -499,6 +499,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `plc.module_replace` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-replace`, `bar-plc-module-replace`, `valve-plc-module-replace` |
 | `plc.module_remove` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-remove`, `bar-plc-module-remove`, `valve-plc-module-remove` |
 | `plc.module_draw` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-draw`, `bar-plc-module-draw`, `valve-plc-module-draw` |
+| `plc.module_move` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module_move` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-move`, `bar-plc-module-move` |
 | `plc.module_place` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module_place` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-module-place`, `bar-plc-module-place` |
 | `plc.card_redraw` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_card_redraw` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-card-redraw` |
 | `plc.card_terminals_face` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_card_terminals_face` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-card-terminals-face` |

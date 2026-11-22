@@ -44,6 +44,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
+- FT-2134 `ew-commands, ew-viewmodel`: Move to page (`plc.module_move`, built in lane P4 after a persona run) refuses a card whose wire to a device left behind would leave an end on the old page; doc 10 §6 asks for that wire kept as a pair of interruption points or dropped with a count in a preview. That is doc 06 §3.4's cross-page move, which `rep.move` rejects since v0 (FR-CON-043): build it there, with the preview card listing the pairs, and Move to page takes it.
 
 #### The window's finish
 

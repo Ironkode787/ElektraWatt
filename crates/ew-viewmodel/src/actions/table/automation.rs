@@ -106,6 +106,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_module(p, "draw"),
         )),
     ),
+    // A drawn module's box put on another schematic page (FT-2134).
+    with_params(
+        "folio:text",
+        hidden(act(
+            "plc.module_move",
+            Command,
+            Menu::Plc,
+            &[],
+            station_module_movable,
+            None,
+            |s, p| s.act_plc_module_move(p),
+        )),
+    ),
     // Place here: the part's box, bus ports or positions on the pointer on the page the view stands on; a
     // PLC navigator's row names its part, which the action words its refusal for.
     with_params(

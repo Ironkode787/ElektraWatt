@@ -841,6 +841,27 @@ impl Session {
         out
     }
 
+    /// The drawings of `device` on electrical pages (multi-line, single-line), each as (representation, page): what Move
+    /// to page takes along (FT-2134); empty for a record that is no device or one drawn on no such page.
+    pub fn electrical_drawings(&self, device: Uuid) -> Vec<(Uuid, Uuid)> {
+        use ew_derive::ew_schema::PageType;
+        let q = self.query();
+        let mut out = Vec::new();
+        for f in q.idx().functions_of_device(Id::from_uuid(device)) {
+            for r in q.idx().reps_of_function(f) {
+                let Some(rep) = q.reps().get(r) else { continue };
+                let electrical = q
+                    .pages()
+                    .get(rep.page)
+                    .is_some_and(|p| matches!(p.kind, PageType::MultiLine | PageType::SingleLine));
+                if electrical && !out.iter().any(|(x, _)| *x == r.as_uuid()) {
+                    out.push((r.as_uuid(), rep.page.as_uuid()));
+                }
+            }
+        }
+        out
+    }
+
     /// The library documents a module part not held by the project needs (`plc.add_module`'s `copies`): the part's
     /// closure; empty for a held part or one that does not resolve.
     pub fn module_part_copies(&self, part: Uuid) -> Vec<serde_json::Value> {
