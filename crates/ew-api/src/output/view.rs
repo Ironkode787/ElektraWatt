@@ -291,7 +291,13 @@ pub(crate) fn page_frame_id(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
     own.filter(|id| q.forms().get(*id).is_some()).or_else(|| {
         q.forms()
             .iter()
-            .find(|(_, f)| f.item.meta.key.as_ref().is_some_and(|k| k.as_str() == NOGRID_FRAME))
+            .find(|(_, f)| {
+                f.item
+                    .meta
+                    .key
+                    .as_ref()
+                    .is_some_and(|k| k.as_str() == NOGRID_FRAME)
+            })
             .map(|(id, _)| id)
     })
 }
