@@ -361,6 +361,10 @@ pub struct ReportBlock {
     /// kind's columns (and, on an embedded block, keeps reading these).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub columns: Vec<ReportColumn>,
+    /// Import provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<SourceRef>,
+    // The members added after 0.3.0 follow the released ones, `source_ref` included (ADR-0011 amendment 4).
     /// The line printed above the table of each of the block's pages (doc 09 §3.8); empty: none. Additive.
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
@@ -379,9 +383,6 @@ pub struct ReportBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub layout_page: Option<Id<Page>>,
-    /// Import provenance.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
