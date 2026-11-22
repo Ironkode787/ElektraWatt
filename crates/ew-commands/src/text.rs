@@ -76,19 +76,20 @@ impl fmt::Display for Text {
 /// A text equals the English it prints (the command line's words, [`fmt::Display`]).
 impl PartialEq<str> for Text {
     fn eq(&self, other: &str) -> bool {
-        self.to_string() == other
+        let english = self.to_string();
+        english.as_str() == other
     }
 }
 
 impl PartialEq<&str> for Text {
     fn eq(&self, other: &&str) -> bool {
-        self.to_string() == *other
+        <Text as PartialEq<str>>::eq(self, other)
     }
 }
 
 impl PartialEq<String> for Text {
     fn eq(&self, other: &String) -> bool {
-        self.to_string() == *other
+        <Text as PartialEq<str>>::eq(self, other.as_str())
     }
 }
 
