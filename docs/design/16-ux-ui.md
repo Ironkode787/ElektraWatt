@@ -1012,7 +1012,9 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
 - **Navigator → canvas.** Representations on the active page are selected there. If none is on the active page,
   the page is **not** switched. For -201U1 selected while folio 102 is shown, the canvas shows a chip line "Not on
   this page: 201-E1, 3-B2, 106-G3, 902", and Enter opens the page of the main representation (lowest page order,
-  row, column, ID; [03](03-domain-model.md) §8.2).
+  row, column, ID; [03](03-domain-model.md) §8.2). A device drawn by no symbol of its own is drawn where its members
+  are: a cable by its cores, a strip by its terminals, so a Messages row of a cable opens the page of its cores
+  (FT-1924).
 
 *As built.* Marking rows selects the drawables on the shown
 page, else the records, and never switches the page; the chip line above the canvas area lists at most 12 places (main

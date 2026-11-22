@@ -15,7 +15,7 @@ use ew_derive::ew_schema::{FnRole, Function, Page};
 
 use super::{
     Builder, Drawable, FIX_ALL, NavKind, NavOpen, NavRole, NavTable, connection_drawables, device_drawables,
-    drawable, folios, group, sorted,
+    drawable, drawn_as_members, folios, group, sorted,
 };
 use crate::Session;
 
@@ -77,9 +77,10 @@ fn rule_kind_word(kind: crate::checks::RuleKind) -> &'static str {
     }
 }
 
-/// The drawables of one finding target: a device the representations of its functions; a
-/// function its representations; a representation and a connection themselves; a conductor its core connections;
-/// every other record none.
+/// The drawables of one finding target: a device the representations of its functions, else where it is drawn as
+/// its members (a cable its cores, a strip its terminals: FT-1924, a cable's finding opened no page); a function its
+/// representations; a representation and a connection themselves; a conductor its core connections; every other
+/// record none.
 fn target_drawables(
     q: &Q,
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
@@ -88,7 +89,14 @@ fn target_drawables(
     use ew_derive::ew_schema::{Conductor, ConnectionKind, Kind};
     let id = target.id.as_uuid();
     match target.kind {
-        Kind::Device => device_drawables(q, folios, Id::from_uuid(id)),
+        Kind::Device => {
+            let device = Id::from_uuid(id);
+            let own = device_drawables(q, folios, device);
+            match q.devices().get(device) {
+                Some(d) if own.is_empty() => drawn_as_members(q, folios, &d),
+                _ => own,
+            }
+        }
         Kind::Function => {
             let f: Id<Function> = Id::from_uuid(id);
             let main = q.functions().get(f).is_none_or(|x| x.role == FnRole::Main);

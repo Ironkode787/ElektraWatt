@@ -16,7 +16,7 @@ use ew_api::{AnyCommand, Session};
 use serde_json::json;
 
 /// The sample with the supply cable -101W1's length cleared (EF-08: EW-CORE-033), read-only (commands run in memory).
-fn with_a_cable_without_length() -> Session {
+pub(crate) fn with_a_cable_without_length() -> Session {
     let mut s = common::sample();
     let cable = s.resolve_reference("-101W1").expect("the supply cable");
     s.execute(&AnyCommand {

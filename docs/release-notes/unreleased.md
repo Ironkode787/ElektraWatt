@@ -418,6 +418,9 @@ change here.
   they name, else a new one of copper named for the bus system), so its segments, EW-BUS-004 and the bus overview see
   it without `bus.physical_net.create`; EW-BUS-004 checks the termination of PROFIBUS DP and CANopen only, so a drawn
   PROFINET star reports no unterminated ends (doc 10 §2.7, FT-1922)
+- behaviour-change: a Messages row of a finding on a cable (EW-CORE-033, a cable without its length) names the page of
+  the cable's cores and Enter opens it with the core wires selected; it named no page and opened nothing (doc 16 §5,
+  FT-1924)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
