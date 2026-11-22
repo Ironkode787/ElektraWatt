@@ -6470,8 +6470,8 @@ toast-report-block-new = Added the report block { $p0 } from folio { $p1 }.
 toast-report-block-empty = Added the report block { $p0 } from folio { $p1 }; it has nothing to list yet, so it makes no page. { $p2 }.
 toast-report-block-had = Added the report block { $p0 } from folio { $p1 }. The set already had one on page { $p2 }: go to it, or undo this one.
 form-report-had = This set already has { $p0 } on page { $p1 }. Create adds another; Cancel and Go to page { $p1 } opens it.
-toast-parts-unlisted = { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one.
-toast-parts-unlisted-one = 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one.
+toast-parts-unlisted = { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one, or Type not known yet… lists them by a description until it is known.
+toast-parts-unlisted-one = 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one, or Type not known yet… lists it by a description until it is known.
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
 
 # FT-1337 and FT-1363 (ID-1359 ruling 1): a command error in the window, by its reason.

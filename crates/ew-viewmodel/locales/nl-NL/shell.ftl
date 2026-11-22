@@ -6202,8 +6202,8 @@ toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }.
 toast-report-block-empty = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }; het heeft nog niets te tonen en maakt dus geen pagina. { $p2 }.
 toast-report-block-had = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }. De set had er al een op pagina { $p2 }: ga ernaartoe, of maak dit ongedaan.
 form-report-had = Deze set heeft al { $p0 } op pagina { $p1 }. Maken voegt er nog een toe; Annuleren en Naar pagina { $p1 } opent het.
-toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een.
-toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een.
+toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een, of Type nog onbekend… zet ze met een omschrijving in de lijst tot het bekend is.
+toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een, of Type nog onbekend… zet het met een omschrijving in de lijst tot het bekend is.
 toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.

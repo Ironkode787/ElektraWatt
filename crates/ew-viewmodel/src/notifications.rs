@@ -54,6 +54,8 @@ pub enum NoteAction {
     ItemNumbers,
     /// Select the devices the parts list leaves out because they have no part, for Choose part….
     SelectUnlisted,
+    /// Type not known yet… for the devices the parts list leaves out, so they are listed by a description.
+    ListUnlisted,
     /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it.
     Connect,
     /// Redraw the boxes of a part whose device box was changed: each as the part lays it out now.
@@ -89,6 +91,7 @@ impl NoteAction {
             NoteAction::Swap => "swap",
             NoteAction::ItemNumbers => "item_numbers",
             NoteAction::SelectUnlisted => "select_unlisted",
+            NoteAction::ListUnlisted => "list_unlisted",
             NoteAction::Connect => "connect",
             NoteAction::RedrawBoxes => "redraw_boxes",
             NoteAction::ChooseCable => "choose_cable",
@@ -116,6 +119,7 @@ impl NoteAction {
             "swap" => Some(NoteAction::Swap),
             "item_numbers" => Some(NoteAction::ItemNumbers),
             "select_unlisted" => Some(NoteAction::SelectUnlisted),
+            "list_unlisted" => Some(NoteAction::ListUnlisted),
             "connect" => Some(NoteAction::Connect),
             "redraw_boxes" => Some(NoteAction::RedrawBoxes),
             "choose_cable" => Some(NoteAction::ChooseCable),
@@ -144,6 +148,7 @@ impl NoteAction {
             NoteAction::Swap => key!("action-fluid-swap"),
             NoteAction::ItemNumbers => key!("layout-show-item-numbers"),
             NoteAction::SelectUnlisted => key!("note-action-select-unlisted"),
+            NoteAction::ListUnlisted => key!("action-part-placeholder"),
             NoteAction::Connect => key!("note-action-connect"),
             NoteAction::RedrawBoxes => key!("box-redraw"),
             NoteAction::ChooseCable => key!("note-action-choose-cable"),

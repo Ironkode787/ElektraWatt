@@ -567,6 +567,15 @@ impl ShellModel {
                     other => other,
                 }
             }
+            // The same devices selected, and Type not known yet…'s field of their part dialog open, to be described.
+            Some(NoteAction::ListUnlisted) => {
+                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
+                self.notes.dismiss(entry.serial);
+                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
+                    Outcome::Done => self.dispatch("part.placeholder", &serde_json::json!({})),
+                    other => other,
+                }
+            }
             // The Cable form of the bus line just drawn, the line selected.
             Some(NoteAction::ChooseCable) => {
                 let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
@@ -631,7 +640,7 @@ impl ShellModel {
     }
 
     /// Shows the toast that the parts list leaves out the devices without a part, when there are any:
-    /// how many, with Select them.
+    /// how many, with Select them and Type not known yet….
     #[inline(never)]
     pub(super) fn notify_unlisted(&mut self) {
         let Some(devices) = self
@@ -645,17 +654,19 @@ impl ShellModel {
             1 => strings::text(key!("toast-parts-unlisted-one")).to_owned(),
             n => strings::format(key!("toast-parts-unlisted"), &[&n.to_string()]),
         };
-        let action = self.project.as_ref().map(|p| {
-            (
-                NoteAction::SelectUnlisted,
-                Validity::Session {
-                    epoch: p.epoch,
-                    select: devices.iter().map(|d| d.as_uuid()).collect(),
-                },
-            )
+        let validity = self.project.as_ref().map(|p| Validity::Session {
+            epoch: p.epoch,
+            select: devices.iter().map(|d| d.as_uuid()).collect(),
         });
-        // Its own key, so it stands beside the toast of the step that added the list (with its Undo).
-        self.notes.push(text, "unlisted", action);
+        // Its own key, so it stands beside the toast of the step that added the list (with its Undo). Beside Select
+        // them, Type not known yet… lists them by a description (a persona run had left a type open on purpose and
+        // found no way to list the device).
+        self.notes.push_two(
+            text,
+            "unlisted",
+            validity.clone().map(|v| (NoteAction::SelectUnlisted, v)),
+            validity.map(|v| (NoteAction::ListUnlisted, v)),
+        );
     }
 
     /// `toast.undo`: the newest visible toast's Undo (the registry's undo); the toast goes.

@@ -824,7 +824,10 @@ another; …"), and after Create the toast names that page with Go to page besid
 cable overview beside the one the company standard generates, and nothing said so). Another list of a kind is allowed.
 Output ▸ Parts list, the one list with a button of its own, opens the set's parts list and never makes one; its toast
 says so ("Opened the set's parts list on page 901; it makes no second one. Report… on the Output tab adds another
-list.", a persona re-test pressed it twice and could not tell).
+list.", a persona re-test pressed it twice and could not tell). Where devices have no part, a second toast says how
+many are left out of the list, with Select them (for Choose part…) and Type not known yet… (the same devices' part
+dialog on its description field), which lists them by a description (a persona run left a type open on purpose and
+found no way to list the device).
 
 **The form's Report field.** Report block… offers the parts list first, as the Output tab leads with its Parts list,
 and opens on it; the other kinds follow by their names (it opened on "Bus cable list", the first of the alphabet, a

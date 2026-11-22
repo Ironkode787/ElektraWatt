@@ -42,11 +42,15 @@ fn the_parts_list_says_which_devices_it_leaves_out() {
 
     done(&mut s, "lists.parts", json!({}));
     let toast = s.toast().cloned().expect("a toast");
-    assert_eq!(toast.action(), Some(NoteAction::SelectUnlisted));
+    assert_eq!(
+        toast.actions(),
+        [NoteAction::SelectUnlisted, NoteAction::ListUnlisted]
+    );
     assert_eq!(
         toast.text,
         format!(
-            "{} device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one.",
+            "{} device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one, or \
+             Type not known yet… lists it by a description until it is known.",
             named.len()
         )
     );
@@ -57,4 +61,38 @@ fn the_parts_list_says_which_devices_it_leaves_out() {
     );
     let selected: BTreeSet<String> = s.selection().items.iter().map(|e| e.0.to_string()).collect();
     assert_eq!(selected, named);
+}
+
+/// The toast's Type not known yet… selects the same devices and opens their part dialog on its description field, so
+/// a device whose type is left open on purpose is listed (a persona run found no way to list it).
+#[test]
+fn type_not_known_yet_lists_the_devices_left_out() {
+    let tmp = Tmp::new("parts-unlisted-tbd");
+    let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
+    done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
+    done(&mut s, "tool.place", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "lists.parts", json!({}));
+    let toast = s
+        .notifications()
+        .entries()
+        .find(|n| n.key == "unlisted")
+        .cloned()
+        .expect("the unlisted toast");
+    done(
+        &mut s,
+        "notifications.run",
+        json!({"entry": toast.serial, "action": "list_unlisted"}),
+    );
+    assert_eq!(s.selection().items.len(), 1, "the contact without a part");
+    let Some(ew_viewmodel::shell::Dialog::PartChoose(c)) = s.dialog() else {
+        panic!("the part dialog")
+    };
+    assert!(c.naming, "on Type not known yet…'s description field");
 }
