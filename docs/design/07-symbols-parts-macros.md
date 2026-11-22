@@ -1021,8 +1021,9 @@ with connection points turned a quarter places its slot texts that print level a
 - The body is the bounds of the graphics and of the static texts' anchors, and a step above or below the point of
   each pin's designation that prints there. Each text stands a quarter step clear of it and a line (a step and a half,
   the starter symbols' pitch) from the one before; only the texts that print take a line.
-- A pin's designation keeps its place at its pin (step 3 above). A text a person dragged keeps its place and takes the
-  alignment of its group, so it does not jump when dropped; a slot whose angle an override sets keeps its turned point.
+- A pin's designation keeps its place at its pin (step 3 above). A text a person dragged keeps its place and the
+  alignment of its slot (`slot_align`), the alignment its position was stored with, so a project made before these
+  places prints it where it did; a slot whose angle an override sets keeps its turned point.
   A symbol without connection points (a drawn box) keeps the steps above.
 
 The symbol editor's strip "Turned and mirrored" and a page show the same places; on a page they are the texts' first

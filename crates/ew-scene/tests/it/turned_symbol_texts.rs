@@ -217,17 +217,34 @@ fn turned_symbols_on_a_page_print_their_texts_apart() {
             }
         }
     }
-    // The last coil's tag stands where it was dropped: its anchor is the override's point turned, inside its box.
-    let last = &view.reps[4].rep;
-    let tag = last.pos + Orient2::R90.apply(moved);
+    // The last coil's tag stands where it was dropped, as 0.3.0 printed it: anchored at the override's point turned,
+    // with the slot's own alignment (`slot_align`), not the alignment of the texts placed anew round the body.
+    let last = &view.reps[4];
+    let def = last.symbol.as_ref().unwrap();
+    let slot = def.text_slots.iter().find(|s| s.kind == SlotKind::Tag).unwrap();
+    let align = ew_scene::symbol::slot_align(def, slot, slot.rot, Orient2::R90);
+    let tag = last.rep.pos + Orient2::R90.apply(moved);
     let dropped = runs
         .iter()
-        .find(|r| r.0.0 == last.id.as_uuid() && r.1 == "-K12")
-        .expect("the dragged tag");
-    assert!(
-        (dropped.2.min().x.0..=dropped.2.max().x.0).contains(&tag.x.0)
-            && (dropped.2.min().y.0..=dropped.2.max().y.0).contains(&tag.y.0),
-        "{:?} at {tag:?}",
-        dropped.2
+        .find(|r| r.0.0 == last.rep.id.as_uuid() && r.1 == "-K12")
+        .expect("the dragged tag")
+        .2;
+    // Where the alignment puts the anchor on the text's box, in halves of its width and of its height.
+    let (h, v) = match align {
+        Align::TopLeft => (0, 0),
+        Align::TopCentre => (1, 0),
+        Align::TopRight => (2, 0),
+        Align::MiddleLeft => (0, 1),
+        Align::Centre => (1, 1),
+        Align::MiddleRight => (2, 1),
+        Align::BottomLeft => (0, 2),
+        Align::BottomCentre => (1, 2),
+        Align::BottomRight => (2, 2),
+        other => panic!("{other:?} names no corner or side of a box"),
+    };
+    let anchor = (
+        dropped.min().x.0 + h * dropped.width().0 / 2,
+        dropped.min().y.0 + v * dropped.height().0 / 2,
     );
+    assert_eq!(anchor, (tag.x.0, tag.y.0), "{dropped:?} aligned {align:?}");
 }

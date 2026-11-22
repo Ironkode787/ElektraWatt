@@ -735,8 +735,9 @@ impl Builder<'_> {
             };
             let frame = ew_derive::text_frame(rep, def);
             let ov = rep.text_slots.iter().find(|o| o.slot == i);
+            let moved = ov.and_then(|o| o.pos).is_some();
             let (place, slot_align) =
-                symbol::slot_places(def, frame.orient, |n| n == usize::from(i)).swap_remove(usize::from(i));
+                symbol::slot_places(def, frame.orient, |n| n == usize::from(i) && !moved).swap_remove(usize::from(i));
             let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
             let angle = symbol::upright_angle(rot);
             let align = match ov.and_then(|o| o.angle) {

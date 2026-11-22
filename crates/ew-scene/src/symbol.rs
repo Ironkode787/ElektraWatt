@@ -508,7 +508,8 @@ pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orie
 }
 
 /// Where each slot of `def` prints on a symbol in `variant` where no override moves or turns it, by slot index: its
-/// anchor in the symbol's frame after the variant and its alignment, which a slot an override only moves keeps as well.
+/// anchor in the symbol's frame after the variant and its alignment. A slot that `shown` leaves out keeps both as its
+/// slot gives them, so a text an override moves keeps the alignment it was stored with and prints where it did.
 /// A slot stands at its point turned by the variant, aligned by [`slot_align`], except on a symbol with connection
 /// points turned a quarter (B, D, F, H): there its texts that print level are placed anew round its body so that none
 /// stands on another or on the symbol (owner, 2026-11-22). The body is the bounds of its graphics and its static texts'
@@ -573,9 +574,8 @@ pub fn slot_places(def: &SymbolDef, variant: Orient2, shown: impl Fn(usize) -> b
                 Align::TopCentre,
             )
         };
-        places[i].1 = align;
         if shown(i) {
-            places[i].0 = at;
+            places[i] = (at, align);
             *line += 1;
         }
     }

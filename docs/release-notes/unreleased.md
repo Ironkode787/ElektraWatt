@@ -589,7 +589,8 @@ change here.
 - behaviour-change: a symbol turned a quarter places its texts anew round its body, on a page and in the symbol
   editor's strip "Turned and mirrored" alike: lying flat, its tag stands centred above it and its technical data,
   cross-reference and other texts centred below it, line under line, its pins' numbers at its pins; they stood side by
-  side on one line and ran into each other. A text a person dragged keeps its place. Where wires run under a part
+  side on one line and ran into each other. A text a person dragged keeps its place and its alignment, so it prints
+  where it did. Where wires run under a part
   lying flat, its data may stand over its tag, and a strip's tag stands over the name of its first terminal (doc 07
   §4.1, doc 06a §5.2, FT-1929)
 - text-change: what a command dropped or adjusted instead of refusing (a box reshape's moved pin, a paste's left-out
