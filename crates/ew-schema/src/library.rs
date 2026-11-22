@@ -2261,8 +2261,9 @@ pub enum Overflow {
     /// Report an error.
     Error,
     /// QElectroTech's `hadjust`: a text wider than the cell is scaled down whole until its widest line fits,
-    /// without a floor; its lines are never wrapped, and its height makes it smaller only where the face's line
-    /// pitch, not the text, makes the lines the cell was made for taller than the cell (doc 09 §2.5).
+    /// without a floor; its lines are never wrapped. Where the face's line pitch, not the text, makes the lines the
+    /// cell was made for taller than the cell, they close up to no less than 1 em apart, and only then is the text
+    /// scaled down whole (doc 09 §2.5).
     FitWidth,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]

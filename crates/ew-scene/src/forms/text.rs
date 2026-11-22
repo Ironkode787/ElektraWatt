@@ -203,9 +203,6 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
             None => {}
         }
     }
-    // `fit_width` keeps its lines inside the box: where the face's own line pitch, and not the text, makes the block
-    // taller than the box (no more lines than the box was made for), the text is scaled down whole until the
-    // block's box lies inside it, and placed in the whole box.
     // As QET draws a text it scaled to the width: in the box's height scaled by the same share about its middle.
     let kept = |st: &TextStyle| {
         let h = i128::from(avail_h.0);
@@ -217,6 +214,10 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
         );
         BoxSpec { rect, ..*spec }
     };
+    // `fit_width` keeps its lines inside the box: where the face's own line pitch, and not the text, makes the block
+    // taller than the box (2 to `max_lines` lines), the lines close up first, the size unchanged, down to a pitch of
+    // 1 em; only a block that still does not fit at that pitch is scaled down whole, size and pitch together. The
+    // block is then placed in the whole box.
     let lines = shaped.lines.len();
     let mut height_fit = false;
     if fit_width
@@ -225,26 +226,39 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
         && !block_inside(fonts, &shaped, &style, &kept(&style), spec.rect)
     {
         height_fit = true;
+        let gaps = lines as i64 - 1;
         let m = fonts.vertical_metrics(&style);
-        let last = shaped.lines.last().map_or(Nm::ZERO, |l| l.baseline);
-        let tall = i128::from((m.ascent + last + m.descent).0.max(1));
-        let mut size = Nm((i128::from(style.size.0) * i128::from(avail_h.0) / tall) as i64).min(style.size);
-        // The block's box scales with the size; its middle alignment centres the cap height, so a step or two
-        // more may be needed. A box the text cannot fit at any drawable size draws nothing.
-        for _ in 0..64 {
-            if size <= Nm::ZERO {
-                return Laid {
-                    items: Vec::new(),
-                    shaped,
-                    overflow: Some(OverflowKind::ShrinkLimit),
-                };
-            }
-            style = style.with_size(size);
-            shaped = shape(text, &style, None);
-            if block_inside(fonts, &shaped, &style, spec, spec.rect) {
+        let own = Nm(shaped.lines.last().map_or(0, |l| l.baseline.0) / gaps);
+        // The middle alignment centres the cap height, not the box, so a step or two more may be needed.
+        let mut pitch = Nm(((avail_h - m.ascent - m.descent).0 / gaps).min(own.0)).max(style.size);
+        loop {
+            shaped = restacked(shaped, pitch);
+            if block_inside(fonts, &shaped, &style, spec, spec.rect) || pitch <= style.size {
                 break;
             }
-            size = Nm(size.0 - (size.0 / 200).max(1));
+            pitch = Nm(pitch.0 - (pitch.0 / 200).max(1)).max(style.size);
+        }
+        if !block_inside(fonts, &shaped, &style, spec, spec.rect) {
+            // The block closed up to 1 em, scaled down whole. A box the text cannot fit at any drawable size
+            // draws nothing.
+            let tall = i128::from((m.ascent + m.descent).0) + i128::from(style.size.0) * i128::from(gaps);
+            let mut size =
+                Nm((i128::from(style.size.0) * i128::from(avail_h.0) / tall.max(1)) as i64).min(style.size);
+            for _ in 0..64 {
+                if size <= Nm::ZERO {
+                    return Laid {
+                        items: Vec::new(),
+                        shaped,
+                        overflow: Some(OverflowKind::ShrinkLimit),
+                    };
+                }
+                style = style.with_size(size);
+                shaped = restacked(shape(text, &style, None), size);
+                if block_inside(fonts, &shaped, &style, spec, spec.rect) {
+                    break;
+                }
+                size = Nm(size.0 - (size.0 / 200).max(1));
+            }
         }
     }
     let items = if fit_width && style.size < full && !height_fit {
@@ -265,6 +279,14 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
         shaped,
         overflow,
     }
+}
+
+/// `shaped` with its lines `pitch` apart, baseline to baseline (each line is placed by its own baseline).
+fn restacked(mut shaped: Shaped, pitch: Nm) -> Shaped {
+    for (i, line) in shaped.lines.iter_mut().enumerate() {
+        line.baseline = Nm(pitch.0.saturating_mul(i as i64));
+    }
+    shaped
 }
 
 /// `shaped` as a screen of `pixel` lays it out (QElectroTech's text, doc 14 §4.10): every glyph's advance, its

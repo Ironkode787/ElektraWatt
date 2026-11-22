@@ -1073,8 +1073,10 @@ variable has an EW xref-format token (FR-XRF-003):
   share of its width in both directions (`painter.scale(ratio, ratio)`) and centres the scaled cell's height in the
   cell; it never shrinks a text for its height, so a cell whose lines are taller than it overflows it. Only QET's DXF
   export condenses a text across alone; the print does not. Where another face's line pitch, and not the text, makes
-  the lines a cell was made for taller than the cell (a four-line notice in Noto Sans), EW scales them down whole until
-  their box lies inside the cell, so no line runs over a border; in QET's face they stand as QET's print has them.
+  the lines a cell was made for taller than the cell (a four-line notice in Noto Sans), EW closes the lines up, their
+  size unchanged and never to less than 1 em apart, until their box lies inside the cell, and scales the block down
+  whole only where 1 em apart is still too high, so no line runs over a border; in QET's face they stand as QET's
+  print has them.
 - *Measured (FT-1746, FT-1765).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
   imported text stands on QET's baseline (a free text with `anchor: baseline`, an element's texts `baseline_left`),
   so a project whose typeface is QET's face prints it where QET does; the dynamic texts and free texts of 4 to 9 pt
@@ -1082,11 +1084,11 @@ variable has an EW xref-format token (FR-XRF-003):
   §2.5): QET draws it on the cell's edges. With both, the texts in place went from 3,929 to 4,166 of about 4,800 and
   the moved ones from 730 to 493.
 - *Measured (FT-1941)* with `ew import qet` and `ew verify-migration --json` against the same pilot set's own PDF,
-  with QET's whole pixels (above): in the default typeface 4,311 texts in place (4,170 before), 411 moved (552), 11
+  with QET's whole pixels (above): in the default typeface 4,379 texts in place (4,170 before), 343 moved (552), 11
   missing, 43 extra, 4 raster cells; with Liberation Sans, the face of that PDF, as the typeface 4,568 in place
   (4,178), 154 moved (544), 11 missing, 43 extra, 4 raster cells (36). Each text still moved has a cause the import
   does not decide:
-  - the folio list (92 moved, 104 in the default typeface; the 11 missing and 43 extra, two raster cells): EW draws
+  - the folio list (92 moved, 100 in the default typeface; the 11 missing and 43 extra, two raster cells): EW draws
     QET's folio list as its own table of contents (FT-1645);
   - 39 rich texts in `Sans Serif` that QET's computer printed in Tahoma, 0.6 to 1.4 mm higher (Tahoma's ascent in
     whole px is about 1.0 em, Liberation Sans's 0.905): which face QET prints such a text in is its computer's
@@ -1096,9 +1098,8 @@ variable has an EW xref-format token (FR-XRF-003):
     symbols: QET draws them with a contact symbol per row 10 px apart (§4.5, FT-1645);
   - 5 texts QET prints turned to read downward or upside down, which EW turns to read from the bottom or the right
     ([07](07-symbols-parts-macros.md) §4.1, [09](09-reports-forms-output.md) §4.8; FT-1905);
-  - in the default typeface, 243 title-block texts: Noto Sans's widths and line pitch are not QET's face's, and a
-    four-line cell is scaled down to keep its lines inside it; with that face as the typeface they stand where
-    QET's do.
+  - in the default typeface, 179 title-block texts: Noto Sans's widths, and the four-line cell's lines closed up
+    to stay inside it, are not QET's face's; with that face as the typeface they stand where QET's do.
 
 ### 4.11 Strips, terminals and cables
 

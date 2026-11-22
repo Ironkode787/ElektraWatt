@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A QElectroTech title block's cell as QElectroTech prints it (FT-1941, doc 14 §4.10): `fit_width` scales a text
-//! too wide for its cell whole, without a floor, and for its height only where the face's line pitch, not the text,
-//! makes the lines the cell was made for taller than it; `ew.cell.pixel` lays its text out with every advance a whole
-//! pixel of QElectroTech's screen.
+//! too wide for its cell whole, without a floor, and where the face's line pitch, not the text, makes the lines the
+//! cell was made for taller than it, closes them up to 1 em before it scales them; `ew.cell.pixel` lays its text out
+//! with every advance a whole pixel of QElectroTech's screen.
 
 use ew_dl::{ItemKind, ShapedRun};
 use ew_scene::forms::{FormFinding, PageBindings, lower_form};
@@ -111,41 +111,69 @@ fn fit_width_never_shrinks_a_text_for_more_lines_than_its_cell_holds_and_never_w
     assert!(runs.iter().all(|r| r.size == runs[0].size && r.size < em.size));
 }
 
+/// The four lines "One" to "Four" in a 40 mm wide cell `h` high made for four, aligned `align` under `fit_width`: the
+/// runs, after the checks every such cell passes (no finding, one run per line, every line in one size, the block's box
+/// from the first line's ascent to the last line's descent inside the cell).
+fn four_lines(h: i64, align: &str) -> Vec<ShapedRun> {
+    let (runs, findings) = cell(
+        40_000_000,
+        h,
+        align,
+        json!("fit_width"),
+        json!({"ew.cell.max_lines": 4}),
+        "One\nTwo\nThree\nFour",
+    );
+    assert!(findings.is_empty(), "{align}: {findings:?}");
+    assert_eq!(runs.len(), 4, "{align}");
+    assert!(runs.iter().all(|r| r.size == runs[0].size), "{align}");
+    let top = runs
+        .iter()
+        .map(|r| r.origin.y.0 + r.layout_box.min().y.0)
+        .min()
+        .unwrap();
+    let bottom = runs
+        .iter()
+        .map(|r| r.origin.y.0 + r.layout_box.max().y.0)
+        .max()
+        .unwrap();
+    assert!(top >= 0 && bottom <= h, "{align}: {top}..{bottom} in 0..{h}");
+    runs
+}
+
+/// The distances between the baselines of `runs`, top to bottom.
+fn pitches(runs: &[ShapedRun]) -> Vec<i64> {
+    let mut ys: Vec<i64> = runs.iter().map(|r| r.origin.y.0).collect();
+    ys.sort_unstable();
+    ys.windows(2).map(|w| w[1] - w[0]).collect()
+}
+
 #[test]
 fn fit_width_keeps_the_lines_a_cell_was_made_for_inside_it_in_the_default_face() {
     let em = builtin().resolve("text.normal").unwrap();
-    // Four short lines in a cell made for four, whose height holds them at a line pitch of about 1.15 em, as
-    // QElectroTech's face spaces them, and not at the default face's 1.36 em.
-    let text = "One\nTwo\nThree\nFour";
+    let own = bundled().vertical_metrics(&em).line_pitch.0;
+    // A cell made for four lines whose height holds them about 1.15 em apart, as QElectroTech's face spaces them,
+    // and not at the default face's 1.36 em: the lines close up, their size unchanged, and stay at least 1 em apart.
     let h = i64::try_from(i128::from(em.size.0) * 1_250 * 4 / 1_000).unwrap();
     for align in ["centre", "top_centre", "bottom_centre"] {
-        let (runs, findings) = cell(
-            40_000_000,
-            h,
-            align,
-            json!("fit_width"),
-            json!({"ew.cell.max_lines": 4}),
-            text,
-        );
-        assert!(findings.is_empty(), "{align}: {findings:?}");
-        assert_eq!(runs.len(), 4, "{align}");
-        // Scaled whole, every line alike, and the block's box (the first line's ascent to the last line's descent)
-        // inside the cell.
+        let runs = four_lines(h, align);
+        assert_eq!(runs[0].size, em.size, "{align}");
+        let p = pitches(&runs);
         assert!(
-            runs.iter().all(|r| r.size == runs[0].size && r.size < em.size),
-            "{align}"
+            p.iter().all(|&d| d == p[0] && d < own && d >= em.size.0),
+            "{align}: {p:?}"
         );
-        let top = runs
-            .iter()
-            .map(|r| r.origin.y.0 + r.layout_box.min().y.0)
-            .min()
-            .unwrap();
-        let bottom = runs
-            .iter()
-            .map(|r| r.origin.y.0 + r.layout_box.max().y.0)
-            .max()
-            .unwrap();
-        assert!(top >= 0 && bottom <= h, "{align}: {top}..{bottom} in 0..{h}");
+    }
+    // A cell too low for four lines even 1 em apart: the lines close up to 1 em, and the block is scaled down whole.
+    let h = em.size.0 * 3;
+    for align in ["centre", "top_centre", "bottom_centre"] {
+        let runs = four_lines(h, align);
+        assert!(runs[0].size < em.size, "{align}");
+        let p = pitches(&runs);
+        assert!(
+            p.iter().all(|&d| d == runs[0].size.0),
+            "{align}: {p:?} at {:?}",
+            runs[0].size
+        );
     }
 }
 

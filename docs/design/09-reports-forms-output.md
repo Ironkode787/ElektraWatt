@@ -378,15 +378,16 @@ v0 has no tab stops. `ShrinkToFit` reduces the style size down to `min_cap_heigh
 page-to-sheet transform (§2.8); text that still does not fit is drawn at that size and overflows the cell, and the
 form finding `Overflow` reports it, because clipping is forbidden. `Ellipsis` cuts the text, appends "…" and reports
 it; `Error` draws the text unshrunk and reports it. `FitWidth` (`"fit_width"`) is QElectroTech's `hadjust`, which a
-QElectroTech title block's cells take ([14](14-interop.md) §4.10): its lines are never wrapped and only the width
-counts, so a text wider than the cell is scaled down whole (its size and, with a pixel, its pixel) until its widest
+QElectroTech title block's cells take ([14](14-interop.md) §4.10): its lines are never wrapped, and a text wider
+than the cell is scaled down whole (its size and, with a pixel, its pixel) until its widest
 line fits, without a floor, and placed in the cell's height scaled by the same share about its middle. Its height
-makes it smaller only where the face's own line pitch, and not the text, makes the block taller than the cell: a block
-of more than one line and no more lines than the cell's `ew.cell.max_lines` whose box (the first line's ascent to the
-last line's descent) crosses the cell's top or bottom is scaled down whole until the box lies inside, and placed in
-the whole cell. A text of more lines than that is drawn at its size and not reported, as QElectroTech draws it. An
-older build keeps the value
-as unknown and draws the text as `Error` does. Cell text is inset 2 QET px (0.529 mm) from the left and right
+counts only where the face's own line pitch, and not the text, makes the block taller than the cell: for a block of
+more than one line and no more lines than the cell's `ew.cell.max_lines` whose box (the first line's ascent to the
+last line's descent) crosses the cell's top or bottom, the lines close up first, the size unchanged, until the box
+lies inside, never to less than 1 em apart; a block that still does not fit 1 em apart is scaled down whole, size and
+pitch together. Either way it is placed in the whole cell. A text of more lines than that is drawn at its size and
+not reported, as QElectroTech draws it. An older build keeps the value as unknown and draws the text as `Error`
+does. Cell text is inset 2 QET px (0.529 mm) from the left and right
 edges, or by the cell's own `ew.cell.inset` extra member in nm (0 to 10 mm; a QElectroTech title block's cells
 have 0, [14](14-interop.md) §4.10), and middle alignment centres the cap height. A cell's `ew.cell.pixel` extra member
 (nm, 1 nm to 10 mm; another value is none) lays its text out as a screen of that pixel does: every glyph's advance,
