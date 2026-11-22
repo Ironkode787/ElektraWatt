@@ -356,11 +356,6 @@ impl LibraryPart {
         })
     }
 
-    /// The library's ID.
-    pub fn library(&self) -> ew_derive::ew_ids::Uuid {
-        self.library
-    }
-
     /// Reads the source through `parse` against what the registry held when it was taken: the import's front door
     /// (its limits, a panic refused), then the refusal of changed content under a held version without `bump`.
     /// `source` is the file's name and size, `read` the import date and whether it bumps changed parts.
