@@ -1067,8 +1067,10 @@ it joins with a connection dot on each.
   terminals the bridge joins, so a reader never sees a bridge that is not there; a bridge split over pages or rows
   shows as its parts, and the terminal diagram lists it whole. A terminal that stands between two of the row and is
   not part of the bridge is crossed without a dot, as a wire crosses a wire.
-- *Not built.* The layout's page does not hold the bars, so the text placer may set a text on one and the router may
-  cross one (FT-2021).
+- *Texts keep clear of a bridge.* Each bridge line, a tick to either side, is one of the keep-outs of the layout's
+  page, so the text placer sets no wire number or other text on one; the drawing and the layout share one
+  computation of the lines. The router does not read these keep-outs: a wire may cross a bridge, as a wire crosses a
+  wire.
 
 ### 6.6 Spares and reserves
 

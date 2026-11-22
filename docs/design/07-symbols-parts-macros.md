@@ -139,11 +139,11 @@ part's accessories, a macro's parts.
 *As built.* The system tier holds two compiled-in
 libraries: the starter (`ew-starter`: symbols, FnDefs, forms) and **`ew-starter-parts`**, the generic starter parts.
 `ew-starter-parts` (`content/libraries/ew-starter-parts.ewlib`, version 0.1.0, CC0-1.0) holds the manufacturer
-"Generic" and sixteen parts numbered `EW-GEN-<kind>-<n>`: a relay with four change-over contacts (RLY-1), a contactor
-with three main NO and the auxiliary NO 13-14 (CON-1), MCBs 1P and 1P+N (MCB-1, MCB-2), a fuse holder (FUS-1), a
-pushbutton (PB-1), a selector switch with two NO (SEL-1), a position switch (POS-1), a pilot lamp (LMP-1), a
-three-phase motor (MOT-1), a 230 V AC to 24 V DC power supply (PSU-1), a 5/2 solenoid valve (VLV-1), a feed-through and
-a PE terminal (TRM-1, TRM-2) and 8-channel digital input and output cards (DI-1, DO-1). Each carries its template
+"Generic" and the generic parts, numbered `EW-GEN-<kind>-<n>`: the common kinds of a control cabinet (relays,
+contactors, breakers, switches and lamps, a motor, a power supply, terminals, cables and plugs, PLC CPUs and cards),
+of a pneumatic page (valves, valve terminals, cylinders, air preparation, tubes and fittings) and of a panel layout
+(an enclosure, a rail, a duct). The test that writes the directory is the list; this paragraph names no part, so it
+cannot fall behind. Each carries its template
 functions on starter FnDefs, its CP pattern, contact data and the technical data the starter symbols print, and no
 order or catalogue data; its description is in English and Dutch, as every starter symbol's name is but the junction dot's and bevel's (their seals belong to a derivation
 profile), so a Dutch
