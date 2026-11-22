@@ -44,11 +44,7 @@ fn the_fields_under_the_channels_stay_while_the_channels_are_typed() {
     assert!(before.is_some(), "the supply pins are in sight");
     fill(&mut d, "Channels", "8");
     for hint in ["Channel 0 → pin 1 … channel 7 → pin 8", "Occupies 8 input bits"] {
-        assert!(
-            d.texts().iter().any(|t| t == hint),
-            "{hint}: {:?}",
-            d.texts()
-        );
+        assert!(d.texts().iter().any(|t| t == hint), "{hint}: {:?}", d.texts());
     }
     assert_eq!(
         y_of(&d, "Supply L+ pin"),
@@ -114,6 +110,10 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "the form is closed");
     open(&mut h);
-    assert_eq!(first(&h), (top, true), "the form opens at its top, on its first field");
+    assert_eq!(
+        first(&h),
+        (top, true),
+        "the form opens at its top, on its first field"
+    );
     h.state_mut().shell_mut().shutdown();
 }

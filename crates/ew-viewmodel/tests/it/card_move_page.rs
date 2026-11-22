@@ -40,8 +40,14 @@ fn move_to_page_puts_a_drawn_card_on_another_page_as_the_same_card() {
     let station = s.last_station().expect("the station").to_string();
     done(&mut s, "plc.rack_editor", json!({"station": station}));
     done(&mut s, "plc.rack_select", json!({"slot": 1}));
-    let channel = s.station_shown().expect("the view").channels[0].channel.to_string();
-    done(&mut s, "plc.rack_channel", json!({"channel": channel, "column": "symbol"}));
+    let channel = s.station_shown().expect("the view").channels[0]
+        .channel
+        .to_string();
+    done(
+        &mut s,
+        "plc.rack_channel",
+        json!({"channel": channel, "column": "symbol"}),
+    );
     done(&mut s, "plc.rack_channel", json!({"text": "Door_closed"}));
     let before = slot_one(&s);
     assert_eq!(before.1.as_deref(), Some("120"), "drawn on 120 first");
@@ -50,7 +56,11 @@ fn move_to_page_puts_a_drawn_card_on_another_page_as_the_same_card() {
     done(&mut s, "plc.rack_select", json!({"slot": 1}));
     let after = slot_one(&s);
     assert_eq!(after.1.as_deref(), Some("121"), "drawn on 121 now");
-    assert_eq!((&after.0, &after.2), (&before.0, &before.2), "the same card, its symbol names kept");
+    assert_eq!(
+        (&after.0, &after.2),
+        (&before.0, &before.2),
+        "the same card, its symbol names kept"
+    );
     s.shutdown();
 }
 

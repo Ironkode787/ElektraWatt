@@ -33,13 +33,29 @@ fn a_card_made_from_a_new_station_s_catalogue_starts_without_a_bus_interface() {
     done(&mut s, "plc.new_station", json!({}));
     done(&mut s, "part.new", json!({"plc": "cpu"}));
     assert_eq!(bus_rows(&s).len(), 1, "the head's form starts with its bus row");
-    done(&mut s, "part.field", json!({"field": "plc.role", "value": "module"}));
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "plc.role", "value": "module"}),
+    );
     assert_eq!(bus_rows(&s), Vec::new(), "a module starts without one");
     // A row the person filled in is the person's: it stays whatever the role.
-    done(&mut s, "part.field", json!({"field": "plc.role", "value": "station"}));
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "plc.role", "value": "station"}),
+    );
     done(&mut s, "part.bus_row", json!({}));
-    done(&mut s, "part.field", json!({"field": "bus.0.ports", "value": "2"}));
-    done(&mut s, "part.field", json!({"field": "plc.role", "value": "module"}));
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "bus.0.ports", "value": "2"}),
+    );
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "plc.role", "value": "module"}),
+    );
     assert_eq!(bus_rows(&s).len(), 1, "the filled-in row stays");
 }
 
