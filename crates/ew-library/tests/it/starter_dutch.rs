@@ -18,7 +18,8 @@ fn text<'a>(value: &'a Value, lang: &str) -> &'a str {
 /// Every shipped starter part has an English and a Dutch description.
 #[test]
 fn every_starter_part_has_a_dutch_description() {
-    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/libraries/ew-starter-parts.ewlib/parts");
+    let parts =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/libraries/ew-starter-parts.ewlib/parts");
     let mut missing = Vec::new();
     for entry in std::fs::read_dir(&parts).unwrap().flatten() {
         for line in std::fs::read_to_string(entry.path()).unwrap().lines() {
@@ -30,7 +31,10 @@ fn every_starter_part_has_a_dutch_description() {
             }
         }
     }
-    assert!(missing.is_empty(), "parts without a Dutch description: {missing:?}");
+    assert!(
+        missing.is_empty(),
+        "parts without a Dutch description: {missing:?}"
+    );
 }
 
 /// Every starter symbol, in both grid editions, has an English and a Dutch name. The junction dot and bevel

@@ -15,9 +15,15 @@ fn a_search_for_a_proximity_sensor_finds_the_three_wire_sensor() {
         text: "proximity sensor".into(),
         ..PartQuery::default()
     });
-    let hit = hits.iter().find(|h| h.description.contains("PNP")).unwrap_or_else(|| {
-        panic!("no PNP sensor among {:?}", hits.iter().map(|h| &h.description).collect::<Vec<_>>())
-    });
+    let hit = hits
+        .iter()
+        .find(|h| h.description.contains("PNP"))
+        .unwrap_or_else(|| {
+            panic!(
+                "no PNP sensor among {:?}",
+                hits.iter().map(|h| &h.description).collect::<Vec<_>>()
+            )
+        });
     let r = LibRef {
         library: ew_ids::Id::from_uuid(hit.library),
         item: ew_ids::Id::from_uuid(hit.item),
@@ -27,14 +33,33 @@ fn a_search_for_a_proximity_sensor_finds_the_three_wire_sensor() {
     let Ok(LibDocument::Part(part)) = reg.resolve(&r) else {
         panic!("the sensor resolves to a part")
     };
-    let designations: Vec<&str> = part.item.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    let designations: Vec<&str> = part
+        .item
+        .cp_pattern
+        .iter()
+        .map(|c| c.designation.as_str())
+        .collect();
     assert_eq!(designations, ["BN", "BK", "BU"]);
-    let main = part.item.function_template.iter().find(|t| t.main).expect("a main function");
-    let Ok(LibDocument::Symbol(symbol)) =
-        LibDocument::from_json(starter::item("ew.iec.proximity-sensor-pnp").expect("the sensor's symbol").json)
-    else {
+    let main = part
+        .item
+        .function_template
+        .iter()
+        .find(|t| t.main)
+        .expect("a main function");
+    let Ok(LibDocument::Symbol(symbol)) = LibDocument::from_json(
+        starter::item("ew.iec.proximity-sensor-pnp")
+            .expect("the sensor's symbol")
+            .json,
+    ) else {
         panic!("a symbol")
     };
-    assert_eq!(symbol.item.fndef.item, main.fndef.item, "the symbol draws the sensor's function");
-    assert_eq!(symbol.item.cps.len(), designations.len(), "the symbol draws every pin");
+    assert_eq!(
+        symbol.item.fndef.item, main.fndef.item,
+        "the symbol draws the sensor's function"
+    );
+    assert_eq!(
+        symbol.item.cps.len(),
+        designations.len(),
+        "the symbol draws every pin"
+    );
 }

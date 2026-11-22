@@ -280,7 +280,13 @@ fn range(from: u16, to: u16) -> Vec<u16> {
 /// A generic power or control cable of the cross-section `csa` (mm²) with the cores `cores` in their order, named by
 /// colour per HD 308 S2 up to five cores and numbered (black) above, green-yellow last (`GNYE`); `shielded` adds an
 /// overall shield. Its part number and description say the same in words.
-fn cable(number: &'static str, description: [&'static str; 2], cores: &str, csa: &str, shielded: bool) -> Def {
+fn cable(
+    number: &'static str,
+    description: [&'static str; 2],
+    cores: &str,
+    csa: &str,
+    shielded: bool,
+) -> Def {
     let mut list: Vec<Value> = cores
         .split(' ')
         .map(|core| {
@@ -470,7 +476,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-RLY-1",
             kind: None,
-            description: ["Relay with four changeover contacts", "Relais met vier wisselcontacten"],
+            description: [
+                "Relay with four changeover contacts",
+                "Relais met vier wisselcontacten",
+            ],
             cps: relay_cps,
             template: vec![
                 ("ew.fn.coil", true, vec![0, 1]),
@@ -494,7 +503,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-CON-1",
             kind: None,
-            description: ["Contactor with three main contacts and one auxiliary normally open contact", "Magneetschakelaar met drie hoofdcontacten en één hulpmaakcontact"],
+            description: [
+                "Contactor with three main contacts and one auxiliary normally open contact",
+                "Magneetschakelaar met drie hoofdcontacten en één hulpmaakcontact",
+            ],
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5", "6", "13", "14"]),
             template: vec![
                 ("ew.fn.coil", true, vec![0, 1]),
@@ -518,7 +530,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-MCB-1",
             kind: None,
-            description: ["Miniature circuit breaker, 1 pole", "Installatieautomaat, 1-polig"],
+            description: [
+                "Miniature circuit breaker, 1 pole",
+                "Installatieautomaat, 1-polig",
+            ],
             cps: cps(&["1", "2"]),
             template: vec![("ew.fn.mcb-1p", true, vec![0, 1])],
             contacts: Vec::new(),
@@ -531,7 +546,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-MCB-2",
             kind: None,
-            description: ["Miniature circuit breaker, 1 pole and neutral", "Installatieautomaat, 1-polig met nul"],
+            description: [
+                "Miniature circuit breaker, 1 pole and neutral",
+                "Installatieautomaat, 1-polig met nul",
+            ],
             cps: cps(&["1", "2", "N", "N"]),
             template: vec![("ew.fn.mcb-1pn", true, vec![0, 1, 2, 3])],
             contacts: Vec::new(),
@@ -544,7 +562,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-MCB-3",
             kind: None,
-            description: ["Miniature circuit breaker, 3 poles", "Installatieautomaat, 3-polig"],
+            description: [
+                "Miniature circuit breaker, 3 poles",
+                "Installatieautomaat, 3-polig",
+            ],
             cps: cps(&["1", "2", "3", "4", "5", "6"]),
             template: vec![("ew.fn.mcb-3p", true, range(0, 6))],
             contacts: Vec::new(),
@@ -570,7 +591,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-PB-1",
             kind: None,
-            description: ["Pushbutton with one normally open contact", "Drukknop met één maakcontact"],
+            description: [
+                "Pushbutton with one normally open contact",
+                "Drukknop met één maakcontact",
+            ],
             cps: cps(&["13", "14"]),
             template: vec![("ew.fn.pushbutton-no", true, vec![0, 1])],
             contacts: vec![("no", vec!["13", "14"])],
@@ -583,7 +607,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-SEL-1",
             kind: None,
-            description: ["Selector switch, two positions, with one normally open contact", "Keuzeschakelaar, twee standen, met één maakcontact"],
+            description: [
+                "Selector switch, two positions, with one normally open contact",
+                "Keuzeschakelaar, twee standen, met één maakcontact",
+            ],
             cps: cps(&["13", "14"]),
             template: vec![("ew.fn.selector-switch-no", true, vec![0, 1])],
             contacts: vec![("no", vec!["13", "14"])],
@@ -612,7 +639,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-MCB-4",
             kind: None,
-            description: ["Miniature circuit breaker, 2 poles", "Installatieautomaat, 2-polig"],
+            description: [
+                "Miniature circuit breaker, 2 poles",
+                "Installatieautomaat, 2-polig",
+            ],
             cps: cps(&["1", "2", "3", "4"]),
             template: vec![("ew.fn.mcb-2p", true, range(0, 4))],
             contacts: Vec::new(),
@@ -651,7 +681,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-RCD-1",
             kind: None,
-            description: ["Residual-current device, 2 poles, 30 mA", "Aardlekschakelaar, 2-polig, 30 mA"],
+            description: [
+                "Residual-current device, 2 poles, 30 mA",
+                "Aardlekschakelaar, 2-polig, 30 mA",
+            ],
             cps: cps(&["1", "2", "N", "N"]),
             template: vec![("ew.fn.rcd-2p", true, range(0, 4))],
             contacts: Vec::new(),
@@ -664,7 +697,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-PB-2",
             kind: None,
-            description: ["Pushbutton with one normally closed contact", "Drukknop met één verbreekcontact"],
+            description: [
+                "Pushbutton with one normally closed contact",
+                "Drukknop met één verbreekcontact",
+            ],
             cps: cps(&["11", "12"]),
             template: vec![("ew.fn.pushbutton-nc", true, vec![0, 1])],
             contacts: vec![("nc", vec!["11", "12"])],
@@ -677,7 +713,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-ESB-1",
             kind: None,
-            description: ["Emergency stop, mushroom head, latching, with one normally closed contact", "Noodstop, paddenstoelknop, vergrendelend, met één verbreekcontact"],
+            description: [
+                "Emergency stop, mushroom head, latching, with one normally closed contact",
+                "Noodstop, paddenstoelknop, vergrendelend, met één verbreekcontact",
+            ],
             cps: cps(&["11", "12"]),
             template: vec![("ew.fn.emergency-stop", true, vec![0, 1])],
             contacts: vec![("nc", vec!["11", "12"])],
@@ -690,7 +729,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-POS-1",
             kind: None,
-            description: ["Position switch with one normally open contact", "Eindschakelaar met één maakcontact"],
+            description: [
+                "Position switch with one normally open contact",
+                "Eindschakelaar met één maakcontact",
+            ],
             cps: cps(&["13", "14"]),
             template: vec![("ew.fn.position-switch-no", true, vec![0, 1])],
             contacts: vec![("no", vec!["13", "14"])],
@@ -737,154 +779,220 @@ fn defs() -> Vec<Def> {
         // The generic cables a panel builder reaches for, beside EW-GEN-CBL-1 (3G1.5).
         cable(
             "EW-GEN-CBL-4",
-            ["Cable 2X0.75 mm², cores brown and blue", "Kabel 2X0,75 mm², aders bruin en blauw"],
+            [
+                "Cable 2X0.75 mm², cores brown and blue",
+                "Kabel 2X0,75 mm², aders bruin en blauw",
+            ],
             "BN BU",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-5",
-            ["Cable 3G0.75 mm², cores brown, blue and green-yellow", "Kabel 3G0,75 mm², aders bruin, blauw en groen-geel"],
+            [
+                "Cable 3G0.75 mm², cores brown, blue and green-yellow",
+                "Kabel 3G0,75 mm², aders bruin, blauw en groen-geel",
+            ],
             "BN BU GNYE",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-6",
-            ["Cable 4G0.75 mm², cores brown, black, grey and green-yellow", "Kabel 4G0,75 mm², aders bruin, zwart, grijs en groen-geel"],
+            [
+                "Cable 4G0.75 mm², cores brown, black, grey and green-yellow",
+                "Kabel 4G0,75 mm², aders bruin, zwart, grijs en groen-geel",
+            ],
             "BN BK GY GNYE",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-7",
-            ["Cable 5G0.75 mm², cores brown, black, grey, blue and green-yellow", "Kabel 5G0,75 mm², aders bruin, zwart, grijs, blauw en groen-geel"],
+            [
+                "Cable 5G0.75 mm², cores brown, black, grey, blue and green-yellow",
+                "Kabel 5G0,75 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+            ],
             "BN BK GY BU GNYE",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-8",
-            ["Cable 7G0.75 mm², numbered cores and green-yellow", "Kabel 7G0,75 mm², genummerde aders en groen-geel"],
+            [
+                "Cable 7G0.75 mm², numbered cores and green-yellow",
+                "Kabel 7G0,75 mm², genummerde aders en groen-geel",
+            ],
             "1 2 3 4 5 6 GNYE",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-9",
-            ["Cable 12G0.75 mm², numbered cores and green-yellow", "Kabel 12G0,75 mm², genummerde aders en groen-geel"],
+            [
+                "Cable 12G0.75 mm², numbered cores and green-yellow",
+                "Kabel 12G0,75 mm², genummerde aders en groen-geel",
+            ],
             "1 2 3 4 5 6 7 8 9 10 11 GNYE",
             "0.75",
             false,
         ),
         cable(
             "EW-GEN-CBL-10",
-            ["Cable 2X1.5 mm², cores brown and blue", "Kabel 2X1,5 mm², aders bruin en blauw"],
+            [
+                "Cable 2X1.5 mm², cores brown and blue",
+                "Kabel 2X1,5 mm², aders bruin en blauw",
+            ],
             "BN BU",
             "1.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-11",
-            ["Cable 4G1.5 mm², cores brown, black, grey and green-yellow", "Kabel 4G1,5 mm², aders bruin, zwart, grijs en groen-geel"],
+            [
+                "Cable 4G1.5 mm², cores brown, black, grey and green-yellow",
+                "Kabel 4G1,5 mm², aders bruin, zwart, grijs en groen-geel",
+            ],
             "BN BK GY GNYE",
             "1.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-12",
-            ["Cable 5G1.5 mm², cores brown, black, grey, blue and green-yellow", "Kabel 5G1,5 mm², aders bruin, zwart, grijs, blauw en groen-geel"],
+            [
+                "Cable 5G1.5 mm², cores brown, black, grey, blue and green-yellow",
+                "Kabel 5G1,5 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+            ],
             "BN BK GY BU GNYE",
             "1.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-13",
-            ["Cable 7G1.5 mm², numbered cores and green-yellow", "Kabel 7G1,5 mm², genummerde aders en groen-geel"],
+            [
+                "Cable 7G1.5 mm², numbered cores and green-yellow",
+                "Kabel 7G1,5 mm², genummerde aders en groen-geel",
+            ],
             "1 2 3 4 5 6 GNYE",
             "1.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-14",
-            ["Cable 12G1.5 mm², numbered cores and green-yellow", "Kabel 12G1,5 mm², genummerde aders en groen-geel"],
+            [
+                "Cable 12G1.5 mm², numbered cores and green-yellow",
+                "Kabel 12G1,5 mm², genummerde aders en groen-geel",
+            ],
             "1 2 3 4 5 6 7 8 9 10 11 GNYE",
             "1.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-15",
-            ["Cable 3G2.5 mm², cores brown, blue and green-yellow", "Kabel 3G2,5 mm², aders bruin, blauw en groen-geel"],
+            [
+                "Cable 3G2.5 mm², cores brown, blue and green-yellow",
+                "Kabel 3G2,5 mm², aders bruin, blauw en groen-geel",
+            ],
             "BN BU GNYE",
             "2.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-16",
-            ["Cable 4G2.5 mm², cores brown, black, grey and green-yellow", "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel"],
+            [
+                "Cable 4G2.5 mm², cores brown, black, grey and green-yellow",
+                "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel",
+            ],
             "BN BK GY GNYE",
             "2.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-17",
-            ["Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow", "Kabel 5G2,5 mm², aders bruin, zwart, grijs, blauw en groen-geel"],
+            [
+                "Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",
+                "Kabel 5G2,5 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+            ],
             "BN BK GY BU GNYE",
             "2.5",
             false,
         ),
         cable(
             "EW-GEN-CBL-18",
-            ["Cable 4G4 mm², cores brown, black, grey and green-yellow", "Kabel 4G4 mm², aders bruin, zwart, grijs en groen-geel"],
+            [
+                "Cable 4G4 mm², cores brown, black, grey and green-yellow",
+                "Kabel 4G4 mm², aders bruin, zwart, grijs en groen-geel",
+            ],
             "BN BK GY GNYE",
             "4",
             false,
         ),
         cable(
             "EW-GEN-CBL-19",
-            ["Cable 5G4 mm², cores brown, black, grey, blue and green-yellow", "Kabel 5G4 mm², aders bruin, zwart, grijs, blauw en groen-geel"],
+            [
+                "Cable 5G4 mm², cores brown, black, grey, blue and green-yellow",
+                "Kabel 5G4 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+            ],
             "BN BK GY BU GNYE",
             "4",
             false,
         ),
         cable(
             "EW-GEN-CBL-20",
-            ["Cable 4G6 mm², cores brown, black, grey and green-yellow", "Kabel 4G6 mm², aders bruin, zwart, grijs en groen-geel"],
+            [
+                "Cable 4G6 mm², cores brown, black, grey and green-yellow",
+                "Kabel 4G6 mm², aders bruin, zwart, grijs en groen-geel",
+            ],
             "BN BK GY GNYE",
             "6",
             false,
         ),
         cable(
             "EW-GEN-CBL-21",
-            ["Cable 5G6 mm², cores brown, black, grey, blue and green-yellow", "Kabel 5G6 mm², aders bruin, zwart, grijs, blauw en groen-geel"],
+            [
+                "Cable 5G6 mm², cores brown, black, grey, blue and green-yellow",
+                "Kabel 5G6 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+            ],
             "BN BK GY BU GNYE",
             "6",
             false,
         ),
         cable(
             "EW-GEN-CBL-22",
-            ["Cable 2X0.75 mm², cores brown and blue, shielded", "Kabel 2X0,75 mm², aders bruin en blauw, afgeschermd"],
+            [
+                "Cable 2X0.75 mm², cores brown and blue, shielded",
+                "Kabel 2X0,75 mm², aders bruin en blauw, afgeschermd",
+            ],
             "BN BU",
             "0.75",
             true,
         ),
         cable(
             "EW-GEN-CBL-23",
-            ["Cable 7G0.75 mm², numbered cores and green-yellow, shielded", "Kabel 7G0,75 mm², genummerde aders en groen-geel, afgeschermd"],
+            [
+                "Cable 7G0.75 mm², numbered cores and green-yellow, shielded",
+                "Kabel 7G0,75 mm², genummerde aders en groen-geel, afgeschermd",
+            ],
             "1 2 3 4 5 6 GNYE",
             "0.75",
             true,
         ),
         cable(
             "EW-GEN-CBL-24",
-            ["Cable 3G1.5 mm², cores brown, blue and green-yellow, shielded", "Kabel 3G1,5 mm², aders bruin, blauw en groen-geel, afgeschermd"],
+            [
+                "Cable 3G1.5 mm², cores brown, blue and green-yellow, shielded",
+                "Kabel 3G1,5 mm², aders bruin, blauw en groen-geel, afgeschermd",
+            ],
             "BN BU GNYE",
             "1.5",
             true,
         ),
         cable(
             "EW-GEN-CBL-25",
-            ["Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded", "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel, afgeschermd"],
+            [
+                "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",
+                "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel, afgeschermd",
+            ],
             "BN BK GY GNYE",
             "2.5",
             true,
@@ -931,7 +1039,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VLV-1",
             kind: None,
-            description: ["Solenoid valve 5/2, spring return", "Magneetventiel 5/2, veerretour"],
+            description: [
+                "Solenoid valve 5/2, spring return",
+                "Magneetventiel 5/2, veerretour",
+            ],
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5"]),
             // The valve is the main function, so the device takes the valve's letter Q and the device browser draws
             // the valve first; its coil is the second.
@@ -950,7 +1061,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VLV-2",
             kind: None,
-            description: ["Solenoid valve 3/2, normally closed, spring return", "Magneetventiel 3/2, normaal gesloten, veerretour"],
+            description: [
+                "Solenoid valve 3/2, normally closed, spring return",
+                "Magneetventiel 3/2, normaal gesloten, veerretour",
+            ],
             cps: cps(&["A1", "A2", "1", "2", "3"]),
             template: vec![
                 ("ew.fn.valve-3-2-sol-spring", true, range(2, 5)),
@@ -972,7 +1086,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTM-1",
             kind: None,
-            description: ["Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs", "Ventieleiland met PROFIBUS DP-busknooppunt, 4 ventielplaatsen, 8 uitgangen"],
+            description: [
+                "Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",
+                "Ventieleiland met PROFIBUS DP-busknooppunt, 4 ventielplaatsen, 8 uitgangen",
+            ],
             cps: Vec::new(),
             template: vec![("ew.fn.overview", true, Vec::new())],
             contacts: Vec::new(),
@@ -993,7 +1110,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTM-2",
             kind: None,
-            description: ["Valve terminal with PROFINET bus node, 4 valve positions, 8 outputs", "Ventieleiland met PROFINET-busknooppunt, 4 ventielplaatsen, 8 uitgangen"],
+            description: [
+                "Valve terminal with PROFINET bus node, 4 valve positions, 8 outputs",
+                "Ventieleiland met PROFINET-busknooppunt, 4 ventielplaatsen, 8 uitgangen",
+            ],
             cps: Vec::new(),
             template: vec![("ew.fn.overview", true, Vec::new())],
             contacts: Vec::new(),
@@ -1016,7 +1136,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTP-1",
             kind: None,
-            description: ["Multipin valve terminal, 8 valve positions, 25-pin plug", "Multipin-ventieleiland, 8 ventielplaatsen, 25-polige stekker"],
+            description: [
+                "Multipin valve terminal, 8 valve positions, 25-pin plug",
+                "Multipin-ventieleiland, 8 ventielplaatsen, 25-polige stekker",
+            ],
             cps: cps(&[
                 "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "25",
             ]),
@@ -1034,7 +1157,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VLV-3",
             kind: None,
-            description: ["Solenoid valve 5/2 for a valve terminal, spring return", "Magneetventiel 5/2 voor een ventieleiland, veerretour"],
+            description: [
+                "Solenoid valve 5/2 for a valve terminal, spring return",
+                "Magneetventiel 5/2 voor een ventieleiland, veerretour",
+            ],
             cps: Vec::new(),
             template: vec![
                 ("ew.fn.valve-5-2-sol-spring", true, Vec::new()),
@@ -1054,7 +1180,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VLV-53",
             kind: None,
-            description: ["Solenoid valve 5/3 for a valve terminal, closed centre", "Magneetventiel 5/3 voor een ventieleiland, middenstand gesloten"],
+            description: [
+                "Solenoid valve 5/3 for a valve terminal, closed centre",
+                "Magneetventiel 5/3 voor een ventieleiland, middenstand gesloten",
+            ],
             cps: Vec::new(),
             template: vec![
                 ("ew.fn.valve-5-3-cc", true, Vec::new()),
@@ -1076,7 +1205,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTS-1",
             kind: None,
-            description: ["Valve terminal supply plate, ports 1, 3 and 5", "Voedingsplaat van een ventieleiland, poorten 1, 3 en 5"],
+            description: [
+                "Valve terminal supply plate, ports 1, 3 and 5",
+                "Voedingsplaat van een ventieleiland, poorten 1, 3 en 5",
+            ],
             cps: Vec::new(),
             template: vec![("ew.fn.valve-supply-plate", true, Vec::new())],
             contacts: Vec::new(),
@@ -1089,35 +1221,114 @@ fn defs() -> Vec<Def> {
         },
         // The persona round: no tube part existed, so the Tube part choice offered valves. Three polyurethane tubes
         // (doc 11 §2.6 `fluid.tube`, sold by the metre) and two push-in fittings (`fluid.fitting`); no template.
-        tube("EW-GEN-TUB-6", ["Tube PU 6 × 4 mm, blue", "Slang PU 6 × 4 mm, blauw"], "6", "4"),
-        tube("EW-GEN-TUB-8", ["Tube PU 8 × 6 mm, blue", "Slang PU 8 × 6 mm, blauw"], "8", "6"),
-        tube("EW-GEN-TUB-10", ["Tube PU 10 × 8 mm, blue", "Slang PU 10 × 8 mm, blauw"], "10", "8"),
-        fitting("EW-GEN-FIT-6", ["Push-in fitting G1/8 for tube 6 mm", "Insteekkoppeling G1/8 voor slang 6 mm"], "G1/8", "6"),
-        fitting("EW-GEN-FIT-8", ["Push-in fitting G1/4 for tube 8 mm", "Insteekkoppeling G1/4 voor slang 8 mm"], "G1/4", "8"),
+        tube(
+            "EW-GEN-TUB-6",
+            ["Tube PU 6 × 4 mm, blue", "Slang PU 6 × 4 mm, blauw"],
+            "6",
+            "4",
+        ),
+        tube(
+            "EW-GEN-TUB-8",
+            ["Tube PU 8 × 6 mm, blue", "Slang PU 8 × 6 mm, blauw"],
+            "8",
+            "6",
+        ),
+        tube(
+            "EW-GEN-TUB-10",
+            ["Tube PU 10 × 8 mm, blue", "Slang PU 10 × 8 mm, blauw"],
+            "10",
+            "8",
+        ),
+        fitting(
+            "EW-GEN-FIT-6",
+            [
+                "Push-in fitting G1/8 for tube 6 mm",
+                "Insteekkoppeling G1/8 voor slang 6 mm",
+            ],
+            "G1/8",
+            "6",
+        ),
+        fitting(
+            "EW-GEN-FIT-8",
+            [
+                "Push-in fitting G1/4 for tube 8 mm",
+                "Insteekkoppeling G1/4 voor slang 8 mm",
+            ],
+            "G1/4",
+            "8",
+        ),
         // F20: the plugs at a bus line's ends, chosen in the line's Cable form.
-        bus_plug("EW-GEN-PLG-1", ["PROFIBUS plug, switchable termination", "PROFIBUS-stekker, schakelbare afsluitweerstand"]),
+        bus_plug(
+            "EW-GEN-PLG-1",
+            [
+                "PROFIBUS plug, switchable termination",
+                "PROFIBUS-stekker, schakelbare afsluitweerstand",
+            ],
+        ),
         bus_plug(
             "EW-GEN-PLG-2",
-            ["PROFIBUS plug, switchable termination, programming socket", "PROFIBUS-stekker, schakelbare afsluitweerstand, programmeeraansluiting"],
+            [
+                "PROFIBUS plug, switchable termination, programming socket",
+                "PROFIBUS-stekker, schakelbare afsluitweerstand, programmeeraansluiting",
+            ],
         ),
-        bus_plug("EW-GEN-PLG-3", ["RJ45 plug for Industrial Ethernet", "RJ45-stekker voor Industrial Ethernet"]),
-        bus_plug("EW-GEN-PLG-4", ["M12 plug, D-coded, for Industrial Ethernet", "M12-stekker, D-gecodeerd, voor Industrial Ethernet"]),
-        bus_plug("EW-GEN-PLG-5", ["M12 plug, B-coded, for PROFIBUS", "M12-stekker, B-gecodeerd, voor PROFIBUS"]),
+        bus_plug(
+            "EW-GEN-PLG-3",
+            [
+                "RJ45 plug for Industrial Ethernet",
+                "RJ45-stekker voor Industrial Ethernet",
+            ],
+        ),
+        bus_plug(
+            "EW-GEN-PLG-4",
+            [
+                "M12 plug, D-coded, for Industrial Ethernet",
+                "M12-stekker, D-gecodeerd, voor Industrial Ethernet",
+            ],
+        ),
+        bus_plug(
+            "EW-GEN-PLG-5",
+            [
+                "M12 plug, B-coded, for PROFIBUS",
+                "M12-stekker, B-gecodeerd, voor PROFIBUS",
+            ],
+        ),
         // A plug for every bus the program knows (AS-Interface's flat cable takes no plug).
-        bus_plug("EW-GEN-PLG-6", ["RJ45 plug for EtherCAT", "RJ45-stekker voor EtherCAT"]),
-        bus_plug("EW-GEN-PLG-7", ["RJ45 plug for EtherNet/IP", "RJ45-stekker voor EtherNet/IP"]),
-        bus_plug("EW-GEN-PLG-8", ["RJ45 plug for Modbus TCP", "RJ45-stekker voor Modbus TCP"]),
+        bus_plug(
+            "EW-GEN-PLG-6",
+            ["RJ45 plug for EtherCAT", "RJ45-stekker voor EtherCAT"],
+        ),
+        bus_plug(
+            "EW-GEN-PLG-7",
+            ["RJ45 plug for EtherNet/IP", "RJ45-stekker voor EtherNet/IP"],
+        ),
+        bus_plug(
+            "EW-GEN-PLG-8",
+            ["RJ45 plug for Modbus TCP", "RJ45-stekker voor Modbus TCP"],
+        ),
         bus_plug(
             "EW-GEN-PLG-9",
-            ["M12 plug, A-coded, for CANopen, switchable termination", "M12-stekker, A-gecodeerd, voor CANopen, schakelbare afsluitweerstand"],
+            [
+                "M12 plug, A-coded, for CANopen, switchable termination",
+                "M12-stekker, A-gecodeerd, voor CANopen, schakelbare afsluitweerstand",
+            ],
         ),
-        bus_plug("EW-GEN-PLG-10", ["M12 plug, A-coded, for IO-Link", "M12-stekker, A-gecodeerd, voor IO-Link"]),
+        bus_plug(
+            "EW-GEN-PLG-10",
+            [
+                "M12 plug, A-coded, for IO-Link",
+                "M12-stekker, A-gecodeerd, voor IO-Link",
+            ],
+        ),
         // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
         // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.
         Def {
             number: "EW-GEN-CYL-1",
             kind: None,
-            description: ["Cylinder double-acting, bore 32 mm, stroke 100 mm", "Cilinder dubbelwerkend, boring 32 mm, slag 100 mm"],
+            description: [
+                "Cylinder double-acting, bore 32 mm, stroke 100 mm",
+                "Cilinder dubbelwerkend, boring 32 mm, slag 100 mm",
+            ],
             cps: Vec::new(),
             template: vec![("ew.fn.cylinder-double-acting", true, Vec::new())],
             contacts: Vec::new(),
@@ -1130,7 +1341,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-AIR-1",
             kind: None,
-            description: ["Air supply: service unit G1/4 with shut-off valve and filter regulator", "Persluchtvoeding: verzorgingseenheid G1/4 met afsluitventiel en filterregelaar"],
+            description: [
+                "Air supply: service unit G1/4 with shut-off valve and filter regulator",
+                "Persluchtvoeding: verzorgingseenheid G1/4 met afsluitventiel en filterregelaar",
+            ],
             cps: Vec::new(),
             template: vec![("ew.fn.air-supply", true, Vec::new())],
             contacts: Vec::new(),
@@ -1154,29 +1368,50 @@ fn defs() -> Vec<Def> {
             ["Filter with automatic drain", "Filter met automatische aftap"],
             "ew.fn.filter-auto-drain",
         ),
-        fluid("EW-GEN-REG-1", ["Pressure regulator, relieving", "Drukregelaar, ontluchtend"], "ew.fn.regulator"),
+        fluid(
+            "EW-GEN-REG-1",
+            ["Pressure regulator, relieving", "Drukregelaar, ontluchtend"],
+            "ew.fn.regulator",
+        ),
         fluid(
             "EW-GEN-REG-2",
             ["Pressure regulator with gauge", "Drukregelaar met manometer"],
             "ew.fn.regulator-gauge",
         ),
-        fluid("EW-GEN-LUB-1", ["Lubricator", "Olievernevelaar"], "ew.fn.lubricator"),
+        fluid(
+            "EW-GEN-LUB-1",
+            ["Lubricator", "Olievernevelaar"],
+            "ew.fn.lubricator",
+        ),
         fluid(
             "EW-GEN-FRL-1",
-            ["Service unit, filter regulator and lubricator", "Verzorgingseenheid, filterregelaar en olievernevelaar"],
+            [
+                "Service unit, filter regulator and lubricator",
+                "Verzorgingseenheid, filterregelaar en olievernevelaar",
+            ],
             "ew.fn.frl",
         ),
         fluid(
             "EW-GEN-FRL-2",
-            ["Service unit, filter, regulator and lubricator, detailed", "Verzorgingseenheid, filter, drukregelaar en olievernevelaar, uitgebreid"],
+            [
+                "Service unit, filter, regulator and lubricator, detailed",
+                "Verzorgingseenheid, filter, drukregelaar en olievernevelaar, uitgebreid",
+            ],
             "ew.fn.frl-detailed",
         ),
         fluid(
             "EW-GEN-SOV-1",
-            ["Shut-off valve 3/2, manual, lockable", "Afsluitventiel 3/2, handbediend, afsluitbaar"],
+            [
+                "Shut-off valve 3/2, manual, lockable",
+                "Afsluitventiel 3/2, handbediend, afsluitbaar",
+            ],
             "ew.fn.valve-on-off",
         ),
-        fluid("EW-GEN-SSV-1", ["Soft-start valve", "Langzaamstartventiel"], "ew.fn.soft-start"),
+        fluid(
+            "EW-GEN-SSV-1",
+            ["Soft-start valve", "Langzaamstartventiel"],
+            "ew.fn.soft-start",
+        ),
         fluid(
             "EW-GEN-GAU-1",
             ["Pressure gauge 0 to 10 bar", "Manometer 0 tot 10 bar"],
@@ -1186,7 +1421,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-PSW-1",
             kind: None,
-            description: ["Pressure switch with one changeover contact", "Drukschakelaar met één wisselcontact"],
+            description: [
+                "Pressure switch with one changeover contact",
+                "Drukschakelaar met één wisselcontact",
+            ],
             cps: cps(&["1", "11", "12", "14"]),
             template: vec![
                 ("ew.fn.pressure-switch", true, vec![0]),
@@ -1204,62 +1442,101 @@ fn defs() -> Vec<Def> {
             ["Condensate drain, automatic", "Condensaataftap, automatisch"],
             "ew.fn.condensate-drain",
         ),
-        fluid("EW-GEN-RES-1", ["Air reservoir 10 l", "Luchtketel 10 l"], "ew.fn.air-reservoir"),
-        fluid("EW-GEN-SIL-1", ["Silencer G1/8", "Geluiddemper G1/8"], "ew.fn.silencer"),
-        fluid("EW-GEN-EXH-1", ["Exhaust port, open", "Ontluchting, open"], "ew.fn.exhaust"),
+        fluid(
+            "EW-GEN-RES-1",
+            ["Air reservoir 10 l", "Luchtketel 10 l"],
+            "ew.fn.air-reservoir",
+        ),
+        fluid(
+            "EW-GEN-SIL-1",
+            ["Silencer G1/8", "Geluiddemper G1/8"],
+            "ew.fn.silencer",
+        ),
+        fluid(
+            "EW-GEN-EXH-1",
+            ["Exhaust port, open", "Ontluchting, open"],
+            "ew.fn.exhaust",
+        ),
         solenoid_valve(
             "EW-GEN-VLV-4",
-            ["Solenoid valve 2/2, normally closed, spring return", "Magneetventiel 2/2, normaal gesloten, veerretour"],
+            [
+                "Solenoid valve 2/2, normally closed, spring return",
+                "Magneetventiel 2/2, normaal gesloten, veerretour",
+            ],
             "ew.fn.valve-2-2-nc-sol-spring",
             2,
             &["12"],
         ),
         solenoid_valve(
             "EW-GEN-VLV-5",
-            ["Solenoid valve 3/2, normally open, spring return", "Magneetventiel 3/2, normaal open, veerretour"],
+            [
+                "Solenoid valve 3/2, normally open, spring return",
+                "Magneetventiel 3/2, normaal open, veerretour",
+            ],
             "ew.fn.valve-3-2-no-sol-spring",
             3,
             &["10"],
         ),
         solenoid_valve(
             "EW-GEN-VLV-6",
-            ["Solenoid valve 5/2, double solenoid", "Magneetventiel 5/2, twee magneten"],
+            [
+                "Solenoid valve 5/2, double solenoid",
+                "Magneetventiel 5/2, twee magneten",
+            ],
             "ew.fn.valve-5-2-sol-sol",
             5,
             &["14", "12"],
         ),
         solenoid_valve(
             "EW-GEN-VLV-7",
-            ["Solenoid valve 5/3, closed centre, double solenoid", "Magneetventiel 5/3, middenstand gesloten, twee magneten"],
+            [
+                "Solenoid valve 5/3, closed centre, double solenoid",
+                "Magneetventiel 5/3, middenstand gesloten, twee magneten",
+            ],
             "ew.fn.valve-5-3-cc",
             5,
             &["14", "12"],
         ),
         solenoid_valve(
             "EW-GEN-VLV-8",
-            ["Solenoid valve 5/3, exhausted centre, double solenoid", "Magneetventiel 5/3, middenstand ontlucht, twee magneten"],
+            [
+                "Solenoid valve 5/3, exhausted centre, double solenoid",
+                "Magneetventiel 5/3, middenstand ontlucht, twee magneten",
+            ],
             "ew.fn.valve-5-3-ec",
             5,
             &["14", "12"],
         ),
         fluid(
             "EW-GEN-VLV-9",
-            ["Valve 3/2, push button, spring return", "Ventiel 3/2, drukknop, veerretour"],
+            [
+                "Valve 3/2, push button, spring return",
+                "Ventiel 3/2, drukknop, veerretour",
+            ],
             "ew.fn.valve-3-2-pushbutton",
         ),
         fluid(
             "EW-GEN-VLV-10",
-            ["Valve 3/2, lever, spring return", "Ventiel 3/2, hendel, veerretour"],
+            [
+                "Valve 3/2, lever, spring return",
+                "Ventiel 3/2, hendel, veerretour",
+            ],
             "ew.fn.valve-3-2-lever",
         ),
         fluid(
             "EW-GEN-VLV-11",
-            ["Valve 5/2, push button, spring return", "Ventiel 5/2, drukknop, veerretour"],
+            [
+                "Valve 5/2, push button, spring return",
+                "Ventiel 5/2, drukknop, veerretour",
+            ],
             "ew.fn.valve-5-2-pushbutton",
         ),
         fluid(
             "EW-GEN-VLV-12",
-            ["Valve 5/2, lever with detent", "Ventiel 5/2, hendel met vergrendeling"],
+            [
+                "Valve 5/2, lever with detent",
+                "Ventiel 5/2, hendel met vergrendeling",
+            ],
             "ew.fn.valve-5-2-lever",
         ),
         fluid(
@@ -1269,18 +1546,37 @@ fn defs() -> Vec<Def> {
         ),
         fluid(
             "EW-GEN-VLV-14",
-            ["Valve 5/2, pneumatically piloted, spring return", "Ventiel 5/2, pneumatisch gestuurd, veerretour"],
+            [
+                "Valve 5/2, pneumatically piloted, spring return",
+                "Ventiel 5/2, pneumatisch gestuurd, veerretour",
+            ],
             "ew.fn.valve-5-2-pilot-spring",
         ),
-        fluid("EW-GEN-CHK-1", ["Non-return valve", "Terugslagklep"], "ew.fn.check-valve"),
+        fluid(
+            "EW-GEN-CHK-1",
+            ["Non-return valve", "Terugslagklep"],
+            "ew.fn.check-valve",
+        ),
         fluid(
             "EW-GEN-FCV-1",
             ["One-way flow control valve", "Eenrichtingssmoorventiel"],
             "ew.fn.flow-control-one-way",
         ),
-        fluid("EW-GEN-THR-1", ["Throttle valve", "Smoorventiel"], "ew.fn.throttle"),
-        fluid("EW-GEN-QEV-1", ["Quick exhaust valve", "Snelontluchtingsventiel"], "ew.fn.quick-exhaust"),
-        fluid("EW-GEN-SHV-1", ["Shuttle valve (OR)", "Wisselventiel (OF)"], "ew.fn.shuttle-valve"),
+        fluid(
+            "EW-GEN-THR-1",
+            ["Throttle valve", "Smoorventiel"],
+            "ew.fn.throttle",
+        ),
+        fluid(
+            "EW-GEN-QEV-1",
+            ["Quick exhaust valve", "Snelontluchtingsventiel"],
+            "ew.fn.quick-exhaust",
+        ),
+        fluid(
+            "EW-GEN-SHV-1",
+            ["Shuttle valve (OR)", "Wisselventiel (OF)"],
+            "ew.fn.shuttle-valve",
+        ),
         fluid(
             "EW-GEN-DPV-1",
             ["Dual-pressure valve (AND)", "Tweedrukventiel (EN)"],
@@ -1288,37 +1584,67 @@ fn defs() -> Vec<Def> {
         ),
         fluid(
             "EW-GEN-CYL-2",
-            ["Cylinder single-acting, spring return, bore 20 mm, stroke 50 mm", "Cilinder enkelwerkend, veerretour, boring 20 mm, slag 50 mm"],
+            [
+                "Cylinder single-acting, spring return, bore 20 mm, stroke 50 mm",
+                "Cilinder enkelwerkend, veerretour, boring 20 mm, slag 50 mm",
+            ],
             "ew.fn.cylinder-single-acting",
         ),
         fluid(
             "EW-GEN-CYL-3",
-            ["Cylinder double-acting, magnetic piston, bore 32 mm, stroke 100 mm", "Cilinder dubbelwerkend, magnetische zuiger, boring 32 mm, slag 100 mm"],
+            [
+                "Cylinder double-acting, magnetic piston, bore 32 mm, stroke 100 mm",
+                "Cilinder dubbelwerkend, magnetische zuiger, boring 32 mm, slag 100 mm",
+            ],
             "ew.fn.cylinder-double-acting-magnetic",
         ),
         fluid(
             "EW-GEN-CYL-4",
-            ["Cylinder double-acting, cushioned, bore 32 mm, stroke 100 mm", "Cilinder dubbelwerkend, met eindstanddemping, boring 32 mm, slag 100 mm"],
+            [
+                "Cylinder double-acting, cushioned, bore 32 mm, stroke 100 mm",
+                "Cilinder dubbelwerkend, met eindstanddemping, boring 32 mm, slag 100 mm",
+            ],
             "ew.fn.cylinder-double-acting-cushioned",
         ),
         fluid(
             "EW-GEN-CYL-5",
-            ["Rodless cylinder, double-acting, bore 25 mm, stroke 300 mm", "Stangloze cilinder, dubbelwerkend, boring 25 mm, slag 300 mm"],
+            [
+                "Rodless cylinder, double-acting, bore 25 mm, stroke 300 mm",
+                "Stangloze cilinder, dubbelwerkend, boring 25 mm, slag 300 mm",
+            ],
             "ew.fn.cylinder-rodless",
         ),
         fluid(
             "EW-GEN-ROT-1",
-            ["Rotary actuator, double-acting, 180°", "Zwenkaandrijving, dubbelwerkend, 180°"],
+            [
+                "Rotary actuator, double-acting, 180°",
+                "Zwenkaandrijving, dubbelwerkend, 180°",
+            ],
             "ew.fn.semi-rotary-drive",
         ),
         fluid(
             "EW-GEN-GRP-1",
-            ["Parallel gripper, double-acting", "Parallelgrijper, dubbelwerkend"],
+            [
+                "Parallel gripper, double-acting",
+                "Parallelgrijper, dubbelwerkend",
+            ],
             "ew.fn.gripper-parallel",
         ),
-        fluid("EW-GEN-EJE-1", ["Vacuum generator (ejector)", "Vacuümopwekker (ejecteur)"], "ew.fn.ejector"),
-        fluid("EW-GEN-SUC-1", ["Suction cup 30 mm", "Zuignap 30 mm"], "ew.fn.suction-cup"),
-        fluid("EW-GEN-STP-1", ["Blanking plug G1/8", "Blindstop G1/8"], "ew.fn.plug-fluid"),
+        fluid(
+            "EW-GEN-EJE-1",
+            ["Vacuum generator (ejector)", "Vacuümopwekker (ejecteur)"],
+            "ew.fn.ejector",
+        ),
+        fluid(
+            "EW-GEN-SUC-1",
+            ["Suction cup 30 mm", "Zuignap 30 mm"],
+            "ew.fn.suction-cup",
+        ),
+        fluid(
+            "EW-GEN-STP-1",
+            ["Blanking plug G1/8", "Blindstop G1/8"],
+            "ew.fn.plug-fluid",
+        ),
         fluid(
             "EW-GEN-DIS-1",
             ["Distributor block, four outlets", "Verdeelblok, vier uitgangen"],
@@ -1353,7 +1679,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-DI-1",
             kind: None,
-            description: ["PLC digital input card, 8 channels", "Digitale PLC-ingangskaart, 8 kanalen"],
+            description: [
+                "PLC digital input card, 8 channels",
+                "Digitale PLC-ingangskaart, 8 kanalen",
+            ],
             cps: vec![
                 ("1", None),
                 ("2", None),
@@ -1393,7 +1722,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-CPU-2",
             kind: None,
-            description: ["PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O", "PLC-CPU met PROFINET- en PROFIBUS DP-interface, zonder ingebouwde I/O"],
+            description: [
+                "PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O",
+                "PLC-CPU met PROFINET- en PROFIBUS DP-interface, zonder ingebouwde I/O",
+            ],
             cps: vec![("L+", Some("l_plus")), ("M", Some("m"))],
             template: vec![("ew.fn.blackbox", true, range(0, 2))],
             contacts: Vec::new(),
@@ -1406,7 +1738,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-RIO-1",
             kind: None,
-            description: ["Remote I/O head with PROFINET and PROFIBUS DP interfaces", "Decentrale I/O-kop met PROFINET- en PROFIBUS DP-interface"],
+            description: [
+                "Remote I/O head with PROFINET and PROFIBUS DP interfaces",
+                "Decentrale I/O-kop met PROFINET- en PROFIBUS DP-interface",
+            ],
             cps: vec![("L+", Some("l_plus")), ("M", Some("m"))],
             template: vec![("ew.fn.blackbox", true, range(0, 2))],
             contacts: Vec::new(),
@@ -1419,7 +1754,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-DO-1",
             kind: None,
-            description: ["PLC digital output card, 8 channels", "Digitale PLC-uitgangskaart, 8 kanalen"],
+            description: [
+                "PLC digital output card, 8 channels",
+                "Digitale PLC-uitgangskaart, 8 kanalen",
+            ],
             cps: vec![
                 ("1", None),
                 ("2", None),
@@ -1443,15 +1781,28 @@ fn defs() -> Vec<Def> {
         // FT-1767: the devices with ports, drawn by their PROFINET port function as a box with every socket.
         port_device(
             "EW-GEN-ESW-5",
-            ["Industrial Ethernet switch, unmanaged, 5 ports", "Industrial Ethernet-switch, unmanaged, 5 poorten"],
+            [
+                "Industrial Ethernet switch, unmanaged, 5 ports",
+                "Industrial Ethernet-switch, unmanaged, 5 poorten",
+            ],
             "45",
         ),
         port_device(
             "EW-GEN-ESW-8",
-            ["Industrial Ethernet switch, managed, 8 ports, PROFINET", "Industrial Ethernet-switch, managed, 8 poorten, PROFINET"],
+            [
+                "Industrial Ethernet switch, managed, 8 ports, PROFINET",
+                "Industrial Ethernet-switch, managed, 8 poorten, PROFINET",
+            ],
             "60",
         ),
-        port_device("EW-GEN-PND-1", ["PROFINET IO device, generic, 2 ports", "PROFINET IO-apparaat, generiek, 2 poorten"], "45"),
+        port_device(
+            "EW-GEN-PND-1",
+            [
+                "PROFINET IO device, generic, 2 ports",
+                "PROFINET IO-apparaat, generiek, 2 poorten",
+            ],
+            "45",
+        ),
         // The layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
         Def {
             number: "EW-GEN-ENC-1",
@@ -1532,7 +1883,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-CBL-1",
             kind: Some("cable"),
-            description: ["Cable 3G1.5 mm², cores brown, blue and green-yellow", "Kabel 3G1,5 mm², aders bruin, blauw en groen-geel"],
+            description: [
+                "Cable 3G1.5 mm², cores brown, blue and green-yellow",
+                "Kabel 3G1,5 mm², aders bruin, blauw en groen-geel",
+            ],
             cps: Vec::new(),
             template: Vec::new(),
             contacts: Vec::new(),
@@ -1551,7 +1905,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-CBL-2",
             kind: Some("cable"),
-            description: ["PROFIBUS cable, 2 cores green and red, shielded", "PROFIBUS-kabel, 2 aders groen en rood, afgeschermd"],
+            description: [
+                "PROFIBUS cable, 2 cores green and red, shielded",
+                "PROFIBUS-kabel, 2 aders groen en rood, afgeschermd",
+            ],
             cps: Vec::new(),
             template: Vec::new(),
             contacts: Vec::new(),
@@ -1568,7 +1925,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-CBL-3",
             kind: Some("cable"),
-            description: ["Industrial Ethernet cable, 4 cores, shielded (PROFINET)", "Industrial Ethernet-kabel, 4 aders, afgeschermd (PROFINET)"],
+            description: [
+                "Industrial Ethernet cable, 4 cores, shielded (PROFINET)",
+                "Industrial Ethernet-kabel, 4 aders, afgeschermd (PROFINET)",
+            ],
             cps: Vec::new(),
             template: Vec::new(),
             contacts: Vec::new(),
@@ -1587,7 +1947,10 @@ fn defs() -> Vec<Def> {
         // A cable for every bus the program knows, its cores as the bus has them.
         bus_cable(
             "EW-GEN-CBL-26",
-            ["Industrial Ethernet cable, 8 cores in 4 pairs, shielded", "Industrial Ethernet-kabel, 8 aders in 4 paren, afgeschermd"],
+            [
+                "Industrial Ethernet cable, 8 cores in 4 pairs, shielded",
+                "Industrial Ethernet-kabel, 8 aders in 4 paren, afgeschermd",
+            ],
             json!([
                 {"core": "1", "colour": ["WH", "OG"], "pair": 1},
                 {"core": "2", "colour": ["OG"], "pair": 1},
@@ -1602,7 +1965,10 @@ fn defs() -> Vec<Def> {
         ),
         bus_cable(
             "EW-GEN-CBL-27",
-            ["CANopen cable, 3 cores white, brown and green, shielded", "CANopen-kabel, 3 aders wit, bruin en groen, afgeschermd"],
+            [
+                "CANopen cable, 3 cores white, brown and green, shielded",
+                "CANopen-kabel, 3 aders wit, bruin en groen, afgeschermd",
+            ],
             json!([
                 {"core": "CAN_H", "colour": ["WH"]},
                 {"core": "CAN_L", "colour": ["BN"]},
@@ -1612,7 +1978,10 @@ fn defs() -> Vec<Def> {
         ),
         bus_cable(
             "EW-GEN-CBL-28",
-            ["AS-Interface flat cable, 2 cores brown and blue", "AS-Interface-platkabel, 2 aders bruin en blauw"],
+            [
+                "AS-Interface flat cable, 2 cores brown and blue",
+                "AS-Interface-platkabel, 2 aders bruin en blauw",
+            ],
             json!([
                 {"core": "ASI+", "colour": ["BN"]},
                 {"core": "ASI-", "colour": ["BU"]},
@@ -1620,7 +1989,10 @@ fn defs() -> Vec<Def> {
         ),
         bus_cable(
             "EW-GEN-CBL-29",
-            ["IO-Link sensor cable, 3 cores brown, black and blue", "IO-Link-sensorkabel, 3 aders bruin, zwart en blauw"],
+            [
+                "IO-Link sensor cable, 3 cores brown, black and blue",
+                "IO-Link-sensorkabel, 3 aders bruin, zwart en blauw",
+            ],
             json!([
                 {"core": "L+", "colour": ["BN"]},
                 {"core": "CQ", "colour": ["BK"]},

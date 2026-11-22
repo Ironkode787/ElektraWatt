@@ -65,6 +65,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 - FT-1812 `ew-viewmodel`: F1 on a selected connection point in the symbol editor opens the outline's section although the guide has a section for a connection point.
 - FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.
 - FT-2065 `docs/book`: The Project rows' help says what the program does with the value, its unit and an example (FT-1809); the other kinds' rows still often repeat their label (a device's Tag counter, a page's Scale and Grid step, a report block's Title, a terminal strip's Label mode, the shared Key and Value): do the same for them, checking each against the code that reads it.
+- FT-2066 `ew-library, ew-api`: A library part's description in the part chooser is every language joined by " / " (`PartHit.description`), so since the starter parts read in Dutch (FT-1934) a row says "Miniature circuit breaker, 1 pole / Installatieautomaat, 1-polig"; show the window's language (else the first), and search all of them.
 - FT-1936 `ew-viewmodel`: A legend's Properties prints its Rectangle row as the stored value in nanometres (raw JSON); show its place and size in millimetres, as a drawn box's rows do.
 
 #### The layout page
