@@ -152,7 +152,8 @@ pub struct Fragment {
 /// tags, counters, levels and data and are not inserted again; the pasted symbols, wires and bridges draw them. What
 /// the cut left of them goes in the same transaction: the fragment's wires and junctions the project still holds (they
 /// are pasted anew) and a wire drawn on another page than the target that ends at such a device, which a notice per
-/// page counts.
+/// page counts. A wire on the target page that ends at such a device follows its new pin as a drag's wires do
+/// (`rep.move`, `geometry::follow_end`).
 ///
 /// Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 /// reference and unmatched structure node.
@@ -1555,6 +1556,7 @@ impl Insertion<'_> {
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
         // of their anchor cells (FR-NUM-028), whatever IDs this transaction mints.
         let mut out = Inserted::default();
+        let target = page.id;
         let mut after = page;
         for (_, old, record) in typed {
             let key = match record {
@@ -1600,8 +1602,69 @@ impl Insertion<'_> {
                 _ => {}
             }
         }
+        // Effect 8 on the target page: a wire there that ends at a device that came back (to a device the cut did not
+        // take) follows its new place as a drag's wires do (`rep.move`, `geometry::follow_end`): its end moves from
+        // where the route ended, the point the cut symbol drew, to the pin the pasted symbol draws.
+        if !kept.is_empty() {
+            self.follow_kept_ends(tx, &kept, target, grid)?;
+        }
         out.notices = notices;
         Ok(out)
+    }
+
+    /// The wires on `page` that end at a function of `kept` (the devices a paste brought back), each end moved by
+    /// [`crate::geometry::follow_end`] from its route's end point to the point the function's new symbol on `page`
+    /// draws that pin at. A wire with no route, or whose end has no symbol on the page, keeps its route.
+    fn follow_kept_ends(
+        &self,
+        tx: &mut TxBuilder<'_>,
+        kept: &BTreeSet<(Kind, Uuid)>,
+        page: Id<Page>,
+        grid: Grid,
+    ) -> Result<(), CmdError> {
+        let pin_at = |tx: &TxBuilder<'_>, e: &Endpoint| -> Option<Pt2> {
+            let Endpoint::Cp(f, idx) = e else { return None };
+            if !kept.contains(&(Kind::Function, f.as_uuid())) {
+                return None;
+            }
+            tx.reps_of_function(*f).into_iter().find_map(|r| {
+                let rep = tx.get::<Representation>(r).filter(|rep| rep.page == page)?;
+                crate::geometry::rep_cps(tx, &rep)
+                    .into_iter()
+                    .find(|c| c.function == *f && c.idx == *idx)
+                    .map(|c| c.pos)
+            })
+        };
+        let mut wires: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for &(kind, f) in kept {
+            if kind == Kind::Function {
+                wires.extend(tx.connections_of_function(Id::from_uuid(f)));
+            }
+        }
+        for cid in wires {
+            let Some(c) = tx.get::<Connection>(cid).filter(|c| c.page == Some(page)) else {
+                continue;
+            };
+            let (Some(first), Some(last)) = (c.route.first().copied(), c.route.last().copied()) else {
+                continue;
+            };
+            let delta = |to: Option<Pt2>, from: Pt2| {
+                to.and_then(|to| sub(to, from).ok()).filter(|d| *d != Pt2::ORIGIN)
+            };
+            let (da, db) = (delta(pin_at(tx, &c.a), first), delta(pin_at(tx, &c.b), last));
+            if da.is_none() && db.is_none() {
+                continue;
+            }
+            let mut next = (*c).clone();
+            if crate::geometry::follow_ends(&mut next.route, grid, da, db).is_err() {
+                return tx.reject(text!(
+                    "refusal-rep-move-route-out-of-range",
+                    crate::words::wire(tx, cid)
+                ));
+            }
+            tx.put(next);
+        }
+        Ok(())
     }
 }
 
