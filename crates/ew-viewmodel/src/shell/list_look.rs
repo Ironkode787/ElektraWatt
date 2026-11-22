@@ -422,3 +422,143 @@ impl ShellModel {
         self.commit_look(ROWS, edits, toast)
     }
 }
+
+/// The row key of Frame of the lists in the project's Properties ([`ShellModel::lists_frame_in_row`]).
+pub(crate) const LISTS_FRAME_ROW: &str = "project/lists.form";
+
+impl ShellModel {
+    /// The lists that print on pages of their own (the page-oriented report blocks), each with its form.
+    fn list_blocks(&self) -> Vec<(ew_api::output::Uuid, ew_api::output::Uuid)> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        q.report_blocks()
+            .iter()
+            .filter(|(_, b)| b.embedded.is_none())
+            .map(|(id, b)| (id.as_uuid(), b.form.as_uuid()))
+            .collect()
+    }
+
+    /// The project's sheet gets Frame of the lists in Main: the frame every list prints on (each list's report block
+    /// keeps its own Form, doc 09 §3.8), its value the frame they share by name, or each named where they differ; a
+    /// choice of the project's forms sets it on every list at once ([`ShellModel::commit_lists_frame`]). A generated
+    /// page's read-only Form row points here (a persona run did not find where a list's frame is set).
+    pub(super) fn lists_frame_in_row(
+        &self,
+        sheet: &mut crate::properties::PropertySheet,
+        forms: &[(ew_api::output::Uuid, String)],
+    ) {
+        use crate::properties::{Category, EditRoute, FieldType, PropRow, RowAction, RowValue};
+        let blocks = self.list_blocks();
+        if blocks.is_empty() {
+            return;
+        }
+        let name = |form: ew_api::output::Uuid| {
+            forms
+                .iter()
+                .find(|(id, _)| *id == form)
+                .map_or_else(|| form.to_string(), |(_, n)| n.clone())
+        };
+        let mut used: Vec<ew_api::output::Uuid> = blocks.iter().map(|(_, f)| *f).collect();
+        used.sort_unstable();
+        used.dedup();
+        let value = match used.as_slice() {
+            [one] => RowValue::One {
+                json: Value::String(one.to_string()),
+                text: name(*one),
+            },
+            many => {
+                let mut texts: Vec<String> = many.iter().map(|f| name(*f)).collect();
+                texts.sort();
+                texts.truncate(8);
+                RowValue::Varies {
+                    count: many.len(),
+                    texts,
+                }
+            }
+        };
+        for section in sheet.sections.iter_mut().filter(|s| s.kind == "project") {
+            let Some(model) = section.rows.first().cloned() else {
+                continue;
+            };
+            section.rows.push(PropRow {
+                key: LISTS_FRAME_ROW.to_owned(),
+                path: "lists.form".to_owned(),
+                category: Category::Other,
+                depth: 0,
+                ty: FieldType::Link {
+                    kind: "form".to_owned(),
+                },
+                value: value.clone(),
+                actions: vec![RowAction::Edit],
+                route: EditRoute::FieldsSet {
+                    kind: "report_block".to_owned(),
+                    path: "form".to_owned(),
+                },
+                identifier: false,
+                source: None,
+                ..model
+            });
+        }
+    }
+
+    /// Where the read-only row `key` of a generated page is changed: the Form row in Frame of the lists of the
+    /// project's Properties. `None` for any other row.
+    pub fn row_offer(&self, key: &str) -> Option<crate::properties::RowOffer> {
+        let sheet = self.props.sheet()?;
+        let (section, row) = crate::properties::find_row(sheet, key)?;
+        if section.kind != "report_block"
+            || !matches!(row.provenance, crate::properties::Provenance::Generated { .. })
+        {
+            return None;
+        }
+        match row.path.as_str() {
+            "form" => Some(crate::properties::RowOffer {
+                label: strings::text(key!("props-offer-lists-frame")).to_owned(),
+                steps: vec![
+                    ("props.project", json!({})),
+                    ("props.row", json!({ "to": LISTS_FRAME_ROW })),
+                ],
+            }),
+            _ => None,
+        }
+    }
+
+    /// Frame of the lists chosen: the form `value` (its ID) on every list's report block in one `fields.set`, and a
+    /// toast that says so; `None` for another row.
+    pub(super) fn commit_lists_frame(&mut self, key: &str, value: &Value) -> Option<Outcome> {
+        if key != LISTS_FRAME_ROW {
+            return None;
+        }
+        let targets: Vec<String> = self.list_blocks().iter().map(|(b, _)| b.to_string()).collect();
+        let cmd = AnyCommand {
+            name: "fields.set".to_owned(),
+            params: json!({"kind": "report_block", "targets": targets, "path": "form", "value": value}),
+        };
+        let out = self.run_commit(&cmd);
+        match &out {
+            Outcome::Failed { message } => self.props.set_error(key.to_owned(), message.clone()),
+            _ => {
+                self.props.edit = None;
+                self.props.error = None;
+                self.props.choices = None;
+            }
+        }
+        if out == Outcome::Done {
+            let name = self
+                .project
+                .as_ref()
+                .and_then(|p| {
+                    p.session
+                        .frame_forms()
+                        .iter()
+                        .find(|(id, _)| Some(id.to_string().as_str()) == value.as_str())
+                        .map(|(_, n)| super::text_words(n))
+                })
+                .unwrap_or_default();
+            self.notify(strings::format(key!("toast-lists-frame"), &[&name]), true);
+        }
+        Some(out)
+    }
+}

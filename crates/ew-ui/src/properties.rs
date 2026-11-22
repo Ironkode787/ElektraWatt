@@ -1148,7 +1148,10 @@ impl PropertiesPane {
         // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
         let link = !header && !editable && is_link(row);
         // A wire's value its cable core gives takes a click, which says where it is changed.
-        let cable = !header && !editable && shell.cable_row(&row.key).is_some();
+        // So does a generated page's row that is changed elsewhere (its Form: Frame of the lists).
+        let cable = !header
+            && !editable
+            && (shell.cable_row(&row.key).is_some() || shell.row_offer(&row.key).is_some());
         // The Potential row of a potential no definition names: a click opens Define potential… (FT-1779).
         let defines = !header
             && !editable
@@ -1449,6 +1452,19 @@ impl PropertiesPane {
                     .clicked()
                 {
                     events.push(Event::Action("props.follow", json!({ "row": row.key })));
+                }
+            });
+        }
+        // A generated page's row: the button that goes to where it is changed.
+        if let Some(offer) = shell.row_offer(&row.key) {
+            ui.horizontal(|ui| {
+                ui.add_space(t.space_4 + t.icon_sm);
+                if crate::components::button(ui, crate::components::Kind::Secondary, &offer.label, true, 0.0)
+                    .clicked()
+                {
+                    for (action, params) in offer.steps {
+                        events.push(Event::Action(action, params));
+                    }
                 }
             });
         }

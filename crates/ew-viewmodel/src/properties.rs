@@ -787,6 +787,16 @@ impl PropertiesState {
     }
 }
 
+/// Where a read-only row is changed instead (`ShellModel::row_offer`): a button under the row's refusal, its label and
+/// the actions it runs in order.
+#[derive(Clone, PartialEq, Debug)]
+pub struct RowOffer {
+    /// The button's words.
+    pub label: String,
+    /// The actions with their parameters.
+    pub steps: Vec<(&'static str, Value)>,
+}
+
 /// One row on show with its section.
 #[derive(Clone, Copy, Debug)]
 pub struct VisibleRow<'s> {
@@ -928,6 +938,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "master.created",
             // Print wire numbers, for the whole project (`ShellModel::wire_numbers_in_row`).
             "settings.drawing.wire_numbers",
+            // The frame every list prints on (`ShellModel::lists_frame_in_row`).
+            "lists.form",
         ],
     ),
 ];

@@ -486,6 +486,9 @@ impl ShellModel {
         crate::properties::values_in_words(&mut sheet);
         self.made_from_in_words(&mut sheet);
         Self::people_in_rows(&mut sheet);
+        if sheet.sections.iter().any(|s| s.kind == "project") {
+            self.lists_frame_in_row(&mut sheet, &form_choices(&p.session));
+        }
         // FT-1554: the Part function row's kind in the window's language, as the navigators word it.
         for row in sheet
             .sections
@@ -964,6 +967,10 @@ impl ShellModel {
                 self.props.set_error(key.to_owned(), message.clone());
                 return Outcome::Failed { message };
             }
+            // A generated page's row says under it why, with the button to where it is changed.
+            if let (Some(_), Outcome::Failed { message }) = (self.row_offer(key), &out) {
+                self.props.set_error(key.to_owned(), message.clone());
+            }
             // Tips 2 and 3.
             self.tip_for_refused_row(&section, &row, &out);
             return out;
@@ -1439,9 +1446,13 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let parsed = project
-            .session
-            .parse_field_input(&section.kind, &row.path, &typed);
+        // Frame of the lists reads a form as a list's Form row does, and refuses as it does.
+        let (kind, path) = if row.key == super::list_look::LISTS_FRAME_ROW {
+            ("report_block", "form")
+        } else {
+            (section.kind.as_str(), row.path.as_str())
+        };
+        let parsed = project.session.parse_field_input(kind, path, &typed);
         let parsed = match (parsed, choice) {
             (Ok(p), _) => p,
             (Err(InputError::Ambiguous { choices }), Some(i)) => match choices.get(i) {
@@ -1513,6 +1524,10 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // Frame of the lists sets the Form of every list.
+        if let Some(out) = self.commit_lists_frame(key, &value) {
+            return out;
+        }
         // A page's Connection grid changed while it holds items asks first, then fits them: every page, the
         // one on show or not, whatever it holds; `fields.set` would refuse it.
         if row.key == GRID_ROW

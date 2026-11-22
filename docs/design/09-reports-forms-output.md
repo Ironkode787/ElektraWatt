@@ -830,6 +830,14 @@ project's Frames row names the defaults the same way, "Default: …; Table of co
 Pages navigator's Frame column, for every page the frame it prints on (it showed a starter form's key and nothing for a
 form of the project's own).
 
+**Frame of the lists.** The project's Properties have the row Frame of the lists in Main: the form every list (every
+page-oriented block) prints on, by name, or each named where the lists differ. A form chosen there is set as the Form of
+every list's block in one `fields.set` (one undo step), and a toast says so; the rule above still applies (a set of
+another paper size prints its lists on the set's frame). A generated page's Form row is read-only, as every row of a
+generated page is: an edit there is refused under the row with a button to Frame of the lists (a persona run looked
+for the lists' frame on a list page and found no way to change it). The frame defaults keep no entry for report pages
+(EW-INV-012): a list's frame stays its block's Form.
+
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
 title block. The table keeps the house table's distances to the starter A4 frame's drawing area (1.30 mm in on the
