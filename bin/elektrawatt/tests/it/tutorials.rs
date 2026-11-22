@@ -839,11 +839,17 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
         [
             "title: bus-network.ew - ElektraWatt",
             "row \"-2A1\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"master\" \"\" \"\"",
-            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"\"",
+            // A drawn line gives its ports the physical net too (FT-1922): each X1 port is listed under its logical
+            // net and again under the physical net's segment.
+            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
             "row \"-2A2\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"slave\" \"\" \"\"",
-            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\"",
-            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"\"",
-            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\" cursor \"Address\"",
+            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
+            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
+            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\" cursor \"Address\"",
+            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
             // The lines to the drive have no cable yet, which a toast offers to choose.
             "toast \"Bus line drawn: it has no cable yet.\" choose_cable",
             "toast \"Check: 0 errors, 0 warnings, 5 infos.\" show_messages",

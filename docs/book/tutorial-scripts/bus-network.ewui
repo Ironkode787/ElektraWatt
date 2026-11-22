@@ -39,11 +39,11 @@
 {"action":"ui.describe"}
 {"action":"bus.panel"}
 {"action":"navigator.table","params":{"kind":"bus","on":true}}
-{"action":"table.cell","params":{"kind":"bus","step":1,"column":"address"}}
+{"action":"table.cell","params":{"kind":"bus","row":"-2A1 X1","column":"address"}}
 {"action":"table.edit","params":{"kind":"bus"}}
 {"action":"table.input","params":{"kind":"bus","text":"plc1 192.168.0.1"}}
 {"action":"table.commit","params":{"kind":"bus"}}
-{"action":"table.cell","params":{"kind":"bus","step":2,"column":"address"}}
+{"action":"table.cell","params":{"kind":"bus","row":"-2A2 X1","column":"address"}}
 {"action":"table.edit","params":{"kind":"bus"}}
 {"action":"table.input","params":{"kind":"bus","text":"rio1 192.168.0.2"}}
 {"action":"table.commit","params":{"kind":"bus"}}
@@ -72,7 +72,7 @@
 {"action":"cursor.set","params":{"x_mm":226.382,"y_mm":141.993}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
-{"action":"table.cell","params":{"kind":"bus","step":2,"column":"address"}}
+{"action":"table.cell","params":{"kind":"bus","row":"-2K2 X1","column":"address"}}
 {"action":"table.edit","params":{"kind":"bus"}}
 {"action":"table.input","params":{"kind":"bus","text":"drive1 192.168.0.3"}}
 {"action":"table.commit","params":{"kind":"bus"}}
