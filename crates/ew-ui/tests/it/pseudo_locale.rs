@@ -110,7 +110,7 @@ fn side_by_side(gap: f32) -> Harness<'static> {
                 }
             });
         });
-    h.run();
+    h.run_ok();
     h
 }
 

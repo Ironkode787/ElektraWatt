@@ -31,7 +31,7 @@ fn double_click(h: &mut Window, pos: egui::Pos2) {
             });
         }
     }
-    h.run();
+    h.run_ok();
     settle(h);
 }
 
@@ -478,7 +478,7 @@ fn the_pointer_over_the_view_derives_nothing() {
             for label in &labels {
                 let at = at(h, label);
                 h.input_mut().events.push(egui::Event::PointerMoved(at));
-                h.run();
+                h.run_ok();
             }
         }
     };
@@ -507,7 +507,7 @@ fn the_pointer_over_the_view_derives_nothing() {
                 .next()
                 .map_or(egui::pos2(900.0, 500.0), |n| n.rect().center());
             h.input_mut().events.push(egui::Event::PointerMoved(at));
-            h.run();
+            h.run_ok();
         }
     }
     assert_eq!(made(&h), before, "a draft's view, made again by the pointer");

@@ -1114,7 +1114,7 @@ fn the_walker_names_each_failing_node_in_words() {
                 .show_ui(ui, |_| {});
             ui.add(egui::Button::new(""));
         });
-    h.run();
+    h.run_ok();
     let bounds = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| n.accesskit_node().label().is_none())

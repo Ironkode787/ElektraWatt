@@ -430,7 +430,7 @@ pub(crate) fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, numb
             });
         }
     }
-    h.run();
+    h.run_ok();
     settle(h);
 }
 
