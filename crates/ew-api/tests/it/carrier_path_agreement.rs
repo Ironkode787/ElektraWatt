@@ -32,9 +32,16 @@ fn the_importers_carrier_check_is_the_rules() {
             let p = path(points);
             let copy = carrier_path_problem(&kind, &p);
             let rule = check_path(&kind, &p).err().map(|e| e.to_string());
-            assert_eq!(copy.is_some(), rule.is_some(), "{kind:?} {points:?}: {copy:?} against {rule:?}");
+            assert_eq!(
+                copy.is_some(),
+                rule.is_some(),
+                "{kind:?} {points:?}: {copy:?} against {rule:?}"
+            );
             if let (Some(copy), Some(rule)) = (copy, rule) {
-                assert!(rule.starts_with(&copy), "{kind:?} {points:?}: {copy:?} against {rule:?}");
+                assert!(
+                    rule.starts_with(&copy),
+                    "{kind:?} {points:?}: {copy:?} against {rule:?}"
+                );
             }
         }
     }
