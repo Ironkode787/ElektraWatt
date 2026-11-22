@@ -53,7 +53,7 @@ use ew_schema::{ListArea, Overflow, ShrinkSpec};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
-use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out};
+use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out, min_size};
 use crate::page::span_quads;
 
 /// The height of the header and of every row, printed (doc 20 §16).
@@ -299,8 +299,9 @@ pub(crate) fn push_cell(
 /// "PLC CPU with PROFINET and …" in a smaller size beside columns with room to spare). Where a text of the page's
 /// header or data rows would be cut with an ellipsis at the smallest size in its column, each column whose texts
 /// all fit with room to spare gives some of it, in proportion to its spare room, so that the cut columns get the
-/// width their widest text takes at the full size (in proportion to what they lack, as far as the spare room goes).
-/// Without a cut text the edges stay those of the weights.
+/// width their widest text takes at the full size (in proportion to what they lack, as far as the spare room goes);
+/// where the room spared at the full size is not enough, the cut columns get what they lack at the smallest size from
+/// the room the others spare at that size. Without a cut text the edges stay those of the weights.
 fn widened(
     view: &TableView,
     edges: Vec<Nm>,
@@ -326,16 +327,18 @@ fn widened(
     let pad = 2 * CELL_PADDING.0;
     let n = view.columns.len();
     let width = |c: usize| edges[c + 1].0 - edges[c].0;
-    // The widest text of each column at the full size, with its padding.
-    let need: Vec<i64> = (0..n)
-        .map(|c| {
-            texts(c)
-                .filter(|s| !s.is_empty())
-                .map(|s| fonts.shape(s, style, None).advance().0 + pad)
-                .max()
-                .unwrap_or(0)
-        })
-        .collect();
+    // The widest text of each column in `style`, with its padding.
+    let widest = |c: usize, style: &TextStyle| {
+        texts(c)
+            .filter(|s| !s.is_empty())
+            .map(|s| fonts.shape(s, style, None).advance().0 + pad)
+            .max()
+            .unwrap_or(0)
+    };
+    // At the full size, and at the smallest size shrink-to-fit goes to.
+    let need: Vec<i64> = (0..n).map(|c| widest(c, style)).collect();
+    let floor = style.with_size(min_size(fonts, style, MIN_CAP_HEIGHT, sheet).min(style.size));
+    let need_floor: Vec<i64> = (0..n).map(|c| widest(c, &floor)).collect();
     let cut = |c: usize| {
         let rect = Rect::from_points(
             sheet.unapply(Pt2::new(edges[c], top)),
@@ -358,28 +361,37 @@ fn widened(
             !s.is_empty() && lay_out(fonts, s, style, &spec).overflow == Some(OverflowKind::ShrinkLimit)
         })
     };
-    let lacking: Vec<i64> = (0..n)
-        .map(|c| {
-            if view.columns[c].weight > 0 && cut(c) {
-                (need[c] - width(c)).max(0)
-            } else {
-                0
-            }
-        })
-        .collect();
-    let lack: i64 = lacking.iter().sum();
+    let cuts: Vec<bool> = (0..n).map(|c| view.columns[c].weight > 0 && cut(c)).collect();
+    let lacking_at = |need: &[i64]| -> Vec<i64> {
+        (0..n)
+            .map(|c| if cuts[c] { (need[c] - width(c)).max(0) } else { 0 })
+            .collect()
+    };
+    let spare_at = |need: &[i64]| -> Vec<i64> {
+        (0..n)
+            .map(|c| {
+                if view.columns[c].weight > 0 && !cuts[c] {
+                    (width(c) - need[c]).max(0)
+                } else {
+                    0
+                }
+            })
+            .collect()
+    };
+    let mut lacking = lacking_at(&need);
+    let mut lack: i64 = lacking.iter().sum();
     if lack == 0 {
         return edges;
     }
-    let spare: Vec<i64> = (0..n)
-        .map(|c| {
-            if view.columns[c].weight > 0 && lacking[c] == 0 {
-                (width(c) - need[c]).max(0)
-            } else {
-                0
-            }
-        })
-        .collect();
+    let mut spare = spare_at(&need);
+    // Where the room the other columns spare at the full size is not enough (a table of many columns, whose texts
+    // print smaller than the full size), each cut column takes what it lacks at the smallest size, from the room the
+    // others spare at that size: no text is cut while the columns hold them all at that size (FT-1923).
+    if spare.iter().sum::<i64>() < lack {
+        lacking = lacking_at(&need_floor);
+        lack = lacking.iter().sum();
+        spare = spare_at(&need_floor);
+    }
     let room: i64 = spare.iter().sum();
     let moved = lack.min(room);
     if moved == 0 {

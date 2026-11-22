@@ -1451,7 +1451,10 @@ title block, cover, divider and report forms reproduce the golden house style.
    so the release documentation proves the list was empty.
 5. **Text that does not fit.** Fixed-height cells shrink to the minimum cap height and then ellipsise with a
    warning (EW-CORE-062 from 1.0); never silent clipping (FR-REP-039). *As built (M3):* a report table's cell ellipsises at the floor
-   (two lines at the floor exceed its 6.52 mm row), so it never prints over its neighbour. The 35-character order code 2 in the 73 mm
+   (two lines at the floor exceed its 6.52 mm row), so it never prints over its neighbour. Before that, a column whose
+   text would be cut takes room from the columns with room to spare at the full size, and where that is not enough
+   (the I/O list's 20 columns, FT-1923) what it lacks at the floor from the room the others spare at the floor, so
+   only a table whose texts do not all fit at the floor cuts one. The 35-character order code 2 in the 73 mm
    PART DATA box fits only on a value line of its own, as in the reference (estimate: ≈ 1.7 mm average advance per
    character at 8.88 pt gives ≈ 60 mm, while "Order Code 2: " plus the code needs ≈ 84 mm).
 6. **Language-dependent pagination** (§4.7): wrapping makes page sets differ between languages.
