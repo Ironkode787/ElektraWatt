@@ -482,6 +482,7 @@ impl ShellModel {
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
+        self.wire_numbers_in_row(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
         self.made_from_in_words(&mut sheet);
         Self::people_in_rows(&mut sheet);
@@ -1351,6 +1352,10 @@ impl ShellModel {
         };
         // A person of the project (Designer, Checker…) names the party of that role.
         if let Some(out) = self.commit_person(&row.key, text) {
+            return out;
+        }
+        // Print wire numbers runs its own action, toast and all.
+        if let Some(out) = self.commit_wire_numbers_row(&row.key, text) {
             return out;
         }
         // A terminal's Group row compiles through `Session::strip_edit` (D8).

@@ -163,11 +163,9 @@ impl ShellModel {
             let Some(rank) = own.max(lists) else {
                 continue;
             };
-            // A View switch says whether it is on, after where it lives ("View · Show · On").
+            // A switch says whether it is on, after where it lives ("View · Show · On", "Draw · Connect · Off").
             let mut breadcrumb = actions::breadcrumb_of(meta, label);
-            if meta.kind == actions::ActionKind::View
-                && let Some(on) = actions::switch_on(self, meta.id)
-            {
+            if let Some(on) = actions::switch_on(self, meta.id) {
                 let word = if on { key!("choice-on") } else { key!("choice-off") };
                 breadcrumb = format!("{breadcrumb} · {}", strings::text(word));
             }

@@ -372,8 +372,8 @@ colour is every marked wire's, and a list (`BK, BU`) gives each wire its own in 
 colour the project does not know is refused with the codes it knows. The marker prints a short line across the wires
 and its text beyond the line's end, clear of the wires.
 
-The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire numbers**, a setting of the project that the
-PDF and print follow too: each wire's number stands beside it, once, at the middle of its longest segment, and on a
+The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire numbers** or the checkbox of that name in the
+project's Properties, one setting for the whole project that the PDF and print follow too: each wire's number stands beside it, once, at the middle of its longest segment, and on a
 wire that carries its own marker the number comes first in the marker's text (`101.1 1.5 BK`). A cable's core prints
 no number; its cable and core name it.
 

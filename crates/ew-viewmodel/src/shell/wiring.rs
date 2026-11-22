@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tool host's duties: arming the Wire tool and the keyboard route editor, the junction
-//! sequence editor popup and its commits, the crossings setting, and the Wire tool's live region.
+//! sequence editor popup and its commits, the crossings and wire-number settings (Print wire numbers also as a row of
+//! the project's Properties), and the Wire tool's live region.
 //!
 //! **Reads.** The junction editor reads the page tables the canvas already holds and `Session::junction_wires` once
 //! per (session, revision, junction) while it is open; the Wire tool and the proposals read nothing.
@@ -19,6 +20,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::key;
+use crate::properties::{PropRow, PropertySheet, RowAction, RowValue};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{CanvasEvent, EntityKind, JunctionEditor, Tool, WireTool, selection_kinds};
@@ -447,7 +449,8 @@ impl ShellModel {
 
     /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers, FT-1692): commits `project.drawing.set`
     /// with `wire_numbers: true`, or with `null` (the member removed: no numbers, as a project without the setting) to
-    /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting.
+    /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting; a toast says what it now
+    /// is, for the whole project.
     pub(crate) fn act_wire_numbers(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
             flag(p, "on")
@@ -458,12 +461,22 @@ impl ShellModel {
             name: "project.drawing.set".into(),
             params: json!({ "wire_numbers": if on { json!(true) } else { Value::Null } }),
         };
-        self.run_commit(&cmd)
+        let out = self.run_commit(&cmd);
+        if out == Outcome::Done {
+            let said = if on {
+                key!("toast-wire-numbers-on")
+            } else {
+                key!("toast-wire-numbers-off")
+            };
+            self.notify(strings::text(said).to_owned(), true);
+        }
+        out
     }
 
     /// `project.wire_numbering {on?}` (Draw ▸ Connect ▸ Number wires by potential, doc 08 §5.2): commits
     /// `project.drawing.set` with `wire_numbering: per_potential` (every wire of a potential prints its potential's
-    /// code), or with `null` (each wire its own number) to turn it off; without `on` it toggles.
+    /// code), or with `null` (each wire its own number) to turn it off; without `on` it toggles. A toast says what the
+    /// wires now get, and while Print wire numbers is off that the numbers show once it is on.
     pub(crate) fn act_wire_numbering(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
             flag(p, "on")
@@ -474,7 +487,77 @@ impl ShellModel {
             name: "project.drawing.set".into(),
             params: json!({ "wire_numbering": if on { json!("per_potential") } else { Value::Null } }),
         };
-        self.run_commit(&cmd)
+        let out = self.run_commit(&cmd);
+        if out == Outcome::Done {
+            let said = if on {
+                key!("toast-wire-numbering-potential")
+            } else {
+                key!("toast-wire-numbering-own")
+            };
+            let mut text = strings::text(said).to_owned();
+            if !self.wire_numbers_on() {
+                text = format!("{text} {}", strings::text(key!("toast-wire-numbers-hidden")));
+            }
+            self.notify(text, true);
+        }
+        out
+    }
+
+    /// The row key of Print wire numbers in the project's Properties ([`ShellModel::wire_numbers_in_row`]).
+    pub(super) const WIRE_NUMBERS_ROW: &'static str = "project/settings.drawing.wire_numbers";
+
+    /// The project's sheet gets Print wire numbers as a checkbox of Main (the switch three of four persona runs looked
+    /// for there and under the filter "wire"); ticking it runs `project.wire_numbers` ([`ShellModel::commit_text`]).
+    pub(super) fn wire_numbers_in_row(&self, sheet: &mut PropertySheet) {
+        let on = self.wire_numbers_on();
+        for section in sheet.sections.iter_mut().filter(|s| s.kind == "project") {
+            let Some(model) = section.rows.first().cloned() else {
+                continue;
+            };
+            section.rows.push(PropRow {
+                key: Self::WIRE_NUMBERS_ROW.to_owned(),
+                path: "settings.drawing.wire_numbers".to_owned(),
+                category: crate::properties::Category::Other,
+                depth: 0,
+                ty: crate::properties::FieldType::Bool,
+                value: RowValue::One {
+                    json: Value::Bool(on),
+                    text: on.to_string(),
+                },
+                actions: vec![RowAction::Edit],
+                route: crate::properties::EditRoute::Command {
+                    command: "project.drawing.set".to_owned(),
+                },
+                identifier: false,
+                source: None,
+                ..model
+            });
+        }
+    }
+
+    /// Print wire numbers ticked or cleared in the project's Properties: `project.wire_numbers` with `on`; `None` for
+    /// another row.
+    pub(super) fn commit_wire_numbers_row(&mut self, key: &str, text: &str) -> Option<Outcome> {
+        if key != Self::WIRE_NUMBERS_ROW {
+            return None;
+        }
+        // The checkbox sends `yes` or `no`, as for every other yes-or-no row.
+        let on = match text.trim().to_ascii_lowercase().as_str() {
+            "true" | "yes" | "1" => true,
+            "false" | "no" | "0" => false,
+            _ => return Some(failed(key!("error-bad-param"), &["value"])),
+        };
+        let mut p = Map::new();
+        p.insert("on".to_owned(), Value::Bool(on));
+        let out = self.act_wire_numbers(&p);
+        match &out {
+            Outcome::Failed { message } => self.props.set_error(key.to_owned(), message.clone()),
+            _ => {
+                self.props.edit = None;
+                self.props.error = None;
+            }
+        }
+        Some(out)
     }
 
     /// `project.plc_addresses_at_terminals {on?}` (Project ▸ Channel addresses at terminals, FR-PLC-018, doc 10 §3.5):
