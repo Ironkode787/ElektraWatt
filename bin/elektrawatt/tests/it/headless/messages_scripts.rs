@@ -76,8 +76,8 @@ fn finding_rows(d: &str) -> Vec<&str> {
 }
 
 /// The sample's copy in `dir` with two findings, made as a person makes them at the window: the shield wire of
-/// -103W1 without its 2.5 mm² override (EW-POT-006, an error on 103) and -101W1 without its length (EW-CORE-033, a
-/// warning). The sample itself is clean.
+/// -103W1 set to 1.5 mm², below its 2.5 mm² line conductors (EW-POT-006, an error on 103), and -101W1 without its
+/// length (EW-CORE-033, a warning). The sample itself is clean.
 fn with_findings(dir: &Path) {
     let shield = {
         let pages = std::fs::read_dir(dir.join("pages")).unwrap();
@@ -112,7 +112,7 @@ fn with_findings(dir: &Path) {
     )
     .unwrap();
     for params in [
-        json!({"kind": "connection", "targets": [shield], "path": "overrides.csa", "value": null}),
+        json!({"kind": "connection", "targets": [shield], "path": "overrides.csa", "value": "1.5"}),
         json!({"kind": "device", "targets": [cable], "path": "cable.length", "value": null}),
     ] {
         let cmd = ew_viewmodel::ew_api::AnyCommand {

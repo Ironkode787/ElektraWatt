@@ -623,7 +623,7 @@ mod tests {
 
     /// A copy of the sample in a fresh directory, made ready for a release as a person makes it at the window: a
     /// checker among the parties, the author as the author of the open revision V1.0, and one safety error for the
-    /// gate (the shield wire of -103W1 without its 2.5 mm² override: EW-POT-006, PE undersized).
+    /// gate (the shield wire of -103W1 set to 1.5 mm², below its 2.5 mm² line conductors: EW-POT-006, PE undersized).
     fn sample_copy(tag: &str) -> ew_testdir::Tmp {
         let dir = ew_testdir::Tmp::new(&format!("ew-cli-revision-{tag}"));
         copy_dir(Path::new(ew_testdir::SAMPLE), &dir);
@@ -665,7 +665,7 @@ mod tests {
             (
                 "fields.set",
                 serde_json::json!({"kind": "connection", "targets": [shield["id"]], "path": "overrides.csa",
-                    "value": null}),
+                    "value": "1.5"}),
             ),
         ] {
             let cmd = ew_api::AnyCommand {

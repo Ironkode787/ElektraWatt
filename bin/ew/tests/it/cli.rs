@@ -581,7 +581,7 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
 }
 
 /// P5-2: `ew check --lang nl-NL` prints the Dutch text of the rules with an nl-NL pattern (EW-POT-006 on the sample's
-/// shield wire, its 2.5 mm² override removed for the test);
+/// shield wire, set to 1.5 mm² for the test);
 /// the default and `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the
 /// exit status do not depend on the language. A rule without an nl-NL pattern falls back to en-GB in `ew-checks`'
 /// `messages` tests.
@@ -593,9 +593,9 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     std::fs::write(
         &log,
         format!(
-            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"the shield's override removed\"}}\n{}\n",
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"the shield set below its line conductors\"}}\n{}\n",
             serde_json::json!({"cmd": "fields.set", "params": {"kind": "connection",
-                "targets": [crate::merge_driver::shield_id()], "path": "overrides.csa", "value": null}})
+                "targets": [crate::merge_driver::shield_id()], "path": "overrides.csa", "value": "1.5"}})
         ),
     )
     .unwrap();

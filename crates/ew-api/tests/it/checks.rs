@@ -400,7 +400,11 @@ fn the_ew_pot_pack_is_quiet_and_an_undersized_pe_wire_is_pot006() {
         .map(|f| f.targets[0].id.to_string())
         .collect();
     let shield = shield();
-    assert_eq!(redundant, [shield.clone()], "EW-POT-016: the shield's override only");
+    assert_eq!(
+        redundant,
+        std::slice::from_ref(&shield),
+        "EW-POT-016: the shield's override only"
+    );
     let bare = sample_with(MemoMode::On, |records| {
         for r in records.iter_mut() {
             if let Record::Connection(c) = r
