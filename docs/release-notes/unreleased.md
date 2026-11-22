@@ -15,6 +15,10 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Route lays the wires that go round one end of a card or a box (terminals under a card whose
+  pins face up, each wired to the pin over it) side by side as nested rings, a step apart, the pin nearest the corner
+  innermost, where the search had laid them one by one at uneven distances; the rings are kept only where the page
+  costs no more (doc 06a §3.5, FT-1895)
 - behaviour-change: Arrange and route sets a strip's feed terminal (wired to no channel of the card it stands over)
   at the strip's end on the side its wires lead, where it was left between the channels' terminals or at the far end
   and its wires crossed the channels' (doc 06a §4.8, FT-1893)

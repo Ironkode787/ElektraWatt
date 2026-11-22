@@ -12,8 +12,8 @@
 //! - [`labels`]: the one text placer (§5): [`settle_labels`].
 //! - [`marks`]: a mark drawn from its wires' routes (§3.10): [`marks::draw_marks`].
 //! - [`guides`]: the guides and the light nudge of a part placed by hand (§6): [`guides()`].
-//! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4), [`tracks`] (§3.5) and [`route`] (§3.2, §3.7 to
-//!   §3.10): the router. [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is
+//! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4), [`tracks`] (§3.5), `rounds` (§3.5, the rings round a
+//!   body) and [`route`] (§3.2, §3.7 to §3.10): the router. [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is
 //!   the line of a wire without a route; [`tracks_needed`] counts the tracks of a row's stepping wires for the placer.
 //! - [`place`] (§4) and [`rules`] (§1.6): the placer. [`arrange`] makes Arrange and route's plan, [`rules_kept`]
 //!   checks a plan's page against the rules that bind it.
@@ -30,6 +30,7 @@ pub mod model;
 pub mod nets;
 pub mod occupancy;
 pub mod place;
+mod rounds;
 pub mod route;
 pub mod rules;
 pub mod search;

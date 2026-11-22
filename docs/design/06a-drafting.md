@@ -644,6 +644,24 @@ be. No mate or bundle price was left in the search to delete. The search lets a 
 a free connection point standing on the same point (a terminal's second point on one edge) on both nodes of that stub;
 it allowed the full step only, and such wires had no way.
 
+**Rings (FT-1895).** A wire between two pins, one on a body, whose other end lies behind that pin's edge (beside the
+body and facing the way the wire comes, or beyond the body's far edge and facing it) has to go round one end of the
+body: out of its pin, along the edge, beside the end, and on. The search lays such wires one by one, so those round
+one end of one body run at whatever distance each found free and cross each other where they need not. After the
+search (§3.6), the wires it laid that go round one end of one body, two or more, are laid again together as **nested
+rings**: ring *r* runs *r* steps off the body (its lines off the edges rounded outward to the grid) along the pin's
+edge, beside the end and, where the other end lies beyond the far edge, under it; the wire whose pin stands nearest
+the corner takes ring 1. Each wire goes round the end whose way passes the fewest other wired pins of its edge, then
+the shorter way, so the wires of a card in the older form part at its middle and nest on both sides; a pair whose
+order on the far side runs against its order on the pin's edge still crosses once, as the strip's order forces
+(§4.8). A wire whose ring is not clear keeps the search's route, and the rings are kept only where the page then
+costs no more: a ring that would stand in another wire's way is not drawn. Every corner of a ring is on the grid; a
+pin off it leaves its wire to the search. `ew_drafting::rounds` and `route`'s phase after the search.
+
+*The placer's part.* A part wired round a body is the body's hairpin follower, and Arrange sets it beside the body
+where it may (§4.4), so its wire goes round nothing. Where it stays behind the body, the rings need their depth and a
+step between the body and it; the placer does not yet keep that room (backlog).
+
 ### 3.6 The search
 
 The exact search of today's router is kept and moved: a backward Dijkstra over (node, arriving heading) and a
@@ -1067,9 +1085,9 @@ connection joins connection points of the device's function, not the box), then 
 view again; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
 each terminal of a channel that now faces the other way: the wire to the card belongs on the terminal's pin that
 faces the card. A command that swaps the two wires of such a terminal for a whole strip would take that hand work
-away; it is not built. Routing the nested wires of the older form with the fewest
-crossings (a router phase that lays the wires round one card together, and the placer making the room beside the
-card) was started and is not built either: it removes no crossing that the order of the strip forces.
+away; it is not built. Route lays the wires round one card together as nested rings (§3.5, Rings): they
+remove no crossing that the order of the strip forces. The placer's room for the rings is not built: Arrange sets
+such terminals beside the card as hairpins (§4.4).
 
 ### 4.9 The plan
 

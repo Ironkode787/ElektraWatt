@@ -20,7 +20,8 @@
 //! 6. **The search** for the rest, by the city-block distance of their ends (shortest first), then the first end's
 //!    place, then the ID; then at most [`PASSES`] passes in the same order, each wire lifted, searched again and its
 //!    new route kept where it costs less. A wire ending at a junction that the other wires leave in three directions
-//!    is not searched (its route would be a fourth arm).
+//!    is not searched (its route would be a fourth arm). Then the **rings** (`rounds`): the searched wires that go
+//!    round one end of one body, two or more, laid again together as nested rings, kept where the page costs no more.
 //! 7. **Texts** (§3.7): the labels placed again against all wires; a job that still runs across a text is searched
 //!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
 //!    lower; at most [`PASSES`] rounds.
@@ -49,12 +50,12 @@ use crate::geom;
 use crate::labels::settle_labels;
 use crate::measure::{Quality, TextRef, measure};
 use crate::model::{
-    DraftPage, End, JunctionId, MarkId, Owner as LabelOwner, PartId, PinId, Pt, Rect, Side, WireId,
+    DraftPage, End, JunctionId, MarkId, Owner as LabelOwner, PartId, PinId, Pt, Rect, Side, Tick, WireId,
 };
 use crate::nets::{self, Line, Net};
 use crate::occupancy::{HALF, Occupancy, Text, node_of};
 use crate::search::{self, Ask, Found, Owner, Relax, Tip, heading};
-use crate::tracks;
+use crate::{rounds, tracks};
 
 /// What a Route runs on.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -883,6 +884,102 @@ impl Router {
         laid
     }
 
+    /// Phase 6b: the wires round a body (`rounds`). The wires the search laid one by one that run between two pins, one
+    /// of them on a body the wire has to go round, each round the end whose way passes the fewest other wired pins of
+    /// its edge (then the shorter); those round one end of one body, two or more, are laid again together as nested
+    /// rings, the pin nearest the corner innermost (a wire whose ring is not clear keeps its route), and the rings are
+    /// kept where the page costs no more.
+    fn rings(&mut self, nets: &[Net], searched: &[WireId]) {
+        let wired: BTreeSet<PinId> = self
+            .page
+            .wires
+            .iter()
+            .flat_map(|w| w.ends)
+            .filter_map(|e| match e {
+                End::Pin(p) => Some(p),
+                End::Junction(_) => None,
+            })
+            .collect();
+        type Key = (PartId, Side, rounds::Corner);
+        let mut groups: BTreeMap<Key, Vec<(Tick, WireId, rounds::Ask)>> = BTreeMap::new();
+        for net in nets.iter().filter(|n| n.wires.len() == 1) {
+            let w = net.wires[0];
+            if !searched.contains(&w) {
+                continue;
+            }
+            let Some([End::Pin(a), End::Pin(b)]) = self.ends.get(&w).copied() else {
+                continue;
+            };
+            for (p, q) in [(a, b), (b, a)] {
+                let (Some(pp), Some(pq)) = (self.pins.get(&p), self.pins.get(&q)) else {
+                    continue;
+                };
+                let (Some(sp), Some(sq)) = (pp.side, pq.side) else {
+                    continue;
+                };
+                let ask = rounds::Ask {
+                    pin: (pp.at, sp),
+                    body: pp.body,
+                    other: (pq.at, sq),
+                    wired: self
+                        .pins
+                        .iter()
+                        .filter(|(id, x)| {
+                            **id != p && x.part == pp.part && x.side == Some(sp) && wired.contains(*id)
+                        })
+                        .map(|(_, x)| x.at)
+                        .collect(),
+                };
+                let best = [rounds::Corner::First, rounds::Corner::Last]
+                    .into_iter()
+                    .filter_map(|c| {
+                        let r = ask.route(c, TICKS_PER_STEP)?;
+                        Some(((ask.passes(c), plain(&r)), c))
+                    })
+                    .min();
+                if let Some((_, c)) = best {
+                    groups
+                        .entry((pp.part, sp, c))
+                        .or_default()
+                        .push((ask.reach(c), w, ask));
+                    break;
+                }
+            }
+        }
+        for ((_, _, corner), mut wires) in groups {
+            if wires.len() < 2 {
+                continue;
+            }
+            wires.sort_by_key(|(reach, w, _)| (*reach, *w));
+            let before = measure(&self.page).key();
+            let old: Vec<(WireId, Vec<Pt>)> = wires
+                .iter()
+                .map(|(_, w, _)| (*w, self.route_of(*w).to_vec()))
+                .collect();
+            for (w, _) in &old {
+                self.lift(*w);
+            }
+            let mut ring: Tick = 0;
+            for ((_, w, ask), (_, was)) in wires.iter().zip(&old) {
+                let route = ask
+                    .route(corner, (ring + 1) * TICKS_PER_STEP)
+                    .map(|r| search::clean_collinear(&r))
+                    .filter(|r| self.clear(*w, r));
+                if let Some(route) = route {
+                    self.lay(*w, route);
+                    ring += 1;
+                } else {
+                    self.lay(*w, was.clone());
+                }
+            }
+            if measure(&self.page).key() > before {
+                for (w, was) in old {
+                    self.lay(w, was);
+                }
+            }
+        }
+    }
+
     /// Phase 5: a net whose only tap is a junction that may move: the junction where its wires cost least.
     fn single_taps(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
         let mut laid = BTreeSet::new();
@@ -1340,7 +1437,8 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let (_, notes) = r.trunks(&nets);
     r.tracks(&nets);
     r.single_taps(&nets);
-    let (_, failed) = r.searches();
+    let (searched, failed) = r.searches();
+    r.rings(&nets, &searched);
     r.text_rounds();
     r.weigh(&nets);
     // Never worse: a net that gives a wire a fault it did not have, or a wire routed before a finding, goes back to its
