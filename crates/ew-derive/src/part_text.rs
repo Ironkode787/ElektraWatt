@@ -111,18 +111,7 @@ pub fn part_confidence(copy: &LibCopy<Part>, section: &str) -> Confidence {
 
 /// The text of the technical-data slot of `device` (see the module documentation); empty without data.
 pub fn tech_data_text(q: &Q, device: Id<Device>) -> String {
-    let Some(dev) = q.devices().get(device) else {
-        return String::new();
-    };
-    let mut values: BTreeMap<String, TechVal> = BTreeMap::new();
-    if let Some(part) = main_part(q, device) {
-        for v in part.item.tech_data.iter() {
-            values.insert(v.key.as_str().to_owned(), v.value.clone());
-        }
-    }
-    for v in dev.tech_data.iter() {
-        values.insert(v.key.as_str().to_owned(), v.value.clone());
-    }
+    let mut values = tech_values(q, device);
     let mut out = Vec::new();
     if let (Some(TechVal::Ident(curve)), Some(TechVal::Quantity(rated))) =
         (values.get("characteristic"), values.get("rated_current"))
@@ -143,4 +132,31 @@ pub fn tech_data_text(q: &Q, device: Id<Device>) -> String {
         }
     }
     out.join(", ")
+}
+
+/// The technical data of `device` by key: its main part's values, the device's own winning by key (doc 07 §9.1 step
+/// 4); empty for a device the project does not hold.
+fn tech_values(q: &Q, device: Id<Device>) -> BTreeMap<String, TechVal> {
+    let mut values: BTreeMap<String, TechVal> = BTreeMap::new();
+    let Some(dev) = q.devices().get(device) else {
+        return values;
+    };
+    if let Some(part) = main_part(q, device) {
+        for v in part.item.tech_data.iter() {
+            values.insert(v.key.as_str().to_owned(), v.value.clone());
+        }
+    }
+    for v in dev.tech_data.iter() {
+        values.insert(v.key.as_str().to_owned(), v.value.clone());
+    }
+    values
+}
+
+/// The rated current of `device` in A: its technical data's `rated_current` (the device's own, else its main part's),
+/// when it is a quantity in A.
+pub(crate) fn rated_current(q: &Q, device: Id<Device>) -> Option<ew_units::Dec3> {
+    match tech_values(q, device).remove("rated_current")? {
+        TechVal::Quantity(rated) if rated.unit == Unit::A => Some(rated.value),
+        _ => None,
+    }
 }

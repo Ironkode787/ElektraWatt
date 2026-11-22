@@ -7,7 +7,7 @@
 //! potential with the typed name at the row's CP in one undo step, alone or with Type and Voltage typed in the same
 //! gesture; Type or Voltage typed without a name refuses with "Name the potential first" and creates nothing. Once L,
 //! N, +24V and 0V are named and typed, the profile colours them BK, BU, DBU and WH and the wire markers of folios 101
-//! and 102 read "1.5 BK BU" and "0.75 DBU WH WH". The class, colour and cross-section of such a row stay
+//! and 102 read "2.5 BK BU" and "0.75 DBU WH WH". The class, colour and cross-section of such a row stay
 //! read-only, a gesture over two such rows is refused per cell, and a defined row's Voltage sets `env.ac_dc` too.
 
 use crate::common;
@@ -193,7 +193,7 @@ const W20_TO_W23: [(&str, &str); 3] = [
 /// L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
 /// DBU and WH by the project's profile once they are named and typed in the Potentials table. Naming a row is one
 /// step, a `potential.define` at the CP with the typed name; Type and Voltage of the now defined row set its
-/// definition (`fields.set`, `fields.set_many` with the current); the markers read "1.5 BK BU" and "0.75 DBU WH WH".
+/// definition (`fields.set`, `fields.set_many` with the current); the markers read "2.5 BK BU" and "0.75 DBU WH WH".
 #[test]
 fn named_and_typed_drawn_potentials_colour_their_wires() {
     let tmp = Tmp::new("potdef-colours");
@@ -204,8 +204,9 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     let zero = potential_at(&mut shell, "102", "-X1021:5/a");
     let before_101 = marker_text(&mut shell, "101", &W4_W5);
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
-    // The pins' roles type L and N already, and an N of unknown voltage is of the mains class as L is (FT-1834).
-    assert_eq!(before_101, "1.5 BK BU");
+    // The pins' roles type L and N already, and an N of unknown voltage is of the mains class as L is (FT-1834); both
+    // are behind the 16 A breaker -101F1, which their class's 1.5 mm² does not carry (FT-2055).
+    assert_eq!(before_101, "2.5 BK BU");
     assert_ne!(before_102, "0.75 DBU WH WH");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     for name in [&l, &n, &plus, &zero] {
@@ -249,7 +250,7 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     for (name, colour) in [("L", "BK"), ("N", "BU"), ("24V", "DBU"), ("0V", "WH")] {
         assert_eq!(row(&shell, name, "Colour").2, colour, "{name}");
     }
-    assert_eq!(marker_text(&mut shell, "101", &W4_W5), "1.5 BK BU");
+    assert_eq!(marker_text(&mut shell, "101", &W4_W5), "2.5 BK BU");
     assert_eq!(marker_text(&mut shell, "102", &W20_TO_W23), "0.75 DBU WH WH");
     shell.shutdown();
 }

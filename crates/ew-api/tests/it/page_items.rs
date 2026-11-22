@@ -528,7 +528,8 @@ fn a_ticked_wire_always_prints_a_marker() {
 fn a_group_marker_prints_once_for_its_connections() {
     let mut s = sample();
     let p101 = page_id(&s, "101");
-    // 101.1 (L1, black) and 101.4 (PE, green-yellow), both 1.5 mm²; 101.3 stays as it is.
+    // 101.1 (L1, black, 1.5 mm²) and 101.4 (PE, green-yellow, 2.5 mm²: the breaker at -101G1 is rated 16 A); 101.3
+    // stays as it is.
     let w4 = wire(&s, "101.1");
     let w5 = wire(&s, "101.4");
     let w7 = wire(&s, "101.3");
@@ -541,7 +542,7 @@ fn a_group_marker_prints_once_for_its_connections() {
     let q = s.query();
     let labels = texts(&q, p101, Layer::Labels);
     assert_eq!(
-        labels.iter().filter(|t| *t == "1.5 BK GNYE").count(),
+        labels.iter().filter(|t| *t == "1.5/2.5 BK GNYE").count(),
         1,
         "{labels:?}"
     );
@@ -551,7 +552,8 @@ fn a_group_marker_prints_once_for_its_connections() {
     assert_eq!(after[&w7], before[&w7], "101.3 keeps its marker");
     drop(q);
 
-    // Four connections on 102: two 24 V (DBU) and two 0 V (BU) wires, in that printed order.
+    // Four connections on 102: two 24 V (DBU, 2.5 mm² behind the 16 A breaker -102F1) and two 0 V (BU, 0.75 mm²)
+    // wires, in that printed order.
     let p102 = page_id(&s, "102");
     let (dbu, wh) = {
         let q = s.query();
@@ -574,7 +576,7 @@ fn a_group_marker_prints_once_for_its_connections() {
         json!({"page": p102.to_string(), "connections": group, "at": [60_000_000, 40_000_000], "angle": 90_000}),
     );
     let labels = texts(&s.query(), p102, Layer::Labels);
-    assert!(labels.iter().any(|t| t == "0.75 DBU DBU BU BU"), "{labels:?}");
+    assert!(labels.iter().any(|t| t == "2.5/0.75 DBU DBU BU BU"), "{labels:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -769,7 +771,7 @@ fn table_items_carry_the_printed_text_and_the_binding() {
     assert_eq!(row(&bound).text.as_deref(), Some(description.as_str()));
     assert_eq!(row(&bound).bind.as_deref(), Some("project.description"));
     assert_eq!(row(&marker).kind, "wire_marker");
-    assert_eq!(row(&marker).text.as_deref(), Some("1.5 BK GNYE"));
+    assert_eq!(row(&marker).text.as_deref(), Some("1.5/2.5 BK GNYE"));
     assert_eq!(row(&marker).bind, None);
 }
 

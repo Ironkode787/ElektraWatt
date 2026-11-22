@@ -5,8 +5,8 @@
 //! content digest, through the `Session` facade (RG-1 to RG-5).
 //!
 //! The sample is opened read-only only (RG-4). The approvals run on a **copy** of the sample in a fresh directory
-//! whose open revision V1.0 gets the engineer as its author and whose shield wire on 103 loses its cross-section
-//! override, so that EW-POT-006, a safety-kind error, counts it as an undersized protective-earth wire; the
+//! whose open revision V1.0 gets the engineer as its author and whose shield wire on 103 is set to 1.5 mm², below
+//! its line conductors, so that EW-POT-006, a safety-kind error, counts it as an undersized protective-earth wire; the
 //! release-scheme errors are each waived first, and the safety-kind waivers are the ones a checker acknowledges.
 
 use crate::common;
@@ -28,7 +28,8 @@ fn sample() -> PathBuf {
 }
 
 /// A copy of the sample at `copy`, prepared for an approval: V1.0's author is the engineer, the shield wire's
-/// cross-section override is removed, and both are saved.
+/// cross-section is set below its 2.5 mm² line conductors (an undersized PE wire, an error of the gate), and both are
+/// saved.
 fn release_copy(copy: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
     common::copy_dir(&sample(), copy);
     let (mut s, _) = open(copy, state);
@@ -52,9 +53,9 @@ fn release_copy(copy: &Path, state: &Path) -> (Session, Vec<checks::IntegrityIte
     s.execute(&cmd(
         "fields.set",
         serde_json::json!({"kind": "connection", "targets": [shield.to_string()], "path": "overrides.csa",
-            "value": null}),
+            "value": "1.5"}),
     ))
-    .expect("the override is removed");
+    .expect("the override is set");
     s.save().expect("the prepared copy saves");
     s.close();
     open(copy, state)

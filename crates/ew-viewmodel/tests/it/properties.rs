@@ -103,11 +103,13 @@ fn a_wire_override_and_its_reset() {
     let tmp = Tmp::new("props-pg4");
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"refs": [W29]}));
-    assert_eq!(text(&shell, "connection/derived.csa"), "0.75 mm²");
+    assert_eq!(text(&shell, "connection/derived.csa"), "2.5 mm²");
     assert_eq!(
         provenance(&shell, "connection/derived.csa"),
         Provenance::Derived {
-            via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
+            via: "potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2, \
+                  PVC-insulated copper, 40 °C"
+                .into()
         }
     );
     let before = steps(&shell);
@@ -116,7 +118,7 @@ fn a_wire_override_and_its_reset() {
         "props.action",
         json!({"row": "connection/derived.csa", "action": "override"}),
     );
-    assert_eq!(shell.properties().edit().unwrap().buffer, "0.75 mm²");
+    assert_eq!(shell.properties().edit().unwrap().buffer, "2.5 mm²");
     done(&mut shell, "props.input", json!({"text": "1.0"}));
     done(&mut shell, "props.commit", json!({}));
     assert_eq!(steps(&shell), before + 1);
@@ -133,7 +135,7 @@ fn a_wire_override_and_its_reset() {
         json!({"row": "connection/derived.csa", "action": "reset"}),
     );
     assert_eq!(steps(&shell), before + 2);
-    assert_eq!(text(&shell, "connection/derived.csa"), "0.75 mm²");
+    assert_eq!(text(&shell, "connection/derived.csa"), "2.5 mm²");
     assert!(matches!(
         provenance(&shell, "connection/derived.csa"),
         Provenance::Derived { .. }
@@ -141,7 +143,7 @@ fn a_wire_override_and_its_reset() {
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(text(&shell, "connection/derived.csa"), "1 mm²");
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(text(&shell, "connection/derived.csa"), "0.75 mm²");
+    assert_eq!(text(&shell, "connection/derived.csa"), "2.5 mm²");
     shell.shutdown();
 }
 

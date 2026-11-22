@@ -411,6 +411,14 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
             },
         },
         PropSource::ColourRow { .. } => project("colour_profile"),
+        // A size from the rating of the protecting device: that device's Parts row, whose part gives the rating.
+        PropSource::SizeRow {
+            rule: ew_derive::SizeRule::Rating { device, .. },
+            ..
+        } => SourceLink::Record {
+            id: device.as_uuid(),
+            row: CABLE_SOURCE_ROW.to_owned(),
+        },
         PropSource::SizeRow { .. } => project("size_profile"),
         PropSource::ProjectDefault => project("wire_default"),
         PropSource::BuiltIn { .. } => project(profile),
@@ -446,6 +454,14 @@ pub(super) fn prop_via(
         PropSource::ColourRow { profile, .. } => format!(
             "potential {potential} · colour profile '{}'",
             profile_name(q, "colour_profile", profile, src.as_deref())
+        ),
+        PropSource::SizeRow {
+            rule: ew_derive::SizeRule::Rating { device, current },
+            ..
+        } => format!(
+            "potential {potential} · protected by {}, rated {current} A · {}",
+            device_tag_text(q, *device),
+            ew_derive::current_table_basis()
         ),
         PropSource::SizeRow {
             profile,

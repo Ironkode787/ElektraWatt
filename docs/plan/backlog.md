@@ -59,7 +59,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### What a new item takes
 
-- FT-2055 `ew-derive`: A new wire's cross-section reads its circuit class only (FT-1834, doc 08 §4.2), not the rating of the device that protects it: a 16 A circuit of the control class takes the control size. Sizing by the protecting device's rating needs a table of cross-sections by current (installation method, temperature, grouping), which the program does not hold; design first.
 
 #### What the sample project's script met
 

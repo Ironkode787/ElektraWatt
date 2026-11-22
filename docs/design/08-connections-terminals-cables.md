@@ -604,7 +604,7 @@ the level and the defining entity (FR-CON-017, FR-CON-025, D-08). This is the ch
 | Level | Source | Can set | Golden example |
 |---|---|---|---|
 | 1 | Project default (`ProjectSettings.wire_default`) | all | used only by Undefined potentials |
-| 2 | Profile rule: colour row × size row, plus the PE-class rule and the bond rule (§4.2) | colour, csa, wire part (1.0), insulation | W29: 0.75 mm², DBU |
+| 2 | Profile rule: colour row × size row, plus the PE-class rule, the bond rule and the protecting device's rating (§4.2) | colour, csa, wire part (1.0), insulation | W29: 0.75 mm², DBU |
 | 3 | `PotentialDef.props` | any | — |
 | 4 | `NetDef{scope: Signal}` (1.0, FR-CON-016) | any, including shielded and twisted | — |
 | 5 | `NetDef{scope: Net}` (1.0) | any | — |
@@ -676,9 +676,29 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
   voltage below 50 V is matched by the class rules as before. *A new wire's cross-section from its circuit (FT-1834).*
   What is read is the circuit class: a single phase L and the neutral N are conductors of an AC supply too, so
   without a known voltage they are of the mains class as well (the sample's N wires beside its 1.5 mm² phases took
-  0.75 mm²), and a new wire shows that class's cross-section in Properties before anything is set. The protecting
-  device's rating is not read: the program holds no table of cross-sections by current, only the size profile's row
-  per class, and a rating-to-size rule waits for one (FT-2055).
+  0.75 mm²), and a new wire shows that class's cross-section in Properties before anything is set.
+- **A cross-section from the protecting device's rating** (0.3.5, FT-2055). A 16 A circuit of the control class took
+  the control size, 0.75 mm². Below level 3, a wire whose protecting device is rated above what its cross-section
+  carries takes the least cross-section that carries the rating, by the current table
+  `content/profiles/current/ew.current.iec60204-1-b2.toml`.
+  - *The table* holds the values of IEC/EN 60204-1:2016 Table 6, installation method B2, PVC-insulated copper, 40 °C
+    ambient, cross-checked against manufacturers' published tables of the same standard: 0.75 mm² 8.5 A, 1 mm² 10.1 A,
+    1.5 mm² 13.1 A, 2.5 mm² 17.4 A, 4 mm² 23 A, 6 mm² 30 A, 10 mm² 40 A, 16 mm² 54 A, 25 mm² 70 A, 35 mm² 86 A.
+    Derating for another ambient temperature or for grouping is not applied, and a rating above 86 A proposes nothing
+    from the table.
+  - *The rating* is the `rated_current` (a quantity in A) of the technical data of the potential's nearest upstream
+    protective device (its flow's `protected_by`, §3.6), the device's own value over its part's. A PE wire takes the
+    highest rating at its two ends, read as the PE class rule reads the class there (the potentials of each end's
+    function and of its device or strip, `end_rating`), so it is never proposed below the line conductors it goes with
+    (EW-POT-006 sizes a PE wire equal to them up to 16 mm²; above, this proposal is larger than EW-POT-006 asks). A bond
+    wire keeps its rule.
+  - *What wins.* The rating only raises the size the size profile's row, the project default or the built-in default
+    gives (a wire whose class's size carries the rating keeps it); a potential definition's cross-section, a cable
+    core's and the wire's own override win over it. So it is a proposal the person changes in Properties, whose chip
+    names its source: "potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2,
+    PVC-insulated copper, 40 °C"; its link goes to the protecting device's Parts row.
+  - *What it does not do.* Size by the load's current, by the length (voltage drop) or by a short-circuit check; read a
+    motor-protective device's setting range; choose another installation method or table.
 - **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
   the conductor's colour and cross-section; as built in rc.3 a core's conductor wins over the wire's override for
   these two, so a wire made a core takes them at once however it got there, Properties names the cable and core as

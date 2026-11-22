@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC-BY-SA-4.0
+#
+# The current a conductor carries, by cross-section: the table a new wire's cross-section is proposed from when the
+# device that protects it is rated above what its circuit class's size carries (doc 08 §4.2, FT-2055).
+#
+# The values are those of IEC/EN 60204-1:2016 Table 6, installation method B2 (conductors in a duct or a conduit on a
+# wall), PVC-insulated copper, 40 °C ambient, cross-checked against manufacturers' published tables of the same
+# standard; they are cited, not copied text. Derating for another ambient temperature or for grouping is not applied:
+# the cross-section the table gives is a proposal the person can change (a wire's own cross-section wins).
+#
+# `csa` in mm², `current` in A, rising; the first row whose current is at least the rating is the proposal. A rating
+# above the last row proposes nothing from this table.
+
+id = "ew.current.iec60204-1-b2"
+basis = "IEC 60204-1:2016 Table 6, method B2, PVC-insulated copper, 40 °C"
+rows = [
+  { csa = "0.75", current = "8.5" },
+  { csa = "1", current = "10.1" },
+  { csa = "1.5", current = "13.1" },
+  { csa = "2.5", current = "17.4" },
+  { csa = "4", current = "23" },
+  { csa = "6", current = "30" },
+  { csa = "10", current = "40" },
+  { csa = "16", current = "54" },
+  { csa = "25", current = "70" },
+  { csa = "35", current = "86" },
+]

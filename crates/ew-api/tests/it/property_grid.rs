@@ -359,15 +359,19 @@ fn frozen_tags_wire_chips_and_the_page_description() {
         }
     );
     assert_eq!(tag.actions, [RowAction::Edit, RowAction::Unfreeze]);
-    // 102.1 (D15): the size profile and the colour profile name the supplying rows.
+    // 102.1 (D15): the rating of the breaker that protects it (its control class's 0.75 mm² carries less than 16 A,
+    // FT-2055) and the colour profile name the supplying rows.
     let w29 = wire(&s, "102.1");
     let sheet = s.property_sheet(&[w29]);
     let csa = row(&sheet, "connection/derived.csa");
-    assert_eq!(one(csa), "0.75 mm²");
+    assert_eq!(one(csa), "2.5 mm²");
     assert_eq!(
         csa.provenance,
         Provenance::Derived {
-            via: "potential 24V/102F1:2 · size profile '0.75/1.5' · class control".into()
+            via: format!(
+                "potential 24V/102F1:2 · protected by -102F1, rated 16 A · {}",
+                ew_derive::current_table_basis()
+            )
         }
     );
     assert_eq!(csa.actions, [RowAction::Override]);

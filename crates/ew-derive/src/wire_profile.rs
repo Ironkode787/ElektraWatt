@@ -731,10 +731,67 @@ pub(crate) fn builtin_csa(class: &CircuitClass) -> Csa {
     }
 }
 
+/// One row of the current table: a cross-section in mm² and the current it carries in A.
+#[derive(Deserialize)]
+struct CurrentRow {
+    csa: Dec3,
+    current: Dec3,
+}
+
+/// The current table a wire's cross-section is proposed from by the rating of the device that protects it (doc 08
+/// §4.2, FT-2055): `content/profiles/current/ew.current.iec60204-1-b2.toml`, its rows rising.
+#[derive(Deserialize)]
+struct CurrentTable {
+    id: String,
+    basis: String,
+    rows: Vec<CurrentRow>,
+}
+
+/// What the current table cites (its standard, table and installation method), for the provenance a person reads.
+pub fn current_table_basis() -> &'static str {
+    &current_table().basis
+}
+
+/// The compiled-in current table, parsed once.
+fn current_table() -> &'static CurrentTable {
+    static TABLE: std::sync::OnceLock<CurrentTable> = std::sync::OnceLock::new();
+    TABLE.get_or_init(|| {
+        toml::from_str(include_str!("../../../content/profiles/current/ew.current.iec60204-1-b2.toml"))
+            .unwrap_or_else(|e| unreachable!("the shipped current table reads: {e}"))
+    })
+}
+
+/// The smallest cross-section of the current table that carries `rating` amperes, with the table's key; `None` for a
+/// rating above its last row.
+pub(crate) fn csa_for_rating(rating: Dec3) -> Option<(&'static str, Csa)> {
+    let table = current_table();
+    table
+        .rows
+        .iter()
+        .find(|r| r.current >= rating)
+        .map(|r| (table.id.as_str(), Csa::Mm2(r.csa)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// The table gives the first cross-section that carries a rating: a rating it carries exactly, one between two
+    /// rows, and one above its last row, which proposes nothing.
+    #[test]
+    fn the_current_table_gives_the_least_cross_section_that_carries_a_rating() {
+        let table = current_table();
+        assert!(table.rows.windows(2).all(|w| w[0].csa < w[1].csa && w[0].current < w[1].current));
+        let (first, last) = (&table.rows[0], &table.rows[table.rows.len() - 1]);
+        assert_eq!(csa_for_rating(first.current).map(|(_, c)| c), Some(Csa::Mm2(first.csa)));
+        let second = &table.rows[1];
+        assert_eq!(
+            csa_for_rating(Dec3(first.current.0 + 1)).map(|(_, c)| c),
+            Some(Csa::Mm2(second.csa))
+        );
+        assert_eq!(csa_for_rating(Dec3(last.current.0 + 1)), None);
+    }
 
     fn attrs(ptype: PotentialType, voltage: Option<i64>, ac_dc: Option<AcDc>) -> Attrs {
         Attrs {

@@ -572,3 +572,9 @@ change here.
 - text-change: the refusal of a second legend list says that one plate has one legend, in English and Dutch (FT-2031)
 - behaviour-change: a strip segment draws the bridges of its terminals, a line across the bridged leads with a dot on
   each, as terminals drawn alone in a row do; it drew none (doc 08 §6.5, FT-2020)
+- behaviour-change: a wire whose protecting device is rated above what its cross-section carries proposes the least
+  cross-section that carries the rating, by IEC 60204-1:2016 Table 6, method B2 (PVC-insulated copper, 40 °C, no
+  derating; `content/profiles/current/`): behind a C16 breaker 2.5 mm² instead of the class's 1.5 or 0.75 mm², a PE
+  wire by the highest rating at its ends; Properties names the device and its rating as the source, and a wire's own
+  cross-section, a core's or a potential definition's still wins. Projects of 0.3.0 show the raised size where they
+  set none (doc 08 §4.2, FT-2055)

@@ -227,6 +227,14 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
             .flat_map(|d| [EndScope::Device(*d), EndScope::Strip(*d)]),
         o,
     );
+    check::<ew_derive::EndRating>(
+        memo,
+        cold,
+        keys.devices
+            .iter()
+            .flat_map(|d| [EndScope::Device(*d), EndScope::Strip(*d)]),
+        o,
+    );
     check::<PageLocalNets>(memo, cold, keys.pages.iter().copied(), o);
     // The drawn bond across page links (doc 08 §3.7): each page's nets that hold a point, and the points carrying a 0 V.
     check::<ew_derive::PageIpNets>(memo, cold, keys.pages.iter().copied(), o);

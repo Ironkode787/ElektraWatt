@@ -40,7 +40,7 @@ use crate::query::{Policy, Query};
 use crate::settings;
 use crate::wire_profile::{
     Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, WireProfileNotes, attrs_of,
-    builtin_colour_for, builtin_csa, own_class,
+    builtin_colour_for, builtin_csa, csa_for_rating, own_class,
 };
 use crate::wires::{EndKind, OverrideSources, PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{FunctionCps, Q};
@@ -54,6 +54,15 @@ pub enum SizeRule {
     PeHighestAtEnds,
     /// A bond wire: the class of its non-PE potential.
     Bond,
+    /// The rating of the device that protects the wire (FT-2055): the class's cross-section carries less than its
+    /// rated current, so the current table's least cross-section that carries it; the size row's `profile` is the
+    /// table's key.
+    Rating {
+        /// The protecting device.
+        device: Id<Device>,
+        /// Its rated current in A.
+        current: ew_units::Dec3,
+    },
 }
 
 /// Where an effective value comes from (D-08).
@@ -313,21 +322,54 @@ impl Query for EndClass {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, scope: &EndScope) -> Arc<Option<CircuitClass>> {
-        let idx = q.idx();
-        let functions: Vec<Id<Function>> = match scope {
-            EndScope::Device(d) => idx.functions_of_device(*d).collect(),
-            EndScope::Strip(s) => idx
-                .terminals_of_strip(*s)
-                .flat_map(|t| idx.functions_of_device(t))
-                .collect(),
-        };
-        let classes = potentials_of_functions(q, functions).into_iter().map(|p| {
+        let classes = potentials_of_functions(q, scope_functions(q, scope)).into_iter().map(|p| {
             q.get_value_part::<ProfileRowFor>(ProfileKey::of_potential(q, p))
                 .class
                 .clone()
         });
         Arc::new(highest_ranked(classes))
     }
+}
+
+/// The functions of a scope: of its device, or of every terminal of its strip.
+fn scope_functions(q: &Q, scope: &EndScope) -> Vec<Id<Function>> {
+    let idx = q.idx();
+    match scope {
+        EndScope::Device(d) => idx.functions_of_device(*d).collect(),
+        EndScope::Strip(s) => idx
+            .terminals_of_strip(*s)
+            .flat_map(|t| idx.functions_of_device(t))
+            .collect(),
+    }
+}
+
+/// `end_rating(scope)`: the highest rated current, with its device, among the devices that protect the potentials
+/// holding a CP of the scope's functions; `None` when none has a rating. It is the PE rule's read of the rating at a
+/// device or a strip (FT-2055), once per scope as [`EndClass`] is. Policy Memo.
+#[derive(Debug)]
+pub struct EndRating;
+
+impl Query for EndRating {
+    type Key = EndScope;
+    type Value = Option<(ew_units::Dec3, Id<Device>)>;
+    const FAMILY: &'static str = "end_rating";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, scope: &EndScope) -> Arc<Option<(ew_units::Dec3, Id<Device>)>> {
+        let rated = potentials_of_functions(q, scope_functions(q, scope))
+            .into_iter()
+            .filter_map(|p| protection(q, p).map(|(device, current)| (current, device)))
+            .max();
+        Arc::new(rated)
+    }
+}
+
+/// The device that protects the potential `id` (the flow's nearest upstream protective device, doc 08 §3.6) and its
+/// rated current in A, where it has one with a rating.
+fn protection(q: &Q, id: PotentialId) -> Option<(Id<Device>, ew_units::Dec3)> {
+    let function = (*q.get::<crate::PotentialFlow>(id)).as_ref()?.protected_by?;
+    let device = q.functions().get(function)?.device?;
+    Some((device, crate::part_text::rated_current(q, device)?))
 }
 
 /// The potentials holding a CP of `functions`, sorted and without duplicates.
@@ -481,6 +523,36 @@ impl Ctx<'_> {
         highest(wire.ends.iter().flat_map(|e| self.end_classes(e)))
     }
 
+    /// The rating a wire's size must carry (FT-2055): for a wire of its class, its potential's protecting device and
+    /// rated current; for a PE wire, the highest rating at its two ends (the potentials of each end's function and
+    /// [`EndRating`] of its device or strip), as the PE rule reads the class there. `None` without a rated device.
+    fn rating(&self, wire: &PhysicalWire, key: PotentialId, rule: SizeRule) -> Option<(Id<Device>, ew_units::Dec3)> {
+        let q = self.q;
+        match rule {
+            SizeRule::Class => protection(q, key),
+            SizeRule::PeHighestAtEnds => wire
+                .ends
+                .iter()
+                .filter(|e| e.kind == EndKind::Device)
+                .flat_map(|e| {
+                    let own = potentials_of_functions(q, [e.cp.function])
+                        .into_iter()
+                        .filter_map(|p| protection(q, p).map(|(d, c)| (c, d)));
+                    let scope = q.functions().get(e.cp.function).and_then(|f| f.device).and_then(|d| {
+                        q.devices().get(d).map(|dev| match &dev.aspects.terminal {
+                            Some(t) => EndScope::Strip(t.strip),
+                            None => EndScope::Device(d),
+                        })
+                    });
+                    own.chain(scope.and_then(|s| *q.get_value_part::<EndRating>(s)))
+                        .collect::<Vec<_>>()
+                })
+                .max()
+                .map(|(c, d)| (d, c)),
+            SizeRule::Bond | SizeRule::Rating { .. } => None,
+        }
+    }
+
     /// The effective properties of one wire of the potential `key`.
     fn props_of(&self, wire: &PhysicalWire, key: PotentialId) -> EffectiveProps {
         let q = self.q;
@@ -599,9 +671,35 @@ impl Ctx<'_> {
         };
         let csa0 = Some(Prov::new(builtin_csa(&class), built_in()));
         let colour0 = Some(Prov::new(builtin_colour_for(&colour_attrs, &class), built_in()));
+        // Below level 3, a wire whose protecting device is rated above what that size carries (a PE wire: the highest
+        // rating at its ends; no bond wire) takes the current table's least size that carries it (doc 08 §4.2,
+        // FT-2055).
+        let below = pick([csa2, l1.csa, csa0]);
+        let size = match &below {
+            Some(Prov {
+                value: Csa::Mm2(size),
+                ..
+            }) => Some(*size),
+            _ => None,
+        };
+        let raised = size.and_then(|size| {
+            let (device, current) = self.rating(wire, key, rule)?;
+            let (table, csa) = csa_for_rating(current)?;
+            matches!(csa, Csa::Mm2(raised) if raised > size).then(|| {
+                Prov::new(
+                    csa,
+                    PropSource::SizeRow {
+                        profile: table.to_owned(),
+                        class: class.clone(),
+                        rule: SizeRule::Rating { device, current },
+                    },
+                )
+            })
+        });
+        let below = raised.or(below);
 
         EffectiveProps {
-            csa: pick([l6_csa, l7.csa, l3.csa, csa2, l1.csa, csa0]),
+            csa: pick([l6_csa, l7.csa, l3.csa, below]),
             colour: pick([l6_colour, l7.colour, l3.colour, colour2, l1.colour, colour0]),
             wire_part: pick([l7.wire_part, l3.wire_part, l1.wire_part]),
             insulation: pick([l7.insulation, l3.insulation, l1.insulation]),
