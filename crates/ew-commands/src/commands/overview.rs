@@ -276,10 +276,15 @@ fn new_page(tx: &mut TxBuilder<'_>, after: Id<Page>, title: &MlText) -> Result<I
     } else {
         MlText::default()
     };
+    // A page after an overview page that is a sub-page (`104.1`) is its sibling (`104.2`), not its sub-page (`104.1.1`).
+    let sibling = match (&before.kind, &before.folio.label) {
+        (PageType::AssemblyOverview, Some(label)) => next_sibling(tx, &before, label.as_str()),
+        _ => None,
+    };
     let out = CreatePage {
-        section: None,
-        number: None,
-        label: None,
+        section: sibling.as_ref().and(before.folio.section),
+        number: sibling.as_ref().map(|_| before.folio.number),
+        label: sibling,
         after: Some(after),
         kind: PageType::AssemblyOverview,
         title,
@@ -291,4 +296,15 @@ fn new_page(tx: &mut TxBuilder<'_>, after: Id<Page>, title: &MlText) -> Result<I
     out.primary
         .map(|(_, id)| id.cast())
         .ok_or_else(|| CmdError::internal("page.create made no page"))
+}
+
+/// The first label `<base>.<k>` after the sub-page label `label` (`<base>.<n>`, `k > n`) that no page of `page`'s
+/// section prints; `None` for a label that does not end in a sub-page number.
+fn next_sibling(tx: &TxBuilder<'_>, page: &Page, label: &str) -> Option<ew_mltext::Ident> {
+    let (base, n) = label.rsplit_once('.')?;
+    let n: u32 = n.parse().ok()?;
+    let pages = crate::commands::page::section_pages(tx, page.folio.section);
+    (n.checked_add(1)?..=u32::MAX)
+        .filter_map(|k| format!("{base}.{k}").parse::<ew_mltext::Ident>().ok())
+        .find(|l| !pages.iter().any(|(_, f)| f.label.as_ref() == Some(l)))
 }

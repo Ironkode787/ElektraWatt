@@ -843,7 +843,8 @@ of twelve characters; a new overview page is titled by the window with the termi
 the width of its symbol's graphics, snapped to the page grid; one that would pass the band's right edge starts the next
 page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
 grid and structure; with none, the first new page follows the terminal's first fluid page in its section, so that the
-overview stands with its fluid diagram, not in the wiring section, doc 10 §6). A member already drawn in member order inside the band (on a later page than the member before,
+overview stands with its fluid diagram, not in the wiring section, doc 10 §6; a new page after an overview sub-page
+is its sibling, `104.1`, `104.2`, `104.3`, not `104.1.1`, FT-1926). A member already drawn in member order inside the band (on a later page than the member before,
 or right of it on the same page) stays where it stands (M3 review): a refresh of Golden A's overviews 201 (-201U1 …
 -201U9) and 202 (-202U1 … -202U3) changes nothing. A member without an overview representation gets one of its main
 function; a module added without functions gets the symbol's FnDef as its main function. The preview's changes name

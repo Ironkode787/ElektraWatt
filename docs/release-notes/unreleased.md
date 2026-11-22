@@ -397,3 +397,5 @@ change here.
 - behaviour-change: verifying a project against its PDF reads a kerned pair of a letter and a comma or an ellipsis
   (`r,`, `r…`) as one text: the sample's parts lists' descriptions were two missing texts and one extra (doc 14 §4.15,
   FT-1925)
+- behaviour-change: Generate overview names the new pages of an overview that runs over several pages as siblings,
+  104.1, 104.2, 104.3; they were 104.1, 104.1.1, 104.1.1.1 (doc 11 §5.5, FT-1926)
