@@ -47,6 +47,10 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The window's finish
 
+- FT-2115 `ew-ui`: A persona run typed an interruption point's name, pressed Enter and then D, and D did nothing; the
+  click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the
+  pointer on the tool strip and on the sheet, turned the direction each time (the window tests of the name field hold
+  it too). A repeat needs the run's exact key and pointer order.
 - FT-2006 `ew-ui`: Two faults of FT-1761 not seen again on the sample at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ending the edit (Bus table, Wire: one click ends the edit and runs Wire), and the Properties header cut by its chips; each needs its repro (which grid, which selection) before a fix. Tried again in M3.5 step 13 (a window test on the sample's page 102, 1920 × 1080 and 1000 × 900, a cell of the Strips and of the Bus table opened by a double click and typed in, then one click on Wire): Wire arms at the first click; on the Bus table the cell's editor stays open beside the armed tool, which may be the fault seen. Tried once more in bundle F (2026-11-22, a window test not kept): the sample's page 105, the Bus table, the address cell of -104A1 DP opened by a double click and typed in, then one click on the ribbon's Wire: the typed value is committed (both rows read it), the cell's editor closes (three text fields become two), focus goes to the canvas and Wire is armed. Not fixed without the person's steps.
 
 #### Properties and the title block's words
