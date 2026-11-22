@@ -374,6 +374,25 @@ fn record_lines_validate_against_record_schema_through_its_sibling_refs() {
     assert!(!validator.is_valid(&record, &broken));
 }
 
+/// A member the reader takes as `null` (an optional one, such as an external reference's location and device
+/// since 0.3.5) is `null` in the schema too: a proxy type on an `Option` member must be `Option<..>` as well.
+#[test]
+fn a_member_the_reader_takes_as_null_the_schema_takes_as_null() {
+    let validator = Validator::new();
+    for line in record_lines() {
+        let schema = kind_schema(kind_of(&line)).expect("schema");
+        let members: Vec<String> = line.as_object().expect("object").keys().cloned().collect();
+        for member in members.iter().filter(|m| !m.starts_with('$') && *m != "id") {
+            let mut nulled = line.clone();
+            nulled[member.as_str()] = Value::Null;
+            if serde_json::from_value::<ew_schema::Record>(nulled.clone()).is_ok() {
+                let errors = validator.errors(&schema, &nulled);
+                assert!(errors.is_empty(), "the reader takes {member} = null, the schema not: {}", errors.join("\n"));
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Negative controls
 

@@ -740,7 +740,8 @@ installed library's symbol by its key as well as by its address, before its firs
   signal comes from: often an address alone ("Q4.1"), sometimes nothing, because the far end is not known yet.
   - *Fields.* `ExternalRef.location` and `ExternalRef.device` are optional, as `project` and `connection` were: a
     reference holds what is known of the far end, the device or an address in `device`. One that holds neither is a
-    far end not known. The format grows additively: a project of 0.3.0 reads unchanged.
+    far end not known. A project of 0.3.0 reads unchanged; a project with a reference that holds no location or no
+    device does not open in 0.3.0, which takes both as required (ADR-0011 amendment 8).
   - *What prints* (the point's xref slot, a structure box's caption, a bus partner): the parts the reference holds,
     the location and the device joined by " / " ("+J-E-206 / JE-N1000-03"), the device or address alone ("Q4.1"),
     the location alone ("+MCC2"), and nothing for a far end not known; another project's name in front as before. The

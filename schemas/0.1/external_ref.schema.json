@@ -60,7 +60,14 @@
       "description": "The connection there (\"L\")."
     },
     "device": {
-      "$ref": "#/$defs/Ident",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "description": "The device there (\"JE-N1000-03\"), or an address there (\"Q4.1\"); none where it is not known (0.3.5). A\nreference without a location and a device is a far end that is not known."
     },
     "id": {
@@ -68,7 +75,14 @@
       "description": "The record ID."
     },
     "location": {
-      "$ref": "#/$defs/Uuid",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "description": "Its location node (+J-E-206); none where it is not known (0.3.5)."
     },
     "project": {

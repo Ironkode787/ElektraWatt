@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`), 2026-11-20 (amendment 7, the sample as fixture) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5), 2026-11-05 (amendment 4 annotated as applied again for `import_run`), 2026-11-20 (amendment 7, the sample as fixture), 2026-11-22 (amendment 8, the latest version leads) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -204,6 +204,21 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    delegation; M3.5 step 9). The reference project (Golden A) left the repository at 0.3.5. Its frozen copy in
    `fixtures/format/0.1/` stays byte for byte as format 0.1's fixture; every format released after it takes the sample
    project (`fixtures/sample/sample.ew`, made by its script) as its fixture in decision 4's place of the golden project.
+8. **The latest version leads** (2026-11-22, the project owner). A project saved by a newer build need not open in an
+   older one. Where a change needs it, the format may change in a way an older build cannot read.
+   - Each such change is an entry below: what changed, and what an older build does with a project that uses it. Its
+     line in the release notes says the same. No stand-in member and no raised `min_reader` stamp is added to keep an
+     older build reading.
+   - What still holds without exception: a project made by an earlier release opens in this build unchanged and loses
+     nothing, and this build copes with what an earlier release may have done to a file in between (a member that
+     release did not know is kept; a record it deleted is gone).
+   - The published schemas say what this build's reader accepts.
+   Entries:
+   1. *External references hold what is known* (0.3.5, FT-1876; [schematic editor](../design/06-schematic-editor.md)
+      §3.5). `external_ref.location` and `external_ref.device` became optional: a reference may hold an address
+      alone, a location alone, or nothing for a far end not known. A reference of 0.3.0 holds both and reads
+      unchanged. 0.3.0's reader takes both members as required: it sets a reference without them aside as a schema
+      violation (EW-CORE-007, read-only at best), so such a project does not open there for editing.
 
 ## Consequences
 

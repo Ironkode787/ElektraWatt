@@ -935,12 +935,12 @@ pub struct ExternalRef {
     pub project: Option<Ident>,
     /// Its location node (+J-E-206); none where it is not known (0.3.5).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "UuidS")]
+    #[schemars(with = "Option<UuidS>")]
     pub location: Option<Id<StructureNode>>,
     /// The device there ("JE-N1000-03"), or an address there ("Q4.1"); none where it is not known (0.3.5). A
     /// reference without a location and a device is a far end that is not known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "IdentS")]
+    #[schemars(with = "Option<IdentS>")]
     pub device: Option<Ident>,
     /// The connection there ("L").
     #[serde(default, skip_serializing_if = "Option::is_none")]
