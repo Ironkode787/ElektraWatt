@@ -74,7 +74,6 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### The page's drawing
 
-- FT-2020 `ew-scene`: A strip segment draws no bridges: doc 08 §6.5 asks for the vertical bus with dots across the terminals a bridge joins, which only terminals drawn alone in a row have (FT-1908).
 
 #### A command's words
 

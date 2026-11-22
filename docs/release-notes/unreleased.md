@@ -570,3 +570,5 @@ change here.
   the plate from any of its pages ("the plate of layout 901 has its legend list already…"); a legend made from a later
   page followed that page while its rows linked to the first (doc 12 §5.4, FT-2031)
 - text-change: the refusal of a second legend list says that one plate has one legend, in English and Dutch (FT-2031)
+- behaviour-change: a strip segment draws the bridges of its terminals, a line across the bridged leads with a dot on
+  each, as terminals drawn alone in a row do; it drew none (doc 08 §6.5, FT-2020)

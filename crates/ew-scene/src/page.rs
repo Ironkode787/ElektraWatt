@@ -66,14 +66,15 @@
 //! - **Junctions** draw the caller's junction symbol at `at` in the bevel's orientation; without a symbol a
 //!   dot is a filled black disc of radius [`JUNCTION_DOT_RADIUS`].
 //! - **Bridges** (doc 08 §6.5, FT-1908): the program's drawing of a strip's bridge, no record and nothing to select.
-//!   Each clamp of a [`BridgeView`] that a terminal drawn alone draws on the page (not a strip segment) gives a
-//!   point half way between the terminal's insertion point and the clamp's point, on the lead the bridge joins.
-//!   Points whose clamps leave the same way and that lie on one line across those leads (one height for leads that
-//!   leave up or down, one x for leads that leave left or right) are one row; a row of two or more is drawn as a
-//!   straight line from its first point to its last in the page's [`wire_stroke`], and a dot of
-//!   [`JUNCTION_DOT_RADIUS`] at each of its points, after the junctions. A terminal of the bridge in another row, on
-//!   another page or in a segment joins no line here; a terminal that is no part of the bridge and stands between
-//!   two of the row is crossed without a dot.
+//!   Each clamp of a [`BridgeView`] that the page draws gives a point half way between the terminal's centre and the
+//!   clamp's point, on the lead the bridge joins: the centre of a terminal drawn alone is its insertion point, that of
+//!   a terminal a strip segment draws half way between its side-1 and side-2 points (FT-2020), so a segment's
+//!   bridged terminals make the bus across its leads. Points whose clamps leave the same way and that lie on one line
+//!   across those leads (one height for leads that leave up or down, one x for leads that leave left or right) are one
+//!   row; a row of two or more is drawn as a straight line from its first point to its last in the page's
+//!   [`wire_stroke`], and a dot of [`JUNCTION_DOT_RADIUS`] at each of its points, after the junctions. A terminal of
+//!   the bridge in another row or on another page joins no line here; a terminal that is no part of the bridge and
+//!   stands between two of the row is crossed without a dot.
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
@@ -1588,11 +1589,30 @@ impl Builder<'_> {
                 let Some((at, dir, rep)) = cps.get(&(function.as_uuid(), *idx)) else {
                     continue;
                 };
-                // A strip segment draws its terminals' clamps, and no bridge.
-                let Some(rv) = reps.get(rep).filter(|r| r.terminals.is_empty()) else {
+                let Some(rv) = reps.get(rep) else {
                     continue;
                 };
-                let c = rv.rep.pos;
+                // The terminal's centre: its insertion point where it is drawn alone; in a strip segment, half way
+                // between its side-1 and side-2 points.
+                let c = if rv.terminals.is_empty() {
+                    rv.rep.pos
+                } else {
+                    let Some(t) = rv.terminals.iter().find(|t| t.function == *function) else {
+                        continue;
+                    };
+                    let side = |idxs: &[u16]| {
+                        idxs.iter()
+                            .find_map(|i| cps.get(&(function.as_uuid(), *i)))
+                            .map(|(p, _, _)| *p)
+                    };
+                    let (Some(a), Some(b)) = (side(&t.side1), side(&t.side2)) else {
+                        continue;
+                    };
+                    Pt2::new(
+                        Nm(a.x.0 + (b.x.0 - a.x.0).div_euclid(2)),
+                        Nm(a.y.0 + (b.y.0 - a.y.0).div_euclid(2)),
+                    )
+                };
                 let mid = Pt2::new(
                     Nm(c.x.0 + (at.x.0 - c.x.0).div_euclid(2)),
                     Nm(c.y.0 + (at.y.0 - c.y.0).div_euclid(2)),

@@ -1037,13 +1037,18 @@ it joins with a connection dot on each.
   x for turned ones) are one row. A row of two or more is one straight line from its first point to its last in the
   wire pen, with a dot of the junction dot's size at each point. So the bar stands on the side of the clamps it joins,
   clear of the terminal's circle and of its designation and function text, which stand at the circle's height.
-- *What is not drawn wrong.* A terminal of the bridge on another page, in another row, turned another way or shown by
-  a strip segment joins no line on this page; a row with one terminal of the bridge draws nothing. Every line joins
+- *In a strip segment* (FT-2020). A terminal a segment draws has its side-1 point above and its side-2 point below
+  (§6.7); its centre is half way between them, so its point stands a quarter of the segment's height from the side the
+  bridge joins, and the segment's bridged terminals make the bus across its leads with a dot on each, by the same
+  rule.
+- *What is not drawn wrong.* A terminal of the bridge on another page, in another row or turned another way joins no
+  line on this page (a terminal drawn alone and one in a segment stand in two rows); a row with one terminal of the
+  bridge draws nothing. Every line joins
   terminals the bridge joins, so a reader never sees a bridge that is not there; a bridge split over pages or rows
   shows as its parts, and the terminal diagram lists it whole. A terminal that stands between two of the row and is
   not part of the bridge is crossed without a dot, as a wire crosses a wire.
-- *Not built.* A strip segment's vertical bus (above); the layout's page does not hold the bars, so the text placer
-  may set a text on one and the router may cross one (FT-2021).
+- *Not built.* The layout's page does not hold the bars, so the text placer may set a text on one and the router may
+  cross one (FT-2021).
 
 ### 6.6 Spares and reserves
 

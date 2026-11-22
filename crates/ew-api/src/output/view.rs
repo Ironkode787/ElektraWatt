@@ -1427,19 +1427,28 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
     out
 }
 
-/// The bridges of the strips whose terminals the drawn page `page` shows (doc 08 §6.5, FT-1908): every bridge group
-/// of such a strip (`ew_derive::StripBridges`, by strip ID, then group) with the clamp its connections name on each of
-/// its terminals, the first in the group's connection order (a bridge shaft, which no symbol draws, as the terminal's
-/// lowest side-1 clamp), in the group's terminal order. The scene draws a group where its terminals stand in one row.
+/// The bridges of the strips whose terminals the drawn page `page` shows, alone or in a strip segment (doc 08 §6.5,
+/// FT-1908, FT-2020): every bridge group of such a strip (`ew_derive::StripBridges`, by strip ID, then group) with
+/// the clamp its connections name on each of its terminals, the first in the group's connection order (a bridge shaft,
+/// which no symbol draws, as the terminal's lowest side-1 clamp), in the group's terminal order. The scene draws a
+/// group where its terminals stand in one row.
 pub fn page_bridges(q: &Q, page: Id<Page>) -> Vec<BridgeView> {
     let (reps, functions, devices, connections) = (q.reps(), q.functions(), q.devices(), q.connections());
+    // A terminal's strip, or the strip a segment draws (a segment is a representation of the strip's function).
     let strips: std::collections::BTreeSet<Id<Device>> = q
         .idx()
         .reps_by_page(page)
         .filter_map(|rid| reps.get(rid))
         .flat_map(|rep| rep.functions.iter())
         .filter_map(|f| functions.get(*f)?.device)
-        .filter_map(|d| Some(devices.get(d)?.aspects.terminal.as_ref()?.strip))
+        .filter_map(|d| {
+            let aspects = &devices.get(d)?.aspects;
+            match (&aspects.terminal, &aspects.strip) {
+                (Some(t), _) => Some(t.strip),
+                (None, Some(_)) => Some(d),
+                (None, None) => None,
+            }
+        })
         .collect();
     let mut out = Vec::new();
     for strip in strips {
