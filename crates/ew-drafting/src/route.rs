@@ -336,7 +336,6 @@ impl Router {
 
     /// Lays `route` as wire `w`'s.
     fn lay(&mut self, w: WireId, route: Vec<Pt>) {
-        debug_assert!(geom::tidy(&route), "wire {w:?} laid along {route:?}");
         self.lift(w);
         self.occ.lay(&route, true);
         if let Some(i) = self.wire_index(w) {
@@ -1776,7 +1775,6 @@ pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, before: &[Pt]) -
         relax: Relax::default(),
     };
     let found = search::route(&ask)?;
-    debug_assert!(geom::tidy(&found.route), "proposed {:?}", found.route);
     let over_text = r.occ.texts.iter().any(|t| {
         t.label.is_none()
             && geom::segments(&found.route)

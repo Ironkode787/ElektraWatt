@@ -531,6 +531,36 @@ fn a_job_that_would_be_a_fourth_arm_keeps_its_route_and_is_named_so() {
     assert_eq!(plan.unrouted, [(fourth, Reason::FourArms)]);
 }
 
+/// §3.8, FT-2097: a job without a way keeps its stored route as the page holds it, a point twice in a row included (a
+/// route the person or an older version stored): the router lays it back as it stands; only what the search finds is
+/// asserted tidy.
+#[test]
+fn a_kept_route_with_a_point_twice_in_a_row_is_laid_back_as_it_stands() {
+    let mut b = Page::new(30, 24);
+    let j = b.junction("J", p(10, 10));
+    b.device("above", p(10, 4));
+    b.device("below", p(10, 12));
+    b.mark_in("in", p(4, 10));
+    b.mark_out("out", p(16, 10));
+    b.run("up", b.pin("above", "2"), j, &[]);
+    b.run("down", j, b.pin("below", "1"), &[]);
+    b.run("left", b.pin("in", "1"), j, &[]);
+    let to = b.at(b.pin("out", "1"));
+    let fourth = b.wire(
+        "fourth",
+        j,
+        b.pin("out", "1"),
+        &[p(10, 10), p(13, 10), p(13, 10), to],
+    );
+    // And a wire with a free way, so that the plan has something to offer.
+    b.device("K1", p(24, 2));
+    b.device("K2", p(24, 12));
+    let free = b.wire("free", b.pin("K1", "2"), b.pin("K2", "1"), &[]);
+    let plan = route(&b.page, &jobs(&b.page, Scope::Selection(&[fourth.0, free.0])));
+    assert_eq!(plan.routes.iter().map(|(w, _)| *w).collect::<Vec<_>>(), [free]);
+    assert_eq!(plan.unrouted, [(fourth, Reason::FourArms)]);
+}
+
 /// §3.9: a net whose stored routes cost no more than the new ones keeps them. The program's wire between two junctions
 /// runs down, then right; the search would take right, then down, at the same price: the plan, which routes another
 /// wire, leaves it as it runs.

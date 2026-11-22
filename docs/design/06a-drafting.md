@@ -1423,9 +1423,11 @@ round costs less (§3.9).
 router takes the wire's route up to the bend (`route_wire`'s `before`) as a wire laid, which the way on may cross but
 not run along, nor pass through its bends. A way on from a bend that ran down, back and up onto the bend's own line
 and along the first leg (seen on the sample's 101) is gone; where no other way leads on, the wire is routed anew from
-its start, as for any bend from which no clear way leads. No route the router lays or proposes holds a point twice in
-a row or turns back along the line it came by: the router asserts it where it lays a route and where it proposes one
-(`geom::tidy`), so that the phase that would make one is found, not cleaned after it.
+its start, as for any bend from which no clear way leads. No route the search finds, for Route or for the tool, holds
+a point twice in a row or turns back along the line it came by: a debug build asserts it on what the search returns
+(`search::route`, `geom::tidy`), so that the phase that would make one is found, not cleaned after it. A route put
+back from the page or kept (a job without a way keeps its stored route, §3.8) is the person's or an older version's
+and is laid as it stands.
 
 ### 7.5 Cards drawn from the station view
 

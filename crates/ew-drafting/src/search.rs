@@ -949,21 +949,27 @@ pub fn price_of(ask: &Ask<'_>, route: &[Pt]) -> Option<u32> {
 
 /// The route of `ask` by the half-grid rule (§3.6): on the grid; where it has none, or one more than 8/5 of the
 /// city-block distance of the ends, on the half grid, whose route is taken where the grid's is more than 8/5 of it or
-/// there is none.
+/// there is none. A debug build asserts that the route is tidy (`geom::tidy`, FT-2097), so that the phase that would
+/// make one that is not is found; a route put back from the page or kept is not the search's and is not asserted.
 pub fn route(ask: &Ask<'_>) -> Option<Found> {
     let whole = search(ask, false);
     let length = |r: &[Pt]| -> i64 { geom::segments(r).iter().map(|s| geom::length(*s)).sum() };
     let direct = geom::length((ask.from.at, ask.to.at));
     let far = |longer: i64, than: i64| longer * 5 > than * 8;
-    if whole.as_ref().is_some_and(|w| !far(length(&w.route), direct)) {
-        return whole;
-    }
-    let half = search(ask, true);
-    match (whole, half) {
-        (Some(w), Some(h)) if !far(length(&w.route), length(&h.route)) => Some(w),
-        (w, None) => w,
-        (_, h) => h,
-    }
+    let found = if whole.as_ref().is_some_and(|w| !far(length(&w.route), direct)) {
+        whole
+    } else {
+        match (whole, search(ask, true)) {
+            (Some(w), Some(h)) if !far(length(&w.route), length(&h.route)) => Some(w),
+            (w, None) => w,
+            (_, h) => h,
+        }
+    };
+    debug_assert!(
+        found.as_ref().is_none_or(|f| geom::tidy(&f.route)),
+        "the search found {found:?}"
+    );
+    found
 }
 
 /// Whether `route` from `ask.from` to `ask.to` is one the search could take: walked on the grid's lattice where every

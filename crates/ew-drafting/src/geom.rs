@@ -24,8 +24,8 @@ pub fn clean(route: &[Pt]) -> Vec<Pt> {
     out
 }
 
-/// Whether a route the program lays or proposes is tidy (FT-2097): no point twice in a row, and no turn back along the
-/// line it came by.
+/// Whether a route the search finds is tidy (FT-2097): no point twice in a row, and no turn back along the line it came
+/// by.
 pub fn tidy(route: &[Pt]) -> bool {
     let twice = route.windows(2).any(|w| w[0] == w[1]);
     let back = route.windows(3).any(|w| {
