@@ -149,6 +149,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    released members: its link cascades and is load-tolerant, as the exchange kinds' link is. An older build keeps it in
    `extra`; a text that build leaves when it deletes the symbol is a text whose symbol is gone, which a newer build
    prints as a free text of no symbol (a symbol's binding empty) and never refuses, so no `min_reader` is raised.
+   An older build that copies a symbol with its texts keeps `of` in `extra` as well, still naming the original
+   symbol: in a newer build the pasted texts belong to the original, move with it and are deleted with it, and the
+   copy has none, which the person binds again (accepted: no file is refused and no text is lost until the original
+   goes).
    Applied again in 0.3.5 (doc 12 §5.4) to the optional member `ReportBlock.layout_page`, the layout page a legend list
    belongs to, appended after the released members: its link cascades and is load-tolerant for the same case. An
    older build keeps it in `extra` and may delete the layout page and leave the block; a newer build then opens the

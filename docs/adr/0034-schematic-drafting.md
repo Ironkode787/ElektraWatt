@@ -83,7 +83,7 @@
 13. **Guides while placing by hand.** A guide shows where a pin of the hanging part is in line with a pin it
     faces; within three quarters of a grid step (the ordinary snap is half a step), at most eight screen points
     further, the part takes that line. No place is computed for a part that is placed by hand.
-14. **One home.** A crate `ew-drafting` (GPL-3.0-or-later; `ew-ids` only, `ew-units` allowed) holds the model, the
+14. **One home.** A crate `ew-drafting` (GPL-3.0-or-later; `ew-units` and `ew-ids` only) holds the model, the
     measure, the text placer, the router, the placer and the guides. `ew_derive::routing` is deleted.
 15. **Kept from ADR-0033:** the two forms of the interruption point; connecting on a move.
 
@@ -211,6 +211,9 @@ The decision text above is unchanged; these entries refine it.
      (a renumber's cross-references) runs no wires layer again.
    - EW-CORE-070 still reports a wire through a text: the text is readable now, but a drawing where the wire keeps
      clear of it is still the better one, and Route still prefers it.
+4. **`ew-drafting` depends on `ew-ids` only** (2026-11-20, the dead build edges dropped). Decision 14 gave the crate
+   `ew-units` and `ew-ids`; it uses nothing of `ew-units`, so its manifest names `ew-ids` alone, and `ew-units` stays
+   allowed should the crate need it.
 
 ## Related
 
