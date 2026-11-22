@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use ew_dl::{Item, ShapedRun, Transform};
 use ew_schema::{Align, Overflow};
-use ew_text::{FaceSpan, FontSet, Shaped, TextStyle};
+use ew_text::{FaceSpan, FontSet, Shaped, TextStyle, VerticalMetrics};
 use ew_units::{Angle2, Nm, Pt2, Rect};
 
 use super::sheet::{PPB_ONE, SheetMap};
@@ -203,17 +203,60 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
             None => {}
         }
     }
-    let items = if fit_width && style.size < full {
-        // As QET draws a scaled text: in the box's height scaled by the same share about its middle.
+    // `fit_width` keeps its lines inside the box: where the face's own line pitch, and not the text, makes the block
+    // taller than the box (no more lines than the box was made for), the text is scaled down whole until the
+    // block's box lies inside it, and placed in the whole box.
+    // As QET draws a text it scaled to the width: in the box's height scaled by the same share about its middle.
+    let kept = |st: &TextStyle| {
         let h = i128::from(avail_h.0);
-        let kept = h * i128::from(style.size.0) / i128::from(full.0.max(1));
+        let kept = h * i128::from(st.size.0) / i128::from(full.0.max(1));
         let top = spec.rect.min().y + Nm(((h - kept) / 2) as i64);
         let rect = Rect::from_points(
             Pt2::new(spec.rect.min().x, top),
             Pt2::new(spec.rect.max().x, top + Nm(kept as i64)),
         );
-        let scaled = BoxSpec { rect, ..*spec };
-        place(fonts, &shaped, &style, &shown, &scaled, Pt2::ORIGIN, Angle2::ZERO)
+        BoxSpec { rect, ..*spec }
+    };
+    let lines = shaped.lines.len();
+    let mut height_fit = false;
+    if fit_width
+        && spec.valign != BASELINE
+        && (2..=spec.max_lines).contains(&lines)
+        && !block_inside(fonts, &shaped, &style, &kept(&style), spec.rect)
+    {
+        height_fit = true;
+        let m = fonts.vertical_metrics(&style);
+        let last = shaped.lines.last().map_or(Nm::ZERO, |l| l.baseline);
+        let tall = i128::from((m.ascent + last + m.descent).0.max(1));
+        let mut size = Nm((i128::from(style.size.0) * i128::from(avail_h.0) / tall) as i64).min(style.size);
+        // The block's box scales with the size; its middle alignment centres the cap height, so a step or two
+        // more may be needed. A box the text cannot fit at any drawable size draws nothing.
+        for _ in 0..64 {
+            if size <= Nm::ZERO {
+                return Laid {
+                    items: Vec::new(),
+                    shaped,
+                    overflow: Some(OverflowKind::ShrinkLimit),
+                };
+            }
+            style = style.with_size(size);
+            shaped = shape(text, &style, None);
+            if block_inside(fonts, &shaped, &style, spec, spec.rect) {
+                break;
+            }
+            size = Nm(size.0 - (size.0 / 200).max(1));
+        }
+    }
+    let items = if fit_width && style.size < full && !height_fit {
+        place(
+            fonts,
+            &shaped,
+            &style,
+            &shown,
+            &kept(&style),
+            Pt2::ORIGIN,
+            Angle2::ZERO,
+        )
     } else {
         place(fonts, &shaped, &style, &shown, spec, Pt2::ORIGIN, Angle2::ZERO)
     };
@@ -268,6 +311,31 @@ pub(crate) fn min_size(fonts: &FontSet, style: &TextStyle, min_cap: Nm, sheet: S
     Nm(((num + den - 1) / den) as i64)
 }
 
+/// The first line's baseline of a block whose last baseline is `last` below it, aligned vertically in `spec.rect`
+/// as [`place`] says.
+fn first_baseline(m: &VerticalMetrics, last: Nm, spec: &BoxSpec<'_>) -> Nm {
+    let r = spec.rect;
+    match spec.valign {
+        -1 => r.min().y + spec.padding + m.ascent,
+        1 => r.max().y - spec.padding - m.descent - last,
+        BASELINE => r.min().y + spec.padding,
+        _ => {
+            // Block from (baseline0 − cap) to (baseline0 + last), centred on the box's middle.
+            let c = Nm(r.min().y.0 + (r.max().y.0 - r.min().y.0).div_euclid(2));
+            Nm(c.0 + (m.cap_height.0 - last.0).div_euclid(2))
+        }
+    }
+}
+
+/// Whether the box of `shaped`'s lines, from the first line's ascent to the last line's descent, lies within `cell`
+/// across the height when placed by `spec`.
+fn block_inside(fonts: &FontSet, shaped: &Shaped, style: &TextStyle, spec: &BoxSpec<'_>, cell: Rect) -> bool {
+    let m = fonts.vertical_metrics(style);
+    let last = shaped.lines.last().map_or(Nm::ZERO, |l| l.baseline);
+    let baseline0 = first_baseline(&m, last, spec);
+    baseline0 - m.ascent >= cell.min().y && baseline0 + last + m.descent <= cell.max().y
+}
+
 /// Glyph-run items for `shaped` aligned in `spec.rect` (a zero-size rect aligns at a point), turned by
 /// `angle` about `pivot` (`Pt2::ORIGIN` and zero for cells).
 ///
@@ -289,16 +357,7 @@ pub(crate) fn place(
     let r = spec.rect;
     let last = shaped.lines.last().map_or(Nm::ZERO, |l| l.baseline);
     let mid = |a: Nm, b: Nm| Nm(a.0 + (b.0 - a.0).div_euclid(2));
-    let baseline0 = match spec.valign {
-        -1 => r.min().y + spec.padding + m.ascent,
-        1 => r.max().y - spec.padding - m.descent - last,
-        BASELINE => r.min().y + spec.padding,
-        _ => {
-            // Block from (baseline0 − cap) to (baseline0 + last), centred on the box's middle.
-            let c = mid(r.min().y, r.max().y);
-            Nm(c.0 + (m.cap_height.0 - last.0).div_euclid(2))
-        }
-    };
+    let baseline0 = first_baseline(&m, last, spec);
     let run = &shaped.run;
     shaped
         .lines

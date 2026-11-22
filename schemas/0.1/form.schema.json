@@ -733,7 +733,7 @@
         },
         {
           "const": "fit_width",
-          "description": "QElectroTech's `hadjust`: a text wider than the cell is scaled down whole until its widest line fits,\nwithout a floor; its height never makes it smaller and its lines are never wrapped (doc 09 §2.5).",
+          "description": "QElectroTech's `hadjust`: a text wider than the cell is scaled down whole until its widest line fits,\nwithout a floor; its lines are never wrapped, and its height makes it smaller only where the face's line\npitch, not the text, makes the lines the cell was made for taller than the cell (doc 09 §2.5).",
           "type": "string"
         }
       ]

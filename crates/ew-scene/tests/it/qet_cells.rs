@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A QElectroTech title block's cell as QElectroTech prints it (FT-1941, doc 14 §4.10): `fit_width` scales a text
-//! too wide for its cell whole, without a floor and never for its height; `ew.cell.pixel` lays its text out with every
-//! advance a whole pixel of QElectroTech's screen.
+//! too wide for its cell whole, without a floor, and for its height only where the face's line pitch, not the text,
+//! makes the lines the cell was made for taller than it; `ew.cell.pixel` lays its text out with every advance a whole
+//! pixel of QElectroTech's screen.
 
 use ew_dl::{ItemKind, ShapedRun};
 use ew_scene::forms::{FormFinding, PageBindings, lower_form};
@@ -80,16 +81,17 @@ fn fit_width_scales_a_text_too_wide_whole_to_the_width_without_a_floor() {
 }
 
 #[test]
-fn fit_width_never_shrinks_a_text_for_its_height_and_never_wraps() {
+fn fit_width_never_shrinks_a_text_for_more_lines_than_its_cell_holds_and_never_wraps() {
     let em = builtin().resolve("text.normal").unwrap();
-    // Four lines in a cell one line high, each line narrower than the cell: drawn at their size, not reported.
+    // Four lines in a cell made for one, each line narrower than the cell: the text's own height, drawn at its
+    // size as QET draws it, not reported.
     let text = "One\nTwo\nThree\nFour";
     let (runs, findings) = cell(
         40_000_000,
         3_000_000,
         "centre",
         json!("fit_width"),
-        json!({"ew.cell.max_lines": 4}),
+        json!({}),
         text,
     );
     assert!(findings.is_empty(), "{findings:?}");
@@ -107,6 +109,44 @@ fn fit_width_never_shrinks_a_text_for_its_height_and_never_wraps() {
     );
     assert_eq!(runs.len(), 2);
     assert!(runs.iter().all(|r| r.size == runs[0].size && r.size < em.size));
+}
+
+#[test]
+fn fit_width_keeps_the_lines_a_cell_was_made_for_inside_it_in_the_default_face() {
+    let em = builtin().resolve("text.normal").unwrap();
+    // Four short lines in a cell made for four, whose height holds them at a line pitch of about 1.15 em, as
+    // QElectroTech's face spaces them, and not at the default face's 1.36 em.
+    let text = "One\nTwo\nThree\nFour";
+    let h = i64::try_from(i128::from(em.size.0) * 1_250 * 4 / 1_000).unwrap();
+    for align in ["centre", "top_centre", "bottom_centre"] {
+        let (runs, findings) = cell(
+            40_000_000,
+            h,
+            align,
+            json!("fit_width"),
+            json!({"ew.cell.max_lines": 4}),
+            text,
+        );
+        assert!(findings.is_empty(), "{align}: {findings:?}");
+        assert_eq!(runs.len(), 4, "{align}");
+        // Scaled whole, every line alike, and the block's box (the first line's ascent to the last line's descent)
+        // inside the cell.
+        assert!(
+            runs.iter().all(|r| r.size == runs[0].size && r.size < em.size),
+            "{align}"
+        );
+        let top = runs
+            .iter()
+            .map(|r| r.origin.y.0 + r.layout_box.min().y.0)
+            .min()
+            .unwrap();
+        let bottom = runs
+            .iter()
+            .map(|r| r.origin.y.0 + r.layout_box.max().y.0)
+            .max()
+            .unwrap();
+        assert!(top >= 0 && bottom <= h, "{align}: {top}..{bottom} in 0..{h}");
+    }
 }
 
 #[test]

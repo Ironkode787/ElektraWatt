@@ -45,9 +45,11 @@
 //!   height (through the form's page-to-sheet scale) is `min_cap_height`, where it reports
 //!   [`OverflowKind::ShrinkLimit`]; `ellipsis` cuts characters from the end and appends "…" (reported as
 //!   [`OverflowKind::Truncated`]; wrapping is not combined with it); `error` draws the text unchanged and
-//!   reports it. `fit_width` (QElectroTech's `hadjust`) never wraps and asks only for the width: a text wider
+//!   reports it. `fit_width` (QElectroTech's `hadjust`) never wraps and asks for the width: a text wider
 //!   than the inset width is scaled down whole until its widest line fits, without a floor, and placed in the
-//!   cell's height scaled by the same share about its middle, as QElectroTech draws it.
+//!   cell's height scaled by the same share about its middle, as QElectroTech draws it. Its height counts only where
+//!   the face's line pitch, and not the text, makes the block taller than the cell: a block of 2 to `max_lines` lines
+//!   whose box crosses the cell's top or bottom is scaled down whole until it lies inside.
 //! - Characters without a glyph are reported ([`FormFinding::MissingGlyphs`], FR-OUT-027).
 //! - A text line is one display-list item: a glyph run, or, when the symbol fallback face draws part of it,
 //!   a group of runs, one per font (a link or entity goes on the item).
