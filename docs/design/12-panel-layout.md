@@ -622,7 +622,10 @@ A function's placement adds no ":" suffix, since functions carry no designation 
 
 ### 5.4 Legend and PART DATA
 
-`layout_legend(surface)` rows: position, DT, manufacturer, part number, description, quantity or length. Order:
+`layout_legend(surface)` rows: position, DT, manufacturer, part number, description, quantity or length. A
+quantity that is not a count of pieces prints with its unit ("0.47 m" for a rail; FT-1938, 0.3.5), since a legend,
+in a box or as a page, is made without a Unit column; a count prints bare, and the CSV and XLSX write the number
+beside the Unit column. Order:
 enclosure and plate first, carriers (rails, ducts, busbars) next, then placements by DT in natural order, then
 layout-only accessories. Positions are derived and renumber when rows are added; balloons and the legend read the
 same query, so they cannot disagree. Rows come from the same `RowSet` as XLSX and CSV (FR-REP-030). The embedded
@@ -631,7 +634,7 @@ PART DATA box of folio 902 is kept for fidelity with the reference and is bound 
 *As built.* The legend is the embedded report block
 `legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed (doc 20 §17.3), drawn as
 a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows; Golden A's
-30 print as 20 + 10); printed columns position, DT, quantity without its unit and part number at weights
+30 print as 20 + 10); printed columns position, DT, quantity and part number at weights
 10 : 22 : 16 : 35; the manufacturer, the description and the unit stay in the rows and the CSV, which `ew export
 report --block <its ID> --format csv` writes ([09](09-reports-forms-output.md) §2.2). PART DATA on 902 lists -UC1's
 part lines (NSYPLA1074G, NSYPMM107) and no carrier line: the source is the enclosure device of the surface the page's

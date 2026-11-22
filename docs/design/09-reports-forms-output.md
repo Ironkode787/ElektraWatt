@@ -157,7 +157,7 @@ replaces the kind's. `part_data` prints "PART DATA" with no header, the label an
 its source devices are the root ancestors of the devices drawn on the embedded page **and** the enclosure device of
 the surface the page's surface view shows; carrier lines (`LineSource::Carrier`) are left out, since the legend on
 the same page lists every carrier. `enclosure_legend` prints "LEGEND" in two flow columns, each with a header row:
-position, DT, quantity (without its unit) and part number at weights 10 : 22 : 16 : 35; the manufacturer, the
+position, DT, quantity (with its unit unless it counts pieces, "0.47 m") and part number at weights 10 : 22 : 16 : 35; the manufacturer, the
 description and the unit stay in the rows and the CSV. Golden A's legend is the block `legend-902` on 902 (doc 20
 §17.3's "Legend box"). An embedded block has no first folio, so `ew export report --block` names it by its ID
 (WP-S4.01 D18); the default block of a kind-specific export is never an embedded one. A block with its own printed

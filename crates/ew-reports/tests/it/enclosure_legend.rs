@@ -163,3 +163,21 @@ fn a_block_without_a_viewed_surface_has_no_rows() {
     );
     assert!(rows(&q, Some(0x9999)).rows.is_empty(), "a missing page");
 }
+
+/// The printed legend has no Unit column (FT-1938): a rail's length prints with its metre, a count of pieces bare;
+/// the CSV keeps the quantity a number beside its Unit column.
+#[test]
+fn a_length_prints_with_its_unit_and_stays_a_number_in_the_table() {
+    let m = model();
+    let q = Q::new(&m);
+    let set = rows(&q, Some(PANEL));
+    let qty = set.column("qty").expect("a qty column");
+    let printed = |row: usize| ew_reports::render::render(&q, &set.rows[row].cells[qty], &Default::default());
+    assert_eq!(printed(0), "1", "the enclosure: a count of pieces");
+    assert_eq!(printed(2), "0.5 m", "the rail: its length");
+    let table = ew_reports::table::Table::from_rowset(&q, &set, "legend", "enclosure_legend");
+    assert_eq!(
+        table.rows[2].cells[qty],
+        ew_reports::table::TableCell::Number("0.5".to_owned())
+    );
+}

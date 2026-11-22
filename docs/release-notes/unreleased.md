@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a layout's legend prints a length with its unit ("0.47 m" for a rail or a duct), in a box and as
+  a page; a count of pieces prints bare, and the CSV keeps the number beside its Unit column (doc 12 §5.4, FT-1938)
 - text-change: the guide's picture of a station's rack shows the station view as it is, To do under the cards and the
   channels' Function text column, and its text names that column (FT-2000)
 - text-change: the help of the Project's rows (the pointer resting on a row's name, and F1) says what the program

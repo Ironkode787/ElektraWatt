@@ -26,7 +26,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Lists and frames
 
-- FT-1938 `ew-reports`: The layout's legend prints the quantity of a part sold by length as a bare number ("0.47" for a rail or a duct), because its printed columns hold no unit: print the unit with the number there ("0.47 m"), as the parts list's Unit column says it.
 
 #### External points, earth and 0 V
 

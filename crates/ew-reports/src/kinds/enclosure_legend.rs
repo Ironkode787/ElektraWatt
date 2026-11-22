@@ -10,7 +10,7 @@ use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{
-    Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, Row, RowId, RowKey, RowSet,
+    Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet,
 };
 
 /// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page,
@@ -24,8 +24,8 @@ use crate::rowset::{
 /// A block on no page, or on a page without a surface view, has no rows.
 ///
 /// Printed: the title "LEGEND", two flow columns, each with a header
-/// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. The quantity prints without its unit,
-/// and the manufacturer, description and unit stay in the rows and the CSV.
+/// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. A quantity prints with its unit unless
+/// it counts pieces ("0.47 m", "1"); the manufacturer, description and unit stay in the rows and the CSV.
 #[derive(Clone, Copy, Debug)]
 pub struct EnclosureLegend;
 
@@ -90,7 +90,12 @@ impl ReportKindDef for EnclosureLegend {
             };
             // A carrier's quantity is its length, so its unit is the metre whatever the part's order unit.
             let unit = if carrier { OrderUnit::Metre } else { unit };
+            // The printed legend has no Unit column: a quantity that is not a count of pieces carries its unit
+            // ("0.47 m"); the CSV and XLSX write it as a number beside the Unit column (`table`).
             let qty = match row.qty {
+                Some(qty) if !matches!(unit, OrderUnit::Piece) => {
+                    Cell::Qty(qty, QtyUnit::Order(unit.clone()))
+                }
                 Some(qty) => qty_cell(qty),
                 None => Cell::Missing(MissingReason::Length),
             };

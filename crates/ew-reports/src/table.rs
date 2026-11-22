@@ -12,8 +12,9 @@
 //! a date serial) and the Excel presets can write a decimal comma.
 //!
 //! [`Table::from_rowset`] prints every cell as the folio does ([`crate::render::render`], neutral language), except a
-//! number, a quantity without a unit and a date, which take their neutral form: a quantity with a unit (`1.5 mm²`)
-//! stays text, as do a missing or stale value in a number column.
+//! number, a quantity without a physical unit and a date, which take their neutral form (an order unit, the legend's
+//! `0.47 m`, has a Unit column of its own): a quantity with a physical unit (`1.5 mm²`) stays text, as do a missing or
+//! stale value in a number column.
 
 use ew_derive::Q;
 
@@ -121,7 +122,7 @@ impl Table {
 fn table_cell(q: &Q, cell: &Cell, options: &RenderOptions) -> TableCell {
     match cell {
         Cell::Number(n) => TableCell::Number(n.to_string()),
-        Cell::Qty(v, QtyUnit::None) => TableCell::Number(decimal(*v, false)),
+        Cell::Qty(v, QtyUnit::None | QtyUnit::Order(_)) => TableCell::Number(decimal(*v, false)),
         Cell::Date(d) => TableCell::Date(d.to_string()),
         other => TableCell::Text(render(q, other, options)),
     }
