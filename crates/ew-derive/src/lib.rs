@@ -242,8 +242,8 @@ pub use wire_profile::{
     WireProfileNotes, WireProfiles, WireProfilesQ, current_table_basis,
 };
 pub use wire_props::{
-    ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf,
-    pick, wire_props_below_overrides,
+    ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap,
+    WirePropsOf, pick, wire_props_below_overrides,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 

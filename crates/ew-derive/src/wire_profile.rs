@@ -756,8 +756,10 @@ pub fn current_table_basis() -> &'static str {
 fn current_table() -> &'static CurrentTable {
     static TABLE: std::sync::OnceLock<CurrentTable> = std::sync::OnceLock::new();
     TABLE.get_or_init(|| {
-        toml::from_str(include_str!("../../../content/profiles/current/ew.current.iec60204-1-b2.toml"))
-            .unwrap_or_else(|e| unreachable!("the shipped current table reads: {e}"))
+        toml::from_str(include_str!(
+            "../../../content/profiles/current/ew.current.iec60204-1-b2.toml"
+        ))
+        .unwrap_or_else(|e| unreachable!("the shipped current table reads: {e}"))
     })
 }
 
@@ -782,9 +784,17 @@ mod tests {
     #[test]
     fn the_current_table_gives_the_least_cross_section_that_carries_a_rating() {
         let table = current_table();
-        assert!(table.rows.windows(2).all(|w| w[0].csa < w[1].csa && w[0].current < w[1].current));
+        assert!(
+            table
+                .rows
+                .windows(2)
+                .all(|w| w[0].csa < w[1].csa && w[0].current < w[1].current)
+        );
         let (first, last) = (&table.rows[0], &table.rows[table.rows.len() - 1]);
-        assert_eq!(csa_for_rating(first.current).map(|(_, c)| c), Some(Csa::Mm2(first.csa)));
+        assert_eq!(
+            csa_for_rating(first.current).map(|(_, c)| c),
+            Some(Csa::Mm2(first.csa))
+        );
         let second = &table.rows[1];
         assert_eq!(
             csa_for_rating(Dec3(first.current.0 + 1)).map(|(_, c)| c),

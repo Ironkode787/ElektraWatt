@@ -322,11 +322,13 @@ impl Query for EndClass {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, scope: &EndScope) -> Arc<Option<CircuitClass>> {
-        let classes = potentials_of_functions(q, scope_functions(q, scope)).into_iter().map(|p| {
-            q.get_value_part::<ProfileRowFor>(ProfileKey::of_potential(q, p))
-                .class
-                .clone()
-        });
+        let classes = potentials_of_functions(q, scope_functions(q, scope))
+            .into_iter()
+            .map(|p| {
+                q.get_value_part::<ProfileRowFor>(ProfileKey::of_potential(q, p))
+                    .class
+                    .clone()
+            });
         Arc::new(highest_ranked(classes))
     }
 }
@@ -526,7 +528,12 @@ impl Ctx<'_> {
     /// The rating a wire's size must carry (FT-2055): for a wire of its class, its potential's protecting device and
     /// rated current; for a PE wire, the highest rating at its two ends (the potentials of each end's function and
     /// [`EndRating`] of its device or strip), as the PE rule reads the class there. `None` without a rated device.
-    fn rating(&self, wire: &PhysicalWire, key: PotentialId, rule: SizeRule) -> Option<(Id<Device>, ew_units::Dec3)> {
+    fn rating(
+        &self,
+        wire: &PhysicalWire,
+        key: PotentialId,
+        rule: SizeRule,
+    ) -> Option<(Id<Device>, ew_units::Dec3)> {
         let q = self.q;
         match rule {
             SizeRule::Class => protection(q, key),
@@ -538,12 +545,16 @@ impl Ctx<'_> {
                     let own = potentials_of_functions(q, [e.cp.function])
                         .into_iter()
                         .filter_map(|p| protection(q, p).map(|(d, c)| (c, d)));
-                    let scope = q.functions().get(e.cp.function).and_then(|f| f.device).and_then(|d| {
-                        q.devices().get(d).map(|dev| match &dev.aspects.terminal {
-                            Some(t) => EndScope::Strip(t.strip),
-                            None => EndScope::Device(d),
-                        })
-                    });
+                    let scope = q
+                        .functions()
+                        .get(e.cp.function)
+                        .and_then(|f| f.device)
+                        .and_then(|d| {
+                            q.devices().get(d).map(|dev| match &dev.aspects.terminal {
+                                Some(t) => EndScope::Strip(t.strip),
+                                None => EndScope::Device(d),
+                            })
+                        });
                     own.chain(scope.and_then(|s| *q.get_value_part::<EndRating>(s)))
                         .collect::<Vec<_>>()
                 })

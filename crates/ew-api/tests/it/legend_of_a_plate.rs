@@ -71,7 +71,10 @@ fn a_legend_follows_the_first_layout_page_of_its_plate() {
     assert!(at(PageRef::Drawn(Id::from_uuid(page))) < at(PageRef::Drawn(layout)));
     let title = q.get::<ew_derive::PageTitle>(PageRef::Generated { block, index: 0 });
     let english = title.text_for(&"en-GB".parse().unwrap()).unwrap_or_default();
-    assert!(english.ends_with(" 901"), "the title names the page it follows: {english}");
+    assert!(
+        english.ends_with(" 901"),
+        "the title names the page it follows: {english}"
+    );
     drop(q);
     // Both pages of the plate name the one legend, and neither is given a second.
     for p in [page, layout.as_uuid()] {

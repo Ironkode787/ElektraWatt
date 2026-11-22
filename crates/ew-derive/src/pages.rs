@@ -170,10 +170,7 @@ impl Query for PageRefStructure {
             PageRef::Divider(s) => q.get::<SectionStructure>(s),
             PageRef::Generated { block, .. } => {
                 let b = q.report_blocks().get(block).cloned();
-                match b
-                    .as_ref()
-                    .and_then(|b| crate::layout::legend_layout_page(q, b))
-                {
+                match b.as_ref().and_then(|b| crate::layout::legend_layout_page(q, b)) {
                     Some(layout) => q.get::<crate::structure::PageDisplayStructure>(layout),
                     None => match b.and_then(|b| b.section) {
                         Some(s) => q.get::<SectionStructure>(s),

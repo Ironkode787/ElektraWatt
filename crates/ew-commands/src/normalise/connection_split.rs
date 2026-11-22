@@ -119,13 +119,18 @@ fn from_end_beyond_b(tx: &TxBuilder<'_>, connection: Id<Connection>) -> bool {
     };
     // Whether an end of W meets the wire's side toward `ends[i]`: that end itself or a constituent on that side.
     let meets = |e: &Endpoint, i: usize| {
-        let side = if i == 0 { &wire.constituents[..k] } else { &wire.constituents[k + 1..] };
+        let side = if i == 0 {
+            &wire.constituents[..k]
+        } else {
+            &wire.constituents[k + 1..]
+        };
         let end = EndpointKey::Cp(wire.ends[i].cp.function, wire.ends[i].cp.idx);
         EndpointKey::of(e).is_some_and(|key| {
             key == end
-                || side.iter().filter_map(|c| q.connections().get(*c)).any(|c| {
-                    EndpointKey::of(&c.a) == Some(key) || EndpointKey::of(&c.b) == Some(key)
-                })
+                || side
+                    .iter()
+                    .filter_map(|c| q.connections().get(*c))
+                    .any(|c| EndpointKey::of(&c.a) == Some(key) || EndpointKey::of(&c.b) == Some(key))
         })
     };
     let a_toward_first = if meets(&w.a, 0) || meets(&w.b, 1) {

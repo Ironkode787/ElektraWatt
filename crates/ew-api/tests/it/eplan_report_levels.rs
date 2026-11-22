@@ -46,7 +46,9 @@ fn a_connection_list_lands_each_end_on_the_level_its_column_names() {
     let q = session.query();
     // Each connection's end at -X1:5 is a connection point of the level its row names.
     let level_of = |e: &Endpoint| {
-        let Endpoint::Cp(f, idx) = e else { panic!("a CP: {e:?}") };
+        let Endpoint::Cp(f, idx) = e else {
+            panic!("a CP: {e:?}")
+        };
         q.get::<FunctionCps>(*f)
             .iter()
             .find(|c| c.idx == *idx)

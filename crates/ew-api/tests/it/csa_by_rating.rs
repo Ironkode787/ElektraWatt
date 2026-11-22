@@ -7,8 +7,8 @@
 
 use crate::common;
 
-use ew_derive::{ConnWireProps, PropSource, SizeRule};
 use ew_derive::ew_ids::Id;
+use ew_derive::{ConnWireProps, PropSource, SizeRule};
 use ew_schema::{Connection, Csa};
 use ew_units::Dec3;
 use serde_json::json;
@@ -41,7 +41,11 @@ fn a_wire_behind_a_breaker_takes_the_size_that_carries_its_rating() {
     assert!(!wires.is_empty(), "the wires behind the sample's breakers");
     for (_, csa, current) in &wires {
         assert_eq!(*current, Dec3(16_000), "the sample's breakers are C16");
-        assert_eq!(*csa, Csa::Mm2(Dec3(2_500)), "the least size the table gives for 16 A");
+        assert_eq!(
+            *csa,
+            Csa::Mm2(Dec3(2_500)),
+            "the least size the table gives for 16 A"
+        );
     }
     // The person's own cross-section wins over the proposal.
     let (wire, _, _) = wires[0];
@@ -52,7 +56,10 @@ fn a_wire_behind_a_breaker_takes_the_size_that_carries_its_rating() {
     );
     let q = s.query();
     let props = q.get::<ConnWireProps>(wire);
-    let (_, own) = props.iter().find(|(w, _)| *w == wire).expect("the wire's properties");
+    let (_, own) = props
+        .iter()
+        .find(|(w, _)| *w == wire)
+        .expect("the wire's properties");
     let csa = own.csa.as_ref().expect("a cross-section");
     assert_eq!(csa.value, Csa::Mm2(Dec3(1_500)));
     assert!(matches!(csa.source, PropSource::Override(_)), "{:?}", csa.source);

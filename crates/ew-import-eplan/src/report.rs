@@ -654,35 +654,37 @@ pub fn read_report(
                 let own: BTreeMap<_, Vec<(u16, Option<u8>)>> = used
                     .iter()
                     .filter_map(|d| match d {
-                        LibDocument::Fndef(c) => {
-                            Some((c.id, c.item.cps.as_slice().iter().map(|p| (p.idx, p.level)).collect()))
-                        }
+                        LibDocument::Fndef(c) => Some((
+                            c.id,
+                            c.item.cps.as_slice().iter().map(|p| (p.idx, p.level)).collect(),
+                        )),
                         _ => None,
                     })
                     .collect();
-                let end = |records: &[Record], text: &str, level: u8, side: u16| -> Option<(Id<Function>, u16)> {
-                    let key = key_of(text)?;
-                    let f = answers.get(&key).copied()?;
-                    if level == 1 {
-                        return Some((f, side));
-                    }
-                    let tkey = format!("eplan:terminal:{}:{}", key.0, key.1);
-                    let terminal = records.iter().find_map(|r| match r {
-                        Record::Device(d) if d.source_ref.as_ref().is_some_and(|x| x.key == tkey) => {
-                            d.aspects.terminal.as_ref()
+                let end =
+                    |records: &[Record], text: &str, level: u8, side: u16| -> Option<(Id<Function>, u16)> {
+                        let key = key_of(text)?;
+                        let f = answers.get(&key).copied()?;
+                        if level == 1 {
+                            return Some((f, side));
                         }
-                        _ => None,
-                    })?;
-                    let def = records.iter().find_map(|r| match r {
-                        Record::Function(x) if x.id == f => Some(x.def),
-                        _ => None,
-                    })?;
-                    terminal
-                        .level_copies(own.get(&def)?)
-                        .into_iter()
-                        .find(|(_, of, l)| *of == side && *l == level)
-                        .map(|(idx, _, _)| (f, idx))
-                };
+                        let tkey = format!("eplan:terminal:{}:{}", key.0, key.1);
+                        let terminal = records.iter().find_map(|r| match r {
+                            Record::Device(d) if d.source_ref.as_ref().is_some_and(|x| x.key == tkey) => {
+                                d.aspects.terminal.as_ref()
+                            }
+                            _ => None,
+                        })?;
+                        let def = records.iter().find_map(|r| match r {
+                            Record::Function(x) if x.id == f => Some(x.def),
+                            _ => None,
+                        })?;
+                        terminal
+                            .level_copies(own.get(&def)?)
+                            .into_iter()
+                            .find(|(_, of, l)| *of == side && *l == level)
+                            .map(|(idx, _, _)| (f, idx))
+                    };
                 let mut pairs = 0u32;
                 for ((n, row), [from_level, to_level]) in table.rows.iter().enumerate().zip(levels) {
                     let line = n + 2;
@@ -717,7 +719,11 @@ pub fn read_report(
                     }
                     // The key names a level other than 1, so a connection of level 1 keeps the key it had.
                     let at = |text: &str, level: u8| {
-                        if level == 1 { text.to_owned() } else { format!("{text}/{level}") }
+                        if level == 1 {
+                            text.to_owned()
+                        } else {
+                            format!("{text}/{level}")
+                        }
                     };
                     let ckey = format!("eplan:connection:{}>{}", at(from, from_level), at(to, to_level));
                     if records.iter().any(|r| matches!(r, Record::Connection(c) if c.source_ref.as_ref().is_some_and(|s| s.key == ckey))) {

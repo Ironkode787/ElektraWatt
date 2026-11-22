@@ -387,7 +387,11 @@ fn a_member_the_reader_takes_as_null_the_schema_takes_as_null() {
             nulled[member.as_str()] = Value::Null;
             if serde_json::from_value::<ew_schema::Record>(nulled.clone()).is_ok() {
                 let errors = validator.errors(&schema, &nulled);
-                assert!(errors.is_empty(), "the reader takes {member} = null, the schema not: {}", errors.join("\n"));
+                assert!(
+                    errors.is_empty(),
+                    "the reader takes {member} = null, the schema not: {}",
+                    errors.join("\n")
+                );
             }
         }
     }

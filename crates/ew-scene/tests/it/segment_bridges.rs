@@ -88,7 +88,12 @@ fn a_strip_segment_draws_the_bus_of_its_bridge() {
     // Half way between a terminal's centre (half way between its two sides) and its side-1 point.
     let points = cp_points(&v);
     let at = |n: u128, idx: u16| points[&(function(n).as_uuid(), idx)];
-    let half = |a: Pt2, b: Pt2| Pt2::new(Nm(a.x.0 + (b.x.0 - a.x.0).div_euclid(2)), Nm(a.y.0 + (b.y.0 - a.y.0).div_euclid(2)));
+    let half = |a: Pt2, b: Pt2| {
+        Pt2::new(
+            Nm(a.x.0 + (b.x.0 - a.x.0).div_euclid(2)),
+            Nm(a.y.0 + (b.y.0 - a.y.0).div_euclid(2)),
+        )
+    };
     let mid = |n: u128| half(half(at(n, 0), at(n, 1)), at(n, 0));
     let (lines, dots) = drawn(&v);
     assert_eq!(lines, [(mid(1), mid(4))]);

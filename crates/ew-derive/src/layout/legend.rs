@@ -79,9 +79,12 @@ pub fn legend_layout_page(q: &Q, block: &ReportBlock) -> Option<Id<Page>> {
         return Some(named);
     };
     let order = q.get::<crate::DrawnPageOrder>(());
-    surface_pages(q, surface)
-        .into_iter()
-        .min_by_key(|p| (order.position(crate::PageRef::Drawn(*p)).unwrap_or(usize::MAX), *p))
+    surface_pages(q, surface).into_iter().min_by_key(|p| {
+        (
+            order.position(crate::PageRef::Drawn(*p)).unwrap_or(usize::MAX),
+            *p,
+        )
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------
