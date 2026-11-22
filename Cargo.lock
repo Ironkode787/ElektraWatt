@@ -1655,6 +1655,7 @@ dependencies = [
  "ew-format",
  "ew-hack",
  "ew-ids",
+ "ew-mltext",
  "ew-schema",
  "ew-testdir",
  "rusqlite",

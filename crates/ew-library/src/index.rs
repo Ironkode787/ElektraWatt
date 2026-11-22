@@ -30,8 +30,9 @@ use crate::tiers::Tier;
 /// The index file's name in the cache directory; the version in the name lets a newer build start fresh.
 pub const INDEX_FILE: &str = "library-index-v1.sqlite";
 
-/// The schema version (`PRAGMA user_version`).
-const SCHEMA_VERSION: i64 = 1;
+/// The schema version (`PRAGMA user_version`); 2: a part's `descr` holds its description's JSON, its languages
+/// apart, the full-text table every language (FT-2066).
+const SCHEMA_VERSION: i64 = 2;
 
 const SCHEMA: &str = "
 CREATE TABLE library(lib TEXT PRIMARY KEY, generation INTEGER NOT NULL, path TEXT NOT NULL);
@@ -476,7 +477,7 @@ impl Index {
                     tier,
                     part_number: raw.pn,
                     manufacturer: raw.mfr_name,
-                    description: raw.descr,
+                    description: serde_json::from_str(&raw.descr).unwrap_or_default(),
                     kind,
                     status,
                     compatible: raw.compatible,
@@ -941,7 +942,10 @@ fn insert_part(
     });
     let pn = part.part_number.as_str().to_owned();
     let type_designation = part.type_designation.as_ref().map(|t| t.as_str().to_owned());
-    let descr = texts(&serde_json::to_value(&part.description).map_err(|x| x.to_string())?);
+    let description = serde_json::to_value(&part.description).map_err(|x| x.to_string())?;
+    // The part's row keeps the languages apart, which a reader picks from; the full text searches every one.
+    let descr = texts(&description);
+    let descr_json = description.to_string();
     let category = part
         .category
         .as_ref()
@@ -975,7 +979,7 @@ fn insert_part(
             category,
             json_text(&part.meta.status),
             part.meta.licence,
-            descr
+            descr_json
         ],
     )
     .map_err(|x| x.to_string())?;

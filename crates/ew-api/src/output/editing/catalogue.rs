@@ -723,7 +723,12 @@ fn catalogue_part(
         library,
         library_name: String::new(),
         part_number: part.part_number.as_str().to_owned(),
-        description: crate::output::properties::neutral_or_first(&part.description),
+        // In the project's language, else English, else the first, as the lists print a text (FT-2066).
+        description: ew_derive::text_in(
+            &part.description,
+            q.project().languages.as_ref().map(|l| &l.source),
+        )
+        .to_owned(),
         manufacturer: String::new(),
         rating: rating_text(part),
         functions,

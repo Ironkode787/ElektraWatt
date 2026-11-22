@@ -147,6 +147,9 @@ pub struct PartOfferQuery {
     /// What the text names a part as being for: contact kinds' words (`no`); a part whose main function's FnDef has
     /// one is found by it.
     pub purpose_kinds: Vec<String>,
+    /// The reader's language (`nl-NL`): a part's description shows in it, else in English, else in its first
+    /// language ([`ew_derive::text_in`], FT-2066); the text is searched in every language.
+    pub lang: Option<String>,
 }
 
 /// One row of the dialog's list.
@@ -158,7 +161,7 @@ pub struct PartOffer {
     pub part_number: String,
     /// The manufacturer's name.
     pub manufacturer: String,
-    /// The description (the neutral text, else the first language).
+    /// The description in the query's language ([`PartOfferQuery::lang`]).
     pub description: String,
     /// The part kind's word (`device`, `terminal`, `end_bracket`).
     pub kind: String,
@@ -420,6 +423,7 @@ impl Session {
         let query = self.query();
         let project = query.project().id.as_uuid();
         let compat = q.function.and_then(|f| self.function_compat(&query, f));
+        let lang: Option<ew_derive::ew_mltext::LangTag> = q.lang.as_deref().and_then(|l| l.parse().ok());
         let libs = self.libraries().libraries();
         let lib_of = |id: Uuid| {
             libs.iter()
@@ -445,7 +449,7 @@ impl Session {
                 continue;
             }
             let manufacturer = ew_derive::manufacturer_name(&query, &p.manufacturer);
-            let description = text_of(&p.description);
+            let description = ew_derive::text_in(&p.description, lang.as_ref()).to_owned();
             let purpose = self.held_purpose(&query, p, q);
             let Some(rank) = held_rank(text, p, &manufacturer, purpose) else {
                 continue;
@@ -535,7 +539,7 @@ impl Session {
                     },
                     part_number: h.part_number.clone(),
                     manufacturer: h.manufacturer.clone(),
-                    description: h.description.clone(),
+                    description: ew_derive::text_in(&h.description, lang.as_ref()).to_owned(),
                     kind: kind_word(&h.kind),
                     fit,
                     held: false,

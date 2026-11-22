@@ -88,8 +88,8 @@ pub struct PartHit {
     pub part_number: String,
     /// The manufacturer's name (the manufacturer record's, else the part reference's `key`).
     pub manufacturer: String,
-    /// The description in every language, joined by " / ".
-    pub description: String,
+    /// The description in its languages; a reader shows one (`ew_derive::text_in`), FT-2066.
+    pub description: ew_mltext::MlText,
     /// The part kind.
     pub kind: PartKind,
     /// The item status; a deprecated part names its successor (FR-PRT-034).

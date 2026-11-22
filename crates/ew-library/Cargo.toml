@@ -20,6 +20,8 @@ ew-schema = { path = "../ew-schema" }
 ew-format = { path = "../ew-format" }
 # The copy IDs `v5(NS_LIBCOPY, library ‖ item)` and new library IDs (ADR-0004: ew-ids owns the formulas).
 ew-ids = { path = "../ew-ids" }
+# A part hit's description in its languages (FT-2066).
+ew-mltext = { path = "../ew-mltext" }
 # ARCH §3 rule 2: the derived per-user search index (FTS5 with the trigram tokenizer, doc 07 §4.3). The same pin as
 # ew-sqlview; `bundled` compiles the vendored SQLite with FTS5.
 rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }

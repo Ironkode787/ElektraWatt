@@ -431,6 +431,10 @@ change here.
 - behaviour-change: the device box's pin list keeps its rows while the same pins are edited, so a pin given another
   edge stays where it was in the list until another selection sorts the list by the box again; it jumped to the new
   edge's rows (doc 07 §2.5, FT-2005)
+- behaviour-change: the part chooser shows a library part's description in one language, the window's, else English,
+  else its first ("Installatieautomaat, 1-polig" in a Dutch window), and still finds it by its words in every
+  language; it joined every language with " / ". The device browser and Properties' list of library parts show it in
+  the project's language by the same order (doc 07 §4.3, FT-2066)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

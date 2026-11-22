@@ -35,6 +35,8 @@ impl<'q> SheetCx<'q> {
 
     /// The context with the libraries' parts that `q` does not hold among the part copies.
     pub(super) fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
+        // A part's description in the sheet's language, else English, else the first (FT-2066).
+        let lang = self.q.project().languages.as_ref().map(|l| l.source.clone());
         self.library = session
             .library_parts()
             .into_iter()
@@ -47,7 +49,7 @@ impl<'q> SheetCx<'q> {
                     .ok()
                     .and_then(|v| v.as_str().map(str::to_owned))
                     .unwrap_or_default(),
-                description: neutral_or_first(&c.item.description),
+                description: ew_derive::text_in(&c.item.description, lang.as_ref()).to_owned(),
             })
             .collect();
         self

@@ -141,6 +141,15 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                     }
                 };
                 for h in hits {
+                    // The description in every language, joined by " / ", as the result names it.
+                    let description = h.description.as_neutral().map_or_else(
+                        || {
+                            let texts: Vec<&str> =
+                                h.description.languages().filter_map(|l| h.description.get(l)).collect();
+                            texts.join(" / ")
+                        },
+                        str::to_owned,
+                    );
                     rows.push((
                         results::LibHit::Part(results::PartHitRow {
                             kind: "part".to_owned(),
@@ -151,7 +160,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                             tier: h.tier.name().to_owned(),
                             part_number: h.part_number.clone(),
                             manufacturer: h.manufacturer.clone(),
-                            description: h.description.clone(),
+                            description: description.clone(),
                             part_kind: json_text(serde_json::to_value(&h.kind)),
                             status: serde_json::to_value(&h.status).unwrap_or_default(),
                             rank_tier: h.rank_tier,
@@ -160,7 +169,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                             "part\t{}\t{}\t{}\t{}\t{}/{}@{}",
                             h.part_number,
                             h.manufacturer,
-                            h.description,
+                            description,
                             json_text(serde_json::to_value(&h.status)),
                             key_of(&h.library),
                             h.item,

@@ -1067,7 +1067,9 @@ Inside a tier, favourites and parts "used in this project" come first. Ties brea
 contactor first (its description names an auxiliary contact). The dialog searches what a part already carries; no
 part gets new data and no list of synonyms is kept.
 - *Its words:* the part number (tiers 1 to 3), and the type, the manufacturer, the description in every language and
-  the keywords (tier 4; a held copy's description in every language too).
+  the keywords (tier 4; a held copy's description in every language too). A row shows the description in one
+  language, the window's, else English, else the first (`ew_derive::text_in`, FT-2066), never every language joined;
+  the device browser and Properties' list of library parts show it in the project's language by the same order.
 - *What it is for:* the window reads from the text the function categories and contact kinds it names. A category is
   named when every typed word starts one of its words, or (from four letters) stands inside one, its words being its
   `function-category-<key>` text in English and Dutch and its key split at its capitals ("sensor" names Position

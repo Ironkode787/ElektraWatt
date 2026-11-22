@@ -2508,7 +2508,7 @@ fn the_door_lamps_are_found_by_colour() {
             ..PartQuery::default()
         })
         .into_iter()
-        .map(|h| h.description)
+        .map(|h| ew_derive::text_in(&h.description, None).to_owned())
         .collect();
     for colour in ["red", "green", "yellow"] {
         assert!(found.iter().any(|d| d.contains(colour)), "{colour}: {found:?}");

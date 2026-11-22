@@ -17,7 +17,7 @@ fn a_search_for_a_proximity_sensor_finds_the_three_wire_sensor() {
     });
     let hit = hits
         .iter()
-        .find(|h| h.description.contains("PNP"))
+        .find(|h| ew_derive::text_in(&h.description, None).contains("PNP"))
         .unwrap_or_else(|| {
             panic!(
                 "no PNP sensor among {:?}",

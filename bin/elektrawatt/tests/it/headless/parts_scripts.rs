@@ -168,7 +168,7 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     );
     assert!(
         d.contains(
-            "\"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral / Installatieautomaat, 1-polig met nul\" library \"ElektraWatt starter parts\" compatible same-category"
+            "\"EW-GEN-MCB-2\" \"Generic\" \"Miniature circuit breaker, 1 pole and neutral\" library \"ElektraWatt starter parts\" compatible same-category"
         ),
         "{d}"
     );

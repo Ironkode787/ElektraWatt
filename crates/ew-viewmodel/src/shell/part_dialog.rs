@@ -553,6 +553,8 @@ impl ShellModel {
             c.query.favourites = favourites;
             c.query.recent = recent;
             (c.query.purpose_categories, c.query.purpose_kinds) = purposes(&c.query.text);
+            // A part's description in the window's language, else English, else its first (FT-2066).
+            c.query.lang = Some(strings::rule_language().to_owned());
             c.offers = project.session.part_offers(&c.query);
             // A layout kind is offered to a device only where panel layout
             // attaches it (`chooser_layout_kinds`: an end bracket to a strip, an enclosure or a plate to a device
@@ -908,6 +910,7 @@ impl ShellModel {
             let held = project.session.part_offers(&PartOfferQuery {
                 view: OfferView::Project,
                 include_inactive: true,
+                lang: Some(strings::rule_language().to_owned()),
                 ..PartOfferQuery::default()
             });
             let hits: Vec<Uuid> = held

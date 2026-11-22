@@ -118,7 +118,7 @@ fn fixture_docs(lib: Uuid) -> Vec<LibDocument> {
 }
 
 /// A temporary user tier holding the fixture catalogue.
-fn fixture(name: &str) -> (Dir, LibraryTiers, Uuid) {
+pub(crate) fn fixture(name: &str) -> (Dir, LibraryTiers, Uuid) {
     let root = Dir(ew_testdir::fresh_dir(name));
     let t = tiers(&root.0);
     let mut reg = Registry::open(&t).unwrap();
@@ -142,7 +142,7 @@ fn options(libraries: Option<LibraryTiers>) -> SessionOptions {
 }
 
 /// The sample with the libraries of `tiers`.
-fn sample(tiers: Option<LibraryTiers>) -> Session {
+pub(crate) fn sample(tiers: Option<LibraryTiers>) -> Session {
     let (project, records, lib) = crate::common::sample_records();
     Session::from_records(project, records, lib, options(tiers)).unwrap()
 }
