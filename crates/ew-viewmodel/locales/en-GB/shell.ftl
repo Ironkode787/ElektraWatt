@@ -862,6 +862,11 @@ toast-export-dxf = Exported the DXF set to { $p0 }: { $p1 }, { $p2 } KiB.
 toast-export-dxf-again = Exported the DXF set to { $p0 } again: { $p1 }, { $p2 } KiB.
 marker-export-dxf = Exported DXF to { $p0 }
 reason-export-dxf-folder = The folder holds files that no earlier DXF export wrote there; choose an empty folder or one an earlier DXF export wrote
+confirm-export-dxf-replace-title = Replace the DXF set in { $p0 }?
+confirm-export-dxf-replace-text = The { $p0 } files of the earlier DXF export go, with every change made to them since; undo does not bring them back.
+confirm-export-dxf-replace-text-one = The 1 file of the earlier DXF export goes, with every change made to it since; undo does not bring it back.
+dialog-replace = Replace
+error-export-dxf-confirm = The folder holds an earlier DXF set, which the export replaces and undo does not bring back: the step needs "confirm": true.
 
 # WP-S3.07 part 3 (D10, ruling 4 of ID-1180): the print pre-dialog.
 action-file-print = Print…

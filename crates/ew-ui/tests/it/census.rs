@@ -278,6 +278,7 @@ enum DialogKind {
     PartChoose,
     PartEdit,
     ConfirmRemovePart,
+    ConfirmReplaceDxf,
     Print,
     ExternalChange,
     ConfirmUpgrade,
@@ -313,7 +314,8 @@ impl DialogKind {
             Self::ConfirmPurge => Self::PartChoose,
             Self::PartChoose => Self::PartEdit,
             Self::PartEdit => Self::ConfirmRemovePart,
-            Self::ConfirmRemovePart => Self::Print,
+            Self::ConfirmRemovePart => Self::ConfirmReplaceDxf,
+            Self::ConfirmReplaceDxf => Self::Print,
             Self::Print => Self::ExternalChange,
             Self::ExternalChange => Self::ConfirmUpgrade,
             Self::ConfirmUpgrade => Self::OpenEwz,
@@ -354,6 +356,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::PartChoose(_) => DialogKind::PartChoose,
         Dialog::PartEdit(_) => DialogKind::PartEdit,
         Dialog::ConfirmRemovePart { .. } => DialogKind::ConfirmRemovePart,
+        Dialog::ConfirmReplaceDxf { .. } => DialogKind::ConfirmReplaceDxf,
         Dialog::Print(_) => DialogKind::Print,
         Dialog::ExternalChange { .. } => DialogKind::ExternalChange,
         Dialog::ConfirmUpgrade { .. } => DialogKind::ConfirmUpgrade,
@@ -504,6 +507,14 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             if kind == DialogKind::ConfirmJournalDiscard {
                 dispatch(&mut h, "file.discard_journal", json!({}));
             }
+            h
+        }
+        // Export DXF… again into the folder of the first: the window asks before the earlier set goes.
+        DialogKind::ConfirmReplaceDxf => {
+            let set = json!({"dir": tmp.0.join("dxf-set").to_string_lossy()});
+            let mut h = simple("file.export_dxf", set.clone());
+            support::finish_jobs(&mut h);
+            dispatch(&mut h, "file.export_dxf", set);
             h
         }
         DialogKind::ConfirmPurge => {

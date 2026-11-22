@@ -929,6 +929,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
             Some(topic) => topic,
         },
         Dialog::ConfirmPurge { .. } => "dialog-purge",
+        // Replacing an earlier DXF set: the export's own section.
+        Dialog::ConfirmReplaceDxf { .. } => action_topic("file.export_dxf").unwrap_or("dialog-form"),
         Dialog::PartChoose(_) => "dialog-part-choose",
         // New cable type… makes a cable part: the cables' section.
         Dialog::PartEdit(e) if e.cable_type => Thing::Cable.topic(),
@@ -1269,6 +1271,11 @@ mod tests {
             Dialog::ConfirmRemovePart {
                 part: text(),
                 number: text(),
+            },
+            Dialog::ConfirmReplaceDxf {
+                dir: text(),
+                folder: text(),
+                files: 2,
             },
             Dialog::ExternalChange { rows: Vec::new() },
             Dialog::ConfirmUpgrade { from: text() },

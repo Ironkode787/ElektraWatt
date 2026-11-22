@@ -129,8 +129,9 @@ change here.
   contact" ranks the parts whose main function is one before the contactor), and it chooses no row until the person
   does, so Enter no longer takes a first row nobody looked at (doc 07 §4.3, FT-1845)
 - api-add: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
-  of `ew export dxf` into a folder as a job; a folder no earlier DXF export wrote is refused and left as it was (doc
-  09 §4.9, FT-1960)
+  of `ew export dxf` into a folder as a job; a folder no earlier DXF export wrote is refused and left as it was, and
+  one that holds an earlier set is replaced only after the window asks, naming the folder and the files that go (a
+  script gives `"confirm": true`) (doc 09 §4.9, FT-1960)
 - behaviour-change: a text in many languages that lacks the project's language, or in a project that names none,
   prints in English before falling back to its first language in tag order (an element brought in from QElectroTech
   named in `ar`, `cs`, `de`, `en` … no longer prints, or names its DXF block, in Arabic) (doc 09 §4.7)

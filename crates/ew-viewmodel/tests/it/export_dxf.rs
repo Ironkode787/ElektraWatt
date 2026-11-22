@@ -3,7 +3,8 @@
 
 //! Output ▸ Export DXF… (`file.export_dxf`, doc 09 §4.9, FT-1960): the DXF set of the open project as a job, written
 //! into a folder as a whole, one file per page of the page order and the pictures they name, the toast saying so in
-//! words; a folder that holds other files is refused before the job starts and left as it was.
+//! words; a folder that holds other files is refused before the job starts and left as it was, and an earlier set is
+//! replaced only when the step is confirmed.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -11,6 +12,7 @@ use std::path::Path;
 use crate::common::{Tmp, done, refused};
 use ew_api::library::file::FILE_SET_MARK;
 use ew_api::output::PageSelection;
+use ew_viewmodel::shell::Outcome;
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -57,8 +59,21 @@ fn the_dxf_set_goes_into_its_folder_and_a_folder_of_other_files_is_refused() {
             .contains("item file.export_dxf \"Export DXF…\" enabled"),
         "in the Output menu beside Export PDF"
     );
-    // Again into the same folder: the set replaces itself, and the toast says "again".
-    done(&mut s, "file.export_dxf", json!({"dir": path_text(&dir)}));
+    // Again into the same folder: a script must confirm, as the window asks, and nothing goes before it does.
+    let page = dir.join(order.iter().find(|n| n.ends_with(".dxf")).expect("a page file"));
+    std::fs::write(&page, b"edited in a CAD program").unwrap();
+    let Outcome::Failed { message } = s.dispatch("file.export_dxf", &json!({"dir": path_text(&dir)})) else {
+        panic!("an earlier set is replaced only when confirmed");
+    };
+    assert_eq!(
+        message,
+        "The folder holds an earlier DXF set, which the export replaces and undo does not bring back: the step needs \
+         \"confirm\": true."
+    );
+    assert_eq!(std::fs::read(&page).unwrap(), b"edited in a CAD program");
+    // Confirmed: the set replaces itself, and the toast says "again".
+    done(&mut s, "file.export_dxf", json!({"dir": path_text(&dir), "confirm": true}));
+    assert_ne!(std::fs::read(&page).unwrap(), b"edited in a CAD program");
     assert_eq!(names(&dir), order);
     assert!(s.toast().expect("a toast").text.contains(" again: "));
 

@@ -688,18 +688,19 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `file.export_dxf {dir?, wait?}` (Output ▸ Export DXF…, doc 09 §4.9): the DXF set as a job writing every page
-    /// and the pictures they name into the folder `dir` as a whole. A folder that holds other files is refused before
-    /// the job starts, so no file of the user's is ever removed.
+    /// `file.export_dxf {dir?, confirm?, wait?}` (Output ▸ Export DXF…, doc 09 §4.9): the DXF set as a job writing
+    /// every page and the pictures they name into the folder `dir` as a whole. A folder that holds files no earlier
+    /// DXF export wrote is refused before the job starts, so no file of the user's is ever removed; one that holds an
+    /// earlier set is replaced only with `confirm` (the window asks first).
     pub(crate) fn act_export_dxf(&mut self, p: &Map<String, Value>) -> Outcome {
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => absolute_target(PathBuf::from(dir)),
             Ok(None) => return self.need_path("file.export_dxf", Prompt::SaveDxf, "dir", p),
         };
-        let wait = match bool_param(p, "wait", true) {
-            Ok(w) => w,
-            Err(e) => return e,
+        let (wait, confirm) = match (bool_param(p, "wait", true), bool_param(p, "confirm", false)) {
+            (Ok(w), Ok(c)) => (w, c),
+            (Err(e), _) | (_, Err(e)) => return e,
         };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
@@ -725,6 +726,30 @@ impl ShellModel {
         ) {
             return Outcome::refused(key!("reason-export-dxf-folder"));
         }
+        // An earlier set's files may hold a person's later edits in a CAD program: the window asks before they go
+        // (doc 16a §6.12), a script says `confirm`.
+        let files = std::fs::read_dir(&dir).map_or(0, |d| {
+            d.flatten()
+                .filter(|e| e.file_name() != ew_api::library::file::FILE_SET_MARK)
+                .count()
+        });
+        if files > 0 && !confirm {
+            return match self.mode {
+                Mode::Headless => failed(key!("error-export-dxf-confirm"), &[]),
+                Mode::Gui => self.open_dialog(Dialog::ConfirmReplaceDxf {
+                    dir: dir.to_string_lossy().into_owned(),
+                    folder: name,
+                    files,
+                }),
+            };
+        }
+        // The confirmation gives way.
+        if matches!(&self.dialog, Some(Dialog::ConfirmReplaceDxf { .. })) {
+            self.dialog = None;
+        }
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
         let rev = project.session.world().rev.0;
         let epoch = project.epoch;
         let job = project.session.export_dxf_job(&ExportOptions::default());

@@ -383,7 +383,10 @@ pub fn show(
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
         Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
-        Dialog::ConfirmDiscard { .. } | Dialog::ConfirmJournalDiscard | Dialog::ConfirmRemovePart { .. } => {}
+        Dialog::ConfirmDiscard { .. }
+        | Dialog::ConfirmJournalDiscard
+        | Dialog::ConfirmRemovePart { .. }
+        | Dialog::ConfirmReplaceDxf { .. } => {}
     });
     let mut clicked = clicked.or(link_clicked);
     submit |= form_key && matches!(d, Dialog::Form(_));

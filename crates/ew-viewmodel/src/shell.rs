@@ -402,6 +402,16 @@ pub enum Dialog {
         /// Its part number.
         number: String,
     },
+    /// Export DXF… into a folder that holds an earlier DXF set (doc 09 §4.9): its files go, with a person's later
+    /// edits to them, which undo does not bring back; Replace (`file.export_dxf` with `confirm`) or Cancel (Escape).
+    ConfirmReplaceDxf {
+        /// The folder as `file.export_dxf` takes it (never printed).
+        dir: String,
+        /// Its name.
+        folder: String,
+        /// The earlier set's files that go.
+        files: usize,
+    },
     /// Choose part… (D19): the part selection dialog, a 640-px form with the search, the filters, the result list
     /// and Choose.
     PartChoose(Box<part_dialog::PartChooser>),

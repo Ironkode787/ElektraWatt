@@ -64,6 +64,12 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             part: "id:0".into(),
             number: "SW-6".into(),
         },
+        // Replacing an earlier DXF set.
+        Dialog::ConfirmReplaceDxf {
+            dir: "dxf".into(),
+            folder: "dxf".into(),
+            files: 3,
+        },
     ];
     // Every action whose label ends with "…" asks before it acts (doc 16a §8 item 8), so with no parameters it changes
     // nothing: the registry is walked, each such action is dispatched bare, the dialog it opens is taken for the

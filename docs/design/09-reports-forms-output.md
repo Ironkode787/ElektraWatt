@@ -1392,7 +1392,11 @@ aligned a text is not written. The window's export writes the default layer name
 Print…. It asks for a folder and writes the set there as a job (`file.export_dxf {dir}`), as `ew export dxf` does: the
 folder is replaced as a whole, so it must be empty or hold just what an earlier DXF export wrote there (by its file
 `.elektrawatt-export`, the rule of the command line's exports); a folder that holds any other file, whatever its extension, is refused
-in words before the job starts and left as it was, and so is a folder inside the open project. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
+in words before the job starts and left as it was, and so is a folder inside the open project. A folder that holds
+an earlier set is replaced only after a question, since its files may hold a person's later edits in a CAD program
+(doc 16a §6.12: "Replace the DXF set in <folder>?", the count of the files that go, Cancel the Primary and Replace the
+danger button); a script says `"confirm": true`, and without it the step fails in words. The command line's `ew export
+dxf|png|svg` replaces its own earlier set without a question, as its help says. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
 before the folder is replaced writes nothing.
 
 **Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of

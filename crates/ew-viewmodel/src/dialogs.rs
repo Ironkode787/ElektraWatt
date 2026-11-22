@@ -166,6 +166,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
+        Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
@@ -577,6 +578,23 @@ fn remove_part_spec(part: &str, number: &str) -> DialogSpec {
         ..small(
             strings::format(key!("confirm-part-remove-title"), &[number]),
             vec![strings::text(key!("confirm-part-remove-text")).to_owned()],
+            cancel(),
+        )
+    }
+}
+
+/// Replacing the earlier DXF set of the folder `folder` (`dir` as `file.export_dxf` takes it), `files` files: Cancel
+/// the Primary, Replace apart; what goes in one sentence.
+fn replace_dxf_spec(dir: &str, folder: &str, files: usize) -> DialogSpec {
+    DialogSpec {
+        danger: Some(DialogButton::new(
+            key!("dialog-replace"),
+            DialogAnswer::Action("file.export_dxf", json!({ "dir": dir, "confirm": true })),
+        )),
+        asks: true,
+        ..small(
+            strings::format(key!("confirm-export-dxf-replace-title"), &[folder]),
+            vec![strings::format_count(crate::count_key!("confirm-export-dxf-replace-text"), files)],
             cancel(),
         )
     }
