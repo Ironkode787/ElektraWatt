@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use ew_interop_api::ew_ids::v5::{self, LineageAnchor};
 use ew_interop_api::ew_ids::{Id, Uuid};
 use ew_interop_api::ew_schema::{
-    Date, LibCopy, LibDocument, LibItem, Library, Manufacturer, Part, Sha256, normalize_nfc,
+    Date, LibCopy, LibDocument, LibItem, Library, Manufacturer, Part, Sha256, Unit, normalize_nfc,
 };
 use ew_interop_api::{
     Code, ImportError, ImportInput, ImportReport, Limits, PartDraft, ReportEntry, Severity, SourceInfo,
@@ -512,24 +512,9 @@ fn decimal(s: &str) -> Option<String> {
     Some(out)
 }
 
-/// The unit symbols a cell may use for each unit of the format.
-const UNITS: &[(&str, &str)] = &[
-    ("mm2", "mm2"),
-    ("mm²", "mm2"),
-    ("A", "A"),
-    ("V", "V"),
-    ("Hz", "Hz"),
-    ("bar", "bar"),
-    ("degC", "degC"),
-    ("°C", "degC"),
-    ("kg", "kg"),
-    ("W", "W"),
-    ("m", "m"),
-    ("mA", "mA"),
-];
-
-/// A technical value: `<number> <unit>` (the space optional, `,` or `.` as the separator) as a quantity, else an
-/// identifier. A number with a unit the format does not know does not parse.
+/// A technical value: `<number> <unit>` (the space optional, `,` or `.` as the separator; the unit by its spelling or
+/// its symbol, `Unit::named`) as a quantity, else an identifier. A number with a unit the format does not know does
+/// not parse.
 fn tech_value(key: &str, cell: &str) -> Result<Value, String> {
     let split = cell
         .find(|c: char| !(c.is_ascii_digit() || matches!(c, '.' | ',' | '-')))
@@ -538,10 +523,10 @@ fn tech_value(key: &str, cell: &str) -> Result<Value, String> {
     let unit = unit.trim();
     let value = match decimal(number) {
         Some(n) if !unit.is_empty() => {
-            let Some((_, u)) = UNITS.iter().find(|(s, _)| *s == unit) else {
+            let Some(u) = Unit::named(unit) else {
                 return Err(format!("`{cell}`: `{unit}` is not a unit of the format"));
             };
-            json!({"value": n, "unit": u})
+            json!({"value": n, "unit": u.spelling()})
         }
         _ => Value::String(cell.to_owned()),
     };
@@ -1189,6 +1174,15 @@ mod tests {
         );
         assert_eq!(tech_value("curve", "C").unwrap()["value"], json!("C"));
         assert!(tech_value("i_n", "40 Amp").unwrap_err().contains("not a unit"));
+        // Every unit of the format, by its spelling or its symbol (FT-1981: `mm`, `piece` and `set` were refused).
+        assert_eq!(
+            tech_value("d_outer", "8.5 mm").unwrap()["value"],
+            json!({"value": "8.5", "unit": "mm"})
+        );
+        assert_eq!(
+            tech_value("pack", "10 pc").unwrap()["value"],
+            json!({"value": "10", "unit": "piece"})
+        );
     }
 
     #[test]

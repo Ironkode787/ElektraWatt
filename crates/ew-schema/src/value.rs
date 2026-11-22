@@ -115,6 +115,61 @@ pub enum Unit {
     Unknown(Value),
 }
 
+impl Unit {
+    /// Every unit this build knows, in the order of the enum: the one list the parsers of a typed or imported unit
+    /// read (FT-1981). A test holds it to the variants the schema names.
+    pub const ALL: [Unit; 13] = [
+        Unit::Mm2,
+        Unit::A,
+        Unit::V,
+        Unit::Hz,
+        Unit::Bar,
+        Unit::DegC,
+        Unit::Kg,
+        Unit::W,
+        Unit::M,
+        Unit::Mm,
+        Unit::Piece,
+        Unit::Set,
+        Unit::Ma,
+    ];
+
+    /// The symbol as printed (`A`, `°C`, `mm²`, `pc`); empty for a unit of a newer format.
+    pub fn symbol(&self) -> &'static str {
+        match self {
+            Unit::Mm2 => "mm²",
+            Unit::A => "A",
+            Unit::V => "V",
+            Unit::Hz => "Hz",
+            Unit::Bar => "bar",
+            Unit::DegC => "°C",
+            Unit::Kg => "kg",
+            Unit::W => "W",
+            Unit::M => "m",
+            Unit::Mm => "mm",
+            Unit::Piece => "pc",
+            Unit::Set => "set",
+            Unit::Ma => "mA",
+            Unit::Unknown(_) => "",
+        }
+    }
+
+    /// The spelling the format persists (`mm2`, `degC`); `None` for a unit of a newer format.
+    pub fn spelling(&self) -> Option<String> {
+        serde_json::to_value(self)
+            .ok()?
+            .as_str()
+            .map(str::to_owned)
+    }
+
+    /// The unit `text` names: its spelling or its symbol (`mm2` or `mm²`).
+    pub fn named(text: &str) -> Option<Unit> {
+        Unit::ALL
+            .into_iter()
+            .find(|u| u.symbol() == text || u.spelling().as_deref() == Some(text))
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Csa
 

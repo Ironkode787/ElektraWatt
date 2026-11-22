@@ -183,7 +183,7 @@ pub use pages::{
     SectionStructure, folio_label, map_ml, print_language, report_pages, text_in,
 };
 pub use part_text::{
-    main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text, unit_symbol,
+    main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text,
 };
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{

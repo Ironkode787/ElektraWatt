@@ -1112,14 +1112,9 @@ fn csa_text(value: &Value) -> String {
     }
 }
 
-/// The typographic symbol of a persisted unit spelling.
+/// The typographic symbol of a persisted unit spelling; a spelling of a newer format as it is.
 fn unit_text(unit: &str) -> &str {
-    match unit {
-        "mm2" => "mm²",
-        "degC" => "°C",
-        "piece" => "pc",
-        other => other,
-    }
+    ew_schema::Unit::named(unit).map_or(unit, |u| u.symbol())
 }
 
 /// Nanometres as millimetres: three decimals, more when not exact.
@@ -1455,23 +1450,6 @@ fn parse_dec3(text: &str, wrap: &dyn Fn(String) -> Value) -> Result<Value, Input
         .map_err(|_| invalid(api_text!("refusal-input-decimal", t)))
 }
 
-/// The persisted unit spellings and their symbols.
-const UNITS: &[(&str, &[&str])] = &[
-    ("mm2", &["mm2", "mm²"]),
-    ("A", &["A"]),
-    ("V", &["V"]),
-    ("Hz", &["Hz"]),
-    ("bar", &["bar"]),
-    ("degC", &["degC", "°C"]),
-    ("kg", &["kg"]),
-    ("W", &["W"]),
-    ("m", &["m"]),
-    ("mm", &["mm"]),
-    ("piece", &["piece", "pc"]),
-    ("set", &["set"]),
-    ("mA", &["mA"]),
-];
-
 /// A cross-section: `0.75`, `0.75 mm²`, `AWG 18`, `18 AWG`, `AWG 2/0`, `250 kcmil`.
 fn parse_csa(text: &str) -> Result<Value, InputError> {
     let t = text.trim();
@@ -1697,12 +1675,16 @@ pub(crate) fn parse_input(
         }),
         FieldType::Quantity => {
             let t = text.trim();
-            // The unit is the longest suffix that names one; the number before it.
-            let found = UNITS
+            // The unit is the longest suffix that names one (its persisted spelling or its symbol); the number before it.
+            let names: Vec<(String, String)> = ew_schema::Unit::ALL
                 .iter()
-                .flat_map(|(p, spellings)| spellings.iter().map(move |s| (*p, *s)))
+                .filter_map(|u| u.spelling().map(|p| (p, u.symbol())))
+                .flat_map(|(p, s)| [(p.clone(), p.clone()), (p, s.to_owned())])
+                .collect();
+            let found = names
+                .iter()
                 .fold(None::<(&str, &str)>, |best, (p, s)| {
-                    if t.ends_with(s) && best.is_none_or(|(_, b)| s.len() > b.len()) {
+                    if t.ends_with(s.as_str()) && best.is_none_or(|(_, b)| s.len() > b.len()) {
                         Some((p, s))
                     } else {
                         best
@@ -1718,8 +1700,8 @@ pub(crate) fn parse_input(
                 if current {
                     return Err(invalid(api_text!("refusal-input-ac-dc", t)));
                 }
-                // The units by their symbols, the last spelling of each.
-                let units: Vec<&str> = UNITS.iter().filter_map(|(_, s)| s.last().copied()).collect();
+                // The units by their symbols.
+                let units: Vec<&str> = ew_schema::Unit::ALL.iter().map(ew_schema::Unit::symbol).collect();
                 return Err(invalid(api_text!("refusal-input-no-unit", t, units.join(", "))));
             };
             let number = t[..t.len() - spelling.len()].trim();

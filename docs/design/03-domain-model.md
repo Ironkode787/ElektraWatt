@@ -296,7 +296,9 @@ classDiagram
 - **Persisted spellings.** `Unit` is persisted in ASCII (`mm2`, `A`, `V`, `Hz`, `bar`, `degC`, `kg`, `W`, `m`,
   `mm`, `piece`, `set`, and from 0.3.5 `mA` for a coil's or an input's current), `Csa` as a bare `Dec3` in mm²,
   `{"awg": n}` or `{"kcmil": Dec3}`; the encodings are in
-  [05](05-project-format-and-persistence.md) §3.2 (ADR-0005 amendment 4).
+  [05](05-project-format-and-persistence.md) §3.2 (ADR-0005 amendment 4). `Unit::ALL` is the one list of them: a
+  value typed in a field or read from a parts catalogue takes a unit by its spelling or its printed symbol (`mm2` or
+  `mm²`, `piece` or `pc`), and prints by the symbol (FT-1981).
 - Part quantities are `Dec3` with the part's order unit (piece, metre, set; FR-PRT-026), so -3W1's PROFIBUS cable
   counts in metres.
 

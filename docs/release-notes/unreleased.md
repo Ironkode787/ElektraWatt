@@ -404,3 +404,5 @@ change here.
   valves were listed as modules with those cells empty (doc 11 §8.2, FT-1927)
 - behaviour-change: a protective earth that only an earth symbol names (an imported earth point, whose pin is `1`) is
   called PE in the potential list, on the page and in the SQL views; it was called `1` (doc 08 §3.5, FT-1933)
+- behaviour-change: a parts catalogue's technical data takes every unit of the format, by its spelling or its symbol:
+  `8.5 mm`, `10 pc` and `2 set` were refused as no unit of the format (doc 03 §3.2, FT-1981)

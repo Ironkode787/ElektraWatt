@@ -109,26 +109,6 @@ pub fn part_confidence(copy: &LibCopy<Part>, section: &str) -> Confidence {
         .unwrap_or(Confidence::Verified)
 }
 
-/// The symbol of a unit as printed (`A`, `°C`, `mm²`).
-pub fn unit_symbol(unit: &Unit) -> &'static str {
-    match unit {
-        Unit::Mm2 => "mm²",
-        Unit::A => "A",
-        Unit::V => "V",
-        Unit::Hz => "Hz",
-        Unit::Bar => "bar",
-        Unit::DegC => "°C",
-        Unit::Kg => "kg",
-        Unit::W => "W",
-        Unit::M => "m",
-        Unit::Mm => "mm",
-        Unit::Piece => "pc",
-        Unit::Set => "set",
-        Unit::Ma => "mA",
-        Unit::Unknown(_) => "",
-    }
-}
-
 /// The text of the technical-data slot of `device` (see the module documentation); empty without data.
 pub fn tech_data_text(q: &Q, device: Id<Device>) -> String {
     let Some(dev) = q.devices().get(device) else {
@@ -154,7 +134,7 @@ pub fn tech_data_text(q: &Q, device: Id<Device>) -> String {
     }
     for value in values.values() {
         match value {
-            TechVal::Quantity(q) => out.push(match unit_symbol(&q.unit) {
+            TechVal::Quantity(q) => out.push(match q.unit.symbol() {
                 "" => q.value.to_string(),
                 symbol => format!("{} {symbol}", q.value),
             }),

@@ -219,7 +219,7 @@ pub(crate) const PIECE: (&str, &str) = ("pc", "st.");
 fn unit_symbol(u: &QtyUnit) -> &'static str {
     match u {
         QtyUnit::None => "",
-        QtyUnit::Unit(u) => ew_derive::unit_symbol(u),
+        QtyUnit::Unit(u) => u.symbol(),
         QtyUnit::Order(o) => match o {
             OrderUnit::Piece => PIECE.0,
             OrderUnit::Metre => "m",

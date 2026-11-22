@@ -915,7 +915,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/template.rs` |  | The CPs of a template-origin function (doc 03 §7 "CP instantiation", FT-655): which template entry a function follows and how that entry's pattern CPs pair with its function definition's CPs. |
 | `src/text_style.rs` |  | Per-project text styles (ADR-0032, FR-SYM-013): the member `ProjectSettings.text_styles`, the built-in table it overrides and the effective table every renderer and EW-CORE-061 read. |
 | `src/track.rs` |  | The strict reader underneath every record type: the duplicate-rejecting JSON parser, the path-tracking deserialiser over a parsed [`Value`], the tag-first reader of open enums and the structured errors. |
-| `src/value.rs` |  | The value types deferred from `ew-units` (ADR-0005, doc 03 §3) and the shared value encodings of doc 05 §3.2: `Quantity`, `Unit`, `Csa`, `ColourCode`, `ColourSpec`, the `Rect` encoding ([`Bounds`]), authored dates, hashes, endpoints, structure slots, part and library references, tech values and import provenance. |
+| `src/value.rs` | large | The value types deferred from `ew-units` (ADR-0005, doc 03 §3) and the shared value encodings of doc 05 §3.2: `Quantity`, `Unit`, `Csa`, `ColourCode`, `ColourSpec`, the `Rect` encoding ([`Bounds`]), authored dates, hashes, endpoints, structure slots, part and library references, tech values and import provenance. |
 | `src/waiver.rs` |  | Waivers (doc 03 §19, doc 15 §2.5; FR-CHK-009): the `waiver` record (rank 61, `waivers.jsonl`). |
 
 ## ew-sqlview
