@@ -217,8 +217,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    1. *External references hold what is known* (0.3.5, FT-1876; [schematic editor](../design/06-schematic-editor.md)
       §3.5). `external_ref.location` and `external_ref.device` became optional: a reference may hold an address
       alone, a location alone, or nothing for a far end not known. A reference of 0.3.0 holds both and reads
-      unchanged. 0.3.0's reader takes both members as required: it sets a reference without them aside as a schema
-      violation (EW-CORE-007, read-only at best), so such a project does not open there for editing.
+      unchanged. 0.3.0's reader takes both members as required: it opens a project with a reference without them for
+      editing, sets that reference's line aside as a schema violation (EW-CORE-007), reports the points that name it,
+      and writes the line back unchanged on save.
 
 ## Consequences
 

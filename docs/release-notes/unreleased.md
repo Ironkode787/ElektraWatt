@@ -379,9 +379,10 @@ change here.
   ("Q4.1"), a location alone, or nothing for a far end not known; the point prints what it holds under its mark, and
   Supply comes in here… takes an empty field as not known (`ip.supply_in`, `external_ref.create`: `location` and
   `device` optional); EW-CORE-034 still asks for the cable and names the place by what is known (doc 06 §3.5,
-  FT-1876); a project with such a reference does not open in 0.3.0, which takes the location and the device as
-  required, and the published schema `external_ref.schema.json` now says both may be absent or null (ADR-0011
-  amendment 8)
+  FT-1876); 0.3.0, which takes the location and the device as required, opens a project with such a reference for
+  editing, sets the reference's line aside (EW-CORE-007), reports the points that name it and writes the line back
+  unchanged on save, and the published schema `external_ref.schema.json` now says both may be absent or null
+  (ADR-0011 amendment 8)
 - behaviour-change: paste, fill down, pattern fill and clear in the PLC grid's Function text column set the function
   text of the device wired to each channel, as typing does, one command per gesture; they said "no command yet", and
   a channel nothing is wired to is refused in words (doc 10 §6, FT-1846)
