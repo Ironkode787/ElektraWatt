@@ -514,6 +514,47 @@ pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     ]))
 }
 
+/// The clamps of the selected terminals drawn alone (doc 08 §6.3): beyond each end the clamp it is, `a` or `b`, as the
+/// terminal diagram's Side 1 (clamp a) and Side 2 (clamp b) name them. A terminal's symbol looks the same turned half
+/// round, so without them a person could not tell its ends apart, nor see what R did; `None` without a selected
+/// terminal.
+pub fn terminal_clamps(cx: &ToolCx<'_>) -> Option<super::Overlay> {
+    use ew_api::geometry::Dir;
+    let t = &cx.page.tables;
+    let items: Vec<OverlayItem> = t
+        .reps
+        .iter()
+        // A terminal selected as its symbol (a click) or as its device (`select.set` by tag).
+        .filter(|r| {
+            let selected = |id| cx.selection.items.contains(&EntityRef(id));
+            r.terminal && (selected(r.id) || r.device.is_some_and(selected))
+        })
+        .flat_map(|r| t.cps.iter().filter(move |c| c.rep == r.id))
+        .filter_map(|c| {
+            // The clamp of `-X1:1/a` (`a#2` where a function repeats a letter), 2 mm beyond its end where a wire
+            // leaves it, clear of the designation beside the lead.
+            const BEYOND: i64 = 2_000_000;
+            let (_, clamp) = c.label.rsplit_once('/')?;
+            let dir = c.dir?;
+            let anchor = match dir {
+                Dir::Up => super::Anchor::Above,
+                Dir::Down => super::Anchor::Below,
+                Dir::Left => super::Anchor::Left,
+                Dir::Right => super::Anchor::Right,
+            };
+            let (dx, dy) = dir.vector();
+            Some(OverlayItem::Label {
+                at: cx
+                    .snapper
+                    .page_to_sheet((c.at.0 + dx * BEYOND, c.at.1 + dy * BEYOND)),
+                text: clamp.to_owned(),
+                anchor,
+            })
+        })
+        .collect();
+    (!items.is_empty()).then(|| Overlay::new(items))
+}
+
 /// The sheet rectangle of the page rectangle `r`.
 fn sheet_rect_of(cx: &ToolCx<'_>, r: Rect) -> Rect {
     let a = cx.snapper.page_to_sheet((r.min().x.0, r.min().y.0));

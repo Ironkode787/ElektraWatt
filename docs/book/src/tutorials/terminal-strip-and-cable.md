@@ -19,7 +19,8 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 3. Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list of strips, choose the new strip. Click
    twice, to the right of -1E2 and level with it, to place two terminals side by side. Choose **Draw ▸ Select**.
    The terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, clamp a, at the bottom and its field
-   side, clamp b, at the top.
+   side, clamp b, at the top. Click a terminal: the letters a and b stand at its two ends. The symbol looks the same
+   turned half round, so after **R** the letters show which end is which.
 4. Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above and to the right of the terminals. Choose
    **Draw ▸ Select**.
    The lamp -1E3, the lamp on the machine, is on the page.

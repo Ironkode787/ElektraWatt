@@ -924,8 +924,9 @@ impl ShellModel {
 
     /// The grips of a selected black box and the handles of a selected connection's line: while Select is idle
     /// and exactly one black box or one connection is selected, the overlay shows the box's grips and CPs, or a
-    /// handle on every segment and bend of the wire (where a drag edits its route); once that no longer holds, a
-    /// grips overlay the host set is cleared (the end of every dispatch).
+    /// handle on every segment and bend of the wire (where a drag edits its route); with terminals selected, the clamp
+    /// letter at each of their ends; once that no longer holds, a grips overlay the host set is cleared (the end of
+    /// every dispatch).
     pub(super) fn sync_box_grips(&mut self) {
         let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
         let pointer = self.canvas().and_then(CanvasModel::pointer);
@@ -944,6 +945,7 @@ impl ShellModel {
                     })
                     .or_else(|| crate::tools::block_grips(cx))
                     .or_else(|| crate::tools::label_grip(cx))
+                    .or_else(|| crate::tools::terminal_clamps(cx))
                     .filter(|o| !o.items.is_empty())
             })
             .flatten()

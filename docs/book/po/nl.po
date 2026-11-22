@@ -696,7 +696,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:56 src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
+#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57 src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -779,12 +779,21 @@ msgstr ""
 "klemmenstrook. Die krijgt haar kenmerk zodra de eerste klem is geplaatst."
 
 #: src/tutorials/terminal-strip-and-cable.md:19
+#, fuzzy
+#| msgid ""
+#| "Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
+#| "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
+#| "with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
+#| "terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
+#| "clamp a, at the bottom and its field side, clamp b, at the top."
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list "
 "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
 "with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
 "terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
-"clamp a, at the bottom and its field side, clamp b, at the top."
+"clamp a, at the bottom and its field side, clamp b, at the top. Click a "
+"terminal: the letters a and b stand at its two ends. The symbol looks the "
+"same turned half round, so after **R** the letters show which end is which."
 msgstr ""
 "Kies **Tekenen ▸ Plaatsen ▸ Symbool…** (`I`) en kies **terminal**. Kies in "
 "de lijst met klemmenstroken de nieuwe klemmenstrook. Klik twee keer, rechts "
@@ -793,7 +802,7 @@ msgstr ""
 "pagina. Elke klem heeft zijn kastzijde, klemaansluiting a, aan de onderkant "
 "en zijn veldzijde, klemaansluiting b, aan de bovenkant."
 
-#: src/tutorials/terminal-strip-and-cable.md:23
+#: src/tutorials/terminal-strip-and-cable.md:24
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above "
 "and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
@@ -803,7 +812,7 @@ msgstr ""
 "en rechts van de klemmen. Kies **Tekenen ▸ Selecteren**. De lamp -1E3, de "
 "lamp op de machine, staat op de pagina."
 
-#: src/tutorials/terminal-strip-and-cable.md:26
+#: src/tutorials/terminal-strip-and-cable.md:27
 msgid ""
 "Choose **Draw ▸ Wire** (`W`). Draw the cabinet side: from X1 of -1E2 to the "
 "bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. Then the "
@@ -817,7 +826,7 @@ msgstr ""
 "bovenkant van -1X1:2 naar X2 van -1E3. Kies **Tekenen ▸ Selecteren**. De "
 "klem -1X1:1 brengt 24VAC en -1X1:2 brengt 0VAC naar de lamp op de machine."
 
-#: src/tutorials/terminal-strip-and-cable.md:30
+#: src/tutorials/terminal-strip-and-cable.md:31
 msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
 "Choose **Draw ▸ Connect ▸ Cable…** (**Cable** on the Draw tab). The form "
@@ -856,7 +865,7 @@ msgstr ""
 "verschuiven; selecteer hem en sleep zijn kenmerk om alleen het kenmerk te "
 "verschuiven."
 
-#: src/tutorials/terminal-strip-and-cable.md:42
+#: src/tutorials/terminal-strip-and-cable.md:43
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
 "the Properties pane, set **Length** to `5 m`. The Cables navigator lists the "
@@ -866,7 +875,7 @@ msgstr ""
 "in het paneel Eigenschappen **Lengte** op `5 m`. De navigator Kabels toont "
 "de kabel -1W1 met zijn drie aders: BN, BU en GNYE."
 
-#: src/tutorials/terminal-strip-and-cable.md:45
+#: src/tutorials/terminal-strip-and-cable.md:46
 msgid ""
 "Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
 "strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
@@ -878,7 +887,7 @@ msgstr ""
 "24VAC, met -1E2:X1 aan zijde 1 en de velddraad naar -1E3:X1 via -1W1 BN aan "
 "zijde 2; klem 2 op 0VAC, met -1E2:X2 en -1E3:X2 via -1W1 BU."
 
-#: src/tutorials/terminal-strip-and-cable.md:48
+#: src/tutorials/terminal-strip-and-cable.md:49
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 9 "
 "warnings, 2 infos\". The warnings are the devices and the cable that have no "
@@ -895,7 +904,7 @@ msgstr ""
 "een kabeltype…**: het artikelvenster toont eerst de kabelartikelen die "
 "passen, en de andere grijs met de reden."
 
-#: src/tutorials/terminal-strip-and-cable.md:53 src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
+#: src/tutorials/terminal-strip-and-cable.md:54 src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -903,7 +912,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd."
 
-#: src/tutorials/terminal-strip-and-cable.md:58
+#: src/tutorials/terminal-strip-and-cable.md:59
 msgid ""
 "A terminal strip is a device of its own, and each terminal you place from "
 "the strip's list is one of its terminals, with a cabinet side and a field "
@@ -913,7 +922,7 @@ msgstr ""
 "van de klemmenstrook plaatst, is een van haar klemmen, met een kastzijde en "
 "een veldzijde."
 
-#: src/tutorials/terminal-strip-and-cable.md:60
+#: src/tutorials/terminal-strip-and-cable.md:61
 msgid ""
 "**Draw ▸ Connect ▸ Cable…** makes the selected wires a cable's cores in one "
 "form: the cable's type as you write it (`3G1.5`, `4X0.75`, or a cable part's "
@@ -930,7 +939,7 @@ msgstr ""
 "toe te voegen of eruit te halen. Een kabel zonder getekende kabellijn krijgt "
 "zijn paginanummer van zijn eerste ader."
 
-#: src/tutorials/terminal-strip-and-cable.md:64
+#: src/tutorials/terminal-strip-and-cable.md:65
 msgid ""
 "**New cable type…**, the last entry of the form's **Cable type** list, makes "
 "a cable part of your own in a small form: the maker, the type, the part "
@@ -951,7 +960,7 @@ msgstr ""
 "formulier Kabel met het nieuwe type gekozen. Een artikel van de soort Kabel "
 "toont dezelfde sectie in de artikeleditor."
 
-#: src/tutorials/terminal-strip-and-cable.md:69
+#: src/tutorials/terminal-strip-and-cable.md:70
 msgid ""
 "A cable's mark is drawn as panel builders draw it: one line across the "
 "cable's wires, a stroke on each core with its number or colour beside it, "
@@ -966,7 +975,7 @@ msgstr ""
 "waarvan de draden over meerdere pagina's lopen, krijgt op elke pagina een "
 "markering."
 
-#: src/tutorials/terminal-strip-and-cable.md:72
+#: src/tutorials/terminal-strip-and-cable.md:73
 msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
@@ -974,7 +983,7 @@ msgstr ""
 "De klemmenstrookeditor en de navigator Kabels tonen, uit de tekening, wat er "
 "door elke klem en elke ader gaat."
 
-#: src/tutorials/terminal-strip-and-cable.md:73
+#: src/tutorials/terminal-strip-and-cable.md:74
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."

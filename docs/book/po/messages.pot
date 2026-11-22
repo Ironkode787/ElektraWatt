@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-22T19:56:34+01:00\n"
+"POT-Creation-Date: 2026-11-22T20:40:17+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -555,7 +555,7 @@ msgid ""
 "as changed, and the status bar says Saved."
 msgstr ""
 
-#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:56
+#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57
 #: src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56
 #: src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78
 #: src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
@@ -622,17 +622,19 @@ msgid ""
 "of strips, choose the new strip. Click twice, to the right of -1E2 and level "
 "with it, to place two terminals side by side. Choose **Draw ▸ Select**. The "
 "terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
-"clamp a, at the bottom and its field side, clamp b, at the top."
+"clamp a, at the bottom and its field side, clamp b, at the top. Click a "
+"terminal: the letters a and b stand at its two ends. The symbol looks the "
+"same turned half round, so after **R** the letters show which end is which."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:23
+#: src/tutorials/terminal-strip-and-cable.md:24
 msgid ""
 "Choose **Draw ▸ Place ▸ Symbol…** again, choose **lamp**, and click above "
 "and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
 "the lamp on the machine, is on the page."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:26
+#: src/tutorials/terminal-strip-and-cable.md:27
 msgid ""
 "Choose **Draw ▸ Wire** (`W`). Draw the cabinet side: from X1 of -1E2 to the "
 "bottom of -1X1:1, and from X2 of -1E2 to the bottom of -1X1:2. Then the "
@@ -641,7 +643,7 @@ msgid ""
 "carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:30
+#: src/tutorials/terminal-strip-and-cable.md:31
 msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
 "Choose **Draw ▸ Connect ▸ Cable…** (**Cable** on the Draw tab). The form "
@@ -661,14 +663,14 @@ msgid ""
 "tag to move the tag alone."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:42
+#: src/tutorials/terminal-strip-and-cable.md:43
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
 "the Properties pane, set **Length** to `5 m`. The Cables navigator lists the "
 "cable -1W1 with its three cores: BN, BU and GNYE."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:45
+#: src/tutorials/terminal-strip-and-cable.md:46
 msgid ""
 "Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
 "strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
@@ -676,7 +678,7 @@ msgid ""
 "terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:48
+#: src/tutorials/terminal-strip-and-cable.md:49
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 9 "
 "warnings, 2 infos\". The warnings are the devices and the cable that have no "
@@ -686,7 +688,7 @@ msgid ""
 "first, and the others greyed with the reason."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:53
+#: src/tutorials/terminal-strip-and-cable.md:54
 #: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53
 #: src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75
 #: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
@@ -695,14 +697,14 @@ msgid ""
 "as changed."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:58
+#: src/tutorials/terminal-strip-and-cable.md:59
 msgid ""
 "A terminal strip is a device of its own, and each terminal you place from "
 "the strip's list is one of its terminals, with a cabinet side and a field "
 "side."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:60
+#: src/tutorials/terminal-strip-and-cable.md:61
 msgid ""
 "**Draw ▸ Connect ▸ Cable…** makes the selected wires a cable's cores in one "
 "form: the cable's type as you write it (`3G1.5`, `4X0.75`, or a cable part's "
@@ -712,7 +714,7 @@ msgid ""
 "first core."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:64
+#: src/tutorials/terminal-strip-and-cable.md:65
 msgid ""
 "**New cable type…**, the last entry of the form's **Cable type** list, makes "
 "a cable part of your own in a small form: the maker, the type, the part "
@@ -724,7 +726,7 @@ msgid ""
 "shows the same section in the part editor."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:69
+#: src/tutorials/terminal-strip-and-cable.md:70
 msgid ""
 "A cable's mark is drawn as panel builders draw it: one line across the "
 "cable's wires, a stroke on each core with its number or colour beside it, "
@@ -733,13 +735,13 @@ msgid ""
 "pages gets a mark on each."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:72
+#: src/tutorials/terminal-strip-and-cable.md:73
 msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:73
+#: src/tutorials/terminal-strip-and-cable.md:74
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."
