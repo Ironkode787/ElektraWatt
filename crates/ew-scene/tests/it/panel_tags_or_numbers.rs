@@ -140,16 +140,11 @@ fn a_tag_prints_where_it_fits_and_a_balloon_where_it_does_not() {
 }
 
 #[test]
-fn with_a_legend_page_the_labels_link_to_their_rows_and_the_footprints_are_their_targets() {
+fn with_a_legend_page_the_footprints_are_where_the_rows_link_to_and_the_labels_link_nowhere() {
     let view = page(LabelShow::TagsOrNumbers, true);
+    // A label is the device's handle: a click selects and drags it, so it is no link.
     let labels = layer(&view, Layer::Labels);
-    for (p, ..) in devices() {
-        let row = Some(Link::Source(Destination::LegendRow(p.as_uuid())));
-        assert!(
-            labels.list.items.iter().any(|i| i.link == row),
-            "{p:?}: its label links to its row"
-        );
-    }
+    assert!(labels.list.items.iter().all(|i| i.link.is_none()));
     let placements = layer(&view, Layer::Placements);
     for (p, ..) in devices() {
         let target = Some(Link::Target(Destination::Placement(p.as_uuid())));

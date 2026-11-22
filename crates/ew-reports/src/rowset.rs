@@ -566,6 +566,6 @@ pub enum LinkTarget {
     /// One representation (a device's placement on a given page).
     Rep(Id<Representation>),
     /// A device as placed on a panel layout page, its footprint there; the row that links to it is where that device's
-    /// label on the layout links back to (a legend list's row, doc 12 §5.4).
+    /// Follow reference on the layout goes back to (a legend list's row, doc 12 §5.4).
     Placement(Id<Placement>),
 }

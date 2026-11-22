@@ -696,7 +696,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:56 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
+#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:56 src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -895,7 +895,7 @@ msgstr ""
 "een kabeltype…**: het artikelvenster toont eerst de kabelartikelen die "
 "passen, en de andere grijs met de reden."
 
-#: src/tutorials/terminal-strip-and-cable.md:53 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
+#: src/tutorials/terminal-strip-and-cable.md:53 src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -1019,19 +1019,20 @@ msgstr ""
 msgid ""
 "Read the report pages in the Pages navigator, in section 9 (folios 900 to "
 "999). They are marked generated: the parts list (Partlist, 901 and 901.1), "
-"the terminal diagrams of the three terminal strips (903), the cable overview "
-"and diagrams (906), the wire list, the PLC overview, the potential overview, "
-"the device tag overview and the revision overview. Click one, such as 903, "
-"to see it."
+"the legend of the panel layout 902 (902.1 and 902.2), the terminal diagrams "
+"of the three terminal strips (903), the cable overview and diagrams (906), "
+"the wire list, the PLC overview, the potential overview, the device tag "
+"overview and the revision overview. Click one, such as 903, to see it."
 msgstr ""
 "Lees de rapportpagina's in de navigator Pagina's, in sectie 9 (folio's 900 "
 "tot en met 999). Ze zijn gemarkeerd als gegenereerd: de stuklijst (Partlist, "
-"901 en 901.1), de klemmenschema's van de drie klemmenstroken (903), het "
-"kabeloverzicht met de kabelschema's (906), de draadlijst, het PLC-overzicht, "
-"het potentiaaloverzicht, het overzicht van de apparaatkenmerken en het "
+"901 en 901.1), de legenda van de paneellayout 902 (902.1 en 902.2), de "
+"klemmenschema's van de drie klemmenstroken (903), het kabeloverzicht met de "
+"kabelschema's (906), de draadlijst, het PLC-overzicht, het "
+"potentiaaloverzicht, het overzicht van de apparaatkenmerken en het "
 "revisieoverzicht. Klik op een ervan, zoals 903, om hem te bekijken."
 
-#: src/tutorials/reports-and-pdf.md:22
+#: src/tutorials/reports-and-pdf.md:23
 msgid ""
 "Choose **Output ▸ Report block…** (on the Page or the Output tab: "
 "**Report**). In the form, choose the report **Parts list**, keep or type the "
@@ -1047,7 +1048,7 @@ msgstr ""
 "navigator Pagina's toont de nieuwe pagina's 912 tot en met 912.2: de "
 "stuklijst per apparaat, waar de Partlist op 901 de artikelen optelt."
 
-#: src/tutorials/reports-and-pdf.md:26
+#: src/tutorials/reports-and-pdf.md:27
 msgid ""
 "Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
 "first folio `913` and the title `Terminal overview`, and choose **Create**. "
@@ -1057,34 +1058,34 @@ msgstr ""
 "eerste folio `913` en de titel `Terminal overview`, en kies **Maken**. "
 "Pagina 913 toont alle klemmenstroken van het project op één pagina."
 
-#: src/tutorials/reports-and-pdf.md:29
+#: src/tutorials/reports-and-pdf.md:30
 msgid ""
 "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
 "`reports.pdf`. When the export is done, the toast says \"Exported "
-"reports.pdf: 8 drawing pages, 3 section divider pages and 20 report pages\", "
+"reports.pdf: 8 drawing pages, 3 section divider pages and 22 report pages\", "
 "with the file's size. Open the file from the toast to see it: one PDF/A-2b "
 "file with every page, its outline and its cross-reference links."
 msgstr ""
 "Kies **Uitvoer ▸ PDF exporteren…** (`Ctrl+Shift+E`) en sla het bestand op "
 "als `reports.pdf`. Als de export klaar is, zegt de notificatie \"reports.pdf "
-"geëxporteerd: 8 tekeningpagina's, 3 scheidingspagina's en 20 "
+"geëxporteerd: 8 tekeningpagina's, 3 scheidingspagina's en 22 "
 "rapportpagina's\", met de grootte van het bestand. Open het bestand vanuit "
 "de notificatie om het te bekijken: één PDF/A-2b-bestand met elke pagina, een "
 "inhoudsopgave en links voor de kruisverwijzingen."
 
-#: src/tutorials/reports-and-pdf.md:33
+#: src/tutorials/reports-and-pdf.md:34
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
-"paper and a preview of the first page: \"1 of 31\". Step to the next page in "
+"paper and a preview of the first page: \"1 of 33\". Step to the next page in "
 "the preview to see page 2. Choose **Cancel** to close the dialog without "
 "printing."
 msgstr ""
 "Kies **Uitvoer ▸ Afdrukken…** (`Ctrl+P`). Het venster Afdrukken toont het "
-"bereik, het papier en een voorbeeld van de eerste pagina: \"1 van 31\". Ga "
+"bereik, het papier en een voorbeeld van de eerste pagina: \"1 van 33\". Ga "
 "in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
 "**Annuleren** om het venster te sluiten zonder af te drukken."
 
-#: src/tutorials/reports-and-pdf.md:41
+#: src/tutorials/reports-and-pdf.md:42
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
@@ -1105,7 +1106,7 @@ msgstr ""
 "geen pagina: de notificatie zegt dat en wat er rijen aan geeft, zoals een "
 "ventieleiland voor de ventieleilandconfiguratie."
 
-#: src/tutorials/reports-and-pdf.md:46
+#: src/tutorials/reports-and-pdf.md:47
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
@@ -1113,7 +1114,7 @@ msgstr ""
 "Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
 "kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:47
+#: src/tutorials/reports-and-pdf.md:48
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
@@ -1121,7 +1122,7 @@ msgstr ""
 "**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
 "Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:48
+#: src/tutorials/reports-and-pdf.md:49
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -4100,19 +4101,15 @@ msgstr ""
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
-"blocks that the project leaves empty, and on the panel layout 902 a legend "
-"with more rows than its table holds and texts longer than their cells. They "
-"do not stop the export. The directory of `--out` must exist, which is why "
-"you made `out` first."
+"blocks that the project leaves empty. They do not stop the export. The "
+"directory of `--out` must exist, which is why you made `out` first."
 msgstr ""
 "De tweede regel, op de standaardfoutuitvoer, telt opmerkingen over het "
 "weergeven van afzonderlijke pagina's en zegt wat ze zijn: hier velden van de "
-"titelblokken die het project leeg laat, en op de montageplaat 902 een "
-"legenda met meer regels dan haar tabel bevat en teksten die langer zijn dan "
-"hun cellen. Ze houden de export niet tegen. De map van `--out` moet bestaan; "
-"daarom hebt u eerst `out` gemaakt."
+"titelblokken die het project leeg laat. Ze houden de export niet tegen. De "
+"map van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
 
-#: src/how-to/headless-workflow.md:97
+#: src/how-to/headless-workflow.md:96
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the drawn pages 101 to 105:"
@@ -4120,7 +4117,7 @@ msgstr ""
 "`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies folio's "
 "met `--pages`; dit schrijft de getekende pagina's 101 tot en met 105:"
 
-#: src/how-to/headless-workflow.md:106
+#: src/how-to/headless-workflow.md:105
 msgid ""
 "The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
 "folio labels of the project. `ew` replaces the directory as a whole, so it "
@@ -4132,7 +4129,7 @@ msgstr ""
 "mag alleen SVG-bestanden bevatten; een oude pagina van een eerdere export "
 "kan er niet in achterblijven."
 
-#: src/how-to/headless-workflow.md:109
+#: src/how-to/headless-workflow.md:108
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -4144,21 +4141,21 @@ msgstr ""
 "die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
 "snelheid en nooit het resultaat."
 
-#: src/how-to/headless-workflow.md:113
+#: src/how-to/headless-workflow.md:112
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr "Stap 3: de kabellijst en de stuklijst exporteren"
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:114
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 
-#: src/how-to/headless-workflow.md:124
+#: src/how-to/headless-workflow.md:123
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 "Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
-#: src/how-to/headless-workflow.md:134
+#: src/how-to/headless-workflow.md:133
 msgid ""
 "The supply cable `-101W1` comes in from outside the cabinet, so it has no "
 "From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
@@ -4172,7 +4169,7 @@ msgstr ""
 "heeft de lengte die in zijn Eigenschappen is getypt. Onder deze regels "
 "volgen de aders van elke kabel, één regel per ader."
 
-#: src/how-to/headless-workflow.md:138
+#: src/how-to/headless-workflow.md:137
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -4185,11 +4182,11 @@ msgstr ""
 "eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
 "tekening afdrukt."
 
-#: src/how-to/headless-workflow.md:142
+#: src/how-to/headless-workflow.md:141
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/how-to/headless-workflow.md:144
+#: src/how-to/headless-workflow.md:143
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -4197,7 +4194,7 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:145
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -4213,7 +4210,7 @@ msgstr ""
 "1 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:153
+#: src/how-to/headless-workflow.md:152
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -4223,7 +4220,7 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/how-to/headless-workflow.md:156
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -4245,7 +4242,7 @@ msgstr ""
 "3 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:165
+#: src/how-to/headless-workflow.md:164
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -4255,11 +4252,11 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/how-to/headless-workflow.md:168
+#: src/how-to/headless-workflow.md:167
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:169
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -4273,11 +4270,11 @@ msgstr ""
 "draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
 "te vergrendelen en nooit een beeldscherm nodig hebben."
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:173
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:175
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4287,7 +4284,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:177
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4295,7 +4292,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:179
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -4660,9 +4657,9 @@ msgstr ""
 
 #: src/how-to/panel-layout.md:71
 msgid ""
-"**Follow reference** (`F`) on a device's tag or balloon goes to its row on "
-"the legend page, and on a row's tag back to the device on the layout; in an "
-"exported PDF a click does the same."
+"**Follow reference** (`F`) over a device, its tag or its balloon, or with "
+"the device selected, goes to its row on the legend page; a click on a row's "
+"tag goes back to the device on the layout, in an exported PDF too."
 msgstr ""
 
 #: src/how-to/panel-layout.md:73

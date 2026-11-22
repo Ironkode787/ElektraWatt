@@ -356,8 +356,9 @@ change here.
 - behaviour-change: a new layout labels each device with its tag where the tag fits inside it and with its numbered
   balloon where it does not (Labels: Tags or numbers), whatever the scale; tags, item numbers and both stay choices
   (doc 12 §5.3)
-- behaviour-change: on a layout with a legend page, Follow reference goes from a device's tag or balloon to its row
-  and from the row's tag back to the device, and the exported PDF links them the same way (doc 12 §5.4)
+- behaviour-change: on a layout with a legend page, Follow reference over a device, its tag or its balloon (or with it
+  selected) goes to its row, and a click on the row's tag goes back to the device, in the exported PDF too (doc 12
+  §5.4)
 - api-add: `ReportBlock.layout_page`, an optional member that names the layout page a legend list follows, and
   `report_block.create {layout_page}`; `page.surface_view.set {labels: tags_or_numbers}` and `layout.labels {show:
   tags_or_numbers}`; the action `report_block.legend_to_page`; the PDF destinations `ew:pl:<placement>` and

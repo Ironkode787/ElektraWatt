@@ -68,8 +68,8 @@ the parts list and the enclosure legend read it from there.
    narrower. **Move the legend to its own page** in its right-click menu (also **Page ▸ Order**) makes such a legend,
    or one of a project made before, the layout's legend page, in one step of Undo. The legend page's columns and
    caption are chosen as any list's: **Output ▸ List columns…** on its page.
-10. **Follow reference** (`F`) on a device's tag or balloon goes to its row on the legend page, and on a row's tag back
-    to the device on the layout; in an exported PDF a click does the same.
+10. **Follow reference** (`F`) over a device, its tag or its balloon, or with the device selected, goes to its row on
+    the legend page; a click on a row's tag goes back to the device on the layout, in an exported PDF too.
 11. A label or balloon can be dragged on its own: one beside its device at once, one on its device once the device is
     selected (the label then shows a dashed box with a handle). Its line follows it to the device.
     **Reset label position** in the device's right-click menu puts it back; **Reset label positions** in the page's

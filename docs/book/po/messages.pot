@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-22T01:03:29+01:00\n"
+"POT-Creation-Date: 2026-11-22T01:23:11+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -556,7 +556,7 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:56
-#: src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56
+#: src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56
 #: src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78
 #: src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
 msgid "What you learnt"
@@ -687,7 +687,7 @@ msgid ""
 msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:53
-#: src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53
+#: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53
 #: src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75
 #: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
 msgid ""
@@ -769,13 +769,13 @@ msgstr ""
 msgid ""
 "Read the report pages in the Pages navigator, in section 9 (folios 900 to "
 "999). They are marked generated: the parts list (Partlist, 901 and 901.1), "
-"the terminal diagrams of the three terminal strips (903), the cable overview "
-"and diagrams (906), the wire list, the PLC overview, the potential overview, "
-"the device tag overview and the revision overview. Click one, such as 903, "
-"to see it."
+"the legend of the panel layout 902 (902.1 and 902.2), the terminal diagrams "
+"of the three terminal strips (903), the cable overview and diagrams (906), "
+"the wire list, the PLC overview, the potential overview, the device tag "
+"overview and the revision overview. Click one, such as 903, to see it."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:22
+#: src/tutorials/reports-and-pdf.md:23
 msgid ""
 "Choose **Output ▸ Report block…** (on the Page or the Output tab: "
 "**Report**). In the form, choose the report **Parts list**, keep or type the "
@@ -785,31 +785,31 @@ msgid ""
 "where the Partlist on 901 sums the parts up."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:26
+#: src/tutorials/reports-and-pdf.md:27
 msgid ""
 "Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
 "first folio `913` and the title `Terminal overview`, and choose **Create**. "
 "The page 913 lists every terminal strip of the project on one page."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:29
+#: src/tutorials/reports-and-pdf.md:30
 msgid ""
 "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
 "`reports.pdf`. When the export is done, the toast says \"Exported "
-"reports.pdf: 8 drawing pages, 3 section divider pages and 20 report pages\", "
+"reports.pdf: 8 drawing pages, 3 section divider pages and 22 report pages\", "
 "with the file's size. Open the file from the toast to see it: one PDF/A-2b "
 "file with every page, its outline and its cross-reference links."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:33
+#: src/tutorials/reports-and-pdf.md:34
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
-"paper and a preview of the first page: \"1 of 31\". Step to the next page in "
+"paper and a preview of the first page: \"1 of 33\". Step to the next page in "
 "the preview to see page 2. Choose **Cancel** to close the dialog without "
 "printing."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:41
+#: src/tutorials/reports-and-pdf.md:42
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
@@ -821,19 +821,19 @@ msgid ""
 "the valve-terminal configuration."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:46
+#: src/tutorials/reports-and-pdf.md:47
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:47
+#: src/tutorials/reports-and-pdf.md:48
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:48
+#: src/tutorials/reports-and-pdf.md:49
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -3218,19 +3218,17 @@ msgstr ""
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
-"blocks that the project leaves empty, and on the panel layout 902 a legend "
-"with more rows than its table holds and texts longer than their cells. They "
-"do not stop the export. The directory of `--out` must exist, which is why "
-"you made `out` first."
+"blocks that the project leaves empty. They do not stop the export. The "
+"directory of `--out` must exist, which is why you made `out` first."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:97
+#: src/how-to/headless-workflow.md:96
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the drawn pages 101 to 105:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:106
+#: src/how-to/headless-workflow.md:105
 msgid ""
 "The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
 "folio labels of the project. `ew` replaces the directory as a whole, so it "
@@ -3238,7 +3236,7 @@ msgid ""
 "it."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:109
+#: src/how-to/headless-workflow.md:108
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -3246,20 +3244,20 @@ msgid ""
 "changes the speed and never the result."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:113
+#: src/how-to/headless-workflow.md:112
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:114
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:124
+#: src/how-to/headless-workflow.md:123
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:134
+#: src/how-to/headless-workflow.md:133
 msgid ""
 "The supply cable `-101W1` comes in from outside the cabinet, so it has no "
 "From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
@@ -3268,7 +3266,7 @@ msgid ""
 "each cable, one row per core."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:138
+#: src/how-to/headless-workflow.md:137
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -3276,17 +3274,17 @@ msgid ""
 "so the CSV equals what the drawing prints."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:142
+#: src/how-to/headless-workflow.md:141
 msgid "Step 4: ask the project questions with SQL"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:144
+#: src/how-to/headless-workflow.md:143
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:145
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -3296,14 +3294,14 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:153
+#: src/how-to/headless-workflow.md:152
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
 "lengths come from:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:156
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -3316,18 +3314,18 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:165
+#: src/how-to/headless-workflow.md:164
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
 "the exit code is 2."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:168
+#: src/how-to/headless-workflow.md:167
 msgid "What you have done"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:169
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -3336,24 +3334,24 @@ msgid ""
 "display."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:173
 msgid "Where to go next"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:175
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:177
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:179
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -3716,9 +3714,9 @@ msgstr ""
 
 #: src/how-to/panel-layout.md:71
 msgid ""
-"**Follow reference** (`F`) on a device's tag or balloon goes to its row on "
-"the legend page, and on a row's tag back to the device on the layout; in an "
-"exported PDF a click does the same."
+"**Follow reference** (`F`) over a device, its tag or its balloon, or with "
+"the device selected, goes to its row on the legend page; a click on a row's "
+"tag goes back to the device on the layout, in an exported PDF too."
 msgstr ""
 
 #: src/how-to/panel-layout.md:73

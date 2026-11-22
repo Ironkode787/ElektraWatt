@@ -430,7 +430,7 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
             Vec::new()
         },
         show: view.show,
-        linked: (parts.placements || parts.labels) && !legend_blocks(q, surface.id).is_empty(),
+        linked: parts.placements && !legend_blocks(q, surface.id).is_empty(),
     })
 }
 

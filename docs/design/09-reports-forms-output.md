@@ -182,7 +182,7 @@ folio instead). **What an older build shows:** a page block of kind `enclosure_l
 embedded page only, so no rows and, by `empty`'s default, no pages: the legend page is not there, nothing else
 changes, and the build keeps `layout_page` as an unknown member and writes it back. A legend list's rows link both
 ways ([12](12-panel-layout.md) §5.4): the tag of a device's row to its footprint on the layout (`LinkTarget::Placement`),
-and the row is where the device's label links to.
+and the row is where Follow reference from the device lands.
 
 **Encodings and deferred members**:
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or

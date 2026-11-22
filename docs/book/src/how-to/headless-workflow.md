@@ -85,13 +85,12 @@ cross-reference links:
 
 ```console
 $ ew export pdf fixtures/sample/sample.ew --out out/sample.pdf
-PDF written to out/sample.pdf: 27 pages, 160 links
-225 page findings: 204 empty fields in a frame or title block, 1 table with more rows than fit, 20 texts too long for their cells
+PDF written to out/sample.pdf: 29 pages, 187 links
+218 page findings: 218 empty fields in a frame or title block
 ```
 
 The second line, on the standard error stream, counts remarks about the rendering of single pages and says what
-they are: here, fields of the title blocks that the project leaves empty, and on the panel layout 902 a legend with
-more rows than its table holds and texts longer than their cells. They do not stop the export. The directory of
+they are: here, fields of the title blocks that the project leaves empty. They do not stop the export. The directory of
 `--out` must exist, which is why you made `out` first.
 
 `ew export svg` writes one SVG file per page into a directory. Use `--pages` to select folios; this writes the drawn

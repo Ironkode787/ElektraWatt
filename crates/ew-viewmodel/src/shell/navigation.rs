@@ -980,26 +980,34 @@ impl ShellModel {
         let Some(c) = self.canvas_of(g) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let index = match (point, c.cursor()) {
-            (Some(at), _) | (None, Some(at)) => c.link_at(at),
-            (None, None) => c.pointer().and_then(|at| c.link_at(at)),
+        let at = match (point, c.cursor()) {
+            (Some(at), _) | (None, Some(at)) => Some(at),
+            (None, None) => c.pointer(),
         };
-        match index {
+        // The device of a panel page under the point (its footprint or its label).
+        let device = at.and_then(|p| {
+            let page = c.page();
+            let (e, _) = crate::canvas::pick(&page.entities, Some(p), 0.0)?;
+            page.panel.as_ref()?.placement(e.0).map(|r| r.id)
+        });
+        match at.and_then(|at| c.link_at(at)) {
             Some(i) => self.follow_link(g, i),
             // The selected coil of a valve's solenoid goes to its valve, as the coil's menu does (a re-test:
             // Follow reference did nothing visible).
             None => match self.selected_coil_valve() {
                 Some(params) => self.dispatch("nav.show", &params),
-                None => self.follow_placement_row(g),
+                None => self.follow_placement_row(g, device),
             },
         }
     }
 
-    /// The one selected device of a panel page goes to its row on its layout's legend page, where its label's link
-    /// goes (doc 12 §5.4); refused without such a device or row.
-    fn follow_placement_row(&mut self, g: usize) -> Outcome {
-        let target = self.selected_placement().and_then(|(_, row)| {
-            let dest = Destination::LegendRow(row.id);
+    /// The device of a panel page under the point (`device`), else the one selected, goes to its row on its layout's
+    /// legend page (doc 12 §5.4: its labels link nowhere, so that a click on one selects and drags it); refused without
+    /// such a device or row.
+    fn follow_placement_row(&mut self, g: usize, device: Option<ew_api::output::Uuid>) -> Outcome {
+        let device = device.or_else(|| self.selected_placement().map(|(_, row)| row.id));
+        let target = device.and_then(|id| {
+            let dest = Destination::LegendRow(id);
             self.project_session()?.link_targets(&[dest]).pop().flatten()
         });
         match target {

@@ -1646,7 +1646,7 @@ fn capitalised(s: &str) -> String {
 /// - `MainRep(d)`: the device's main representation, when it has one;
 /// - `Rep(r)`: the representation, when it exists;
 /// - `Placement(p)`: the device's footprint on the first panel page that shows its surface; the row is then also where
-///   the device's label links to (`Destination::LegendRow`), on its first printed cell without a link of its own
+///   Follow reference from the device lands (`Destination::LegendRow`), on its first printed cell without a link of its own
 ///   (doc 12 §5.4).
 ///
 /// A link with an `item` covers that page's printed span of a `Folios` cell ([`folios_printed`], the function the
@@ -1782,7 +1782,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                     Some(TableLink { column, ..l })
                 })
                 .collect();
-            // A row that links to a placement is where that device's label links to (doc 12 §5.4): its first
+            // A row that links to a placement is where Follow reference from that device lands (doc 12 §5.4): its first
             // printed cell without a link of its own.
             let placement = r.links.iter().find_map(|l| match l.target {
                 LinkTarget::Placement(p) => Some(p),

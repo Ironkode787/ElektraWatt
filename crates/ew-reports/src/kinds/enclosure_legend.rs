@@ -19,7 +19,7 @@ use crate::rowset::{
 /// the placements by designation, then one row per end-bracket part (the designation empty, the number of derived
 /// brackets as the quantity; row ID `entity(surface)` then the part copy and its variant, source the part copy);
 /// positions 1 … n. A placement's row links its tag to the placement ([`LinkTarget::Placement`]): to the device on the
-/// layout, and back from its label to the row (doc 12 §5.4).
+/// layout, and back from the device to the row by Follow reference (doc 12 §5.4).
 ///
 /// A block on no page, or on a page without a surface view, has no rows.
 ///

@@ -53,8 +53,8 @@
 //!
 //! With [`LabelShow::TagsOrNumbers`] (doc 12 §5.3) a label is its tag where step 1 or 2 places it, else the item
 //! number's balloon. With [`PanelView::linked`] (the surface has a legend page, doc 12 §5.4) each footprint is the
-//! target of its placement's [`Destination::Placement`] and each part of its label links to
-//! [`Destination::LegendRow`].
+//! target of its placement's [`Destination::Placement`], where its legend row's link lands. The labels link nowhere:
+//! a click on a label selects and drags its device, and Follow reference goes from the device to its row.
 //!
 //! # The knockout
 //!
@@ -200,8 +200,7 @@ pub struct PanelView {
     /// What each placement is labelled with.
     pub show: LabelShow,
     /// Whether the surface has a legend page (doc 12 §5.4): each footprint is then the target of
-    /// [`Destination::Placement`](ew_dl::Destination::Placement) and each label links to the placement's row there
-    /// ([`Destination::LegendRow`](ew_dl::Destination::LegendRow)); without one nothing links.
+    /// [`Destination::Placement`](ew_dl::Destination::Placement), where its legend row links to; without one nothing is.
     pub linked: bool,
 }
 
@@ -1017,23 +1016,15 @@ impl Builder<'_> {
         let Some(panel) = &view.panel else { return };
         for o in self.placed_labels(panel, true) {
             let (l, entity) = (&o.placed, o.entity);
-            // With a legend page, every part of the label goes to the placement's row there (doc 12 §5.4).
-            let link = panel
-                .linked
-                .then_some(Link::Source(Destination::LegendRow(entity.0)));
-            let linked = |item: Item| match link {
-                Some(k) => item.with_link(k),
-                None => item,
-            };
             if let Some((a, b)) = l.leader {
-                self.push(linked(
+                self.push(
                     Item::path(Path::line(a, b), Some(Stroke::pen(Pen::P013)), None).with_entity(entity),
-                ));
+                );
             }
             if let (Some((c, r)), Some((number, shaped))) = (l.balloon, &o.number) {
-                self.push(linked(
+                self.push(
                     Item::path(Path::circle(c, r), Some(Stroke::pen(Pen::P018)), None).with_entity(entity),
-                ));
+                );
                 self.text_shaped(
                     &TextSpec {
                         text: number,
@@ -1042,7 +1033,7 @@ impl Builder<'_> {
                         align: &Align::Centre,
                         style_key: LAYOUT_LABEL_STYLE,
                         entity,
-                        link,
+                        link: None,
                         items: &[],
                     },
                     &o.style,
@@ -1057,7 +1048,7 @@ impl Builder<'_> {
                     align: &l.align,
                     style_key: LAYOUT_LABEL_STYLE,
                     entity,
-                    link,
+                    link: None,
                     items: &[],
                 },
                 &o.style,

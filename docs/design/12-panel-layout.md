@@ -692,11 +692,12 @@ page deletes its legend list.
 - **A layout made before keeps its datum and its scale as stored** (§5.1). To give such a page the whole sheet once
   its legend has gone, a person sets its Scale row (Page properties) to the ratio the plate fits the sheet at and its
   Surface view's Datum row to where the plate stands in the middle (a re-fit of an existing view is not built).
-- **From the drawing to the row and back** (the cross-references' links, 09 §4.2). On a layout whose surface has a
-  legend page, a device's label (its tag, its balloon, its leader) links to the device's row on the legend page, and
-  the row's tag links to the device's footprint on the layout: Follow reference (F) goes either way, as a click in the
-  exported PDF does; F with one device selected and no link under the pointer goes to its row. A layout without a
-  legend page draws these links not at all, so its drawing is unchanged.
+- **From the drawing to the row and back** (the cross-references' links and their resolution, 09 §4.2). A row's tag
+  on the legend page links to the device's footprint on the layout, which is that link's target (`ew:pl`), so a click
+  on it goes there, in the window and in the exported PDF. Back, Follow reference (F) over a device or its tag or
+  balloon on the layout, or with the device selected, goes to its row (the row is the target `ew:lr`). The labels
+  themselves are no links: on an editable page a click on a link follows it, and a click on a label must select and
+  drag its device. A layout without a legend page draws no target, so its drawing is unchanged.
 - **What it does not do.** A legend page for two layout pages of one surface (the first in page order gets the
   links); a legend page of a page of another kind; rows in any order but `layout_legend`'s (the positions are the
   balloons' numbers); wrapping a description on the list page (a list's cells do not wrap, 09 §3.8: the column takes

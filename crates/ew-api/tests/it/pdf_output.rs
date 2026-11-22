@@ -287,16 +287,10 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
     );
     let rows = report_row_link_count(&views);
     assert!(xref_items > 0 && rows > 0);
-    // The layout 902's labels (tags, balloons, their numbers and leaders) link to their rows on its legend page.
-    let labels = drawn
-        .iter()
-        .filter(|d| matches!(d, Destination::LegendRow(_)))
-        .count();
-    assert!(labels > 0);
     assert_eq!(
         drawn.len(),
-        xref_items + plc_rows + rows + labels,
-        "{xref_items} cross-reference items, {plc_rows} PLC rows, {rows} report rows, {labels} layout labels"
+        xref_items + plc_rows + rows,
+        "{xref_items} cross-reference items, {plc_rows} PLC rows, {rows} report rows"
     );
 
     assert!(
