@@ -1295,8 +1295,8 @@ impl PropertiesPane {
             galley,
             colour.color32(),
         );
-        // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
-        // value's whole text.
+        // The tooltip: the chip's whole text over the chip, else a long value's whole text, a read-only value's reason
+        // under it (a persona run read a cut Frames summary whose tooltip held the reason alone).
         let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.to_owned());
         let tip = if on_chip {
             Some(p.chip.to_owned())
@@ -1308,7 +1308,10 @@ impl PropertiesPane {
             // chooser's secondary line, is the tooltip.
             Some(reference)
         } else if !editable && !header {
-            p.reason.clone().or(long)
+            match (long, p.reason.clone()) {
+                (Some(long), Some(reason)) => Some(format!("{long}\n\n{reason}")),
+                (long, reason) => reason.or(long),
+            }
         } else {
             long
         };

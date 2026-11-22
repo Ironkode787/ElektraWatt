@@ -306,6 +306,34 @@ fn typing_over_a_pre_filled_field_replaces_it() {
     assert_eq!(folio, "999");
 }
 
+/// A read-only value cut in its cell shows whole in its tooltip, its reason under it (a persona run read the
+/// project's Frames summary cut after "Title page: Frame QE…", and its tooltip held the reason alone).
+#[test]
+fn a_cut_read_only_value_shows_whole_in_its_tooltip() {
+    let tmp = Tmp::new();
+    let mut h = support::on_sample(&tmp, "101");
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    dispatch(&mut h, "props.project", json!({}));
+    dispatch(&mut h, "props.show_advanced", json!({"on": true}));
+    dispatch(&mut h, "props.filter", json!({"text": "frame"}));
+    settle(&mut h);
+    // A label's text is its node's value.
+    let cell = h
+        .get_all_by_role(egui::Role::Label)
+        .find(|n| n.accesskit_node().value().is_some_and(|l| l.starts_with("Default: ")))
+        .expect("the Frames row's value");
+    let value = cell.accesskit_node().value().unwrap_or_default();
+    cell.hover();
+    h.run_steps(40);
+    let whole = format!("{value}\n\n");
+    assert!(
+        h.query_all_by(move |n| n.value().is_some_and(|l| l.starts_with(&whole)))
+            .next()
+            .is_some(),
+        "the whole value, the reason under it, in the tooltip"
+    );
+}
+
 /// A configuration project's Address profile row reads the chosen profile's name, never its
 /// reference; hovered, its tooltip is the reference, the chooser's secondary line.
 #[test]

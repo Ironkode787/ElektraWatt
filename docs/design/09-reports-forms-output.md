@@ -847,7 +847,10 @@ for the lists' frame on a list page and found no way to change it). So does ever
 the way to where it is changed: the printed columns, the caption and the legend line List columns… on the Output tab,
 the rows of one's own Rows of your own…, any other row Show report block (the list's block selected in Properties,
 where its rows are edited). The frame defaults keep no entry for report pages
-(EW-INV-012): a list's frame stays its block's Form.
+(EW-INV-012): a list's frame stays its block's Form. The generated table of contents is a list and follows Frame of the
+lists; a section divider is no list and keeps the frame defaults' entry. The toast and the help of the project's Frames
+row say so (a persona re-test set the lists' frame and read the Frames row's Table of contents entry unchanged): that
+entry frames a contents page drawn by hand.
 
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its

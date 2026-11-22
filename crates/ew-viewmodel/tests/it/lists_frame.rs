@@ -71,6 +71,38 @@ fn a_lists_form_row_points_to_frame_of_the_lists_which_sets_every_list() {
     );
 }
 
+/// The generated table of contents is a list: Frame of the lists frames it too, and the toast says so beside the
+/// frames of the drawn pages, which stay (a persona re-test set it and read the Frames row's "Table of contents"
+/// entry unchanged). The sample's contents on page 2.
+#[test]
+fn frame_of_the_lists_frames_the_table_of_contents_too() {
+    let tmp = Tmp::new("lists-frame-toc");
+    let mut s = tmp.sample_in(Mode::Headless, true, "2");
+    done(&mut s, "props.show", json!({"on": true}));
+    let before = text_of(&s, FORM).expect("the contents' Form row");
+    done(&mut s, "props.project", json!({}));
+    done(&mut s, "props.edit", json!({"row": ROW}));
+    let other = s
+        .properties()
+        .choices()
+        .expect("the project's forms")
+        .items
+        .iter()
+        .map(|(name, _)| name.clone())
+        .find(|name| *name != before)
+        .expect("a second form");
+    done(&mut s, "props.set", json!({"row": ROW, "value": other}));
+    assert_eq!(
+        toast(&s),
+        format!(
+            "Every list of the project, the table of contents among them, now prints on {other}; the frames of the \
+             drawn pages and the section dividers stay as they were."
+        )
+    );
+    done(&mut s, "select.set", json!({"ids": []}));
+    assert_eq!(text_of(&s, FORM), Some(other), "the contents print on it");
+}
+
 /// A name that is no form of the project is refused in words, as on a list's own Form row.
 #[test]
 fn frame_of_the_lists_refuses_a_name_it_does_not_hold() {
