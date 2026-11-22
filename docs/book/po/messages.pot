@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-22T22:47:58+01:00\n"
+"POT-Creation-Date: 2026-11-22T23:28:44+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4019,8 +4019,9 @@ msgstr ""
 msgid ""
 "Double-click its head in the **Catalogue** at the right: the CPU, the "
 "interface module of a remote station, the valve terminal. **New part…** "
-"under the catalogue opens the part editor set for that kind, and the part "
-"you save is the head when you come back."
+"under the catalogue opens the part editor set for that kind; the part you "
+"save is in the catalogue when you come back, and it is the head when you "
+"clicked the empty **Head** first."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:65
@@ -4153,121 +4154,122 @@ msgid ""
 "Click a card or a row: the module is selected as a click on a page selects a "
 "device. Properties shows it, and the buttons above the rack act on it: "
 "**Replace** (the parts that fit its slot), **Remove**, **Draw on page**, "
-"**Go to page**, **Move left** and **Move right**. A right click gives the "
-"same commands. `Delete` empties the slot, and the arrow keys go from slot to "
-"slot."
+"**Move to page** (a drawn card's box onto another schematic page, the same "
+"card; a card with a wire to something left behind is refused), **Go to "
+"page**, **Move left** and **Move right**. A right click gives the same "
+"commands. `Delete` empties the slot, and the arrow keys go from slot to slot."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:120
+#: src/how-to/plc-workspace.md:121
 msgid ""
 "Double-click a part in the catalogue to put it into the selected free slot, "
 "else into the first free one; or drag it onto a slot. Dropped on a module, "
 "it replaces that module's part."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:122
+#: src/how-to/plc-workspace.md:123
 msgid ""
 "Drag a card onto a free slot to move it there, or onto another module to "
 "make the two change places. The addresses follow, and a line under the rack "
 "says so."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:124
+#: src/how-to/plc-workspace.md:125
 msgid ""
 "A slot the module's part does not allow is refused: the slot is outlined in "
 "red and the reason stands under the rack."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:126
+#: src/how-to/plc-workspace.md:127
 msgid ""
 "A valve terminal's positions are places like slots: select one and "
 "double-click a valve in the catalogue, or **Remove** to empty it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:129
+#: src/how-to/plc-workspace.md:130
 msgid "Every step is one Undo."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:131
+#: src/how-to/plc-workspace.md:132
 msgid "Put a module into a station"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:133
+#: src/how-to/plc-workspace.md:134
 msgid ""
 "A module drawn on a page by itself (from the device browser or the black "
 "box) joins the project's only station, and its toast names the slot it got, "
 "with **Rack…**, which opens the station's rack."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:135
+#: src/how-to/plc-workspace.md:136
 msgid ""
 "With two stations it joins the one drawn beside it on its page; on a page "
 "without one, a window asks which station takes it. Without any station, its "
 "toast offers **New station…**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:137
+#: src/how-to/plc-workspace.md:138
 msgid ""
 "A module that waits is listed under **Modules without a station** in the PLC "
 "panel: drag its row onto the station's row, or right-click the station and "
 "choose **Attach modules without a station**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:140
+#: src/how-to/plc-workspace.md:141
 msgid ""
 "Only a module goes into a rack: a device whose part has no PLC data is "
 "refused in words."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:142
+#: src/how-to/plc-workspace.md:143
 msgid "Wire a field device to a channel"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:144
+#: src/how-to/plc-workspace.md:145
 msgid ""
 "Draw the device (a sensor, a lamp, a coil) on the page beside the module's "
 "box."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:145
+#: src/how-to/plc-workspace.md:146
 msgid ""
 "Choose **Draw ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is "
 "channel 0."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:146
+#: src/how-to/plc-workspace.md:147
 msgid ""
 "Or drag a channel's row from the PLC panel onto the device's connection "
 "point: the device is attached to the module and the channel bound to it in "
 "one step, which one Undo takes back."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:149
+#: src/how-to/plc-workspace.md:150
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:151
+#: src/how-to/plc-workspace.md:152
 msgid ""
 "A channel's address comes from its module's slot and the modules before it: "
 "the first input module of a station starts at I0.0, the first output module "
 "at Q0.0."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:153
+#: src/how-to/plc-workspace.md:154
 msgid ""
 "To give one channel another address, type it into its **Address** cell in "
 "the PLC grid; it keeps it, with the badge **manual** in the panel and a lock "
 "in the grid."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:155
+#: src/how-to/plc-workspace.md:156
 msgid ""
 "Right-click a module and choose **Re-address…** (or the PLC row for all its "
 "modules): the Preview tab lists each channel whose address moves, old and "
 "new; **Apply** makes the change in one step."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:157
+#: src/how-to/plc-workspace.md:158
 msgid ""
 "Right-click the PLC row and choose **Freeze addresses…** to keep every used "
 "or reserved channel's address when modules move later, or **Make manual "
@@ -4275,24 +4277,24 @@ msgid ""
 "ones. The three are also under **Addresses** on the PLC tab."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:161
+#: src/how-to/plc-workspace.md:162
 msgid "The PLC grid and the symbols"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:163
+#: src/how-to/plc-workspace.md:164
 msgid ""
 "Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**). Each row is a "
 "channel."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:164
+#: src/how-to/plc-workspace.md:165
 msgid ""
 "Click a cell and type: the designation, address, symbol, state, target, "
 "comment, data type or signal range. The slot cell takes a number or "
 "`<rack>.<slot>`."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:166
+#: src/how-to/plc-workspace.md:167
 msgid ""
 "Type into the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -4300,40 +4302,40 @@ msgid ""
 "header sorts by it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:169
+#: src/how-to/plc-workspace.md:170
 msgid ""
 "To have EW write the symbols, right-click the PLC row and choose **Symbol "
 "policy…**: the template of the automatic symbol, the PLC tag table and "
 "whether symbols must be strict IEC 61131-3 names."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:172
+#: src/how-to/plc-workspace.md:173
 msgid "Give a bus device to a PLC"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:174
+#: src/how-to/plc-workspace.md:175
 msgid ""
 "On a bus-topology page, a schematic page or in the Bus panel, right-click a "
 "bus device that belongs to no PLC."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:175
+#: src/how-to/plc-workspace.md:176
 msgid ""
 "Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station "
 "of that PLC and its rack opens in a tab."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:178
+#: src/how-to/plc-workspace.md:179
 msgid ""
 "A switch or a plug takes no part in a PLC; its menu says why. A station's "
 "menu says **PLC:** and its PLC's name."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:180
+#: src/how-to/plc-workspace.md:181
 msgid "Bus ports and nets"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:182
+#: src/how-to/plc-workspace.md:183
 msgid ""
 "A bus-topology page is the network view: each device stands as one box per "
 "bus interface (PROFINET X1, PROFIBUS DP), with a connection point per "
@@ -4341,13 +4343,13 @@ msgid ""
 "I/O pins stay on the schematic pages."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:186
+#: src/how-to/plc-workspace.md:187
 msgid ""
 "Choose **New bus page** on the PLC tab: the new-page form opens with the "
 "type **Bus topology**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:187
+#: src/how-to/plc-workspace.md:188
 msgid ""
 "Place a station or another bus device from the device browser (**Draw ▸ "
 "Place ▸ Device from part…**) with two clicks for its box: it stands there as "
@@ -4355,7 +4357,7 @@ msgid ""
 "the page)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:190
+#: src/how-to/plc-workspace.md:191
 msgid ""
 "A station or bus device the project has already (drawn on a schematic page, "
 "or made with **New station**) goes onto the bus page with **Put a station on "
@@ -4370,13 +4372,13 @@ msgid ""
 "page draws yet."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:197
+#: src/how-to/plc-workspace.md:198
 msgid ""
 "Draw the bus lines with **Draw ▸ Wire**: the ports become one network, named "
 "for its bus, with the CPU's port as its controller or master."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:199
+#: src/how-to/plc-workspace.md:200
 msgid ""
 "Choose **Bus panel** on the PLC tab and switch it to its table. Type each "
 "node's address into its **Address** cell as the cell says: a PROFIBUS DP "
@@ -4385,7 +4387,7 @@ msgid ""
 "through and takes none."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:202
+#: src/how-to/plc-workspace.md:203
 msgid ""
 "Select a bus line and choose **Cable** on the Draw tab: choose the cable "
 "(the ones made for that bus first), its length and the plug at each end with "
@@ -4393,7 +4395,7 @@ msgid ""
 "and the plugs go into the parts list."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:206
+#: src/how-to/plc-workspace.md:207
 msgid ""
 "The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O "
 "head, an unmanaged and a managed switch, a PROFINET device, PROFIBUS and "
@@ -4401,11 +4403,11 @@ msgid ""
 "in the part editor: see [Make your own PLC or bus part](own-parts.md)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:210
+#: src/how-to/plc-workspace.md:211
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:212
+#: src/how-to/plc-workspace.md:213
 msgid ""
 "Choose **Export to PLC** on the PLC tab (**PLC ▸ Export to PLC software…**) "
 "and pick the format: **AutomationML AR APC 1.4.0** (or 1.2.0) carries the "
@@ -4414,7 +4416,7 @@ msgid ""
 "CODESYS. Choose **Export**, then the file."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:215
+#: src/how-to/plc-workspace.md:216
 msgid ""
 "Choose **Import from PLC** on the PLC tab (**PLC ▸ Import from PLC "
 "software…**) for the file the PLC software wrote back. Look through its "
@@ -4422,42 +4424,42 @@ msgid ""
 "value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:218
+#: src/how-to/plc-workspace.md:219
 msgid ""
 "After an import, what the PLC software owns (the module starts, the symbols "
 "or the PLC data) is protected: right-click the PLC row and choose **Unlock "
 "module starts** (or the other group) to edit it here again."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:220
+#: src/how-to/plc-workspace.md:221
 msgid ""
 "Right-click the PLC row and choose **Import instrument list…** for a list of "
 "process tags and signal types (CSV or workbook): the Preview tab lists the "
 "spare channels it reserves."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:223
+#: src/how-to/plc-workspace.md:224
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:225
+#: src/how-to/plc-workspace.md:226
 msgid "**Process-tag scheme** on the PLC tab: the pattern process tags follow."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:226
+#: src/how-to/plc-workspace.md:227
 msgid ""
 "**Addresses at terminals** on the PLC tab: each channel's address printed at "
 "the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:227
+#: src/how-to/plc-workspace.md:228
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-addresses and "
 "F-watchdog time; right-click a channel and choose **Mode and safety…** for a "
 "multi-function port's mode and the channel's safety data."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:230
+#: src/how-to/plc-workspace.md:231
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md) (PLC, PLC grid, Bus), and the "
