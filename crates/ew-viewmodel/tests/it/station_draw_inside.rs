@@ -30,5 +30,17 @@ fn a_cpu_drawn_on_a_full_page_stands_inside_its_drawing_area() {
             "the box {:?} stands inside the drawing area {area:?}",
             outline
         );
+        // Nor across a wire the page drew before it (the 0 V and 24 V lines run under the cards).
+        let (x0, x1) = (outline.iter().map(|p| p.0).min().unwrap(), outline.iter().map(|p| p.0).max().unwrap());
+        let (y0, y1) = (outline.iter().map(|p| p.1).min().unwrap(), bottom);
+        for wire in &page.tables.connections {
+            for s in wire.polyline.windows(2) {
+                let across = s[0].0.min(s[1].0) <= x1
+                    && x0 <= s[0].0.max(s[1].0)
+                    && s[0].1.min(s[1].1) <= y1
+                    && y0 <= s[0].1.max(s[1].1);
+                assert!(!across, "the box {outline:?} stands across the wire {:?}", wire.polyline);
+            }
+        }
     }
 }

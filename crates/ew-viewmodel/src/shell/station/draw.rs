@@ -267,6 +267,23 @@ impl ShellModel {
         // Each box that waited takes the first place that keeps a gap from what the page draws and what is drawn now,
         // from the line two gaps under the frame's head, each line from the left, as a card of outputs does; else it
         // waits for another page.
+        // The wires the page draws, which such a box keeps off as well (a CPU standing across the 0 V line).
+        let wires: Vec<[(i64, i64); 2]> = self
+            .canvas()
+            .map(|c| {
+                c.page()
+                    .tables
+                    .connections
+                    .iter()
+                    .flat_map(|w| w.polyline.windows(2).map(|s| [s[0], s[1]]))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let crosses = |r: [i64; 4]| {
+            wires.iter().any(|[a, b]| {
+                a.0.min(b.0) <= r[2] && r[0] <= a.0.max(b.0) && a.1.min(b.1) <= r[3] && r[1] <= a.1.max(b.1)
+            })
+        };
         for i in over {
             let (device, Piece::Plain(cps), _) = &pieces[i] else {
                 continue;
@@ -284,7 +301,7 @@ impl ShellModel {
                     if rect[3] > foot {
                         break 'lines;
                     }
-                    if rect[2] <= right && clear(rect, &rects) {
+                    if rect[2] <= right && clear(rect, &rects) && !crosses(rect) {
                         placed = Some((json, rect));
                         break 'lines;
                     }
