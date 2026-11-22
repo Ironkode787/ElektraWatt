@@ -298,6 +298,9 @@ pub enum CardOrigin {
         lead: String,
         /// The devices drawn also on pages not copied, the frozen tags cleared, the names whose points continue.
         rows: Vec<String>,
+        /// The bus devices of the copy, whose copies need a bus line and an address of their own (the toast after Apply
+        /// says so too).
+        bus: Vec<String>,
     },
 }
 

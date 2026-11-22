@@ -266,6 +266,12 @@ impl ShellModel {
                 &[&titles.join("; ")],
             ));
         }
+        if !plan.bus_devices.is_empty() {
+            rows.push(strings::format(
+                key!("page-copy-bus"),
+                &[&plan.bus_devices.join(", ")],
+            ));
+        }
         if !plan.texts_left.is_empty() {
             rows.push(strings::format(
                 key!("page-copy-texts-left"),
@@ -288,16 +294,20 @@ impl ShellModel {
             &plan.command.name,
             plan.command.params,
             key!("reason-bulk"),
-            CardOrigin::PageCopy { lead, rows },
+            CardOrigin::PageCopy {
+                lead,
+                rows,
+                bus: plan.bus_devices,
+            },
         ))
     }
 
-    /// The toast of a copy of pages' Apply, read from its card before the commit: the new pages' folios; `None` for
-    /// another card.
+    /// The toast of a copy of pages' Apply, read from its card before the commit: the new pages' folios, and what the
+    /// copies of bus devices still need (a bus line, an address); `None` for another card.
     pub(super) fn page_copy_toast(&self, card: &Card) -> Option<String> {
-        if !matches!(card.origin, CardOrigin::PageCopy { .. }) {
+        let CardOrigin::PageCopy { bus, .. } = &card.origin else {
             return None;
-        }
+        };
         let preview = card.preview.result.as_ref().ok()?;
         let rows = self.page_rows();
         let new: Vec<String> = self
@@ -307,12 +317,20 @@ impl ShellModel {
             .filter(|(id, _)| !rows.iter().any(|r| r.id == *id))
             .map(|(_, folio)| folio)
             .collect();
-        Some(match new.as_slice() {
+        let copied = match new.as_slice() {
             [one] => strings::format(key!("toast-pages-copied-one"), &[one]),
             _ => strings::format(
                 key!("toast-pages-copied"),
                 &[&new.len().to_string(), &new.join(", ")],
             ),
+        };
+        Some(if bus.is_empty() {
+            copied
+        } else {
+            format!(
+                "{copied} {}",
+                strings::format(key!("toast-pages-copied-bus"), &[&bus.join(", ")])
+            )
         })
     }
 }

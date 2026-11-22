@@ -864,7 +864,9 @@ pasted by `edit.paste`'s engine with the pages' positions kept: no second machin
   text, text to change 2", "Remove text to change 2" (FT-1965; Save as macro…'s rows read "value set 2").
 
 The Preview card names the new pages and tags and what the copy leaves out; Apply makes the copy, one undo step, and a
-toast names the new folios. A script runs `pages.copy {pages, offset | after, node, code, rename: {old: new}}`; the
+toast names the new folios. A copied bus device (a valve terminal's bus node, a PLC station) joins no bus and takes no
+address of its own: the card lists the bus devices, and the toast says to draw their bus line and give each its address
+(a persona run's copied valve terminal joined the PLC and no finding said what it still lacked). A script runs `pages.copy {pages, offset | after, node, code, rename: {old: new}}`; the
 command it commits is `page.copy` (`CopyPages`), whose parameters are the pages as a fragment (built by
 `Session::copy_pages`) and the rule, so a command log replays it exactly.
 

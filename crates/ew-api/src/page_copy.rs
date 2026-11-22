@@ -65,6 +65,9 @@ pub struct PageCopyPlan {
     pub texts_left: Vec<String>,
     /// The page titles the rename changes, each old and new, in page order.
     pub titles: Vec<(String, String)>,
+    /// The bus devices of the copy (a valve terminal's bus node, a PLC station), by their tags in natural order: their
+    /// copies join no bus and take no address of their own until a person gives them one.
+    pub bus_devices: Vec<String>,
 }
 
 /// The refusal of `page.copy` at `at`.
@@ -223,6 +226,19 @@ impl Session {
             .map(|p| (shown(&p.title), shown(&renamed_mltext(&p.title, &rename))))
             .filter(|(old, new)| old != new)
             .collect();
+        // The devices whose functions carry a bus port: the copy needs its bus line and its address (a persona run's
+        // copied valve terminal joined the PLC and nothing said what it still lacked).
+        let bus_devices = sorted(
+            fragment
+                .records
+                .iter()
+                .filter(|r| r.get("$k").and_then(Value::as_str) == Some(Kind::Function.name()))
+                .filter(|r| r.get("bus_port").is_some_and(|p| !p.is_null()))
+                .filter_map(|r| r.get("device")?.as_str()?.parse::<Uuid>().ok())
+                .map(|d| short_tag(&q, Id::from_uuid(d)))
+                .filter(|t| !t.is_empty())
+                .collect(),
+        );
         let (offset, after) = match spec.folios {
             CopyFolios::Offset(n) => (Some(n), None),
             CopyFolios::After(p) => (None, Some(Id::from_uuid(p))),
@@ -242,6 +258,7 @@ impl Session {
             texts_named,
             texts_left: sorted(texts_left),
             titles,
+            bus_devices,
         })
     }
 }
