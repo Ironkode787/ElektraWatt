@@ -2686,6 +2686,7 @@ report-kind-device-list = Device list
 report-kind-terminal-diagram = Terminal diagram
 report-kind-terminal-overview = Terminal overview
 report-kind-cable-overview-diagrams = Cable overview and diagrams
+report-kind-cable-overview-diagrams-words = cable list, cable diagram, cable plan
 report-kind-wire-list = Wire list
 report-kind-plc-overview = PLC overview
 report-kind-io-list = I/O list

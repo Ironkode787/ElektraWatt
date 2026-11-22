@@ -826,6 +826,12 @@ Output ▸ Parts list, the one list with a button of its own, opens the set's pa
 says so ("Opened the set's parts list on page 901; it makes no second one. Report… on the Output tab adds another
 list.", a persona re-test pressed it twice and could not tell).
 
+**The form's Report field.** Report block… offers the parts list first, as the Output tab leads with its Parts list,
+and opens on it; the other kinds follow by their names (it opened on "Bus cable list", the first of the alphabet, a
+persona re-test). A kind may carry search words beside its name (`report-kind-<kind>-words`: "cable list" for Cable
+overview and diagrams): the command search finds Report block… by them, and Report block… found by a list's name or
+search words rather than its own opens its form on that list.
+
 **The Form row.** A page's and a report block's Form row in Properties is a choice of the project's forms (every held
 form but a title block and a label), by name: a starter form by its kind and its key in words ("Frame QET A4 landscape
 nogrid"), a form of the project's own, which carries no name, by its kind, its paper and the pages that print on it

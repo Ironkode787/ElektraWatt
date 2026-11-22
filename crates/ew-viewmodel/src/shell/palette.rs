@@ -117,6 +117,18 @@ impl ShellModel {
         }
     }
 
+    /// The report kind the palette's query finds Report block… by, when it finds it by a list's name or search words
+    /// better than by its own label and aliases ("cable list": the cable overview; "report": none).
+    fn report_kind_searched(&self) -> Option<&'static str> {
+        let query = self.palette.as_ref().map(|p| p.query.as_str()).unwrap_or("");
+        let (_, rest) = split_prefix(query);
+        let meta = actions::find("report_block.new")?;
+        let label = strings::text(Key::run_time(&meta.label_key()));
+        let own = rank(rest, label, glossary::aliases_of(meta.id), meta.id, 0, true);
+        let (found, kind) = super::creation::report_kind_found(rest, 0, true)?;
+        (own.is_none_or(|own| found > own)).then_some(kind)
+    }
+
     /// The listable actions that pass `keep`, ranked; `recents` puts the recent ones first for an empty query; with
     /// `panels` and a query, the left rail's panels rank among them by their names (FT-927: "PLC" found nothing, the
     /// panel being reachable only by its icon and View ▸ Navigators).
@@ -148,17 +160,10 @@ impl ShellModel {
                 state.is_ok(),
             );
             // Report block… is found by the name of each list it makes ("tube list", "PLC card list"), weighed as
-            // an ID is, below a label or an alias of the same match (so "PLC" still finds the PLC panel first).
+            // an ID is, below a label or an alias of the same match (so "PLC" still finds the PLC panel first), and by
+            // each list's search words ("cable list").
             let lists = (meta.id == "report_block.new")
-                .then(|| {
-                    super::creation::report_kinds()
-                        .into_iter()
-                        .filter_map(|k| {
-                            let words = super::creation::report_kind_words(k);
-                            rank(query, "", std::iter::empty(), &words, uses, state.is_ok())
-                        })
-                        .max()
-                })
+                .then(|| super::creation::report_kind_found(query, uses, state.is_ok()).map(|(r, _)| r))
                 .flatten();
             let Some(rank) = own.max(lists) else {
                 continue;
@@ -444,9 +449,14 @@ impl ShellModel {
                     }
                     return Outcome::Done;
                 }
+                // Report block… found by a list's name rather than by its own opens its form on that list.
+                let params = (id == "report_block.new")
+                    .then(|| self.report_kind_searched())
+                    .flatten()
+                    .map_or(Value::Null, |kind| json!({ "kind": kind }));
                 self.palette = None;
                 self.recents.note(id);
-                self.dispatch(id, &Value::Null)
+                self.dispatch(id, &params)
             }
             PaletteRun::Page(folio) => {
                 self.palette = None;

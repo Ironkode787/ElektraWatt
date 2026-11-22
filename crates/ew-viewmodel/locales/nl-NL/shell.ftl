@@ -2602,6 +2602,7 @@ report-kind-device-list = Apparatenlijst
 report-kind-terminal-diagram = Klemmenschema
 report-kind-terminal-overview = Klemmenoverzicht
 report-kind-cable-overview-diagrams = Kabeloverzicht en kabelschema's
+report-kind-cable-overview-diagrams-words = kabellijst, kabelschema, kabelplan
 report-kind-wire-list = Draadlijst
 report-kind-plc-overview = PLC-overzicht
 report-kind-io-list = I/O-lijst
