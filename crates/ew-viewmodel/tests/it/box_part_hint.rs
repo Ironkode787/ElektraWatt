@@ -24,6 +24,11 @@ fn placing_a_part_without_a_symbol_says_it_is_drawn_as_a_box() {
         "{}",
         s.tool_hint()
     );
+    // A toast says so as the tool changes: the hint went unread, the first click came before it (a persona run).
+    const SAID: &str = "EW-GEN-PSU-1 has no symbol of its own and is drawn as a box, by the Black box tool: click its \
+                        first corner, then its opposite corner.";
+    let said = |s: &ew_viewmodel::shell::ShellModel| s.notifications().entries().filter(|n| n.text == SAID).count();
+    assert_eq!(said(&s), 1);
     done(&mut s, "ui.dismiss", json!({}));
     done(
         &mut s,
@@ -35,4 +40,5 @@ fn placing_a_part_without_a_symbol_says_it_is_drawn_as_a_box() {
         "{}",
         s.tool_hint()
     );
+    assert_eq!(said(&s), 1, "the Black box tool, where the box was chosen, says nothing");
 }

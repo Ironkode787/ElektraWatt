@@ -582,6 +582,7 @@ hint-ip-external = Klik of { $p0 } om het externe aansluitpunt te plaatsen; typ 
 box-chip-armed = Black box: klik op twee hoeken
 hint-box-armed = Klik op de eerste hoek van het kader en dan op de tegenoverliggende hoek; { $p0 } stopt
 hint-box-part-armed = Dit artikel heeft geen eigen symbool en wordt als kader getekend: klik op de eerste hoek en dan op de tegenoverliggende hoek; { $p0 } stopt
+toast-drawn-as-box = { $p0 } heeft geen eigen symbool en wordt als kader getekend, met het gereedschap Black box: klik op de eerste hoek en dan op de tegenoverliggende hoek.
 hint-box-place = Klik om te plaatsen; { $p0 } stopt
 place-target-click = { $p0 }: klik om te plaatsen
 reason-box-occupied = Hier staat al een kader: klik op een vrije plek
