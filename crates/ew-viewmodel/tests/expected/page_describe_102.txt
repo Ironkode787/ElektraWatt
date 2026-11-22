@@ -59,8 +59,8 @@ page "102" "Control 24 V DC" reps 17 connections 14 junctions 2
   wire "-X1021:8/a" -> "PE" route stored bends 1 via 116.781,171.581 mm at 69.809 171.581 mm
   wire "0V" -> "-X1021:5/a" route stored bends 1 via 69.809,161.143 mm at 46.324 161.143 mm
   wire "24V" -> "-102F1:1" route stored bends 0 at 33.113 35.885 mm
-  wire junction 1 -> "-102S1:13" route stored bends 0 at 85.467 84.162 mm
-  wire junction 2 -> "-102Q1:A1" route stored bends 0 at 85.467 105.038 mm
+  wire junction 1 -> "-102S1:13" route stored bends 0 at 85.467 84.407 mm
+  wire junction 2 -> "-102Q1:A1" route stored bends 0 at 85.467 105.283 mm
   junction 1 cell "102-D4" at 85.467 80.248 mm style bevel wiring chain sequence "-102S2:12" "-102S1:13" "-102Q1:13"
   junction 2 cell "102-E4" at 85.467 101.124 mm style bevel wiring chain sequence "-102S1:14" "-102Q1:A1" "-102Q1:14"
   bridge "BR1" "-X1021:1" "-X1021:2" "-X1021:3" "-X1021:4"

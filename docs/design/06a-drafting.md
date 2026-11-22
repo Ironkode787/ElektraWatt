@@ -552,7 +552,8 @@ corner by a 45° bevel (the size of the pilot's reference set; a whole step read
 after their first step.) It is how a potential that is wired from pin to pin, the usual way in this program, is
 drawn as a rail with drops instead of a staircase of rectangles. A part dropped on a shared run is refused in words ("two wires run here; place the part where they have parted").
 A junction of the bevel form is drawn the same way, and the router sets the way it points from the routes that
-meet at it.
+meet at it; its symbol (`ew.gen.junction-bevel`) is that bevel too, half a step on each leg, so a junction and a
+pin's parting draw one size (it was a quarter step, FT-1898).
 
 **The trunk of a net with two or more taps**, in this order:
 

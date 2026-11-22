@@ -600,3 +600,5 @@ change here.
   thin line between each two channel pins across the box, and in each cell, level, the pin's designation and address
   and under it the channel's function text, made smaller or wrapped to fit the cell; its pin texts read turned a quarter
   before (doc 10 §3.6, FT-1898)
+- behaviour-change: a bevel junction is drawn half a step on each leg, as the bevel where two wires of one pin part; it
+  was a quarter step. An existing project draws its junctions so when this version opens it (doc 06a §3.4, FT-1898)

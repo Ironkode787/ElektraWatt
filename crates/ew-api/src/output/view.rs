@@ -195,9 +195,9 @@ const JUNCTION_BEVEL: &str =
     include_str!("../../../../content/symbols/qet10/ew.gen.junction-bevel@qet10.json");
 
 /// The derivation profile the compiled-in generic symbols belong to: their seals below are part of that
-/// profile's output. Regenerating `content/symbols/qet10` changes a seal, and the seal test then fails until the
-/// new symbols ship with a new derivation profile (ADR-0003: a project's printed output changes only with the
-/// profile it pins).
+/// profile's output. Regenerating `content/symbols/qet10` changes a seal, and the seal test then fails until the seal
+/// here is turned: until 1.0 under the one shipped profile, the change said in the release notes (ADR-0003
+/// amendment 3); from 1.0 with a new profile.
 #[cfg(test)]
 const GENERIC_SYMBOLS_PROFILE: &str = "2027.1";
 
@@ -210,7 +210,7 @@ const GENERIC_SYMBOL_SEALS: [(&str, &str); 2] = [
     ),
     (
         "ew.gen.junction-bevel@qet10",
-        "sha256:cd5dd5c572e2c82ce2a7e401b57782e163f69f80849791b2b989d55c9b18706b",
+        "sha256:1ff672d67bff0c12dd1626c6f96150638f6e232bbecdfde0054a5857b9a49ac4",
     ),
 ];
 
@@ -2001,7 +2001,7 @@ mod tests {
             );
             assert_eq!(
                 own, seal,
-                "{key}: the compiled-in symbol changed; ship it with a new derivation profile"
+                "{key}: the compiled-in symbol changed; turn its seal here and say so in the release notes"
             );
         }
         let newest = ew_derive::shipped_profiles()

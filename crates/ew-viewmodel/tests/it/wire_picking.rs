@@ -82,10 +82,14 @@ fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)
         .iter()
         .map(|j| page.snapper.page_to_sheet(j.at))
         .collect();
+    // A bevel junction's drawing reaches half a step from its point (FT-1898).
+    let step = page.tables.grid.0 / page.tables.grid.1.max(1);
+    let (a, b) = (page.snapper.page_to_sheet((0, 0)), page.snapper.page_to_sheet((step, 0)));
+    let near = (2 * r).max(r + i128::from((b.0 - a.0).abs() / 2));
     samples(line).into_iter().find(|p| {
         !on_body(s, *p)
             && s.canvas().unwrap().link_at(*p).is_none()
-            && junctions.iter().all(|j| segment_dist2(*p, *j, *j) > 4 * r * r)
+            && junctions.iter().all(|j| segment_dist2(*p, *j, *j) > near * near)
             && all
                 .iter()
                 .all(|(e, pts)| *e == own || pts.windows(2).all(|w| segment_dist2(*p, w[0], w[1]) > r * r))
