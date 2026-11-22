@@ -24,8 +24,8 @@
 //! compares with the **newest** final tag whose tree holds the format, among those whose version is not above the
 //! working tree's `[workspace.package].version`, since a release's cut empties the notes. The cut moves the lines to
 //! the notes of the release, `docs/release-notes/<X.Y.Z>.md`, so the guard reads that file of the working tree's
-//! version beside the unreleased notes, and a candidate passes before its final tag exists. A new optional property
-//! and a new kind's schema are additive.
+//! version beside the unreleased notes, and a candidate passes before its final tag exists; a missing line is asked
+//! for in that file once it exists. A new optional property and a new kind's schema are additive.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
@@ -104,13 +104,19 @@ fn guard(root: &Path) -> Result<Report> {
             .unwrap_or_default()
             .replace("\r\n", "\n")
     };
-    // The unreleased notes, and the notes of the working tree's own version: a release's cut moves the lines there.
+    // The unreleased notes, and the notes of the working tree's own version: a release's cut moves the lines there,
+    // so a missing line belongs in that file once it exists.
     let mut notes_after = read(RELEASE_NOTES);
+    let mut notes_file = RELEASE_NOTES.to_owned();
     if let Some((x, y, z)) = tree_version(root) {
+        let own = format!("docs/release-notes/{x}.{y}.{z}.md");
         notes_after.push('\n');
-        notes_after.push_str(&read(&format!("docs/release-notes/{x}.{y}.{z}.md")));
+        notes_after.push_str(&read(&own));
+        if root.join(&own).is_file() {
+            notes_file = own;
+        }
     }
-    let format = format_guard(root, &notes_after)?;
+    let format = format_guard(root, (&notes_after, &notes_file))?;
     let mut lines: Vec<String> = format.changes.iter().map(Change::line).collect();
     let breaking = format.changes.iter().filter(|c| c.breaking).count();
     lines.push(format!(
@@ -241,10 +247,10 @@ struct FormatReport {
 }
 
 /// The `format` surface: each format folder `schemas/<f>/` of the working tree or of a release, against its base, the
-/// oldest final release tag whose tree holds `schemas/<f>/index.json`, with `notes_after` the working tree's release
-/// notes. Without a base the format is not released and nothing is compared. The line check of a new value compares
-/// with the newest such tag whose version is not above the working tree's.
-fn format_guard(root: &Path, notes_after: &str) -> Result<FormatReport> {
+/// oldest final release tag whose tree holds `schemas/<f>/index.json`, with `notes` the working tree's release notes and
+/// the file a missing line belongs in. Without a base the format is not released and nothing is compared. The line
+/// check of a new value compares with the newest such tag whose version is not above the working tree's.
+fn format_guard(root: &Path, notes: (&str, &str)) -> Result<FormatReport> {
     let mut out = FormatReport::default();
     let mut base: BTreeMap<String, String> = BTreeMap::new();
     let mut line_base: BTreeMap<String, String> = BTreeMap::new();
@@ -277,7 +283,7 @@ fn format_guard(root: &Path, notes_after: &str) -> Result<FormatReport> {
                 .push(format!("format {f}: not released; nothing to compare")),
             Some(tag) => {
                 let line_tag = line_base.get(&f).unwrap_or(tag);
-                compare_format(root, &f, (tag, line_tag), notes_after, &mut out)?;
+                compare_format(root, &f, (tag, line_tag), notes, &mut out)?;
             }
         }
     }
@@ -337,12 +343,12 @@ fn format_blobs(root: &Path, dir: &str, tag: &str) -> Result<(Files, String)> {
 }
 
 /// The format `f` of the working tree against its release `tag`: the index, every schema, the frozen fixture; a new
-/// value against `line_tag` and its notes.
+/// value against `line_tag` and its notes, a missing line named with the file it belongs in (`notes_file`).
 fn compare_format(
     root: &Path,
     f: &str,
     (tag, line_tag): (&str, &str),
-    notes_after: &str,
+    (notes_after, notes_file): (&str, &str),
     out: &mut FormatReport,
 ) -> Result<()> {
     let dir = format!("{SCHEMAS_DIR}/{f}");
@@ -426,7 +432,7 @@ fn compare_format(
         });
         if !covered {
             out.failure.push(format!(
-                "format {f}: {item}: the new value {value} since {line_tag} needs the line \"{line}\" in {RELEASE_NOTES}"
+                "format {f}: {item}: the new value {value} since {line_tag} needs the line \"{line}\" in {notes_file}"
             ));
         }
     }
@@ -1161,16 +1167,22 @@ mod tests {
             "schemas/0.1/device.schema.json",
             &modes(json!(["a", "b", "c", "d"])),
         );
-        let s6 = |value: &str, tag: &str| {
+        let s6 = |value: &str, tag: &str, file: &str| {
             format!(
                 "format 0.1: device mode: the new value {value} since {tag} needs the line \"- format-variant: \
-                 device mode {value}\" in docs/release-notes/unreleased.md"
+                 device mode {value}\" in docs/release-notes/{file}"
             )
         };
         let report = format_report(&s);
-        assert_eq!(report.failure, [s6("d", "v0.2.0")]);
-        // A release's cut moves the line to the notes of the tree's version: a candidate of 0.2.1 passes with it there.
+        assert_eq!(report.failure, [s6("d", "v0.2.0", "unreleased.md")]);
+        // A release's cut moves the line to the notes of the tree's version: a candidate of 0.2.1 passes with it there,
+        // and without it is asked for it there.
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.2.1\"\n");
+        s.write("docs/release-notes/0.2.1.md", "# 0.2.1\n");
+        assert_eq!(
+            format_report(&s).failure,
+            [s6("d", "v0.2.0", "0.2.1.md")]
+        );
         s.write(
             "docs/release-notes/0.2.1.md",
             "# 0.2.1\n\n- format-variant: device mode d (a fourth mode)\n",
@@ -1180,7 +1192,13 @@ mod tests {
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.1.1\"\n");
         let report = format_report(&s);
         s.remove();
-        assert_eq!(report.failure, [s6("c", "v0.1.0"), s6("d", "v0.1.0")]);
+        assert_eq!(
+            report.failure,
+            [
+                s6("c", "v0.1.0", "unreleased.md"),
+                s6("d", "v0.1.0", "unreleased.md")
+            ]
+        );
     }
 
     /// A constraint added to a property, to a `prefixItems` item and to a map's value schema,
