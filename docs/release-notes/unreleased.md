@@ -32,7 +32,7 @@ change here.
   FT-1894)
 - behaviour-change: the text placer keeps a wire number, a tag or any other text it places off a strip's drawn bridge
   line, as it keeps off the frame (doc 06a §2.2, FT-2021)
-- behaviour-change: Fit the layout to the sheet (a layout page's context menu and Page ▸ Order, `layout.fit_sheet`)
+- api-add: Fit the layout to the sheet (a layout page's context menu and Page ▸ Order, `layout.fit_sheet`)
   gives a layout page made before its legend became a page the whole sheet in one step: the fitting scale and the
   plate centred, no device moved (doc 12 §5.1, FT-2030)
 - behaviour-change: a legend list's Properties show the layout page it follows, not the First folio and Section
@@ -121,7 +121,7 @@ change here.
   main function, read in English and Dutch ("sensor" finds the position and pressure switches, "normally open
   contact" ranks the parts whose main function is one before the contactor), and it chooses no row until the person
   does, so Enter no longer takes a first row nobody looked at (doc 07 §4.3, FT-1845)
-- behaviour-change: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
+- api-add: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
   of `ew export dxf` into a folder as a job; a folder that holds other files is refused and left as it was (doc 09
   §4.9, FT-1960)
 - behaviour-change: a text in many languages that lacks the project's language, or in a project that names none,
