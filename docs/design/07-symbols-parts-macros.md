@@ -485,7 +485,9 @@ every pin at least one step from the corners and from its neighbours, the box wi
 part without `box` is drawn as before, by two clicks, the first half of its pins on top and the rest below. A pin's
 place typed in the box editor between two 4 mm steps, or on a corner, goes to the nearest step clear of the corners,
 and a note says where it stands; a copy of a starter or library part keeps that part's number, which the line over
-the box says until the person gives it one of its own (FT-1811). The
+the box says until the person gives it one of its own (FT-1811). The box editor's pin list stands in the order the
+pins stand on the box, and keeps its rows while the same pins are edited, so a pin given another edge stays under the
+pointer; a new selection sorts the list again (FT-2005). The
 placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
 part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):
 an older build keeps it in `extra`, writes it back where it stands, and lays the pins out its own way. A part with a

@@ -428,6 +428,9 @@ change here.
 - behaviour-change: in the symbol editor a connection point moved alone takes the text that writes its number with
   it, and a point given another edge in Properties has that text placed again inside the body for the new edge; the
   text stayed where it stood (doc 07 §5, FT-1990)
+- behaviour-change: the device box's pin list keeps its rows while the same pins are edited, so a pin given another
+  edge stays where it was in the list until another selection sorts the list by the box again; it jumped to the new
+  edge's rows (doc 07 §2.5, FT-2005)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

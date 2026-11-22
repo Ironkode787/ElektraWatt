@@ -73,6 +73,9 @@ pub struct DeviceBox {
     /// The part number of the part a new part's draft copies (the start card's part of a library that the project
     /// does not hold): the line over the box says that Save keeps a copy of the person's own.
     copy_of: Option<String>,
+    /// The pin table's order held while the same pins are edited (FT-2005: a pin given another edge jumped to that
+    /// edge's rows under the pointer): the selection it was taken for and the pins in that order.
+    held: Option<(Vec<u16>, Vec<u16>)>,
 }
 
 impl DeviceBox {
@@ -87,6 +90,7 @@ impl DeviceBox {
             error: None,
             from_project: false,
             copy_of: None,
+            held: None,
         }
     }
 
@@ -138,8 +142,20 @@ impl DeviceBox {
     }
 
     /// The pin table: the pins in the order they stand on the box, the edges top, bottom, left, right, each from its
-    /// start.
+    /// start; while the same pins stay selected and are edited, in the order they had when the editing began, so a row
+    /// keeps its place under the pointer (FT-2005), and a new selection sorts them again.
     pub fn pin_table(&self) -> Vec<PinLine> {
+        let mut lines = self.placed_pins();
+        if let Some((selection, order)) = &self.held
+            && *selection == self.selection
+        {
+            lines.sort_by_key(|l| order.iter().position(|i| *i == l.idx).unwrap_or(usize::MAX));
+        }
+        lines
+    }
+
+    /// The pins in the order they stand on the box.
+    fn placed_pins(&self) -> Vec<PinLine> {
         self.steps()
             .pins
             .into_iter()
@@ -162,6 +178,11 @@ impl DeviceBox {
 
     /// Takes `change` of the draft as one undo step; a change that changes nothing is none.
     fn edit<T>(&mut self, change: impl FnOnce(&mut PartDraft) -> T) -> T {
+        // The table's order is held from the first edit of these pins on.
+        if self.held.as_ref().is_none_or(|(selection, _)| *selection != self.selection) {
+            let order = self.placed_pins().iter().map(|l| l.idx).collect();
+            self.held = Some((self.selection.clone(), order));
+        }
         let before = self.draft.clone();
         let out = change(&mut self.draft);
         if self.draft != before {

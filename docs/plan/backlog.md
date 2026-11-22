@@ -50,7 +50,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The window's finish
 
-- FT-2005 `ew-ui`: The pin list of a device box sorts itself again when a pin's edge changes (FT-1810's third fault): the rows should keep their places while the same pins are edited; a test through the visual driver did not show the jump, so it needs its repro first.
 - FT-2006 `ew-ui`: Two faults of FT-1761 not seen again on the sample at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ending the edit (Bus table, Wire: one click ends the edit and runs Wire), and the Properties header cut by its chips; each needs its repro (which grid, which selection) before a fix.
 
 #### Properties and the title block's words
