@@ -625,7 +625,9 @@ impl ShellModel {
     /// menu was opened on (its key): on a page, the next free number after that page inside its section; on a section,
     /// the next free number after the section's last page ([`Self::section_free_folio`]). Without one, a section
     /// node marked in the Pages navigator (or under its cursor) that the open page is not in (a section just made,
-    /// still empty) takes the section's; else the next free number after the open page inside its section. A page's
+    /// still empty) takes the section's; else the section for pages of `kind` (on a front-matter page, for a kind the
+    /// front matter does not hold, the wiring pages' section when none is for the kind); else the next free number after
+    /// the open page inside its section. A page's
     /// number is its folio's leading number (a divider's and a generated page's too); the free numbers are those no
     /// page label holds. Empty where there is none.
     pub fn new_page_proposal(&self, at: Option<&str>, kind: Option<&str>) -> (String, String) {
@@ -679,7 +681,16 @@ impl ShellModel {
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
         // The kind chosen (a first wiring page was proposed into the front matter, a fluid page into the wiring
         // section): the section for pages of that kind takes the page unless the open page stands in it.
-        let for_kind = kind.and_then(|k| self.section_for_kind(k));
+        // A page of a kind the front matter does not hold, asked for on a front-matter page while no section is for its
+        // kind, goes where a wiring page goes (a persona run's layout page, asked for on the title page, became 3 in the
+        // front matter).
+        let front_kind = kind.is_none_or(|k| matches!(k, "title_page" | "table_of_contents"));
+        let for_kind = kind.and_then(|k| self.section_for_kind(k)).or_else(|| {
+            current
+                .is_some_and(|r| r.section.is_none() && !front_kind)
+                .then(|| self.section_for_kind("multi_line"))
+                .flatten()
+        });
         match (from_nav, current, for_kind) {
             (Some(number), _, _) if own.as_ref() != Some(&number) => chosen(number),
             (_, _, Some(number)) if own.as_ref() != Some(&number) => chosen(number),

@@ -1400,6 +1400,10 @@ proposal is 101.1.1), and no other folio changes (FR-PAG-005). The user may type
 that another page of the section prints, one outside the section range, the section's divider folio, or one that a report block of the
 section generates (FR-PAG-012); collisions in imported data are reported (FR-CHK-038, FR-REP-041).
 
+*As built (a persona run, 0.3.5).* New page…'s proposal follows the Type chosen in the form; a type the front matter
+does not hold (a panel layout, chosen on the title page) keeps the section the form proposed and never moves into the
+front matter (it became 3 there where 101 had been proposed).
+
 ### 5.7 Hit-testing and snapping
 
 `page_spatial_index(page)` (rstar) returns candidates; exact picking uses kurbo geometry (ARCH §8.2). Pick priority
