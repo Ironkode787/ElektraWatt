@@ -76,8 +76,8 @@ mod table;
 
 pub use csv::TableLimits;
 /// The importer's own check of a carrier path. `ew-derive`'s `check_path` is the rule; this crate may not
-/// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy. The test that ran both over one set of paths
-/// went with the reference project; no test holds the two equal now.
+/// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy, which `ew-api`'s `carrier_path_agreement` test holds
+/// equal to the rule.
 #[doc(hidden)]
 pub use emit::layout::path_problem as carrier_path_problem;
 /// The importer contract this crate implements, re-exported for hosts that reach the importer through
