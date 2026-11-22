@@ -850,8 +850,10 @@ pasted by `edit.paste`'s engine with the pages' positions kept: no second machin
 - **Structure**: a structure node the copied pages or their devices name, and the code of the copy's node (CAB and
   CAB2): the copy names the node of that code beside it (same aspect, same parent), which is created in the same step
   when there is none.
-- **Rename**: pairs of an old and a new text for frozen tags and interruption-point names (6 and 7; 24V and 24V.2).
-  Every occurrence is replaced, at each place the longest old text first, in one pass: 26 → 27 and 6 → 7 together
+- **Rename**: pairs of an old and a new text for the copies' page titles and descriptions, frozen tags and
+  interruption-point names (6 and 7; 24V and 24V.2; Inst 1 and Inst 2), as the line over the table says. The table
+  opens with one empty row, its old text's field showing a hint, and a row added is empty too (a prefilled "Set 1" read
+  as a label); the card lists the titles that change, old → new. Every occurrence is replaced, at each place the longest old text first, in one pass: 26 → 27 and 6 → 7 together
   turn 26K6 into 27K7. Its rows are named for a screen reader by the table's own word, as its add button is: "New
   text, text to change 2", "Remove text to change 2" (FT-1965; Save as macro…'s rows read "value set 2").
 

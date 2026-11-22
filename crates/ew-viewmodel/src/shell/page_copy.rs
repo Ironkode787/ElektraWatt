@@ -3,9 +3,9 @@
 
 //! Page ▸ Copy pages… (`pages.copy`, doc 06 §3.6, "A copy of pages"): the marked pages copied for a second installation
 //! by the rule of its form (a folio offset or the page after which the copies go, a structure node of the copy's own,
-//! renamed frozen tags and interruption-point names). `Session::copy_pages` composes the one `page.copy`; the shell
-//! previews it on the `page-copy` card, which says what the copy leaves out and what continues outside it, and Apply
-//! commits it (one undo step) with a toast naming the new folios.
+//! renamed titles, frozen tags and interruption-point names). `Session::copy_pages` composes the one `page.copy`; the
+//! shell previews it on the `page-copy` card, which says what the copy leaves out, what continues outside it and which
+//! titles change, and Apply commits it (one undo step) with a toast naming the new folios.
 
 use serde_json::{Map, Value};
 
@@ -105,9 +105,10 @@ impl ShellModel {
     /// menu): the pages `pages` (folios), else the marked pages (else the Pages cursor's page), copied by the rule:
     /// `offset` added to each folio number, else after the folio `after` (default the last copied page); the
     /// structure node `node` (an ID or a designation such as `+CAB`) replaced in the copy by the node of code `code`
-    /// beside it; `rename` the old and new texts of frozen tags and interruption-point names (`{"6": "7"}`). Without
-    /// an offset or `after` the window opens the form (offset, after, node, code and the rename table); headless the
-    /// copies go after the last copied page. It opens the `page-copy` card; Apply commits one `page.copy`.
+    /// beside it; `rename` the old and new texts of page titles and descriptions, frozen tags and interruption-point
+    /// names (`{"6": "7"}`). Without an offset or `after` the window opens the form (offset, after, node, code and the
+    /// rename table, its first row empty); headless the copies go after the last copied page. It opens the `page-copy`
+    /// card; Apply commits one `page.copy`.
     pub(crate) fn act_pages_copy(&mut self, p: &Map<String, Value>) -> Outcome {
         let submitted = self.in_form_of(ACTION);
         let out = self.pages_copy(p);
@@ -181,7 +182,11 @@ impl ShellModel {
                         strings::text(key!("form-page-copy-rename-new")).to_owned(),
                         String::new(),
                     )],
-                    rows: Vec::new(),
+                    // One empty row to fill, its hint in the field (an old text prefilled read as a label).
+                    rows: vec![super::forms::FormRow {
+                        key: String::new(),
+                        cells: vec![String::new()],
+                    }],
                 }),
             };
             return self.open_dialog(Dialog::Form(form));
@@ -248,6 +253,17 @@ impl ShellModel {
             rows.push(strings::format_count(
                 crate::count_key!("page-copy-texts"),
                 plan.texts_named,
+            ));
+        }
+        if !plan.titles.is_empty() {
+            let titles: Vec<String> = plan
+                .titles
+                .iter()
+                .map(|(old, new)| strings::format(key!("page-copy-title-renamed"), &[old, new]))
+                .collect();
+            rows.push(strings::format(
+                key!("page-copy-titles"),
+                &[&titles.join("; ")],
             ));
         }
         if !plan.texts_left.is_empty() {

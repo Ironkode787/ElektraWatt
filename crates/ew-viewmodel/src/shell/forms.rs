@@ -408,16 +408,21 @@ impl ShellModel {
         }
     }
 
-    /// Adds a row to the open form's table: named `Set <n>` with the lowest `n` from the row count up that no row has,
-    /// its cells blank.
+    /// Adds a row to the open form's table, its cells blank: a value set named `Set <n>` with the lowest `n` from the
+    /// row count up that no row has; a row of another table (Copy pages…'s texts to change) with its first cell blank
+    /// too, to be filled (a name there read as a text to change).
     pub fn add_form_table_row(&mut self) {
         if let Some(Dialog::Form(form)) = &mut self.dialog
             && let Some(table) = &mut form.table
         {
-            let key = (table.rows.len() + 1..)
-                .map(|n| strings::format(key!("form-value-set-new"), &[&n.to_string()]))
-                .find(|k| table.rows.iter().all(|r| r.key.trim() != k))
-                .unwrap_or_default();
+            let key = if table.name == "value_sets" {
+                (table.rows.len() + 1..)
+                    .map(|n| strings::format(key!("form-value-set-new"), &[&n.to_string()]))
+                    .find(|k| table.rows.iter().all(|r| r.key.trim() != k))
+                    .unwrap_or_default()
+            } else {
+                String::new()
+            };
             table.rows.push(FormRow {
                 key,
                 cells: vec![String::new(); table.columns.len()],

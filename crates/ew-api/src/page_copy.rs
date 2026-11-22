@@ -11,7 +11,7 @@
 use std::collections::BTreeSet;
 
 use ew_commands::commands::{
-    CopyPages, Fragment, NodeSwap, Rename, TextNames, designation_moves, renamed, text_names,
+    CopyPages, Fragment, NodeSwap, Rename, TextNames, designation_moves, renamed, renamed_mltext, text_names,
 };
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{IpPairingQ, Q, short_tag};
@@ -41,7 +41,7 @@ pub struct PageCopySpec {
     pub folios: CopyFolios,
     /// Each structure node of the copied pages that the copy replaces, with the code of the copy's node.
     pub structure: Vec<(Uuid, String)>,
-    /// The old and new texts of frozen tags and interruption-point names.
+    /// The old and new texts of the pages' titles and descriptions, frozen tags and interruption-point names.
     pub rename: Vec<(String, String)>,
 }
 
@@ -63,6 +63,8 @@ pub struct PageCopyPlan {
     pub texts_named: usize,
     /// The copied free texts left as they are because copied devices shared the tag they hold.
     pub texts_left: Vec<String>,
+    /// The page titles the rename changes, each old and new, in page order.
+    pub titles: Vec<(String, String)>,
 }
 
 /// The refusal of `page.copy` at `at`.
@@ -208,6 +210,19 @@ impl Session {
                 }
             }
         }
+        // The titles the rename changes, in the text the page shows first (its neutral text, else its first language).
+        let shown = |t: &ew_mltext::MlText| {
+            t.as_neutral()
+                .or_else(|| t.languages().next().and_then(|l| t.get(l)))
+                .unwrap_or_default()
+                .to_owned()
+        };
+        let titles = pages
+            .iter()
+            .filter_map(|p| q.pages().get(*p))
+            .map(|p| (shown(&p.title), shown(&renamed_mltext(&p.title, &rename))))
+            .filter(|(old, new)| old != new)
+            .collect();
         let (offset, after) = match spec.folios {
             CopyFolios::Offset(n) => (Some(n), None),
             CopyFolios::After(p) => (None, Some(Id::from_uuid(p))),
@@ -226,6 +241,7 @@ impl Session {
             continued,
             texts_named,
             texts_left: sorted(texts_left),
+            titles,
         })
     }
 }

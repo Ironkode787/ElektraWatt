@@ -173,6 +173,9 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             let top = header.bottom();
             // A row of a table that adds rows by the table's own word and its number ("text to change 2").
             let row_key = format!("form-table-row-{}", table.name.replace('_', "-"));
+            // The first column's hint while a cell is empty, where the table has one (Copy pages…'s old text).
+            let key_hint =
+                strings::lookup(&format!("form-table-hint-{}", table.name.replace('_', "-"))).unwrap_or_default();
             for (i, row) in table.rows.iter().enumerate() {
                 let index = (i + 1).to_string();
                 let row_words = strings::format(strings::Key::run_time(&row_key), &[&index]);
@@ -198,7 +201,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                                 key!("form-table-cell"),
                                 &[strings::text(table.key_label), &row_words],
                             );
-                            if cell(ui, &t, key_width, &mut key, &name, "") {
+                            if cell(ui, &t, key_width, &mut key, &name, key_hint) {
                                 events.push(Event::FormTableCell(i, None, key));
                             }
                         }

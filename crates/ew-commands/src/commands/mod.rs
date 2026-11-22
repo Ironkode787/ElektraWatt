@@ -100,7 +100,7 @@ pub use merge::record_file_of;
 pub use page::{LabelModeParam, LabelsParam, PageScope};
 pub use page_copy::{
     NodeSwap, PAGE_COPY_KINDS, REPRODUCED, Rename, TextNames, designation_moves, names_tag, renamed,
-    text_names,
+    renamed_mltext, text_names,
 };
 pub use parts::import_counts;
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};

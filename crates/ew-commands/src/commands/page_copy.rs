@@ -93,6 +93,20 @@ pub fn renamed(text: &str, rules: &[Rename]) -> String {
     out
 }
 
+/// `text` with [`renamed`] applied to its neutral text or to each language's text.
+pub fn renamed_mltext(text: &ew_mltext::MlText, rules: &[Rename]) -> ew_mltext::MlText {
+    if let Some(neutral) = text.as_neutral() {
+        return ew_mltext::MlText::neutral(&renamed(neutral, rules));
+    }
+    let mut out = text.clone();
+    for tag in text.languages() {
+        if let Some(t) = text.get(tag) {
+            out.set_lang(tag.clone(), &renamed(t, rules));
+        }
+    }
+    out
+}
+
 /// The prevent rules whose violation a copy of pages may carry, because a copy can only reproduce it (doc 06 §3.6,
 /// "Refused in words"): a copied strip holds only copied terminals, with their designations, order and bridges
 /// (EW-TERM-001 a terminal without a designation, EW-TERM-002 two terminals of one designation, EW-TERM-004 a bridge
@@ -205,10 +219,10 @@ pub fn text_names(q: &ew_derive::Q, fragment: &Fragment, rename: &[Rename]) -> V
 /// section stays in none); `after` proposes them after that page, as a page macro's (doc 06 §5.6). `structure` names
 /// for a node of the copied records the code of the copy's node: the node of that code with the same aspect and parent,
 /// created here when there is none; every structure slot of a copied page, device or box that names the node names
-/// the copy's. `rename` replaces texts in every frozen tag and every interruption-point name but an external point's
-/// ([`renamed`]); a frozen tag the rule leaves as it was is cleared where the copy's full designation would be its
-/// original's ([`designation_moves`]), so the copy takes its scheme's tag there and keeps the frozen one in a node of
-/// its own.
+/// the copy's. `rename` replaces texts in the pages' titles and descriptions, every frozen tag and every
+/// interruption-point name but an external point's ([`renamed`]); a frozen tag the rule leaves as it was is cleared
+/// where the copy's full designation would be its original's ([`designation_moves`]), so the copy takes its scheme's
+/// tag there and keeps the frozen one in a node of its own.
 ///
 /// **Effects.** `edit.paste`'s effects with these differences: the pages' positions stay as the source holds them (a
 /// symbol off the grid and a symbol type the page's kind would not take for a paste too); there is no bound on the
@@ -242,7 +256,7 @@ pub struct CopyPages {
     /// The copy's structure nodes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub structure: Vec<NodeSwap>,
-    /// The replacements in frozen tags and interruption-point names.
+    /// The replacements in the pages' titles and descriptions, frozen tags and interruption-point names.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rename: Vec<Rename>,
 }
@@ -421,9 +435,9 @@ impl CopyPages {
         Ok(())
     }
 
-    /// The rename: every frozen tag and every interruption-point name but an external point's, through [`renamed`];
-    /// a frozen tag it leaves as it was is cleared where the copy's full designation would be its original's
-    /// ([`designation_moves`] says where the structure rule gives it another).
+    /// The rename: the pages' titles and descriptions, every frozen tag and every interruption-point name but an
+    /// external point's, through [`renamed`]; a frozen tag it leaves as it was is cleared where the copy's full
+    /// designation would be its original's ([`designation_moves`] says where the structure rule gives it another).
     fn rename_names(&self, tx: &TxBuilder<'_>, fragment: &mut Fragment) -> Result<(), CmdError> {
         let q = ew_derive::Q::new(tx.base_model());
         let swapped: BTreeSet<Id<StructureNode>> = self.structure.iter().map(|s| s.from).collect();
@@ -481,6 +495,20 @@ impl CopyPages {
             };
             if changed {
                 *v = serde_json::to_value(&record).map_err(|e| CmdError::internal(e.to_string()))?;
+            }
+        }
+        // The pages' titles and descriptions (a persona run's copies kept "Inst 1 - ..." as their titles).
+        if !self.rename.is_empty() {
+            for v in &mut fragment.pages {
+                let Ok(Record::Page(mut page)) = Record::from_value(v.clone()) else {
+                    continue;
+                };
+                page.title = renamed_mltext(&page.title, &self.rename);
+                page.description_override = page
+                    .description_override
+                    .as_ref()
+                    .map(|d| renamed_mltext(d, &self.rename));
+                *v = serde_json::to_value(Record::Page(page)).map_err(|e| CmdError::internal(e.to_string()))?;
             }
         }
         Ok(())
