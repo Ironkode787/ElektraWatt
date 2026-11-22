@@ -1003,6 +1003,15 @@ impl ShellModel {
             let Some(copy) = row.copy else {
                 return Outcome::refused(key!("reason-unknown-symbol"));
             };
+            // A part without a symbol of its own that the Place tool places, not the Black box tool, is drawn as a
+            // box: the hint says so (FT-1808).
+            let drawn_as_box = part.is_some()
+                && !self.tools.black_box_pick
+                && self
+                    .tools
+                    .picker
+                    .as_ref()
+                    .is_none_or(|picker| picker.mode != PickerMode::BlackBox);
             let target = match part {
                 Some((part, template, number)) => {
                     let Some(letter) = letter_param.or(part_letter).or(row.letter.clone()) else {
@@ -1046,7 +1055,8 @@ impl ShellModel {
                 BlackBoxTool::new(copy.to_string(), target)
                     .with_copies(copies)
                     .with_rep_type(rep_type)
-                    .with_slots(slots),
+                    .with_slots(slots)
+                    .with_drawn_as_box(drawn_as_box),
             ));
             return Outcome::Done;
         }

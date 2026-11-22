@@ -380,6 +380,9 @@ change here.
   cell prints who approves the current revision, not the Checker row (doc 09 §2.7, FT-1803)
 - behaviour-change: the Potential row of a wire whose potential no definition names opens Define potential… on Enter,
   F2 or a click on its value, as the wire's menu does; only its "…" menu offered it (doc 16 §6, FT-1779)
+- behaviour-change: a part without a symbol of its own, placed with the Place tool, says in its hint that it is drawn
+  as a box ("This part has no symbol of its own and is drawn as a box: click its first corner…"); the Black box tool
+  armed without a word (doc 06 §3.3, FT-1808)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

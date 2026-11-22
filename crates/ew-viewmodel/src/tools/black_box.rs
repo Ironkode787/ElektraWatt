@@ -344,6 +344,9 @@ pub struct BlackBoxTool {
     slots: Option<u16>,
     /// A multipin valve terminal's plug: one click places its box sized by its pins, down its two sides.
     pins: bool,
+    /// Whether a part without a symbol of its own armed the tool from the Place tool: the hint says that it is drawn as
+    /// a box (FT-1808).
+    drawn_as_box: bool,
 }
 
 impl BlackBoxTool {
@@ -358,7 +361,14 @@ impl BlackBoxTool {
             rep_type: None,
             slots: None,
             pins: false,
+            drawn_as_box: false,
         }
+    }
+
+    /// The tool drawing a part that has no symbol of its own, armed by the Place tool: its hint says so (FT-1808).
+    pub fn with_drawn_as_box(mut self, drawn_as_box: bool) -> BlackBoxTool {
+        self.drawn_as_box = drawn_as_box;
+        self
     }
 
     /// The tool placing a valve terminal of `count` positions drawn as its positions: one click, no outline.
@@ -888,6 +898,9 @@ impl Tool for BlackBoxTool {
             }
             State::Armed { .. } if self.one_click() => {
                 super::Hint::new(key!("hint-box-place"), &[super::ESCAPE])
+            }
+            State::Armed { .. } if self.drawn_as_box => {
+                super::Hint::new(key!("hint-box-part-armed"), &[super::ESCAPE])
             }
             State::Armed { .. } => super::Hint::new(key!("hint-box-armed"), &[super::ESCAPE]),
             State::Outline { .. } => {

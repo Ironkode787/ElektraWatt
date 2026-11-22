@@ -646,7 +646,8 @@ can take: `device.place` with `from_part` accepts such a part at template entry 
 and one main function of the chosen symbol's function definition. **A black-box entry with a symbol of its own**
 (FT-1865): a symbol drawn for the entry's own function definition, such as a power supply drawn for the starter's
 `ew.fn.psu-ac-dc`, is placed by the Place tool like any symbol, and the entry's function is then a normal one; an
-entry on the generic `ew.fn.blackbox`, or one no own symbol draws, stays the Black box tool's. `place.pick` names an
+entry on the generic `ew.fn.blackbox`, or one no own symbol draws, stays the Black box tool's; placed from the Place
+tool, its hint says that the part has no symbol of its own and is drawn as a box (FT-1808). `place.pick` names an
 installed library's symbol by its key as well as by its address, before its first placement and after it.
 
 ### 3.4 Move, rotate and delete

@@ -57,7 +57,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### Properties and the title block's words
 
-- FT-1808 `ew-viewmodel`: Placing a part that has no symbol arms the Black box tool without saying that the part is drawn as a box.
 - FT-1811 `ew-ui, ew-api`: A pin's place typed between two steps of the pin grid is taken to the next step without a word; a copy of a starter part keeps the starter's part number without saying so.
 - FT-1812 `ew-viewmodel`: F1 on a selected connection point in the symbol editor opens the outline's section although the guide has a section for a connection point.
 - FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.

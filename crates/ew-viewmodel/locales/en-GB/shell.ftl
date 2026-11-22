@@ -552,6 +552,7 @@ hint-ip-external = Click or { $p0 } to place the external connection point; type
 # FT-896: the Black box tool takes two corners; the armed hint says so before the first click.
 box-chip-armed = Black box: click two corners
 hint-box-armed = Click the box's first corner, then its opposite corner; { $p0 } ends
+hint-box-part-armed = This part has no symbol of its own and is drawn as a box: click its first corner, then its opposite corner; { $p0 } ends
 hint-box-place = Click to place; { $p0 } ends
 place-target-click = { $p0 }: click to place
 reason-box-occupied = Another box stands here: click on a free place
