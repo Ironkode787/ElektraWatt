@@ -1420,7 +1420,9 @@ points off a port placed a bend; a little under ten, as at 100 % a step of the Q
 beside a pin stays one for a bend); what Select rings and the Wire tool's snap marker rings is what a click takes. A
 click of the Wire or Tube tool that takes nothing and leaves a free point right beside a connection point (within that
 reach or one grid step, whichever is more) says so at once in the status line: a start that took nothing, a bend
-beside the point, and a wire that ended elsewhere with such a bend. Alt means one thing per tool: in the Place tool it suppresses
+beside the point, and a wire that ended elsewhere with such a bend. The Tube tool is the Wire tool on a fluid page (a
+click on a port ends the tube as one on a pin ends a wire); its hints say "port" and "tube" where the Wire tool's say
+"connection point" and "wire" (a persona run could not tell which of his clicks ended a tube). Alt means one thing per tool: in the Place tool it suppresses
 autoconnect proposals, in the graphic, text and route-edit tools it suspends object snaps and the fine grid. CPs
 never leave the connection grid in any tool. All snapping works on grid indices, never on float equality
 (ADR-0005). The grid rule binds every origin, scripts, command logs and MCP included: a command

@@ -952,6 +952,13 @@ impl Default for WireTool {
 }
 
 impl WireTool {
+    /// A hint's key in the words of what the tool draws: a tube's and a port's on a fluid page (a persona read the Wire
+    /// tool's "connection point" as other than his ports, and could not tell which of his clicks ended a tube), else a
+    /// wire's. The two tools work alike: a click on a port ends the tube as one on a pin ends a wire.
+    fn said(&self, wire: Key<'static>, tube: Key<'static>) -> Key<'static> {
+        if self.kind == Some("fluid") { tube } else { wire }
+    }
+
     /// The tool, armed.
     pub fn new() -> WireTool {
         WireTool {
@@ -1580,13 +1587,13 @@ impl Tool for WireTool {
         }
         match (self.missed, &self.state) {
             (Some((Missed::Bend, _)), State::Routing { .. }) => {
-                return super::Hint::new(key!("hint-wire-bend-beside"), &[super::BACK]);
+                return super::Hint::new(self.said(key!("hint-wire-bend-beside"), key!("hint-tube-bend-beside")), &[super::BACK]);
             }
             (Some((Missed::Start, _)), State::Armed { .. }) => {
-                return super::Hint::plain(key!("hint-wire-start-beside"));
+                return super::Hint::plain(self.said(key!("hint-wire-start-beside"), key!("hint-tube-start-beside")));
             }
             (Some((Missed::Wire, _)), State::Armed { .. }) => {
-                return super::Hint::new(key!("hint-wire-ended-beside"), &["edit.undo"]);
+                return super::Hint::new(self.said(key!("hint-wire-ended-beside"), key!("hint-tube-ended-beside")), &["edit.undo"]);
             }
             _ => {}
         }
@@ -1596,7 +1603,7 @@ impl Tool for WireTool {
         // Once a click placed a bend instead of ending on a connection point, the hint says so and what
         // ends the wire (a click that missed a connection point snaps to the grid and bends there).
         if self.bends() > 0 {
-            return super::Hint::plain(key!("hint-wire-bend"));
+            return super::Hint::plain(self.said(key!("hint-wire-bend"), key!("hint-tube-bend")));
         }
         if self.direct {
             return super::Hint::plain(key!("hint-wire-direct"));
@@ -1615,9 +1622,14 @@ impl Tool for WireTool {
             }
         }
         match self.state {
-            State::Armed { .. } => super::Hint::new(key!("hint-wire-armed"), &[super::ENTER]),
+            State::Armed { .. } => {
+                super::Hint::new(self.said(key!("hint-wire-armed"), key!("hint-tube-armed")), &[super::ENTER])
+            }
             State::Routing { .. } => {
-                super::Hint::new(key!("hint-wire-routing"), &[super::BACK, super::ESCAPE])
+                super::Hint::new(
+                    self.said(key!("hint-wire-routing"), key!("hint-tube-routing")),
+                    &[super::BACK, super::ESCAPE],
+                )
             }
         }
     }

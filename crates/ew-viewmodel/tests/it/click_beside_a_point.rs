@@ -116,18 +116,19 @@ fn reach_and_beside(s: &mut ShellModel, tool: &str, (a, b, c): (&TableCp, &Table
         done(s, tool, json!({}));
         click(s, off(s, b, 13.0));
         let hint = s.tool_hint();
-        assert!(hint.contains("was beside a connection point"), "{hint}");
+        // A connection point on a wiring page, a port on a fluid page: the tool's own words.
+        assert!(hint.contains("was beside a "), "{hint}");
         // A bend beside the pin says so at once, and the wire ended elsewhere again.
         click(s, sheet(s, a.at));
         click(s, off(s, b, 13.0));
         let hint = s.tool_hint();
-        assert!(hint.contains("placed a bend beside a connection point"), "{hint}");
+        assert!(hint.contains("placed a bend beside a "), "{hint}");
         click(s, sheet(s, c.at));
         assert_eq!(tables(s).connections.len(), n + 1);
         assert!(last_ends_at(s, c));
         let hint = s.tool_hint();
         assert!(
-            hint.contains("just drawn bends beside a connection point"),
+            hint.contains(" just drawn bends beside a "),
             "{hint}"
         );
         // The next wire that starts on a point forgets it.
