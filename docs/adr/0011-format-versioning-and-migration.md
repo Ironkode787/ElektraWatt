@@ -149,6 +149,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    released members: its link cascades and is load-tolerant, as the exchange kinds' link is. An older build keeps it in
    `extra`; a text that build leaves when it deletes the symbol is a text whose symbol is gone, which a newer build
    prints as a free text of no symbol (a symbol's binding empty) and never refuses, so no `min_reader` is raised.
+   Applied again in 0.3.5 (doc 12 §5.4) to the optional member `ReportBlock.layout_page`, the layout page a legend list
+   belongs to, appended after the released members: its link cascades and is load-tolerant for the same case. An
+   older build keeps it in `extra` and may delete the layout page and leave the block; a newer build then opens the
+   project, and the list, whose layout page is gone, has no pages.
 5. **The project fragment widens within v1 for macros** (2026-10-30, WP-S1.19 part 5, cycle 36; lead programmer,
    delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
    §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a
