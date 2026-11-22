@@ -970,7 +970,15 @@ impl ShellModel {
             }
         }
         let [folio, ty, title, section, place, grid] = <[String; 6]>::try_from(v).expect("six fields");
-        let current = self.canvas().map(|c| c.page().snapper.grid());
+        // The grid of the page in front; with a station's view in front (no canvas), the page tab beside it.
+        let current = self.canvas().map(|c| c.page().snapper.grid()).or_else(|| {
+            let page = self.current_page()?;
+            let rows = self.page_rows();
+            let row = rows.iter().find(|r| crate::canvas::PageId::of(r) == page)?;
+            self.project_session()?
+                .page_grid(&row.folio)
+                .map(|g| (g.num_nm, g.den))
+        });
         let current_grid = current
             .and_then(|(num, den)| page_grid_word(num, den))
             .unwrap_or_default();
