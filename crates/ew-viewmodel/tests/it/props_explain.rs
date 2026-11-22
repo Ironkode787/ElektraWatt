@@ -87,16 +87,8 @@ fn every_row_of_the_sample_explains_itself_in_both_languages() {
         .map(|(kind, path, label)| format!("{kind} {path} ({label})"))
         .collect();
     assert_eq!(
-        missing, UNEXPLAINED,
-        "the rows without an explanation in both languages are exactly the known ones"
+        missing,
+        Vec::<String>::new(),
+        "every row has an explanation in both languages"
     );
 }
-
-/// The rows the sample shows that have no explanation yet (FT-1916): the fix gives them one and empties this list.
-const UNEXPLAINED: [&str; 5] = [
-    "function cp_overrides[].closure.kind (Kind)",
-    "function cp_overrides[].closure.part (Part)",
-    "project languages.source (Source)",
-    "project languages.translations (Translations)",
-    "project settings.frames (Frames)",
-];

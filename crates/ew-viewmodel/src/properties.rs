@@ -1638,6 +1638,42 @@ pub fn forms_in_words(
             }
         }
     }
+    // The project's Frames row: its default and each page type's frame by name, never by ID (FT-1916).
+    for row in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "project")
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.path == "settings.frames")
+    {
+        let RowValue::One { json, text } = &mut row.value else {
+            continue;
+        };
+        let names: &Vec<_> = names.get_or_insert_with(|| forms.take().map_or_else(Vec::new, |f| f()));
+        let name = |id: &Value| {
+            let id = id.as_str().unwrap_or_default();
+            names
+                .iter()
+                .find(|(form, _)| form.to_string() == id)
+                .map_or_else(|| id.to_owned(), |(_, n)| n.clone())
+        };
+        let default = json
+            .get("default")
+            .map(|id| strings::format(key!("props-frames-default"), &[&name(id)]));
+        let types = json
+            .get("per_page_type")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .map(|e| {
+                let kind = strings::choice_text(e.get("page_type").and_then(Value::as_str).unwrap_or_default());
+                strings::format(key!("props-frames-type"), &[&kind, &name(&e["form"])])
+            });
+        let words: Vec<String> = default.into_iter().chain(types).collect();
+        if !words.is_empty() {
+            *text = words.join("; ");
+        }
+    }
 }
 
 /// Writes a connection's ends A and B in words (W51 finding G): each end as the live description says it

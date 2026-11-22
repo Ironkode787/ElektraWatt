@@ -411,6 +411,9 @@ change here.
   own ("Frame QET A4 landscape grid" on the sample's 902); it was empty (doc 09 §3.8, FT-1915)
 - api-add: `Session::page_default_frame(page)`, the frame form a page draws with while it names none of its own
   (FT-1915)
+- text-change: Properties explains the project's Source, Translations and Frames rows and a fluid port's closure Kind
+  and Part, in English and Dutch; the Frames row names its frames ("Default: Frame QET A4 landscape grid; Table of
+  contents: …"), not their IDs (doc 09 §3.8, FT-1916)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
