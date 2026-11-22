@@ -20,7 +20,7 @@
 {"action":"tool.wire"}
 {"action":"cursor.set","params":{"x_mm":77.638,"y_mm":46.324}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":35.884,"y_mm":158.535}}
+{"action":"cursor.set","params":{"x_mm":82.857,"y_mm":158.535}}
 {"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":124.61,"y_mm":46.324}}
 {"action":"canvas.activate"}

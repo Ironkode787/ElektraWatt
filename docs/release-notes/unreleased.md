@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Draw on a page from the station view sets a card of inputs beside the controller's box where its
+  line has room, not under it, so the supply wires from the head no longer cross its first channels (doc 06a §7.5,
+  FT-1894)
 - behaviour-change: the text placer keeps a wire number, a tag or any other text it places off a strip's drawn bridge
   line, as it keeps off the frame (doc 06a §2.2, FT-2021)
 - behaviour-change: Fit the layout to the sheet (a layout page's context menu and Page ▸ Order, `layout.fit_sheet`)

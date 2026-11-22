@@ -32,8 +32,9 @@ impl ShellModel {
     /// order beside each other from the next free place, a new row under the first where the next would pass the drawing
     /// area's right; one that would pass its foot takes the first clear place inside it from the head, after the cards
     /// (FT-1907). Each card's box then takes the first place that keeps a gap from what the page draws and what is
-    /// drawn now: a card of inputs as near the foot as there is room, a card of outputs as near the head, each line from
-    /// the left; a card that finds no room is named under `left` and waits for another page. A device whose part has no
+    /// drawn now: a card of inputs as near the foot as there is room, beside the boxes drawn now that are no card where
+    /// its line has room, not under them, a card of outputs as near the head, each line from the left; a card that finds
+    /// no room is named under `left` and waits for another page. A device whose part has no
     /// black-box entry is left out. `None` without the page shown, its frame or the catalogue.
     fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
         use ew_api::part_box::{BoxSteps, card_box, card_share};
@@ -232,6 +233,9 @@ impl ShellModel {
                     && r[1] < t[3] + 2 * SIZE.2
             })
         };
+        // A card of inputs stands beside the boxes that are no card (the controller's), one gap off, where its line has
+        // room, not under them: the supply wires from the head then cross none of its channels (FT-1894).
+        let heads = rects.clone();
         let find = |s: &BoxSteps, up: bool, drawn: &[[i64; 4]]| -> Option<(i64, i64)> {
             let (lo, hi) = (grid.index(head_line), grid.index(foot));
             let lines: Vec<i64> = if up {
@@ -240,11 +244,16 @@ impl ShellModel {
                 (lo..=hi - s.h).collect()
             };
             let (first, last) = (grid.index(x0), grid.index(right) - s.w);
+            let beside =
+                |r: [i64; 4]| !up || !heads.iter().any(|h| h[0] - SIZE.2 < r[2] && r[0] < h[2] + SIZE.2);
             lines.into_iter().find_map(|k| {
                 let (t, b) = (grid.coord(k), grid.coord(k + s.h));
-                (first..=last)
-                    .map(grid_x)
-                    .find_map(|x| clear([x, t, grid.coord(grid.index(x) + s.w), b], drawn).then_some((x, t)))
+                let at = |x: i64| [x, t, grid.coord(grid.index(x) + s.w), b];
+                let free = || (first..=last).map(grid_x).filter(|x| clear(at(*x), drawn));
+                free()
+                    .find(|x| beside(at(*x)))
+                    .or_else(|| free().next())
+                    .map(|x| (x, t))
             })
         };
         let mut left: Vec<String> = Vec::new();

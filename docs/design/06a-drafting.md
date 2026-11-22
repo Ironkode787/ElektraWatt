@@ -1386,7 +1386,9 @@ high; its other pins stand down its left side `MARK_PITCH` apart, the lowest tha
 of inputs and the highest that far under the upper edge of a card of outputs. The CPU and any device without
 channel pins keep their box; so does a box a person draws (Place here). The other boxes stand from the next free
 place, in slot order; then each card's box takes the first place that keeps a gap from what the page draws, a card
-of inputs as near the foot as there is room and one of outputs as near the head, each line from the left; a card that
+of inputs as near the foot as there is room and one of outputs as near the head, each line from the left; on its line a
+card of inputs takes the first place beside the boxes drawn with it that are no card (the controller's), a gap off,
+before one under them (FT-1894, 0.3.5), so the supply wires from the head cross none of its channels; a card that
 finds no room waits for another page, which a toast and the To do list say. A row wider than the drawing area takes as
 many pins as fit, `CARD_PINS_MOST` at most; "asks for the page" is the station view's To do list, which offers the
 rest on another page, and a toast after the draw says so. A card whose part lays out its device box (doc 07 §2.5,
@@ -1409,11 +1411,11 @@ with its channels, and every wire steps. At 8 steps a device stands over each pi
 with it: a row that does not fit is drawn a byte a box, 8 and 8 for a card of sixteen channels, not 12 and 4.
 The price: a card of sixteen channels no longer fits one A3 page, and a card of inputs, which is set at the foot
 from the left edge, finds no room on a page where a symbol stands within two gaps of the foot (the To do list
-then offers another page). Two things the box still does that a draughtsman would not: a card of inputs stands
-at the foot under the controller's box, so the supply wires from the head cross its first channels; and the pins
-of a card at the head and one at the foot stand on columns two steps apart where the controller's box is not a
-whole number of pitches wide. The command still draws them so; Arrange and route steps the card aside (§4.4), for
-a card the person drew as well.
+then offers another page). One thing the box still does that a draughtsman would not: the pins of a card at the
+head and one at the foot stand on columns two steps apart where the controller's box is not a whole number of
+pitches wide. The command still draws them so; Arrange and route steps the card aside (§4.4), for a card the person
+drew as well. (A card of inputs under the controller's box, its first channels crossed by the supply wires from the
+head, stands beside that box since FT-1894, above.)
 
 ### 7.6 Joining wires: the bevel by default
 
