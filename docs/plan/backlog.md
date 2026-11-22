@@ -37,7 +37,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Two drawing faults
 
-- FT-1990 `ew-viewmodel`: A connection point moved alone in the symbol editor, or given another edge in Properties, leaves the text that writes its number where it stood; since FT-1871 every new point has one.
 
 ### What a person at the window meets
 

@@ -1245,7 +1245,15 @@ impl ShellModel {
         } else {
             let mut any = false;
             for item in &selection {
-                any |= editor.set_item(&mut doc, *item, key, &value);
+                // A point moved or given another edge takes the text that writes its number with it (FT-1990).
+                let before = matches!(item, Item::Cp(_))
+                    .then(|| super::selection::value_of(&doc, *item).cloned())
+                    .flatten();
+                let done = editor.set_item(&mut doc, *item, key, &value);
+                if let (true, Some(before), "x" | "y" | "dir") = (done, &before, key) {
+                    super::selection::cp_texts_follow(&mut doc, before, &selection);
+                }
+                any |= done;
             }
             if !any {
                 return Err(refused());

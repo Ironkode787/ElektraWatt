@@ -1221,7 +1221,8 @@ a text typed where it was clicked, a connection point on the connection grid wit
 writes that number (FT-1871): inside the body one millimetre from the point, turned a quarter on an upper or lower edge
 and level on a left or right one, where a device box prints a pin's name (§2.5; one rule,
 `ew_scene::page::pin_text_place`), so a point on the lower edge has its number above it inside the box, not across
-it, and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
+it; a point moved alone takes that text with it, and a point given another edge in Properties has it placed again by
+the same rule (FT-1990); and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
 no page printed, and a number text clicked onto a lower point hung across it); a tool's options
 stand on a card at the drawing's top left. The live A–H strip is drawn through the placement's own lowering. To do is
 the editor's validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a page

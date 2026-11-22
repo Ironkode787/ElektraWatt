@@ -141,6 +141,49 @@ pub(super) fn translate(v: &mut Value, dx: i64, dy: i64) {
     });
 }
 
+/// The texts that write the number of connection point `before` (its value before a change) follow it (FT-1990):
+/// moved by as much as it moved, or, given another edge, placed again as a new point's number text is placed, inside
+/// the body at the point and turned by its edge. A text that is itself in `selection` stays the person's.
+pub(super) fn cp_texts_follow(doc: &mut Value, before: &Value, selection: &[Item]) {
+    let Some(after) = doc["symbol"]["cps"]
+        .as_array()
+        .and_then(|a| a.iter().find(|c| c["idx"] == before["idx"]))
+        .cloned()
+    else {
+        return;
+    };
+    let pos = |v: &Value| Some((v["pos"][0].as_i64()?, v["pos"][1].as_i64()?));
+    let (Some(from), Some(to)) = (pos(before), pos(&after)) else {
+        return;
+    };
+    let name = doc["function"]["cps"]
+        .as_array()
+        .and_then(|a| a.iter().find(|p| p["idx"] == after["fn_cp"]))
+        .and_then(|p| p["designation"].as_str())
+        .unwrap_or_default()
+        .to_owned();
+    let turned = (before["dir"] != after["dir"])
+        .then(|| serde_json::from_value::<ew_api::symbols::schema::Dir4>(after["dir"].clone()).ok())
+        .flatten()
+        .and_then(|dir| ew_api::symbols::pin_text_place(&dir, &name));
+    let Some(slots) = doc["symbol"]["text_slots"].as_array_mut() else {
+        return;
+    };
+    for (i, slot) in slots.iter_mut().enumerate() {
+        if slot["kind"].get("cp_designation") != Some(&after["idx"]) || selection.contains(&Item::Slot(i)) {
+            continue;
+        }
+        match &turned {
+            Some((off, rot, align)) => {
+                slot["pos"] = json!([to.0 + off.x.0, to.1 + off.y.0]);
+                slot["rot"] = json!(rot);
+                slot["align"] = json!(align);
+            }
+            None => translate(slot, to.0 - from.0, to.1 - from.1),
+        }
+    }
+}
+
 /// The bounds of an item's geometry in nanometres, `[left, top, right, bottom]`: its points, a circle with its
 /// radius; a text by the point it stands at. `None` for a value without a point.
 pub fn bounds(v: &Value) -> Option<[i64; 4]> {
@@ -370,10 +413,18 @@ impl SymbolEditor {
             return Ok(());
         }
         let mut doc = self.document()?;
-        for item in items {
-            if let Some(v) = value_mut(&mut doc, item) {
+        let points: Vec<Value> = items
+            .iter()
+            .filter(|i| matches!(i, Item::Cp(_)))
+            .filter_map(|i| value_of(&doc, *i).cloned())
+            .collect();
+        for item in &items {
+            if let Some(v) = value_mut(&mut doc, *item) {
                 translate(v, dx, dy);
             }
+        }
+        for before in &points {
+            cp_texts_follow(&mut doc, before, &items);
         }
         self.take(&doc)
     }

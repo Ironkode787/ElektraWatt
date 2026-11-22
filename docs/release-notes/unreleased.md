@@ -425,6 +425,9 @@ change here.
   pages…'s rename table "New text, text to change 2", "Remove text to change 2", not "value set"; Save as macro…'s
   remove button reads "Remove value set 2", by the row's number as its cells are, not by the set's name (doc 06 §3.6,
   FT-1965)
+- behaviour-change: in the symbol editor a connection point moved alone takes the text that writes its number with
+  it, and a point given another edge in Properties has that text placed again inside the body for the new edge; the
+  text stayed where it stood (doc 07 §5, FT-1990)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
