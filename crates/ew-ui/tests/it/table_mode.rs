@@ -95,13 +95,13 @@ fn copy_and_paste_events_run_the_table_actions() {
         .cloned()
         .expect("the table card");
     assert_eq!(gesture.blocking(), 1);
-    // No cell can be applied: Apply is disabled (its reason is the tooltip), Cancel and Drop stay.
+    // No cell can be applied: Apply is disabled (its reason is the tooltip), Cancel and Leave out stay.
     let applies: Vec<_> = h.query_all_by_label("Apply").collect();
     assert!(!applies.is_empty(), "the card's Apply");
     for a in applies {
         assert!(a.accesskit_node().is_disabled(), "Apply with nothing to apply");
     }
-    h.get_by_label("Drop").click();
+    h.get_by_label("Leave out").click();
     settle(&mut h);
     assert!(h.state().shell().table_gesture().is_none());
     assert_eq!(h.state().shell().revision(), rev);

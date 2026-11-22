@@ -1223,7 +1223,7 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
         let mut parts = vec![egui::Rect::from_min_max(egui::pos2(grid.left(), top), grid.max)];
         // The card's buttons, not the Preview tab's.
         parts.extend(
-            buttons(&h, &["Apply", "Cancel", "Drop"])
+            buttons(&h, &["Apply", "Cancel", "Leave out"])
                 .into_iter()
                 .filter(|r| r.right() <= grid.right()),
         );

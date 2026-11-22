@@ -422,12 +422,15 @@ fn paste_maps_parses_and_refuses_as_specified() {
     assert_eq!(
         lines_with(&shell, "  cell "),
         [
-            "  cell 1 \"PE\" \"Part\" invalid \"no command yet\"".to_owned(),
+            "  cell 1 \"PE\" \"Part\" invalid \"not editable in this table\"".to_owned(),
             "  cell 2 \"\" \"Part\" invalid \"no row\"".to_owned(),
         ]
     );
     let m = failed(&mut shell, "navigator.apply", json!({}));
-    assert_eq!(m, "2 cells are invalid or ambiguous; resolve or drop them first.");
+    assert_eq!(
+        m,
+        "2 cells are invalid or ambiguous; resolve them or leave them out first."
+    );
     done(&mut shell, "table.drop", json!({"cell": 2}));
     assert_eq!(lines_with(&shell, "  cell ").len(), 1);
     done(&mut shell, "table.drop", json!({"cell": 1}));
@@ -500,7 +503,10 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
         "{line}"
     );
     let m = failed(&mut shell, "navigator.apply", json!({}));
-    assert_eq!(m, "1 cell is invalid or ambiguous; resolve or drop it first.");
+    assert_eq!(
+        m,
+        "1 cell is invalid or ambiguous; resolve it or leave it out first."
+    );
     done(&mut shell, "table.resolve", json!({"cell": 2, "choice": 1}));
     assert!(lines_with(&shell, "  cell ").is_empty());
     done(&mut shell, "navigator.apply", json!({}));

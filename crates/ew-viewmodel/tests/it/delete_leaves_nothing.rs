@@ -52,9 +52,18 @@ fn terminals(tmp: &Tmp, count: usize) -> (ShellModel, Vec<TableRep>) {
 
 /// The upper (`upper`) or lower pin of the terminal symbol `rep`.
 fn pin(s: &ShellModel, rep: &TableRep, upper: bool) -> TableCp {
-    let mut cps: Vec<TableCp> = tables(s).cps.iter().filter(|c| c.rep == rep.id).cloned().collect();
+    let mut cps: Vec<TableCp> = tables(s)
+        .cps
+        .iter()
+        .filter(|c| c.rep == rep.id)
+        .cloned()
+        .collect();
     cps.sort_by_key(|c| c.at.1);
-    if upper { cps.remove(0) } else { cps.pop().expect("a pin") }
+    if upper {
+        cps.remove(0)
+    } else {
+        cps.pop().expect("a pin")
+    }
 }
 
 /// A wire drawn from pin `a` to pin `b` on the page shown.
@@ -103,6 +112,47 @@ fn a_deleted_terminal_takes_its_wire_and_the_toast_offers_to_remove_it() {
     );
 }
 
+/// In the Terminal strips table a row chosen whole (the cursor in its key column, Strip) is deleted by Delete, its
+/// terminal with its symbol and wires, with the page Delete's toast; a cell elsewhere is cleared (`tb5_the_policy`).
+#[test]
+fn delete_in_the_strips_table_deletes_whole_rows() {
+    let tmp = Tmp::new("delete-table-rows");
+    let (mut s, reps) = terminals(&tmp, 3);
+    let (a, b) = (pin(&s, &reps[0], true), pin(&s, &reps[1], true));
+    wire(&mut s, &a, &b);
+    done(&mut s, "select.set", json!({"ids": []}));
+    done(&mut s, "navigator.show", json!({"kind": "strips"}));
+    done(&mut s, "navigator.table", json!({"kind": "strips", "on": true}));
+    let second = reps[1].device.expect("its terminal");
+    let row = s
+        .nav(NavKind::Strips)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.key.ends_with(&format!("terminal:{second}")))
+                .map(|n| n.key.clone())
+        })
+        .expect("the second terminal's row");
+    done(&mut s, "table.cell", json!({"row": row, "column": "strip"}));
+    done(&mut s, "table.clear", json!({}));
+    assert_eq!(
+        s.toast().map(|t| t.text.as_str()),
+        Some("1 wire that ended at the deleted symbols was deleted with them.")
+    );
+    assert_eq!(
+        tables(&s).reps.iter().filter(|r| r.terminal).count(),
+        2,
+        "the terminal is deleted with its symbol"
+    );
+    assert_eq!(
+        rows(&mut s, NavKind::Strips, NavRole::Terminal),
+        2,
+        "and from the strip"
+    );
+    assert_eq!(rows(&mut s, NavKind::Connections, NavRole::Connection), 0);
+}
+
 #[test]
 fn a_cut_says_what_it_took_and_its_paste_keeps_the_wires_between_the_cut_terminals() {
     let tmp = Tmp::new("cut-says-what");
@@ -121,7 +171,11 @@ fn a_cut_says_what_it_took_and_its_paste_keeps_the_wires_between_the_cut_termina
         "Cut 2 terminals. 2 wires that ended at them are removed with them; \
          a paste keeps the wires between the cut items only."
     );
-    assert_eq!(toast.actions(), [NoteAction::Undo], "nothing to remove: the paste brings them back");
+    assert_eq!(
+        toast.actions(),
+        [NoteAction::Undo],
+        "nothing to remove: the paste brings them back"
+    );
     assert_eq!(rows(&mut s, NavKind::Connections, NavRole::Connection), 0);
     done(&mut s, "edit.paste_in_place", json!({}));
     assert_eq!(

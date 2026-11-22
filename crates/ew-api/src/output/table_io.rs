@@ -1152,7 +1152,7 @@ fn is_lossy(file: &str, exported: &str) -> bool {
 /// The English words of a read-only reason key, as the CLI prints a round trip's findings: the key's text of the
 /// window's en-GB locale file.
 pub fn reason_words(key: &str) -> &'static str {
-    ew_commands::text_english(key).unwrap_or("no command yet")
+    ew_commands::text_english(key).unwrap_or("not editable in this table")
 }
 
 #[cfg(test)]

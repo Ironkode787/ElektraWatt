@@ -1450,7 +1450,8 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared.
+    /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared; in the Strips table
+    /// with the cursor in its key column (Strip), their terminals deleted.
     pub(crate) fn act_table_clear(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.table_kind(p));
         let Some(view) = self.table_view(kind) else {
@@ -1461,6 +1462,17 @@ impl ShellModel {
         };
         if view.acted.is_empty() {
             return Outcome::refused(key!("reason-no-nav-row"));
+        }
+        // With the cursor in the Strips table's key column the rows are chosen whole: Delete deletes their terminals.
+        if kind == NavKind::Strips && view.table.columns[col].key_column {
+            let terminals: Vec<Uuid> = view
+                .acted
+                .iter()
+                .filter_map(|i| row_terminal(&view.table.nodes[*i as usize].key))
+                .collect();
+            if !terminals.is_empty() {
+                return self.delete_terminals(&terminals);
+            }
         }
         let cells: Vec<GestureCell> = view
             .acted
@@ -1478,6 +1490,58 @@ impl ShellModel {
             })
             .collect();
         self.run_gesture(Self::gesture(GestureKind::Clear, kind, cells), None)
+    }
+
+    /// The Strips table's Delete of whole rows: one `edit.delete` of the terminals `terminals` with their symbols and
+    /// the wires drawn to them, whose toast counts the wires as the page's Delete does.
+    fn delete_terminals(&mut self, terminals: &[Uuid]) -> Outcome {
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        // The wires drawn on a page (a bridge is drawn on none) that end at the terminals.
+        let mut wires: Vec<ew_dl::EntityRef> = Vec::new();
+        {
+            let q = session.query();
+            let idx = q.idx();
+            for t in terminals {
+                let Ok(t) = t.to_string().parse() else { continue };
+                for f in idx.functions_of_device(t) {
+                    for (_, cs) in idx.connected_cps_of_function(f) {
+                        for c in cs {
+                            let drawn = q.connections().get(c).is_some_and(|c| c.page.is_some());
+                            let w = ew_dl::EntityRef(c.as_uuid());
+                            if drawn && !wires.contains(&w) {
+                                wires.push(w);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let targets: Vec<Value> = terminals
+            .iter()
+            .map(|t| serde_json::json!({"kind": "device", "id": t.to_string()}))
+            .chain(
+                wires
+                    .iter()
+                    .map(|w| serde_json::json!({"kind": "connection", "id": w.0.to_string()})),
+            )
+            .collect();
+        let cmd = AnyCommand {
+            name: "edit.delete".into(),
+            params: serde_json::json!({ "targets": targets }),
+        };
+        let out = self.commit_from_host(&cmd);
+        if out == Outcome::Done && !wires.is_empty() {
+            self.tools.result_note = Some(crate::tools::ResultNote::Deleted {
+                names: Vec::new(),
+                wires: Vec::new(),
+                others: wires,
+                unplaced: Vec::new(),
+                undrawn: Vec::new(),
+            });
+        }
+        out
     }
 
     /// The table card's gesture.

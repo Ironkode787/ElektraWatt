@@ -6,7 +6,7 @@
 //!
 //! **Editable cells**: a column with a route (`NavColumn::route`), on a row with records of the
 //! route's kind ([`row_targets`]). Every other cell is read-only with the first reason of: "derived", "generated", "no
-//! record of this kind", "edit in the property grid", "no command yet" ([`cell_reason_key`]).
+//! record of this kind", "edit in the property grid", "not editable in this table" ([`cell_reason_key`]).
 //!
 //! **Compile**: the gesture's cells in (row display order, column visible order); each valid cell
 //! gives a (target, path, value) triple per target. A cell one of whose (target, path) pairs an earlier cell of the
@@ -273,9 +273,9 @@ const TYPED_PLC: [(&str, &str); 5] = [
     ("connection", "tube_part"),
 ];
 
-/// Why a cell is read-only (in this order), as a text key, `None` for an editable cell:
-/// "derived", "generated", "no record of this kind", "edit in the property grid", "no command yet" (the view model's
-/// `cell_reason` gives the text). A column without a route reads its [`NavColumn::read_only`](super::NavColumn): the
+/// Why a cell is read-only (in this order), as a text key, `None` for an editable cell: "derived", "generated", "no
+/// record of this kind", "edit in the property grid", "not editable in this table" (the view model's `cell_reason`
+/// gives the text). A column without a route reads its [`NavColumn::read_only`](super::NavColumn): the
 /// builder's "derived" is `table-reason-derived`, any other `table-reason-no-command`.
 pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Option<&'static str> {
     let c = table.columns.get(column)?;

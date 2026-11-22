@@ -11,7 +11,7 @@
 //!
 //! **Editable cells**: a column with a route (`NavColumn::route`), on a row with records of the
 //! route's kind. Every other cell is read-only with the first reason of: "derived", "generated", "no record of this
-//! kind", "edit in the property grid", "no command yet" ([`cell_reason`]).
+//! kind", "edit in the property grid", "not editable in this table" ([`cell_reason`]).
 //!
 //! **Compile**: the gesture's cells in (row display order, column visible order); each valid cell
 //! gives a (target, path, value) triple per target. A cell one of whose (target, path) pairs an earlier cell of the
@@ -46,7 +46,7 @@ use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 /// Why a cell is read-only (in this order), `None` for an editable cell: "derived", "generated", "no record of this
-/// kind", "edit in the property grid", "no command yet": the text of
+/// kind", "edit in the property grid", "not editable in this table": the text of
 /// [`cell_reason_key`](ew_api::output::table_edit::cell_reason_key).
 pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<String> {
     ew_api::output::table_edit::cell_reason_key(table, node, column)

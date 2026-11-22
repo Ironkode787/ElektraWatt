@@ -774,6 +774,10 @@ default keys. Checking `]` and `[` on German and French layouts is an owner item
 *As built:* T starts Text, F2 edits a selected free text, L starts a line, Shift+W starts Wire marker and Shift+B starts Structure box. D changes arc direction in Graphic; Shift+Enter or double click finishes a Graphic/Structure box outline. Edit ▸ Bridge terminals has no shortcut.
 
 *As built.* **The strip editor's keys.** In the Terminal strips navigator (open and focused; headless: open) Insert is `strip.insert` (Insert terminal, before the cursor terminal row) and Ctrl+Delete is `strip.delete_rows` (Delete rows; terminal rows through the table card, accessory rows directly). Edit ▸ Strip editor (`strip.edit`), Add accessory (`strip.add_accessory`), Remove bridge (`strip.unbridge`) and Bridge terminals (`strip.bridge`) have no shortcut. **Alt+Up and Alt+Down are `strip.move` (`step` −1 and +1) while the Terminal strips navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere** (the shell maps the page-move chords to `strip.move` in that focus, so the keymap conflict test of §15.5 still sees one binding per chord). The Pos cell's read-only reason reads "move rows with Alt+Up and Alt+Down". Enter on an unplaced terminal row (placing it) is part 2 as well.
+Delete (`table.clear`) with the cell cursor in the key column (Strip) takes the rows whole: it deletes the marked
+terminal rows' terminals with their symbols and the wires drawn to them, one undo step, and its toast counts the wires
+as the page's Delete does (0.3.5, a persona run found no way to delete rows from the table); in any other column it
+clears the cells.
 
 *As built.* **J is `place.join`** in the canvas context, enabled only while the Place tool's armed symbol can be an auxiliary function (the HUD names it: "J Join device…"). It opens the Join chooser ([16a](16a-design-language.md) §6.22, [06](06-schematic-editor.md) §3.3), whose actions `chooser.row`, `chooser.type` and `chooser.choose` have no default keymap entry: the chooser takes Up, Down, Home, End, type-ahead, Enter and Escape (`ui.dismiss`) itself. **275 actions.**
 
