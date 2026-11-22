@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Arrange and route sets a strip's feed terminal (wired to no channel of the card it stands over)
+  at the strip's end on the side its wires lead, where it was left between the channels' terminals or at the far end
+  and its wires crossed the channels' (doc 06a §4.8, FT-1893)
 - behaviour-change: Route weighs each wire's kept route alone: a wire that lost its route, on a potential with other
   wires (a supply mark's), is routed again where Route left it without a route and named nothing, and the potential's
   other wires keep the routes they have where those cost no more (doc 06a §3.9, FT-1891)

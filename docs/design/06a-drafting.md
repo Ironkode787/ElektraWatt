@@ -1037,7 +1037,10 @@ Parts may cross the page, so these hold the person's picture of it:
   one, at the pitch it had or the one its new place asks of all its members. Rule E4 comes first: a terminal
   wired to a card's pin stands in that channel's column, so a strip between a card and its field devices takes
   the pitch and the order of the channels, and a terminal of it that is wired to another card stands at that
-  card's pin.
+  card's pin. A terminal of the strip wired to no channel but elsewhere (a feed terminal) stands at the strip's
+  end, on the side its wires lead to (a wire to a part that stands in a channel's column counts at that column; one
+  to a part that hangs on the terminal, its supply mark, follows it), so its wires cross no channel's; a spare
+  terminal, without a wire, keeps its place in the strip.
 - **Order.** The parts of a circuit stand in the order of the wiring, the parts of a row in the order of the
   pins (rule A4, which reads the terminals of a strip as one row).
 - **Spacing.** Along a circuit the distances are the person's.

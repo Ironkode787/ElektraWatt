@@ -69,7 +69,8 @@
 //!
 //! From the root outward, rank by rank (the root, then the units set beside one another by one step of the method).
 //! The mates that hang on a rank join it first: each takes its host's step, stands level with it, takes the pitch the
-//! row now has where the row had one, and what a rail asks of it.
+//! row now has where the row had one, and what a rail asks of it. A mate with wires of its own (a strip's feed
+//! terminal, wired to no channel) stands at the row's end on the side its wires lead, not between the channels.
 //!
 //! - **A row** (facing and tap leads on one side of a rank). The members that stand more than [`ROW_PULL`] beyond the
 //!   nearest wait until what hangs on the near ones is set: a device wired straight to a card does not take the place
@@ -2666,6 +2667,70 @@ impl<'a> Sketch<'a> {
             .max_by_key(|b| (i64::from(b.w()) * i64::from(b.h()), Reverse(*b)))
     }
 
+    /// The move along its row that sets mate `f`, as [`Sketch::join_mates`] has set it beside its host, at the end of
+    /// its row in `rank` (`down`: a row side by side) on the side where its wires lead: the middle of the far ends of
+    /// its wires, each at the place of the member of the row it hangs on (a sensor over its channel's terminal), one
+    /// that hangs on `f` left out (it follows `f`). Where that middle is the row's own, a mate between the members
+    /// takes the nearer end. A strip's feed terminal, wired to no channel, so stands at the strip's end and its wires do
+    /// not cross the channels'; a spare terminal, without a wire, stays.
+    fn row_end(&self, f: usize, rank: &[usize], down: bool) -> Option<Tick> {
+        let along = |p: Pt| if down { p.x } else { p.y };
+        let centre = |u: usize| {
+            self.shape(u)
+                .map(|r| along(Pt::new((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2).plus(self.d[u])))
+        };
+        let members: Vec<usize> = rank
+            .iter()
+            .copied()
+            .filter(|o| *o != f && self.mates(f, *o, down))
+            .collect();
+        let mut row: Vec<Tick> = members.iter().filter_map(|o| centre(*o)).collect();
+        row.sort_unstable();
+        let (&lo, &hi) = (row.first()?, row.last()?);
+        let pitch = row.windows(2).map(|w| w[1] - w[0]).filter(|g| *g > 0).min()?;
+        let own: BTreeSet<PinId> = self.units[f]
+            .parts
+            .iter()
+            .flat_map(|i| self.w.parts[*i].pins.iter().map(|p| p.id))
+            .collect();
+        let follows = self.subtree(f);
+        let hung: Vec<(usize, Vec<usize>)> = members.iter().map(|m| (*m, self.subtree(*m))).collect();
+        let mut far: Vec<i64> = Vec::new();
+        for w in &self.w.page.wires {
+            let [End::Pin(a), End::Pin(b)] = w.ends else {
+                continue;
+            };
+            let q = match (own.contains(&a), own.contains(&b)) {
+                (true, false) => b,
+                (false, true) => a,
+                _ => continue,
+            };
+            let u = self.unit_of_pin(q);
+            if follows.contains(&u) {
+                continue;
+            }
+            let at = match hung.iter().find(|(_, t)| t.contains(&u)) {
+                Some((m, _)) => centre(*m),
+                None => Some(along(self.pt(q))),
+            };
+            far.extend(at.map(i64::from));
+        }
+        let n = i64::try_from(far.len()).ok().filter(|n| *n > 0)?;
+        let now = centre(f)?;
+        let (middle, mid) = (far.iter().sum::<i64>() / n, (i64::from(lo) + i64::from(hi)) / 2);
+        let left = match middle.cmp(&mid) {
+            std::cmp::Ordering::Less => true,
+            std::cmp::Ordering::Greater => false,
+            std::cmp::Ordering::Equal if (lo..=hi).contains(&now) => now - lo <= hi - now,
+            std::cmp::Ordering::Equal => return None,
+        };
+        match left {
+            true if now >= lo => Some(lo - pitch - now),
+            false if now <= hi => Some(hi + pitch - now),
+            _ => None,
+        }
+    }
+
     /// The mates that hang on the units of `rank` join it, each set beside its host: with it by the host's own step,
     /// and at the pitch the host keeps from its mate on the other side where that is nearer (a strip's terminal
     /// without a lead of its own stays in its strip, at the strip's new pitch).
@@ -2729,6 +2794,12 @@ impl<'a> Sketch<'a> {
                         self.d[f] = self.d[f].minus(step);
                     }
                 }
+                // At its row's end where its wires lead beyond it (a strip's feed terminal).
+                let mut toward = was;
+                if let Some(by) = self.row_end(f, rank, down) {
+                    self.d[f] = self.d[f].plus(if down { Pt::new(by, 0) } else { Pt::new(0, by) });
+                    toward = by;
+                }
                 // What a rail asks of it comes first.
                 if let Some((step, _)) = self.steps.get(&f).copied() {
                     if step.x != 0 {
@@ -2739,7 +2810,7 @@ impl<'a> Sketch<'a> {
                     }
                 }
                 // On a unit that is set (two of a row set down on each other), it steps away from its host.
-                let away = if was < 0 { -TICKS_PER_STEP } else { TICKS_PER_STEP };
+                let away = if toward < 0 { -TICKS_PER_STEP } else { TICKS_PER_STEP };
                 let away = if down { Pt::new(away, 0) } else { Pt::new(0, away) };
                 let mut more = 0;
                 while more < 2 * ROW_PULL

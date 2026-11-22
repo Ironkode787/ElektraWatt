@@ -43,7 +43,7 @@ fn after(page: &DraftPage, a: &Arranged) -> DraftPage {
 
 /// Arrange and route over the page, checked: `rules_kept` holds, the page is no worse, and the quality the plan
 /// reports is that of the page it leaves (§4.9).
-fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
+pub(crate) fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
     let a = arrange(page, Scope::Page, fixed);
     let done = after(page, &a);
     assert_eq!(rules_kept(page, &done), Ok(()), "the plan keeps the rules");
@@ -57,7 +57,7 @@ fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
     (a, done)
 }
 
-fn at(page: &DraftPage, name: &str) -> Pt {
+pub(crate) fn at(page: &DraftPage, name: &str) -> Pt {
     page.parts
         .iter()
         .find(|x| x.id == PartId(crate::kit::id(name)))
@@ -515,7 +515,7 @@ fn rules_kept_names_a_moved_kept_part_a_reshaped_part_and_a_closed_up_chain() {
 }
 
 /// The corners of wire `name` of `page`.
-fn corners(page: &DraftPage, name: &str) -> usize {
+pub(crate) fn corners(page: &DraftPage, name: &str) -> usize {
     let w = page
         .wires
         .iter()
@@ -525,7 +525,7 @@ fn corners(page: &DraftPage, name: &str) -> usize {
 }
 
 /// What counts first on a page after a run: its faults, its wires without a way, its crossings.
-fn sound(page: &DraftPage) -> (usize, usize, usize) {
+pub(crate) fn sound(page: &DraftPage) -> (usize, usize, usize) {
     let q = measure(page);
     (q.faults, q.unrouted, q.counts.crossings)
 }
