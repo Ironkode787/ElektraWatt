@@ -1104,6 +1104,70 @@ impl Command for MoveReps {
     }
 }
 
+/// `rep.move_to_new_page` (FT-2134): a new page and the representations moved onto it, in one undo step. The page
+/// comes after the page of the first representation, in its section, its folio `number`, else proposed as `page.create`
+/// proposes one after a page (a folio in use or outside the section is refused as `page.create` refuses it), with that
+/// page's type, frame form, structure and grid, titled `title`; the representations then move
+/// onto it as `rep.move` with `page` and a zero `delta` moves them, refused as that move refuses (a wire whose other
+/// end stays behind). Outcome: the new page.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MoveRepsToNewPage {
+    /// The representations, at least one, all on one page.
+    #[schemars(with = "Vec<UuidS>")]
+    pub reps: Vec<Id<Representation>>,
+    /// The new page's title.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub title: MlText,
+    /// The new page's folio number in that section, as the window's New page proposes it; absent: proposed after the
+    /// page as `page.create` proposes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub number: Option<u32>,
+}
+
+impl Command for MoveRepsToNewPage {
+    const NAME: &'static str = "rep.move_to_new_page";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let Some(first) = self.reps.first() else {
+            return tx.reject(text!("refusal-rep-move-nothing"));
+        };
+        let from = tx.require::<Page>(tx.require::<Representation>(*first)?.page)?;
+        let made = crate::commands::page::CreatePage {
+            section: self.number.and(from.folio.section),
+            number: self.number,
+            label: None,
+            after: Some(from.id),
+            kind: from.kind.clone(),
+            title: self.title.clone(),
+            structure: from.structure.clone(),
+            form: from.form,
+            grid: from.grid,
+        }
+        .run(tx)?;
+        let Some((_, page)) = made.primary else {
+            return Err(CmdError::internal("page.create made no page"));
+        };
+        MoveReps {
+            reps: self.reps.clone(),
+            delta: zero(),
+            page: Some(page.cast()),
+            steps: None,
+            items: Vec::new(),
+            routes: Vec::new(),
+            connect: Vec::new(),
+            into: None,
+        }
+        .run(tx)?;
+        Ok(made)
+    }
+}
+
 impl MoveReps {
     /// The move itself (see the type's documentation), without `into`.
     pub(crate) fn run_move(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {

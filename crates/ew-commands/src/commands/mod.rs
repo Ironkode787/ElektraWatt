@@ -145,6 +145,7 @@ commands! {
     device::CreateDevice,
     device::PlaceSymbol,
     device::MoveReps,
+    device::MoveRepsToNewPage,
     device::TransformReps,
     device::SetAnchorPolicy,
     device::SetRepText,

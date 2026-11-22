@@ -508,24 +508,47 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
-        // The schematic pages by folio and title, then New page….
-        Submenu::ModulePages => target_items(
-            meta,
-            model,
-            model
-                .schematic_pages()
-                .into_iter()
-                .map(|(folio, title)| {
-                    let label = strings::format(key!("rack-next-draw-on"), &[&folio, &title]);
-                    (label.trim().to_owned(), json!({ "folio": folio }))
-                })
-                .chain([(
-                    strings::text(key!("rack-draw-on-new-page")).to_owned(),
-                    json!({ "folio": "new" }),
-                )])
-                .collect(),
-            key!("reason-rack-draw-page"),
-        ),
+        // The schematic pages by folio and title, then a new page; Move to page's read as moves ("To page 101 …") and
+        // leave out the page the module is drawn on (FT-2134).
+        Submenu::ModulePages => {
+            let moving = meta.id == "plc.module_move";
+            let (to, to_new) = if moving {
+                (key!("rack-move-to"), key!("rack-move-to-new-page"))
+            } else {
+                (key!("rack-next-draw-on"), key!("rack-draw-on-new-page"))
+            };
+            let on: Vec<String> = match (moving, model.station_device(), model.project_session()) {
+                (true, Some(device), Some(session)) => {
+                    let pages: Vec<_> = session
+                        .electrical_drawings(device)
+                        .into_iter()
+                        .map(|(_, p)| p)
+                        .collect();
+                    model
+                        .page_rows()
+                        .iter()
+                        .filter(|r| pages.contains(&r.id))
+                        .map(|r| r.folio.clone())
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
+            target_items(
+                meta,
+                model,
+                model
+                    .schematic_pages()
+                    .into_iter()
+                    .filter(|(folio, _)| !on.contains(folio))
+                    .map(|(folio, title)| {
+                        let label = strings::format(to, &[&folio, &title]);
+                        (label.trim().to_owned(), json!({ "folio": folio }))
+                    })
+                    .chain([(strings::text(to_new).to_owned(), json!({ "folio": "new" }))])
+                    .collect(),
+                key!("reason-rack-draw-page"),
+            )
+        }
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();
             if items.is_empty() {

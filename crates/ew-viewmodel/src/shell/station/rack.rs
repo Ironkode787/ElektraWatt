@@ -134,6 +134,7 @@ impl ShellModel {
     /// under the cursor move to the schematic page `folio` where they stand, with one `rep.move` (one undo step), so the
     /// device keeps its channels, bindings, slot and wires drawn with it; the page is shown. A wire whose other end
     /// stays behind is refused in the move's words, the view staying; a module drawn on that page already is refused.
+    /// `folio` `new`: a new page after the module's own, made and taken in one step, which the toast names.
     pub(crate) fn act_plc_module_move(&mut self, p: &Map<String, Value>) -> Outcome {
         let cursor = self.station_tab().and_then(|t| t.cursor);
         let Some(device) = self.station_device() else {
@@ -144,6 +145,48 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["folio"]),
             Err(e) => return e,
         };
+        let drawings = self
+            .project_session()
+            .map(|s| s.electrical_drawings(device))
+            .unwrap_or_default();
+        // To a new page: the page after the module's own in its section, as New page proposes it, made and taken in one
+        // step (`rep.move_to_new_page`); the toast names it.
+        if folio == "new" {
+            let before: Vec<Uuid> = self.page_rows().iter().map(|r| r.id).collect();
+            let reps: Vec<String> = drawings.iter().map(|(rep, _)| rep.to_string()).collect();
+            let title = strings::text(key!("rack-draw-page-title"));
+            let mut params = json!({"reps": reps, "title": title});
+            // The folio New page proposes after the module's page.
+            if let Some((_, on)) = drawings.first()
+                && let Ok(number) = self
+                    .new_page_proposal(Some(&format!("p:{on}")), Some("multi_line"))
+                    .0
+                    .parse::<u32>()
+            {
+                params["number"] = json!(number);
+            }
+            let out = self.rack_commit(cursor, "rep.move_to_new_page", params);
+            if out != Outcome::Done {
+                return out;
+            }
+            let made = self
+                .page_rows()
+                .iter()
+                .find(|r| !before.contains(&r.id))
+                .map(|r| r.folio.clone());
+            if let Some(made) = made {
+                let tag = self
+                    .project_session()
+                    .and_then(|s| s.device_tag(device))
+                    .unwrap_or_default();
+                let _ = self.dispatch("page.goto", &json!({ "folio": made }));
+                self.notify(
+                    strings::format(key!("toast-module-moved-new-page"), &[&tag, &made]),
+                    true,
+                );
+            }
+            return out;
+        }
         let page = self
             .page_rows()
             .iter()
@@ -152,10 +195,7 @@ impl ShellModel {
         let Some(page) = page else {
             return failed(key!("error-bad-param"), &["folio"]);
         };
-        let reps: Vec<String> = self
-            .project_session()
-            .map(|s| s.electrical_drawings(device))
-            .unwrap_or_default()
+        let reps: Vec<String> = drawings
             .into_iter()
             .filter(|(_, on)| *on != page)
             .map(|(rep, _)| rep.to_string())

@@ -1902,7 +1902,10 @@ other menus (Replace, Draw on a page and Move to page a list beside their entry,
 Delete empties the slot. *Move to page* (FT-2134) puts a drawn module's or head's boxes on electrical pages on the
 schematic page chosen where they stand, with one `rep.move` (one undo step): the device, its channels, bindings and
 slot stay, and a wire between its pins and something that stays behind is refused in the move's words; a cut and paste
-gives a new device out of the rack (doc 06 §3.6). Not built: such a wire kept as a pair of interruption points or
+gives a new device out of the rack (doc 06 §3.6). Its entries read as moves ("To page 101 …", "To a new page") and
+leave out the page the module is drawn on; To a new page makes the page after the module's own in its section, its
+folio the one New page proposes after it, with that page's type, frame, structure and grid, and moves
+the boxes there in the same undo step (`rep.move_to_new_page`), the toast naming the page. Not built: such a wire kept as a pair of interruption points or
 dropped with a count in a preview (doc 06 §3.4's cross-page move). On a valve
 position they speak of the valve (Replace valve, Empty the position), and a move or a drawing of its own, which a
 position does not take, is greyed with the reason; on a free place each says to take a part from the catalogue. They
