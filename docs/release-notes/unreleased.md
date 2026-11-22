@@ -415,3 +415,5 @@ change here.
 - text-change: a list page or a box whose rows do not derive prints its reason in words in the project's language ("Not
   derived: this build does not make this list", "Niet afgeleid: …"); it printed it in English with a family or kind name
   in backquotes (doc 09 §2.4, FT-1995)
+- behaviour-change: a junction of the bevel form draws its bevel half a step on each leg, as two wires parting at a
+  pin do; it was a quarter step (doc 06a §3.4, FT-1898)

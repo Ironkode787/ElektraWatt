@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "6137f1a1-3df8-5db2-8fbd-7b195d118e3b",
   "version": "0.1.0",
-  "sha256": "sha256:4a4921e14ca7f382a0937d64e5715e1b1dc1008195bf6283ce971a4c3ea15835",
+  "sha256": "sha256:e4e535851e87cbe681cc83968cb299adb64d97ab3bceca171c2e930871b75448",
   "meta": {
     "key": "ew.gen.junction-bevel",
     "licence": "CC-BY-SA-4.0",
@@ -35,12 +35,12 @@
     {
       "line": {
         "from": [
-          -1000000,
+          -2000000,
           0
         ],
         "to": [
           0,
-          1000000
+          2000000
         ],
         "stroke": {
           "pen": "p026"
