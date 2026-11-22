@@ -417,3 +417,6 @@ change here.
   in backquotes (doc 09 §2.4, FT-1995)
 - behaviour-change: a junction of the bevel form draws its bevel half a step on each leg, as two wires parting at a
   pin do; it was a quarter step (doc 06a §3.4, FT-1898)
+- behaviour-change: a page's grid changed (`page.set_grid`), a paste or a macro fitted to another grid keep a row of
+  three or more like symbols that stood at one pitch at one pitch of whole steps; each went to its own nearest grid
+  point, so some stood a step closer than their neighbours (doc 06 §8 item 3, FT-1935)

@@ -1570,7 +1570,13 @@ export start (FR-OUT-001).
    a wire. *It gives up* the exact nearest point of an item pushed on (a row of wide symbols whose pitch the new grid
    does not hold spreads to whole steps; a strip of terminals closer than a step may close up to touching), and the
    line-up of things that do not face each other (a column above a row may part from it by a step; its wires, routed
-   anew, take the turn). Items that overlapped along an axis before keep no rule between them there. Structure
+   anew, take the turn). Items that overlapped along an axis before keep no rule between them there. *A row keeps
+   one pitch (FT-1935).* Three or more items of one box height (width, for a column) whose points stood at one pitch
+   along the axis are a row: the first goes to its nearest grid point and the others follow at one pitch of whole
+   steps, the old pitch's nearest that keeps the gaps between every two of them by the rule above (twelve narrow
+   symbols 5.29 mm apart on a 4 mm grid stand 8 mm apart throughout, not by turns 4 and 8 mm); another item before the
+   row still pushes a member on where it would be overlapped.
+   Structure
    boxes take their corners' nearest grid points and page items keep their places, as before. A copy of pages is no
    fit: it keeps every position as its source holds it (§3.6).
 4. **QET anchors.** QET-imported symbols keep QET's element-origin anchor so that imported texts match the source,

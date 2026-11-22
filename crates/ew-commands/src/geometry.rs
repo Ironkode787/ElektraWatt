@@ -214,6 +214,7 @@ fn fit_axis(
     let (step, two) = (at(1)? - at(0)?, at(2)? - at(0)?);
     // What a gap keeps: room for a wire (a step or more) at least what it was up to two steps, else no overlap.
     let keep = |gap: i128| if gap >= step { gap.min(two) } else { 0 };
+    let row_k = row_steps(grid, items, &axis, across, step, &keep)?;
     let mut order: Vec<usize> = (0..items.len()).collect();
     order.sort_by_key(|&i| (axis(items[i].lo), axis(items[i].hi), i));
     let mut shift = vec![0i128; items.len()];
@@ -221,7 +222,7 @@ fn fit_axis(
         let item = &items[j];
         let a = axis(item.at);
         let near = i64::try_from(a).map_err(|_| OutOfRange)?;
-        let mut k = grid.snap(Nm(near));
+        let mut k = row_k[j].unwrap_or_else(|| grid.snap(Nm(near)));
         let mut d = at(k)? - a;
         // The least displacement that keeps every gap before it.
         let need = order[..n]
@@ -246,6 +247,69 @@ fn fit_axis(
         shift[j] = d;
     }
     Ok(shift)
+}
+
+/// The grid index each member of a row goes to in [`fit_axis`] (doc 06 §8 item 3, FT-1935); `None` for an item of no
+/// row. A row is three or more items of one extent `across` whose points stood at one pitch of a `step` or more along
+/// the axis: its first goes to its nearest grid point, the others follow at one pitch of whole steps, the old pitch's
+/// nearest that keeps the gap between every two of them by `keep`.
+fn row_steps(
+    grid: Grid,
+    items: &[FitItem],
+    axis: &impl Fn(Pt2) -> i128,
+    across: &[(i128, i128)],
+    step: i128,
+    keep: &impl Fn(i128) -> i128,
+) -> Result<Vec<Option<i64>>, OutOfRange> {
+    let at = |k: i64| grid.at(k).map(|v| i128::from(v.0)).ok_or(OutOfRange);
+    let mut out = vec![None; items.len()];
+    let mut lines: std::collections::BTreeMap<(i128, i128), Vec<usize>> = Default::default();
+    for (i, a) in across.iter().enumerate() {
+        lines.entry(*a).or_default().push(i);
+    }
+    for members in lines.values_mut() {
+        members.sort_by_key(|&i| (axis(items[i].at), i));
+        let pitch_at = |s: usize| axis(items[members[s + 1]].at) - axis(items[members[s]].at);
+        let mut s = 0;
+        while s + 2 < members.len() {
+            let pitch = pitch_at(s);
+            let mut e = s + 1;
+            while e + 1 < members.len() && (pitch_at(e) - pitch).abs() <= FIT_SLACK {
+                e += 1;
+            }
+            if e - s < 2 || pitch < step {
+                s += 1;
+                continue;
+            }
+            let run = &members[s..=e];
+            let width = run
+                .iter()
+                .map(|&i| axis(items[i].hi) - axis(items[i].lo))
+                .max()
+                .unwrap_or(0);
+            let first = i64::try_from(axis(items[run[0]].at)).map_err(|_| OutOfRange)?;
+            let k0 = grid.snap(Nm(first));
+            let mut n = i64::try_from(((2 * pitch + step) / (2 * step)).max(1)).map_err(|_| OutOfRange)?;
+            // The pitch keeps the gap between every two members of the run, as the fit keeps every gap before an item.
+            let kept = |n: i64| -> Result<bool, OutOfRange> {
+                for m in 1..i64::try_from(run.len()).map_err(|_| OutOfRange)? {
+                    let to = n.checked_mul(m).and_then(|d| k0.checked_add(d)).ok_or(OutOfRange)?;
+                    if at(to)? - at(k0)? - width < keep(i128::from(m) * pitch - width) - FIT_SLACK {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            };
+            while !kept(n)? {
+                n = n.checked_add(1).ok_or(OutOfRange)?;
+            }
+            for (m, &i) in (0i64..).zip(run) {
+                out[i] = Some(n.checked_mul(m).and_then(|d| k0.checked_add(d)).ok_or(OutOfRange)?);
+            }
+            s = e + 1;
+        }
+    }
+    Ok(out)
 }
 
 /// The point by which `rep` keeps to `grid`: its position when that is a grid point, else its first connection
@@ -856,4 +920,30 @@ fn gcd(mut a: u128, mut b: u128) -> u128 {
         (a, b) = (b, a % b);
     }
     a
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// FT-1935: twelve narrow symbols in a row two QET steps apart (5.29 mm, less than a 4 mm step between their
+    /// bodies) went each to its own nearest 4 mm point and were pushed on by turns; as a row they keep one pitch.
+    #[test]
+    fn a_row_that_had_one_pitch_keeps_one() {
+        let (x0, pitch, width) = (174_625_000, 5_291_667, 2_645_833);
+        let items: Vec<FitItem> = (0..12)
+            .map(|k| {
+                let at = Pt2::new(Nm(x0 + k * pitch), Nm(80_000_000));
+                FitItem {
+                    at,
+                    lo: at,
+                    hi: Pt2::new(Nm(at.x.0 + width), Nm(90_000_000)),
+                }
+            })
+            .collect();
+        let d = fit(Grid::MM4, &items).expect("in range");
+        let xs: Vec<i64> = items.iter().zip(&d).map(|(i, d)| i.at.x.0 + d.x.0).collect();
+        let pitch = xs[1] - xs[0];
+        assert!(xs.windows(2).all(|w| w[1] - w[0] == pitch), "{xs:?}");
+    }
 }
