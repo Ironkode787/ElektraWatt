@@ -519,7 +519,6 @@ pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
 /// round, so without them a person could not tell its ends apart, nor see what R did; `None` without a selected
 /// terminal.
 pub fn terminal_clamps(cx: &ToolCx<'_>) -> Option<super::Overlay> {
-    use ew_api::geometry::Dir;
     let t = &cx.page.tables;
     let items: Vec<OverlayItem> = t
         .reps
@@ -531,24 +530,17 @@ pub fn terminal_clamps(cx: &ToolCx<'_>) -> Option<super::Overlay> {
         })
         .flat_map(|r| t.cps.iter().filter(move |c| c.rep == r.id))
         .filter_map(|c| {
-            // The clamp of `-X1:1/a` (`a#2` where a function repeats a letter), 2 mm beyond its end where a wire
-            // leaves it, clear of the designation beside the lead.
+            // The clamp of `-X1:1/a` (`a#2` where a function repeats a letter), centred on the end's line 2 mm beyond
+            // it, where a wire leaves it, clear of the designation beside the lead.
             const BEYOND: i64 = 2_000_000;
             let (_, clamp) = c.label.rsplit_once('/')?;
-            let dir = c.dir?;
-            let anchor = match dir {
-                Dir::Up => super::Anchor::Above,
-                Dir::Down => super::Anchor::Below,
-                Dir::Left => super::Anchor::Left,
-                Dir::Right => super::Anchor::Right,
-            };
-            let (dx, dy) = dir.vector();
+            let (dx, dy) = c.dir?.vector();
             Some(OverlayItem::Label {
                 at: cx
                     .snapper
                     .page_to_sheet((c.at.0 + dx * BEYOND, c.at.1 + dy * BEYOND)),
                 text: clamp.to_owned(),
-                anchor,
+                anchor: super::Anchor::Centre,
             })
         })
         .collect();

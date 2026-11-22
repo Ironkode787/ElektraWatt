@@ -12,22 +12,21 @@ use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::tools::{Anchor, OverlayItem};
 use serde_json::json;
 
-/// The clamp names the overlay shows, from the upper end to the lower (sheet y grows downwards), the upper one above
-/// its end and the lower one below.
+/// The clamp names the overlay shows, from the upper end to the lower (sheet y grows downwards), each centred on the
+/// line of the terminal's lead, so a turned terminal's letters stay on its ends' line.
 fn clamps(s: &ShellModel) -> Vec<String> {
-    let mut v: Vec<(i64, String, Anchor)> = s
+    let mut v: Vec<((i64, i64), String, Anchor)> = s
         .tool_overlay()
         .items
         .iter()
         .filter_map(|i| match i {
-            OverlayItem::Label { text, anchor, at } => Some((at.1, text.clone(), *anchor)),
+            OverlayItem::Label { text, anchor, at } => Some((*at, text.clone(), *anchor)),
             _ => None,
         })
         .collect();
-    v.sort_by_key(|l| l.0);
-    let anchors: Vec<Anchor> = v.iter().map(|l| l.2).collect();
-    if !anchors.is_empty() {
-        assert_eq!(anchors, [Anchor::Above, Anchor::Below]);
+    v.sort_by_key(|l| l.0.1);
+    for l in &v {
+        assert_eq!((l.0.0, l.2), (v[0].0.0, Anchor::Centre), "{}", l.1);
     }
     v.into_iter().map(|(_, t, _)| t).collect()
 }

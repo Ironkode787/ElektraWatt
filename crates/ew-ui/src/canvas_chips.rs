@@ -209,6 +209,19 @@ impl Placer<'_> {
             None if p.faded => clamp_inside(from_vm(p.rect), self.bounds),
             None => from_vm(p.rect),
         };
+        self.push(kind, text, rect, faded)
+    }
+
+    /// A chip of `kind` showing `text` centred on `at`, for a label whose point means it (`Anchor::Centre`: a
+    /// terminal's clamp letter beyond its end); the candidate rule does not move it.
+    fn put_centred(&mut self, kind: ChipKind, text: String, at: Pos2) -> Rect {
+        let size = self.size(kind, &text);
+        self.push(kind, text, Rect::from_center_size(at, size), false)
+    }
+
+    /// Adds the chip of `kind` showing `text` in `rect`, an obstacle for the chips placed after it.
+    fn push(&mut self, kind: ChipKind, text: String, rect: Rect, faded: bool) -> Rect {
+        let t = self.tokens;
         self.obstacles.push(to_vm(rect));
         let (fill, text_colour) = match kind {
             ChipKind::Highlight(slot) => {
@@ -251,8 +264,11 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
         let overlay = shell.tool_overlay();
         let floating = floating_bounds(overlay, canvas, &screen);
         for item in &overlay.items {
-            if let OverlayItem::Label { at, text, .. } = item {
+            if let OverlayItem::Label { at, text, anchor } = item {
                 match floating {
+                    _ if *anchor == tools::Anchor::Centre => {
+                        placer.put_centred(ChipKind::Label, text.clone(), screen(*at));
+                    }
                     // The pointer moves the shape, so its box is inside the target already: the label keeps its
                     // place beside the shape.
                     Some(shape) => {

@@ -132,6 +132,9 @@ pub enum Anchor {
     Left,
     /// To the right of the point, vertically centred.
     Right,
+    /// Centred on the point, which the window keeps (a terminal's clamp letter beyond its end); a label of another
+    /// anchor goes where the chip rule finds room beside its point.
+    Centre,
 }
 
 /// One item of a tool's overlay, in sheet nm.
