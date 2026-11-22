@@ -22,8 +22,10 @@
 //! value or branch of a node the base holds passes only when `docs/release-notes/unreleased.md` gains `- format-variant:
 //! <kind> <path> <value>` (the reviewer checks the type's `Unknown(Value)` arm, ADR-0011 amendment 1); this line check
 //! compares with the **newest** final tag whose tree holds the format, among those whose version is not above the
-//! working tree's `[workspace.package].version`, since a release's cut empties the notes. A new optional property and a
-//! new kind's schema are additive.
+//! working tree's `[workspace.package].version`, since a release's cut empties the notes. The cut moves the lines to
+//! the notes of the release, `docs/release-notes/<X.Y.Z>.md`, so the guard reads that file of the working tree's
+//! version beside the unreleased notes, and a candidate passes before its final tag exists. A new optional property
+//! and a new kind's schema are additive.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
@@ -97,9 +99,17 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
 
 /// The guard of the working tree at `root` against the release tags.
 fn guard(root: &Path) -> Result<Report> {
-    let notes_after = std::fs::read_to_string(root.join(RELEASE_NOTES))
-        .unwrap_or_default()
-        .replace("\r\n", "\n");
+    let read = |path: &str| {
+        std::fs::read_to_string(root.join(path))
+            .unwrap_or_default()
+            .replace("\r\n", "\n")
+    };
+    // The unreleased notes, and the notes of the working tree's own version: a release's cut moves the lines there.
+    let mut notes_after = read(RELEASE_NOTES);
+    if let Some((x, y, z)) = tree_version(root) {
+        notes_after.push('\n');
+        notes_after.push_str(&read(&format!("docs/release-notes/{x}.{y}.{z}.md")));
+    }
     let format = format_guard(root, &notes_after)?;
     let mut lines: Vec<String> = format.changes.iter().map(Change::line).collect();
     let breaking = format.changes.iter().filter(|c| c.breaking).count();
@@ -1159,6 +1169,14 @@ mod tests {
         };
         let report = format_report(&s);
         assert_eq!(report.failure, [s6("d", "v0.2.0")]);
+        // A release's cut moves the line to the notes of the tree's version: a candidate of 0.2.1 passes with it there.
+        s.write("Cargo.toml", "[workspace.package]\nversion = \"0.2.1\"\n");
+        s.write(
+            "docs/release-notes/0.2.1.md",
+            "# 0.2.1\n\n- format-variant: device mode d (a fourth mode)\n",
+        );
+        assert!(format_report(&s).failure.is_empty());
+        std::fs::remove_file(s.dir.join("docs/release-notes/0.2.1.md")).unwrap();
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.1.1\"\n");
         let report = format_report(&s);
         s.remove();
