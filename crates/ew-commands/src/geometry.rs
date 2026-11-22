@@ -147,9 +147,10 @@ pub(crate) struct FitItem {
     lo: Pt2,
     /// The box's greatest corner.
     hi: Pt2,
-    /// Whether a pin on the box's near and on its far side leaves along the axis, x then y (`faces[0][0]`: a pin on
-    /// its left edge whose wire leaves along x, towards what stands left of it).
-    faces: [[bool; 2]; 2],
+    /// The pins on the box's near and on its far side that leave along the axis, x then y, with a wire that does not
+    /// run straight on to its other end (`faces[0][0]`: such pins on its left edge, whose wires leave towards what
+    /// stands left of it and turn): each wants a grid line of its own beside that side.
+    faces: [[u32; 2]; 2],
 }
 
 impl FitItem {
@@ -170,9 +171,12 @@ impl FitItem {
                 Some(vertical) => usize::from(vertical),
                 None => continue,
             };
+            if !turns(tx, c, rep.page, ax) {
+                continue;
+            }
             let v = on_axis(c.pos, ax);
-            item.faces[ax][0] |= v == on_axis(item.lo, ax);
-            item.faces[ax][1] |= v == on_axis(item.hi, ax);
+            item.faces[ax][0] += u32::from(v == on_axis(item.lo, ax));
+            item.faces[ax][1] += u32::from(v == on_axis(item.hi, ax));
         }
         Ok(item)
     }
@@ -183,16 +187,35 @@ impl FitItem {
             at,
             lo: at,
             hi: at,
-            faces: [[false; 2]; 2],
+            faces: [[0; 2]; 2],
         }
     }
+}
+
+/// Whether CP `c` of a representation on `page`, whose wire leaves along axis `ax`, has a wire on the page that does not
+/// run straight on to its other end (that end off the pin's line, or a route that leaves it): a wire that turns along
+/// the side the pin is on, and so wants a grid line there ([`FitItem::faces`]).
+fn turns(tx: &TxBuilder<'_>, c: &RepCp, page: Id<Page>, ax: usize) -> bool {
+    let me = Endpoint::Cp(c.function, c.idx);
+    let in_line = |p: &Pt2| on_axis(*p, 1 - ax) == on_axis(c.pos, 1 - ax);
+    tx.connections_at(ew_model::EndpointKey::Cp(c.function, c.idx))
+        .into_iter()
+        .filter_map(|id| tx.get::<Connection>(id))
+        .filter(|w| w.page == Some(page))
+        .any(|w| {
+            let other = if w.a == me { &w.b } else { &w.a };
+            let straight =
+                end_point(tx, other, page).is_some_and(|p| in_line(&p)) && w.route.iter().all(in_line);
+            !straight
+        })
 }
 
 /// What the grid fit keeps room for beside the gaps between the items it moves ([`fit`], doc 06 §8 item 3, FT-2010).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub(crate) struct FitRoom {
-    /// The drawing area as the router reads it, its least and greatest corners: an item with a pin on a side that
-    /// faces its edge, which stood a step or more from that edge, keeps a grid line a step from both.
+    /// The drawing area as the router reads it, its least and greatest corners: an item with pins on a side that faces
+    /// its edge, their wires turning along it ([`FitItem::faces`]), which stood a step or more from that edge, keeps a
+    /// grid line for each between, a step from the edge, from each other and from the item.
     pub(crate) area: Option<[Pt2; 2]>,
     /// The straight wires between pins of two items that stood in line: each end as its item's index among the items
     /// and its pin's point.
@@ -259,8 +282,9 @@ const FIT_SLACK: i128 = 2;
 /// items whose boxes overlapped along the axis keep no rule between them. So no two items that stood apart end on one
 /// another, things that face each other keep their order, and two pins more than a step apart keep a grid line between
 /// them for a wire; what is given up is the exact nearest point of an item pushed on. With `room` (FT-2010) an item
-/// with a pin facing an edge of the drawing area, which stood a step or more from it, keeps a grid line a step from
-/// both (pushed on from the near edge, taken back from the far one as far as its gaps allow); an item wired straight to
+/// with pins facing an edge of the drawing area whose wires turn along it, which stood a step or more from it, keeps a
+/// grid line for each between, a step apart and a step from the edge and from the item (pushed on from the near edge,
+/// taken back from the far one as far as its gaps allow); an item wired straight to
 /// a pin of an item placed before it, the two pins in line, goes as near in line with that pin as the grid allows; and
 /// where the pin of only one of the two lands on the grid, what faces that pin's line between the two pins keeps a
 /// step from it. [`OutOfRange`] when a point would leave the drawable range.
@@ -352,16 +376,18 @@ fn fit_axis(
             })
             .max();
         let mut raise = |v: i128| need = Some(need.map_or(v, |n| n.max(v)));
-        // A pin facing the near edge keeps a grid line a step from both (FT-2010).
+        // Pins facing the near edge keep a grid line each, a step from the edge and from one another, and a step from
+        // the item (FT-2010).
         if let Some((e0, _)) = edges
-            && item.faces[ax][0]
+            && item.faces[ax][0] > 0
             && lo - e0 >= step
         {
             let mut g = index(e0 + step)?;
             if at(g)? < e0 + step {
                 g = g.checked_add(1).ok_or(OutOfRange)?;
             }
-            raise(at(g)? + step - FIT_SLACK - lo);
+            let past = g.checked_add(i64::from(item.faces[ax][0])).ok_or(OutOfRange)?;
+            raise(at(past)? - FIT_SLACK - lo);
         }
         // A wire that cannot stay in line keeps a step of room beside the line of its pin on the grid.
         for l in lines {
@@ -388,16 +414,17 @@ fn fit_axis(
             }
             d = at(k)? - a;
         }
-        // A pin facing the far edge keeps a grid line a step from both, taken back as far as the gaps before it allow.
+        // Pins facing the far edge keep a grid line each as well, taken back as far as the gaps before it allow.
         if let Some((_, e1)) = edges
-            && item.faces[ax][1]
+            && item.faces[ax][1] > 0
             && e1 - hi >= step
         {
             let mut g = index(e1 - step)?;
             if at(g)? > e1 - step {
                 g = g.checked_sub(1).ok_or(OutOfRange)?;
             }
-            let most = at(g)? - step + FIT_SLACK - hi;
+            let short = g.checked_sub(i64::from(item.faces[ax][1])).ok_or(OutOfRange)?;
+            let most = at(short)? + FIT_SLACK - hi;
             while d > most {
                 let back = at(k.checked_sub(1).ok_or(OutOfRange)?)? - a;
                 if need.is_some_and(|need| back < need) {
@@ -1124,7 +1151,7 @@ mod tests {
                     at,
                     lo: at,
                     hi: Pt2::new(Nm(at.x.0 + width), Nm(90_000_000)),
-                    faces: [[false; 2]; 2],
+                    faces: [[0; 2]; 2],
                 }
             })
             .collect();
@@ -1135,7 +1162,7 @@ mod tests {
     }
 
     /// An item of the fit: its point `at` and its box from `lo` to `hi`, in nm; `faces` as [`FitItem::faces`].
-    fn item(at: (i64, i64), lo: (i64, i64), hi: (i64, i64), faces: [[bool; 2]; 2]) -> FitItem {
+    fn item(at: (i64, i64), lo: (i64, i64), hi: (i64, i64), faces: [[u32; 2]; 2]) -> FitItem {
         let p = |(x, y): (i64, i64)| Pt2::new(Nm(x), Nm(y));
         FitItem {
             at: p(at),
@@ -1149,24 +1176,25 @@ mod tests {
     const STEP: i64 = 4_000_000;
     const SLACK: i64 = 2;
 
-    /// FT-2010: a card whose pins face the drawing area's left edge 1.98 steps from it, and a box whose pin faces its
-    /// right edge as far, each keep a grid line a step from both the edge and themselves, a wire's way out; the card
-    /// went to its nearest grid point 2.3 steps from the edge, the box towards the edge.
+    /// FT-2010: a card whose two supply pins face the drawing area's left edge 1.98 steps from it, their wires turning
+    /// along it, keeps two grid lines between, a step from the edge, from each other and from the card, a way out for
+    /// each wire; a box whose pin faces the right edge as far keeps one. The card went to its nearest grid point 2.3
+    /// steps from the edge, the box towards the edge.
     #[test]
-    fn a_pin_facing_the_edge_keeps_a_grid_line_a_step_from_both() {
+    fn pins_facing_the_edge_keep_a_grid_line_each() {
         let (e0, e1) = (5_291_667, 275_166_667);
         let area = [Pt2::new(Nm(e0), Nm(e0)), Pt2::new(Nm(e1), Nm(174_625_000))];
         let card = item(
             (26_458_333, 37_041_667),
             (13_229_167, 21_166_667),
             (187_854_167, 37_041_667),
-            [[true, false], [false, true]],
+            [[2, 0], [0, 1]],
         );
         let boxed = item(
             (e1 - 10_937_500, 100_000_000),
             (e1 - 20_937_500, 95_000_000),
             (e1 - 7_937_500, 110_000_000),
-            [[false, true], [false, false]],
+            [[0, 1], [0, 0]],
         );
         let room = FitRoom {
             area: Some(area),
@@ -1178,7 +1206,7 @@ mod tests {
         let (first, last) = (line(e0 + STEP + STEP / 2), line(e1 - STEP - STEP / 2));
         assert!(first >= e0 + STEP && last <= e1 - STEP);
         let lo = card.lo.x.0 + d[0].x.0;
-        assert!(first + STEP <= lo + SLACK, "the card's left edge at {lo} nm");
+        assert!(first + 2 * STEP <= lo + SLACK, "the card's left edge at {lo} nm");
         let hi = boxed.hi.x.0 + d[1].x.0;
         assert!(hi + STEP <= last + SLACK, "the box's right edge at {hi} nm");
     }
@@ -1194,19 +1222,19 @@ mod tests {
             (47_625_000, top),
             (44_979_167, 108_479_167),
             (60_854_167, top),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let x1 = item(
             (47_625_000, low),
             (44_648_833, low),
             (50_604_167, 140_562_500),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let x2 = item(
             (47_625_000 + pitch, 142_875_000),
             (50_931_250, 142_875_000),
             (54_900_000, 150_145_833),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let pin = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
         let room = FitRoom {
@@ -1232,19 +1260,19 @@ mod tests {
             (2_100_000, 0),
             (2_100_000, 0),
             (10_000_000, 10_000_000),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let pushed = item(
             (15_000_000, 0),
             (15_000_000, 0),
             (20_000_000, 10_000_000),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let under = item(
             (15_000_000, 30_000_000),
             (15_000_000, 30_000_000),
             (22_000_000, 40_000_000),
-            [[false; 2]; 2],
+            [[0; 2]; 2],
         );
         let room = FitRoom {
             area: None,

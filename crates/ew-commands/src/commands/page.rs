@@ -968,9 +968,9 @@ pub struct SetPageGrid {
     #[schemars(with = "GridS")]
     pub grid: Grid,
     /// The page's drawing area as the router reads it, two opposite corners in page nm (the window gives the frame's):
-    /// a symbol with a pin on a side that faces an edge of it, which stood a step of the new grid or more from that
-    /// edge, keeps a grid line a step from both the edge and itself, the way out for the pin's wire. Without it the fit
-    /// keeps no room at the edges.
+    /// a symbol with pins on a side that faces an edge of it, whose wires turn along that edge, which stood a step of
+    /// the new grid or more from it, keeps a grid line for each pin between, a step from the edge, from each other and
+    /// from itself, the way out for the pins' wires. Without it the fit keeps no room at the edges.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<[Pt2S; 2]>")]
     pub area: Option<(Pt2, Pt2)>,

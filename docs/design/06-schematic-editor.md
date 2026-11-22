@@ -1597,10 +1597,13 @@ export start (FR-OUT-001).
    area's edge ended 2.3 steps from it, and the router keeps a step from both the edge and a body; a terminal wired
    straight up to a contactor's pin ended five ticks beside it, so its wire needed a column, which a neighbour a
    quarter step from the terminal's line closed. So `page.set_grid` takes the page's drawing area as the router reads
-   it (`area`, which the window fills): a symbol with a pin on a side of its box that faces an edge of the area (the pin
-   on that side, its wire leaving towards the edge), which stood a step of the new grid or more from that edge, keeps a
-   grid line a step from both the edge and its box; from the left (top) edge it is pushed on, from the right (bottom)
-   edge taken back by whole steps as far as the gaps before it allow. Two pins wired straight that stood in line (a
+   it (`area`, which the window fills): a symbol with pins on a side of its box that faces an edge of the area (the
+   pins on that side, their wires leaving towards the edge) whose wires turn along that edge, which stood a step of the
+   new grid or more from that edge, keeps a grid line for each of those pins, a step from the edge, from one another
+   and from its box; a pin whose wire runs straight on to its other end (a mark in line with it) needs none. From the
+   left (top) edge it is pushed on, from the right (bottom) edge taken back by whole steps as far as the gaps before it
+   allow. With one line for both, L+ and M of the sample's output card on 104 shared it: M took it and L+ went over
+   the card and through its tag. Two pins wired straight that stood in line (a
    wire without a route, or one along their line) stay as near in line as the grid allows: the later of their symbols
    along the axis goes to the grid point nearest the line of the other's pin as fitted (field devices under a card's
    channels follow the card when it is pushed on). Where the pin of only one of them lands on the grid (the other's
