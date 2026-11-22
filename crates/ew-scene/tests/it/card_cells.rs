@@ -25,9 +25,9 @@ fn g(k: i64) -> i64 {
     k * 7_937_500 / 3
 }
 
-/// A card of outputs at grid (20, 20): a box 26 × 6 steps with three channel pins on its lower edge, 8 steps apart
-/// from x 5, and a supply pin on its left edge; the channels' cells carry their function texts.
-fn view() -> PageView {
+/// A card of outputs at grid (20, 20) in `orient`: a box 26 × 6 steps with three channel pins on its lower edge, 8
+/// steps apart from x 5, and a supply pin on its left edge; the channels' cells carry their function texts.
+fn view(orient: &str) -> PageView {
     let (id, def) = match LibDocument::from_json(BLACKBOX).unwrap() {
         LibDocument::Symbol(LibCopy { id, item, .. }) => (id, Arc::new(item)),
         _ => panic!("not a symbol"),
@@ -36,7 +36,7 @@ fn view() -> PageView {
         "id": Uuid::from_u128(0x11).hyphenated().to_string(),
         "functions": [Uuid::from_u128(0x21).hyphenated().to_string()],
         "page": Uuid::from_u128(PAGE).hyphenated().to_string(),
-        "symbol": id.as_uuid().hyphenated().to_string(), "pos": [g(20), g(20)],
+        "symbol": id.as_uuid().hyphenated().to_string(), "pos": [g(20), g(20)], "orient": orient,
         "box": {
             "outline": [[0, 0], [g(26), 0], [g(26), g(6)], [0, g(6)]],
             "cps": [
@@ -94,7 +94,7 @@ fn runs(v: &PageView) -> Vec<(String, Pt2, Pt2, bool)> {
 
 #[test]
 fn a_card_in_one_row_prints_its_channels_level_in_cells() {
-    let v = view();
+    let v = view("r0");
     let r = runs(&v);
     let (x0, y0) = (g(20), g(20));
     let (top, bottom) = (y0, y0 + g(6));
@@ -163,4 +163,26 @@ fn a_card_in_one_row_prints_its_channels_level_in_cells() {
         .collect();
     let middle = |a: i64, b: i64| x0 + g(a) + (g(b) - g(a)) / 2;
     assert_eq!(dividers, [middle(5, 13), middle(13, 21)], "{dividers:?}");
+}
+
+/// The same card's box turned a quarter: its channel pins leave sideways, so it prints no cells, neither their lines
+/// nor their function texts, and each pin keeps its text as any box pin's.
+#[test]
+fn a_card_turned_a_quarter_prints_no_cells() {
+    for orient in ["r90", "r270"] {
+        let v = view(orient);
+        let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
+        let lines = labels
+            .list
+            .items
+            .iter()
+            .filter(|i| matches!(i.kind, ItemKind::Path(_)))
+            .count();
+        assert_eq!(lines, 0, "{orient}: no cell lines");
+        let r = runs(&v);
+        for pin in ["0 Q0.0", "1 Q0.1", "2 Q0.2", "L+"] {
+            assert!(r.iter().any(|t| t.0 == pin), "{orient} {pin}: {r:?}");
+        }
+        assert!(!r.iter().any(|t| t.0.contains("Pump")), "{orient}: {r:?}");
+    }
 }

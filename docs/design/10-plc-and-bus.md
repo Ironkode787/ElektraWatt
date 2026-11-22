@@ -1103,7 +1103,8 @@ to the pin and the channel's function text (§3.4, the function text of the devi
 the next line. A text wider than its cell is made smaller, down to half its size, and below that wrapped at its words
 at half its size. Nothing is stored: the view decides from the box and the bindings, and the labels layer draws the
 lines with the texts. Every other box keeps its pin texts as before (turned a quarter on its upper and lower edges): a
-card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins. Not
+card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins, a
+card's box turned a quarter (its channel pins then leave sideways). Not
 done: the symbol and the process tag per channel, which the reference set prints in some cells.
 
 **A card of the older form drawn in one row** (FT-1897, 0.3.5). *Draw the card in one row* (`plc.card_redraw`, in the

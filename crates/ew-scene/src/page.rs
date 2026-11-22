@@ -2023,7 +2023,8 @@ pub(crate) fn cell_dividers(view: &PageView) -> Vec<Item> {
 }
 
 /// The channel pins of a PLC card drawn in one row (its [`PinText`]s with a `cell`), on the page and with the way their
-/// wires leave, from left to right; empty for any other representation.
+/// wires leave, from left to right; empty for any other representation. Only a pin whose wire leaves up or down on the
+/// page has a cell: a card's box turned a quarter keeps its pin texts as any box does.
 fn cell_pins(rv: &RepView) -> Vec<(Pt2, Dir4, &PinText)> {
     let Some(b) = &rv.rep.box_ else {
         return Vec::new();
@@ -2033,8 +2034,11 @@ fn cell_pins(rv: &RepView) -> Vec<(Pt2, Dir4, &PinText)> {
         .iter()
         .filter_map(|cp| {
             let pin = rv.pins.iter().find(|p| p.idx == cp.idx && p.cell.is_some())?;
-            let at = rv.rep.pos + rv.rep.orient.apply(cp.pos);
-            Some((at, symbol::transform_dir(&cp.dir, rv.rep.orient), pin))
+            let dir = symbol::transform_dir(&cp.dir, rv.rep.orient);
+            if !matches!(dir, Dir4::Up | Dir4::Down) {
+                return None;
+            }
+            Some((rv.rep.pos + rv.rep.orient.apply(cp.pos), dir, pin))
         })
         .collect();
     out.sort_by_key(|(at, _, pin)| (at.x, pin.idx));
@@ -2116,10 +2120,7 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
             }
         }
         for cp in &b.cps {
-            if cells
-                .iter()
-                .any(|(_, d, p)| p.idx == cp.idx && matches!(d, Dir4::Up | Dir4::Down) && pitch.is_some())
-            {
+            if pitch.is_some() && cells.iter().any(|(_, _, p)| p.idx == cp.idx) {
                 continue;
             }
             let Some(pin) = rv.pins.iter().find(|p| p.idx == cp.idx) else {
