@@ -27,7 +27,7 @@
 //! | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
 //! | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
 //! | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
-//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
+//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same past the number of a pin the mark is set on; the same beyond the arrow; centred under the arrow, then over it; beyond the arrow under and over its name |
 //! | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
 //! | strip designation | left of the terminal at its middle; centred above it; the same past the terminal's name; above it, ending at its left edge |
 //! | wire number | along the wire ([`along_wire`]) |
@@ -505,30 +505,54 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 ])
                 .collect()
         }
-        // Beside the wire past the pin, under it then over it; then the same beyond the arrow, where the wire turns at
-        // once; then centred under the arrow and over it, where the mark's name stands beyond it in line.
+        // Beside the wire past the pin, under it then over it, and the same past the number of a pin the mark is set
+        // on; then the same beyond the arrow, where the wire turns at once; then centred under the arrow and over it,
+        // where the mark's name stands beyond it in line.
         LabelKind::MarkXref => match first_pin {
-            Some((q, Some(Side::Right))) => vec![
-                bx(q.x + g, q.y + g, unit.size),
-                bx(q.x + g, q.y - g - h, unit.size),
-                bx(b.x0 - g - w, q.y + g, unit.size),
-                bx(b.x0 - g - w, q.y - g - h, unit.size),
-                bx(c.x - half(w), b.y1 + g, unit.size),
-                bx(c.x - half(w), b.y0 - g - h, unit.size),
-                bx(b.x0 - g - w, q.y + half(h) + g, unit.size),
-                bx(b.x0 - g - w, q.y - half(h) - g - h, unit.size),
-            ],
-            Some((q, Some(Side::Left))) => vec![
-                bx(q.x - g - w, q.y + g, unit.size),
-                bx(q.x - g - w, q.y - g - h, unit.size),
-                bx(b.x1 + g, q.y + g, unit.size),
-                bx(b.x1 + g, q.y - g - h, unit.size),
-                bx(c.x - half(w), b.y1 + g, unit.size),
-                bx(c.x - half(w), b.y0 - g - h, unit.size),
-                // Beyond the arrow under and over a name in line with the wire there.
-                bx(b.x1 + g, q.y + half(h) + g, unit.size),
-                bx(b.x1 + g, q.y - half(h) - g - h, unit.size),
-            ],
+            Some((q, Some(Side::Right))) => {
+                let past = numbers_at(ground, unit.owner, q)
+                    .iter()
+                    .filter(|r| r.x0 >= q.x)
+                    .map(|r| r.x1)
+                    .max();
+                let mut out = vec![bx(q.x + g, q.y + g, unit.size), bx(q.x + g, q.y - g - h, unit.size)];
+                out.extend(past.into_iter().flat_map(|x| {
+                    [bx(x + g, q.y + g, unit.size), bx(x + g, q.y - g - h, unit.size)]
+                }));
+                out.extend([
+                    bx(b.x0 - g - w, q.y + g, unit.size),
+                    bx(b.x0 - g - w, q.y - g - h, unit.size),
+                    bx(c.x - half(w), b.y1 + g, unit.size),
+                    bx(c.x - half(w), b.y0 - g - h, unit.size),
+                    bx(b.x0 - g - w, q.y + half(h) + g, unit.size),
+                    bx(b.x0 - g - w, q.y - half(h) - g - h, unit.size),
+                ]);
+                out
+            }
+            Some((q, Some(Side::Left))) => {
+                let past = numbers_at(ground, unit.owner, q)
+                    .iter()
+                    .filter(|r| r.x1 <= q.x)
+                    .map(|r| r.x0)
+                    .min();
+                let mut out = vec![
+                    bx(q.x - g - w, q.y + g, unit.size),
+                    bx(q.x - g - w, q.y - g - h, unit.size),
+                ];
+                out.extend(past.into_iter().flat_map(|x| {
+                    [bx(x - g - w, q.y + g, unit.size), bx(x - g - w, q.y - g - h, unit.size)]
+                }));
+                out.extend([
+                    bx(b.x1 + g, q.y + g, unit.size),
+                    bx(b.x1 + g, q.y - g - h, unit.size),
+                    bx(c.x - half(w), b.y1 + g, unit.size),
+                    bx(c.x - half(w), b.y0 - g - h, unit.size),
+                    // Beyond the arrow under and over a name in line with the wire there.
+                    bx(b.x1 + g, q.y + half(h) + g, unit.size),
+                    bx(b.x1 + g, q.y - half(h) - g - h, unit.size),
+                ]);
+                out
+            }
             Some((q, Some(Side::Up))) => vec![
                 bx(q.x + g, q.y - g - h, unit.size),
                 bx(q.x - g - w, q.y - g - h, unit.size),
@@ -563,6 +587,30 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
         | LabelKind::CableType
         | LabelKind::CableTag => corners(s, unit.size, (line, tag_top)),
     }
+}
+
+/// The first places, on the page, of the numbers of the pins of other parts than `owner` that stand on `q`: the pin a
+/// mark is set on.
+fn numbers_at(ground: &Ground<'_>, owner: Owner, q: Pt) -> Vec<Rect> {
+    ground
+        .page
+        .labels
+        .iter()
+        .filter_map(|l| {
+            let LabelKind::PinNumber(pin) = l.kind else {
+                return None;
+            };
+            let &(at, _, part) = ground.pins.get(&pin)?;
+            if at != q || Owner::Part(part) == owner {
+                return None;
+            }
+            let p = ground.parts.get(&part)?;
+            match &l.places {
+                Places::At(first) => first.first().map(|a| Rect::sized(p.at.plus(*a), l.size)),
+                Places::AlongWire => None,
+            }
+        })
+        .collect()
 }
 
 /// The top of the first place of `owner`'s first label of kind `kind` on the page, where it has one.

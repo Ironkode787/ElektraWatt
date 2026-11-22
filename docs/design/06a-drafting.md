@@ -1176,7 +1176,7 @@ stand over its tag.
 | Contact list of a coil | left of the coil, under its tag, one line per contact; under the lower trunk below the coil; the same one line lower (two rows, where the neighbours' lists are in the way) | 3 |
 | Function text of a path | centred under the path beyond the lower trunk; right of the load | 4 |
 | Name of a mark (interruption point, supply mark) | in line with the wire beyond the arrow: left of an incoming mark, right of an outgoing one; above the arrow | 3 |
-| Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there | 3 |
+| Cross-reference of a mark | under the wire on the wire's side of the arrow; above the wire there; the same past the number of the pin the mark is set on (an interruption point on a contact's pin) | 3 |
 | Name of a terminal | right below the terminal's point; left below it | 1 |
 | Strip designation | left of the strip's first terminal, level with it; above it; above the terminal's name, where it stands over the terminal; above it, ending at its left edge | 4 |
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
