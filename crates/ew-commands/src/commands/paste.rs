@@ -146,7 +146,12 @@ pub struct Fragment {
 /// page-based numbering get the next free counter of their main page's scope from online numbering, in the order of
 /// their anchor cells (FR-NUM-028), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
 /// version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
-/// after effect 4 is not inserted, each with a notice.
+/// after effect 4 is not inserted, each with a notice. (8) A cut and its paste are a move: a device of the target
+/// project that the fragment's symbols drew and no symbol draws now (Cut left it unplaced) comes back itself
+/// (`Insertion::unplaced_devices`): it, its functions and the strip of such a terminal keep their IDs, parts, frozen
+/// tags, counters, levels and data and are not inserted again; the pasted symbols, wires and bridges draw them. What
+/// the cut left of them goes in the same transaction: the fragment's wires and junctions the project still holds (they
+/// are pasted anew) and a wire drawn on another page than the target that ends at such a device.
 ///
 /// Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 /// reference and unmatched structure node.
@@ -595,6 +600,10 @@ pub(crate) struct Insertion<'f> {
     /// Project records a reference to which stays when the project holds them (the devices a macro's `device_ref`
     /// variables name); any other reference outside the fragment resolves as effect 3 says.
     pub(crate) keep_refs: BTreeSet<Uuid>,
+    /// Whether a device the project still holds comes back itself where the fragment's symbols drew it and none of
+    /// them is drawn any more ([`Insertion::unplaced_devices`]: a cut left it so), its functions and a strip it
+    /// belongs to with it (`edit.paste`); a macro and a copy of pages make every device anew.
+    pub(crate) keep_unplaced: bool,
     /// The folio of each page record by its source ID (`page.copy` with an offset); `None` proposes the folios after
     /// [`Insertion::page`] (a page macro, `page.copy` with `after`).
     pub(crate) folios: Option<&'f BTreeMap<Uuid, ew_schema::Folio>>,
@@ -1128,6 +1137,74 @@ impl Insertion<'_> {
         Ok(out)
     }
 
+    /// The devices of the fragment that a cut left unplaced, with their functions, by (kind, source ID) (doc 06 §3.6):
+    /// a device the project holds with every function the fragment gives it, some of them drawn by the fragment's
+    /// symbols and none of those drawn by a symbol of the project now. The strip of such a terminal comes along with
+    /// its functions, so that a terminal comes back to its own strip.
+    fn unplaced_devices(&self, tx: &TxBuilder<'_>, keys: &[RecordAt]) -> BTreeSet<(Kind, Uuid)> {
+        let typed = |kind: Kind| {
+            keys.iter()
+                .filter(move |k| k.1 == kind)
+                .filter_map(|k| Record::from_value(self.record_value(k.0).clone()).ok())
+        };
+        // The fragment's functions by their device, and the functions its symbols draw.
+        let mut functions: BTreeMap<Uuid, Vec<Uuid>> = BTreeMap::new();
+        for r in typed(Kind::Function) {
+            if let Record::Function(f) = r
+                && let Some(d) = f.device
+            {
+                functions.entry(d.as_uuid()).or_default().push(f.id.as_uuid());
+            }
+        }
+        let mut drawn: BTreeSet<Uuid> = BTreeSet::new();
+        for r in typed(Kind::Representation) {
+            if let Record::Representation(rep) = r {
+                drawn.extend(rep.functions.iter().map(|f| f.as_uuid()));
+                drawn.extend(rep.pin_map.as_slice().iter().map(|p| p.function.as_uuid()));
+            }
+        }
+        let held = |d: Uuid| tx.get::<Device>(Id::from_uuid(d)).is_some();
+        let mut kept = BTreeSet::new();
+        for (d, fs) in &functions {
+            let own = fs.iter().all(|f| {
+                tx.get::<ew_schema::Function>(Id::from_uuid(*f))
+                    .is_some_and(|x| x.device.map(|x| x.as_uuid()) == Some(*d))
+            });
+            let shown: Vec<Uuid> = fs.iter().copied().filter(|f| drawn.contains(f)).collect();
+            if held(*d)
+                && own
+                && !shown.is_empty()
+                && shown
+                    .iter()
+                    .all(|f| tx.reps_of_function(Id::from_uuid(*f)).is_empty())
+            {
+                kept.insert((Kind::Device, *d));
+                kept.extend(fs.iter().map(|f| (Kind::Function, *f)));
+            }
+        }
+        let strips: Vec<Uuid> = kept
+            .iter()
+            .filter(|k| k.0 == Kind::Device)
+            .filter_map(|k| {
+                let d = tx.get::<Device>(Id::from_uuid(k.1))?;
+                d.aspects.terminal.as_ref().map(|t| t.strip.as_uuid())
+            })
+            .collect();
+        for s in strips {
+            if held(s) && keys.iter().any(|k| k.1 == Kind::Device && k.2 == s) {
+                kept.insert((Kind::Device, s));
+                kept.extend(
+                    functions
+                        .get(&s)
+                        .into_iter()
+                        .flatten()
+                        .map(|f| (Kind::Function, *f)),
+                );
+            }
+        }
+        kept
+    }
+
     /// The new IDs (effect 3): in (kind rank, fragment order); a PLC channel of [`NewIds::Instance`] takes
     /// `plc_channel_id(new module, number)` once its module's ID is known (modules rank before channels).
     fn mint_ids(
@@ -1192,15 +1269,29 @@ impl Insertion<'_> {
         for text in skipped_items {
             notice(text, &mut notices);
         }
+        let same_project = self.fragment.project.as_uuid() == tx.project().id.as_uuid();
+        // Effect 8: a device a cut left unplaced comes back itself, keeping its ID, its functions and its tag; it is
+        // not inserted again.
+        let kept = if self.keep_unplaced && same_project {
+            self.unplaced_devices(tx, &keys)
+        } else {
+            BTreeSet::new()
+        };
         // Effect 3: new IDs in (kind rank, fragment order).
         let mut order: Vec<usize> = (0..keys.len()).collect();
         order.sort_by_key(|&i| (keys[i].1.rank(), keys[i].0));
-        let ids = self.mint_ids(tx, &keys, &order)?;
+        let minted: Vec<usize> = order
+            .iter()
+            .copied()
+            .filter(|&i| !kept.contains(&(keys[i].1, keys[i].2)))
+            .collect();
+        let mut ids = self.mint_ids(tx, &keys, &minted)?;
+        ids.extend(kept.iter().map(|k| (*k, k.1)));
         let plan = Plan {
             ids,
             copies,
             nodes,
-            same_project: self.fragment.project.as_uuid() == tx.project().id.as_uuid(),
+            same_project,
         };
         // The new IDs of the pasted devices (effect 6).
         let pasted_devices: BTreeSet<Uuid> = plan
@@ -1213,7 +1304,7 @@ impl Insertion<'_> {
         let mut new_pages: BTreeMap<Uuid, PageType> = BTreeMap::new();
         // Effects 3 and 4 on each record's JSON, then the typed record.
         let mut typed: Vec<(usize, Uuid, Record)> = Vec::with_capacity(keys.len());
-        for &i in &order {
+        for &i in &minted {
             let (record_index, kind, old) = keys[i];
             let at = self.pointer(record_index);
             let mut v = self.record_value(record_index).clone();
@@ -1413,6 +1504,34 @@ impl Insertion<'_> {
             self.move_by_steps(tx, &mut typed, grid, steps)?;
         }
         // A fragment with its pages keeps every position as its source holds it (a symbol off the grid too).
+        // Effect 8: what the cut left of the devices that come back goes, so nothing is left behind: the wires of the
+        // fragment and its junctions where the project still holds them (they are pasted anew), and a wire drawn on
+        // another page that ends at such a device (left open there by the cut).
+        if !kept.is_empty() {
+            let mut gone: BTreeSet<ew_model::AnyKey> = BTreeSet::new();
+            for &(_, kind, id) in &keys {
+                if matches!(kind, Kind::Connection | Kind::Junction)
+                    && tx.row(&(kind, Id::from_uuid(id))).is_some()
+                {
+                    gone.insert((kind, Id::from_uuid(id)));
+                }
+            }
+            for &(kind, f) in &kept {
+                if kind != Kind::Function {
+                    continue;
+                }
+                for c in tx.connections_of_function(Id::from_uuid(f)) {
+                    if tx
+                        .get::<Connection>(c)
+                        .is_some_and(|c| c.page.is_some_and(|p| p != page.id))
+                    {
+                        gone.insert((Kind::Connection, c.cast()));
+                    }
+                }
+            }
+            let gone: Vec<ew_model::AnyKey> = gone.into_iter().collect();
+            tx.delete_many(&gone)?;
+        }
         // The records, in (kind rank, fragment order).
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
         // of their anchor cells (FR-NUM-028), whatever IDs this transaction mints.
@@ -1527,6 +1646,7 @@ impl Command for PasteFragment {
             keep_frozen: false,
             keep_counter: BTreeSet::new(),
             keep_refs: BTreeSet::new(),
+            keep_unplaced: true,
             folios: None,
             bounded: true,
         };

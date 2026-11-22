@@ -275,7 +275,8 @@ fn delete_a_strip_with_terminals_is_forbidden() {
     let err = e
         .execute(&delete(vec![target(KindName::Device, DEV_X1031.cast())]))
         .unwrap_err();
-    assert!(matches!(err, CmdError::Model(..)), "{err:?}");
+    // Its terminals are drawn: refused in words that name a terminal and its page (doc 06 §3.6).
+    assert!(matches!(err, CmdError::Rejected { .. }), "{err:?}");
     assert_eq!(e.model().rev().0, 0);
     assert!(exists(&e, (Kind::Device, DEV_X1031.cast())));
 }

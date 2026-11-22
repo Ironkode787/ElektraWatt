@@ -601,7 +601,7 @@ impl ShellModel {
         });
         match out {
             Outcome::Done => {
-                if let Some(text) = self.retagged_words(&retag) {
+                if let Some(text) = self.retagged_words("plc.draw_station", &retag) {
                     self.notify_rack(text, station);
                 }
                 // A card wider than the drawing area: its first box is drawn, the toast says where the rest is drawn.
@@ -890,6 +890,25 @@ impl ShellModel {
                     .into_iter()
                     .collect()
             }
+            // A paste brings back the devices a cut left unplaced (doc 06 §3.6): those of its records the project
+            // holds, but a terminal, whose tag is its strip's with its number.
+            "edit.paste" => {
+                let q = session.query();
+                params["fragment"]["records"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|r| r["$k"] == "device")
+                    .filter_map(|r| id(&r["id"]))
+                    .filter(|d| {
+                        d.to_string()
+                            .parse()
+                            .ok()
+                            .and_then(|id| q.devices().get(id))
+                            .is_some_and(|dev| dev.aspects.terminal.is_none())
+                    })
+                    .collect()
+            }
             _ => Vec::new(),
         };
         devices
@@ -898,10 +917,11 @@ impl ShellModel {
             .collect()
     }
 
-    /// The toast of a placement that changed the tags `before` ([`ShellModel::redrawn_tags`]) of devices placed first on
-    /// a bus page (FT-1766): a device's tag names the page that draws its main function, so its box on a schematic
-    /// page takes that page's tag, and the person is told; `None` where no tag changed.
-    pub(in crate::shell) fn retagged_words(&self, before: &[(Uuid, String)]) -> Option<String> {
+    /// The toast of a placement `name` that changed the tags `before` ([`ShellModel::redrawn_tags`]): of devices placed
+    /// first on a bus page (FT-1766: a device's tag names the page that draws its main function, so its box on a
+    /// schematic page takes that page's tag), or of devices a paste brought back from a cut to another page, whose
+    /// page their tags follow; `None` where no tag changed.
+    pub(in crate::shell) fn retagged_words(&self, name: &str, before: &[(Uuid, String)]) -> Option<String> {
         let session = self.project_session()?;
         let pairs: Vec<String> = before
             .iter()
@@ -910,6 +930,11 @@ impl ShellModel {
                 (now != *was).then(|| strings::format(key!("retag-pair"), &[was, &now]))
             })
             .collect();
-        (!pairs.is_empty()).then(|| strings::format(key!("toast-retagged"), &[&pairs.join(", ")]))
+        let why = if name == "edit.paste" {
+            key!("toast-paste-retagged")
+        } else {
+            key!("toast-retagged")
+        };
+        (!pairs.is_empty()).then(|| strings::format(why, &[&pairs.join(", ")]))
     }
 }

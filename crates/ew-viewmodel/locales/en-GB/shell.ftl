@@ -1879,6 +1879,8 @@ refusal-edit-delete-holds = holds { $p0 } placements
 refusal-edit-delete-carrier-holds = { $p0 } { $p1 }; use Delete carrier… to remove or rehome them.
 refusal-edit-delete-plate-holds = The plate of { $p0 } { $p1 }; remove them first.
 refusal-edit-delete-carries-enclosure = { $p0 } carries an enclosure; delete the enclosure first.
+refusal-edit-delete-strip-drawn = { $p0 } is not deleted: its terminal { $p1 } is drawn on { $p2 }. Delete or cut the terminal there first.
+refusal-edit-delete-strip-wired = { $p0 } is not deleted: its terminal { $p1 } still has { $p2 }. Delete that first.
 refusal-edit-delete-project = the project cannot be deleted
 # edit.paste.
 refusal-paste-grid = the copied content uses another grid ({ $p0 }/{ $p1 } nm); paste on a page with that grid (this page has { $p2 })
@@ -2973,6 +2975,7 @@ toast-placed-no-cell = Placed { $p0 }.
 toast-placed-boxes = Placed as { $p0 } boxes, one for each bus interface.
 toast-retagged = { $p0 }: a device takes its tag from the page that draws its own box, not from a bus page, which shows its interfaces.
 retag-pair = { $p0 } is now { $p1 }
+toast-paste-retagged = { $p0 }: a tag follows the page its device is drawn on, and the paste put the cut devices back on this one.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.

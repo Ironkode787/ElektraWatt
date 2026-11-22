@@ -679,15 +679,24 @@ impl ShellModel {
                     && cmd.to_json().is_ok_and(|j| j["target"].get("device").is_some());
                 // The tags of the devices a box placement draws again: a station placed first on a bus page takes
                 // the tag of the page its box is drawn on now, which the toast says (FT-1766).
-                let retag = cmd
+                let mut retag = cmd
                     .to_json()
                     .map(|j| self.redrawn_tags(cmd.name(), &j))
                     .unwrap_or_default();
+                // A paste that brings back what a cut left unplaced compares with the tags before the cut, once.
+                if cmd.name() == "edit.paste" {
+                    let cut = std::mem::take(&mut self.tools.cut_tags);
+                    for (d, tag) in &mut retag {
+                        if let Some((_, was)) = cut.iter().find(|(c, _)| c == d) {
+                            tag.clone_from(was);
+                        }
+                    }
+                }
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
                 if out == Outcome::Done
-                    && let Some(text) = self.retagged_words(&retag)
+                    && let Some(text) = self.retagged_words(cmd.name(), &retag)
                 {
                     self.notify(text, true);
                 }

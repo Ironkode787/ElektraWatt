@@ -165,6 +165,9 @@ pub(crate) struct ToolHost {
     /// The levels of each terminal of the next Terminal… row (its Levels, 1 or 2): with 2, the row's terminals join in
     /// pairs, the second of each the first's next level (doc 08 §6.3).
     pub row_levels: u8,
+    /// The devices the last Cut left unplaced (a terminal's strip, not the terminal), with their tags as they read
+    /// before it: a paste that brings them back to another page says how their tags followed it (doc 06 §3.6).
+    pub cut_tags: Vec<(ew_api::output::Uuid, String)>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
     /// Where the Supply tool's marks come from, while it floats them.
@@ -315,6 +318,7 @@ impl ToolHost {
             reread_designation: false,
             row_steps: None,
             row_levels: 1,
+            cut_tags: Vec::new(),
             ip_memory: IpMemory::default(),
             supply: None,
             black_box_pick: false,

@@ -594,6 +594,7 @@ impl Command for CopyPages {
             keep_frozen: true,
             keep_counter: devices,
             keep_refs: BTreeSet::new(),
+            keep_unplaced: false,
             folios: folios.as_ref(),
             bounded: false,
         };

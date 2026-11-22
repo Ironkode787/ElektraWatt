@@ -1820,6 +1820,8 @@ refusal-edit-delete-holds = bevat { $p0 } plaatsingen
 refusal-edit-delete-carrier-holds = { $p0 } { $p1 }; gebruik Drager verwijderen… om ze te verwijderen of te verplaatsen.
 refusal-edit-delete-plate-holds = De plaat van { $p0 } { $p1 }; verwijder ze eerst.
 refusal-edit-delete-carries-enclosure = { $p0 } draagt een kast; verwijder eerst de kast.
+refusal-edit-delete-strip-drawn = { $p0 } wordt niet verwijderd: zijn klem { $p1 } staat getekend op { $p2 }. Verwijder of knip de klem daar eerst.
+refusal-edit-delete-strip-wired = { $p0 } wordt niet verwijderd: zijn klem { $p1 } heeft nog { $p2 }. Verwijder die eerst.
 refusal-edit-delete-project = het project kan niet worden verwijderd
 # edit.paste.
 refusal-paste-grid = de gekopieerde inhoud gebruikt een ander raster ({ $p0 }/{ $p1 } nm); plak op een pagina met dat raster (deze pagina heeft { $p2 })
@@ -2878,6 +2880,7 @@ toast-placed-no-cell = { $p0 } geplaatst.
 toast-placed-boxes = Geplaatst als { $p0 } kaders, één per businterface.
 toast-retagged = { $p0 }: een apparaat krijgt zijn kenmerk van de pagina met zijn eigen kader, niet van een buspagina, die zijn interfaces toont.
 retag-pair = { $p0 } heet nu { $p1 }
+toast-paste-retagged = { $p0 }: een kenmerk volgt de pagina waarop zijn apparaat getekend staat, en het plakken zette de geknipte apparaten op deze terug.
 toast-placed-in-wire = { $p0 }, verbonden in de draad waarop het is neergezet.
 toast-placed-moved = { $p1 } rasterstappen naar rechts: { $p0 } heeft een klem op het klikpunt.
 toast-ip-connected = Onderbrekingspunt { $p0 } geplaatst op { $p1 } en verbonden met { $p2 }. Alt+klik of { $p3 } plaatst het zonder te verbinden.

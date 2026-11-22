@@ -687,6 +687,7 @@ impl Command for InsertMacro {
             keep_frozen: true,
             keep_counter: inst.keep_counter.clone(),
             keep_refs: inst.refs.clone(),
+            keep_unplaced: false,
             folios: None,
             bounded: true,
         };

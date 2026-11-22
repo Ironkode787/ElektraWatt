@@ -29,8 +29,10 @@ pub const BULK_ABOVE: usize = 500;
 /// depend on the order of the targets, a target that another target's cascade removes is planned once,
 /// and a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP
 /// function goes with it); deleting a device removes its functions, their representations and
-/// connections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with
-/// terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
+/// connections. A strip takes along its terminals that no symbol of their own draws and no wire or bridge reaches (a
+/// cut leaves them so); one with a terminal still drawn or wired is refused in words, naming it and its page or wire
+/// ([`strip_terminals`]). A target that does not exist at the start is `NotFound`; a forbid link (a referenced
+/// structure node) rejects the whole command (`ModelError::Referenced`). Cost:
 /// `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
 /// `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
 /// `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along.
@@ -92,7 +94,8 @@ impl Command for DeleteSelection {
                 )?;
             }
         }
-        let keys: Vec<ew_model::AnyKey> = self.targets.iter().map(|t| t.key()).collect();
+        let mut keys: Vec<ew_model::AnyKey> = self.targets.iter().map(|t| t.key()).collect();
+        keys.extend(strip_terminals(tx, &keys)?);
         refuse_layout_delete(tx, &keys)?;
         tx.delete_many(&keys)?;
         crate::commands::revision::drop_notes_on_removed_pages(tx)?;
@@ -239,6 +242,50 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
         }
     }
     Ok(())
+}
+
+/// The terminals that go with the strips among `keys` (doc 08 §6.6): a strip whose terminals the same delete does not
+/// name takes them along when none is drawn by a symbol of its own and none has a wire or a bridge (terminals a cut
+/// left behind); a strip with such a terminal is refused, naming the first in strip order and where it is drawn, or
+/// its wire.
+fn strip_terminals(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<Vec<AnyKey>, CmdError> {
+    let mut out = Vec::new();
+    for key in keys.iter().filter(|k| k.0 == Kind::Device) {
+        let strip: Id<Device> = key.1.cast();
+        if tx.get::<Device>(strip).is_none_or(|d| d.aspects.strip.is_none()) {
+            continue;
+        }
+        let mut terminals: Vec<(u32, Id<Device>)> = tx
+            .terminals_of_strip(strip)
+            .into_iter()
+            .filter(|t| !keys.contains(&(Kind::Device, t.cast())))
+            .filter_map(|t| Some((tx.get::<Device>(t)?.aspects.terminal.as_ref()?.seq, t)))
+            .collect();
+        terminals.sort_unstable();
+        for (_, t) in &terminals {
+            for f in tx.functions_of_device(*t) {
+                if let Some(rep) = tx.reps_of_function(f).first() {
+                    let page = tx.get::<ew_schema::Representation>(*rep).map(|r| r.page);
+                    return tx.reject(text!(
+                        "refusal-edit-delete-strip-drawn",
+                        crate::words::device(tx, strip),
+                        crate::words::device(tx, *t),
+                        page.map_or_else(|| text!("refusal-words-page-gone"), |p| crate::words::page(tx, p))
+                    ));
+                }
+                if let Some(c) = tx.connections_of_function(f).first() {
+                    return tx.reject(text!(
+                        "refusal-edit-delete-strip-wired",
+                        crate::words::device(tx, strip),
+                        crate::words::device(tx, *t),
+                        crate::words::wire(tx, *c)
+                    ));
+                }
+            }
+        }
+        out.extend(terminals.into_iter().map(|(_, t)| (Kind::Device, t.cast())));
+    }
+    Ok(out)
 }
 
 /// "-UC1 carries an enclosure; delete the enclosure first."

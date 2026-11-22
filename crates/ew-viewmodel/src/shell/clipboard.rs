@@ -5,7 +5,8 @@
 //! headless clipboard.
 //!
 //! **Reads**: a copy is one `Session::copy_fragment`, a tag list one `Session::tag_list`, `edit.paste_clip`
-//! one `parse_fragment`, duplicate one of each of the first and third; the paste tool's moves make no `Session` call,
+//! one `parse_fragment`, duplicate one of each of the first and third, a cut one of each and the tags of the devices
+//! it leaves unplaced; the paste tool's moves make no `Session` call,
 //! a dwell that changes the anchor or the revision one `preview_with`.
 
 use std::sync::Arc;
@@ -143,12 +144,20 @@ impl ShellModel {
     }
 
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
-    /// step); the clipboard keeps the fragment.
+    /// step); the clipboard keeps the fragment, and its paste brings the devices the cut left unplaced back, a move
+    /// (`edit.paste` effect 8).
     pub(crate) fn act_cut(&mut self) -> Outcome {
         let copied = or_return!(self.copy_selection());
         if copied.incomplete_page_items > 0 {
             return Outcome::refused(key!("reason-cut-incomplete-items"));
         }
+        // The tags of what the cut leaves unplaced, as they read before it: the paste that brings it back says how
+        // they followed the page (doc 06 §3.6).
+        let parsed = parse_fragment(&copied.text);
+        bump(&self.calls, |c| c.parse_fragment += 1);
+        self.tools.cut_tags = parsed
+            .map(|f| self.redrawn_tags("edit.paste", &serde_json::json!({ "fragment": f.params })))
+            .unwrap_or_default();
         self.write_copied_fragment(copied);
         let targets = self.copy_targets();
         // A device selected by tag is cut as the representations the copy took.
