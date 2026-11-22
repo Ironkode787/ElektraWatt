@@ -39,7 +39,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-103 `WP-S3.03`: Terminal diagrams: apply `Strip.field_side` (the field side of 1X1 first, doc 20 §9), and print the wire number in the targets; the numbers exist since cycle 13 (`wire_numbers`, FT-100 closed).
 - FT-108 `WP-S3.03 (kind)`: Potential overview: print the type, voltage and class of a switched potential as derived across its pass-through pair (N-55T and N-55S: N switched, 230 V AC, mains), not the partition's naming-only …
 - FT-240 `WP-S3.02`: Placeholder paths for the three unprinted rows of the cover's project data box: `project.manufacturing_year`, `project.control_voltage` and `project.rated_consumption` (a text form of `Quantity` for …
-- FT-242 `WP-S3.08`: The CSV presets of doc 09 §4.6 for the exports, and the FR-EXP-005 columns (column-map profile, ECLASS, ETIM, type); the golden dialect stays the default of the acceptance files.
+- FT-242 `WP-S3.08`: The CSV presets of doc 09 §4.6 for the exports, and the FR-EXP-005 columns (column-map profile, ECLASS, ETIM, type); the `ew` dialect stays the default.
 - FT-250 `WP-S3.04`: The `lang` key of the `page_display_list` families and `ew export --lang` (FR-I18N-005): the layers are built in the neutral language today.
 - FT-254 `WP-S3.04`: `ew export png` (FR-OUT-014) over the export job, one PNG per page.
 - FT-259 `WP-S3.05`: The "GN/YE" alias of doc 14 §4.12 in the table reader's colour parser (a slash-separated foreign notation).

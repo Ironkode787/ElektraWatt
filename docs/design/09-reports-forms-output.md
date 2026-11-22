@@ -1136,13 +1136,13 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 - **CSV** dialects (FR-EXP-003): `excel-nl` (`;`, decimal comma, UTF-8 BOM, CRLF), `excel-en` (`,`, decimal point,
   UTF-8 BOM, CRLF), `rfc4180` (`,`, CRLF, no BOM, values unaltered). The Excel presets apply the formula-injection
   guard of NFR-SEC-17 (Open question 8); `rfc4180` and machine profiles never alter values.
-- *As built:* the shipped `ew export cables|bom` write the golden dialect only (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`), not the presets above; the presets and the FR-EXP-005 gaps are FT-242.
+- *As built:* the default of the shipped exports is the `ew` dialect (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`); the presets above are taken with `--preset` (below); the FR-EXP-005 gaps are FT-242.
 - `ew export bom|wires|terminals|cables` (FR-EXT-003) and a generic `ew export report --block <name>` (FR-EXT-027,
   listed in [17](17-extensibility.md) §3.3) use the same code.
 - *As built:* the XLSX writer is `ew-reports`' own (`xlsx()`, over `ew-zip`, inline strings), not rust_xlsxwriter; a
   sheet is named after its kind; the `id` column is always written; a quantity with a unit, and a number past 15
   significant digits, stay text. `ew export cables|bom|wires|terminals|report` and `ew sql` take `--format xlsx`,
-  `--preset ew|excel-nl|excel-en|rfc4180` (`ew`, the golden dialect, the default), `--bom` and `--line-end`; the
+  `--preset ew|excel-nl|excel-en|rfc4180` (`ew`, the default), `--bom` and `--line-end`; the
   formula guard covers the header labels; every preset is UTF-8 (FR-EXP-003); FT-242's preset half is built.
 
 ### 4.7 Multi-language output

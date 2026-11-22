@@ -85,7 +85,7 @@ texts in `LICENSES/` are exempt, as the REUSE specification provides.
 | L5 | JSON Schemas | `schemas/<format>/` | `MIT OR Apache-2.0` | [05](05-project-format-and-persistence.md) §10.4 |
 | L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 (answers [15](15-checks-revisions-collaboration.md) OQ16; open question 12) |
 | L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07; open question 2) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
-| L8 | Project-authored part facts, the manufacturer master, example and tutorial projects, the golden fixture, the hostile test corpus, the crates' own test fixtures | `elektrawatt-parts`, `examples/`, `golden/`, `fuzz/corpus/own/`, `crates/*/tests/fixtures/` | `CC0-1.0` | ADR-0024, NFR-DOC-04 |
+| L8 | Project-authored part facts, the manufacturer master, example and tutorial projects, the sample project and the test fixtures, the hostile test corpus, the crates' own test fixtures | `elektrawatt-parts`, `examples/`, `fixtures/`, `fuzz/corpus/own/`, `crates/*/tests/fixtures/` | `CC0-1.0` | ADR-0024, NFR-DOC-04 |
 | L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md`, `tools/blind/` (the blind-drafter harness's guides, prompts and tasks) | `CC-BY-4.0` | ADR-0024; the generated command and rule reference pages of the user guide (`docs/book/src/reference/commands/`, `…/rules/`) are an exception: their text is the doc comments of the GPL crates `ew-commands` and `ew-checks`, so they keep `GPL-3.0-or-later` (owner ruling; `REUSE.toml`, `ci/licence-map.toml`); `CODE_OF_CONDUCT.md` is the other exception: the Contributor Covenant 3.0 text is `CC-BY-SA-4.0` and keeps the Covenant's copyright line (§2.3) |
 | L10 | UI translations (`.ftl`) and documentation translations (PO) | inside L1 crates; `book/po/` | the licence of the containing path (L1 or L9) | §3.7 |
 | L11 | Repository metadata and configuration without creative content: `.gitignore`, `.gitattributes`, `REUSE.toml`, `deny.toml`, workspace `Cargo.toml` and `Cargo.lock`, `rust-toolchain.toml`, `CODEOWNERS`, `FUNDING.yml`, issue and PR templates, `LICENSE.md` | `.github/` (except `workflows/`), root files | `CC0-1.0` | no creative content to protect |
@@ -114,7 +114,7 @@ graph LR
   end
   subgraph CONT["Content"]
     sym["L7 symbols, forms, macros: CC-BY-SA-4.0 + design exception"]
-    cc0["L8 part facts, examples, golden: CC0-1.0"]
+    cc0["L8 part facts, examples, fixtures: CC0-1.0"]
     doc["L9 docs, ADRs, RFCs: CC-BY-4.0"]
   end
   plug["Independent plugin: any licence"]
@@ -321,7 +321,7 @@ carry no binaries.
 | Architecture choice | ADR (MADR) | Maintainers; owner decision for "Proposed (needs user decision)" ADRs | NFR-MAINT-08 |
 | Licence, exceptions, trademark policy, `GOVERNANCE.md`, Code of Conduct | RFC | All maintainers and the steward | 14-day FCP |
 | New shipped rule (`EW-*` ID) | PR with its rule page | 1 maintainer and 1 domain reviewer | NFR-DOC-02; IDs never reused (FR-CHK-043; the registry of [15](15-checks-revisions-collaboration.md) §2.2) |
-| Golden `expected/*.csv` or approved PNG change | PR | 2 maintainers, one not the author, and a rationale citing the AC-nn or D-nn | A change to `golden/J-E-2416/tables/` also needs the pilot user's acknowledgement, because they own the acceptance truth |
+| An expected output blessed again (`tests/expected/`, a window picture) | PR | 1 maintainer, and a rationale naming the change that moved it | The sample project (`fixtures/sample/`) changes only through its script and `cargo xtask gen` |
 | Symbol or FnDef logic; part data or cosmetic content | PR in a content repository | 2 reviewers, one a library maintainer; 1 reviewer | [07](07-symbols-parts-macros.md) §6.1; turning a section `verified` follows §3.6 |
 | Security fix | Private advisory | 1 maintainer and 1 security-team member | Public review happens at disclosure |
 
@@ -721,29 +721,27 @@ trademark line of the font's name table (name ID 7), which `NOTICE` gains for No
 
 ---
 
-## 8. The reference project
+## 8. The sample project and the frozen reference
 
-**The golden fixture is the project's most visible governance artefact.**
-- **Licence and form.** `golden/J-E-2416.ew` and its `tables/` are CC0-1.0 (L8; NFR-DOC-04, AC-40).
-- **Placeholders.** They carry `<customer>`, `<end user>`, `<project ref>`, `<drawing id>`, `<engineer>`,
-  `<checker>`, `<address>`, `<country>` and `<confidentiality notice>`, and the logo is
-  `golden/J-E-2416/assets/logo-placeholder.svg`.
-- **What stays.** The technical content remains as the acceptance specification: =P01, +J-E-2416, -101F1
-  (A9P52610), -102G1 (2904602), -102F2 (MICO 4.10), -X1031 with its 12 spare terminals, -201U1 with the order codes
-  51E-F13GCQP-D+H2GG and 32P-VGL-R-…-28MS, Q0.1, TA05-V-15 and the external target J-E-206 / JE-N1000-03.
-- **Consent.** Publishing that content needs LG-5.
-- **Private material.** The original `.qet` and the PDF live only in the private store used by the Golden C job,
-  which reports pass/fail publicly (LR-11, LR-12).
-- **Expectation changes.** A PR that changes `expected/xrefs.csv` (63 texts with 64 targets, including the corrected "3-B2") or
-  `expected/bom_component.csv` needs two maintainers and the pilot user's acknowledgement (§3.4). Nobody can
-  "fix" a failing test by re-accepting -4W1 or T51.
+**The sample is the project's public fixture.** The reference project J-E-2416 left the repository at 0.3.5 (ADR-0011
+amendment 7); the sample replaced it in the tests, the guide and the release.
+- **Licence and form.** `fixtures/sample/sample.ew`, which `cargo xtask gen` makes from
+  `fixtures/sample/sample.uiscript`, and the other fixtures under `fixtures/` are CC0-1.0 (L8; NFR-DOC-04, AC-40).
+- **Placeholders.** The sample's parties and project fields are placeholders (`Sample End User`, `Sample Designer`,
+  `SAMPLE`); it holds no customer content.
+- **The frozen reference.** `fixtures/format/0.1/J-E-2416.ew` stays byte for byte as format 0.1's fixture, with the
+  reference's placeholders and its anonymised technical content, which LG-5 covers.
+- **Private material.** The original `.qet` and its PDF live only in the private store; the private-corpus import test
+  reads them where the store is present (LR-11, LR-12).
+- **Expectation changes.** The sample changes only through its script; an expected output is blessed again only with
+  the change that moved it, which the commit names (§3.4).
 
 **Defects addressed by governance.** The architecture prevents the defect classes in the model. Governance keeps the
 prevention from eroding and stops content defects at the library boundary:
 
 | Defect | Governance mechanism |
 |---|---|
-| D-01, D-02, D-03, D-10, D-42 | Their regression tests are golden acceptance CSVs. Changing an expectation needs two maintainers and the pilot (§3.4), so a regression cannot be accepted silently |
+| D-01, D-02, D-03, D-10, D-42 | Each is guarded by the tests of its rule and its report; an expected output is blessed again only with the change that moved it (§3.4), so a regression is not accepted silently |
 | D-18 ("Murr Elektronik", "Schneider", "ULSKG5") | Community part packs resolve manufacturers through the master list; EW-LIB-008 rejects unknown manufacturers and duplicates in review |
 | D-35 (ratings in descriptions, "Connector" for -106W1) | EW-LIB-009 in content review; the pack maintainer is accountable for descriptions as noun phrases |
 | D-17 (core colour "BR") | Cable part packs validate core colours against IEC 60757 codes; a `verified` cable pack (§3.6) needs the manufacturer's core table |

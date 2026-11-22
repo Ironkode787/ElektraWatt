@@ -1497,7 +1497,7 @@ import code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is 
 exist only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped
 in [14](14-interop.md) §15.2.
 
-*As built.* The scheme runs on imports: `ew_api::import::lenient_findings` runs the `migration` scheme on the imported model, and the lenient groups of the migration report are the engine's open findings per rule. This replaces the front-door duplicate checks; `ApplyImport`, the lenient validators, passes P1 to P7, proposals and the `ImportRun` record remain. On the reference set EW-TERM-002 reports the 8 groups of MF-09 and EW-CORE-051 reports 5 unpaired points; EW-CORE-052 reports none (see `golden/J-E-2416/expected/c-migration-report.csv`).
+*As built.* The scheme runs on imports: `ew_api::import::lenient_findings` runs the `migration` scheme on the imported model, and the lenient groups of the migration report are the engine's open findings per rule. This replaces the front-door duplicate checks; `ApplyImport`, the lenient validators, passes P1 to P7, proposals and the `ImportRun` record remain.
 
 | MF | Row | MF | Row | MF | Row |
 |---|---|---|---|---|---|

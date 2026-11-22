@@ -961,10 +961,10 @@ library itself, modified or not, stays under CC-BY-SA-4.0.
 
 *As built.* Every shipped record carries a
 licence and a source: `ew-library`'s test `content_audit` reads every library document under `content/` and every copy
-under `golden/J-E-2416.ew/lib/` as bytes and fails, naming the file and the item, on a missing or empty `meta.licence`,
-a licence other than its kind's row above (the record's, not its file's), or an empty `meta.sources`; under
-`content/` the file's row in `ci/licence-map.toml` must allow it too. The golden bootstrap writes `CC0-1.0` on its part
-and manufacturer copies; a user's `ew import parts` writes none, the licence being the user's to state.
+under `fixtures/sample/sample.ew/lib/` as bytes and fails, naming the file and the item, on a missing or empty
+`meta.licence`, a licence other than its kind's row above (the record's, not its file's), or an empty `meta.sources`;
+under `content/` the file's row in `ci/licence-map.toml` must allow it too. The CSV bootstrap (`ew import csv`) writes
+`CC0-1.0` on its part and manufacturer copies; a user's `ew import parts` writes none, the licence being the user's to state.
 `content/README.md` lists each shipped content set (folder, kind, licence, source, `verified`, the package that made
 it), which the test keeps complete: RC-07's evidence.
 
