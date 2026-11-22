@@ -73,6 +73,9 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The layout page
 
+- FT-2030 `ew-viewmodel, ew-api`: A layout page made before 0.3.5 keeps its scale and datum when its legend box moves to its own page; giving it the whole sheet takes its Scale row and its Datum row by hand (doc 12 §5.4). One step that fits an existing view to the sheet and centres it.
+- FT-2031 `ew-reports, ew-api`: Two layout pages that show one plate share one legend list (the first in page order gets the links), and the second is offered no legend of its own; doc 12 §5.4 leaves a legend page per layout page open.
+- FT-2032 `ew-api, ew`: A legend list's Properties show its First folio and Section, which the block keeps for older builds and this build does not read (its pages follow the layout page), and `ew export report --block` finds it by that number (902), not by its printed folio 902.1. Show the layout page instead, and let `--block` take a printed folio.
 
 #### What a new item takes
 

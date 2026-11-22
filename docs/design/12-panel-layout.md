@@ -673,8 +673,8 @@ page block of kind `enclosure_legend` that names its layout page (`ReportBlock.l
 §2.2) lists the surface that page's view shows, and is a list like any other: it runs on over as many pages as its rows
 need, on the set's own frame (09 §3.8), with its own printed columns and caption (made with position, tag, quantity,
 part number and description; the manufacturer and the unit are among the others List columns… offers), in the
-project's language, in the contents and the PDF outline, and `ew export report --block <its ID>` (or `--kind
-enclosure_legend`) writes it as CSV or XLSX. Its pages follow the layout page, 902.1, 902.2 … after 902 (09 §3.2 says
+project's language, in the contents and the PDF outline, and `ew export report --block <its ID>` (or the layout page's
+number, 902, its `first_folio`) writes it as CSV or XLSX. Its pages follow the layout page, 902.1, 902.2 … after 902 (09 §3.2 says
 where those are taken). Its title names its layout: "Legend of layout 902", "Legenda bij layout 902" (the title
 `Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it). Deleting the layout
 page deletes its legend list.
@@ -690,9 +690,8 @@ page deletes its legend list.
   step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
   without its own.
 - **A layout made before keeps its datum and its scale as stored** (§5.1). To give such a page the whole sheet once
-  its legend has gone, a person sets its Scale row (Page properties) to the next larger ratio and its Surface view's
-  Datum row to where the plate stands in the middle; a page set back to Not to scale takes the fitting scale and the
-  centred datum when its Surface row chooses the plate again.
+  its legend has gone, a person sets its Scale row (Page properties) to the ratio the plate fits the sheet at and its
+  Surface view's Datum row to where the plate stands in the middle (a re-fit of an existing view is not built).
 - **From the drawing to the row and back** (the cross-references' links, 09 §4.2). On a layout whose surface has a
   legend page, a device's label (its tag, its balloon, its leader) links to the device's row on the legend page, and
   the row's tag links to the device's footprint on the layout: Follow reference (F) goes either way, as a click in the

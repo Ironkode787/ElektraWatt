@@ -35,7 +35,7 @@ and what is known not to work yet.
 |---|---|
 | ![A wire of the sample's 24 V control page right-clicked: its menu offers Route, Wire marker, Define potential, Cable and Print wire numbers first, then the general entries](docs/images/screenshot-right-click.png) | ![The Cable form over the two selected wires of a position switch in the field: the proposed tag -104W1, the two-core cable type and each wire's core, brown and blue](docs/images/screenshot-cable-form.png) |
 | **The symbol editor** | **The panel layout** |
-| ![The symbol editor with a copy of the starter coil: its drawing with the connection points A1 and A2, the category Relays, the snap grid, the eight variants and a tool's tooltip](docs/images/screenshot-symbol-editor.png) | ![The panel layout page of the sample project: the enclosure and its mounting plate with two rails, a duct and the devices, and the legend beside it](docs/images/screenshot-panel-layout.png) |
+| ![The symbol editor with a copy of the starter coil: its drawing with the connection points A1 and A2, the category Relays, the snap grid, the eight variants and a tool's tooltip](docs/images/screenshot-symbol-editor.png) | ![The panel layout page of the sample project: the enclosure and its mounting plate centred on the sheet with two rails, a duct and the devices, each with its tag or, where the tag does not fit, a numbered balloon; its legend follows on pages 902.1 and 902.2](docs/images/screenshot-panel-layout.png) |
 | **The dark theme** | |
 | ![The pneumatics page of the sample project in the dark theme: a valve terminal with four solenoid valves, two of them spare, driving two cylinders](docs/images/screenshot-dark-theme.png) | |
 
