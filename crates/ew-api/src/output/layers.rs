@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle), `page_knockouts` (the texts its lines are cut round, [`PageKnockoutsOf`]), the bridges of the strips its terminals belong to (`page_bridges`) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the valve cells and the plug notes (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the valve cells, the plug notes and the strips' bridges (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
@@ -181,6 +181,8 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             // beside a plug's pins are fixed texts the others keep clear of.
             v.valve_cells = page_valve_cells(q, p);
             v.plug_notes = page_plug_notes(q, p);
+            // A strip's drawn bridge is a line the texts keep clear of (FT-2021).
+            v.bridges = page_bridges(q, p);
             v.panel = panel_view(
                 q,
                 p,

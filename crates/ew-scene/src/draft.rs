@@ -304,6 +304,14 @@ impl Builder<'_> {
                 }
             }
         }
+        // A strip's drawn bridge (doc 08 §6.5) is no record the layout moves or routes round: a text keeps clear of
+        // its line, a tick to either side, as of the frame's bands; the router does not read it (FT-2021).
+        for points in Self::bridge_rows(view) {
+            if let (Some(&first), Some(&last)) = (points.first(), points.last()) {
+                page.keep_out
+                    .push(ticks.outward(Rect::from_points(first, last)).grown(1));
+            }
+        }
         let owners = cp_owners(view);
         let frames: Vec<ew_ids::Uuid> = view.valve_cells.iter().map(|v| v.rep.as_uuid()).collect();
         let mut origins: BTreeMap<ew_ids::Uuid, ew_drafting::Pt> = BTreeMap::new();

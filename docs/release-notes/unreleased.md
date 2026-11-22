@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: the text placer keeps a wire number, a tag or any other text it places off a strip's drawn bridge
+  line, as it keeps off the frame (doc 06a §2.2, FT-2021)
 - behaviour-change: Fit the layout to the sheet (a layout page's context menu and Page ▸ Order, `layout.fit_sheet`)
   gives a layout page made before its legend became a page the whole sheet in one step: the fitting scale and the
   plate centred, no device moved (doc 12 §5.1, FT-2030)

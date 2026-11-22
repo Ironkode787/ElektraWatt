@@ -231,7 +231,8 @@ pub struct DraftPage {
     pub kind: PageKind,
     /// The drawing area.
     pub area: Rect,
-    /// The frame's bands and the title block.
+    /// What no text may stand on and the router does not read: the frame's bands, the title block, a strip's drawn
+    /// bridges.
     pub keep_out: Vec<Rect>,
     /// The parts.
     pub parts: Vec<Part>,

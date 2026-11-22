@@ -129,3 +129,42 @@ fn a_bridge_with_one_terminal_in_a_row_draws_nothing() {
     };
     assert_eq!(drawn(&plain), (Vec::new(), Vec::new()));
 }
+
+/// The layout's page keeps texts off a drawn bridge (FT-2021): its line, from the first terminal's point to the last,
+/// lies inside a keep-out of the labels layer's draft page, which the same terminals without the bridge do not have.
+#[test]
+fn the_layout_keeps_texts_off_a_bridge() {
+    let v = PageView {
+        reps: vec![terminal(1, 10, 20), terminal(2, 16, 20), terminal(3, 22, 20)],
+        bridges: vec![bridge(&[1, 3])],
+        ..blank_page(PAGE)
+    };
+    let keep_out = |v: &PageView| {
+        let layer = page_display_list(v, Layer::Labels, bundled(), builtin());
+        layer
+            .draft
+            .expect("the labels layer's draft page")
+            .keep_out
+            .clone()
+    };
+    let ticks = ew_scene::ticks::Ticks::of(v.grid);
+    let (a, b) = (ticks.point(mid(10, 20)).0, ticks.point(mid(22, 20)).0);
+    let line = ew_drafting::Rect {
+        x0: a.x,
+        y0: a.y,
+        x1: b.x,
+        y1: b.y,
+    };
+    assert!(
+        keep_out(&v)
+            .iter()
+            .any(|k| k.holds(line) && k.overlaps(line.grown(1))),
+        "{:?} holds {line:?}",
+        keep_out(&v)
+    );
+    let plain = PageView {
+        bridges: Vec::new(),
+        ..v
+    };
+    assert!(!keep_out(&plain).iter().any(|k| k.holds(line)));
+}

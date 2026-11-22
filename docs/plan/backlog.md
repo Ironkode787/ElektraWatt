@@ -79,7 +79,6 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 #### The page's drawing
 
 - FT-2020 `ew-scene`: A strip segment draws no bridges: doc 08 §6.5 asks for the vertical bus with dots across the terminals a bridge joins, which only terminals drawn alone in a row have (FT-1908).
-- FT-2021 `ew-scene, ew-drafting`: The layout's page does not hold a strip's drawn bridges (doc 08 §6.5): the text placer may set a text on a bridge's line and the router may run a wire across it; neither is reported.
 
 #### A command's words
 

@@ -319,7 +319,7 @@ pin by EW-TERM-006; now all of them read the one number.
 pub struct DraftPage {
     pub kind: PageKind,             // Electrical | Fluid | Bus: which rules of §1.6 apply
     pub area: Rect,                 // the drawing area
-    pub keep_out: Vec<Rect>,        // the frame's bands, the title block
+    pub keep_out: Vec<Rect>,        // the frame's bands, the title block, a strip's drawn bridges
     pub parts: Vec<Part>,
     pub junctions: Vec<Junction>,
     pub wires: Vec<Wire>,
@@ -377,6 +377,7 @@ What each thing of the page becomes:
 | Pin texts of a drawn box, free texts, captions of structure boxes, plug pin notes | fixed texts |
 | A structure box | its outline is a fence: a part inside stays inside, a part outside stays outside; in the first build the parts inside a structure box are locked for the placer |
 | The frame | `area` and `keep_out` |
+| A strip's drawn bridge (doc 08 §6.5) | a `keep_out` of its line and a tick to either side: no text stands on it, and the router does not read it (FT-2021) |
 | The page's type | `kind`: a fluid page, a bus page, every other schematic page electrical |
 | What a part is, for the rules | `role`: from the function's kind (an interruption point's direction, a card, a station), from the potential of an earth symbol's one pin, and on fluid pages from the roles of its ports; a part the adapter cannot tell is `Other` and is bound by the rules of every page only |
 

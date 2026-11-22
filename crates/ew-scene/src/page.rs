@@ -1559,9 +1559,28 @@ impl Builder<'_> {
 
     /// The bridges of the page's strips (module documentation, "Bridges").
     fn bridges(&mut self, view: &PageView) {
+        let stroke = wire_stroke(view.grid);
+        for points in Self::bridge_rows(view) {
+            let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
+                continue;
+            };
+            self.push(Item::path(Path::line(first, last), Some(stroke.clone()), None));
+            for p in points {
+                self.push(Item::path(
+                    Path::circle(p, JUNCTION_DOT_RADIUS),
+                    None,
+                    Some(Brush::BLACK),
+                ));
+            }
+        }
+    }
+
+    /// The lines of the page's bridges (module documentation, "Bridges"): per bridge in the view's order, per row of
+    /// its terminals, the points it joins along the line, at least two; the line runs from the first to the last.
+    pub(crate) fn bridge_rows(view: &PageView) -> Vec<Vec<Pt2>> {
         let cps = drawn_cps(view);
         let reps: BTreeMap<Uuid, &RepView> = view.reps.iter().map(|r| (r.rep.id.as_uuid(), r)).collect();
-        let stroke = wire_stroke(view.grid);
+        let mut out = Vec::new();
         for bridge in &view.bridges {
             // Each terminal's point half way along its bridged lead, by the way the lead leaves and the line across it.
             let mut rows: BTreeMap<(u8, i64), Vec<Pt2>> = BTreeMap::new();
@@ -1590,22 +1609,12 @@ impl Builder<'_> {
             for ((side, _), mut points) in rows {
                 points.sort_by_key(|p| if side < 2 { p.x } else { p.y });
                 points.dedup();
-                let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
-                    continue;
-                };
-                if points.len() < 2 {
-                    continue;
-                }
-                self.push(Item::path(Path::line(first, last), Some(stroke.clone()), None));
-                for p in points {
-                    self.push(Item::path(
-                        Path::circle(p, JUNCTION_DOT_RADIUS),
-                        None,
-                        Some(Brush::BLACK),
-                    ));
+                if points.len() >= 2 {
+                    out.push(points);
                 }
             }
         }
+        out
     }
 
     /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
