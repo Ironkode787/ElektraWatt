@@ -6321,6 +6321,7 @@ error-import-confirm = Creating the project from { $p0 } cannot be undone and ne
 error-import-panicked = The importer stopped on an internal error while reading { $p0 }; nothing was imported.
 error-import-cancelled = The import of { $p0 } was cancelled; nothing was imported.
 error-import-refused = The import of { $p0 } was refused because { $p1 }; nothing was imported.
+error-import-dropped = The import of { $p0 } was dropped: a project was opened or closed while the file was read; nothing was imported.
 reason-import-shared-identity = two records share one identity
 reason-import-identity-key = a record's identity does not follow from its source key
 reason-import-other-lineage = a record names another import

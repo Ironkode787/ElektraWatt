@@ -78,3 +78,22 @@ fn a_drawing_page_takes_a_folio_no_page_has() {
     );
     s.shutdown();
 }
+
+/// A drawing import's end comes after the step that started it: a drawing that cannot be read is said in the banner, as
+/// it was before the import became a job (FT-1763).
+#[test]
+fn a_drawing_that_cannot_be_read_says_so_in_the_banner() {
+    let tmp = Tmp::new("drawing-unread");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    let pages = s.page_rows().len();
+    let absent = tmp.0.join("absent.dxf");
+    done(
+        &mut s,
+        "file.import_drawing",
+        json!({"file": absent.to_string_lossy(), "as": "page", "units": "mm"}),
+    );
+    s.wait_jobs();
+    assert_eq!(s.page_rows().len(), pages, "nothing imported");
+    assert_eq!(s.banner(), Some("Cannot read absent.dxf."));
+    s.shutdown();
+}

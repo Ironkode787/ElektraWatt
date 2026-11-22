@@ -126,3 +126,70 @@ fn an_edit_made_while_a_report_is_read_is_asked_about_and_kept() {
     );
     s.shutdown();
 }
+
+/// A read's end comes after the step that started it, so no caller takes its outcome: the window shows its failure in
+/// the banner, as an import's failure was shown before its read became a job (FT-1763). The read run as the window
+/// runs it, and the banner after its end.
+fn read_in_window(s: &mut ShellModel, action: &str, params: serde_json::Value) -> Option<String> {
+    s.dismiss_banner();
+    done(s, action, params);
+    s.wait_jobs();
+    s.banner().map(str::to_owned)
+}
+
+#[test]
+fn a_plc_exchange_file_that_cannot_be_read_or_parsed_says_why_in_the_banner() {
+    let tmp = Tmp::new("read-failed-plc");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    let missing = tmp.0.join("absent.csv");
+    let banner = read_in_window(&mut s, "plc.import", json!({"path": missing.to_string_lossy()}));
+    assert!(
+        banner.as_deref().is_some_and(|b| b.starts_with("absent.csv cannot be read: ")),
+        "{banner:?}"
+    );
+    let malformed = tmp.0.join("malformed.csv");
+    std::fs::write(&malformed, "not a PLC exchange file\n\u{0}\u{1}").unwrap();
+    let banner = read_in_window(&mut s, "plc.import", json!({"path": malformed.to_string_lossy()}));
+    assert!(
+        banner.as_deref().is_some_and(|b| b.starts_with("The PLC import cannot be previewed: ")),
+        "{banner:?}"
+    );
+    s.shutdown();
+}
+
+#[test]
+fn a_reader_that_panics_says_so_in_the_banner() {
+    let tmp = Tmp::new("read-failed-panic");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    s.set_job_panic_for_tests(Some("read"));
+    let banner = read_in_window(&mut s, "file.import_eplan", json!({ "file": EDZ }));
+    assert_eq!(
+        banner.as_deref(),
+        Some("The importer stopped on an internal error while reading synthetic-psu-7z.edz; nothing was imported.")
+    );
+    s.shutdown();
+}
+
+/// A read whose project was closed for another meanwhile imports nothing, and says so.
+#[test]
+fn a_read_dropped_because_another_project_opened_says_so_in_the_banner() {
+    let tmp = Tmp::new("read-dropped");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    let gate = ew_viewmodel::ew_api::ew_jobs::Gate::new();
+    gate.hold("read");
+    s.set_job_gate_for_tests(Some(gate.clone()));
+    done(&mut s, "file.import_eplan", json!({ "file": EDZ }));
+    gate.wait_reached("read");
+    done(&mut s, "file.open", json!({"dir": SAMPLE, "read_only": true}));
+    gate.release();
+    s.wait_jobs();
+    assert!(s.dialog().is_none(), "nothing read: {:?}", s.dialog());
+    assert_eq!(
+        s.banner(),
+        Some(
+            "The import of synthetic-psu-7z.edz was dropped: a project was opened or closed while the file was read; \
+             nothing was imported."
+        )
+    );
+    s.shutdown();
+}

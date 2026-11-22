@@ -6,8 +6,8 @@
 //! file read, parsed and, where the session's part of it was taken first, merged) runs on the job's thread and hands
 //! back the rest of the import ([`Finish`]), which runs on the window's thread when the job ends: the dialog, the card
 //! or the new project. Meanwhile the Jobs pane shows the read with Cancel, which takes effect when the parsing ends
-//! (the job's checkpoint). A job of a project that closed meanwhile ends in nothing; a script and a headless run wait
-//! for the read, so their outcome is the finish's.
+//! (the job's checkpoint). A job of a project that closed meanwhile ends in nothing imported. A script and a headless
+//! run wait for the read, so their outcome is the finish's; in the window a failed end shows in the banner.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -111,7 +111,8 @@ impl ShellModel {
             match self.import.reads[i].job.try_end() {
                 Some(end) => {
                     let pending = self.import.reads.remove(i);
-                    let _ = self.finish_read(end, pending.after);
+                    let outcome = self.finish_read(end, pending.after);
+                    self.say_failed_end(outcome);
                 }
                 None => i += 1,
             }
@@ -121,16 +122,27 @@ impl ShellModel {
     /// Waits for the running reads and takes their ends (the end of a headless run).
     pub(super) fn wait_reads(&mut self) {
         for ReadJob { job, after } in std::mem::take(&mut self.import.reads) {
-            let _ = self.finish_read(job.wait(), after);
+            let outcome = self.finish_read(job.wait(), after);
+            self.say_failed_end(outcome);
+        }
+    }
+
+    /// A job's failed end said as an action's failure is, in the banner: no caller takes the outcome of an end that
+    /// comes later. A cancel says itself in its toast.
+    pub(super) fn say_failed_end(&mut self, outcome: Outcome) {
+        if let Outcome::Failed { message } = outcome
+            && self.toast().is_none_or(|t| t.text != message)
+        {
+            self.banner = Some(message);
         }
     }
 
     /// The end of a read: its entry leaves the Jobs pane; a cancel or a panic is said in words; else the rest of the
-    /// import runs, unless the project changed meanwhile.
+    /// import runs, unless another project was opened or the project closed meanwhile, which is said too.
     fn finish_read(&mut self, end: JobEnd<Finish>, pending: AfterRead) -> Outcome {
         self.jobs.entries.retain(|e| e.number != pending.number);
         if self.project.as_ref().map(|p| p.epoch) != pending.epoch {
-            return Outcome::Done;
+            return failed(key!("error-import-dropped"), &[&pending.name]);
         }
         match end {
             JobEnd::Done(finish) => finish(self),

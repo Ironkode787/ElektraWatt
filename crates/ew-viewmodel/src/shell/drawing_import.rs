@@ -186,19 +186,22 @@ impl ShellModel {
         if let Some(end) = ended
             && let Some(pending) = self.import.drawing.take()
         {
-            let _ = self.finish_drawing(end, pending.after);
+            let outcome = self.finish_drawing(end, pending.after);
+            self.say_failed_end(outcome);
         }
     }
 
     /// Waits for a running drawing import and takes its end (the end of a headless run).
     pub(super) fn wait_drawing(&mut self) {
         if let Some(DrawingJob { job, after }) = self.import.drawing.take() {
-            let _ = self.finish_drawing(job.wait(), after);
+            let outcome = self.finish_drawing(job.wait(), after);
+            self.say_failed_end(outcome);
         }
     }
 
     /// The end of a drawing import: its entry leaves the Jobs pane; a refusal or a cancel is said in words; else the
-    /// dialog opens, or the page or the underlay is made. A job of a project that closed meanwhile shows nothing.
+    /// dialog opens, or the page or the underlay is made. A job of a project that closed meanwhile imports nothing and
+    /// says so.
     fn finish_drawing(
         &mut self,
         end: ew_api::ew_jobs::JobEnd<Result<Drawn, DrawingError>>,
@@ -206,7 +209,7 @@ impl ShellModel {
     ) -> Outcome {
         self.jobs.entries.retain(|e| e.number != pending.number);
         if self.project.as_ref().is_none_or(|p| p.epoch != pending.epoch) {
-            return Outcome::Done;
+            return failed(key!("error-import-dropped"), &[&pending.name]);
         }
         let name = pending.name;
         let drawn = match end {

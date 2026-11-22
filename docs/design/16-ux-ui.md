@@ -1320,7 +1320,8 @@ pane with Cancel, and its end runs the rest on the window's thread: the dialog, 
 The window answers meanwhile, so a report's new project replaces the open one only as that project was asked about:
 where it changed while the file was read, the unsaved-changes question comes again at the end, and its Cancel keeps the
 project and drops what was read, which a toast says. A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
-imported."); a job of a project that closed meanwhile ends in nothing. A script waits for the read. Not yet: writing an
+imported."); a job of a project that closed meanwhile imports nothing and says so, and a read that fails says why in
+the banner, as an import's failure did before it ran as a job. A script waits for the read. Not yet: writing an
 EDZ's parts into the user's library reads the file again on the window's thread (FT-2081).
 
 ### 8.4 Message panel
