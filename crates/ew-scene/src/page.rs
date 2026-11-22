@@ -665,6 +665,10 @@ pub struct SlotTextBox {
     pub slot: u16,
     /// The text's anchor on the page.
     pub at: Pt2,
+    /// The anchor a drop stores for the text: the point that gives the same box with the alignment a stored position
+    /// prints with (its slot's own, where a text placed anew round a symbol turned a quarter prints otherwise), so a
+    /// dragged text lands where its ghost showed it; else `at`.
+    pub drop_at: Pt2,
     /// The angle it prints at.
     pub angle: Angle2,
     /// Whether the representation's override moves or turns it.

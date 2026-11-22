@@ -12,6 +12,7 @@ use common::{Tmp, at, done};
 use ew_api::output::SlotTextBox;
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::tools::OverlayItem;
 use serde_json::json;
 
 const MM: i64 = 1_000_000;
@@ -169,5 +170,72 @@ fn a_tag_drags_alone_without_its_symbol_selected_and_its_menu_puts_it_back() {
     );
     let after = now.tables.reps.iter().find(|r| r.id == rep.id).unwrap();
     assert_eq!(after.pos, rep.pos, "its symbol stayed");
+    shell.shutdown();
+}
+
+/// The tag of a symbol turned a quarter is placed anew round its body, with another alignment than its slot's own, which
+/// a stored position prints with (FT-1929): dropped, it lands where its ghost showed it, and stays there.
+#[test]
+fn a_tag_of_a_turned_symbol_lands_where_its_ghost_showed_it() {
+    let tmp = Tmp::new("symbol-text-drag-turned");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    let page = shell.canvas().unwrap().page().clone();
+    let rep = page
+        .tables
+        .reps
+        .iter()
+        .find(|r| {
+            r.device.is_some()
+                && r.ip.is_none()
+                && r.black_box.is_none()
+                && r.tag_at.is_some()
+                && r.orient == 0
+        })
+        .expect("an upright symbol with a tag")
+        .clone();
+    done(&mut shell, "select.set", json!({ "ids": [rep.id.to_string()] }));
+    done(&mut shell, "tool.rotate_cw", json!({}));
+    done(&mut shell, "select.set", json!({"ids": []}));
+    let page = shell.canvas().unwrap().page().clone();
+    let turned = page.tables.reps.iter().find(|r| r.id == rep.id).unwrap();
+    assert_eq!(turned.orient % 2, 1, "turned a quarter");
+    let tag = *page
+        .texts
+        .iter()
+        .find(|t| t.rep == rep.id && turned.tag_at.is_some_and(|a| a.0 == t.at.x.0))
+        .expect("its tag");
+    let grab = middle(&shell, &tag);
+    done(&mut shell, "canvas.press", at(grab, json!({})));
+    done(
+        &mut shell,
+        "canvas.pointer",
+        at((grab.0 + 10 * MM, grab.1 + 5 * MM), json!({})),
+    );
+    let ghost = match shell.tool_overlay().items.first() {
+        Some(OverlayItem::Ghost { rects, .. }) => rects[0],
+        other => panic!("the text's ghost: {other:?}"),
+    };
+    done(
+        &mut shell,
+        "canvas.release",
+        at((grab.0 + 10 * MM, grab.1 + 5 * MM), json!({})),
+    );
+    let now = shell.canvas().unwrap().page().clone();
+    let dropped = now
+        .texts
+        .iter()
+        .find(|t| t.rep == rep.id && t.slot == tag.slot)
+        .expect("the text still prints");
+    assert!(dropped.moved, "an override moves it");
+    let sheet = |x: i64, y: i64| now.snapper.page_to_sheet((x, y));
+    let r = dropped.rect;
+    assert_eq!(
+        (sheet(r.min().x.0, r.min().y.0), sheet(r.max().x.0, r.max().y.0)),
+        (
+            (ghost.min().x.0, ghost.min().y.0),
+            (ghost.max().x.0, ghost.max().y.0)
+        ),
+        "the dropped tag's box against its ghost's"
+    );
     shell.shutdown();
 }

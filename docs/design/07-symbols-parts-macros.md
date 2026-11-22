@@ -1023,7 +1023,9 @@ with connection points turned a quarter places its slot texts that print level a
   the starter symbols' pitch) from the one before; only the texts that print take a line.
 - A pin's designation keeps its place at its pin (step 3 above). A text a person dragged keeps its place and the
   alignment of its slot (`slot_align`), the alignment its position was stored with, so a project made before these
-  places prints it where it did; a slot whose angle an override sets keeps its turned point.
+  places prints it where it did; a drop stores the anchor that gives that alignment the box the ghost showed
+  (`SlotTextBox::drop_at`), so the text lands where it was dropped. A slot whose angle an override sets keeps its
+  turned point.
   A symbol without connection points (a drawn box) keeps the steps above.
 
 The symbol editor's strip "Turned and mirrored" and a page show the same places; on a page they are the texts' first

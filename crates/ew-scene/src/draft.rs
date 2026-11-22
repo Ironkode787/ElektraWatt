@@ -139,6 +139,9 @@ pub(crate) struct Slot {
     rep: ew_ids::Uuid,
     slot: u16,
     moved: bool,
+    /// The alignment a position stored for the slot prints with (`symbol::slot_align`), where it may differ from the
+    /// printed one (a level text of a symbol turned a quarter, placed anew round its body); `None`: the printed one.
+    stored: Option<Align>,
     frame: ew_derive::TextFrame,
     tag: bool,
     pin: bool,
@@ -163,7 +166,7 @@ pub(crate) enum Op {
     Text {
         text: Text,
         label: Option<Placed>,
-        slot: Option<Slot>,
+        slot: Option<Box<Slot>>,
     },
     Path(Item),
 }
@@ -263,7 +266,7 @@ impl Builder<'_> {
                         let (dx, dy) = ticks.move_nm(s.rect.top_left().minus(reference.top_left()));
                         text.at = text.at + Pt2::new(Nm(dx), Nm(dy));
                     }
-                    self.print(text, slot);
+                    self.print(text, slot.map(|s| *s));
                 }
             }
         }
@@ -298,10 +301,26 @@ impl Builder<'_> {
                 self.out.tags.entry(s.rep).or_insert(text.at);
             }
             if let Some(rect) = self.box_of(&text) {
+                // The anchor that, with the alignment a stored position prints with, gives the same box.
+                let drop_at = match &s.stored {
+                    Some(align) if *align != text.align => self
+                        .box_of(&Text {
+                            align: align.clone(),
+                            ..text.clone()
+                        })
+                        .map_or(text.at, |b| {
+                            Pt2::new(
+                                text.at.x + (rect.min().x - b.min().x),
+                                text.at.y + (rect.min().y - b.min().y),
+                            )
+                        }),
+                    _ => text.at,
+                };
                 self.out.slot_texts.push(SlotTextBox {
                     rep: s.rep,
                     slot: s.slot,
                     at: text.at,
+                    drop_at,
                     angle: text.angle,
                     moved: s.moved,
                     pin: s.pin,
@@ -536,7 +555,7 @@ impl Builder<'_> {
         ctx.ops.push(Op::Text {
             text,
             label: None,
-            slot,
+            slot: slot.map(Box::new),
         });
     }
 
@@ -557,7 +576,7 @@ impl Builder<'_> {
             ctx.ops.push(Op::Text {
                 text,
                 label: None,
-                slot,
+                slot: slot.map(Box::new),
             });
             return;
         };
@@ -595,7 +614,7 @@ impl Builder<'_> {
                 reference,
                 turned,
             }),
-            slot,
+            slot: slot.map(Box::new),
         });
     }
 
@@ -672,6 +691,8 @@ impl Builder<'_> {
                     rep: rep.id.as_uuid(),
                     slot: value.slot,
                     moved: moved || turned,
+                    stored: (!moved && !turned)
+                        .then(|| symbol::slot_align(def, slot, slot.rot, frame.orient)),
                     frame,
                     tag: matches!(slot.kind, SlotKind::Tag),
                     pin: matches!(slot.kind, SlotKind::CpDesignation(_)),
@@ -999,6 +1020,7 @@ impl Builder<'_> {
             rep: entity.0,
             slot: 0,
             moved: m.tag_at.is_some(),
+            stored: None,
             frame: ew_derive::TextFrame {
                 origin: m.at,
                 orient: Orient2::R0,

@@ -302,7 +302,7 @@ fn turned_rect(r: Rect, c: (i64, i64), turns: u8) -> Rect {
 impl TextPress {
     /// The ghost of the text at its current point and turn: its box moved and turned, on the sheet.
     fn ghost(&self, cx: &ToolCx<'_>) -> ToolOutput {
-        let a = (self.text.at.x.0, self.text.at.y.0);
+        let a = (self.text.drop_at.x.0, self.text.drop_at.y.0);
         let to = self.to.unwrap_or(a);
         let r = turned_rect(self.text.rect, a, self.turns);
         let d = (to.0 - a.0, to.1 - a.1);
@@ -704,8 +704,8 @@ impl SelectTool {
                     cx.snapper.sheet_to_page(*at),
                 );
                 let anchor = (
-                    press.text.at.x.0.saturating_add(b.0 - a.0),
-                    press.text.at.y.0.saturating_add(b.1 - a.1),
+                    press.text.drop_at.x.0.saturating_add(b.0 - a.0),
+                    press.text.drop_at.y.0.saturating_add(b.1 - a.1),
                 );
                 let sheet = cx.snapper.page_to_sheet(anchor);
                 press.to = Some(
