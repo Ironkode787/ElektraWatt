@@ -5,10 +5,11 @@
 //! carry are the part's; where each pin stands on the box, and the box's size, are the box's, edited there as on any
 //! box and drawn that way when the card is placed.
 
-use crate::common::{Tmp, cursor, done, failed, grid_point, new_project, tables};
+use crate::common::{Tmp, actual_size, cursor, done, failed, grid_point, new_project, tables};
 use ew_api::geometry::Dir;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::symbol_editor::side_word;
+use ew_viewmodel::strings;
 use serde_json::json;
 
 /// The pin table of the open device box as (index, name, edge).
@@ -98,4 +99,40 @@ fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
     let left: Vec<u16> = b.cps.iter().filter(|c| c.2 == Dir::Left).map(|c| c.0).collect();
     assert_eq!(left, [first.0], "pin 1 on the left edge: {b:?}");
     assert_eq!(b.cps.len(), 4, "every channel's pin");
+}
+
+/// A starter card's box nobody changed is saved as nothing: Save says the part is unchanged, the project keeps the
+/// library's card without a layout (Draw on a page still draws it as a card, doc 06a §7.5) and makes no step. One pin
+/// put on the left edge, and Save writes the layout.
+#[test]
+fn an_untouched_card_s_box_saves_nothing_and_a_placed_pin_lays_it_out() {
+    let tmp = Tmp::new("device-box-card-untouched");
+    let mut s = actual_size(&tmp, "102");
+    done(&mut s, "part.box", json!({"part": "EW-GEN-DI-1"}));
+    let laid_out = |s: &ShellModel| {
+        s.symbol_editor()
+            .and_then(|e| e.device_box())
+            .expect("the device box")
+            .draft
+            .box_
+            .is_some()
+    };
+    assert!(!laid_out(&s), "the starter card lays out no box");
+    let rev = s.revision();
+    let said = failed(&mut s, "symbol.save", json!({}));
+    assert!(
+        said.ends_with(strings::text(strings::Key::run_time("reason-part-unchanged"))),
+        "{said}"
+    );
+    assert!(!laid_out(&s), "Save wrote no layout");
+    assert_eq!(s.revision(), rev, "Save made no step");
+    let first = pins(&s).into_iter().next().expect("a channel's pin");
+    done(
+        &mut s,
+        "part.pin",
+        json!({"pin": first.0, "side": "left", "at": 8}),
+    );
+    done(&mut s, "symbol.save", json!({}));
+    assert!(laid_out(&s), "the placed pin is the card's layout");
+    assert_ne!(s.revision(), rev);
 }

@@ -1077,8 +1077,10 @@ impl ShellModel {
         if let Some(todo) = b.todo().first() {
             return Err(todo.text.clone());
         }
-        // The box is saved as the screen shows it: a part that had no layout takes the one drawn here.
-        if draft.box_.is_none() && draft.places_pins() && !draft.pins.is_empty() {
+        // The box is saved as the screen shows it: a part with pins of its own that had no layout takes the one drawn
+        // here. A card's or a bus device's box takes a layout only from a pin a person placed or a size a person gave
+        // (`relayout`): untouched, Draw on a page draws it as a card (doc 06a §7.5), and Save changes nothing.
+        if draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
             draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
         }
         let from_project = b.from_project;

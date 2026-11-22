@@ -309,8 +309,8 @@ change here.
   (FT-1799)
 - behaviour-change: a PLC card's or a bus device's device box is edited in the box: each pin is put on its edge and
   moved along it and the box is sized, saved as the part's layout and drawn so by the Device tool, Place here and
-  Draw on a page…; the pins' names and what they carry stay the part's, changed in the part editor (doc 07 §2.5,
-  FT-1788)
+  Draw on a page…; the pins' names and what they carry stay the part's, changed in the part editor; Save on such a box
+  nobody changed says the part is unchanged and writes nothing (doc 07 §2.5, FT-1788)
 - behaviour-change: on a bus page the boxes of a device with several interfaces move together when one is dragged
   or moved by the keyboard; a row of such boxes drawn near the page's edge stands inside the drawing area, and one
   that would cover another device is refused in words (doc 10 §2.7, FT-1766)

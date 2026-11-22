@@ -498,7 +498,10 @@ text's place, which stands inside the box at the pin, turned by its edge; with t
 box as on any box, saved as the part's `box`, and drawn that way wherever the card is drawn by its box (a click of the
 Device tool, Place here, Draw on a page…, Redraw them). What is the part's is the pin's name (the pin pattern's), what
 it carries (a supply pin's potential), its channel and that channel's address and kind: the box shows them and says
-that they are changed in the part editor, under PLC or Bus interfaces; such a box takes no pin and loses none. A part
+that they are changed in the part editor, under PLC or Bus interfaces; such a box takes no pin and loses none. Its
+layout is written only from a pin a person placed or a size a person gave: Save on such a box nobody changed says that
+the part is unchanged, so the card stays the library's and Draw on a page draws it as a card ([06a](06a-drafting.md)
+§7.5); a part with pins of its own takes the layout the box shows at its first Save. A part
 drawn with a symbol has no device box to edit. `part.edit_copy` lets the fork of a library copy change
 `cp_pattern`, `function_template` and `box` as it does the identity, so a library part's box is changed for the
 project; its sections stay the library's.
