@@ -453,6 +453,15 @@ fn source_words(q: &Q, s: &PropSource) -> String {
         },
         PropSource::PotentialDef(_) => "potential definition".to_owned(),
         PropSource::ColourRow { profile, .. } => format!("colour profile {profile}"),
+        // A size from the rating of the protecting device: the device and its rating, and the table (as Properties).
+        PropSource::SizeRow {
+            rule: SizeRule::Rating { device, current },
+            ..
+        } => format!(
+            "protected by {}, rated {current} A · {}",
+            tag_short(q, *device).unwrap_or_default(),
+            ew_derive::current_table_basis()
+        ),
         PropSource::SizeRow { profile, .. } => format!("size profile {profile}"),
         PropSource::ProjectDefault => "project default".to_owned(),
         PropSource::BuiltIn { profile } => format!("built-in default of derivation profile {profile}"),

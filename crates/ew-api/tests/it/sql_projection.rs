@@ -133,6 +133,25 @@ fn fr_ext_007_sorts_designations_naturally_and_reads_multilingual_text() {
     assert_eq!(set.rows[0][0], set.rows[0][1], "ew_ml reads the page title");
 }
 
+/// A cross-section from the rating of the protecting device (FT-2055) names that device and its rating in
+/// `prov_csa`, as Properties does: the sample's 102.1 behind the 16 A breaker -102F1. It said "size profile" and the
+/// current table's key, which is no size profile.
+#[test]
+fn a_size_from_a_rating_names_the_device_in_its_provenance() {
+    let p = projection();
+    let reader = p.reader(Profile::EW_SQL).unwrap();
+    let set = reader
+        .query("SELECT prov_csa FROM api_v1_wire WHERE number = '102.1'")
+        .unwrap();
+    assert_eq!(
+        set.rows[0][0].text(),
+        format!(
+            "protected by -102F1, rated 16 A · {}",
+            ew_derive::current_table_basis()
+        )
+    );
+}
+
 #[test]
 fn two_builds_write_the_same_image() {
     let (a, b) = (projection(), projection());
