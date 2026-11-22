@@ -1112,7 +1112,8 @@ box's menu, offered for one selected box with channel pins on both its upper and
 draws the card again as Draw on a page lays a card out, in its place and in one undo step: one `plc.draw_station` whose
 `replace` names the old box, its inputs in a box where the old box stood and its outputs in a box a gap under that.
 The device, its functions, channels and connections stay, because a connection joins the function's connection
-points and not the box; a toast says that Arrange and route draws the wires to the new pins. Not done: a row wider than
+points and not the box; a toast says that Arrange and route draws the wires to the new pins. The old box's texts a
+person moved or hid go with it: the new boxes print their texts where the one-row layout puts them. Not done: a row wider than
 the drawing area is not split into boxes as Draw on a page splits it, and a terminal of a channel that now faces the
 other way keeps its wires on the pin it had (FT-2083).
 
