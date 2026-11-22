@@ -20,41 +20,61 @@ use super::{Outcome, ShellModel};
 use crate::key;
 use crate::tools::{CanvasEvent, EntityKind, ResultNote, selection_kinds, transform};
 
-/// The result note of a delete of the representations `reps`: the names of the interruption points
-/// among them, in page-table order, and the connections at their connection points that `drawn` does not name; and
-/// `unplaced`, the devices the delete leaves without a symbol; `None` when neither applies.
+/// The wires on the page tables `t` drawn to a connection point of the representations `reps` (whose drawing symbol
+/// is one of them) that the selection `drawn` does not name, in page-table order: once the symbols go such a wire would
+/// be drawn on no page, so the delete takes it with it (a persona run met one it could not find or click).
+fn wires_at(t: &PageTables, reps: &[EntityRef], drawn: &crate::tools::Selection) -> Vec<EntityRef> {
+    let mut wires: Vec<EntityRef> = Vec::new();
+    for c in t.cps.iter().filter(|c| reps.contains(&EntityRef(c.rep))) {
+        for w in &c.connections {
+            let w = EntityRef(*w);
+            if !drawn.items.contains(&w) && !wires.contains(&w) {
+                wires.push(w);
+            }
+        }
+    }
+    wires
+}
+
+/// The result note of a delete of the representations `reps`: the names of the interruption points among them, in
+/// page-table order, the wires `wires` it takes with them, `unplaced`, the devices it leaves without a symbol, and
+/// `undrawn`, the terminals it leaves drawn nowhere; `None` when none applies.
 fn delete_note(
     reps: &[EntityRef],
-    drawn: &crate::tools::Selection,
     t: &PageTables,
+    wires: Vec<EntityRef>,
     unplaced: Vec<(EntityRef, String, bool)>,
+    undrawn: Vec<EntityRef>,
 ) -> Option<ResultNote> {
     let ips: Vec<&ew_api::output::TableRep> = t
         .reps
         .iter()
         .filter(|r| r.ip.is_some() && reps.contains(&EntityRef(r.id)))
         .collect();
-    if ips.is_empty() && unplaced.is_empty() {
+    if ips.is_empty() && unplaced.is_empty() && wires.is_empty() && undrawn.is_empty() {
         return None;
     }
-    let mut wires: Vec<EntityRef> = Vec::new();
-    for r in &ips {
-        for c in t.cps.iter().filter(|c| c.rep == r.id) {
-            for w in &c.connections {
-                let w = EntityRef(*w);
-                if !drawn.items.contains(&w) && !wires.contains(&w) {
-                    wires.push(w);
-                }
-            }
-        }
-    }
+    // An interruption point's wires are its own sentence; the others are counted apart.
+    let at_ips: Vec<EntityRef> = ips.iter().map(|r| EntityRef(r.id)).collect();
+    let ip_wires: Vec<EntityRef> = wires
+        .iter()
+        .copied()
+        .filter(|w| {
+            t.cps
+                .iter()
+                .any(|c| at_ips.contains(&EntityRef(c.rep)) && c.connections.contains(&w.0))
+        })
+        .collect();
+    let others: Vec<EntityRef> = wires.into_iter().filter(|w| !ip_wires.contains(w)).collect();
     Some(ResultNote::Deleted {
         names: ips
             .iter()
             .filter_map(|r| r.ip.as_ref().map(|ip| ip.name.clone()))
             .collect(),
-        wires,
+        wires: ip_wires,
+        others,
         unplaced,
+        undrawn,
     })
 }
 
@@ -133,8 +153,10 @@ impl ShellModel {
                 unused.push(d);
             }
         }
+        // The wires drawn to the symbols' pins go with them, so no wire stays drawn on no page.
+        let wires = wires_at(&page.tables, &reps, &drawn);
         let mut cmd = transform::delete_command(&drawn, &page);
-        if !unused.is_empty() {
+        if !unused.is_empty() || !wires.is_empty() {
             let mut list: Vec<Value> = cmd
                 .as_ref()
                 .and_then(|c| c.params["targets"].as_array().cloned())
@@ -143,6 +165,11 @@ impl ShellModel {
                 unused
                     .iter()
                     .map(|e| json!({"kind": "device", "id": e.0.to_string()})),
+            );
+            list.extend(
+                wires
+                    .iter()
+                    .map(|w| json!({"kind": "connection", "id": w.0.to_string()})),
             );
             cmd = Some(Box::new(AnyCommand {
                 name: "edit.delete".into(),
@@ -158,10 +185,12 @@ impl ShellModel {
                 },
             };
         };
-        // An interruption point takes the wires at its connection point with it; the toast says so. A
-        // device that keeps no symbol but stays in the project (EW-CORE-047) is named, with where it stays.
+        // The toast counts the wires the delete takes with the symbols. A device that keeps no symbol but stays in the
+        // project (EW-CORE-047) is named, with where it stays; terminals left drawn nowhere are counted, with a way to
+        // remove them from the project too.
         let unplaced = self.devices_kept_unplaced(&reps, &unused);
-        let note = delete_note(&reps, &drawn, &page.tables, unplaced);
+        let undrawn = self.terminals_left_undrawn(&reps);
+        let note = delete_note(&reps, &page.tables, wires, unplaced, undrawn);
         let out = self.commit_from_host(cmd.as_ref());
         if out == Outcome::Done {
             self.tools.result_note = note;
@@ -285,6 +314,33 @@ impl ShellModel {
                 let tag = project.session.device_tag(d.as_uuid())?;
                 Some((EntityRef(d.as_uuid()), tag, !dev.parts.is_empty()))
             })
+            .collect()
+    }
+
+    /// The terminals that deleting the representations `reps` leaves drawn by no symbol of the project, in ID order:
+    /// they stay in their strip and in the lists (doc 06 §3.4), and the toast offers to remove them from the project.
+    fn terminals_left_undrawn(&self, reps: &[EntityRef]) -> Vec<EntityRef> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let idx = q.idx();
+        let gone: std::collections::BTreeSet<_> =
+            reps.iter().filter_map(|e| e.0.to_string().parse().ok()).collect();
+        let devices: std::collections::BTreeSet<_> = gone
+            .iter()
+            .filter_map(|r| q.reps().get(*r))
+            .flat_map(|r| r.functions.iter().copied())
+            .filter_map(|f| q.functions().get(f).and_then(|f| f.device))
+            .filter(|d| q.devices().get(*d).is_some_and(|d| d.aspects.terminal.is_some()))
+            .collect();
+        devices
+            .into_iter()
+            .filter(|d| {
+                idx.functions_of_device(*d)
+                    .all(|f| idx.reps_of_function(f).all(|r| gone.contains(&r)))
+            })
+            .map(|d| EntityRef(d.as_uuid()))
             .collect()
     }
 

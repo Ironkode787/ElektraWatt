@@ -72,6 +72,8 @@ pub enum NoteAction {
     WheelScrolls,
     /// Fit the layout to the sheet, after a scale at which the layout runs over the frame's drawing area.
     FitSheet,
+    /// Remove from the project the terminals a delete left drawn nowhere (beside the delete's Undo).
+    RemoveUndrawn,
 }
 
 impl NoteAction {
@@ -100,6 +102,7 @@ impl NoteAction {
             NoteAction::ShowMessages => "show_messages",
             NoteAction::WheelScrolls => "wheel_scrolls",
             NoteAction::FitSheet => "fit_sheet",
+            NoteAction::RemoveUndrawn => "remove_undrawn",
         }
     }
 
@@ -128,6 +131,7 @@ impl NoteAction {
             "show_messages" => Some(NoteAction::ShowMessages),
             "wheel_scrolls" => Some(NoteAction::WheelScrolls),
             "fit_sheet" => Some(NoteAction::FitSheet),
+            "remove_undrawn" => Some(NoteAction::RemoveUndrawn),
             _ => None,
         }
     }
@@ -157,6 +161,7 @@ impl NoteAction {
             NoteAction::ShowMessages => key!("note-action-show-messages"),
             NoteAction::WheelScrolls => key!("note-action-wheel-scrolls"),
             NoteAction::FitSheet => key!("action-layout-fit-sheet"),
+            NoteAction::RemoveUndrawn => key!("note-action-remove-undrawn"),
         }
     }
 }

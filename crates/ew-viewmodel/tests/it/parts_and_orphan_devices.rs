@@ -285,7 +285,8 @@ fn a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert_eq!(
         unplaced_toast(&s).as_deref(),
         Some(
-            "-101G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list."
+            "7 wires that ended at the deleted symbols were deleted with them. -101G1 (now -?G1) has no symbol on a \
+             page now; it stays in the Devices navigator and the parts list."
         )
     );
     let (names_after, bonds_after, devices) = connect_intent(&tmp, &mut s);
@@ -304,13 +305,15 @@ fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
     for (lang, want) in [
         (
             "en",
-            "Deleted the interruption point {name} and the wire connected to it. -101G1 (now -?G1) has no symbol on a \
-             page now; it stays in the Devices navigator and the parts list.",
+            "Deleted the interruption point {name} and the wire connected to it. 7 wires that ended at the deleted \
+             symbols were deleted with them. -101G1 (now -?G1) has no symbol on a page now; it stays in the Devices \
+             navigator and the parts list.",
         ),
         (
             "nl",
-            "Onderbrekingspunt {name} en de draad die erop aansloot verwijderd. -101G1 (nu -?G1) heeft nu geen symbool \
-             op een pagina; het blijft in de navigator Apparaten en de stuklijst.",
+            "Onderbrekingspunt {name} en de draad die erop aansloot verwijderd. 7 draden die op de verwijderde \
+             symbolen eindigden, zijn mee verwijderd. -101G1 (nu -?G1) heeft nu geen symbool op een pagina; het blijft \
+             in de navigator Apparaten en de stuklijst.",
         ),
     ] {
         let tmp = Tmp::new("gpp-parts-c53p2-1");

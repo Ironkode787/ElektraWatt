@@ -484,7 +484,9 @@ impl ShellModel {
             ResultNote::Deleted {
                 names,
                 wires,
+                others,
                 unplaced,
+                undrawn,
             } => {
                 let gone = wires
                     .iter()
@@ -499,17 +501,32 @@ impl ShellModel {
                     };
                     strings::format(key, &[&names.join(", "), &gone.to_string()])
                 });
+                // The wires drawn to the deleted symbols went with them (none stays drawn on no page).
+                let others = others
+                    .iter()
+                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+                    .count();
+                let others = (others > 0)
+                    .then(|| strings::format_count(crate::count_key!("toast-deleted-wires"), others));
                 // The devices left without a symbol stay in the project; the toast says where.
                 let unplaced = self
                     .project
                     .as_ref()
                     .and_then(|p| unplaced_text(&unplaced, |d| p.session.device_tag(d.0)));
-                let text: Vec<String> = ips.into_iter().chain(unplaced).collect();
+                // Terminals drawn nowhere stay in their strip and the lists, unless removed from the project too.
+                let terminals = (!undrawn.is_empty()).then(|| {
+                    strings::format_count(crate::count_key!("toast-terminals-undrawn"), undrawn.len())
+                });
+                let text: Vec<String> = ips.into_iter().chain(others).chain(unplaced).chain(terminals).collect();
                 if text.is_empty() {
                     return;
                 }
                 // Each sentence ends with its own full stop.
-                self.notify(text.join(" "), true);
+                if undrawn.is_empty() {
+                    self.notify(text.join(" "), true);
+                } else {
+                    self.notify_remove_undrawn(text.join(" "), undrawn.iter().map(|e| e.0).collect());
+                }
             }
         }
     }

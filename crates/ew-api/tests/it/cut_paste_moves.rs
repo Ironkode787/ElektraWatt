@@ -173,16 +173,10 @@ fn a_strip_left_unplaced_by_a_cut_is_deleted_with_its_terminals_and_a_drawn_one_
     assert!(drawn.to_string().contains("is drawn on page 102"), "{drawn}");
     let reps = symbols_on(&s, strip, "102");
     cut(&mut s, &reps);
-    // The cut leaves the wires to the devices it did not take open, ending at the unplaced terminals.
-    let wired = s
-        .execute(&delete_strip(strip))
-        .expect_err("a strip whose terminal has a wire");
-    assert!(wired.to_string().contains("still has wire"), "{wired}");
-    let targets: Vec<_> = wires_at(&s, strip)
-        .into_iter()
-        .map(|(c, _)| json!({"kind": "connection", "id": c.as_uuid().to_string()}))
-        .collect();
-    common::run_cmd(&mut s, "edit.delete", json!({ "targets": targets }));
+    // The cut leaves the wires to the devices it did not take open, ending at the unplaced terminals: drawn on no
+    // page, they could not be found to delete first, so the strip takes them along.
+    let left = wires_at(&s, strip);
+    assert!(!left.is_empty(), "wires left at the cut terminals");
     common::run_cmd(&mut s, "edit.delete", delete_strip(strip).params);
     let q = s.query();
     assert!(q.devices().get(strip).is_none(), "the strip goes");
@@ -191,6 +185,10 @@ fn a_strip_left_unplaced_by_a_cut_is_deleted_with_its_terminals_and_a_drawn_one_
             .iter()
             .all(|(_, d)| d.aspects.terminal.as_ref().is_none_or(|t| t.strip != strip)),
         "with its terminals"
+    );
+    assert!(
+        left.iter().all(|(c, _)| q.connections().get(*c).is_none()),
+        "and their wires"
     );
 }
 

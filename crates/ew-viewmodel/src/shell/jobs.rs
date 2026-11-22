@@ -615,6 +615,15 @@ impl ShellModel {
                     other => other,
                 }
             }
+            // The terminals a delete left drawn nowhere, removed from the project too.
+            Some(NoteAction::RemoveUndrawn) => {
+                let terminals = std::mem::take(&mut self.tools.offered_removal);
+                let Some(params) = self.removal_command(&terminals) else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.run_logged("edit.delete".to_owned(), params)
+            }
             // The wire a placement offered instead of drawing it.
             Some(NoteAction::Connect) => {
                 let Some(params) = self.tools.offered_wire.take() else {
@@ -648,6 +657,57 @@ impl ShellModel {
             validity.clone().map(|v| (NoteAction::Undo, v)),
             validity.map(|v| (NoteAction::Connect, v)),
         );
+    }
+
+    /// Shows a delete's `text` with its Undo and Remove them from the project, which removes the terminals
+    /// `terminals` the delete left drawn nowhere (and a strip that keeps no terminal and draws nothing), both valid while
+    /// the delete is the next undo step.
+    pub(super) fn notify_remove_undrawn(&mut self, text: String, terminals: Vec<ew_api::output::Uuid>) {
+        let validity = self.project.as_ref().and_then(|p| {
+            let h = p.session.history();
+            let cursor = h.cursor();
+            let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
+            Some(Validity::Undo {
+                epoch: p.epoch,
+                cursor,
+                rev,
+            })
+        });
+        self.tools.offered_removal = terminals;
+        self.notes.push_two(
+            text,
+            "edit",
+            validity.clone().map(|v| (NoteAction::Undo, v)),
+            validity.map(|v| (NoteAction::RemoveUndrawn, v)),
+        );
+    }
+
+    /// The `edit.delete` of the terminals `terminals` and of each strip that would keep none of its terminals and draws
+    /// nothing itself (a strip's segment), in one step.
+    fn removal_command(&self, terminals: &[ew_api::output::Uuid]) -> Option<Value> {
+        let session = self.project_session()?;
+        let q = session.query();
+        let idx = q.idx();
+        let mut targets: Vec<Value> = terminals
+            .iter()
+            .map(|t| serde_json::json!({"kind": "device", "id": t.to_string()}))
+            .collect();
+        let strips: std::collections::BTreeSet<_> = terminals
+            .iter()
+            .filter_map(|t| q.devices().get(t.to_string().parse().ok()?)?.aspects.terminal.as_ref().map(|a| a.strip))
+            .collect();
+        for strip in strips {
+            let emptied = idx
+                .terminals_of_strip(strip)
+                .all(|t| terminals.contains(&t.as_uuid()));
+            let drawn = idx
+                .functions_of_device(strip)
+                .any(|f| idx.reps_of_function(f).next().is_some());
+            if emptied && !drawn {
+                targets.push(serde_json::json!({"kind": "device", "id": strip.as_uuid().to_string()}));
+            }
+        }
+        (!targets.is_empty()).then(|| serde_json::json!({ "targets": targets }))
     }
 
     /// Shows that a bus line was drawn without a cable, with Choose cable… opening its Cable form (no cable was

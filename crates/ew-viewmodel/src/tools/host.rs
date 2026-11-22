@@ -203,6 +203,9 @@ pub(crate) struct ToolHost {
     /// The `connection.draw` a placement's toast offers for a far autoconnect hit (its Connect), while that toast's
     /// placement is the next undo step.
     pub offered_wire: Option<serde_json::Value>,
+    /// The terminals a delete's toast offers to remove from the project (its Remove them from the project), while
+    /// that toast's delete is the next undo step.
+    pub offered_removal: Vec<ew_api::output::Uuid>,
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
@@ -281,10 +284,15 @@ pub enum ResultNote {
     Deleted {
         /// The interruption points' names.
         names: Vec<String>,
-        /// The connections.
+        /// The connections at the interruption points.
         wires: Vec<EntityRef>,
+        /// The other wires drawn to the deleted symbols' pins, which the delete takes with them.
+        others: Vec<EntityRef>,
         /// The devices left without a symbol: (device, tag before the delete, has a part).
         unplaced: Vec<(EntityRef, String, bool)>,
+        /// The terminals left drawn nowhere: they stay in the project and its lists, and the toast offers to remove
+        /// them.
+        undrawn: Vec<EntityRef>,
     },
 }
 
@@ -335,6 +343,7 @@ impl ToolHost {
             drop_release: false,
             result_note: None,
             offered_wire: None,
+            offered_removal: Vec::new(),
             layout_options: super::LayoutOptions::default(),
             connect_on_move: true,
             tube_kind: None,

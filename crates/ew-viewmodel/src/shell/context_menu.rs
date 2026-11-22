@@ -636,6 +636,7 @@ impl ShellModel {
                 if kind == NavKind::Devices {
                     out.extend(self.menu_item("devices.set_location"));
                     self.plc_entries(device, &mut out);
+                    self.device_delete_entry(device, &mut out);
                 }
                 match node.role {
                     NavRole::Station => self.station_entries(device, &mut out),
@@ -1296,6 +1297,52 @@ impl ShellModel {
                 },
             }
         }
+    }
+
+    /// Delete on a Devices row (a persona run found none for a strip left drawn nowhere): `navigator.delete`, greyed
+    /// with `edit.delete`'s words where it refuses the device: a strip whose terminal is still drawn, the first in strip
+    /// order, and its page.
+    fn device_delete_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+        let why = self.project.as_ref().and_then(|p| {
+            let q = p.session.query();
+            let idx = q.idx();
+            let strip = device.to_string().parse().ok()?;
+            q.devices().get(strip)?.aspects.strip.as_ref()?;
+            let mut terminals: Vec<_> = idx
+                .terminals_of_strip(strip)
+                .filter_map(|t| Some((q.devices().get(t)?.aspects.terminal.as_ref()?.seq, t)))
+                .collect();
+            terminals.sort_unstable();
+            terminals.into_iter().find_map(|(_, t)| {
+                let page = idx
+                    .functions_of_device(t)
+                    .find_map(|f| idx.reps_of_function(f).next())
+                    .and_then(|r| q.reps().get(r).map(|r| r.page))?;
+                let folio = self
+                    .page_rows()
+                    .iter()
+                    .find(|row| row.id == page.as_uuid())
+                    .map(|row| row.folio.clone())
+                    .unwrap_or_default();
+                Some(strings::format(
+                    key!("refusal-edit-delete-strip-drawn"),
+                    &[
+                        &p.session.device_tag(device).unwrap_or_default(),
+                        &p.session.device_tag(t.as_uuid()).unwrap_or_default(),
+                        &strings::format(key!("refusal-words-page"), &[&folio]),
+                    ],
+                ))
+            })
+        });
+        let label = strings::text(key!("canvas-device-delete")).to_owned();
+        let params = json!({ "kind": NavKind::Devices.word() });
+        out.extend(self.aimed("navigator.delete", params, label).map(|mut i| {
+            if let Some(why) = why {
+                i.enabled = false;
+                i.reason = Some(why);
+            }
+            i
+        }));
     }
 
     /// A page row's entries (FT-1693), as the Page tab offers them: Open page in a new tab, Title block fields…, Page
