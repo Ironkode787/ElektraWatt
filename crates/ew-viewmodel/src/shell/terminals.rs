@@ -252,7 +252,7 @@ impl ShellModel {
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
     /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
-    /// terminals stand, remembered for the project's next row.
+    /// terminals stand, kept for the next row as the user setting `terminal_spacing` (FT-1791).
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "tool.place_terminal";
         let Some(cat) = self.catalogue() else {
@@ -490,8 +490,8 @@ impl ShellModel {
             .collect()
     }
 
-    /// The spacing `given` (grid steps; empty: the project's), refused in words outside 1 to
-    /// [`TERMINAL_SPACING_MAX`].
+    /// The spacing `given` (grid steps; empty: the one last chosen, [`Self::terminal_spacing`]), refused in words
+    /// outside 1 to [`TERMINAL_SPACING_MAX`].
     fn spacing_param(&self, given: &str) -> Result<u32, String> {
         if given.is_empty() {
             return Ok(self.terminal_spacing());
@@ -507,7 +507,8 @@ impl ShellModel {
 
     /// `terminals.spacing {steps?}` (Spacing… on two or more selected terminals of one row): the terminals spaced
     /// `steps` grid steps apart from the leftmost, each moved as a move moves it (its wires' ends follow), in one undo
-    /// step; the spacing is the project's for its next row too. In the window without `steps` a small form asks it.
+    /// step; the spacing is kept for the next row too (the user setting `terminal_spacing`, FT-1791). In the window
+    /// without `steps` a small form asks it.
     pub(crate) fn act_terminals_spacing(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "terminals.spacing";
         let Some(c) = self.canvas() else {
