@@ -103,7 +103,8 @@ SVG written to out/svg: 5 files
 ```
 
 The directory now holds `101.svg` to `105.svg`. Both ends of a range are folio labels of the project. `ew` replaces
-the directory as a whole, so it must hold SVG files only; a stale page of an earlier export cannot remain in it.
+the directory as a whole, so it must be empty or one an earlier SVG export wrote (the file `.elektrawatt-export` in
+it says so); a stale page of an earlier export cannot remain in it, and a folder of your own files is refused.
 
 The same export always gives the same bytes. The only date in the output comes from the project, or from the
 environment variable `SOURCE_DATE_EPOCH` when you set it, never from the clock of your machine; `--threads <n>`

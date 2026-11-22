@@ -648,25 +648,19 @@ pub(super) fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Re
         .iter()
         .map(|f| (f.name.as_str(), f.text.as_bytes()))
         .collect();
-    write_file_set(out, &["svg"], "an SVG", "SVG-only", &files)
+    write_file_set(out, &["svg"], "SVG", &files)
 }
 
-/// Writes a set of files with the extensions `exts` (`svg`; `png`; `dxf` with its pictures; `a_file` names one: `an
-/// SVG`, `only` the directory that holds them alone: `SVG-only`) into the directory `out` as a whole
-/// ([`ew_api::library::file::write_file_set`]): `out` holds exactly this export, a failure leaves the earlier set as it
-/// was, and a directory that holds a file of any other extension is refused (`ew export svg`, `ew export png`, `ew
-/// export dxf`).
-pub(super) fn write_file_set(
-    out: &Path,
-    exts: &[&str],
-    a_file: &str,
-    only: &str,
-    files: &[(&str, &[u8])],
-) -> Result<(), String> {
+/// Writes a set of files with the extensions `exts` (`svg`; `png`; `dxf` with its pictures; `kind` names the export:
+/// `SVG`) into the directory `out` as a whole ([`ew_api::library::file::write_file_set`]): `out` holds exactly this
+/// export, a failure leaves the earlier set as it was, and a directory that holds a file no earlier export of the kind
+/// wrote there is refused, whatever its extension (`ew export svg`, `ew export png`, `ew export dxf`).
+pub(super) fn write_file_set(out: &Path, exts: &[&str], kind: &str, files: &[(&str, &[u8])]) -> Result<(), String> {
     use ew_api::library::file::FileSetError;
     ew_api::library::file::write_file_set(out, exts, files).map_err(|e| match e {
         FileSetError::Foreign(name) => format!(
-            "{}: the directory holds {name}, which is not {a_file} file; choose an empty or {only} directory",
+            "{}: the directory holds {name}, which no earlier {kind} export wrote there; choose an empty directory or \
+             one an earlier {kind} export wrote",
             out.display()
         ),
         FileSetError::Io { path, error } => format!("{}: {error}", path.display()),
@@ -778,9 +772,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .map(|f| (f.name.as_str(), f.text.as_bytes()))
                 .chain(dxf.pictures.iter().map(|p| (p.name.as_str(), &*p.bytes)))
                 .collect();
-            let (a_file, only) = ("a DXF or picture", "DXF-and-picture-only");
-            if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, a_file, only, &files)
-            {
+            if let Err(e) = write_file_set(&a.out, &ew_api::output::DXF_SET_EXTENSIONS, "DXF", &files) {
                 eprintln!("error: {e}");
                 return 2;
             }
@@ -823,7 +815,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 .iter()
                 .map(|f| (f.name.as_str(), f.bytes.as_slice()))
                 .collect();
-            if let Err(e) = write_file_set(&a.out, &["png"], "a PNG", "PNG-only", &files) {
+            if let Err(e) = write_file_set(&a.out, &["png"], "PNG", &files) {
                 eprintln!("error: {e}");
                 return 2;
             }

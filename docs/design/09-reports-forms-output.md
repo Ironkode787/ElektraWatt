@@ -1071,7 +1071,7 @@ partial file (FR-UI-024).
   with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
   (open: it needs a `cmap`-keeping subsetter, the `@font-face` embedding above is the target). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
-  rayon; serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is not built yet (MVP). The `ew export svg` and `ew export pdf` subcommands are built over the `Session` export job, which runs `par_map` in the shipped export path; AC-14 tests that path. The `--out` directory of `ew export svg` may hold SVG files only (exit 2 otherwise) and is replaced as a whole through a sibling temporary directory, so no stale or partial set remains; the PDF is written to `<file>.tmp`, synced and renamed.
+  rayon; serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is not built yet (MVP). The `ew export svg` and `ew export pdf` subcommands are built over the `Session` export job, which runs `par_map` in the shipped export path; AC-14 tests that path. The `--out` directory of `ew export svg`, `ew export png` and `ew export dxf` is replaced as a whole through a sibling temporary directory, so no stale or partial set remains. A set leaves the file `.elektrawatt-export` in it, which names the set's kind and every file it wrote; the next export of the same kind replaces only a directory that is empty or holds just that file and the files it names, and refuses any other in words (exit 2), whatever the extensions of its files, leaving it as it was: a folder of a person's own pictures is never taken for an earlier export (a directory written by 0.3.0, which left no such file, is refused once). The PDF is written to `<file>.tmp`, synced and renamed.
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
@@ -1390,9 +1390,9 @@ aligned a text is not written. The window's export writes the default layer name
 
 **In the window** (FT-1960): Export DXF… stands on the Output tab and in the Output menu beside Export PDF… and
 Print…. It asks for a folder and writes the set there as a job (`file.export_dxf {dir}`), as `ew export dxf` does: the
-folder is replaced as a whole, so it must be empty or hold a DXF set only (DXF files and their pictures); a folder
-that holds any other file is refused in words before the job starts and left as it was, and so is a folder inside the
-open project. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
+folder is replaced as a whole, so it must be empty or hold just what an earlier DXF export wrote there (by its file
+`.elektrawatt-export`, the rule of the command line's exports); a folder that holds any other file, whatever its extension, is refused
+in words before the job starts and left as it was, and so is a folder inside the open project. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
 before the folder is replaced writes nothing.
 
 **Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of

@@ -740,15 +740,15 @@ enum ExportCli {
     Pdf(PagesCli),
     /// Write one SVG file per page.
     ///
-    /// Writes one `<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files
-    /// only) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
+    /// Writes one `<folio>.svg` per page into the directory `--out` (empty, or one an earlier SVG export wrote, which
+    /// is replaced as a whole without a question; any other is refused) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
     /// as for `export pdf`. Exit 0 on success, 2 on everything else.
     Svg(PagesCli),
     /// Write one DXF file per page.
     ///
     /// Writes one `<folio>.dxf` per page (AutoCAD 2010, AC1024, in millimetres) and the title block's PNG or JPEG
-    /// picture files they name into the directory `--out` (replaced as a whole; it may hold DXF and picture files
-    /// only): the frame, symbols as blocks named in words and inserts with the device's texts as attributes (`TAG`,
+    /// picture files they name into the directory `--out` (empty, or one an earlier DXF export wrote, which is
+    /// replaced as a whole without a question; any other is refused): the frame, symbols as blocks named in words and inserts with the device's texts as attributes (`TAG`,
     /// `FUNCTION_TEXT`, `CROSS_REFERENCE` …), wires, texts, graphics and tables on their layers (`--layer` renames
     /// one), a cross-reference with a hyperlink to its target's page file (`--dwg-links`: its `.dwg`), curves
     /// flattened to 0.01 mm. `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything
@@ -767,8 +767,8 @@ enum ExportCli {
     Ewz(EwzCli),
     /// Write one PNG file per page.
     ///
-    /// Writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
-    /// only), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150).
+    /// Writes one `<folio>.png` per page into the directory `--out` (empty, or one an earlier PNG export wrote, which
+    /// is replaced as a whole without a question; any other is refused), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150).
     /// `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
     /// open errors, an unknown folio or section, write errors).
     Png(PngCli),

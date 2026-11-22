@@ -861,7 +861,7 @@ job-kind-dxf = DXF export
 toast-export-dxf = Exported the DXF set to { $p0 }: { $p1 }, { $p2 } KiB.
 toast-export-dxf-again = Exported the DXF set to { $p0 } again: { $p1 }, { $p2 } KiB.
 marker-export-dxf = Exported DXF to { $p0 }
-reason-export-dxf-folder = The folder holds other files than a DXF set; choose an empty folder or one that holds a DXF set only
+reason-export-dxf-folder = The folder holds files that no earlier DXF export wrote there; choose an empty folder or one an earlier DXF export wrote
 
 # WP-S3.07 part 3 (D10, ruling 4 of ID-1180): the print pre-dialog.
 action-file-print = Print…

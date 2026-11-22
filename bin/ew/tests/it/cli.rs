@@ -1249,7 +1249,10 @@ fn export_svg_writes_the_selected_pages() {
         "101-105".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let files: Vec<String> = tree(&dir).into_keys().collect();
+    let files: Vec<String> = tree(&dir)
+        .into_keys()
+        .filter(|n| n != ew_api::library::file::FILE_SET_MARK)
+        .collect();
     assert_eq!(files, ["101.svg", "102.svg", "103.svg", "104.svg", "105.svg"]);
     let unknown = ew(&[
         "export".as_ref(),
@@ -1452,7 +1455,10 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
     };
     assert_eq!(svg("1,2,101", &dir).status.code(), Some(0));
     assert_eq!(svg("101-105", &dir).status.code(), Some(0));
-    let files: Vec<String> = tree(&dir).into_keys().collect();
+    let files: Vec<String> = tree(&dir)
+        .into_keys()
+        .filter(|n| n != ew_api::library::file::FILE_SET_MARK)
+        .collect();
     assert_eq!(files, ["101.svg", "102.svg", "103.svg", "104.svg", "105.svg"]);
     let mixed = t.0.join("mixed");
     std::fs::create_dir_all(&mixed).unwrap();

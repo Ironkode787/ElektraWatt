@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Output;
 
 use crate::support::{EwTmp, SAMPLE, Tmp, args, stderr, stdout};
+use ew_api::library::file::FILE_SET_MARK;
 
 /// The pixel size of a PNG (its IHDR chunk).
 fn png_size(bytes: &[u8]) -> (u32, u32) {
@@ -202,7 +203,11 @@ fn export_png_writes_every_folio_alike_in_one_and_four_threads() {
         let written = files(&dir);
         let mut names: Vec<&String> = folios.iter().collect();
         names.sort();
-        assert_eq!(written.keys().collect::<Vec<_>>(), names, "one PNG per folio");
+        assert_eq!(
+            written.keys().filter(|n| *n != FILE_SET_MARK).collect::<Vec<_>>(),
+            names,
+            "one PNG per folio"
+        );
         let committed = first.get_or_insert_with(|| written.clone());
         let differing: Vec<&String> = written
             .iter()
@@ -242,33 +247,33 @@ fn export_png_holds_no_wire_colour_view() {
     assert_eq!(coloured, 0, "coloured pixels, the wire-colour view's");
 }
 
-/// OU-2: a directory holding a file that is not a PNG is refused (exit 2) and left as it was; a PNG-only directory is
-/// replaced as a whole.
+/// OU-2: a directory of a person's own pictures is refused (exit 2, in words) and left as it was, though they are PNG
+/// files; the directory of an earlier PNG export is replaced as a whole.
 #[test]
-fn export_png_refuses_a_directory_with_another_file() {
+fn export_png_refuses_a_directory_it_did_not_write() {
     let t = Tmp::new("ew-outputs");
     let p = t.sample("sample.ew");
-    let dir = t.0.join("mixed");
+    let dir = t.0.join("shots");
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join("notes.txt"), "keep me").unwrap();
+    std::fs::write(dir.join("shot.png"), "keep me").unwrap();
     let o = t.ew(&args([&"export", &"png", &p, &"--out", &dir, &"--pages", &"103"]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
         format!(
-            "error: {}: the directory holds notes.txt, which is not a PNG file; choose an empty or PNG-only directory\n",
+            "error: {}: the directory holds shot.png, which no earlier PNG export wrote there; choose an empty \
+             directory or one an earlier PNG export wrote\n",
             dir.display()
         )
     );
-    assert_eq!(files(&dir).keys().collect::<Vec<_>>(), ["notes.txt"]);
-    let clean = t.0.join("clean");
-    std::fs::create_dir_all(&clean).unwrap();
-    std::fs::write(clean.join("stale.png"), "old").unwrap();
-    let o = t.ew(&args([
-        &"export", &"png", &p, &"--out", &clean, &"--pages", &"103",
-    ]));
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(files(&clean).keys().collect::<Vec<_>>(), ["103.png"]);
+    assert_eq!(files(&dir).keys().collect::<Vec<_>>(), ["shot.png"]);
+    assert_eq!(std::fs::read(dir.join("shot.png")).unwrap(), b"keep me");
+    let earlier = t.0.join("earlier");
+    for pages in ["101-103", "103"] {
+        let o = t.ew(&args([&"export", &"png", &p, &"--out", &earlier, &"--pages", &pages]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    }
+    assert_eq!(files(&earlier).keys().collect::<Vec<_>>(), [FILE_SET_MARK, "103.png"]);
 }
 
 // ---------------------------------------------------------------------------------------------------------

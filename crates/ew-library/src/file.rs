@@ -94,8 +94,8 @@ impl Drop for Staged {
 /// Why a set of files does not replace a directory ([`write_file_set`]).
 #[derive(Debug)]
 pub enum FileSetError {
-    /// The directory holds this entry (its name), which is no file of the set's extensions: nothing is written or
-    /// removed.
+    /// The directory holds this entry (its name), which no earlier set of the same kind wrote there: nothing is written
+    /// or removed.
     Foreign(String),
     /// Reading or writing `path` failed.
     Io {
@@ -106,8 +106,18 @@ pub enum FileSetError {
     },
 }
 
-/// The first entry of `dir` that is no file with one of the extensions `exts` (its name); `None` for a directory that
-/// holds only such files, or none.
+/// The file a set leaves in its directory ([`write_file_set`]): a first line naming the set's kind by its extensions
+/// (`ElektraWatt export svg`), then the name of every file the set wrote, one a line.
+pub const FILE_SET_MARK: &str = ".elektrawatt-export";
+
+/// The first line of the mark of a set of the kind `exts`.
+fn mark_head(exts: &[&str]) -> String {
+    format!("ElektraWatt export {}", exts.join(" "))
+}
+
+/// The entry of `dir` with the lowest name that no earlier set of the kind `exts` wrote there (its name), by the
+/// directory's [`FILE_SET_MARK`]: without a mark of that kind every entry is one. `None` for a missing or empty
+/// directory, or one that holds only its mark and the files the mark names.
 ///
 /// # Errors
 ///
@@ -120,16 +130,24 @@ pub fn foreign_entry(dir: &Path, exts: &[&str]) -> Result<Option<String>, FileSe
     if !dir.exists() {
         return Ok(None);
     }
+    let mark = std::fs::read_to_string(dir.join(FILE_SET_MARK)).unwrap_or_default();
+    let mut lines = mark.lines();
+    let written: Vec<&str> = if lines.next() == Some(mark_head(exts).as_str()) {
+        lines.chain([FILE_SET_MARK]).collect()
+    } else {
+        Vec::new()
+    };
+    let mut foreign: Option<String> = None;
     for e in std::fs::read_dir(dir).map_err(at(dir))? {
         let path = e.map_err(at(dir))?.path();
-        if !path.is_file() || path.extension().is_none_or(|x| !exts.iter().any(|ext| x == *ext)) {
-            return Ok(Some(
-                path.file_name()
-                    .map_or_else(String::new, |n| n.to_string_lossy().into_owned()),
-            ));
+        let name = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        if (!path.is_file() || !written.contains(&name.as_str())) && foreign.as_ref().is_none_or(|f| name < *f) {
+            foreign = Some(name);
         }
     }
-    Ok(None)
+    Ok(foreign)
 }
 
 /// `path` with `suffix` appended to its last component.
@@ -139,10 +157,12 @@ fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
     PathBuf::from(s)
 }
 
-/// Writes the files `files` (name and bytes) into the directory `dir` as a whole: they go to a fresh sibling directory
-/// first, each synced, which then replaces `dir`, so `dir` holds exactly this set (no stale page of an earlier one) and
-/// a failure leaves the earlier set as it was. A directory that holds anything but files with the extensions `exts` is
-/// refused, so no other file is ever removed (`ew export svg|png|dxf`, the window's DXF export).
+/// Writes the files `files` (name and bytes) of a set of the kind `exts` (the extensions its files have) into the
+/// directory `dir` as a whole: they go to a fresh sibling directory first with the [`FILE_SET_MARK`] that names them,
+/// each synced, which then replaces `dir`, so `dir` holds exactly this set (no stale page of an earlier one) and a
+/// failure leaves the earlier set as it was. Only a missing or empty directory, or one that holds just what an earlier
+/// set of the same kind wrote (by its mark), is replaced; any other is refused, so no file of anyone else is ever
+/// removed, whatever its extension (`ew export svg|png|dxf`, the window's DXF export).
 ///
 /// # Errors
 ///
@@ -156,17 +176,24 @@ pub fn write_file_set(dir: &Path, exts: &[&str], files: &[(&str, &[u8])]) -> Res
         path: path.to_path_buf(),
         error,
     };
+    let mark = files
+        .iter()
+        .fold(mark_head(exts) + "\n", |m, (name, _)| m + name + "\n");
     let tmp = with_suffix(dir, &format!(".tmp-{}", std::process::id()));
     let old = with_suffix(dir, &format!(".old-{}", std::process::id()));
     let written = std::fs::create_dir_all(&tmp)
         .map_err(|e| at(&tmp, e))
         .and_then(|()| {
-            files.iter().try_for_each(|(name, bytes)| {
-                let path = tmp.join(name);
-                std::fs::File::create(&path)
-                    .and_then(|mut f| f.write_all(bytes).and_then(|()| f.sync_all()))
-                    .map_err(|e| at(&path, e))
-            })
+            files
+                .iter()
+                .copied()
+                .chain([(FILE_SET_MARK, mark.as_bytes())])
+                .try_for_each(|(name, bytes)| {
+                    let path = tmp.join(name);
+                    std::fs::File::create(&path)
+                        .and_then(|mut f| f.write_all(bytes).and_then(|()| f.sync_all()))
+                        .map_err(|e| at(&path, e))
+                })
         });
     if let Err(e) = written {
         let _ = std::fs::remove_dir_all(&tmp);
@@ -215,35 +242,66 @@ mod tests {
         assert!(write_replacing(&dir.join("missing/out.txt"), b"x").is_err());
     }
 
-    /// A set replaces its directory as a whole (no stale file of the earlier set stays), and a directory that holds
-    /// another file is refused and left as it was.
+    fn names(d: &Path) -> Vec<String> {
+        let mut n: Vec<String> = std::fs::read_dir(d)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        n.sort();
+        n
+    }
+
+    /// A set replaces the directory an earlier set of its kind wrote as a whole (no stale file of the earlier set
+    /// stays), and a directory that holds another file is refused and left as it was.
     #[test]
     fn a_file_set_replaces_its_directory_and_a_foreign_file_refuses_it() {
         let root = ew_testdir::Tmp::new("ew-library-file-set");
         let dir = root.join("set");
-        let names = |d: &Path| {
-            let mut n: Vec<String> = std::fs::read_dir(d)
-                .unwrap()
-                .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
-                .collect();
-            n.sort();
-            n
-        };
-        write_file_set(
-            &dir,
-            &["dxf", "png"],
-            &[("1.dxf", b"a"), ("2.dxf", b"b"), ("p.png", b"c")],
-        )
-        .unwrap();
-        write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"A")]).unwrap();
-        assert_eq!(names(&dir), ["1.dxf"]);
+        let kind = ["dxf", "png"];
+        write_file_set(&dir, &kind, &[("1.dxf", b"a"), ("2.dxf", b"b"), ("p.png", b"c")]).unwrap();
+        write_file_set(&dir, &kind, &[("1.dxf", b"A")]).unwrap();
+        assert_eq!(names(&dir), [FILE_SET_MARK, "1.dxf"]);
         assert_eq!(std::fs::read(dir.join("1.dxf")).unwrap(), b"A");
         std::fs::write(dir.join("notes.txt"), b"mine").unwrap();
         assert!(matches!(
-            write_file_set(&dir, &["dxf", "png"], &[("1.dxf", b"x")]),
+            write_file_set(&dir, &kind, &[("1.dxf", b"x")]),
             Err(FileSetError::Foreign(n)) if n == "notes.txt"
         ));
-        assert_eq!(names(&dir), ["1.dxf", "notes.txt"]);
+        assert_eq!(names(&dir), [FILE_SET_MARK, "1.dxf", "notes.txt"]);
         assert_eq!(names(&root), ["set"], "no sibling directory is left");
+    }
+
+    /// A directory the set did not write is refused and keeps its files, though they have the set's extensions: a
+    /// person's picture, a file named as the set names a page, a file added to an earlier set, an earlier set of
+    /// another kind.
+    #[test]
+    fn a_file_set_refuses_a_directory_it_did_not_write_whatever_the_extensions() {
+        let root = ew_testdir::Tmp::new("ew-library-file-set-foreign");
+        let refused = |dir: &Path, exts: &[&str], name: &str| {
+            assert!(
+                matches!(write_file_set(dir, exts, &[("1.png", b"new")]), Err(FileSetError::Foreign(n)) if n == name),
+                "{name}"
+            );
+        };
+        let shots = root.join("shots");
+        std::fs::create_dir_all(&shots).unwrap();
+        std::fs::write(shots.join("shot.png"), b"mine").unwrap();
+        refused(&shots, &["png"], "shot.png");
+        assert_eq!(names(&shots), ["shot.png"]);
+        assert_eq!(std::fs::read(shots.join("shot.png")).unwrap(), b"mine");
+
+        let pages = root.join("pages");
+        std::fs::create_dir_all(&pages).unwrap();
+        std::fs::write(pages.join("1.png"), b"mine").unwrap();
+        refused(&pages, &["png"], "1.png");
+        assert_eq!(std::fs::read(pages.join("1.png")).unwrap(), b"mine");
+
+        let set = root.join("set");
+        write_file_set(&set, &["png"], &[("1.png", b"old")]).unwrap();
+        std::fs::write(set.join("shot.png"), b"mine").unwrap();
+        refused(&set, &["png"], "shot.png");
+        refused(&set, &["svg"], FILE_SET_MARK);
+        assert_eq!(names(&set), [FILE_SET_MARK, "1.png", "shot.png"]);
+        assert_eq!(std::fs::read(set.join("1.png")).unwrap(), b"old");
     }
 }

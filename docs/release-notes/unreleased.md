@@ -15,6 +15,11 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: the PNG, SVG and DXF exports (`ew export png|svg|dxf`, Export DXF…) no longer delete a folder of
+  a person's own files that have the export's extensions (a folder of screenshots or logos chosen for the export was
+  taken for an earlier export and removed, with no undo): an export leaves the file `.elektrawatt-export` in its
+  folder and replaces only an empty folder or one an earlier export of its kind wrote; any other is refused in words
+  and left as it was, and a folder written by 0.3.0 is refused once (doc 09 §4.9)
 - text-change: the help of a device's tag counter, frozen tag, parts and technical data, a strip's Label mode, a
   page's Scale, Grid and Number, a section's rows, a report block's Title, Form, Continuation, Sort, Group, Section and
   First folio and a party's address says what the program does with the value, with an example, in English and Dutch,
@@ -124,8 +129,8 @@ change here.
   contact" ranks the parts whose main function is one before the contactor), and it chooses no row until the person
   does, so Enter no longer takes a first row nobody looked at (doc 07 §4.3, FT-1845)
 - api-add: Export DXF… on the Output tab and in the Output menu (`file.export_dxf {dir}`) writes the DXF set
-  of `ew export dxf` into a folder as a job; a folder that holds other files is refused and left as it was (doc 09
-  §4.9, FT-1960)
+  of `ew export dxf` into a folder as a job; a folder no earlier DXF export wrote is refused and left as it was (doc
+  09 §4.9, FT-1960)
 - behaviour-change: a text in many languages that lacks the project's language, or in a project that names none,
   prints in English before falling back to its first language in tag order (an element brought in from QElectroTech
   named in `ar`, `cs`, `de`, `en` … no longer prints, or names its DXF block, in Arabic) (doc 09 §4.7)
