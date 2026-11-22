@@ -853,8 +853,8 @@ mod tests {
         assert!(reseed_check_project(&check).is_err());
     }
 
-    /// A check run has no keeper whatever the flag says (its `run.json` is stateless); a gate or free run keeps
-    /// the flag it was started with.
+    /// A check run has no keeper whatever the flag says (its `run.json` is stateless); a free run keeps the flag it
+    /// was started with.
     #[test]
     fn a_check_run_is_stateless_without_the_flag() {
         let tmp = Tmp::new("start-ft766");
@@ -864,10 +864,6 @@ mod tests {
             let run = prepare(&root, a, &|_| Ok("0".to_owned())).unwrap();
             run.load().unwrap().stateless
         };
-        let mut gate = args(&tmp, "g1");
-        gate.kind = Kind::Gate;
-        gate.stateless = false;
-        assert!(!stateless_of(&gate), "a gate run keeps the flag");
         let mut free = args(&tmp, "f1");
         free.stateless = false;
         assert!(!stateless_of(&free), "a free run keeps the flag");

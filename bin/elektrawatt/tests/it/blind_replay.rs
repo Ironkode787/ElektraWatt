@@ -17,7 +17,6 @@
 //! scale its `run.json` records (`--window`, `--ppp`): its input and frame lines are settled as in the run and no
 //! frame is painted, so it runs on every OS. R1 then compares
 //! each input's and each frame line's `dispatched` (and `closed`) too; the frames themselves are a report (§5.4).
-//! `blind_replay_long` (ignored) does the same for `replay = "deep"`.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -308,14 +307,6 @@ fn run_recordings(dir: &Path, which: &str) -> Outcome {
 #[test]
 fn blind_replay() {
     let out = run_recordings(Path::new(RECORDINGS), "check");
-    assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
-}
-
-/// The long recordings (`replay = "deep"`), replayed by the deep run.
-#[test]
-#[ignore = "deep run: the long recordings"]
-fn blind_replay_long() {
-    let out = run_recordings(Path::new(RECORDINGS), "deep");
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 

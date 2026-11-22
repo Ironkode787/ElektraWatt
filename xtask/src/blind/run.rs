@@ -149,9 +149,7 @@ pub const VISUAL_PPP: f64 = 1.0;
 pub enum Kind {
     /// The agent chooses its own task.
     Free,
-    /// A fixed task sheet with an oracle.
-    Gate,
-    /// A second agent audits a stopped gate run.
+    /// A second agent audits a stopped drafter run.
     Check,
     /// An open design brief with an acceptance list (visual spec §6).
     Brief,
@@ -162,7 +160,6 @@ impl Kind {
     pub fn word(self) -> &'static str {
         match self {
             Kind::Free => "free",
-            Kind::Gate => "gate",
             Kind::Check => "check",
             Kind::Brief => "brief",
         }
@@ -172,10 +169,9 @@ impl Kind {
     pub fn parse(word: &str) -> Result<Kind> {
         match word {
             "free" => Ok(Kind::Free),
-            "gate" => Ok(Kind::Gate),
             "check" => Ok(Kind::Check),
             "brief" => Ok(Kind::Brief),
-            other => bail!("unknown kind `{other}` (free, gate, check or brief)"),
+            other => bail!("unknown kind `{other}` (free, check or brief)"),
         }
     }
 
@@ -190,7 +186,6 @@ impl Kind {
         };
         match (senses, self) {
             (Senses::Visual, Kind::Brief) => caps(250, 2000, 300, 50),
-            (Senses::Visual, Kind::Gate) => caps(600, 4000, 800, 100),
             (Senses::Visual, Kind::Free) => caps(150, 1000, 200, 50),
             (_, kind) => kind.caps(),
         }
@@ -199,12 +194,6 @@ impl Kind {
     /// The caps of the kind in a text run.
     pub fn caps(self) -> Caps {
         match self {
-            Kind::Gate => Caps {
-                turns: 900,
-                steps: 3000,
-                looks: 1500,
-                refusals: 100,
-            },
             Kind::Free | Kind::Brief => Caps {
                 turns: 300,
                 steps: 800,
@@ -261,7 +250,7 @@ pub struct RunJson {
     pub schema: String,
     /// The run's ID.
     pub run: String,
-    /// `free`, `gate` or `check`.
+    /// `free`, `check` or `brief`.
     pub kind: String,
     /// The task.
     pub task: String,
@@ -309,8 +298,8 @@ pub struct RunJson {
     /// The first step (1-based, over the prelude and the steps) where a replay differed, for `end: diverged`.
     #[serde(default)]
     pub diverged_at: Option<usize>,
-    /// Which test run replays the recording: `check` (every test run of `elektrawatt`), `deep` (the deep run) or
-    /// `none`; set by `bless`.
+    /// Which test run replays the recording: `check` (every test run of `elektrawatt`) or `none` (kept as
+    /// evidence only); set by `bless`.
     pub replay: String,
     /// `null`, or why the recording no longer replays; never set on the self-test recording.
     #[serde(default)]

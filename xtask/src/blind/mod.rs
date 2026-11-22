@@ -66,7 +66,7 @@ In a visual run (--senses visual) `do` takes mouse and key inputs (help prints H
   do <run> -                                  1 to 12 inputs as JSON Lines on stdin
   look <run> [--zoom <x> <y> <w> <h>]         the current frame again, or a region of it twice as large
 For the orchestrator:
-  start --kind free|gate|check|brief --task <t> [--senses text|visual] [--persona <p>] [--of <run>]
+  start --kind free|check|brief --task <t> [--senses text|visual] [--persona <p>] [--of <run>]
         [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless] (always on for --kind check)
         [--no-book]                           start without the built user guide (an empty book folder)
         [--window <W>x<H>] [--ppp <n>]        (visual) the window in points and its scale
@@ -77,7 +77,7 @@ For the orchestrator:
   check-brief <task> [--bin <dir>]            a brief's files, and its reference solution replayed and scored
   resume <run>                                a lost session: replay and go on
   compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
-  bless <run> --as <name> [--replay check|deep|none]
+  bless <run> --as <name> [--replay check|none]
   replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]
   rescore <recording> [--bin <dir>] [--write] a recording scored again with the current scoring
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
@@ -594,7 +594,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let replay = f.take_value("--replay")?.unwrap_or_else(|| "none".to_owned());
             let args = f.rest();
             let [run_arg] = args.as_slice() else {
-                bail!("bless <run> --as <name> [--replay check|deep|none]");
+                bail!("bless <run> --as <name> [--replay check|none]");
             };
             let run = locate(run_arg, out.as_deref())?;
             let dest = replay::bless(root, &run, &name, &replay)?;

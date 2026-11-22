@@ -96,7 +96,7 @@ pub fn check_pair(tmp: &Tmp) -> (Run, Run) {
     };
     std::fs::create_dir_all(drafter.path("work/project")).unwrap();
     std::fs::write(drafter.path("work/project/marker.txt"), "the drafter's project").unwrap();
-    drafter.save(&new_run_json("drafter", Kind::Gate)).unwrap();
+    drafter.save(&new_run_json("drafter", Kind::Free)).unwrap();
     let check = Run {
         dir: runs.join("check"),
     };

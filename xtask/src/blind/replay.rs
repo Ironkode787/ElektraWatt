@@ -440,7 +440,7 @@ pub fn replay_text(report: &ReplayReport) -> String {
     out
 }
 
-/// `bless <run> --as <name> [--replay check|deep|none]`: copies the replay inputs and the evidence into
+/// `bless <run> --as <name> [--replay check|none]`: copies the replay inputs and the evidence into
 /// `tools/blind/recordings/<name>/`, normalised (the full transcript is not committed).
 ///
 /// # Errors
@@ -454,8 +454,8 @@ pub fn bless(root: &Path, run: &Run, name: &str, replay: &str) -> Result<PathBuf
     {
         bail!("`{name}` is not a recording name");
     }
-    if !matches!(replay, "check" | "deep" | "none") {
-        bail!("--replay is check, deep or none");
+    if !matches!(replay, "check" | "none") {
+        bail!("--replay is check or none");
     }
     let rj = run.load()?;
     if matches!(rj.end.as_deref(), Some("lost" | "diverged")) {
@@ -504,7 +504,7 @@ pub fn bless(root: &Path, run: &Run, name: &str, replay: &str) -> Result<PathBuf
     }
     files.push(("outcomes.jsonl".to_owned(), outcomes_jsonl(&run.transcript()?)?));
     files.push(("epilogue.txt".to_owned(), norm.text(&inputs.epilogue)));
-    // The PDF's digest ties a gate run's recording to the PDF attached to the release. It is evidence only,
+    // The PDF's digest ties a drafter run's recording to the PDF attached to the release. It is evidence only,
     // never compared, and not reproducible: a new project mints random IDs that reach the PDF. The self-test
     // recording therefore leaves it out, or every bless would change a committed file.
     if !is_selftest(&rj.task)

@@ -628,7 +628,7 @@ mod tests {
             Ok(())
         );
         assert_eq!(check(Kind::Check, &step("page.describe", json!({}))), Ok(()));
-        assert_eq!(check(Kind::Gate, &step("edit.undo", json!({}))), Ok(()));
+        assert_eq!(check(Kind::Free, &step("edit.undo", json!({}))), Ok(()));
     }
 
     /// `image.file` reads a file of the host, so its `path` is confined to
@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn image_file_reads_only_inside_the_work_folder() {
         let paths = Err("harness: paths are names inside the run's work folder".to_owned());
-        for kind in [Kind::Free, Kind::Gate, Kind::Check] {
+        for kind in [Kind::Free, Kind::Brief, Kind::Check] {
             for bad in ["../x.png", "C:/x.png", "/etc/passwd", "a/b.png", "..\\x.png"] {
                 assert_eq!(
                     check(kind, &step("image.file", json!({"path": bad}))),
@@ -668,7 +668,7 @@ mod tests {
         ] {
             assert_eq!(check(Kind::Check, &step(id, params.clone())), refusal, "{id}");
             assert_eq!(
-                check(Kind::Gate, &step(id, params)),
+                check(Kind::Free, &step(id, params)),
                 Ok(()),
                 "{id} stays the drafter's"
             );

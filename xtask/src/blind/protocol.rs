@@ -1148,7 +1148,6 @@ pub mod tests {
         }
         assert_eq!(h.run.load().unwrap().end.as_deref(), Some("cap"));
         // The caps of the kinds are the specification's.
-        assert_eq!(Kind::Gate.caps().turns, 900);
         assert_eq!(Kind::Free.caps().steps, 800);
         assert_eq!(Kind::Check.caps().looks, 600);
     }

@@ -304,7 +304,7 @@ mod tests {
         tree(&tmp);
         std::fs::write(tmp.0.join("tools/blind/tasks/gpp/task.md"), sheet).unwrap();
         let only = vec!["102".to_owned()];
-        let mut inp = input(&tmp.0, Kind::Gate, "gpp", None);
+        let mut inp = input(&tmp.0, Kind::Free, "gpp", None);
         inp.folios = &only;
         let c = compose(&inp).unwrap();
         assert!(c.text.contains("Two.") && !c.text.contains("One.") && !c.text.contains("<!-- folio"));
@@ -319,7 +319,7 @@ mod tests {
     fn compose_is_deterministic_and_records_the_digests() {
         let tmp = Tmp::new("compose");
         tree(&tmp);
-        let inp = input(&tmp.0, Kind::Gate, "gpp", Some("qet-veteran"));
+        let inp = input(&tmp.0, Kind::Free, "gpp", Some("qet-veteran"));
         let a = compose(&inp).unwrap();
         let b = compose(&inp).unwrap();
         assert_eq!(a, b);
@@ -331,9 +331,9 @@ mod tests {
         assert!(order[3].contains("tools/blind/HELP.md"));
         assert!(
             a.text
-                .contains("drafter of gpp-r1, a gate run.\nCall /r/bin/xtask blind help.")
+                .contains("drafter of gpp-r1, a free run.\nCall /r/bin/xtask blind help.")
         );
-        assert!(a.text.contains("900 turns, 3000 steps, 1500 looks, 100 refusals"));
+        assert!(a.text.contains("300 turns, 800 steps, 400 looks, 50 refusals"));
         assert!(!a.text.contains('\r'), "line ends are \\n");
         for (rel, sha) in &a.files {
             assert!(a.text.contains(&format!("file: {rel} sha256 {sha} -->")), "{rel}");
@@ -450,7 +450,7 @@ mod tests {
                 "<!-- file: tools/blind/HELP.md -->"
             ]
         );
-        let persona = compose(&input(&tmp.0, Kind::Gate, "gpp", Some("qet-veteran"))).unwrap();
+        let persona = compose(&input(&tmp.0, Kind::Free, "gpp", Some("qet-veteran"))).unwrap();
         assert!(
             persona
                 .text
@@ -461,6 +461,6 @@ mod tests {
         // A name that climbs out of the folder, and a missing file, are errors.
         assert!(compose(&input(&tmp.0, Kind::Free, "../x", None)).is_err());
         assert!(compose(&input(&tmp.0, Kind::Free, "nothing", None)).is_err());
-        assert!(compose(&input(&tmp.0, Kind::Gate, "gpp", Some("../../x"))).is_err());
+        assert!(compose(&input(&tmp.0, Kind::Free, "gpp", Some("../../x"))).is_err());
     }
 }

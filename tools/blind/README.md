@@ -8,7 +8,7 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | Path | What it is |
 |---|---|
 | `BLIND_DRAFTER.md`, `CHECKER.md` | The drafter's and the checker's prompts (front matter `prompt`, `version`); a change is a reviewed diff with a version bump |
-| `personas/qet-veteran.md`, `personas/switcher.md` | The personas (front matter `persona`, `version`): fictional roles, never people; the gate run uses `qet-veteran`, free runs `switcher` |
+| `personas/qet-veteran.md`, `personas/switcher.md` | The personas (front matter `persona`, `version`): fictional roles, never people |
 | `HELP.md` | The protocol as the agent reads it (composed into the prompt, printed by `{blind} help`) |
 | `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
@@ -50,7 +50,7 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
    actions only, on a copy of the project; the drafter's check report, parts list and score are copied into its
    `reports/` for `report <run> check|bom|score`, and its folios are the drafter's), then `stop` it.
 6. `cargo xtask blind replay ut1-r1 --twice` (R1 and R2 must hold), then `cargo xtask blind bless ut1-r1 --as ut1-1
-   --replay deep`.
+   --replay check` (`--replay none` keeps a long recording as evidence only).
 7. An Opus lead reads `drafter.md`, `handback.md`, `checker.md`, `out/report.md` and the PDF, checks the agents' tool
    logs for any call outside the allowed commands (a violation voids the run, which is not blessed), and writes the
    findings as follow-up tasks.
