@@ -279,7 +279,12 @@ impl Rule for Termination {
         for segment in q.get::<BusSegments>(net).iter() {
             let terminated = segment
                 .functions()
-                .find_map(|f| functions.get(f).and_then(|x| x.bus_port.as_ref()).map(|p| p.bus.clone()))
+                .find_map(|f| {
+                    functions
+                        .get(f)
+                        .and_then(|x| x.bus_port.as_ref())
+                        .map(|p| p.bus.clone())
+                })
                 .is_none_or(|bus| {
                     matches!(
                         bus,

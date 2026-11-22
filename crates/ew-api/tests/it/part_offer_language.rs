@@ -25,10 +25,19 @@ fn a_part_reads_in_the_readers_language_and_is_found_in_every_one() {
     let s = sample(Some(t));
     let english = "Miniature circuit breaker, 1 pole and neutral";
     let dutch = "Installatieautomaat, 1-polig met nul";
-    assert_eq!(description(&s, "EW-GEN-MCB-2", Some("nl-NL")).as_deref(), Some(dutch));
-    assert_eq!(description(&s, "EW-GEN-MCB-2", Some("en-GB")).as_deref(), Some(english));
+    assert_eq!(
+        description(&s, "EW-GEN-MCB-2", Some("nl-NL")).as_deref(),
+        Some(dutch)
+    );
+    assert_eq!(
+        description(&s, "EW-GEN-MCB-2", Some("en-GB")).as_deref(),
+        Some(english)
+    );
     // A language the part has no text in, or none: English.
-    assert_eq!(description(&s, "EW-GEN-MCB-2", Some("de-DE")).as_deref(), Some(english));
+    assert_eq!(
+        description(&s, "EW-GEN-MCB-2", Some("de-DE")).as_deref(),
+        Some(english)
+    );
     assert_eq!(description(&s, "EW-GEN-MCB-2", None).as_deref(), Some(english));
     // Found by its Dutch words in an English window.
     assert_eq!(

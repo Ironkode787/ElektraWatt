@@ -26,11 +26,7 @@ fn f1_on_a_selected_connection_point_opens_its_section() {
     done(&mut shell, "symbol.select", json!({"items": ["cp:0"]}));
     let editor = shell.symbol_editor().expect("the editor");
     for part in [EditorPart::Outline, EditorPart::Drawing] {
-        assert_eq!(
-            symbol_editor_part(editor, part),
-            "symbol-editor-cp",
-            "{part:?}"
-        );
+        assert_eq!(symbol_editor_part(editor, part), "symbol-editor-cp", "{part:?}");
     }
     done(&mut shell, "symbol.select", json!({"items": []}));
     let editor = shell.symbol_editor().expect("the editor");

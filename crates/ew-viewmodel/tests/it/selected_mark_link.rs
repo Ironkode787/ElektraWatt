@@ -25,7 +25,10 @@ fn a_click_on_the_selected_marks_cross_reference_follows_it() {
         .expect("103's PE mark");
     let centre = sheet(
         &s,
-        ((mark.body[0] + mark.body[2]) / 2, (mark.body[1] + mark.body[3]) / 2),
+        (
+            (mark.body[0] + mark.body[2]) / 2,
+            (mark.body[1] + mark.body[3]) / 2,
+        ),
     );
     // The mark's own cross-reference: the link to 101 nearest to it.
     let link = s

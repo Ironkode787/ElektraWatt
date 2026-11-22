@@ -27,18 +27,29 @@ fn a_pin_given_another_edge_keeps_its_row_while_it_is_edited() {
     let mut s = actual_size(&tmp, "102");
     done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
     let before = rows(&s);
-    let (pin, _) = *before.iter().find(|(_, side)| *side == "top").expect("a pin on the top edge");
+    let (pin, _) = *before
+        .iter()
+        .find(|(_, side)| *side == "top")
+        .expect("a pin on the top edge");
     done(&mut s, "part.box_select", json!({"pins": [pin]}));
     done(&mut s, "part.pin", json!({"pin": pin, "side": "bottom"}));
     let edited = rows(&s);
     let order = |r: &[(u16, &str)]| r.iter().map(|(i, _)| *i).collect::<Vec<_>>();
     assert_eq!(order(&edited), order(&before), "the rows keep their places");
-    assert!(edited.contains(&(pin, "bottom")), "the pin is on the bottom edge: {edited:?}");
+    assert!(
+        edited.contains(&(pin, "bottom")),
+        "the pin is on the bottom edge: {edited:?}"
+    );
     // Another pin selected: the list is sorted by the box again, the pin among the bottom edge's.
     let other = before.iter().map(|(i, _)| *i).find(|i| *i != pin).unwrap();
     done(&mut s, "part.box_select", json!({"pins": [other]}));
     let sorted = rows(&s);
     let at = sorted.iter().position(|(i, _)| *i == pin).unwrap();
-    assert!(sorted[..at].iter().all(|(_, side)| *side == "top" || *side == "bottom"), "{sorted:?}");
+    assert!(
+        sorted[..at]
+            .iter()
+            .all(|(_, side)| *side == "top" || *side == "bottom"),
+        "{sorted:?}"
+    );
     assert_ne!(order(&sorted), order(&before), "sorted by the box again");
 }

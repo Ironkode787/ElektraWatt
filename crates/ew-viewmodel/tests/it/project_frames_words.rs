@@ -28,7 +28,14 @@ fn the_frames_row_names_the_frames() {
             other => panic!("{other:?}"),
         };
         std::iter::once(json["default"].clone())
-            .chain(json["per_page_type"].as_array().cloned().unwrap_or_default().into_iter().map(|e| e["form"].clone()))
+            .chain(
+                json["per_page_type"]
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|e| e["form"].clone()),
+            )
             .filter_map(|v| v.as_str().map(str::to_owned))
             .collect()
     };

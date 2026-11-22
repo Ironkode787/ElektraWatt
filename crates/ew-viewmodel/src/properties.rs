@@ -1666,7 +1666,8 @@ pub fn forms_in_words(
             .into_iter()
             .flatten()
             .map(|e| {
-                let kind = strings::choice_text(e.get("page_type").and_then(Value::as_str).unwrap_or_default());
+                let kind =
+                    strings::choice_text(e.get("page_type").and_then(Value::as_str).unwrap_or_default());
                 strings::format(key!("props-frames-type"), &[&kind, &name(&e["form"])])
             });
         let words: Vec<String> = default.into_iter().chain(types).collect();

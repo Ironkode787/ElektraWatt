@@ -1325,10 +1325,12 @@ fn rect_input(text: &str) -> Option<Result<Value, InputError>> {
     let bad = || invalid(api_text!("refusal-input-rect", t));
     let nm = |s: &str| parse_nm(s).ok().and_then(|v| v.as_i64());
     Some(match (nm(x), nm(y), nm(w), nm(h)) {
-        (Some(x), Some(y), Some(w), Some(h)) if w > 0 && h > 0 => match (x.checked_add(w), y.checked_add(h)) {
-            (Some(x2), Some(y2)) => Ok(serde_json::json!([[x, y], [x2, y2]])),
-            _ => Err(bad()),
-        },
+        (Some(x), Some(y), Some(w), Some(h)) if w > 0 && h > 0 => {
+            match (x.checked_add(w), y.checked_add(h)) {
+                (Some(x2), Some(y2)) => Ok(serde_json::json!([[x, y], [x2, y2]])),
+                _ => Err(bad()),
+            }
+        }
         _ => Err(bad()),
     })
 }

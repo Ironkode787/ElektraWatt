@@ -21,7 +21,11 @@ fn the_rename_table_names_its_rows_by_its_own_word() {
         .children_recursive()
         .filter_map(|n| n.accesskit_node().label())
         .collect();
-    for want in ["Old text, text to change 1", "New text, text to change 1", "Remove text to change 1"] {
+    for want in [
+        "Old text, text to change 1",
+        "New text, text to change 1",
+        "Remove text to change 1",
+    ] {
         assert!(labels.iter().any(|l| l == want), "{want} in {labels:?}");
     }
     assert!(!labels.iter().any(|l| l.contains("value set")), "{labels:?}");

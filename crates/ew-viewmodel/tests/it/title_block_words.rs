@@ -37,7 +37,11 @@ fn the_project_rows_a_cell_prints_are_named_as_the_cell() {
         ("project.drawing_id", "project/master.drawing_id", "Tekening"),
         ("project.object", "project/master.object_id", "Object"),
         ("project.edited", "project/master.edited", "Opgeslagen"),
-        ("revision.current.author.name", "project/people.author", "Getekend"),
+        (
+            "revision.current.author.name",
+            "project/people.author",
+            "Getekend",
+        ),
     ];
     done(&mut s, "props.project", json!({}));
     let rows: Vec<String> = fed.iter().map(|(_, key, _)| label_of(&s, key)).collect();
@@ -48,7 +52,10 @@ fn the_project_rows_a_cell_prints_are_named_as_the_cell() {
     for ((path, key, _), label) in fed.iter().zip(rows) {
         let cell = strings::format(key!("titleblock-prints-in"), &[&label]);
         let note = s.form_note(&form, path).unwrap_or_default();
-        assert!(note.contains(&cell), "{key}: {label:?} is not the cell of {note:?}");
+        assert!(
+            note.contains(&cell),
+            "{key}: {label:?} is not the cell of {note:?}"
+        );
     }
     let _ = s.dispatch("ui.dismiss", &json!({}));
     assert!(strings::set_locale("nl"));

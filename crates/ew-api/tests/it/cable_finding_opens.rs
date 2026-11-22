@@ -20,7 +20,9 @@ fn a_cable_finding_opens_the_page_of_its_cores() {
     // The wires selected are the drawables on the page opened.
     for id in &open.select {
         assert!(
-            row.drawables.iter().any(|d| d.record == *id && d.page == open.page),
+            row.drawables
+                .iter()
+                .any(|d| d.record == *id && d.page == open.page),
             "{id} is drawn on the page opened"
         );
     }

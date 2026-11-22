@@ -179,7 +179,11 @@ impl DeviceBox {
     /// Takes `change` of the draft as one undo step; a change that changes nothing is none.
     fn edit<T>(&mut self, change: impl FnOnce(&mut PartDraft) -> T) -> T {
         // The table's order is held from the first edit of these pins on.
-        if self.held.as_ref().is_none_or(|(selection, _)| *selection != self.selection) {
+        if self
+            .held
+            .as_ref()
+            .is_none_or(|(selection, _)| *selection != self.selection)
+        {
             let order = self.placed_pins().iter().map(|l| l.idx).collect();
             self.held = Some((self.selection.clone(), order));
         }

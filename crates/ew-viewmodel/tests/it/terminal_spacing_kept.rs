@@ -44,7 +44,15 @@ fn the_next_terminal_row_takes_the_spacing_of_an_earlier_session() {
         json!({"dir": tmp.0.join("new.ew").to_string_lossy()}),
     );
     done(&mut s, "page.goto", json!({"folio": "101"}));
-    let before: Vec<_> = s.canvas().unwrap().page().tables.reps.iter().map(|r| r.id).collect();
+    let before: Vec<_> = s
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .map(|r| r.id)
+        .collect();
     done(&mut s, "tool.place_terminal", json!({"strip": "new", "count": 2}));
     done(&mut s, "nav.goto", json!({ "text": "101-F2" }));
     done(&mut s, "canvas.activate", json!({"alt": true}));

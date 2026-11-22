@@ -14,17 +14,31 @@ fn the_potential_row_of_an_undefined_potential_opens_define_potential() {
     let tmp = Tmp::new("potential-row-define");
     let mut shell = undefined(&tmp);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
-    let wire = shell.canvas().unwrap().page().tables.connections[0].id.to_string();
+    let wire = shell.canvas().unwrap().page().tables.connections[0]
+        .id
+        .to_string();
     done(&mut shell, "select.set", json!({"ids": [wire]}));
     done(&mut shell, "props.show", json!({"on": true}));
     let key = shell
         .properties()
         .sheet()
-        .and_then(|sheet| sheet.sections.iter().flat_map(|s| &s.rows).find(|r| r.key.ends_with("/derived.potential")))
+        .and_then(|sheet| {
+            sheet
+                .sections
+                .iter()
+                .flat_map(|s| &s.rows)
+                .find(|r| r.key.ends_with("/derived.potential"))
+        })
         .map(|r| r.key.clone())
         .expect("the wire's Potential row");
-    assert!(shell.row_menu(&key).contains(&RowMenuItem::DefinePotential), "{key}");
+    assert!(
+        shell.row_menu(&key).contains(&RowMenuItem::DefinePotential),
+        "{key}"
+    );
     done(&mut shell, "props.edit", json!({"row": key}));
-    let form = shell.palette().and_then(|p| p.form.clone()).expect("Define potential…'s form");
+    let form = shell
+        .palette()
+        .and_then(|p| p.form.clone())
+        .expect("Define potential…'s form");
     assert_eq!(form.action, "potential.draw");
 }

@@ -33,9 +33,15 @@ fn a_pin_typed_between_two_steps_says_where_it_stands() {
     // 5 mm lies between the steps 4 and 8 mm of the 4 mm grid: the pin goes to 4 mm, and the note says so.
     done(&mut s, "part.pin", json!({"pin": pin, "side": "right", "at": 5}));
     assert!(
-        noted(&s, "The pin stands at 4 mm: a pin stands on a step of 4 mm, clear of the corners, and 5 mm is not one."),
+        noted(
+            &s,
+            "The pin stands at 4 mm: a pin stands on a step of 4 mm, clear of the corners, and 5 mm is not one."
+        ),
         "{:?}",
-        s.notifications().entries().map(|n| n.text.clone()).collect::<Vec<_>>()
+        s.notifications()
+            .entries()
+            .map(|n| n.text.clone())
+            .collect::<Vec<_>>()
     );
 }
 

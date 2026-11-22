@@ -144,8 +144,11 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                     // The description in every language, joined by " / ", as the result names it.
                     let description = h.description.as_neutral().map_or_else(
                         || {
-                            let texts: Vec<&str> =
-                                h.description.languages().filter_map(|l| h.description.get(l)).collect();
+                            let texts: Vec<&str> = h
+                                .description
+                                .languages()
+                                .filter_map(|l| h.description.get(l))
+                                .collect();
                             texts.join(" / ")
                         },
                         str::to_owned,

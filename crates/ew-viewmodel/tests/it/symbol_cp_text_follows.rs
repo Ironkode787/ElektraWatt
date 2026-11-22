@@ -15,7 +15,10 @@ fn places(shell: &ShellModel) -> ((i64, i64), (i64, i64), Value) {
     let cp = &doc["symbol"]["cps"][0];
     let slot = doc["symbol"]["text_slots"]
         .as_array()
-        .and_then(|a| a.iter().find(|s| s["kind"].get("cp_designation") == Some(&cp["idx"])))
+        .and_then(|a| {
+            a.iter()
+                .find(|s| s["kind"].get("cp_designation") == Some(&cp["idx"]))
+        })
         .cloned()
         .expect("the point's number text");
     let at = |v: &Value| (v["pos"][0].as_i64().unwrap(), v["pos"][1].as_i64().unwrap());
@@ -26,7 +29,11 @@ fn places(shell: &ShellModel) -> ((i64, i64), (i64, i64), Value) {
 fn a_points_number_text_moves_and_turns_with_it() {
     let tmp = Tmp::new("symbol-cp-text-follows");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(&mut shell, "symbol.new", json!({"key": "example.follow", "name": "Follow"}));
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key": "example.follow", "name": "Follow"}),
+    );
     done(
         &mut shell,
         "symbol.cp",
@@ -45,6 +52,12 @@ fn a_points_number_text_moves_and_turns_with_it() {
     done(&mut shell, "symbol.prop", json!({"key": "dir", "value": "up"}));
     let (up_cp, up_text, up_rot) = places(&shell);
     assert_eq!(up_cp, moved_cp, "another edge does not move the point");
-    assert!(up_text != moved_text || up_rot != rot, "the text stands again for the new edge");
-    assert_eq!(up_text.0, up_cp.0, "a pin on the top edge has its text in line below it");
+    assert!(
+        up_text != moved_text || up_rot != rot,
+        "the text stands again for the new edge"
+    );
+    assert_eq!(
+        up_text.0, up_cp.0,
+        "a pin on the top edge has its text in line below it"
+    );
 }

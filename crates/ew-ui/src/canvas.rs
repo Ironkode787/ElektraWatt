@@ -2330,7 +2330,8 @@ impl CanvasHost {
                                     },
                                 );
                                 kind_choice.response.widget_info(|| {
-                                    let mut info = egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &conductor);
+                                    let mut info =
+                                        egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &conductor);
                                     info.current_text_value = Some(shown.to_owned());
                                     info
                                 });
@@ -2341,7 +2342,8 @@ impl CanvasHost {
                                 let edit = ui.add(edit);
                                 let named = name(key!("supply-potential-voltage"));
                                 edit.widget_info(|| {
-                                    let mut info = egui::WidgetInfo::labeled(egui::Role::TextInput, true, &named);
+                                    let mut info =
+                                        egui::WidgetInfo::labeled(egui::Role::TextInput, true, &named);
                                     info.current_text_value = Some(voltage.clone());
                                     info
                                 });

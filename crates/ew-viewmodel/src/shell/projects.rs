@@ -28,8 +28,8 @@ use serde_json::{Map, Value};
 
 use super::{
     AccessMode, Dialog, HistoryMarker, Mode, Opened, Outcome, Pending, Project, Prompt, Record, ShellModel,
-    damaged_banner, dir_name, failed, flag, left_out_copies, open_error_key,
-    revision, string_param, symbol_editor, tools,
+    damaged_banner, dir_name, failed, flag, left_out_copies, open_error_key, revision, string_param,
+    symbol_editor, tools,
 };
 use crate::key;
 use crate::notifications::NoteTone;
