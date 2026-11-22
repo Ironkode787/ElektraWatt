@@ -100,7 +100,6 @@ where a real page shows it; each row says whether one is known.
 Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 
 - FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
-- FT-2098 `ew-scene, ew-reports, ew-viewmodel`: Dead code two lanes saw: the handling of a `$v` row in `route_of` and `fields.rs`, which nothing reaches since FT-1939, and a copy of the legend's trigger in `properties.rs` (`commit_group_label`). Check each is dead, then delete.
 
 ## M4
 

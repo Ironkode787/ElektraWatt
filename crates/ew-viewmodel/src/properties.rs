@@ -978,12 +978,11 @@ pub fn is_more_key(key: &str) -> bool {
     key.ends_with("/more")
 }
 
-/// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
+/// The internal members shown only under Advanced, by the row's path: the ID, the source reference
 /// with its key and lineage, the tag counter, a page's form (empty unless the page has one of its own; a report block's
 /// form, which it always has, is a choice of the project's forms in the open, doc 09 §3.8), the members of a page's connection
 /// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice, a connection's route, drawn on the canvas, and its mark that the program routed it.
 const ADVANCED: &[&str] = &[
-    "$v",
     "id",
     "source_ref",
     "tag.counter",

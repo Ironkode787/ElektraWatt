@@ -6786,7 +6786,6 @@ route-more = { $p0 } more
 
 # FT-1648: the explanation of each property row, the tooltip of its label: `field-help-<kind>-<path>`, else the
 # member's `field-help-word-<member>` (see `strings::field_help`).
-field-help-word-v = The version of this record's format in the file. It is kept for the file; you cannot change it.
 field-help-word-id = The record's unique ID. It never changes, so links to the record keep working.
 field-help-word-source-ref = Where the record came from when it was imported. An import uses it to find the record again; read only.
 field-help-word-key = The record's key in the file it was imported from.

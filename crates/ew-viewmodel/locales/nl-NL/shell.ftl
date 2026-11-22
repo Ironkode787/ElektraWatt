@@ -6514,7 +6514,6 @@ reason-route = De routes worden eerst als voorbeeld getoond
 route-more = nog { $p0 }
 
 # FT-1648: de uitleg van elke eigenschapsrij.
-field-help-word-v = De versie van het formaat van dit record in het bestand. Het bestand houdt haar bij; u kunt haar niet wijzigen.
 field-help-word-id = De unieke ID van het record. Die verandert nooit, zodat verwijzingen naar het record blijven werken.
 field-help-word-source-ref = Waar het record vandaan kwam bij het importeren. Een import vindt het record hiermee terug; alleen lezen.
 field-help-word-key = De sleutel van het record in het bestand waaruit het geïmporteerd is.

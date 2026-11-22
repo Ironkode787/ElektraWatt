@@ -564,9 +564,9 @@ fn last_member(generic: &str) -> &str {
 
 /// The keys of the explanation of the field `path` of `kind` (list indices allowed), in the order they are tried: the
 /// field's own `field-help-<kind>-<path>` (formed as [`field_label`]'s own key), then its last member's
-/// `field-help-word-<member>`, which every field of that name shares. A key holds no `$` (`$v` is `v`).
+/// `field-help-word-<member>`, which every field of that name shares.
 fn field_help_keys(kind: &str, path: &str) -> [String; 2] {
-    let generic = generic_field_path(path).replace('$', "");
+    let generic = generic_field_path(path);
     let last = last_member(&generic);
     [
         format!(
@@ -1159,7 +1159,7 @@ mod tests {
 
     /// Every field label the property grid, the collision dialog or a tool shows comes from one
     /// source, a key of both languages: the field's own `field-<kind>-<path>` text, else its last member's
-    /// `field-word-<member>` (the record version `$v` alone is no word). The en-GB labels are the ones of before;
+    /// `field-word-<member>`. The en-GB labels are the ones of before;
     /// nl-NL's are its own.
     #[test]
     fn every_field_label_has_a_key_in_both_languages() {
@@ -1180,9 +1180,6 @@ mod tests {
                 .find(|s| !s.is_empty())
                 .unwrap_or(path)
                 .trim_end_matches(']');
-            if last == "$v" {
-                continue;
-            }
             let word = format!("field-word-{}", last.replace('_', "-"));
             if !has_key(&own) && !has_key(&word) {
                 missing.insert(format!("en-GB: {kind} {path}"));

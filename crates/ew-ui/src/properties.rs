@@ -7,7 +7,7 @@
 //! the window's toasts (`crate::notifications`).
 //!
 //! Doc 16a §6.8: the header's title in `type.title` and its subtitle in `type.small`; the Main
-//! group (the kind's primary fields) first, then the categories; the Advanced rows (`$v`, ids, source references) only
+//! group (the kind's primary fields) first, then the categories; the Advanced rows (ids, source references) only
 //! after "Show advanced (n)" at the foot. A value cell edits in place (a click, with a hover border); an empty value
 //! shows an em dash; the provenance chip only for a value that is not authored, its whole text in the tooltip. The
 //! row's actions are one "…" button (the actions menu, `props.row_menu`), shown on the cursor row, on hover and on

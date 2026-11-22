@@ -228,7 +228,7 @@ impl Category {
             (
                 Category::Identity,
                 &[
-                    "id", "$v", "tag", "kind", "state", "folio", "number", "code", "label", "name", "order",
+                    "id", "tag", "kind", "state", "folio", "number", "code", "label", "name", "order",
                 ],
             ),
             (Category::Part, &["parts", "tech_data"]),
@@ -332,7 +332,7 @@ pub enum EditRoute {
 /// project.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum FieldReadOnly {
-    /// The record's identity (`id`, `$v`).
+    /// The record's identity (`id`).
     Identity,
     /// A settable path the grid shows read-only (the narrowing table).
     Narrowed {
@@ -766,7 +766,7 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
         Some(_) => EditRoute::ReadOnly(FieldReadOnly::NoCommand),
     };
     // 1. Identity.
-    if path == "id" || path == "$v" {
+    if path == "id" {
         return EditRoute::ReadOnly(FieldReadOnly::Identity);
     }
     // 2. The narrowing table.
