@@ -3,8 +3,8 @@
   "id": "65d6e6e5-c630-5d1c-b1a4-01215f77836b",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "f3bfa1b5-42c4-5347-a93d-f94fe38c13eb",
-  "version": "0.1.3",
-  "sha256": "sha256:d09e59acca410ebb7a1cd51e9ec7236f5bb86407e0293295b038675bf8d132e8",
+  "version": "0.1.4",
+  "sha256": "sha256:aaaa4a8fd56e3e983b358c48735591dbbecbd2a55fa60158926db1f26a53a285",
   "meta": {"key": "EW-GEN-CON-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-CON-1",
-  "description": {"en": "Contactor with three main contacts and one auxiliary normally open contact"},
+  "description": {
+    "en": "Contactor with three main contacts and one auxiliary normally open contact",
+    "nl": "Magneetschakelaar met drie hoofdcontacten en één hulpmaakcontact"
+  },
   "category": ["SwitchingPower", "Contactor", "3P"],
   "tech_data": [
     {"key": "coil_voltage", "value": {"value": "24", "unit": "V"}},

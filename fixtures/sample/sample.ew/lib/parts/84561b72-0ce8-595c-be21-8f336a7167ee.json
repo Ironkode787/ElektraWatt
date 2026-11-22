@@ -3,8 +3,8 @@
   "id": "84561b72-0ce8-595c-be21-8f336a7167ee",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "7b2ad922-5395-5f7a-9b84-3ba96b073523",
-  "version": "0.1.0",
-  "sha256": "sha256:c2b393706f4b628cb55e20a292bd05b198252d6e39643f3904417fd1987e8b96",
+  "version": "0.1.1",
+  "sha256": "sha256:fde339985a6a0d546031c3afd964885836e5a5b7a2f7c1489cc22b473c9db6a4",
   "meta": {"key": "EW-GEN-LMP-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-LMP-3",
-  "description": {"en": "Signal lamp, green"},
+  "description": {"en": "Signal lamp, green", "nl": "Signaallamp, groen"},
   "category": ["Lighting", "Lamp", "Cabinet"],
   "tech_data": [{"key": "colour", "value": "GN"}, {"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
   "cp_pattern": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}],

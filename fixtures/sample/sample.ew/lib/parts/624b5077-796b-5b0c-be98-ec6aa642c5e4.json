@@ -3,8 +3,8 @@
   "id": "624b5077-796b-5b0c-be98-ec6aa642c5e4",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "2fed2dde-1f0e-5eb2-bc76-096709d41a4f",
-  "version": "0.1.0",
-  "sha256": "sha256:25e1213de188bc6ca0c79edb39d2a50f36c466271c8ff853406b48acbffef07e",
+  "version": "0.1.1",
+  "sha256": "sha256:a3cbf41d889f9929c607cf0e55187840be4803bea61f338a3815dbd950713abc",
   "meta": {"key": "EW-GEN-LMP-2", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-LMP-2",
-  "description": {"en": "Signal lamp, red"},
+  "description": {"en": "Signal lamp, red", "nl": "Signaallamp, rood"},
   "category": ["Lighting", "Lamp", "Cabinet"],
   "tech_data": [{"key": "colour", "value": "RD"}, {"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
   "cp_pattern": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}],

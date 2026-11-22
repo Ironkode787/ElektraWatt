@@ -3,8 +3,8 @@
   "id": "a6c45e26-ccfe-5015-b5a2-cca67d92f600",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "b88c657b-993f-5323-84fb-b65d71288f8d",
-  "version": "0.1.1",
-  "sha256": "sha256:7f37ff6432e58c7a1ab7990aae772c33ccb650a9d58b3b028396699aef05878e",
+  "version": "0.1.2",
+  "sha256": "sha256:e532fa819d5059c7c6756d76b973158399a9d9328ba14ef66e3dd6b40a6cf905",
   "meta": {"key": "EW-GEN-TRM-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "terminal",
   "manufacturer": {
@@ -13,7 +13,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-TRM-1",
-  "description": {"en": "Feed-through terminal"},
+  "description": {"en": "Feed-through terminal", "nl": "Doorgangsklem"},
   "category": ["Terminal", "FeedThrough", "1Level"],
   "cp_pattern": [{"idx": 0, "designation": "1"}, {"idx": 1, "designation": "2"}],
   "function_template": [

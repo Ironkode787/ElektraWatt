@@ -3,8 +3,8 @@
   "id": "acd7031d-3da4-5a99-94d0-c980d673631c",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "724e5cae-1b1c-59fa-ba10-1cba3787c143",
-  "version": "0.1.1",
-  "sha256": "sha256:1f16094c4cc488f009d53c0ed2fb0e5be5418b6e64ee97ec86a8395ed698aa45",
+  "version": "0.1.2",
+  "sha256": "sha256:d692696233858624e99f9cdd3f60a46b9d4cf0dece9cd66bbf98be7a2288883a",
   "meta": {"key": "EW-GEN-DO-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-DO-1",
-  "description": {"en": "PLC digital output card, 8 channels"},
+  "description": {"en": "PLC digital output card, 8 channels", "nl": "Digitale PLC-uitgangskaart, 8 kanalen"},
   "category": ["Assembly", "BlackBox", "Generic"],
   "tech_data": [
     {"key": "output_current", "value": {"value": "0.5", "unit": "A"}},

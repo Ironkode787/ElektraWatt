@@ -3,8 +3,8 @@
   "id": "f97db2ba-5945-5c40-86f6-b34ba8f3b14f",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "4be4f6c2-e14b-5cd0-ab9c-dbc5d8a47e0f",
-  "version": "0.1.1",
-  "sha256": "sha256:d9c1762d7b6ee237538a3571f6443dbbff6e087963058282c636114b6bcd3f2b",
+  "version": "0.1.2",
+  "sha256": "sha256:7d6997d84a7a8822f6d29ab3680ef604bc05ff50cb218463fd3760b50ea28a28",
   "meta": {"key": "EW-GEN-DI-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-DI-1",
-  "description": {"en": "PLC digital input card, 8 channels"},
+  "description": {"en": "PLC digital input card, 8 channels", "nl": "Digitale PLC-ingangskaart, 8 kanalen"},
   "category": ["Assembly", "BlackBox", "Generic"],
   "tech_data": [{"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
   "cp_pattern": [

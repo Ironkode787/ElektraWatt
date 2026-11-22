@@ -3,8 +3,8 @@
   "id": "52d97005-a5b4-536a-af99-4a2224c98276",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "e259e1cd-ecce-54cb-a050-9b143b7e40cc",
-  "version": "0.1.0",
-  "sha256": "sha256:79eb27ffee1fdad777280e5ef8b7abff0c8f80e45498a1eacf44a58be4686fe9",
+  "version": "0.1.1",
+  "sha256": "sha256:44d74491fcd9e14ec124ede9c2a531794161ee68d6d863c18ca5d1328a34d30a",
   "meta": {"key": "EW-GEN-MOT-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-MOT-1",
-  "description": {"en": "Three-phase motor"},
+  "description": {"en": "Three-phase motor", "nl": "Driefasenmotor"},
   "category": ["MotorRotary", "Motor", "3P"],
   "tech_data": [
     {"key": "rated_power", "value": {"value": "370", "unit": "W"}},

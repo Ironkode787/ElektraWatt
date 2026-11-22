@@ -3,8 +3,8 @@
   "id": "e427be05-825e-56c5-bfc0-ee9ce5d9122f",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "35fba5e4-644e-5bca-a4c0-25c3970ec83b",
-  "version": "0.1.2",
-  "sha256": "sha256:fe231de192f7ac0673315a268e3497fa0c300f56bcdbe12008e7f175295b05f8",
+  "version": "0.1.3",
+  "sha256": "sha256:bef789f446f9446bd8f434b416586c0f218c013cf476e39779bd24d526cc8e79",
   "meta": {"key": "EW-GEN-PSU-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-PSU-1",
-  "description": {"en": "Power supply unit, AC to DC"},
+  "description": {"en": "Power supply unit, AC to DC", "nl": "Voeding, AC naar DC"},
   "category": ["PowerSupplyAcDc", "PowerSupply", "AcDc"],
   "tech_data": [
     {"key": "input_voltage", "value": {"value": "230", "unit": "V"}},

@@ -3,8 +3,8 @@
   "id": "4cb8c611-ed4d-5697-be54-2ad1741e4fed",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "dccf5129-cfde-5e23-89bc-bbcea3fa914c",
-  "version": "0.1.0",
-  "sha256": "sha256:219054ecbaf22d14beb01b008b3f3f6c6b8ececd2a70f8792c8ed62e3e3b991e",
+  "version": "0.1.1",
+  "sha256": "sha256:2a8620f8f2925ac7265510d6b724794334311230d2dc75fc2e9094a9ba9cd58d",
   "meta": {"key": "EW-GEN-CBL-2", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "cable",
   "manufacturer": {
@@ -13,7 +13,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-CBL-2",
-  "description": {"en": "PROFIBUS cable, 2 cores green and red, shielded"},
+  "description": {
+    "en": "PROFIBUS cable, 2 cores green and red, shielded",
+    "nl": "PROFIBUS-kabel, 2 aders groen en rood, afgeschermd"
+  },
   "unit": "m",
   "sections": {
     "cable_cores": [{"core": "A", "colour": ["GN"]}, {"core": "B", "colour": ["RD"]}, {"core": "SHIELD", "shield": true}],

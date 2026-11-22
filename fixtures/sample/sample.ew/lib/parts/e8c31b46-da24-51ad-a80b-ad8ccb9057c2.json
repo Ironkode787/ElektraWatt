@@ -3,8 +3,8 @@
   "id": "e8c31b46-da24-51ad-a80b-ad8ccb9057c2",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "118db268-3259-5a8f-80c5-3f6927e6121d",
-  "version": "0.1.0",
-  "sha256": "sha256:d4cb236b8ad1e10aa95c32e96a5b1ea305211791fb8029483962f2ccd677e48c",
+  "version": "0.1.1",
+  "sha256": "sha256:d27bc7c7ef5cf19a4d72e2c8706aabba8e3e847a26abd37e69ab6d9f98a42c4b",
   "meta": {"key": "EW-GEN-SIL-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-SIL-1",
-  "description": {"en": "Silencer G1/8"},
+  "description": {"en": "Silencer G1/8", "nl": "Geluiddemper G1/8"},
   "category": ["FluidFitting", "Silencer", "Standard"],
   "function_template": [
     {

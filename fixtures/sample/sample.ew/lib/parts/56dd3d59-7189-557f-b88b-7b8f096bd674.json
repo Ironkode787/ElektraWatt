@@ -3,8 +3,8 @@
   "id": "56dd3d59-7189-557f-b88b-7b8f096bd674",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "df524338-eee7-5e52-a1f6-5dd059eddd35",
-  "version": "0.1.0",
-  "sha256": "sha256:62e4a2024e4b27fc37d5729090ddfe7b743ae18067b3f23e6115d3afb307e1b5",
+  "version": "0.1.1",
+  "sha256": "sha256:728ca9a0344d630aedcc6f6930d08f8dfed606768abc8bf11572c352985aca57",
   "meta": {"key": "EW-GEN-PB-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-PB-1",
-  "description": {"en": "Pushbutton with one normally open contact"},
+  "description": {"en": "Pushbutton with one normally open contact", "nl": "Drukknop met één maakcontact"},
   "category": ["ManualCommand", "Pushbutton", "NO"],
   "cp_pattern": [{"idx": 0, "designation": "13"}, {"idx": 1, "designation": "14"}],
   "function_template": [

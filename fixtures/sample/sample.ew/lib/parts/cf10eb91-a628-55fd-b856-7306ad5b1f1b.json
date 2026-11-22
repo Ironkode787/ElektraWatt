@@ -3,8 +3,8 @@
   "id": "cf10eb91-a628-55fd-b856-7306ad5b1f1b",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "3b1cb5c1-bc43-573b-9708-65e83c4f59a7",
-  "version": "0.1.0",
-  "sha256": "sha256:c8a58afefa1de6197497c9f4a81cd237dcfe87737a6b94b933155b7c32d978ef",
+  "version": "0.1.1",
+  "sha256": "sha256:faed25964de1176b3d977189abbfea5eb90687472189723794dc6ba19ad74335",
   "meta": {"key": "EW-GEN-CYL-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-CYL-1",
-  "description": {"en": "Cylinder double-acting, bore 32 mm, stroke 100 mm"},
+  "description": {
+    "en": "Cylinder double-acting, bore 32 mm, stroke 100 mm",
+    "nl": "Cilinder dubbelwerkend, boring 32 mm, slag 100 mm"
+  },
   "category": ["CylinderFluid", "DoubleActing", "Cylinder"],
   "function_template": [
     {

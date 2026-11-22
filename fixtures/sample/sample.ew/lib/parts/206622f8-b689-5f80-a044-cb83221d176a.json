@@ -3,8 +3,8 @@
   "id": "206622f8-b689-5f80-a044-cb83221d176a",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "49ae7dac-6964-5215-a339-7aa5ed0314a4",
-  "version": "0.1.0",
-  "sha256": "sha256:4a8952beb6e0860565512f8853473ffe0fc998245d54c2be040647acc191120d",
+  "version": "0.1.1",
+  "sha256": "sha256:567d39a6ba95f6fe297f5d260efd677f6961d88ba2948a56f8d4f6e1f2d922bd",
   "meta": {"key": "EW-GEN-AIR-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-AIR-1",
-  "description": {"en": "Air supply: service unit G1/4 with shut-off valve and filter regulator"},
+  "description": {
+    "en": "Air supply: service unit G1/4 with shut-off valve and filter regulator",
+    "nl": "Persluchtvoeding: verzorgingseenheid G1/4 met afsluitventiel en filterregelaar"
+  },
   "category": ["AirPreparation", "Source", "Supply"],
   "function_template": [
     {

@@ -3,8 +3,8 @@
   "id": "eca2de9a-502c-52be-991d-f93fb4d320f2",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "f9ee337d-cf72-5dea-9f84-7f60d687a40d",
-  "version": "0.1.0",
-  "sha256": "sha256:0826c807ae8420a661050fedaf775ffe6ef0d9108325e8bb5c105a73d63dfeda",
+  "version": "0.1.1",
+  "sha256": "sha256:abd7596a3e732292a6b319bfe2f75955f15c291a4db1e0f27d1d8dda8b646a0b",
   "meta": {"key": "EW-GEN-MCB-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-MCB-3",
-  "description": {"en": "Miniature circuit breaker, 3 poles"},
+  "description": {"en": "Miniature circuit breaker, 3 poles", "nl": "Installatieautomaat, 3-polig"},
   "category": ["ProtectionOvercurrent", "MCB", "3P"],
   "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
   "cp_pattern": [

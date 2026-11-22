@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a298b74d-6e87-51a1-9204-7e74cc52140a",
   "version": "0.1.0",
-  "sha256": "sha256:ecffd57d19719a06e15de5531b395a932650d39eeccdd20818984b271d35c137",
+  "sha256": "sha256:8302d3df0d46fd628a63e236abe5ef6bf10114e705d5c87e575e97e6ac7992f9",
   "meta": {
     "key": "ew.gen.wire-marker",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Wire marker"
+    "en": "Wire marker",
+    "nl": "Adermarkering"
   },
   "keywords": [
     "marker",

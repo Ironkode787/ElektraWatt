@@ -3,8 +3,8 @@
   "id": "cce7adcc-587e-5c5e-940f-3e56ec33cc93",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "4ae9c93a-452e-5373-bdce-b8b24456bc2e",
-  "version": "0.1.2",
-  "sha256": "sha256:1fb03000b30f8551e3114328d2cfa2d92ecc81692dda86d1752e172bfebae369",
+  "version": "0.1.3",
+  "sha256": "sha256:e3fb0139d8d158bb7c8b6ad11882451d2d96bc782778a17be2a5ff850b533fb0",
   "meta": {"key": "EW-GEN-VTM-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-VTM-1",
-  "description": {"en": "Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs"},
+  "description": {
+    "en": "Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",
+    "nl": "Ventieleiland met PROFIBUS DP-busknooppunt, 4 ventielplaatsen, 8 uitgangen"
+  },
   "category": ["ValveTerminalNode", "Station", "Generic"],
   "tech_data": [{"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
   "function_template": [

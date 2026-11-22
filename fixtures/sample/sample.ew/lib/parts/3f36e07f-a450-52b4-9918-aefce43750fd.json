@@ -3,8 +3,8 @@
   "id": "3f36e07f-a450-52b4-9918-aefce43750fd",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "4906ee70-10d6-5675-bcb6-95da2271bf12",
-  "version": "0.1.0",
-  "sha256": "sha256:0479db09a6b45671e4f75cd40662e8f4ac744d23c4380073451d2a4d238b5239",
+  "version": "0.1.1",
+  "sha256": "sha256:e2cc6d991c1c75fc945c2153e767111ae9ffadcb9148f17bec16be123d1f71b2",
   "meta": {"key": "EW-GEN-PLT-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "mounting_plate",
   "manufacturer": {
@@ -13,6 +13,6 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-PLT-1",
-  "description": {"en": "Mounting plate 520 × 720 mm"},
+  "description": {"en": "Mounting plate 520 × 720 mm", "nl": "Montageplaat 520 × 720 mm"},
   "sections": {"mounting_plate": {"width": 520000000, "height": 720000000}}
 }

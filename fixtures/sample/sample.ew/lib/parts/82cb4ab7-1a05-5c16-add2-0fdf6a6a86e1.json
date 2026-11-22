@@ -3,8 +3,8 @@
   "id": "82cb4ab7-1a05-5c16-add2-0fdf6a6a86e1",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "e0a39cc4-c16e-59ac-9deb-2bb361acfd38",
-  "version": "0.1.0",
-  "sha256": "sha256:6996f4b192e762dab0cbb2e6c653ee3813dfc3f6c5da206a4193c2863c4c19cb",
+  "version": "0.1.1",
+  "sha256": "sha256:4a1fc35315977ac7ce2ed47571dd16f8356d2a0263c285944b72ca793923e9b7",
   "meta": {"key": "EW-GEN-RAIL-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "rail",
   "manufacturer": {
@@ -13,7 +13,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-RAIL-1",
-  "description": {"en": "DIN rail TS 35 × 7.5"},
+  "description": {"en": "DIN rail TS 35 × 7.5", "nl": "DIN-rail TS 35 × 7,5"},
   "unit": "m",
   "sections": {"rail": {"profile": "ts35x7_5", "stock_length": 2000000000}}
 }

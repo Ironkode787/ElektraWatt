@@ -3,8 +3,8 @@
   "id": "6aa2035d-ea1d-5cd5-9222-36621f8760fb",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "f31f9ae6-aab5-5967-bc96-bc5044bb7278",
-  "version": "0.1.0",
-  "sha256": "sha256:f755e626f47fb886643f36450eae9d519906e1d234933a6c044c63faaab19f6e",
+  "version": "0.1.1",
+  "sha256": "sha256:79fab978d6cd60d1171fc16691c1bb3e54f20d5a4580fb39b1dc1e7b50ea175d",
   "meta": {"key": "EW-GEN-VLV-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-VLV-3",
-  "description": {"en": "Solenoid valve 5/2 for a valve terminal, spring return"},
+  "description": {
+    "en": "Solenoid valve 5/2 for a valve terminal, spring return",
+    "nl": "Magneetventiel 5/2 voor een ventieleiland, veerretour"
+  },
   "category": ["ValveDirectional", "Valve52", "SolenoidSpring"],
   "tech_data": [{"key": "coil_voltage", "value": {"value": "24", "unit": "V"}}],
   "function_template": [

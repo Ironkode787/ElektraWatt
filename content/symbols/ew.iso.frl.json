@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "cd357432-47a7-5e6e-9c7e-12abb4a4fa8e",
   "version": "0.2.0",
-  "sha256": "sha256:fefe1ba53fedcb20f4ecbafdfc1fcd811d71f15aa329bbce7765cd51149cd5fe",
+  "sha256": "sha256:e0681f914116fd2c342e2e2b2275f3c4652189a3e57774b74be2ace1c14d4013",
   "meta": {
     "key": "ew.iso.frl",
     "licence": "CC-BY-SA-4.0",
@@ -15,7 +15,7 @@
   },
   "name": {
     "en": "Service unit (filter, regulator, lubricator)",
-    "nl": "Verzorgingseenheid (filter, regelaar, olievernevelaar)"
+    "nl": "Verzorgingseenheid (filter, drukregelaar, olievernevelaar)"
   },
   "keywords": [
     "air preparation",

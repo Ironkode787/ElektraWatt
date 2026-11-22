@@ -3,8 +3,8 @@
   "id": "138b9dc0-edcd-50fe-baef-d85e5ce8e643",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "cdde77a1-7d4c-5f3e-92a5-3d83706c8384",
-  "version": "0.1.0",
-  "sha256": "sha256:7130958c22ea5852029afd072e2b5c08e66b08926af7af44ac331f1ba240c4fd",
+  "version": "0.1.1",
+  "sha256": "sha256:74ba52f7f416699e164938c4dec7fec696174c652636ae91396d188578cdfbf5",
   "meta": {"key": "EW-GEN-LMP-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-LMP-1",
-  "description": {"en": "Pilot lamp"},
+  "description": {"en": "Pilot lamp", "nl": "Verklikkerlamp"},
   "category": ["Lighting", "Lamp", "Cabinet"],
   "tech_data": [{"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
   "cp_pattern": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}],

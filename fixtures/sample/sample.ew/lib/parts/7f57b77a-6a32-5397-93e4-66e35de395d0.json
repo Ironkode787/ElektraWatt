@@ -3,8 +3,8 @@
   "id": "7f57b77a-6a32-5397-93e4-66e35de395d0",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "079a22df-17f4-5370-a7d6-ed8f1ccd67c0",
-  "version": "0.1.0",
-  "sha256": "sha256:35554d8f3ac06b836c458b32b7289cc7003f40e208567e2554a1f095c392d6a3",
+  "version": "0.1.1",
+  "sha256": "sha256:6a49b3ce863901a1b455ea000c57548f1cf5c3c5c28430b12fd98ccfc4603d96",
   "meta": {"key": "EW-GEN-MCB-4", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -12,7 +12,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-MCB-4",
-  "description": {"en": "Miniature circuit breaker, 2 poles"},
+  "description": {"en": "Miniature circuit breaker, 2 poles", "nl": "Installatieautomaat, 2-polig"},
   "category": ["ProtectionOvercurrent", "MCB", "2P"],
   "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
   "cp_pattern": [

@@ -107,14 +107,14 @@ fn update_from_library_writes_the_copy_and_opens_the_project_for_editing() {
             "This project is open read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 1 integrity \
              finding was found when the project was opened.",
-            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1.",
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.2.",
         ),
         (
             "nl",
             "Dit project is alleen-lezen geopend: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project is 1 integriteitsbevinding gevonden.",
-            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1.",
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.2.",
         ),
     ] {
         damage(&file);
@@ -254,7 +254,7 @@ fn several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             "This project is open read-only: the device -101F1 uses the library copy of part EW-GEN-MCB-2 from \
              ElektraWatt starter parts, which is damaged. Update the copy from its library first. 2 integrity \
              findings were found when the project was opened.",
-            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1. Not updated, as no \
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.2. Not updated, as no \
              library on this computer holds a readable version: the library copy of a manufacturer.",
             "This project is open read-only: the library copy of a manufacturer is damaged. No library on this \
              computer holds it; use Save as for a copy of the project without it. 1 integrity finding was found when \
@@ -265,7 +265,7 @@ fn several_copies_update_every_one_a_library_holds_and_name_the_rest() {
             "Dit project is alleen-lezen geopend: het apparaat -101F1 gebruikt de bibliotheekkopie van artikel \
              EW-GEN-MCB-2 uit ElektraWatt starter parts, die beschadigd is. Werk de kopie eerst bij vanuit de \
              bibliotheek. Bij het openen van het project zijn 2 integriteitsbevindingen gevonden.",
-            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1. Niet \
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.2. Niet \
              bijgewerkt, omdat geen bibliotheek op deze computer een leesbare versie heeft: de bibliotheekkopie van \
              een fabrikant.",
             "Dit project is alleen-lezen geopend: de bibliotheekkopie van een fabrikant is beschadigd. Geen \
@@ -307,12 +307,12 @@ fn every_copy_written_is_named_with_its_version() {
     for (locale, toast) in [
         (
             "en",
-            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.1, the library copy of \
+            "Updated from library: the library copy of part EW-GEN-MCB-2 at version 0.1.2, the library copy of \
              manufacturer Generic (Generic) at version 0.1.0.",
         ),
         (
             "nl",
-            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.1, de \
+            "Bijgewerkt vanuit bibliotheek: de bibliotheekkopie van artikel EW-GEN-MCB-2 in versie 0.1.2, de \
              bibliotheekkopie van fabrikant Generic (Generic) in versie 0.1.0.",
         ),
     ] {

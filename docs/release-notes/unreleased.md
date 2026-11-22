@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- text-change: every starter part has a Dutch description and every starter symbol a Dutch name, so a Dutch
+  project's parts list prints "Doorgangsklem" where it printed "Feed-through terminal"; the starter parts library is
+  0.19.0, each part one patch version further (doc 07 §2.1, FT-1934)
 - behaviour-change: a page's grid changed (`page.set_grid`) and a paste or a macro fitted to another grid move their
   symbols and junctions onto it together: where the nearest grid points would put two things on one another, or
   close a gap of a step or more that a wire could take, the later one moves on by whole steps, so no symbol ends on

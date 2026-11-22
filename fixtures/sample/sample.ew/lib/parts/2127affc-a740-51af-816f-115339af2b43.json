@@ -3,8 +3,8 @@
   "id": "2127affc-a740-51af-816f-115339af2b43",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "d90c3989-e472-5693-8276-6a6a4a9e54e3",
-  "version": "0.1.1",
-  "sha256": "sha256:f5a0fd743f95ca66674ea89cb4436e4381e27e89b87223c374409ec7e6fb9184",
+  "version": "0.1.2",
+  "sha256": "sha256:2d00b96e6284120bcc6ea34be7076f5df607e749b7af7e84e95940a09c7672ec",
   "meta": {"key": "EW-GEN-TRM-2", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "terminal",
   "manufacturer": {
@@ -13,7 +13,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-TRM-2",
-  "description": {"en": "Protective earth terminal"},
+  "description": {"en": "Protective earth terminal", "nl": "Aardklem (PE)"},
   "category": ["TerminalEarth", "PE", "1Level"],
   "cp_pattern": [
     {"idx": 0, "designation": "1", "potential_role": "pe"},

@@ -3,8 +3,8 @@
   "id": "72622797-bddb-5716-b810-48926ab753dd",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "74d2b795-9e37-5ee8-9e64-adbf82f26f13",
-  "version": "0.1.0",
-  "sha256": "sha256:47504bec2f13311b77b2450c20dd67c08d3a09f35e77739fc0004395714f63f3",
+  "version": "0.1.1",
+  "sha256": "sha256:9fdb7173ea1aada9e5d99ac6e300e0a570509ec9ede6285682787ef6ce8cb454",
   "meta": {"key": "EW-GEN-TUB-6", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "tube",
   "manufacturer": {
@@ -13,7 +13,7 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-TUB-6",
-  "description": {"en": "Tube PU 6 × 4 mm, blue"},
+  "description": {"en": "Tube PU 6 × 4 mm, blue", "nl": "Slang PU 6 × 4 mm, blauw"},
   "unit": "m",
   "sections": {"fluid": {"tube": {"od": 6000000, "id": 4000000, "material": "pu", "colour": ["BU"], "p_rating": "10"}}}
 }

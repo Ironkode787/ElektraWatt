@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "643e46c8-c6e2-5ce0-b233-40f73ece7bec",
   "version": "0.1.0",
-  "sha256": "sha256:f8add54b835080b9547a842ebc380039a93c67cb19020f11200c7951fd425bde",
+  "sha256": "sha256:d93d17ef559e87363f8f0cd9c35be780f6a1b6de3d97c07af73482fffd79169f",
   "meta": {
     "key": "ew.iso.frl-detailed",
     "licence": "CC-BY-SA-4.0",
@@ -15,7 +15,7 @@
   },
   "name": {
     "en": "Service unit, detailed (filter, regulator, lubricator)",
-    "nl": "Verzorgingseenheid, uitgebreid (filter, drukregelaar, oliënevelaar)"
+    "nl": "Verzorgingseenheid, uitgebreid (filter, drukregelaar, olievernevelaar)"
   },
   "keywords": [
     "filter",

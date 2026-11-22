@@ -145,7 +145,9 @@ pushbutton (PB-1), a selector switch with two NO (SEL-1), a position switch (POS
 three-phase motor (MOT-1), a 230 V AC to 24 V DC power supply (PSU-1), a 5/2 solenoid valve (VLV-1), a feed-through and
 a PE terminal (TRM-1, TRM-2) and 8-channel digital input and output cards (DI-1, DO-1). Each carries its template
 functions on starter FnDefs, its CP pattern, contact data and the technical data the starter symbols print, and no
-order or catalogue data; item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
+order or catalogue data; its description is in English and Dutch, as every starter symbol's name is but the junction dot's and bevel's (their seals belong to a derivation
+profile), so a Dutch
+project's lists and the symbol browser in Dutch read in Dutch (FT-1934); item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
 (`crates/ew-library/tests/starter_parts.rs`) with the library writer and compiled in, so every session holds it with
 or without configured tiers; a directory library of the same ID replaces the compiled-in copy. The relay and the
 contactor template their coil only and list their contacts as contact data.

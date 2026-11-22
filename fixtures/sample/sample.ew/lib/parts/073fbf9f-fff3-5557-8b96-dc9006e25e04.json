@@ -3,8 +3,8 @@
   "id": "073fbf9f-fff3-5557-8b96-dc9006e25e04",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "a955327b-5852-5e8c-a6dc-a2be640e1fb8",
-  "version": "0.1.0",
-  "sha256": "sha256:d60fd541d57dbcc900f8c6f2be16ad72849003ab6d7a2c49ffe7292354b4868c",
+  "version": "0.1.1",
+  "sha256": "sha256:73a4f382673cc47b8f1488b40e77711dde2e3f3a2991b29d35d7fd9444854370",
   "meta": {"key": "EW-GEN-CBL-25", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "cable",
   "manufacturer": {
@@ -13,7 +13,10 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-CBL-25",
-  "description": {"en": "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded"},
+  "description": {
+    "en": "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",
+    "nl": "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel, afgeschermd"
+  },
   "unit": "m",
   "sections": {
     "cable_cores": [
