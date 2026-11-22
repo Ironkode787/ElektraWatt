@@ -60,9 +60,9 @@ pub struct PlcRows {
     pub designation: String,
     /// The pin pattern (`{n+1}`, `X2:{n+1}`).
     pub pin_of: String,
-    /// The supply's L+ pin.
+    /// The supply's L+ pins, a list split at commas and spaces ([`PlcRows::supply_pairs`]).
     pub l_plus: String,
-    /// The supply's M pin.
+    /// The supply's M pins, a list as the L+ pins'.
     pub m: String,
     /// The allowed slots (`1-8, 10`).
     pub slots: String,
@@ -145,6 +145,41 @@ impl PlcRows {
             return None;
         }
         (0..n).map(|c| channel_pin(&pattern, c).map(|p| (c, p))).collect()
+    }
+
+    /// The pin names member `m` (`l_plus` or `m`) lists, split at commas and spaces.
+    fn supply_list(&self, m: &str) -> Vec<&str> {
+        self.text(m)
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|t| !t.is_empty())
+            .collect()
+    }
+
+    /// The supply groups the form gives, each as its (L+ pin, M pin): the pins of the two lists by their places, or
+    /// the one pin of a list with each pin of the other (two L+ pins over one M); empty without supply pins, `None`
+    /// when the lists do not pair so (two L+ pins and three M pins).
+    pub fn supply_pairs(&self) -> Option<Vec<(&str, &str)>> {
+        let (l, m) = (self.supply_list("l_plus"), self.supply_list("m"));
+        match (l.len(), m.len()) {
+            (0, _) | (_, 0) => Some(Vec::new()),
+            (a, b) if a == b => Some(l.into_iter().zip(m).collect()),
+            (_, 1) => Some(l.into_iter().map(|x| (x, m[0])).collect()),
+            (1, _) => Some(m.into_iter().map(|y| (l[0], y)).collect()),
+            _ => None,
+        }
+    }
+
+    /// The supply pins the part gets, in the order of its pins: each group's L+ pin, then its M pin, each pin once.
+    pub fn supply_pins(&self) -> Vec<&str> {
+        let mut out: Vec<&str> = Vec::new();
+        for (l, m) in self.supply_pairs().unwrap_or_default() {
+            for pin in [l, m] {
+                if !out.contains(&pin) {
+                    out.push(pin);
+                }
+            }
+        }
+        out
     }
 
     /// The I/O the channels occupy: (direction word `in` or `out`, bits), the first kind's, then the second kind's;
@@ -296,21 +331,36 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
             &[count2, &MAX_CHANNELS.to_string()],
         );
     }
-    for m in ["data_type", "l_plus", "m"] {
-        let t = rows.text(m).trim();
-        if !t.is_empty()
-            && let Err(e) = Ident::from_input(t)
-        {
-            say(m, ew_commands::text_key!("error-part-value"), &[&e.to_string()]);
+    let t = rows.data_type.trim();
+    if !t.is_empty()
+        && let Err(e) = Ident::from_input(t)
+    {
+        say(
+            "data_type",
+            ew_commands::text_key!("error-part-value"),
+            &[&e.to_string()],
+        );
+    }
+    // The supply pins are lists (FT-2132): each name a pin of its own.
+    let (l_plus, m) = (rows.supply_list("l_plus"), rows.supply_list("m"));
+    for (member, pins) in [("l_plus", &l_plus), ("m", &m)] {
+        if let Some(e) = pins.iter().find_map(|p| Ident::from_input(p).err()) {
+            say(
+                member,
+                ew_commands::text_key!("error-part-value"),
+                &[&e.to_string()],
+            );
         }
     }
-    if rows.l_plus.trim().is_empty() != rows.m.trim().is_empty() {
-        let missing = if rows.l_plus.trim().is_empty() {
-            "l_plus"
-        } else {
-            "m"
-        };
+    if l_plus.is_empty() != m.is_empty() {
+        let missing = if l_plus.is_empty() { "l_plus" } else { "m" };
         say(missing, ew_commands::text_key!("error-part-plc-supply"), &[]);
+    } else if rows.supply_pairs().is_none() {
+        say(
+            "m",
+            ew_commands::text_key!("error-part-plc-supply-pairs"),
+            &[&l_plus.len().to_string(), &m.len().to_string()],
+        );
     }
     if let Some(n) = rows.all_channels().filter(|n| (1..=MAX_CHANNELS).contains(n)) {
         let pattern = rows.pin_of.trim();
@@ -363,7 +413,6 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
 pub(crate) fn rows_of(s: &PlcSection) -> PlcRows {
     let channels = s.channels.as_ref();
     let second = s.more_channels.first();
-    let supply = s.supply_groups.first();
     PlcRows {
         role: stored_word(&s.role),
         kind: channels.map_or_else(String::new, |c| stored_word(&c.kind)),
@@ -378,14 +427,24 @@ pub(crate) fn rows_of(s: &PlcSection) -> PlcRows {
             Some(PinMap::Pattern(p)) => p.clone(),
             _ => String::new(),
         },
-        l_plus: supply.map_or_else(String::new, |g| g.cps.l_plus.as_str().to_owned()),
-        m: supply.map_or_else(String::new, |g| g.cps.m.as_str().to_owned()),
+        l_plus: supply_text(&s.supply_groups, |p| &p.l_plus),
+        m: supply_text(&s.supply_groups, |p| &p.m),
         slots: slots_text(&s.allowed_slots),
         max_modules: s
             .limits
             .as_ref()
             .and_then(|l| l.max_modules)
             .map_or_else(String::new, |n| n.to_string()),
+    }
+}
+
+/// One kind of supply pin of every group (`pin` picks it), as the form's list: the groups' pins in order, joined by
+/// commas, or the one pin alone when every group has it, so that [`PlcRows::supply_pairs`] gives the groups back.
+fn supply_text(groups: &[SupplyGroup], pin: impl Fn(&SupplyPins) -> &Ident) -> String {
+    let pins: Vec<&str> = groups.iter().map(|g| pin(&g.cps).as_str()).collect();
+    match pins.as_slice() {
+        [first, ..] if pins.iter().all(|p| p == first) => (*first).to_owned(),
+        _ => pins.join(", "),
     }
 }
 
@@ -418,8 +477,9 @@ pub(crate) fn same_pins(a: &PlcRows, b: &PlcRows) -> bool {
 }
 
 /// Keeps in a section made from the form what the held section (`held`) has and the form does not show: the unbound
-/// state, the valve positions, the IO-Link window, the ratings, unknown members, a station's I/O lengths, the further
-/// supply groups, a pin list, and the I/O and channel map of a channel kind the form does not derive.
+/// state, the valve positions, the IO-Link window, the ratings, unknown members, a station's I/O lengths, what a supply
+/// group of the same pins supplies and feeds, a pin list, and the I/O and channel map of a channel kind the form does not
+/// derive.
 pub(crate) fn keep_unshown(s: &mut PlcSection, held: Option<&PlcSection>, rows: &PlcRows) {
     let Some(o) = held else {
         return;
@@ -436,8 +496,18 @@ pub(crate) fn keep_unshown(s: &mut PlcSection, held: Option<&PlcSection>, rows: 
         l.extra.clone_from(&old.extra);
         s.limits = (l != StationLimits::default()).then_some(l);
     }
-    if s.supply_groups.len() <= 1 {
-        s.supply_groups.extend(o.supply_groups.iter().skip(1).cloned());
+    // Every group is in the form; a group of the same pins keeps what it supplies and the channels it feeds.
+    for g in &mut s.supply_groups {
+        if let Some(old) = o
+            .supply_groups
+            .iter()
+            .find(|x| x.cps.l_plus == g.cps.l_plus && x.cps.m == g.cps.m)
+        {
+            g.kind.clone_from(&old.kind);
+            g.feeds.clone_from(&old.feeds);
+            g.extra.clone_from(&old.extra);
+            g.cps.extra.clone_from(&old.cps.extra);
+        }
     }
     if rows.pin_of.trim().is_empty() && matches!(o.pin_of, Some(PinMap::List(_))) {
         s.pin_of.clone_from(&o.pin_of);
@@ -530,8 +600,19 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
     for (_, pin) in &pins {
         add_cp(pin, None);
     }
-    let supply = ident(&rows.l_plus).zip(ident(&rows.m));
-    if let Some((l, m)) = &supply {
+    // A supply group of each pair of the lists (FT-2132), its pins after the channels' pins, each pin once.
+    let supply: Vec<(Ident, Ident)> = rows
+        .supply_pairs()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(l, m)| {
+            (
+                Ident::from_input(l).expect("checked"),
+                Ident::from_input(m).expect("checked"),
+            )
+        })
+        .collect();
+    for (l, m) in &supply {
         add_cp(l.as_str(), Some(PotentialType::LPlus));
         add_cp(m.as_str(), Some(PotentialType::M));
     }
@@ -587,4 +668,55 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         extra: Default::default(),
     };
     Some((section, cps))
+}
+
+#[cfg(test)]
+mod supply_tests {
+    use super::*;
+
+    /// A card of four inputs with the supply pins `l_plus` and `m` as typed.
+    fn card(l_plus: &str, m: &str) -> PlcRows {
+        PlcRows {
+            role: "module".to_owned(),
+            kind: "di".to_owned(),
+            count: "4".to_owned(),
+            l_plus: l_plus.to_owned(),
+            m: m.to_owned(),
+            ..PlcRows::new_part()
+        }
+    }
+
+    /// The (L+, M) pins of each supply group of a section.
+    fn groups(s: &PlcSection) -> Vec<(String, String)> {
+        s.supply_groups
+            .iter()
+            .map(|g| (g.cps.l_plus.as_str().to_owned(), g.cps.m.as_str().to_owned()))
+            .collect()
+    }
+
+    /// FT-2132: a supply pin field is a list, by commas or spaces; each L+ pin becomes a pin and a group, with the M
+    /// pin of its place or the one M pin of them all, and the form reads the groups back as it was typed.
+    #[test]
+    fn a_supply_field_takes_a_list_and_makes_a_pin_of_each() {
+        let rows = card("1L+, 2L+", "M");
+        assert_eq!(check_plc(&rows), Vec::new());
+        let (section, cps) = plc_section(&rows).expect("a section");
+        let pair = |l: &str, m: &str| (l.to_owned(), m.to_owned());
+        assert_eq!(groups(&section), vec![pair("1L+", "M"), pair("2L+", "M")]);
+        let names: Vec<&str> = cps.iter().map(|c| c.designation.as_str()).collect();
+        assert_eq!(names[4..], ["1L+", "M", "2L+"], "{names:?}");
+        let back = rows_of(&section);
+        assert_eq!((back.l_plus.as_str(), back.m.as_str()), ("1L+, 2L+", "M"));
+        // By places, spaces as commas.
+        let (section, _) = plc_section(&card("1L+ 2L+", "1M 2M")).expect("a section");
+        assert_eq!(groups(&section), vec![pair("1L+", "1M"), pair("2L+", "2M")]);
+    }
+
+    /// Lists that do not pair are refused at the M pin in words, never made into one pin named with the comma.
+    #[test]
+    fn supply_lists_that_do_not_pair_are_refused() {
+        let messages = check_plc(&card("L+, L+2", "M, M2, M3"));
+        let keys: Vec<(&str, &str)> = messages.iter().map(|m| (m.field.as_str(), m.key)).collect();
+        assert_eq!(keys, [("plc.m", "error-part-plc-supply-pairs")]);
+    }
 }

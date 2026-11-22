@@ -1044,7 +1044,8 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         .interact_size
         .y
         .max(ui.text_style_height(&egui::TextStyle::Body));
-    let count_field = |ui: &mut Ui, m: &str, way: usize, events: &mut Vec<Event>| -> bool {
+    // A field with one line of its own under it: its message, else `line` (empty: the line kept blank).
+    let lined_field = |ui: &mut Ui, m: &str, line: &str, events: &mut Vec<Event>| -> bool {
         let field = format!("plc.{m}");
         let entered = labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
             events.push(Event::Action(
@@ -1056,19 +1057,24 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             ui.set_min_height(line_height);
             if d.message(&format!("plc.{m}")).is_some() {
                 message(ui, m);
-            } else if let Some((dir, bits)) = io.get(way) {
-                let k = if *dir == "in" {
-                    key!("part-plc-io-in")
-                } else {
-                    key!("part-plc-io-out")
-                };
-                note(ui, &strings::format(k, &[&bits.to_string()]));
+            } else {
+                note(ui, line);
             }
         });
         entered
     };
+    let bits = |way: usize| {
+        io.get(way).map_or_else(String::new, |(dir, bits)| {
+            let k = if *dir == "in" {
+                key!("part-plc-io-in")
+            } else {
+                key!("part-plc-io-out")
+            };
+            strings::format(k, &[&bits.to_string()])
+        })
+    };
     if begun {
-        save |= count_field(ui, "count", 0, events);
+        save |= lined_field(ui, "count", &bits(0), events);
     } else {
         save |= text_field(ui, "count", events);
     }
@@ -1084,7 +1090,7 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     );
     message(ui, "kind2");
     if !d.plc.kind2.trim().is_empty() {
-        save |= count_field(ui, "count2", 1, events);
+        save |= lined_field(ui, "count2", &bits(1), events);
     }
     for m in ["data_type", "designation", "pin_of"] {
         save |= text_field(ui, m, events);
@@ -1106,7 +1112,18 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             note(ui, &pins);
         });
     }
-    for m in ["l_plus", "m", "slots", "max_modules"] {
+    // The supply pins are lists (FT-2132), said under L+; under M one line of its own, kept from the start so that
+    // typing the pins moves nothing: the message of a supply not given whole, else the pins the part gets.
+    save |= text_field(ui, "l_plus", events);
+    note(ui, strings::text(key!("part-plc-supply-hint")));
+    let supply = d.plc.supply_pins();
+    let pins = if supply.is_empty() {
+        String::new()
+    } else {
+        strings::format(key!("part-plc-supply-pins"), &[&supply.join(", ")])
+    };
+    save |= lined_field(ui, "m", &pins, events);
+    for m in ["slots", "max_modules"] {
         save |= text_field(ui, m, events);
         // What Allowed slots takes, with an example, so a list is not taken for a count.
         if m == "slots" {

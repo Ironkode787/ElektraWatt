@@ -582,8 +582,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     press(d, "Station");
     fill(d, "Supply L+ pin", "L+");
     fill(d, "Supply M pin", "M");
-    fill(d, "Most modules", "32");
-    // The form keeps its height and scrolls: the bus interfaces are below the fold.
+    // The form keeps its height and scrolls: Most modules and the bus interfaces are below the fold.
     d.input(&ew_ui::visual::Input::Scroll {
         at: (960, 600),
         dx: 0,
@@ -591,6 +590,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
         mods: egui::Modifiers::NONE,
     });
     d.settle();
+    fill(d, "Most modules", "32");
     press(d, "Add interface");
     press(d, "Interface 1");
     d.input(&key("Ctrl+A"));

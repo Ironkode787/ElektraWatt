@@ -1733,7 +1733,7 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
         ));
     }
     let (p, q) = (old.get("plc").unwrap_or(&empty), new.get("plc").unwrap_or(&empty));
-    let plc: [(&str, Key<'static>); 11] = [
+    let plc: [(&str, Key<'static>); 9] = [
         ("/role", key!("part-plc-role")),
         ("/channels/kind", key!("part-plc-kind")),
         ("/channels/count", key!("part-plc-count")),
@@ -1742,8 +1742,6 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
         ("/channels/data_type", key!("part-plc-data_type")),
         ("/channels/designation", key!("part-plc-designation")),
         ("/pin_of", key!("part-plc-pin_of")),
-        ("/supply_groups/0/cps/l_plus", key!("part-plc-l_plus")),
-        ("/supply_groups/0/cps/m", key!("part-plc-m")),
         ("/limits/max_modules", key!("part-plc-max_modules")),
     ];
     for (path, key) in plc {
@@ -1755,6 +1753,24 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
                 _ => scalar(v),
             };
             out.push((strings::text(key).to_owned(), words(x), words(y)));
+        }
+    }
+    // The supply pins of every group, as the form lists them (FT-2132).
+    for (member, key) in [("l_plus", key!("part-plc-l_plus")), ("m", key!("part-plc-m"))] {
+        let pins = |v: &Value| -> String {
+            let list: Vec<String> = v
+                .get("supply_groups")
+                .and_then(Value::as_array)
+                .map(|g| {
+                    g.iter()
+                        .map(|g| scalar(g.pointer(&format!("/cps/{member}"))))
+                        .collect()
+                })
+                .unwrap_or_default();
+            list.join(", ")
+        };
+        if pins(p) != pins(q) {
+            out.push((strings::text(key).to_owned(), pins(p), pins(q)));
         }
     }
     let slots = |v: &Value| -> Vec<u64> {

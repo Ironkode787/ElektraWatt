@@ -511,8 +511,13 @@ pub struct PartBusPort {
   takes `X1` although the part lists `DP` first.
 - **Made in the window (FT-1766).** Edit ▸ New part… (and New part… in the part dialog and the device browser) makes
   a part with its bus interfaces (a row each) and its PLC section as forms: the role, one channel spec (kind, count,
-  data type, name pattern), the pin pattern (`pin_of`, previewed as "channel 0 → pin 1 … channel 7 → pin 8"), one
-  electronics supply group, the allowed slots and a station's `max_modules`. The I/O range follows from the channels
+  data type, name pattern), the pin pattern (`pin_of`, previewed as "channel 0 → pin 1 … channel 7 → pin 8"), the
+  electronics supply groups, the allowed slots and a station's `max_modules`. *Supply pins as lists (FT-2132).* The L+
+  and the M field each take a list of pins, by commas or spaces ("1L+, 2L+"): a group is made of the two lists' pins by
+  their places, or of the one pin of a list with each pin of the other (two L+ pins over one M); lists that do not pair
+  so are refused at the M field in words, and the form previews the supply pins that come. Edit part… lists every
+  group's pins back so (one pin alone where every group has it), and a group of the same pins keeps what it supplies
+  and the channels it feeds; a list was one pin named with its comma before. The I/O range follows from the channels
   (a digital channel one bit, an analogue one a word, `bit_of` `n` or `16n`); the pins become the CP pattern with a
   black-box main function over them, as the starter cards carry, so N1 and N3 give the channels and bind them to the
   pins. *A card of two kinds (FT-1766).* The form has a second channel kind and its count, which go the other way
