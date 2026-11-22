@@ -412,3 +412,6 @@ change here.
 - behaviour-change: a wire on a single phase L or a neutral N whose voltage is not known takes the mains class's
   cross-section (1.5 mm² built in), as a phase L1, L2 or L3 does; it took the control size, 0.75 mm², so the sample's
   N wires were thinner than their phases (doc 08 §4.2, FT-1834)
+- text-change: a list page or a box whose rows do not derive prints its reason in words in the project's language ("Not
+  derived: this build does not make this list", "Niet afgeleid: …"); it printed it in English with a family or kind name
+  in backquotes (doc 09 §2.4, FT-1995)

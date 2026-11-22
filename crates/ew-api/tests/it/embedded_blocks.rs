@@ -252,7 +252,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason() {
     assert!(findings.is_empty(), "{findings:?}");
     assert_eq!(
         texts,
-        ["Not derived: `unknown source` is not supported in this build"]
+        ["Not derived: this build does not make this list"]
     );
 }
 

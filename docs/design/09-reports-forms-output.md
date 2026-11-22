@@ -338,8 +338,10 @@ overview and the forms and plot-frame documentation are 1.x candidates (Could), 
 rather than the model.
 
 *Kind contract*. A kind's row query reads through `Q::try_get` wherever a read may close
-a query cycle, so no model content makes it panic; a schema kind that no engine registers yet is a placeholder
-.
+a query cycle, so no model content makes it panic; a schema kind that no engine registers yet is a placeholder.
+The placeholder page and a box whose rows do not derive print the reason in words in the project's language ("Not
+derived: this build does not make this list", "Niet afgeleid: de lijst hangt af van haar eigen pagina's"), never a
+family or kind name; the log and the command line keep the name (FT-1995).
 
 ### 2.5 `FormDef`
 

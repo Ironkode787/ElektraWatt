@@ -299,10 +299,11 @@ fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
     assert_eq!(pages[0].label, "910");
     assert_eq!(pages[0].rows, 0..0);
     let note = pages[0].note.as_ref().expect("a note");
-    let text = note.as_neutral().unwrap();
-    assert!(text.contains("not supported"), "{text}");
-    assert!(text.contains("wire_rows"), "{text}");
-    assert!(text.starts_with("Not derived"), "capitalised: {text}");
+    // The reason in words, in English and Dutch, without the family's name (FT-1995).
+    let text = |tag: &str| note.get(&tag.parse().unwrap()).unwrap_or_default().to_owned();
+    let (en, nl) = (text("en-GB"), text("nl-NL"));
+    assert!(en.starts_with("Not derived") && nl.starts_with("Niet afgeleid"), "{en} / {nl}");
+    assert!(!en.contains("wire_rows") && !en.contains('`'), "{en}");
 }
 
 // ---------------------------------------------------------------------------------------------------------

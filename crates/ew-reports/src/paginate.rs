@@ -205,7 +205,7 @@ pub const LAST_PAGE_ROWS: usize = 3;
 pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowLines) -> Vec<Slice> {
     let layouts = &layouts.validated();
     if let RowSetStatus::NotDerived(reason) = &set.status {
-        return vec![note_slice(MlText::neutral(&capitalise(&reason.to_string())))];
+        return vec![note_slice(reason.words())];
     }
     if set.data_rows() == 0 {
         return match &spec.empty {
@@ -517,14 +517,6 @@ pub fn fill_title(format: &str, n: &str, count: &str, group: &str) -> String {
     }
     out.push_str(rest);
     out
-}
-
-fn capitalise(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        Some(f) => f.to_uppercase().chain(c).collect(),
-        None => String::new(),
-    }
 }
 
 fn len_u32(n: usize) -> u32 {

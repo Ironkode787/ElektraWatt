@@ -53,7 +53,7 @@
 //!   page's table: the printed columns, title, header rows and flow columns are the kind's
 //!   `ReportKindDef::embedded_layout` (a source
 //!   without a registered kind prints every column under a header row), the block's own non-empty `title` replaces the
-//!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
+//!   kind's title, and a block whose rows do not derive prints the reason in words as its note (`NotDerived::words`, as a generated
 //!   page's placeholder). An embedded block draws no back-links: only a PLC overview box's
 //!   connection-point links.
 //! - **Slot texts**: `tag` → `displayed_tag(device, page)`,
@@ -1565,7 +1565,7 @@ pub(crate) fn boxed_table_of(q: &Q, block: &ReportBlock, set: &RowSet, page: Id<
         in_lang(&block.title)
     };
     let note = match &set.status {
-        RowSetStatus::NotDerived(reason) => Some(capitalised(&reason.to_string())),
+        RowSetStatus::NotDerived(reason) => Some(in_lang(&reason.words())),
         RowSetStatus::Derived => None,
     };
     let rows = if note.is_some() {
@@ -1626,15 +1626,6 @@ pub(crate) fn boxed_table_of(q: &Q, block: &ReportBlock, set: &RowSet, page: Id<
         rows,
         note,
         lookup,
-    }
-}
-
-/// `s` with its first character upper-cased (the not-derived reason as a generated page's placeholder prints it).
-fn capitalised(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        Some(first) => first.to_uppercase().chain(chars).collect(),
-        None => String::new(),
     }
 }
 

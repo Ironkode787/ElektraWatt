@@ -113,6 +113,28 @@ pub enum NotDerived {
     Cycle(String),
 }
 
+impl NotDerived {
+    /// The reason as a page or a box prints it, in English and Dutch, in words: no family or kind name (FT-1995). The
+    /// [`Display`](fmt::Display) form, which names them, is for the log and the command line.
+    pub fn words(&self) -> MlText {
+        let (en, nl) = match self {
+            NotDerived::Unsupported(_) => (
+                "Not derived: this build does not make this list",
+                "Niet afgeleid: deze versie maakt deze lijst niet",
+            ),
+            NotDerived::Cycle(_) => (
+                "Not derived: the list depends on its own pages",
+                "Niet afgeleid: de lijst hangt af van haar eigen pagina's",
+            ),
+        };
+        MlText::from_langs(
+            [("en-GB", en), ("nl-NL", nl)]
+                .into_iter()
+                .filter_map(|(tag, text)| Some((tag.parse().ok()?, text))),
+        )
+    }
+}
+
 impl fmt::Display for NotDerived {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
