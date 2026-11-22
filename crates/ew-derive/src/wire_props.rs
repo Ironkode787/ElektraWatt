@@ -40,7 +40,7 @@ use crate::query::{Policy, Query};
 use crate::settings;
 use crate::wire_profile::{
     Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, WireProfileNotes, attrs_of,
-    builtin_colour_for, builtin_csa, csa_for_rating, own_class,
+    builtin_colour_for, builtin_csa, csa_raised, own_class,
 };
 use crate::wires::{EndKind, OverrideSources, PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{FunctionCps, Q};
@@ -682,9 +682,9 @@ impl Ctx<'_> {
         };
         let csa0 = Some(Prov::new(builtin_csa(&class), built_in()));
         let colour0 = Some(Prov::new(builtin_colour_for(&colour_attrs, &class), built_in()));
-        // Below level 3, a wire whose protecting device is rated above what that size carries (a PE wire: the highest
-        // rating at its ends; no bond wire) takes the current table's least size that carries it (doc 08 §4.2,
-        // FT-2055).
+        // Below level 3, a wire whose protecting device is rated above what that size carries by the current table
+        // (a PE wire: the highest rating at its ends; no bond wire) takes the table's least size that carries it; a
+        // size below the table stays (doc 08 §4.2, FT-2055).
         let below = pick([csa2, l1.csa, csa0]);
         let size = match &below {
             Some(Prov {
@@ -695,17 +695,15 @@ impl Ctx<'_> {
         };
         let raised = size.and_then(|size| {
             let (device, current) = self.rating(wire, key, rule)?;
-            let (table, csa) = csa_for_rating(current)?;
-            matches!(csa, Csa::Mm2(raised) if raised > size).then(|| {
-                Prov::new(
-                    csa,
-                    PropSource::SizeRow {
-                        profile: table.to_owned(),
-                        class: class.clone(),
-                        rule: SizeRule::Rating { device, current },
-                    },
-                )
-            })
+            let (table, csa) = csa_raised(size, current)?;
+            Some(Prov::new(
+                csa,
+                PropSource::SizeRow {
+                    profile: table.to_owned(),
+                    class: class.clone(),
+                    rule: SizeRule::Rating { device, current },
+                },
+            ))
         });
         let below = raised.or(below);
 

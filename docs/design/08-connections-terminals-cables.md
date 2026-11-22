@@ -685,7 +685,8 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
     ambient, cross-checked against manufacturers' published tables of the same standard: 0.75 mm² 8.5 A, 1 mm² 10.1 A,
     1.5 mm² 13.1 A, 2.5 mm² 17.4 A, 4 mm² 23 A, 6 mm² 30 A, 10 mm² 40 A, 16 mm² 54 A, 25 mm² 70 A, 35 mm² 86 A.
     Derating for another ambient temperature or for grouping is not applied, and a rating above 86 A proposes nothing
-    from the table.
+    from the table. What a size carries is its own row's current, or that of the largest row below it (2 mm² carries
+    what 1.5 mm² does); a size below the first row (0.5 mm²), whose current the table does not give, is not raised.
   - *The rating* is the `rated_current` (a quantity in A) of the technical data of the potential's nearest upstream
     protective device (its flow's `protected_by`, §3.6), the device's own value over its part's. A PE wire takes the
     highest rating at its two ends, read as the PE class rule reads the class there (the potentials of each end's

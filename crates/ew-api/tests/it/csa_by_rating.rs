@@ -64,3 +64,37 @@ fn a_wire_behind_a_breaker_takes_the_size_that_carries_its_rating() {
     assert_eq!(csa.value, Csa::Mm2(Dec3(1_500)));
     assert!(matches!(csa.source, PropSource::Override(_)), "{:?}", csa.source);
 }
+
+/// A size below the table's first row (0.75 mm²), whose current the table does not give, is not raised: the sample
+/// without its size profile, with a project default of 0.5 mm² and its breakers rated 2 A, keeps 0.5 mm² on the wires
+/// behind them.
+#[test]
+fn a_size_below_the_table_is_not_raised() {
+    let behind: Vec<Id<Connection>> = rated(&common::sample()).into_iter().map(|(w, _, _)| w).collect();
+    let (mut project, mut records, lib) = common::sample_records();
+    project.settings.extra.remove("size_profile");
+    project
+        .settings
+        .extra
+        .insert("wire_default".into(), json!({"csa": "0.5"}));
+    for r in &mut records {
+        if let ew_schema::Record::Device(d) = r {
+            d.tech_data =
+                serde_json::from_value(json!([{"key": "rated_current", "value": {"value": "2", "unit": "A"}}]))
+                    .expect("technical data");
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    assert_eq!(rated(&s), Vec::new(), "no wire takes its size from a rating");
+    let q = s.query();
+    for wire in behind {
+        let props = q.get::<ConnWireProps>(wire);
+        let (_, own) = props
+            .iter()
+            .find(|(w, _)| *w == wire)
+            .expect("the wire's properties");
+        let csa = own.csa.as_ref().expect("a cross-section");
+        assert_eq!(csa.value, Csa::Mm2(Dec3(500)), "{wire:?}");
+        assert_eq!(csa.source, PropSource::ProjectDefault, "{wire:?}");
+    }
+}

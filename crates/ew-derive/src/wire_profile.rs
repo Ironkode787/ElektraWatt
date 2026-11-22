@@ -763,10 +763,16 @@ fn current_table() -> &'static CurrentTable {
     })
 }
 
-/// The smallest cross-section of the current table that carries `rating` amperes, with the table's key; `None` for a
-/// rating above its last row.
-pub(crate) fn csa_for_rating(rating: Dec3) -> Option<(&'static str, Csa)> {
+/// The cross-section a wire of `size` mm² takes for `rating` amperes, with the table's key: where the rating exceeds
+/// what the size's own row carries (the largest row at or below the size), the smallest row that carries it. `None`
+/// where the size carries it, for a size below the table's first row (the table does not say what it carries), and
+/// for a rating above its last row.
+pub(crate) fn csa_raised(size: Dec3, rating: Dec3) -> Option<(&'static str, Csa)> {
     let table = current_table();
+    let carried = table.rows.iter().rev().find(|r| r.csa <= size)?.current;
+    if rating <= carried {
+        return None;
+    }
     table
         .rows
         .iter()
@@ -779,10 +785,11 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    /// The table gives the first cross-section that carries a rating: a rating it carries exactly, one between two
-    /// rows, and one above its last row, which proposes nothing.
+    /// A size is raised only for a rating above what its own row carries, to the first row that carries it: a rating
+    /// the size carries exactly keeps it, one just above goes to the next row, a size between two rows counts as the
+    /// lower, a size below the first row and a rating above the last row propose nothing.
     #[test]
-    fn the_current_table_gives_the_least_cross_section_that_carries_a_rating() {
+    fn a_size_is_raised_to_the_least_cross_section_that_carries_a_rating_above_its_own() {
         let table = current_table();
         assert!(
             table
@@ -790,17 +797,19 @@ mod tests {
                 .windows(2)
                 .all(|w| w[0].csa < w[1].csa && w[0].current < w[1].current)
         );
-        let (first, last) = (&table.rows[0], &table.rows[table.rows.len() - 1]);
+        let (first, second, last) = (&table.rows[0], &table.rows[1], &table.rows[table.rows.len() - 1]);
+        let raised = |size: Dec3, rating: Dec3| csa_raised(size, rating).map(|(_, c)| c);
+        assert_eq!(raised(first.csa, first.current), None);
         assert_eq!(
-            csa_for_rating(first.current).map(|(_, c)| c),
-            Some(Csa::Mm2(first.csa))
-        );
-        let second = &table.rows[1];
-        assert_eq!(
-            csa_for_rating(Dec3(first.current.0 + 1)).map(|(_, c)| c),
+            raised(first.csa, Dec3(first.current.0 + 1)),
             Some(Csa::Mm2(second.csa))
         );
-        assert_eq!(csa_for_rating(Dec3(last.current.0 + 1)), None);
+        assert_eq!(
+            raised(Dec3(first.csa.0 + 1), Dec3(first.current.0 + 1)),
+            Some(Csa::Mm2(second.csa))
+        );
+        assert_eq!(raised(Dec3(first.csa.0 - 1), Dec3(1_000)), None);
+        assert_eq!(raised(first.csa, Dec3(last.current.0 + 1)), None);
     }
 
     fn attrs(ptype: PotentialType, voltage: Option<i64>, ac_dc: Option<AcDc>) -> Attrs {
