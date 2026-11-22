@@ -87,7 +87,7 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### A command's words
 
-- FT-1819 `ew-commands, ew-viewmodel`: A command's extra notices read in English in a Dutch window, because `Outcome.notices` (`ew-commands/src/command.rs`) is a list of strings: carry a text key through `Outcome` (a box reshape's moved pin, a paste's notices).
+- FT-1819 `ew-commands, ew-viewmodel`: A command's extra notices read in English in a Dutch window, because `Outcome.notices` (`ew-commands/src/command.rs`) is a list of strings: carry a text key through `Outcome` (a box reshape's moved pin, a paste's notices). Counted in M3.5 step 13: some 35 places write a notice (`box_reshape`, `company`, `device`, `exchange`, `join`, `join_level`, `overview`, `paste`, `plc`, `plc_exchange`, and `TxBuilder::notice` from `fluid` and `page`), and many build their English from helpers (`words::device`, `listed`/`was_or_were`, `binding_words`, `address_words`, `ew_plc::field_words`/`object_words`), which must yield `Text` as well; `layout.auto_fill_rail` already builds `Text` and flattens it. The change: `notices: Vec<Text>`, a key per notice in both languages, the helpers on `TextArg`, the window worded by `command_error_words`' path and the CLI by `Display`: a lane of its own in `ew-commands`.
 
 #### Work on the window's thread
 
