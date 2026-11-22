@@ -618,7 +618,7 @@ The job runner: one named `std` thread per job, a progress cell, a cancel flag c
 
 ## ew-library
 
-`crates/ew-library` · GPL-3.0-or-later · depends on `ew-format`, `ew-ids`, `ew-schema` · used by `ew-api` · in tests by none
+`crates/ew-library` · GPL-3.0-or-later · depends on `ew-format`, `ew-ids`, `ew-mltext`, `ew-schema` · used by `ew-api` · in tests by none
 
 Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects.
 
@@ -657,7 +657,7 @@ Generic memo engine: revisions, dependency recording, early cut-off, durability 
 
 ## ew-mltext
 
-`crates/ew-mltext` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
+`crates/ew-mltext` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
 
 Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag`, NFC identifiers `Ident`, confusable detection and natural-sort keys.
 
