@@ -19,6 +19,7 @@ without a row here. No set holds a vendor file or a maker's catalogue data.
 | `content/libraries/ew-starter-parts.ewlib` | generic starter parts and the manufacturer "Generic" | CC0-1.0 | the project's own (`ew.original`) | — | WP-S2.18 |
 | `content/plc-profiles` | address profiles (`plc_profile`), compiled into `ew-derive` | CC-BY-SA-4.0 | the project's own data of doc 10 §2.5 | allocation `verified: false` | WP-S7.03 |
 | `content/profiles/colour` | colour profiles (`colour_profile` values) | CC-BY-SA-4.0 | the project's own table of doc 08 §4.3; "DBU/WH 24 V": the sample project's convention | `verified: false`; "DBU/WH 24 V" `verified: true` | FT-337; WP-S7.03 |
+| `content/profiles/current` | current tables (a conductor's current by cross-section), compiled into `ew-derive` | CC-BY-SA-4.0 | the values of IEC/EN 60204-1:2016 Table 6, method B2, PVC-insulated copper, 40 °C; cited, not copied text | cross-checked against manufacturers' published tables of the same standard, not against the standard's own text | FT-2055 |
 | `content/profiles/size` | size profiles (`size_profile` values) | CC-BY-SA-4.0 | "0.75/1.5": the sample project's convention | `verified: true` | WP-S7.03 |
 | `content/symbols` | symbols, native edition | CC-BY-SA-4.0 | the project's own (`ew.original`) | — | WP-S7.02 |
 | `content/symbols/qet10` | symbols, QET 10 px edition | CC-BY-SA-4.0 | generated from `content/symbols` | — | WP-S7.02 |
