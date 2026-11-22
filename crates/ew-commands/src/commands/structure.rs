@@ -334,7 +334,11 @@ impl Command for CreateReportBlock {
                     return tx.reject(text!("refusal-report-block-layout-page"));
                 }
                 // One layout, one legend (doc 12 §5.4): a second list would print the first one's folios.
-                if tx.iter::<ReportBlock>().iter().any(|b| b.layout_page == Some(page)) {
+                if tx
+                    .iter::<ReportBlock>()
+                    .iter()
+                    .any(|b| b.layout_page == Some(page))
+                {
                     let folio = super::page::printed_folio(p.folio.number, p.folio.label.as_ref());
                     return tx.reject(text!("refusal-report-block-legend-taken", folio));
                 }

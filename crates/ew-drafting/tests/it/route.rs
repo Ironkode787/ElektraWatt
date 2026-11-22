@@ -597,12 +597,7 @@ fn a_plan_whose_mark_would_put_its_tag_on_a_text_is_not_offered() {
         b.part("A", p(2, 2), (p(-1, 0), p(1, 4)), &pin);
         b.part("B", p(8, 2), (p(-1, 0), p(1, 4)), &pin);
         let u = b.run("u", b.pin("A", "1"), b.pin("B", "1"), &[p(2, 16), p(8, 16)]);
-        b.page
-            .wires
-            .iter_mut()
-            .find(|w| w.id == u)
-            .expect("u")
-            .computed = true;
+        b.page.wires.iter_mut().find(|w| w.id == u).expect("u").computed = true;
         let mark = b.mark("W1", Rect::new(p(1, 12), p(3, 12)), true, &[u]);
         b.label(
             Owner::Mark(mark),
