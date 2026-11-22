@@ -1598,7 +1598,9 @@ is listed as a rejected PLC change and cannot be accepted. **States** in a previ
 `pending` (changed in the project only although the PLC owns it: export pending) and `conflict`; a resolution (`ours`,
 `theirs`) is keyed by `<object>/<record>/<field>`. `ew-plc` names each object kind, field and state by the key of
 its words (`object_key`, `FIELD_KEYS`, `State::key`; FT-2080): the window and Apply's notices render the key in the
-window's language, the command line prints its English. Without a snapshot of the object (a first import of a project that
+window's language ("applied" for `apply`), and the command line prints an object's and a field's words in English;
+`ew import plc-aml` and `plc-xlsx` begin each change's line with the state's name above (`State::word`), as their
+`--json` gives it. Without a snapshot of the object (a first import of a project that
 never exported, an object added since) every difference of an owned field is a conflict with the owner's default. A
 value the file leaves out or empty is no deletion: it never clears the project's value by default, but is listed as
 `rejected` (or as a `conflict`) whose default is ours, and only the choice `theirs` clears it. A comment with languages
