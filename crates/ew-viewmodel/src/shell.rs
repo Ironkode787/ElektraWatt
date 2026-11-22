@@ -662,9 +662,6 @@ struct Project {
     /// The sections by number with their titles, once per revision: the Pages tree lists a section that holds no
     /// page yet (FT-1634).
     sections: Vec<(u16, String)>,
-    /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals),
-    /// remembered while the project is open.
-    terminal_spacing: u32,
 }
 
 /// The spacing of a terminal row in grid steps until the user sets another.

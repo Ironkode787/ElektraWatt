@@ -1156,7 +1156,6 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
             sections: Vec::new(),
-            terminal_spacing: super::TERMINAL_SPACING_DEFAULT,
         });
         self.install_view();
     }

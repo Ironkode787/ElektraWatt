@@ -28,7 +28,7 @@ use serde_json::{Map, Value};
 
 use super::{
     AccessMode, Dialog, HistoryMarker, Mode, Opened, Outcome, Pending, Project, Prompt, Record, ShellModel,
-    TERMINAL_SPACING_DEFAULT, damaged_banner, dir_name, failed, flag, left_out_copies, open_error_key,
+    damaged_banner, dir_name, failed, flag, left_out_copies, open_error_key,
     revision, string_param, symbol_editor, tools,
 };
 use crate::key;
@@ -238,7 +238,6 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
             sections: Vec::new(),
-            terminal_spacing: super::TERMINAL_SPACING_DEFAULT,
         });
         self.install_view();
         self.settings.push_recent(&dir.to_string_lossy());
@@ -1153,7 +1152,6 @@ impl ShellModel {
                     labels,
                     rows: Vec::new(),
                     sections: Vec::new(),
-                    terminal_spacing: super::TERMINAL_SPACING_DEFAULT,
                 });
                 self.install_view();
                 match banner {
@@ -1322,7 +1320,6 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
             sections: Vec::new(),
-            terminal_spacing: TERMINAL_SPACING_DEFAULT,
         });
         // A project the start-up offer lists is no longer offered once it is open.
         self.opened_offered_project(dir);

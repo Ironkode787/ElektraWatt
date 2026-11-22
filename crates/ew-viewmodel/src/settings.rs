@@ -14,7 +14,8 @@
 //! only once chosen) and the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
 //! list of `<library ID>/<item ID>` texts, written only once set, and the minimum text size
-//! `min_font_pt` and `reduce_motion`, each written only once set, and the tips' switch `tips`
+//! `min_font_pt` and `reduce_motion`, each written only once set, the spacing of a new terminal row in grid steps
+//! `terminal_spacing` (written only once chosen, FT-1791), and the tips' switch `tips`
 //! (written only when off) and `tips_seen` (the tips shown once, written only once one was). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
@@ -139,6 +140,9 @@ pub struct Settings {
     /// The tips already shown, by their word ([`crate::shell::Tip::word`]), in the order they were shown
     /// (`tips_seen`).
     pub tips_seen: Vec<String>,
+    /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals), kept
+    /// between sessions (`terminal_spacing`, FT-1791); `None` until one is chosen. Written only when set.
+    pub terminal_spacing: Option<u32>,
     /// The symbols edited lately in the symbol editor, by their library address (`library:<library>:<item>`), most
     /// recent first, at most [`MAX_RECENT`] (`symbols_recent`, written only once one was edited).
     pub symbols_recent: Vec<String>,
@@ -175,6 +179,7 @@ impl Default for Settings {
             tips: true,
             tips_seen: Vec::new(),
             symbols_recent: Vec::new(),
+            terminal_spacing: None,
             extra: toml::Table::new(),
         }
     }
@@ -340,6 +345,12 @@ impl Settings {
         let wheel_scrolls = match table.remove("wheel_scrolls") {
             None => false,
             Some(toml::Value::Boolean(on)) => on,
+            Some(_) => return None,
+        };
+        // A spacing of no grid step or of more than a whole number holds is no spacing: the default stays.
+        let terminal_spacing = match table.remove("terminal_spacing") {
+            None => None,
+            Some(toml::Value::Integer(n)) => u32::try_from(n).ok().filter(|n| *n > 0),
             Some(_) => return None,
         };
         // `tips` a bool (absent is on), `tips_seen` a list of texts.
@@ -516,6 +527,7 @@ impl Settings {
             tips,
             tips_seen,
             symbols_recent,
+            terminal_spacing,
             extra: table,
         };
         // The template of a file written before the list (one path) is a list of that one.
@@ -672,6 +684,9 @@ impl Settings {
         }
         if self.wheel_scrolls {
             table.insert("wheel_scrolls".to_owned(), toml::Value::Boolean(true));
+        }
+        if let Some(n) = self.terminal_spacing {
+            table.insert("terminal_spacing".to_owned(), toml::Value::Integer(i64::from(n)));
         }
         // Written only when set, likewise.
         if !self.tips {

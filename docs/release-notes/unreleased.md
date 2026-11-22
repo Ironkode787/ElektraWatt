@@ -433,6 +433,8 @@ change here.
   else its first ("Installatieautomaat, 1-polig" in a Dutch window), and still finds it by its words in every
   language; it joined every language with " / ". The device browser and Properties' list of library parts show it in
   the project's language by the same order (doc 07 §4.3, FT-2066)
+- behaviour-change: the spacing of a terminal row (Terminal…'s Spacing, Spacing… on placed terminals) is kept between
+  sessions as a user setting, `terminal_spacing` in the settings file; it lasted while the project was open (FT-1791)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

@@ -431,8 +431,10 @@ impl ShellModel {
         params.insert("strip".into(), Value::String(strip));
         params.insert("count".into(), Value::from(count));
         params.insert("spacing".into(), Value::from(spacing));
-        if let Some(project) = &mut self.project {
-            project.terminal_spacing = spacing;
+        // Kept between sessions, a user setting (FT-1791).
+        if self.settings.terminal_spacing != Some(spacing) {
+            self.settings.terminal_spacing = Some(spacing);
+            self.save_settings();
         }
         if !from.is_empty() {
             params.insert(TERMINAL_DESIGNATION[0].into(), Value::String(from));
@@ -467,11 +469,13 @@ impl ShellModel {
             .is_some_and(|c| self.selected_terminal_row(&c.page().tables).len() >= 2)
     }
 
-    /// The spacing of the open project's next terminal row in grid steps.
+    /// The spacing of the next terminal row in grid steps: the one last chosen, in this session or an earlier one
+    /// (the user setting `terminal_spacing`, FT-1791), else the default.
     pub(crate) fn terminal_spacing(&self) -> u32 {
-        self.project
-            .as_ref()
-            .map_or(super::TERMINAL_SPACING_DEFAULT, |p| p.terminal_spacing)
+        self.settings
+            .terminal_spacing
+            .unwrap_or(super::TERMINAL_SPACING_DEFAULT)
+            .clamp(1, TERMINAL_SPACING_MAX)
     }
 
     /// The Spacing field's choices: 1 to [`TERMINAL_SPACING_MAX`] grid steps, each with its length on the page shown
@@ -565,8 +569,10 @@ impl ShellModel {
             }
         }
         self.tools.row_steps = start.zip(cursor(self)).filter(|(a, b)| b > a);
-        if let Some(project) = &mut self.project {
-            project.terminal_spacing = u32::try_from(steps).unwrap_or(super::TERMINAL_SPACING_DEFAULT);
+        let spacing = u32::try_from(steps).unwrap_or(super::TERMINAL_SPACING_DEFAULT);
+        if self.settings.terminal_spacing != Some(spacing) {
+            self.settings.terminal_spacing = Some(spacing);
+            self.save_settings();
         }
         self.form_done(ACTION, Outcome::Done)
     }
