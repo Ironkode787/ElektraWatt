@@ -955,8 +955,8 @@ fn note(ui: &mut Ui, text: &str) {
 
 /// The PLC section of a new part (FT-1766): its role; for a station or a module the channels (kind, count, data
 /// type, name), the pin pattern with its hint and a preview of the first and last channel's pins, the I/O it occupies,
-/// the supply pins, the allowed slots and a station's most modules; each field's message under it. `true` when Enter
-/// was pressed in a field.
+/// the supply pins, the allowed slots and a station's most modules; the fields' messages in the lines kept for them.
+/// `true` when Enter was pressed in a field.
 fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
     use ew_viewmodel::ew_api::{channel_kind_words, plc_role_words};
     let t = theme::current(ui.ctx());
@@ -1001,6 +1001,48 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     if d.plc.role.trim().is_empty() {
         return false;
     }
+    // While the section is shown nothing in it changes height because of what is typed into one of its fields
+    // (FT-2130, a persona run typed at fields that had moved): the hints and messages that come and go while it is
+    // typed stand in lines kept from the start, each one line high, a longer text cut with the whole of it on hover.
+    // Under Channels its own and its kind's messages, else the bits the channels occupy; after the pin pattern's hint
+    // the messages of data type, name and pattern, else the preview of the pins; under Supply M pin the supply's
+    // messages, else the pins it gives; after Most modules the messages of the slots and the limit.
+    let line_height = ui
+        .spacing()
+        .interact_size
+        .y
+        .max(ui.text_style_height(&egui::TextStyle::Body));
+    let words = |m: &str| {
+        d.message(&format!("plc.{m}")).map(|msg| {
+            ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(msg.key), &msg.args)
+        })
+    };
+    let steady = |ui: &mut Ui, of: &[&str], note_text: &str| {
+        let shown = of.iter().find_map(|m| words(m));
+        ui.allocate_ui_with_layout(
+            vec2(ui.available_width(), line_height),
+            egui::Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                ui.set_min_size(vec2(ui.available_width(), line_height));
+                match &shown {
+                    Some(text) => {
+                        ui.add(egui::Label::new(RichText::new(text).color(t.error.color32())).truncate());
+                    }
+                    None => {
+                        ui.add_space(t.size_dialog_label + t.space_3);
+                        ui.add(
+                            egui::Label::new(
+                                RichText::new(note_text)
+                                    .font(theme::font(&t.type_small))
+                                    .color(t.text_secondary.color32()),
+                            )
+                            .truncate(),
+                        );
+                    }
+                }
+            },
+        );
+    };
     let mut kinds = vec![String::new()];
     kinds.extend(channel_kind_words());
     let kind_word = |v: &str| {
@@ -1019,66 +1061,33 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         kind_word,
         events,
     );
-    message(ui, "kind");
-    let text_field = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| -> bool {
-        let field = format!("plc.{m}");
-        let entered = labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
+    let field = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| -> bool {
+        let name = format!("plc.{m}");
+        labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
             events.push(Event::Action(
                 "part.field",
-                json!({ "field": field, "value": text }),
+                json!({ "field": name, "value": text }),
             ));
-        });
-        message(ui, m);
-        entered
-    };
-    // The hints of the channels have their room as soon as the channels are begun (a kind or a count given), before
-    // they can be worked out, so the fields under them stay where they are while the channels are typed and a click
-    // aimed at one lands in it: under each count one line, its message (a count still to type) else the bits its
-    // channels occupy; after the pin pattern's hint the preview of the pins. A part without channels (a head station)
-    // keeps no room for them.
-    let begun = !d.plc.kind.trim().is_empty() || !d.plc.count.trim().is_empty();
-    let io = d.plc.io();
-    // A note's row (a horizontal row, as high as a control's) or a message's line, whichever is higher.
-    let line_height = ui
-        .spacing()
-        .interact_size
-        .y
-        .max(ui.text_style_height(&egui::TextStyle::Body));
-    // A field with one line of its own under it: its message, else `line` (empty: the line kept blank).
-    let lined_field = |ui: &mut Ui, m: &str, line: &str, events: &mut Vec<Event>| -> bool {
-        let field = format!("plc.{m}");
-        let entered = labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
-            events.push(Event::Action(
-                "part.field",
-                json!({ "field": field, "value": text }),
-            ));
-        });
-        ui.scope(|ui| {
-            ui.set_min_height(line_height);
-            if d.message(&format!("plc.{m}")).is_some() {
-                message(ui, m);
-            } else {
-                note(ui, line);
-            }
-        });
-        entered
-    };
-    let bits = |way: usize| {
-        io.get(way).map_or_else(String::new, |(dir, bits)| {
-            let k = if *dir == "in" {
-                key!("part-plc-io-in")
-            } else {
-                key!("part-plc-io-out")
-            };
-            strings::format(k, &[&bits.to_string()])
         })
     };
-    if begun {
-        save |= lined_field(ui, "count", &bits(0), events);
-    } else {
-        save |= text_field(ui, "count", events);
-    }
-    // A card with inputs and outputs: its second kind of channels, the other way (FT-1766).
+    let io = d.plc.io();
+    let bits = |way: usize| {
+        io.get(way).map_or_else(
+            || strings::text(key!("part-plc-io-none")).to_owned(),
+            |(dir, bits)| {
+                let k = if *dir == "in" {
+                    key!("part-plc-io-in")
+                } else {
+                    key!("part-plc-io-out")
+                };
+                strings::format(k, &[&bits.to_string()])
+            },
+        )
+    };
+    save |= field(ui, "count", events);
+    steady(ui, &["count", "kind"], &bits(0));
+    // A card with inputs and outputs: its second kind of channels, the other way (FT-1766); its count and line come
+    // with the kind chosen.
     labelled_combo(
         ui,
         "plc.kind2",
@@ -1088,48 +1097,46 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         kind_word,
         events,
     );
-    message(ui, "kind2");
-    if !d.plc.kind2.trim().is_empty() {
-        save |= lined_field(ui, "count2", &bits(1), events);
+    if d.plc.kind2.trim().is_empty() {
+        message(ui, "kind2");
+    } else {
+        save |= field(ui, "count2", events);
+        steady(ui, &["count2", "kind2"], &bits(1));
     }
     for m in ["data_type", "designation", "pin_of"] {
-        save |= text_field(ui, m, events);
+        save |= field(ui, m, events);
     }
     note(ui, strings::text(key!("part-plc-pin_of-hint")));
-    if begun {
-        let pins = d
-            .plc
-            .pins()
-            .and_then(|pins| Some((pins.first()?.clone(), pins.last()?.clone())))
-            .map_or_else(String::new, |(first, last)| {
+    let pins = d
+        .plc
+        .pins()
+        .and_then(|pins| Some((pins.first()?.clone(), pins.last()?.clone())))
+        .map_or_else(
+            || strings::text(key!("part-plc-pins-none")).to_owned(),
+            |(first, last)| {
                 strings::format(
                     key!("part-plc-pins"),
                     &[&first.0.to_string(), &first.1, &last.0.to_string(), &last.1],
                 )
-            });
-        ui.scope(|ui| {
-            ui.set_min_height(line_height);
-            note(ui, &pins);
-        });
-    }
-    // The supply pins are lists (FT-2132), said under L+; under M one line of its own, kept from the start so that
-    // typing the pins moves nothing: the message of a supply not given whole, else the pins the part gets.
-    save |= text_field(ui, "l_plus", events);
+            },
+        );
+    steady(ui, &["data_type", "designation", "pin_of"], &pins);
+    // The supply pins are lists (FT-2132), said under L+.
+    save |= field(ui, "l_plus", events);
     note(ui, strings::text(key!("part-plc-supply-hint")));
+    save |= field(ui, "m", events);
     let supply = d.plc.supply_pins();
-    let pins = if supply.is_empty() {
+    let given = if supply.is_empty() {
         String::new()
     } else {
         strings::format(key!("part-plc-supply-pins"), &[&supply.join(", ")])
     };
-    save |= lined_field(ui, "m", &pins, events);
-    for m in ["slots", "max_modules"] {
-        save |= text_field(ui, m, events);
-        // What Allowed slots takes, with an example, so a list is not taken for a count.
-        if m == "slots" {
-            note(ui, strings::text(key!("part-plc-slots-hint")));
-        }
-    }
+    steady(ui, &["m", "l_plus"], &given);
+    save |= field(ui, "slots", events);
+    // What Allowed slots takes, with an example, so a list is not taken for a count.
+    note(ui, strings::text(key!("part-plc-slots-hint")));
+    save |= field(ui, "max_modules", events);
+    steady(ui, &["slots", "max_modules"], "");
     save
 }
 

@@ -67,6 +67,79 @@ fn the_fields_under_the_channels_stay_while_the_channels_are_typed() {
     );
 }
 
+/// The PLC section's fields, top to bottom, that stand whatever is typed (Its channels comes with a second kind,
+/// which these steps do not choose).
+const FIELDS: [&str; 9] = [
+    "Channels",
+    "Second channel kind",
+    "Data type",
+    "Channel name",
+    "Pin pattern",
+    "Supply L+ pin",
+    "Supply M pin",
+    "Allowed slots",
+    "Most modules",
+];
+
+/// A step of typing into the form: a field and its text, or a kind chosen.
+enum Step {
+    Kind,
+    Type(&'static str, &'static str),
+}
+
+/// A module's form, then `steps` one by one: after each, every field of the section stands where it stood when the
+/// section was shown, though a hint or a message comes or goes (persona re-test: "Occupies 8 input bits" pushed the
+/// supply pins down while they were typed).
+fn fields_stand(steps: &[Step]) {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    open_new_part(&mut d);
+    press(&mut d, "PLC role");
+    press(&mut d, "Module");
+    // From the PLC role's field: a click on a field low in the form may scroll it into sight, which moves nothing in it.
+    let places = |d: &Driver| {
+        let top = y_of(d, "PLC role").unwrap_or_default();
+        FIELDS.map(|f| y_of(d, f).map(|y| y - top))
+    };
+    let shown = places(&d);
+    assert!(shown.iter().all(Option::is_some), "{shown:?}");
+    for step in steps {
+        let what = match step {
+            Step::Kind => {
+                press(&mut d, "Channel kind");
+                press(&mut d, "DI");
+                "the kind"
+            }
+            Step::Type(field, text) => {
+                fill(&mut d, field, text);
+                *field
+            }
+        };
+        assert_eq!(places(&d), shown, "after {what}");
+    }
+}
+
+#[test]
+fn the_fields_stand_while_kind_count_and_supply_pins_are_typed_from_the_top() {
+    fields_stand(&[
+        Step::Kind,
+        Step::Type("Channels", "8"),
+        Step::Type("Supply L+ pin", "1L+, 2L+"),
+        Step::Type("Supply M pin", "M, M2, M3"),
+    ]);
+}
+
+#[test]
+fn the_fields_stand_while_count_kind_and_supply_pins_are_typed_from_below() {
+    fields_stand(&[
+        Step::Type("Channels", "8"),
+        Step::Kind,
+        Step::Type("Supply M pin", "M"),
+        Step::Type("Supply L+ pin", "L+"),
+        Step::Type("Allowed slots", "x"),
+    ]);
+}
+
 #[test]
 fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     type H = egui_kittest::Harness<'static, ew_ui::app::App>;

@@ -4882,7 +4882,7 @@ error-part-plc-kind-missing = Choose the kind of the channels
 error-part-plc-count = “{ $p0 }” is no number of channels: type a whole number from 1 to { $p1 }, such as 8
 error-part-plc-count-missing = Type how many channels the part has, such as 8
 error-part-plc-supply = A supply has an L+ pin and an M pin; give both, or neither
-error-part-plc-supply-pairs = { $p0 } L+ pins and { $p1 } M pins do not pair: give an M pin for each L+ pin, or one M pin for all of them
+error-part-plc-supply-pairs = { $p0 } L+ pins, { $p1 } M pins: give one M pin, or one for each L+ pin
 error-part-plc-pin = “{ $p0 }” gives no pin for channel { $p1 }: write the pin of channel n with braces, such as {"{"}n+1{"}"} or X2:{"{"}n+1{"}"}
 error-part-plc-pin-twice = { $p0 } would be the pin of two channels; each channel needs its own pin
 error-part-plc-slots = “{ $p0 }” is no list of slots: type numbers and ranges, such as 1-8, 10
@@ -4909,8 +4909,10 @@ part-plc-supply-hint = A list gives a pin of each, by commas or spaces, such as 
 part-plc-supply-pins = Supply pins: { $p0 }
 part-plc-max_modules = Most modules
 part-plc-pins = Channel { $p0 } → pin { $p1 } … channel { $p2 } → pin { $p3 }
+part-plc-pins-none = Pins: once the count is given
 part-plc-io-in = Occupies { $p0 } input bits
 part-plc-io-out = Occupies { $p0 } output bits
+part-plc-io-none = Bits: once the kind and count are given
 
 # WP-S2.07 part 4b (§9.5): FT-396's paste choice.
 reason-paste-versions = The pasted records use another version of { $p0 }; choose Use the project's copy or Update the project's copy
