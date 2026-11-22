@@ -73,12 +73,12 @@ fn cells(b: &ImportBatch) -> Vec<Vec<String>> {
 fn the_title_block_prints_the_fields_the_import_writes() {
     let b = import(["B", "B"]);
     let fields = [
-        "{page.function}",
-        "{page.location}",
-        "{revision.current.label}",
-        "{revision.current.author.name}",
-        "{project.drawing_id}",
-        "ACME",
+        " {page.function}",
+        " {page.location}",
+        " {revision.current.label}",
+        " {revision.current.author.name}",
+        " {project.drawing_id}",
+        " ACME",
     ];
     let c = cells(&b);
     assert_eq!(c[0], fields);
@@ -159,9 +159,9 @@ fn the_title_block_prints_the_fields_the_import_writes() {
 fn a_value_the_folios_do_not_share_stays_text() {
     let b = import(["A", "B"]);
     let c = cells(&b);
-    assert_eq!(c[0][2], "A");
-    assert_eq!(c[1][2], "B");
+    assert_eq!(c[0][2], " A");
+    assert_eq!(c[1][2], " B");
     assert!(!b.records.iter().any(|r| matches!(r, Record::Revision(_))));
     // The page's own fields print on each page all the same.
-    assert_eq!(c[0][0], "{page.function}");
+    assert_eq!(c[0][0], " {page.function}");
 }

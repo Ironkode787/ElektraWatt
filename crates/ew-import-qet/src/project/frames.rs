@@ -35,7 +35,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
     Align, Bounds, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, ImagePrim, ItemMeta,
-    LibCopy, LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, ShrinkSpec, TextStyleSpec,
+    LibCopy, LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, TextStyleSpec,
 };
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
@@ -58,8 +58,6 @@ const HEADER_PX: i64 = 20;
 const LINE_PX: i64 = 1;
 /// A4, nm.
 const A4: (i64, i64) = (297_000_000, 210_000_000);
-/// The smallest printed cap height a shrinking title-block text keeps (QET compresses without limit).
-const MIN_CAP: Nm = Nm(500_000);
 /// The font size of a field without a usable one, pt (QET's default).
 const DEFAULT_PT: u16 = 9;
 /// The largest border QET values the importer takes: count and size each up to these.
@@ -611,7 +609,8 @@ fn title_block(
             }
             continue;
         }
-        // QET prints `label: value` when the label is displayed.
+        // QET prints ` label: value` when the label is displayed, else ` value`: always after one space
+        // (`TitleBlockTemplate::finalTextForCell`).
         let mut value = template(&c.value, ctx, report);
         if c.display_label && !c.label.trim().is_empty() {
             value = format!("{}: {value}", template(c.label.trim(), ctx, report));
@@ -619,6 +618,7 @@ fn title_block(
         if value.trim().is_empty() {
             continue;
         }
+        let value = format!(" {value}");
         let pt = c
             .font_size
             .filter(|p| (2..=140).contains(p))
@@ -629,8 +629,10 @@ fn title_block(
         if lines > 1 {
             extra.insert("ew.cell.max_lines".into(), Value::from(lines));
         }
-        // QET draws a cell's text on the cell's edges, without an inset (FT-1765).
+        // QET draws a cell's text on the cell's edges, without an inset (FT-1765), as its screen lays it out:
+        // every advance a whole px.
         extra.insert("ew.cell.inset".into(), Value::from(0));
+        extra.insert("ew.cell.pixel".into(), Value::from(px(1).0));
         let Ok(rect) = Bounds::new(Pt2::new(px(x0), px(y0)), Pt2::new(px(x1), px(y1))) else {
             continue;
         };
@@ -641,10 +643,7 @@ fn title_block(
             style: Ident::from_input(&style_key(pt)).ok()?,
             align: align(&c.valign, &c.align),
             overflow: if c.hadjust {
-                Overflow::ShrinkToFit(ShrinkSpec {
-                    min_cap_height: MIN_CAP,
-                    extra: Default::default(),
-                })
+                Overflow::FitWidth
             } else {
                 Overflow::Error
             },

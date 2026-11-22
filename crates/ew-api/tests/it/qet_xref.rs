@@ -192,11 +192,11 @@ fn a_coil_and_its_contacts_print_each_others_positions() {
 fn a_cross_reference_is_centred_under_its_label_text() {
     // The coil and both contacts print the label "-K1" in 7 pt from (-30, 0) px in a box that fits the text:
     // QET centres the cross-reference under that box, whose middle is the 4 px margin and half the label,
-    // 3 characters of 0.55 em of a 7 pt font (2,469,444 nm). The coil's list (`displayhas="contacts"`) has
+    // 3 characters of 0.55 em of a 7 pt font (9 px, 2,381,250 nm). The coil's list (`displayhas="contacts"`) has
     // its texts 28 px further right, after the contacts QET draws before them.
     let imported = import();
     let b = &imported.batch;
-    let middle = px(-30) + px(4) + (2_469_444 * 550 * 3 + 1000) / 2000;
+    let middle = px(-30) + px(4) + (2_381_250 * 550 * 3 + 1000) / 2000;
     let mut centred = Vec::new();
     for r in &b.records {
         let Record::Representation(rep) = r else { continue };

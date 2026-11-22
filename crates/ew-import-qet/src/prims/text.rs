@@ -73,7 +73,7 @@
 use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{Align, Extra, Primitive, SlotKind, TextPrim, TextSlot, TextStyleSpec, TextWeight};
-use ew_units::{Angle2, Nm, Pt2};
+use ew_units::{Angle2, Grid, Nm, Pt2};
 use roxmltree::Node;
 
 use super::{ItemError, Parsed, PrimCtx};
@@ -268,23 +268,28 @@ pub fn substitution(family: &str) -> Option<String> {
     ))
 }
 
-/// The em height of a QET font of `point_size` points: QET draws a point as 4/3 px (96 per inch), and a px is
-/// `793_750 / 3` nm, so `point_size × 3_175_000 / 9` nm (9 pt → 3,175,000 nm, the `text.normal` of doc 20 §17.5);
-/// rounded once (the em the frame styles of a project import give a size too); `None` out of range.
+/// The em height of a QET font of `point_size` points as QET prints it: Qt lays QET's texts out at its 96 dpi
+/// with a whole number of pixels per em, [`qt_pixels`], and a px is `793_750 / 3` nm (9 pt → 12 px → 3,175,000 nm,
+/// the `text.normal` of doc 20 §17.5; 7 pt → 9 px, not 9⅓; doc 14 §4.10). `None` out of range or below zero.
 pub fn em_of(point_size: Decimal) -> Option<Nm> {
-    let scaled = point_size.mantissa().checked_mul(3_175_000)?;
+    Grid::QET_1PX.at(qt_pixels(point_size)?)
+}
+
+/// The pixels per em Qt gives a font of `point_size` points at 96 dpi: `point_size × 4/3` rounded to a whole pixel,
+/// halves up (`qRound`), and at least 1 for a size above zero. `None` out of range or below zero.
+pub fn qt_pixels(point_size: Decimal) -> Option<i64> {
+    let m = point_size.mantissa().checked_mul(4)?;
     let e = point_size.exp();
     let (num, den) = if e >= 0 {
-        (
-            scaled.checked_mul(10i128.checked_pow(u32::try_from(e).ok()?)?)?,
-            9,
-        )
+        (m.checked_mul(10i128.checked_pow(u32::try_from(e).ok()?)?)?, 3)
     } else {
-        (scaled, 10i128.checked_pow(e.unsigned_abs())?.checked_mul(9)?)
+        (m, 10i128.checked_pow(e.unsigned_abs())?.checked_mul(3)?)
     };
-    i64::try_from(crate::decimal::div_round_half_even(num, den))
-        .ok()
-        .map(Nm)
+    if num < 0 {
+        return None;
+    }
+    let px = num.checked_mul(2)?.checked_add(den)? / den.checked_mul(2)?;
+    i64::try_from(if num > 0 { px.max(1) } else { 0 }).ok()
 }
 
 /// The project text style an import style key stands for (doc 14 §4.10): the inverse of [`style_key`],
@@ -636,6 +641,17 @@ mod tests {
                 "rotation {rotation}"
             );
         }
+    }
+
+    #[test]
+    fn a_qet_font_prints_in_whole_pixels_of_qts_96_dpi() {
+        let pt = |s: &str| Decimal::parse(s).unwrap();
+        // Its em: the points' 4/3 px rounded to a whole px, halves up, at least 1.
+        for (size, px) in [("9", 12), ("7", 9), ("5", 7), ("6", 8), ("4", 5), ("7.5", 10), ("4.875", 7), ("0.1", 1), ("0", 0)] {
+            assert_eq!(qt_pixels(pt(size)), Some(px), "{size} pt");
+            assert_eq!(em_of(pt(size)), Grid::QET_1PX.at(px), "{size} pt");
+        }
+        assert_eq!(qt_pixels(pt("-1")), None);
     }
 
     #[test]

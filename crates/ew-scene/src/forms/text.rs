@@ -76,22 +76,34 @@ pub(crate) struct BoxSpec<'a> {
     pub max_lines: usize,
     /// The page-to-sheet map, for the printed minimum cap height of shrink-to-fit.
     pub sheet: SheetMap,
+    /// The pixel of a screen whose layout the text copies ([`snapped`]); `None`: the face's own advances.
+    pub pixel: Option<Nm>,
 }
 
 /// Lays `text` into `spec.rect` (see the module documentation of [`crate::forms`]).
 pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &BoxSpec<'_>) -> Laid {
     let avail_w = Nm((spec.rect.width().0 - 2 * spec.padding.0).max(0));
     let avail_h = spec.rect.height();
-    let wrap = (spec.max_lines > 1).then_some(avail_w);
+    // `fit_width` never wraps and asks only for the width.
+    let fit_width = matches!(spec.overflow, Some(Overflow::FitWidth));
+    let wrap = (spec.max_lines > 1 && !fit_width).then_some(avail_w);
     let fits = |s: &Shaped, st: &TextStyle| {
         let m = fonts.vertical_metrics(st);
         let n = s.lines.len();
         s.advance() <= avail_w
-            && n <= spec.max_lines.max(1)
-            && (n <= 1 || Nm(m.line_pitch.0 * n as i64) <= avail_h)
+            && (fit_width
+                || n <= spec.max_lines.max(1) && (n <= 1 || Nm(m.line_pitch.0 * n as i64) <= avail_h))
+    };
+    // A screen layout's pixel scales with the text, as a smaller text is the layout drawn smaller.
+    let full = style.size;
+    let shape = |t: &str, st: &TextStyle, w: Option<Nm>| {
+        let pixel = spec.pixel.map(|p| {
+            Nm((i128::from(p.0) * i128::from(st.size.0) / i128::from(full.0.max(1))) as i64)
+        });
+        snapped(fonts.shape(t, st, w), pixel)
     };
     let mut style = *style;
-    let mut shaped = fonts.shape(text, &style, wrap);
+    let mut shaped = shape(text, &style, wrap);
     let mut overflow = None;
     let mut shown = text.to_owned();
     if avail_w <= Nm::ZERO && !text.is_empty() {
@@ -104,7 +116,7 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                 Some(Overflow::Ellipsis) => OverflowKind::Truncated,
                 Some(Overflow::Error) => OverflowKind::Error,
                 Some(Overflow::Unknown(_)) => OverflowKind::UnknownPolicy,
-                Some(Overflow::ShrinkToFit(_)) | None => OverflowKind::ShrinkLimit,
+                Some(Overflow::ShrinkToFit(_) | Overflow::FitWidth) | None => OverflowKind::ShrinkLimit,
             }),
         };
     }
@@ -134,7 +146,7 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                     }
                     if next < floor {
                         style = style.with_size(floor);
-                        shaped = fonts.shape(text, &style, wrap);
+                        shaped = shape(text, &style, wrap);
                         if !fits(&shaped, &style) {
                             overflow = Some(OverflowKind::ShrinkLimit);
                         }
@@ -142,11 +154,26 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                     }
                     size = next;
                     style = style.with_size(size);
-                    shaped = fonts.shape(text, &style, wrap);
+                    shaped = shape(text, &style, wrap);
                     if fits(&shaped, &style) {
                         break;
                     }
                 }
+            }
+            Some(Overflow::FitWidth) => {
+                // The text as laid out, scaled whole by the box's share of its widest line (the width is
+                // linear in the size, to a nanometre). No floor.
+                let width = i128::from(shaped.advance().0.max(1));
+                let next = Nm((i128::from(style.size.0) * i128::from(avail_w.0) / width) as i64);
+                if next <= Nm::ZERO {
+                    return Laid {
+                        items: Vec::new(),
+                        shaped,
+                        overflow: Some(OverflowKind::ShrinkLimit),
+                    };
+                }
+                style = style.with_size(next);
+                shaped = shape(text, &style, None);
             }
             Some(Overflow::Ellipsis) => {
                 // The longest prefix (cut at a char boundary, trailing whitespace trimmed) whose
@@ -161,14 +188,14 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                 let (mut lo, mut hi) = (0, chars.len().saturating_sub(1));
                 while lo < hi {
                     let mid = lo + (hi - lo).div_ceil(2);
-                    if fonts.shape(&candidate(mid), &style, None).advance() <= avail_w {
+                    if shape(&candidate(mid), &style, None).advance() <= avail_w {
                         lo = mid;
                     } else {
                         hi = mid - 1;
                     }
                 }
                 shown = candidate(lo);
-                shaped = fonts.shape(&shown, &style, None);
+                shaped = shape(&shown, &style, None);
                 overflow = Some(OverflowKind::Truncated);
             }
             Some(Overflow::Error) => overflow = Some(OverflowKind::Error),
@@ -176,12 +203,60 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
             None => {}
         }
     }
-    let items = place(fonts, &shaped, &style, &shown, spec, Pt2::ORIGIN, Angle2::ZERO);
+    let items = if fit_width && style.size < full {
+        // As QET draws a scaled text: in the box's height scaled by the same share about its middle.
+        let h = i128::from(avail_h.0);
+        let kept = h * i128::from(style.size.0) / i128::from(full.0.max(1));
+        let top = spec.rect.min().y + Nm(((h - kept) / 2) as i64);
+        let rect = Rect::from_points(
+            Pt2::new(spec.rect.min().x, top),
+            Pt2::new(spec.rect.max().x, top + Nm(kept as i64)),
+        );
+        let scaled = BoxSpec { rect, ..*spec };
+        place(fonts, &shaped, &style, &shown, &scaled, Pt2::ORIGIN, Angle2::ZERO)
+    } else {
+        place(fonts, &shaped, &style, &shown, spec, Pt2::ORIGIN, Angle2::ZERO)
+    };
     Laid {
         items,
         shaped,
         overflow,
     }
+}
+
+/// `shaped` as a screen of `pixel` lays it out (QElectroTech's text, doc 14 §4.10): every glyph's advance, its
+/// kerning included, rounded to a whole number of pixels (halves up) and each line as long as their sum. Without a
+/// pixel (or with one of no length) it is unchanged.
+fn snapped(mut shaped: Shaped, pixel: Option<Nm>) -> Shaped {
+    let Some(p) = pixel.map(|p| i128::from(p.0)).filter(|&p| p > 0) else {
+        return shaped;
+    };
+    let run = Arc::make_mut(&mut shaped.run);
+    for line in &mut shaped.lines {
+        let Some(glyphs) = run.glyphs.get_mut(line.glyphs.clone()) else {
+            continue;
+        };
+        let Some(start) = glyphs.first().map(|g| i128::from(g.x.0)) else {
+            continue;
+        };
+        let ends: Vec<i128> = glyphs
+            .iter()
+            .skip(1)
+            .map(|g| i128::from(g.x.0))
+            .chain([i128::from(line.advance.0)])
+            .collect();
+        let mut pen = start;
+        for (g, end) in glyphs.iter_mut().zip(ends) {
+            let advance = end - i128::from(g.x.0);
+            g.x = Nm(pen as i64);
+            pen += (2 * advance + p).div_euclid(2 * p) * p;
+        }
+        line.advance = Nm(pen as i64);
+    }
+    let width = shaped.lines.iter().map(|l| l.advance).max().unwrap_or(Nm::ZERO);
+    let b = run.layout_box;
+    run.layout_box = Rect::from_points(b.min(), Pt2::new(width, b.max().y));
+    shaped
 }
 
 /// The smallest em height whose printed cap height (through `sheet`) is at least `min_cap`.
@@ -354,6 +429,7 @@ mod tests {
             overflow: None,
             max_lines: 1,
             sheet: SheetMap::IDENTITY,
+            pixel: None,
         };
         let items = place(fonts, &shaped, &style, text, &spec, at, Angle2::ZERO);
         // One item per line; callers put the link and the entity on it.
@@ -453,6 +529,7 @@ mod tests {
                     overflow: Some(&Overflow::Ellipsis),
                     max_lines: 1,
                     sheet: SheetMap::IDENTITY,
+                    pixel: None,
                 };
                 let laid = lay_out(fonts, text, &style, &spec);
                 if fonts.shape(text, &style, None).advance() <= avail_w {

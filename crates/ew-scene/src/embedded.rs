@@ -704,6 +704,7 @@ fn push_wrapped(
         overflow: None,
         max_lines: lines,
         sheet,
+        pixel: None,
     };
     let laid = lay_out(fonts, s, style, &spec);
     if !laid.shaped.missing.is_empty() {

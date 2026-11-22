@@ -45,7 +45,9 @@
 //!   height (through the form's page-to-sheet scale) is `min_cap_height`, where it reports
 //!   [`OverflowKind::ShrinkLimit`]; `ellipsis` cuts characters from the end and appends "…" (reported as
 //!   [`OverflowKind::Truncated`]; wrapping is not combined with it); `error` draws the text unchanged and
-//!   reports it.
+//!   reports it. `fit_width` (QElectroTech's `hadjust`) never wraps and asks only for the width: a text wider
+//!   than the inset width is scaled down whole until its widest line fits, without a floor, and placed in the
+//!   cell's height scaled by the same share about its middle, as QElectroTech draws it.
 //! - Characters without a glyph are reported ([`FormFinding::MissingGlyphs`], FR-OUT-027).
 //! - A text line is one display-list item: a glyph run, or, when the symbol fallback face draws part of it,
 //!   a group of runs, one per font (a link or entity goes on the item).
@@ -89,6 +91,11 @@ pub const EXTRA_INSET: &str = "ew.cell.inset";
 
 /// The largest inset a cell's [`EXTRA_INSET`] gives: 10 mm; a larger or negative value is the default.
 pub const MAX_INSET: Nm = Nm(10_000_000);
+
+/// `FormCell.extra` member: the pixel of the screen whose layout the cell's text copies, nm (1 nm to [`MAX_INSET`];
+/// another value is none): every glyph's advance is a whole number of it. A QElectroTech title block's cells have one
+/// QET px (264,583 nm): QElectroTech prints its texts as its screen lays them out (doc 14 §4.10).
+pub const EXTRA_PIXEL: &str = "ew.cell.pixel";
 
 /// Which form a cell or graphic belongs to.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -277,6 +284,7 @@ impl Lowerer<'_> {
                 overflow: None,
                 max_lines: 1,
                 sheet: self.sheet,
+                pixel: None,
             };
             let laid = lay_out(self.fonts, label, &style, &spec);
             self.missing(TextSite::GridLabel, label, &laid.shaped.missing);
@@ -310,6 +318,7 @@ impl Lowerer<'_> {
                     overflow: None,
                     max_lines: 1,
                     sheet: self.sheet,
+                    pixel: None,
                 };
                 for item in place(self.fonts, &shaped, &style, &s, &spec, pos, t.angle) {
                     self.push(item);
@@ -392,6 +401,12 @@ impl Lowerer<'_> {
             .map(Nm)
             .filter(|n| (Nm::ZERO..=MAX_INSET).contains(n))
             .unwrap_or(CELL_PADDING);
+        let pixel = cell
+            .extra
+            .get(EXTRA_PIXEL)
+            .and_then(Value::as_i64)
+            .map(Nm)
+            .filter(|n| (Nm(1)..=MAX_INSET).contains(n));
         let spec = BoxSpec {
             rect,
             halign,
@@ -400,6 +415,7 @@ impl Lowerer<'_> {
             overflow: Some(&cell.overflow),
             max_lines,
             sheet: self.sheet,
+            pixel,
         };
         let laid = lay_out(self.fonts, &text, &style, &spec);
         self.missing(site, &text, &laid.shaped.missing);

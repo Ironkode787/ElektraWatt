@@ -366,7 +366,7 @@ pub struct RowTemplates { pub data: Option<RowTemplate>, pub group_header: Optio
 pub struct RowTemplate { pub height: Nm, pub cells: Vec<FormCell>, pub wrap: WrapPolicy }   // default WrapPolicy::None
 pub struct FormCell { pub rect: Rect, pub label: Option<MlText>, pub value: Placeholder,
                       pub style: TextStyleRef, pub align: Align, pub overflow: Overflow, pub visible_if: Option<Cond> }
-pub enum Overflow { ShrinkToFit { min_cap_height: Nm }, Ellipsis, Error }   // never silent clipping (FR-REP-039)
+pub enum Overflow { ShrinkToFit { min_cap_height: Nm }, Ellipsis, Error, FitWidth }   // never silent clipping (FR-REP-039)
 pub struct SheetTransform { pub scale_ppb: u32, pub offset: Pt2 }   // QET frame: 986_282_578 ppb, offset (9.79, 9.79) mm
 ```
 
@@ -377,9 +377,18 @@ integer arithmetic of §4.3 rule 4 instead of a float `Affine`.
 v0 has no tab stops. `ShrinkToFit` reduces the style size down to `min_cap_height`, measured as printed through the
 page-to-sheet transform (§2.8); text that still does not fit is drawn at that size and overflows the cell, and the
 form finding `Overflow` reports it, because clipping is forbidden. `Ellipsis` cuts the text, appends "…" and reports
-it; `Error` draws the text unshrunk and reports it. Cell text is inset 2 QET px (0.529 mm) from the left and right
+it; `Error` draws the text unshrunk and reports it. `FitWidth` (`"fit_width"`) is QElectroTech's `hadjust`, which a
+QElectroTech title block's cells take ([14](14-interop.md) §4.10): its lines are never wrapped and only the width
+counts, so a text wider than the cell is scaled down whole (its size and, with a pixel, its pixel) until its widest
+line fits, without a floor, and placed in the cell's height scaled by the same share about its middle; a text taller
+than the cell is drawn at its size and not reported, as QElectroTech draws it. An older build keeps the value
+as unknown and draws the text as `Error` does. Cell text is inset 2 QET px (0.529 mm) from the left and right
 edges, or by the cell's own `ew.cell.inset` extra member in nm (0 to 10 mm; a QElectroTech title block's cells
-have 0, [14](14-interop.md) §4.10), and middle alignment centres the cap height. A cell with no room at all (inset width ≤ 0, or shrinking that
+have 0, [14](14-interop.md) §4.10), and middle alignment centres the cap height. A cell's `ew.cell.pixel` extra member
+(nm, 1 nm to 10 mm; another value is none) lays its text out as a screen of that pixel does: every glyph's advance,
+its kerning included, is rounded to a whole number of pixels (halves up) and each line is as long as their sum; a
+QElectroTech title block's cells have one QET px, as QElectroTech prints them. Every output draws the glyphs where
+the display list puts them, so nothing else changes; an older build ignores the member. A cell with no room at all (inset width ≤ 0, or shrinking that
 reaches size 0) draws nothing and reports the finding of its own policy (`ShrinkLimit`, `Truncated` or `Error`); v0
 has no separate finding kind for it. An asset cell draws the image of its `AssetRef`, fitted by the
 recorded intrinsic size, or filling the inset area when the size is unknown ([05](05-project-format-and-persistence.md)

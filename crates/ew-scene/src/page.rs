@@ -1771,6 +1771,7 @@ impl Builder<'_> {
             overflow: None,
             max_lines: 1,
             sheet: SheetMap::IDENTITY,
+            pixel: None,
         };
         place(self.fonts, shaped, style, spec.text, &boxed, spec.at, spec.angle)
     }

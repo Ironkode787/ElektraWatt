@@ -8,7 +8,7 @@ use ew_import_qet::QetProjectImporter;
 use ew_import_qet::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
 use ew_schema::{
-    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Page, Record, ReportBlock, ReportKind,
+    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Record, ReportBlock, ReportKind,
     ReportSource,
 };
 use ew_units::{Grid, Nm};
@@ -155,22 +155,26 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
     assert_eq!(
         values,
         [
-            "{page.title}",
-            "By: A {{ACME}} ",
-            "Sheet: {doc.page_index}/{doc.page_count} %unknown"
+            " {page.title}",
+            " By: A {{ACME}} ",
+            " Sheet: {doc.page_index}/{doc.page_count} %unknown"
         ]
     );
     // `colspan` counts the columns beyond the first: the title spans columns 1 and 2, to the right edge.
     assert_eq!(first.item.cells[0].rect.0.max().x, px(1).at(1040).unwrap());
     assert_eq!(first.item.cells[0].style.as_str(), "qet.7");
-    // QET draws a cell's text on the cell's edges: no inset (FT-1765).
+    // QET draws a cell's text on the cell's edges: no inset (FT-1765), each advance a whole px of its screen.
     assert!(
         first
             .item
             .cells
             .iter()
-            .all(|c| c.extra.get("ew.cell.inset") == Some(&serde_json::json!(0)))
+            .all(|c| c.extra.get("ew.cell.inset") == Some(&serde_json::json!(0))
+                && c.extra.get("ew.cell.pixel") == Some(&serde_json::json!(px(1).at(1).unwrap().0)))
     );
+    // `hadjust` is QET's fit to the width; a cell without it is drawn as it is.
+    let overflows: Vec<&Overflow> = first.item.cells.iter().map(|c| &c.overflow).collect();
+    assert_eq!(overflows, [&Overflow::FitWidth, &Overflow::Error, &Overflow::Error]);
     assert!(!first.item.graphics.is_empty());
     // Equal values share one form; another author makes another.
     assert_eq!(tb(0).id, tb(1).id);
@@ -185,6 +189,11 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
         })
         .unwrap();
     assert!(project.settings.text_styles.keys().any(|k| k.as_str() == "qet.6"));
+    // In the size QET prints: 7 pt is 9 px at Qt's 96 dpi, not 9⅓.
+    assert_eq!(
+        project.settings.text_styles.get("qet.7").map(|s| s.size),
+        px(1).at(9)
+    );
     let said = |needle: &str| b.report.entries.iter().any(|e| e.message.contains(needle));
     assert!(said("logo"), "{:?}", b.report.entries);
     assert!(said("local file path"));

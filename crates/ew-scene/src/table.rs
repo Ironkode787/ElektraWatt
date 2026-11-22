@@ -233,6 +233,7 @@ pub(crate) fn push_cell(
         overflow: Some(overflow),
         max_lines: 1,
         sheet,
+        pixel: None,
     };
     let mut laid = lay_out(fonts, s, style, &spec(&shrink));
     // Still too wide at the smallest size: cut with an ellipsis at that size (doc 09 §7 item 5), so that a cell never
@@ -356,6 +357,7 @@ fn widened(
             overflow: Some(&shrink),
             max_lines: 1,
             sheet,
+            pixel: None,
         };
         texts(c).any(|s| {
             !s.is_empty() && lay_out(fonts, s, style, &spec).overflow == Some(OverflowKind::ShrinkLimit)
@@ -690,6 +692,7 @@ mod tests {
             overflow: Some(&shrink),
             max_lines,
             sheet: SheetMap::IDENTITY,
+            pixel: None,
         };
         let laid = lay_out(bundled(), text, &style, &spec);
         let style = style.with_size(laid.shaped.run.size);

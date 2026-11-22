@@ -2260,6 +2260,9 @@ pub enum Overflow {
     Ellipsis,
     /// Report an error.
     Error,
+    /// QElectroTech's `hadjust`: a text wider than the cell is scaled down whole until its widest line fits,
+    /// without a floor; its height never makes it smaller and its lines are never wrapped (doc 09 §2.5).
+    FitWidth,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

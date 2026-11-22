@@ -1048,12 +1048,26 @@ variable has an EW xref-format token (FR-XRF-003):
   takes that face's file ([09](09-reports-forms-output.md) §4.8).
 - One import text style per distinct (family, size, weight, italic) is created, named `qet.<size>[.b][.i]`. These
   styles are not bound to slot kinds (EW-IMP-114); "apply `tag.main`" restores one tag height (D-29).
-- Sizes stay in native points: QET 12 px → 9.00 pt native → 8.88 pt printed through the frame transform (20 §17.5).
+- Sizes stay in native points: QET 12 px → 9.00 pt native → 8.88 pt printed through the frame transform (20 §17.5);
+  a size that is no whole number of px takes QET's whole px (below).
 - *As built.* The project import adds each import style the drawing names (symbol texts and slots, free texts) to
-  the project's text styles (`settings.text_styles`, ADR-0032): `qet.<size>` has the em height of a QET font of
-  that many points, `size × 3,175,000 / 9` nm (QET draws a point as 4/3 px), bold for `.b`; italic is not a
-  text-style property and is dropped. Without them every import style was unknown and printed in `text.normal`,
-  so texts of 4 to 6 pt printed at 9 pt.
+  the project's text styles (`settings.text_styles`, ADR-0032): `qet.<size>` has the em height QET prints a font of
+  that many points at, bold for `.b`; italic is not a text-style property and is dropped. Without them every import
+  style was unknown and printed in `text.normal`, so texts of 4 to 6 pt printed at 9 pt.
+- *In whole pixels (FT-1941).* QET's own PDF shows that QElectroTech 0.100 prints its texts as Qt lays them out on
+  its screen, at Qt's 96 dpi in whole pixels; the import follows it, so an imported text stands where QET's print has
+  it in QET's face (a computer at another logical dpi rounds otherwise; the file does not say). A font of `size`
+  points has `round(size × 4/3)` px to the em, halves up (7 pt is 9 px, 5 pt is 7 px, not 9⅓ and 6⅔), a px being
+  `793,750 / 3` nm. Each glyph's advance is a
+  whole px too; a title block's cells carry it as their `ew.cell.pixel` of one QET px
+  ([09](09-reports-forms-output.md) §2.5), so a right-aligned or centred cell stands where QET's does. The drawing's
+  free and element texts keep the face's own advances.
+- *A title block's cell* prints as QET's `TitleBlockTemplate::finalTextForCell` writes it, after one space
+  (` label: value`, or ` value`), and a cell with `hadjust` takes the overflow `fit_width`
+  ([09](09-reports-forms-output.md) §2.5): QET 0.100's `renderTextCell` scales a text wider than its cell by the cell's
+  share of its width in both directions (`painter.scale(ratio, ratio)`) and centres the scaled cell's height in the
+  cell; it never shrinks a text for its height, so a cell whose lines are taller than it overflows it. Only QET's DXF
+  export condenses a text across alone; the print does not.
 - *Measured (FT-1746, FT-1765).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
   imported text stands on QET's baseline (a free text with `anchor: baseline`, an element's texts `baseline_left`),
   so a project whose typeface is QET's face prints it where QET does; the dynamic texts and free texts of 4 to 9 pt
