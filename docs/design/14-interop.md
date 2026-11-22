@@ -816,7 +816,9 @@ through the texts above, but parts, user properties and comments from it are not
   to the symbol (hidden, in QET's 5 pt) and shows on each representation. A master lists its slaves' positions
   one per line directly under its first label text (QET's `snapto="label"`); a linked slave prints its master's
   position under its label text, or above it for `xrefpos="AlignTop"`, `slave_offset` px away, as the `<xref>` of
-  its master's type says. The text is centred on the middle of the label's box, as QET centres it: half a fixed
+  its master's type says, its first line on QET's baseline (the cross-reference item's 4 px margin and Qt's ascent of
+  its 7 px text below the label's box; Qt's descent above the box for a slave above it), so it stands where QET prints
+  it in any typeface. The text is centred on the middle of the label's box, as QET centres it: half a fixed
   `text_width`, else the 4 px margin and half the label, counted at 0.55 em a character (the import has no
   text widths, so this middle is an estimate). A master's contact list (`displayhas="contacts"`) has its texts
   28 px right of that middle, where QET prints them after the contacts it draws. What differs from QET: a master

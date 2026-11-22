@@ -197,25 +197,27 @@ pub(crate) fn box_middle(width: Option<Decimal>, text: &str, em: Nm) -> Option<i
 }
 
 /// Where QET draws the cross-reference of a master or slave whose label text item is `at` with `lines` lines
-/// of em `em`: the point the cross-reference's text is centred on, `gap` px below the item's box (`above`:
-/// above it), `middle` nm right of the box's left edge ([`box_middle`]), in the label's frame, and the label's
-/// angle. The point is the top of the text below the box and its bottom above it, inside the
-/// cross-reference item's own margin; the box is the text and the margin on each side.
+/// of em `em`: the point the cross-reference's text of em `xref` is centred on, `gap` px below the item's box
+/// (`above`: above it), `middle` nm right of the box's left edge ([`box_middle`]), in the label's frame, and the
+/// label's angle. The point is on the baseline of the cross-reference's first line, as QET prints it inside the
+/// cross-reference item's own margin: Qt's ascent below the item's top below the box, Qt's descent above its bottom
+/// above it (a slave's one line); the box is the text and the margin on each side.
 pub(crate) fn below_text(
     at: &TextAt,
     (lines, em): (usize, Nm),
     middle: i128,
     gap: Decimal,
     above: bool,
+    xref: Nm,
 ) -> Option<(Pt2, Angle2)> {
     let margin = margin_nm()?;
     let gap = i128::from(gap.px_to_nm().ok()?.0);
     let lines = i128::try_from(lines).ok()?;
     let height = 2 * margin + qt_line(em).checked_mul(lines)?;
     let down = if above {
-        -(gap + margin)
+        -(gap + margin + qt_line(xref) - qt_ascent(xref))
     } else {
-        height + gap + margin
+        height + gap + margin + qt_ascent(xref)
     };
     text_point(at, middle, down)
 }

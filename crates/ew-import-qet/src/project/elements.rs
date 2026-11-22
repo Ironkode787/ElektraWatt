@@ -1001,11 +1001,9 @@ impl Mx<'_, '_> {
             false,
         ))
         .ok();
-        let align = if place.above {
-            Align::BottomCentre
-        } else {
-            Align::TopCentre
-        };
+        // On QET's baseline, so it stands where QET prints it in any typeface (doc 09 §4.8).
+        let align = Align::BaselineCentre;
+        let xref_em = crate::prims::text::em_of(Decimal::from_int(XREF_POINT_SIZE)).unwrap_or(Nm(0));
         let Some(middle) = place
             .right
             .px_to_nm()
@@ -1014,7 +1012,8 @@ impl Mx<'_, '_> {
         else {
             return;
         };
-        if let Some((local, angle)) = items::below_text(at, lines, middle, place.gap, place.above)
+        if let Some((local, angle)) =
+            items::below_text(at, lines, middle, place.gap, place.above, xref_em)
             && let Some(slot) = self
                 .slot_for(e, &SlotKind::Xref, style, align)
                 .filter(|i| !overrides.iter().any(|o| o.slot == *i))

@@ -197,7 +197,11 @@ fn a_cross_reference_is_centred_under_its_label_text() {
     let imported = import();
     let b = &imported.batch;
     let middle = px(-30) + px(4) + (2_381_250 * 550 * 3 + 1000) / 2000;
+    // On QET's baseline: below the label's box (its 4 px margins and one line of Qt's 9 + 2 px), the
+    // cross-reference item's own 4 px margin and Qt's ascent of its 5 pt (7 px) text, 7 px.
+    let baseline = px(4 + 11 + 4) + px(4) + px(7);
     let mut centred = Vec::new();
+    let mut downs = Vec::new();
     for r in &b.records {
         let Record::Representation(rep) = r else { continue };
         let Some(symbol) = b.lib.iter().find_map(|d| match d {
@@ -211,13 +215,15 @@ fn a_cross_reference_is_centred_under_its_label_text() {
             // A report's cross-reference stands where its label text stands, aligned as that text (an element's
             // own texts stand on their baseline, doc 09 §4.8).
             if slot.kind == SlotKind::Xref && slot.align != Align::BaselineLeft {
-                assert_eq!(slot.align, Align::TopCentre);
+                assert_eq!(slot.align, Align::BaselineCentre);
                 centred.extend(o.pos.map(|p| p.x.0));
+                downs.extend(o.pos.map(|p| p.y.0));
             }
         }
     }
     centred.sort_unstable();
     assert_eq!(centred, [middle, middle, middle + px(28)]);
+    assert_eq!(downs, [baseline; 3]);
 }
 
 /// `v` px in nm.
