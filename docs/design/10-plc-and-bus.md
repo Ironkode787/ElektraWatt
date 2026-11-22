@@ -1873,7 +1873,11 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   configuration project; a name another PLC has is refused);
 - **the catalogue** at the right: the place catalogue's parts (`CataloguePart::plc`, the device browser's list and
   its filter matching) that fit the station, by group (`PlcGroup`), the parts that do not fit where the cursor stands
-  greyed with the reason; New part… at its foot. A library PLC part without a function template, which the place
+  greyed with the reason; New part… at its foot. For a station without its head New part… starts as the head (a
+  station part with the kind's bus row), and the row goes when the role is made Module while it is as the preset made
+  it; saved, the part stands in the catalogue, and it is the station's head only when the empty head was the place
+  chosen (FT-2131: a card made there came with "X1 PROFINET Controller", and a part saved there became the head
+  unasked). A library PLC part without a function template, which the place
   catalogue does not offer because nothing draws it (`PlaceCatalogue::plc_without_functions`), is listed greyed too,
   with what to do in the part editor (a pin pattern or supply pins give it its box); taking it is refused in those words.
 

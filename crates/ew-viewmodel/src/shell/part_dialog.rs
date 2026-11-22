@@ -1010,7 +1010,8 @@ impl ShellModel {
     /// Make a part for this symbol…), a part drawn with that symbol. From the part dialog, Save returns to it on the new
     /// part. With `plc` (the rack dialog's New part…): the draft starts as what the dialog was asked for, `cpu`,
     /// `remote`, `valve_terminal` or `compact` a station part with that kind's defaults ([`plc_preset`]), `module` a
-    /// module part; Save returns to the rack dialog with the new part chosen.
+    /// module part; Save returns to the rack dialog with the new part in its catalogue, its head when the empty head
+    /// was the place chosen. A station's preset bus row goes when the role is made Module ([`ShellModel::act_part_field`]).
     pub(crate) fn act_part_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let symbol = or_return!(string_param(p, "symbol")).map(str::to_owned);
         let plc = match or_return!(string_param(p, "plc")) {
@@ -1203,6 +1204,11 @@ impl ShellModel {
                     .set_draft_field(&mut editor.draft, "description", &words);
             }
             return out;
+        }
+        // A module starts without a bus interface: the row a station's preset put in (New part… of a new station's
+        // catalogue starts as its head) goes when the role is made Module, while it is as the preset made it.
+        if field == "plc.role" && value == "module" && editor.draft.new && preset_bus(&editor.draft.bus) {
+            editor.draft.remove_bus_row(0);
         }
         match project.session.set_draft_field(&mut editor.draft, &field, &value) {
             Err(PartDraftError::Refused(_)) => failed(key!("error-part-field"), &[&field]),
@@ -1446,9 +1452,12 @@ impl ShellModel {
             self.dialog = Some(Dialog::PartChoose(chooser));
             self.part_refresh();
         }
-        // Made from the view of a station not made yet, a part that can head a station is its head; a card stands in
-        // the view's catalogue.
-        if self.station_draft().is_some_and(|d| d.head.is_none()) {
+        // Made from the view of a station not made yet with its empty head chosen, a part that can head a station is its
+        // head; else the part stands in the view's catalogue, offered, and nothing of the station changes unasked.
+        let from_head = self
+            .station_tab()
+            .is_some_and(|t| t.cursor == Some(crate::area::StationCursor::Head));
+        if from_head && self.station_draft().is_some_and(|d| d.head.is_none()) {
             let head = serde_json::Map::from_iter([("head".to_owned(), serde_json::Value::String(number))]);
             let _ = self.act_plc_rack_set(&head);
         }
@@ -1480,6 +1489,18 @@ impl ShellModel {
         })));
         Outcome::Done
     }
+}
+
+/// Whether `rows` is the one bus row [`plc_preset`] gives a station, as it made it: `X1`, PROFINET, a controller or a
+/// device, nothing else filled in.
+fn preset_bus(rows: &[ew_api::BusRow]) -> bool {
+    matches!(rows, [r] if ["controller", "device"].contains(&r.role.as_str())
+    && *r == ew_api::BusRow {
+        interface: "X1".to_owned(),
+        bus: "profinet".to_owned(),
+        role: r.role.clone(),
+        ..ew_api::BusRow::default()
+    })
 }
 
 /// The words of `part.new`'s `plc`: the rack dialog's station kinds and `module`.

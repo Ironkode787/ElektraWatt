@@ -4975,8 +4975,9 @@ msgstr ""
 msgid ""
 "Double-click its head in the **Catalogue** at the right: the CPU, the "
 "interface module of a remote station, the valve terminal. **New part…** "
-"under the catalogue opens the part editor set for that kind, and the part "
-"you save is the head when you come back."
+"under the catalogue opens the part editor set for that kind; the part you "
+"save is in the catalogue when you come back, and it is the head when you "
+"clicked the empty **Head** first."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:65

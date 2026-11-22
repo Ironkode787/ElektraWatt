@@ -60,8 +60,8 @@ The exchange of the hardware and the tags with the PLC software is at the end of
 2. Choose what it is: **PLC (CPU)**, **Remote I/O**, **Valve terminal** or **Compact device** (a hover says each in
    full), and the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
 3. Double-click its head in the **Catalogue** at the right: the CPU, the interface module of a remote station, the
-   valve terminal. **New part…** under the catalogue opens the part editor set for that kind, and the part you save
-   is the head when you come back.
+   valve terminal. **New part…** under the catalogue opens the part editor set for that kind; the part you save is
+   in the catalogue when you come back, and it is the head when you clicked the empty **Head** first.
 4. Double-click each module in the catalogue: it goes into the next free slot. A click on a card selects it:
    **Remove**, **Move left** and **Move right** above the rack change it before it is made.
 5. Choose **Create**: the station and its modules are made in one step, drawn on no page yet. Nothing is written

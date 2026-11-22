@@ -746,7 +746,7 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
 
 /// New part… at the catalogue's foot presets what the view was asked for: for Remote I/O a station part with a
 /// device's bus interface, for PLC (CPU) one whose interface leads the bus, for a station with its head a module
-/// part; saved, the new head part is the draft's head.
+/// part; saved with the empty head chosen, the new head part is the draft's head.
 #[test]
 fn new_part_from_the_rack_starts_as_what_was_asked() {
     let tmp = Tmp::new();
@@ -758,6 +758,7 @@ fn new_part_from_the_rack_starts_as_what_was_asked() {
         };
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"kind": "remote"}));
+    dispatch(&mut h, "plc.rack_select", json!({"head": true}));
     settle(&mut h);
     h.get_by_label("New part…").click();
     settle(&mut h);
