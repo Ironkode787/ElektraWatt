@@ -22,7 +22,7 @@ selection). A right click selects the thing first; Shift+F10 or the menu key ope
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
-  all, and Spacing…, which spaces a row of them the grid steps you choose apart from the leftmost (their wires
+  all, Bridge terminals (two terminals of one strip), and Spacing…, which spaces a row of them the grid steps you choose apart from the leftmost (their wires
   follow, one undo step). A strip's row in the Terminal strips navigator offers Add terminal (with the part of the strip's last terminal
   of that kind), Choose part for its terminals without one, and Edit strip.
 - On a relay's coil: Add contact, one entry per free contact of the relay by name; it floats the contact's symbol for

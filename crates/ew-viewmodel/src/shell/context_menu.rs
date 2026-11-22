@@ -107,10 +107,12 @@ impl ShellModel {
             }
             return out;
         }
-        // Several terminals: Choose part… for them all, and Spacing… for a row of them.
+        // Several terminals: Choose part… for them all, Bridge terminals (a persona run looked for it here) and Spacing…
+        // for a row of them.
         let terminal = |e: &ew_dl::EntityRef| tables.reps.iter().any(|r| r.id == e.0 && r.terminal);
         if kinds.len() > 1 && kinds.iter().all(|(e, k)| *k == EntityKind::Rep && terminal(e)) {
             out.extend(self.menu_item("part.choose"));
+            out.extend(self.menu_item("strip.bridge"));
             out.extend(self.menu_item("terminals.spacing"));
             return out;
         }

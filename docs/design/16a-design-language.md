@@ -1217,6 +1217,7 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | An interruption point | Supply comes in here… (Remove the supply mark on a marked point), Go to partner (its cross-reference's cell; disabled while it has none or the point is external), Direction: Source, Direction: Target (the current one checked), Continue on page… |
 | Several interruption points | Supply comes in here… for them all |
 | A terminal | Add terminal (its strip, its own kind, the next free number, floating at the pointer), Edit strip, Define potential… |
+| Several selected terminals | Choose part… for them all, Bridge terminals (two of one strip; a persona run looked for it here), Spacing… |
 | A symbol of a device | on a coil Add contact per free contact of its device by name (each floats its symbol; disabled with the way round when there is none), on a contact Go to coil; Join device… where another device can take its function (a contact a relay's or a contactor's, a function a device that lists it unplaced; never otherwise); Choose part…; Edit symbol (disabled with the reason a symbol can only be copied), Copy and edit; Define potential… on a symbol of one connection point |
 | A placement of a panel page | Turn, Flip, Lock or Unlock, Delete (and nothing general) |
 | The frame or the title block | Title block fields…, then an empty spot's entries |
