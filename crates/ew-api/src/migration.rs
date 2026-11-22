@@ -561,6 +561,8 @@ fn dilated(ink: &[bool], width: usize, height: usize, radius: usize) -> Vec<bool
 
 /// The raster deviations of one page and the number of cells compared: per cell the pixels that are ink on
 /// one side with no ink within the anchor tolerance on the other, with the text boxes `masks` (millimetres) left out.
+/// The other side's ink is looked for before the boxes are cleared, so a line that runs beside a text box on one side
+/// and just inside it on the other still finds its partner.
 fn compare_rasters(
     page: &str,
     image: &RgbaImage,
@@ -573,6 +575,11 @@ fn compare_rasters(
         return (0, Vec::new());
     }
     let (mut mine, mut theirs) = (ink_of(&image.pixels), ink_of(reference));
+    let radius = (ANCHOR_TOLERANCE_MM * f64::from(DPI) / 25.4).ceil() as usize;
+    let (near_mine, near_theirs) = (
+        dilated(&mine, width, height, radius),
+        dilated(&theirs, width, height, radius),
+    );
     let per_mm = f64::from(DPI) / 25.4;
     for m in masks {
         let at = |v: f64, max: usize| ((v * per_mm).round().max(0.0) as usize).min(max);
@@ -583,11 +590,6 @@ fn compare_rasters(
             theirs[y * width + x0..y * width + x1].fill(false);
         }
     }
-    let radius = (ANCHOR_TOLERANCE_MM * per_mm).ceil() as usize;
-    let (near_mine, near_theirs) = (
-        dilated(&mine, width, height, radius),
-        dilated(&theirs, width, height, radius),
-    );
     let mut out = Vec::new();
     for (label, r) in cells {
         let (mut only_mine, mut only_theirs) = (0usize, 0usize);
@@ -615,4 +617,42 @@ fn compare_rasters(
         }
     }
     (cells.len(), out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A white RGBA page of `w` × `h` pixels with a black horizontal line on row `row`, from column 20 to 280.
+    fn page_with_line(w: usize, h: usize, row: usize) -> Vec<u8> {
+        let mut px = vec![255u8; w * h * 4];
+        for x in 20..280 {
+            px[(row * w + x) * 4..(row * w + x) * 4 + 3].fill(0);
+        }
+        px
+    }
+
+    #[test]
+    fn a_line_beside_a_text_box_finds_its_partner_just_inside_it() {
+        let (w, h) = (300, 200);
+        // The project's line on row 102, the reference's 2 px (0.34 mm, inside the tolerance) higher on row 100,
+        // where a text box padded by 1 mm ends between the two: it clears the reference's line and not the project's.
+        let image = RgbaImage {
+            width: w as u32,
+            height: h as u32,
+            pixels: page_with_line(w, h, 102),
+        };
+        let reference = page_with_line(w, h, 100);
+        let per_mm = f64::from(DPI) / 25.4;
+        let bottom = 101.5 / per_mm - MASK_PAD_MM;
+        let masks = [[0.0, 0.0, 300.0 / per_mm, bottom]];
+        let cells = [(None, [0, 0, w, h])];
+        let (compared, devs) = compare_rasters("1", &image, &reference, &masks, &cells);
+        assert_eq!(compared, 1);
+        assert!(devs.is_empty(), "{devs:?}");
+        // A line that is not there on the other side is still one.
+        let blank = vec![255u8; w * h * 4];
+        let (_, devs) = compare_rasters("1", &image, &blank, &masks, &cells);
+        assert_eq!(devs.len(), 1, "{devs:?}");
+    }
 }

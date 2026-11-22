@@ -1267,9 +1267,12 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
 - **Raster.** Both pages at 150 dpi on the project page's pixel grid (the reference stretched to it: hayro's raster
   is a pixel short on some sheets, and is resampled to the grid, never skipped). A page whose raster would exceed 4,096
   pixels a side (about 693 mm, so A1) is refused in words: the reference cannot be drawn at that size. A pixel is ink
-  below luminance 200; the boxes of every run of either side, padded 1 mm, are cleared; an ink pixel with no ink within
-  0.5 mm on the other side counts for its frame cell (the page's frame grid; a page without one is a single cell). A
-  cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation.
+  below luminance 200; the boxes of every run of either side, padded 1 mm, are cleared; an ink pixel left with no ink
+  within 0.5 mm on the other side, looked for before the boxes were cleared, counts for its frame cell (the page's
+  frame grid; a page without one is a single cell). A
+  cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation. (A line that ran just
+  outside a text box on one side and just inside it on the other lost its partner when the cleared ink was looked in:
+  the pilot set's table lines beside its texts were 66 such cells in Noto Sans, FT-1941.)
 - **Expected deltas** are a JSON file, an array of `{"kind", "page", "text", "cell"}` (the last three optional): a
   deviation one entry matches is reported as expected, an entry that matches none is reported as not found, and
   either way a clean exit needs every entry found and no other deviation. Font substitution needs no entry for the
