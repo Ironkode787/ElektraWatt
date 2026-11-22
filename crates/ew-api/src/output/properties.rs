@@ -885,6 +885,23 @@ impl Session {
             order_records(&q, kind, &mut targets, source.as_deref());
             sections.push(self.section(&q, &cx, kind, targets, generated_block.as_deref()));
         }
+        // One generated page's Title row is the title it prints ("Legend of layout 920"), not its block's format with
+        // the placeholders; pages picked together, each printing its own, show the format they share (FT-2095).
+        if let [Picked {
+            generated: Some(title),
+            ..
+        }] = picked.as_slice()
+        {
+            for row in sections
+                .iter_mut()
+                .flat_map(|s| &mut s.rows)
+                .filter(|r| r.key == "report_block/title")
+            {
+                if let RowValue::One { text, .. } = &mut row.value {
+                    title.clone_into(text);
+                }
+            }
+        }
         let header = self.header(&q, &cx, &picked, &sections);
         PropertySheet {
             rev,

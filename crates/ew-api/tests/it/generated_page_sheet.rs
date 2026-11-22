@@ -52,3 +52,18 @@ fn a_generated_page_is_titled_by_its_folio_and_derived_title() {
     assert_eq!(second.header.title, "901.1 Partlist 2");
     assert_eq!(block_title(&second), "Partlist 2");
 }
+
+/// Two pages of one report picked together print a title each: their Title row shows the block's format they share,
+/// in English and Dutch (doc 09 §3.8), not the first page's title (FT-2095).
+#[test]
+fn pages_picked_together_show_the_title_format_they_share() {
+    let s = common::sample();
+    let ids: Vec<_> = s
+        .page_rows()
+        .into_iter()
+        .filter(|r| r.folio == "901" || r.folio == "901.1")
+        .map(|r| r.id)
+        .collect();
+    assert_eq!(ids.len(), 2, "901 and 901.1");
+    assert_eq!(block_title(&s.property_sheet(&ids)), "Partlist {n} [+1]");
+}
