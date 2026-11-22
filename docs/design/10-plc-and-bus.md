@@ -1095,6 +1095,17 @@ the channel's address.
 
 *As built.* The `PlcAddress` slot prints as above; Golden A's embedded valve, lamp and position-switch symbols carry it, so folios 203 to 206 print Q0.1 … Q6.7. A black box's pin text is the function CP's designation as stored and, for a CP bound to a channel, the printed address after one space ("1 I0.0"); a designation the symbol's `cp_designation` slot prints is left out. Pin texts never move; a cross-reference text that would overlap one drops below it (folios 102 and 106 of Golden A).
 
+**A card drawn in cells** (FT-1898, 0.3.5; as the pilot's reference set draws a card). A card's box in the one-row form
+of [06a](06a-drafting.md) §7.5 (at least two of its box CPs bound to channels, all of them on its upper edge, or all
+on its lower edge) prints its channels in cells: a thin line between each two neighbouring channel pins, at the middle
+between them, across the box, and in each cell, level and centred on its pin, the pin's text as above ("2 Q1.1") next
+to the pin and the channel's function text (§3.4, the function text of the device wired to it) further inside, on
+the next line. A text wider than its cell is made smaller, down to half its size, and below that wrapped at its words
+at half its size. Nothing is stored: the view decides from the box and the bindings, and the labels layer draws the
+lines with the texts. Every other box keeps its pin texts as before (turned a quarter on its upper and lower edges): a
+card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins. Not
+done: the symbol and the process tag per channel, which the reference set prints in some cells.
+
 ### 3.7 Valve terminals
 
 The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-098):

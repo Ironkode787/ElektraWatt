@@ -168,6 +168,7 @@ fn black_box(cps: &[(u16, (i64, i64), &str)], pins: &[(u16, &str)]) -> RepView {
             .map(|(idx, text)| PinText {
                 idx: *idx,
                 text: (*text).to_owned(),
+                cell: None,
             })
             .collect(),
     }
@@ -587,6 +588,7 @@ fn boxed(
             .map(|(idx, text)| PinText {
                 idx: *idx,
                 text: (*text).to_owned(),
+                cell: None,
             })
             .collect(),
     }

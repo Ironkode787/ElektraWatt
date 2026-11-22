@@ -1059,12 +1059,15 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
         return vec![PinText {
             idx: cp.idx,
             text: label,
+            cell: None,
         }];
     }
     let texts = q.get::<PlcAddressText>(function);
     let cps = q.get::<FunctionCps>(function);
     let designation = |idx: u16| cps.iter().find(|c| c.idx == idx).map(|c| c.designation.as_str());
-    compose_pin_texts(rep, def, function, designation, &texts.pins)
+    let mut pins = compose_pin_texts(rep, def, function, designation, &texts.pins);
+    card_cells(q, rep, function, &mut pins);
+    pins
 }
 
 /// The least width and the least height in grid steps of the black box `r` that keep the pin texts of its opposite
@@ -1092,7 +1095,10 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
             .filter_map(|cp| texts.iter().find(|t| t.idx == cp.idx))
             .map(|t| {
                 let signs = !t.text.chars().any(char::is_alphanumeric);
-                let reach = if turned && signs {
+                let reach = if t.cell.is_some() {
+                    // Level in a card's cell: its line and the function text's under it.
+                    2 * line
+                } else if turned && signs {
                     line
                 } else {
                     crate::part_box::pin_text_length(&t.text)
@@ -1165,9 +1171,49 @@ fn compose_pin_texts<'a>(
                 (None, Some(a)) => a.to_owned(),
                 (None, None) => return None,
             };
-            Some(PinText { idx: cp.idx, text })
+            Some(PinText {
+                idx: cp.idx,
+                text,
+                cell: None,
+            })
         })
         .collect()
+}
+
+/// The cells of a PLC card drawn in one row (doc 10 §3.6, "A card drawn in cells"): when at least two of the box's CPs
+/// are bound to channels and all of those leave its upper edge, or all its lower edge, each of their pin texts gets its
+/// channel's function text (doc 10 §3.4; empty when it has none) as its `cell`. Any other box keeps its pin texts.
+fn card_cells(q: &Q, rep: &Representation, function: Id<Function>, pins: &mut [PinText]) {
+    let Some(b) = &rep.box_ else {
+        return;
+    };
+    let bound = q.get::<ew_derive::ChannelsByCp>(());
+    let channels: Vec<(u16, Id<ew_schema::Channel>, &ew_schema::Dir4)> = b
+        .cps
+        .iter()
+        .filter_map(|cp| Some((cp.idx, bound.at_cp(function, cp.idx).next()?, &cp.dir)))
+        .collect();
+    let one_edge = |d: &ew_schema::Dir4| channels.iter().all(|(_, _, dir)| *dir == d);
+    if channels.len() < 2 || !(one_edge(&ew_schema::Dir4::Up) || one_edge(&ew_schema::Dir4::Down)) {
+        return;
+    }
+    let table = q.table::<ew_schema::Channel>();
+    for (idx, channel, _) in channels {
+        let text = table
+            .get(channel)
+            .map(|c| q.get::<ew_derive::ChannelTexts>(c.module))
+            .and_then(|texts| {
+                texts
+                    .iter()
+                    .find(|(id, _)| *id == channel)
+                    .and_then(|(_, t)| t.function_text.as_ref())
+                    .map(crate::output::properties::neutral_or_first)
+            })
+            .unwrap_or_default();
+        if let Some(pin) = pins.iter_mut().find(|p| p.idx == idx) {
+            pin.cell = Some(text);
+        }
+    }
 }
 
 fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> Vec<SlotValue> {

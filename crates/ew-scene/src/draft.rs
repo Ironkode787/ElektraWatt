@@ -175,6 +175,53 @@ struct Gathered {
 }
 
 impl Builder<'_> {
+    /// `t` fitted to a card's cell `width` wide (doc 10 §3.6): as it is when it fits, else made smaller to fit, down to
+    /// half its size, and below that at half its size with each line wrapped at its words.
+    fn fit_cell(&self, t: Text, width: Nm) -> Text {
+        let Some(full) = self.styles.resolve(&t.style_key).map(|s| s.size.0) else {
+            return t;
+        };
+        let measure = |text: &str, size: i64| {
+            let probe = Text {
+                text: text.to_owned(),
+                ..t.clone()
+            }
+            .sized(Some(Nm(size)));
+            self.box_of(&probe).map_or(0, |b| b.width().0)
+        };
+        let wide = measure(&t.text, full);
+        if wide <= width.0 || wide == 0 {
+            return t;
+        }
+        let half = full / 2;
+        let scaled = i64::try_from(i128::from(full) * i128::from(width.0) / i128::from(wide)).unwrap_or(half);
+        if scaled >= half {
+            return t.sized(Some(Nm(scaled)));
+        }
+        let mut lines: Vec<String> = Vec::new();
+        for line in t.text.lines() {
+            let mut current = String::new();
+            for word in line.split_whitespace() {
+                let next = if current.is_empty() {
+                    word.to_owned()
+                } else {
+                    format!("{current} {word}")
+                };
+                if !current.is_empty() && measure(&next, half) > width.0 {
+                    lines.push(std::mem::replace(&mut current, word.to_owned()));
+                } else {
+                    current = next;
+                }
+            }
+            lines.push(current);
+        }
+        Text {
+            text: lines.join("\n"),
+            ..t
+        }
+        .sized(Some(Nm(half)))
+    }
+
     /// The box of `t` as it prints.
     fn box_of(&self, t: &Text) -> Option<Rect> {
         match t.size {
@@ -414,10 +461,16 @@ impl Builder<'_> {
             ops: &mut ops,
         };
         self.slot_texts(view, &mut ctx);
-        for (entity, text, at, angle, align) in pin_texts(view) {
+        for (entity, text, at, angle, align, width) in pin_texts(view) {
             let t = Text::plain(&text, at, angle, align, "data.small", entity);
+            let t = match width {
+                Some(width) => self.fit_cell(t, width),
+                None => t,
+            };
             self.fixed(&mut ctx, t, None);
         }
+        ctx.ops
+            .extend(crate::page::cell_dividers(view).into_iter().map(Op::Path));
         for n in &view.plug_notes {
             let (at, angle, align) = crate::page::plug_note_place(n);
             let t = Text::plain(

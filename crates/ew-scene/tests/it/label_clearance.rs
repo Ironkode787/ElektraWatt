@@ -189,6 +189,7 @@ fn an_interruption_points_name_at_a_boxs_pin_does_not_lie_on_the_pins_text() {
     b.pins = vec![PinText {
         idx: 0,
         text: "+".to_owned(),
+        cell: None,
     }];
     let ip = rep(
         0x12,

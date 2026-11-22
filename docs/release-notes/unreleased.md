@@ -596,3 +596,7 @@ change here.
   item's Layer and its kinds, a bus port's Bus, Interface, Role and Termination, a connection point's Description and
   an assembly's order codes says what the program does with the value, with an example and its unit, in English and
   Dutch, where it repeated the row's label (FT-2065)
+- behaviour-change: a PLC card drawn in one row (Draw on a page from the station view) prints its channels in cells: a
+  thin line between each two channel pins across the box, and in each cell, level, the pin's designation and address
+  and under it the channel's function text, made smaller or wrapped to fit the cell; its pin texts read turned a quarter
+  before (doc 10 §3.6, FT-1898)

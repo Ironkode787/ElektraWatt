@@ -1195,8 +1195,9 @@ it, and so does a name its author set in line already (the starter symbols since
 
 - **A text the person moved** keeps its place and angle with its part, and is a fixed text to everything else.
 - **The pin texts of a drawn box** are as the scene draws them: inside the box, turned a quarter and reading from
-  bottom to top on the upper and lower sides, horizontal on the left and right sides. The layout treats them as
-  fixed texts and changes neither place nor angle.
+  bottom to top on the upper and lower sides, horizontal on the left and right sides; a card drawn in one row prints
+  its channels level in cells ([10](10-plc-and-bus.md) §3.6). The layout treats them as fixed texts and changes
+  neither place nor angle.
 - Free texts, captions of structure boxes and plug pin notes. A text of a symbol ([06](06-schematic-editor.md) §3.8)
   is the symbol's to the layout: a plan that moves the symbol moves it along.
 
@@ -1517,8 +1518,6 @@ stores `layout.apply`.
 
 ### 8.1 What is left out
 
-- **A PLC card drawn in cells with level texts** (address and function text per channel). It is a matter of how
-  a card's symbol is drawn, not of the layout: the router and the placer work with a card as it is drawn.
 - **Turning or mirroring a part,** spreading a circuit over the sheet, writing headings.
 - **Proposing interruption points** for a wire with no good way (D-5): the plan names the wire; the person
   splits it.

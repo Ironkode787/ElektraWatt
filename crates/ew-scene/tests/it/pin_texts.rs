@@ -60,6 +60,7 @@ fn view(orient: &str) -> PageView {
         .map(|(idx, text)| PinText {
             idx,
             text: text.to_owned(),
+            cell: None,
         })
         .to_vec();
     PageView {

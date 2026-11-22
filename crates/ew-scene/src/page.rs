@@ -310,6 +310,9 @@ pub struct PinText {
     pub idx: u16,
     /// The text.
     pub text: String,
+    /// For a channel pin of a PLC card drawn in one row (doc 10 §3.6, "A card drawn in cells"): the channel's function
+    /// text, empty when it has none; the pin's texts then print level in its cell. `None` for every other pin.
+    pub cell: Option<String>,
 }
 
 /// One terminal drawn by a strip segment: its function and the function CPs of each side.
@@ -1980,8 +1983,63 @@ fn is_line_break(c: char) -> bool {
 /// The distance of a black box's pin text from its pin, inward along the pin's normal: 1 mm.
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
-/// A placed pin text: its entity, text, point, angle and alignment.
-pub(crate) type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
+/// A placed pin text: its entity, text, point, angle and alignment, and for a text in a card's cell the width it keeps
+/// within.
+pub(crate) type PlacedPin = (EntityRef, String, Pt2, Angle2, Align, Option<Nm>);
+
+/// The cells of the PLC cards drawn in one row (doc 10 §3.6, "A card drawn in cells"): a thin line between each two
+/// neighbouring channel pins, at the middle between them, across the box from edge to edge. The labels layer draws them
+/// with the pin texts, which tell which pins are a card's channels.
+pub(crate) fn cell_dividers(view: &PageView) -> Vec<Item> {
+    let stroke = wire_stroke(view.grid);
+    let thin = Stroke {
+        width: Nm(stroke.width.0 / 2),
+        ..stroke
+    };
+    let mut out = Vec::new();
+    for rv in sorted_reps(view) {
+        let pins = cell_pins(rv);
+        let Some(outline) = rv.rep.box_.as_ref().and_then(|b| {
+            b.outline
+                .iter()
+                .map(|p| Rect::from_point(rv.rep.pos + rv.rep.orient.apply(*p)))
+                .reduce(Rect::union)
+        }) else {
+            continue;
+        };
+        for pair in pins.windows(2) {
+            let x = Nm(pair[0].0.x.0 + (pair[1].0.x.0 - pair[0].0.x.0) / 2);
+            out.push(
+                Item::path(
+                    Path::polyline(&[Pt2::new(x, outline.min().y), Pt2::new(x, outline.max().y)]),
+                    Some(thin.clone()),
+                    None,
+                )
+                .with_entity(EntityRef(rv.rep.id.as_uuid())),
+            );
+        }
+    }
+    out
+}
+
+/// The channel pins of a PLC card drawn in one row (its [`PinText`]s with a `cell`), on the page and with the way their
+/// wires leave, from left to right; empty for any other representation.
+fn cell_pins(rv: &RepView) -> Vec<(Pt2, Dir4, &PinText)> {
+    let Some(b) = &rv.rep.box_ else {
+        return Vec::new();
+    };
+    let mut out: Vec<(Pt2, Dir4, &PinText)> = b
+        .cps
+        .iter()
+        .filter_map(|cp| {
+            let pin = rv.pins.iter().find(|p| p.idx == cp.idx && p.cell.is_some())?;
+            let at = rv.rep.pos + rv.rep.orient.apply(cp.pos);
+            Some((at, symbol::transform_dir(&cp.dir, rv.rep.orient), pin))
+        })
+        .collect();
+    out.sort_by_key(|(at, _, pin)| (at.x, pin.idx));
+    out
+}
 
 /// Where the text `text` of a pin that a wire leaves along `dir` stands (module documentation, "Pin texts"): its
 /// anchor from the pin, its angle and its alignment, inside the body [`PIN_TEXT_GAP`] from the pin. The one rule for a
@@ -2014,7 +2072,56 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
         if rv.pins.is_empty() || !def.cps.is_empty() {
             continue;
         }
+        // A card drawn in cells: each channel pin's texts level in its cell, the designation and address next to the
+        // pin and the function text under it inside the box, kept within the cell's width.
+        let cells = cell_pins(rv);
+        let pitch = cells
+            .windows(2)
+            .map(|w| w[1].0.x.0 - w[0].0.x.0)
+            .filter(|d| *d > 0)
+            .min();
+        for (at, dir, pin) in &cells {
+            let (Some(function_text), Some(pitch)) = (&pin.cell, pitch) else {
+                continue;
+            };
+            let g = PIN_TEXT_GAP;
+            let lines = |first: &str, second: &str| match (first.is_empty(), second.is_empty()) {
+                (true, _) => second.to_owned(),
+                (_, true) => first.to_owned(),
+                _ => format!("{first}\n{second}"),
+            };
+            let (text, offset, align) = match dir {
+                Dir4::Up => (
+                    lines(&pin.text, function_text),
+                    Pt2::new(Nm::ZERO, g),
+                    Align::TopCentre,
+                ),
+                Dir4::Down => (
+                    lines(function_text, &pin.text),
+                    Pt2::new(Nm::ZERO, Nm(-g.0)),
+                    Align::BottomCentre,
+                ),
+                _ => continue,
+            };
+            if !text.is_empty() {
+                let width = Nm(pitch.saturating_sub(2 * g.0));
+                out.push((
+                    EntityRef(rep.id.as_uuid()),
+                    text,
+                    *at + offset,
+                    Angle2::ZERO,
+                    align,
+                    Some(width),
+                ));
+            }
+        }
         for cp in &b.cps {
+            if cells
+                .iter()
+                .any(|(_, d, p)| p.idx == cp.idx && matches!(d, Dir4::Up | Dir4::Down) && pitch.is_some())
+            {
+                continue;
+            }
             let Some(pin) = rv.pins.iter().find(|p| p.idx == cp.idx) else {
                 continue;
             };
@@ -2033,6 +2140,7 @@ pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
                 at + offset,
                 angle,
                 align,
+                None,
             ));
         }
     }
