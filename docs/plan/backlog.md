@@ -32,7 +32,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 
 #### Files and the text interface
 
-- FT-1985 `ew-import-eplan`: A multi-level terminal that the report importer folds (EW-IMP-207) lands every level's connections on level 1; since FT-1878 its listed levels have connection points of their own (doc 08 §6.3), so each level's connections can land on its own. Found in the fix round (2026-11-22): the importer folds levels only in a terminal diagram, which carries no connections, and a connection list names its ends `strip:designation` without a level (all taken as level 1), so no import knows a connection's level. The fix needs a level per end in the connection map (members `from_level`, `to_level`, in the mapper too) and the end resolved to that level's CPs (`Terminal::level_copies`): a change of the report map, decided first.
 
 #### Two drawing faults
 

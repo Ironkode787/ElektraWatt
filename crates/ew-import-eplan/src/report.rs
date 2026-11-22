@@ -10,10 +10,11 @@
 //!   designation (a frozen tag, its structure prefix kept in `extra`);
 //! - **terminals** (`strip`, `designation`, `level`): the strips and their terminals in file order; consecutive rows of
 //!   one designation with rising levels are one multi-level terminal (EW-IMP-207);
-//! - **connections** (`from`, `to`): `<strip designation>:<terminal designation>` on both ends; a connection joins the
-//!   two terminals' connection points (the first side of the first, the second side of the other). A connection with
-//!   an end that no terminal of the file answers is dropped (EW-IMP-003): a device's connection points need its part,
-//!   which a report does not give.
+//! - **connections** (`from`, `to`, `from_level`, `to_level`): `<strip designation>:<terminal designation>` on both
+//!   ends; a connection joins the two terminals' connection points (the first side of the first, the second side of
+//!   the other), of the level each end's level column names (1 without one): a terminal named at more levels is one
+//!   multi-level terminal (EW-IMP-207). A connection with an end that no terminal of the file answers is dropped
+//!   (EW-IMP-003): a device's connection points need its part, which a report does not give.
 //!
 //! The identity of every record is `v5(lineage namespace, "eplan:<table>:<row key>")` in the lineage `eplan` anchored on
 //! the map's key, so a newer export of the same list is the same records (a re-import updates in place).
@@ -68,7 +69,12 @@ impl ReportTarget {
                 ("level", false),
                 ("part", false),
             ],
-            ReportTarget::Connections => &[("from", true), ("to", true)],
+            ReportTarget::Connections => &[
+                ("from", true),
+                ("to", true),
+                ("from_level", false),
+                ("to_level", false),
+            ],
         }
     }
 }
@@ -235,6 +241,22 @@ fn tag_of(product: &str) -> Option<TagSpec> {
             extra: BTreeMap::new(),
         }),
         extra: BTreeMap::new(),
+    })
+}
+
+/// The terminal level in the cell `text` of the terminal `end` (`-X1:2`): 1 for an empty cell, and for a cell that is
+/// no number, which is said.
+fn level_of(text: &str, end: &str, line: usize, notes: &mut Notes) -> u8 {
+    text.parse::<u8>().unwrap_or_else(|_| {
+        if !text.is_empty() {
+            notes.push(
+                Code::MALFORMED_ITEM,
+                Severity::Warning,
+                line,
+                format!("the level `{text}` of `{end}` is no number: taken as 1"),
+            );
+        }
+        1
     })
 }
 
@@ -405,17 +427,7 @@ pub fn read_report(
                             continue;
                         }
                         let text = find(row, &table.headers, map, "level");
-                        let level = text.parse::<u8>().unwrap_or_else(|_| {
-                            if !text.is_empty() {
-                                notes.push(
-                                    Code::MALFORMED_ITEM,
-                                    Severity::Warning,
-                                    n + 2,
-                                    format!("the level `{text}` of `{strip}:{designation}` is no number: taken as 1"),
-                                );
-                            }
-                            1
-                        });
+                        let level = level_of(text, &format!("{strip}:{designation}"), n + 2, &mut notes);
                         let part = find(row, &table.headers, map, "part").to_owned();
                         rows.push((n + 2, strip.to_owned(), designation.to_owned(), level, part));
                     }
@@ -581,8 +593,98 @@ pub fn read_report(
                 records.push(Record::Function(f));
             }
             if map.target == ReportTarget::Connections {
-                let mut pairs = 0u32;
+                // The level of each end, where the map names a column for it (1 where it names none or the cell is
+                // empty): a terminal an end names at another level lists its levels, the first included, and the end
+                // joins that level's connection points (doc 08 §6.3, EW-IMP-207).
+                let key_of = |text: &str| {
+                    text.rsplit_once(':')
+                        .map(|(s, d)| (s.trim().to_owned(), d.trim().to_owned()))
+                };
+                let mut levels: Vec<[u8; 2]> = Vec::with_capacity(table.rows.len());
+                let mut named: BTreeMap<(String, String), (usize, Vec<u8>)> = BTreeMap::new();
                 for (n, row) in table.rows.iter().enumerate() {
+                    let pair = [("from", "from_level"), ("to", "to_level")].map(|(member, level)| {
+                        let text = find(row, &table.headers, map, member);
+                        let level = level_of(find(row, &table.headers, map, level), text, n + 2, &mut notes);
+                        if level != 1
+                            && let Some(key) = key_of(text).filter(|k| answers.contains_key(k))
+                        {
+                            let (_, list) = named.entry(key).or_insert((n + 2, vec![1]));
+                            if !list.contains(&level) {
+                                list.push(level);
+                            }
+                        }
+                        level
+                    });
+                    levels.push(pair);
+                }
+                for ((strip, designation), (line, list)) in &mut named {
+                    list.sort_unstable();
+                    let tkey = format!("eplan:terminal:{strip}:{designation}");
+                    for r in &mut records {
+                        if let Record::Device(dev) = r
+                            && dev.source_ref.as_ref().is_some_and(|x| x.key == tkey)
+                            && let Some(t) = dev.aspects.terminal.as_mut()
+                        {
+                            t.levels = list
+                                .iter()
+                                .map(|&level| LevelSpec {
+                                    level,
+                                    role: Default::default(),
+                                    designation: None,
+                                    extra: BTreeMap::new(),
+                                })
+                                .collect();
+                        }
+                    }
+                    folded += 1;
+                    let list: Vec<String> = list.iter().map(u8::to_string).collect();
+                    notes.push(
+                        Code::imp(207),
+                        Severity::Info,
+                        *line,
+                        format!(
+                            "`{strip}:{designation}` is one multi-level terminal of the levels {}",
+                            list.join(", ")
+                        ),
+                    );
+                }
+                // The connection point of side `side` (0 the first, 1 the second) of `level` of the terminal `text`
+                // names: its own at level 1, else the copy its levels add (`Terminal::level_copies`).
+                let own: BTreeMap<_, Vec<(u16, Option<u8>)>> = used
+                    .iter()
+                    .filter_map(|d| match d {
+                        LibDocument::Fndef(c) => {
+                            Some((c.id, c.item.cps.as_slice().iter().map(|p| (p.idx, p.level)).collect()))
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                let end = |records: &[Record], text: &str, level: u8, side: u16| -> Option<(Id<Function>, u16)> {
+                    let key = key_of(text)?;
+                    let f = answers.get(&key).copied()?;
+                    if level == 1 {
+                        return Some((f, side));
+                    }
+                    let tkey = format!("eplan:terminal:{}:{}", key.0, key.1);
+                    let terminal = records.iter().find_map(|r| match r {
+                        Record::Device(d) if d.source_ref.as_ref().is_some_and(|x| x.key == tkey) => {
+                            d.aspects.terminal.as_ref()
+                        }
+                        _ => None,
+                    })?;
+                    let def = records.iter().find_map(|r| match r {
+                        Record::Function(x) if x.id == f => Some(x.def),
+                        _ => None,
+                    })?;
+                    terminal
+                        .level_copies(own.get(&def)?)
+                        .into_iter()
+                        .find(|(_, of, l)| *of == side && *l == level)
+                        .map(|(idx, _, _)| (f, idx))
+                };
+                let mut pairs = 0u32;
+                for ((n, row), [from_level, to_level]) in table.rows.iter().enumerate().zip(levels) {
                     let line = n + 2;
                     let (from, to) = (
                         find(row, &table.headers, map, "from"),
@@ -591,11 +693,9 @@ pub fn read_report(
                     if from.is_empty() && to.is_empty() {
                         continue;
                     }
-                    let end = |text: &str| -> Option<Id<Function>> {
-                        let (s, d) = text.rsplit_once(':')?;
-                        answers.get(&(s.trim().to_owned(), d.trim().to_owned())).copied()
-                    };
-                    let (Some(a), Some(b)) = (end(from), end(to)) else {
+                    let (Some((a, a_idx)), Some((b, b_idx))) =
+                        (end(&records, from, from_level, 0), end(&records, to, to_level, 1))
+                    else {
                         notes.push(
                             Code::UNRESOLVED_REFERENCE,
                             Severity::Warning,
@@ -605,7 +705,7 @@ pub fn read_report(
                         dropped += 1;
                         continue;
                     };
-                    if a == b {
+                    if a == b && from_level == to_level {
                         notes.push(
                             Code::MALFORMED_ITEM,
                             Severity::Warning,
@@ -615,7 +715,11 @@ pub fn read_report(
                         dropped += 1;
                         continue;
                     }
-                    let ckey = format!("eplan:connection:{from}>{to}");
+                    // The key names a level other than 1, so a connection of level 1 keeps the key it had.
+                    let at = |text: &str, level: u8| {
+                        if level == 1 { text.to_owned() } else { format!("{text}/{level}") }
+                    };
+                    let ckey = format!("eplan:connection:{}>{}", at(from, from_level), at(to, to_level));
                     if records.iter().any(|r| matches!(r, Record::Connection(c) if c.source_ref.as_ref().is_some_and(|s| s.key == ckey))) {
                         continue;
                     }
@@ -623,8 +727,8 @@ pub fn read_report(
                     records.push(Record::Connection(Connection {
                         id: ids.id(&ckey),
                         v: 1,
-                        a: Endpoint::Cp(a, 0),
-                        b: Endpoint::Cp(b, 1),
+                        a: Endpoint::Cp(a, a_idx),
+                        b: Endpoint::Cp(b, b_idx),
                         page: None,
                         route: Vec::new(),
                         kind: ConnectionKind::default(),

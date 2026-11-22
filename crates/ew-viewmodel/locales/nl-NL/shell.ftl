@@ -6790,6 +6790,8 @@ eplan-member-part = Artikelnummer
 eplan-member-description = Omschrijving
 eplan-member-from = Van
 eplan-member-to = Naar
+eplan-member-from-level = Niveau van
+eplan-member-to-level = Niveau naar
 choice-terminals = Klemmen
 # Persona round (M3): Rapport en PLC-uitwisseling op het tabblad Uitvoer, en waar lijsten worden gemaakt.
 group-exchange = PLC-uitwisseling

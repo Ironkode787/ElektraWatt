@@ -7062,6 +7062,8 @@ eplan-member-part = Part number
 eplan-member-description = Description
 eplan-member-from = From
 eplan-member-to = To
+eplan-member-from-level = From level
+eplan-member-to-level = To level
 choice-terminals = Terminals
 # Persona round (M3): the Output tab's Report and PLC exchange, and where lists are made.
 group-exchange = PLC exchange

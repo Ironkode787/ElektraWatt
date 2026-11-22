@@ -1448,6 +1448,18 @@ target_b = "Ziel 2"
   §6.3).
 - The result is a project without drawings that the user places from the navigators; the import is a batch with
   row-key lineage, so a newer export of the same list updates in place.
+- **Levels in a connection list** (0.3.5, FT-1985). A connection list names its ends `strip:designation`, which says
+  no level. Its map has two optional members, `from_level` and `to_level`, the columns that hold each end's level (a
+  number; mapped in the column mapper as From level and To level, no preset names them):
+  - an end whose level column is absent or empty is level 1, as before: the terminal's own connection points;
+  - an end at another level names that level of its terminal: the terminal lists every level its ends name, level 1
+    included, in rising order (one multi-level terminal, EW-IMP-207, said once), and the end joins that level's
+    connection point of its side, the copy `Terminal::level_copies` gives it ([08](08-connections-terminals-cables.md)
+    §6.3); a level that is no number is taken as 1 and said, as in a terminal diagram;
+  - a connection's lineage key names a level other than 1 (`-X1:2/2`), so the connections of level 1 keep their IDs;
+    two ends of one terminal at two levels are a connection between its levels, not one to itself.
+  - Not built: the levels of a device's connection points (a report gives no device connection points, below), and a
+    level designation (`LevelSpec.designation`) from a report.
 
 *As built (WP-S3.18).* **Parts (§5.2, §5.3).** `ew_import_eplan::read_parts` reads an EDZ (the 7-Zip signature or `PK`;
 only `*.part.xml` members are opened, a 3D model or picture beyond the member limit that nobody reads does not refuse
@@ -1486,7 +1498,8 @@ the file lacks kept; the plan is `library.update`'s, the card's field diff and d
 its delimiter found, an XLSX sheet; the header row detected in the first 20 or given) and a `ReportMap` (`target`,
 `sheet`, `header_row`, `[columns]`; shipped German and English presets, a user's saved `eplan-report-<key>.toml`) and
 emits a project without drawings: unplaced devices with a black-box function, strips and terminals (rising levels of one
-designation folded, EW-IMP-207), connections between terminals only, since a device's connection points need its part
+designation folded, EW-IMP-207), connections between terminals only (at the levels the map's `from_level` and
+`to_level` columns name, above), since a device's connection points need its part
 (an end that no terminal answers is EW-IMP-003); an unmapped column is EW-IMP-206, and so is an optional mapped column
 the table lacks (a required one refuses the file); a terminal listed twice in a diagram, and a level that is no number
 (taken as 1), are said; the part column of a terminal diagram is read (`eplan.part`, as a device's); the lineage is `eplan` anchored on the

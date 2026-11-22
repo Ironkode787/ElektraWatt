@@ -560,3 +560,7 @@ change here.
   part that keeps the end the wire's number is counted from, so the page prints the wire's number where it printed it
   and the new part the next one; the part at the record's first end kept it, and a wire whose number counted from its
   other end printed its number on the new part and a new one on its own (FR-CON-008, doc 06 §5.3, FT-1918)
+- behaviour-change: an EPLAN connection list lands each end on the level of its terminal that the map's level columns
+  name (`from_level`, `to_level`; From level and To level in the column mapper): the terminal becomes one multi-level
+  terminal of the levels its ends name and each end joins that level's connection point; every connection landed on
+  level 1 (doc 14 §5.4, FT-1985)

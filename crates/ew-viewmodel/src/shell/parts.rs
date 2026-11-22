@@ -112,6 +112,8 @@ fn report_member_key(member: &str) -> Option<crate::strings::Key<'static>> {
         "description" => key!("eplan-member-description"),
         "from" => key!("eplan-member-from"),
         "to" => key!("eplan-member-to"),
+        "from_level" => key!("eplan-member-from-level"),
+        "to_level" => key!("eplan-member-to-level"),
         _ => return None,
     })
 }

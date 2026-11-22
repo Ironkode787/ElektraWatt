@@ -950,7 +950,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Multi-level.** A 3-level installation terminal has CPs 1a, 1b, 2a, 2b, 3a and 3b. It is one terminal with
   three rows in the terminal diagram (FR-TRM-004). The EPLAN report-spreadsheet importer folds consecutive
   same-designation terminals with rising levels into one multi-level terminal (EW-IMP-207,
-  [14](14-interop.md) §5.4).
+  [14](14-interop.md) §5.4), and a connection list's ends land on the levels its level columns name.
 - **A number per level** (FT-1878, after the first production job). A draughtsman draws a two-level block as two
   terminal symbols in two circuits with a number on each (1 above, 2 below). It is one terminal: one place on the
   strip (`seq`), one part, its levels listed in `Terminal.levels`.
