@@ -634,17 +634,6 @@ mod tests {
             .unwrap()
             .push(serde_json::json!({"role": "checker", "name": "Sample Checker"}));
         let revision = record(&dir, "revisions.jsonl", "\"label\":\"V1.0\"");
-        let pages = std::fs::read_dir(dir.join("pages")).unwrap();
-        let shield = pages
-            .map(|e| e.unwrap().path())
-            .find_map(|p| {
-                let text = std::fs::read_to_string(&p).unwrap();
-                let line = text
-                    .lines()
-                    .find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
-                Some(serde_json::from_str::<serde_json::Value>(line).unwrap())
-            })
-            .unwrap();
         let (mut s, _) = ew_api::Session::open(
             &dir,
             store(),
@@ -652,6 +641,25 @@ mod tests {
             ew_api::Recovery::Keep,
         )
         .unwrap();
+        // The shield wire, found by its ends: the terminal -X1031:SH and the motor -103M1.
+        let [terminal, motor] =
+            ["-X1031:SH", "-103M1"].map(|t| s.resolve_reference(&format!("tag:{t}")).unwrap());
+        let q = s.query();
+        let shield = q
+            .connections()
+            .iter()
+            .find(|(_, c)| {
+                let ends = [&c.a, &c.b].map(|e| {
+                    e.function()
+                        .and_then(|f| q.functions().get(f))
+                        .and_then(|f| f.device)
+                        .map(|d| d.as_uuid())
+                });
+                ends == [Some(terminal), Some(motor)] || ends == [Some(motor), Some(terminal)]
+            })
+            .map(|(id, _)| id.to_string())
+            .expect("the shield wire");
+        drop(q);
         for (name, params) in [
             (
                 "fields.set",
@@ -664,7 +672,7 @@ mod tests {
             ),
             (
                 "fields.set",
-                serde_json::json!({"kind": "connection", "targets": [shield["id"]], "path": "overrides.csa",
+                serde_json::json!({"kind": "connection", "targets": [shield], "path": "overrides.csa",
                     "value": "1.5"}),
             ),
         ] {

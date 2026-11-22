@@ -79,16 +79,6 @@ fn finding_rows(d: &str) -> Vec<&str> {
 /// -103W1 set to 1.5 mm², below its 2.5 mm² line conductors (EW-POT-006, an error on 103), and -101W1 without its
 /// length (EW-CORE-033, a warning). The sample itself is clean.
 fn with_findings(dir: &Path) {
-    let shield = {
-        let pages = std::fs::read_dir(dir.join("pages")).unwrap();
-        pages
-            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
-            .find_map(|t| {
-                let line = t.lines().find(|l| l.contains(r#""overrides":{"csa":"2.5"}"#))?;
-                Some(serde_json::from_str::<Value>(line).unwrap()["id"].clone())
-            })
-            .expect("the shield wire")
-    };
     // -101W1, the one cable of 10 m.
     let cable = {
         let devices = std::fs::read_dir(dir.join("devices")).unwrap();
@@ -111,6 +101,25 @@ fn with_findings(dir: &Path) {
         ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
+    // The shield wire, found by its ends: the terminal -X1031:SH and the motor -103M1.
+    let [terminal, motor] =
+        ["-X1031:SH", "-103M1"].map(|t| s.resolve_reference(&format!("tag:{t}")).unwrap());
+    let q = s.query();
+    let shield = q
+        .connections()
+        .iter()
+        .find(|(_, c)| {
+            let ends = [&c.a, &c.b].map(|e| {
+                e.function()
+                    .and_then(|f| q.functions().get(f))
+                    .and_then(|f| f.device)
+                    .map(|d| d.as_uuid())
+            });
+            ends == [Some(terminal), Some(motor)] || ends == [Some(motor), Some(terminal)]
+        })
+        .map(|(id, _)| id.to_string())
+        .expect("the shield wire");
+    drop(q);
     for params in [
         json!({"kind": "connection", "targets": [shield], "path": "overrides.csa", "value": "1.5"}),
         json!({"kind": "device", "targets": [cable], "path": "cable.length", "value": null}),

@@ -1002,8 +1002,6 @@ fn the_project_merges_typed_through_its_strategies() {
 
 // ---- files: a page, MD-4 ---------------------------------------------------------------------------------------
 
-/// The overrides of the sample's shield wire on 103, its only wire with an override.
-const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;
 /// The wire's overrides in the base of these tests.
 const WIRE_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
 
@@ -1020,20 +1018,40 @@ struct WirePage {
 fn wire_page() -> &'static WirePage {
     static PAGE: std::sync::OnceLock<WirePage> = std::sync::OnceLock::new();
     PAGE.get_or_init(|| {
-        let (path, text) = sample()
+        let files: Vec<(String, String)> = sample()
             .into_iter()
             .map(|(path, bytes)| (path, String::from_utf8(bytes).expect("UTF-8")))
-            .find(|(path, text)| path.starts_with("pages/") && text.contains(SHIELD_OVERRIDES))
+            .collect();
+        // The shield wire is the wire whose cable core is a shield (the sample draws one such core, -103W1's).
+        let shields: Vec<String> = files
+            .iter()
+            .flat_map(|(_, text)| text.lines())
+            .filter(|l| l.starts_with(r#"{"$k":"conductor""#) && l.contains(r#""shield":true"#))
+            .map(|l| {
+                serde_json::from_str::<Value>(l).expect("JSON")["id"]
+                    .as_str()
+                    .expect("an ID")
+                    .to_owned()
+            })
+            .collect();
+        let is_shield = |l: &str| {
+            l.starts_with(r#"{"$k":"connection""#)
+                && shields
+                    .iter()
+                    .any(|s| l.contains(&format!(r#""kind":{{"core":"{s}"}}"#)))
+        };
+        let (path, text) = files
+            .into_iter()
+            .find(|(path, text)| path.starts_with("pages/") && text.lines().any(is_shield))
             .expect("the shield wire's page");
-        let line = text
-            .lines()
-            .find(|l| l.contains(SHIELD_OVERRIDES))
-            .expect("the wire");
+        let line = text.lines().find(|l| is_shield(l)).expect("the wire");
         let wire = serde_json::from_str::<Value>(line).expect("JSON")["id"]
             .as_str()
             .expect("an ID")
             .to_owned();
-        let text = text.replace(line, &line.replace(SHIELD_OVERRIDES, WIRE_OVERRIDES));
+        // The overrides are the line's last member, where the canonical writer puts them.
+        let open = line.strip_suffix('}').expect("a JSON line");
+        let text = text.replace(line, &format!("{open},{WIRE_OVERRIDES}}}"));
         WirePage { path, text, wire }
     })
 }

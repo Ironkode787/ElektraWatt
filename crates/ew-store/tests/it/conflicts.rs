@@ -15,29 +15,51 @@ use ew_store::ew_format::ew_schema::{Conflict, ConflictBody};
 use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Store};
 
-/// The overrides of the sample's shield wire on 103, its only wire with an override.
-const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;
-
 /// The shield wire's page file, as the merge driver leaves it when both sides set the wire's colour (BU and WH)
 /// and one its size: the wire with csa 4 and colour BU, and the conflict record. Also the wire's ID.
 fn merged_page() -> (String, Vec<u8>, String) {
     let files = fixture();
+    // The shield wire is the wire whose cable core is a shield (the sample draws one such core, -103W1's).
+    let shields: Vec<String> = files
+        .values()
+        .flat_map(|bytes| {
+            String::from_utf8_lossy(bytes)
+                .lines()
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .filter(|l| l.starts_with(r#"{"$k":"conductor""#) && l.contains(r#""shield":true"#))
+        .map(|l| {
+            serde_json::from_str::<serde_json::Value>(&l).expect("JSON")["id"]
+                .as_str()
+                .expect("an ID")
+                .to_owned()
+        })
+        .collect();
+    let is_shield = |l: &str| {
+        l.starts_with(r#"{"$k":"connection""#)
+            && shields
+                .iter()
+                .any(|s| l.contains(&format!(r#""kind":{{"core":"{s}"}}"#)))
+    };
     let (path, page) = files
         .iter()
         .filter(|(path, _)| path.starts_with("pages/"))
         .map(|(path, bytes)| (path.clone(), String::from_utf8(bytes.clone()).expect("UTF-8")))
-        .find(|(_, page)| page.contains(SHIELD_OVERRIDES))
+        .find(|(_, page)| page.lines().any(is_shield))
         .expect("the shield wire's page");
     let wire = page
         .lines()
-        .find(|l| l.contains(SHIELD_OVERRIDES))
+        .find(|l| is_shield(l))
         .expect("the shield wire")
         .to_owned();
     let id = serde_json::from_str::<serde_json::Value>(&wire).expect("JSON")["id"]
         .as_str()
         .expect("an ID")
         .to_owned();
-    let kept = wire.replace(SHIELD_OVERRIDES, r#""overrides":{"csa":"4","colour":["BU"]}"#);
+    // The overrides are the line's last member, where the canonical writer puts them.
+    let open = wire.strip_suffix('}').expect("a JSON line");
+    let kept = format!(r#"{open},"overrides":{{"csa":"4","colour":["BU"]}}}}"#);
     let conflict = format!(
         r#"{{"$k":"conflict","id":"{id}","kind":"connection","base":{{"overrides":{{}}}},"ours":{{"overrides":{{"colour":["BU"]}}}},"theirs":{{"overrides":{{"colour":["WH"]}}}}}}"#
     );

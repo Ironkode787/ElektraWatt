@@ -310,6 +310,28 @@ pub fn placement_of(s: &Session, tag: &str) -> ew_ids::Id<ew_schema::Placement> 
         .unwrap_or_else(|| panic!("{tag} is not placed"))
 }
 
+/// The sample's shield wire on 103, the core SHIELD of -103W1, found by its ends: the terminal -X1031:SH and the motor
+/// -103M1.
+pub fn sample_shield(s: &Session) -> ew_ids::Id<ew_schema::Connection> {
+    let [terminal, motor] =
+        ["-X1031:SH", "-103M1"].map(|tag| s.resolve_reference(&format!("tag:{tag}")).expect("the device"));
+    let q = s.query();
+    let device = |end: &ew_schema::Endpoint| {
+        end.function()
+            .and_then(|f| q.functions().get(f))
+            .and_then(|f| f.device)
+            .map(|d| d.as_uuid())
+    };
+    q.connections()
+        .iter()
+        .find(|(_, c)| {
+            let ends = [device(&c.a), device(&c.b)];
+            ends == [Some(terminal), Some(motor)] || ends == [Some(motor), Some(terminal)]
+        })
+        .map(|(id, _)| id)
+        .expect("the shield wire")
+}
+
 /// A rail pose whose footprint starts `s10` tenths of a millimetre along the rail (a strip's clip point is its left
 /// end).
 pub fn rail_at(s10: i64) -> serde_json::Value {

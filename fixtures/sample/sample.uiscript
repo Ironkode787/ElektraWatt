@@ -537,8 +537,6 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"select.set","params":{"refs":["wire:-X1031:SH/b -> -103M1:PE"]}}
 {"action":"cable.from_wires","params":{"tag":"-103W1","type":"4G2.5","cores":"SHIELD"}}
-{"action":"select.set","params":{"refs":["wire:-X1031:SH/b -> -103M1:PE"]}}
-{"action":"props.set","params":{"row":"connection/overrides.csa","value":"2.5"}}
 {"action":"page.new","params":{"folio":"201","title":"Pneumatics","type":"fluid","section":"2"}}
 {"action":"page.goto","params":{"folio":"201"}}
 {"action":"select.set","params":{"refs":["folio:201"]}}

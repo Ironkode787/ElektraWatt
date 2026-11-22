@@ -3,14 +3,15 @@
 
 //! Through the `ew` binary: `ew merge-driver` in a working tree that holds a copy of the sample, as git runs it. The
 //! exits 0 and 1, the four-argument form, an internal error's 129 with `%A` byte-identical; AC-41's driver half on
-//! the wire of page 103 with an override (the shield of -103W1, 2.5 mm²) and the manifest merge.
+//! the wire of page 103 given an override (the shield of -103W1, 2.5 mm²) and the manifest merge.
 
+use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Output;
 
 use crate::support::{EwTmp as _, SAMPLE, Tmp, page_file};
 
-/// The shield wire's overrides in the sample: its one wire with an override.
+/// The shield wire's overrides in the common ancestor of these merges (the sample's shield has none).
 pub(crate) const SHIELD_OVERRIDES: &str = r#""overrides":{"csa":"2.5"}"#;
 
 /// Page 103 in the project.
@@ -26,18 +27,30 @@ fn repo_page() -> String {
 /// The sample's page-103 file and its shield wire's line.
 pub(crate) fn shield_line() -> (String, String) {
     let base = std::fs::read_to_string(Path::new(SAMPLE).join(page())).unwrap();
+    let id = format!(r#""id":"{}""#, shield_id());
     let line = base
         .lines()
-        .find(|l| l.contains(SHIELD_OVERRIDES))
+        .find(|l| l.contains(&id))
         .expect("the shield wire")
         .to_owned();
     (base, line)
 }
 
-/// The shield wire's ID.
+/// The shield wire's ID, found by its ends: the terminal -X1031:SH and the motor -103M1.
 pub(crate) fn shield_id() -> String {
-    let line: serde_json::Value = serde_json::from_str(&shield_line().1).unwrap();
-    line["id"].as_str().unwrap().to_owned()
+    static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    ID.get_or_init(|| {
+        let t = Tmp::new("ew-shield-id");
+        let query = "SELECT id FROM api_v1_wire WHERE (from_tag = '-X1031:SH' AND to_tag = '-103M1') \
+                     OR (from_tag = '-103M1' AND to_tag = '-X1031:SH')";
+        let o = t.ew(&[OsStr::new("sql"), OsStr::new(SAMPLE), OsStr::new(query)]);
+        let out = String::from_utf8_lossy(&o.stdout).into_owned();
+        match out.lines().collect::<Vec<_>>()[..] {
+            ["id", id] => id.to_owned(),
+            _ => panic!("the shield wire: {out}"),
+        }
+    })
+    .clone()
 }
 
 /// A working tree with a copy of the sample in `proj/sample.ew`, removed on drop.
@@ -96,10 +109,12 @@ fn result(o: &Output) -> (Option<i32>, String, String) {
     )
 }
 
-/// The sample's page-103 file with the shield wire's overrides replaced (as part 4a's `ac41_w20_*` tests).
+/// The sample's page-103 file with the shield wire given `overrides` (as part 4a's `ac41_w20_*` tests): its last
+/// member, where the canonical writer puts it.
 pub(crate) fn page_with(overrides: &str) -> String {
     let (base, line) = shield_line();
-    base.replace(&line, &line.replace(SHIELD_OVERRIDES, overrides))
+    let open = line.strip_suffix('}').expect("a JSON line");
+    base.replace(&line, &format!("{open},{overrides}}}"))
 }
 
 /// The shield wire's page of the common ancestor, of branch A (adds `colour` BU) and of branch B (sets `csa` "4").

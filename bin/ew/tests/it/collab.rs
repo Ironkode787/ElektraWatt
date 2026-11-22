@@ -15,7 +15,7 @@ use std::process::{Command, Output, Stdio};
 
 use serde_json::{Value, json};
 
-use crate::merge_driver::{SHIELD_OVERRIDES, colour_conflict, page, page_with, shield_id};
+use crate::merge_driver::{colour_conflict, page, page_with, shield_id};
 use crate::support::{EwTmp as _, SAMPLE, Tmp};
 
 /// The ID of the sample's device `tag`, as `ew sql` reads it.
@@ -536,7 +536,6 @@ fn ac41_merges_through_git_with_the_driver() {
     );
     assert_eq!(r.ew(&["git", "setup", "--yes"]).status.code(), Some(0));
     r.commit("ew git setup");
-    assert!(page_103(&r.project()).contains(SHIELD_OVERRIDES));
     let (wire, q1) = (shield_id(), device_id("-102Q1"));
     let branch = |name: &str, from: &str, cmds: &[ew_api::AnyCommand]| {
         assert!(r.git(&["checkout", "--quiet", "-b", name, from]).status.success());

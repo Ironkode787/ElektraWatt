@@ -63,11 +63,6 @@ fn page_text(folio: u32) -> String {
         .unwrap()
 }
 
-/// The shield wire of -103W1 on folio 103, the one wire with a cross-section override (2.5 mm²): it is reset.
-fn shield_103() -> String {
-    record_id(103, &["\"overrides\":{\"csa\":\"2.5\"}"])
-}
-
 /// The potential definition 24V at the power supply on folio 101 (a device file holds it, beside its device).
 fn def_24v() -> String {
     let dir = std::path::Path::new(crate::support::SAMPLE).join("devices");
@@ -147,7 +142,7 @@ fn all_done(out: &Output) -> Vec<Value> {
 /// The pilot's edits on folios 101 to 103 (§6.12), saved at the end.
 fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
     let terminals: Vec<String> = (1..=8).map(|i| format!("tag:-X1021:{i}")).collect();
-    let (wire, shield, def, ip) = (wire_103(), shield_103(), def_24v(), ip_pe_102());
+    let (wire, def, ip) = (wire_103(), def_24v(), ip_pe_102());
     vec![
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
         ("page.goto", json!({"folio": "101"})),
@@ -211,8 +206,8 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             json!({"row": "page/derived.description", "action": "reset"}),
         ),
         // The rest of §6.12: -101F1's part quantity and technical data; -102F1's function text, letter and counter;
-        // -UC1's frozen tag unfrozen again; a terminal's designation; the wire's colour and the shield's
-        // cross-section reset; the name of 24V; a representation's arrangement and text slots; an interruption point
+        // -UC1's frozen tag unfrozen again; a terminal's designation; the wire's colour and cross-section reset (the
+        // sample sets no cross-section by hand, FT-2090); the name of 24V; a representation's arrangement and text slots; an interruption point
         // read-only.
         ("select.set", json!({"refs": ["tag:-101F1"]})),
         ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),
@@ -242,7 +237,6 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             "props.action",
             json!({"row": "connection/derived.colour", "action": "reset"}),
         ),
-        ("select.set", json!({"ids": [shield]})),
         (
             "props.action",
             json!({"row": "connection/derived.csa", "action": "reset"}),

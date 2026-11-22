@@ -34,13 +34,7 @@ fn release_copy(copy: &Path, state: &Path) -> (Session, Vec<checks::IntegrityIte
     common::copy_dir(&sample(), copy);
     let (mut s, _) = open(copy, state);
     let revision = open_revision(&s).id;
-    let shield = s
-        .query()
-        .connections()
-        .iter()
-        .find(|(_, c)| c.overrides.csa.is_some())
-        .map(|(id, _)| id)
-        .expect("the shield wire with its override");
+    let shield = common::sample_shield(&s);
     // The author is set as a person at the window sets it (the command is human-only).
     s.execute_with(
         &cmd(

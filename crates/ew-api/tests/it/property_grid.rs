@@ -254,16 +254,6 @@ fn wire(s: &Session, number: &str) -> ew_derive::ew_ids::Uuid {
         .unwrap_or_else(|| panic!("no wire {number}"))
 }
 
-/// The sample's one wire with a cross-section override: the shield on 103.
-fn overridden_wire(s: &Session) -> ew_derive::ew_ids::Uuid {
-    s.query()
-        .connections()
-        .iter()
-        .find(|(_, c)| c.overrides.csa.is_some())
-        .map(|(id, _)| id.as_uuid())
-        .expect("the shield wire")
-}
-
 /// The drawn page labelled `folio`.
 fn page(s: &Session, folio: &str) -> ew_derive::ew_ids::Uuid {
     s.resolve_reference(&format!("folio:{folio}")).unwrap()
@@ -383,8 +373,13 @@ fn frozen_tags_wire_chips_and_the_page_description() {
             via: "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
         }
     );
-    // The shield wire: its cross-section is overridden on the connection (CDP).
-    let w20 = overridden_wire(&s);
+    // The shield wire with its cross-section overridden on the connection (CDP).
+    let w20 = crate::common::sample_shield(&s).as_uuid();
+    s.execute(&AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "connection", "targets": [w20.to_string()], "path": "overrides.csa", "value": "4"}),
+    })
+    .expect("the override");
     let sheet = s.property_sheet(&[w20]);
     let csa = row(&sheet, "connection/derived.csa");
     assert_eq!(

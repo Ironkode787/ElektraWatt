@@ -19,7 +19,7 @@ overheat or open before that, and then exposed parts stay live.
 ## Example
 
 On the sample's page 103 the shield core of the motor cable -103W1 counts as a PE wire at -X1031:SH, beside the
-2.5 mm² motor cores, so it is set to 2.5 mm². In a copy, set it to 1.5 mm²: the rule reports it.
+2.5 mm² motor cores, so it takes 2.5 mm². In a copy, set it to 1.5 mm²: the rule reports it.
 
 ## How to fix
 

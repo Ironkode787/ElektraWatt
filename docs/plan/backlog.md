@@ -65,7 +65,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
 
-- FT-2090 `fixtures, ew-api, ew, elektrawatt`: The sample's script sets the shield core of -103W1 to 2.5 mm² by hand (`props.set` of `connection/overrides.csa` after `cable.from_wires` on 103), and since FT-2055 the program proposes that size itself (a PE wire takes the highest rating at its ends: the 16 A breaker before -103M1), so the sample carries one EW-POT-016 info, "Remove that setting", which the Messages snapshots of `ew-ui` show. Dropping the line breaks the tests that find "the sample's one wire with a cross-section override" (`checks.rs`, `property_grid.rs`, `release_gate.rs`, `external.rs` of `ew-api`, `messages_scripts.rs`, `cli/revision.rs` and `cli.rs` of `ew`): they find the shield by its ends instead, in the same change.
 
 #### What the tests met on the sample
 

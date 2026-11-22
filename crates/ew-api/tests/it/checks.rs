@@ -349,21 +349,15 @@ fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
     out
 }
 
-/// The ID of the sample's one wire with a cross-section override: the shield of -103W1 on 103 (2.5 mm²).
+/// The ID of the sample's shield wire of -103W1 on 103.
 fn shield() -> String {
-    common::sample()
-        .query()
-        .connections()
-        .iter()
-        .find(|(_, c)| c.overrides.csa.is_some())
-        .map(|(id, _)| id.to_string())
-        .expect("the shield wire")
+    common::sample_shield(&common::sample()).to_string()
 }
 
 /// The EW-POT pack of the pre-delivery scheme reports nothing on the sample, the online-only rules nothing in the
-/// drafting scheme but the shield's 2.5 mm² override, which equals the size the rating at its motor proposes now
-/// (EW-POT-016, FT-2055); D-38: the shield wire set below its 2.5 mm² line conductors is an undersized PE wire
-/// (EW-POT-006, its target that wire), at 2.5 mm² the finding is gone.
+/// drafting scheme (the shield takes the 2.5 mm² the rating at its motor proposes, set by nobody, FT-2090); D-38: the
+/// shield wire set below its 2.5 mm² line conductors is an undersized PE wire (EW-POT-006, its target that wire), at
+/// 2.5 mm² the finding is gone.
 #[test]
 fn the_ew_pot_pack_is_quiet_and_an_undersized_pe_wire_is_pot006() {
     let s = common::sample();
@@ -390,21 +384,10 @@ fn the_ew_pot_pack_is_quiet_and_an_undersized_pe_wire_is_pot006() {
         assert_eq!(subjects(&report, rule), Vec::<(String, String)>::new(), "{rule}");
     }
     let online = s.check(&checks::DRAFTING, CheckMode::Online);
-    for zero in ["EW-POT-011", "EW-POT-012"] {
+    for zero in ["EW-POT-011", "EW-POT-012", "EW-POT-016"] {
         assert_eq!(subjects(&online, zero), Vec::<(String, String)>::new(), "{zero}");
     }
-    let redundant: Vec<String> = online
-        .findings
-        .iter()
-        .filter(|f| f.is_open() && f.rule == "EW-POT-016")
-        .map(|f| f.targets[0].id.to_string())
-        .collect();
     let shield = shield();
-    assert_eq!(
-        redundant,
-        std::slice::from_ref(&shield),
-        "EW-POT-016: the shield's override only"
-    );
     let bare = sample_with(MemoMode::On, |records| {
         for r in records.iter_mut() {
             if let Record::Connection(c) = r

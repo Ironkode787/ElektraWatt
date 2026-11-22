@@ -292,12 +292,9 @@ fn a_local_edit_survives_and_saves_alone() {
     assert_eq!(overrides(&reopened, &theirs)["colour"], json!(["RD"]));
 }
 
-/// The wire on folio 103 that holds overrides already: the shield's, whose cross-section the script sets.
+/// The shield's wire on folio 103.
 fn wire_with_overrides(s: &Session) -> String {
-    (0..)
-        .map(|n| wire_on(s, "103", n))
-        .find(|w| !overrides(s, w).is_null())
-        .expect("the shield's wire")
+    crate::common::sample_shield(s).to_string()
 }
 
 /// XC-3 setup: the colour of a wire with overrides BU locally and WH on disk; the poll holds the collision.
