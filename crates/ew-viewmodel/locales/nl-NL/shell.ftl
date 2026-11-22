@@ -6842,6 +6842,7 @@ field-project-settings-drawing-wire-numbers = Draadnummers afdrukken
 field-project-lists-form = Kader van de lijsten
 field-help-project-lists-form = Het kader waarop elke lijst wordt afgedrukt (de stuklijst, de klemmen- en kabellijsten, de inhoudsopgave): een kader dat hier gekozen wordt, gaat in één keer naar elke lijst, en elke lijst bewaart het als het Formulier van zijn rapportblok. Op een set met een ander papierformaat wordt een lijst afgedrukt op het eigen kader van de set.
 props-offer-lists-frame = Het kader van elke lijst wijzigen in Projecteigenschappen
+props-offer-on-output = { $p0 } op het tabblad Uitvoer
 toast-lists-frame = Elke lijst van het project wordt nu afgedrukt op { $p0 }.
 field-help-project-settings-drawing-wire-numbers = Of elke draad zijn nummer afdrukt op de pagina's, in de PDF en bij afdrukken: één instelling voor het hele project. Draden nummeren per potentiaal (Tekenen ▸ Verbinden) bepaalt welke nummers het zijn.
 field-help-project-supply = De voeding waarop de installatie aangesloten is: haar spanning, fasen, geleiders en aarding. De voorpagina drukt haar af als één regel, zoals 3 x 400 VAC + N + PE, 50 Hz.

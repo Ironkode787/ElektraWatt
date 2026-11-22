@@ -503,9 +503,12 @@ impl ShellModel {
         }
     }
 
-    /// Where the read-only row `key` of a generated page is changed: the Form row in Frame of the lists of the
-    /// project's Properties. `None` for any other row.
+    /// Where the read-only row `key` of a generated page is changed (a persona run tried each row for thirty turns): the
+    /// Form row in Frame of the lists of the project's Properties; the columns, the caption and the legend line in List
+    /// columns…, the rows of one's own in Rows of your own… (each on the Output tab); every other row on the list's
+    /// report block, selected in Properties. `None` for a row that is not a generated page's.
     pub fn row_offer(&self, key: &str) -> Option<crate::properties::RowOffer> {
+        use crate::properties::RowOffer;
         let sheet = self.props.sheet()?;
         let (section, row) = crate::properties::find_row(sheet, key)?;
         if section.kind != "report_block"
@@ -513,16 +516,29 @@ impl ShellModel {
         {
             return None;
         }
-        match row.path.as_str() {
-            "form" => Some(crate::properties::RowOffer {
+        let on_output = |action: &'static str, label: Key<'static>| RowOffer {
+            label: strings::format(key!("props-offer-on-output"), &[strings::text(label)]),
+            steps: vec![(action, json!({}))],
+        };
+        let top = row.path.split(['.', '[']).next().unwrap_or_default();
+        Some(match top {
+            "form" => RowOffer {
                 label: strings::text(key!("props-offer-lists-frame")).to_owned(),
                 steps: vec![
                     ("props.project", json!({})),
                     ("props.row", json!({ "to": LISTS_FRAME_ROW })),
                 ],
-            }),
-            _ => None,
-        }
+            },
+            "columns" | "caption" | "legend" => on_output(COLUMNS, key!("action-report-block-columns")),
+            "added_rows" => on_output(ROWS, key!("action-report-block-rows")),
+            _ => {
+                let ids: Vec<String> = section.targets.iter().map(ToString::to_string).collect();
+                RowOffer {
+                    label: strings::text(key!("toast-show-block")).to_owned(),
+                    steps: vec![("select.set", json!({ "ids": ids })), ("props.focus", json!({}))],
+                }
+            }
+        })
     }
 
     /// Frame of the lists chosen: the form `value` (its ID) on every list's report block in one `fields.set`, and a

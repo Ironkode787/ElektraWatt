@@ -7115,6 +7115,7 @@ field-project-settings-drawing-wire-numbers = Print wire numbers
 field-project-lists-form = Frame of the lists
 field-help-project-lists-form = The frame every list prints on (the parts list, the terminal and cable lists, the contents): a frame chosen here goes to every list at once, each list keeping it as its report block's Form. On a set of another paper size, a list prints on the set's own frame.
 props-offer-lists-frame = Change the frame of every list in Project properties
+props-offer-on-output = { $p0 } on the Output tab
 toast-lists-frame = Every list of the project now prints on { $p0 }.
 field-help-project-settings-drawing-wire-numbers = Whether every wire prints its number on the pages, in the PDF and in print: one setting for the whole project. Number wires by potential (Draw ▸ Connect) decides what the numbers are.
 field-help-project-supply = The supply the equipment is connected to: its voltage, phases, conductors and earthing. The cover page prints it as one line, such as 3 x 400 VAC + N + PE, 50 Hz.

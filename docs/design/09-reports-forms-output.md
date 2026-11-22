@@ -840,7 +840,10 @@ page-oriented block) prints on, by name, or each named where the lists differ. A
 every list's block in one `fields.set` (one undo step), and a toast says so; the rule above still applies (a set of
 another paper size prints its lists on the set's frame). A generated page's Form row is read-only, as every row of a
 generated page is: an edit there is refused under the row with a button to Frame of the lists (a persona run looked
-for the lists' frame on a list page and found no way to change it). The frame defaults keep no entry for report pages
+for the lists' frame on a list page and found no way to change it). So does every other row of a list page, each with
+the way to where it is changed: the printed columns, the caption and the legend line List columns… on the Output tab,
+the rows of one's own Rows of your own…, any other row Show report block (the list's block selected in Properties,
+where its rows are edited). The frame defaults keep no entry for report pages
 (EW-INV-012): a list's frame stays its block's Form.
 
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
