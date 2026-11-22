@@ -1179,10 +1179,7 @@ mod tests {
         // and without it is asked for it there.
         s.write("Cargo.toml", "[workspace.package]\nversion = \"0.2.1\"\n");
         s.write("docs/release-notes/0.2.1.md", "# 0.2.1\n");
-        assert_eq!(
-            format_report(&s).failure,
-            [s6("d", "v0.2.0", "0.2.1.md")]
-        );
+        assert_eq!(format_report(&s).failure, [s6("d", "v0.2.0", "0.2.1.md")]);
         s.write(
             "docs/release-notes/0.2.1.md",
             "# 0.2.1\n\n- format-variant: device mode d (a fourth mode)\n",
