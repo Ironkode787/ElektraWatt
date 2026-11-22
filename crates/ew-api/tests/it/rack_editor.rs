@@ -208,7 +208,7 @@ fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
         s.commit(preview).expect("the overview")
     };
     let receipt = run(&mut s);
-    let notices = receipt.outcome.notices;
+    let notices: Vec<String> = receipt.outcome.notices.iter().map(ToString::to_string).collect();
     assert!(notices.iter().any(|n| n.contains("(new page)")), "{notices:?}");
     for n in &notices {
         let members = n.split(": ").nth(1).map_or(0, |m| m.split(", ").count());
@@ -216,6 +216,6 @@ fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
     }
     assert_eq!(pages(&s), before + 2, "three members two at a time");
     let receipt = run(&mut s);
-    assert!(!receipt.outcome.notices.iter().any(|n| n.contains("(new page)")));
+    assert!(!receipt.outcome.notices.iter().any(|n| n.to_string().contains("(new page)")));
     assert_eq!(pages(&s), before + 2, "a refresh adds no page");
 }

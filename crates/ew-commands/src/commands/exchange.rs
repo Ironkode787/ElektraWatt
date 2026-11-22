@@ -251,10 +251,7 @@ impl Command for ExchangeSymbol {
         let slots = u16::try_from(symbol.item.text_slots.len()).unwrap_or(u16::MAX);
         let (kept, dropped): (Vec<_>, Vec<_>) = old.text_slots.iter().cloned().partition(|o| o.slot < slots);
         for o in &dropped {
-            notices.push(format!(
-                "the override of text slot {} is dropped: the new symbol has no such slot",
-                o.slot
-            ));
+            notices.push(text!("notice-exchange-slot-dropped", o.slot.to_string()));
         }
         next.text_slots = KeyedList::from_vec(kept)
             .map_err(|e| CmdError::internal(format!("rep.exchange_symbol: text slots ({e})")))?;
@@ -278,10 +275,7 @@ impl Command for ExchangeSymbol {
             if connected {
                 return tx.reject(text!("refusal-exchange-cp-connected", b.idx.to_string()));
             }
-            notices.push(format!(
-                "function CP {} is no longer drawn by this representation",
-                b.idx
-            ));
+            notices.push(text!("notice-exchange-cp-not-drawn", b.idx.to_string()));
         }
         // Routes follow each CP's displacement.
         let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();

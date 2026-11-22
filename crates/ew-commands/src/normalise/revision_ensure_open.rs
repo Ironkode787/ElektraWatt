@@ -25,6 +25,7 @@ use ew_schema::{Extra, Revision, RevisionState, is_content_kind};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// How often the ID formula is chained when its result is taken before the normaliser gives up (with a notice).
@@ -61,11 +62,10 @@ impl Normaliser for RevisionEnsureOpen {
             .filter(|r| !r.is_withdrawal())
             .map(|r| r.label.as_str());
         let Some(label) = format.next_after(labels) else {
-            tx.notice(format!(
-                "no revision was opened for this edit: the revision label format {} is of a newer build, so \
-                 ElektraWatt cannot propose the next label after {}; create the open revision with revision.create",
-                format.pattern(),
-                latest.label
+            tx.notice(text!(
+                "notice-revision-format-newer",
+                format.pattern().to_string(),
+                latest.label.to_string()
             ));
             return Ok(false);
         };
@@ -74,11 +74,7 @@ impl Normaliser for RevisionEnsureOpen {
         while tx.exists::<Revision>(id) {
             tries += 1;
             if tries > ID_CHAIN {
-                tx.notice(format!(
-                    "no revision was opened for this edit: the IDs that follow revision {} ({}) are taken; create \
-                     the open revision with revision.create",
-                    latest.label, latest.id
-                ));
+                tx.notice(text!("notice-revision-ids-taken", latest.label.to_string()));
                 return Ok(false);
             }
             id = v5::revision_next_id(id);

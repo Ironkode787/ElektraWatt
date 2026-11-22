@@ -39,6 +39,7 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// Normaliser N5.
@@ -172,20 +173,20 @@ fn new_or_moved_functions(tx: &TxBuilder<'_>) -> BTreeMap<Id<Device>, BTreeSet<I
 
 /// A part as a notice names it: `part CPU-DP`, or `a part without a number` when the number is empty (an `Ident` is
 /// never empty today; the words stay right if a part ever comes without one).
-fn part_text(number: &str) -> String {
+fn part_text(number: &str) -> Text {
     if number.trim().is_empty() {
-        "a part without a number".to_owned()
+        text!("notice-part-no-number")
     } else {
-        format!("part {number}")
+        text!("notice-part", number)
     }
 }
 
 /// A port as a notice names it: the device's tag, a colon and the interface, then a space and the label (`-A1:DP`).
-fn port_text(tx: &TxBuilder<'_>, device: Id<Device>, key: &PortKey) -> String {
+fn port_text(tx: &TxBuilder<'_>, device: Id<Device>, key: &PortKey) -> Text {
     let tag = crate::words::device(tx, device);
     match &key.1 {
-        Some(label) => format!("{tag}:{} {}", key.0.as_str(), label.as_str()),
-        None => format!("{tag}:{}", key.0.as_str()),
+        Some(label) => text!("notice-bus-port-label", tag, key.0.as_str(), label.as_str()),
+        None => text!("notice-bus-port-plain", tag, key.0.as_str()),
     }
 }
 
@@ -216,9 +217,10 @@ fn run_device(
         }
         if matches!(port.bus, BusSystem::Unknown(_)) || matches!(port.role, PortRole::Unknown(_)) {
             if full {
-                tx.notice(format!(
-                    "bus port {} of {part_words} is of a newer format and was not applied",
-                    port.interface.as_str()
+                tx.notice(text!(
+                    "notice-bus-port-newer",
+                    port.interface.as_str(),
+                    part_words.clone()
                 ));
             }
             continue;
@@ -274,9 +276,10 @@ fn run_device(
                 continue;
             };
             if have.bus != port.bus || have.role != port.role {
-                let text = format!(
-                    "{} keeps its bus port; {part_words} declares {} {}",
+                let text = text!(
+                    "notice-bus-port-keeps",
                     port_text(tx, device, key),
+                    part_words.clone(),
                     stored_name(&port.bus),
                     stored_name(&port.role)
                 );

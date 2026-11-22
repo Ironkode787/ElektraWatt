@@ -623,7 +623,7 @@ fn auto_fill_lists_the_unplaced_that_fit() {
         r.outcome
             .notices
             .iter()
-            .all(|n| n.ends_with(": no room left on rail 1")),
+            .all(|n| n.to_string().ends_with(": no room left on rail 1")),
         "only rail capacity: {:?}",
         r.outcome.notices
     );

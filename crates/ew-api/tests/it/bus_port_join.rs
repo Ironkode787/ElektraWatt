@@ -71,7 +71,7 @@ fn place_cpu(s: &mut Session) -> (Uuid, Vec<String>) {
         .find(|k| k.0 == Kind::Device)
         .map(|k| k.1.as_uuid())
         .expect("a new device");
-    (device, r.outcome.notices.clone())
+    (device, r.outcome.notices.iter().map(ToString::to_string).collect())
 }
 
 /// The `device.place` of the starter DP-port symbol joining `device` as an auxiliary function, with the symbol's
@@ -162,7 +162,7 @@ fn the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
         .and_then(|f| f.bus_port.clone());
     assert_eq!(candidate_port, Some(dp_master()), "the preview lists the port");
     assert!(
-        !preview.outcome().notices.iter().any(|n| n.contains("bus port")),
+        !preview.outcome().notices.iter().any(|n| n.to_string().contains("bus port")),
         "{:?}",
         preview.outcome().notices
     );

@@ -207,7 +207,7 @@ impl ShellModel {
         };
         self.preview
             .notices
-            .extend(preview.outcome().notices.iter().cloned());
+            .extend(super::tools::notices_words(&preview.outcome().notices));
         let position = |page: Uuid| rows.iter().position(|r| r.id == page);
         let mut pages: Vec<usize> = preview
             .affected_pages()

@@ -11,6 +11,7 @@ use serde::de::DeserializeOwned;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::registry::AnyCommand;
+use crate::text::Text;
 use crate::tx::TxBuilder;
 
 /// What a command reports besides its ops.
@@ -21,8 +22,9 @@ pub struct Outcome {
     /// A short human-readable note for the toast, if any.
     pub note: Option<String>,
     /// What the command dropped or adjusted instead of refusing, for the toast (an autoconnect hint whose
-    /// target vanished, doc 06 §3.2 row 6), in the order they arose.
-    pub notices: Vec<String>,
+    /// target vanished, doc 06 §3.2 row 6), in the order they arose: each by key, so that the window words it in its
+    /// language and the command line in English.
+    pub notices: Vec<Text>,
 }
 
 impl Outcome {

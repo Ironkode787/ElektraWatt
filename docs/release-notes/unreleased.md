@@ -584,3 +584,8 @@ change here.
   side on one line and ran into each other. A text a person dragged keeps its place. Where wires run under a part
   lying flat, its data may stand over its tag, and a strip's tag stands over the name of its first terminal (doc 07
   §4.1, doc 06a §5.2, FT-1929)
+- text-change: what a command dropped or adjusted instead of refusing (a box reshape's moved pin, a paste's left-out
+  items, a join's dropped members, a PLC module's unbound channels, a valve's new part: about seventy notices) reads in
+  Dutch in a Dutch window: each notice carries a text key, and the command line prints its English as before; a
+  revision notice no longer prints a record's ID, and a paste's cleared reference names its records in words instead
+  of their field names (doc 04 §5.1, FT-1819)

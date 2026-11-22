@@ -246,7 +246,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
         ))
         .unwrap();
     assert_eq!(p.outcome().notices.len(), 1);
-    assert!(p.outcome().notices[0].contains("rasterised"));
+    assert!(p.outcome().notices[0].to_string().contains("rasterised"));
     e.commit(p).unwrap();
     assert_eq!(
         ew_schema::company_logo(&e.model().project().extra).map(|r| (r.format, r.size)),

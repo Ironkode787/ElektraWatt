@@ -99,9 +99,11 @@ impl Command for PurgeAssets {
             ..Outcome::default()
         };
         if let Some(listed) = self.listed()? {
-            outcome
-                .notices
-                .extend(listed.iter().map(|h| format!("removes the asset file of {h}")));
+            outcome.notices.extend(
+                listed
+                    .iter()
+                    .map(|h| text!("notice-asset-removed", h.to_string())),
+            );
         }
         Ok(outcome)
     }

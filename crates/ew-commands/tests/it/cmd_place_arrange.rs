@@ -1482,7 +1482,7 @@ fn exchange_to_another_fndef_maps_by_designation() {
     assert_eq!(slots, vec![0]);
     assert_eq!(r.outcome.notices.len(), 1, "{:?}", r.outcome.notices);
     assert!(
-        r.outcome.notices[0].contains("text slot 2"),
+        r.outcome.notices[0].to_string().contains("text slot 2"),
         "{:?}",
         r.outcome.notices
     );
@@ -1582,7 +1582,7 @@ fn exchange_refuses_a_connected_function_cp_that_the_new_symbol_does_not_draw() 
         r.outcome
             .notices
             .iter()
-            .any(|n| n.contains("function CP 1 is no longer drawn")),
+            .any(|n| n.to_string().contains("function CP 1 is no longer drawn")),
         "{:?}",
         r.outcome.notices
     );

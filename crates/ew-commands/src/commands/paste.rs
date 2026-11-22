@@ -516,7 +516,7 @@ enum Resolved {
     /// It stays as it is.
     Keep,
     /// It names nothing; the notice says why when it is cleared.
-    Nothing(Option<String>),
+    Nothing(Option<Text>),
 }
 
 /// Library copies by (kind, copy ID).
@@ -615,7 +615,7 @@ pub(crate) struct Inserted {
     /// The new pages, in insertion order.
     pub(crate) pages: Vec<Id<Page>>,
     /// The notices.
-    pub(crate) notices: Vec<String>,
+    pub(crate) notices: Vec<Text>,
 }
 
 impl Insertion<'_> {
@@ -672,9 +672,9 @@ impl Insertion<'_> {
             }
             Kind::StructureNode => match plan.nodes.get(&old) {
                 Some((Some(node), _)) => Resolved::To(*node),
-                Some((None, path)) => Resolved::Nothing(Some(format!(
-                    "structure {path} is not in this project: inherits the page"
-                ))),
+                Some((None, path)) => {
+                    Resolved::Nothing(Some(text!("notice-paste-structure-gone", path.to_string())))
+                }
                 None => Resolved::Nothing(None),
             },
             Kind::ExternalRef
@@ -900,7 +900,7 @@ impl Insertion<'_> {
     /// Reads the records: kind, schema version, distinct IDs. Returns each record's index in [`Insertion::all`],
     /// kind and source ID; a page item of a kind this version does not know is left out here (before any ID is
     /// minted), with its notice.
-    fn records(&self) -> Result<(Vec<RecordAt>, Vec<String>), CmdError> {
+    fn records(&self) -> Result<(Vec<RecordAt>, Vec<Text>), CmdError> {
         let records = &self.fragment.records;
         if records.is_empty() && !self.has_pages() {
             return Err(self.invalid(format!("{}/records", self.prefix), text!("refusal-paste-empty")));
@@ -973,22 +973,19 @@ impl Insertion<'_> {
             }
             if let Record::PageItem(item) = &record {
                 if matches!(item.kind, PageItemKind::Unknown(_)) {
-                    notices.push("a page item of a kind this version does not know was left out".to_owned());
+                    notices.push(text!("notice-paste-unknown-item"));
                     continue;
                 }
                 if matches!(item.kind, PageItemKind::Image(_)) {
-                    notices.push("an image was left out: a fragment does not carry its asset".to_owned());
+                    notices.push(text!("notice-paste-image"));
                     continue;
                 }
                 if matches!(item.kind, PageItemKind::SurfaceView(_)) {
-                    notices.push(
-                        "a surface view was left out: a panel page has one view, set with Set panel view"
-                            .to_owned(),
-                    );
+                    notices.push(text!("notice-paste-surface-view"));
                     continue;
                 }
                 if matches!(item.kind, PageItemKind::Underlay(_)) {
-                    notices.push("an underlay was left out: it is placed by an import".to_owned());
+                    notices.push(text!("notice-paste-underlay"));
                     continue;
                 }
             }
@@ -1191,7 +1188,7 @@ impl Insertion<'_> {
         let (page, grid, steps, fit) = self.place(tx)?;
         let (copies, embed) = self.copies(tx)?;
         let nodes = self.nodes(tx)?;
-        let mut notices: Vec<String> = Vec::new();
+        let mut notices: Vec<Text> = Vec::new();
         for text in skipped_items {
             notice(text, &mut notices);
         }
@@ -1230,7 +1227,7 @@ impl Insertion<'_> {
             if let Some(id) = v.get_mut("id") {
                 *id = Value::from(plan.ids[&(kind, old)].hyphenated().to_string());
             }
-            let mut unresolved: Vec<(Vec<Step>, &LinkDecl, Option<String>)> = Vec::new();
+            let mut unresolved: Vec<(Vec<Step>, &LinkDecl, Option<Text>)> = Vec::new();
             for decl in LINKS.iter().filter(|d| d.from == kind) {
                 for (path, target) in occurrences(&v, decl.field) {
                     match self.resolve(tx, &plan, decl, target) {
@@ -1268,9 +1265,10 @@ impl Insertion<'_> {
                 } else {
                     notice(
                         why.unwrap_or_else(|| {
-                            format!(
-                                "a pasted {kind}'s {} named a {} that was not copied: cleared",
-                                decl.field, decl.to
+                            text!(
+                                "notice-paste-reference-cleared",
+                                crate::words::kind_words(kind),
+                                crate::words::kind_words(decl.to)
                             )
                         }),
                         &mut notices,
@@ -1287,10 +1285,7 @@ impl Insertion<'_> {
             if let Record::PageItem(item) = &record
                 && item.kind.wire_marker().is_some_and(|m| m.connections.is_empty())
             {
-                notice(
-                    "a wire marker whose wires were not copied was left out".to_owned(),
-                    &mut notices,
-                );
+                notice(text!("notice-paste-marker"), &mut notices);
                 continue;
             }
             match &mut record {
@@ -1299,10 +1294,7 @@ impl Insertion<'_> {
                 }
                 Record::Device(d) => {
                     if parent_cleared {
-                        notice(
-                            format!("{} was a child of a device that was not copied", old_tag(d)),
-                            &mut notices,
-                        );
+                        notice(text!("notice-paste-child", old_tag(d)), &mut notices);
                         d.position = None;
                         if d.tag.scheme == TagScheme::Child {
                             d.tag.scheme = TagScheme::Default;
@@ -1484,7 +1476,7 @@ fn drop_lineage(v: &mut Value) {
 }
 
 /// Adds `text` to `notices` unless it is there already.
-fn notice(text: String, notices: &mut Vec<String>) {
+fn notice(text: Text, notices: &mut Vec<Text>) {
     if !notices.contains(&text) {
         notices.push(text);
     }

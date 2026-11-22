@@ -18,7 +18,7 @@ use crate::error::CmdError;
 use crate::geometry::{OutOfRange, add, on_grid, on_segment, point_in_range, require_on_grid, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::{Pt2S, UuidS};
-use crate::text::text;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// `box.reshape` (`ReshapeBox`, FR-DEV-039): replaces the outline of a black box (a representation with a `box`),
@@ -273,7 +273,7 @@ impl Command for ReshapeBox {
             let Ok(p) = abs(*v) else { return out_of_range(tx) };
             old_abs.push(p);
         }
-        let mut notices: Vec<String> = Vec::new();
+        let mut notices: Vec<Text> = Vec::new();
         let cps: Vec<BoxCp> = match &self.cps {
             Some(cps) => {
                 let mut seen = BTreeSet::new();
@@ -369,10 +369,10 @@ impl Command for ReshapeBox {
                             if na.x == nb.x || na.y == nb.y {
                                 groups.entry(i).or_default().push((k, p));
                             } else {
-                                notices.push(format!(
-                                    "connection point {} moved to the first vertex of edge {i}, which is not \
-                                     horizontal or vertical",
-                                    cp.idx
+                                notices.push(text!(
+                                    "notice-box-cp-to-vertex",
+                                    cp.idx.to_string(),
+                                    i.to_string()
                                 ));
                                 placed[k] = Some((na, cp.dir.clone()));
                             }
@@ -386,14 +386,13 @@ impl Command for ReshapeBox {
                                 .and_then(|d| ew_derive::oriented_dir(&d, inverse))
                                 .unwrap_or_else(|| cp.dir.clone());
                             notices.push(match edge {
-                                Some((i, ..)) => format!(
-                                    "connection point {} moved to edge {j}: its edge {i} no longer exists",
-                                    cp.idx
+                                Some((i, ..)) => text!(
+                                    "notice-box-cp-edge-gone",
+                                    cp.idx.to_string(),
+                                    j.to_string(),
+                                    i.to_string()
                                 ),
-                                None => format!(
-                                    "connection point {} moved to edge {j}: it lay on no edge of the outline",
-                                    cp.idx
-                                ),
+                                None => text!("notice-box-cp-off-edge", cp.idx.to_string(), j.to_string()),
                             });
                             placed[k] = Some((q, dir));
                         }
@@ -482,7 +481,7 @@ impl Command for ReshapeBox {
                         if connected {
                             return tx.reject(text!("refusal-box-reshape-cp-connected", cp.idx.to_string()));
                         }
-                        notices.push(format!("connection point {} is no longer drawn", cp.idx));
+                        notices.push(text!("notice-box-cp-not-drawn", cp.idx.to_string()));
                     }
                 }
             }

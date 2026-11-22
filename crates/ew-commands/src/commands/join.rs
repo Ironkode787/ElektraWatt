@@ -115,92 +115,90 @@ fn entry_def(t: &TemplateFn) -> Id<FnDef> {
 /// The non-default members of the source device that its removal drops, in record order, as the user reads them. Its
 /// kind and structure count only where they differ from the target's (the representation reads the target's
 /// afterwards).
-pub(super) fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str> {
+pub(super) fn dropped_device_members(device: &Device, target: &Device) -> Vec<Text> {
     let mut out = Vec::new();
     let tag = &device.tag;
     if tag.scheme != TagScheme::Default {
-        out.push("numbering scheme");
+        out.push(text!("notice-member-numbering-scheme"));
     }
     if tag.frozen.is_some() {
-        out.push("frozen tag");
+        out.push(text!("notice-member-frozen-tag"));
     }
     if device.kind.is_some() && device.kind != target.kind {
-        out.push("kind");
+        out.push(text!("notice-member-kind"));
     }
     if device.parent.is_some() {
-        out.push("parent device");
+        out.push(text!("notice-member-parent"));
     }
     if device.position.is_some() {
-        out.push("position");
+        out.push(text!("notice-member-position"));
     }
     if !device.structure.is_empty() && device.structure != target.structure {
-        out.push("structure");
+        out.push(text!("notice-member-structure"));
     }
     if !device.function_text.is_empty() {
-        out.push("function text");
+        out.push(text!("notice-member-function-text"));
     }
     if device.process_tag.is_some() {
-        out.push("process tag");
+        out.push(text!("notice-member-process-tag"));
     }
     if !device.tech_data.is_empty() {
-        out.push("technical data");
+        out.push(text!("notice-member-tech-data"));
     }
     if device.state != DeviceState::Used {
-        out.push("state");
+        out.push(text!("notice-member-state"));
     }
     if device.source_ref.is_some() {
-        out.push("import reference");
+        out.push(text!("notice-member-import-reference"));
     }
     let a = &device.aspects;
     if a.cable.is_some() {
-        out.push("cable data");
+        out.push(text!("notice-member-cable"));
     }
     if a.assembly.is_some() {
-        out.push("assembly data");
+        out.push(text!("notice-member-assembly"));
     }
     if a.plc_station.is_some() {
-        out.push("PLC station data");
+        out.push(text!("notice-member-plc-station"));
     }
     if a.plc_module.is_some() {
-        out.push("PLC module data");
+        out.push(text!("notice-member-plc-module"));
     }
     if !device.extra.is_empty() || !tag.extra.is_empty() {
-        out.push("unknown members");
+        out.push(text!("notice-member-unknown"));
     }
     out
 }
 
 /// The own members of the old function that the slot case drops (its record goes; the slot keeps its own).
-pub(super) fn dropped_function_members(function: &Function) -> Vec<&'static str> {
+pub(super) fn dropped_function_members(function: &Function) -> Vec<Text> {
     let mut out = Vec::new();
     if !function.cp_overrides.is_empty() {
-        out.push("connection point overrides");
+        out.push(text!("notice-member-cp-overrides"));
     }
     if function.source_ref.is_some() {
-        out.push("import reference");
+        out.push(text!("notice-member-import-reference"));
     }
     if !function.extra.is_empty() {
-        out.push("unknown members");
+        out.push(text!("notice-member-unknown"));
     }
     out
 }
 
-/// `a`, `a and b`, `a, b and c`.
-pub(super) fn listed(items: &[&str]) -> String {
-    match items {
-        [] => String::new(),
-        [one] => (*one).to_owned(),
-        [init @ .., last] => format!("{} and {last}", init.join(", ")),
-    }
-}
-
-/// The verb after [`listed`]: one member name is singular unless it ends in `s` (of the names above, only "unknown
-/// members" and "connection point overrides" do, and they are plurals).
-pub(super) fn was_or_were(items: &[&str]) -> &'static str {
-    match items {
-        [one] if !one.ends_with('s') => "was",
-        _ => "were",
-    }
+/// Member names in a sentence (`a`, `a and b`, `a, b and c`), and whether they take a plural verb: more than one, or
+/// one whose name is a plural.
+pub(super) fn listed(items: Vec<Text>) -> (crate::text::TextArg, bool) {
+    let plural = items.len() > 1
+        || items.iter().any(|t| {
+            matches!(
+                t.key(),
+                "notice-member-unknown" | "notice-member-cp-overrides" | "notice-member-unplaced-functions"
+            )
+        });
+    (
+        crate::words::and_list(items.into_iter().map(Into::into).collect()),
+        plural,
+    )
 }
 
 /// Whether `device` is a terminal or a strip.
@@ -490,26 +488,24 @@ impl Command for JoinDevice {
         let mut outcome = Outcome::primary((Kind::Representation, self.rep.cast()));
         let mut device_members = dropped_device_members(&source_device, &target);
         if !source_device.parts.is_empty() {
-            device_members.push("part");
+            device_members.push(text!("notice-member-part"));
         }
         if !others.is_empty() {
-            device_members.push("unplaced functions");
+            device_members.push(text!("notice-member-unplaced-functions"));
         }
         if !device_members.is_empty() {
-            outcome.notices.push(format!(
-                "the joined device's {} {} dropped with it",
-                listed(&device_members),
-                was_or_were(&device_members)
-            ));
+            outcome.notices.push(match listed(device_members) {
+                (words, false) => text!("notice-join-device-dropped-one", words),
+                (words, true) => text!("notice-join-device-dropped-many", words),
+            });
         }
         if slot.is_some() {
             let function_members = dropped_function_members(&f);
             if !function_members.is_empty() {
-                outcome.notices.push(format!(
-                    "the old function's {} {} dropped with it",
-                    listed(&function_members),
-                    was_or_were(&function_members)
-                ));
+                outcome.notices.push(match listed(function_members) {
+                    (words, false) => text!("notice-join-function-dropped-one", words),
+                    (words, true) => text!("notice-join-function-dropped-many", words),
+                });
             }
         }
         tx.delete((Kind::Device, source.cast()))?;

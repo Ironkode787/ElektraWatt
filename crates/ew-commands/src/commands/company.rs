@@ -144,8 +144,8 @@ impl Command for SetCompany {
                     text,
                 )?;
                 if reference.format.is_raster() {
-                    outcome.notices.push(format!(
-                        "the logo is a {} raster image: it prints rasterised; an SVG logo prints as vectors",
+                    outcome.notices.push(text!(
+                        "notice-company-logo-raster",
                         reference.format.ext().to_uppercase()
                     ));
                 }

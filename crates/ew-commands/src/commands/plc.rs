@@ -28,7 +28,7 @@ use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::normalise::channel_instantiation::{binding_words, module_section};
 use crate::proxy::{IdentS, UuidS};
-use crate::text::text;
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target
@@ -248,15 +248,13 @@ impl Command for BindChannel {
                 // navigator's toast names the address and the pin).
                 let words = match tx.get::<Channel>(other) {
                     Some(o) if o.module == channel.module => {
-                        format!("channel {} of the same module", o.number)
+                        text!("notice-plc-channel-same-module", o.number.to_string())
                     }
-                    Some(o) => format!("channel {} of another module", o.number),
-                    None => "another channel".to_owned(),
+                    Some(o) => text!("notice-plc-channel-other-module", o.number.to_string()),
+                    None => text!("notice-plc-channel-another"),
                 };
                 tx.update::<Channel>(other, |c| c.binding = None)?;
-                notices.push(format!(
-                    "{words} was bound to this connection point and is now unbound"
-                ));
+                notices.push(text!("notice-plc-displaced", words));
             }
         }
         let endpoint = binding.map(|(f, idx)| Endpoint::Cp(f, idx));
@@ -382,11 +380,12 @@ impl Command for SetStart {
             };
             let has_range = module_section(tx, &dev).is_some_and(|s| s.io.iter().any(|r| r.dir == dir));
             if !has_range {
-                notices.push(format!(
-                    "module {} has no {} range in its part: the start has no effect until it has one",
-                    crate::words::device(tx, *m),
-                    if dir == IoDir::In { "input" } else { "output" }
-                ));
+                let module = crate::words::device(tx, *m);
+                notices.push(if dir == IoDir::In {
+                    text!("notice-plc-no-input-range", module)
+                } else {
+                    text!("notice-plc-no-output-range", module)
+                });
             }
             let current = match self.dir {
                 StartDir::Input => &aspect.start.input,
@@ -548,16 +547,18 @@ impl Command for SetModulePart {
         let mut notices = Vec::new();
         let mut doomed = Vec::new();
         for c in surplus {
-            let symbol = c
-                .symbol
-                .as_ref()
-                .map_or_else(|| "no symbol".to_owned(), |s| format!("symbol {s}"));
+            let symbol = c.symbol.as_ref().map_or_else(
+                || text!("notice-plc-no-symbol"),
+                |s| text!("notice-plc-symbol", s.to_string()),
+            );
             // The module by its tag and the binding in words, as N2's notices name them
-            notices.push(format!(
-                "channel {} of module {} is removed: beyond its part's {count} channels; it was {}, {symbol}",
-                c.number,
+            notices.push(text!(
+                "notice-plc-channel-removed",
+                c.number.to_string(),
                 crate::words::device(tx, m),
+                count.to_string(),
                 binding_words(tx, c.binding.as_ref()),
+                symbol
             ));
             doomed.push((Kind::Channel, c.id.cast()));
         }
@@ -635,12 +636,14 @@ fn neighbourhood(q: &ew_derive::Q, modules: &[Id<Device>]) -> Vec<Id<Device>> {
     out
 }
 
-/// A derived address as a notice prints it: the profile's text, `TBD`, or `no address`.
-fn address_words(a: &ew_derive::ChannelAddr) -> String {
+/// A derived address as a notice prints it: the profile's text, `TBD`, or `no address` in the reader's language.
+fn address_words(a: &ew_derive::ChannelAddr) -> TextArg {
     match a {
-        ew_derive::ChannelAddr::At { text, .. } => text.clone(),
-        ew_derive::ChannelAddr::Tbd => "TBD".to_owned(),
-        ew_derive::ChannelAddr::Excluded | ew_derive::ChannelAddr::Unresolved => "no address".to_owned(),
+        ew_derive::ChannelAddr::At { text, .. } => text.as_str().into(),
+        ew_derive::ChannelAddr::Tbd => "TBD".into(),
+        ew_derive::ChannelAddr::Excluded | ew_derive::ChannelAddr::Unresolved => {
+            text!("notice-plc-no-address").into()
+        }
     }
 }
 
@@ -648,7 +651,7 @@ fn address_words(a: &ew_derive::ChannelAddr) -> String {
 fn printed_addresses(
     q: &ew_derive::Q,
     modules: &[Id<Device>],
-) -> Vec<(Id<Channel>, Id<Device>, u16, String)> {
+) -> Vec<(Id<Channel>, Id<Device>, u16, TextArg)> {
     let mut out = Vec::new();
     for m in modules {
         for e in q.get::<ew_derive::ChannelAddresses>(*m).iter() {
@@ -663,15 +666,15 @@ fn printed_addresses(
 /// result.
 fn readdress_notices(
     tx: &TxBuilder<'_>,
-    before: &[(Id<Channel>, Id<Device>, u16, String)],
+    before: &[(Id<Channel>, Id<Device>, u16, TextArg)],
     modules: &[Id<Device>],
-) -> Result<Vec<String>, CmdError> {
+) -> Result<Vec<Text>, CmdError> {
     let after = tx
         .base_model()
         .apply_history(&tx.ops(), tx.base_rev().next())
         .map_err(|e| CmdError::internal(format!("re-address preview: {e}")))?;
     let qa = ew_derive::Q::new(&after);
-    let now: std::collections::BTreeMap<Id<Channel>, String> = printed_addresses(&qa, modules)
+    let now: std::collections::BTreeMap<Id<Channel>, TextArg> = printed_addresses(&qa, modules)
         .into_iter()
         .map(|(c, _, _, t)| (c, t))
         .collect();
@@ -681,9 +684,12 @@ fn readdress_notices(
             continue;
         };
         if new != old {
-            out.push(format!(
-                "channel {number} of {}: {old} → {new}",
-                crate::words::device(tx, *module)
+            out.push(text!(
+                "notice-plc-readdress",
+                number.to_string(),
+                crate::words::device(tx, *module),
+                old.clone(),
+                new.clone()
             ));
         }
     }
@@ -789,10 +795,10 @@ impl Command for FreezeAddresses {
         }
         let mut outcome = Outcome::primary((Kind::PlcConfigProject, self.config_project.cast()));
         if frozen > 0 {
-            outcome.notices.push(format!(
-                "{frozen} channel address(es) of configuration project {} frozen as manual addresses",
-                cfg.name
-            ));
+            outcome.notices.push(match frozen {
+                1 => text!("notice-plc-frozen-one", cfg.name.to_string()),
+                n => text!("notice-plc-frozen-many", n.to_string(), cfg.name.to_string()),
+            });
         }
         Ok(outcome)
     }
@@ -937,14 +943,17 @@ impl Command for ConvertManualToAuto {
                         .auto
                         .zip(module_profile_of(&q, *m).filter(|p| p.absolute))
                         .map_or_else(
-                            || "none".to_owned(),
-                            |(auto, p)| p.render(&auto, ew_derive::ew_plcaddr::Purpose::Drawing),
+                            || text!("notice-none").into(),
+                            |(auto, p)| {
+                                TextArg::from(p.render(&auto, ew_derive::ew_plcaddr::Purpose::Drawing))
+                            },
                         );
-                    notices.push(format!(
-                        "channel {} of {} keeps its manual address {} (derived: {derived})",
-                        e.number,
+                    notices.push(text!(
+                        "notice-plc-keeps-address",
+                        e.number.to_string(),
                         crate::words::device(tx, *m),
-                        address_words(&e.address)
+                        address_words(&e.address),
+                        derived
                     ));
                 }
             }
@@ -1051,22 +1060,13 @@ impl Command for ConvertManualToAuto {
                     },
                 )
             };
-            let (module, dir) = (
-                crate::words::device(tx, m),
-                if output { "output" } else { "input" },
-            );
-            notices.push(if others_moved {
-                format!(
-                    "module {module} keeps its manual {dir} start {}: as an automatic start it would move the \
-                     addresses of other modules",
-                    start(byte)
-                )
-            } else {
-                format!(
-                    "module {module} keeps its manual {dir} start {} (automatic: {})",
-                    start(byte),
-                    auto.map_or_else(|| "none".to_owned(), start)
-                )
+            let module = crate::words::device(tx, m);
+            let automatic: TextArg = auto.map_or_else(|| text!("notice-none").into(), |a| start(a).into());
+            notices.push(match (others_moved, output) {
+                (true, false) => text!("notice-plc-keeps-input-start-moves", module, start(byte)),
+                (true, true) => text!("notice-plc-keeps-output-start-moves", module, start(byte)),
+                (false, false) => text!("notice-plc-keeps-input-start", module, start(byte), automatic),
+                (false, true) => text!("notice-plc-keeps-output-start", module, start(byte), automatic),
             });
         }
         super::plc_exchange::refuse_owned_edits(tx)?;

@@ -153,7 +153,7 @@ fn bind(channel: Id<Channel>, endpoint: Option<(Id<Function>, u16)>) -> BindChan
 }
 
 fn has_notice(r: &Receipt, needle: &str) -> bool {
-    r.outcome.notices.iter().any(|n| n.contains(needle))
+    r.outcome.notices.iter().any(|n| n.to_string().contains(needle))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -729,7 +729,7 @@ fn n_fl_1_carries_lines_closures_and_media_to_the_new_valve_and_names_what_goes(
     let r = e
         .execute(&replace_part(v, OLD, NEW))
         .expect("the new valve type, without a panic");
-    let mut notices = r.outcome.notices.clone();
+    let mut notices: Vec<String> = r.outcome.notices.iter().map(ToString::to_string).collect();
     notices.sort();
     assert_eq!(
         notices,

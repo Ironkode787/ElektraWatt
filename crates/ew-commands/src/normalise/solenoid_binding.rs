@@ -48,6 +48,7 @@ use crate::commands::is_on_module;
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::channel_instantiation::{binding_words, channels_by_number, module_section};
+use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -129,17 +130,22 @@ fn unbind_device(tx: &mut TxBuilder<'_>, device: Id<Device>, moved: Id<Device>) 
             continue;
         }
         tx.update::<Channel>(id, |c| c.binding = None)?;
-        let with = if moved == device.id {
-            String::new()
-        } else {
-            format!(" with {}", words::device(tx, moved))
-        };
-        tx.notice(format!(
-            "channel {} of {} is unbound: {} left the module{with}",
-            c.number,
+        let (number, module, left) = (
+            c.number.to_string(),
             words::device(tx, c.module),
-            words::device(tx, device.id)
-        ));
+            words::device(tx, device.id),
+        );
+        tx.notice(if moved == device.id {
+            text!("notice-solenoid-left", number, module, left)
+        } else {
+            text!(
+                "notice-solenoid-left-with",
+                number,
+                module,
+                left,
+                words::device(tx, moved)
+            )
+        });
         changed = true;
     }
     Ok(changed)
@@ -261,12 +267,13 @@ impl Normaliser for SolenoidBinding {
                         ew_derive::solenoid_channel(entry, position - 1).filter(|n| *n < count)
                     else {
                         if valve_triggered {
-                            tx.notice(format!(
-                                "solenoid {} of valve {} stays unbound: the position map of module {} gives no \
-                                 channel below {count} at position {position}",
-                                entry.solenoid,
+                            tx.notice(text!(
+                                "notice-solenoid-no-channel",
+                                entry.solenoid.to_string(),
                                 words::device(tx, valve),
-                                words::device(tx, module)
+                                words::device(tx, module),
+                                count.to_string(),
+                                position.to_string()
                             ));
                         }
                         continue;
@@ -287,24 +294,24 @@ impl Normaliser for SolenoidBinding {
                             .get::<Channel>(channel.id)
                             .is_some_and(|c| c.binding == Some(Endpoint::Cp(coil.0, coil.1)));
                         if valve_triggered && !on_map {
-                            tx.notice(format!(
-                                "solenoid {} of valve {} stays on its channel: the position map of module {} \
-                                 assigns channel {number} at position {position} (EW-PLC-012); binding the channel \
-                                 again moves it",
-                                entry.solenoid,
+                            tx.notice(text!(
+                                "notice-solenoid-stays",
+                                entry.solenoid.to_string(),
                                 words::device(tx, valve),
-                                words::device(tx, module)
+                                words::device(tx, module),
+                                number.to_string(),
+                                position.to_string()
                             ));
                         }
                         continue;
                     }
                     let current = tx.get::<Channel>(channel.id).and_then(|c| c.binding.clone());
                     if current.is_some() {
-                        tx.notice(format!(
-                            "solenoid {} of valve {} stays unbound: channel {number} of module {}, which the \
-                             position map assigns, is {} (EW-FL-002)",
-                            entry.solenoid,
+                        tx.notice(text!(
+                            "notice-solenoid-channel-taken",
+                            entry.solenoid.to_string(),
                             words::device(tx, valve),
+                            number.to_string(),
                             words::device(tx, module),
                             binding_words(tx, current.as_ref())
                         ));

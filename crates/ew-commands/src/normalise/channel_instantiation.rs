@@ -106,12 +106,12 @@ pub(crate) fn kind_name(kind: &ChannelKind) -> String {
 /// A binding as a notice names it, in words: "bound to
 /// -201U3-Q1:14" (the CP by its device's tag and its designation), "bound to the junction at x 120, y 45 mm on page 3",
 /// "bound to an endpoint of a newer format", "unbound".
-pub(crate) fn binding_words(tx: &TxBuilder<'_>, binding: Option<&Endpoint>) -> String {
+pub(crate) fn binding_words(tx: &TxBuilder<'_>, binding: Option<&Endpoint>) -> Text {
     match binding {
-        Some(Endpoint::Cp(f, idx)) => format!("bound to {}", cp_words(tx, *f, *idx)),
-        Some(Endpoint::Junction(j)) => format!("bound to {}", crate::words::junction(tx, *j)),
-        Some(_) => "bound to an endpoint of a newer format".to_owned(),
-        None => "unbound".to_owned(),
+        Some(Endpoint::Cp(f, idx)) => text!("notice-binding-to", cp_words(tx, *f, *idx)),
+        Some(Endpoint::Junction(j)) => text!("notice-binding-to", crate::words::junction(tx, *j)),
+        Some(_) => text!("notice-binding-newer"),
+        None => text!("notice-binding-none"),
     }
 }
 
@@ -254,17 +254,17 @@ impl Normaliser for ChannelInstantiation {
             {
                 // The module by its tag and the binding in words, as N2's notices name them
                 if let ChannelKind::Unknown(_) = c.kind {
-                    tx.notice(format!(
-                        "channel {} of module {} keeps its kind of a newer format; its part gives {}",
-                        c.number,
+                    tx.notice(text!(
+                        "notice-channel-kind-newer",
+                        c.number.to_string(),
                         words::device(tx, dev.id),
                         kind_name(&kind)
                     ));
                     continue;
                 }
-                tx.notice(format!(
-                    "channel {} of module {} changes from {} to {} after its part; it stays {}",
-                    c.number,
+                tx.notice(text!(
+                    "notice-channel-kind-changes",
+                    c.number.to_string(),
                     words::device(tx, dev.id),
                     kind_name(&c.kind),
                     kind_name(&kind),
@@ -276,20 +276,30 @@ impl Normaliser for ChannelInstantiation {
             // Surplus channels stay until `plc.set_module_part` is confirmed
             let surplus: Vec<&Arc<Channel>> = present.values().filter(|c| c.number >= count).collect();
             if !surplus.is_empty() {
-                let list: Vec<String> = surplus
-                    .iter()
-                    .map(|c| format!("channel {} ({})", c.number, binding_words(tx, c.binding.as_ref())))
-                    .collect();
-                let (n, noun) = match surplus.len() {
-                    1 => ("1".to_owned(), "channel"),
-                    n => (n.to_string(), "channels"),
-                };
-                tx.notice(format!(
-                    "module {} keeps {n} surplus {noun} beyond its part's {count}: {}; Set PLC module part removes \
-                     them after its preview",
-                    words::device(tx, dev.id),
-                    list.join(", ")
-                ));
+                let list = words::comma_list(
+                    surplus
+                        .iter()
+                        .map(|c| {
+                            text!(
+                                "notice-channel-item",
+                                c.number.to_string(),
+                                binding_words(tx, c.binding.as_ref())
+                            )
+                            .into()
+                        })
+                        .collect(),
+                );
+                let module = words::device(tx, dev.id);
+                tx.notice(match surplus.len() {
+                    1 => text!("notice-channel-surplus-one", module, count.to_string(), list),
+                    n => text!(
+                        "notice-channel-surplus-many",
+                        module,
+                        n.to_string(),
+                        count.to_string(),
+                        list
+                    ),
+                });
             }
         }
         Ok(changed)

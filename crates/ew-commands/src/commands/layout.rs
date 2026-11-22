@@ -2573,7 +2573,7 @@ impl Command for AutoFill {
         Ok(Outcome {
             primary: Some((Kind::Carrier, carrier.cast())),
             note: None,
-            notices: notices.iter().map(Text::to_string).collect(),
+            notices,
         })
     }
 }

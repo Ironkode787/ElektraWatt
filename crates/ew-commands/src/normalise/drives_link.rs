@@ -26,6 +26,7 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -92,16 +93,8 @@ fn chain(tx: &TxBuilder<'_>, device: Id<Device>) -> Vec<Id<Device>> {
 }
 
 /// Devices in words: "-A", "-A and -B", "-A, -B and -C".
-fn listed(tx: &TxBuilder<'_>, devices: &[Id<Device>]) -> String {
-    let names: Vec<String> = devices
-        .iter()
-        .map(|d| words::device(tx, *d).to_string())
-        .collect();
-    match names.split_last() {
-        Some((last, rest)) if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
-        Some((last, _)) => last.clone(),
-        None => String::new(),
-    }
+fn listed(tx: &TxBuilder<'_>, devices: &[Id<Device>]) -> crate::text::TextArg {
+    words::and_list(devices.iter().map(|d| words::device(tx, *d)).collect())
 }
 
 impl Normaliser for DrivesLink {
@@ -156,15 +149,15 @@ impl Normaliser for DrivesLink {
                             source_ref: None,
                             extra: Extra::new(),
                         })?;
-                        tx.notice(format!(
-                            "{} now drives {}",
+                        tx.notice(text!(
+                            "notice-drives-now",
                             words::device(tx, valve),
                             words::device(tx, *device)
                         ));
                         changed = true;
                     }
-                    several => tx.notice(format!(
-                        "the working-port lines of {} reach {}; link the driven device by hand",
+                    several => tx.notice(text!(
+                        "notice-drives-several",
                         words::device(tx, valve),
                         listed(tx, several)
                     )),

@@ -243,19 +243,15 @@ impl Command for GenerateOverview {
         let mut notices = Vec::new();
         for (i, tags) in &on_page {
             let page = pages[*i];
-            let new = if created.contains(&page) {
-                " (new page)"
+            notices.push(if created.contains(&page) {
+                text!("notice-overview-page-new", folio(tx, page), tags.join(", "))
             } else {
-                ""
-            };
-            notices.push(format!("page {}{new}: {}", folio(tx, page), tags.join(", ")));
+                text!("notice-overview-page", folio(tx, page), tags.join(", "))
+            });
         }
         for (i, page) in used_before.iter().enumerate() {
             if !on_page.contains_key(&i) {
-                notices.push(format!(
-                    "page {} holds no member of the overview any more",
-                    folio(tx, *page)
-                ));
+                notices.push(text!("notice-overview-page-empty", folio(tx, *page)));
             }
         }
         Ok(Outcome {

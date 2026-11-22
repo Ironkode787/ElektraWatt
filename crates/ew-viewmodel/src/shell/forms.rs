@@ -528,7 +528,7 @@ impl ShellModel {
             Ok(p) => p,
             Err(e) => return (super::tools::command_failed(&e, &json), Vec::new()),
         };
-        let notices = preview.outcome().notices.clone();
+        let notices = super::tools::notices_words(&preview.outcome().notices);
         // A tool's own kept preview (the armed Place tool's ghost) is put back: it is stale after the commit and the
         // tool computes it again, as it would without this action.
         let tool_preview = self.tools.preview.replace(PreviewState {

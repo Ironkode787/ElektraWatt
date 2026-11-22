@@ -228,8 +228,8 @@ fn bus_notices(r: &Receipt) -> Vec<String> {
     r.outcome
         .notices
         .iter()
+        .map(ToString::to_string)
         .filter(|n| n.contains("bus port"))
-        .cloned()
         .collect()
 }
 

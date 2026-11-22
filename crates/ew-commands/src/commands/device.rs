@@ -31,7 +31,7 @@ use crate::geometry::{
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{Angle2S, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
-use crate::text::text;
+use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// `device.create`: a device without a representation (FR-DEV-001), optionally with its main function.
@@ -388,10 +388,7 @@ impl Command for PlaceSymbol {
         tx.insert(record)?;
         for (i, hint) in self.connect.iter().enumerate() {
             if let Some(gone) = missing_target(tx, &hint.to) {
-                notices.push(format!(
-                    "autoconnect hint {} dropped: {gone} no longer exists",
-                    i + 1
-                ));
+                notices.push(text!("notice-hint-dropped", (i + 1).to_string(), gone));
                 continue;
             }
             let Some(fn_cp) = symbol
@@ -506,16 +503,16 @@ fn hint_wire(
 }
 
 /// What a hint names that does not exist (any more), as a phrase for a notice.
-fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<String> {
+fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<Text> {
     match to {
         EndpointParam::Cp { function, .. } => {
-            (!tx.exists::<Function>(*function)).then(|| "the function it connects to".to_owned())
+            (!tx.exists::<Function>(*function)).then(|| text!("notice-hint-function"))
         }
         EndpointParam::Junction { junction } => {
-            (!tx.exists::<Junction>(*junction)).then(|| "the junction it connects to".to_owned())
+            (!tx.exists::<Junction>(*junction)).then(|| text!("notice-hint-junction"))
         }
         EndpointParam::OnConnection { connection, .. } => {
-            (!tx.exists::<Connection>(*connection)).then(|| "the wire it connects to".to_owned())
+            (!tx.exists::<Connection>(*connection)).then(|| text!("notice-hint-wire"))
         }
     }
 }
@@ -792,7 +789,7 @@ impl MoveReps {
     /// After the move: `routes` replace the followed routes, marked `computed` (the move's re-solve), as `layout.apply` applies
     /// them, then each hint of `connect` makes its wire as `device.place` does (a hint whose target no longer exists is
     /// dropped with a notice; a CP the representation does not draw is refused). The notices.
-    fn routes_and_hints(&self, tx: &mut TxBuilder<'_>) -> Result<Vec<String>, CmdError> {
+    fn routes_and_hints(&self, tx: &mut TxBuilder<'_>) -> Result<Vec<Text>, CmdError> {
         crate::commands::connection::run_routes(tx, Self::NAME, &self.routes)?;
         let mut notices = Vec::new();
         for (i, hint) in self.connect.iter().enumerate() {
@@ -801,10 +798,7 @@ impl MoveReps {
                 return tx.reject(text!("refusal-rep-move-split"));
             }
             if let Some(gone) = missing_target(tx, &hint.to) {
-                notices.push(format!(
-                    "autoconnect hint {} dropped: {gone} no longer exists",
-                    i + 1
-                ));
+                notices.push(text!("notice-hint-dropped", (i + 1).to_string(), gone));
                 continue;
             }
             let rep = tx.require::<Representation>(hint.rep)?;

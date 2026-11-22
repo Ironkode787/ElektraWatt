@@ -30,7 +30,7 @@ use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
-use crate::text::{Text, text};
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 // ---------------------------------------------------------------------------------------------------------
@@ -541,18 +541,21 @@ impl Command for ApplyExchange {
                     write_field(tx, c)?;
                 }
             }
-            let side = |v: &Option<String>| v.clone().unwrap_or_else(|| "nothing".to_owned());
-            notices.push(format!(
-                "{}: {} {} → {} ({}, {})",
-                c.subject,
+            let side = |v: &Option<String>| -> TextArg {
+                v.as_deref()
+                    .map_or_else(|| text!("notice-nothing").into(), Into::into)
+            };
+            notices.push(text!(
+                "notice-plc-exchange-change",
+                c.subject.clone(),
                 ew_plc::field_words(&c.object, &c.field),
                 side(&c.ours),
                 side(&c.theirs),
                 c.state.word(),
                 if choice == Choice::Theirs {
-                    "taken from the file"
+                    text!("notice-plc-exchange-taken")
                 } else {
-                    "kept"
+                    text!("notice-plc-exchange-kept")
                 }
             ));
         }
@@ -587,10 +590,10 @@ impl Command for ApplyExchange {
             match self.resolutions.get(&p.id) {
                 Some(Resolution::Create) if p.creatable => {
                     entries.extend(create_parked(tx, self.config_project, p)?);
-                    notices.push(format!(
-                        "{} {}: created unplaced",
+                    notices.push(text!(
+                        "notice-plc-exchange-created",
                         ew_plc::object_words(&p.object),
-                        p.name
+                        p.name.clone()
                     ));
                 }
                 Some(Resolution::Create) => {
@@ -607,22 +610,26 @@ impl Command for ApplyExchange {
                         text!("refusal-plc-exchange-parked-choice", p.id.clone()),
                     ));
                 }
-                None => notices.push(format!(
-                    "{} {}: parked ({})",
-                    ew_plc::object_words(&p.object),
-                    p.name,
-                    if p.ambiguous {
-                        "several objects of the project match it"
-                    } else {
-                        "nothing in the project matches it"
-                    }
-                )),
+                None => notices.push(if p.ambiguous {
+                    text!(
+                        "notice-plc-exchange-parked-several",
+                        ew_plc::object_words(&p.object),
+                        p.name.clone()
+                    )
+                } else {
+                    text!(
+                        "notice-plc-exchange-parked-none",
+                        ew_plc::object_words(&p.object),
+                        p.name.clone()
+                    )
+                }),
             }
         }
         for (object, _, name) in &plan.removed {
-            notices.push(format!(
-                "{} {name}: no longer in the file (kept in the project)",
-                ew_plc::object_words(object)
+            notices.push(text!(
+                "notice-plc-exchange-removed",
+                ew_plc::object_words(object),
+                name.clone()
             ));
         }
 
@@ -1126,17 +1133,18 @@ impl Command for ApplyInstrumentList {
                 }
                 let module = tx.get::<Channel>(channel).map(|c| (c.module, c.number));
                 notices.push(match module {
-                    Some((m, n)) => format!(
-                        "{}: channel {n} of {} reserved",
-                        row.tag,
+                    Some((m, n)) => text!(
+                        "notice-plc-row-reserved",
+                        row.tag.clone(),
+                        n.to_string(),
                         crate::words::device(tx, m)
                     ),
-                    None => format!("{}: a channel reserved", row.tag),
+                    None => text!("notice-plc-row-reserved-any", row.tag.clone()),
                 });
             } else {
-                notices.push(format!(
-                    "{}: no spare {} channel; the tag is an open item (EW-PRC-002)",
-                    row.tag,
+                notices.push(text!(
+                    "notice-plc-row-no-spare",
+                    row.tag.clone(),
                     row.signal.word()
                 ));
             }

@@ -528,7 +528,7 @@ fn bind_channel_takes_a_pin_of_a_black_box_card() {
     let notice =
         "channel 5 of the same module was bound to this connection point and is now unbound".to_owned();
     assert!(
-        receipt.outcome.notices.contains(&notice),
+        receipt.outcome.notices.iter().any(|n| n == &notice),
         "{:?}",
         receipt.outcome.notices
     );

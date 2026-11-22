@@ -699,7 +699,7 @@ fn the_automatic_revision_chains_a_taken_id_and_skips_a_newer_format() {
         outcome
             .notices
             .iter()
-            .any(|n| n.contains("no revision was opened")),
+            .any(|n| n.to_string().contains("no revision was opened")),
         "{:?}",
         outcome.notices
     );

@@ -52,7 +52,7 @@ fn run(s: &mut Session, name: &str, params: Value) -> Result<Vec<String>, CmdErr
         name: name.into(),
         params,
     };
-    s.execute(&cmd).map(|r| r.outcome.notices)
+    s.execute(&cmd).map(|r| r.outcome.notices.iter().map(ToString::to_string).collect())
 }
 
 /// A device's short tag as the session prints it.

@@ -522,7 +522,7 @@ fn readdress_and_convert_manual_to_auto() {
             params: json!({"config_project": c.to_string()}),
         })
         .expect("a preview");
-    let notices = preview.outcome().notices.clone();
+    let notices: Vec<String> = preview.outcome().notices.iter().map(ToString::to_string).collect();
     assert_eq!(notices.len(), 8, "{notices:?}");
     assert!(
         notices.contains(&"channel 3 of -104A1-A2: Q10.3 → Q1.3".to_owned()),

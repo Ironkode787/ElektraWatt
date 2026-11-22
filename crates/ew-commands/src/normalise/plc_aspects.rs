@@ -57,6 +57,7 @@ use ew_schema::{
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
+use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// Normaliser #0.
@@ -198,18 +199,16 @@ fn config_project_for(
         if first.cpu.is_none() && cpu.is_some() {
             tx.update::<PlcConfigProject>(first.id, |c| c.cpu = cpu)?;
         }
-        let more = if all.len() > 1 {
-            format!(
-                ", the first of {} by name; set `plc_station.config_project` to choose another",
-                all.len()
+        tx.notice(if all.len() > 1 {
+            text!(
+                "notice-station-joins-first",
+                tag,
+                first.name.to_string(),
+                all.len().to_string()
             )
         } else {
-            String::new()
-        };
-        tx.notice(format!(
-            "station {tag} joins configuration project {}{more}",
-            first.name
-        ));
+            text!("notice-station-joins", tag, first.name.to_string())
+        });
         return Ok(first.id);
     }
     create_config_project(tx, station, cpu)
@@ -246,9 +245,7 @@ pub(crate) fn create_config_project(
         source_ref: None,
         extra: Extra::new(),
     })?;
-    tx.notice(format!(
-        "configuration project {name} created for station {tag} (profile {profile})"
-    ));
+    tx.notice(text!("notice-config-created", name.to_string(), tag, profile));
     Ok(id)
 }
 
@@ -301,20 +298,20 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
         .collect();
     let station = match stations.as_slice() {
         [] => {
-            tx.notice("no PLC station: place a CPU first");
+            tx.notice(text!("notice-no-station"));
             return Ok(false);
         }
         [one] => Arc::clone(one),
         several => match beside(tx, module, several) {
             Some(station) => station,
             None => {
-                tx.notice("attach the module to a station");
+                tx.notice(text!("notice-attach-station"));
                 return Ok(false);
             }
         },
     };
     if is_at_or_above(tx, module, station.id) {
-        tx.notice("attach the module to a station");
+        tx.notice(text!("notice-attach-station"));
         return Ok(false);
     }
     let position = tx
@@ -329,7 +326,7 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
         d.parent = Some(parent);
         d.position = Some(position);
     })?;
-    tx.notice(format!("attached to {} as module {position}", tag_text(&station)));
+    tx.notice(text!("notice-attached", tag_text(&station), position.to_string()));
     Ok(true)
 }
 

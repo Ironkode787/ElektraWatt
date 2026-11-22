@@ -43,6 +43,7 @@ use ew_schema::{Channel, Device, Endpoint, FnDef, FnRole, Function, Kind, LibCop
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
 use crate::normalise::channel_instantiation::{channels_by_number, module_part_copy, module_section};
+use crate::text::text;
 use crate::tx::TxBuilder;
 use crate::words;
 
@@ -155,14 +156,17 @@ fn repin(
     let module = words::device(tx, dev.id);
     for (c, target) in moves {
         match target {
-            None => tx.notice(format!(
-                "channel {} of {module} is unbound: part {} gives it no pin",
-                c.number,
+            None => tx.notice(text!(
+                "notice-pin-no-pin",
+                c.number.to_string(),
+                module.clone(),
                 new.item.part_number.as_str()
             )),
-            Some((pin, idx)) if !tx.channels_at_cp(main.id, idx).is_empty() => tx.notice(format!(
-                "channel {} of {module} is unbound: another channel binds its pin {pin}",
-                c.number
+            Some((pin, idx)) if !tx.channels_at_cp(main.id, idx).is_empty() => tx.notice(text!(
+                "notice-pin-taken",
+                c.number.to_string(),
+                module.clone(),
+                pin.to_string()
             )),
             Some((_, idx)) => {
                 tx.update::<Channel>(c.id, |c| c.binding = Some(Endpoint::Cp(main.id, idx)))?;
@@ -249,38 +253,39 @@ fn bind_channel(tx: &mut TxBuilder<'_>, c: &Channel) -> Result<bool, CmdError> {
         return Ok(false); // no physical pins: an internal channel (N2 binds valve coils)
     };
     let Some(pin) = ew_derive::channel_pin(&pin_of, c.number) else {
-        let why =
-            ew_derive::pin_pattern_error(&pin_of, c.number).map_or_else(String::new, |e| format!(" ({e})"));
-        tx.notice(format!(
-            "channel {} of {} stays unbound: its part's pin map gives no pin for it{why}",
-            c.number,
-            words::device(tx, c.module)
-        ));
+        let (number, module) = (c.number.to_string(), words::device(tx, c.module));
+        tx.notice(match ew_derive::pin_pattern_error(&pin_of, c.number) {
+            Some(e) => text!("notice-pin-map-none-why", number, module, e.to_string()),
+            None => text!("notice-pin-map-none", number, module),
+        });
         return Ok(false);
     };
     let Some(main) = main_function(tx, c.module) else {
-        tx.notice(format!(
-            "channel {} of {} stays unbound: the module has no main function to carry pin {pin}",
-            c.number,
-            words::device(tx, c.module)
+        tx.notice(text!(
+            "notice-pin-no-main",
+            c.number.to_string(),
+            words::device(tx, c.module),
+            pin.to_string()
         ));
         return Ok(false);
     };
     let part = module_part_copy(tx, &dev);
     let Some(idx) = pin_idx(tx, part.as_deref(), &main, &pin) else {
-        tx.notice(format!(
-            "channel {} of {} stays unbound: no CP of its main function is named {pin}",
-            c.number,
-            words::device(tx, c.module)
+        tx.notice(text!(
+            "notice-pin-no-cp",
+            c.number.to_string(),
+            words::device(tx, c.module),
+            pin.to_string()
         ));
         return Ok(false);
     };
     // whether some channel binds the pin: an index lookup with read-your-writes
     if !tx.channels_at_cp(main.id, idx).is_empty() {
-        tx.notice(format!(
-            "channel {} of {} stays unbound: another channel binds its pin {pin}",
-            c.number,
-            words::device(tx, c.module)
+        tx.notice(text!(
+            "notice-pin-bound-other",
+            c.number.to_string(),
+            words::device(tx, c.module),
+            pin.to_string()
         ));
         return Ok(false);
     }

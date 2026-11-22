@@ -104,12 +104,12 @@ fn set(kind: KindName, target: ew_schema::AnyId, path: &str, value: Value) -> Se
     }
 }
 
-fn notices(r: &Receipt) -> &[String] {
-    &r.outcome.notices
+fn notices(r: &Receipt) -> Vec<String> {
+    r.outcome.notices.iter().map(ToString::to_string).collect()
 }
 
 fn has_notice(r: &Receipt, needle: &str) -> bool {
-    r.outcome.notices.iter().any(|n| n.contains(needle))
+    r.outcome.notices.iter().any(|n| n.to_string().contains(needle))
 }
 
 fn channels_of(e: &Engine, module: Id<Device>) -> Vec<std::sync::Arc<Channel>> {

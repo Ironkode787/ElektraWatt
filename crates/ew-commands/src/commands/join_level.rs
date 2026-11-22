@@ -14,7 +14,7 @@ use ew_schema::{
 };
 
 use super::common::function_cp_levels;
-use super::join::{dropped_device_members, dropped_function_members, listed, move_attached, was_or_were};
+use super::join::{dropped_device_members, dropped_function_members, listed, move_attached};
 use crate::command::Outcome;
 use crate::error::CmdError;
 use crate::text::text;
@@ -253,7 +253,7 @@ pub(super) fn join_level(
     // The words of what goes with the source, before it goes.
     let mut device_members = dropped_device_members(source, &block);
     if !source.parts.is_empty() && !block.parts.is_empty() {
-        device_members.push("part");
+        device_members.push(text!("notice-member-part"));
     }
     let function_members = dropped_function_members(&from_fn);
 
@@ -275,18 +275,16 @@ pub(super) fn join_level(
 
     let mut outcome = Outcome::primary((Kind::Representation, rep.cast()));
     if !device_members.is_empty() {
-        outcome.notices.push(format!(
-            "the joined terminal's {} {} dropped with it",
-            listed(&device_members),
-            was_or_were(&device_members)
-        ));
+        outcome.notices.push(match listed(device_members) {
+            (words, false) => text!("notice-join-terminal-dropped-one", words),
+            (words, true) => text!("notice-join-terminal-dropped-many", words),
+        });
     }
     if !function_members.is_empty() {
-        outcome.notices.push(format!(
-            "its function's {} {} dropped with it",
-            listed(&function_members),
-            was_or_were(&function_members)
-        ));
+        outcome.notices.push(match listed(function_members) {
+            (words, false) => text!("notice-join-terminal-function-dropped-one", words),
+            (words, true) => text!("notice-join-terminal-function-dropped-many", words),
+        });
     }
     Ok(outcome)
 }

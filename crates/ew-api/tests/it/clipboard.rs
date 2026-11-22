@@ -846,7 +846,8 @@ fn structure_rebinds_by_path_and_alias_or_clears() {
         receipt
             .outcome
             .notices
-            .contains(&"structure location FLD is not in this project: inherits the page".to_owned()),
+            .iter()
+            .any(|n| n == "structure location FLD is not in this project: inherits the page"),
         "{:?}",
         receipt.outcome.notices
     );
@@ -1277,7 +1278,7 @@ fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
             .outcome
             .notices
             .iter()
-            .any(|n| n.contains("external") && n.contains("cleared")),
+            .any(|n| n.to_string().contains("external") && n.to_string().contains("cleared")),
         "{:?}",
         receipt.outcome.notices
     );

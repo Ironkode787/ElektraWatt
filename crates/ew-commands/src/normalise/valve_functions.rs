@@ -211,10 +211,8 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
             .collect();
         bound.sort();
         bound.dedup();
-        let unbound: Vec<(Id<ew_schema::Channel>, String)> = bound
-            .iter()
-            .map(|c| (*c, words::channel(tx, *c).to_string()))
-            .collect();
+        let unbound: Vec<(Id<ew_schema::Channel>, crate::text::Text)> =
+            bound.iter().map(|c| (*c, words::channel(tx, *c))).collect();
         for c in bound {
             tx.update::<ew_schema::Channel>(c, |c| c.binding = None)?;
         }
@@ -226,7 +224,7 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
         for (id, c) in unbound {
             tx.notice_while_unbound(
                 id,
-                format!("solenoid {solenoid} of {name} went with the old part; {c} is unbound"),
+                text!("notice-valve-solenoid-gone", solenoid.clone(), name.clone(), c),
             );
         }
         changed = true;
@@ -369,26 +367,26 @@ fn replace_valve(
         .collect();
     defs.sort_by_key(|(idx, d)| (*idx, d.id));
     let mut defined: BTreeSet<u16> = BTreeSet::new();
-    let mut notices: Vec<String> = Vec::new();
+    let mut notices: Vec<crate::text::Text> = Vec::new();
     for (idx, d) in defs {
         match map(idx) {
             // Two old ports of one designation become one new port: it keeps one definition (FI-04).
             Some(n) if !defined.insert(n) => {
                 tx.delete((Kind::MediumDef, d.id.cast()))?;
-                notices.push(format!(
-                    "the second medium definition at port {} of {name} went: the new valve has one port {}",
+                notices.push(text!(
+                    "notice-valve-second-definition",
                     designation(idx),
-                    designation(idx)
+                    name.clone()
                 ));
             }
             Some(n) if n != idx => tx.update::<MediumDef>(d.id, |x| x.at = Endpoint::Cp(f.id, n))?,
             Some(_) => {}
             None => {
                 tx.delete((Kind::MediumDef, d.id.cast()))?;
-                notices.push(format!(
-                    "the medium definition at port {} of {name} went: the new valve has no port {}",
+                notices.push(text!(
+                    "notice-valve-definition-gone",
                     designation(idx),
-                    designation(idx)
+                    name.clone()
                 ));
             }
         }
@@ -430,15 +428,15 @@ fn replace_valve(
     for o in f.cp_overrides.iter() {
         let port = designation(o.idx);
         match map(o.idx) {
-            Some(n) if overrides.get(&n).is_some() => notices.push(format!(
-                "the settings of the second port {port} of {name} went: the new valve has one port {port}"
-            )),
+            Some(n) if overrides.get(&n).is_some() => {
+                notices.push(text!("notice-valve-second-settings", port, name.clone()))
+            }
             Some(n) => {
                 overrides.insert(CpOverride { idx: n, ..o.clone() });
             }
-            None if o.closure.is_some() => notices.push(format!(
-                "the closure at port {port} of {name} went: the new valve has no port {port}"
-            )),
+            None if o.closure.is_some() => {
+                notices.push(text!("notice-valve-closure-gone", port, name.clone()))
+            }
             None => {}
         }
     }
@@ -446,13 +444,9 @@ fn replace_valve(
         x.def = def;
         x.cp_overrides = overrides;
     })?;
-    tx.notice(format!(
-        "{name} has the valve function of its new part; exchange the symbol to draw the new valve type"
-    ));
+    tx.notice(text!("notice-valve-function", name.clone()));
     for port in dropped {
-        tx.notice(format!(
-            "the line at port {port} of {name} went: the new valve has no port {port}"
-        ));
+        tx.notice(text!("notice-valve-line-gone", port, name.clone()));
     }
     for n in notices {
         tx.notice(n);

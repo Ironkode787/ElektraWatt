@@ -438,6 +438,15 @@ pub(crate) fn comma_list(items: Vec<TextArg>) -> TextArg {
     joined(items, |a, b| text!("refusal-words-list-comma", a, b))
 }
 
+/// Items in a sentence, the last after "and" (`a, b and c`), each in the reader's language; empty without items.
+pub(crate) fn and_list(mut items: Vec<TextArg>) -> TextArg {
+    match items.pop() {
+        None => TextArg::Plain(String::new()),
+        Some(last) if items.is_empty() => last,
+        Some(last) => text!("notice-words-and", comma_list(items), last).into(),
+    }
+}
+
 /// `items` folded from the right by `pair`: the first item, then the text of the rest.
 fn joined(items: Vec<TextArg>, pair: impl Fn(TextArg, TextArg) -> Text) -> TextArg {
     let mut rest = items.into_iter().rev();

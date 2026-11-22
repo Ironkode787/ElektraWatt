@@ -387,7 +387,7 @@ fn a_file_that_comes_back_merges_three_ways() {
             .outcome
             .notices
             .iter()
-            .any(|n| n.contains("CL_V_01A") && n.contains("taken from the file")),
+            .any(|n| n.to_string().contains("CL_V_01A") && n.to_string().contains("taken from the file")),
         "{:?}",
         receipt.outcome.notices
     );
@@ -776,7 +776,7 @@ fn an_instrument_list_reserves_spare_channels() {
         .expect("the list is read");
     let devices = s.query().devices().len();
     let receipt = bulk(&mut s, &command);
-    let notices = &receipt.outcome.notices;
+    let notices: Vec<String> = receipt.outcome.notices.iter().map(ToString::to_string).collect();
     assert_eq!(
         notices.iter().filter(|n| n.contains("reserved")).count(),
         6,

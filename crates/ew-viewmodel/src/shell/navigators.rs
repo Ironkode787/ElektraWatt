@@ -1785,7 +1785,10 @@ impl ShellModel {
         bump(calls, |c| c.preview_with += 1);
         let result = project.session.preview_with(&cmd, submit);
         let (derived, notices) = match &result {
-            Ok(p) => (project.session.derived_diff(p), p.outcome().notices.clone()),
+            Ok(p) => (
+                project.session.derived_diff(p),
+                super::tools::notices_words(&p.outcome().notices),
+            ),
             Err(_) => (Default::default(), Vec::new()),
         };
         if let Err(e) = &result {

@@ -784,8 +784,8 @@ impl Command for ReorderPages {
             let key = &current[k].1;
             let (number, label) = (key.number, key.label.clone());
             let was = old[&order[k]];
-            let text = format!(
-                "{} → {}",
+            let text = text!(
+                "notice-page-moved",
                 printed_folio(was.number, was.label.as_ref()),
                 printed_folio(number, label.as_ref())
             );

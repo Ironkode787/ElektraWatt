@@ -613,7 +613,9 @@ impl Session {
 ```
 
 **v0**. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}`
-and `undo` and `redo` a `Restored {rev, context, label}`; both carry the `Rev` shown above. `preview` runs
+and `undo` and `redo` a `Restored {rev, context, label}`; both carry the `Rev` shown above. The `Outcome`'s notices
+(what a command or a normaliser dropped or adjusted instead of refusing) are texts by key, as a refusal is: the window
+words them in its language, the command line prints their English (FT-1819). `preview` runs
 synchronously and returns the `Preview` until the job pool of WP-S1.05 wraps it in a `JobHandle`, and a `Cost::Bulk`
 command sent to `execute` is refused with `CmdError::NeedsPreview`. [Extensibility](17-extensibility.md) §4 lists the
 v0 facade.

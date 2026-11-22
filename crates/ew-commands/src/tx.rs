@@ -18,6 +18,7 @@ use ew_schema::{
 use sha2::Digest;
 
 use crate::error::CmdError;
+use crate::text::Text;
 
 /// An index read of a transaction: which base index was asked for which key. The read set stores the
 /// IDs the base index answered, and the rebase check asks again.
@@ -353,9 +354,9 @@ pub struct TxBuilder<'a> {
     /// The keys written since `scratch` was last brought up to date.
     stale: BTreeSet<AnyKey>,
     /// The notices of the normalisers ([`TxBuilder::notice`]), in first-emission order, without repeats.
-    notices: Vec<String>,
+    notices: Vec<Text>,
     /// The notices that hold only while a channel stays unbound ([`TxBuilder::notice_while_unbound`]).
-    while_unbound: Vec<(String, Id<Channel>)>,
+    while_unbound: Vec<(Text, Id<Channel>)>,
     /// The assets this transaction brings ([`TxBuilder::put_asset`]), by hash.
     assets: BTreeMap<Sha256, Asset>,
 }
@@ -391,8 +392,7 @@ impl<'a> TxBuilder<'a> {
     /// Records a notice for the command's outcome (`Outcome::notices`): what a normaliser left undone and
     /// why (a coil that stays unbound, surplus channels kept). A notice equal to one already recorded is
     /// dropped, so a normaliser that runs in several passes reports a condition once.
-    pub fn notice(&mut self, text: impl Into<String>) {
-        let text = text.into();
+    pub fn notice(&mut self, text: Text) {
         if !self.notices.contains(&text) {
             self.notices.push(text);
         }
@@ -400,15 +400,14 @@ impl<'a> TxBuilder<'a> {
 
     /// Records a notice that `channel` is unbound, dropped when the channel is bound again before the transaction
     /// ends: a normaliser later in the pipeline may bind it in the same step.
-    pub fn notice_while_unbound(&mut self, channel: Id<Channel>, text: impl Into<String>) {
-        let text = text.into();
+    pub fn notice_while_unbound(&mut self, channel: Id<Channel>, text: Text) {
         self.while_unbound.push((text.clone(), channel));
         self.notice(text);
     }
 
     /// Takes the recorded notices, without those of [`TxBuilder::notice_while_unbound`] whose channel is bound now.
-    pub(crate) fn take_notices(&mut self) -> Vec<String> {
-        let rebound: Vec<String> = std::mem::take(&mut self.while_unbound)
+    pub(crate) fn take_notices(&mut self) -> Vec<Text> {
+        let rebound: Vec<Text> = std::mem::take(&mut self.while_unbound)
             .into_iter()
             .filter(|(_, c)| self.get::<Channel>(*c).is_some_and(|c| c.binding.is_some()))
             .map(|(text, _)| text)

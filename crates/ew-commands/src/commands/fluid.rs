@@ -170,17 +170,25 @@ pub(crate) fn remove_child(
     }
     bound.sort();
     bound.dedup();
-    let unbound: Vec<String> = bound
-        .iter()
-        .map(|c| crate::words::channel(tx, *c).to_string())
-        .collect();
+    let unbound: Vec<Text> = bound.iter().map(|c| crate::words::channel(tx, *c)).collect();
     tx.delete((Kind::Device, child.id.cast()))?;
     tx.notice(match lines.len() {
-        0 => format!("removed {name} from position {position} of {module_name}"),
-        k => format!("removed {name} from position {position} of {module_name} with {k} fluid lines"),
+        0 => text!(
+            "notice-fluid-removed",
+            name.clone(),
+            position.to_string(),
+            module_name.clone()
+        ),
+        k => text!(
+            "notice-fluid-removed-lines",
+            name.clone(),
+            position.to_string(),
+            module_name.clone(),
+            k.to_string()
+        ),
     });
     for c in unbound {
-        tx.notice(format!("{c} is unbound: its coil went with {name}"));
+        tx.notice(text!("notice-fluid-coil-unbound", c, name.clone()));
     }
     Ok(())
 }
@@ -645,8 +653,8 @@ impl Command for EditMedium {
                 .unwrap_or_default();
             tx.delete((Kind::Medium, m.cast()))?;
             tx.notice(match defs {
-                0 => format!("deleted medium {name}"),
-                n => format!("deleted medium {name} with {n} definition points"),
+                0 => text!("notice-medium-deleted", name),
+                n => text!("notice-medium-deleted-points", name, n.to_string()),
             });
             return Ok(Outcome::default());
         };

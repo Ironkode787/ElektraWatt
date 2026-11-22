@@ -73,6 +73,25 @@ impl fmt::Display for Text {
     }
 }
 
+/// A text equals the English it prints (the command line's words, [`fmt::Display`]).
+impl PartialEq<str> for Text {
+    fn eq(&self, other: &str) -> bool {
+        self.to_string() == other
+    }
+}
+
+impl PartialEq<&str> for Text {
+    fn eq(&self, other: &&str) -> bool {
+        self.to_string() == *other
+    }
+}
+
+impl PartialEq<String> for Text {
+    fn eq(&self, other: &String) -> bool {
+        self.to_string() == *other
+    }
+}
+
 impl fmt::Display for TextArg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

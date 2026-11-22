@@ -1263,7 +1263,7 @@ impl ShellModel {
                 .collect(),
             notices: result
                 .as_ref()
-                .map(|p| p.outcome().notices.clone())
+                .map(|p| notices_words(&p.outcome().notices))
                 .unwrap_or_default(),
             message: result.as_ref().err().map(ToString::to_string),
         };
@@ -1791,6 +1791,15 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
         strings::format(Key::run_time(t.key()), &args)
     }
     text.map_or_else(|| reason.to_owned(), words)
+}
+
+/// A command's notices (`Outcome::notices`, what it dropped or adjusted instead of refusing) in the window's
+/// language, in their order.
+pub(crate) fn notices_words(notices: &[ew_api::Text]) -> Vec<String> {
+    notices
+        .iter()
+        .map(|t| rejected_words(&t.to_string(), Some(t)))
+        .collect()
 }
 
 /// A prevent rule's refusal in the window's language, as a sentence without the rule's code (the code belongs in the

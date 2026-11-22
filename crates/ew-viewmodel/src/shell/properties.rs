@@ -2254,7 +2254,7 @@ impl ShellModel {
             derived,
         };
         let notices = match &state.result {
-            Ok(p) => p.outcome().notices.clone(),
+            Ok(p) => super::tools::notices_words(&p.outcome().notices),
             Err(message) => {
                 return (
                     Outcome::Failed {
