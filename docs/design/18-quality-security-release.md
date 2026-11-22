@@ -357,8 +357,8 @@ committed report. The reference and its runner were retired at 0.3.5; the tag `v
   script `fixtures/sample/sample.uiscript` makes it through the window's own actions (the new-project wizard with
   the standard report layout, the drawn pages 101 to 105, 201 and 902, the generated reports); `cargo xtask gen`
   writes it, and `sample::the_committed_sample_is_what_its_script_makes` (`ew-viewmodel`) compares the committed
-  folder with what the script makes, byte for byte. `the_sample_opens_in_place_without_an_error_or_a_warning` holds
-  it clean under the pre-delivery checks. Tests open it read-only in place or take a copy (`ew-testdir`).
+  folder with what the script makes, byte for byte. `the_sample_opens_in_place_without_a_finding` holds
+  it free of any finding under the pre-delivery checks. Tests open it read-only in place or take a copy (`ew-testdir`).
 - **Each behaviour has its own tests**, at the lowest layer that shows it: the rules in `ew-checks`, the report kinds
   in `ew-reports` and in `ew-api`'s `report_kinds.rs` (`tests/expected/kinds/`), the written PDF in `ew-api`'s
   `pdf_output.rs` (§3.9), the memoised values against cold evaluation in `memo_oracle.rs` (AC-16), the CSV bootstrap

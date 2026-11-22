@@ -90,10 +90,10 @@ fn data(csv: &str) -> Vec<Vec<String>> {
 }
 
 /// Each kind CSV equals the export by kind on the sample; twice-run equal. A kind the export derives has its file;
-/// a kind the export by kind gives no rows of on the sample has its header only: the bus overview (its segment needs a
-/// physical net, which the window's bus tools do not make), the enclosure legend and the part data (rows of an
-/// embedded block's selection only), the IO-Link port list, the medium overview, the open items and the safety I/O
-/// list.
+/// a kind the export by kind gives no rows of on the sample has its header only: the enclosure legend and the part data
+/// (rows of an embedded block's selection only), the IO-Link port list, the medium overview, the numbering report (the
+/// sample has no frozen tag or wire number; `ew-reports`' `numbering_report.rs` holds its rows), the open items and the
+/// safety I/O list.
 #[test]
 fn the_kind_csvs_equal_the_export_by_kind() {
     let s = common::sample();

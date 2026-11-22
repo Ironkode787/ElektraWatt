@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::common::{SAMPLE, Tmp, bless, copy_dir};
-use ew_api::checks::{CheckMode, PRE_DELIVERY, Severity};
+use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::script::{self, NoExtension};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
@@ -144,11 +144,10 @@ fn the_committed_sample_is_what_its_script_makes() {
     }
 }
 
-/// The sample opens read-only in place without writing into the source tree, and it has no error and no warning
-/// under the pre-delivery checks. Infos are let through: the enclosure's tag, which Enclosure… freezes and the
-/// page-based numbering cannot derive for a device on no page, is an info of EW-NUM-001 that no script can clear.
+/// The sample opens read-only in place without writing into the source tree, and the pre-delivery checks report
+/// nothing on it, not even an info: it is the project a new person opens first.
 #[test]
-fn the_sample_opens_in_place_without_an_error_or_a_warning() {
+fn the_sample_opens_in_place_without_a_finding() {
     let before = files(Path::new(SAMPLE));
     let tmp = Tmp::new("sample-open");
     let mut shell = tmp.sample_shell("101");
@@ -162,7 +161,6 @@ fn the_sample_opens_in_place_without_an_error_or_a_warning() {
     let findings: Vec<String> = report
         .findings
         .iter()
-        .filter(|f| f.severity != Severity::Info)
         .map(|f| format!("{} {}", f.rule, f.message))
         .collect();
     assert!(findings.is_empty(), "{findings:#?}");
