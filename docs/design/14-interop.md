@@ -1076,15 +1076,26 @@ variable has an EW xref-format token (FR-XRF-003):
 - *Measured (FT-1746, FT-1765).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), every
   imported text stands on QET's baseline (a free text with `anchor: baseline`, an element's texts `baseline_left`),
   so a project whose typeface is QET's face prints it where QET does; the dynamic texts and free texts of 4 to 9 pt
-  stand within 0.3 mm (Qt's ascent and line pitch rounded up to whole pixels at its screen size, about 0.1 em, are
-  not modelled). A title block's cell text has no inset (`ew.cell.inset` 0, [09](09-reports-forms-output.md) §2.5):
-  QET draws it on the cell's edges. With both, the texts in place went from 3,929 to 4,166 of about 4,800 and the
-  moved ones from 730 to 493 (4,174 and 485 with Liberation Sans, the face of that PDF, as the typeface). What
-  stands apart is FT-1941: QET's `hadjust` scales a cell's text that is too wide without a floor and never for its
-  height, where EW shrinks a cell's lines to fit its height and stops at 0.5 mm (title-block cells 1 to 2 mm across);
-  rich-text free texts that QET's computer printed in Tahoma, whose ascent is 1.0 em (0.7 to 1.6 mm higher; which
-  face QET prints is its computer's font substitution, which the file does not say); and the tables of contents,
-  which EW draws as its own report pages.
+  stand within 0.3 mm. A title block's cell text has no inset (`ew.cell.inset` 0, [09](09-reports-forms-output.md)
+  §2.5): QET draws it on the cell's edges. With both, the texts in place went from 3,929 to 4,166 of about 4,800 and
+  the moved ones from 730 to 493.
+- *Measured (FT-1941)* with `ew import qet` and `ew verify-migration --json` against the same pilot set's own PDF,
+  with QET's whole pixels (above): in the default typeface 4,379 texts in place (4,170 before), 343 moved (552), 11
+  missing, 43 extra, 4 raster cells; with Liberation Sans, the face of that PDF, as the typeface 4,568 in place
+  (4,178), 154 moved (544), 11 missing, 43 extra, 4 raster cells (36). Each text still moved has a cause the import
+  does not decide:
+  - the folio list (92 moved, the 11 missing and 43 extra, two raster cells): EW draws QET's folio list as its own
+    table of contents (FT-1645);
+  - 39 rich texts in `Sans Serif` that QET's computer printed in Tahoma, 0.6 to 1.4 mm higher (Tahoma's ascent in
+    whole px is about 1.0 em, Liberation Sans's 0.905): which face QET prints such a text in is its computer's
+    substitution, which the file does not say. The project's typeface does not close it: with Tahoma as the typeface
+    the same 39 stand apart, because the import stands each text on the baseline QET's default face gives;
+  - 18 rows of two masters' contact lists (20 in the default typeface) and two raster cells of their contact
+    symbols: QET draws them with a contact symbol per row 10 px apart (§4.5, FT-1645);
+  - 5 texts QET prints turned to read downward or upside down, which EW turns to read from the bottom or the right
+    ([07](07-symbols-parts-macros.md) §4.1, [09](09-reports-forms-output.md) §4.8; FT-1905);
+  - in the default typeface, 179 title-block texts: Noto Sans's widths and line pitch are not QET's face's; with
+    that face as the typeface they stand where QET's do.
 
 ### 4.11 Strips, terminals and cables
 
@@ -1272,7 +1283,8 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
   frame grid; a page without one is a single cell). A
   cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation. (A line that ran just
   outside a text box on one side and just inside it on the other lost its partner when the cleared ink was looked in:
-  the pilot set's table lines beside its texts were 66 such cells in Noto Sans, FT-1941.)
+  the pilot set's lines beside its texts were 32 such cells with QET's face as the typeface and 66 in Noto Sans,
+  FT-1941.)
 - **Expected deltas** are a JSON file, an array of `{"kind", "page", "text", "cell"}` (the last three optional): a
   deviation one entry matches is reported as expected, an entry that matches none is reported as not found, and
   either way a clean exit needs every entry found and no other deviation. Font substitution needs no entry for the
