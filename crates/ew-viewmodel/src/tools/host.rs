@@ -168,6 +168,9 @@ pub(crate) struct ToolHost {
     /// The devices the last Cut left unplaced (a terminal's strip, not the terminal), with their tags as they read
     /// before it: a paste that brings them back to another page says how their tags followed it (doc 06 §3.6).
     pub cut_tags: Vec<(ew_api::output::Uuid, String)>,
+    /// The notices of the last command the shell committed (`Outcome::notices`, in the window's words): what a paste
+    /// did besides (the wires it removed), which its toast says.
+    pub commit_notices: Vec<String>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
     /// Where the Supply tool's marks come from, while it floats them.
@@ -319,6 +322,7 @@ impl ToolHost {
             row_steps: None,
             row_levels: 1,
             cut_tags: Vec::new(),
+            commit_notices: Vec::new(),
             ip_memory: IpMemory::default(),
             supply: None,
             black_box_pick: false,

@@ -151,7 +151,8 @@ pub struct Fragment {
 /// (`Insertion::unplaced_devices`): it, its functions and the strip of such a terminal keep their IDs, parts, frozen
 /// tags, counters, levels and data and are not inserted again; the pasted symbols, wires and bridges draw them. What
 /// the cut left of them goes in the same transaction: the fragment's wires and junctions the project still holds (they
-/// are pasted anew) and a wire drawn on another page than the target that ends at such a device.
+/// are pasted anew) and a wire drawn on another page than the target that ends at such a device, which a notice per
+/// page counts.
 ///
 /// Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 /// reference and unmatched structure node.
@@ -1516,18 +1517,36 @@ impl Insertion<'_> {
                     gone.insert((kind, Id::from_uuid(id)));
                 }
             }
+            // The wires left open on another page, by page; the notice counts them.
+            let mut open: BTreeMap<Id<Page>, BTreeSet<Id<Connection>>> = BTreeMap::new();
             for &(kind, f) in &kept {
                 if kind != Kind::Function {
                     continue;
                 }
                 for c in tx.connections_of_function(Id::from_uuid(f)) {
-                    if tx
+                    if gone.contains(&(Kind::Connection, c.cast())) {
+                        continue;
+                    }
+                    if let Some(p) = tx
                         .get::<Connection>(c)
-                        .is_some_and(|c| c.page.is_some_and(|p| p != page.id))
+                        .and_then(|c| c.page)
+                        .filter(|p| *p != page.id)
                     {
-                        gone.insert((Kind::Connection, c.cast()));
+                        open.entry(p).or_default().insert(c);
                     }
                 }
+            }
+            for (p, wires) in &open {
+                gone.extend(wires.iter().map(|c| (Kind::Connection, c.cast())));
+                let on = crate::words::page(tx, *p);
+                notice(
+                    if wires.len() == 1 {
+                        text!("notice-paste-moved-wire-removed", on)
+                    } else {
+                        text!("notice-paste-moved-wires-removed", wires.len().to_string(), on)
+                    },
+                    &mut notices,
+                );
             }
             let gone: Vec<ew_model::AnyKey> = gone.into_iter().collect();
             tx.delete_many(&gone)?;

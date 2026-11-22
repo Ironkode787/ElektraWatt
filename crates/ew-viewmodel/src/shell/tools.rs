@@ -695,10 +695,23 @@ impl ShellModel {
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
-                if out == Outcome::Done
-                    && let Some(text) = self.retagged_words(cmd.name(), &retag)
-                {
-                    self.notify(text, true);
+                if out == Outcome::Done {
+                    // A paste also says what it did besides: the wires it removed with the devices it brought back.
+                    let notices = match cmd.name() {
+                        "edit.paste" if !self.tools.commit_notices.is_empty() => Some(strings::format(
+                            key!("toast-paste-notices"),
+                            &[&self.tools.commit_notices.join("; ")],
+                        )),
+                        _ => None,
+                    };
+                    let parts: Vec<String> = self
+                        .retagged_words(cmd.name(), &retag)
+                        .into_iter()
+                        .chain(notices)
+                        .collect();
+                    if !parts.is_empty() {
+                        self.notify(parts.join(" "), true);
+                    }
                 }
                 // A refused interruption point keeps its ghost where it was and says why.
                 let (out, keep_ghost) = self.ip_commit_refused(out);
@@ -1367,6 +1380,10 @@ impl ShellModel {
         self.tools.refused_by = match &result {
             Err(CmdError::Prevented { rule, .. }) => Some(rule.to_string()),
             _ => None,
+        };
+        self.tools.commit_notices = match &result {
+            Ok(receipt) => notices_words(&receipt.outcome.notices),
+            Err(_) => Vec::new(),
         };
         let outcome = match result {
             Ok(receipt) => {

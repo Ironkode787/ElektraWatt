@@ -2471,6 +2471,13 @@ impl ShellModel {
             },
             _ => None,
         };
+        self.tools.commit_notices = match &result {
+            Ok(receipts) => receipts
+                .last()
+                .map(|r| tools::notices_words(&r.outcome.notices))
+                .unwrap_or_default(),
+            Err(_) => Vec::new(),
+        };
         let outcome = match result {
             Ok(receipts) => {
                 if let Some(primary) = receipts.last().and_then(|r| r.outcome.primary) {

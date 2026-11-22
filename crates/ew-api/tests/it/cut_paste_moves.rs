@@ -193,3 +193,36 @@ fn a_strip_left_unplaced_by_a_cut_is_deleted_with_its_terminals_and_a_drawn_one_
         "with its terminals"
     );
 }
+
+/// The paste that brings the cut terminals back to folio 101 removes the wires the cut left open at them on 102, and
+/// its notice says how many and on which page.
+#[test]
+fn the_paste_names_the_wires_it_removes_on_the_old_page() {
+    let mut s = common::sample();
+    let strip = strip(&s);
+    let (p101, p102) = (page(&s, "101"), page(&s, "102"));
+    let reps = symbols_on(&s, strip, "102");
+    let fragment = cut(&mut s, &reps);
+    // The wires on 102 to devices the cut did not take (those between the terminals are in the copy).
+    let copied: BTreeSet<String> = fragment["records"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|r| r["$k"] == "connection")
+        .filter_map(|r| r["id"].as_str().map(str::to_owned))
+        .collect();
+    let left = wires_at(&s, strip)
+        .iter()
+        .filter(|(c, p)| *p == Some(p102) && !copied.contains(&c.as_uuid().to_string()))
+        .count();
+    assert!(left > 1, "the cut leaves wires open on 102");
+    let at = fragment["anchor"].clone();
+    let receipt = common::run_cmd(
+        &mut s,
+        "edit.paste",
+        json!({"page": p101.to_string(), "at": at, "fragment": fragment}),
+    );
+    let notices: Vec<String> = receipt.outcome.notices.iter().map(ToString::to_string).collect();
+    let said = format!("{left} wires on page 102 that ended at the moved devices are removed");
+    assert!(notices.contains(&said), "{notices:?}");
+}

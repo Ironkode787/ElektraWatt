@@ -656,6 +656,8 @@ notice-paste-underlay = an underlay was left out: it is placed by an import
 notice-paste-structure-gone = structure { $p0 } is not in this project: inherits the page
 notice-paste-reference-cleared = a reference from { $p0 } to { $p1 } was cleared, because its target was not copied
 notice-paste-marker = a wire marker whose wires were not copied was left out
+notice-paste-moved-wire-removed = the wire on { $p0 } that ended at the moved devices is removed
+notice-paste-moved-wires-removed = { $p0 } wires on { $p1 } that ended at the moved devices are removed
 notice-paste-child = { $p0 } was a child of a device that was not copied
 notice-page-moved = { $p0 } → { $p1 }
 notice-asset-removed = removes the asset file of { $p0 }
@@ -2989,6 +2991,7 @@ toast-placed-boxes = Placed as { $p0 } boxes, one for each bus interface.
 toast-retagged = { $p0 }: a device takes its tag from the page that draws its own box, not from a bus page, which shows its interfaces.
 retag-pair = { $p0 } is now { $p1 }
 toast-paste-retagged = { $p0 }: a tag follows the page its device is drawn on, and the paste put the cut devices back on this one.
+toast-paste-notices = The paste: { $p0 }.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.

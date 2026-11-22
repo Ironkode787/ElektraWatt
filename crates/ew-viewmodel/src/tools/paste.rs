@@ -40,6 +40,9 @@ pub struct PasteTool {
     at: Option<((i64, i64), (i64, i64))>,
     /// The tags the last accepted preview predicts (the derived diff's new tags), for the label.
     tags: Vec<String>,
+    /// What the last accepted preview says the paste does besides (`Outcome::notices`: the wires it removes with the
+    /// devices it brings back), for the label.
+    notices: Vec<String>,
     /// The overlay of the last move, whose label a preview completes.
     last: Overlay,
     /// The held copies of another version the paste uses as the project holds them (`edit.paste`'s `adapt`); empty for a plain paste.
@@ -54,6 +57,7 @@ impl PasteTool {
             dropped,
             at: None,
             tags: Vec::new(),
+            notices: Vec::new(),
             last: Overlay::default(),
             adapt: Vec::new(),
         }
@@ -193,7 +197,8 @@ impl PasteTool {
         ])
     }
 
-    /// The label: `paste <n> records`, the dropped connections, the predicted tags.
+    /// The label: `paste <n> records`, the dropped connections, the predicted tags, and the preview's notices (the wires
+    /// a paste that brings cut devices back removes on another page).
     /// What the block holds and what it leaves out, in a person's words ("paste 21 records, 5 connections
     /// dropped"): "Paste 3 symbols and 4 wires; 2 wires left out: their other end was not copied". Symbols are the
     /// representations, wires the connections, other items the texts, graphics and boxes; the records behind them
@@ -235,6 +240,9 @@ impl PasteTool {
         }
         if !self.tags.is_empty() {
             text.push_str(&format!(": {}", self.tags.join(", ")));
+        }
+        for n in &self.notices {
+            text.push_str(&format!("; {n}"));
         }
         text
     }
@@ -310,6 +318,7 @@ impl Tool for PasteTool {
         } else {
             Vec::new()
         };
+        self.notices.clone_from(&info.notices);
         let label = self.label();
         for item in &mut self.last.items {
             if let OverlayItem::Label { text, .. } = item {

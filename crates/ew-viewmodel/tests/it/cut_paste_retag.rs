@@ -25,6 +25,13 @@ fn terminals_cut_and_pasted_on_another_page_keep_their_strip_and_the_toast_names
         toast.contains("a tag follows the page its device is drawn on"),
         "{toast}"
     );
+    // And it says which wires went with the move: those left open on 102 to the devices the cut did not take.
+    assert!(
+        toast.contains("The paste: ")
+            && toast.contains(" wires on page 102 that ended at the moved devices are removed"),
+        "{toast}"
+    );
+    assert!(shell.toast().is_some_and(|t| t.action().is_some()), "with Undo");
     // The same strip: its terminals are drawn here, none is left unplaced on 102.
     let labels: Vec<String> = common::tables(&shell)
         .cps
