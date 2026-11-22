@@ -8,8 +8,8 @@ use ew_import_qet::QetProjectImporter;
 use ew_import_qet::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
 use ew_schema::{
-    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Record, ReportBlock, ReportKind,
-    ReportSource,
+    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Record, ReportBlock,
+    ReportKind, ReportSource,
 };
 use ew_units::{Grid, Nm};
 
@@ -174,7 +174,10 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
     );
     // `hadjust` is QET's fit to the width; a cell without it is drawn as it is.
     let overflows: Vec<&Overflow> = first.item.cells.iter().map(|c| &c.overflow).collect();
-    assert_eq!(overflows, [&Overflow::FitWidth, &Overflow::Error, &Overflow::Error]);
+    assert_eq!(
+        overflows,
+        [&Overflow::FitWidth, &Overflow::Error, &Overflow::Error]
+    );
     assert!(!first.item.graphics.is_empty());
     // Equal values share one form; another author makes another.
     assert_eq!(tb(0).id, tb(1).id);

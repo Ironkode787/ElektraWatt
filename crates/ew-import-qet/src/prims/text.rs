@@ -671,7 +671,17 @@ mod tests {
     fn a_qet_font_prints_in_whole_pixels_of_qts_96_dpi() {
         let pt = |s: &str| Decimal::parse(s).unwrap();
         // Its em: the points' 4/3 px rounded to a whole px, halves up, at least 1.
-        for (size, px) in [("9", 12), ("7", 9), ("5", 7), ("6", 8), ("4", 5), ("7.5", 10), ("4.875", 7), ("0.1", 1), ("0", 0)] {
+        for (size, px) in [
+            ("9", 12),
+            ("7", 9),
+            ("5", 7),
+            ("6", 8),
+            ("4", 5),
+            ("7.5", 10),
+            ("4.875", 7),
+            ("0.1", 1),
+            ("0", 0),
+        ] {
             assert_eq!(qt_pixels(pt(size)), Some(px), "{size} pt");
             assert_eq!(em_of(pt(size)), Grid::QET_1PX.at(px), "{size} pt");
         }

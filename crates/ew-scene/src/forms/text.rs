@@ -97,9 +97,9 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
     // A screen layout's pixel scales with the text, as a smaller text is the layout drawn smaller.
     let full = style.size;
     let shape = |t: &str, st: &TextStyle, w: Option<Nm>| {
-        let pixel = spec.pixel.map(|p| {
-            Nm((i128::from(p.0) * i128::from(st.size.0) / i128::from(full.0.max(1))) as i64)
-        });
+        let pixel = spec
+            .pixel
+            .map(|p| Nm((i128::from(p.0) * i128::from(st.size.0) / i128::from(full.0.max(1))) as i64));
         snapped(fonts.shape(t, st, w), pixel)
     };
     let mut style = *style;

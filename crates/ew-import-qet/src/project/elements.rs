@@ -1012,8 +1012,7 @@ impl Mx<'_, '_> {
         else {
             return;
         };
-        if let Some((local, angle)) =
-            items::below_text(at, lines, middle, place.gap, place.above, xref_em)
+        if let Some((local, angle)) = items::below_text(at, lines, middle, place.gap, place.above, xref_em)
             && let Some(slot) = self
                 .slot_for(e, &SlotKind::Xref, style, align)
                 .filter(|i| !overrides.iter().any(|o| o.slot == *i))

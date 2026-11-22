@@ -16,7 +16,14 @@ const PX: i64 = 264_583;
 
 /// The runs a `width` × `height` cell aligned `align` under `overflow` prints for `text`, with the cell's `extra`
 /// members, and the findings.
-fn cell(width: i64, height: i64, align: &str, overflow: Value, extra: Value, text: &str) -> (Vec<ShapedRun>, Vec<FormFinding>) {
+fn cell(
+    width: i64,
+    height: i64,
+    align: &str,
+    overflow: Value,
+    extra: Value,
+    text: &str,
+) -> (Vec<ShapedRun>, Vec<FormFinding>) {
     let mut cell = json!({
         "rect": [[0, 0], [width, height]],
         "value": "{page.title}",
@@ -77,13 +84,27 @@ fn fit_width_never_shrinks_a_text_for_its_height_and_never_wraps() {
     let em = builtin().resolve("text.normal").unwrap();
     // Four lines in a cell one line high, each line narrower than the cell: drawn at their size, not reported.
     let text = "One\nTwo\nThree\nFour";
-    let (runs, findings) = cell(40_000_000, 3_000_000, "centre", json!("fit_width"), json!({"ew.cell.max_lines": 4}), text);
+    let (runs, findings) = cell(
+        40_000_000,
+        3_000_000,
+        "centre",
+        json!("fit_width"),
+        json!({"ew.cell.max_lines": 4}),
+        text,
+    );
     assert!(findings.is_empty(), "{findings:?}");
     assert_eq!(runs.len(), 4);
     assert!(runs.iter().all(|r| r.size == em.size));
     // A line wider than the cell is not broken: the whole text is scaled by the widest line.
     let long = "A first line far too long for this cell\nShort";
-    let (runs, _) = cell(20_000_000, 8_000_000, "centre", json!("fit_width"), json!({"ew.cell.max_lines": 2}), long);
+    let (runs, _) = cell(
+        20_000_000,
+        8_000_000,
+        "centre",
+        json!("fit_width"),
+        json!({"ew.cell.max_lines": 2}),
+        long,
+    );
     assert_eq!(runs.len(), 2);
     assert!(runs.iter().all(|r| r.size == runs[0].size && r.size < em.size));
 }
@@ -93,16 +114,34 @@ fn a_cell_with_a_pixel_lays_its_text_out_in_whole_pixels() {
     let em = builtin().resolve("text.normal").unwrap();
     let text = "Creation: 05-08-2026";
     let pixel = json!({"ew.cell.pixel": PX});
-    let (runs, findings) = cell(60_000_000, 5_000_000, "middle_right", json!("error"), pixel.clone(), text);
+    let (runs, findings) = cell(
+        60_000_000,
+        5_000_000,
+        "middle_right",
+        json!("error"),
+        pixel.clone(),
+        text,
+    );
     assert!(findings.is_empty(), "{findings:?}");
     let r = &runs[0];
     // Every pen position a whole number of pixels from the line's start, and the line too.
     let start = r.glyphs[0].x.0;
-    assert!(r.glyphs.iter().all(|g| (g.x.0 - start) % PX == 0), "{:?}", r.glyphs);
+    assert!(
+        r.glyphs.iter().all(|g| (g.x.0 - start) % PX == 0),
+        "{:?}",
+        r.glyphs
+    );
     assert_eq!((r.layout_box.max().x.0 - start) % PX, 0);
     // Each advance the face's own, rounded to a whole pixel.
     let exact = bundled().shape(text, &em, None);
-    let ends: Vec<i64> = exact.run.glyphs.iter().skip(1).map(|g| g.x.0).chain([exact.advance().0]).collect();
+    let ends: Vec<i64> = exact
+        .run
+        .glyphs
+        .iter()
+        .skip(1)
+        .map(|g| g.x.0)
+        .chain([exact.advance().0])
+        .collect();
     let rounded: i64 = exact
         .run
         .glyphs
@@ -115,7 +154,14 @@ fn a_cell_with_a_pixel_lays_its_text_out_in_whole_pixels() {
     // Right-aligned, it still ends on the cell's edge.
     assert_eq!(r.origin.x.0 + r.layout_box.max().x.0, 60_000_000);
     // A pixel scales with a text that `fit_width` scales.
-    let (runs, _) = cell(10_000_000, 5_000_000, "middle_left", json!("fit_width"), pixel, text);
+    let (runs, _) = cell(
+        10_000_000,
+        5_000_000,
+        "middle_left",
+        json!("fit_width"),
+        pixel,
+        text,
+    );
     let scaled = i128::from(PX) * i128::from(runs[0].size.0) / i128::from(em.size.0);
     let g = &runs[0].glyphs;
     let steps: Vec<i128> = g.windows(2).map(|w| i128::from(w[1].x.0 - w[0].x.0)).collect();
@@ -129,7 +175,14 @@ fn a_pixel_out_of_range_lays_the_text_out_as_the_face_does() {
     let text = "Creation: 05-08-2026";
     let exact = bundled().shape(text, &em, None).advance();
     for value in [json!(0), json!(-PX), json!(20_000_000), json!("px")] {
-        let (runs, _) = cell(60_000_000, 5_000_000, "middle_left", json!("error"), json!({"ew.cell.pixel": value}), text);
+        let (runs, _) = cell(
+            60_000_000,
+            5_000_000,
+            "middle_left",
+            json!("error"),
+            json!({"ew.cell.pixel": value}),
+            text,
+        );
         assert_eq!(runs[0].layout_box.max().x, exact, "{value}");
     }
 }
