@@ -1124,7 +1124,93 @@ impl<'a> Sketch<'a> {
             }
             stay.extend(hit);
         }
+        self.ring_room();
         self.legal();
+    }
+
+    /// The room for the rings of the wires round a body (§3.5, Rings, FT-2085): a unit whose wires leave its pins on one
+    /// side and go round its body to parts that stay behind it (beyond its far edge, under the body and facing it:
+    /// terminals kept under a card whose pins face up) steps away from them along that side, with what hangs on it,
+    /// until the rings round each end of the body, a step each, and a step clear of those parts' stubs fit between;
+    /// where it then stands inside the drawing area and on no unit, else it stays.
+    fn ring_room(&mut self) {
+        use crate::rounds::{Ask, Corner};
+        for u in 0..self.units.len() {
+            if self.units[u].fixed {
+                continue;
+            }
+            let hangs = self.subtree(u);
+            let mut step: Option<(Side, Tick)> = None;
+            for &i in &self.units[u].parts {
+                let part = self.w.parts[i];
+                let body = part.bounds().moved(self.d[u]);
+                let pins: Vec<(PinId, Pt, Side)> = part
+                    .pins
+                    .iter()
+                    .filter(|p| self.wired.contains(&p.id))
+                    .filter_map(|p| Some((p.id, self.pt(p.id), p.side?)))
+                    .collect();
+                for s in [Side::Up, Side::Down, Side::Left, Side::Right] {
+                    let back = opposite(s);
+                    let (edge, (lo, hi)) = (span_along(body, back).1, span_across(body, s));
+                    // The wires round each end, and the nearest of the parts they lead to.
+                    let (mut ends, mut gap) = ([0; 2], None::<Tick>);
+                    for &(p, at, _) in pins.iter().filter(|x| x.2 == s) {
+                        for net in self
+                            .w
+                            .nets
+                            .iter()
+                            .filter(|n| n.pins.len() == 2 && n.pins.contains(&p))
+                        {
+                            let Some(&q) = net.pins.iter().find(|q| **q != p) else {
+                                continue;
+                            };
+                            let (o, qa) = (self.unit_of_pin(q), self.pt(q));
+                            let under = lo <= across(qa, s) && across(qa, s) <= hi && out(qa, back) > edge;
+                            if hangs.contains(&o)
+                                || self.d[o] != Pt::default()
+                                || self.side(q) != Some(s)
+                                || !under
+                            {
+                                continue;
+                            }
+                            let ask = Ask {
+                                pin: (at, s),
+                                body,
+                                other: (qa, s),
+                                wired: pins
+                                    .iter()
+                                    .filter(|x| x.0 != p && x.2 == s)
+                                    .map(|x| x.1)
+                                    .collect(),
+                            };
+                            let end = [Corner::First, Corner::Last]
+                                .into_iter()
+                                .min_by_key(|c| (ask.passes(*c), ask.reach(*c)));
+                            ends[usize::from(end == Some(Corner::Last))] += 1;
+                            let g = out(qa, back) - edge;
+                            gap = Some(gap.map_or(g, |x| x.min(g)));
+                        }
+                    }
+                    let depth: Tick = ends[0].max(ends[1]);
+                    if let Some(g) = gap
+                        && depth > 0
+                        && g < (depth + 1) * TICKS_PER_STEP + STUB
+                    {
+                        step = Some((s, whole_up((depth + 1) * TICKS_PER_STEP + STUB - g)));
+                    }
+                }
+            }
+            let Some((s, by)) = step else { continue };
+            let movers: Vec<usize> = hangs.into_iter().filter(|v| !self.units[*v].fixed).collect();
+            self.shift(&movers, along_vec(s, by));
+            if movers
+                .iter()
+                .any(|v| self.blocked(*v, &movers) || !self.inside(*v))
+            {
+                self.shift(&movers, along_vec(s, -by));
+            }
+        }
     }
 
     /// Sets the trees one after another, the heaviest first.

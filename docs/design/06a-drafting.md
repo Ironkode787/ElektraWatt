@@ -660,8 +660,15 @@ costs no more: a ring that would stand in another wire's way is not drawn. Every
 pin off it leaves its wire to the search. `ew_drafting::rounds` and `route`'s phase after the search.
 
 *The placer's part.* A part wired round a body is the body's hairpin follower, and Arrange sets it beside the body
-where it may (§4.4), so its wire goes round nothing. Where it stays behind the body, the rings need their depth and a
-step between the body and it; the placer does not yet keep that room (backlog).
+where it may (§4.4), so its wire goes round nothing. Where it stays behind the body (the person kept it in place, or
+the body has no room beside it), the rings need their depth and a step between the body and it (FT-2085): after the
+trees are set, a unit whose wires leave its pins on one side and go round its body to parts that do not move, beyond
+its far edge, under it and facing it, steps away from them along that side, with what hangs on it, until the rings
+round each end of the body (one step each; a wire goes round the end whose way passes the fewest other wired pins of
+its edge, then the nearer) and a step clear of those parts' stubs fit between. Where it would then leave the drawing
+area or stand on a unit, it stays. The judge takes the step as any other (§4.7): a page whose wires found no way round
+gains them; one where the search found a longer way without a crossing keeps it, since the rings of a strip in the
+order of the pins cross (§4.8).
 
 ### 3.6 The search
 
@@ -1095,8 +1102,8 @@ faces the card. *Card wires on the terminal pins that face the card* (`terminal.
 FT-2083) does that for the terminals of a card or of a strip: the wire to the card goes to the terminal's pin that
 leaves the opposite way to the channel pin, the field's to the other. Route lays the wires round one card together as
 nested rings (§3.5, Rings): they
-remove no crossing that the order of the strip forces. The placer's room for the rings is not built: Arrange sets
-such terminals beside the card as hairpins (§4.4).
+remove no crossing that the order of the strip forces. Arrange sets such terminals beside the card as hairpins where
+it may (§4.4), and where they stay behind it opens the rings' room (§3.5, FT-2085).
 
 ### 4.9 The plan
 
