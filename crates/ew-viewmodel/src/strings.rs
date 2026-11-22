@@ -753,14 +753,16 @@ pub fn kind_words(text: &str) -> Option<String> {
 /// The generic rule's kind text in the UI language (FT-1483): its first two words are the FnDef
 /// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
 /// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
-/// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written. `None`
-/// when the first word has no text and the second none either.
+/// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written, and so is
+/// a first segment whose text ends in its joint where no second text follows ("3P manualswitch", not "3P- manualswitch",
+/// FT-1913). `None` when the first word has no text and the second none either.
 fn generic_kind_words(words: &[&str]) -> Option<String> {
     let segment = |w: &str| lookup(&format!("kind-segment-{}", w.to_lowercase()));
     let first = segment(words.first()?);
     let second = words.get(1).and_then(|w| segment(w));
     let (head, rest) = match (first, second) {
         (Some(a), Some(b)) => (format(key!("kind-generic"), &[a, b]), &words[2..]),
+        (Some(a), None) if a.ends_with('-') => (words[0].to_owned(), &words[1..]),
         (Some(a), None) => (a.trim_end().to_owned(), &words[1..]),
         (None, Some(b)) => (std::format!("{} {b}", words[0]), &words[2..]),
         (None, None) => return None,

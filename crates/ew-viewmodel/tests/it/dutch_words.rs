@@ -299,8 +299,8 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
 /// Every navigator's column header has its text in both locales, the en-GB one
 /// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
 /// in nl-NL the window's tables show the
-/// Dutch headers and the Devices tree its badges and kinds in Dutch, but for the known wrong kind words of
-/// [`WRONG_KIND_WORDS`].
+/// Dutch headers and the Devices tree its badges and kinds in Dutch; a generic segment without words of its own stays
+/// as written after a pole count ("3P manualswitch", FT-1913).
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
@@ -348,9 +348,11 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         .map(|r| r.text.clone())
         .collect();
     // A function's kind of `KIND_WORDS` in Dutch too; the generic rule's segments without words of their own stay as
-    // written (FT-1483: "2P mcb", "Black box").
+    // written (FT-1483: "2P mcb", "Black box"; FT-1913: "3P manualswitch", "3P mcb").
     let kinds = [
         ("1P MCB ", "1P-installatieautomaat "),
+        ("3P manualswitch ", "3P manualswitch "),
+        ("3P mcb ", "3P mcb "),
         ("3P motor ", "3P-motor "),
         ("5/2 valve ", "5/2-ventiel "),
         ("A1A2 coil ", "A1A2 spoel "),
@@ -364,20 +366,12 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         ("Overview ", "Overzicht "),
         ("PROFIBUS port ", "PROFIBUS-poort "),
     ];
-    let mut seen_wrong = BTreeSet::new();
     let worded: Vec<String> = english
         .iter()
         .map(|t| {
             let t = kinds
                 .iter()
-                .chain(WRONG_KIND_WORDS.iter())
-                .find_map(|(en, nl)| {
-                    let rest = t.strip_prefix(en)?;
-                    if WRONG_KIND_WORDS.contains(&(*en, *nl)) {
-                        seen_wrong.insert(*en);
-                    }
-                    Some(format!("{nl}{rest}"))
-                })
+                .find_map(|(en, nl)| Some(format!("{nl}{}", t.strip_prefix(en)?)))
                 .unwrap_or_else(|| t.clone());
             t.replace(" [main]", " [hoofdfunctie]")
                 .replace(" [aux]", " [hulpfunctie]")
@@ -389,19 +383,8 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         .collect();
     assert!(english.iter().any(|t| t.ends_with(" [main]")), "{english:?}");
     assert_eq!(dutch, worded);
-    // The known wrong words still show: the fix makes them read as written and removes the list.
-    assert_eq!(
-        seen_wrong.into_iter().collect::<Vec<_>>(),
-        WRONG_KIND_WORDS.map(|(en, _)| en)
-    );
     shell.shutdown();
 }
-
-/// The kind words the Dutch Devices tree gets wrong (FT-1913): a generic segment without words of its own, which
-/// should stay as written ("3P manualswitch", as "2P mcb" does), gets a stray "- " after its pole count. The English
-/// kind and what the Dutch tree prints.
-const WRONG_KIND_WORDS: [(&str, &str); 2] =
-    [("3P manualswitch ", "3P- manualswitch "), ("3P mcb ", "3P- mcb ")];
 
 /// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.

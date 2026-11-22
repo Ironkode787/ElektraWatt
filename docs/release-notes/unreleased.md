@@ -405,6 +405,8 @@ change here.
 - behaviour-change: a wire selected on the page marks every row of a navigator that lists it, as Connections lists a
   wire under its potential and again under a pin or in two wires' rows; only the last of them was marked, so a wire
   such as the sample's 101.16 on page 104 left its own row unmarked (doc 16 §5, FT-1912)
+- text-change: in Dutch a function's kind whose generic part has no Dutch words reads as written after its pole count,
+  "3P manualswitch" and "3P mcb", not "3P- manualswitch" (FT-1913)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
