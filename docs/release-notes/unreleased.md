@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Route weighs each wire's kept route alone: a wire that lost its route, on a potential with other
+  wires (a supply mark's), is routed again where Route left it without a route and named nothing, and the potential's
+  other wires keep the routes they have where those cost no more (doc 06a §3.9, FT-1891)
 - behaviour-change: the PNG, SVG and DXF exports (`ew export png|svg|dxf`, Export DXF…) no longer delete a folder of
   a person's own files that have the export's extensions (a folder of screenshots or logos chosen for the export was
   taken for an earlier export and removed, with no undo): an export leaves the file `.elektrawatt-export` in its

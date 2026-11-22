@@ -717,7 +717,11 @@ then without the pins of other wires, then without the bodies: "other wires", "c
 The plan holds the new junction places and routes, the labels' places for the preview, the notes of §3.4 and
 §3.8, and `Quality` before and after. Before it is offered, each net is weighed against its stored drawing in the
 finished page: a net whose new routes cost no less than its stored ones, and whose stored ones are free of faults
-among the new routes of the others, keeps the stored ones. So a wire that already runs as well as the rules allow
+among the new routes of the others, keeps the stored ones. Then each wire is weighed alone: a wire whose stored
+route still meets its ends takes it back where the page costs no more and the wire keeps free of faults, so a net
+with one new wire (one that had no route) is not redrawn whole, and its new drawing's fault does not send the whole
+net, the new wire with it, back to no route. A new wire that the routes kept leave with a fault is searched again
+among them, and its new route kept where the page costs less. So a wire that already runs as well as the rules allow
 is not redrawn, and the message can say honestly that nothing better was found. Then the never-worse rule of
 §1.2 decides whether the plan is offered at all.
 

@@ -26,8 +26,10 @@
 //!    lower; at most [`PASSES`] rounds.
 //! 8. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
 //!    among the others keeps them; and from the stored drawing, a net takes its new routes where they cost less. The
-//!    cheaper of the two pages stands. The figures §1.2 only reports (length, labels moved, wires straight,
-//!    turn-backs) veto nothing.
+//!    cheaper of the two pages stands. Then wire by wire: a job whose stored route still meets its ends takes it back
+//!    where the page costs no more and it keeps free of faults, and a job without a stored route that the routes kept
+//!    leave with a fault is searched again among them. The figures §1.2 only reports (length, labels moved, wires
+//!    straight, turn-backs) veto nothing.
 //! 9. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
 //!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
 //!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides. A plan
@@ -1170,6 +1172,69 @@ impl Router {
         }
         if qf.key() < measure(&self.page).key() {
             self.page = forward;
+        }
+        self.weigh_wires();
+    }
+
+    /// Phase 8, wire by wire: a net's new routes are not all or nothing. A job whose stored route still meets its ends
+    /// takes it back where the page costs no more and it keeps free of faults; in the order of the jobs' IDs, at most
+    /// [`PASSES`] rounds, until a round takes none back. Then a job without a stored route left with a fault is searched
+    /// again.
+    fn weigh_wires(&mut self) {
+        let mut q = measure(&self.page);
+        let jobs: Vec<WireId> = self.jobs.iter().copied().collect();
+        for _ in 0..PASSES {
+            let mut taken = false;
+            for w in &jobs {
+                let Some(s) = self.stored.get(w).filter(|s| !s.is_empty()) else {
+                    continue;
+                };
+                let ends = self.ends.get(w).map(|e| e.map(|e| self.point(e)));
+                let meets =
+                    ends.is_some_and(|[a, b]| a == s.first().copied() && b == s.last().copied());
+                if !meets || self.route_of(*w) == s.as_slice() {
+                    continue;
+                }
+                let mut alt = self.page.clone();
+                if let Some(x) = alt.wires.iter_mut().find(|x| x.id == *w) {
+                    x.route.clone_from(s);
+                }
+                let qa = measure(&alt);
+                if qa.key() <= q.key() && !wires_with_faults(&qa).contains(w) {
+                    self.page = alt;
+                    q = qa;
+                    taken = true;
+                }
+            }
+            if !taken {
+                break;
+            }
+        }
+        // A job without a stored route that the routes kept leave with a fault is searched again among them, and its
+        // new route kept where the page costs less.
+        let faulty = wires_with_faults(&q);
+        let fresh: Vec<WireId> = jobs
+            .into_iter()
+            .filter(|w| faulty.contains(w) && self.stored.get(w).is_none_or(Vec::is_empty))
+            .collect();
+        if fresh.is_empty() || self.rebuild(self.texts(&q.labels)).is_none() {
+            return;
+        }
+        for w in fresh {
+            let old = self.route_of(w).to_vec();
+            self.lift(w);
+            match self.search(w, &[], Relax::default()) {
+                Some(f) if f.route != old => {
+                    self.lay(w, f.route);
+                    let now = measure(&self.page);
+                    if now.key() < q.key() {
+                        q = now;
+                    } else {
+                        self.lay(w, old);
+                    }
+                }
+                _ => self.lay(w, old),
+            }
         }
     }
 }
