@@ -327,3 +327,37 @@ fn a_legend_list_is_named_by_its_printed_folio_and_shows_its_layout_page() {
         assert!(!keys.contains(&unread), "{unread}: {keys:?}");
     }
 }
+
+/// One layout, one legend (doc 12 §5.4): a second legend list for a layout page that has one is refused in words, and
+/// no block is made; both would print the first one's folios (902.1 …).
+#[test]
+fn a_second_legend_list_of_one_layout_page_is_refused() {
+    let mut s = common::sample();
+    let q = s.query();
+    let (form, layout) = q
+        .report_blocks()
+        .iter()
+        .find_map(|(_, b)| b.layout_page.map(|p| (b.form, p)))
+        .expect("the sample's legend list");
+    let layout_folio = q
+        .get::<PageOrder>(())
+        .entry(PageRef::Drawn(layout))
+        .map(|e| e.folio.clone())
+        .expect("the layout page");
+    let before: BTreeSet<Id<ReportBlock>> = q.report_blocks().ids().collect();
+    drop(q);
+    let refused = s
+        .execute(&ew_api::AnyCommand {
+            name: "report_block.create".into(),
+            params: json!({"source": {"kind": "enclosure_legend"}, "form": form.as_uuid().to_string(),
+                "layout_page": layout.as_uuid().to_string()}),
+        })
+        .expect_err("a second legend of one layout");
+    let words = refused.to_string();
+    assert!(
+        words.contains(&format!("layout {layout_folio} has its legend list already")),
+        "{words}"
+    );
+    let after: BTreeSet<Id<ReportBlock>> = s.query().report_blocks().ids().collect();
+    assert_eq!(after, before);
+}

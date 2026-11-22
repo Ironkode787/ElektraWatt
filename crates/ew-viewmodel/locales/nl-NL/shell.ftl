@@ -2139,6 +2139,7 @@ refusal-section-range-overlap = foliobereik { $p0 }-{ $p1 } overlapt sectie { $p
 refusal-report-block-form-version = het project bevat een andere versie van dit formulier; neem de nieuwe met bijwerken vanuit de bibliotheek
 refusal-report-block-first-folio = een paginagericht rapportblok heeft `first_folio` nodig; geef er een of neem het op
 refusal-report-block-layout-page = alleen een legendalijst (`enclosure_legend`, niet opgenomen) volgt een layoutpagina, en die pagina moet een paneellayout zijn
+refusal-report-block-legend-taken = layout { $p0 } heeft al een legendalijst, en één layout heeft één legenda; wijzig die lijst, of verwijder haar eerst
 refusal-external-ref-not-location = knooppunt { $p0 } is geen locatie; een externe verwijzing staat op een locatieknooppunt
 refusal-supply-in-no-point = noem ten minste één onderbrekingspunt waar de voeding binnenkomt
 refusal-supply-in-not-ip = alleen een onderbrekingspunt kan de plek zijn waar de voeding binnenkomt

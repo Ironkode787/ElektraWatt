@@ -162,7 +162,8 @@ impl Command for CreateSection {
 /// default). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`
 /// (EW-INV-014): `first_folio` is required unless `embedded` is set; a first folio whose generated pages a page of the
 /// section, its divider page included, already holds (see `held_folio`); a `layout_page` on a block that is not a page
-/// block of kind `enclosure_legend`, or that names a page of another kind than a panel layout. A legend list
+/// block of kind `enclosure_legend`, or that names a page of another kind than a panel layout, or a layout page that a
+/// legend list follows already (one layout, one legend, doc 12 §5.4: both would print 902.1 …). A legend list
 /// (`layout_page`) takes that page's folio number and section where none is given, and its folio is not checked: its
 /// pages follow the layout page (doc 09 §3.2). The form copy, the section and the embedding or layout page must exist
 /// (else not found). Outcome: the new block.
@@ -331,6 +332,11 @@ impl Command for CreateReportBlock {
                 let legend = matches!(self.source, ReportSource::Kind(ReportKind::EnclosureLegend));
                 if !legend || self.embedded.is_some() || p.kind != PageType::PanelLayout {
                     return tx.reject(text!("refusal-report-block-layout-page"));
+                }
+                // One layout, one legend (doc 12 §5.4): a second list would print the first one's folios.
+                if tx.iter::<ReportBlock>().iter().any(|b| b.layout_page == Some(page)) {
+                    let folio = super::page::printed_folio(p.folio.number, p.folio.label.as_ref());
+                    return tx.reject(text!("refusal-report-block-legend-taken", folio));
                 }
                 Some((p.folio.number, p.folio.section))
             }

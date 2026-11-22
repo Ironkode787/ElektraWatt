@@ -38,6 +38,9 @@ change here.
 - behaviour-change: a legend list's Properties show the layout page it follows, not the First folio and Section
   rows nothing reads, and `ew export report --block` takes the printed folio of a block's page (`902.1`) (doc 12
   §5.4, FT-2032)
+- behaviour-change: `report_block.create {layout_page}` refuses a second legend list for a layout page that has one,
+  in words ("layout 902 has its legend list already …"), as the window offers none: both printed 902.1 and on, and
+  the DXF, SVG and PNG exports refused the two folios of one file name (doc 12 §5.4)
 - behaviour-change: Properties no longer shows a record's schema version as a row labelled `$v` (under Identity on
   a device, a page and most other records) (doc 16 §6.1, FT-1939)
 - behaviour-change: a layout's legend prints a length with its unit ("0.47 m" for a rail or a duct), in a box and as

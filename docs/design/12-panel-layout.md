@@ -693,7 +693,8 @@ page deletes its legend list.
 - **Add legend** puts the legend on the layout page itself only where it prints every row and every text whole there
   (above); otherwise a toast says so in words ("The legend does not fit beside the layout whole, so it has a page of
   its own: 902.1") and Add legend makes the legend page. A layout with a legend, on the page or as a page, is offered
-  no second one ("This layout has its legend on a page of its own").
+  no second one ("This layout has its legend on a page of its own"), and `report_block.create` refuses a second legend
+  list of one layout page in words: the two would print the same folios.
 - **An embedded legend made before keeps printing as it does.** **Move the legend to its own page** (the legend's
   context menu, Page ▸ Order; `report_block.legend_to_page`) removes the box and makes the legend page in one undo
   step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
