@@ -152,8 +152,8 @@ impl Query for SectionStructure {
 /// `page_ref_structure(page)`: the structure of any page of the page order: a drawn page's own, the
 /// section's shared structure for a divider and for a generated page of a block in a section, and for a
 /// generated page of a block outside every section (the table of contents, doc 20 §5) the structure all
-/// drawn pages of the project share; empty where they disagree. A legend list's page takes the structure its layout page
-/// shows (`page_display_structure`: the cabinet of its view where it names no location of its own, doc 09 §2.2), so
+/// drawn pages of the project share; empty where they disagree. A legend list's page takes the structure the layout page
+/// it follows shows (`legend_layout_page`) (`page_display_structure`: the cabinet of its view where it names no location of its own, doc 09 §2.2), so
 /// its rows print their tags as the layout's labels do.
 #[derive(Debug)]
 pub struct PageRefStructure;
@@ -172,7 +172,7 @@ impl Query for PageRefStructure {
                 let b = q.report_blocks().get(block).cloned();
                 match b
                     .as_ref()
-                    .and_then(|b| b.layout_page.filter(|p| q.pages().contains(*p)))
+                    .and_then(|b| crate::layout::legend_layout_page(q, b))
                 {
                     Some(layout) => q.get::<crate::structure::PageDisplayStructure>(layout),
                     None => match b.and_then(|b| b.section) {

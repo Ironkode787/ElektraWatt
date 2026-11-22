@@ -564,3 +564,9 @@ change here.
   name (`from_level`, `to_level`; From level and To level in the column mapper): the terminal becomes one multi-level
   terminal of the levels its ends name and each end joins that level's connection point; every connection landed on
   level 1 (doc 14 §5.4, FT-1985)
+- behaviour-change: a legend belongs to its plate: of the layout pages that show one plate, the legend list follows
+  the first in page order, whichever it was made from (its pages that page's sub-pages, its title naming it, its rows
+  linking to it), every page of the plate names that legend, and `report_block.create` refuses a second legend of
+  the plate from any of its pages ("the plate of layout 901 has its legend list already…"); a legend made from a later
+  page followed that page while its rows linked to the first (doc 12 §5.4, FT-2031)
+- text-change: the refusal of a second legend list says that one plate has one legend, in English and Dutch (FT-2031)

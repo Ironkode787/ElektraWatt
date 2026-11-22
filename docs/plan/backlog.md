@@ -56,7 +56,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The layout page
 
-- FT-2031 `ew-reports, ew-api`: Two layout pages that show one plate share one legend list (the first in page order gets the links), and the second is offered no legend of its own; doc 12 §5.4 leaves a legend page per layout page open.
 
 #### What a new item takes
 

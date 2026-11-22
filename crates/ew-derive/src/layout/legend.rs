@@ -15,7 +15,7 @@ use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{
     Carrier, CarrierKind, CarrierRef, Device, Enclosure, LibCopy, MountingSurface, Page, PageItemKind,
-    PageType, Part, PartRef, Placement,
+    PageType, Part, PartRef, Placement, ReportBlock,
 };
 use ew_units::Dec3;
 
@@ -67,6 +67,21 @@ pub fn surface_pages(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Page>> {
         .map(|(id, _)| id)
         .filter(|id| page_surface(q, *id) == Some(surface))
         .collect()
+}
+
+/// The layout page a legend list follows (doc 12 §5.4): a legend belongs to the plate its layout page shows, so it
+/// follows the first page in page order that shows that plate (its folios are that page's sub-pages, its title names
+/// it); the page it names where that page shows no plate. `None` for a block that names no layout page, or one that
+/// is gone.
+pub fn legend_layout_page(q: &Q, block: &ReportBlock) -> Option<Id<Page>> {
+    let named = block.layout_page.filter(|p| q.pages().contains(*p))?;
+    let Some(surface) = page_surface(q, named) else {
+        return Some(named);
+    };
+    let order = q.get::<crate::DrawnPageOrder>(());
+    surface_pages(q, surface)
+        .into_iter()
+        .min_by_key(|p| (order.position(crate::PageRef::Drawn(*p)).unwrap_or(usize::MAX), *p))
 }
 
 // ---------------------------------------------------------------------------------------------------------

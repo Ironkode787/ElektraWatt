@@ -695,7 +695,15 @@ page deletes its legend list.
   (above); otherwise a toast says so in words ("The legend does not fit beside the layout whole, so it has a page of
   its own: 902.1") and Add legend makes the legend page. A layout with a legend, on the page or as a page, is offered
   no second one ("This layout has its legend on a page of its own"), and `report_block.create` refuses a second legend
-  list of one layout page in words: the two would print the same folios.
+  list of one plate in words: the two would print the same folios.
+- **A legend belongs to the plate, not to the page** (FT-2031, 0.3.5). Its rows are the plate's and its positions are
+  the plate's balloons, the same on every layout page that shows it (a second page of one plate, a detail at another
+  scale), so a second list would print the same rows twice. Of the layout pages that show the plate, the first in page
+  order is the one the legend follows, whichever of them it was made from: its pages are that page's sub-pages, its
+  title names that page, its rows link to that page's footprints, and a renumbering or a new page earlier in the order
+  moves it with them. Every layout page of the plate links its labels to the one legend, and is offered no legend of
+  its own ("This layout has its legend on a page of its own"; Add legend's toast names the legend's folio).
+  `ReportBlock.layout_page` still names the page it was made from, which tells the plate.
 - **An embedded legend made before keeps printing as it does.** **Move the legend to its own page** (the legend's
   context menu, Page ▸ Order; `report_block.legend_to_page`) removes the box and makes the legend page in one undo
   step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
@@ -709,8 +717,9 @@ page deletes its legend list.
   balloon on the layout, or with the device selected, goes to its row (the row is the target `ew:lr`). The labels
   themselves are no links: on an editable page a click on a link follows it, and a click on a label must select and
   drag its device. A layout without a legend page draws no target, so its drawing is unchanged.
-- **What it does not do.** A legend page for two layout pages of one surface (the first in page order gets the
-  links); a legend page of a page of another kind; rows in any order but `layout_legend`'s (the positions are the
+- **What it does not do.** Keep the legend when the layout page it was made from is deleted while another page shows
+  the plate (the record names that page, and its delete takes the legend with it); a legend page of a page of another
+  kind; rows in any order but `layout_legend`'s (the positions are the
   balloons' numbers); wrapping a description on the list page (a list's cells do not wrap, 09 §3.8: the column takes
   the room the others leave, as every list's does).
 

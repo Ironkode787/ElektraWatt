@@ -333,12 +333,15 @@ impl Command for CreateReportBlock {
                 if !legend || self.embedded.is_some() || p.kind != PageType::PanelLayout {
                     return tx.reject(text!("refusal-report-block-layout-page"));
                 }
-                // One layout, one legend (doc 12 §5.4): a second list would print the first one's folios.
-                if tx
-                    .iter::<ReportBlock>()
-                    .iter()
-                    .any(|b| b.layout_page == Some(page))
-                {
+                // One plate, one legend (doc 12 §5.4): a legend follows the first layout page of its plate, so a
+                // second list of the plate, from this page or another that shows it, would print the first one's
+                // folios.
+                let plate = shown_surface(tx, page);
+                if tx.iter::<ReportBlock>().iter().any(|b| {
+                    b.layout_page.is_some_and(|other| {
+                        other == page || (plate.is_some() && shown_surface(tx, other) == plate)
+                    })
+                }) {
                     let folio = super::page::printed_folio(p.folio.number, p.folio.label.as_ref());
                     return tx.reject(text!("refusal-report-block-legend-taken", folio));
                 }
@@ -391,6 +394,19 @@ impl Command for CreateReportBlock {
         })?;
         Ok(Outcome::primary((Kind::ReportBlock, id.cast())))
     }
+}
+
+/// The plate a panel page shows: the surface of its first view by ID, as the page draws it (D9).
+fn shown_surface(tx: &TxBuilder<'_>, page: Id<Page>) -> Option<Id<ew_schema::MountingSurface>> {
+    let mut items: Vec<_> = tx.page_items_on_page(page).into_iter().collect();
+    items.sort();
+    items.into_iter().find_map(|id| {
+        let item = tx.get::<ew_schema::PageItem>(id)?;
+        match &item.kind {
+            ew_schema::PageItemKind::SurfaceView(v) => Some(v.surface),
+            _ => None,
+        }
+    })
 }
 
 /// `external_ref.create` (`CreateExternalRef`): a point outside the project that an interruption point or

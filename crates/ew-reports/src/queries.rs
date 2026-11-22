@@ -151,11 +151,12 @@ impl Query for BlockPages {
 }
 
 /// The pagination parameters of `block` ([`BlockSpec::of_block`]); a legend list (`layout_page`, doc 09 §3.2) takes
-/// its layout page's folio number and section, its pages sub-pages of it. A legend whose layout page is gone has none.
+/// the folio number and section of the layout page it follows (the first that shows its plate,
+/// `ew_derive::layout::legend_layout_page`), its pages sub-pages of it. A legend whose layout page is gone has none.
 fn spec_of(q: &Q, id: Id<ReportBlock>, block: &ReportBlock) -> Option<BlockSpec> {
     let mut spec = BlockSpec::of_block(id, block)?;
-    if let Some(layout) = block.layout_page {
-        let page = q.pages().get(layout)?;
+    if block.layout_page.is_some() {
+        let page = ew_derive::layout::legend_layout_page(q, block).and_then(|p| q.pages().get(p))?;
         spec.first_folio = page.folio.number;
         spec.section = page.folio.section;
         spec.continuation = Continuation::SubPage;
@@ -173,7 +174,7 @@ fn paginate_block(
     layouts: &Layouts,
 ) -> Vec<GeneratedPage> {
     let slices = slice(rows, &spec, layouts, &FixedLines);
-    if let Some(layout) = block.layout_page.and_then(|p| q.pages().get(p)) {
+    if let Some(layout) = ew_derive::layout::legend_layout_page(q, block).and_then(|p| q.pages().get(p)) {
         let held: Vec<String> = q
             .pages()
             .iter()
@@ -188,7 +189,8 @@ fn paginate_block(
 
 /// The page-title format with `{strip}`, `{device}` and `{layout}` resolved: the short tag of the first device of the
 /// block's manual selection (the first strip for `{strip}`), so that renaming or renumbering the device renames the
-/// pages ("Terminal Diagram {strip}"), and a legend list's layout page's folio ("Legend of layout {layout}"). A
+/// pages ("Terminal Diagram {strip}"), and the folio of the layout page a legend list follows ("Legend of layout
+/// {layout}"). A
 /// placeholder without such a device or page stays as written.
 fn resolve_title(
     q: &Q,
@@ -209,8 +211,7 @@ fn resolve_title(
         .find(|d| q.devices().get(**d).is_some_and(|x| x.aspects.strip.is_some()))
         .map(|d| tag(*d));
     let device = devices.first().map(|d| tag(*d));
-    let layout = block
-        .layout_page
+    let layout = ew_derive::layout::legend_layout_page(q, block)
         .and_then(|p| q.pages().get(p))
         .map(|p| folio_label(p));
     map_ml(title, |t| {

@@ -61,8 +61,8 @@ pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface, mount_label};
 pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
-    carrier_length, carrier_order, carriers_in_order, layout_legend, metres_of_nm, page_surface,
-    surface_pages,
+    carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
+    page_surface, surface_pages,
 };
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_frame, rehome_pose};
 pub(crate) use queries::shown_location;

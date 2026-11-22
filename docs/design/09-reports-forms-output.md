@@ -172,9 +172,10 @@ columns (§3.8, "In the window").
 
 **A legend as a list of its own** (0.3.5, [12](12-panel-layout.md) §5.4). `ReportBlock.layout_page` (an optional page
 ID, additive) names the panel layout page a page block of kind `enclosure_legend` lists: its rows are those of the
-surface that page's view shows, its pages follow that page in folio and section (§3.2), its title's `{layout}` prints
-that page's folio, and its generated pages print the structure that page shows (`page_display_structure`: its tags and
-title block as the layout's). It is a link that
+surface that page's view shows. The legend belongs to that plate (doc 12 §5.4, FT-2031): it follows the first layout
+page in page order that shows it (the named page where that shows no plate): its pages follow that page in folio and
+section (§3.2), its title's `{layout}` prints that page's folio, and its generated pages print the structure that page
+shows (`page_display_structure`: its tags and title block as the layout's). It is a link that
 cascades: deleting the layout page deletes the block. `report_block.create {layout_page}` writes the layout page's
 folio number as `first_folio` and its section as `section`, so the block keeps EW-INV-014; this build reads neither for
 such a block, and the folio checks of `page.create` and `report_block.create` leave it out (its pages move to a free
@@ -624,7 +625,8 @@ report_pages(block):
   and 3. The page before has no room to take them: it closed because it was full, and the row kept free under a list's
   table (§3.8) is where the window marks that the list runs on, not a data row. `ew_reports::paginate::slice`
   (`LAST_PAGE_ROWS`).
-- **A legend's pages follow its layout page** (0.3.5, §2.2's `layout_page`). The layout page is printed N (or N.j); the
+- **A legend's pages follow its layout page** (0.3.5, §2.2's `layout_page`: the first layout page of its plate). The
+  layout page is printed N (or N.j); the
   legend's pages are N.k, N.(k + 1) … in the layout page's section, k the least from 1 (from j + 1) at which no drawn
   page of that section holds one of them, so its run is never split by a drawn page: 902.1 and 902.2 after 902, and
   902.2 and 902.3 where a drawn page is 902.1. A drawn page made later at one of its folios is not refused; the legend

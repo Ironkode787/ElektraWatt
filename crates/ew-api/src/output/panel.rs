@@ -1278,21 +1278,16 @@ impl crate::Session {
         *self.query().get::<LegendOfferOf>(Id::from_uuid(page))
     }
 
-    /// The printed folio of the first page, in page order, of a legend list that follows the panel page `page` (doc 12
-    /// §5.4); `None` without one.
+    /// The printed folio of the first page, in page order, of the legend list of the plate the panel page `page` shows
+    /// (doc 12 §5.4: a legend belongs to the plate, whichever of its layout pages it was made from); `None` without one.
     pub fn legend_page_folio(&self, page: Uuid) -> Option<String> {
         let q = self.query();
-        let blocks = q.report_blocks();
+        let blocks = legend_blocks(&q, ew_derive::layout::page_surface(&q, Id::from_uuid(page))?);
         let order = q.get::<ew_derive::PageOrder>(());
         order
             .entries
             .iter()
-            .find(|e| match e.page {
-                PageRef::Generated { block, .. } => blocks
-                    .get(block)
-                    .is_some_and(|b| b.layout_page.is_some_and(|l| l.as_uuid() == page)),
-                _ => false,
-            })
+            .find(|e| matches!(e.page, PageRef::Generated { block, .. } if blocks.contains(&block)))
             .map(|e| e.folio.clone())
     }
 
