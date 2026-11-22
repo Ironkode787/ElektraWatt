@@ -65,6 +65,9 @@ pub struct RepCp {
     /// the page draws it ([`ew_derive::oriented_dir`], [`ew_derive::dir_vertical`]); `None` when the direction is
     /// unknown.
     pub vertical: Option<bool>,
+    /// The way a wire leaves it, a unit step on the page (`(0, −1)`: up), its direction turned as for `vertical`;
+    /// `None` when the direction is unknown.
+    pub out: Option<Pt2>,
 }
 
 /// `a + b`, checked: [`OutOfRange`] when a coordinate of the result leaves ±[`MAX_COORD`].
@@ -538,6 +541,16 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
             .as_ref()
             .and_then(ew_derive::dir_vertical)
     };
+    let out = |dir: &Dir4| {
+        let (x, y) = match ew_derive::oriented_dir(dir, rep.orient)? {
+            Dir4::Up => (0, -1),
+            Dir4::Right => (1, 0),
+            Dir4::Down => (0, 1),
+            Dir4::Left => (-1, 0),
+            Dir4::Unknown(_) => return None,
+        };
+        Some(Pt2::new(Nm(x), Nm(y)))
+    };
     if symbol.item.cps.is_empty() {
         let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
             return Vec::new();
@@ -552,6 +565,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
                     idx: cp.idx,
                     pos,
                     vertical: vertical(&cp.dir),
+                    out: out(&cp.dir),
                 })
             })
             .collect();
@@ -572,6 +586,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
                 idx,
                 pos,
                 vertical: vertical(&cp.dir),
+                out: out(&cp.dir),
             }))
         })
         .collect()

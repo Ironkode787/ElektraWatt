@@ -247,6 +247,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/edit.rs` |  | `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). |
 | `src/commands/exchange.rs` |  | `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the symbol of a placed representation exchanged, its function and connections kept. |
 | `src/commands/external.rs` |  | `external.apply` (`ApplyExternal`): an external change, merged by the session, committed as one undoable transaction. |
+| `src/commands/face_card.rs` |  | `terminal.face_card` (`FaceCard`, docs/design/06a-drafting.md §4.8, doc 10 §3.6, FT-2083): the wire to a PLC card on the terminal's pin that faces the card. |
 | `src/commands/fields.rs` | large | `fields.set` (`SetFields`): the property grid's command, also over a multi-selection (doc 06 §3.1, §3.7); and `fields.set_many` (`SetManyFields`): one value per target set, the command of find and replace and of "freeze" on several devices, one transaction of `fields.set` steps. |
 | `src/commands/fluid.rs` |  | The fluid commands (doc 11 §4.3): `valve.set_occupancy` (`SetValveOccupancy`), `fluid.port.close` (`ClosePort`), `fluid.medium.edit` (`EditMedium`), `fluid.medium.define` (`DefineMedium`), `fluid.tube.set` (`SetTube`) and `fluid.length.set` (`SetLength`). |
 | `src/commands/frames.rs` |  | `project.frames.set` (`SetFrameDefaults`): the frame defaults of the project settings (doc 03 §5.1 `FrameDefaults`, FR-PAG-018; doc 16 §9.2 step 2). |

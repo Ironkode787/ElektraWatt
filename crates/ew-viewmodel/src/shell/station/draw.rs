@@ -68,7 +68,24 @@ impl ShellModel {
         &self,
     ) -> Result<(ew_api::output::TableRep, Uuid, Uuid, ew_api::output::CardPins), Key<'static>> {
         use ew_api::geometry::Dir;
-        let not = key!("reason-not-older-card");
+        let (rep, device, station, pins) = self.card_box(key!("reason-not-older-card"))?;
+        let channel = |i: u16| pins.inputs.contains(&i) || pins.outputs.contains(&i);
+        let b = rep.black_box.as_ref().ok_or(key!("reason-not-older-card"))?;
+        let edge = |d: Dir| b.cps.iter().any(|(i, _, dir)| channel(*i) && *dir == d);
+        if !(edge(Dir::Up) && edge(Dir::Down)) {
+            return Err(key!("reason-not-older-card"));
+        }
+        Ok((rep, device, station, pins))
+    }
+
+    /// The one selected box when it is a box of a PLC card, in any form: its representation, its device, its station
+    /// and its part's black-box pins by kind ([`Session::card_pins`], channel pins among them); else `not`.
+    ///
+    /// [`Session::card_pins`]: ew_api::Session::card_pins
+    pub(crate) fn card_box(
+        &self,
+        not: Key<'static>,
+    ) -> Result<(ew_api::output::TableRep, Uuid, Uuid, ew_api::output::CardPins), Key<'static>> {
         let c = self.canvas().ok_or(not)?;
         let rep = match self.selection().items.as_slice() {
             [one] => c.page().tables.reps.iter().find(|r| r.id == one.0),
@@ -95,9 +112,7 @@ impl ShellModel {
             })
             .collect();
         let pins = session.card_pins(device, &cps);
-        let channel = |i: u16| pins.inputs.contains(&i) || pins.outputs.contains(&i);
-        let edge = |d: Dir| b.cps.iter().any(|(i, _, dir)| channel(*i) && *dir == d);
-        if !(edge(Dir::Up) && edge(Dir::Down)) {
+        if pins.inputs.is_empty() && pins.outputs.is_empty() {
             return Err(not);
         }
         Ok((rep.clone(), device, station, pins))
@@ -106,8 +121,10 @@ impl ShellModel {
     /// `plc.card_redraw` (FT-1897, doc 10 §3.6): the selected card of the older form drawn again in one row in its
     /// place, in one undo step: one `plc.draw_station` of the card's boxes as Draw on a page lays a card out
     /// (`part_box::card_box`), its inputs in a box where the old box stood and its outputs in a box a gap under that,
-    /// replacing the old box. The device, its channels and every connection stay; a toast says that Arrange and route
-    /// draws the wires to the new pins.
+    /// replacing the old box; a row wider than the drawing area from the old box's left edge to its right is split
+    /// into boxes of as many pins as fit (`part_box::card_share`, FT-2083), each a gap under the one before, so that
+    /// every pin stays on the page with its wire. The device, its channels and every connection stay; a toast says that
+    /// Arrange and route draws the wires to the new pins.
     pub(crate) fn act_card_redraw(&mut self) -> Outcome {
         const GAP: i64 = 7_937_500;
         let (rep, device, station, pins) = match self.older_card() {
@@ -126,6 +143,9 @@ impl ShellModel {
         else {
             return Outcome::refused(key!("reason-rack-no-frame"));
         };
+        let grid = crate::tools::wire::PageGridMap::new(page_grid);
+        let right = draw["right"].as_i64().unwrap_or(i64::MAX);
+        let room = grid.index(right).saturating_sub(grid.index(rep.pos.0));
         let mut boxes = Vec::new();
         let mut at = rep.pos;
         let mut others = pins.others.as_slice();
@@ -133,14 +153,16 @@ impl ShellModel {
             if row.is_empty() {
                 continue;
             }
-            let steps = ew_api::part_box::card_box(row, up, others);
-            others = &[];
-            let Some(laid) = card_layout(&steps, page_grid, at) else {
-                return Outcome::refused(key!("reason-not-older-card"));
-            };
-            let (json, rect) = box_json(&device.to_string(), laid);
-            boxes.push(json);
-            at = (rep.pos.0, rect[3] + GAP);
+            for part in row.chunks(ew_api::part_box::card_share(row.len(), room)) {
+                let steps = ew_api::part_box::card_box(part, up, others);
+                others = &[];
+                let Some(laid) = card_layout(&steps, page_grid, at) else {
+                    return Outcome::refused(key!("reason-not-older-card"));
+                };
+                let (json, rect) = box_json(&device.to_string(), laid);
+                boxes.push(json);
+                at = (rep.pos.0, rect[3] + GAP);
+            }
         }
         let mut params = json!({
             "station": station.to_string(), "page": page.to_string(), "symbol": draw["symbol"],
@@ -170,6 +192,28 @@ impl ShellModel {
                 .and_then(|s| s.device_tag(device))
                 .unwrap_or_default();
             self.notify(strings::format(key!("toast-card-redrawn"), &[&tag]), true);
+        }
+        out
+    }
+
+    /// `plc.card_terminals_face` (FT-2083, doc 10 §3.6): the terminals wired to the selected card's channels take the
+    /// wire to the card on their pin that faces it (`terminal.face_card`), in one undo step; a toast says that Arrange
+    /// and route draws the wires.
+    pub(crate) fn act_card_terminals_face(&mut self) -> Outcome {
+        let device = match self.card_box(key!("reason-not-card-box")) {
+            Ok((_, device, ..)) => device,
+            Err(why) => return Outcome::refused(why),
+        };
+        let out = self.run_commit(&ew_api::AnyCommand {
+            name: "terminal.face_card".into(),
+            params: json!({ "card": device.to_string() }),
+        });
+        if out == Outcome::Done {
+            let tag = self
+                .project_session()
+                .and_then(|s| s.device_tag(device))
+                .unwrap_or_default();
+            self.notify(strings::format(key!("toast-card-terminals-faced"), &[&tag]), true);
         }
         out
     }

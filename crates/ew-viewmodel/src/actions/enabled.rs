@@ -692,6 +692,12 @@ pub(super) fn older_card(m: &ShellModel) -> Result<(), Key<'static>> {
     m.older_card().map(|_| ())
 }
 
+/// An editable page with one box of a PLC card selected (Card wires on the terminal pins that face the card, FT-2083).
+pub(super) fn card_box(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    m.card_box(key!("reason-not-card-box")).map(|_| ())
+}
+
 /// An editable page with exactly one unbound free text selected (Edit ▸ Edit text).
 pub(super) fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;

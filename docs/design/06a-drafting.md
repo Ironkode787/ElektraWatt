@@ -1089,8 +1089,10 @@ channels face away from their circuits: such a page is the case above. Draw the 
 the device, its channels and every connection stay, because a connection joins connection points of the device's
 function, not the box; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
 each terminal of a channel that now faces the other way: the wire to the card belongs on the terminal's pin that
-faces the card. A command that swaps the two wires of such a terminal for a whole strip would take that hand work
-away; it is not built. Route lays the wires round one card together as nested rings (§3.5, Rings): they
+faces the card. *Card wires on the terminal pins that face the card* (`terminal.face_card`, in the card box's menu,
+FT-2083) does that for the terminals of a card or of a strip: the wire to the card goes to the terminal's pin that
+leaves the opposite way to the channel pin, the field's to the other. Route lays the wires round one card together as
+nested rings (§3.5, Rings): they
 remove no crossing that the order of the strip forces. The placer's room for the rings is not built: Arrange sets
 such terminals beside the card as hairpins (§4.4).
 

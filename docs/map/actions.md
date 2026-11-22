@@ -501,6 +501,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `plc.module_draw` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-draw`, `bar-plc-module-draw`, `valve-plc-module-draw` |
 | `plc.module_place` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module_place` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-module-place`, `bar-plc-module-place` |
 | `plc.card_redraw` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_card_redraw` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-card-redraw` |
+| `plc.card_terminals_face` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_card_terminals_face` `crates/ew-viewmodel/src/shell/station/draw.rs` | `action-plc-card-terminals-face` |
 | `plc.module_goto` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module_goto` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-goto`, `bar-plc-module-goto`, `valve-plc-module-goto` |
 | `plc.module_left` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-left`, `bar-plc-module-left`, `valve-plc-module-left` |
 | `plc.module_right` | `crates/ew-viewmodel/src/actions/table/automation.rs` | `act_plc_module` `crates/ew-viewmodel/src/shell/station/rack.rs` | `action-plc-module-right`, `bar-plc-module-right`, `valve-plc-module-right` |

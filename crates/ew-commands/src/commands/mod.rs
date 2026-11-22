@@ -34,6 +34,7 @@ mod drawing;
 mod edit;
 mod exchange;
 mod external;
+mod face_card;
 mod fields;
 mod fluid;
 mod frames;
@@ -171,6 +172,8 @@ commands! {
     // The strip editor's insert and move
     terminal::InsertTerminals,
     terminal::MoveTerminals,
+    // The wire to a card on the terminal's pin that faces it (FT-2083)
+    face_card::FaceCard,
     fields::SetFields,
     fields::SetManyFields,
     edit::DeleteSelection,

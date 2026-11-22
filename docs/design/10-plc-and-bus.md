@@ -1113,9 +1113,22 @@ draws the card again as Draw on a page lays a card out, in its place and in one 
 `replace` names the old box, its inputs in a box where the old box stood and its outputs in a box a gap under that.
 The device, its functions, channels and connections stay, because a connection joins the function's connection
 points and not the box; a toast says that Arrange and route draws the wires to the new pins. The old box's texts a
-person moved or hid go with it: the new boxes print their texts where the one-row layout puts them. Not done: a row wider than
-the drawing area is not split into boxes as Draw on a page splits it, and a terminal of a channel that now faces the
-other way keeps its wires on the pin it had (FT-2083).
+person moved or hid go with it: the new boxes print their texts where the one-row layout puts them. A row wider than
+the drawing area from the old box's left edge to the area's right is split into boxes of as many pins as fit there,
+as Draw on a page splits a row (`part_box::card_share`), each box a gap under the one before; where Draw on a page
+leaves the rest of the row for a page of its own, the redraw keeps every pin on the page, where its wire is (FT-2083).
+
+**The card's wires on the terminals' facing pins** (FT-2083, 0.3.5). After the redraw a terminal of a channel that now
+faces the other way still has the card's wire on the pin it had. *Card wires on the terminal pins that face the card*
+(`plc.card_terminals_face`, in the box's menu of any card, beside Draw the card in one row) runs `terminal.face_card
+{card}`: each wire between one of the card's channel pins and a terminal drawn with two pins on the wire's page goes
+to the terminal's pin that leaves the opposite way to the channel pin (the lower pin of a terminal over a card of
+inputs, whose pins face up), the field's wire to the other: the wires of the terminal's two pins on that page change
+places and lose their routes, and Arrange and route sets the terminal in its channel's column on the card's side
+([06a](06a-drafting.md) §4.8, rule E4) and draws them. `terminal.face_card {strip}` does the same for the terminals of
+a strip, wired to any card. A terminal drawn with more than two pins (a two-level block), one whose pins leave
+sideways and a wire drawn on another page than the terminal stay as they are; a card or a strip with nothing to change
+is refused in words.
 
 ### 3.7 Valve terminals
 

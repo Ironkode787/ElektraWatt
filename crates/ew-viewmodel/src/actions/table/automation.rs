@@ -137,6 +137,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_card_redraw(),
     )),
+    // The terminals wired to a card take its wire on the pin that faces it (FT-2083); the box's menu offers it.
+    hidden(act(
+        "plc.card_terminals_face",
+        Command,
+        Menu::Plc,
+        &[],
+        card_box,
+        None,
+        |s, _| s.act_card_terminals_face(),
+    )),
     hidden(act(
         "plc.module_goto",
         View,

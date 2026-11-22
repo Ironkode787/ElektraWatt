@@ -148,6 +148,10 @@ impl ShellModel {
                         if self.older_card().is_ok() {
                             out.extend(self.menu_item("plc.card_redraw"));
                         }
+                        // A card's terminals: the wire to the card on the pin that faces it (FT-2083).
+                        if self.card_box(key!("reason-not-card-box")).is_ok() {
+                            out.extend(self.menu_item("plc.card_terminals_face"));
+                        }
                     }
                 }
             }
