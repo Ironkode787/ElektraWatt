@@ -15,8 +15,8 @@
 //! port functions names. Its ends are its functions with at most one neighbour, and every external interruption
 //! point (an IP with an `ExternalRef`). The walk starts at the master end (the end that is the logical net's
 //! master, a port or an external interruption point), else at the end with the smallest (`order_hint` position,
-//! ID); it visits neighbours in that order, so a branched component (EW-BUS-006's stub, not built) still has one
-//! deterministic member order. Junctions carry the line but are not members.
+//! ID); it visits neighbours in that order, so a branched component (a stub, which EW-BUS-006 reports on PROFIBUS DP
+//! above 1.5 Mbit/s) still has one deterministic member order. Junctions carry the line but are not members.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
