@@ -1681,15 +1681,13 @@ pub(crate) fn parse_input(
                 .filter_map(|u| u.spelling().map(|p| (p, u.symbol())))
                 .flat_map(|(p, s)| [(p.clone(), p.clone()), (p, s.to_owned())])
                 .collect();
-            let found = names
-                .iter()
-                .fold(None::<(&str, &str)>, |best, (p, s)| {
-                    if t.ends_with(s.as_str()) && best.is_none_or(|(_, b)| s.len() > b.len()) {
-                        Some((p, s))
-                    } else {
-                        best
-                    }
-                });
+            let found = names.iter().fold(None::<(&str, &str)>, |best, (p, s)| {
+                if t.ends_with(s.as_str()) && best.is_none_or(|(_, b)| s.len() > b.len()) {
+                    Some((p, s))
+                } else {
+                    best
+                }
+            });
             let Some((unit, spelling)) = found else {
                 // "24 V DC", as a panel builder writes a control voltage: DC or AC is no part of the value.
                 let current = ["DC", "AC"].iter().any(|w| {

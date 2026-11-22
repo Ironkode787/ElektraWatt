@@ -250,10 +250,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason() {
     let q = s.query();
     let (texts, findings) = tables(&q, "101");
     assert!(findings.is_empty(), "{findings:?}");
-    assert_eq!(
-        texts,
-        ["Not derived: this build does not make this list"]
-    );
+    assert_eq!(texts, ["Not derived: this build does not make this list"]);
 }
 
 /// LB-6 and LB-10: the tables layer of the page with the embedded legend does not depend on the record order.

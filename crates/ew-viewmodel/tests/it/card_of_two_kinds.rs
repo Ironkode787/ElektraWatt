@@ -140,5 +140,9 @@ fn a_card_of_inputs_and_analogue_inputs_is_one_part() {
         .filter_map(|a| a.strip_prefix("IW")?.parse().ok())
         .collect();
     words.sort_unstable();
-    assert_eq!(words, [byte + 2, byte + 4], "the analogue words after the inputs' word: {all:?}");
+    assert_eq!(
+        words,
+        [byte + 2, byte + 4],
+        "the analogue words after the inputs' word: {all:?}"
+    );
 }

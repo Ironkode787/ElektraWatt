@@ -410,37 +410,37 @@ impl Query for ValveTerminalRows {
             out.push(module_row(vt, module, module_position));
             let slots = q.get::<ValveSlots>(module);
             for (i, slot) in slots.slots.iter().enumerate() {
-                    let p = u32::try_from(i + 1).unwrap_or(u32::MAX);
-                    let mut row = module_row(vt, module, module_position);
-                    row.position = Some(p);
-                    match slot {
-                        ValveSlot::Valve { device, state } => {
-                            let (solenoids, channels) = valve_channels(q, *device);
-                            let addresses = valve_functions(q, *device)
-                                .first()
-                                .and_then(|f| q.get::<PlcAddressText>(*f).text.clone());
-                            row.slot = VtSlot::Valve;
-                            row.device = Some(*device);
-                            row.solenoids = solenoids;
-                            row.channels = channels;
-                            row.addresses = addresses;
-                            row.function_text = devices
-                                .get(*device)
-                                .map(|d| d.function_text.clone())
-                                .unwrap_or_default();
-                            row.process_tag = tracked_process_tag(q, *device);
-                            row.target = tracked_target(q, *device);
-                            row.state = Some(state.clone());
-                        }
-                        ValveSlot::Blank { device } => {
-                            row.slot = VtSlot::Blank;
-                            row.device = Some(*device);
-                            row.state = devices.get(*device).map(|d| d.state.clone());
-                        }
-                        ValveSlot::Empty => row.slot = VtSlot::Empty,
+                let p = u32::try_from(i + 1).unwrap_or(u32::MAX);
+                let mut row = module_row(vt, module, module_position);
+                row.position = Some(p);
+                match slot {
+                    ValveSlot::Valve { device, state } => {
+                        let (solenoids, channels) = valve_channels(q, *device);
+                        let addresses = valve_functions(q, *device)
+                            .first()
+                            .and_then(|f| q.get::<PlcAddressText>(*f).text.clone());
+                        row.slot = VtSlot::Valve;
+                        row.device = Some(*device);
+                        row.solenoids = solenoids;
+                        row.channels = channels;
+                        row.addresses = addresses;
+                        row.function_text = devices
+                            .get(*device)
+                            .map(|d| d.function_text.clone())
+                            .unwrap_or_default();
+                        row.process_tag = tracked_process_tag(q, *device);
+                        row.target = tracked_target(q, *device);
+                        row.state = Some(state.clone());
                     }
-                    out.push(row);
+                    ValveSlot::Blank { device } => {
+                        row.slot = VtSlot::Blank;
+                        row.device = Some(*device);
+                        row.state = devices.get(*device).map(|d| d.state.clone());
+                    }
+                    ValveSlot::Empty => row.slot = VtSlot::Empty,
                 }
+                out.push(row);
+            }
             slots
         };
         let mut out = Vec::new();

@@ -293,7 +293,10 @@ fn row_steps(
             // The pitch keeps the gap between every two members of the run, as the fit keeps every gap before an item.
             let kept = |n: i64| -> Result<bool, OutOfRange> {
                 for m in 1..i64::try_from(run.len()).map_err(|_| OutOfRange)? {
-                    let to = n.checked_mul(m).and_then(|d| k0.checked_add(d)).ok_or(OutOfRange)?;
+                    let to = n
+                        .checked_mul(m)
+                        .and_then(|d| k0.checked_add(d))
+                        .ok_or(OutOfRange)?;
                     if at(to)? - at(k0)? - width < keep(i128::from(m) * pitch - width) - FIT_SLACK {
                         return Ok(false);
                     }
@@ -304,7 +307,11 @@ fn row_steps(
                 n = n.checked_add(1).ok_or(OutOfRange)?;
             }
             for (m, &i) in (0i64..).zip(run) {
-                out[i] = Some(n.checked_mul(m).and_then(|d| k0.checked_add(d)).ok_or(OutOfRange)?);
+                out[i] = Some(
+                    n.checked_mul(m)
+                        .and_then(|d| k0.checked_add(d))
+                        .ok_or(OutOfRange)?,
+                );
             }
             s = e + 1;
         }

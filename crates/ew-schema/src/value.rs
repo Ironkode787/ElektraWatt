@@ -156,10 +156,7 @@ impl Unit {
 
     /// The spelling the format persists (`mm2`, `degC`); `None` for a unit of a newer format.
     pub fn spelling(&self) -> Option<String> {
-        serde_json::to_value(self)
-            .ok()?
-            .as_str()
-            .map(str::to_owned)
+        serde_json::to_value(self).ok()?.as_str().map(str::to_owned)
     }
 
     /// The unit `text` names: its spelling or its symbol (`mm2` or `mm²`).

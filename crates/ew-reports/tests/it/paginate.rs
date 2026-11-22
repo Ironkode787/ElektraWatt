@@ -302,7 +302,10 @@ fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
     // The reason in words, in English and Dutch, without the family's name (FT-1995).
     let text = |tag: &str| note.get(&tag.parse().unwrap()).unwrap_or_default().to_owned();
     let (en, nl) = (text("en-GB"), text("nl-NL"));
-    assert!(en.starts_with("Not derived") && nl.starts_with("Niet afgeleid"), "{en} / {nl}");
+    assert!(
+        en.starts_with("Not derived") && nl.starts_with("Niet afgeleid"),
+        "{en} / {nl}"
+    );
     assert!(!en.contains("wire_rows") && !en.contains('`'), "{en}");
 }
 

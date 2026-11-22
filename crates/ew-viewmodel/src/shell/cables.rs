@@ -817,12 +817,7 @@ impl ShellModel {
                 }
             };
         };
-        let Some(part) = form
-            .cables
-            .iter()
-            .find(|o| o.is_named(&part))
-            .map(|o| o.part)
-        else {
+        let Some(part) = form.cables.iter().find(|o| o.is_named(&part)).map(|o| o.part) else {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
             return self.form_failed(BUS_CABLE, message);
         };
