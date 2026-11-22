@@ -1621,8 +1621,9 @@ are the attributes of its symbol's insert, which the importer draws where they s
 definitions `TAG` and `FUNCTION_TEXT` are what the symbol wizard (§6.2) reads as the tag and function-text slots. The drawing is in sheet millimetres, so a page made of it takes its items through the inverse of the new
 page's page-to-sheet map (Golden A's frame and a QElectroTech import's fit their page to the sheet) and prints where it
 was drawn; AC-37's test re-imports folios 101 to 106 into Golden A and compares the printed drawn points and text
-baselines, and those of folio 101 as an underlay of 102, within 0.01 mm. A text keeps the nearest built-in style, so
-its size may differ by a style step. A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
+baselines, and those of folio 101 as an underlay of 102, within 0.01 mm. A text takes the nearest built-in style and
+its own height as written (through the page-to-sheet map), so it prints at the size and on the baseline it was
+written at (a text of a height no built-in style has, a terminal's of 2.52 mm, stood 0.05 mm off before, FT-1921). A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
 a control character or one of `< > / \ " : ; ? * | , = '`; two classes that share a name, or one named `0`, are one
 LAYER record. The AC1024 file has been read back by this importer and by ezdxf 1.4.5 (its audit finds no error and
 repairs nothing on the sample's pages, 2026-11-21); no CAD program has opened it yet (open).

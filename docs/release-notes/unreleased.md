@@ -388,3 +388,6 @@ change here.
 - behaviour-change: two sessions or branches that each set another override of one wire whose record held none (the
   cross-section here, the colour there) merge both; the cross-section was shown as changed on both sides and the later
   edit refused (doc 05 §11.2, FT-1917)
+- behaviour-change: a DXF text read in keeps its own height as written, through the page's page-to-sheet map, beside the
+  nearest built-in style: it prints at its size and on its baseline; a text of a height no built-in style has (a
+  terminal's) stood up to 0.05 mm off (doc 14 §6.4, FT-1921)

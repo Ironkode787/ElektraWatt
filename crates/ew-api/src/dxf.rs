@@ -289,7 +289,7 @@ impl Session {
 }
 
 /// A drawing's page item `kind` with its points through `point` and its lengths (a radius, a stroke width) through
-/// `len`; a text keeps its style.
+/// `len`; a text keeps its style, its own height through `len`.
 pub(crate) fn map_item(kind: &mut PageItemKind, point: &dyn Fn(Pt2) -> Pt2, len: &dyn Fn(Nm) -> Nm) {
     match kind {
         PageItemKind::Graphic(g) => {
@@ -319,7 +319,10 @@ pub(crate) fn map_item(kind: &mut PageItemKind, point: &dyn Fn(Pt2) -> Pt2, len:
                 s.width = len(s.width);
             }
         }
-        PageItemKind::FreeText(t) => t.at = point(t.at),
+        PageItemKind::FreeText(t) => {
+            t.at = point(t.at);
+            t.height = t.height.map(len);
+        }
         _ => {}
     }
 }

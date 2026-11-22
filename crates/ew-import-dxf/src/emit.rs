@@ -715,7 +715,9 @@ impl Emit {
                     at: self.pt(*at)?,
                     angle: angle2(*angle),
                     style: style_of(cap),
-                    height: None,
+                    // Its own height, as written: a text prints by its middle, so one of its style's height would
+                    // stand off its baseline by half the difference (FT-1921).
+                    height: Some(Nm(cap.round() as i64)),
                     align: match align {
                         HAlign::Left => None,
                         HAlign::Centre => Some(TextAlign::Centre),
