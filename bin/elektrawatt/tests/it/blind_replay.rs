@@ -155,11 +155,16 @@ fn replay(rec: &Recording) -> Vec<String> {
         .stdin(Stdio::null())
         .output()
         .unwrap();
+    // The run's own folder, which a toast may name (an export's "in <folder>"), stands as one word, so that two replays
+    // in fresh folders compare by what they did.
+    let run = tmp.0.display().to_string();
+    let escaped = serde_json::to_string(&run).unwrap();
+    let escaped = escaped.trim_matches('"').to_owned();
     String::from_utf8(out.stdout)
         .unwrap()
         .lines()
         .skip(1)
-        .map(str::to_owned)
+        .map(|l| l.replace(&escaped, "<run>").replace(&run, "<run>"))
         .collect()
 }
 
