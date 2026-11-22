@@ -9,7 +9,8 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{
-    AddrValue, BusPort, ConnectionKind, Endpoint, Function, FunctionKind, Kind, NetAddress, OnOff, PortRole,
+    AddrValue, BusPort, BusSystem, ConnectionKind, Endpoint, Function, FunctionKind, Kind, NetAddress, OnOff,
+    PortRole,
 };
 use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
 
@@ -258,7 +259,9 @@ fn plug_termination(q: &Q, f: Id<Function>) -> Option<OnOff> {
 /// - an element whose state is of a newer format (`unknown`), an info.
 ///
 /// An external end claims no element: the partner terminates its own end. A segment with one end (a lone port) and
-/// a ring (no end) are checked only for elements that are On inside them.
+/// a ring (no end) are checked only for elements that are On inside them. Only a terminated line bus is checked
+/// (PROFIBUS DP, CANopen, and a bus of a newer format): an Ethernet link, IO-Link and AS-Interface have no termination
+/// (FT-1922: a drawn line gives its ports a physical net, a PROFINET star's too).
 #[derive(Clone, Copy, Debug)]
 pub struct Termination;
 
@@ -274,6 +277,18 @@ impl Rule for Termination {
         let functions = q.functions();
         let mut out = Vec::new();
         for segment in q.get::<BusSegments>(net).iter() {
+            let terminated = segment
+                .functions()
+                .find_map(|f| functions.get(f).and_then(|x| x.bus_port.as_ref()).map(|p| p.bus.clone()))
+                .is_none_or(|bus| {
+                    matches!(
+                        bus,
+                        BusSystem::ProfibusDp | BusSystem::CanOpen | BusSystem::Unknown(_)
+                    )
+                });
+            if !terminated {
+                continue;
+            }
             let ports: Vec<(Id<Function>, Option<OnOff>)> = segment
                 .functions()
                 .map(|f| {

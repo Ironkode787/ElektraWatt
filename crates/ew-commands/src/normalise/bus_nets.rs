@@ -14,8 +14,11 @@
 //! is named (and exists), the ports that name none take it; when none is named and the segment has two such ports, a
 //! new `LogicalNet` of their bus system is made, named for the bus system (`PROFIBUS DP`, then `PROFIBUS DP 2` …),
 //! with the CP of the segment's one `master` or `controller` port as its master, and all take it. Ports in different
-//! nets are left as they are (EW-BUS-010 reports them). N6 never changes a net a port names, so it is idempotent:
-//! after a run the segment's ports name a net and a second run changes nothing.
+//! nets are left as they are (EW-BUS-010 reports them). The physical net goes the same way over every port of the
+//! segment, a plug's too (FT-1922: a drawn line made the logical net only, so its segments, EW-BUS-004 and the bus
+//! overview saw nothing): the one the ports name, else a new `PhysicalNet` of copper named as a new logical net is,
+//! which every port without one takes. N6 never changes a net a port names, so it is idempotent: after a run the
+//! segment's ports name their nets and a second run changes nothing.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -23,7 +26,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_schema::{
-    BusPort, BusSystem, Connection, ConnectionKind, Endpoint, Extra, Function, Kind, LogicalNet, PortRole,
+    BusMedium, BusPort, BusSystem, Connection, ConnectionKind, Endpoint, Extra, Function, Kind, LogicalNet,
+    PhysicalNet, PortRole,
 };
 
 use crate::error::CmdError;
@@ -84,23 +88,49 @@ fn net_of(tx: &TxBuilder<'_>, port: &BusPort) -> Option<Id<LogicalNet>> {
     port.logical_net.filter(|n| tx.get::<LogicalNet>(*n).is_some())
 }
 
+/// A name for a new net of `bus`: the bus system's (`PROFIBUS DP`), then numbered, unique among `taken`.
+fn net_name(bus: &BusSystem, taken: &[String]) -> Result<Ident, CmdError> {
+    let base = ew_derive::bus_word(bus);
+    let name = std::iter::once(base.to_owned())
+        .chain((2..).map(|n| format!("{base} {n}")))
+        .find(|n| !taken.contains(n))
+        .unwrap_or_else(|| base.to_owned());
+    Ident::from_input(&name).map_err(|e| CmdError::internal(format!("bus net name: {e}")))
+}
+
+/// A new physical net of `bus`, of copper, named as [`net_name`] names it among the physical nets.
+fn new_physical(tx: &mut TxBuilder<'_>, bus: &BusSystem) -> Result<Id<PhysicalNet>, CmdError> {
+    let taken: Vec<String> = tx
+        .iter::<PhysicalNet>()
+        .into_iter()
+        .map(|n| n.name.as_str().to_owned())
+        .collect();
+    let name = net_name(bus, &taken)?;
+    let id: Id<PhysicalNet> = tx.mint();
+    tx.insert(PhysicalNet {
+        id,
+        v: 1,
+        name,
+        medium: BusMedium::Copper,
+        order_hint: Vec::new(),
+        source_ref: None,
+        extra: Extra::new(),
+    })?;
+    Ok(id)
+}
+
 /// A new logical net of `bus`, named for the bus system and unique among the nets, with `master`.
 fn new_net(
     tx: &mut TxBuilder<'_>,
     bus: &BusSystem,
     master: Option<Endpoint>,
 ) -> Result<Id<LogicalNet>, CmdError> {
-    let base = ew_derive::bus_word(bus);
     let taken: Vec<String> = tx
         .iter::<LogicalNet>()
         .into_iter()
         .map(|n| n.name.as_str().to_owned())
         .collect();
-    let name = std::iter::once(base.to_owned())
-        .chain((2..).map(|n| format!("{base} {n}")))
-        .find(|n| !taken.contains(n))
-        .unwrap_or_else(|| base.to_owned());
-    let name = Ident::from_input(&name).map_err(|e| CmdError::internal(format!("bus net name: {e}")))?;
+    let name = net_name(bus, &taken)?;
     let id: Id<LogicalNet> = tx.mint();
     tx.insert(LogicalNet {
         id,
@@ -146,6 +176,32 @@ impl Normaliser for BusNets {
             }
             let members = segment(tx, &all, &line, &bus);
             done.extend(members.keys().copied());
+            // The segment's physical net, over every port, a plug's too.
+            let physical_of = |tx: &TxBuilder<'_>, port: &BusPort| {
+                port.physical_net.filter(|n| tx.get::<PhysicalNet>(*n).is_some())
+            };
+            let physical: BTreeSet<Id<PhysicalNet>> =
+                members.values().filter_map(|m| physical_of(tx, &m.0)).collect();
+            let pnet = match (physical.len(), physical.first()) {
+                (1, Some(n)) => Some(*n),
+                (0, _) if members.len() >= 2 => Some(new_physical(tx, &bus)?),
+                _ => None,
+            };
+            if let Some(pnet) = pnet {
+                let join: Vec<Id<Function>> = members
+                    .iter()
+                    .filter(|(_, m)| physical_of(tx, &m.0).is_none())
+                    .map(|(f, _)| *f)
+                    .collect();
+                for f in join {
+                    tx.update::<Function>(f, |x| {
+                        if let Some(p) = x.bus_port.as_mut() {
+                            p.physical_net = Some(pnet);
+                        }
+                    })?;
+                    changed = true;
+                }
+            }
             // A plug passes the net through and takes none.
             let nodes: Vec<(Id<Function>, &Member)> = members
                 .iter()

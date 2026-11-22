@@ -414,6 +414,10 @@ change here.
 - text-change: Properties explains the project's Source, Translations and Frames rows and a fluid port's closure Kind
   and Part, in English and Dutch; the Frames row names its frames ("Default: Frame QET A4 landscape grid; Table of
   contents: …"), not their IDs (doc 09 §3.8, FT-1916)
+- behaviour-change: a bus line drawn between two ports gives them a physical net as well as the logical one (the one
+  they name, else a new one of copper named for the bus system), so its segments, EW-BUS-004 and the bus overview see
+  it without `bus.physical_net.create`; EW-BUS-004 checks the termination of PROFIBUS DP and CANopen only, so a drawn
+  PROFINET star reports no unterminated ends (doc 10 §2.7, FT-1922)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

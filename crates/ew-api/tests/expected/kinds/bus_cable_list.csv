@@ -1,2 +1,2 @@
 row,Cable,Bus system,Part,Length,From,To,Segment
-data,-105W1,PROFIBUS DP,EW-GEN-CBL-2,8 m,-104A1:DP,-201K1:DP,
+data,-105W1,PROFIBUS DP,EW-GEN-CBL-2,8 m,-104A1:DP,-201K1:DP,PROFIBUS DP

@@ -483,12 +483,15 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    let nets: Vec<&str> = rows
-        .iter()
-        .filter(|r| r.role == NavRole::Net.word())
-        .map(|r| r.label.as_str())
-        .collect();
-    assert_eq!(nets, ["PROFIBUS DP"], "one net: {rows:?}");
+    // One logical net, and its physical net with it (FT-1922).
+    let nets = |section: &str| -> Vec<&str> {
+        rows.iter()
+            .filter(|r| r.role == NavRole::Net.word() && r.key.starts_with(section))
+            .map(|r| r.label.as_str())
+            .collect()
+    };
+    assert_eq!(nets("nets:logical/"), ["PROFIBUS DP"], "one net: {rows:?}");
+    assert_eq!(nets("nets:physical/"), ["PROFIBUS DP"], "one net: {rows:?}");
     let members = rows
         .iter()
         .filter(|r| r.role == NavRole::BusPort.word() && r.key.starts_with("nets:logical/"))

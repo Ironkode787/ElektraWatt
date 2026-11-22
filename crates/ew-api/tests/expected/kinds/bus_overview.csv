@@ -1,1 +1,4 @@
 row,Logical net,Position,Station,Port,Address,Connector,Termination,Cable,Length,External
+data,PROFIBUS DP,1,-104A1,DP,2,,on,,,no
+data,PROFIBUS DP,,,,,,,-105W1,8 m,
+data,PROFIBUS DP,2,-201K1,DP,3,,on,,,no

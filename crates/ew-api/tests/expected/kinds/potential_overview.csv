@@ -1,7 +1,7 @@
 row,Potential,Type,Voltage,Class,Colour,mm²,Aliases,Members,Pages
 data,-104A1-A2:2,,,,,0.75 mm²,0,2,104
 data,-104A1-A2:3,,,,,0.75 mm²,0,2,104
-data,-104A1:A,,,,(cable),(cable),0,2,105
+data,-104A1:A,,,,(cable),(cable),0,3,105
 data,0V,M,,,,0.75 mm²,0,13,"101, 102, 104"
 data,1L1,,,,BK,1.5 mm²,0,3,"101, 103"
 data,1L1/101F1:2,L,,,,1.5 mm²,0,2,101

@@ -413,7 +413,8 @@ impl ShellModel {
     /// The key of the row on show in navigator `kind` that `given` names (G-PP finding 7): its key; else
     /// the one row whose printed label is `given`; else the one row whose parent's label, a colon and its own label
     /// is `given` (a strip terminal row prints `terminal "1"` under `strip "-X1031"`, and the tag `-X1031:1` names
-    /// it). `None` when nothing or more than one row matches.
+    /// it). Rows that list one record (a bus port under its logical and its physical net, FT-1922) count as one, the
+    /// first. `None` when nothing or more than one record's rows match.
     pub(super) fn resolve_nav_key(&self, kind: NavKind, given: &str) -> Option<String> {
         let vis = self.vis_keys(kind);
         if vis.iter().any(|k| k == given) {
@@ -425,6 +426,11 @@ impl ShellModel {
             n.visible().iter().map(|r| &t.nodes[r.node as usize]).collect();
         let unique = |found: Vec<&&crate::navigators::NavNode>| match found.as_slice() {
             [one] => Some(one.key.clone()),
+            [first, rest @ ..]
+                if !first.records.is_empty() && rest.iter().all(|node| node.records == first.records) =>
+            {
+                Some(first.key.clone())
+            }
             _ => None,
         };
         unique(rows.iter().filter(|node| node.label == given).collect()).or_else(|| {

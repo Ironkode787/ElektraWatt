@@ -634,7 +634,12 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   `PROFIBUS DP 2` …) whose master is the CP of the one `master` or `controller` port. A passive port (a bus plug)
   passes the net through and takes none, as Golden A's -3X1 has none: two stations joined plug to plug are one net.
   It never changes a net a port names (two nets in one segment stay EW-BUS-010's). No member is added:
-  `logical_net` was there, and an older 0.1 build reads the net as any other. Physical nets are not made this way.
+  `logical_net` was there, and an older 0.1 build reads the net as any other. The physical net goes the same way
+  (FT-1922: until then a drawn line's segments, EW-BUS-004 and the bus overview saw nothing until
+  `bus.physical_net.create` and each port's net were set by hand): the one physical net the segment's ports name, a
+  plug's included, else a new `PhysicalNet` of copper named as a new logical net is, which every port without one
+  takes. EW-BUS-004 checks the termination of a terminated line bus only (PROFIBUS DP, CANopen): an Ethernet link,
+  IO-Link and AS-Interface have none, so a drawn PROFINET star stays silent.
 - **As built (FT-1767): one interface, many ports; switches and devices with ports.** A bus interface is one port
   function carrying one `BusPort`, so one address: a PROFINET device name and IP address belong to the interface, not
   to a socket. Its sockets are the function's connection points. `PartBusPort.ports` (optional, additive) gives their

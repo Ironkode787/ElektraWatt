@@ -292,12 +292,15 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    let nets: Vec<&str> = rows
-        .iter()
-        .filter(|r| r.role == NavRole::Net.word())
-        .map(|r| r.label.as_str())
-        .collect();
-    assert_eq!(nets, ["PROFINET"], "one net: {rows:?}");
+    // One logical net, and its physical net with it (FT-1922).
+    let nets = |section: &str| -> Vec<&str> {
+        rows.iter()
+            .filter(|r| r.role == NavRole::Net.word() && r.key.starts_with(section))
+            .map(|r| r.label.as_str())
+            .collect()
+    };
+    assert_eq!(nets("nets:logical/"), ["PROFINET"], "one net: {rows:?}");
+    assert_eq!(nets("nets:physical/"), ["PROFINET"], "one net: {rows:?}");
     let ports: Vec<String> = rows
         .iter()
         .filter(|r| r.role == NavRole::BusPort.word())
@@ -389,8 +392,14 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
     d.settle();
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
-    let nets = rows.iter().filter(|r| r.role == NavRole::Net.word()).count();
-    assert_eq!(nets, 1, "one net");
+    // One logical net, and its physical net with it (FT-1922).
+    for section in ["nets:logical/", "nets:physical/"] {
+        let nets = rows
+            .iter()
+            .filter(|r| r.role == NavRole::Net.word() && r.key.starts_with(section))
+            .count();
+        assert_eq!(nets, 1, "one net in {section}");
+    }
     // The CPU's DP, in no net, is listed apart.
     let nodes: Vec<String> = rows
         .iter()
