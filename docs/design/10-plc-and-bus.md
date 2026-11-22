@@ -1119,7 +1119,7 @@ as Draw on a page splits a row (`part_box::card_share`), each box a gap under th
 leaves the rest of the row for a page of its own, the redraw keeps every pin on the page, where its wire is (FT-2083).
 
 **The card's wires on the terminals' facing pins** (FT-2083, 0.3.5). After the redraw a terminal of a channel that now
-faces the other way still has the card's wire on the pin it had. *Card wires on the terminal pins that face the card*
+faces the other way still has the card's wire on the pin it had. *Terminal wires to card side*
 (`plc.card_terminals_face`, in the box's menu of any card, beside Draw the card in one row) runs `terminal.face_card
 {card}`: each wire between one of the card's channel pins and a terminal drawn with two pins on the wire's page goes
 to the terminal's pin that leaves the opposite way to the channel pin (the lower pin of a terminal over a card of

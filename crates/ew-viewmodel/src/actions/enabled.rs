@@ -692,7 +692,7 @@ pub(super) fn older_card(m: &ShellModel) -> Result<(), Key<'static>> {
     m.older_card().map(|_| ())
 }
 
-/// An editable page with one box of a PLC card selected (Card wires on the terminal pins that face the card, FT-2083).
+/// An editable page with one box of a PLC card selected (Terminal wires to card side, FT-2083).
 pub(super) fn card_box(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.card_box(key!("reason-not-card-box")).map(|_| ())
