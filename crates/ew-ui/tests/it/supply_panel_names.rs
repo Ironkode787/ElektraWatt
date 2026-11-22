@@ -5,7 +5,7 @@
 //! incoming mark selected and its panel open, each row's Conductor list and Voltage field read "<column>, <mark>".
 
 use crate::support::{Tmp, dispatch, on_sample, settle};
-use egui_kittest::kittest::{NodeT as _, Queryable as _};
+use egui_kittest::kittest::NodeT as _;
 use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
