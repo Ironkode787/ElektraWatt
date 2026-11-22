@@ -24,8 +24,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// sides, bridge and state, its part and its CPs without a level on its first row.
 /// Row ID: `(strip, terminal, level)`, the level being 1 for a terminal of one level.
 ///
-/// `strip` is the strip's tag, so that two strips' terminals of one number read apart (FT-1805). `label` is the
-/// terminal's function text (the "1+" of the reference), `group` the caption of the strip
+/// `level` is the level of a block's row (1, 2), empty for a terminal of one level, so that a block's rows read apart
+/// whatever their numbers. `strip` is the strip's tag, so that two strips' terminals of one number read apart
+/// (FT-1805). `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
 /// group that holds its `seq`. `side1` and `side2` list what is wired to the terminal's CPs of that side
 /// (a CP without a side lists on side 1): the far end of
 /// each wire, `via` the cable and core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).
@@ -45,6 +46,7 @@ impl ReportKindDef for TerminalDiagram {
         vec![
             ColumnDef::new("strip", CellType::Tag, "Strip", "Klemmenstrook").weighted(8),
             ColumnDef::new("terminal", CellType::Ident, "Terminal", "Klem").weighted(7),
+            ColumnDef::new("level", CellType::Ident, "Level", "Etage").weighted(5),
             ColumnDef::new("label", CellType::Text, "Function text", "Functietekst").weighted(8),
             ColumnDef::new("group", CellType::Text, "Group", "Groep").weighted(9),
             ColumnDef::new("part", CellType::Ident, "Part", "Artikel").weighted(11),
@@ -155,6 +157,7 @@ impl ReportKindDef for TerminalDiagram {
                         vec![
                             Cell::Tag(strip),
                             Cell::Ident(term.level_designation(level).as_str().to_owned()),
+                            level.map_or(Cell::Empty, |l| Cell::Ident(l.to_string())),
                             if dev.function_text.is_empty() {
                                 Cell::Empty
                             } else {

@@ -61,8 +61,9 @@ const VERSION: &str = "0.1.0";
 /// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
 /// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description (FT-1934) and the three-wire PNP proximity sensor
-/// EW-GEN-PRX-1 was added (FT-1840).
-const LIBRARY_VERSION: &str = "0.19.0";
+/// EW-GEN-PRX-1 was added (FT-1840), 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added (a
+/// persona run found no part for a block of two levels).
+const LIBRARY_VERSION: &str = "0.20.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description (FT-1934).
 const PART_VERSION: &str = "0.1.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
@@ -160,6 +161,22 @@ fn own_category(number: &str) -> Option<Value> {
         "EW-GEN-CON-1" => Some(json!(["SwitchingPower", "Contactor", "3P"])),
         "EW-GEN-VTM-1" | "EW-GEN-VTM-2" => Some(json!(["ValveTerminalNode", "Station", "Generic"])),
         "EW-GEN-VTP-1" => Some(json!(["ValveTerminalNode", "Multipin", "Generic"])),
+        "EW-GEN-TRM-3" => Some(json!(["Terminal", "FeedThrough", "2Level"])),
+        _ => None,
+    }
+}
+
+/// The level, side and clamp of each CP of a part of several levels (doc 08 §6.3), in its pattern's order: the
+/// two-level terminal EW-GEN-TRM-3 has clamps a (side 1) and b (side 2) on level 1 and again on level 2, which its one
+/// FnDef `ew.fn.terminal` gives only for level 1; `None` for every other part.
+fn level_pattern(number: &str) -> Option<[(u8, &'static str, &'static str); 4]> {
+    match number {
+        "EW-GEN-TRM-3" => Some([
+            (1, "side1", "a"),
+            (1, "side2", "b"),
+            (2, "side1", "a"),
+            (2, "side2", "b"),
+        ]),
         _ => None,
     }
 }
@@ -1677,6 +1694,19 @@ fn defs() -> Vec<Def> {
             unit: None,
         },
         Def {
+            number: "EW-GEN-TRM-3",
+            kind: Some("terminal"),
+            description: ["Two-level feed-through terminal", "Doorgangsklem met twee etages"],
+            cps: cps(&["1", "2", "3", "4"]),
+            template: vec![("ew.fn.terminal", true, vec![0, 1, 2, 3])],
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: ts35("5.2", "65", "50"),
+            sections: None,
+            unit: None,
+        },
+        Def {
             number: "EW-GEN-DI-1",
             kind: None,
             description: [
@@ -2061,6 +2091,11 @@ fn parts() -> Vec<LibDocument> {
                     let mut cp = json!({"idx": i, "designation": des});
                     if let Some(r) = role {
                         cp["potential_role"] = json!(r);
+                    }
+                    if let Some((level, side, clamp)) = level_pattern(d.number).and_then(|p| p.get(i).copied()) {
+                        cp["level"] = json!(level);
+                        cp["side"] = json!(side);
+                        cp["clamp"] = json!({"clamp": clamp});
                     }
                     cp
                 }).collect::<Vec<_>>(),

@@ -191,13 +191,14 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         ],
         NavKind::Devices => kind_columns("structure_overview"),
         NavKind::Connections => kind_columns("wire_list"),
-        // `pos` after `strip`, `bridge_part` after `bridge`; the list's own `strip` column is the first.
+        // `pos` after `strip`, `bridge_part` after `bridge`; the list's own `strip` column is the first, and its `level`
+        // column is the printed list's alone.
         NavKind::Strips => {
             let mut c = own(&["strip"]);
             c.push(column("pos", "Pos", false, None));
             for mut k in kind_columns("terminal_diagram")
                 .into_iter()
-                .filter(|k| k.key != "strip")
+                .filter(|k| k.key != "strip" && k.key != "level")
             {
                 k.key_column = false;
                 let bridge = k.key == "bridge";

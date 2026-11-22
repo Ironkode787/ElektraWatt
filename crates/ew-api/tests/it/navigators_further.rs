@@ -35,6 +35,14 @@ fn block_rows(s: &Session, first: u32) -> Vec<Vec<String>> {
         .collect()
 }
 
+/// The index of the Level column of the block whose first page is `first`.
+fn level_column(s: &Session, first: u32) -> usize {
+    let q = s.query();
+    q.get::<BlockRows>(block(s, first).id)
+        .column("level")
+        .expect("a Level column")
+}
+
 fn table_rows(t: &NavTable) -> Vec<&NavNode> {
     t.nodes.iter().filter(|n| n.table_row).collect()
 }
@@ -162,7 +170,19 @@ fn strips_are_the_terminal_diagrams() {
             );
         }
     }
-    assert_eq!(rows, block_rows(&s, 903), "the terminal diagram");
+    // The printed list's Level column is its own: the navigator leaves it out.
+    let level = level_column(&s, 903);
+    let printed: Vec<Vec<String>> = block_rows(&s, 903)
+        .into_iter()
+        .map(|r| {
+            r.into_iter()
+                .enumerate()
+                .filter(|(i, _)| *i != level)
+                .map(|(_, c)| c)
+                .collect()
+        })
+        .collect();
+    assert_eq!(rows, printed, "the terminal diagram");
     let count = |label: &str| children(&t, find(&t, NavRole::Strip, label)).len();
     assert_eq!(
         (count("-X1011"), count("-X1021"), count("-X1031")),

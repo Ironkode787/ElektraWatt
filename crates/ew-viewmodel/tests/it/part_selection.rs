@@ -200,7 +200,9 @@ fn a_breaker_offers_the_same_function_first() {
         "part.search",
         json!({ "view": "all", "text": "EW-GEN-TRM" }),
     );
-    assert_eq!(results(&s), ["EW-GEN-TRM-1", "EW-GEN-TRM-2"]);
+    let found = results(&s);
+    assert!(found.iter().all(|r| r.starts_with("EW-GEN-TRM-")), "{found:?}");
+    assert_eq!(found.first().map(String::as_str), Some("EW-GEN-TRM-1"));
     let version = starter_version("EW-GEN-TRM-1");
     // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
     assert!(lines(&s, "detail ").is_empty());

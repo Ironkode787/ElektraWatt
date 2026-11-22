@@ -96,8 +96,10 @@ update step. **In the window:** **Draw ▸ Wire**.
 **EW term:** [Terminal strip](../reference/glossary.md#terminal-strip)
 
 **The same:** a terminal strip is a device whose terminals are functions, with an editor for their order, bridges and
-accessories. **What differs:** the strip editor is a table you edit cell by cell, and every edit is one undo step.
-**In the window:** **Draw ▸ Place ▸ Terminal strip** and **Edit ▸ Strip editor**. See
+accessories. A multi-level terminal is one terminal with its levels, one part and a number on each level. **What
+differs:** the strip editor is a table you edit cell by cell, and every edit is one undo step. **In the window:**
+**Draw ▸ Place ▸ Terminal strip** and **Edit ▸ Strip editor**; **Draw ▸ Place ▸ Terminal…** with **Levels** 2 lays a
+row of two-level terminals, and **Join device…** (`J`) makes a terminal drawn apart the next level of another. See
 [A terminal strip and a cable](../tutorials/terminal-strip-and-cable.md).
 
 ## Structure identifier, Identifier block, Higher-level function, Mounting location

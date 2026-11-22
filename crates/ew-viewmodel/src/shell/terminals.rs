@@ -70,6 +70,12 @@ fn kind_parts<'a>(cat: &'a PlaceCatalogue, kind: &'a CatalogueSymbol) -> impl It
     (0..cat.parts.len()).filter(move |&i| part_fndef(cat, i) == Some(kind.fndef_key.as_str()))
 }
 
+/// Whether the catalogue's part `i` is a terminal of two levels: its category's level word says so (`2Level`, as
+/// `1Level` says one), the word Terminal…'s Levels 2 proposes a part by.
+fn two_level_part(cat: &PlaceCatalogue, i: usize) -> bool {
+    cat.parts[i].words.iter().any(|w| w == "2Level")
+}
+
 /// A terminal part in Terminal…'s Part list as the part dialog names it: `<part number> (<maker>) · <description>`,
 /// without the parts it lacks.
 fn terminal_part_words(cat: &PlaceCatalogue, i: usize) -> String {
@@ -243,7 +249,7 @@ impl ShellModel {
         Some(d.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
     }
 
-    /// `tool.place_terminal {strip?, kind?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
+    /// `tool.place_terminal {strip?, kind?, levels?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
     /// window without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the
     /// tag it will take, editable in `tag`; `new` stands first, and the strip of the page's terminal placed last is chosen, else
     /// `new`), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
@@ -252,7 +258,9 @@ impl ShellModel {
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
     /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
-    /// terminals stand, kept for the next row as the user setting `terminal_spacing` (FT-1791).
+    /// terminals stand, kept for the next row as the user setting `terminal_spacing` (FT-1791). Levels (`levels`, 1 or
+    /// 2) 2 makes each terminal a block of two levels (doc 08 §6.3): the row lays two symbols for each, which join as
+    /// [`Self::join_row_in_pairs`] says, and proposes a part of two levels.
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "tool.place_terminal";
         let Some(cat) = self.catalogue() else {
@@ -294,7 +302,7 @@ impl ShellModel {
                     .map(|i| (cat.parts[i].copy.to_string(), terminal_part_words(&cat, i))),
             );
             let strip = Self::catalogue_strip(&cat, &chosen).map(|i| cat.strips[i].id);
-            let proposal = self.terminal_part_proposal(&cat, strip, kinds[0]);
+            let proposal = self.terminal_part_proposal(&cat, strip, kinds[0], 1);
             offer_part(&cat, &mut parts, proposal);
             let proposal = proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string());
             let field = |name, label_key, options: Vec<(String, String)>, value: String| super::FormField {
@@ -315,6 +323,22 @@ impl ShellModel {
                         key!("form-terminal-kind"),
                         kinds.iter().map(|s| (s.key.clone(), s.name.clone())).collect(),
                         kinds[0].key.clone(),
+                    ),
+                    // A block of two levels is one terminal of one part with a number on each level (doc 08 §6.3).
+                    field(
+                        "levels",
+                        key!("form-terminal-levels"),
+                        vec![
+                            (
+                                "1".to_owned(),
+                                strings::text(key!("terminal-levels-one")).to_owned(),
+                            ),
+                            (
+                                "2".to_owned(),
+                                strings::text(key!("terminal-levels-two")).to_owned(),
+                            ),
+                        ],
+                        "1".to_owned(),
                     ),
                     field("part", key!("form-terminal-part"), parts, proposal),
                     field("count", key!("form-terminal-count"), Vec::new(), "1".to_owned()),
@@ -350,6 +374,13 @@ impl ShellModel {
         let mut kind = Some(text("kind"))
             .filter(|k| !k.is_empty())
             .unwrap_or_else(|| kinds[0].key.clone());
+        let levels: u8 = match text("levels").as_str() {
+            "" | "1" => 1,
+            "2" => 2,
+            other => {
+                return self.form_failed(ACTION, strings::format(key!("error-terminal-levels"), &[other]));
+            }
+        };
         // The part (its copy ID or its part number; `none` or empty: none): a terminal part of one of the kinds, whose
         // kind it sets (a held part without a function template keeps the kind given). Left out, the form's proposal.
         let part = match p.get("part") {
@@ -378,7 +409,7 @@ impl ShellModel {
             }
             None => kinds.iter().find(|k| k.key == kind).and_then(|k| {
                 let strip = Self::catalogue_strip(&cat, &strip).map(|i| cat.strips[i].id);
-                self.terminal_part_proposal(&cat, strip, k)
+                self.terminal_part_proposal(&cat, strip, k, levels)
             }),
         };
         let Some(symbol) = cat
@@ -391,10 +422,12 @@ impl ShellModel {
         let count_text = Some(text("count"))
             .filter(|c| !c.is_empty())
             .unwrap_or_else(|| "1".to_owned());
+        // A block of two levels lays two symbols of the row.
+        let most = TERMINAL_ROW_MAX / u32::from(levels);
         let count = match count_text.parse::<u32>() {
-            Ok(n @ 1..=TERMINAL_ROW_MAX) => n,
+            Ok(n) if (1..=most).contains(&n) => n,
             _ => {
-                let max = TERMINAL_ROW_MAX.to_string();
+                let max = most.to_string();
                 return self.form_failed(
                     ACTION,
                     strings::format(key!("error-terminal-count"), &[&count_text, &max]),
@@ -429,8 +462,9 @@ impl ShellModel {
         }
         let mut params = Map::new();
         params.insert("strip".into(), Value::String(strip));
-        params.insert("count".into(), Value::from(count));
+        params.insert("count".into(), Value::from(count * u32::from(levels)));
         params.insert("spacing".into(), Value::from(spacing));
+        self.tools.row_levels = levels;
         // Kept between sessions, a user setting (FT-1791).
         if self.settings.terminal_spacing != Some(spacing) {
             self.settings.terminal_spacing = Some(spacing);
@@ -578,17 +612,26 @@ impl ShellModel {
         self.form_done(ACTION, Outcome::Done)
     }
 
-    /// The part Terminal… proposes for a terminal of kind `kind` on strip `strip` (`None`: a new strip), by its copy ID:
-    /// the part of the strip's last terminal of that kind where the catalogue offers it for the kind (or holds it
-    /// without a function template), else the kind's starter part, else its first part (the project's own come
-    /// first); `None` where no part is of the kind.
+    /// The part Terminal… proposes for a terminal of kind `kind` with `levels` levels on strip `strip` (`None`: a new
+    /// strip), by its copy ID: among the kind's parts of that many levels ([`two_level_part`]; every part of the kind
+    /// where none has), the part of the strip's last terminal of that kind where the catalogue offers it (or holds it
+    /// without a function template), else the starter part, else the first part (the project's own come first);
+    /// `None` where no part is of the kind.
     fn terminal_part_proposal(
         &self,
         cat: &PlaceCatalogue,
         strip: Option<Uuid>,
         kind: &CatalogueSymbol,
+        levels: u8,
     ) -> Option<Uuid> {
-        let parts: Vec<Uuid> = kind_parts(cat, kind).map(|i| cat.parts[i].copy).collect();
+        let all: Vec<usize> = kind_parts(cat, kind).collect();
+        let fitting: Vec<usize> = all
+            .iter()
+            .copied()
+            .filter(|&i| two_level_part(cat, i) == (levels == 2))
+            .collect();
+        let offered = if fitting.is_empty() { all } else { fitting };
+        let parts: Vec<Uuid> = offered.iter().map(|&i| cat.parts[i].copy).collect();
         let last = strip.zip(self.project.as_ref()).and_then(|(strip, project)| {
             let session = &project.session;
             let q = session.query();
@@ -619,7 +662,9 @@ impl ShellModel {
         let untyped = |c: &Uuid| cat.parts.iter().any(|r| r.copy == *c && r.functions.is_empty());
         last.filter(|c| parts.contains(c) || untyped(c))
             .or_else(|| {
-                kind_parts(cat, kind)
+                offered
+                    .iter()
+                    .copied()
                     .find(|&i| cat.parts[i].library.is_some_and(|(l, _)| l == starter))
                     .map(|i| cat.parts[i].copy)
             })
@@ -627,7 +672,8 @@ impl ShellModel {
     }
 
     /// Terminal…'s form after a choice (`changed`, the field's name): a part chosen sets the kind it draws; another
-    /// strip or kind proposes its part again (FT-1695), so that Kind and Part never contradict each other.
+    /// strip, kind or number of levels proposes its part again (FT-1695), so that Kind and Part never contradict each
+    /// other.
     pub(super) fn terminal_form_follow(&mut self, changed: &str) {
         let Some(cat) = self.catalogue() else { return };
         let Some(super::Dialog::Form(form)) = &self.dialog else {
@@ -641,6 +687,7 @@ impl ShellModel {
                 .unwrap_or_default()
         };
         let (strip, kind, part) = (value("strip"), value("kind"), value("part"));
+        let levels = if value("levels") == "2" { 2 } else { 1 };
         let kinds = terminal_kinds(&cat);
         let (name, new) = match changed {
             "part" if part != NO_PART => {
@@ -658,12 +705,12 @@ impl ShellModel {
                 };
                 ("kind", k.key.clone())
             }
-            "strip" | "kind" => {
+            "strip" | "kind" | "levels" => {
                 let Some(k) = kinds.iter().find(|k| k.key == kind) else {
                     return;
                 };
                 let strip = Self::catalogue_strip(&cat, &strip).map(|i| cat.strips[i].id);
-                let proposal = self.terminal_part_proposal(&cat, strip, k);
+                let proposal = self.terminal_part_proposal(&cat, strip, k, levels);
                 (
                     "part",
                     proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string()),
@@ -747,6 +794,8 @@ impl ShellModel {
         if more == 0 {
             return;
         }
+        // The levels of this row (Terminal… sets them before it arms the tool).
+        let levels = std::mem::replace(&mut self.tools.row_levels, 1);
         let start = cursor(self).map(|c| c.saturating_sub(1));
         for _ in 0..more {
             if self.send_tool(&CanvasEvent::Activate) != Outcome::Done {
@@ -758,6 +807,9 @@ impl ShellModel {
             // The row is counted from its first terminal alone.
             let _ = rest(self);
         }
+        if levels == 2 {
+            self.join_row_in_pairs(first.as_deref());
+        }
         self.tools.before_commit = first;
         self.tools.row_steps = start.zip(cursor(self));
         if let Some(select) = crate::tools::tool_named("select") {
@@ -765,6 +817,58 @@ impl ShellModel {
             self.tool_epoch = self.tool_epoch.wrapping_add(1);
             self.announce_tool();
         }
+    }
+
+    /// A Terminal… row of two levels (doc 08 §6.3): the terminals the row laid (those not on the page in `before`), in
+    /// their order on the strip, join in pairs, the second of each the first's next level (`rep.join_device`), so each
+    /// pair is one terminal whose levels print the two numbers (1 and 2, 3 and 4 …). The second ones first give up
+    /// their part, in one `fields.set`: the block keeps the first's, and a part of two levels on the second would
+    /// refuse the join.
+    fn join_row_in_pairs(&mut self, before: Option<&PageTables>) {
+        let Some(tables) = self.canvas().map(|c| Arc::clone(&c.page().tables)) else {
+            return;
+        };
+        let Some(project) = &self.project else { return };
+        let q = project.session.query();
+        // (seq, device, representation, whether it has a part) of each terminal the row laid.
+        let mut laid: Vec<(u32, Uuid, Uuid, bool)> = tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal && !before.is_some_and(|b| b.reps.iter().any(|o| o.id == r.id)))
+            .filter_map(|r| {
+                let device = r.device?;
+                let d = q.devices().get(device.to_string().parse().ok()?)?;
+                Some((
+                    d.aspects.terminal.as_ref()?.seq,
+                    device,
+                    r.id,
+                    !d.parts.is_empty(),
+                ))
+            })
+            .collect();
+        drop(q);
+        laid.sort_unstable();
+        let pairs: Vec<(Uuid, Uuid)> = laid.as_chunks::<2>().0.iter().map(|p| (p[0].1, p[1].2)).collect();
+        let parted: Vec<String> = laid
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .filter(|p| p[1].3)
+            .map(|p| p[1].1.to_string())
+            .collect();
+        if !parted.is_empty() {
+            let params = json!({"kind": "device", "targets": parted, "path": "parts", "value": []});
+            if self.run_logged_or_commit("fields.set", &params, None).0 != Outcome::Done {
+                return;
+            }
+        }
+        for (block, rep) in pairs {
+            let params = json!({"rep": rep.to_string(), "device": block.to_string()});
+            if self.run_logged_or_commit("rep.join_device", &params, None).0 != Outcome::Done {
+                break;
+            }
+        }
+        self.sync_views();
     }
 }
 

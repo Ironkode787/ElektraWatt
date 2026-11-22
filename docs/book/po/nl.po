@@ -6470,7 +6470,7 @@ msgid ""
 "ends; one Undo takes the row back. Draw ▸ Place ▸ Terminal…."
 msgstr ""
 
-#: src/reference/window/tools.md:89 src/explanation/eplan-and-ew.md:112
+#: src/reference/window/tools.md:89 src/explanation/eplan-and-ew.md:114
 msgid "Black box"
 msgstr ""
 
@@ -7045,7 +7045,7 @@ msgid ""
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:389 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:389 src/explanation/eplan-and-ew.md:122
 msgid "Structure box"
 msgstr ""
 
@@ -10191,24 +10191,27 @@ msgstr ""
 #: src/explanation/eplan-and-ew.md:98
 msgid ""
 "**The same:** a terminal strip is a device whose terminals are functions, "
-"with an editor for their order, bridges and accessories. **What differs:** "
-"the strip editor is a table you edit cell by cell, and every edit is one "
-"undo step. **In the window:** **Draw ▸ Place ▸ Terminal strip** and **Edit ▸ "
-"Strip editor**. See [A terminal strip and a "
-"cable](../tutorials/terminal-strip-and-cable.md)."
+"with an editor for their order, bridges and accessories. A multi-level "
+"terminal is one terminal with its levels, one part and a number on each "
+"level. **What differs:** the strip editor is a table you edit cell by cell, "
+"and every edit is one undo step. **In the window:** **Draw ▸ Place ▸ "
+"Terminal strip** and **Edit ▸ Strip editor**; **Draw ▸ Place ▸ Terminal…** "
+"with **Levels** 2 lays a row of two-level terminals, and **Join device…** "
+"(`J`) makes a terminal drawn apart the next level of another. See [A "
+"terminal strip and a cable](../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:103
+#: src/explanation/eplan-and-ew.md:105
 msgid ""
 "Structure identifier, Identifier block, Higher-level function, Mounting "
 "location"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:105 src/explanation/qet-and-ew.md:91
+#: src/explanation/eplan-and-ew.md:107 src/explanation/qet-and-ew.md:91
 msgid "**EW term:** [Structure node](../reference/glossary.md#structure-node)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:107
+#: src/explanation/eplan-and-ew.md:109
 msgid ""
 "**The same:** the higher-level function (`=`) and the mounting location "
 "(`+`) structure the project, and a device's full tag carries them. **What "
@@ -10217,11 +10220,11 @@ msgid ""
 "**In the window:** **Project ▸ Setup ▸ Structure node…**."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:114 src/explanation/qet-and-ew.md:99
+#: src/explanation/eplan-and-ew.md:116 src/explanation/qet-and-ew.md:99
 msgid "**EW term:** [Black box](../reference/glossary.md#black-box)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:116
+#: src/explanation/eplan-and-ew.md:118
 msgid ""
 "**The same:** a black box stands for a device that has no symbol, with "
 "connection points on its outline. **What differs:** nothing much; a black "
@@ -10229,26 +10232,26 @@ msgid ""
 "Place ▸ Black box…**."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:122 src/explanation/qet-and-ew.md:106
+#: src/explanation/eplan-and-ew.md:124 src/explanation/qet-and-ew.md:106
 msgid "**EW term:** [Structure box](../reference/glossary.md#structure-box)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:124
+#: src/explanation/eplan-and-ew.md:126
 msgid ""
 "**The same:** a dashed frame that assigns what it encloses to a function or "
 "location. **What differs:** nothing much; the assignment shows in the tags "
 "at once. **In the window:** **Draw ▸ Annotate ▸ Structure box**."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:127
+#: src/explanation/eplan-and-ew.md:129
 msgid "Report, Update reports, Embedded report"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:129 src/explanation/qet-and-ew.md:113
+#: src/explanation/eplan-and-ew.md:131 src/explanation/qet-and-ew.md:113
 msgid "**EW term:** [Report block](../reference/glossary.md#report-block)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:131
+#: src/explanation/eplan-and-ew.md:133
 msgid ""
 "**The same:** report pages such as the terminal diagram, the cable list and "
 "the parts list are generated from the project. **What differs:** there is no "
@@ -10258,15 +10261,15 @@ msgid ""
 "PDF](../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:136
+#: src/explanation/eplan-and-ew.md:138
 msgid "Potential, Potential definition point"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:138
+#: src/explanation/eplan-and-ew.md:140
 msgid "**EW term:** [Potential](../reference/glossary.md#potential)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:140
+#: src/explanation/eplan-and-ew.md:142
 msgid ""
 "**The same:** a potential is a connected electrical node with a name, a type "
 "and a voltage, set by a definition on one of its connections. **What "
@@ -10276,16 +10279,16 @@ msgid ""
 "[Define a supply potential](../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:145
+#: src/explanation/eplan-and-ew.md:147
 msgid "Cross-reference, Contact image"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:147 src/explanation/qet-and-ew.md:121
+#: src/explanation/eplan-and-ew.md:149 src/explanation/qet-and-ew.md:121
 msgid ""
 "**EW term:** [Cross-reference](../reference/glossary.md#cross-reference)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:149
+#: src/explanation/eplan-and-ew.md:151
 msgid ""
 "**The same:** cross-references point from a coil to its contacts and from an "
 "interruption point to its partner, and the contact image under a coil lists "
@@ -10294,15 +10297,15 @@ msgid ""
 "the window:** **Page ▸ Go ▸ Follow cross-reference**."
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:154
+#: src/explanation/eplan-and-ew.md:156
 msgid "Network, Topology, Fieldbus, PROFINET, PROFIBUS"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:156
+#: src/explanation/eplan-and-ew.md:158
 msgid "**EW term:** [Bus topology](../reference/glossary.md#bus-topology)"
 msgstr ""
 
-#: src/explanation/eplan-and-ew.md:158
+#: src/explanation/eplan-and-ew.md:160
 msgid ""
 "**The same:** a network page shows the devices with their bus ports and the "
 "bus lines between them, and the ports carry the station addresses. **What "

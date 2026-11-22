@@ -1007,19 +1007,25 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
     has none. One undo step. Refused in words: a terminal of another strip, a terminal of more than one function, a
     terminal that has levels itself, a block whose part has no further level or whose new level lacks a connection
     point that a drawn or connected one would move to, a device link. A level's number is changed in Properties
-    (Terminal ▸ Levels) or by `fields.set` on `terminal.levels`.
+    (Terminal ▸ Levels) or by `fields.set` on `terminal.levels`. The chooser lists the strip's free terminals only
+    (none that lists two levels or more), the nearest on the strip first, on a tie the one before it.
+  - *A row of blocks* (0.3.5). Draw ▸ Place ▸ Terminal…'s Levels 2 (`tool.place_terminal`'s `levels`) lays each
+    terminal of the row as a block: two symbols side by side, numbered on (1 and 2, 3 and 4 …), the second of each pair joined into
+    the first as above after it gave up its part, all in one undo step; How many counts the blocks. The form then
+    proposes a part of two levels, one whose category's level word is `2Level`: the starter part EW-GEN-TRM-3, a
+    feed-through terminal whose CP pattern gives clamps a and b on level 1 and on level 2.
   - *What prints.* The symbol that draws a level prints that level's designation (or the function text, by
     `label_mode`); a wire end at a level's CP reads `-X1:2/a`; the terminal diagram has a row per level (§6.9) with the
-    level's designation, potential, sides, bridge and state, the block's part on its first row; the parts list counts
-    the block's part once.
+    level's designation, its level in the Level column (empty for a terminal of one level), potential, sides, bridge
+    and state, the block's part on its first row; the parts list counts the block's part once. The Terminal strips
+    navigator shows no Level column: its rows name a level by its number.
   - *The check.* EW-TERM-002 counts each level's designation as a designation of the strip.
   - *What an older build shows.* 0.3.0 opens such a project, keeps a level's `designation` in the level's `extra` and
     writes it back. It derives the CPs of the FnDef or the part only, so the copies of a block drawn from a one-level
     FnDef or part are not the terminal's CPs there: the second level's symbol prints the block's one number, its wires
     are drawn but its two sides are not joined, and the terminal diagram lists them on no row.
-  - *Not built.* Splitting a block into terminals again (Undo takes a join back); a level column in the terminal
-    diagram (a block of one number prints it on every row); a strip segment that shows a block's levels apart; the
-    EPLAN importer still lands every level's connections on the first level.
+  - *Not built.* Splitting a block into terminals again (Undo takes a join back); a strip segment that shows a block's
+    levels apart; the EPLAN importer still lands every level's connections on the first level.
 - **Twin.** On PT 2.5-TWIN two wires on side 2 use clamps b and c. A third wire on side 2 needs a twin ferrule on b
   or c, which the clamp data must permit (FR-CON-028, FR-MFG-006, 1.0).
 - **Where to land a wire (clamp pick).** A wire that ends on a terminal names a clamp. If the drawing leaves it

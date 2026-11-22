@@ -140,6 +140,8 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         // `bridge_part` follows `bridge`; the list's `strip` cell is the row's first already.
         let bridge_part_at = set.column("bridge").map_or(usize::MAX, |c| c + 1);
         let strip_at = set.column("strip");
+        // The terminal diagram's Level column is the list's alone: the navigator's rows name a level by its number.
+        let level_at = set.column("level");
         for (k, (i, t)) in terminals.into_iter().enumerate() {
             let texts = ew_reports::csv::row_texts(q, &set, i);
             let id: Id<Device> = Id::from_uuid(t);
@@ -175,7 +177,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                 if c == bridge_part_at {
                     cells.push(bridge_part.clone());
                 }
-                if Some(c) != strip_at {
+                if Some(c) != strip_at && Some(c) != level_at {
                     cells.push(text);
                 }
             }

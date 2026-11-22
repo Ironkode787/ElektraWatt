@@ -162,6 +162,9 @@ pub(crate) struct ToolHost {
     /// The history entries a Terminal… row laid with one click, `(first, end)` cursor positions: Undo at `end` takes the
     /// row back whole and Redo at `first` lays it again whole; forgotten at the next other commit.
     pub row_steps: Option<(usize, usize)>,
+    /// The levels of each terminal of the next Terminal… row (its Levels, 1 or 2): with 2, the row's terminals join in
+    /// pairs, the second of each the first's next level (doc 08 §6.3).
+    pub row_levels: u8,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
     /// Where the Supply tool's marks come from, while it floats them.
@@ -311,6 +314,7 @@ impl ToolHost {
             page_proposal: None,
             reread_designation: false,
             row_steps: None,
+            row_levels: 1,
             ip_memory: IpMemory::default(),
             supply: None,
             black_box_pick: false,
