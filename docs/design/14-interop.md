@@ -1058,7 +1058,10 @@ variable has an EW xref-format token (FR-XRF-003):
   its screen, at Qt's 96 dpi in whole pixels; the import follows it, so an imported text stands where QET's print has
   it in QET's face (a computer at another logical dpi rounds otherwise; the file does not say). A font of `size`
   points has `round(size × 4/3)` px to the em, halves up (7 pt is 9 px, 5 pt is 7 px, not 9⅓ and 6⅔), a px being
-  `793,750 / 3` nm. Each glyph's advance is a
+  `793,750 / 3` nm. A line's ascent and descent are each rounded up to a whole px, from the face QET's texts print in
+  (Liberation Sans and Arial: 0.905 and 0.212 em): a free text's first baseline stands that ascent below its box's
+  4 px margin, and its lines, an element's static texts and the box a cross-reference is placed under are that ascent
+  plus descent apart (8 px: 8 + 2; 12 px: 11 + 3), where 0.905 em and 1.15 em stood before. Each glyph's advance is a
   whole px too; a title block's cells carry it as their `ew.cell.pixel` of one QET px
   ([09](09-reports-forms-output.md) §2.5), so a right-aligned or centred cell stands where QET's does. The drawing's
   free and element texts keep the face's own advances.

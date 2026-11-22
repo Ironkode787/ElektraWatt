@@ -35,17 +35,10 @@ use super::cx::{Findings, Ids};
 use super::elements::orientation;
 use super::model::{QetDiagram, QetImage, QetShape, TextAt};
 use crate::decimal::{Decimal, div_round_half_even};
-use crate::prims::text::{em_of, parse_qt_font, style_key, substitution};
+use crate::prims::text::{em_of, parse_qt_font, qt_ascent, qt_line, style_key, substitution};
 
 /// The margin QET's text items keep around their text (Qt's default document margin), px.
 pub const TEXT_MARGIN_PX: i64 = 4;
-
-/// From the top of a text line to its baseline, per mille of the em: Qt's ascent of the families QET's texts are
-/// printed in (Arial and Liberation Sans: 1,854 of their 2,048 units).
-pub const ASCENT_PER_MILLE: i128 = 905;
-
-/// Half the distance between two lines, per mille of the em (Qt's line spacing, about 1.15 em).
-pub const HALF_LINE_PER_MILLE: i128 = 575;
 
 /// The point size of a QET text without a usable font: QET's default diagram font, 9 pt.
 pub const DEFAULT_POINT_SIZE: i64 = 9;
@@ -150,9 +143,9 @@ pub(crate) fn rich_text(raw: &str) -> Option<(String, Option<Decimal>, bool)> {
 /// The point where line `line` (from 0) of a QET text item stands, in its parent's frame, and its angle: QET
 /// places the top-left corner of the item's box at `(x, y)` and turns the item by `rotation` (clockwise)
 /// about it; EW draws a free text or an import slot on the baseline of the line (doc 09 §4.8), so that it stands
-/// where QET prints it in any typeface. So the point is `(x, y)` plus the margin and, downward, [`ASCENT_PER_MILLE`]
-/// of the em and twice [`HALF_LINE_PER_MILLE`] per line before it, that offset turned by the rotation rounded to a
-/// quarter turn.
+/// where QET prints it in any typeface. So the point is `(x, y)` plus the margin and, downward, Qt's ascent
+/// ([`qt_ascent`]) and one line spacing ([`qt_line`]) per line before it, that offset turned by the rotation rounded
+/// to a quarter turn.
 /// The angle is the negated rotation (Qt counts clockwise, `Angle2` counter-clockwise). `None` when `x` or
 /// `y` is missing or out of range. A text of several lines is placed line by line, so that its lines keep
 /// QET's spacing whatever EW's line spacing is.
@@ -164,10 +157,7 @@ pub(crate) fn text_anchor(at: &TextAt, line: usize, em: Nm) -> Option<(Pt2, Angl
 pub(crate) fn text_anchor_across(at: &TextAt, line: usize, em: Nm, across: i128) -> Option<(Pt2, Angle2)> {
     let margin = margin_nm()?;
     let line = i128::try_from(line).ok()?;
-    let em = i128::from(em.0);
-    let down = margin
-        + div_round_half_even(em * ASCENT_PER_MILLE, 1000)
-        + div_round_half_even(em * HALF_LINE_PER_MILLE * 2 * line, 1000);
+    let down = margin + qt_ascent(em) + qt_line(em).checked_mul(line)?;
     text_point(at, across, down)
 }
 
@@ -221,7 +211,7 @@ pub(crate) fn below_text(
     let margin = margin_nm()?;
     let gap = i128::from(gap.px_to_nm().ok()?.0);
     let lines = i128::try_from(lines).ok()?;
-    let height = 2 * margin + div_round_half_even(i128::from(em.0) * HALF_LINE_PER_MILLE * 2 * lines, 1000);
+    let height = 2 * margin + qt_line(em).checked_mul(lines)?;
     let down = if above {
         -(gap + margin)
     } else {

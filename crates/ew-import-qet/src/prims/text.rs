@@ -292,6 +292,32 @@ pub fn qt_pixels(point_size: Decimal) -> Option<i64> {
     i64::try_from(if num > 0 { px.max(1) } else { 0 }).ok()
 }
 
+/// The ascent and descent of the face QET's texts print in, in its 2,048 units per em: Liberation Sans and Arial,
+/// whose metrics are the same (`usWinAscent` 1,854, `usWinDescent` 434).
+const QT_ASCENT_UNITS: i128 = 1854;
+const QT_DESCENT_UNITS: i128 = 434;
+const QT_UNITS_PER_EM: i128 = 2048;
+
+/// The whole pixels of `units` of the face at an em of `em` ([`em_of`]): Qt rounds a line's ascent and descent up
+/// to a whole pixel at 96 dpi.
+fn qt_metric_px(em: Nm, units: i128) -> i128 {
+    let ppem = crate::decimal::div_round_half_even(i128::from(em.0) * 3, 793_750);
+    (ppem * units + QT_UNITS_PER_EM - 1).div_euclid(QT_UNITS_PER_EM)
+}
+
+/// From the top of a QET text line to its baseline, nm: Qt's ascent of the face, rounded up to a whole pixel
+/// (8 px for 6 pt, 11 px for 9 pt).
+pub fn qt_ascent(em: Nm) -> i128 {
+    crate::decimal::div_round_half_even(qt_metric_px(em, QT_ASCENT_UNITS) * 793_750, 3)
+}
+
+/// From one baseline of a QET text to the next, nm: Qt's ascent and descent of the face, each rounded up to a whole
+/// pixel (10 px for 6 pt, 14 px for 9 pt), as QET's rich and plain texts space their lines.
+pub fn qt_line(em: Nm) -> i128 {
+    let px = qt_metric_px(em, QT_ASCENT_UNITS) + qt_metric_px(em, QT_DESCENT_UNITS);
+    crate::decimal::div_round_half_even(px * 793_750, 3)
+}
+
 /// The project text style an import style key stands for (doc 14 §4.10): the inverse of [`style_key`],
 /// `qet.<size>[.b][.i]` → the em height of [`em_of`], bold for `.b`; italic is not a text-style property and
 /// is dropped. `None` for any other key or a size outside the text-style limits.
@@ -382,9 +408,7 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
     }
     // QET writes the baseline of the first line; each further line stands one line spacing lower in the text's
     // own frame. One text per line keeps that spacing, as a page's free texts do; each stands on its baseline.
-    let em = i128::from(node_em(node).0);
-    let spacing =
-        crate::decimal::div_round_half_even(em * crate::project::items::HALF_LINE_PER_MILLE * 2, 1000);
+    let spacing = qt_line(node_em(node));
     let quarters =
         u8::try_from(crate::decimal::div_round_half_even(-i128::from(angle.0), 90_000).rem_euclid(4))
             .unwrap_or(0);
@@ -614,10 +638,10 @@ mod tests {
 
     #[test]
     fn a_static_text_of_two_lines_keeps_its_first_baseline_on_qets_point_and_qets_line_spacing() {
-        // 9 pt: an em of 3,175,000 nm and a line spacing of 1.15 em, 3,651,250 nm, downward in the text's frame; each
-        // line stands on its baseline.
+        // 9 pt: 12 px, so a line spacing of Qt's ascent and descent in whole px, 11 + 3 = 14 px (3,704,167 nm), downward
+        // in the text's frame; each line stands on its baseline.
         let font = r#"font="Sans Serif,9,-1,5,50,0,0,0,0,0""#;
-        for (rotation, step) in [("0", (0, 3_651_250)), ("90", (-3_651_250, 0))] {
+        for (rotation, step) in [("0", (0, 3_704_167)), ("90", (-3_704_167, 0))] {
             let xml = format!(r#"<text x="10" y="20" rotation="{rotation}" {font} text="AB&#xa;CD"/>"#);
             let (r, out, _) = run(&xml, static_text);
             r.unwrap();
@@ -652,6 +676,14 @@ mod tests {
             assert_eq!(em_of(pt(size)), Grid::QET_1PX.at(px), "{size} pt");
         }
         assert_eq!(qt_pixels(pt("-1")), None);
+        // Its ascent and descent each rounded up to a whole px (Liberation Sans: 0.905 and 0.212 em), as the lines of
+        // QET's texts stand in its print: 8 + 2 px at 8 px, 11 + 3 px at 12 px.
+        let em = |px: i64| Grid::QET_1PX.at(px).unwrap();
+        let nm = |px: i128| crate::decimal::div_round_half_even(px * 793_750, 3);
+        for (px, ascent, line) in [(7, 7, 9), (8, 8, 10), (9, 9, 11), (12, 11, 14), (16, 15, 19)] {
+            assert_eq!(qt_ascent(em(px)), nm(ascent), "{px} px");
+            assert_eq!(qt_line(em(px)), nm(line), "{px} px");
+        }
     }
 
     #[test]

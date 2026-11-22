@@ -23,8 +23,8 @@ const FONT9: &str = "Sans Serif,9,-1,5,50,0,0,0,0,0";
 const EM9: i64 = 3_175_000;
 
 /// The drop from a text box's top-left corner to its first line's baseline, after the 4 px margin: Qt's ascent of
-/// 0.905 em (doc 09 §4.8).
-const BASELINE9: i64 = 2_873_375;
+/// 0.905 em of 12 px (9 pt) rounded up to 11 px (doc 14 §4.10).
+const BASELINE9: i64 = 2_910_417;
 
 fn px(v: &str) -> i64 {
     Decimal::parse(v).unwrap().px_to_nm().unwrap().0
@@ -171,11 +171,12 @@ fn text<'b>(batch: &'b ImportBatch, s: &str) -> &'b FreeText {
 #[test]
 fn free_texts_stand_where_qet_drew_them_in_their_size() {
     let b = import();
-    // The box's top-left corner (10, 200) px, the 4 px margin, then down to the baseline of the first line.
+    // The box's top-left corner (10, 200) px, the 4 px margin, then down to the baseline of the first line: 12 pt is
+    // 16 px, whose ascent Qt rounds up to 15 px (0.905 em is 14.5).
     let note = text(&b, "Note");
     let em12 = 4_233_333;
     assert_eq!(note.at.x.0, px("10") + px("4"));
-    assert_eq!(note.at.y.0, px("200") + px("4") + em12 * 905 / 1000);
+    assert_eq!(note.at.y.0, px("200") + px("4") + px("15"));
     assert_eq!(note.anchor, Some(ew_schema::TextAnchor::Baseline));
     assert_eq!(note.style.as_ref().map(|s| s.as_str()), Some("qet.12"));
     // Qt rich text: one free text per paragraph, the body's size, entities decoded.
@@ -183,7 +184,8 @@ fn free_texts_stand_where_qet_drew_them_in_their_size() {
     let second = text(&b, "Second");
     assert_eq!(first.style.as_ref().map(|s| s.as_str()), Some("qet.12"));
     assert_eq!(first.at.x, second.at.x);
-    assert_eq!(second.at.y.0 - first.at.y.0, em12 * 1150 / 1000 + 1);
+    // Qt's line spacing in whole px: the ascent of 15 and the descent of 4 (0.212 em is 3.4).
+    assert_eq!(second.at.y.0 - first.at.y.0, px("19"));
     // The styles the drawing names are the project's.
     let project = b
         .records
