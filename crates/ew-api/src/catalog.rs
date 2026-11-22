@@ -311,63 +311,178 @@ pub fn import_parts_into_library(
     parse: &PartsReader<'_>,
 ) -> Result<LibraryImport, CatalogError> {
     let (as_of, bump, take_over) = write;
-    let info = reg
-        .libraries()
-        .into_iter()
-        .find(|l| l.id == library)
-        .ok_or(CatalogError::Library(library::LibraryError::NotFound))?;
-    if !info.writable {
-        return Err(CatalogError::Library(library::LibraryError::ReadOnly));
-    }
-    let master = manufacturer_master(reg);
-    // A part names a manufacturer record of another library only when the target's manifest `depends` names
-    // that library; else the import writes a copy of the record into the target, and the part names the copy.
-    let shared = reg.depends(library);
-    let import = {
-        let held = |item| held_part(reg, library, item);
-        let target = CatalogTarget {
+    let part = LibraryPart::take(reg, library)?;
+    let import = part.parse(source, limits, (as_of, bump), parse)?;
+    part.write(reg, import, take_over)
+}
+
+/// What a parts import into a library reads of the registry (FT-2081): the library, the manufacturer master, the
+/// libraries it shares manufacturers with and the parts it holds. Taken on the thread that holds the registry, so that
+/// the parse ([`LibraryPart::parse`]) can run on another; the write ([`LibraryPart::write`]) is the registry's again.
+#[derive(Clone, Debug)]
+pub struct LibraryPart {
+    library: ew_derive::ew_ids::Uuid,
+    master: Vec<LibCopy<Manufacturer>>,
+    shared: Vec<ew_derive::ew_ids::Uuid>,
+    held: std::collections::BTreeMap<ew_derive::ew_ids::Uuid, LibCopy<Part>>,
+}
+
+impl LibraryPart {
+    /// The registry's part for an import into the writable library `library`.
+    ///
+    /// # Errors
+    ///
+    /// [`CatalogError::Library`] for a library that is not installed (`NotFound`) or read-only.
+    pub fn take(
+        reg: &library::Registry,
+        library: ew_derive::ew_ids::Uuid,
+    ) -> Result<LibraryPart, CatalogError> {
+        let info = reg
+            .libraries()
+            .into_iter()
+            .find(|l| l.id == library)
+            .ok_or(CatalogError::Library(library::LibraryError::NotFound))?;
+        if !info.writable {
+            return Err(CatalogError::Library(library::LibraryError::ReadOnly));
+        }
+        Ok(LibraryPart {
             library,
-            as_of,
-            bump,
-            limits: *limits,
-            existing: &held,
-            local_manufacturers: true,
-            shared: &shared,
-        };
-        let sizes = [source.1];
-        crate::import::front_door(source.0, &sizes, &target.limits, None, || parse(&target, &master))?
-    };
-    let stale: Vec<String> = import
-        .needs_bump()
-        .iter()
-        .map(|r| {
-            let version = match &r.status {
-                RowStatus::Updated { from, .. } => from.as_str(),
-                _ => "",
-            };
-            format!("line {}: {} ({version})", r.line, r.part_number)
+            master: manufacturer_master(reg),
+            // A part names a manufacturer record of another library only when the target's manifest `depends`
+            // names that library; else the import writes a copy of the record into the target, and the part names
+            // the copy.
+            shared: reg.depends(library),
+            held: held_parts(reg, library),
         })
-        .collect();
-    if !stale.is_empty() {
-        return Err(CatalogError::NeedsBump(stale));
     }
-    let docs: Vec<LibDocument> = import
-        .manufacturers
+
+    /// The library's ID.
+    pub fn library(&self) -> ew_derive::ew_ids::Uuid {
+        self.library
+    }
+
+    /// Reads the source through `parse` against what the registry held when it was taken: the import's front door
+    /// (its limits, a panic refused), then the refusal of changed content under a held version without `bump`.
+    /// `source` is the file's name and size, `read` the import date and whether it bumps changed parts.
+    ///
+    /// # Errors
+    ///
+    /// As [`import_into_library`], without the write's.
+    pub fn parse(
+        &self,
+        source: (&str, u64),
+        limits: &Limits,
+        read: (Option<Date>, bool),
+        parse: &PartsReader<'_>,
+    ) -> Result<PartsImport, CatalogError> {
+        let (as_of, bump) = read;
+        let import = {
+            let held = |item| self.held.get(&item).cloned();
+            let target = CatalogTarget {
+                library: self.library,
+                as_of,
+                bump,
+                limits: *limits,
+                existing: &held,
+                local_manufacturers: true,
+                shared: &self.shared,
+            };
+            let sizes = [source.1];
+            crate::import::front_door(source.0, &sizes, &target.limits, None, || {
+                parse(&target, &self.master)
+            })?
+        };
+        let stale: Vec<String> = import
+            .needs_bump()
+            .iter()
+            .map(|r| {
+                let version = match &r.status {
+                    RowStatus::Updated { from, .. } => from.as_str(),
+                    _ => "",
+                };
+                format!("line {}: {} ({version})", r.line, r.part_number)
+            })
+            .collect();
+        if !stale.is_empty() {
+            return Err(CatalogError::NeedsBump(stale));
+        }
+        Ok(import)
+    }
+
+    /// Writes `import` (of [`LibraryPart::parse`]) into the library through [`library::Registry::write`] (the lock,
+    /// the shards, the manifest last), the library as it is now: a part whose held copy changed since the part was
+    /// taken takes its version from the copy held now (the held version for the same content, its next patch version
+    /// for other content), so a write meanwhile is never written under. `take_over` takes a stale lock over first.
+    ///
+    /// # Errors
+    ///
+    /// [`CatalogError::Library`] for a library that is locked, stale-locked or gone, or a write that fails;
+    /// [`CatalogError::NeedsBump`] for a held version that has no next patch version.
+    pub fn write(
+        &self,
+        reg: &mut library::Registry,
+        mut import: PartsImport,
+        take_over: bool,
+    ) -> Result<LibraryImport, CatalogError> {
+        let library = self.library;
+        let now = held_parts(reg, library);
+        let mut stale = Vec::new();
+        for doc in &mut import.parts {
+            let LibDocument::Part(p) = doc else {
+                continue;
+            };
+            let item = p.item_id.as_uuid();
+            let (then, held) = (self.held.get(&item), now.get(&item));
+            let mark = |c: &LibCopy<Part>| (c.version.clone(), c.sha256);
+            match held {
+                Some(h) if then.map(mark) != Some(mark(h)) => {
+                    if h.sha256 == p.sha256 {
+                        p.version.clone_from(&h.version);
+                    } else if let Some(next) = ew_import_catalog::bump_patch(&h.version) {
+                        p.version = next;
+                    } else {
+                        stale.push(format!("{} ({})", p.item.part_number.as_str(), h.version));
+                    }
+                }
+                _ => {}
+            }
+        }
+        if !stale.is_empty() {
+            return Err(CatalogError::NeedsBump(stale));
+        }
+        let docs: Vec<LibDocument> = import
+            .manufacturers
+            .iter()
+            .chain(&import.parts)
+            .cloned()
+            .collect();
+        if docs.is_empty() {
+            return Ok(LibraryImport { import, write: None });
+        }
+        if take_over {
+            reg.take_over_stale(library).map_err(CatalogError::Library)?;
+        }
+        let write = reg.write(library, &docs).map_err(CatalogError::Library)?;
+        Ok(LibraryImport {
+            import,
+            write: Some(write),
+        })
+    }
+}
+
+/// The parts the library `library` holds, by item ID, each as the registry resolves it at any version.
+fn held_parts(
+    reg: &library::Registry,
+    library: ew_derive::ew_ids::Uuid,
+) -> std::collections::BTreeMap<ew_derive::ew_ids::Uuid, LibCopy<Part>> {
+    reg.documents(library, Kind::Part)
         .iter()
-        .chain(&import.parts)
-        .cloned()
-        .collect();
-    if docs.is_empty() {
-        return Ok(LibraryImport { import, write: None });
-    }
-    if take_over {
-        reg.take_over_stale(library).map_err(CatalogError::Library)?;
-    }
-    let write = reg.write(library, &docs).map_err(CatalogError::Library)?;
-    Ok(LibraryImport {
-        import,
-        write: Some(write),
-    })
+        .filter_map(|d| match d {
+            LibDocument::Part(p) => held_part(reg, library, p.item_id.as_uuid()),
+            _ => None,
+        })
+        .map(|p| (p.item_id.as_uuid(), p))
+        .collect()
 }
 
 impl Session {

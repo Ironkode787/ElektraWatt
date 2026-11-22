@@ -102,18 +102,29 @@ impl ShellModel {
     }
 
     /// An EDZ or a parts XML: read and parsed as a job (FT-1763, [`super::read_jobs`]), then the terms notice, the
-    /// dialog or the step `how` at its end ([`ShellModel::eplan_parts_read`]).
+    /// dialog or the step `how` at its end ([`ShellModel::eplan_parts_read`]). For Add to my parts library the user's
+    /// library's part of the registry is taken first, the file is parsed against it in the job and written at the end
+    /// (FT-2081); a user library that does not exist yet is made at the end and the file read again for it.
     fn eplan_parts(&mut self, p: &Map<String, Value>, file: PathBuf, name: String) -> Outcome {
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
         let how = match string_param(p, "how") {
             Err(e) => return e,
             Ok(h) => h.map(str::to_owned),
         };
+        let Some(project) = self.project.as_ref() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let reg = project.session.libraries();
+        let library = match (how.as_deref(), eplan::find_user_parts_library(reg)) {
+            (Some("library"), Some(id)) => match ew_api::catalog::LibraryPart::take(reg, id) {
+                Ok(part) => Some(part),
+                Err(e) => return self.import_failed(&name, &e.to_string()),
+            },
+            _ => None,
+        };
         let (terms, terms_seen) = (flag(p, "terms"), self.import.edz_terms);
         let config_dir = self.config.config_dir.clone();
         let reader = project.session.eplan_parts_read(None);
+        let params = p.clone();
         let job_name = name.clone();
         self.start_read(&job_name, move |_| {
             let Ok(input) = ew_api::catalog::read_input(&file, &ew_api::catalog::table_limits()) else {
@@ -131,14 +142,25 @@ impl ShellModel {
                         Ok((reader.run(&input, &fndefs).map_err(|e| e.to_string())?, fndefs))
                     }))
                 };
+            // The parts for the user's library, parsed against what it held when the read started.
+            let library = match (library, &parsed) {
+                (Some(part), Some(Ok((_, fndefs)))) => {
+                    let import = eplan::parse_for_library(&part, &input, fndefs, (None, true), edz)
+                        .map_err(|e| e.to_string());
+                    Some((part, import))
+                }
+                _ => None,
+            };
+            let parsed = parsed.map(|r| r.map(|(import, _)| import));
             let read = PartsRead {
+                params,
                 file,
                 name,
                 how,
-                input,
                 edz,
                 terms,
                 parsed,
+                library,
             };
             Ok(Box::new(move |s: &mut ShellModel| s.eplan_parts_read(read)) as Finish)
         })
@@ -148,15 +170,16 @@ impl ShellModel {
     /// update's preview, or the parts written into the user's library.
     fn eplan_parts_read(&mut self, read: PartsRead) -> Outcome {
         let PartsRead {
+            params,
             file,
             name,
             how,
-            input,
             edz,
             terms,
             parsed,
+            library,
         } = read;
-        let (name, input) = (name.as_str(), &input);
+        let name = name.as_str();
         let Some(parsed) = parsed else {
             return self.open_dialog(Dialog::ImportEplan {
                 path: file.to_string_lossy().into_owned(),
@@ -167,7 +190,7 @@ impl ShellModel {
         if edz && terms {
             self.import.edz_terms = true;
         }
-        let (imported, fndefs) = match parsed {
+        let imported = match parsed {
             Ok(done) => done,
             Err(why) => return self.import_failed(name, &why),
         };
@@ -205,9 +228,19 @@ impl ShellModel {
             }
             Some("library") => {
                 let reg = project.session.libraries_mut();
-                let written = eplan::user_parts_library(reg).and_then(|id| {
-                    eplan::import_into_library(reg, id, input, &fndefs, (None, true, false), edz)
-                });
+                let Some((part, import)) = library else {
+                    // The user's library did not exist when the read started: it is made now and the file read
+                    // again for it.
+                    return match eplan::user_parts_library(reg) {
+                        Ok(id) if eplan::find_user_parts_library(reg) == Some(id) => {
+                            self.eplan_parts(&params, file, name.to_owned())
+                        }
+                        Ok(_) => failed(key!("error-bad-param"), &["how"]),
+                        Err(e) => self.import_failed(name, &e.to_string()),
+                    };
+                };
+                let written =
+                    import.and_then(|import| part.write(reg, import, false).map_err(|e| e.to_string()));
                 match written {
                     Ok(done) => {
                         let c = done.import.counts();
@@ -226,7 +259,7 @@ impl ShellModel {
                         );
                         Outcome::Done
                     }
-                    Err(e) => self.import_failed(name, &e.to_string()),
+                    Err(why) => self.import_failed(name, &why),
                 }
             }
             Some(_) => failed(key!("error-bad-param"), &["how"]),
@@ -420,21 +453,26 @@ struct ReportAsked {
 
 /// An EDZ's or a parts XML's read, for its end ([`ShellModel::eplan_parts_read`]).
 struct PartsRead {
+    /// The call's parameters, for a read again once the user's library is made.
+    params: Map<String, Value>,
     /// The file.
     file: PathBuf,
     /// Its name.
     name: String,
     /// The step asked for (`update`, `library`), else the dialog.
     how: Option<String>,
-    /// The file's bytes.
-    input: ew_api::catalog::ImportInput,
     /// Whether it is an EDZ.
     edz: bool,
     /// Whether the call accepts the Data Portal terms.
     terms: bool,
-    /// The parts read with the function definitions' map, or why not; `None` for an EDZ whose terms notice comes
-    /// first.
-    parsed: Option<Result<(ew_api::catalog::PartsImport, eplan::FndefMap), String>>,
+    /// The parts read for the project's copies, or why not; `None` for an EDZ whose terms notice comes first.
+    parsed: Option<Result<ew_api::catalog::PartsImport, String>>,
+    /// For Add to my parts library: the user's library's part of the registry taken at the start, and the parts
+    /// parsed against it or why not.
+    library: Option<(
+        ew_api::catalog::LibraryPart,
+        Result<ew_api::catalog::PartsImport, String>,
+    )>,
 }
 
 /// The parameters of `parts.import` for `file`.

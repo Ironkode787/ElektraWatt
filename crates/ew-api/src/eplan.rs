@@ -106,12 +106,8 @@ pub const USER_PARTS_KEY: &str = "user-parts";
 ///
 /// [`CatalogError::Library`] when the library cannot be created.
 pub fn user_parts_library(reg: &mut library::Registry) -> Result<Uuid, CatalogError> {
-    if let Some(l) = reg
-        .libraries()
-        .into_iter()
-        .find(|l| l.key == USER_PARTS_KEY && l.writable)
-    {
-        return Ok(l.id);
+    if let Some(id) = find_user_parts_library(reg) {
+        return Ok(id);
     }
     // Without a user tier (compiled-in libraries only) there is no folder to create it in.
     if reg.tiers().user.as_os_str().is_empty() {
@@ -120,6 +116,14 @@ pub fn user_parts_library(reg: &mut library::Registry) -> Result<Uuid, CatalogEr
     let dir = reg.tiers().user.join(format!("{USER_PARTS_KEY}.ewlib"));
     reg.create(&dir, USER_PARTS_KEY, "My parts", "NOASSERTION")
         .map_err(CatalogError::Library)
+}
+
+/// The user's own parts library ([`USER_PARTS_KEY`]), writable, when it exists; [`user_parts_library`] makes it.
+pub fn find_user_parts_library(reg: &library::Registry) -> Option<Uuid> {
+    reg.libraries()
+        .into_iter()
+        .find(|l| l.key == USER_PARTS_KEY && l.writable)
+        .map(|l| l.id)
 }
 
 /// The report entry of the Data Portal terms notice (EW-IMP-201): a front end that showed the notice before an EDZ
@@ -191,18 +195,37 @@ pub fn import_into_library(
     write: (Option<Date>, bool, bool),
     terms: bool,
 ) -> Result<LibraryImport, CatalogError> {
-    let mut done = crate::catalog::import_parts_into_library(
-        reg,
-        library,
+    let (as_of, bump, take_over) = write;
+    let part = crate::catalog::LibraryPart::take(reg, library)?;
+    let import = parse_for_library(&part, input, fndefs, (as_of, bump), terms)?;
+    part.write(reg, import, take_over)
+}
+
+/// The parse of [`import_into_library`] against the registry's part `part`, taken first: it needs no registry, so it
+/// runs on a job's thread (File ▸ Import…'s Add to my parts library, FT-2081), and
+/// [`crate::catalog::LibraryPart::write`] writes its result at the end. `read` is the import date and whether it bumps
+/// changed parts.
+///
+/// # Errors
+///
+/// As [`import_into_library`], without the write's.
+pub fn parse_for_library(
+    part: &crate::catalog::LibraryPart,
+    input: &ImportInput,
+    fndefs: &FndefMap,
+    read: (Option<Date>, bool),
+    terms: bool,
+) -> Result<PartsImport, CatalogError> {
+    let mut import = part.parse(
         (input.name(), input.bytes().len() as u64),
         &Limits::default(),
-        write,
+        read,
         &|target, master| parts_import(input, fndefs, master, target),
     )?;
     if terms {
-        done.import.report.entries.insert(0, terms_entry(input.name()));
+        import.report.entries.insert(0, terms_entry(input.name()));
     }
-    Ok(done)
+    Ok(import)
 }
 
 // -------------------------------------------------------------------------------------------------------------------

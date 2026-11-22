@@ -79,7 +79,6 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### Work on the window's thread
 
-- FT-2081 `ew-api, ew-viewmodel`: File ▸ Import…'s "Add to my parts library" of an EDZ or a parts XML still reads the file on the window's thread: `eplan::import_into_library` parses it against the user's library inside the registry's write (`catalog::import_parts_into_library` reads the manufacturers and the held parts for the version bump while it parses). The other reads of FT-1763 run as jobs (`shell/read_jobs.rs`); this one needs the registry's part (manufacturers, held parts) taken first, the parse on the job's thread, and the write at its end.
 
 ### The placer and the router
 
