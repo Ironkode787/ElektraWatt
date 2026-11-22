@@ -1105,12 +1105,15 @@ of [06a](06a-drafting.md) §7.5 (at least two of its box CPs bound to channels, 
 on its lower edge) prints its channels in cells: a thin line between each two neighbouring channel pins, at the middle
 between them, across the box, and in each cell, level and centred on its pin, the pin's text as above ("2 Q1.1") next
 to the pin and the channel's function text (§3.4, the function text of the device wired to it) further inside, on
-the next line. A text wider than its cell is made smaller, down to half its size, and below that wrapped at its words
+the next line; where it has none yet (nothing is wired to it), the channel's own text, its symbol name, so the page
+says what an input is for before its device is drawn (FT-2133), and the refusal of a function text typed at such a
+channel says where its text will come from and that the cell prints the symbol name until then. A text wider than its cell is made smaller, down to half its size, and below that wrapped at its words
 at half its size. Nothing is stored: the view decides from the box and the bindings, and the labels layer draws the
 lines with the texts. Every other box keeps its pin texts as before (turned a quarter on its upper and lower edges): a
 card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins, a
 card's box turned a quarter (its channel pins then leave sideways). Not
-done: the symbol and the process tag per channel, which the reference set prints in some cells.
+done: the symbol beside a function text and the process tag per channel, which the reference set prints in some
+cells.
 
 **A card of the older form drawn in one row** (FT-1897, 0.3.5). *Draw the card in one row* (`plc.card_redraw`, in the
 box's menu, offered for one selected box with channel pins on both its upper and its lower edge)

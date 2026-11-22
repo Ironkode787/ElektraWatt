@@ -1183,7 +1183,8 @@ fn compose_pin_texts<'a>(
 
 /// The cells of a PLC card drawn in one row (doc 10 §3.6, "A card drawn in cells"): when at least two of the box's CPs
 /// are bound to channels and all of those leave its upper edge, or all its lower edge, each of their pin texts gets its
-/// channel's function text (doc 10 §3.4; empty when it has none) as its `cell`. Any other box keeps its pin texts.
+/// channel's function text (doc 10 §3.4), else its symbol name, empty when it has neither, as its `cell`. Any other
+/// box keeps its pin texts.
 fn card_cells(q: &Q, rep: &Representation, function: Id<Function>, pins: &mut [PinText]) {
     let Some(b) = &rep.box_ else {
         return;
@@ -1204,11 +1205,13 @@ fn card_cells(q: &Q, rep: &Representation, function: Id<Function>, pins: &mut [P
             .get(channel)
             .map(|c| q.get::<ew_derive::ChannelTexts>(c.module))
             .and_then(|texts| {
-                texts
-                    .iter()
-                    .find(|(id, _)| *id == channel)
-                    .and_then(|(_, t)| t.function_text.as_ref())
+                let t = &texts.iter().find(|(id, _)| *id == channel)?.1;
+                // Until a device is wired to it the channel prints its own text, its symbol name (FT-2133).
+                t.function_text
+                    .as_ref()
                     .map(crate::output::properties::neutral_or_first)
+                    .filter(|f| !f.is_empty())
+                    .or_else(|| t.symbol.clone())
             })
             .unwrap_or_default();
         if let Some(pin) = pins.iter_mut().find(|p| p.idx == idx) {

@@ -311,7 +311,8 @@ pub struct PinText {
     /// The text.
     pub text: String,
     /// For a channel pin of a PLC card drawn in one row (doc 10 §3.6, "A card drawn in cells"): the channel's function
-    /// text, empty when it has none; the pin's texts then print level in its cell. `None` for every other pin.
+    /// text, else its symbol name, empty when it has neither; the pin's texts then print level in its cell. `None` for
+    /// every other pin.
     pub cell: Option<String>,
 }
 
