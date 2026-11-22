@@ -990,6 +990,10 @@ prints for"), a page's name with one, a symbol that does not exist or stands on 
 name of a symbol that is no terminal of a strip; Function text over its path on a device without a function text
 ("type it in Properties first").
 
+*Where a person finds it (a persona run, 0.3.5):* the device's Function text row says in its help where the text prints
+(the lists; beside the tag where the symbol has a place for it; else over the path with Function text over its path),
+and its … menu offers Function text over its path while one of the device's symbols is selected.
+
 *What it does not do:* bind a text to a cable or a core (the cable mark is that text), to a page column range (the path
 function text of FR-DEV-011, below, is not built), or to any other value of a device; turn with its symbol (a turn
 moves it by the symbol's displacement only); and it adds no setting: where the text placer may place a text is doc

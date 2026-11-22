@@ -2376,6 +2376,7 @@ impl ShellModel {
                     params.insert("on".to_owned(), Value::Bool(on));
                     self.act_cp_unused(&params)
                 }
+                RowMenuItem::FunctionOverPath => self.dispatch("text.function_over_path", &Value::Null),
             };
         }
         let Some(choices) = self.props.choices.take() else {
@@ -2450,6 +2451,13 @@ impl ShellModel {
             && let Some(unused) = json.get("unused").and_then(Value::as_bool)
         {
             out.push(RowMenuItem::CpUnused { on: !unused });
+        }
+        // A device's Function text: Function text over its path, which prints it on the page, while one of its
+        // symbols is selected (the symbol's right-click menu has it too).
+        if row.key == "device/function_text"
+            && crate::actions::find("text.function_over_path").is_some_and(|m| m.enabled_now(self).is_ok())
+        {
+            out.push(RowMenuItem::FunctionOverPath);
         }
         out
     }

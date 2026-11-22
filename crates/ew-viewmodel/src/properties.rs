@@ -2211,6 +2211,9 @@ pub enum RowMenuItem {
         /// Whether the point is to be marked not used.
         on: bool,
     },
+    /// Function text over its path on a device's Function text row, while one of its symbols is selected:
+    /// `text.function_over_path` (a persona run typed the text and found nothing print it).
+    FunctionOverPath,
 }
 
 /// The label of an entry of the row's actions menu.
@@ -2225,6 +2228,7 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::DefinePotential => strings::text(key!("action-potential-draw")),
         RowMenuItem::CpUnused { on: true } => strings::text(key!("action-cp-unused")),
         RowMenuItem::CpUnused { on: false } => strings::text(key!("props-action-cp-used")),
+        RowMenuItem::FunctionOverPath => strings::text(key!("action-text-function-over-path")),
     }
 }
 
