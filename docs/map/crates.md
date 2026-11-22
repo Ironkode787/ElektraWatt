@@ -1203,6 +1203,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/print.rs` |  | The print pre-dialog and its print job. |
 | `src/shell/projects.rs` | large | A project in and out of the shell: Open, Save, Save as, Close and Quit with the unsaved-changes guard; New project, Open sample project and Tutorials, Import QElectroTech project, and discarding the journal of an earlier session. |
 | `src/shell/properties.rs` | large | The property grid in the shell: the sheet fetched once per key, the row cursor, the edit buffer, the commit path, the card, the toast and `select.set`. |
+| `src/shell/read_jobs.rs` |  | Imports whose reading runs as a job (FT-1763, doc 16 §8.3): an EDZ or a parts XML read for File ▸ Import…, a PLC exchange file read and merged for its preview, a report spreadsheet made into a project. |
 | `src/shell/revision.rs` | large | The revision dialogs of Check ▸ Revision: Approve revision, Release revision, Withdraw revision and Set revision author, and the offer of an incomplete release when a project opens; with the release's housekeeping warnings in Messages. |
 | `src/shell/row_ops.rs` |  | The navigator row operations: `cable.swap_cores` on the Cables navigator, and FT-490's generic half, `navigator.delete` (Delete in a tree) and `navigator.rename` (F2 in a tree). |
 | `src/shell/startup.rs` |  | The start-up offer (NFR-REL-13's "offer recovery at the next start", FR-UI-050's 0.1.0 part, doc 05 §8.3's start-up half). |
