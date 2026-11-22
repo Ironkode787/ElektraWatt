@@ -229,6 +229,8 @@ struct TextPress {
     mods: Mods,
     /// The anchor's page point once dragged.
     to: Option<(i64, i64)>,
+    /// The last pointer point, sheet, and whether Alt was down (the fine grid off).
+    pointer: ((i64, i64), bool),
     /// The quarter turns the Rotate key added.
     turns: u8,
 }
@@ -288,23 +290,34 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
     })
 }
 
-/// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.
-fn turned_rect(r: Rect, c: (i64, i64), turns: u8) -> Rect {
-    let turn = |p: Pt2| {
-        let (dx, dy) = (p.x.0 - c.0, p.y.0 - c.1);
-        // Counter-clockwise on the sheet with y down: (dx, dy) to (dy, −dx).
-        let (x, y) = (0..turns % 4).fold((dx, dy), |(x, y), _| (y, -x));
-        Pt2::new(Nm(c.0 + x), Nm(c.1 + y))
-    };
-    Rect::from_points(turn(r.min()), turn(r.max()))
-}
-
 impl TextPress {
-    /// The ghost of the text at its current point and turn: its box moved and turned, on the sheet.
+    /// The anchor a drop stores and the box the text prints there, at the current turn (`SlotTextBox::turned`): a text
+    /// the Rotate key turned takes its new angle's alignment and anchor (FT-2099).
+    fn turned(&self) -> (Pt2, Rect) {
+        match usize::from(self.turns % 4) {
+            0 => (self.text.drop_at, self.text.rect),
+            turns => self.text.turned[turns - 1],
+        }
+    }
+
+    /// The anchor's page point for the pointer at its last point: the current turn's anchor moved with the pointer,
+    /// on the fine grid (Alt: free).
+    fn aim(&mut self, cx: &ToolCx<'_>) {
+        let ((at, alt), (anchor, _)) = (self.pointer, self.turned());
+        let (a, b) = (cx.snapper.sheet_to_page(self.from), cx.snapper.sheet_to_page(at));
+        let moved = (
+            anchor.x.0.saturating_add(b.0 - a.0),
+            anchor.y.0.saturating_add(b.1 - a.1),
+        );
+        let sheet = cx.snapper.page_to_sheet(moved);
+        self.to = Some(cx.snapper.snap_fine(sheet, super::snap::FineKind::Text, alt).1);
+    }
+
+    /// The ghost of the text at its current point and turn: the box it prints there, on the sheet.
     fn ghost(&self, cx: &ToolCx<'_>) -> ToolOutput {
-        let a = (self.text.drop_at.x.0, self.text.drop_at.y.0);
+        let (anchor, r) = self.turned();
+        let a = (anchor.x.0, anchor.y.0);
         let to = self.to.unwrap_or(a);
-        let r = turned_rect(self.text.rect, a, self.turns);
         let d = (to.0 - a.0, to.1 - a.1);
         let s = |x: i64, y: i64| {
             let (x, y) = cx.snapper.page_to_sheet((x + d.0, y + d.1));
@@ -690,6 +703,7 @@ impl SelectTool {
                     from: *at,
                     mods: *mods,
                     to: None,
+                    pointer: (*at, mods.alt),
                     turns: 0,
                 });
                 Some(ToolOutput::None)
@@ -699,20 +713,8 @@ impl SelectTool {
                 if press.to.is_none() && cx.within(press.from, *at, CLICK_SLOP_PT) {
                     return Some(ToolOutput::None);
                 }
-                let (a, b) = (
-                    cx.snapper.sheet_to_page(press.from),
-                    cx.snapper.sheet_to_page(*at),
-                );
-                let anchor = (
-                    press.text.drop_at.x.0.saturating_add(b.0 - a.0),
-                    press.text.drop_at.y.0.saturating_add(b.1 - a.1),
-                );
-                let sheet = cx.snapper.page_to_sheet(anchor);
-                press.to = Some(
-                    cx.snapper
-                        .snap_fine(sheet, super::snap::FineKind::Text, mods.alt)
-                        .1,
-                );
+                press.pointer = (*at, mods.alt);
+                press.aim(cx);
                 Some(press.ghost(cx))
             }
             CanvasEvent::Key(ToolKey::RotateCw) => {
@@ -723,6 +725,7 @@ impl SelectTool {
                     return Some(ToolOutput::None);
                 }
                 press.turns = (press.turns + 1) % 4;
+                press.aim(cx);
                 Some(press.ghost(cx))
             }
             CanvasEvent::Release {

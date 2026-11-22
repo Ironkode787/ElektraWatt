@@ -211,7 +211,9 @@ pointer winning over a symbol's body (rc.3), and so is a pin's label (the text o
 FT-1796), and a click on either selects its symbol; a click without a drag on a selected symbol's text that is a
 cross-reference follows it, as with nothing selected (FT-1911). This rule covers every text of a symbol a drag moves
 alone, pin labels included: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
-counter-clockwise while it is dragged, and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
+counter-clockwise while it is dragged (its box turns about its anchor; turned, the text takes its new angle's
+alignment, so the anchor that snaps is the one that prints that box, and the text lands where its ghost showed it,
+FT-2099), and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
 representation's `SlotOverride` in symbol coordinates (one undo step). Hide text in the menu over a text sets
 `visible: false`; Put the text back, in the menu over a text (greyed with its reason while the texts stand where the
 symbol puts them) and in the symbol's menu (`rep.texts_reset {reps}`), removes the positions and angles of its overrides

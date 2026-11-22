@@ -239,3 +239,59 @@ fn a_tag_of_a_turned_symbol_lands_where_its_ghost_showed_it() {
     );
     shell.shutdown();
 }
+
+/// A tag turned by the Rotate key while it is dragged prints with the alignment of its new angle, not its slot's stored
+/// one (FT-2099): dropped after one, two or three turns, it lands where its ghost showed it.
+#[test]
+fn a_tag_turned_while_it_is_dragged_lands_where_its_ghost_showed_it() {
+    let tmp = Tmp::new("symbol-text-drag-turning");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    let page = shell.canvas().unwrap().page().clone();
+    let rep = page
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device.is_some() && r.ip.is_none() && r.black_box.is_none() && r.tag_at.is_some())
+        .expect("a symbol with a tag")
+        .clone();
+    let tag = *page
+        .texts
+        .iter()
+        .find(|t| t.rep == rep.id && rep.tag_at.is_some_and(|a| a.0 == t.at.x.0))
+        .expect("its tag");
+    for turns in 1..=3 {
+        // The Rotate key turns a text of the selected symbol.
+        done(&mut shell, "select.set", json!({ "ids": [rep.id.to_string()] }));
+        let grab = middle(&shell, &tag);
+        let to = (grab.0 + 10 * MM, grab.1 + 5 * MM);
+        done(&mut shell, "canvas.press", at(grab, json!({})));
+        done(&mut shell, "canvas.pointer", at(to, json!({})));
+        for _ in 0..turns {
+            done(&mut shell, "tool.rotate_cw", json!({}));
+        }
+        let ghost = match shell.tool_overlay().items.first() {
+            Some(OverlayItem::Ghost { rects, .. }) => rects[0],
+            other => panic!("the text's ghost: {other:?}"),
+        };
+        done(&mut shell, "canvas.release", at(to, json!({})));
+        let now = shell.canvas().unwrap().page().clone();
+        let dropped = now
+            .texts
+            .iter()
+            .find(|t| t.rep == rep.id && t.slot == tag.slot)
+            .expect("the text still prints");
+        assert!(dropped.moved, "{turns} turns: an override moves it");
+        let sheet = |x: i64, y: i64| now.snapper.page_to_sheet((x, y));
+        let r = dropped.rect;
+        assert_eq!(
+            (sheet(r.min().x.0, r.min().y.0), sheet(r.max().x.0, r.max().y.0)),
+            (
+                (ghost.min().x.0, ghost.min().y.0),
+                (ghost.max().x.0, ghost.max().y.0)
+            ),
+            "{turns} turns: the dropped tag's box against its ghost's"
+        );
+        done(&mut shell, "edit.undo", json!({}));
+    }
+    shell.shutdown();
+}

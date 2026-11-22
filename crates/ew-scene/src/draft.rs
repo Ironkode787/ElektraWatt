@@ -133,6 +133,17 @@ impl Text {
     }
 }
 
+/// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.
+fn turned_rect(r: Rect, c: Pt2, turns: u8) -> Rect {
+    let turn = |p: Pt2| {
+        let (dx, dy) = (p.x.0 - c.x.0, p.y.0 - c.y.0);
+        // Counter-clockwise on the sheet with y down: (dx, dy) to (dy, −dx).
+        let (x, y) = (0..turns % 4).fold((dx, dy), |(x, y), _| (y, -x));
+        Pt2::new(Nm(c.x.0 + x), Nm(c.y.0 + y))
+    };
+    Rect::from_points(turn(r.min()), turn(r.max()))
+}
+
 /// A slot text's record for [`crate::page::LayerList::slot_texts`] and the findings.
 #[derive(Clone, Debug)]
 pub(crate) struct Slot {
@@ -142,6 +153,9 @@ pub(crate) struct Slot {
     /// The alignment a position stored for the slot prints with (`symbol::slot_align`), where it may differ from the
     /// printed one (a level text of a symbol turned a quarter, placed anew round its body); `None`: the printed one.
     stored: Option<Align>,
+    /// The slot's own alignment in the symbol frame, which a text turned to another angle is placed by
+    /// (`symbol::placed_align`).
+    own: Align,
     frame: ew_derive::TextFrame,
     tag: bool,
     pin: bool,
@@ -316,11 +330,34 @@ impl Builder<'_> {
                         }),
                     _ => text.at,
                 };
+                // Turned by the Rotate key, the text takes the angle's alignment (as a text with a stored angle
+                // prints): the anchor at which that text's box is its box turned about `drop_at`.
+                let turned = [1u8, 2, 3].map(|turns| {
+                    let want = turned_rect(rect, drop_at, turns);
+                    let rot = Angle2(
+                        (i64::from(text.angle.normalized().0) + i64::from(turns) * 90_000).rem_euclid(360_000)
+                            as i32,
+                    );
+                    let at = self
+                        .box_of(&Text {
+                            angle: symbol::upright_angle(rot),
+                            align: symbol::placed_align(&s.own, rot, Orient2::R0),
+                            ..text.clone()
+                        })
+                        .map_or(drop_at, |b| {
+                            Pt2::new(
+                                text.at.x + (want.min().x - b.min().x),
+                                text.at.y + (want.min().y - b.min().y),
+                            )
+                        });
+                    (at, want)
+                });
                 self.out.slot_texts.push(SlotTextBox {
                     rep: s.rep,
                     slot: s.slot,
                     at: text.at,
                     drop_at,
+                    turned,
                     angle: text.angle,
                     moved: s.moved,
                     pin: s.pin,
@@ -693,6 +730,7 @@ impl Builder<'_> {
                     moved: moved || turned,
                     stored: (!moved && !turned)
                         .then(|| symbol::slot_align(def, slot, slot.rot, frame.orient)),
+                    own: slot.align.clone(),
                     frame,
                     tag: matches!(slot.kind, SlotKind::Tag),
                     pin: matches!(slot.kind, SlotKind::CpDesignation(_)),
@@ -1021,6 +1059,7 @@ impl Builder<'_> {
             slot: 0,
             moved: m.tag_at.is_some(),
             stored: None,
+            own: Align::MiddleRight,
             frame: ew_derive::TextFrame {
                 origin: m.at,
                 orient: Orient2::R0,

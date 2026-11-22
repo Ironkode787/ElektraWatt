@@ -669,6 +669,10 @@ pub struct SlotTextBox {
     /// prints with (its slot's own, where a text placed anew round a symbol turned a quarter prints otherwise), so a
     /// dragged text lands where its ghost showed it; else `at`.
     pub drop_at: Pt2,
+    /// The text turned one, two and three quarters by the Rotate key while it is dragged (FT-2099): the anchor a drop
+    /// stores, and the box the text prints there at its new angle and with that angle's alignment, which is its box
+    /// turned counter-clockwise on the sheet about `drop_at` (the drag's ghost).
+    pub turned: [(Pt2, Rect); 3],
     /// The angle it prints at.
     pub angle: Angle2,
     /// Whether the representation's override moves or turns it.
