@@ -920,8 +920,9 @@ impl ShellModel {
                 let now = current
                     .filter(|(epoch, rev)| *epoch == entry.epoch && *rev != entry.rev)
                     .map(|(_, rev)| rev);
-                // The file's name (never its folder), the page count and the size. A file this session's log already names as exported says "again", so a second export
-                // visibly changes the toast it replaces.
+                // The file's name, the page count, the size and the folder it is in (a persona run could not tell
+                // where the files went); a DXF set's folder, which holds one file per page. A file this session's log
+                // already names as exported says "again", so a second export visibly changes the toast it replaces.
                 let again = self.notes.entries().any(|n| {
                     n.key == "export"
                         && matches!(&n.action, Some((NoteAction::Open, Validity::Open { path })) if *path == entry.path)
@@ -937,15 +938,28 @@ impl ShellModel {
                 // The pages by kind ("1 drawing page and 10 report pages"), each count with its
                 // plural form.
                 let pages = page_words(&done);
+                let dxf = entry.kind == JobKind::Dxf;
+                let folder = if dxf {
+                    entry.path.clone()
+                } else {
+                    entry.path.parent().map(Path::to_path_buf).unwrap_or_default()
+                };
+                let shown = if dxf {
+                    entry.path.display().to_string()
+                } else {
+                    entry.name.clone()
+                };
+                let place = folder.display().to_string();
                 let text = match (table, again) {
-                    (false, false) => strings::format(pdf, &[&entry.name, &pages, &kib.to_string()]),
-                    (false, true) => strings::format(pdf_again, &[&entry.name, &pages, &kib.to_string()]),
+                    (false, false) => strings::format(pdf, &[&shown, &pages, &kib.to_string(), &place]),
+                    (false, true) => strings::format(pdf_again, &[&shown, &pages, &kib.to_string(), &place]),
                     (true, false) => {
-                        strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string()])
+                        strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string(), &place])
                     }
-                    (true, true) => {
-                        strings::format(key!("toast-export-table-again"), &[&entry.name, &kib.to_string()])
-                    }
+                    (true, true) => strings::format(
+                        key!("toast-export-table-again"),
+                        &[&entry.name, &kib.to_string(), &place],
+                    ),
                 };
                 let open = (
                     NoteAction::Open,
@@ -953,6 +967,9 @@ impl ShellModel {
                         path: entry.path.clone(),
                     },
                 );
+                // A file's toast shows its folder too; a DXF set's Open opens its folder already.
+                let show_folder =
+                    (!dxf).then_some((NoteAction::ShowFolder, Validity::Open { path: folder }));
                 (
                     JobStatus::Done {
                         pages: (!table).then_some(done.pages),
@@ -960,7 +977,7 @@ impl ShellModel {
                         now,
                     },
                     text,
-                    Some(open),
+                    Some((open, show_folder)),
                     Outcome::Done,
                 )
             }
@@ -1006,7 +1023,14 @@ impl ShellModel {
         if matches!(outcome, Outcome::Failed { .. }) {
             entry.unseen_failure = Some(text.clone());
         }
-        self.notes.push(text, "export", action);
+        match action {
+            Some((open, second)) => {
+                self.notes.push_two(text, "export", Some(open), second);
+            }
+            None => {
+                self.notes.push(text, "export", None);
+            }
+        }
         if let Some(m) = marker {
             self.markers.push(m);
         }

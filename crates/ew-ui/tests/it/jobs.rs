@@ -64,7 +64,8 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let rows = h.state().shell().page_rows().to_vec();
     let reports = rows.iter().filter(|r| r.kind == "report").count();
     let text = format!(
-        "Exported out.pdf: 8 drawing pages, 3 section divider pages and {reports} report pages, {kib} KiB."
+        "Exported out.pdf: 8 drawing pages, 3 section divider pages and {reports} report pages, {kib} KiB, in {}.",
+        tmp.0.display()
     );
     assert!(h.query_by_label(&text).is_some(), "the toast");
     assert!(

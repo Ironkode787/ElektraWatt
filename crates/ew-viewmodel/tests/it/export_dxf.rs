@@ -53,7 +53,9 @@ fn the_dxf_set_goes_into_its_folder_and_a_folder_of_other_files_is_refused() {
     };
     assert_eq!(names(&dir), order);
     let toast = s.toast().expect("a toast").text.clone();
-    assert!(toast.starts_with("Exported the DXF set to set: "), "{toast}");
+    // The set's folder whole, and that it holds one file per page (a persona run could not tell).
+    let start = format!("Exported the DXF set, one file per page, to {}: ", dir.display());
+    assert!(toast.starts_with(&start), "{toast}");
     assert!(
         s.describe()
             .contains("item file.export_dxf \"Export DXF…\" enabled"),

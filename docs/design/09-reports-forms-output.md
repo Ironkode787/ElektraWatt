@@ -1430,8 +1430,11 @@ in words before the job starts and left as it was, and so is a folder inside the
 an earlier set is replaced only after a question, since its files may hold a person's later edits in a CAD program
 (doc 16a §6.12: "Replace the DXF set in <folder>?", the count of the files that go, Cancel the Primary and Replace the
 danger button); a script says `"confirm": true`, and without it the step fails in words. The command line's `ew export
-dxf|png|svg` replaces its own earlier set without a question, as its help says. Its end says "Exported the DXF set to <folder>: <pages>, <size> KiB." with Open (the folder); a cancel
-before the folder is replaced writes nothing.
+dxf|png|svg` replaces its own earlier set without a question, as its help says. Its end says "Exported the DXF set,
+one file per page, to <the folder's whole path>: <pages>, <size> KiB." with Open (the folder); a cancel before the
+folder is replaced writes nothing. A PDF's or a table's end names the file and the folder it is in ("Exported set.pdf:
+<pages>, <size> KiB, in <folder>.") with Open (the file) and Show in folder (a persona run could not tell where the
+files went or whether the DXF set is one file per page).
 
 **Proven** by reading the files back, never by their bytes (`crates/ew-api/tests/it/dxf_as_pdf.rs`): on every page of
 the sample and on a small project of the test's own (a coil on one page and its contact on another, an input card

@@ -223,7 +223,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     );
     assert_eq!(
         shell.toast().unwrap().text,
-        format!("Exported x.xlsx: {kib} KiB.")
+        format!("Exported x.xlsx: {kib} KiB, in {}.", tmp.0.display())
     );
 
     // Five labels changed in the file.

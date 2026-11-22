@@ -997,8 +997,8 @@ action-file-export-pdf = Export PDF…
 action-file-export-dxf = Export DXF…
 prompt-export-dxf-title = Export DXF: choose a folder for the set
 job-kind-dxf = DXF export
-toast-export-dxf = Exported the DXF set to { $p0 }: { $p1 }, { $p2 } KiB.
-toast-export-dxf-again = Exported the DXF set to { $p0 } again: { $p1 }, { $p2 } KiB.
+toast-export-dxf = Exported the DXF set, one file per page, to { $p0 }: { $p1 }, { $p2 } KiB.
+toast-export-dxf-again = Exported the DXF set, one file per page, to { $p0 } again: { $p1 }, { $p2 } KiB.
 marker-export-dxf = Exported DXF to { $p0 }
 reason-export-dxf-folder = The folder holds files that no earlier DXF export wrote there; choose an empty folder or one an earlier DXF export wrote
 confirm-export-dxf-replace-title = Replace the DXF set in { $p0 }?
@@ -2942,7 +2942,7 @@ toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Terminal… places
 toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Terminal… places its terminals.
 # A terminal chosen in the device browser of a project without strips goes on a new strip (rc.3 persona run).
 toast-strip-new-for-terminal = The terminal goes on a new terminal strip: click where it is to stand.
-toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB.
+toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB, in { $p3 }.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } drawing pages
 export-pages-drawing-one = 1 drawing page
@@ -2952,7 +2952,7 @@ export-pages-report = { $p0 } report pages
 export-pages-report-one = 1 report page
 
 # P-2: a second export of the same file in this session says so, so the toast visibly changes.
-toast-export-pdf-again = Exported { $p0 } again: { $p1 }, { $p2 } KiB.
+toast-export-pdf-again = Exported { $p0 } again: { $p1 }, { $p2 } KiB, in { $p3 }.
 toast-structure-new = Created the { $p0 } node { $p1 }.
 toast-external-ref-new = Created the external reference { $p0 }; the Interruption point tool links an external point to it by this label.
 toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire connected to it.
@@ -4109,8 +4109,8 @@ job-kind-table = Table export
 job-kind-import = Drawing import
 job-kind-read = Import read
 job-done-table = { $p0 } KiB
-toast-export-table = Exported { $p0 }: { $p1 } KiB.
-toast-export-table-again = Exported { $p0 } again: { $p1 } KiB.
+toast-export-table = Exported { $p0 }: { $p1 } KiB, in { $p2 }.
+toast-export-table-again = Exported { $p0 } again: { $p1 } KiB, in { $p2 }.
 marker-export-table = Exported the table to { $p0 }
 toast-table-imported = Imported { $p0 } changed cells from { $p1 }.
 table-import-title = Import { $p0 }

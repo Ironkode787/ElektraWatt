@@ -461,8 +461,9 @@ fn the_pdf_export_names_the_file_and_its_page_count() {
     let t = toast(&s);
     assert!(t.starts_with("Exported set.pdf: "), "{t}");
     assert!(t.contains(" pages, "), "{t}");
+    // And the folder it is in (a persona run could not tell where the file went).
     assert!(
-        !t.contains(&tmp.0.to_string_lossy().into_owned()),
-        "no folder: {t}"
+        t.ends_with(&format!(", in {}.", tmp.0.display())),
+        "the folder: {t}"
     );
 }

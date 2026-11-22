@@ -147,20 +147,30 @@ fn a_second_export_of_the_same_file_says_again() {
     done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
     let kib = |p: &Path| std::fs::metadata(p).unwrap().len().div_ceil(1024);
     let pages = s.page_count();
-    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB.", kib(&target));
+    let at = tmp.0.display();
+    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB, in {at}.", kib(&target));
     assert_eq!(s.toast().unwrap().text, first);
+    // Open opens the file, Show in folder its folder.
+    let actions = s.notifications().entries().next().expect("the toast").actions();
+    assert_eq!(
+        actions,
+        [
+            ew_viewmodel::notifications::NoteAction::Open,
+            ew_viewmodel::notifications::NoteAction::ShowFolder
+        ]
+    );
     done(
         &mut s,
         "file.export_pdf",
         json!({"path": path_text(&target), "replace": true}),
     );
     let second = format!(
-        "Exported out.pdf again: {pages} drawing pages, {} KiB.",
+        "Exported out.pdf again: {pages} drawing pages, {} KiB, in {at}.",
         kib(&target)
     );
     assert_eq!(s.toast().unwrap().text, second);
     done(&mut s, "file.export_pdf", json!({"path": path_text(&other)}));
-    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB.", kib(&other));
+    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB, in {at}.", kib(&other));
     assert_eq!(log_texts(&s), [third, second, first]);
     s.shutdown();
 }
@@ -181,7 +191,11 @@ fn the_replace_rule_and_the_marker() {
     let kib = bytes.len().div_ceil(1024);
     assert_eq!(
         s.toast().unwrap().text,
-        format!("Exported out.pdf: {} drawing pages, {kib} KiB.", s.page_count())
+        format!(
+            "Exported out.pdf: {} drawing pages, {kib} KiB, in {}.",
+            s.page_count(),
+            tmp.0.display()
+        )
     );
     // An existing file without `replace`: refused, unchanged.
     std::fs::write(&target, b"not a pdf").unwrap();
@@ -403,8 +417,9 @@ fn the_log_popup_and_its_refusals() {
         .div_ceil(1024);
     assert!(
         d.contains(&format!(
-            "notifications 1\n  notification 1 \"Exported out.pdf: {} drawing pages, {kib} KiB.\" open",
-            s.page_count()
+            "notifications 1\n  notification 1 \"Exported out.pdf: {} drawing pages, {kib} KiB, in {}.\" open",
+            s.page_count(),
+            tmp.0.display()
         )),
         "{d}"
     );
