@@ -2,7 +2,8 @@
 
 An interruption point without a partner of the same name, or one that is not external but has no connection point, so
 it can pair with nothing. An external point counts as paired. One finding per point; the name is not in the
-fingerprint, so renaming keeps a waiver.
+fingerprint, so renaming keeps a waiver. The message names where the mark stands (`102-C1`) and what it lacks: a
+target its one source, where the potential comes from; a source its targets, where it goes on.
 
 ## Why
 
@@ -19,7 +20,10 @@ In a new project, place one interruption point named 24V and no other point of t
 
 ## How to fix
 
-For a connection that leaves the project, mark the point external instead. There is no quick fix.
+Place the point the mark lacks, with the same name: for a target, the source where the potential comes from; for a
+source, a target where it goes on. Or turn this mark into the other direction (its Direction row in Properties, or D
+while the Interruption point tool floats). For a connection that leaves the project, mark the point external instead.
+There is no quick fix.
 
 ## Waiving
 

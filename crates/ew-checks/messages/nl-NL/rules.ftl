@@ -241,10 +241,12 @@ rule-ew-core-048 = { WORD($device) } wordt { $form ->
 
 rule-ew-core-051 = onderbrekingspunt { $name } { $form ->
         [no-cp] heeft geen aansluitpunt; het vormt met niets een paar
+        [target] op { $at } is een doel zonder bron: plaats waar { $name } vandaan komt, zijn bron, of maak van deze markering de bron
+        [source] op { $at } is een bron zonder doel: plaats waar { $name } verdergaat, zijn doelen, of maak van deze markering een doel
        *[unpaired] heeft geen tegenhanger; zijn draad eindigt open
     }
     .title = Onderbrekingspunt zonder tegenhanger
-    .hint = Plaats het bijbehorende onderbrekingspunt met dezelfde naam, of verwijder dit punt.
+    .hint = Een potentiaal komt van één bron en gaat verder bij zijn doelen, elk een punt met dezelfde naam: plaats het punt dat deze markering mist, of wijzig de Richting ervan in Eigenschappen.
 
 rule-ew-core-052 = onderbrekingspunt { $name }: { $form ->
         [flagged] { $count } punten zijn als sterbron gemarkeerd; laat de markering op één ervan staan

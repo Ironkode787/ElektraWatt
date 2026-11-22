@@ -111,8 +111,8 @@ fn hud_head(s: &ShellModel, name: &str) -> String {
     let dir = IpDir::from_word(&direction).unwrap();
     // The role in words.
     let role = match dir {
-        IpDir::Source => "source: the wire continues at its targets",
-        IpDir::Target => "target: fed by its source",
+        IpDir::Source => "source: where the potential comes from, one for its name",
+        IpDir::Target => "target: where the potential goes on, fed by its source",
         IpDir::Undirected => "undirected: pairs either way",
     };
     let next = dir.next().word();
@@ -231,8 +231,7 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
         toast(&s),
         format!(
             "Placed the interruption point 5V at {cell} and connected it to -102S3:14. Alt+Click or Ctrl+Enter places \
-             it without connecting. 5V at {cell} goes on nowhere yet: the next point you place is offered as where it \
-             goes on."
+             it without connecting. 5V at {cell} goes on nowhere yet: place where 5V goes on, its targets."
         )
     );
     // The control pin stays reported; -102S3:14 is connected now.
@@ -630,8 +629,8 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
 }
 
 /// The next name after a connecting drop. A target "FT950" dropped on the free pin -102S3:14 names the pin's
-/// potential (doc 08 §3.5 step 2c); the ghost kept there proposes the target's partner, its source "FT950" (the
-/// typed name stays while no source feeds it). The Wire tool's P, from that pin,
+/// potential (doc 08 §3.5 step 2c); the ghost kept there keeps the name and the chosen direction (the typed name
+/// stays while no source feeds it). The Wire tool's P, from that pin,
 /// names its end the same way: the source of FT950.
 #[test]
 fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
@@ -655,12 +654,13 @@ fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
             fallback: false
         })
     );
-    // The ghost stays where it was dropped: its CP on the pin and the new point's.
+    // The ghost stays where it was dropped: its CP on the pin and the new point's. Target was chosen, and a chosen
+    // direction holds until the person chooses another (a persona run's marks all turned source after a target).
     let pos = ghost_pos(&s);
     cursor(&mut s, pos);
     assert_eq!(
         (ghost(&s)["name"].as_str(), ghost(&s)["direction"].as_str()),
-        (Some("FT950"), Some("source"))
+        (Some("FT950"), Some("target"))
     );
     // The Wire tool's P from the pin: the end is the name's partner too, its source (the typed name still stands).
     done(&mut s, "ui.dismiss", json!({}));

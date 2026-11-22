@@ -240,10 +240,12 @@ rule-ew-core-048 = { $device } is covered by { $form ->
 
 rule-ew-core-051 = interruption point { $name } { $form ->
         [no-cp] has no connection point; it pairs with nothing
+        [target] at { $at } is a target without a source: place where { $name } comes from, its source, or turn this mark into the source
+        [source] at { $at } is a source without a target: place where { $name } goes on, its targets, or turn this mark into a target
        *[unpaired] has no partner; its wire stays open-ended
     }
     .title = Unpaired interruption point
-    .hint = Place the matching interruption point with the same name, or remove this one.
+    .hint = A potential comes from one source and goes on at its targets, each a point of the same name: place the one this mark lacks, or change its Direction in Properties.
 
 rule-ew-core-052 = interruption point { $name }: { $form ->
         [flagged] { $count } points are flagged as star source; keep the flag on one of them

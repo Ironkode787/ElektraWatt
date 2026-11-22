@@ -155,7 +155,7 @@ fn the_hud_says_before_the_click_that_the_next_point_is_where_the_name_arrives()
     assert_eq!(ghost_at(&mut d, (930, 520)), pair("24V", "target"));
     assert_eq!(
         ew_viewmodel::command_bar::hud(d.shell_mut()).prompt,
-        "24V \u{b7} next: where 24V arrives (its source is drawn) \u{b7} D: source"
+        "24V \u{b7} next: a target, where 24V goes on (its source is drawn) \u{b7} D: source"
     );
     d.shell_mut().shutdown();
 }

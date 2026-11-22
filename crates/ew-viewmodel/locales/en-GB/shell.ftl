@@ -1148,13 +1148,14 @@ hud-ip-connects = connects to { $p0 }
 hud-ip-taken = { $p0 } is taken, so this point is { $p1 }.
 
 # FT-899: the IP tool's role in words, so "target" and "star source" explain themselves.
-hud-ip-source = source: the wire continues at its targets
-hud-ip-target = target: fed by its source
+hud-ip-source = source: where the potential comes from, one for its name
+hud-ip-target = target: where the potential goes on, fed by its source
 hud-ip-undirected = undirected: pairs either way
 hud-ip-star = star source: feeds every point of the name
 # rc.5: the other half of a name that has one, said before the click (the tool turned to Target without a word).
-hud-ip-next-target = next: where { $p0 } arrives (its source is drawn)
-hud-ip-next-source = next: where { $p0 } comes from (its target waits for it)
+hud-ip-next-target = next: a target, where { $p0 } goes on (its source is drawn)
+hud-ip-next-source = next: the source, where { $p0 } comes from (its targets wait for it)
+hud-ip-next-target-lone = next: one more target of { $p0 }, which has no source yet (D makes this point its source)
 # While the IP tool's name field holds the keys, D is a letter of the name: the HUD says how to give the keys back.
 hud-ip-field-keys = Enter ends the name, then { $p0 }: { $p1 }
 
@@ -2993,12 +2994,12 @@ toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and c
 toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-placed-source = { $p0 } at { $p1 } goes on at { $p2 }.
 toast-ip-placed-source-no-cell = { $p0 } goes on at { $p2 }.
-toast-ip-placed-source-lone = { $p0 } at { $p1 } goes on nowhere yet: the next point you place is offered as where it goes on.
-toast-ip-placed-source-lone-no-cell = { $p0 } goes on nowhere yet: the next point you place is offered as where it goes on.
+toast-ip-placed-source-lone = { $p0 } at { $p1 } goes on nowhere yet: place where { $p0 } goes on, its targets.
+toast-ip-placed-source-lone-no-cell = { $p0 } goes on nowhere yet: place where { $p0 } goes on, its targets.
 toast-ip-placed-target = { $p0 } at { $p1 } continues from { $p2 }.
 toast-ip-placed-target-no-cell = { $p0 } continues from { $p2 }.
-toast-ip-placed-target-lone = { $p0 } at { $p1 } comes from nowhere in the drawing yet: the next point you place is offered as where it comes from. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
-toast-ip-placed-target-lone-no-cell = { $p0 } comes from nowhere in the drawing yet: the next point you place is offered as where it comes from. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
+toast-ip-placed-target-lone = { $p0 } at { $p1 } has no source yet: place where { $p0 } comes from, its source. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
+toast-ip-placed-target-lone-no-cell = { $p0 } has no source yet: place where { $p0 } comes from, its source. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
 terminal-in-sentence = { $p0 } terminal { $p1 }
 
 # FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").

@@ -327,8 +327,11 @@ target that no source feeds yet. The name stays in the field until you change it
 further click places one more target of the same source, and the source's cross-reference lists every place it goes
 to. Without a typed name the tool offers the partner of a point that still waits for one (a target without a source,
 a source without a target), and a target of a name that has its source keeps that name; only otherwise does a point
-get a new name. Source and Target beside the name field choose the direction, as D does; after a source the tool
-turns to Target by itself, and the bar under the sheet says so before the click ("next: where 24V arrives"). When you
+get a new name. A potential comes from one source and goes on at its targets. Source and Target beside the name field
+choose the direction, as D does, and the choice holds until you change it: with Target chosen, every click places one
+more target, its source drawn or not, and the bar says when the name still has no source ("next: one more target of
+24V, which has no source yet"). After a source the tool turns to Target by itself, as a name has one source, and the
+bar says so before the click ("next: a target, where 24V goes on"). When you
 choose the tool from the Draw tab or the menu, the field has the keys with its name selected: type the
 name and press Enter or Tab, then click where the point goes. While the field has the keys, D is a letter of the name
 and the bar says "Enter ends the name"; after Enter, Tab or a click on the page, D turns the point. The toast of a

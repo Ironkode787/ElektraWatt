@@ -133,7 +133,7 @@ fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
     assert_eq!(
         prompt(&s),
-        format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source")
+        format!("0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source")
     );
     // D goes on from the offered target, not from the quarter's source: the bar names the direction D gives, and D
     // gives it.
@@ -146,7 +146,7 @@ fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     );
     assert_eq!(
         prompt(&s),
-        format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
+        format!("0V \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target")
     );
     // With the star on, the star's hint stands alone in the role's place.
     done(&mut s, "tool.star_source", json!({}));
@@ -212,19 +212,19 @@ fn a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source"),
+                format!("0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"),
                 "0V target".to_owned()
             ),
             (
                 "source".to_owned(),
                 false,
-                format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target"),
+                format!("0V \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target"),
                 "0V source".to_owned()
             ),
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source"),
+                format!("0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"),
                 "0V target".to_owned()
             ),
         ]

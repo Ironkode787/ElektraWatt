@@ -32,8 +32,8 @@
 //! name ([`propose`]: a name that has a source is offered as a target), and the clicks after it further targets of
 //! the same source; without a typed name, a target proposed by a name that has a source keeps that name (no
 //! "24V-1" that nothing feeds);
-//! **the chosen direction stays** for the next placements (no flip after a placement; a chosen `source` of a typed
-//! name does not, since the name has its source then)
+//! **the chosen direction stays** for the next placements (no flip after a placement, a chosen `target` too while its
+//! name has no source yet; a chosen `source` of a typed name does not, since the name has its source then)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
 //! point is a target. **A typed name that has no source** starts with its source where no direction is chosen and
 //! only the last point's direction says target (the middle of the page): a new pair begins with its source. **Room for the
@@ -315,17 +315,6 @@ impl ProjectIps {
     /// Whether a source point named `name` stands anywhere in the project.
     pub fn has_source(&self, name: &str) -> bool {
         self.sources.iter().any(|(n, _)| n == name)
-    }
-
-    /// Whether a point named `name` of `direction`, placed in the project as read here (before it), still lacks its
-    /// partner: a source whose name no other point has (or only another source, a star's), a target whose name has no
-    /// source. A pair once whole lacks nothing; a further target of it is a choice, not a missing partner.
-    pub fn lacks_partner(&self, name: &str, direction: IpDir) -> bool {
-        match direction {
-            IpDir::Source => !self.names.contains(name) || self.has_source(name),
-            IpDir::Target => !self.has_source(name),
-            IpDir::Undirected => false,
-        }
     }
 }
 
@@ -1190,11 +1179,12 @@ impl Tool for IpTool {
             // The name in the field stays until it is changed: after its source, for the target (FT-1657: the tool
             // renamed itself "L1-1" after the first "L1" and placed a second source), after a target that no source
             // feeds, for the source, and after the pair is whole, for further
-            // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen
-            // direction stays, but not the one just placed for a point that lacks its partner, whose next point is
-            // that partner (the HUD says so before the click).
+            // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen Target
+            // stays until the person chooses another, the source still missing or not (a potential goes on at many
+            // targets; a persona run's marks turned source one after another and every one was placed as a source
+            // it did not mean); a chosen Source does not, since a name has one source (its next point is a target).
             if self.typed.is_some() && self.external.is_none() {
-                if self.chosen == Some(direction) && self.project.lacks_partner(&name, direction) {
+                if self.chosen == Some(IpDir::Source) && direction == IpDir::Source {
                     self.chosen = None;
                 }
             } else {
@@ -1235,18 +1225,20 @@ impl Tool for IpTool {
         ))
     }
 
-    /// The point is the other half of a name that has one (after a source the tool turned to Target without a
-    /// word): "next: where 24V arrives from its source", "next: where 24V comes from, for its waiting target".
+    /// The point's part in its name, in a draughtsman's words (one source where the potential comes from, targets
+    /// where it goes on): "next: a target, where 24V goes on (its source is drawn)", "next: the source, where 24V
+    /// comes from (its targets wait for it)", and for one more target of a name nothing feeds yet that it still has no
+    /// source and D makes this point the source.
     fn role_note(&self) -> Option<String> {
         if self.star || self.external.is_some() {
             return None;
         }
         let name = &self.shown;
+        let lone_targets = self.project.targets.contains(name) && !self.project.has_source(name);
         let key = match self.shown_dir {
             IpDir::Target if self.project.has_source(name) => key!("hud-ip-next-target"),
-            IpDir::Source if self.project.targets.contains(name) && !self.project.has_source(name) => {
-                key!("hud-ip-next-source")
-            }
+            IpDir::Target if lone_targets => key!("hud-ip-next-target-lone"),
+            IpDir::Source if lone_targets => key!("hud-ip-next-source"),
             _ => return None,
         };
         Some(crate::strings::format(key, &[name]))

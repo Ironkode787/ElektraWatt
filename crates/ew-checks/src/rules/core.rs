@@ -10,7 +10,7 @@ use ew_derive::ew_schema::{
     IpDirection, Kind, LayoutSpace, LengthSource, Primitive, RepType, Representation,
 };
 use ew_derive::ew_units::{Nm, Pt2};
-use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
+use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, RepAnchorCell, XrefRelationOf, XrefTextOf, folio_label};
 
 use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -253,15 +253,39 @@ impl Rule for UnpairedInterruptionPoint {
         }
         for g in &pairing.groups {
             for u in &g.unpaired {
-                out.push(finding(
-                    *u,
-                    &g.name,
-                    "unpaired",
-                    format!(
-                        "interruption point {} has no partner; its wire stays open-ended",
-                        g.name
+                // Where the mark stands (`102-C1`) and what it lacks, in a draughtsman's words: a target its one
+                // source, a source its targets (a persona run read "has no partner" and could not place what it meant).
+                let info = pairing.ips.get(u);
+                let at = info
+                    .and_then(|i| i.rep)
+                    .and_then(|r| {
+                        let page = q.pages().get(q.reps().get(r)?.page)?;
+                        let folio = folio_label(page).to_string();
+                        Some(match q.get::<RepAnchorCell>(r).as_ref() {
+                            Some(cell) => format!("{folio}-{cell}"),
+                            None => folio,
+                        })
+                    })
+                    .unwrap_or_default();
+                let role = match info.map(|i| (i.direction.clone(), i.star_source)) {
+                    _ if at.is_empty() => "unpaired",
+                    Some((_, true) | (IpDirection::Source, _)) => "source",
+                    Some((IpDirection::Target, _)) => "target",
+                    _ => "unpaired",
+                };
+                let name = &g.name;
+                let message = match role {
+                    "target" => format!(
+                        "interruption point {name} at {at} is a target without a source: place where {name} \
+                         comes from, its source, or turn this mark into the source"
                     ),
-                ));
+                    "source" => format!(
+                        "interruption point {name} at {at} is a source without a target: place where {name} \
+                         goes on, its targets, or turn this mark into a target"
+                    ),
+                    _ => format!("interruption point {name} has no partner; its wire stays open-ended"),
+                };
+                out.push(finding(*u, name, "unpaired", message).arg("form", role).arg("at", at));
             }
         }
         out

@@ -41,7 +41,7 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
     assert!(
         toast(&s).starts_with(&format!("{name} at "))
             && toast(&s)
-                .contains("comes from nowhere in the drawing yet: the next point you place is offered"),
+                .contains("has no source yet: place where"),
         "{}",
         toast(&s)
     );

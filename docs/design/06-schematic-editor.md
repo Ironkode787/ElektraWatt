@@ -703,7 +703,13 @@ installed library's symbol by its key as well as by its address, before its firs
 - **Interruption points.** An IP is a `Function{kind: Ip}` with one CP. It is placed on its own and wired afterwards,
   or created at the free end of a wire being routed (`P`, §4.4). The name field proposes the potential's name,
   then the next name in a numbered series ("24VDC-2" after "24VDC-1"). The direction defaults to Source at the
-  right or bottom edge of the drawing area and Target at the left or top edge, and is toggled with `D`.
+  right or bottom edge of the drawing area and Target at the left or top edge, and is toggled with `D`. *As built
+  (a persona run, 0.3.5):* a direction chosen (D, Source | Target) holds until the person chooses another; a chosen
+  Target stays after a target whose name has no source yet (the tool turned to Source by itself and every later mark
+  became a source), and the bar says "next: one more target of 24V, which has no source yet (D makes this point its
+  source)"; only a chosen Source turns to Target after the source, as a name has one source. EW-CORE-051 names where
+  the mark stands and what it lacks: a target its one source, where the potential comes from; a source its targets,
+  where it goes on.
   Pairing (star or chain, scope) follows the project's `ip_pairing` setting with per-name overrides (FR-XRF-007,
   FR-XRF-010). "Continue on page…" creates the partner on a chosen page at the opposite edge in the same row, with
   the direction reversed (FR-XRF-014). "Arrange" sorts a page's IP stack by name or potential (FR-XRF-013, D-39).

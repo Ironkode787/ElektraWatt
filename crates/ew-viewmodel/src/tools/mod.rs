@@ -555,8 +555,8 @@ pub trait Tool {
         None
     }
 
-    /// What the next click places and why, said in the HUD in the role's place (the IP tool's "next: where 24V
-    /// arrives from its source"); `None` for most tools.
+    /// What the next click places and why, said in the HUD in the role's place (the IP tool's "next: a target, where
+    /// 24V goes on"); `None` for most tools.
     fn role_note(&self) -> Option<String> {
         None
     }

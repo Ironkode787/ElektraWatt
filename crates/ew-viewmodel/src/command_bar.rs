@@ -1331,13 +1331,13 @@ pub fn hud(model: &ShellModel) -> HudModel {
             target = Some(name.clone());
             // A proposal other than its base's name says so in the name's place.
             let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
-            // The role and the key that changes it ("0V · source: the wire continues at its targets · D: target"), so the next
-            // role is on screen; the role says what it does, the key's part keeps the short next word.
+            // The role and the key that changes it ("0V · source: where the potential comes from … · D: target"), so the
+            // next role is on screen; the role says what it does, the key's part keeps the short next word.
             // A star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.
             let mut key_part = None;
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
-                // The other half of a name that has one says so: "next: where 24V arrives from its source".
+                // The other half of a name that has one says so: "next: a target, where 24V goes on".
                 let role = if star {
                     strings::text(key!("hud-ip-star")).to_owned()
                 } else {
