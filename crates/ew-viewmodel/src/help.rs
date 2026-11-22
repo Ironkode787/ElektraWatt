@@ -831,9 +831,10 @@ pub enum EditorPart {
 }
 
 /// The topic of a part of the symbol editor's screen under the pointer (F1 on any part opened the editor's
-/// general page): the device box (a selected pin's own place), the start card, the outline; the drawing by the
-/// selection (a connection point, a shape), else by the tool in hand (Select its selecting and moving, another its
-/// drawing); Properties the screen's section.
+/// general page): the device box (a selected pin's own place), the start card; the outline and the drawing by the
+/// selection (a connection point, a shape: F1 on a point selected in the outline opened the outline's section,
+/// FT-1812), else the outline its own section and the drawing by the tool in hand (Select its selecting and moving,
+/// another its drawing); Properties the screen's section.
 pub fn symbol_editor_part(
     editor: &crate::shell::symbol_editor::SymbolEditor,
     part: EditorPart,
@@ -843,7 +844,7 @@ pub fn symbol_editor_part(
     }
     match part {
         _ if editor.start => "symbol-editor-start",
-        EditorPart::Outline => "symbol-editor-outline",
+        EditorPart::Outline => selected_part(editor).unwrap_or("symbol-editor-outline"),
         EditorPart::Other => "symbol-editor-screen",
         EditorPart::Drawing if editor.tool != "select" => "symbol-editor-drawing",
         EditorPart::Drawing => selected_part(editor).unwrap_or("symbol-editor-selecting"),

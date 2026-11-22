@@ -387,6 +387,8 @@ change here.
   says where the pin stands ("The pin stands at 4 mm: a pin stands on a step of 4 mm…"); it went to the step without
   a word. The line over a copy of a starter part says that the copy keeps the starter's part number until it is given
   one of its own (doc 07 §2.5, FT-1811)
+- behaviour-change: F1 over the symbol editor's outline with a connection point or a shape selected opens the guide's
+  section of that thing; it opened the outline's (doc 16 §13, FT-1812)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

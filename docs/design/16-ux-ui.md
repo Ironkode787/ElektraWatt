@@ -1749,7 +1749,8 @@ when the program is built (FT-1715); with no installed guide it shows a "user gu
 F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
 the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
 reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
-English page otherwise.
+English page otherwise. In the symbol editor F1 over the outline or the drawing opens the section of what is selected
+there (a connection point's, a shape's), and the outline's or the tool's section with nothing selected (FT-1812).
 
 *As built (rc.3 of 0.3.0).* The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows has a
 topic: its own section, else the section of what it acts on (its family: `cable.` the cables', `view.` the page
