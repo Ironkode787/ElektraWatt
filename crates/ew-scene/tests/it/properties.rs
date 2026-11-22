@@ -7,7 +7,7 @@ use crate::common;
 
 use common::{at, cp, item_points, pt, slot, stroke, symbol};
 use ew_mltext::MlText;
-use ew_scene::symbol::lower;
+use ew_scene::symbol::{TextSource, lower};
 use ew_schema::{
     Align, AnchorPolicy, Bounds, CirclePrim, Dir4, Extra, LinePrim, Primitive, RectPrim, SlotKind, SymbolDef,
     TextPrim,
@@ -166,7 +166,13 @@ proptest! {
                 prop_assert_eq!(placed.pos, v.apply(original.pos), "{:?}", v);
             }
             for (placed, original) in g.texts.iter().zip(&base.texts) {
-                prop_assert_eq!(placed.pos, v.apply(original.pos), "{:?}", v);
+                // A symbol turned a quarter places its slot texts anew round its body (FT-1929, `turned_symbol_texts`);
+                // its pins' designations and its static texts keep their points.
+                let anew = v.quarter_turns() % 2 == 1
+                    && matches!(&placed.source, TextSource::Slot(k) if !matches!(k, SlotKind::CpDesignation(_)));
+                if !anew {
+                    prop_assert_eq!(placed.pos, v.apply(original.pos), "{:?}", v);
+                }
             }
             prop_assert_eq!(g.anchor, v.apply(base.anchor), "{:?}", v);
             let want: Vec<Pt2> = base_points.iter().map(|&p| v.apply(p)).collect();

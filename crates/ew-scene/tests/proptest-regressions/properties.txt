@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Seeds for failure cases proptest has generated in the past. It is automatically read and these particular
+# cases re-run before any novel cases are generated.
+cc b88249361c342bb85cf1ca030572b7bee9d6b6c8c6eec03b90d6375499082bec # shrinks to def = SymbolDef { meta: ItemMeta { key: None, licence: None, sources: [], as_of: None, confidence: {}, status: Released, foreign_terms: false, extra: {} }, name: MlText(Neutral("")), keywords: Set([]), rep_type: MultiLine, fndef: LibRef { library: Id(00000000-0000-0000-0000-000000000000), item: Id(00000000-0000-0000-0000-000000000000), version_req: "^1", extra: {} }, grid: Grid { num: 7937500, den: 3 }, graphics: [Text(TextPrim { pos: Pt2 { x: Nm(0), y: Nm(0) }, text: MlText(Neutral("T")), style: None, align: MiddleLeft, angle: Angle2(0), extra: {} })], cps: KeyedList([SymbolCp { idx: 0, fn_cp: 0, pos: Pt2 { x: Nm(0), y: Nm(0) }, dir: Up, discipline: Electrical, extra: {} }]), text_slots: [TextSlot { kind: Tag, pos: Pt2 { x: Nm(0), y: Nm(0) }, rot: Angle2(0), align: Centre, visible: true, max_width: None, style: None, fallback: None, solenoid: None, extra: {} }], arrangements: [], anchor: Origin, link_points: [], extra_variants: [], iec60617_ref: None, iso1219_ref: None, extra: {} }
