@@ -1491,7 +1491,7 @@ fn enter_ends_each_edit_and_the_next_row_takes_what_is_typed() {
     let rows = [
         ("page/title", "Title", "Supply 24 V DC"),
         ("page/kind", "Kind", "Single-line"),
-        ("project/people.author", "Designer", "A. Smith"),
+        ("project/people.author", "Author", "A. Smith"),
         ("project/master.manufacturing_year", "Manufacturing year", "2026"),
         ("project/master.created", "Created", "18-11-2026"),
     ];

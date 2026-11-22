@@ -86,7 +86,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
         assert!(names.contains(&path), "{path} in {names:?}");
     }
     for (label, text) in [
-        ("Drawing ID", "D-0001"),
+        ("Drawing", "D-0001"),
         ("End user", "Plant operator"),
         ("Revision", "V1.0"),
     ] {

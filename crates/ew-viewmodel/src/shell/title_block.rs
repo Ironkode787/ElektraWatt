@@ -131,7 +131,7 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
     ),
     (
         "revision.current.author.name",
-        key!("choice-author"),
+        key!("titleblock-author"),
         Source::RevisionAuthor,
     ),
     (
@@ -151,7 +151,7 @@ fn name_party(parties: &mut Vec<Value>, role: &str, text: String) {
 }
 
 /// The people of a project the title block can print, in the order of [`FIELDS`]: each party role (its serde word) with
-/// its label (Designer, Checker, Customer…).
+/// its label, named as the cell that prints it (Author, FT-1803), else by its role (Checker, Customer…).
 fn people() -> impl Iterator<Item = (&'static str, Key<'static>)> {
     FIELDS.iter().filter_map(|(_, label, source)| match source {
         Source::Party(role) => Some((*role, *label)),

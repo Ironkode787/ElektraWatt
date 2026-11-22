@@ -374,6 +374,10 @@ change here.
   `report_block.create {layout_page}`; `page.surface_view.set {labels: tags_or_numbers}` and `layout.labels {show:
   tags_or_numbers}`; the action `report_block.legend_to_page`; the PDF destinations `ew:pl:<placement>` and
   `ew:lr:<placement>` (doc 09 §2.2, §3.2, §4.2)
+- text-change: Project properties name their rows as the title block's cells name them: Project (was Project
+  reference), Drawing (Drawing ID), Object (Object ID), Saved (Edited) and Author (Designer; in Dutch Getekend); the
+  rows' explanations say which cell prints them, that Document title prints on the cover only, and that the Checked
+  cell prints who approves the current revision, not the Checker row (doc 09 §2.7, FT-1803)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

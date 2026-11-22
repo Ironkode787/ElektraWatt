@@ -57,7 +57,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### Properties and the title block's words
 
-- FT-1803 `ew-viewmodel, ew-api, ew-scene`: Project properties name their rows otherwise than the title block's cells (Project reference and Project, Designer and Author), Document title prints in no cell of the program's frame, and the Checker row does not feed the Checked cell (which prints who approves the current revision); only Title block fields… says which cell prints which. Name the rows as the cells, and decide whether Checker feeds Checked.
 - FT-1779 `ew-viewmodel, ew-ui`: A wire's Potential row in Properties should open Define potential, as the wire's menu does; today only the row's "…" menu offers it.
 - FT-1808 `ew-viewmodel`: Placing a part that has no symbol arms the Black box tool without saying that the part is drawn as a box.
 - FT-1811 `ew-ui, ew-api`: A pin's place typed between two steps of the pin grid is taken to the next step without a word; a copy of a starter part keeps the starter's part number without saying so.

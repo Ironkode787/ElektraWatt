@@ -179,7 +179,7 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
             sheet.header.title.clone(),
             [
                 // A person of the project reads as a plain name (the list of parties waits under More).
-                value("Designer"),
+                value("Author"),
                 value("Colour profile"),
                 value("Numbering"),
             ],

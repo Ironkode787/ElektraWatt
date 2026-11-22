@@ -468,6 +468,10 @@ tracked reads only (FR-EXT-011).
   `project.notice`, the company assets of the basic project (§2.6). Every labelled cell prints label, one space and
   value (§2.5). This QET-compatible title block has **no scale cell**, by design: it reproduces the reference
   layout. FR-REP-037's scale cell binds `page.scale` in forms that declare one.
+- **Project properties name their rows as these cells** (FT-1803): Project, Drawing, Object, Saved and Author (in
+  Dutch Project, Tekening, Object, Opgeslagen, Getekend), and each row's explanation names the cell that prints it.
+  `project.document_title` prints on the cover frame only, which its row says. The Checker row does not feed
+  "Checked:": that cell is the sign-off and prints the checker who approves the current revision, empty until then.
 - **`page.description`** resolves to `Page.description_override` if set, else `project.description` ("Expansion
   Control Cabinets"). An override raises the info finding EW-CORE-023 naming the page (FR-REP-036, D-06).
   `Page.title` is the per-page page description and TOC title (FR-PAG-010); it is not an override.

@@ -56,7 +56,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
 }
 
 /// The designer: Project properties have a plain row per person the title block can
-/// print (Designer, Checker, Customer…) instead of a raw list; the designer typed there prints in the new project's
+/// print (Author, Checker, Customer…) instead of a raw list; the designer typed there prints in the new project's
 /// Author cell while no revision names its author; and Title block fields… says which cell prints each field.
 #[test]
 fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
@@ -95,7 +95,7 @@ fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
             .unwrap_or_default()
     };
     let main = labels(&s);
-    for person in ["Designer", "Checker", "Customer", "End user"] {
+    for person in ["Author", "Checker", "Customer", "End user"] {
         assert!(main.iter().any(|l| l == person), "{person}: {main:?}");
     }
     assert!(
