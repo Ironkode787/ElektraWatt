@@ -7559,6 +7559,7 @@ refusal-electrical-fluid-port = { $p0 } is a fluid port: a potential or a bond i
 reason-potential-fluid = A fluid port has no potential: its medium is set on the air supply's Medium row
 reason-bond-fluid = A tube has no potential to bond: select a wire
 reason-cable-fluid = A tube is no core of a cable: select wires
+reason-cable-select-wires = Select the wires that become the cable's cores
 canvas-medium-none = No medium: choose one on the air supply
 action-symbol-discipline = Set what the symbol is drawn for: electrical, pneumatic, vacuum, hydraulic or bus
 symbol-discipline = Discipline

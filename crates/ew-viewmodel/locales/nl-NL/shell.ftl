@@ -7284,6 +7284,7 @@ refusal-electrical-fluid-port = { $p0 } is een fluïdumaansluiting: een potentia
 reason-potential-fluid = Een fluïdumaansluiting heeft geen potentiaal: het medium stel je in in de rij Medium van de persluchtaansluiting
 reason-bond-fluid = Een slang heeft geen potentiaal voor een potentiaalverbinding: selecteer een draad
 reason-cable-fluid = Een slang is geen ader van een kabel: selecteer draden
+reason-cable-select-wires = Selecteer de draden die de aders van de kabel worden
 canvas-medium-none = Geen medium: kies er een bij de persluchtaansluiting
 action-symbol-discipline = Instellen waarvoor het symbool getekend is: elektrisch, pneumatisch, vacuüm, hydraulisch of bus
 symbol-discipline = Discipline

@@ -1228,7 +1228,8 @@ counter another unplaced cable holds, in words naming no page, and renumbering g
 ([03](03-domain-model.md) §8.2's note).
 
 *As built (FT-1685).* **The Cable form.** Draw ▸ Connect ▸ Cable… (`cable.from_wires`, on the Draw tab's Connect group)
-makes the selected wires a cable's cores in one form: the cable's tag (the tag a new cable would take, else the cable
+makes the selected wires a cable's cores in one form (with nothing selected it is greyed with "Select the wires that
+become the cable's cores", where it said "Nothing is selected"): the cable's tag (the tag a new cable would take, else the cable
 one of the wires already belongs to), its type as a person writes it (`3G1.5`: three cores, the last green-yellow;
 `4x0.75`: no green-yellow; or a cable part's number) and the wires with the core each gets, which can be changed. A
 written type gives HD 308 S2's harmonised colours up to five cores (`2x` BN BU, `3x` BN BK GY, `4x` BU BN BK GY, `3G`
