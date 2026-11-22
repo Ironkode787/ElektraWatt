@@ -12,7 +12,7 @@ table	nav:strips/<id 1>
 rev	0
 generation	2
 locale	neutral
-ew	0.3.0
+ew	<version>
 column	strip	Strip	Text	false
 column	pos	Pos	Text	false
 column	terminal	Terminal	Text	true

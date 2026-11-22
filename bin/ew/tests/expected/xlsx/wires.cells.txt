@@ -64,7 +64,7 @@ table	block:<id 57>
 rev	0
 generation	2
 locale	neutral
-ew	0.3.0
+ew	<version>
 column	no	No.	Ident	false
 column	from	From	Tag	false
 column	from_cp	CP	Ident	false

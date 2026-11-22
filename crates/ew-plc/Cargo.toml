@@ -23,4 +23,4 @@ ew-caex = { path = "../ew-caex" }
 # An instrument row is a command parameter (`plc.apply_instrument_list`): its JSON form and the schema of it.
 serde.workspace = true
 schemars = "1.2.3"
-ew-hack = { version = "0.3.0", path = "../ew-hack" }
+ew-hack = { version = "0.3.5", path = "../ew-hack" }

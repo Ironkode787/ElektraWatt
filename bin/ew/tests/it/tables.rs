@@ -170,7 +170,11 @@ fn the_workbooks_are_the_committed_dumps() {
             t.written(run, &file) == bytes,
             "{name}: a second run gives other bytes"
         );
-        let dump = ew_api::output::workbook_dump(&bytes).unwrap();
+        // The producer cell names the program's version, which the dump reads as `<version>`.
+        let dump = ew_api::output::workbook_dump(&bytes).unwrap().replace(
+            concat!("\new\t", env!("CARGO_PKG_VERSION"), "\n"),
+            "\new\t<version>\n",
+        );
         expected_file(&format!("xlsx/{name}.cells.txt"), &dump);
     }
 }

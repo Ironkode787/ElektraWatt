@@ -29,7 +29,7 @@ krilla = { version = "0.8.2", default-features = false, features = ["raster-imag
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 # The symbol ids of the DXF writer's block names, and the destination IDs of the test pages; already in the graph.
 uuid = { version = "1.26", default-features = false }
-ew-hack = { version = "0.3.0", path = "../ew-hack" }
+ew-hack = { version = "0.3.5", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

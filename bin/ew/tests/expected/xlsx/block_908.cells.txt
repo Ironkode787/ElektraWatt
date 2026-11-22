@@ -31,7 +31,7 @@ table	block:<id 26>
 rev	0
 generation	2
 locale	neutral
-ew	0.3.0
+ew	<version>
 column	module	Module	Ident	false
 column	part	Part	Ident	false
 column	address	Address	Address	false

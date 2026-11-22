@@ -27,7 +27,7 @@ table	kind:io_list
 rev	0
 generation	2
 locale	neutral
-ew	0.3.0
+ew	<version>
 column	config_project	Configuration project	Ident	false
 column	cpu	CPU	Ident	false
 column	station	Station	Ident	false
