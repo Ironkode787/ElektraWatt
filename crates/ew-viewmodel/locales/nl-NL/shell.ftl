@@ -153,6 +153,7 @@ command-project-supply-set = Voeding instellen
 command-rep-exchange_symbol = Symbool wisselen
 command-rep-join_device = Bij apparaat voegen
 command-rep-move = Verplaatsen
+command-rep-move_to_new_page = Naar een nieuwe pagina verplaatsen
 command-rep-set_anchor_policy = Ankerbeleid instellen
 command-rep-transform = Draaien of spiegelen
 command-report_block-create = Rapportblok maken

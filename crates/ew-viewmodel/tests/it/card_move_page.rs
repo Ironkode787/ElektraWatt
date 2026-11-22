@@ -88,7 +88,10 @@ fn move_to_a_new_page_makes_the_page_and_moves_the_card_in_one_step() {
     let (after_module, page, _) = slot_one(&s);
     assert_eq!(after_module, module, "the same card");
     let page = page.expect("drawn on a page");
-    assert!(toast.contains(&format!("page {page}")), "the toast names {page}: {toast}");
+    assert!(
+        toast.contains(&format!("page {page}")),
+        "the toast names {page}: {toast}"
+    );
     assert!(page != "120" && page != "121", "a new page: {page}");
     // One undo step takes both back.
     done(&mut s, "edit.undo", json!({}));

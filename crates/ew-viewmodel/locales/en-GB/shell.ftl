@@ -105,6 +105,7 @@ command-project-supply-set = Set supply
 command-rep-exchange_symbol = Exchange symbol
 command-rep-join_device = Join device
 command-rep-move = Move
+command-rep-move_to_new_page = Move to a new page
 command-rep-set_anchor_policy = Set anchor policy
 command-rep-transform = Rotate or mirror
 command-report_block-create = Create report block

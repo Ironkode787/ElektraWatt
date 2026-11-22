@@ -39,6 +39,10 @@ fn new_page_from_a_station_s_view_comes_with_the_page_s_grid() {
     done(&mut s, "plc.new_station", json!({}));
     assert!(s.canvas().is_none(), "the station's view is in front");
     done(&mut s, "page.new", json!({}));
-    assert_eq!(field(&s, "grid"), from_page, "the same grid from the station's view");
+    assert_eq!(
+        field(&s, "grid"),
+        from_page,
+        "the same grid from the station's view"
+    );
     s.shutdown();
 }
