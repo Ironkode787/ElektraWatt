@@ -80,7 +80,6 @@ Faults met while `fixtures/sample/sample.uiscript` was written; each has its ste
 
 Faults met while the tests moved from the reference project to the sample (M3.5, step 9); each test took another way round its fault, so a fix adds the test that goes straight.
 
-- FT-1911 `ew-viewmodel, ew-ui`: A tap on a mark's own cross-reference text does not follow it while that mark is selected (the sample's page 103, the incoming PE mark, its text 101-C10); with nothing selected it does.
 - FT-1912 `ew-viewmodel`: A wire selected on the page does not always mark its row in Connections: on the sample's page 104 the wire numbered 101.16 does not, on page 102 the wire 101.15 does. The cause is not known.
 - FT-1913 `ew-viewmodel`: In Dutch the Devices navigator prints "3P- manualswitch" and "3P- mcb" for the sample's -101Q1 and -103F1: a kind whose generic part has no Dutch words gets a stray "- " after its pole count, where it should stay as written, as "2P mcb" does. The exception list `WRONG_KIND_WORDS` of `tests/it/dutch_words.rs` goes with the fix.
 - FT-1915 `ew-viewmodel`: Properties of the sample's panel page 902, with Advanced on: the page's Form row is empty, where the frame's name belongs. The test of 902's rows in `tests/it/props_follow.rs` pins it empty and turns with the fix.

@@ -400,6 +400,8 @@ change here.
   below the frame, off the sheet (doc 10 §2.3, FT-1907)
 - behaviour-change: the Potential panel of a supply mark names its Conductor list and Voltage field for a screen
   reader by column and mark ("Conductor, 24V"); on some marks they had no name (FT-1910)
+- behaviour-change: a click on a selected mark's own cross-reference text follows it, as with nothing selected; it
+  only selected the mark again (doc 06 §2.5, FT-1911)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

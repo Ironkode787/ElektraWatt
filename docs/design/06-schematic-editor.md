@@ -207,8 +207,9 @@ turned by a half turn and a neighbour's tag or body meet, the tag moves off the 
 *As built (0.3).* With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
 hand over it) and dragged alone; the tag of a symbol that is not selected is grabbed the same way, the tag under the
 pointer winning over a symbol's body (rc.3), and so is a pin's label (the text of a connection point's designation,
-FT-1796), and a click on either selects its symbol. This rule covers every text of a symbol a drag moves alone, pin
-labels included: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
+FT-1796), and a click on either selects its symbol; a click without a drag on a selected symbol's text that is a
+cross-reference follows it, as with nothing selected (FT-1911). This rule covers every text of a symbol a drag moves
+alone, pin labels included: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
 counter-clockwise while it is dragged, and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
 representation's `SlotOverride` in symbol coordinates (one undo step). Hide text in the menu over a text sets
 `visible: false`; Put the text back, in the menu over a text (greyed with its reason while the texts stand where the

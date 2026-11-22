@@ -730,6 +730,12 @@ impl SelectTool {
                 ..
             } => {
                 let press = self.text.take()?;
+                // A tap on the selected mark's own cross-reference follows it, as with nothing selected; a drag
+                // still moves the text (FT-1911).
+                if let (None, Some(link)) = (press.to, cx.link_at(press.from)) {
+                    self.last = None;
+                    return Some(ToolOutput::Follow(link.dest));
+                }
                 if press.to.is_none() {
                     let last = self.last;
                     return Some(self.click(last, EntityRef(press.text.rep), press.from, press.mods, cx));
