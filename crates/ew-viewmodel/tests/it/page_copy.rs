@@ -16,6 +16,7 @@ use ew_viewmodel::key;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::strings;
 use serde_json::json;
 
 const COIL: &str = "ew.iec.coil@qet10";
@@ -469,6 +470,38 @@ fn free_texts_that_name_a_copied_strip_or_cable_take_the_copys_names() {
     expected.sort();
     assert_eq!(texts(&mut s, "22"), expected);
     assert_eq!(texts(&mut s, "12"), before, "the originals print as before");
+}
+
+/// The form's refusals name its fields, never the script's parameters: an offset that is no whole number, a node
+/// chosen without the copy's code, and a code typed without a node.
+#[test]
+fn the_forms_refusals_name_its_fields() {
+    let tmp = Tmp::new("ft1862-form-words");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    done(&mut s, "pages.copy", json!({}));
+    let error = |s: &mut ShellModel| {
+        assert_ne!(s.submit_form(), Outcome::Done);
+        common::form(s).error.unwrap_or_default()
+    };
+    s.set_form_field("offset", "ten");
+    assert_eq!(
+        error(&mut s),
+        strings::format(key!("error-page-copy-offset"), &["ten"])
+    );
+    s.set_form_field("offset", "");
+    s.set_form_field("code", "CAB2");
+    assert_eq!(error(&mut s), strings::text(key!("error-page-copy-node")));
+    let node = common::form(&s)
+        .fields
+        .iter()
+        .find(|f| f.name == "node")
+        .and_then(|f| f.options.iter().find(|(id, _)| !id.is_empty()))
+        .map(|(id, _)| id.clone())
+        .expect("a structure node of the sample");
+    s.set_form_field("node", &node);
+    s.set_form_field("code", "");
+    assert_eq!(error(&mut s), strings::text(key!("error-page-copy-code")));
+    s.shutdown();
 }
 
 /// A refusal of the copy names it: "Copy pages: …".

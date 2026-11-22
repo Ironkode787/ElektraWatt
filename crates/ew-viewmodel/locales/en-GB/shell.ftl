@@ -4412,6 +4412,11 @@ form-page-copy-rename = Rename in frozen tags and interruption-point names
 form-page-copy-rename-old = Old text
 form-page-copy-rename-new = New text
 form-page-copy-rename-add = Add a text to change
+# The form's refusals name its fields, not the script's parameters.
+error-page-copy-offset = The folio offset is a whole number of 0 or more, not { $p0 }.
+error-page-copy-node = Choose the structure node to replace, or leave the code of the copy's node empty.
+error-page-copy-code = Give the code of the copy's node, or choose None as the structure node to replace.
+error-page-copy-node-unknown = No structure node is { $p0 }: choose one in the list, or give its designation with its sign (+CAB).
 page-copy-lead = Copy { $p0 } pages: { $p1 }
 page-copy-lead-one = Copy page { $p0 }
 page-copy-drawn-elsewhere = Also drawn on pages that are not copied, so their copies draw only what stands on these pages: { $p0 }

@@ -4218,6 +4218,11 @@ form-page-copy-rename = Hernoemen in vastgezette kenmerken en namen van onderbre
 form-page-copy-rename-old = Oude tekst
 form-page-copy-rename-new = Nieuwe tekst
 form-page-copy-rename-add = Een te wijzigen tekst toevoegen
+# The form's refusals name its fields, not the script's parameters.
+error-page-copy-offset = De foliosprong is een geheel getal van 0 of meer, niet { $p0 }.
+error-page-copy-node = Kies het te vervangen structuurknooppunt, of laat de code van het knooppunt van de kopie leeg.
+error-page-copy-code = Geef de code van het knooppunt van de kopie, of kies Geen als te vervangen structuurknooppunt.
+error-page-copy-node-unknown = Geen structuurknooppunt is { $p0 }: kies er een uit de lijst, of geef de aanduiding met het teken (+CAB).
 page-copy-lead = { $p0 } pagina's kopiëren: { $p1 }
 page-copy-lead-one = Pagina { $p0 } kopiëren
 page-copy-drawn-elsewhere = Ook getekend op pagina's die niet gekopieerd worden, dus hun kopieën tekenen alleen wat op deze pagina's staat: { $p0 }

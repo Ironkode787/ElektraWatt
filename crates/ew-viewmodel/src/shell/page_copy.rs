@@ -120,7 +120,18 @@ impl ShellModel {
 
     fn pages_copy(&mut self, p: &Map<String, Value>) -> Outcome {
         let pages = or_return!(self.macro_pages(p));
-        let offset = or_return!(super::bulk::uint_param(p, "offset"));
+        // The refusals name the form's fields, which a script's parameters are named after, never the parameters.
+        let offset = match super::bulk::uint_param(p, "offset") {
+            Ok(offset) => offset,
+            Err(_) => {
+                let typed = match p.get("offset") {
+                    Some(Value::String(s)) => s.trim().to_owned(),
+                    Some(v) => v.to_string(),
+                    None => String::new(),
+                };
+                return failed(key!("error-page-copy-offset"), &[&typed]);
+            }
+        };
         let text = |name: &str| -> Result<String, Outcome> {
             Ok(string_param(p, name)?
                 .map(|s| s.trim().to_owned())
@@ -188,16 +199,16 @@ impl ShellModel {
         };
         let structure = if node.is_empty() {
             if !code.is_empty() {
-                return failed(key!("error-missing-param"), &["node"]);
+                return failed(key!("error-page-copy-node"), &[]);
             }
             Vec::new()
         } else {
             let id = or_return!(self.copy_node(&node));
             let Ok(id) = id.parse() else {
-                return failed(key!("error-bad-param"), &["node"]);
+                return failed(key!("error-page-copy-node-unknown"), &[&node]);
             };
             if code.is_empty() {
-                return failed(key!("error-missing-param"), &["code"]);
+                return failed(key!("error-page-copy-code"), &[]);
             }
             vec![(id, code)]
         };
