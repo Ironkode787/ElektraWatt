@@ -13,7 +13,7 @@ use ew_derive::{PageOrder, PageRef};
 use super::{Builder, NavOpen, NavRole};
 use crate::Session;
 use crate::output::PageRow;
-use crate::output::view::PageFrameOf;
+use crate::output::view::page_frame_id;
 
 impl Session {
     /// The Pages tree as built (section view): section nodes (front matter first, as the page order
@@ -22,6 +22,8 @@ impl Session {
         let q = self.query();
         let order = q.get::<PageOrder>(());
         let rows: Vec<PageRow> = self.page_rows();
+        // The frames' names, numbered as the Form row's choices are (doc 09 §3.8).
+        let frames = super::libraries::frame_forms(&q);
         let mut sections: BTreeMap<String, u32> = BTreeMap::new();
         for (row, entry) in rows.iter().zip(order.entries.iter()) {
             let (skey, slabel) = match &row.section {
@@ -53,11 +55,10 @@ impl Session {
             if row.qet_grid {
                 badges.push("QET grid".to_owned());
             }
-            let frame = q
-                .get::<PageFrameOf>(entry.page)
-                .as_ref()
-                .as_ref()
-                .and_then(|f| f.form.meta.key.as_ref().map(|k| k.as_str().to_owned()))
+            // The frame by the name Properties' Form row gives it, in English (the window words it), never its key.
+            let frame = page_frame_id(&q, &entry.page)
+                .and_then(|id| frames.iter().find(|(f, _)| *f == id.as_uuid()))
+                .map(|(_, name)| name.to_string())
                 .unwrap_or_default();
             let cells = vec![
                 row.folio.clone(),

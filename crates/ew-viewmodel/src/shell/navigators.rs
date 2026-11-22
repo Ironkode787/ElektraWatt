@@ -2020,7 +2020,21 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     let column = |key: &str| table.columns.iter().position(|c| c.key == key);
     let library = (nav == "libraries").then(|| (column("tier"), column("access"), column("state")));
     let block_kind = (nav == "blocks").then(|| column("kind")).flatten();
+    // The Pages table's Frame column, which `ew-api` writes by the frame's English name: the name Properties' Form row
+    // gives it (`Session::frame_forms`, doc 09 §3.8), in the window's language.
+    let frame = (nav == "pages").then(|| column("frame")).flatten();
+    let frame_words: Vec<(String, String)> = match frame {
+        Some(_) => (project.session.frame_forms().iter())
+            .map(|(_, name)| (name.to_string(), super::text_words(name)))
+            .collect(),
+        None => Vec::new(),
+    };
     for node in &mut table.nodes {
+        if let Some(cell) = frame.and_then(|i| node.cells.get_mut(i))
+            && let Some((_, words)) = frame_words.iter().find(|(english, _)| english == cell)
+        {
+            *cell = words.clone();
+        }
         if let Some((tier, access, state)) = library
             && matches!(node.role, NavRole::Tier | NavRole::Library)
         {

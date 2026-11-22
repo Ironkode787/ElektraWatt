@@ -61,6 +61,28 @@ fn pages_lists_the_page_order_under_its_sections() {
     assert_eq!(unique.len(), t.nodes.len(), "keys are unique");
 }
 
+/// The Frame column names each page's frame as Properties' Form row does (`Session::frame_forms`, doc 09 §3.8), never
+/// by its key: the drawn pages, the list pages and the contents alike.
+#[test]
+fn the_frame_column_names_each_frame_as_the_form_row_does() {
+    let s = common::sample();
+    let t = s.navigator_table(NavKind::Pages);
+    let frame = t
+        .columns
+        .iter()
+        .position(|c| c.key == "frame")
+        .expect("the Frame column");
+    let names: Vec<String> = s.frame_forms().iter().map(|(_, n)| n.to_string()).collect();
+    for n in t.nodes.iter().filter(|n| n.table_row) {
+        assert!(
+            names.contains(&n.cells[frame]),
+            "{}: {:?} is none of the forms' names {names:?}",
+            n.label,
+            n.cells[frame]
+        );
+    }
+}
+
 #[test]
 fn devices_lists_every_non_terminal_device_once() {
     let s = common::sample();

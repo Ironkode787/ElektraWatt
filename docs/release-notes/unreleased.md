@@ -442,6 +442,9 @@ change here.
   "3P manualswitch" and "3P mcb", not "3P- manualswitch" (FT-1913)
 - behaviour-change: a page's Form row in Properties names the frame the page draws with when it names none of its
   own ("Frame QET A4 landscape grid" on the sample's 902); it was empty (doc 09 §3.8, FT-1915)
+- behaviour-change: the Pages navigator's Frame column names each page's frame as its Form row in Properties does, in
+  the window's language ("Frame QET A4 landscape grid", "Kader A4 liggend, op 101, 102"); it showed a starter frame's
+  key and nothing for a frame of the project's own (doc 09 §3.8)
 - text-change: Properties explains the project's Source, Translations and Frames rows and a fluid port's closure Kind
   and Part, in English and Dutch; the Frames row names its frames ("Default: Frame QET A4 landscape grid; Table of
   contents: …"), not their IDs (doc 09 §3.8, FT-1916)

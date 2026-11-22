@@ -808,7 +808,9 @@ paper are in the window's language ("Kader A4 liggend, op 101, 102"), in English
 a starter form stay as the key has them. Typed, the row takes such a name or the form's ID and refuses anything else in
 words, listing the forms. A block's Form row stands in the open; a page's waits under Advanced, as a page without a form
 of its own takes the frame defaults, and such a page's row names the frame those defaults give it (FT-1915). The
-project's Frames row names the defaults the same way, "Default: …; Table of contents: …" (FT-1916).
+project's Frames row names the defaults the same way, "Default: …; Table of contents: …" (FT-1916), and so does the
+Pages navigator's Frame column, for every page the frame it prints on (it showed a starter form's key and nothing for a
+form of the project's own).
 
 **Where the table stands.** In the frame's drawing area, printed (through the page-to-sheet transform): on a frame
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
