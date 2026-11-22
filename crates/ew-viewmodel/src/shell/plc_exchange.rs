@@ -190,7 +190,7 @@ fn read_exchange_file(path: &std::path::Path, file: &str) -> Result<Vec<u8>, Out
         }
         Err(e) => Err(failed(
             key!("error-plc-import-file"),
-            &[file, &crate::jobs::io_cause(&e)],
+            &[file, &crate::jobs::read_cause(&e)],
         )),
     }
 }

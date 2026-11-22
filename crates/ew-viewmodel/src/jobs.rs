@@ -441,6 +441,15 @@ pub fn sibling_of(target: &Path, name: &str) -> PathBuf {
     target.with_file_name(format!(".{name}.ew-part"))
 }
 
+/// The cause text of an I/O error met reading a file the person named: a missing file is said as one, any other kind
+/// as [`io_cause`] says it (whose missing folder is the cause of a write).
+pub(crate) fn read_cause(e: &std::io::Error) -> String {
+    if e.kind() == std::io::ErrorKind::NotFound {
+        return strings::text(key!("job-cause-no-file")).to_owned();
+    }
+    io_cause(e)
+}
+
 /// The cause text of an I/O error: a fixed English text by its kind (a file in use on Windows has its own), never a
 /// path.
 pub(crate) fn io_cause(e: &std::io::Error) -> String {

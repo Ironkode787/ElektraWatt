@@ -2989,6 +2989,7 @@ reason-print-not-a-range = "{ $p0 }" is geen paginabereik van dit project
 reason-print-failed = De afdrukset kon niet worden opgebouwd
 job-cause-in-use = het bestand is in gebruik
 job-cause-no-folder = de map bestaat niet
+job-cause-no-file = het bestand bestaat niet
 job-cause-denied = toegang tot de map of het bestand is geweigerd
 job-cause-full = de schijf is vol
 job-cause-internal = een interne fout

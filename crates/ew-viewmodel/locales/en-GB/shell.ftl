@@ -3097,6 +3097,7 @@ reason-print-not-a-range = "{ $p0 }" is not a page range of this project
 reason-print-failed = The print set could not be built
 job-cause-in-use = the file is in use
 job-cause-no-folder = the folder does not exist
+job-cause-no-file = the file does not exist
 job-cause-denied = access to the folder or the file was denied
 job-cause-full = the disk is full
 job-cause-internal = an internal error

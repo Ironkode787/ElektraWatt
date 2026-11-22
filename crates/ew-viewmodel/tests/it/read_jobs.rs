@@ -9,6 +9,7 @@
 use crate::common::{SAMPLE, Tmp, copy_dir, done, library_tiers};
 
 use ew_viewmodel::shell::{ConfirmAnswer, Dialog, EplanStep, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::{key, strings};
 use serde_json::json;
 use std::path::Path;
 
@@ -145,14 +146,14 @@ fn read_in_window(s: &mut ShellModel, action: &str, params: serde_json::Value) -
 fn a_plc_exchange_file_that_cannot_be_read_or_parsed_says_why_in_the_banner() {
     let tmp = Tmp::new("read-failed-plc");
     let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    // A missing file is said as one, not as a missing folder (the cause of a write).
     let missing = tmp.0.join("absent.csv");
     let banner = read_in_window(&mut s, "plc.import", json!({"path": missing.to_string_lossy()}));
-    assert!(
-        banner
-            .as_deref()
-            .is_some_and(|b| b.starts_with("absent.csv cannot be read: ")),
-        "{banner:?}"
+    let missing_file = strings::format(
+        key!("error-plc-import-file"),
+        &["absent.csv", strings::text(key!("job-cause-no-file"))],
     );
+    assert_eq!(banner, Some(missing_file));
     let malformed = tmp.0.join("malformed.csv");
     std::fs::write(&malformed, "not a PLC exchange file\n\u{0}\u{1}").unwrap();
     let banner = read_in_window(&mut s, "plc.import", json!({"path": malformed.to_string_lossy()}));
