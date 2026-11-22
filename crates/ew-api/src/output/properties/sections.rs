@@ -162,8 +162,11 @@ impl SectionCx<'_, '_> {
             depth == 0 && self.kind == "device" && ew_commands::commands::ASPECTS.contains(&rpath);
         match spec.ty.inner() {
             FieldType::Group(children) => {
-                // The project's supply shows its members while it has none: setting one makes it (FT-1928).
-                let supply = self.kind == "project" && (rpath == "supply" || rpath.starts_with("supply."));
+                // A schematic project's supply shows its members while it has none: setting one makes it (FT-1928). A
+                // basic or macro project has no supply to set (FR-PRJ-026), so it shows no rows that could only refuse.
+                let supply = self.kind == "project"
+                    && (rpath == "supply" || rpath.starts_with("supply."))
+                    && self.cx.q.project().kind == ew_schema::ProjectKind::Schematic;
                 if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply {
                     return;
                 }

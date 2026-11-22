@@ -584,6 +584,29 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     assert!(sheet.header.findings.iter().all(|f| f.rule != "EW-CORE-023"));
 }
 
+/// The Supply rows stand while a schematic project has no supply, the first value set making one (FT-1928); a basic or
+/// macro project has no supply to set (FR-PRJ-026), so it shows no Supply rows that could only refuse.
+#[test]
+fn only_a_schematic_project_shows_the_rows_of_a_supply_it_lacks() {
+    use ew_schema::ProjectKind;
+    let shows_phases = |kind: ProjectKind| {
+        let (mut project, _, lib) = crate::common::sample_records();
+        project.kind = kind;
+        project.supply = None;
+        let s = crate::common::session_of(project, Vec::new(), lib);
+        let id = s.query().project().id.as_uuid();
+        s.property_sheet(&[id])
+            .sections
+            .iter()
+            .flat_map(|x| &x.rows)
+            .any(|r| r.key == "project/supply.phases")
+    };
+    assert!(shows_phases(ProjectKind::Schematic), "a schematic project's");
+    for kind in [ProjectKind::Basic, ProjectKind::Macro] {
+        assert!(!shows_phases(kind.clone()), "{kind:?}");
+    }
+}
+
 /// The frozen tag is typed as the page prints it.
 #[test]
 fn the_frozen_tag_takes_the_printed_tag_as_text() {

@@ -23,7 +23,8 @@ change here.
 - behaviour-change: a project's supply is set in its Properties and by `project.supply.set`, member by member: its
   phases, neutral, PE, earthing, nominal voltage, frequency, upstream rating and short-circuit current, previewed as
   one step; a new project, which has none, takes one with the first value set (1 phase + N + PE, 230 V, 50 Hz), and a
-  value no supply has (four phases, 0 V) is refused in words (doc 06 §3.1, ADR-0008 amendment 6, FT-1928)
+  value no supply has (four phases, 0 V) is refused in words; a basic or macro project, which has no supply, shows no
+  Supply rows (doc 06 §3.1, ADR-0008 amendment 6, FT-1928)
 - behaviour-change: Arrange and route and Route keep a wire into an interruption point or supply mark on the mark's
   line: the layout's measure prices a trunk laid beside a mark's line, off it, at 32 steps, so a plan that shortens
   the wiring that way is no longer offered (doc 06a §1.2, C8, FT-1909)

@@ -360,7 +360,7 @@ than one to three phases, a nominal voltage of 0 V or less, a frequency below 0 
 short-circuit current of 0 or less. A schematic project without a supply, a new one's, takes the supply of one phase
 with N and PE, 230 V, 50 Hz, its earthing unset, with the first member set, so that Properties, whose Project rows show
 the supply's members while it has none, can give a new project its supply; a basic or macro project has none and is
-refused, FR-PRJ-026. A new project is still made without one: a supply guessed at its creation would print on its
+refused, FR-PRJ-026, and its Properties show no Supply rows. A new project is still made without one: a supply guessed at its creation would print on its
 cover page before the person chose it); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
 must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
 project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
