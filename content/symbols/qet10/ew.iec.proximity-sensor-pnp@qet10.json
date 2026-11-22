@@ -1,0 +1,290 @@
+{
+  "$k": "symbol",
+  "id": "7e0f2011-6f05-5799-ad2f-a974cb64d27a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c94660f7-c781-5ed3-b94d-9540dedce932",
+  "version": "0.1.0",
+  "sha256": "sha256:d63def85ad0fe651b83c9d46c8256a127a199b3d826c58aebf709507416c3444",
+  "meta": {
+    "key": "ew.iec.proximity-sensor-pnp@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Proximity sensor, three-wire, PNP, normally open",
+    "nl": "Naderingsschakelaar, driedraads, PNP, maakcontact"
+  },
+  "keywords": [
+    "inductive",
+    "no",
+    "pnp",
+    "proximity",
+    "sensor",
+    "three-wire"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "39efb487-4990-50cc-a7a9-eb1747dd631c",
+    "version_req": "^0.1",
+    "key": "ew.fn.proximity-sensor-pnp"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          13229167
+        ],
+        "to": [
+          0,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          -1322917,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          13229167
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -2645833,
+            2645833
+          ],
+          [
+            6614583,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -661458,
+          6614583
+        ],
+        "to": [
+          2645833,
+          6614583
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          },
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            2645833,
+            6614583
+          ],
+          [
+            3968750,
+            5291667
+          ],
+          [
+            5291667,
+            6614583
+          ],
+          [
+            3968750,
+            7937500
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        13229167
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        5291667,
+        13229167
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3968750,
+        5291667
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        -3968750,
+        9921875
+      ],
+      "align": "top_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        5953125,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -3968750,
+        5953125
+      ],
+      "align": "top_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "tag + rating",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ]
+}

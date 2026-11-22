@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a three-wire PNP proximity sensor is among the starter parts (EW-GEN-PRX-1, 24 V DC), on its own
+  symbol under the position sensors, its pins the cores BN (L+), BK (the output) and BU (M) (doc 07 §2.3, FT-1840)
 - text-change: every starter part has a Dutch description and every starter symbol a Dutch name, so a Dutch
   project's parts list prints "Doorgangsklem" where it printed "Feed-through terminal"; the starter parts library is
   0.19.0, each part one patch version further (doc 07 §2.1, FT-1934)

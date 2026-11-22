@@ -83,6 +83,10 @@ const PATHS: &[(&str, Path)] = &[
         "ew.iec.position-switch-no@qet10",
         Path::Part("EW-GEN-POS-1", 0, MULTI),
     ),
+    (
+        "ew.iec.proximity-sensor-pnp@qet10",
+        Path::Part("EW-GEN-PRX-1", 0, MULTI),
+    ),
     ("ew.iec.pushbutton-nc@qet10", Path::Part("EW-GEN-PB-2", 0, MULTI)),
     ("ew.iec.pushbutton-no@qet10", Path::Part("EW-GEN-PB-1", 0, MULTI)),
     ("ew.iec.rcd-2p@qet10", Path::Part("EW-GEN-RCD-1", 0, MULTI)),

@@ -1,0 +1,47 @@
+{
+  "$k": "fndef",
+  "id": "0237b6b7-c302-5816-9dec-71871b0a45e1",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "39efb487-4990-50cc-a7a9-eb1747dd631c",
+  "version": "0.1.0",
+  "sha256": "sha256:687a5d71d79171f86fb1ac0f96214934b07b4c1243cba16dd34541d8d12fa38e",
+  "meta": {
+    "key": "ew.fn.proximity-sensor-pnp",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "SensingPosition",
+    "ProximitySensor",
+    "PNP"
+  ],
+  "contact_kind": "no",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "BN"
+    },
+    {
+      "idx": 1,
+      "designation": "BK"
+    },
+    {
+      "idx": 2,
+      "designation": "BU"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

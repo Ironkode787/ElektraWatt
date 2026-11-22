@@ -285,6 +285,12 @@ function text and, when that is empty, the tracked target's process tag (doc 11 
 0.3.0 (both editions) sets it on its function-text slot. Pilot and drain lines are drawn with this section's `dashed`
 pattern, `verified = false`.
 
+*As built (FT-1840).* `ew.iec.proximity-sensor-pnp` draws a three-wire PNP proximity sensor in IEC 60617 practice: a
+box around a normally open contact worked by a proximity actuator (the rhombus, linked by the dashed line), its pins
+the cores BN (L+, top), BK (the switched output, below the contact) and BU (M, beside it). Its FnDef
+`ew.fn.proximity-sensor-pnp` (SensingPosition, contact kind NO) passes BN to BK when the contact closes; the starter
+part EW-GEN-PRX-1 (24 V DC) is drawn on it.
+
 ### 2.4 Function definitions and connection-point designations
 
 `FnDef` is defined in [03](03-domain-model.md) §7:

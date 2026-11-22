@@ -60,7 +60,8 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1, 0.18.0 since every bus the
 /// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
-/// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description (FT-1934).
+/// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description (FT-1934) and the three-wire PNP proximity sensor
+/// EW-GEN-PRX-1 was added (FT-1840).
 const LIBRARY_VERSION: &str = "0.19.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description (FT-1934).
 const PART_VERSION: &str = "0.1.1";
@@ -694,6 +695,23 @@ fn defs() -> Vec<Def> {
             template: vec![("ew.fn.position-switch-no", true, vec![0, 1])],
             contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
+        },
+        // FT-1840: the three-wire PNP sensor, wired by its cores: brown L+, black the switched output, blue M.
+        Def {
+            number: "EW-GEN-PRX-1",
+            kind: None,
+            description: [
+                "Proximity sensor PNP, three-wire, normally open, 24 V DC",
+                "Naderingsschakelaar PNP, driedraads, maakcontact, 24 V DC",
+            ],
+            cps: cps(&["BN", "BK", "BU"]),
+            template: vec![("ew.fn.proximity-sensor-pnp", true, vec![0, 1, 2])],
+            contacts: vec![("no", vec!["BN", "BK"])],
+            tech: vec![("rated_voltage", q("24", "V"))],
             plc: None,
             mech: None,
             sections: None,
