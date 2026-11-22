@@ -1311,7 +1311,10 @@ nothing else while the card is open). The toast after Apply: "Arranged folio 102
 *As built (step 4b).* The jobs are every wire of the scope (§3.2), and Route's plan of the same jobs is the plan to
 beat. The lead counts the wires you drew that get a new route ("9 wires are routed, 2 of them drawn by you"); the
 heading "Wires you drew yourself" is a tick of its own (`layout.arrange_tick {all}`) that unticks every row under it,
-or ticks them all. The history names a `layout.apply` with symbol moves "Arrange and route" (`ARRANGE_STEP`), one
+or ticks them all. Such a wire's row belongs to the card even where Route alone keeps the wire as it runs (Route
+keeps a drawn wire; Arrange's plan gives it a new route where that beats Route's plan): with every symbol unticked the
+card can still list them, as the sample's folio 103 lists -X1031:SH/b → -103M1:PE (FT-1892). The history names a
+`layout.apply` with symbol moves "Arrange and route" (`ARRANGE_STEP`), one
 without "Route wires". A canvas fitted when the card opened fits again at the first new size of its pane after the card
 is gone.
 
