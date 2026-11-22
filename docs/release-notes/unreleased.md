@@ -383,6 +383,10 @@ change here.
 - behaviour-change: a part without a symbol of its own, placed with the Place tool, says in its hint that it is drawn
   as a box ("This part has no symbol of its own and is drawn as a box: click its first corner…"); the Black box tool
   armed without a word (doc 06 §3.3, FT-1808)
+- behaviour-change: a pin's place typed in the device box between two steps of the 4 mm pin grid, or on a corner,
+  says where the pin stands ("The pin stands at 4 mm: a pin stands on a step of 4 mm…"); it went to the step without
+  a word. The line over a copy of a starter part says that the copy keeps the starter's part number until it is given
+  one of its own (doc 07 §2.5, FT-1811)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

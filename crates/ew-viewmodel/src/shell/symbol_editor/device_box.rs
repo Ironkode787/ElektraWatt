@@ -653,6 +653,24 @@ impl ShellModel {
                 };
             }
         }
+        // A place typed between two steps of the pin grid, or on a corner, and where the pin stands instead (FT-1811).
+        let taken = std::cell::Cell::new(None);
+        let place = |d: &mut PartDraft, idx: u16, side: Dir4, mm: f64| -> bool {
+            let at = (mm * 1e6).round() as i64;
+            if !d.place_pin(idx, side, at) {
+                return false;
+            }
+            let stands = d
+                .box_steps()
+                .pins
+                .into_iter()
+                .find(|pin| pin.0 == idx)
+                .map_or(at, |pin| pin.2 * EDIT_STEP);
+            if stands != at {
+                taken.set(Some((mm, stands)));
+            }
+            true
+        };
         let change = |d: &mut PartDraft| -> Result<Option<u16>, String> {
             if p.get("add") == Some(&Value::Bool(true)) {
                 return Ok(Some(d.add_pin(text("name"))));
@@ -673,7 +691,7 @@ impl ShellModel {
             if let Some(word) = text("side") {
                 let side = side_of(word).ok_or_else(|| words(key!("box-side-invalid")))?;
                 let done = match p.get("at").and_then(Value::as_f64) {
-                    Some(mm) => d.place_pin(idx, side, (mm * 1e6).round() as i64),
+                    Some(mm) => place(d, idx, side, mm),
                     None => d.move_pin(idx, side, index("before")),
                 };
                 if !done {
@@ -687,7 +705,7 @@ impl ShellModel {
                     .find(|pin| pin.0 == idx)
                     .map(|pin| pin.1)
                     .ok_or_else(|| words(key!("box-pin-unknown")))?;
-                d.place_pin(idx, side, (mm * 1e6).round() as i64);
+                place(d, idx, side, mm);
             }
             Ok(None)
         };
@@ -707,6 +725,20 @@ impl ShellModel {
         } else {
             change(draft)
         };
+        if let (Ok(_), Some((typed, stands))) = (&result, taken.get()) {
+            self.notes.push(
+                strings::format(
+                    key!("box-pin-on-step"),
+                    &[
+                        &super::sheet::trim_mm(stands as f64 / 1e6),
+                        &super::sheet::trim_mm(EDIT_STEP as f64 / 1e6),
+                        &super::sheet::trim_mm(typed),
+                    ],
+                ),
+                "part",
+                None,
+            );
+        }
         match result {
             Ok(_) => Outcome::Done,
             Err(message) => Outcome::Failed { message },
