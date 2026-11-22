@@ -2363,6 +2363,7 @@ impl ShellModel {
                     self.act_part_choose(&params)
                 }
                 RowMenuItem::EditPart => self.act_part_edit(&Map::new()),
+                RowMenuItem::Placeholder => self.act_part_placeholder(&Map::new()),
                 RowMenuItem::GoToSource => self.props_go_to_source(&row),
                 RowMenuItem::DefinePotential => self.act_potential_draw(&Map::new()),
                 RowMenuItem::CpUnused { on } => {
@@ -2411,7 +2412,7 @@ impl ShellModel {
 
     /// The entries of the actions menu of the row `key`: the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
-    /// Parts row Choose part…, Add part… and Edit part…; then Go to source on a row whose value has a source to go to,
+    /// Parts row Choose part…, Type not known yet…, Add part… and Edit part…; then Go to source on a row whose value has a source to go to,
     /// Define potential… on the Potential row of a potential no definition names, and Mark not used or Mark used on a
     /// device's connection point; empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
@@ -2428,6 +2429,7 @@ impl ShellModel {
         if row.ty.is_part_uses() && row.actions.contains(&RowAction::Edit) {
             let has_part = matches!(&row.value, RowValue::One { json, .. } if json.as_array().is_some_and(|a| !a.is_empty()));
             out.push(RowMenuItem::ChoosePart { first_use: has_part });
+            out.push(RowMenuItem::Placeholder);
             out.push(RowMenuItem::AddPart);
             if has_part {
                 out.push(RowMenuItem::EditPart);

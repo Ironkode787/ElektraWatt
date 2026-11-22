@@ -2198,6 +2198,8 @@ pub enum RowMenuItem {
     },
     /// Add part… on a Parts row: `part.choose add=true`.
     AddPart,
+    /// Type not known yet… on a Parts row, beside Choose part…: `part.placeholder` (the part dialog with its field).
+    Placeholder,
     /// Edit part… on a Parts row that names a part: `part.edit`.
     EditPart,
     /// Go to source on a derived or inherited row whose source is a row of a record or of the project (doc 16 §6.2,
@@ -2216,6 +2218,15 @@ pub enum RowMenuItem {
     FunctionOverPath,
 }
 
+/// What an entry of the row's actions menu does, its tooltip, where its label does not say it (Make variable read as the
+/// stand-in part to a persona run); `None` for the others.
+pub fn menu_tip(item: RowMenuItem) -> Option<&'static str> {
+    match item {
+        RowMenuItem::MakeVariable => Some(strings::text(key!("props-tip-make-variable"))),
+        _ => None,
+    }
+}
+
 /// The label of an entry of the row's actions menu.
 pub fn menu_label(item: RowMenuItem) -> &'static str {
     match item {
@@ -2223,6 +2234,7 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::MakeVariable => strings::text(key!("props-action-make-variable")),
         RowMenuItem::ChoosePart { .. } => strings::text(key!("action-part-choose")),
         RowMenuItem::AddPart => strings::text(key!("action-part-add")),
+        RowMenuItem::Placeholder => strings::text(key!("action-part-placeholder")),
         RowMenuItem::EditPart => strings::text(key!("action-part-edit")),
         RowMenuItem::GoToSource => strings::text(key!("props-action-go-to-source")),
         RowMenuItem::DefinePotential => strings::text(key!("action-potential-draw")),

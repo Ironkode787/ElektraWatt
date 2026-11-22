@@ -56,6 +56,32 @@ en-GB = "A manufacturer's article from a library; a project holds a copy of each
 nl-NL = "Een artikel van een fabrikant uit een bibliotheek; een project bewaart een kopie van elk gebruikt artikel, gekoppeld aan apparaten."
 
 [[term]]
+ew = "Stand-in part"
+actions = ["part.placeholder"]
+[term.words]
+en-GB = ["placeholder", "stand-in", "not known", "undecided", "TBD"]
+nl-NL = ["tijdelijk", "nog onbekend", "onbeslist"]
+[term.labels]
+en-GB = "Stand-in part"
+nl-NL = "Voorlopig artikel"
+[term.definition]
+en-GB = "A part whose type is not decided yet, named in a few words (Type not known yet…); the parts list shows it and the check reports it until a real part is chosen."
+nl-NL = "Een artikel waarvan het type nog niet vaststaat, in een paar woorden benoemd (Type nog onbekend…); de stuklijst toont het en de controle meldt het tot een echt artikel gekozen is."
+
+[[term]]
+ew = "My parts library"
+actions = ["part.remove_own", "part.new"]
+[term.words]
+en-GB = ["delete part", "remove part", "own part"]
+nl-NL = ["artikel verwijderen", "onderdeel verwijderen", "eigen artikel"]
+[term.labels]
+en-GB = "My parts library"
+nl-NL = "Mijn artikelbibliotheek"
+[term.definition]
+en-GB = "The parts of your own (New part…), offered to every project; Remove from my parts library… takes one out, and the projects that use it keep their copy."
+nl-NL = "Uw eigen artikelen (Nieuw artikel…), aangeboden aan elk project; Uit mijn artikelbibliotheek verwijderen… haalt er een uit, en de projecten die het gebruiken houden hun kopie."
+
+[[term]]
 ew = "Wire marker"
 eplan = ["CDP", "Connection definition point"]
 qet = ["Conductor text"]

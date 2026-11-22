@@ -862,17 +862,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_pick(p),
         )),
     ),
+    // Type not known yet…: in the part dialog, and in the command search (placeholder, stand-in, TBD) and the Parts
+    // row's menu beside Choose part…, which open the dialog with its field (a persona run found it four steps deep).
     with_params(
-        "description:text",
-        hidden(act(
+        "description?:text",
+        act(
             "part.placeholder",
             Command,
             Menu::Edit,
             &[],
-            part_dialog_open,
-            None,
+            writable,
+            slot(Menu::Edit),
             |s, p| s.act_part_placeholder(p),
-        )),
+        ),
     ),
     with_params(
         "index?:uint",
@@ -898,16 +900,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_edit(p),
         ),
     ),
+    // New part… in Edit, and on the PLC tab's station group, where a person makes a card or a head station of his own
+    // (a persona run looked for it there).
     with_params(
         "symbol?:text, from?:text, plc?:text, cable?:bool",
-        act(
-            "part.new",
-            View,
-            Menu::Edit,
-            &[],
-            writable,
-            slot(Menu::Edit),
-            |s, p| s.act_part_new(p),
+        placed(
+            place(Group::Station, 30, CommandSize::Small, Some(key!("bar-new-part"))),
+            "package",
+            act(
+                "part.new",
+                View,
+                Menu::Edit,
+                &[],
+                writable,
+                slot(Menu::Edit),
+                |s, p| s.act_part_new(p),
+            ),
         ),
     ),
     with_params(
@@ -1006,18 +1014,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_save(p),
         )),
     ),
-    // A part of My parts taken out of it (FT-1766): the part editor's Remove from my parts library…, confirmed.
+    // A part of My parts taken out of it (FT-1766): the part editor's Remove from my parts library…, confirmed; also in
+    // the command search (delete part, remove part) for the selected device's part or the Libraries navigator's row.
     with_params(
         "part?:text, confirm?:bool",
-        hidden(act(
+        act(
             "part.remove_own",
             Command,
             Menu::Edit,
             &[],
             always,
-            None,
+            slot(Menu::Edit),
             |s, p| s.act_part_remove_own(p),
-        )),
+        ),
     ),
     with_params(
         "choice:enum(adapt|update)",

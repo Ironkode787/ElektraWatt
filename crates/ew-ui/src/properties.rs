@@ -2028,6 +2028,11 @@ fn actions_menu(
                     crate::theme::font(&t.type_body),
                     t.text_primary.color32(),
                 );
+                // An entry whose label does not say what it does says it on hover (Make variable).
+                let response = match ew_viewmodel::properties::menu_tip(*a) {
+                    Some(tip) => response.on_hover_text(tip),
+                    None => response,
+                };
                 if response.clicked() {
                     chose = true;
                     events.push(Event::Action("props.choose", json!({ "index": i })));

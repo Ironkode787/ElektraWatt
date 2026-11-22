@@ -812,7 +812,12 @@ record kind.
   description is refused in words.
 - *Window.* In the part dialog (Properties ▸ Part ▸ Choose…, a strip's terminals without a part), Type not known yet…
   opens a field for what the part is and Use as placeholder (or Enter) gives it; the placeholder is a held part of the
-  project from then on, so the dialog lists it among the project's parts for the next device.
+  project from then on, so the dialog lists it among the project's parts for the next device. *As built (persona runs,
+  0.3.5):* Type not known yet… is also in the Parts row's … menu beside Choose part… and in the command search (under
+  placeholder, stand-in, not known, undecided, TBD: the glossary's Stand-in part), each opening the part dialog of the
+  selection with the field open; Make variable in that menu says on hover that it is a macro's variable, not a stand-in
+  part. Remove from my parts library… is in the command search too (delete part, remove part) for the selected device's
+  part or the Libraries navigator's row, and New part… stands on the PLC tab's station group.
 - *What prints.* The parts list has its row: no manufacturer, part number TBD, the description, the count of its
   devices; the terminal diagram's Part column prints TBD.
 - *The check.* The device has a part, so EW-CORE-041 is silent. EW-CORE-043 reports the placeholder as info online (a

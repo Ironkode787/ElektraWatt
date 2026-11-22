@@ -261,6 +261,8 @@ pub(crate) fn chooser(
     } else {
         ctx.data(|d| d.get_temp(id))
     };
+    // Type not known yet… from the command search or the Parts row's menu: its field opens with the dialog.
+    let preset = devices && just_opened && c.naming;
     let mut opened = false;
     ui.horizontal(|ui| {
         if crate::components::button(
@@ -276,6 +278,7 @@ pub(crate) fn chooser(
         }
         opened = devices
             && words.is_none()
+            && !preset
             && crate::components::button(
                 ui,
                 crate::components::Kind::Secondary,
@@ -286,6 +289,7 @@ pub(crate) fn chooser(
             .clicked();
     });
     let naming = words.is_some();
+    let opened = opened || preset;
     if opened {
         words = Some(String::new());
     }

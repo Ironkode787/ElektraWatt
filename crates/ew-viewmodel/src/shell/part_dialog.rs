@@ -55,6 +55,9 @@ pub struct PartChooser {
     /// The active row (0-based); `None` until the person chooses one (FT-1845: Enter took a first row the person had
     /// not chosen).
     pub cursor: Option<usize>,
+    /// Whether Type not known yet…'s field opens with the dialog (the command search's Type not known yet…, a persona
+    /// run's stand-in part four steps deep).
+    pub naming: bool,
 }
 
 impl PartChooser {
@@ -734,6 +737,7 @@ impl ShellModel {
             offers: Vec::new(),
             misfits: Vec::new(),
             cursor: None,
+            naming: false,
         };
         let out = self.open_dialog(Dialog::PartChoose(Box::new(chooser)));
         self.part_refresh();
@@ -852,14 +856,29 @@ impl ShellModel {
         out
     }
 
-    /// `part.placeholder {description}` (Type not known yet… in the part dialog, doc 07 §3.3): gives the dialog's devices
-    /// a placeholder part described by `description` in the dialog's mode, as Choose would give them a part, and closes
-    /// the dialog. A bridge's or an accessory's part is refused: a placeholder is a device's.
+    /// `part.placeholder {description?}` (Type not known yet… in the part dialog, doc 07 §3.3; also in the command search
+    /// and the Parts row's menu, where the part dialog of the selection opens first): gives the dialog's devices a
+    /// placeholder part described by `description` in the dialog's mode, as Choose would give them a part, and closes
+    /// the dialog; without `description` the dialog's field for it opens. A bridge's or an accessory's part is refused: a
+    /// placeholder is a device's.
     pub(crate) fn act_part_placeholder(&mut self, p: &Map<String, Value>) -> Outcome {
         let description = match string_param(p, "description") {
-            Ok(Some(d)) => d.to_owned(),
-            Ok(None) => return failed(key!("error-missing-param"), &["description"]),
+            Ok(d) => d.map(str::to_owned),
             Err(e) => return e,
+        };
+        // Without the dialog (the command search, the Parts row's menu): the part dialog of the selection opens.
+        if self.part_chooser().is_none() {
+            let out = self.act_part_choose(&Map::new());
+            if out != Outcome::Done {
+                return out;
+            }
+        }
+        // Without a description its field opens, to be named.
+        let Some(description) = description else {
+            if let Some(Dialog::PartChoose(c)) = &mut self.dialog {
+                c.naming = true;
+            }
+            return Outcome::Done;
         };
         let Some(c) = self.part_chooser() else {
             return Outcome::refused(key!("reason-no-part-dialog"));
@@ -1198,9 +1217,12 @@ impl ShellModel {
     /// window asks first (Cancel returns to the part editor) and a script is refused in words, as the journal's
     /// discard is. Refused in words for a part that is not in My parts.
     pub(crate) fn act_part_remove_own(&mut self, p: &Map<String, Value>) -> Outcome {
+        // The part named, else the part editor's, else the part Edit part… would open: the selected device's, the
+        // Libraries navigator's row (a persona run looked for it where parts are listed and in the command search).
         let copy = match (self.part_edit_copy(p), &self.dialog) {
             (Ok(Some(c)), _) if p.contains_key("part") => c,
             (_, Some(Dialog::PartEdit(e))) if !p.contains_key("part") => e.draft.copy,
+            (Ok(Some(c)), _) => c,
             (Err(e), _) => return e,
             _ => return Outcome::refused(key!("reason-part-edit-target")),
         };
