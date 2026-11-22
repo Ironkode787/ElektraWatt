@@ -387,11 +387,14 @@ pub const fn place(
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
 pub const SPLITS: &[(&str, &[&str])] = &[
     ("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"]),
-    // Enclosure… and the plate a layout page shows (the persona looked for both beside Rail and Duct).
+    // Enclosure… and the plate a layout page shows (the persona looked for both beside Rail and Duct), and Fit the
+    // layout to the sheet (a persona run looked for it there and found it only in the empty page's menu).
     (
         "layout.enclosure_new",
-        &["layout.enclosure_new", "layout.choose_plate"],
+        &["layout.enclosure_new", "layout.choose_plate", "layout.fit_sheet"],
     ),
+    // New station… and New part…, for a card or a head station of one's own (a persona run looked for it on the PLC tab).
+    ("plc.new_station", &["plc.new_station", "part.new"]),
 ];
 
 /// The tab's next step (doc 16a §5.2): the one Primary button at the right end of the command row.

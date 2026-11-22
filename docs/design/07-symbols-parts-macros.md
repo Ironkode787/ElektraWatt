@@ -817,7 +817,7 @@ record kind.
   placeholder, stand-in, not known, undecided, TBD: the glossary's Stand-in part), each opening the part dialog of the
   selection with the field open; Make variable in that menu says on hover that it is a macro's variable, not a stand-in
   part. Remove from my parts library… is in the command search too (delete part, remove part) for the selected device's
-  part or the Libraries navigator's row, and New part… stands on the PLC tab's station group.
+  part or the Libraries navigator's row, and New part… is in New station…'s split on the PLC tab.
 - *What prints.* The parts list has its row: no manufacturer, part number TBD, the description, the count of its
   devices; the terminal diagram's Part column prints TBD.
 - *The check.* The device has a part, so EW-CORE-041 is silent. EW-CORE-043 reports the placeholder as info online (a

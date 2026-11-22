@@ -513,7 +513,7 @@ rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26
 Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet** (0.3.5): a new view fits
 its enclosure to the frame's whole drawing area at the first ratio of the series that holds it and centres it there;
 nothing is kept free for a legend, which is a list page of its own (§5.4). **Fit the layout to the sheet**
-(`layout.fit_sheet`, a panel page's context menu, Page ▸ Order and the button Fit to sheet of the Draw tab's layout
+(`layout.fit_sheet`, a panel page's context menu, Page ▸ Order and Enclosure's split on the Draw tab's layout
 group beside Rail and Duct) does the same to the view a page has: one
 `page.surface_view.set` with the fitting scale and the centred datum, its labels and label mode kept, so it changes the
 datum and the scale and never a stored pose; on a page drawn so already it is refused in words ("The layout takes the

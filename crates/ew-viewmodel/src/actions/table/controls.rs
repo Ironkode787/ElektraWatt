@@ -900,22 +900,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_edit(p),
         ),
     ),
-    // New part… in Edit, and on the PLC tab's station group, where a person makes a card or a head station of his own
-    // (a persona run looked for it there).
+    // New part… in Edit, and in New station…'s split on the PLC tab, where a person makes a card or a head station of
+    // his own (a persona run looked for it there).
     with_params(
         "symbol?:text, from?:text, plc?:text, cable?:bool",
-        placed(
-            place(Group::Station, 30, CommandSize::Small, Some(key!("bar-new-part"))),
-            "package",
-            act(
-                "part.new",
-                View,
-                Menu::Edit,
-                &[],
-                writable,
-                slot(Menu::Edit),
-                |s, p| s.act_part_new(p),
-            ),
+        act(
+            "part.new",
+            View,
+            Menu::Edit,
+            &[],
+            writable,
+            slot(Menu::Edit),
+            |s, p| s.act_part_new(p),
         ),
     ),
     with_params(

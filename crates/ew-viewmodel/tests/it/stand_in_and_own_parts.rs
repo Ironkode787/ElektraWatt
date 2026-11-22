@@ -54,8 +54,13 @@ fn the_stand_in_part_and_an_own_part_are_found_where_a_person_looks() {
     let _ = s.dispatch("ui.dismiss", &json!({}));
 
     done(&mut s, "view.command_tab", json!({"tab": "plc"}));
-    assert!(
-        command_bar(&s).groups.iter().flat_map(|g| &g.buttons).any(|b| b.id == "part.new"),
-        "the PLC tab offers New part…"
-    );
+    assert!(bar_offers(&s, "part.new"), "the PLC tab offers New part…");
+}
+
+/// Whether the bar on show offers `id`, as a button or in a split button's variants (New station…'s).
+fn bar_offers(s: &ShellModel, id: &str) -> bool {
+    command_bar(s).groups.iter().flat_map(|g| &g.buttons).any(|b| {
+        b.id == id
+            || matches!(&b.kind, ew_viewmodel::command_bar::ButtonKind::Split(v) if v.iter().any(|i| i.id == id))
+    })
 }
