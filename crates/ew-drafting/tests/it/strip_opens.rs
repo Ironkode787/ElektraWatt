@@ -26,7 +26,12 @@ fn a_strip_over_a_card_opens_to_the_channels_columns_in_its_own_order() {
         let (sensor, terminal) = (format!("B{k}"), strip[k + 1]);
         b.device(&sensor, p(18 + 3 * k as i32, 20));
         b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(terminal, "1"), &[]);
-        b.wire(&format!("c{k}"), b.pin(terminal, "2"), b.pin("A1", &format!("{k}")), &[]);
+        b.wire(
+            &format!("c{k}"),
+            b.pin(terminal, "2"),
+            b.pin("A1", &format!("{k}")),
+            &[],
+        );
     }
     b.mark_in("24V", p(4, 36));
     b.wire("feed", b.pin("24V", "1"), b.pin("X1", "2"), &[]);
@@ -38,7 +43,12 @@ fn a_strip_over_a_card_opens_to_the_channels_columns_in_its_own_order() {
     assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
     // The channels' terminals in their channels' columns.
     for k in 0..4 {
-        assert_eq!(at(&done, strip[k + 1]).x, p(14 + 8 * k as i32, 0).x, "{}", strip[k + 1]);
+        assert_eq!(
+            at(&done, strip[k + 1]).x,
+            p(14 + 8 * k as i32, 0).x,
+            "{}",
+            strip[k + 1]
+        );
     }
     // One strip: every terminal on one line, in the order it was numbered.
     let line = at(&done, "X1").y;
@@ -72,7 +82,12 @@ fn a_strip_wired_against_its_order_does_not_open_and_the_plan_says_why() {
         let (sensor, terminal) = (format!("B{k}"), strip[k + 1]);
         b.device(&sensor, p(18 + 3 * k as i32, 20));
         b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(terminal, "1"), &[]);
-        b.wire(&format!("c{k}"), b.pin(terminal, "2"), b.pin("A1", &format!("{}", 3 - k)), &[]);
+        b.wire(
+            &format!("c{k}"),
+            b.pin(terminal, "2"),
+            b.pin("A1", &format!("{}", 3 - k)),
+            &[],
+        );
     }
     b.mark_in("24V", p(4, 36));
     b.wire("feed", b.pin("24V", "1"), b.pin("X1", "2"), &[]);

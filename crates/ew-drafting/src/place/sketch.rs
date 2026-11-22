@@ -1301,7 +1301,9 @@ impl<'a> Sketch<'a> {
     /// The lead of a unit that hangs in line on a pin facing up or down: a channel's terminal under or over its card.
     fn in_column(&self, u: usize) -> Option<Lead> {
         self.lead[u].filter(|l| {
-            l.inline && matches!(l.kind, Kind::Facing | Kind::Tap) && self.side(l.h).is_some_and(Side::vertical)
+            l.inline
+                && matches!(l.kind, Kind::Facing | Kind::Tap)
+                && self.side(l.h).is_some_and(Side::vertical)
         })
     }
 
@@ -1403,19 +1405,28 @@ impl<'a> Sketch<'a> {
                 .flat_map(|p| sk.w.parts[*p].pins.iter().map(|x| x.id))
                 .collect();
             let mut far: Vec<i64> = Vec::new();
-            for net in sk.w.nets.iter().filter(|n| n.pins.iter().any(|p| own.contains(p))) {
+            for net in
+                sk.w.nets
+                    .iter()
+                    .filter(|n| n.pins.iter().any(|p| own.contains(p)))
+            {
                 for q in net.pins.iter().filter(|p| !own.contains(p)) {
                     let u = sk.unit_of_pin(*q);
                     if follows.contains(&u) {
                         continue;
                     }
-                    far.push(match members.iter().position(|m| *m != f && sk.in_line(*m, members).contains(&u)) {
-                        Some(j) => {
-                            let at = column[j].unwrap_or(left(sk, members[j]) + sk.d[members[j]].x);
-                            2 * i64::from(at) + i64::from(width)
-                        }
-                        None => 2 * i64::from(sk.pt(*q).x),
-                    });
+                    far.push(
+                        match members
+                            .iter()
+                            .position(|m| *m != f && sk.in_line(*m, members).contains(&u))
+                        {
+                            Some(j) => {
+                                let at = column[j].unwrap_or(left(sk, members[j]) + sk.d[members[j]].x);
+                                2 * i64::from(at) + i64::from(width)
+                            }
+                            None => 2 * i64::from(sk.pt(*q).x),
+                        },
+                    );
                 }
             }
             let n = i64::try_from(far.len()).ok().filter(|n| *n > 0)?;
