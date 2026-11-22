@@ -35,7 +35,9 @@
 //! and a text it runs through, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick inside; C5 [`LABEL_CLASH`] for each pair
 //! of a label and a text, a label and another part's body, and each label outside the drawing area; C6
 //! [`LABEL_RANK`] for each place a label stands down its list; C7 [`HALF_STEP_EXTRA`] per tick of a run on the half
-//! grid (its line at an odd multiple of half a step).
+//! grid (its line at an odd multiple of half a step); C8 [`MARK_JOG`] for each wire from a pin of a mark (an
+//! interruption point or a supply mark) to a tap (a junction, or a pin another wire ends at too) with a corner: the
+//! trunk it taps runs off the mark's line.
 //!
 //! **Reported:** the wires drawn straight (routed, no corner) against all wires; the turn-backs (three runs in a
 //! row of which the third runs against the first); the detour (the routes' length against the city-block distance of
@@ -44,7 +46,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, STEP, TEXT_CROSSED, TEXT_STEP, TICKS_PER_STEP,
+    BEND, CROSSING, HALF_STEP_EXTRA, LABEL_CLASH, LABEL_RANK, MARK_JOG, STEP, TEXT_CROSSED, TEXT_STEP,
+    TICKS_PER_STEP,
 };
 use crate::geom::{self, Seg};
 use crate::labels::{Settled, settle_labels};
@@ -97,6 +100,8 @@ pub struct Findings {
     pub texts_on_parts: Vec<(LabelId, PartId)>,
     /// C5: a label outside the drawing area.
     pub texts_outside: Vec<LabelId>,
+    /// C8: each wire from a mark to a tap that bends on its way.
+    pub mark_jogs: Vec<WireId>,
     /// Reported: each wire with turn-backs, and how many.
     pub turn_backs: Vec<(WireId, usize)>,
     /// The wires without a route between two different points.
@@ -122,6 +127,8 @@ pub struct Counts {
     pub label_ranks: i64,
     /// C7: the ticks of runs on the half grid.
     pub half_grid: i64,
+    /// C8: the wires from a mark to a tap that bend.
+    pub mark_jogs: usize,
     /// The wires drawn straight.
     pub straight: usize,
     /// All wires (routed or not, between two different points).
@@ -141,7 +148,7 @@ pub struct Quality {
     pub faults: usize,
     /// The wires without a route.
     pub unrouted: usize,
-    /// The cost C1 to C7, in sixteenths of a step.
+    /// The cost C1 to C8, in sixteenths of a step.
     pub cost: i64,
     /// The counts behind it.
     pub counts: Counts,
@@ -370,6 +377,57 @@ pub fn measure(page: &DraftPage) -> Quality {
             f.four_way.push((j.id, dirs.len(), j.at));
         }
     }
+    // C8: a wire into a mark stays on the mark's line, so its trunk does (§1.2).
+    let marks_pins: BTreeSet<PinId> = parts
+        .iter()
+        .filter(|p| matches!(p.role, crate::model::Role::MarkIn | crate::model::Role::MarkOut))
+        .flat_map(|p| p.pins.iter().map(|pin| pin.id))
+        .collect();
+    let mut wires_at: BTreeMap<PinId, usize> = BTreeMap::new();
+    for w in &wires {
+        for e in w.ends {
+            if let End::Pin(p) = e {
+                *wires_at.entry(p).or_default() += 1;
+            }
+        }
+    }
+    let tap = |e: End| match e {
+        End::Junction(_) => true,
+        End::Pin(p) => !marks_pins.contains(&p) && wires_at.get(&p).is_some_and(|n| *n >= 2),
+    };
+    // The axis a route leaves its end at `q` along: true across, false up and down.
+    let leaves_across = |pts: &[Pt], q: Pt| {
+        let next = match pts {
+            [first, second, ..] if *first == q => Some(*second),
+            [.., before, last] if *last == q => Some(*before),
+            _ => None,
+        };
+        next.map(|n| n.y == q.y)
+    };
+    for l in &lines {
+        let at_mark = |e: End| matches!(e, End::Pin(p) if marks_pins.contains(&p));
+        let [a, b] = l.ends;
+        let (mark, far) = match (at_mark(a), at_mark(b)) {
+            (true, false) => (a, b),
+            (false, true) => (b, a),
+            _ => continue,
+        };
+        let (Some(m), Some(q)) = (point_of(mark), point_of(far)) else {
+            continue;
+        };
+        if !tap(far) || geom::corners(&l.pts).is_empty() {
+            continue;
+        }
+        // The trunk goes on from the tap along the mark's axis, off its line.
+        let across = leaves_across(&l.pts, m);
+        let on = lines
+            .iter()
+            .filter(|o| o.id != l.id && o.ends.contains(&far))
+            .any(|o| leaves_across(&o.pts, q) == across && across.is_some());
+        if on {
+            f.mark_jogs.push(l.id);
+        }
+    }
     f.parts_on_parts = parts_on_parts(page);
     // C4 and C5 over the texts where they stand.
     let mut texts: Vec<(TextRef, Rect)> = labels.iter().map(|s| (TextRef::Label(s.id), s.rect)).collect();
@@ -461,6 +519,7 @@ pub fn measure(page: &DraftPage) -> Quality {
     c.crossings = f.crossings.len();
     c.across_texts = f.across_texts.len();
     c.label_clashes = f.texts_on_texts.len() + f.texts_on_parts.len() + f.texts_outside.len();
+    c.mark_jogs = f.mark_jogs.len();
     let step = i64::from(TICKS_PER_STEP);
     let cost = STEP * c.length
         + BEND * step * c.bends as i64
@@ -469,7 +528,8 @@ pub fn measure(page: &DraftPage) -> Quality {
         + TEXT_STEP * c.on_texts
         + LABEL_CLASH * step * c.label_clashes as i64
         + LABEL_RANK * step * c.label_ranks
-        + HALF_STEP_EXTRA * c.half_grid;
+        + HALF_STEP_EXTRA * c.half_grid
+        + MARK_JOG * step * c.mark_jogs as i64;
     let faults = f.through_points.len()
         + f.on_wires.len()
         + f.through_parts.len()

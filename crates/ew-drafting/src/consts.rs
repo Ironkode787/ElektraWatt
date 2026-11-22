@@ -26,6 +26,8 @@ pub const LABEL_CLASH: i64 = 24;
 pub const LABEL_RANK: i64 = 1;
 /// C7: each step on the half grid, more.
 pub const HALF_STEP_EXTRA: i64 = 1;
+/// C8: a mark's wire that bends on its way to the trunk it taps, so the trunk runs off the mark's line.
+pub const MARK_JOG: i64 = 32;
 
 /// The router's least distance of a wire from a body it does not end at.
 pub const BODY_GAP: Tick = TICKS_PER_STEP;

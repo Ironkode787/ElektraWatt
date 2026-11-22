@@ -4,7 +4,8 @@
 //! The measure (docs/design/06a-drafting.md §1.2) on pages built to have exactly one of each thing it counts.
 
 use crate::kit::{Page, id, p, s};
-use ew_drafting::{FixedText, PartId, Quality, Rect, measure};
+use ew_drafting::consts::MARK_JOG;
+use ew_drafting::{FixedText, PartId, Quality, Rect, Tick, measure};
 
 /// The number of each fault list, F2 to F7.
 fn faults(q: &Quality) -> [usize; 6] {
@@ -198,6 +199,38 @@ fn a_label_on_a_text_is_counted_in_the_cost() {
     let q = measure(&b.page);
     assert!(q.counts.label_clashes >= 1, "{:?}", q.findings);
     assert!(q.findings.texts_on_texts.iter().any(|(l, _)| *l == tag.id));
+}
+
+/// C8 (FT-1909): a mark's wire that bends to the junction its trunk goes on from, the trunk along the mark's axis but
+/// off its line, costs [`MARK_JOG`] steps, more than the length and bends a trunk saves by leaving the line; the trunk
+/// on the mark's line costs nothing more, and a mark's wire that bends into a pin no other wire ends at is no jog.
+#[test]
+fn c8_a_marks_wire_that_jogs_off_its_line_to_its_trunk() {
+    let page = |dy: Tick| {
+        let mut b = Page::new(80, 40);
+        b.mark_in("M", p(4, 10));
+        let (j, k) = (b.junction("j", p(20, 10 + dy)), b.junction("k", p(40, 10 + dy)));
+        let via: &[ew_drafting::Pt] = if dy == 0 { &[] } else { &[p(20, 10)] };
+        b.run("m", b.pin("M", "1"), j, via);
+        b.run("trunk", j, k, &[]);
+        b
+    };
+    let (on, off) = (measure(&page(0).page), measure(&page(2).page));
+    assert_eq!(on.findings.mark_jogs, Vec::new());
+    assert_eq!(off.findings.mark_jogs, vec![ew_drafting::WireId(id("m"))]);
+    let step = i64::from(ew_drafting::consts::TICKS_PER_STEP);
+    let jog = i64::from(s(2));
+    assert_eq!(
+        off.cost - on.cost,
+        jog + ew_drafting::consts::BEND * step + MARK_JOG * step,
+        "two steps more, a bend and the jog"
+    );
+    // A mark wired round a corner into a device's pin taps no trunk.
+    let mut b = Page::new(80, 40);
+    b.mark_in("M", p(4, 6));
+    b.device("K1", p(20, 10));
+    b.run("m", b.pin("M", "1"), b.pin("K1", "1"), &[p(20, 6)]);
+    assert_eq!(measure(&b.page).findings.mark_jogs, Vec::new());
 }
 
 #[test]

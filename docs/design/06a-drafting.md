@@ -105,9 +105,15 @@ be routed without a fault stays unrouted (a dashed line, as today).
 | C5 | A label on another text, on another part's body, or outside the drawing area | 24 each | worse than a wire across a text: two texts on each other cannot be read |
 | C6 | A label not at its first place | 1 per place down its list | keeps a label at home when nothing is in its way |
 | C7 | A step on the half grid | 1 more per step | the half grid is for the stretch between close pins only (§3.6) |
+| C8 | A mark's wire that jogs to its trunk: a wire from a pin of an interruption point or supply mark to a tap (a junction, or a pin another wire ends at too) that bends, where the net goes on from the tap along the mark's axis, so the trunk runs beside the mark's line, off it | 32 | a wire into a mark stays on the mark's line (owner, 2026-11-22, FT-1909): on the sample's PLC page 104 Route's plan laid the 0 V trunk off its mark's line for some 28 steps less, so the jog costs more than that |
 
 **Compared** in this order: fewer faults, then fewer unrouted wires, then lower cost. `Quality` is that triple
 with the counts behind it.
+
+*C8's tests.* `ew-drafting`'s `c8_a_marks_wire_that_jogs_off_its_line_to_its_trunk` prices a trunk two steps off its
+mark's line at two steps, a bend and the jog more than the same trunk on the line, and a mark wired round a corner into
+a pin no other wire ends at at no jog; `ew-api`'s `arrange_keeps_a_marks_straight_wire_on_its_line` runs Arrange and
+route on the sample's 104, whose marks' wires run straight, and finds each of them straight in the plan.
 
 **Never worse.** A plan (§3.9, §4.9) is offered only when the page's `Quality` after it is better than before,
 and when no wire or text that was free of a finding (F2 to F6, C4, C5) gets one. The second half is what a person
@@ -191,6 +197,7 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `TEXT_CROSSED`, `TEXT_STEP` | 12, 1 | the cost |
 | `LABEL_CLASH`, `LABEL_RANK` | 24, 1 | the cost |
 | `HALF_STEP_EXTRA` | 1 | the cost |
+| `MARK_JOG` | 32 | the cost |
 | `BODY_GAP`, `STUB` | 1 step each | router: the least distances |
 | `TRACK_PITCH` | 2 steps (1 where a channel is too narrow) | tracks, parallel wires |
 | `CHAIN_GAP` | 5 steps (never less than 2) | placer: between facing pins of two parts in line |

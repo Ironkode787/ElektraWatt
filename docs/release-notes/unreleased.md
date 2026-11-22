@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Arrange and route and Route keep a wire into an interruption point or supply mark on the mark's
+  line: the layout's measure prices a trunk laid beside a mark's line, off it, at 32 steps, so a plan that shortens
+  the wiring that way is no longer offered (doc 06a §1.2, C8, FT-1909)
 - behaviour-change: Draw on a page from the station view sets a card of inputs beside the controller's box where its
   line has room, not under it, so the supply wires from the head no longer cross its first channels (doc 06a §7.5,
   FT-1894)

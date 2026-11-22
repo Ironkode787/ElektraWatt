@@ -7,7 +7,7 @@
 //! - [`model`]: the page as the layout sees it, in ticks of 1/16 grid step ([`DraftPage`], §2.2). Its adapters
 //!   (`ew-scene`'s labels layer, `ew-api`'s `Session::page_draft`) build it once from the stored page.
 //! - [`consts`]: the numbers of the layout, in one place (§1.5).
-//! - [`measure`]: the one measure (§1.2): the faults F2 to F7, the unrouted wires, the cost C1 to C7 and the figures
+//! - [`measure`]: the one measure (§1.2): the faults F2 to F7, the unrouted wires, the cost C1 to C8 and the figures
 //!   a reader compares. The checks and `ew layout` read it.
 //! - [`labels`]: the one text placer (§5): [`settle_labels`].
 //! - [`marks`]: a mark drawn from its wires' routes (§3.10): [`marks::draw_marks`].

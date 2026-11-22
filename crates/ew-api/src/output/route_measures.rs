@@ -66,7 +66,7 @@ pub struct PageLayout {
     pub faults: usize,
     /// The wires without a route between two different points.
     pub unrouted: usize,
-    /// The cost C1 to C7, in grid steps of wire, rounded.
+    /// The cost C1 to C8, in grid steps of wire, rounded.
     pub cost: i64,
     /// The wires drawn straight.
     pub straight: usize,
