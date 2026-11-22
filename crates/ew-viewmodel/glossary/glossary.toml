@@ -72,8 +72,8 @@ nl-NL = "Een artikel waarvan het type nog niet vaststaat, in een paar woorden be
 ew = "My parts library"
 actions = ["part.remove_own", "part.new"]
 [term.words]
-en-GB = ["delete part", "remove part", "own part"]
-nl-NL = ["artikel verwijderen", "onderdeel verwijderen", "eigen artikel"]
+en-GB = ["delete part", "remove part", "own part", "new card", "new module", "own card"]
+nl-NL = ["artikel verwijderen", "onderdeel verwijderen", "eigen artikel", "nieuwe kaart", "nieuwe module", "eigen kaart"]
 [term.labels]
 en-GB = "My parts library"
 nl-NL = "Mijn artikelbibliotheek"

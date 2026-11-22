@@ -32,6 +32,10 @@ fn the_stand_in_part_and_an_own_part_are_found_where_a_person_looks() {
     for q in ["delete part", "remove part"] {
         assert!(found(&mut s, q).iter().any(|id| id == "part.remove_own"), "{q}");
     }
+    // A person who wants a PLC card of his own asks for it by those words too (persona re-test).
+    for q in ["new part", "card", "module"] {
+        assert!(found(&mut s, q).iter().any(|id| id == "part.new"), "{q}");
+    }
     let _ = s.dispatch("ui.dismiss", &json!({}));
 
     done(&mut s, "props.show", json!({"on": true}));
