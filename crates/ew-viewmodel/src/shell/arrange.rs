@@ -298,6 +298,7 @@ fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<S
             StripHeld::Room => strings::format(key!("arrange-held-room"), &[&strip]),
             StripHeld::Part(p) => strings::format(key!("arrange-held-part"), &[&strip, &name(p.0)]),
             StripHeld::Sheet => strings::format(key!("arrange-held-sheet"), &[&strip]),
+            StripHeld::Worse => strings::format(key!("arrange-held-worse"), &[&strip]),
         });
     }
     out.extend(super::wiring::route_rows(session, folio, plan));

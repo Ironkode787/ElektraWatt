@@ -1,20 +1,20 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A strip's feed terminal on a page with cards (docs/design/06a-drafting.md §4.8, rule E4): a terminal wired to no
-//! channel stands at the strip's end, not between the channels' columns.
+//! A strip's feed terminal on a page with cards (docs/design/06a-drafting.md §4.4, §4.8, rule E4): a terminal wired to
+//! no channel keeps its place in the strip's order, between the channels' terminals, which take their columns.
 
-use crate::arrange::{at, run, sound};
+use crate::arrange::{at, run};
 use crate::kit::{Page, p, s};
 use ew_drafting::{Role, measure};
 
-/// A card of four inputs at the foot, a strip of five terminals over it six steps apart, the third of them the feed
-/// terminal (wired from a 24 V mark at the left to the first sensor's supply pin, the sensors' supply chained from
-/// there), the others each wired to a channel, with a sensor over each.
+/// A card of four inputs four steps apart at the foot, a strip of five terminals over it six steps apart, the third of
+/// them the feed terminal (wired from a 24 V mark at the left to the first sensor's supply pin, the sensors' supply
+/// chained from there), the others each wired to a channel, with a sensor over each.
 #[test]
-fn a_feed_terminal_in_the_middle_of_a_strip_stands_at_its_end_and_crosses_no_channel() {
+fn a_feed_terminal_among_the_channels_terminals_keeps_its_place_in_the_strip() {
     let mut b = Page::new(100, 60);
-    let card = b.card("A1", p(30, 48), (12, 6), &[2, 4, 6, 8], true);
+    let card = b.card("A1", p(30, 48), (16, 6), &[2, 6, 10, 14], true);
     b.role(card, Role::Card);
     b.mark_in("L+", p(4, 40));
     let mut k = 0;
@@ -47,16 +47,16 @@ fn a_feed_terminal_in_the_middle_of_a_strip_stands_at_its_end_and_crosses_no_cha
         );
     }
     let (_, done) = run(&b.page, &[]);
-    assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
     for k in 0..4 {
         assert_eq!(
             at(&done, &format!("X{}", k + 1)).x,
-            s(32 + 2 * k),
+            s(32 + 4 * k),
             "channel {k}'s column"
         );
     }
-    assert!(
-        at(&done, "X0").x < at(&done, "X1").x,
-        "the feed terminal at the strip's end"
-    );
+    // In its place in the order, halfway between the terminals of channels 1 and 2.
+    assert_eq!(at(&done, "X0").x, s(38), "the feed terminal between X2 and X3");
+    assert_eq!(at(&done, "X0").y, at(&done, "X1").y, "on the strip's line");
 }

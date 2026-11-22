@@ -69,8 +69,7 @@
 //!
 //! From the root outward, rank by rank (the root, then the units set beside one another by one step of the method).
 //! The mates that hang on a rank join it first: each takes its host's step, stands level with it, takes the pitch the
-//! row now has where the row had one, and what a rail asks of it. A mate with wires of its own (a strip's feed
-//! terminal, wired to no channel) stands at the row's end on the side its wires lead, not between the channels.
+//! row now has where the row had one, and what a rail asks of it.
 //!
 //! - **A row** (facing and tap leads on one side of a rank). The members that stand more than [`ROW_PULL`] beyond the
 //!   nearest wait until what hangs on the near ones is set: a device wired straight to a card does not take the place
@@ -119,11 +118,12 @@
 //!   keeps its order.
 //! - **A strip opens as one** (FT-2110). A strip of terminals over or under a card, two or more of them in line on the
 //!   card's pins, is set anew where the arrangement opens it ([`Sketch::open`]; the judge tries it where the strip's
-//!   other terminals held a channel's terminal off its column): its other terminals bind nobody while the rows are set,
-//!   and none of them is set beside or round a corner from its host. Then [`Sketch::open_strip`] sets the whole strip
-//!   in its order: the channels' terminals in their columns, the terminals wired elsewhere at the end their wires lead
-//!   to, at the strip's pitch and beyond what hangs on the outer channels' terminals, a spare in its place. A strip
-//!   that opened goes or stays as one ([`Sketch::with_strips`]).
+//!   other terminals held a channel's terminal off its column, or the rows set a row of terminals out of its order):
+//!   its other terminals bind nobody while the rows are set, and none of them is set beside or round a corner from its
+//!   host. Then [`Sketch::open_strip`] sets the whole strip in the order it stands in: the longest run of channels'
+//!   terminals in their channels' order with room between takes its columns, every other terminal keeps its place in
+//!   the order. A strip that opened goes or stays as one ([`Sketch::with_strips`]), and no row of terminals leaves its
+//!   order in any plan ([`Sketch::order_kept`]).
 //!
 //! Last, a moved unit that stands outside the drawing area or on another unit goes back to where it stood, with what
 //! hangs on it.
@@ -138,7 +138,7 @@ use crate::consts::{
 use crate::labels::first_places;
 use crate::measure::measure;
 use crate::model::{
-    DraftPage, End, Junction, JunctionId, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side, Tick, Wire,
+    DraftPage, End, Junction, JunctionId, LabelKind, Owner, PageKind, PartId, PinId, Pt, Rect, Role, Side, Tick, Wire,
     WireId,
 };
 use crate::route::Scope;
@@ -273,6 +273,8 @@ pub(super) struct Sketch<'a> {
     loose: BTreeSet<usize>,
     /// The strips that could not open, each by its first unit, with what held it ([`Sketch::open_strip`]).
     pub held: Vec<(usize, Held)>,
+    /// The rows of terminals the person made, each in the order they stand ([`Sketch::order_kept`]).
+    terminal_rows: Vec<(bool, Vec<usize>)>,
 }
 
 /// What holds a strip from opening as one ([`Sketch::open_strip`]).
@@ -513,8 +515,10 @@ impl<'a> Sketch<'a> {
             opened: Vec::new(),
             loose: BTreeSet::new(),
             held: Vec::new(),
+            terminal_rows: Vec::new(),
         };
         sketch.tree();
+        sketch.terminal_rows = sketch.terminal_rows();
         sketch
     }
 
@@ -1307,17 +1311,21 @@ impl<'a> Sketch<'a> {
         })
     }
 
-    /// `f` and what hangs on it in line (through every lead but a level one), but the units of `stop` and what hangs on
-    /// them: what moves with it. What hangs beside it (a lamp wired out and back to a terminal) stands where it is.
-    fn in_line(&self, f: usize, stop: &[usize]) -> Vec<usize> {
+    /// `f` and what hangs on it in line (facing it or tapping it; with `corners` round a corner too), but the units of
+    /// `stop` and what hangs on them: what moves with it. What hangs beside it (a lamp wired out and back to a terminal)
+    /// stands where it is.
+    fn in_line(&self, f: usize, stop: &[usize], corners: bool) -> Vec<usize> {
         let mut out = vec![f];
         let mut k = 0;
         while k < out.len() {
             let h = out[k];
             out.extend((0..self.units.len()).filter(|u| {
                 !stop.contains(u)
-                    && self.lead[*u]
-                        .is_some_and(|l| l.host == h && !matches!(l.kind, Kind::Level | Kind::Overruled))
+                    && self.lead[*u].is_some_and(|l| {
+                        l.host == h
+                            && (matches!(l.kind, Kind::Facing | Kind::Tap | Kind::Mate)
+                                || (corners && l.kind == Kind::Corner))
+                    })
             }));
             k += 1;
         }
@@ -1356,16 +1364,15 @@ impl<'a> Sketch<'a> {
         }
     }
 
-    /// The strip of `members` (in the order they stand) under or over `card` set anew (doc 06a §4.4): each channel's
-    /// terminal in its channel's column; a terminal wired elsewhere at the strip's end on the side its wires lead (the
-    /// middle of their far ends, each at the place of the strip's terminal it hangs on in line, against the middle of
-    /// the channels' columns), the ends' terminals in their order at the strip's pitch beyond the channels' and beyond
-    /// what hangs in line on the outer two; a terminal without a wire, or wired only to what hangs on it, or evenly to
-    /// both sides, keeps its place in the order: before the first channel's terminal or after the last as the ends',
-    /// between two evenly. All level with the channels' terminals; what hangs in line on a channel's terminal, or on one
-    /// that keeps its place, moves with it, what hangs on a terminal at an end stays. What holds it where it cannot be:
-    /// the channels' columns run against the strip's order or leave too little room for the terminals between, or a
-    /// unit that moves would stand on another or outside the drawing area.
+    /// The strip of `members` (in the order they stand) under or over `card` set anew, in that order (doc 06a §4.4): of
+    /// its channels' terminals the longest run that stands in the order of its channels' columns, with room between
+    /// each two for the terminals between them (their bodies a row's gap apart), takes its columns (of runs as long,
+    /// the first);
+    /// every other terminal keeps its place in the order: between two of the run evenly, before the first or after the
+    /// last at the strip's pitch, beyond what hangs on them in line. No terminal passes another. All level with the first terminal of the run; what hangs
+    /// on a terminal in line moves with it (round a corner too on a channel's terminal). What holds it where no two channels' terminals can take their columns
+    /// (their channels in another order, or too little room between their columns), or where a unit that moves would
+    /// stand on another or outside the drawing area.
     fn open_strip(&mut self, members: &[usize], card: usize) -> Result<(), Held> {
         let left = |sk: &Self, u: usize| sk.shape(u).map_or(0, |r| r.x0);
         let Some(pitch) = members
@@ -1376,7 +1383,7 @@ impl<'a> Sketch<'a> {
         else {
             return Err(Held::Room);
         };
-        // Where each channel's terminal stands: its pin on its channel's line.
+        // Where each channel's terminal would stand: its pin on its channel's line.
         let column: Vec<Option<Tick>> = members
             .iter()
             .map(|&u| {
@@ -1385,123 +1392,95 @@ impl<'a> Sketch<'a> {
             })
             .collect();
         let chans: Vec<usize> = (0..members.len()).filter(|i| column[*i].is_some()).collect();
-        let (Some(&first), Some(&last)) = (chans.first(), chans.last()) else {
-            return Err(Held::Order);
-        };
-        if chans.windows(2).any(|w| column[w[0]] >= column[w[1]]) {
-            return Err(Held::Order);
-        }
         let col = |i: usize| column[i].unwrap_or(0);
-        let width = self.shape(members[first]).map_or(0, |r| r.w());
-        let (lo, hi) = (col(first), col(last));
-        // The middle of the channels' columns, twice (to stay whole).
-        let middle = i64::from(lo) + i64::from(hi) + i64::from(width);
-        let side = |sk: &Self, i: usize| -> Option<bool> {
-            let f = members[i];
-            let follows = sk.in_line(f, members);
-            let own: BTreeSet<PinId> = sk.units[f]
-                .parts
-                .iter()
-                .flat_map(|p| sk.w.parts[*p].pins.iter().map(|x| x.id))
-                .collect();
-            let mut far: Vec<i64> = Vec::new();
-            for net in
-                sk.w.nets
-                    .iter()
-                    .filter(|n| n.pins.iter().any(|p| own.contains(p)))
-            {
-                for q in net.pins.iter().filter(|p| !own.contains(p)) {
-                    let u = sk.unit_of_pin(*q);
-                    if follows.contains(&u) {
-                        continue;
+        let steps = |n: usize| Tick::try_from(n).unwrap_or(Tick::MAX / 2);
+        // The least pitch between two terminals: their bodies a row's gap apart (two steps for a terminal), or the
+        // strip's own where that is less.
+        let width = members
+            .iter()
+            .filter_map(|u| self.shape(*u))
+            .map(|r| r.w())
+            .max()
+            .unwrap_or(0);
+        let least = pitch.min(whole_up(width + ROW_GAP));
+        // The longest run in order (`room`: with room between each two), each as its last member's best length and
+        // the member before it.
+        let run = |room: bool| -> Vec<usize> {
+            let mut best: Vec<(usize, Option<usize>)> = vec![(1, None); chans.len()];
+            for j in 0..chans.len() {
+                for i in 0..j {
+                    let (a, b) = (chans[i], chans[j]);
+                    let fits = col(b) - col(a) >= if room { steps(b - a) * least } else { 1 };
+                    if fits && best[i].0 + 1 > best[j].0 {
+                        best[j] = (best[i].0 + 1, Some(i));
                     }
-                    far.push(
-                        match members
-                            .iter()
-                            .position(|m| *m != f && sk.in_line(*m, members).contains(&u))
-                        {
-                            Some(j) => {
-                                let at = column[j].unwrap_or(left(sk, members[j]) + sk.d[members[j]].x);
-                                2 * i64::from(at) + i64::from(width)
-                            }
-                            None => 2 * i64::from(sk.pt(*q).x),
-                        },
-                    );
                 }
             }
-            let n = i64::try_from(far.len()).ok().filter(|n| *n > 0)?;
-            match (far.iter().sum::<i64>() / n).cmp(&middle) {
-                std::cmp::Ordering::Less => Some(false),
-                std::cmp::Ordering::Greater => Some(true),
-                std::cmp::Ordering::Equal => None,
+            let Some(mut k) = (0..chans.len()).max_by_key(|k| (best[*k].0, Reverse(*k))) else {
+                return Vec::new();
+            };
+            let mut out = vec![chans[k]];
+            while let Some(i) = best[k].1 {
+                out.push(chans[i]);
+                k = i;
             }
+            out.reverse();
+            out
         };
-        let mut place: Vec<Option<Tick>> = column.clone();
-        let mut ends: [Vec<usize>; 2] = [Vec::new(), Vec::new()];
-        let mut between: Vec<usize> = Vec::new();
-        for i in (0..members.len()).filter(|i| column[*i].is_none()) {
-            match side(self, i) {
-                Some(right) => ends[usize::from(right)].push(i),
-                None if i < first => ends[0].push(i),
-                None if i > last => ends[1].push(i),
-                None => between.push(i),
-            }
+        let anchors = run(true);
+        if anchors.len() < 2 {
+            return Err(if run(false).len() < 2 { Held::Order } else { Held::Room });
         }
-        let steps = |n: usize| Tick::try_from(n).unwrap_or(Tick::MAX / 2);
-        // The ends stand beyond the channels' terminals at the strip's pitch, and beyond what hangs on the outer two in
-        // line (a button over the first channel's terminal with its tag at its left), so that their wires to the parts
-        // over the channels pass clear of those parts and their texts.
+        let (first, last) = (anchors[0], anchors[anchors.len() - 1]);
+        // The terminals outside the run stand beyond it at the strip's pitch, and beyond what hangs on the run's outer
+        // two in line (a button over the first with its tag at its left), so that their wires to the parts over the run
+        // pass clear of those parts and their texts.
         let reach = |i: usize| -> Option<Rect> {
-            self.in_line(members[i], members)
+            self.in_line(members[i], members, true)
                 .into_iter()
                 .skip(1)
                 .map(|v| self.hull(v))
                 .reduce(Rect::union)
         };
         let near = [
-            lo - reach(first).map_or(0, |r| whole_up((lo - r.x0).max(0))),
-            hi + reach(last).map_or(0, |r| whole_up((r.x1 - hi - width).max(0))),
+            col(first) - reach(first).map_or(0, |r| whole_up((col(first) - r.x0).max(0))),
+            col(last) + reach(last).map_or(0, |r| whole_up((r.x1 - col(last) - width).max(0))),
         ];
-        for (j, &i) in ends[0].iter().rev().enumerate() {
-            place[i] = Some(near[0] - pitch * (steps(j) + 1));
+        let mut place: Vec<Tick> = vec![0; members.len()];
+        for i in 0..members.len() {
+            place[i] = if i < first {
+                near[0] - pitch * steps(first - i)
+            } else if i > last {
+                near[1] + pitch * steps(i - last)
+            } else {
+                col(i)
+            };
         }
-        for (j, &i) in ends[1].iter().enumerate() {
-            place[i] = Some(near[1] + pitch * (steps(j) + 1));
-        }
-        for w in chans.windows(2) {
+        for w in anchors.windows(2) {
             let (a, b) = (w[0], w[1]);
-            let inner: Vec<usize> = between.iter().copied().filter(|i| a < *i && *i < b).collect();
-            let gaps = steps(inner.len()) + 1;
-            if col(b) - col(a) < gaps * pitch {
-                return Err(Held::Room);
-            }
-            for (t, &i) in inner.iter().enumerate() {
-                let even = (col(b) - col(a)) * (steps(t) + 1) / gaps;
-                place[i] = Some(col(a) + whole_up(even - TICKS_PER_STEP / 2));
+            let gaps = steps(b - a);
+            for i in a + 1..b {
+                let even = (col(b) - col(a)) * steps(i - a) / gaps;
+                place[i] = col(a) + even.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP;
             }
         }
-        // The strip in its order: the channels' columns, and the terminals between them, as they stood.
-        let kept: Vec<Tick> = (0..members.len())
-            .filter(|i| !ends[0].contains(i) && !ends[1].contains(i))
-            .filter_map(|i| place[i])
-            .collect();
-        if !kept.windows(2).all(|w| w[0] + pitch <= w[1]) {
+        if !place.windows(2).all(|w| w[0] + least <= w[1]) {
             return Err(Held::Room);
         }
-        // Level with the first channel's terminal, what hangs on each in line with it.
+        // Level with the first terminal of the run, what hangs on each in line with it.
         let line = self.shape(members[first]).map_or(0, |r| r.y0) + self.d[members[first]].y;
         let mut moving: BTreeSet<usize> = members.iter().copied().collect();
         for (i, &u) in members.iter().enumerate() {
-            let (Some(x), Some(r)) = (place[i], self.shape(u)) else {
+            let Some(r) = self.shape(u) else {
                 return Err(Held::Room);
             };
-            let by = Pt::new(x - r.x0, line - r.y0).minus(self.d[u]);
-            // (What hangs on a terminal at an end stays where it was set: it is wired elsewhere.)
-            let hung: Vec<usize> = if ends.iter().any(|e| e.contains(&i)) {
-                Vec::new()
-            } else {
-                self.in_line(u, members).into_iter().skip(1).collect()
-            };
+            let by = Pt::new(place[i] - r.x0, line - r.y0).minus(self.d[u]);
+            // (What hangs round a corner on a terminal that is no channel's, a mark at the sheet's edge, stays.)
+            let hung: Vec<usize> = self
+                .in_line(u, members, column[i].is_some())
+                .into_iter()
+                .skip(1)
+                .collect();
             self.shift(&[u], by);
             self.shift(&hung, by);
             moving.extend(hung);
@@ -3150,70 +3129,6 @@ impl<'a> Sketch<'a> {
             .max_by_key(|b| (i64::from(b.w()) * i64::from(b.h()), Reverse(*b)))
     }
 
-    /// The move along its row that sets mate `f`, as [`Sketch::join_mates`] has set it beside its host, at the end of
-    /// its row in `rank` (`down`: a row side by side) on the side where its wires lead: the middle of the far ends of
-    /// its wires, each at the place of the member of the row it hangs on (a sensor over its channel's terminal), one
-    /// that hangs on `f` left out (it follows `f`). Where that middle is the row's own, a mate between the members
-    /// takes the nearer end. A strip's feed terminal, wired to no channel, so stands at the strip's end and its wires do
-    /// not cross the channels'; a spare terminal, without a wire, stays.
-    fn row_end(&self, f: usize, rank: &[usize], down: bool) -> Option<Tick> {
-        let along = |p: Pt| if down { p.x } else { p.y };
-        let centre = |u: usize| {
-            self.shape(u)
-                .map(|r| along(Pt::new((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2).plus(self.d[u])))
-        };
-        let members: Vec<usize> = rank
-            .iter()
-            .copied()
-            .filter(|o| *o != f && self.mates(f, *o, down))
-            .collect();
-        let mut row: Vec<Tick> = members.iter().filter_map(|o| centre(*o)).collect();
-        row.sort_unstable();
-        let (&lo, &hi) = (row.first()?, row.last()?);
-        let pitch = row.windows(2).map(|w| w[1] - w[0]).filter(|g| *g > 0).min()?;
-        let own: BTreeSet<PinId> = self.units[f]
-            .parts
-            .iter()
-            .flat_map(|i| self.w.parts[*i].pins.iter().map(|p| p.id))
-            .collect();
-        let follows = self.subtree(f);
-        let hung: Vec<(usize, Vec<usize>)> = members.iter().map(|m| (*m, self.subtree(*m))).collect();
-        let mut far: Vec<i64> = Vec::new();
-        for w in &self.w.page.wires {
-            let [End::Pin(a), End::Pin(b)] = w.ends else {
-                continue;
-            };
-            let q = match (own.contains(&a), own.contains(&b)) {
-                (true, false) => b,
-                (false, true) => a,
-                _ => continue,
-            };
-            let u = self.unit_of_pin(q);
-            if follows.contains(&u) {
-                continue;
-            }
-            let at = match hung.iter().find(|(_, t)| t.contains(&u)) {
-                Some((m, _)) => centre(*m),
-                None => Some(along(self.pt(q))),
-            };
-            far.extend(at.map(i64::from));
-        }
-        let n = i64::try_from(far.len()).ok().filter(|n| *n > 0)?;
-        let now = centre(f)?;
-        let (middle, mid) = (far.iter().sum::<i64>() / n, (i64::from(lo) + i64::from(hi)) / 2);
-        let left = match middle.cmp(&mid) {
-            std::cmp::Ordering::Less => true,
-            std::cmp::Ordering::Greater => false,
-            std::cmp::Ordering::Equal if (lo..=hi).contains(&now) => now - lo <= hi - now,
-            std::cmp::Ordering::Equal => return None,
-        };
-        match left {
-            true if now >= lo => Some(lo - pitch - now),
-            false if now <= hi => Some(hi + pitch - now),
-            _ => None,
-        }
-    }
-
     /// The mates that hang on the units of `rank` join it, each set beside its host: with it by the host's own step,
     /// and at the pitch the host keeps from its mate on the other side where that is nearer (a strip's terminal
     /// without a lead of its own stays in its strip, at the strip's new pitch).
@@ -3277,12 +3192,6 @@ impl<'a> Sketch<'a> {
                         self.d[f] = self.d[f].minus(step);
                     }
                 }
-                // At its row's end where its wires lead beyond it (a strip's feed terminal).
-                let mut toward = was;
-                if let Some(by) = self.row_end(f, rank, down) {
-                    self.d[f] = self.d[f].plus(if down { Pt::new(by, 0) } else { Pt::new(0, by) });
-                    toward = by;
-                }
                 // What a rail asks of it comes first.
                 if let Some((step, _)) = self.steps.get(&f).copied() {
                     if step.x != 0 {
@@ -3293,7 +3202,7 @@ impl<'a> Sketch<'a> {
                     }
                 }
                 // On a unit that is set (two of a row set down on each other), it steps away from its host.
-                let away = if toward < 0 {
+                let away = if was < 0 {
                     -TICKS_PER_STEP
                 } else {
                     TICKS_PER_STEP
@@ -3337,6 +3246,53 @@ impl<'a> Sketch<'a> {
         out.into_iter().collect()
     }
 
+    /// The rows of terminals (the units joined through mates side by side, or one under another, whose largest part
+    /// carries a terminal's name), two or more, each with whether it stands side by side and its units in the order
+    /// they stand.
+    fn terminal_rows(&self) -> Vec<(bool, Vec<usize>)> {
+        let named: BTreeSet<PartId> = self
+            .w
+            .page
+            .labels
+            .iter()
+            .filter(|l| l.kind == LabelKind::TerminalName)
+            .filter_map(|l| match l.owner {
+                Owner::Part(p) => Some(p),
+                _ => None,
+            })
+            .collect();
+        let mut out = Vec::new();
+        for (k, down) in [(0, true), (1, false)] {
+            let mut groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+            for u in (0..self.units.len()).filter(|u| named.contains(&self.largest(*u))) {
+                groups.entry(self.strips[k][u]).or_default().push(u);
+            }
+            for mut row in groups.into_values().filter(|r| r.len() > 1) {
+                row.sort_by_key(|u| (self.shape(*u).map_or(0, |r| if down { r.x0 } else { r.y0 }), *u));
+                out.push((down, row));
+            }
+        }
+        out
+    }
+
+    /// Whether every row of terminals keeps the order it stands in with the moves as they are (doc 06a §4.4): no
+    /// terminal passes another, in any step. Two that stood at one place along the row have no order to keep.
+    pub fn order_kept(&self) -> bool {
+        self.terminal_rows.iter().all(|(down, row)| {
+            let along = |u: usize, d: Pt| self.shape(u).map_or(0, |r| if *down { r.x0 + d.x } else { r.y0 + d.y });
+            row.iter().enumerate().all(|(i, &a)| {
+                row[i + 1..].iter().all(|&b| {
+                    let (was, now) = (
+                        along(b, Pt::default()) - along(a, Pt::default()),
+                        along(b, self.d[b]) - along(a, self.d[a]),
+                    );
+                    was == 0 || now.signum() == was.signum()
+                })
+            })
+        })
+    }
+
+    /// The moves, by part ID.
     /// The moves, by part ID.
     pub fn moves(&self) -> Vec<(PartId, Pt)> {
         let mut out: Vec<(PartId, Pt)> = self

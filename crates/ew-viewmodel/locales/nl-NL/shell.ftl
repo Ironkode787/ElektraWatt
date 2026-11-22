@@ -8082,6 +8082,7 @@ arrange-held-order = De klemmenstrook bij { $p0 } gaat niet open naar de kanalen
 arrange-held-room = De klemmenstrook bij { $p0 } gaat niet open naar de kanalen van zijn kaart: hun kolommen laten te weinig ruimte voor de klemmen ertussen.
 arrange-held-part = De klemmenstrook bij { $p0 } gaat niet open naar de kanalen van zijn kaart: { $p1 } staat waar hij zou komen.
 arrange-held-sheet = De klemmenstrook bij { $p0 } gaat niet open naar de kanalen van zijn kaart: hij zou buiten het tekenvlak komen.
+arrange-held-worse = De klemmenstrook bij { $p0 } kan open naar de kanalen van zijn kaart, maar in zijn volgorde zouden zijn draden meer kruisen dan nu: kijk naar de klemmen die tegen die volgorde in zijn aangesloten.
 arrange-blocked-faults = { $p0 } fouten blijven op de pagina; Project controleren noemt ze.
 arrange-blocked-faults-one = 1 fout blijft op de pagina; Project controleren noemt hem.
 toast-arrange-none-left = Er blijft niets over om toe te passen: elke wijziging van dit voorbeeld is uitgevinkt.

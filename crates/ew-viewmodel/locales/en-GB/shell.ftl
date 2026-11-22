@@ -8357,6 +8357,7 @@ arrange-held-order = The terminal strip at { $p0 } does not open to its card's c
 arrange-held-room = The terminal strip at { $p0 } does not open to its card's channels: their columns leave too little room for the terminals between them.
 arrange-held-part = The terminal strip at { $p0 } does not open to its card's channels: { $p1 } stands where it would go.
 arrange-held-sheet = The terminal strip at { $p0 } does not open to its card's channels: it would leave the drawing area.
+arrange-held-worse = The terminal strip at { $p0 } could open to its card's channels, but in its order its wires would cross more than they do now: look at the terminals wired against that order.
 arrange-blocked-faults = { $p0 } faults stay on the page; Check project names them.
 arrange-blocked-faults-one = 1 fault stays on the page; Check project names it.
 toast-arrange-none-left = Nothing is left to apply: every change of this preview is unticked.

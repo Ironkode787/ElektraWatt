@@ -11,8 +11,8 @@
 //!    place from its lead: rows, stacks, the followers beside. It rates nothing.
 //! 3. **The rules** (§1.6). The parts a broken rule names go back with what hangs on them until [`rules_kept`] holds
 //!    (the rules read the parts and the nets alone).
-//! 4. **Routed and judged.** The arrangement is routed for real and measured. It is taken when the rules hold on the
-//!    routed page, no wire or text gains a finding (where it routes more wires than Route's plan, a wire newly across a
+//! 4. **Routed and judged.** The arrangement is routed for real and measured. It is taken when every row of terminals
+//!    keeps the order it stands in, the rules hold on the routed page, no wire or text gains a finding (where it routes more wires than Route's plan, a wire newly across a
 //!    text does not count), it has no more faults and (where it routes no more wires) no more
 //!    crossings than Route's plan, and it is better than Route's plan by the measure with the price of its moves added
 //!    ([`MOVE_PRICE`] for each part). Where the whole arrangement is not taken, its trees are tried one after another,
@@ -77,6 +77,8 @@ pub enum StripHeld {
     Part(PartId),
     /// A terminal, or what moves with it, would leave the drawing area.
     Sheet,
+    /// It opens, but the page is no better with it so (its wires in the strip's order cross more than they do now).
+    Worse,
 }
 
 impl Arranged {
@@ -228,9 +230,16 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
             }
         }
     }
-    // A strip that opened in none of the ways is named with what held it the first time.
+    // A strip that opened in none of the ways is named with what held it the first time; one that opened, where no
+    // plan is offered, with the judge's word: the page was no better with it open.
+    let worse: Vec<(PartId, StripHeld)> = if best.moves.is_empty() {
+        opened.iter().map(|first| (*first, StripHeld::Worse)).collect()
+    } else {
+        Vec::new()
+    };
     let mut named: BTreeSet<PartId> = opened;
     held.retain(|(first, _)| named.insert(*first));
+    held.extend(worse);
     best.held = held;
     best
 }
@@ -254,7 +263,9 @@ fn arrange_try(
     sk.open = open;
     let stepping = sk.cards_step();
     sk.lay();
-    let bound = sk.bound;
+    // (Where the rows set a row of terminals out of its order, the arrangement with the strip opened is worth trying
+    // too: it keeps the order.)
+    let bound = sk.bound || !sk.order_kept();
     let opened = sk.opened();
     let held: Vec<(PartId, StripHeld)> = sk
         .held
@@ -313,6 +324,10 @@ fn arrange_try(
         sk.d = d.to_vec();
         let moves = sk.moves();
         if moves.is_empty() || !seen.insert(moves.clone()) {
+            return None;
+        }
+        // A row of terminals keeps the order it stands in: no plan sets one terminal past another (§4.4).
+        if !sk.order_kept() {
             return None;
         }
         if rules_kept(page, &moved(page, &moves).0).is_err() {

@@ -946,26 +946,37 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
   unit of its row that has no line of its own (a fixed one, or one that hangs beside its host), nor further from
   it than it stood by more than `ROW_PULL`; a unit of the row with a line of its own binds nobody. So the terminals
   of one strip that are wired to two cards each stand at their own card's pin (rule E4).
+- **A strip keeps its order** (owner, 2026-11-23). The terminals of a strip that stand in a row keep the order they
+  stand in: no terminal passes another, in any step of the placer (the rows' setting, the opening below, the judge's
+  steps). A person reads a row of terminals by its numbers; a row drawn in order that came back out of order (a
+  terminal wired to a card's second row of pins set in that pin's column, a feed terminal sent to the strip's end) was
+  a fault, whatever it saved in crossings. What may change is the pitch and the place of the row as a whole, and the
+  wires then cross where the person's wiring crosses. The judge takes no plan that sets one terminal of a row past
+  another (two that stood at one place along the row have no order to keep).
 - **A strip opens as one** (FT-2110). Where the strip's other terminals hold a channel's terminal off its column
   (a strip at a narrow pitch over or under a card of a wide one, with a feed, the sensors' common terminals, a
-  terminal of another card or a spare among them), the arrangement is made once more with the strip opened, and the
-  judge takes the better page. The strip is the terminals joined as mates side by side, two or more of them in line
-  on the card's pins. It keeps the order it stands in: each channel's terminal stands in its channel's column; a
-  terminal wired elsewhere goes to the strip's end on the side its wires lead (the middle of its wires' far ends,
-  each counted at the column of the channel's terminal it hangs on in line, against the middle of the channels'
-  columns), where the ends' terminals stand in their order at the strip's pitch, beyond the channels' terminals and
-  beyond what hangs on the outer two in line (a button over the first channel's terminal with its tag at its left),
-  so that their wires to the parts over the channels pass clear of those parts and texts; a terminal without a wire,
-  or one wired only to what hangs on it, keeps its place in the order: between two channels' terminals evenly,
-  outside them as the ends'. So the only terminal that passes another is one wired elsewhere that stood among the
-  channels' terminals, and it goes to the end its wires lead to (§4.8). All stand on one line, the strip's
-  designation at the first; what hangs on a channel's terminal in line (a sensor) stands over it. While the rows are
-  set, the strip's other terminals are in no member's way, and none of them is set beside or round a corner from its
-  host. The strip stays as the rows set it where the channels' columns run against its order or leave too little room
-  for the terminals between, or where a terminal or what moves with it would stand on another part or outside the
-  drawing area; a strip that opened goes or stays as one in the judge's steps. On a persona run's PLC page (a card of
-  eight inputs at the foot, a strip of twelve terminals at two steps over it, four sensors and two buttons over the
-  strip) the crossings went from 53 to 28 and the rings round the strip went.
+  terminal of another card or a spare among them), or where the rows set a row of terminals out of its order, the
+  arrangement is made once more with the strip opened, and the judge takes the better page. The strip is the
+  terminals joined as mates side by side, two or more of them in line on the card's pins. Of its channels' terminals
+  the longest run that stands in the order of the channels' columns, with room between each two for the terminals that
+  stand between them in the order (their bodies a row's gap apart: two steps for a terminal), takes its columns; of runs
+  as long, the first. A channel's terminal whose column would put it out of order (a card with two rows of pins, a
+  strip wired crosswise) does not go to its column. Every other terminal (a feed, a common terminal, a terminal of
+  another card, a spare, and those channels' terminals) keeps its place in the order: between two terminals of the run
+  evenly in the room there is, before the first or after the last at the strip's pitch, and there beyond what hangs on
+  the run's outer two in line (a button over the first with its tag at its left), so that their wires to the parts over
+  the run pass clear of those parts and texts. All stand on one line, the strip's designation at the first; what hangs
+  on a terminal in line (a sensor) stands over it, what hangs round a corner on a terminal that is no channel's (a mark
+  at the sheet's edge) stays. While the rows are set, the strip's other terminals are in no member's way, and none of
+  them is set beside or round a corner from its host. The strip stays as it stands where no two channels' terminals can
+  take their columns (their channels in another order, or too little room between their columns), or where a terminal
+  or what moves with it would stand on another part or outside the drawing area, and a strip that opened goes or stays
+  as one in the judge's steps; where the judge finds the page no better with it open (on a persona run's page, a card
+  with two rows of pins: two crossings more than routing alone), it stays too. In each case the message of an empty
+  plan names the strip and what held it (§4.9). On a persona run's PLC page (a card of eight inputs at the foot, a strip
+  of twelve terminals at two steps over it, four sensors and two buttons over the strip) the crossings went from 53 to
+  26 with the strip in its order; its first terminal stands seven steps before the second, beyond the first button's
+  tag, which at the strip's pitch would lie on the second button's.
 - **A terminal without a wire joins one strip.** A mate relation holds where one of the two is the top of its
   tree; a unit that hangs on its mate is the top of no tree any more, so a spare terminal between the terminals
   of two cards does not join the cards into one tree, in which one card would hang on a terminal.
@@ -1090,18 +1101,17 @@ Parts may cross the page, so these hold the person's picture of it:
 - **The price of a move.** No part moves for a small gain or a tie (§4.7), so a page that is already in order
   comes back with an empty plan, and a second run after a first changes nothing.
 - **Rows.** A row the person made (a strip, cards side by side, like devices level) moves as one or stays as
-  one, at the pitch it had or the one its new place asks of all its members. Rule E4 comes first: a terminal
-  wired to a card's pin stands in that channel's column, so a strip between a card and its field devices takes
-  the pitch and the order of the channels, and a terminal of it that is wired to another card stands at that
-  card's pin. A terminal of the strip wired to no channel but elsewhere (a feed terminal, the sensors' common
-  terminal, a terminal of another card) stands at the strip's end, on the side its wires lead to (a wire to a part
-  that stands in a channel's column counts at that column; one to a part that hangs on the terminal, its supply
-  mark, follows it; one to a part that hangs beside it, a lamp wired out and back, counts where that part stands),
-  so its wires cross no channel's; a spare terminal, without a wire, keeps its place in the strip. Where the strip
-  stands at a narrower pitch than the card's, it opens as one to the channels' columns in its own order (§4.4, "A
-  strip opens as one").
+  one, at the pitch it had or the one its new place asks of all its members. The terminals of a strip keep the order
+  they stand in, always (§4.4, "A strip keeps its order"). Within that order rule E4 comes first: a terminal wired to
+  a card's pin stands in that channel's column where its column lies in the strip's order, so a strip between a card
+  and its field devices takes the pitch of the channels, and a terminal of it that is wired to another card stands at
+  that card's pin. A terminal of the strip wired to no channel (a feed terminal, the sensors' common terminal, a
+  spare) keeps its place in the order, between its neighbours, and its wires cross where the person's wiring crosses;
+  it no longer goes to the strip's end (FT-1893 set it there, past the channels' terminals, until 2026-11-23). Where
+  the strip stands at a narrower pitch than the card's, it opens as one to the channels' columns in its own order
+  (§4.4, "A strip opens as one").
 - **Order.** The parts of a circuit stand in the order of the wiring, the parts of a row in the order of the
-  pins (rule A4, which reads the terminals of a strip as one row).
+  pins (rule A4, which reads the terminals of a strip as one row); a strip's terminals keep the order they stand in.
 - **Spacing.** Along a circuit the distances are the person's.
 - **The rules of the kind.** After a run a device stands where a draughtsman would look for it: the potentials
   at the head and the foot, a load under its protection, a field device at its channel, an actuator over its
@@ -1141,7 +1151,7 @@ says that the page is already arranged as well as the rules allow only where not
 that no plan was better than the page as it stands and names what stands in the way: each part left against a rule
 (as the preview's rows do), each strip over a card that did not open as one (§4.4) with what held it (its terminals
 wired to the channels in another order, too little room between the channels' columns, the part in the way, the
-drawing area's edge), each wire without a way (with what is in it, where the router found that), and the faults the
+drawing area's edge, or the page no better with it open), each wire without a way (with what is in it, where the router found that), and the faults the
 page keeps.
 
 **A selection** makes only the selected parts movable; everything else is fixed and can be a host. A selection of

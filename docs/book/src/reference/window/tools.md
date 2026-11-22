@@ -275,9 +275,10 @@ bus page the stations stand in the order of the line, level. The space you left 
 neither pulled nearer nor spread out, unless it has to move. A row you made (the terminals of a strip, cards side by
 side, like symbols level) moves as one or stays as one; a terminal wired to a card stands in the column of its
 channel, so a strip between a card and its field devices takes the order and the spacing of the channels. A strip
-drawn close together over a card opens as one in its own order: each channel's terminal goes to its channel's column,
-a feed or common terminal, or one wired to another card, to the end of the strip its wires lead to, a spare keeps its
-place, and the sensors over the strip come over their terminals. Every arrangement is routed and measured before you see it. A
+drawn close together over a card opens as one in the order it stands in: the terminals of channels that stand in
+their channels' order go to their channels' columns, every other terminal (a feed or common terminal, one wired to a
+card's second row of pins, a spare) keeps its place between its neighbours, and the sensors over the strip come over
+their terminals. A terminal never passes another: the strip reads in the order you drew it. Every arrangement is routed and measured before you see it. A
 move has a price, so a symbol moves only where the page gets visibly better, and a page already in order gives no
 plan. It never offers less than Route would do with the same wires: when moving symbols does not make the page better
 than routing alone, it offers Route's plan and says that no symbol moves. That is also what it does on a page wired
@@ -312,8 +313,8 @@ that was shown whole is shown whole again. When nothing would make the page bett
 page is already arranged as well as the rules allow." Where something stands in the way, it says "Nothing to arrange:
 no plan was better than the page as it stands." and names it: a symbol left against a rule, a terminal strip that does
 not open to its card's channels (its terminals wired to the channels in another order, too little room between the
-channels' columns, a symbol in the way, the edge of the drawing area), a wire without a route, the faults the page
-keeps.
+channels' columns, a symbol in the way, the edge of the drawing area, or more crossings in the strip's order than
+now), a wire without a route, the faults the page keeps.
 
 ## Interruption point
 
