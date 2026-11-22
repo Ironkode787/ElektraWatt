@@ -15,6 +15,11 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- text-change: the help of a device's tag counter, frozen tag, parts and technical data, a strip's Label mode, a
+  page's Scale, Grid and Number, a section's rows, a report block's Title, Form, Continuation, Sort, Group, Section and
+  First folio and a party's address says what the program does with the value, with an example, in English and Dutch,
+  where it repeated the row's label; a report block's Continuation said it was a form, and it is the numbering of the
+  further pages (FT-2065)
 - behaviour-change: a project's supply is set in its Properties and by `project.supply.set`, member by member: its
   phases, neutral, PE, earthing, nominal voltage, frequency, upstream rating and short-circuit current, previewed as
   one step; a new project, which has none, takes one with the first value set (1 phase + N + PE, 230 V, 50 Hz), and a
