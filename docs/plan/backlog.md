@@ -78,7 +78,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### What a new item takes
 
-- FT-1834 `ew-derive, ew-viewmodel`: A new wire takes the control size, 0.75 mm², unless its potential names another circuit class, so a 16 A mains wire gets it. Propose the cross-section from the circuit.
+- FT-2055 `ew-derive`: A new wire's cross-section reads its circuit class only (FT-1834, doc 08 §4.2), not the rating of the device that protects it: a 16 A circuit of the control class takes the control size. Sizing by the protecting device's rating needs a table of cross-sections by current (installation method, temperature, grouping), which the program does not hold; design first.
 - FT-1791 `ew-viewmodel, ew-api`: The spacing between the terminals of a row (`shell/terminals.rs`) is kept by the open project only: keep it between sessions (a user setting, or a project setting, which is a format change).
 - FT-1840 `content`: There is no proximity or reed sensor among the starter parts: a three-wire PNP sensor with its symbol.
 

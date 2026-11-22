@@ -409,3 +409,6 @@ change here.
 - behaviour-change: New part… makes a card of two channel kinds that go the same way (inputs with analogue inputs,
   outputs with analogue outputs) as one part: the second kind's channels follow the first's bits in the direction's one
   range from the next word; only the first kind again is refused (doc 10 §2.6, FT-1970)
+- behaviour-change: a wire on a single phase L or a neutral N whose voltage is not known takes the mains class's
+  cross-section (1.5 mm² built in), as a phase L1, L2 or L3 does; it took the control size, 0.75 mm², so the sample's
+  N wires were thinner than their phases (doc 08 §4.2, FT-1834)

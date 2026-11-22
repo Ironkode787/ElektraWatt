@@ -10,13 +10,13 @@ data,101.3,-X1011:L3,1,-101Q1,5,L3,BK,1.5 mm²,rule,,,101
 data,101.4,-X1011:PE,1,-101G1,PE,PE,GNYE,1.5 mm²,rule,101-C9 star at -X1011:PE/a,,101
 data,101.5,-X1011:PE,1,-X1021:8,1,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 102"
 data,101.6,-X1011:PE,1,-X1031:PE,1,PE,GNYE,1.5 mm²,rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 103"
-data,101.7,-X1011:N,1,-101F1,3,N,BU,0.75 mm²,rule/built-in,,,101
+data,101.7,-X1011:N,1,-101F1,3,N,BU,1.5 mm²,rule/built-in,,,101
 data,101.8,-101Q1,2,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103"
 data,101.9,-101Q1,4,-103F1,3,1L2,BK,1.5 mm²,rule,IP 1L2,,"101, 103"
 data,101.10,-101Q1,6,-103F1,5,1L3,BK,1.5 mm²,rule,IP 1L3,,"101, 103"
 data,101.11,-101F1,1,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103"
 data,101.12,-101F1,2,-101G1,L,1L1/101F1:2,BK,1.5 mm²,rule/built-in,,,101
-data,101.13,-101F1,4,-101G1,N,N/101F1:4,BU,0.75 mm²,rule/built-in,,,101
+data,101.13,-101F1,4,-101G1,N,N/101F1:4,BU,1.5 mm²,rule/built-in,,,101
 data,101.14,-101G1,+,-101G1,+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1,,101
 data,101.15,-101G1,+,-102F1,1,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 102"
 data,101.16,-101G1,+,-104A1,L+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 104"

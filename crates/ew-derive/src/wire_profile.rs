@@ -84,13 +84,16 @@ pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
     attrs
 }
 
-/// The circuit class a potential's own definition gives it, if any; a phase (L1, L2, L3) whose voltage is not
-/// known is of the mains class (FT-1688: a potential given the type L1 took the control circuit's 0.75 mm²).
+/// The circuit class a potential's own definition gives it, if any; a conductor of an AC supply (a phase L1, L2, L3,
+/// a single phase L or the neutral N) whose voltage is not known is of the mains class (FT-1688: a potential given
+/// the type L1 took the control circuit's 0.75 mm²; FT-1834: so did a 16 A circuit of a single-phase supply).
 pub(crate) fn own_class(q: &Q, id: PotentialId) -> Option<CircuitClass> {
     let own = q.get::<PotentialAttrsOf>(id);
     own.circuit_class.as_ref().map(|c| c.value.clone()).or_else(|| {
         let attrs = attrs_of(q, id);
-        (is_phase(attrs.ptype.as_ref()) && attrs.voltage.is_none()).then_some(CircuitClass::Mains)
+        let ac_conductor = is_phase(attrs.ptype.as_ref())
+            || matches!(attrs.ptype, Some(PotentialType::L | PotentialType::N));
+        (ac_conductor && attrs.voltage.is_none()).then_some(CircuitClass::Mains)
     })
 }
 

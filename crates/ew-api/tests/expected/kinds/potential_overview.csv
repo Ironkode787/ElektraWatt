@@ -21,7 +21,7 @@ data,24V/104B1:14,,,,DBU,0.75 mm²,0,2,104
 data,L1,L1,400 V AC,,BK,1.5 mm²,0,3,101
 data,L2,L2,400 V AC,,BK,1.5 mm²,0,3,101
 data,L3,L3,400 V AC,,BK,1.5 mm²,0,3,101
-data,N,N,,,,0.75 mm²,0,3,101
-data,N/101F1:4,N,,,,0.75 mm²,0,2,101
+data,N,N,,,,1.5 mm²,0,3,101
+data,N/101F1:4,N,,,,1.5 mm²,0,2,101
 data,PE,PE,,,GNYE,1.5 mm²,0,6,101–103
 data,B1 (0V ⇄ PE),Bond,,,,,,,"101, 102"

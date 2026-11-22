@@ -204,10 +204,8 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     let zero = potential_at(&mut shell, "102", "-X1021:5/a");
     let before_101 = marker_text(&mut shell, "101", &W4_W5);
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
-    assert_ne!(
-        before_101, "1.5 BK BU",
-        "without definitions N is not BU (the size profile 0.75/1.5 gives mains 1.5 and control 0.75)"
-    );
+    // The pins' roles type L and N already, and an N of unknown voltage is of the mains class as L is (FT-1834).
+    assert_eq!(before_101, "1.5 BK BU");
     assert_ne!(before_102, "0.75 DBU WH WH");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     for name in [&l, &n, &plus, &zero] {

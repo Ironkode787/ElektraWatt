@@ -673,7 +673,12 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
   it matches as AC, and when its voltage is not known its circuit class is mains (as a class of its own definition
   would be). A wire given only the type L1 therefore takes the mains cross-section (1.5 mm² built in) and the phase's
   colour of the colour profile (IEC 60445: BN), not the control circuit's 0.75 mm² (FT-1688). A phase with a known
-  voltage below 50 V is matched by the class rules as before.
+  voltage below 50 V is matched by the class rules as before. *A new wire's cross-section from its circuit (FT-1834).*
+  What is read is the circuit class: a single phase L and the neutral N are conductors of an AC supply too, so
+  without a known voltage they are of the mains class as well (the sample's N wires beside its 1.5 mm² phases took
+  0.75 mm²), and a new wire shows that class's cross-section in Properties before anything is set. The protecting
+  device's rating is not read: the program holds no table of cross-sections by current, only the size profile's row
+  per class, and a rating-to-size rule waits for one (FT-2055).
 - **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
   the conductor's colour and cross-section; as built in rc.3 a core's conductor wins over the wire's override for
   these two, so a wire made a core takes them at once however it got there, Properties names the cable and core as
