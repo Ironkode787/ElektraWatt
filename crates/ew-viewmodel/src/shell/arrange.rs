@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use ew_api::output::Uuid;
-use ew_api::routing::{RoutePlan, RouteScope, Side};
+use ew_api::routing::{RoutePlan, RouteScope, Side, StripHeld};
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
@@ -264,8 +264,8 @@ fn no_room(side: Side) -> strings::Key<'static> {
 }
 
 /// What stands in the way of a plan that changes nothing (doc 06a §4.9), one sentence each: the symbols left against a
-/// rule, the wires without a way (with what is in it, where the router found that), and the faults the page keeps;
-/// empty for a page that is in order.
+/// rule, the strips of terminals that did not open to their card's channels, the wires without a way (with what is in it,
+/// where the router found that), and the faults the page keeps; empty for a page that is in order.
 fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<String> {
     let name = |id: Uuid| {
         session
@@ -282,6 +282,16 @@ fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<S
             )
         })
         .collect();
+    // The strips of terminals that did not open to their card's channels, with what held each (doc 06a §4.4).
+    for (first, why) in &plan.held {
+        let strip = name(first.0);
+        out.push(match why {
+            StripHeld::Order => strings::format(key!("arrange-held-order"), &[&strip]),
+            StripHeld::Room => strings::format(key!("arrange-held-room"), &[&strip]),
+            StripHeld::Part(p) => strings::format(key!("arrange-held-part"), &[&strip, &name(p.0)]),
+            StripHeld::Sheet => strings::format(key!("arrange-held-sheet"), &[&strip]),
+        });
+    }
     out.extend(super::wiring::route_rows(session, folio, plan));
     for w in &plan.plan.after.findings.unrouted {
         if !plan.plan.unrouted.iter().any(|(x, _)| x == w) {

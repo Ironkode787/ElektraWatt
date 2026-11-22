@@ -117,6 +117,13 @@
 //! - **On a fluid page** (rule F1) what hangs on a valve's unit with a part of the supply steps below every valve, and
 //!   what hangs there with an actuator steps above that unit's valves, with the blocks above it, so that a stack
 //!   keeps its order.
+//! - **A strip opens as one** (FT-2110). A strip of terminals over or under a card, two or more of them in line on the
+//!   card's pins, is set anew where the arrangement opens it ([`Sketch::open`]; the judge tries it where the strip's
+//!   other terminals held a channel's terminal off its column): its other terminals bind nobody while the rows are set,
+//!   and none of them is set beside or round a corner from its host. Then [`Sketch::open_strip`] sets the whole strip
+//!   in its order: the channels' terminals in their columns, the terminals wired elsewhere at the end their wires lead
+//!   to, at the strip's pitch and beyond what hangs on the outer channels' terminals, a spare in its place. A strip
+//!   that opened goes or stays as one ([`Sketch::with_strips`]).
 //!
 //! Last, a moved unit that stands outside the drawing area or on another unit goes back to where it stood, with what
 //! hangs on it.
@@ -254,6 +261,31 @@ pub(super) struct Sketch<'a> {
     strips: [Vec<usize>; 2],
     /// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]).
     pub card_steps: CardSteps,
+    /// A strip over or under a card opens as one ([`Sketch::open_strips`]): its other terminals bind none of the
+    /// channels' terminals while the rows are set, and the strip is set anew afterwards (FT-2110).
+    pub open: bool,
+    /// Set by a run without `open` where a strip's other terminals held a channel's terminal off its column: the
+    /// arrangement with the strip opened is worth trying.
+    pub bound: bool,
+    /// The strips opened as one, each by its units: a strip goes or stays as one ([`Sketch::with_strips`]).
+    opened: Vec<Vec<usize>>,
+    /// What the opening strips set anew ([`Sketch::loose`]).
+    loose: BTreeSet<usize>,
+    /// The strips that could not open, each by its first unit, with what held it ([`Sketch::open_strip`]).
+    pub held: Vec<(usize, Held)>,
+}
+
+/// What holds a strip from opening as one ([`Sketch::open_strip`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(super) enum Held {
+    /// Its terminals are wired to the card's channels in another order than they stand in.
+    Order,
+    /// The channels' columns leave too little room for the terminals between them.
+    Room,
+    /// A unit stands where a terminal, or what moves with it, would go.
+    Unit(usize),
+    /// A terminal, or what moves with it, would leave the drawing area.
+    Sheet,
 }
 
 /// Rounds `v` ticks up (away from zero) to a whole step.
@@ -476,6 +508,11 @@ impl<'a> Sketch<'a> {
             steps: BTreeMap::new(),
             strips: [Vec::new(), Vec::new()],
             card_steps: CardSteps::Columns,
+            open: false,
+            bound: false,
+            opened: Vec::new(),
+            loose: BTreeSet::new(),
+            held: Vec::new(),
         };
         sketch.tree();
         sketch
@@ -517,6 +554,19 @@ impl<'a> Sketch<'a> {
     }
 
     /// The first ID of a unit's parts: what its order falls back on.
+    /// The part of unit `u` that names it: its largest (a terminal, not the mark set on its pin).
+    pub fn largest(&self, u: usize) -> PartId {
+        self.units[u]
+            .parts
+            .iter()
+            .map(|i| self.w.parts[*i])
+            .max_by_key(|p| {
+                let b = p.bounds();
+                (i64::from(b.w()) * i64::from(b.h()), Reverse(p.id))
+            })
+            .map_or(PartId(ew_ids::Uuid::nil()), |p| p.id)
+    }
+
     fn id(&self, u: usize) -> PartId {
         self.units[u]
             .parts
@@ -1100,6 +1150,7 @@ impl<'a> Sketch<'a> {
     pub fn lay(&mut self) {
         let m = self.units.len();
         self.steps = self.rail_steps();
+        self.loose = self.loose();
         // A tree is set as if the units of the trees after it will step aside. One that then kept its place where a
         // moved unit came to stand was counted on in vain: it is in the way from the start, and the trees are set
         // again ([`PASSES`] times at most).
@@ -1123,6 +1174,9 @@ impl<'a> Sketch<'a> {
                 break;
             }
             stay.extend(hit);
+        }
+        if self.open {
+            self.open_strips();
         }
         self.ring_room();
         self.legal();
@@ -1211,6 +1265,246 @@ impl<'a> Sketch<'a> {
                 self.shift(&movers, along_vec(s, -by));
             }
         }
+    }
+
+    /// The strips that open over or under a card (doc 06a §4.4, FT-2110), each with its units in the order they stand
+    /// and its card: a strip is the units joined through mates side by side, three or more and none fixed, of which two
+    /// or more hang in line on pins of one card that face up or down (the unit most of them hang on so).
+    fn opening(&self) -> Vec<(Vec<usize>, usize)> {
+        let mut groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+        for u in 0..self.units.len() {
+            groups.entry(self.strips[0][u]).or_default().push(u);
+        }
+        let mut out = Vec::new();
+        for mut members in groups.into_values() {
+            if members.len() < 3 || members.iter().any(|u| self.units[*u].fixed) {
+                continue;
+            }
+            let mut count: BTreeMap<usize, usize> = BTreeMap::new();
+            for &u in &members {
+                if let Some(l) = self.in_column(u) {
+                    *count.entry(l.host).or_default() += 1;
+                }
+            }
+            let Some((card, k)) = count.into_iter().max_by_key(|(h, k)| (*k, Reverse(*h))) else {
+                continue;
+            };
+            if k < 2 {
+                continue;
+            }
+            members.sort_by_key(|u| (self.shape(*u).map_or(0, |r| r.x0), *u));
+            out.push((members, card));
+        }
+        out
+    }
+
+    /// The lead of a unit that hangs in line on a pin facing up or down: a channel's terminal under or over its card.
+    fn in_column(&self, u: usize) -> Option<Lead> {
+        self.lead[u].filter(|l| {
+            l.inline && matches!(l.kind, Kind::Facing | Kind::Tap) && self.side(l.h).is_some_and(Side::vertical)
+        })
+    }
+
+    /// `f` and what hangs on it in line (through every lead but a level one), but the units of `stop` and what hangs on
+    /// them: what moves with it. What hangs beside it (a lamp wired out and back to a terminal) stands where it is.
+    fn in_line(&self, f: usize, stop: &[usize]) -> Vec<usize> {
+        let mut out = vec![f];
+        let mut k = 0;
+        while k < out.len() {
+            let h = out[k];
+            out.extend((0..self.units.len()).filter(|u| {
+                !stop.contains(u)
+                    && self.lead[*u]
+                        .is_some_and(|l| l.host == h && !matches!(l.kind, Kind::Level | Kind::Overruled))
+            }));
+            k += 1;
+        }
+        out
+    }
+
+    /// The units an opening strip sets anew ([`Sketch::open_strips`]): its terminals that are no channel's. While the
+    /// rows are set they stand in no member's way and bind nobody.
+    fn loose(&self) -> BTreeSet<usize> {
+        let mut out = BTreeSet::new();
+        for (members, card) in self.opening() {
+            out.extend(
+                members
+                    .iter()
+                    .copied()
+                    .filter(|u| self.in_column(*u).is_none_or(|l| l.host != card)),
+            );
+        }
+        out
+    }
+
+    /// Each strip over or under a card opens as one, in its own order (doc 06a §4.4, FT-2110), by
+    /// [`Sketch::open_strip`]; where that cannot hold, the strip stays as the rows set it.
+    fn open_strips(&mut self) {
+        self.opened.clear();
+        self.held.clear();
+        for (members, card) in self.opening() {
+            let start = self.d.clone();
+            match self.open_strip(&members, card) {
+                Ok(()) => self.opened.push(members),
+                Err(why) => {
+                    self.d = start;
+                    self.held.push((members[0], why));
+                }
+            }
+        }
+    }
+
+    /// The strip of `members` (in the order they stand) under or over `card` set anew (doc 06a §4.4): each channel's
+    /// terminal in its channel's column; a terminal wired elsewhere at the strip's end on the side its wires lead (the
+    /// middle of their far ends, each at the place of the strip's terminal it hangs on in line, against the middle of
+    /// the channels' columns), the ends' terminals in their order at the strip's pitch beyond the channels' and beyond
+    /// what hangs in line on the outer two; a terminal without a wire, or wired only to what hangs on it, or evenly to
+    /// both sides, keeps its place in the order: before the first channel's terminal or after the last as the ends',
+    /// between two evenly. All level with the channels' terminals; what hangs in line on a channel's terminal, or on one
+    /// that keeps its place, moves with it, what hangs on a terminal at an end stays. What holds it where it cannot be:
+    /// the channels' columns run against the strip's order or leave too little room for the terminals between, or a
+    /// unit that moves would stand on another or outside the drawing area.
+    fn open_strip(&mut self, members: &[usize], card: usize) -> Result<(), Held> {
+        let left = |sk: &Self, u: usize| sk.shape(u).map_or(0, |r| r.x0);
+        let Some(pitch) = members
+            .windows(2)
+            .map(|w| left(self, w[1]) - left(self, w[0]))
+            .filter(|g| *g > 0)
+            .min()
+        else {
+            return Err(Held::Room);
+        };
+        // Where each channel's terminal stands: its pin on its channel's line.
+        let column: Vec<Option<Tick>> = members
+            .iter()
+            .map(|&u| {
+                let l = self.in_column(u).filter(|l| l.host == card)?;
+                Some(left(self, u) + self.pt(l.h).x - self.pt0(l.f).x)
+            })
+            .collect();
+        let chans: Vec<usize> = (0..members.len()).filter(|i| column[*i].is_some()).collect();
+        let (Some(&first), Some(&last)) = (chans.first(), chans.last()) else {
+            return Err(Held::Order);
+        };
+        if chans.windows(2).any(|w| column[w[0]] >= column[w[1]]) {
+            return Err(Held::Order);
+        }
+        let col = |i: usize| column[i].unwrap_or(0);
+        let width = self.shape(members[first]).map_or(0, |r| r.w());
+        let (lo, hi) = (col(first), col(last));
+        // The middle of the channels' columns, twice (to stay whole).
+        let middle = i64::from(lo) + i64::from(hi) + i64::from(width);
+        let side = |sk: &Self, i: usize| -> Option<bool> {
+            let f = members[i];
+            let follows = sk.in_line(f, members);
+            let own: BTreeSet<PinId> = sk.units[f]
+                .parts
+                .iter()
+                .flat_map(|p| sk.w.parts[*p].pins.iter().map(|x| x.id))
+                .collect();
+            let mut far: Vec<i64> = Vec::new();
+            for net in sk.w.nets.iter().filter(|n| n.pins.iter().any(|p| own.contains(p))) {
+                for q in net.pins.iter().filter(|p| !own.contains(p)) {
+                    let u = sk.unit_of_pin(*q);
+                    if follows.contains(&u) {
+                        continue;
+                    }
+                    far.push(match members.iter().position(|m| *m != f && sk.in_line(*m, members).contains(&u)) {
+                        Some(j) => {
+                            let at = column[j].unwrap_or(left(sk, members[j]) + sk.d[members[j]].x);
+                            2 * i64::from(at) + i64::from(width)
+                        }
+                        None => 2 * i64::from(sk.pt(*q).x),
+                    });
+                }
+            }
+            let n = i64::try_from(far.len()).ok().filter(|n| *n > 0)?;
+            match (far.iter().sum::<i64>() / n).cmp(&middle) {
+                std::cmp::Ordering::Less => Some(false),
+                std::cmp::Ordering::Greater => Some(true),
+                std::cmp::Ordering::Equal => None,
+            }
+        };
+        let mut place: Vec<Option<Tick>> = column.clone();
+        let mut ends: [Vec<usize>; 2] = [Vec::new(), Vec::new()];
+        let mut between: Vec<usize> = Vec::new();
+        for i in (0..members.len()).filter(|i| column[*i].is_none()) {
+            match side(self, i) {
+                Some(right) => ends[usize::from(right)].push(i),
+                None if i < first => ends[0].push(i),
+                None if i > last => ends[1].push(i),
+                None => between.push(i),
+            }
+        }
+        let steps = |n: usize| Tick::try_from(n).unwrap_or(Tick::MAX / 2);
+        // The ends stand beyond the channels' terminals at the strip's pitch, and beyond what hangs on the outer two in
+        // line (a button over the first channel's terminal with its tag at its left), so that their wires to the parts
+        // over the channels pass clear of those parts and their texts.
+        let reach = |i: usize| -> Option<Rect> {
+            self.in_line(members[i], members)
+                .into_iter()
+                .skip(1)
+                .map(|v| self.hull(v))
+                .reduce(Rect::union)
+        };
+        let near = [
+            lo - reach(first).map_or(0, |r| whole_up((lo - r.x0).max(0))),
+            hi + reach(last).map_or(0, |r| whole_up((r.x1 - hi - width).max(0))),
+        ];
+        for (j, &i) in ends[0].iter().rev().enumerate() {
+            place[i] = Some(near[0] - pitch * (steps(j) + 1));
+        }
+        for (j, &i) in ends[1].iter().enumerate() {
+            place[i] = Some(near[1] + pitch * (steps(j) + 1));
+        }
+        for w in chans.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            let inner: Vec<usize> = between.iter().copied().filter(|i| a < *i && *i < b).collect();
+            let gaps = steps(inner.len()) + 1;
+            if col(b) - col(a) < gaps * pitch {
+                return Err(Held::Room);
+            }
+            for (t, &i) in inner.iter().enumerate() {
+                let even = (col(b) - col(a)) * (steps(t) + 1) / gaps;
+                place[i] = Some(col(a) + whole_up(even - TICKS_PER_STEP / 2));
+            }
+        }
+        // The strip in its order: the channels' columns, and the terminals between them, as they stood.
+        let kept: Vec<Tick> = (0..members.len())
+            .filter(|i| !ends[0].contains(i) && !ends[1].contains(i))
+            .filter_map(|i| place[i])
+            .collect();
+        if !kept.windows(2).all(|w| w[0] + pitch <= w[1]) {
+            return Err(Held::Room);
+        }
+        // Level with the first channel's terminal, what hangs on each in line with it.
+        let line = self.shape(members[first]).map_or(0, |r| r.y0) + self.d[members[first]].y;
+        let mut moving: BTreeSet<usize> = members.iter().copied().collect();
+        for (i, &u) in members.iter().enumerate() {
+            let (Some(x), Some(r)) = (place[i], self.shape(u)) else {
+                return Err(Held::Room);
+            };
+            let by = Pt::new(x - r.x0, line - r.y0).minus(self.d[u]);
+            // (What hangs on a terminal at an end stays where it was set: it is wired elsewhere.)
+            let hung: Vec<usize> = if ends.iter().any(|e| e.contains(&i)) {
+                Vec::new()
+            } else {
+                self.in_line(u, members).into_iter().skip(1).collect()
+            };
+            self.shift(&[u], by);
+            self.shift(&hung, by);
+            moving.extend(hung);
+        }
+        // In the drawing area, on no other unit.
+        for u in &moving {
+            if !self.inside(*u) {
+                return Err(Held::Sheet);
+            }
+            if let Some(o) = (0..self.units.len()).find(|o| !moving.contains(o) && self.bodies_meet(*u, *o)) {
+                return Err(Held::Unit(o));
+            }
+        }
+        Ok(())
     }
 
     /// Sets the trees one after another, the heaviest first.
@@ -1673,6 +1967,11 @@ impl<'a> Sketch<'a> {
                 let (Some(s), Some(sf)) = (self.side(l.h), self.side(l.f)) else {
                     continue;
                 };
+                // A terminal of a strip over a card that is no channel's stays in its strip: it is set with the strip
+                // (`open_strips`), not beside or round a corner from its host.
+                if self.loose.contains(&f) && !matches!(l.kind, Kind::Facing | Kind::Tap | Kind::Mate) {
+                    continue;
+                }
                 match l.kind {
                     Kind::Facing | Kind::Tap => rows.entry(s).or_default().push(f),
                     Kind::Corner => stacks.entry((s, sf)).or_default().push(f),
@@ -1947,6 +2246,16 @@ impl<'a> Sketch<'a> {
             self.d[*m] = self.d[*m].plus(across_vec(s, by));
             wished.push(by);
         }
+        // The units of the members' strips that are not of the row, with what hangs on them, and the terminals an
+        // opening strip sets anew ([`Sketch::loose`]): where the strip opens (`open`, FT-2110) they are set with it
+        // afterwards ([`Sketch::open_strips`]), so they stand in no member's way and bind nobody.
+        let strip = &self.strips[usize::from(!s.vertical())];
+        let here: BTreeSet<usize> = items.iter().map(|(m, _)| *m).collect();
+        let mut others: Vec<usize> = (0..self.units.len())
+            .filter(|u| !here.contains(u) && items.iter().any(|(m, _)| strip[*u] == strip[*m]))
+            .flat_map(|u| self.subtree(u))
+            .collect();
+        others.extend(self.loose.iter().copied());
         for (k, (m, l)) in items.iter().enumerate() {
             let far = self.pt(l.f).plus(along_vec(
                 s,
@@ -1957,6 +2266,12 @@ impl<'a> Sketch<'a> {
             own.push(l.host);
             own.extend(items.iter().flat_map(|(o, _)| self.subtree(*o)));
             if wished[k] != 0 && !self.line_free(self.pt(l.h), far, &own) {
+                own.extend(&others);
+                let strip_only = self.line_free(self.pt(l.h), far, &own);
+                if self.open && strip_only {
+                    continue;
+                }
+                self.bound |= strip_only;
                 self.d[*m] = self.d[*m].plus(across_vec(s, -wished[k]));
                 wished[k] = 0;
             }
@@ -1966,9 +2281,7 @@ impl<'a> Sketch<'a> {
         // past a unit of its row that has no line of its own to take (it is fixed, or hangs beside its host), or
         // further from it than it stood by more than the row's pull: such a row is not torn. A unit of the row with a
         // line of its own (a strip's terminal that faces another card) binds nobody: each stands in its channel's
-        // column (rule E4).
-        let strip = &self.strips[usize::from(!s.vertical())];
-        let here: BTreeSet<usize> = items.iter().map(|(m, _)| *m).collect();
+        // column (rule E4). Where the strip opens as one (`open`), none binds: the strip is set anew afterwards.
         let elsewhere = |sk: &Self, m: usize| -> Vec<usize> {
             (0..sk.units.len())
                 .filter(|u| {
@@ -1984,24 +2297,31 @@ impl<'a> Sketch<'a> {
             let at = sk.shape(u).map_or(0, |r| span_across(r, s).0);
             if moved { at + across(sk.d[u], s) } else { at }
         };
+        let binds = |sk: &Self, wished: &[Tick], k: usize| {
+            let m = items[k].0;
+            wished[k] != 0
+                && elsewhere(sk, m).into_iter().any(|u| {
+                    let (then, now) = (
+                        place(sk, m, false) - place(sk, u, false),
+                        place(sk, m, true) - place(sk, u, true),
+                    );
+                    then.signum() != now.signum() || now.abs() > then.abs() + ROW_PULL
+                })
+        };
+        if !self.open && (0..items.len()).any(|k| binds(self, &wished, k)) {
+            self.bound = true;
+        }
         loop {
             let at = |sk: &Self, k: usize| across(sk.pt(items[k].1.f), s);
             let was = |sk: &Self, k: usize| across(sk.pt0(items[k].1.f), s);
             let past = (0..items.len()).find(|k| {
-                let m = items[*k].0;
                 wished[*k] != 0
                     && ((0..items.len()).any(|j| {
                         wished[j] == 0
                             && (*k < j) == (was(self, *k) < was(self, j))
                             && was(self, *k) != was(self, j)
                             && (*k < j) != (at(self, *k) < at(self, j))
-                    }) || elsewhere(self, m).into_iter().any(|u| {
-                        let (then, now) = (
-                            place(self, m, false) - place(self, u, false),
-                            place(self, m, true) - place(self, u, true),
-                        );
-                        then.signum() != now.signum() || now.abs() > then.abs() + ROW_PULL
-                    }))
+                    }) || (!self.open && binds(self, &wished, *k)))
             });
             let Some(k) = past else { break };
             self.d[items[k].0] = self.d[items[k].0].plus(across_vec(s, -wished[k]));
@@ -2986,6 +3306,26 @@ impl<'a> Sketch<'a> {
         }
     }
 
+    /// The strips opened as one, each by its first terminal.
+    pub fn opened(&self) -> Vec<PartId> {
+        self.opened
+            .iter()
+            .filter_map(|s| s.first().map(|u| self.largest(*u)))
+            .collect()
+    }
+
+    /// `units` with every unit of a strip opened as one that one of them belongs to, and what hangs on those: a strip
+    /// that opened goes or stays as one, never in part.
+    pub fn with_strips(&self, units: Vec<usize>) -> Vec<usize> {
+        let mut out: BTreeSet<usize> = units.into_iter().collect();
+        for strip in &self.opened {
+            if strip.iter().any(|u| out.contains(u)) {
+                out.extend(strip.iter().flat_map(|u| self.subtree(*u)));
+            }
+        }
+        out.into_iter().collect()
+    }
+
     /// The moves, by part ID.
     pub fn moves(&self) -> Vec<(PartId, Pt)> {
         let mut out: Vec<(PartId, Pt)> = self
@@ -3039,20 +3379,38 @@ impl<'a> Sketch<'a> {
                 None => rows.push(vec![h]),
             }
         }
-        rows.into_iter()
-            .map(|r| {
-                let units: BTreeSet<usize> = r.into_iter().flat_map(|h| self.subtree(h)).collect();
-                units.into_iter().collect()
-            })
-            .collect()
+        let mut out: Vec<Vec<usize>> = Vec::new();
+        for r in rows {
+            let units = self.with_strips(r.into_iter().flat_map(|h| self.subtree(h)).collect());
+            match out.iter_mut().find(|o| o.iter().any(|u| units.contains(u))) {
+                Some(o) => {
+                    o.extend(units);
+                    o.sort_unstable();
+                    o.dedup();
+                }
+                None => out.push(units),
+            }
+        }
+        out
     }
 
     /// The trees with a move, each as its units.
     pub fn groups(&self) -> Vec<Vec<usize>> {
-        self.roots
-            .iter()
-            .map(|r| self.subtree(*r))
-            .filter(|units| units.iter().any(|u| self.d[*u] != Pt::default()))
-            .collect()
+        let mut out: Vec<Vec<usize>> = Vec::new();
+        for r in &self.roots {
+            let units = self.with_strips(self.subtree(*r));
+            if !units.iter().any(|u| self.d[*u] != Pt::default()) {
+                continue;
+            }
+            match out.iter_mut().find(|o| o.iter().any(|u| units.contains(u))) {
+                Some(o) => {
+                    o.extend(units);
+                    o.sort_unstable();
+                    o.dedup();
+                }
+                None => out.push(units),
+            }
+        }
+        out
     }
 }

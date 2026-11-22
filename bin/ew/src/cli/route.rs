@@ -258,6 +258,7 @@ mod tests {
             left: Vec::new(),
             params: None,
             kept: Vec::new(),
+            held: Vec::new(),
         };
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);
@@ -273,6 +274,7 @@ mod tests {
             left: Vec::new(),
             params: None,
             kept: Vec::new(),
+            held: Vec::new(),
         };
         assert_eq!(
             page_text(&page_result("102", &empty, words), &empty, false),

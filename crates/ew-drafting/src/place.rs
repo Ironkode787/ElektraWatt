@@ -27,7 +27,9 @@
 //!    the sum, and a second press finds nothing to do.
 //!
 //! On a page where a card would step along its edge (`sketch::CardSteps`) steps 2 to 6 are made three times, with the
-//! step, with the part of it that clears the card's supply, and without it; the best page is offered.
+//! step, with the part of it that clears the card's supply, and without it; where a strip's other terminals held a
+//! channel's terminal off its column, each of them once more with the strip opened as one (`sketch::Sketch::open`,
+//! FT-2110); the best page is offered.
 //!
 //! Nothing here estimates what the router will draw: every plan compared has been routed. The work of one run is one
 //! run of the router over the page for each plan tried: the whole arrangement, at most [`BRANCHES`] trees, at most
@@ -46,7 +48,7 @@ use crate::rules::{broken, rules_kept};
 
 mod sketch;
 
-use sketch::{CardSteps, Sketch};
+use sketch::{CardSteps, Held, Sketch};
 
 /// What Arrange and route plans for a page (§4.9): the parts' moves and the routes of the page as it would become.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -59,6 +61,22 @@ pub struct Arranged {
     /// The routes, junctions and marks of the page as it would become (every wire with an end on a moved part
     /// included, an empty route for one without a way), and the page's quality before and after.
     pub plan: Plan,
+    /// The strips of terminals over or under a card that could not open as one (§4.4, FT-2110), each by its first
+    /// terminal, with what held it.
+    pub held: Vec<(PartId, StripHeld)>,
+}
+
+/// What held a strip of terminals over or under a card from opening as one to the channels' columns (§4.4).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StripHeld {
+    /// Its terminals are wired to the card's channels in another order than they stand in.
+    Order,
+    /// The channels' columns leave too little room for the terminals that stand between them.
+    Room,
+    /// This part stands where a terminal, or what moves with it, would go.
+    Part(PartId),
+    /// A terminal, or what moves with it, would leave the drawing area.
+    Sheet,
 }
 
 impl Arranged {
@@ -148,6 +166,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     plan.before = first.plan.before.clone();
     plan.after = measure(&now);
     Arranged {
+        held: first.held.clone(),
         left: left
             .into_iter()
             .filter(|(id, _)| !moves.iter().any(|(m, _)| m == id))
@@ -175,11 +194,12 @@ struct Taken {
 }
 
 /// One run of Arrange and route (module documentation). Where a card would step along its edge ([`CardSteps`]) the
-/// arrangement is made three ways: with that step, with the step that clears the supply alone, and without it; the
-/// best page by the measure with the price of its moves is offered.
+/// arrangement is made three ways: with that step, with the step that clears the supply alone, and without it; where
+/// a strip's other terminals held a channel's terminal off its column, each of them again with the strip opened as one
+/// (`Sketch::open_strips`); the best page by the measure with the price of its moves is offered.
 fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
-    let (stepped, cards) = arrange_try(page, scope, fixed, CardSteps::Columns);
-    if !cards {
+    let (stepped, cards, bound, _) = arrange_try(page, scope, fixed, CardSteps::Columns, false);
+    if !cards && !bound {
         return stepped;
     }
     let score = |a: &Arranged| {
@@ -187,31 +207,68 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
         let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * a.moves.len() as i64;
         (q.faults, q.unrouted, q.cost + price)
     };
+    let steps: &[CardSteps] = if cards {
+        &[CardSteps::Columns, CardSteps::Supply, CardSteps::None]
+    } else {
+        &[CardSteps::Columns]
+    };
     let mut best = stepped;
-    for steps in [CardSteps::Supply, CardSteps::None] {
-        let (other, _) = arrange_try(page, scope, fixed, steps);
-        if score(&other) < score(&best) {
-            best = other;
+    let mut held: Vec<(PartId, StripHeld)> = Vec::new();
+    let mut opened: BTreeSet<PartId> = BTreeSet::new();
+    for (k, steps) in steps.iter().enumerate() {
+        for open in [false, true] {
+            if (k == 0 && !open) || (open && !bound) {
+                continue;
+            }
+            let (other, _, _, strips) = arrange_try(page, scope, fixed, *steps, open);
+            held.extend(other.held.iter().copied());
+            opened.extend(strips);
+            if score(&other) < score(&best) {
+                best = other;
+            }
         }
     }
+    // A strip that opened in none of the ways is named with what held it the first time.
+    let mut named: BTreeSet<PartId> = opened;
+    held.retain(|(first, _)| named.insert(*first));
+    best.held = held;
     best
 }
 
-/// One arrangement routed and judged; and whether a card of the page would take a step along its edge.
+/// One arrangement routed and judged, with the strip opened as one where `open`; whether a card of the page would take
+/// a step along its edge, whether a strip's other terminals held a channel's terminal off its column, and the strips
+/// that opened (each by its first terminal).
 fn arrange_try(
     page: &DraftPage,
     scope: Scope<'_>,
     fixed: &[ew_ids::Uuid],
     cards: CardSteps,
-) -> (Arranged, bool) {
+    open: bool,
+) -> (Arranged, bool, bool, Vec<PartId>) {
     let before = measure(page);
     // Route over the same wires (every wire of the scope, whoever shaped it): the plan to beat.
     let routed_only = route::route(page, &jobs(page, scope, fixed));
     let baseline = routed_only.after.clone();
     let mut sk = Sketch::new(page, scope, fixed);
     sk.card_steps = cards;
+    sk.open = open;
     let stepping = sk.cards_step();
     sk.lay();
+    let bound = sk.bound;
+    let opened = sk.opened();
+    let held: Vec<(PartId, StripHeld)> = sk
+        .held
+        .iter()
+        .map(|(u, why)| {
+            let why = match why {
+                Held::Order => StripHeld::Order,
+                Held::Room => StripHeld::Room,
+                Held::Unit(o) => StripHeld::Part(sk.largest(*o)),
+                Held::Sheet => StripHeld::Sheet,
+            };
+            (sk.largest(*u), why)
+        })
+        .collect();
     // The rules read the parts and the nets alone: the parts a broken rule names go back, with what hangs on them,
     // until none breaks.
     for _ in 0..sk.len() {
@@ -236,7 +293,8 @@ fn arrange_try(
             own
         };
         let mut any = false;
-        for u in back {
+        // (A strip opened as one goes back as one.)
+        for u in sk.with_strips(back) {
             for f in sk.subtree(u) {
                 if sk.d[f] != Pt::default() {
                     sk.d[f] = Pt::default();
@@ -402,8 +460,11 @@ fn arrange_try(
                 },
                 left: left(&[]),
                 moves: Vec::new(),
+                held,
             },
             stepping,
+            bound,
+            opened,
         );
     };
     (
@@ -415,8 +476,11 @@ fn arrange_try(
                 ..taken.plan
             },
             moves: taken.moves,
+            held,
         },
         stepping,
+        bound,
+        opened,
     )
 }
 

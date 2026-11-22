@@ -17,7 +17,7 @@ use ew_derive::ew_units::Grid;
 pub use ew_drafting::Pt;
 pub use ew_drafting::consts::TICKS_PER_STEP;
 pub use ew_drafting::{
-    DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on,
+    DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, StripHeld, WireId, measure, route as route_on,
 };
 use ew_drafting::{JunctionId, PinId, WireEnd};
 /// The conversion of a page between nm and the layout's ticks, which the window's tools use too.
@@ -52,6 +52,9 @@ pub struct RoutePlan {
     /// The page's routed wires a page-wide Route leaves alone as the person's (no `computed` mark, no fault), by ID;
     /// empty for a selection.
     pub kept: Vec<Uuid>,
+    /// The strips of terminals over or under a card that Arrange and route could not open as one, each by its first
+    /// terminal, with what held it; none for Route.
+    pub held: Vec<(PartId, StripHeld)>,
 }
 
 impl RoutePlan {
@@ -268,6 +271,7 @@ impl Session {
             left: Vec::new(),
             params,
             kept,
+            held: Vec::new(),
         })
     }
 
@@ -300,6 +304,7 @@ impl Session {
             left: arranged.left,
             params,
             kept: Vec::new(),
+            held: arranged.held,
         })
     }
 
