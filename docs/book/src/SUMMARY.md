@@ -148,6 +148,7 @@
     - [`rep.exchange_symbol`](reference/commands/rep.exchange_symbol.md)
     - [`rep.join_device`](reference/commands/rep.join_device.md)
     - [`rep.move`](reference/commands/rep.move.md)
+    - [`rep.move_to_new_page`](reference/commands/rep.move_to_new_page.md)
     - [`rep.set_anchor_policy`](reference/commands/rep.set_anchor_policy.md)
     - [`rep.text_set`](reference/commands/rep.text_set.md)
     - [`rep.texts_reset`](reference/commands/rep.texts_reset.md)
