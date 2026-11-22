@@ -71,8 +71,9 @@ struct Tail {
 }
 
 /// How far, in ems, a piece may start before or after the pen to continue a text: kerning and rounding, never a word
-/// space or the gap between two cells of a table.
-const JOIN_GAP: (f64, f64) = (-0.15, 0.1);
+/// space or the gap between two cells of a table. Before it goes to 0.3 em: a kerned pair of a letter and a comma or
+/// an ellipsis (`r,`, `r…`) draws its second glyph more than 0.15 em back (FT-1925).
+const JOIN_GAP: (f64, f64) = (-0.3, 0.1);
 
 /// The texts of a page, segmented by one rule on both sides of the verifier (doc 14 §4.15): a piece joins the text
 /// before it when it continues that text's baseline at the pen (within [`JOIN_GAP`] ems along it and 0.15 em across,

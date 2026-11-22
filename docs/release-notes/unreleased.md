@@ -394,3 +394,6 @@ change here.
 - behaviour-change: a report table of many columns cuts no text that fits at the smallest size: a column whose text
   would be cut takes what it lacks from the room the other columns spare at that size, so an I/O list on the PLC
   overview's form prints the CPU's tag and every part number whole (doc 09 §7 item 5, FT-1923)
+- behaviour-change: verifying a project against its PDF reads a kerned pair of a letter and a comma or an ellipsis
+  (`r,`, `r…`) as one text: the sample's parts lists' descriptions were two missing texts and one extra (doc 14 §4.15,
+  FT-1925)

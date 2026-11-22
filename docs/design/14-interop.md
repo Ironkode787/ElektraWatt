@@ -1237,7 +1237,8 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
 - **Text.** Both sides give texts with their anchor (the first glyph's origin), segmented by one rule
   (`ew_scene::pdf_text::Segmenter`): hayro draws a PDF page into a device that gives each glyph as a piece, the
   project's sheet gives each run of one font as a piece, and a piece joins the text before it when it continues that
-  text's baseline at the pen (from 0.15 em before to 0.1 em after it, within 0.15 em across), whatever its font. So
+  text's baseline at the pen (from 0.3 em before to 0.1 em after it, within 0.15 em across; a kerned `r,` or `r…` draws
+  its comma more than 0.15 em back, FT-1925), whatever its font. So
   a text with a glyph of another font (², ∞, −, ⇄) is one text, a producer that draws every glyph by itself (Qt's PDF
   engine, which draws its spaces as glyphs) gives whole texts, and a gap splits: the texts of neighbouring cells stay
   apart. Golden A against its own PDF gives no deviation (a deep-run test). White space is not compared (where a word
