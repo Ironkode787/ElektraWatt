@@ -772,7 +772,9 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
 - **Scroll bars** (FT-1830): along the canvas's right and bottom edges, `space.3` thick, a thumb in
   `color.text.tertiary` (`color.text.secondary` under the pointer and while dragged) with `radius.pill`, standing for
   the part of the page in view against the page and the room beyond it the view shows; shown only while part of the
-  page is out of view (P3: a fitted page has none), and a thumb dragged pans the view as far.
+  page is out of view (P3: a fitted page has none), and a thumb dragged pans the view as far. While the horizontal bar
+  shows, the tool HUD's band stands on it (raised by the bar's `space.3`), so the bar runs whole under the pill and
+  its thumb can be seen and dragged anywhere (FT-2096).
 - **The wheel's choice where the zoom is first met** (FT-1830): the plain mouse wheel zooms; its first zoom of a page
   shows the one-time tip "The mouse wheel zooms the page. It can scroll the page instead, Ctrl with the wheel then
   zooms (View ▸ Mouse wheel scrolls)." with the action Wheel scrolls the page, which turns the setting on. It is a tip

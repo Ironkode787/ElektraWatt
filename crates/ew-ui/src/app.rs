@@ -1227,9 +1227,17 @@ impl App {
                         // (a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
                         // the HUD, the zoom control and the tool options stay away from it (below).
                         let full = ui.max_rect();
-                        let split = (full.bottom() - crate::hud::strip_height(&tokens)).max(full.top());
+                        // The HUD stands above the page's horizontal scroll bar while one shows (FT-2096).
+                        let bar = (0..crate::canvas::GROUPS)
+                            .filter_map(|g| shell.canvas_of(g))
+                            .any(|c| crate::canvas::shows_scroll_bar(c, false));
+                        let foot = full.bottom() - if bar { tokens.space_3 } else { 0.0 };
+                        let split = (foot - crate::hud::strip_height(&tokens)).max(full.top());
                         page_pane = Some(full);
-                        hud_strip = Some(egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max));
+                        hud_strip = Some(egui::Rect::from_min_max(
+                            egui::pos2(full.left(), split),
+                            egui::pos2(full.right(), foot.max(split)),
+                        ));
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
                         canvas_shown = true;

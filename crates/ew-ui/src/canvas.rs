@@ -130,6 +130,15 @@ pub fn hover_path(shell: &ShellModel, c: &CanvasModel) -> Option<Vec<(i64, i64)>
     hovered_line(c, e)
 }
 
+/// Whether the page's vertical (else horizontal) scroll bar shows: part of the page is out of view that way
+/// (FT-1830, doc 16a §5.5).
+pub(crate) fn shows_scroll_bar(canvas: &CanvasModel, vertical: bool) -> bool {
+    let [x0, y0, x1, y1] = canvas.view_nm();
+    let (w, h) = canvas.sheet();
+    let (v0, v1, end) = if vertical { (y0, y1, h) } else { (x0, x1, w) };
+    v0 > 0 || v1 < end
+}
+
 /// The drawn polyline (sheet nm) of `e` when it is a connection of the page.
 fn hovered_line(c: &CanvasModel, e: ew_dl::EntityRef) -> Option<Vec<(i64, i64)>> {
     let page = c.page();
@@ -2744,7 +2753,7 @@ impl CanvasHost {
         let thick = t.space_3;
         for vertical in [false, true] {
             let (v0, v1, end) = if vertical { (y0, y1, h) } else { (x0, x1, w) };
-            if v0 <= 0 && v1 >= end {
+            if !shows_scroll_bar(canvas, vertical) {
                 continue;
             }
             let (lo, hi) = (v0.min(0), v1.max(end));
