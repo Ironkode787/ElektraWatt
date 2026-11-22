@@ -399,3 +399,6 @@ change here.
   FT-1925)
 - behaviour-change: Generate overview names the new pages of an overview that runs over several pages as siblings,
   104.1, 104.2, 104.3; they were 104.1, 104.1.1, 104.1.1.1 (doc 11 §5.5, FT-1926)
+- behaviour-change: the valve terminal configuration and the view `api_v1_valve_position` of a terminal that is its own
+  valve module (the starter EW-GEN-VTM-1) list a row per position with its valve, part, solenoids and address; its
+  valves were listed as modules with those cells empty (doc 11 §8.2, FT-1927)

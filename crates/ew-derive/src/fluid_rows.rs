@@ -370,8 +370,9 @@ pub fn valve_channels(q: &Q, valve: Id<Device>) -> (Vec<String>, Vec<Id<Channel>
 }
 
 /// `valve_terminal_rows()` (doc 11 §8.2): per valve terminal (in natural tag order) a row for the terminal, then per
-/// child in position order a row for the child and, for a module with valve positions, a row per position. Policy
-/// Memo.
+/// child in position order a row for the child and, for a module with valve positions, a row per position. A
+/// terminal that is its own valve module (positions of its own, no child with positions) has a row per position after
+/// its own, and the valves in them have no module row. Policy Memo.
 #[derive(Debug)]
 pub struct ValveTerminalRows;
 
@@ -404,20 +405,11 @@ impl Query for ValveTerminalRows {
             target: None,
             state: None,
         };
-        let mut out = Vec::new();
-        for (_, vt) in terminals {
-            out.push(module_row(vt, vt, None));
-            let mut children: Vec<(u32, Id<Device>)> = q
-                .idx()
-                .device_children(vt)
-                .map(|c| (devices.get(c).and_then(|d| d.position).unwrap_or(u32::MAX), c))
-                .collect();
-            children.sort();
-            for (position, module) in children {
-                let module_position = (position != u32::MAX).then_some(position);
-                out.push(module_row(vt, module, module_position));
-                let slots = q.get::<ValveSlots>(module);
-                for (i, slot) in slots.slots.iter().enumerate() {
+        // A module's row, then a row per valve position of it; its slots.
+        let module_rows = |out: &mut Vec<VtRow>, vt: Id<Device>, module: Id<Device>, module_position| {
+            out.push(module_row(vt, module, module_position));
+            let slots = q.get::<ValveSlots>(module);
+            for (i, slot) in slots.slots.iter().enumerate() {
                     let p = u32::try_from(i + 1).unwrap_or(u32::MAX);
                     let mut row = module_row(vt, module, module_position);
                     row.position = Some(p);
@@ -449,6 +441,40 @@ impl Query for ValveTerminalRows {
                     }
                     out.push(row);
                 }
+            slots
+        };
+        let mut out = Vec::new();
+        for (_, vt) in terminals {
+            // A terminal that is its own valve module (the starter EW-GEN-VTM-1: valve positions of its own and no
+            // child that has them) lists its own positions; the valves in them are no modules of it (doc 11 §2.6,
+            // FT-1927).
+            let own_module = !q
+                .idx()
+                .device_children(vt)
+                .any(|c| crate::fluid::valve_positions(q, c).is_some());
+            let seated: Vec<Id<Device>> = if own_module {
+                module_rows(&mut out, vt, vt, None)
+                    .slots
+                    .iter()
+                    .filter_map(|s| match s {
+                        ValveSlot::Valve { device, .. } | ValveSlot::Blank { device } => Some(*device),
+                        ValveSlot::Empty => None,
+                    })
+                    .collect()
+            } else {
+                out.push(module_row(vt, vt, None));
+                Vec::new()
+            };
+            let mut children: Vec<(u32, Id<Device>)> = q
+                .idx()
+                .device_children(vt)
+                .filter(|c| !seated.contains(c))
+                .map(|c| (devices.get(c).and_then(|d| d.position).unwrap_or(u32::MAX), c))
+                .collect();
+            children.sort();
+            for (position, module) in children {
+                let module_position = (position != u32::MAX).then_some(position);
+                module_rows(&mut out, vt, module, module_position);
             }
         }
         Arc::new(out)

@@ -1042,7 +1042,10 @@ alike (ADR-0018, FR-EXP-002).
 | Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded | Component mode: 571334 × 28, 533361 × 7, 533354 × 2 (D-04); assembly mode: rows A1 (51E-F13GCQP-D+H2GG) and A2 (32P-VGL-R-…-28MS) |
 
 *As built (WP-S1.25).* The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` of
-`ew-derive`, shared by the report kinds and the SQL views. The tube list prints lengths in metres. The cut list
+`ew-derive`, shared by the report kinds and the SQL views. A terminal that is its own valve module (EW-GEN-VTM-1:
+positions of its own, no child with positions) has a row per position after its own row, and its valves no module
+rows (FT-1927: the sample's -201K1 lists positions 1 to 4 with -201K1-Q1 … -Q4, solenoid 14, Q0.0 … Q0.6). The tube
+list prints lengths in metres. The cut list
 groups by material, size, colour and tube part, with the count and the summed length; it has no per-end cut
 allowance and no order length, since no part data names an order increment. The tube labels give one row per tube
 end with the line tag, else the far end; no marker part. The medium overview counts as consumers the **valves** whose
