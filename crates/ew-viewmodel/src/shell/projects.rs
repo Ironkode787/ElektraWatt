@@ -56,6 +56,8 @@ pub(super) struct ImportState {
     pub(super) edz_terms: bool,
     /// The drawing import running as a job (FT-1753).
     pub(super) drawing: Option<super::drawing_import::DrawingJob>,
+    /// The imports whose reading runs as a job (FT-1763).
+    pub(super) reads: Vec<super::read_jobs::ReadJob>,
 }
 
 /// An imported project the import card shows, not written yet.

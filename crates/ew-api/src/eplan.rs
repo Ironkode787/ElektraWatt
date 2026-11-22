@@ -451,13 +451,43 @@ impl Session {
         fndefs: &FndefMap,
         as_of: Option<Date>,
     ) -> Result<PartsImport, crate::import::Refusal> {
+        self.eplan_parts_read(as_of).run(input, fndefs)
+    }
+
+    /// What [`Session::eplan_parts`] takes from the session (the manufacturers and the project), so that its read can
+    /// run on another thread ([`EplanPartsRead::run`], FT-1763).
+    pub fn eplan_parts_read(&self, as_of: Option<Date>) -> EplanPartsRead {
         let q = self.query();
         let mut master = crate::catalog::manufacturer_master(self.libraries());
         master.extend(q.manufacturers().iter().map(|(_, c)| (**c).clone()));
-        let none = |_: Uuid| None;
-        let target = CatalogTarget {
+        EplanPartsRead {
+            master,
             library: q.project().id.as_uuid(),
             as_of,
+        }
+    }
+}
+
+/// The read of [`Session::eplan_parts`] without the session: the manufacturers it resolves through and the project the
+/// parts are local to ([`Session::eplan_parts_read`]).
+#[derive(Clone, Debug)]
+pub struct EplanPartsRead {
+    master: Vec<LibCopy<Manufacturer>>,
+    library: Uuid,
+    as_of: Option<Date>,
+}
+
+impl EplanPartsRead {
+    /// Reads `input` as [`Session::eplan_parts`] does.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::import::Refusal`] for a file refused as a whole or an importer that panicked.
+    pub fn run(&self, input: &ImportInput, fndefs: &FndefMap) -> Result<PartsImport, crate::import::Refusal> {
+        let none = |_: Uuid| None;
+        let target = CatalogTarget {
+            library: self.library,
+            as_of: self.as_of,
             bump: false,
             limits: Limits::default(),
             existing: &none,
@@ -466,10 +496,12 @@ impl Session {
         };
         let sizes = [input.bytes().len() as u64];
         crate::import::front_door(input.name(), &sizes, &target.limits, None, || {
-            parts_import(input, fndefs, &master, &target)
+            parts_import(input, fndefs, &self.master, &target)
         })
     }
+}
 
+impl Session {
     /// The previewed update of this project's part copies from the parts of `import` (an EDZ or parts XML read by
     /// [`parts_import`]; FR-PRT-014, AC-38): each part of the import is matched to the project's copy of the same
     /// manufacturer and normalised part number, laid over it ([`merged`]) as the copy's next patch version, and the plan of the

@@ -63,6 +63,8 @@ pub use drawing_import::DrawingKind;
 // File ▸ Import… of EPLAN data: an EDZ, a parts XML, a report spreadsheet (WP-S3.18).
 mod eplan_import;
 pub use eplan_import::{EplanKind, EplanStep};
+// The imports whose reading runs as a job (FT-1763).
+mod read_jobs;
 // External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
 pub(crate) use external::collision_count;

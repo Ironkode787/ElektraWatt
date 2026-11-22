@@ -1313,6 +1313,14 @@ sibling `.<name>.ew-part`, synced and renamed into place, and removed on cancel,
 remains. Replacing a file is confirmed once, by the native save dialog's prompt or `replace: true` in a script; a
 second export while one runs is refused. Headless, the export waits for its job unless `wait: false`.
 
+*Imports read as jobs (FT-1753, FT-1763).* A drawing for File ▸ Import…, an EDZ or a parts XML, a PLC exchange file
+and a report spreadsheet are read off the window's thread: what needs no session (the file read and parsed; the PLC
+file merged against the configuration project's image, taken from the session first) runs as a job, listed in the Jobs
+pane with Cancel, and its end runs the rest on the window's thread: the dialog, the preview card, or the new project.
+A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
+imported."); a job of a project that closed meanwhile ends in nothing. A script waits for the read. Not yet: writing an
+EDZ's parts into the user's library reads the file again on the window's thread (FT-2081).
+
 ### 8.4 Message panel
 
 The message panel (FR-UI-021, FR-CHK-008) groups findings by severity and rule. Columns: severity (icon and word),

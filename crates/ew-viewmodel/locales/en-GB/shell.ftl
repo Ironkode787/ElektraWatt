@@ -4089,6 +4089,7 @@ prompt-table-name = table.xlsx
 prompt-open-table-title = Import table
 job-kind-table = Table export
 job-kind-import = Drawing import
+job-kind-read = Import read
 job-done-table = { $p0 } KiB
 toast-export-table = Exported { $p0 }: { $p1 } KiB.
 toast-export-table-again = Exported { $p0 } again: { $p1 } KiB.

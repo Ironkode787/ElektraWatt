@@ -35,6 +35,8 @@ fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
             "file.import_eplan",
             json!({"file": disguised.to_string_lossy(), "how": how}),
         );
+        // The file is read as a job (FT-1763): its end opens the notice.
+        s.wait_jobs();
         assert!(
             matches!(
                 s.dialog(),

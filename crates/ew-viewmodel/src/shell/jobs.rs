@@ -777,6 +777,7 @@ impl ShellModel {
         // And the import's, and a drawing import's.
         self.poll_import();
         self.poll_drawing();
+        self.poll_reads();
         let ended: Vec<(u64, JobEnd<ExportDone>)> = self
             .jobs
             .entries
@@ -801,8 +802,9 @@ impl ShellModel {
     /// for, whether their end was taken now or by an earlier poll: the runner prints each as
     /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
     pub fn wait_jobs(&mut self) -> Vec<String> {
-        // A running drawing import ends in its dialog, page or underlay.
+        // A running drawing import ends in its dialog, page or underlay, a running read in its import's.
         self.wait_drawing();
+        self.wait_reads();
         // A running import job ends in its card.
         if let Some(pending) = self.import.job.take() {
             let end = pending.job.wait();

@@ -405,8 +405,51 @@ impl Session {
     /// [`PlcExchangeError::NoConfig`]; [`PlcExchangeError::Unreadable`] for a file that is neither, is beyond a limit
     /// or is not well-formed, with the reader's reason; [`PlcExchangeError::Panicked`].
     pub fn plc_import(&self, bytes: &[u8], options: &PlcOptions) -> Result<PlcImport, PlcExchangeError> {
+        self.plc_import_read(options)?.run(bytes)
+    }
+
+    /// What [`Session::plc_import`] takes from the session (the configuration project, its image, its last exchange and
+    /// its ownership), so that the file can be read and merged on another thread ([`PlcImportRead::run`], FT-1763).
+    ///
+    /// # Errors
+    ///
+    /// [`PlcExchangeError::NoConfig`] when `options` names no configuration project of the project.
+    pub fn plc_import_read(&self, options: &PlcOptions) -> Result<PlcImportRead, PlcExchangeError> {
         let q = self.query();
         let cfg = config_project(&q, options.config.as_deref())?;
+        Ok(PlcImportRead {
+            cfg,
+            projection: ew_plc::exchange_image(&q, cfg, None),
+            snapshot: ew_plc::snapshot(&q, cfg),
+            ownership: q
+                .table::<PlcConfigProject>()
+                .get(cfg)
+                .and_then(|c| c.ownership.clone()),
+            date: options.date.unwrap_or_else(|| model_date(&q)),
+            options: options.clone(),
+        })
+    }
+}
+
+/// The read and merge of [`Session::plc_import`] without the session ([`Session::plc_import_read`]).
+#[derive(Clone, Debug)]
+pub struct PlcImportRead {
+    cfg: Id<PlcConfigProject>,
+    projection: Option<Projection>,
+    snapshot: ew_plc::Snapshot,
+    ownership: Option<ew_schema::Ownership>,
+    date: Date,
+    options: PlcOptions,
+}
+
+impl PlcImportRead {
+    /// The preview of the exchange file `bytes`, as [`Session::plc_import`] makes it.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::plc_import`].
+    pub fn run(&self, bytes: &[u8]) -> Result<PlcImport, PlcExchangeError> {
+        let options = &self.options;
         let (image, format, version) = guard(|| read_exchange_file(bytes, options.lang.as_deref()))?;
         let vocabulary = match format {
             ExchangeFormat::TiaXlsx => Vocabulary::Tags {
@@ -414,18 +457,16 @@ impl Session {
             },
             _ => Vocabulary::All,
         };
-        let projection = ew_plc::exchange_image(&q, cfg, None)
+        let projection = self
+            .projection
+            .as_ref()
             .ok_or_else(|| PlcExchangeError::NoConfig(options.config.clone(), Vec::new()))?;
-        let ownership = q
-            .table::<PlcConfigProject>()
-            .get(cfg)
-            .and_then(|c| c.ownership.clone());
         let plan = ew_plc::merge(
-            &projection,
-            &ew_plc::snapshot(&q, cfg),
+            projection,
+            &self.snapshot,
             &image,
             &MergeOptions {
-                ownership: ownership.as_ref(),
+                ownership: self.ownership.as_ref(),
                 complete: options.complete,
                 vocabulary,
             },
@@ -433,12 +474,12 @@ impl Session {
         let apply = AnyCommand {
             name: "plc.apply_exchange".to_owned(),
             params: json!({
-                "config_project": cfg.to_string(),
+                "config_project": self.cfg.to_string(),
                 "image": image,
                 "format": format,
                 "version": version,
                 "file_sha256": sha256(bytes),
-                "date": options.date.unwrap_or_else(|| model_date(&q)),
+                "date": self.date,
                 "complete": options.complete,
                 "comment_lang": options.lang,
                 "resolutions": options.resolutions,
@@ -446,7 +487,9 @@ impl Session {
         };
         Ok(PlcImport { plan, apply })
     }
+}
 
+impl Session {
     /// What Apply of `import` would meet (doc 10 §4.4): its `plc.apply_exchange` tried on a fork, so its prevent rules
     /// run; `None` when it would commit, else the refusal and the keys of the changes it concerns (a change of a record
     /// the refusing rule names, or of the module of a channel it names), so that the preview says it before Apply.

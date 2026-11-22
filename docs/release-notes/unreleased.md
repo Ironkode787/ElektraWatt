@@ -589,3 +589,6 @@ change here.
   Dutch in a Dutch window: each notice carries a text key, and the command line prints its English as before; a
   revision notice no longer prints a record's ID, and a paste's cleared reference names its records in words instead
   of their field names (doc 04 §5.1, FT-1819)
+- behaviour-change: reading an EDZ or a parts XML for File ▸ Import…, a PLC exchange file for its preview and a report
+  spreadsheet for a new project runs as a job of the Jobs pane with Cancel, off the window's thread; the dialog, the
+  preview or the project follows when the read ends, and a script waits for it as before (doc 16 §8.3, FT-1763)

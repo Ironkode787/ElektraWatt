@@ -45,6 +45,9 @@ pub enum JobKind {
     Import,
     /// The DXF set (`file.export_dxf`, doc 09 §4.9): a folder of page files and the pictures they name.
     Dxf,
+    /// A file read for an import (an EDZ or a parts XML, a PLC exchange file, a report spreadsheet; FT-1763): it
+    /// writes no file, and its end opens the import's dialog or card, or makes the project.
+    Read,
 }
 
 impl JobKind {
@@ -56,6 +59,7 @@ impl JobKind {
             JobKind::Table => "table",
             JobKind::Import => "import",
             JobKind::Dxf => "dxf",
+            JobKind::Read => "read",
         }
     }
 
@@ -67,6 +71,7 @@ impl JobKind {
             JobKind::Table => key!("job-kind-table"),
             JobKind::Import => key!("job-kind-import"),
             JobKind::Dxf => key!("job-kind-dxf"),
+            JobKind::Read => key!("job-kind-read"),
         }
     }
 }

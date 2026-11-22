@@ -965,7 +965,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
         other => panic!("{other:?}"),
     };
     dispatch(&mut h, "plc.import", import.clone());
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     let listed = removed(&h);
     assert!(listed.iter().any(|r| r == "station -104A1"), "{listed:?}");
     support::off_chrome(&h, "Apply").expect("Apply").click();
@@ -976,7 +976,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
         h.state().shell().dialog()
     );
     dispatch(&mut h, "plc.import", import);
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert_eq!(
         removed(&h),
         Vec::<String>::new(),
@@ -1049,7 +1049,7 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     );
     std::fs::write(&file, german).expect("the file");
     dispatch(&mut h, "plc.import", json!({"path": file.to_string_lossy()}));
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     h.get_by_label_contains("Conflicts (1)").click();
     settle(&mut h);
     let keep = h.get_by_label("Keep the project's");
@@ -1102,7 +1102,7 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
     let file = tmp.0.join("overlap.aml");
     std::fs::write(&file, overlapping).expect("the file");
     dispatch(&mut h, "plc.import", json!({"path": file.to_string_lossy()}));
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     let card = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| match h.state().shell().dialog() {
         Some(Dialog::PlcImport(card)) => (**card).clone(),
         other => panic!("{other:?}"),
@@ -1124,7 +1124,7 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
     );
     assert!(!shown.complete);
     h.get_by_label_contains("The file is complete").click();
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert!(card(&h).complete, "the preview made again with the file complete");
     h.state_mut().shell_mut().shutdown();
 }
@@ -1481,6 +1481,7 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
         json!({"format": "aml-1.4.0", "path": aml.to_string_lossy()}),
     );
     dispatch(&mut h, "plc.import", json!({"path": aml.to_string_lossy()}));
+    support::finish_jobs(&mut h);
     dispatch(&mut h, "plc.import_apply", json!({}));
     settle(&mut h);
     h.get_by_label(&config.name).click_secondary();

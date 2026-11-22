@@ -72,7 +72,7 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     h.get_by_label_contains("terms restrict");
     support::assert_accessible(&h);
     h.get_by_label("Continue").click();
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     let Some(Dialog::ImportEplan {
         step: EplanStep::Parts {
             read,
@@ -88,7 +88,7 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     h.get_by_label_contains("The project has a copy of 1 of them");
     support::assert_accessible(&h);
     h.get_by_label("Update 1 part copy").click();
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert!(
         h.state().shell().properties().card().is_some(),
@@ -106,7 +106,7 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
         })
     ));
     h.get_by_label("Add to my parts library").click();
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert!(h.state().shell().dialog().is_none());
     let toast = h.state().shell().toast().map(|t| t.text.clone());
     assert_eq!(
@@ -158,7 +158,7 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
     );
     assert_eq!(outcome, Outcome::Done);
     // The new project has no page: every enabled button is judged, Select among them.
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert!(dir.join("manifest.json").is_file());
     let toast = h.state().shell().toast().map(|t| t.text.clone());
     assert_eq!(
@@ -285,7 +285,7 @@ fn the_column_mapper_maps_a_report_and_saves_the_mapping_for_the_next_file() {
         "parts.map_import",
         json!({"dir": dir.to_string_lossy(), "discard": true}),
     );
-    settle(&mut h);
+    support::finish_jobs(&mut h);
     assert!(dir.join("manifest.json").is_file());
     assert!(h.state().shell().parts_map().is_none());
     assert!(

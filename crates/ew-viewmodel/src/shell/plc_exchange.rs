@@ -330,7 +330,6 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let bytes = or_return!(read_exchange_file(&path, &file));
         let complete = p.get("complete").and_then(Value::as_bool).unwrap_or(false);
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
@@ -339,9 +338,34 @@ impl ShellModel {
             complete,
             ..Default::default()
         };
-        let import = match session.plc_import(&bytes, &options) {
-            Ok(i) => i,
+        let reader = match session.plc_import_read(&options) {
+            Ok(r) => r,
             Err(e) => return failed(key!("error-plc-import"), &[&e.to_string()]),
+        };
+        // The file read and merged as a job (FT-1763), the preview opened at its end.
+        let name = file.clone();
+        self.start_read(&name, move |_| {
+            let import =
+                read_exchange_file(&path, &file).map(|bytes| reader.run(&bytes).map_err(|e| e.to_string()));
+            Ok(
+                Box::new(move |s: &mut ShellModel| s.plc_import_read(path, file, complete, import))
+                    as super::read_jobs::Finish,
+            )
+        })
+    }
+
+    /// The end of a PLC import's read: its preview, or why the file was not read.
+    fn plc_import_read(
+        &mut self,
+        path: std::path::PathBuf,
+        file: String,
+        complete: bool,
+        import: Result<Result<ew_api::plc_exchange::PlcImport, String>, Outcome>,
+    ) -> Outcome {
+        let import = match import {
+            Err(outcome) => return outcome,
+            Ok(Err(why)) => return failed(key!("error-plc-import"), &[&why]),
+            Ok(Ok(i)) => i,
         };
         // Apply tried on the preview (its prevent rules run), so a start the file gives that overlaps another is
         // refused here already, its row marked, rather than at Apply.
