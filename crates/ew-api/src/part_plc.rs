@@ -282,9 +282,10 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
             &[],
         );
     }
+    // Either way, only not the first kind again (FT-1970).
     if !kind2.is_empty() && word_ok(kind2, &channel_kind_words()) {
         match (way(kind), way(kind2)) {
-            (Some((a, _)), Some((b, _))) if a != b => {}
+            (Some(_), Some(_)) if kind2 != kind => {}
             _ => say("kind2", ew_commands::text_key!("error-part-plc-kind2-way"), &[]),
         }
     }
@@ -471,10 +472,19 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         .and_then(|_| serde_json::from_value(word(&rows.kind2)).ok());
     let analogue = |k: &Option<ChannelKind>| matches!(k, Some(ChannelKind::Ai | ChannelKind::Ao));
     let classes = [analogue(&kind), analogue(&kind2)];
-    let io: Vec<IoRange> = rows
-        .io()
+    let ways = rows.io();
+    // A second kind the same way lies in its direction's one range after the first kind's bits, from the next word;
+    // the range is of the first kind's class (doc 10 §2.6, FT-1970). The other way, from bit 0 of its own range.
+    let same_way = kind2.is_some() && matches!(ways.as_slice(), [(a, _), (b, _)] if a == b);
+    let word = |bits: u32| bits.div_ceil(16).saturating_mul(16);
+    let second_at = if same_way { word(ways[0].1) } else { 0 };
+    let ranges: Vec<((&str, u32), bool)> = if same_way {
+        vec![((ways[0].0, word(second_at.saturating_add(ways[1].1))), classes[0])]
+    } else {
+        ways.into_iter().zip(classes).collect()
+    };
+    let io: Vec<IoRange> = ranges
         .into_iter()
-        .zip(classes)
         .filter(|_| kind.is_some())
         .map(|((dir, bits), analog)| IoRange {
             dir: if dir == "in" { IoDir::In } else { IoDir::Out },
@@ -484,13 +494,12 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
         })
         .collect();
     let analog = analogue(&kind);
-    // One kind's channels lie on bit `n` (a word each, `16n`); a second kind's, the other way, from bit 0 of its own
-    // range, so the map is a list.
+    // One kind's channels lie on bit `n` (a word each, `16n`); a second kind's from `second_at`, so the map is a list.
     let bit_of = match (&kind, &kind2, count, rows.second_count()) {
         (Some(_), Some(_), Some(n), Some(m)) => {
             let per = |a: bool| if a { 16 } else { 1 };
             let first = (0..u32::from(n)).map(|k| k * per(analog));
-            let second = (0..u32::from(m)).map(|k| k * per(analogue(&kind2)));
+            let second = (0..u32::from(m)).map(|k| second_at + k * per(analogue(&kind2)));
             Some(MapSpec::List(first.chain(second).collect()))
         }
         (Some(_), ..) => Some(MapSpec::Expr(if analog { "16n" } else { "n" }.to_owned())),

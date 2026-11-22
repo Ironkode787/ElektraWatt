@@ -48,7 +48,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### Your own PLC and bus parts
 
-- FT-1970 `ew-api, ew-derive`: A card of two channel kinds that go the same way (inputs with analogue inputs, outputs with analogue outputs) is still two parts; a card of inputs and outputs is one (FT-1766, doc 10 §2.6). A module has one start per direction, so the second kind's place in its direction's range (after the first's bits, a word aligned) and the profile's cursor per class must be settled first.
 
 #### The station view and the PLC grid
 

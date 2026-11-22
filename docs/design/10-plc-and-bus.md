@@ -514,8 +514,8 @@ pub struct PartBusPort {
   (a digital channel one bit, an analogue one a word, `bit_of` `n` or `16n`); the pins become the CP pattern with a
   black-box main function over them, as the starter cards carry, so N1 and N3 give the channels and bind them to the
   pins. *A card of two kinds (FT-1766).* The form has a second channel kind and its count, which go the other way
-  from the first (outputs beside inputs, or inputs beside outputs, each of DI, DO, AI, AO or counter; the same way
-  twice is refused at the field in words): the section gets the additive member `more_channels` (a list of
+  from the first (outputs beside inputs, or inputs beside outputs, each of DI, DO, AI, AO or counter; since FT-1970
+  also the same way, below; the same kind twice is refused at the field in words): the section gets the additive member `more_channels` (a list of
   `ChannelSpec` after `channels`, appended last in `PlcSection`, omitted when empty, ADR-0011 decision 6's additive
   rule), whose channels are numbered on after the first spec's (`PlcSection::channel_specs`, `spec_of`); each kind
   lies from bit 0 of its own direction's range (`io` one range per direction, `bit_of` the list of the offsets, a
@@ -523,8 +523,14 @@ pub struct PartBusPort {
   and four outputs with `{n+1}` has the pins 1 to 8), the one name pattern over each kind's own channels from 0, and
   the data type is the second kind's where it is of the first's class. N1 makes every spec's channels of its kind;
   the derivation, N3, the station view and the PLC lists read the channel count and each channel's spec through those
-  two accessors. An older build keeps the member in `extra` and makes the first spec's channels alone; a card of two
-  kinds of one direction is still two parts. The part is saved into the person's own library (My parts) and embedded,
+  two accessors. An older build keeps the member in `extra` and makes the first spec's channels alone. *A card of two
+  kinds of one direction (FT-1970)* (inputs with analogue inputs, outputs with analogue outputs, a counter beside
+  digital inputs) is one part too: the second kind may go either way, only not be the first kind again. A module has
+  one start per direction, so its direction's one range holds both kinds: the first kind's from bit 0, the second
+  kind's after the first's bits from the next word (bit 16k, so an analogue word is aligned whatever the first kind
+  is); the range is that many bits, rounded up to a word, and of the first kind's class, so the profile's cursor of
+  that class places it (pass 2 of A1, §3.1: one cursor per direction and class, a range of a word or more aligned to
+  the profile's word). DI 8 with AI 2 is one input range of 48 bits: I0.0 … I0.7, then IW2 and IW4. The part is saved into the person's own library (My parts) and embedded,
   or kept project-local.
   Edit part… on a part of his own opens the same forms with the saved values: a copy of My parts is saved as the
   item's next patch version there and the project's copy follows by `library.update` (previewed, listing the devices);

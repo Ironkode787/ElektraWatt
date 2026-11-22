@@ -3,7 +3,8 @@
 
 //! A card of two channel kinds (FT-1766, doc 10 §2.6): a part made in the part editor with four inputs and four
 //! outputs is one card, its outputs numbered on after its inputs and each kind addressed from bit 0 of its own range;
-//! a second kind that goes the same way as the first is refused in words at its field.
+//! the first kind again is refused in words at its field. A card of inputs and analogue inputs is one card too
+//! (FT-1970): the analogue words follow the inputs' bits in the one input range, from the next word.
 
 use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::navigators::NavKind;
@@ -41,7 +42,7 @@ fn addresses(s: &ShellModel) -> Vec<String> {
 fn a_card_of_inputs_and_outputs_is_one_part() {
     let tmp = Tmp::new("card-of-two-kinds");
     let mut s = new_project(&tmp);
-    // The same way twice is refused at the second kind.
+    // The first kind again is refused at the second kind.
     card(
         &mut s,
         "DI-DI",
@@ -97,4 +98,47 @@ fn a_card_of_inputs_and_outputs_is_one_part() {
         ["0", "1", "2", "3"],
         "the outputs from bit 0 of their range: {all:?}"
     );
+}
+
+/// FT-1970: four inputs and two analogue inputs are one card; its input range holds the four bits from bit 0 and the
+/// two words from the next word on (doc 10 §2.6).
+#[test]
+fn a_card_of_inputs_and_analogue_inputs_is_one_part() {
+    let tmp = Tmp::new("card-of-two-kinds-one-way");
+    let mut s = new_project(&tmp);
+    card(
+        &mut s,
+        "DI-AI",
+        &[
+            ("plc.kind", "di"),
+            ("plc.count", "4"),
+            ("plc.kind2", "ai"),
+            ("plc.count2", "2"),
+            ("plc.pin_of", "{n+1}"),
+        ],
+    );
+    done(&mut s, "part.save", json!({}));
+    assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
+    done(&mut s, "plc.new_station", json!({}));
+    done(&mut s, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
+    done(&mut s, "plc.rack_add", json!({"part": "DI-AI"}));
+    done(&mut s, "plc.rack_create", json!({}));
+    done(&mut s, "navigator.show", json!({"kind": "plc"}));
+    done(&mut s, "navigator.table", json!({"kind": "plc", "on": true}));
+    let all = addresses(&s);
+    let digital: Vec<(u32, String)> = all
+        .iter()
+        .filter_map(|a| a.strip_prefix('I')?.split_once('.'))
+        .filter_map(|(byte, bit)| Some((byte.parse().ok()?, bit.to_owned())))
+        .collect();
+    let byte = digital.first().map(|(b, _)| *b).expect("an input");
+    let mut bits: Vec<&str> = digital.iter().map(|(_, bit)| bit.as_str()).collect();
+    bits.sort_unstable();
+    assert_eq!(bits, ["0", "1", "2", "3"], "the inputs: {all:?}");
+    let mut words: Vec<u32> = all
+        .iter()
+        .filter_map(|a| a.strip_prefix("IW")?.parse().ok())
+        .collect();
+    words.sort_unstable();
+    assert_eq!(words, [byte + 2, byte + 4], "the analogue words after the inputs' word: {all:?}");
 }

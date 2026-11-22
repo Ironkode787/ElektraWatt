@@ -406,3 +406,6 @@ change here.
   called PE in the potential list, on the page and in the SQL views; it was called `1` (doc 08 §3.5, FT-1933)
 - behaviour-change: a parts catalogue's technical data takes every unit of the format, by its spelling or its symbol:
   `8.5 mm`, `10 pc` and `2 set` were refused as no unit of the format (doc 03 §3.2, FT-1981)
+- behaviour-change: New part… makes a card of two channel kinds that go the same way (inputs with analogue inputs,
+  outputs with analogue outputs) as one part: the second kind's channels follow the first's bits in the direction's one
+  range from the next word; only the first kind again is refused (doc 10 §2.6, FT-1970)
