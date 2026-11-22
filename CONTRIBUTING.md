@@ -50,7 +50,8 @@ There is no continuous integration until 1.0. `check` is the check.
 - A test must not break because an unrelated feature added a command, a word, an action, a rule, a part, a row or a
   file. Do not write the total of a set that grows, a generated name or a path as a literal: read it from its
   source, or assert a relation (equal sets, a subset, "one per command", "not empty"). Counts of the test's own
-  fixture are fine.
+  fixture are fine. The sample project (`fixtures/sample/`) is shared by many tests and grows with the program, so it
+  is not a test's own fixture: do not write its page, device or row totals.
 - A new integration test goes into its crate's one test binary, `tests/it/<name>.rs`. Touch `tests/it/main.rs`
   once after you add the file, since cargo does not see a new file in that folder until `main.rs` changes.
 - No performance tests and no timing assertions during development.
