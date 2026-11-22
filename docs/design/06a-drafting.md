@@ -1145,7 +1145,7 @@ it, and a text always reads from the bottom or from the right (D-16).
 | Tag of a symbol | at the upper left: right-aligned against the symbol's left edge, its baseline level with the upper pin's end; the upper right (left-aligned against the right edge); the lower left; the lower right; centred above, when no wire leaves upward; centred below | 2 |
 | Cross-reference at a contact | under the tag, in brackets; under the tag's next place | 3 |
 | Make, type and rating of a symbol | under the tag (and its cross-reference), line under line, on the tag's side; the same on the other side | 4 |
-| Tag of a drawn box | above the upper left corner, right-aligned to the box's left edge; above the upper edge, left-aligned at the corner, where no wire leaves there; above the upper right corner; inside the box at the upper left, where no pin text stands | 2 |
+| Tag of a drawn box | above the upper left corner, right-aligned to the box's left edge; above the upper edge, left-aligned at the corner; above the upper right corner; inside the box at the upper left, where no pin text stands. A place in the way out of a pin a wire leaves (over a top pin, beside a pin on a side, within `LABEL_CLEAR` of its line) comes after every place clear of such ways, so the wires into the pins do not go round the caption (FT-1831) | 2 |
 | Make and type of a drawn box | left of the box under its top, line under line; right of it; inside it under the tag | 4 |
 | Contact list of a coil | left of the coil, under its tag, one line per contact; under the lower trunk below the coil; the same one line lower (two rows, where the neighbours' lists are in the way) | 3 |
 | Function text of a path | centred under the path beyond the lower trunk; right of the load | 4 |

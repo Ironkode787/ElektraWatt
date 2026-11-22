@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a drawn box's tag (a black box's caption) takes a place clear of the ways out of its wired pins
+  before one over a top pin or beside a side pin, so the wires and tubes into those pins no longer go round it (doc
+  06a §5.2, FT-1831)
 - behaviour-change: Arrange and route steps a card aside by the columns of its channels in use: where they interleave
   with the used columns of a card that faces it, the card with fewer in use steps until its own stand right of the
   other's, so a strip between the two keeps its order and no wire crosses; it stepped half a pitch by all the pins, and

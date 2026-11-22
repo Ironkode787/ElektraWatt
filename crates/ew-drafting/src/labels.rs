@@ -293,6 +293,8 @@ struct Shape {
     upright: bool,
     /// A wire leaves it upward.
     wire_up: bool,
+    /// Its pins a wire leaves, with their sides: their ways out.
+    ways: Vec<(Pt, Side)>,
     /// The right edge of the body and of its pins' numbers at their first places, which a text at a right corner
     /// stands beyond.
     right: Tick,
@@ -307,6 +309,12 @@ impl Shape {
             .pins
             .iter()
             .any(|p| p.side == Some(Side::Up) && ground.wired.contains(&p.id));
+        let ways = part
+            .pins
+            .iter()
+            .filter(|p| ground.wired.contains(&p.id))
+            .filter_map(|p| p.side.map(|s| (part.at.plus(p.at), s)))
+            .collect();
         let body = part.bounds();
         let right = ground
             .page
@@ -323,8 +331,22 @@ impl Shape {
             pins,
             upright,
             wire_up,
+            ways,
             right,
         }
+    }
+}
+
+/// Whether `r` lies in the way out of a pin at `q` that a wire leaves along `side`: on the ray from the pin, within
+/// [`LABEL_CLEAR`] of it.
+fn in_way(r: Rect, q: Pt, side: Side) -> bool {
+    let g = LABEL_CLEAR;
+    let across = |lo: Tick, hi: Tick, v: Tick| lo - g < v && v < hi + g;
+    match side {
+        Side::Up => r.y0 < q.y && across(r.x0, r.x1, q.x),
+        Side::Down => r.y1 > q.y && across(r.x0, r.x1, q.x),
+        Side::Left => r.x0 < q.x && across(r.y0, r.y1, q.y),
+        Side::Right => r.x1 > q.x && across(r.y0, r.y1, q.y),
     }
 }
 
@@ -427,12 +449,18 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
             out.extend(corners(s, unit.size, line));
             out
         }
-        LabelKind::BoxTag => vec![
-            bx(b.x0 - w, b.y0 - g - h, unit.size),
-            bx(b.x0, b.y0 - g - h, unit.size),
-            bx(b.x1, b.y0 - g - h, unit.size),
-            bx(b.x0 + g, b.y0 + g, unit.size),
-        ],
+        LabelKind::BoxTag => {
+            // A place in the way out of a pin a wire leaves (over a top pin, beside a side pin) comes after the places
+            // clear of every such way, so that the wires and tubes into the pins need not go round the caption.
+            let mut out = vec![
+                bx(b.x0 - w, b.y0 - g - h, unit.size),
+                bx(b.x0, b.y0 - g - h, unit.size),
+                bx(b.x1, b.y0 - g - h, unit.size),
+                bx(b.x0 + g, b.y0 + g, unit.size),
+            ];
+            out.sort_by_key(|r| s.ways.iter().any(|(q, side)| in_way(*r, *q, *side)));
+            out
+        }
         LabelKind::BoxData => {
             let tag = sibling(ground, unit.owner, |k| k == LabelKind::BoxTag).map_or(0, |(_, th)| th);
             // Line under line: the box's data texts before this one (by ID) stand above it.
