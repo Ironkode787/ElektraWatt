@@ -1385,7 +1385,7 @@ impl Insertion<'_> {
                 }
             }
             let fitted: Vec<crate::geometry::FitItem> = items.iter().map(|(_, item)| *item).collect();
-            let moves: BTreeMap<usize, Pt2> = crate::geometry::fit(grid, &fitted)
+            let moves: BTreeMap<usize, Pt2> = crate::geometry::fit(grid, &fitted, &Default::default())
                 .map_err(|_| {
                     self.invalid(
                         format!("{}/records", self.prefix),

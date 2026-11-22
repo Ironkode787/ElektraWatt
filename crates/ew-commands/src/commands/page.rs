@@ -11,9 +11,9 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
-    Connection, ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Junction, Kind, LayoutLabels,
-    MountingSurface, Page, PageItem, PageItemKind, PageType, ReportBlock, Representation, Scale, Section,
-    StructureAssignment, SurfaceLabelMode, SurfaceView,
+    Connection, ContinuationPolicy, Device, Endpoint, Extra, Folio, FormDef, Function, Junction, Kind,
+    LayoutLabels, MountingSurface, Page, PageItem, PageItemKind, PageType, ReportBlock, Representation,
+    Scale, Section, StructureAssignment, SurfaceLabelMode, SurfaceView,
 };
 use ew_units::{Grid, Pt2};
 use schemars::JsonSchema;
@@ -954,8 +954,10 @@ impl Command for SetSurfaceView {
 /// point or on by whole steps where that would bring it nearer what it faces than it stood (`geometry::fit`, doc 06 §8
 /// item 3), each structure box's outline vertex to its nearest grid point; page items keep their places, and every
 /// connection on the page loses its route, to be routed anew between the same ends (the window routes them in the same
-/// undo step). The page's own grid again changes nothing. Rejected: a page that does not exist; a point that would
-/// leave the drawable range. Interactive. Outcome: the page.
+/// undo step). Two pins wired straight that stood in line stay as near in line as the grid allows, and where the pin of
+/// only one of them lands on the grid what stands beside that pin's line keeps a step from it. The page's own grid
+/// again changes nothing. Rejected: a page that does not exist; a point that would leave the drawable range.
+/// Interactive. Outcome: the page.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetPageGrid {
@@ -965,6 +967,13 @@ pub struct SetPageGrid {
     /// The new connection grid.
     #[schemars(with = "GridS")]
     pub grid: Grid,
+    /// The page's drawing area as the router reads it, two opposite corners in page nm (the window gives the frame's):
+    /// a symbol with a pin on a side that faces an edge of it, which stood a step of the new grid or more from that
+    /// edge, keeps a grid line a step from both the edge and itself, the way out for the pin's wire. Without it the fit
+    /// keeps no room at the edges.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<[Pt2S; 2]>")]
+    pub area: Option<(Pt2, Pt2)>,
 }
 
 impl Command for SetPageGrid {
@@ -996,6 +1005,36 @@ impl Command for SetPageGrid {
             .into_iter()
             .map(|id| tx.require::<Junction>(id))
             .collect::<Result<_, _>>()?;
+        // The straight wires between pins of two symbols, which the fit keeps in line or gives room (FT-2010).
+        let mut pins = BTreeMap::new();
+        for (n, r) in reps.iter().enumerate() {
+            for c in crate::geometry::rep_cps(tx, r) {
+                pins.insert((c.function, c.idx), (n, c.pos));
+            }
+        }
+        let wires = tx
+            .connections_on_page(self.page)
+            .into_iter()
+            .filter_map(|id| {
+                let c = tx.get::<Connection>(id)?;
+                let pin = |e: &Endpoint| match e {
+                    Endpoint::Cp(f, idx) => pins.get(&(*f, *idx)).copied(),
+                    _ => None,
+                };
+                let (a, b) = (pin(&c.a)?, pin(&c.b)?);
+                let on_line = |p: &Pt2| (a.1.x == b.1.x && p.x == a.1.x) || (a.1.y == b.1.y && p.y == a.1.y);
+                (on_line(&a.1) && c.route.iter().all(on_line)).then_some([a, b])
+            })
+            .collect();
+        let room = crate::geometry::FitRoom {
+            area: self.area.map(|(a, b)| {
+                [
+                    Pt2::new(a.x.min(b.x), a.y.min(b.y)),
+                    Pt2::new(a.x.max(b.x), a.y.max(b.y)),
+                ]
+            }),
+            wires,
+        };
         let fitted = reps
             .iter()
             .map(|r| crate::geometry::FitItem::rep(tx, r))
@@ -1005,7 +1044,7 @@ impl Command for SetPageGrid {
                     .map(|j| Ok(crate::geometry::FitItem::point(j.at))),
             )
             .collect::<Result<Vec<_>, _>>()
-            .and_then(|items| crate::geometry::fit(grid, &items));
+            .and_then(|items| crate::geometry::fit(grid, &items, &room));
         let Ok(moves) = fitted else {
             out_of_range(tx)?;
             return Ok(outcome);

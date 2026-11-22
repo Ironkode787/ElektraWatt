@@ -282,7 +282,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/diff.rs` |  | The entity and field changes of a transaction (ADR-0008, ARCH §5.4), for previews and the history panel. |
 | `src/engine.rs` |  | The commit pipeline (ARCH §5.2), undo and redo (§5.3) and previews (§5.4): the engine behind `ew_api::Session`. |
 | `src/error.rs` |  | The error of running, normalising, validating, committing, undoing and redoing a command. |
-| `src/geometry.rs` |  | Integer geometry of the editor commands (ARCH §4.5: i64 nanometres, no float equality): the positions of a representation's connection points, the path a connection without a route is drawn along, point-on-route tests, route splitting and the connection-grid checks of doc 06 §5.7. |
+| `src/geometry.rs` | large | Integer geometry of the editor commands (ARCH §4.5: i64 nanometres, no float equality): the positions of a representation's connection points, the path a connection without a route is drawn along, point-on-route tests, route splitting and the connection-grid checks of doc 06 §5.7. |
 | `src/heap.rs` | large | Heap-size estimates of rows, for the memory bound of the undo stack ([`crate::history`], F8). |
 | `src/history.rs` |  | The project-wide undo stack (ADR-0008, ARCH §5.3). |
 | `src/jsonschema.rs` |  | A JSON Schema 2020-12 validator for the subset of keywords that schemars 1.x emits for command parameters, so that `AnyCommand` parameters are rejected with the JSON Pointer of the offending value (doc 17 §2.1) before they are deserialised. |

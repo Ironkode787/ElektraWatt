@@ -552,6 +552,25 @@ impl ShellModel {
             .count()
     }
 
+    /// `page.set_grid`'s parameters for page `page` and the grid `grid`, with the page's drawing area as the router
+    /// reads it (`Session::page_draft`, its ticks back in nm), so that the fit keeps a pin's wire its way to the edge
+    /// (doc 06 §8 item 3, FT-2010).
+    fn set_grid_params(&self, page: ew_api::output::Uuid, grid: Value) -> Value {
+        let mut params = json!({"page": page.to_string(), "grid": grid});
+        let area = self.tables_of_page(page).and_then(|(folio, t)| {
+            let area = self.project.as_ref()?.session.page_draft(&folio)?.area;
+            let ticks = ew_api::routing::Ticks::new(t.grid);
+            Some(json!([
+                [ticks.nm(area.x0), ticks.nm(area.y0)],
+                [ticks.nm(area.x1), ticks.nm(area.y1)]
+            ]))
+        });
+        if let (Some(area), Some(p)) = (area, params.as_object_mut()) {
+            p.insert("area".into(), area);
+        }
+        params
+    }
+
     /// Counts what moves when the question's page takes the grid `word` (`page.set_grid`'s preview), for its foot.
     pub(super) fn refresh_grid_fit(&mut self, word: &str) {
         let Some(page) = self.tools.grid_fit.as_ref().map(|g| g.page) else {
@@ -560,7 +579,7 @@ impl ShellModel {
         let moved = (|| {
             let cmd = AnyCommand {
                 name: "page.set_grid".into(),
-                params: json!({"page": page.to_string(), "grid": page_grid_value(word)?}),
+                params: self.set_grid_params(page, page_grid_value(word)?),
             };
             let submit = self.tool_submit();
             let preview = self.project.as_mut()?.session.preview_with(&cmd, submit).ok()?;
@@ -623,7 +642,7 @@ impl ShellModel {
         else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let out = self.host_create("page.set_grid", json!({"page": page.to_string(), "grid": value}));
+        let out = self.host_create("page.set_grid", self.set_grid_params(page, value));
         let out = self.form_done(PAGE_GRID_FIT.action, out);
         if out != Outcome::Done {
             return out;

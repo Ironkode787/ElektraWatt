@@ -1593,6 +1593,20 @@ export start (FR-OUT-001).
    steps, the old pitch's nearest that keeps the gaps between every two of them by the rule above (twelve narrow
    symbols 5.29 mm apart on a 4 mm grid stand 8 mm apart throughout, not by turns 4 and 8 mm); another item before the
    row still pushes a member on where it would be overlapped.
+   *A pin's wire keeps its way (FT-2010).* The gaps alone left wires without a way: a card whose pins face the drawing
+   area's edge ended 2.3 steps from it, and the router keeps a step from both the edge and a body; a terminal wired
+   straight up to a contactor's pin ended five ticks beside it, so its wire needed a column, which a neighbour a
+   quarter step from the terminal's line closed. So `page.set_grid` takes the page's drawing area as the router reads
+   it (`area`, which the window fills): a symbol with a pin on a side of its box that faces an edge of the area (the pin
+   on that side, its wire leaving towards the edge), which stood a step of the new grid or more from that edge, keeps a
+   grid line a step from both the edge and its box; from the left (top) edge it is pushed on, from the right (bottom)
+   edge taken back by whole steps as far as the gaps before it allow. Two pins wired straight that stood in line (a
+   wire without a route, or one along their line) stay as near in line as the grid allows: the later of their symbols
+   along the axis goes to the grid point nearest the line of the other's pin as fitted (field devices under a card's
+   channels follow the card when it is pushed on). Where the pin of only one of them lands on the grid (the other's
+   symbol has its own spacing), the wire cannot stay straight; what stands beside that pin's line between the two pins
+   keeps a step from it, so the wire's step has a column. A `page.set_grid` without `area` keeps no room at the edges;
+   a paste and a macro fit by the gaps alone.
    Structure
    boxes take their corners' nearest grid points and page items keep their places, as before. A copy of pages is no
    fit: it keeps every position as its source holds it (§3.6).
