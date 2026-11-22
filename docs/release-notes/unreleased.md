@@ -402,3 +402,5 @@ change here.
 - behaviour-change: the valve terminal configuration and the view `api_v1_valve_position` of a terminal that is its own
   valve module (the starter EW-GEN-VTM-1) list a row per position with its valve, part, solenoids and address; its
   valves were listed as modules with those cells empty (doc 11 §8.2, FT-1927)
+- behaviour-change: a protective earth that only an earth symbol names (an imported earth point, whose pin is `1`) is
+  called PE in the potential list, on the page and in the SQL views; it was called `1` (doc 08 §3.5, FT-1933)

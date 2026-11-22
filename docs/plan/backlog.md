@@ -33,7 +33,6 @@ every rebuild; the headless script; a save that rewrites only what changed.
 #### External points, earth and 0 V
 
 - FT-1981 `ew-api, ew-import-catalog`: The units of technical data are listed by hand three times beside `Unit` (the typed units, a parts catalogue's units, the derive's symbols); the catalogue's list lacks `mm`, `piece` and `set`. One list from `Unit`.
-- FT-1933 `ew-derive`: A protective-earth potential that only an earth symbol names takes that symbol's pin name: an imported earth point's pin is `1`, so the potential is called `1` in the potential list and the SQL view. Call such a potential PE.
 
 #### Files and the text interface
 

@@ -329,6 +329,8 @@ an undefined one.
      built, 0.2.0-rc.2: such a wire read the device pin's fallback name, so it had no colour by name and no offer.)
   3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column),
      ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, §6 item 3).
+     A protective earth (type PE) whose first CP is an earth connection's, which has no tag, is `PE`, not that pin's
+     designation (an imported earth point's `1`, FT-1933).
 
   An external source interruption point counts as a source IP for step 2.
   *As built (FT-1700).* A potential named only by step 3 may be **offered** a name, never given one: the window

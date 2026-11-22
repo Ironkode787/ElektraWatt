@@ -359,8 +359,22 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
     let Some((text, cp)) = first else {
         return unknown().name;
     };
+    // A protective earth that only an earth symbol (a device without a tag) names is PE, not that symbol's pin (`1`,
+    // an imported earth point's) (FT-1933).
+    let tagless = q
+        .functions()
+        .get(cp.function)
+        .and_then(|f| f.device)
+        .and_then(|d| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.short()))
+        .is_some_and(|t| t.is_empty());
+    let earth = tagless
+        && q.get::<PotentialAttrsOf>(p.id)
+            .attrs
+            .ptype
+            .as_ref()
+            .is_some_and(|t| t.value == PotentialType::Pe);
     PotentialName {
-        text,
+        text: if earth { "PE".to_owned() } else { text },
         source: NameSource::Fallback(cp),
     }
 }
