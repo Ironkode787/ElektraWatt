@@ -716,7 +716,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             events.extend(right_events);
             save |= left_save || right_save;
             ui.add_space(t.space_3);
-            bus_section(ui, d, events);
+            bus_section(ui, d, just_opened, events);
             save |= size_section(ui, d, events);
         } else {
             save |= identity(ui, e, just_opened, events);
@@ -724,7 +724,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             pins_section(ui, d, events);
             if d.new || d.own || !d.bus.is_empty() {
                 ui.add_space(t.space_3);
-                bus_section(ui, d, events);
+                bus_section(ui, d, just_opened, events);
             }
             if d.new || d.own {
                 ui.add_space(t.space_3);
@@ -1031,7 +1031,47 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         message(ui, m);
         entered
     };
-    save |= text_field(ui, "count", events);
+    // The hints of the channels have their room as soon as the channels are begun (a kind or a count given), before
+    // they can be worked out, so the fields under them stay where they are while the channels are typed and a click
+    // aimed at one lands in it: under each count one line, its message (a count still to type) else the bits its
+    // channels occupy; after the pin pattern's hint the preview of the pins. A part without channels (a head station)
+    // keeps no room for them.
+    let begun = !d.plc.kind.trim().is_empty() || !d.plc.count.trim().is_empty();
+    let io = d.plc.io();
+    // A note's row (a horizontal row, as high as a control's) or a message's line, whichever is higher.
+    let line_height = ui
+        .spacing()
+        .interact_size
+        .y
+        .max(ui.text_style_height(&egui::TextStyle::Body));
+    let count_field = |ui: &mut Ui, m: &str, way: usize, events: &mut Vec<Event>| -> bool {
+        let field = format!("plc.{m}");
+        let entered = labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": field, "value": text }),
+            ));
+        });
+        ui.scope(|ui| {
+            ui.set_min_height(line_height);
+            if d.message(&format!("plc.{m}")).is_some() {
+                message(ui, m);
+            } else if let Some((dir, bits)) = io.get(way) {
+                let k = if *dir == "in" {
+                    key!("part-plc-io-in")
+                } else {
+                    key!("part-plc-io-out")
+                };
+                note(ui, &strings::format(k, &[&bits.to_string()]));
+            }
+        });
+        entered
+    };
+    if begun {
+        save |= count_field(ui, "count", 0, events);
+    } else {
+        save |= text_field(ui, "count", events);
+    }
     // A card with inputs and outputs: its second kind of channels, the other way (FT-1766).
     labelled_combo(
         ui,
@@ -1044,30 +1084,27 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     );
     message(ui, "kind2");
     if !d.plc.kind2.trim().is_empty() {
-        save |= text_field(ui, "count2", events);
+        save |= count_field(ui, "count2", 1, events);
     }
     for m in ["data_type", "designation", "pin_of"] {
         save |= text_field(ui, m, events);
     }
     note(ui, strings::text(key!("part-plc-pin_of-hint")));
-    if let Some(pins) = d.plc.pins()
-        && let (Some(first), Some(last)) = (pins.first(), pins.last())
-    {
-        note(
-            ui,
-            &strings::format(
-                key!("part-plc-pins"),
-                &[&first.0.to_string(), &first.1, &last.0.to_string(), &last.1],
-            ),
-        );
-    }
-    for (dir, bits) in d.plc.io() {
-        let k = if dir == "in" {
-            key!("part-plc-io-in")
-        } else {
-            key!("part-plc-io-out")
-        };
-        note(ui, &strings::format(k, &[&bits.to_string()]));
+    if begun {
+        let pins = d
+            .plc
+            .pins()
+            .and_then(|pins| Some((pins.first()?.clone(), pins.last()?.clone())))
+            .map_or_else(String::new, |(first, last)| {
+                strings::format(
+                    key!("part-plc-pins"),
+                    &[&first.0.to_string(), &first.1, &last.0.to_string(), &last.1],
+                )
+            });
+        ui.scope(|ui| {
+            ui.set_min_height(line_height);
+            note(ui, &pins);
+        });
     }
     for m in ["l_plus", "m", "slots", "max_modules"] {
         save |= text_field(ui, m, events);
@@ -1313,8 +1350,8 @@ fn bus_choice(member: &str, value: &str) -> String {
 }
 
 /// The bus interfaces of a draft (FT-1766): a grid row per interface, editable on a new part, with each row's
-/// messages under it; Add interface; the hint on roles and ports.
-fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) {
+/// messages under it; Add interface; the hint on roles and ports. `just_opened`: the form opens with these rows.
+fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bool, events: &mut Vec<Event>) {
     use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};
     let t = theme::current(ui.ctx());
     ui.label(RichText::new(strings::text(key!("part-section-bus"))).font(theme::font(&t.type_body_strong)));
@@ -1461,9 +1498,11 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         }
     }
     // A row just added comes into sight whole, with Add interface under it, never half hidden at the form's bottom edge.
+    // The rows a form opens with were not added: a station's form, opened after a form left with no row, opened
+    // scrolled down to its row, past the fields a person types first.
     let count = ui.scope_id().with("part-bus-rows");
     let before = ui.data(|m| m.get_temp::<usize>(count));
-    if before.is_some_and(|n| d.bus.len() > n) {
+    if !just_opened && before.is_some_and(|n| d.bus.len() > n) {
         ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
     }
     ui.data_mut(|m| m.insert_temp(count, d.bus.len()));
