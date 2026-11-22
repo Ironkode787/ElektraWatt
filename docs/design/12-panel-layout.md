@@ -512,7 +512,11 @@ report folios.
 rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26) occupies 75 × 100 mm on the A4 sheet.
 Changing the scale changes no stored pose (FR-LAY-002). **The plate takes the whole sheet** (0.3.5): a new view fits
 its enclosure to the frame's whole drawing area at the first ratio of the series that holds it and centres it there;
-nothing is kept free for a legend, which is a list page of its own (§5.4).
+nothing is kept free for a legend, which is a list page of its own (§5.4). **Fit the layout to the sheet**
+(`layout.fit_sheet`, a panel page's context menu and Page ▸ Order) does the same to the view a page has: one
+`page.surface_view.set` with the fitting scale and the centred datum, its labels and label mode kept, so it changes the
+datum and the scale and never a stored pose; on a page drawn so already it is refused in words ("The layout takes the
+whole sheet already").
 
 *As built.* The page item `surface_view`
 is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each
@@ -695,8 +699,8 @@ page deletes its legend list.
   step: the rows are the same surface's, and the printed columns are the box's own, or the five above for a box
   without its own.
 - **A layout made before keeps its datum and its scale as stored** (§5.1). To give such a page the whole sheet once
-  its legend has gone, a person sets its Scale row (Page properties) to the ratio the plate fits the sheet at and its
-  Surface view's Datum row to where the plate stands in the middle (a re-fit of an existing view is not built).
+  its legend has gone, **Fit the layout to the sheet** (the page's context menu and Page ▸ Order; `layout.fit_sheet`,
+  FT-2030) fits its view as a new view is fitted, in one undo step (§5.1).
 - **From the drawing to the row and back** (the cross-references' links and their resolution, 09 §4.2). A row's tag
   on the legend page links to the device's footprint on the layout, which is that link's target (`ew:pl`), so a click
   on it goes there, in the window and in the exported PDF. Back, Follow reference (F) over a device or its tag or

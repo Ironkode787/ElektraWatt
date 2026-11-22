@@ -989,3 +989,45 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     let again = edit(&s, "page", new, "surface", "-UC1 plate").unwrap();
     assert_eq!(again.params.get("scale"), None);
 }
+
+/// Fit the layout to the sheet (FT-2030): an older layout page, its plate small in a corner, takes the fitting scale
+/// and the centred datum in one command that keeps its labels and moves no stored pose; a fitted page offers nothing.
+#[test]
+fn fit_the_layout_to_the_sheet_changes_the_scale_and_the_datum_only() {
+    let mut s = common::sample();
+    let p902 = s
+        .page_rows()
+        .into_iter()
+        .find(|r| r.folio == "902")
+        .expect("902")
+        .id;
+    let plate = plate(&s);
+    let n = s.fitting_scale(p902, plate).expect("the plate fits a scale");
+    let older = if n == 10 { 20 } else { 10 };
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "page.surface_view.set".into(),
+            params: json!({"page": p902.to_string(), "surface": plate.to_string(),
+                "datum_at": [20_000_000, 150_000_000], "label_mode": "abbreviated", "scale": {"one_to": older}}),
+        },
+    );
+    let poses = |s: &Session| -> Vec<String> {
+        let q = s.query();
+        q.table::<Placement>()
+            .iter()
+            .map(|(_, p)| format!("{p:?}"))
+            .collect()
+    };
+    let before = poses(&s);
+    let cmd = s.sheet_fit(p902).expect("an older layout is fitted");
+    assert_eq!(cmd.name, "page.surface_view.set");
+    assert_eq!(cmd.params["scale"], json!({"one_to": n}));
+    assert_eq!(cmd.params.get("labels"), None, "the view keeps its labels");
+    run(&mut s, &cmd);
+    assert_eq!(scale_of(&s, p902), ew_schema::Scale::OneTo(n));
+    let centred = s.centred_surface_datum(p902, plate).expect("a centred datum");
+    assert_eq!(cmd.params["datum_at"], json!([centred.0, centred.1]));
+    assert_eq!(poses(&s), before, "no stored pose moves");
+    assert!(s.sheet_fit(p902).is_none(), "a fitted page has nothing to fit");
+}

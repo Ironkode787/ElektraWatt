@@ -7299,6 +7299,9 @@ reason-legend-no-layout = The page shows no mounting plate yet
 action-report-block-legend-to-page = Move the legend to its own page
 reason-legend-paged = This layout has its legend on a page of its own
 reason-legend-no-box = This page has no legend box to move
+# An older layout page given the whole sheet in one step (doc 12 §5.1, FT-2030).
+action-layout-fit-sheet = Fit the layout to the sheet
+reason-layout-fits-sheet = The layout takes the whole sheet already
 toast-legend-own-page = The legend does not fit beside the layout whole, so it has a page of its own: { $p0 }.
 toast-legend-moved = The legend is on a page of its own now: { $p0 }.
 reason-label-not-moved = The label stands where the label rules put it

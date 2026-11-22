@@ -1572,6 +1572,31 @@ impl Session {
             scale_to_send(&q, page, surface).or_else(|| q.pages().get(page).map(|p| p.scale.clone()))?;
         centred_datum(&q, page, surface, &scale)
     }
+
+    /// The command that gives the panel page `page` the whole sheet, as a new view takes it (doc 12 §5.1, FT-2030):
+    /// `page.surface_view.set` of its view at the fitting scale, its enclosure centred in the frame's drawing area, its
+    /// labels kept; it changes the datum and the scale, never a stored pose. `None` for a page without a view or a frame
+    /// grid, and for a page that draws so already.
+    pub fn sheet_fit(&self, page: Uuid) -> Option<AnyCommand> {
+        let q = self.query();
+        let id: Id<Page> = Id::from_uuid(page);
+        let drawn = q.pages().get(id)?.scale.clone();
+        let view = q.get::<PageSurfaceView>(id).as_ref().clone()?;
+        let n = page_fitting_scale(&q, id, view.surface)?;
+        let (x, y) = centred_datum(&q, id, view.surface, &Scale::OneTo(n))?;
+        if drawn == Scale::OneTo(n) && (view.projection.datum.x.0, view.projection.datum.y.0) == (x, y) {
+            return None;
+        }
+        let mode = match view.mode {
+            LabelMode::Abbreviated => "abbreviated",
+            LabelMode::Full => "full",
+        };
+        Some(AnyCommand {
+            name: "page.surface_view.set".into(),
+            params: json!({"page": page.to_string(), "surface": view.surface.as_uuid().to_string(),
+                "datum_at": [x, y], "label_mode": mode, "scale": {"one_to": n}}),
+        })
+    }
 }
 
 #[cfg(test)]

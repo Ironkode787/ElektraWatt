@@ -733,6 +733,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
                 }));
             }
             items.extend(item("layout.reset_labels"));
+            items.extend(item("layout.fit_sheet"));
         }
         // A schematic page offers New station… (the rack comes first).
         let kind = model.page_rows().get(model.page_index()).map(|r| r.kind.as_str());

@@ -707,6 +707,19 @@ impl ShellModel {
         self.commit_layout("layout.labels_reset", json!({ "placements": ids }))
     }
 
+    /// `layout.fit_sheet` (Fit the layout to the sheet, in a panel page's menu and Page ▸ Order): the focused page's
+    /// view at the fitting scale, centred on the sheet (`Session::sheet_fit`), one undo step; refused in words where
+    /// the layout takes the whole sheet already.
+    pub(crate) fn act_layout_fit_sheet(&mut self) -> Outcome {
+        let (Some(page), Some(project)) = (self.focused_page_id(), &self.project) else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        match project.session.sheet_fit(page) {
+            Some(cmd) => self.commit_from_host(&cmd),
+            None => Outcome::refused(key!("reason-layout-fits-sheet")),
+        }
+    }
+
     /// `page.add_legend` (Page ▸ Add legend): the legend of the focused panel page's layout. Where it prints every row
     /// and every text whole beside the layout (`Session::legend_offer`), an embedded legend block there
     /// (`report_block.create` of kind `enclosure_legend`, the no-grid frame's form as Report… takes it); else its legend
