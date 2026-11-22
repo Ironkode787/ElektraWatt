@@ -1267,14 +1267,17 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
         .iter()
         .find(|c| c.id == w13.id)
         .expect("W13 keeps its ID");
-    assert_eq!(
-        end_label(&after, &kept.a),
-        end_label(&before, &w13.a),
-        "on its first side"
-    );
     let new = new_connections(&before, &after);
     assert_eq!(new.len(), 1);
-    assert_eq!(end_label(&after, &new[0].b), end_label(&before, &w13.b));
+    // W13 keeps one of its ends (the one its number is counted from, FR-CON-008) and the new half the other.
+    let ends = |c: &TableConnection| [end_label(&after, &c.a), end_label(&after, &c.b)];
+    let (kept_ends, new_ends) = (ends(kept), ends(&new[0]));
+    let w13_ends = [end_label(&before, &w13.a), end_label(&before, &w13.b)];
+    assert!(
+        (kept_ends.contains(&w13_ends[0]) && new_ends.contains(&w13_ends[1]))
+            || (kept_ends.contains(&w13_ends[1]) && new_ends.contains(&w13_ends[0])),
+        "{w13_ends:?}: kept {kept_ends:?}, new {new_ends:?}"
+    );
     // The records: W13's number spec stays on the kept side, both halves carry the override, the new half's number is
     // unassigned. (The sample prints connection-oriented numbers derived for every wire, so the new half prints the
     // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
@@ -1304,16 +1307,11 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     drop(q);
     let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
     let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
-    // FR-CON-008 keeps W13's number on its kept side (the `a` end); on the sample the new half prints it and the kept
-    // side a new one (a fault, reported with this step): pinned as it is, so the fix makes this `kept_number`.
+    // FR-CON-008 keeps W13's record on the side of the end its number is counted from, so W13 prints the number the
+    // page printed for it and the new half the next one (FT-1918).
     assert_eq!(
-        half_number, number_before,
+        kept_number, number_before,
         "{number_before}: kept {kept_number}, new half {half_number}"
-    );
-
-    assert!(
-        kept_number.starts_with("101."),
-        "W13 prints a number: {kept_number}"
     );
     assert!(
         half_number.starts_with("101.") && half_number != kept_number,

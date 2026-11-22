@@ -1333,9 +1333,12 @@ setting.
 
 Dropping a symbol with two facing CPs onto connection W (between A and B) replaces W by W′ (A → c1) and
 W″ (c2 → B):
-- W′ keeps W's UUID, so the original wire number and a frozen number stay with it (FR-NUM-023);
-- W″ gets a new UUIDv7 and, with online wire numbering on, the next number of the scheme (FR-NUM-019); otherwise
-  it stays unassigned and prints "?" (FR-NUM-021);
+- the part toward the From end of W's physical wire (doc 08 §3.8, the end its number is counted from, as the
+  drawing stood before the drop) keeps W's UUID, so the original wire number and a frozen number stay with it
+  (FR-NUM-023); a derived number is counted from the From end, so it stays on that part too unless the part's new
+  To end moves it in the count (§5.2 of doc 08). W′ keeps the UUID where the From end cannot be told;
+- the other part gets a new UUIDv7 and, with online wire numbering on, the next number of the scheme (FR-NUM-019);
+  otherwise it stays unassigned and prints "?" (FR-NUM-021);
 - both keep W's overrides (FR-CON-008);
 - the preview names both resulting wires (FR-CON-008).
 

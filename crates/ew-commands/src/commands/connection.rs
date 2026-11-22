@@ -108,6 +108,7 @@ pub(crate) fn split_at(
         Endpoint::Junction(junction),
         at,
         Endpoint::Junction(junction),
+        false,
     )?;
     tx.update::<Junction>(junction, |j| j.sequence = vec![connection, second, new_wire])?;
     Ok(junction)

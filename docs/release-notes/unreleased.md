@@ -556,3 +556,7 @@ change here.
 - behaviour-change: a page's grid changed (`page.set_grid`), a paste or a macro fitted to another grid keep a row of
   three or more like symbols that stood at one pitch at one pitch of whole steps; each went to its own nearest grid
   point, so some stood a step closer than their neighbours (doc 06 §8 item 3, FT-1935)
+- behaviour-change: a device put onto a wire leaves the wire's record (its ID, its number and a frozen number) on the
+  part that keeps the end the wire's number is counted from, so the page prints the wire's number where it printed it
+  and the new part the next one; the part at the record's first end kept it, and a wire whose number counted from its
+  other end printed its number on the new part and a new one on its own (FR-CON-008, doc 06 §5.3, FT-1918)

@@ -17,14 +17,14 @@ use crate::tx::TxBuilder;
 
 /// Splits connection W (A → B) into W′ (A → `first_end`) and W″ (`second_end` → B) (doc 06 §5.3):
 ///
-/// - W′ keeps W's ID, so its wire number (assigned or frozen) stays (FR-NUM-023); its route is W's route
-///   up to `first_at`;
-/// - W″ gets a new ID, W's kind, page and overrides, `NumberSpec::Unassigned` (online wire numbering is
-///   off in v0) and W's route from `second_at`; it takes W's place in the sequence of a junction at B;
-/// - bonds realised by W keep naming W′.
+/// - the kept part keeps W's ID, so its wire number (assigned or frozen) stays (FR-NUM-023): W′, or W″ with
+///   `keep_second`; W′'s route is W's route up to `first_at`, W″'s from `second_at`;
+/// - the other part gets a new ID, W's kind, page and overrides and `NumberSpec::Unassigned` (online wire numbering
+///   is off in v0); it takes W's place in the sequence of a junction at its far end;
+/// - bonds realised by W keep naming the kept part.
 ///
 /// `first_at` and `second_at` must lie on W's route in that order (they may be equal, for a junction). A
-/// connection without a route has no geometry to check: both parts get empty routes. Returns W″'s ID.
+/// connection without a route has no geometry to check: both parts get empty routes. Returns the new part's ID.
 pub fn split_connection(
     tx: &mut TxBuilder<'_>,
     connection: Id<Connection>,
@@ -32,6 +32,7 @@ pub fn split_connection(
     first_end: Endpoint,
     second_at: Pt2,
     second_end: Endpoint,
+    keep_second: bool,
 ) -> Result<Id<Connection>, CmdError> {
     let w = tx.require::<Connection>(connection)?;
     let (r1, r2) = if w.route.is_empty() {
@@ -51,14 +52,14 @@ pub fn split_connection(
         };
         (r1, r2)
     };
-    let second_id: Id<Connection> = tx.mint();
-    let second = Connection {
-        id: second_id,
+    let new_id: Id<Connection> = tx.mint();
+    let new_part = |a: Endpoint, b: Endpoint, route: Vec<Pt2>| Connection {
+        id: new_id,
         v: 1,
-        a: second_end,
-        b: w.b.clone(),
+        a,
+        b,
         page: w.page,
-        route: r2,
+        route,
         kind: w.kind.clone(),
         overrides: w.overrides.clone(),
         number: NumberSpec::Unassigned,
@@ -66,21 +67,77 @@ pub fn split_connection(
         computed: w.computed,
         extra: Extra::new(),
     };
-    let mut first = (*w).clone();
-    first.b = first_end;
-    first.route = r1;
-    tx.put(first);
-    tx.insert(second)?;
-    if let Endpoint::Junction(j) = w.b {
-        tx.update::<Junction>(j, |j| {
+    let mut kept = (*w).clone();
+    let (new, far) = if keep_second {
+        kept.a = second_end;
+        kept.route = r2;
+        (new_part(w.a.clone(), first_end, r1), &w.a)
+    } else {
+        kept.b = first_end;
+        kept.route = r1;
+        (new_part(second_end, w.b.clone(), r2), &w.b)
+    };
+    tx.put(kept);
+    tx.insert(new)?;
+    if let Endpoint::Junction(j) = far {
+        tx.update::<Junction>(*j, |j| {
             for c in &mut j.sequence {
                 if *c == connection {
-                    *c = second_id;
+                    *c = new_id;
                 }
             }
         })?;
     }
-    Ok(second_id)
+    Ok(new_id)
+}
+
+/// Whether the From end of the physical wire that `connection` is part of (doc 08 §3.8: the end its number is
+/// counted from) lies beyond the connection's `b` end, in the snapshot before the transaction. A device put onto
+/// the wire then leaves the wire's record on the part to `b`, so that its number stays where the page printed it
+/// (FR-CON-008). `false` where it lies beyond `a` or cannot be told (a connection new in this transaction).
+fn from_end_beyond_b(tx: &TxBuilder<'_>, connection: Id<Connection>) -> bool {
+    let q = ew_derive::Q::new(tx.base_model());
+    let Some(w) = q.connections().get(connection) else {
+        return false;
+    };
+    let partition = q.get::<ew_derive::PotentialPartition>(());
+    let Some(potential) = EndpointKey::of(&w.a).and_then(|k| partition.potential_at(k)) else {
+        return false;
+    };
+    let wires = q.get::<ew_derive::PhysicalWiresOf>(potential.id);
+    // A star's feed arm is part of every branch's wire: the wire it carries decides, else the first.
+    let Some(wire) = wires
+        .wires
+        .iter()
+        .filter(|p| p.constituents.contains(&connection))
+        .min_by_key(|p| p.id != connection)
+    else {
+        return false;
+    };
+    let Some(k) = wire.constituents.iter().position(|c| *c == connection) else {
+        return false;
+    };
+    // Whether an end of W meets the wire's side toward `ends[i]`: that end itself or a constituent on that side.
+    let meets = |e: &Endpoint, i: usize| {
+        let side = if i == 0 { &wire.constituents[..k] } else { &wire.constituents[k + 1..] };
+        let end = EndpointKey::Cp(wire.ends[i].cp.function, wire.ends[i].cp.idx);
+        EndpointKey::of(e).is_some_and(|key| {
+            key == end
+                || side.iter().filter_map(|c| q.connections().get(*c)).any(|c| {
+                    EndpointKey::of(&c.a) == Some(key) || EndpointKey::of(&c.b) == Some(key)
+                })
+        })
+    };
+    let a_toward_first = if meets(&w.a, 0) || meets(&w.b, 1) {
+        true
+    } else if meets(&w.b, 0) || meets(&w.a, 1) {
+        false
+    } else {
+        return false;
+    };
+    let mut oriented = wire.clone();
+    let from_is_last = ew_derive::orient_wire(&q, &mut oriented);
+    a_toward_first == from_is_last
 }
 
 /// Normaliser #7.
@@ -88,8 +145,8 @@ pub fn split_connection(
 /// A representation created by this transaction whose functions have no connection yet, and of whose
 /// drawn CPs at least two distinct positions lie on the stored route of one connection of its page (in ID order;
 /// connections already attached to its functions are skipped), splits that connection: the part from `a` ends at the CP met first along the path,
-/// the part to `b` starts at the CP met last. The representation then has connections, so a second run does
-/// nothing.
+/// the part to `b` starts at the CP met last, and the part toward the wire's From end keeps the connection's record
+/// (FR-CON-008). The representation then has connections, so a second run does nothing.
 ///
 /// A connection's path is the one the page draws it along: its stored route. A
 /// connection without one is unrouted and has no wire geometry: it is drawn as a dashed straight line
@@ -163,6 +220,7 @@ impl Normaliser for ConnectionSplit {
                 if shared {
                     return tx.reject(text!("refusal-split-shared-run"));
                 }
+                let keep_second = from_end_beyond_b(tx, cid);
                 split_connection(
                     tx,
                     cid,
@@ -170,6 +228,7 @@ impl Normaliser for ConnectionSplit {
                     Endpoint::Cp(c1.function, c1.idx),
                     c2.pos,
                     Endpoint::Cp(c2.function, c2.idx),
+                    keep_second,
                 )?;
                 changed = true;
                 break;
