@@ -30,7 +30,8 @@ impl ShellModel {
     /// 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
     /// connection points laid out as the black box tool lays them (`tools::black_box::layout`); these stand in slot
     /// order beside each other from the next free place, a new row under the first where the next would pass the drawing
-    /// area's right. Each card's box then takes the first place that keeps a gap from what the page draws and what is
+    /// area's right; one that would pass its foot takes the first clear place inside it from the head, after the cards
+    /// (FT-1907). Each card's box then takes the first place that keeps a gap from what the page draws and what is
     /// drawn now: a card of inputs as near the foot as there is room, a card of outputs as near the head, each line from
     /// the left; a card that finds no room is named under `left` and waits for another page. A device whose part has no
     /// black-box entry is left out. `None` without the page shown, its frame or the catalogue.
@@ -204,9 +205,19 @@ impl ShellModel {
                 flow.0 = snap(rect[2] + SIZE.2);
             }
         };
+        // A box that is no card and would pass the drawing area's foot under what the page draws already (a station's
+        // CPU drawn on a page of its cards, FT-1907) waits for the first clear place inside the area, below.
+        let mut over: Vec<usize> = Vec::new();
         for (i, (device, piece, _)) in pieces.iter().enumerate() {
             if matches!(piece, Piece::Plain(_)) {
+                let (before, count) = (flow, boxes.len());
                 head(&mut flow, i, device, piece, &mut boxes, &mut rects);
+                if boxes.len() > count && rects.last().is_some_and(|r| r[3] > foot) {
+                    boxes.pop();
+                    rects.pop();
+                    flow = before;
+                    over.push(i);
+                }
             }
         }
         // The first place of a card's box `s` that keeps a gap from what the page draws and what is drawn now: a card of
@@ -246,6 +257,44 @@ impl ShellModel {
                     rects.push(rect);
                 }
                 // No room on the page: the card waits for another page, which the person chooses.
+                None => {
+                    if !left.iter().any(|d| d == device) {
+                        left.push(device.clone());
+                    }
+                }
+            }
+        }
+        // Each box that waited takes the first place that keeps a gap from what the page draws and what is drawn now,
+        // from the line two gaps under the frame's head, each line from the left, as a card of outputs does; else it
+        // waits for another page.
+        for i in over {
+            let (device, Piece::Plain(cps), _) = &pieces[i] else {
+                continue;
+            };
+            let lay = |x: i64, y: i64| {
+                crate::tools::black_box::layout(grid, (x, y), (snap(x + SIZE.0), snap(y + SIZE.1)), cps, &[])
+            };
+            let mut placed = None;
+            'lines: for k in grid.index(head_line)..=grid.index(foot) {
+                for c in grid.index(x0)..=grid.index(right) {
+                    let Some(laid) = lay(grid_x(c), grid.coord(k)) else {
+                        continue;
+                    };
+                    let (json, rect) = to_json(device, laid);
+                    if rect[3] > foot {
+                        break 'lines;
+                    }
+                    if rect[2] <= right && clear(rect, &rects) {
+                        placed = Some((json, rect));
+                        break 'lines;
+                    }
+                }
+            }
+            match placed {
+                Some((json, rect)) => {
+                    boxes.push((i, json));
+                    rects.push(rect);
+                }
                 None => {
                     if !left.iter().any(|d| d == device) {
                         left.push(device.clone());

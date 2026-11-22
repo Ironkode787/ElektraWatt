@@ -75,7 +75,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
 
-- FT-1907 `ew-viewmodel, ew-commands`: Draw on a page from the station view, for a station whose CPU is not placed yet, puts the CPU's box below the frame, off the sheet. Place it inside the drawing area as the cards are.
 
 #### What the tests met on the sample
 

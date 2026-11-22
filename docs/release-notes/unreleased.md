@@ -395,6 +395,9 @@ change here.
 - behaviour-change: a legend's Rectangle row in Properties reads its place and size in millimetres
   (`20.000, 15.000 mm · 60.000 × 40.000 mm`) and is typed back that way; it showed the stored nanometres as JSON
   (doc 16 §6, FT-1936)
+- behaviour-change: Draw on a page from the station view puts a station's CPU, and any box that is no card, inside the
+  drawing area where under what the page draws there is no room: the first clear place from the area's head; it stood
+  below the frame, off the sheet (doc 10 §2.3, FT-1907)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
