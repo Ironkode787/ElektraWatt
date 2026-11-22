@@ -342,6 +342,15 @@ pub(crate) fn symbol_problem(tx: &TxBuilder<'_>, page: Id<Page>, t: &FreeText) -
             crate::words::symbol(tx, id)
         ));
     }
+    bind_problem(tx, t)
+}
+
+/// Why the name a text of a symbol prints is refused: `strip.tag` of a symbol that draws no terminal of a strip; `None`
+/// when it is accepted, the text names no symbol, or its symbol is gone (a stale `of` an older build left, which an
+/// edit may keep). `item.place` asks it through [`symbol_problem`], `fields.set` after it edits a page item.
+pub(crate) fn bind_problem(tx: &TxBuilder<'_>, t: &FreeText) -> Option<Text> {
+    let id = t.of?;
+    let rep = tx.get::<Representation>(id)?;
     let terminal = rep
         .functions
         .first()

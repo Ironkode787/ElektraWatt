@@ -11,7 +11,7 @@ use crate::common;
 
 use common::*;
 use ew_commands::commands::{
-    DeleteSelection, FreeTextParam, ItemKindParam, KindName, MoveReps, PlaceItem, TargetRef,
+    DeleteSelection, FreeTextParam, ItemKindParam, KindName, MoveReps, PlaceItem, SetFields, TargetRef,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
@@ -130,4 +130,30 @@ fn a_bound_text_is_refused_in_words_where_name_and_symbol_do_not_fit() {
     // A terminal names its strip.
     e.execute(&bound(PAGE_102, REP_T1, "strip.tag"))
         .expect("a terminal's strip");
+}
+
+/// `fields.set` of a bound text's name refuses the strip's name of a symbol that is no terminal in `item.place`'s words,
+/// and gives a terminal's text its strip's name.
+#[test]
+fn a_bound_texts_name_set_later_is_refused_where_item_place_refuses_it() {
+    let mut e = engine(mini_model());
+    let set_bind = |item: Id<PageItem>| SetFields {
+        kind: KindName::PageItem,
+        targets: vec![item.cast()],
+        path: "kind.free_text.bind".to_owned(),
+        value: serde_json::json!("strip.tag"),
+        copies: Vec::new(),
+    };
+    let r = e
+        .execute(&bound(PAGE_101, REP_101F1, "device.function_text"))
+        .expect("placed");
+    assert_eq!(
+        refusal(e.execute(&set_bind(primary(&r))).unwrap_err()),
+        ("/value".to_owned(), "refusal-items-part-not-terminal")
+    );
+    let r = e
+        .execute(&bound(PAGE_102, REP_T1, "device.function_text"))
+        .expect("placed");
+    e.execute(&set_bind(primary(&r)))
+        .expect("a terminal's text names its strip");
 }

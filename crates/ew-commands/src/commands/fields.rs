@@ -551,6 +551,12 @@ impl SetFields {
                     if let Some(p) = crate::commands::items::item_problem(&item) {
                         return Err(CmdError::invalid_params(Self::NAME, "/value", p));
                     }
+                    // A symbol's name the symbol cannot print, refused as `item.place` refuses it.
+                    if let PageItemKind::FreeText(free) = &item.kind
+                        && let Some(p) = crate::commands::items::bind_problem(tx, free)
+                    {
+                        return Err(CmdError::invalid_params(Self::NAME, "/value", p));
+                    }
                     let before = item.clone();
                     crate::commands::items::clean_marker(tx, &mut item);
                     if item != before {
