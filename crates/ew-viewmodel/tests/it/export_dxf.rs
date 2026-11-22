@@ -72,7 +72,11 @@ fn the_dxf_set_goes_into_its_folder_and_a_folder_of_other_files_is_refused() {
     );
     assert_eq!(std::fs::read(&page).unwrap(), b"edited in a CAD program");
     // Confirmed: the set replaces itself, and the toast says "again".
-    done(&mut s, "file.export_dxf", json!({"dir": path_text(&dir), "confirm": true}));
+    done(
+        &mut s,
+        "file.export_dxf",
+        json!({"dir": path_text(&dir), "confirm": true}),
+    );
     assert_ne!(std::fs::read(&page).unwrap(), b"edited in a CAD program");
     assert_eq!(names(&dir), order);
     assert!(s.toast().expect("a toast").text.contains(" again: "));

@@ -270,10 +270,15 @@ fn export_png_refuses_a_directory_it_did_not_write() {
     assert_eq!(std::fs::read(dir.join("shot.png")).unwrap(), b"keep me");
     let earlier = t.0.join("earlier");
     for pages in ["101-103", "103"] {
-        let o = t.ew(&args([&"export", &"png", &p, &"--out", &earlier, &"--pages", &pages]));
+        let o = t.ew(&args([
+            &"export", &"png", &p, &"--out", &earlier, &"--pages", &pages,
+        ]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     }
-    assert_eq!(files(&earlier).keys().collect::<Vec<_>>(), [FILE_SET_MARK, "103.png"]);
+    assert_eq!(
+        files(&earlier).keys().collect::<Vec<_>>(),
+        [FILE_SET_MARK, "103.png"]
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

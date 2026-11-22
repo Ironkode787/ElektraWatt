@@ -655,7 +655,12 @@ pub(super) fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Re
 /// `SVG`) into the directory `out` as a whole ([`ew_api::library::file::write_file_set`]): `out` holds exactly this
 /// export, a failure leaves the earlier set as it was, and a directory that holds a file no earlier export of the kind
 /// wrote there is refused, whatever its extension (`ew export svg`, `ew export png`, `ew export dxf`).
-pub(super) fn write_file_set(out: &Path, exts: &[&str], kind: &str, files: &[(&str, &[u8])]) -> Result<(), String> {
+pub(super) fn write_file_set(
+    out: &Path,
+    exts: &[&str],
+    kind: &str,
+    files: &[(&str, &[u8])],
+) -> Result<(), String> {
     use ew_api::library::file::FileSetError;
     ew_api::library::file::write_file_set(out, exts, files).map_err(|e| match e {
         FileSetError::Foreign(name) => format!(

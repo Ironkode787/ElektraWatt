@@ -143,7 +143,9 @@ pub fn foreign_entry(dir: &Path, exts: &[&str]) -> Result<Option<String>, FileSe
         let name = path
             .file_name()
             .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-        if (!path.is_file() || !written.contains(&name.as_str())) && foreign.as_ref().is_none_or(|f| name < *f) {
+        if (!path.is_file() || !written.contains(&name.as_str()))
+            && foreign.as_ref().is_none_or(|f| name < *f)
+        {
             foreign = Some(name);
         }
     }

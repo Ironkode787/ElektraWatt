@@ -594,7 +594,10 @@ fn replace_dxf_spec(dir: &str, folder: &str, files: usize) -> DialogSpec {
         asks: true,
         ..small(
             strings::format(key!("confirm-export-dxf-replace-title"), &[folder]),
-            vec![strings::format_count(crate::count_key!("confirm-export-dxf-replace-text"), files)],
+            vec![strings::format_count(
+                crate::count_key!("confirm-export-dxf-replace-text"),
+                files,
+            )],
             cancel(),
         )
     }

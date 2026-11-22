@@ -34,12 +34,19 @@ fn exporting_dxf_over_an_earlier_set_asks_and_cancel_keeps_it() {
         "the export asks: {:?}",
         h.state().shell().dialog()
     );
-    assert!(h.query_by_label("Replace the DXF set in dxf-set?").is_some(), "the question names the folder");
+    assert!(
+        h.query_by_label("Replace the DXF set in dxf-set?").is_some(),
+        "the question names the folder"
+    );
     h.get_by_label("Cancel").click();
     settle(&mut h);
     finish_jobs(&mut h);
     assert!(h.state().shell().dialog().is_none(), "Cancel closes the question");
-    assert_eq!(std::fs::read(&page).unwrap(), b"edited in a CAD program", "Cancel leaves the folder as it was");
+    assert_eq!(
+        std::fs::read(&page).unwrap(),
+        b"edited in a CAD program",
+        "Cancel leaves the folder as it was"
+    );
 
     dispatch(&mut h, "file.export_dxf", set);
     settle(&mut h);
@@ -47,6 +54,10 @@ fn exporting_dxf_over_an_earlier_set_asks_and_cancel_keeps_it() {
     settle(&mut h);
     finish_jobs(&mut h);
     assert!(h.state().shell().dialog().is_none(), "Replace gives way");
-    assert_ne!(std::fs::read(&page).unwrap(), b"edited in a CAD program", "Replace writes the set");
+    assert_ne!(
+        std::fs::read(&page).unwrap(),
+        b"edited in a CAD program",
+        "Replace writes the set"
+    );
     h.state_mut().shell_mut().shutdown();
 }
