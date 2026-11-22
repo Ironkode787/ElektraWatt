@@ -29,12 +29,18 @@ const MAX_HISTORY_PAGES: usize = 8;
 /// that moves none keeps its command's, Route's.
 pub const ARRANGE_STEP: &str = "layout.arrange";
 
+/// The label of a `project.drawing.set` step of one member: this prefix and the member
+/// (`project.drawing.set.wire_numbers`), so that its Undo names what it changed (a persona run read "Undone: Set
+/// drawing data" for Print wire numbers).
+pub const DRAWING_STEP: &str = "project.drawing.set.";
+
 /// One entry of the history.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct HistoryRow {
     /// The entry's index in the stack (0 the oldest kept).
     pub index: usize,
-    /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols.
+    /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols, or [`DRAWING_STEP`] and
+    /// the member for a `project.drawing.set` of one member.
     pub label: String,
     /// The origin as the panel prints it.
     pub origin: String,
@@ -155,6 +161,12 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
                     .is_some_and(|p| !p.is_empty())
             {
                 ARRANGE_STEP.to_owned()
+            } else if let Some(member) = (e.label() == "project.drawing.set")
+                .then(|| e.command().params.as_object().filter(|m| m.len() == 1))
+                .flatten()
+                .and_then(|m| m.keys().next())
+            {
+                format!("{DRAWING_STEP}{member}")
             } else {
                 e.label().to_owned()
             },

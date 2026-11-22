@@ -136,12 +136,15 @@ impl HistoryPane {
 
     /// Doc 16a §8: an entry's label in words, its command's title ("Create page" for
     /// `page.create`); a step that moved symbols is "Arrange and route", one that routed wires alone "Route wires"
-    /// (docs/design/06a-drafting.md §7.3).
-    pub fn label_words(row: &HistoryRow) -> &str {
+    /// (docs/design/06a-drafting.md §7.3); a drawing setting changed alone is named by its setting ("Print wire
+    /// numbers", where it read "Set drawing data").
+    pub fn label_words(row: &HistoryRow) -> String {
         if row.label == ew_api::window::ARRANGE_STEP {
-            crate::strings::text(crate::key!("action-layout-arrange"))
+            crate::strings::text(crate::key!("action-layout-arrange")).to_owned()
+        } else if let Some(member) = row.label.strip_prefix(ew_api::window::DRAWING_STEP) {
+            crate::strings::field_label("project", &format!("settings.drawing.{member}"))
         } else {
-            crate::strings::command_title(&row.label)
+            crate::strings::command_title(&row.label).to_owned()
         }
     }
 

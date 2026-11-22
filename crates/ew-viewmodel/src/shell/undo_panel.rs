@@ -111,9 +111,9 @@ impl ShellModel {
             .map(|r| {
                 let title = HistoryPane::label_words(r);
                 if r.pages.is_empty() {
-                    title.to_owned()
+                    title
                 } else {
-                    crate::strings::format(key!("history-changed-on"), &[title, &r.pages.join(", ")])
+                    crate::strings::format(key!("history-changed-on"), &[&title, &r.pages.join(", ")])
                 }
             })
             .collect()
@@ -342,7 +342,7 @@ impl ShellModel {
         let Some(project) = &self.project else { return };
         let view = project.session.history_view();
         let Some(row) = view.rows.get(index) else { return };
-        let title = HistoryPane::label_words(row).to_owned();
+        let title = HistoryPane::label_words(row);
         let mut pages = drew;
         for folio in &row.pages {
             if !pages.contains(folio) {
