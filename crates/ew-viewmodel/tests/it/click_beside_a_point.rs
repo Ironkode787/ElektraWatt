@@ -127,10 +127,7 @@ fn reach_and_beside(s: &mut ShellModel, tool: &str, (a, b, c): (&TableCp, &Table
         assert_eq!(tables(s).connections.len(), n + 1);
         assert!(last_ends_at(s, c));
         let hint = s.tool_hint();
-        assert!(
-            hint.contains(" just drawn bends beside a "),
-            "{hint}"
-        );
+        assert!(hint.contains(" just drawn bends beside a "), "{hint}");
         // The next wire that starts on a point forgets it.
         click(s, sheet(s, c.at));
         assert!(!s.tool_hint().contains("beside"), "{}", s.tool_hint());

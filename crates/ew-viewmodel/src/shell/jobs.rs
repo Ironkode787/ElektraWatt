@@ -268,19 +268,16 @@ impl ShellModel {
         };
         let h = p.session.history();
         let cursor = h.cursor();
-        let undo = cursor
-            .checked_sub(1)
-            .and_then(|i| h.entries().get(i))
-            .map(|e| {
-                (
-                    NoteAction::Undo,
-                    Validity::Undo {
-                        epoch: p.epoch,
-                        cursor,
-                        rev: e.rev().0,
-                    },
-                )
-            });
+        let undo = cursor.checked_sub(1).and_then(|i| h.entries().get(i)).map(|e| {
+            (
+                NoteAction::Undo,
+                Validity::Undo {
+                    epoch: p.epoch,
+                    cursor,
+                    rev: e.rev().0,
+                },
+            )
+        });
         let go_to = (
             NoteAction::GoTo,
             Validity::Session {
@@ -953,9 +950,10 @@ impl ShellModel {
                 let text = match (table, again) {
                     (false, false) => strings::format(pdf, &[&shown, &pages, &kib.to_string(), &place]),
                     (false, true) => strings::format(pdf_again, &[&shown, &pages, &kib.to_string(), &place]),
-                    (true, false) => {
-                        strings::format(key!("toast-export-table"), &[&entry.name, &kib.to_string(), &place])
-                    }
+                    (true, false) => strings::format(
+                        key!("toast-export-table"),
+                        &[&entry.name, &kib.to_string(), &place],
+                    ),
                     (true, true) => strings::format(
                         key!("toast-export-table-again"),
                         &[&entry.name, &kib.to_string(), &place],
@@ -968,8 +966,7 @@ impl ShellModel {
                     },
                 );
                 // A file's toast shows its folder too; a DXF set's Open opens its folder already.
-                let show_folder =
-                    (!dxf).then_some((NoteAction::ShowFolder, Validity::Open { path: folder }));
+                let show_folder = (!dxf).then_some((NoteAction::ShowFolder, Validity::Open { path: folder }));
                 (
                     JobStatus::Done {
                         pages: (!table).then_some(done.pages),

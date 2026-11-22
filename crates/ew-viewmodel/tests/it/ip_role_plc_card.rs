@@ -212,19 +212,25 @@ fn a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"),
+                format!(
+                    "0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"
+                ),
                 "0V target".to_owned()
             ),
             (
                 "source".to_owned(),
                 false,
-                format!("0V \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target"),
+                format!(
+                    "0V \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target"
+                ),
                 "0V source".to_owned()
             ),
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"),
+                format!(
+                    "0V \u{b7} next: a target, where 0V goes on (its source is drawn) \u{b7} {d}: source"
+                ),
                 "0V target".to_owned()
             ),
         ]

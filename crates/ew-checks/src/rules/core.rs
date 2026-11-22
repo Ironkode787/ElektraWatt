@@ -10,7 +10,9 @@ use ew_derive::ew_schema::{
     IpDirection, Kind, LayoutSpace, LengthSource, Primitive, RepType, Representation,
 };
 use ew_derive::ew_units::{Nm, Pt2};
-use ew_derive::{CellOf, CpRef, IpPairingQ, PairMode, Q, RepAnchorCell, XrefRelationOf, XrefTextOf, folio_label};
+use ew_derive::{
+    CellOf, CpRef, IpPairingQ, PairMode, Q, RepAnchorCell, XrefRelationOf, XrefTextOf, folio_label,
+};
 
 use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -285,7 +287,11 @@ impl Rule for UnpairedInterruptionPoint {
                     ),
                     _ => format!("interruption point {name} has no partner; its wire stays open-ended"),
                 };
-                out.push(finding(*u, name, "unpaired", message).arg("form", role).arg("at", at));
+                out.push(
+                    finding(*u, name, "unpaired", message)
+                        .arg("form", role)
+                        .arg("at", at),
+                );
             }
         }
         out

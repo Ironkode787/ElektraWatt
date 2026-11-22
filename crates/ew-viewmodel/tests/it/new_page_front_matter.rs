@@ -33,7 +33,11 @@ fn a_layout_page_asked_for_on_the_title_page_goes_into_a_section() {
     // A project of the company standard: its title page 1 in the front matter, its sections (wiring, pneumatics, lists).
     done(&mut s, "tools.company_standard", json!({}));
     let company = tmp.0.join("company.ew");
-    done(&mut s, "wizard.finish", json!({ "dir": company.to_string_lossy() }));
+    done(
+        &mut s,
+        "wizard.finish",
+        json!({ "dir": company.to_string_lossy() }),
+    );
     done(&mut s, "wizard.cancel", json!({}));
     done(
         &mut s,
@@ -43,7 +47,10 @@ fn a_layout_page_asked_for_on_the_title_page_goes_into_a_section() {
     done(&mut s, "page.goto", json!({"folio": "1"}));
     done(&mut s, "page.new", json!({}));
     let first = (field(&s, "folio"), field(&s, "section"));
-    assert!(!first.1.is_empty(), "a wiring page goes into a section: {first:?}");
+    assert!(
+        !first.1.is_empty(),
+        "a wiring page goes into a section: {first:?}"
+    );
     s.set_form_field("type", "panel_layout");
     assert_eq!(
         (field(&s, "folio"), field(&s, "section")),

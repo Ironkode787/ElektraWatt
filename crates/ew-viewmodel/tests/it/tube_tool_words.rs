@@ -26,5 +26,8 @@ fn the_tube_tools_hint_speaks_of_ports_and_tubes() {
     done(&mut s, "page.goto", json!({"folio": "101"}));
     done(&mut s, "tool.wire", json!({}));
     let h = hint(&s);
-    assert!(h.contains("on a connection point, a junction or a wire to start"), "{h}");
+    assert!(
+        h.contains("on a connection point, a junction or a wire to start"),
+        "{h}"
+    );
 }

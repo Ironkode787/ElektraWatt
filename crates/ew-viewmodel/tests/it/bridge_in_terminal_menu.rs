@@ -28,10 +28,16 @@ fn two_selected_terminals_offer_bridge_terminals() {
         })
         .collect();
     let (first, rest) = terminals.split_first().expect("a terminal");
-    let second = rest.iter().find(|(_, st)| *st == first.1).expect("a second terminal of the strip");
+    let second = rest
+        .iter()
+        .find(|(_, st)| *st == first.1)
+        .expect("a second terminal of the strip");
     done(&mut s, "select.set", json!({"ids": [first.0, second.0]}));
     let menu = canvas_menu(&s, MenuSpot::Object, None);
-    let bridge = menu.iter().find(|i| i.id == "strip.bridge").expect("Bridge terminals in the menu");
+    let bridge = menu
+        .iter()
+        .find(|i| i.id == "strip.bridge")
+        .expect("Bridge terminals in the menu");
     assert!(bridge.enabled, "{:?}", bridge.reason);
     done(&mut s, "tools.palette", json!({}));
     s.set_palette_query("bridge");

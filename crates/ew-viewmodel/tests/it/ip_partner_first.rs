@@ -39,9 +39,7 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
     assert_eq!(direction, "target");
     done(&mut s, "canvas.activate", json!({}));
     assert!(
-        toast(&s).starts_with(&format!("{name} at "))
-            && toast(&s)
-                .contains("has no source yet: place where"),
+        toast(&s).starts_with(&format!("{name} at ")) && toast(&s).contains("has no source yet: place where"),
         "{}",
         toast(&s)
     );

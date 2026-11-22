@@ -50,7 +50,11 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
         Some(("Print wire numbers".to_owned(), false)),
         "the sample prints no wire numbers"
     );
-    assert!(palette_crumb(&mut s).ends_with("· Off"), "{}", palette_crumb(&mut s));
+    assert!(
+        palette_crumb(&mut s).ends_with("· Off"),
+        "{}",
+        palette_crumb(&mut s)
+    );
 
     // While the numbers are off, numbering by potential says that they show once printing is on.
     done(&mut s, "project.wire_numbering", json!({"on": true}));
@@ -64,7 +68,11 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
     let said = toast(&s);
     assert!(said.contains("every page of the project"), "{said}");
     assert_eq!(row_under_filter(&s, "wire").map(|(_, on)| on), Some(true));
-    assert!(palette_crumb(&mut s).ends_with("· On"), "{}", palette_crumb(&mut s));
+    assert!(
+        palette_crumb(&mut s).ends_with("· On"),
+        "{}",
+        palette_crumb(&mut s)
+    );
 
     // With printing on, numbering by potential says nothing about switching it on.
     done(&mut s, "project.wire_numbering", json!({"on": false}));

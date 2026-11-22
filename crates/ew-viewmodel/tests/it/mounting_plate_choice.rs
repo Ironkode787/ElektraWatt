@@ -17,7 +17,11 @@ fn mounting_plate_opens_the_surface_choice_under_a_filter() {
     done(&mut s, "props.show", json!({"on": true}));
     done(&mut s, "props.filter", json!({"text": "scale"}));
     done(&mut s, "layout.choose_plate", json!({}));
-    assert_eq!(s.properties().filter(), "", "the filter that hid the row is cleared");
+    assert_eq!(
+        s.properties().filter(),
+        "",
+        "the filter that hid the row is cleared"
+    );
     assert_eq!(
         s.properties().edit().map(|e| e.row.as_str()),
         Some("page/derived.surface"),

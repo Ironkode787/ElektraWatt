@@ -72,7 +72,12 @@ fn the_scale_is_typed_as_it_shows() {
     for typed in ["1:4.5", "2:9", "1:4,5"] {
         match value(typed) {
             Err(e @ InputError::Invalid(_)) => {
-                assert!(e.text().unwrap().starts_with(&format!("`{typed}` is not a scale")), "{typed}");
+                assert!(
+                    e.text()
+                        .unwrap()
+                        .starts_with(&format!("`{typed}` is not a scale")),
+                    "{typed}"
+                );
             }
             other => panic!("{typed}: {other:?}"),
         }

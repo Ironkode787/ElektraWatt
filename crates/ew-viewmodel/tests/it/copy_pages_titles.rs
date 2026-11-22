@@ -39,11 +39,24 @@ fn the_rename_reaches_the_titles_and_the_card_lists_them() {
     let Some(Dialog::Form(f)) = s.dialog() else {
         panic!("the Copy pages form: {:?}", s.dialog());
     };
-    let rows: Vec<&str> = f.table.as_ref().expect("the rename table").rows.iter().map(|r| r.key.as_str()).collect();
+    let rows: Vec<&str> = f
+        .table
+        .as_ref()
+        .expect("the rename table")
+        .rows
+        .iter()
+        .map(|r| r.key.as_str())
+        .collect();
     assert_eq!(rows, [""], "one empty row to fill");
     s.add_form_table_row();
-    let Some(Dialog::Form(f)) = s.dialog() else { panic!() };
-    assert_eq!(f.table.as_ref().unwrap().rows[1].key, "", "an added row is empty too");
+    let Some(Dialog::Form(f)) = s.dialog() else {
+        panic!()
+    };
+    assert_eq!(
+        f.table.as_ref().unwrap().rows[1].key,
+        "",
+        "an added row is empty too"
+    );
     s.remove_form_table_row(1);
     s.set_form_table_cell(0, None, "Inst 1");
     s.set_form_table_cell(0, Some(0), "Inst 2");
@@ -56,6 +69,10 @@ fn the_rename_reaches_the_titles_and_the_card_lists_them() {
     );
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(title_of(&s, "21").as_deref(), Some("Inst 2 - Control"));
-    assert_eq!(title_of(&s, "11").as_deref(), Some("Inst 1 - Control"), "the original keeps its own");
+    assert_eq!(
+        title_of(&s, "11").as_deref(),
+        Some("Inst 1 - Control"),
+        "the original keeps its own"
+    );
     s.shutdown();
 }

@@ -261,10 +261,7 @@ impl ShellModel {
                 .iter()
                 .map(|(old, new)| strings::format(key!("page-copy-title-renamed"), &[old, new]))
                 .collect();
-            rows.push(strings::format(
-                key!("page-copy-titles"),
-                &[&titles.join("; ")],
-            ));
+            rows.push(strings::format(key!("page-copy-titles"), &[&titles.join("; ")]));
         }
         if !plan.bus_devices.is_empty() {
             rows.push(strings::format(

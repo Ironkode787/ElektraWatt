@@ -160,7 +160,8 @@ fn core051_cases() {
                     assert!(f[0].subject.contains("LONELY"), "case {c}: {}", f[0].subject);
                     // Where it stands and what it lacks: a source its targets (a persona run read "no partner").
                     assert!(
-                        f[0].message.contains("is a source without a target: place where LONELY goes on"),
+                        f[0].message
+                            .contains("is a source without a target: place where LONELY goes on"),
                         "case {c}: {}",
                         f[0].message
                     );

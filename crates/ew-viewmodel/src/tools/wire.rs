@@ -1587,13 +1587,21 @@ impl Tool for WireTool {
         }
         match (self.missed, &self.state) {
             (Some((Missed::Bend, _)), State::Routing { .. }) => {
-                return super::Hint::new(self.said(key!("hint-wire-bend-beside"), key!("hint-tube-bend-beside")), &[super::BACK]);
+                return super::Hint::new(
+                    self.said(key!("hint-wire-bend-beside"), key!("hint-tube-bend-beside")),
+                    &[super::BACK],
+                );
             }
             (Some((Missed::Start, _)), State::Armed { .. }) => {
-                return super::Hint::plain(self.said(key!("hint-wire-start-beside"), key!("hint-tube-start-beside")));
+                return super::Hint::plain(
+                    self.said(key!("hint-wire-start-beside"), key!("hint-tube-start-beside")),
+                );
             }
             (Some((Missed::Wire, _)), State::Armed { .. }) => {
-                return super::Hint::new(self.said(key!("hint-wire-ended-beside"), key!("hint-tube-ended-beside")), &["edit.undo"]);
+                return super::Hint::new(
+                    self.said(key!("hint-wire-ended-beside"), key!("hint-tube-ended-beside")),
+                    &["edit.undo"],
+                );
             }
             _ => {}
         }
@@ -1622,15 +1630,14 @@ impl Tool for WireTool {
             }
         }
         match self.state {
-            State::Armed { .. } => {
-                super::Hint::new(self.said(key!("hint-wire-armed"), key!("hint-tube-armed")), &[super::ENTER])
-            }
-            State::Routing { .. } => {
-                super::Hint::new(
-                    self.said(key!("hint-wire-routing"), key!("hint-tube-routing")),
-                    &[super::BACK, super::ESCAPE],
-                )
-            }
+            State::Armed { .. } => super::Hint::new(
+                self.said(key!("hint-wire-armed"), key!("hint-tube-armed")),
+                &[super::ENTER],
+            ),
+            State::Routing { .. } => super::Hint::new(
+                self.said(key!("hint-wire-routing"), key!("hint-tube-routing")),
+                &[super::BACK, super::ESCAPE],
+            ),
         }
     }
 

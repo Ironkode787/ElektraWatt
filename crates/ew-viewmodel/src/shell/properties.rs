@@ -1517,7 +1517,10 @@ impl ShellModel {
             && let [page] = section.targets.as_slice()
             && let Some((now, fit)) = self.project_session().and_then(|s| s.layout_overruns(*page))
         {
-            let said = strings::format(key!("toast-layout-overruns"), &[&now.to_string(), &fit.to_string()]);
+            let said = strings::format(
+                key!("toast-layout-overruns"),
+                &[&now.to_string(), &fit.to_string()],
+            );
             self.notify_fit_sheet(said, *page);
         }
         out

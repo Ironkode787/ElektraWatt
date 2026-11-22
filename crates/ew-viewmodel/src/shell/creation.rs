@@ -2267,7 +2267,10 @@ impl ShellModel {
             .iter()
             .filter(|(_, b)| b.embedded.is_none() && ew_api::output::block_kind(b) == kind)
             .filter_map(|(id, _)| {
-                let first = ew_api::output::report_folios(&q, &id.to_string()).ok()?.into_iter().next()?;
+                let first = ew_api::output::report_folios(&q, &id.to_string())
+                    .ok()?
+                    .into_iter()
+                    .next()?;
                 let at = rows.iter().position(|r| r.folio == first)?;
                 Some((at, first, rows[at].id))
             })

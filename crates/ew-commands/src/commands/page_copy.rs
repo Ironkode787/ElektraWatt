@@ -508,7 +508,8 @@ impl CopyPages {
                     .description_override
                     .as_ref()
                     .map(|d| renamed_mltext(d, &self.rename));
-                *v = serde_json::to_value(Record::Page(page)).map_err(|e| CmdError::internal(e.to_string()))?;
+                *v = serde_json::to_value(Record::Page(page))
+                    .map_err(|e| CmdError::internal(e.to_string()))?;
             }
         }
         Ok(())

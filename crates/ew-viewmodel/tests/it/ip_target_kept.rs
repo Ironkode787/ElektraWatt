@@ -42,14 +42,21 @@ fn a_chosen_target_stays_and_the_check_says_what_each_target_lacks() {
         assert_eq!(direction(&s), "target", "point {i}: the chosen direction holds");
         if i > 0 {
             let note = s.tool().role_note().unwrap_or_default();
-            assert!(note.contains("one more target of 24V, which has no source yet"), "{note}");
+            assert!(
+                note.contains("one more target of 24V, which has no source yet"),
+                "{note}"
+            );
         }
         done(&mut s, "canvas.activate", json!({}));
     }
     done(&mut s, "tool.select", json!({}));
     done(&mut s, "navigator.show", json!({"kind": "messages"}));
     done(&mut s, "messages.check", json!({}));
-    let table = s.nav(NavKind::Messages).and_then(|n| n.table()).cloned().expect("the Messages table");
+    let table = s
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the Messages table");
     let said: Vec<&str> = table
         .nodes
         .iter()

@@ -148,7 +148,10 @@ fn a_second_export_of_the_same_file_says_again() {
     let kib = |p: &Path| std::fs::metadata(p).unwrap().len().div_ceil(1024);
     let pages = s.page_count();
     let at = tmp.0.display();
-    let first = format!("Exported out.pdf: {pages} drawing pages, {} KiB, in {at}.", kib(&target));
+    let first = format!(
+        "Exported out.pdf: {pages} drawing pages, {} KiB, in {at}.",
+        kib(&target)
+    );
     assert_eq!(s.toast().unwrap().text, first);
     // Open opens the file, Show in folder its folder.
     let actions = s.notifications().entries().next().expect("the toast").actions();
@@ -170,7 +173,10 @@ fn a_second_export_of_the_same_file_says_again() {
     );
     assert_eq!(s.toast().unwrap().text, second);
     done(&mut s, "file.export_pdf", json!({"path": path_text(&other)}));
-    let third = format!("Exported other.pdf: {pages} drawing pages, {} KiB, in {at}.", kib(&other));
+    let third = format!(
+        "Exported other.pdf: {pages} drawing pages, {} KiB, in {at}.",
+        kib(&other)
+    );
     assert_eq!(log_texts(&s), [third, second, first]);
     s.shutdown();
 }

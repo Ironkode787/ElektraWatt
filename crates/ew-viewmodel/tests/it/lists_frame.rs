@@ -43,7 +43,11 @@ fn a_lists_form_row_points_to_frame_of_the_lists_which_sets_every_list() {
     for (action, params) in &offer.steps {
         done(&mut s, action, params.clone());
     }
-    assert_eq!(s.properties().moved_row(), Some(ROW), "the cursor stands on Frame of the lists");
+    assert_eq!(
+        s.properties().moved_row(),
+        Some(ROW),
+        "the cursor stands on Frame of the lists"
+    );
 
     // Another frame chosen there goes to every list.
     done(&mut s, "props.edit", json!({"row": ROW}));
@@ -60,7 +64,11 @@ fn a_lists_form_row_points_to_frame_of_the_lists_which_sets_every_list() {
     assert!(toast(&s).contains(&other), "{}", toast(&s));
     assert_eq!(text_of(&s, ROW).as_deref(), Some(other.as_str()));
     done(&mut s, "select.set", json!({"ids": []}));
-    assert_eq!(text_of(&s, FORM).as_deref(), Some(other.as_str()), "the list prints on it");
+    assert_eq!(
+        text_of(&s, FORM).as_deref(),
+        Some(other.as_str()),
+        "the list prints on it"
+    );
 }
 
 /// A name that is no form of the project is refused in words, as on a list's own Form row.
