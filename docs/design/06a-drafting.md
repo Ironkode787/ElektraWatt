@@ -959,7 +959,11 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
   lower edge and its supply pins on its left side, steps right along its edge (a) until every pin its supply is
   wired to on the side its channels face (the controller's supply pin, a mark, the supply pin of a card at the
   other edge) stands left of it, so that the supply drops beside its first channel and crosses none, and (b)
-  half a pitch further where its columns would fall on those of a card of the same pitch that faces it. Whether
+  further where the columns of its channels in use interleave with those of a card that faces it (one card's used
+  columns among or on the other's): of the two, the card with fewer channels in use (of two as many, the one further
+  right) steps on until its used columns stand right of the other's, two steps clear, so that the parts of the two
+  cards' channels do not stand among each other and a strip between them keeps its order. Columns without a wire
+  count for nothing (FT-1894; it was half a pitch off all the pins of a card of the same pitch). Whether
   that is the better page the judge finds: where a card would step, the arrangement is made with (a) and (b),
   with (a) alone and with neither, each is routed and judged, and the best by the measure with the price of its
   moves is offered. The command that draws a card still sets it from the left edge; the placer moves it.

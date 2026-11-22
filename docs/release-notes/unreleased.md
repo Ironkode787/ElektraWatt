@@ -15,6 +15,10 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Arrange and route steps a card aside by the columns of its channels in use: where they interleave
+  with the used columns of a card that faces it, the card with fewer in use steps until its own stand right of the
+  other's, so a strip between the two keeps its order and no wire crosses; it stepped half a pitch by all the pins, and
+  only for cards of one pitch (doc 06a §4.4, FT-1894)
 - behaviour-change: Route lays the wires that go round one end of a card or a box (terminals under a card whose
   pins face up, each wired to the pin over it) side by side as nested rings, a step apart, the pin nearest the corner
   innermost, where the search had laid them one by one at uneven distances; the rings are kept only where the page

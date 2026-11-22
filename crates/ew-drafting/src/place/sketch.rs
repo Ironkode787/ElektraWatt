@@ -1208,9 +1208,9 @@ impl<'a> Sketch<'a> {
     /// own supply and of another card's channels. Its channel pins face up or down and its supply pins stand on its
     /// left side. (a) Every pin its supply is wired to that lies on the side its channels face (the controller's
     /// supply pin, a mark, the supply pin of a card at the other edge) stands left of the card, where the wire drops
-    /// beside the first channel and crosses none. (b) Its channel columns stand half a pitch from the columns of a
-    /// card of the same pitch whose pins face its own, so that the parts of the two cards' channels do not stand
-    /// against each other ([`CardSteps::Columns`] only). No step where the card would leave the drawing area.
+    /// beside the first channel and crosses none. (b) Where the columns of its channels in use interleave with those of
+    /// a card whose pins face its own and it has fewer in use, its used columns stand right of the other's, two steps
+    /// clear ([`CardSteps::Columns`] only). No step where the card would leave the drawing area.
     fn card_step(&self, u: usize, steps: CardSteps) -> Pt {
         if steps == CardSteps::None {
             return Pt::default();
@@ -1258,28 +1258,37 @@ impl<'a> Sketch<'a> {
             }
         }
         let mut by = whole_up(left - body.x0);
-        let columns = |part: &crate::model::Part, side: Side| -> Vec<Tick> {
+        // The columns of a card's channels in use on `side`.
+        let used = |part: &crate::model::Part, side: Side| -> Vec<Tick> {
             let mut xs: Vec<Tick> = part
                 .pins
                 .iter()
-                .filter(|p| p.side == Some(side))
+                .filter(|p| p.side == Some(side) && self.wired.contains(&p.id))
                 .map(|p| part.at.x + p.at.x)
                 .collect();
             xs.sort_unstable();
             xs
         };
-        let own = columns(card, s);
-        let pitch = own[1] - own[0];
+        let own = used(card, s);
         let other = self
             .w
             .parts
             .iter()
             .filter(|p| p.role == Role::Card && p.id != card.id && ahead(p.at))
-            .map(|p| columns(p, opposite(s)))
-            .find(|xs| xs.len() >= 2 && xs[1] - xs[0] == pitch);
-        if let (Some(xs), CardSteps::Columns) = (other, steps) {
-            let off = (own[0] + by - xs[0]).rem_euclid(pitch);
-            by += whole_up((pitch / 2 - off).rem_euclid(pitch));
+            .map(|p| (p, used(p, opposite(s))))
+            .find(|(_, xs)| !xs.is_empty());
+        if let (Some((part, xs)), CardSteps::Columns, Some(&lo), Some(&hi)) =
+            (other, steps, own.first(), own.last())
+        {
+            // Where the used columns of the two interleave, the card with fewer channels in use (of two as many, the
+            // one further right) steps on until its own stand right of the other's, two steps clear: the parts of the
+            // two cards' channels do not stand among each other, and a strip between them keeps its order.
+            let (them_lo, them_hi) = (xs[0], xs[xs.len() - 1]);
+            let fewer = (own.len(), Reverse(card.at.x), Reverse(card.id))
+                < (xs.len(), Reverse(part.at.x), Reverse(part.id));
+            if fewer && lo + by <= them_hi && them_lo <= hi + by {
+                by = by.max(whole_up(them_hi + 2 * TICKS_PER_STEP - lo));
+            }
         }
         let room = self.w.page.area.x1 - TICKS_PER_STEP - body.x1;
         if by > room {
