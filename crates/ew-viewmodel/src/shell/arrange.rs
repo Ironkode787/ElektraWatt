@@ -294,7 +294,10 @@ fn in_the_way(session: &ew_api::Session, folio: &str, plan: &RoutePlan) -> Vec<S
     }
     let faults = plan.plan.after.faults;
     if faults > 0 {
-        out.push(strings::format_count(count_key!("arrange-blocked-faults"), faults));
+        out.push(strings::format_count(
+            count_key!("arrange-blocked-faults"),
+            faults,
+        ));
     }
     out
 }

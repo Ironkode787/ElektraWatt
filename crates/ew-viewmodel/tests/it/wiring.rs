@@ -1886,8 +1886,14 @@ fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
 fn arrange_without_a_better_plan_says_what_stands_in_the_way() {
     let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
     for (language, words) in [
-        ("en", "-103K3:A2 → -103K2:A2 has no route: it is drawn as a dashed line."),
-        ("nl", "-103K3:A2 → -103K2:A2 heeft geen route: hij is als gestreepte lijn getekend."),
+        (
+            "en",
+            "-103K3:A2 → -103K2:A2 has no route: it is drawn as a dashed line.",
+        ),
+        (
+            "nl",
+            "-103K3:A2 → -103K2:A2 heeft geen route: hij is als gestreepte lijn getekend.",
+        ),
     ] {
         let tmp = Tmp::new("ar7");
         let mut s = actual_size(&tmp, "103");

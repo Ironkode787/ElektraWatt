@@ -34,7 +34,13 @@ fn side_by_side() -> Page {
     let mut b = Page::new(100, 60);
     for (name, y) in [("L", 4), ("N", 6), ("PE", 8)] {
         let mark = b.mark_in(name, p(8, y));
-        b.label(Owner::Part(mark), 1, LabelKind::MarkXref, (64, 10), Places::At(Vec::new()));
+        b.label(
+            Owner::Part(mark),
+            1,
+            LabelKind::MarkXref,
+            (64, 10),
+            Places::At(Vec::new()),
+        );
     }
     two_pole(&mut b, "Q1", p(8, 9), 2);
     two_pole(&mut b, "F1", p(20, 9), 3);
@@ -74,11 +80,21 @@ fn side_by_side() -> Page {
 #[test]
 fn a_feeder_drawn_side_by_side_takes_one_column_and_its_dashed_wire_is_routed() {
     let b = side_by_side();
-    assert_eq!(measure(&b.page).unrouted, 1, "L's wire has no way as the page stands");
+    assert_eq!(
+        measure(&b.page).unrouted,
+        1,
+        "L's wire has no way as the page stands"
+    );
     let (_, done) = run(&b.page, &[]);
     let q = measure(&done);
     assert_eq!(q.unrouted, 0, "{:?}", q.findings.unrouted);
     assert_eq!(q.faults, 0, "{:?}", q.findings);
-    assert!(at(&done, "F1").y > at(&done, "Q1").y, "the breaker under the main switch");
-    assert!(at(&done, "G1").y > at(&done, "F1").y, "the supply under the breaker");
+    assert!(
+        at(&done, "F1").y > at(&done, "Q1").y,
+        "the breaker under the main switch"
+    );
+    assert!(
+        at(&done, "G1").y > at(&done, "F1").y,
+        "the supply under the breaker"
+    );
 }

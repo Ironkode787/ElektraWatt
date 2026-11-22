@@ -515,10 +515,14 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                     .filter(|r| r.x0 >= q.x)
                     .map(|r| r.x1)
                     .max();
-                let mut out = vec![bx(q.x + g, q.y + g, unit.size), bx(q.x + g, q.y - g - h, unit.size)];
-                out.extend(past.into_iter().flat_map(|x| {
-                    [bx(x + g, q.y + g, unit.size), bx(x + g, q.y - g - h, unit.size)]
-                }));
+                let mut out = vec![
+                    bx(q.x + g, q.y + g, unit.size),
+                    bx(q.x + g, q.y - g - h, unit.size),
+                ];
+                out.extend(
+                    past.into_iter()
+                        .flat_map(|x| [bx(x + g, q.y + g, unit.size), bx(x + g, q.y - g - h, unit.size)]),
+                );
                 out.extend([
                     bx(b.x0 - g - w, q.y + g, unit.size),
                     bx(b.x0 - g - w, q.y - g - h, unit.size),
@@ -540,7 +544,10 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                     bx(q.x - g - w, q.y - g - h, unit.size),
                 ];
                 out.extend(past.into_iter().flat_map(|x| {
-                    [bx(x - g - w, q.y + g, unit.size), bx(x - g - w, q.y - g - h, unit.size)]
+                    [
+                        bx(x - g - w, q.y + g, unit.size),
+                        bx(x - g - w, q.y - g - h, unit.size),
+                    ]
                 }));
                 out.extend([
                     bx(b.x1 + g, q.y + g, unit.size),

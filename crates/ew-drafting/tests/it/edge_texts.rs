@@ -54,6 +54,9 @@ fn a_tag_that_leaves_the_area_is_not_moved_in_onto_its_own_symbol() {
     assert!(b.page.area.holds(t), "{t:?} in the area");
     assert!(!t.overlaps(body), "{t:?} on its symbol {body:?}");
     for s in settled.iter().filter(|s| s.id != tag) {
-        assert!(!t.grown(LABEL_CLEAR).overlaps(s.rect), "{t:?} on a pin's number {s:?}");
+        assert!(
+            !t.grown(LABEL_CLEAR).overlaps(s.rect),
+            "{t:?} on a pin's number {s:?}"
+        );
     }
 }

@@ -47,13 +47,22 @@ fn a_marks_cross_reference_stands_past_the_number_of_the_pin_it_is_set_on() {
         (26, 21),
         Places::At(vec![Pt::new(LABEL_CLEAR, -LABEL_CLEAR - 21)]),
     );
-    let xref = b.label(Owner::Part(mark), 1, LabelKind::MarkXref, (47, 20), Places::At(Vec::new()));
+    let xref = b.label(
+        Owner::Part(mark),
+        1,
+        LabelKind::MarkXref,
+        (47, 20),
+        Places::At(Vec::new()),
+    );
     let settled = settle_labels(&b.page);
     let at = |l: LabelId| -> Rect { settled.iter().find(|s| s.id == l).expect("placed").rect };
     let x = at(xref);
     // Clear of every other text by LABEL_CLEAR (§1.3), past the pin's number.
     for other in [at(number), at(name), texts] {
-        assert!(!x.grown(LABEL_CLEAR).overlaps(other), "the cross-reference {x:?} at {other:?}");
+        assert!(
+            !x.grown(LABEL_CLEAR).overlaps(other),
+            "the cross-reference {x:?} at {other:?}"
+        );
     }
     assert!(x.x0 > at(number).x1, "past the pin's number: {x:?}");
 }
