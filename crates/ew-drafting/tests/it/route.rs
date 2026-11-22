@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::kit::{Page, fixtures, p, s};
+use crate::kit::{Page, TAG, fixtures, p, s};
 use ew_drafting::{
     DraftPage, End, FixedText, LabelKind, MarkId, Owner, Places, Pt, Reason, Rect, Scope, Side, WireEnd,
     WireId, geom, jobs, measure, route, route_wire,
@@ -583,6 +583,50 @@ fn a_mark_follows_its_wires_to_the_nearest_stretch_they_share() {
         moved,
         BTreeMap::from([(pair, Pt::new(0, -s(7))), (apart, Pt::new(0, -s(9)))])
     );
+}
+
+/// §1.2 and §3.10: a plan is judged on the page that is stored, its marks set on their wires. A deep U the program drew
+/// at the page's left edge is routed as a shallow one, and its mark follows it up from y 12 to y 7; where the mark's
+/// tag then has no clear place (a text right of it, the edge left of it), nothing is offered. Without the text the same
+/// plan is offered, the mark with it.
+#[test]
+fn a_plan_whose_mark_would_put_its_tag_on_a_text_is_not_offered() {
+    let page = |text: bool| {
+        let mut b = Page::new(30, 30);
+        let pin = [("1", p(0, 4), Side::Down)];
+        b.part("A", p(2, 2), (p(-1, 0), p(1, 4)), &pin);
+        b.part("B", p(8, 2), (p(-1, 0), p(1, 4)), &pin);
+        let u = b.run("u", b.pin("A", "1"), b.pin("B", "1"), &[p(2, 16), p(8, 16)]);
+        b.page
+            .wires
+            .iter_mut()
+            .find(|w| w.id == u)
+            .expect("u")
+            .computed = true;
+        let mark = b.mark("W1", Rect::new(p(1, 12), p(3, 12)), true, &[u]);
+        b.label(
+            Owner::Mark(mark),
+            0,
+            LabelKind::CableTag,
+            TAG,
+            Places::At(Vec::new()),
+        );
+        if text {
+            // Right of the mark's line where it follows the shallow U, over both places of its tag on that side.
+            b.page.fixed_texts.push(FixedText {
+                owner: crate::kit::id("note"),
+                rect: Rect::new(Pt::new(s(3), s(6) + 3), Pt::new(s(5) + 2, s(7) + 7)),
+            });
+        }
+        (b.page, mark)
+    };
+    let (free, mark) = page(false);
+    let plan = route(&free, &jobs(&free, Scope::Page));
+    assert_eq!(plan.routes.len(), 1, "{plan:?}");
+    assert_eq!(plan.marks, [(mark, Pt::new(0, -s(5)))]);
+    let (blocked, _) = page(true);
+    let plan = route(&blocked, &jobs(&blocked, Scope::Page));
+    assert!(plan.routes.is_empty() && plan.marks.is_empty(), "{plan:?}");
 }
 
 /// §7.4: the Wire tool's direct route through a free terminal in line is clear with that terminal left out (its body,

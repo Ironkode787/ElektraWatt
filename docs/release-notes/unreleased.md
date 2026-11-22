@@ -377,8 +377,9 @@ change here.
   route, more than two steps beyond everything else on the page was not held, so the next trunk took its line and
   its wires were left without a route (doc 06a §3.3, FT-1931)
 - behaviour-change: a second press of Arrange and route, or of Route, offers nothing: a plan is judged with each cable
-  mark and wire marker where its new routes will draw it; a plan kept a cable's core name where the old route crossed
-  the cable's line, and a second press routed a wire again (doc 06a §3.10, FT-1880)
+  mark and wire marker where its new routes will draw it, and Route offers no plan whose marks, set on their new
+  routes, put a text on another; a plan kept a cable's core name where the old route crossed the cable's line, and a
+  second press routed a wire again (doc 06a §3.10, FT-1880)
 - behaviour-change: a wire between two pins that stand nearly in line, one of them off the grid (after a grid change),
   steps across square at the grid line nearest its middle; Route and the Wire tool drew it as one slanted segment
   (doc 06a §3.6, FT-2010)

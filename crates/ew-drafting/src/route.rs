@@ -33,7 +33,8 @@
 //!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides. A plan
 //!    that routes a wire that had no route is not refused for a text across a wire routed before (C4): only for a
 //!    fault on one.
-//! 10. **Marks follow** (§3.10) the wires they name.
+//! 10. **Marks follow** (§3.10) the wires they name, and the page with them moved, the page that is stored, is judged
+//!     again by 9: where a moved mark makes it worse, nothing is offered.
 //!
 //! A job without a way keeps its stored route, or stays unrouted, and is named with the first thing in its way.
 
@@ -1300,15 +1301,18 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
         }
         after = measure(&r.page);
     }
-    let (bad, texts) = worse(page, &before, &after);
-    // A wire without a route is the worst state a wire has: a plan that routes one is not refused for a text that then
-    // lies across a wire routed before (the plan's quality names it); for a fault on such a wire it is.
-    let faulty_after = wires_with_faults(&after);
-    let gained = after.unrouted < before.unrouted;
-    let refused = bad
-        .iter()
-        .any(|w| !gained || (faulty_after.contains(w) && !faulty_before.contains(w)));
-    if !after.better_than(&before) || refused || texts {
+    let offered = |after: &Quality| {
+        let (bad, texts) = worse(page, &before, after);
+        // A wire without a route is the worst state a wire has: a plan that routes one is not refused for a text that
+        // then lies across a wire routed before (the plan's quality names it); for a fault on such a wire it is.
+        let faulty_after = wires_with_faults(after);
+        let gained = after.unrouted < before.unrouted;
+        let refused = bad
+            .iter()
+            .any(|w| !gained || (faulty_after.contains(w) && !faulty_before.contains(w)));
+        after.better_than(&before) && !refused && !texts
+    };
+    if !offered(&after) {
         return empty(before);
     }
     let mut plan = Plan {
@@ -1341,13 +1345,17 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     }
     plan.marks = marks_follow(&r.page, &changed);
     if !plan.marks.is_empty() {
-        // The page after the plan has its marks where the plan sets them.
+        // The page after the plan has its marks where the plan sets them, and is judged so: a mark set on its wires
+        // that puts its tag on a text makes the page that is stored worse (§1.2, §3.10).
         for (m, d) in &plan.marks {
             if let Some(x) = r.page.marks.iter_mut().find(|x| x.id == *m) {
                 crate::marks::move_mark(x, *d);
             }
         }
         after = measure(&r.page);
+        if !offered(&after) {
+            return empty(before);
+        }
     }
     plan.before = before;
     plan.after = after;
