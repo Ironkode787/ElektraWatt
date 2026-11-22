@@ -336,6 +336,7 @@ impl Router {
 
     /// Lays `route` as wire `w`'s.
     fn lay(&mut self, w: WireId, route: Vec<Pt>) {
+        debug_assert!(geom::tidy(&route), "wire {w:?} laid along {route:?}");
         self.lift(w);
         self.occ.lay(&route, true);
         if let Some(i) = self.wire_index(w) {
@@ -1699,9 +1700,10 @@ fn tool_router(page: &DraftPage, without: &[PartId]) -> Option<Router> {
 /// one line, a pin end left along its side and entered against it, no turn back after a fixed bend (`arrive`); on the
 /// line no pin or junction but at its ends, no wire along it, across it or meeting it but at its ends, no body it runs
 /// through or along but an end's own part's (an outline drawn round other parts that holds an end included), no text
-/// that cannot step aside. A pin's stub and the gap round a body close nothing here as they do to the search: a person
-/// who draws a rail one step over a row of pins drops each tap down a stub.
-fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>) -> bool {
+/// that cannot step aside, and none along the wire's own route so far (`before`). A pin's stub and the gap round a
+/// body close nothing here as they do to the search: a person who draws a rail one step over a row of pins drops each
+/// tap down a stub.
+fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>, before: &[Pt]) -> bool {
     let (Some(h), Some(back)) = (heading(a.at, b.at), heading(b.at, a.at)) else {
         return false;
     };
@@ -1729,11 +1731,16 @@ fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>) -> 
         };
         solid && geom::crosses(line, body.grown(1))
     });
-    let on_wire = page.wires.iter().any(|w| {
-        geom::segments(&geom::clean(&w.route))
-            .into_iter()
-            .any(|s| geom::overlap(line, s).is_some() || geom::meet(line, s).is_some_and(|p| !end(p)))
-    });
+    let on_wire = page
+        .wires
+        .iter()
+        .map(|w| w.route.as_slice())
+        .chain([before])
+        .any(|route| {
+            geom::segments(&geom::clean(route))
+                .into_iter()
+                .any(|s| geom::overlap(line, s).is_some() || geom::meet(line, s).is_some_and(|p| !end(p)))
+        });
     let on_text = page
         .fixed_texts
         .iter()
@@ -1743,12 +1750,17 @@ fn crosses_nothing(page: &DraftPage, a: &Tip, b: &Tip, arrive: Option<Side>) -> 
 
 /// The Wire tool's route from `from` to `to` (§7.4): the straight line between them where it crosses nothing
 /// ([`crosses_nothing`]), else the search of [`route`] against the page as drawn, every routed wire fixed, a wire of
-/// the same pin's run shared where that is the better way; `arrive` the heading a free first end was arrived at with.
-/// `None` where no route keeps free of faults.
-pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, arrive: Option<Side>) -> Option<WireRoute> {
-    let r = tool_router(page, &[])?;
+/// the same pin's run shared where that is the better way. `before` is the wire's own route so far, ending at a free
+/// first end (its fixed bends; empty for a wire from its start): the route goes on from the heading it arrived with and
+/// runs along none of it, so that it never runs back over itself (FT-2097). `None` where no route keeps free of faults.
+pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, before: &[Pt]) -> Option<WireRoute> {
+    let mut r = tool_router(page, &[])?;
+    let arrive = before.windows(2).last().and_then(|w| heading(w[0], w[1]));
+    if before.len() >= 2 {
+        r.occ.lay(before, true);
+    }
     let (a, b) = (wire_tip(&r, from)?, wire_tip(&r, to)?);
-    if crosses_nothing(&r.page, &a, &b, arrive) {
+    if crosses_nothing(&r.page, &a, &b, arrive, before) {
         return Some(WireRoute {
             route: vec![a.at, b.at],
             over_text: false,
@@ -1764,6 +1776,7 @@ pub fn route_wire(page: &DraftPage, from: WireEnd, to: WireEnd, arrive: Option<S
         relax: Relax::default(),
     };
     let found = search::route(&ask)?;
+    debug_assert!(geom::tidy(&found.route), "proposed {:?}", found.route);
     let over_text = r.occ.texts.iter().any(|t| {
         t.label.is_none()
             && geom::segments(&found.route)

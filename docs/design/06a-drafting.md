@@ -963,7 +963,9 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
   further where the columns of its channels in use interleave with those of a card that faces it (one card's used
   columns among or on the other's): of the two, the card with fewer channels in use (of two as many, the one further
   right) steps on until its used columns stand right of the other's, two steps clear, so that the parts of the two
-  cards' channels do not stand among each other and a strip between them keeps its order. Columns without a wire
+  cards' channels do not stand among each other and a strip between them keeps its order; a spare terminal of that
+  strip between the terminals of the two cards' columns asks for the strip's pitch more, so that it keeps its place
+  in the strip (FT-2097: it found no room there and stayed where it stood, away from the strip). Columns without a wire
   count for nothing (FT-1894; it was half a pitch off all the pins of a card of the same pitch). Whether
   that is the better page the judge finds: where a card would step, the arrangement is made with (a) and (b),
   with (a) alone and with neither, each is routed and judged, and the best by the measure with the price of its
@@ -1115,7 +1117,9 @@ of their weights, places and IDs.
 
 *As built.* `ew_drafting::place` (the run and the judge) and `ew_drafting::place::sketch` (the arrangement),
 each with its module documentation step by step. Units by `unit` number, by an outline drawn round other parts
-(`frame_only`) and by a pin set on another part's pin; a unit is fixed also when its origin is off the whole grid
+(`frame_only`: the parts inside it, but an actuator or a pressure source, which is no part of a valve terminal, so a
+cylinder dragged inside the outline is moved out as any other, FT-2097) and by a pin set on another part's pin; a unit
+is fixed also when its origin is off the whole grid
 (the API keeps a symbol whose position is not exactly a grid point fixed, since a move by steps counts from it).
 A junction that stands in line with the drop of a part's pin follows that part across, and a junction joined to
 it by a wire with it, so that a rail's junctions stay over the parts they feed when those move. The text placer
@@ -1400,12 +1404,21 @@ symbol dropped on a shared run is refused ("two wires run here; place the symbol
 nothing (`ew_drafting::route`, `crosses_nothing`): it leaves a pin end along its side and enters the other against
 it, takes no turn back after a fixed bend, and on it lies no pin or junction but at its ends, no wire (along it, across
 it, or meeting it but at its ends), no body but its ends' own parts' (nor a body's edge) and no text that cannot step
-aside. A pin's stub and the step round a body close nothing here, as they do to the search (§3.6): a person who draws
+aside, nor along the wire's own route so far. A pin's stub and the step round a body close nothing here, as they do
+to the search (§3.6): a person who draws
 a rail one step over a row of pins gets it as drawn, and each tap he then draws drops down a stub onto it. Before, the
 search took the rail round the stubs without a word, and a tap clicked onto the line it was drawn on found no wire
 there. Where something stands on the straight line the tool goes round, and its hint says so ("Something stands on
 the straight line between these two points, so the wire goes round it"). Route keeps such a rail and its taps: no way
 round costs less (§3.9).
+
+*Never back over itself (FT-2097).* After a fixed bend the tool's way on runs along none of the wire so far: the
+router takes the wire's route up to the bend (`route_wire`'s `before`) as a wire laid, which the way on may cross but
+not run along, nor pass through its bends. A way on from a bend that ran down, back and up onto the bend's own line
+and along the first leg (seen on the sample's 101) is gone; where no other way leads on, the wire is routed anew from
+its start, as for any bend from which no clear way leads. No route the router lays or proposes holds a point twice in
+a row or turns back along the line it came by: the router asserts it where it lays a route and where it proposes one
+(`geom::tidy`), so that the phase that would make one is found, not cleaned after it.
 
 ### 7.5 Cards drawn from the station view
 

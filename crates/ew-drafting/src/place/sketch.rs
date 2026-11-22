@@ -361,7 +361,9 @@ impl<'a> Sketch<'a> {
                 up[ra.max(rb)] = ra.min(rb);
             }
         };
-        // Units by number, the parts inside an outline drawn round other parts, and a part on another's pin.
+        // Units by number, the parts inside an outline drawn round other parts (but an actuator or a pressure source,
+        // which is no part of a valve terminal: one set inside its outline is moved out as any other, FT-2097), and a
+        // part on another's pin.
         let mut by_number: BTreeMap<u32, usize> = BTreeMap::new();
         for (i, p) in w.parts.iter().enumerate() {
             match by_number.get(&p.unit) {
@@ -374,7 +376,8 @@ impl<'a> Sketch<'a> {
         for (i, f) in w.parts.iter().enumerate() {
             if f.frame_only {
                 for (j, p) in w.parts.iter().enumerate() {
-                    if i != j && f.bounds().holds(p.bounds()) {
+                    let member = !matches!(p.role, Role::Actuator | Role::Source);
+                    if i != j && member && f.bounds().holds(p.bounds()) {
                         join(&mut up, i, j);
                     }
                 }
@@ -1210,7 +1213,8 @@ impl<'a> Sketch<'a> {
     /// supply pin, a mark, the supply pin of a card at the other edge) stands left of the card, where the wire drops
     /// beside the first channel and crosses none. (b) Where the columns of its channels in use interleave with those of
     /// a card whose pins face its own and it has fewer in use, its used columns stand right of the other's, two steps
-    /// clear ([`CardSteps::Columns`] only). No step where the card would leave the drawing area.
+    /// clear, and a pitch of the strip more for each spare terminal of a strip between them ([`Sketch::spares_between`],
+    /// [`CardSteps::Columns`] only). No step where the card would leave the drawing area.
     fn card_step(&self, u: usize, steps: CardSteps) -> Pt {
         if steps == CardSteps::None {
             return Pt::default();
@@ -1287,7 +1291,8 @@ impl<'a> Sketch<'a> {
             let fewer = (own.len(), Reverse(card.at.x), Reverse(card.id))
                 < (xs.len(), Reverse(part.at.x), Reverse(part.id));
             if fewer && lo + by <= them_hi && them_lo <= hi + by {
-                by = by.max(whole_up(them_hi + 2 * TICKS_PER_STEP - lo));
+                let spares = self.spares_between((*part, them_hi), (card, lo));
+                by = by.max(whole_up(them_hi + 2 * TICKS_PER_STEP + spares - lo));
             }
         }
         let room = self.w.page.area.x1 - TICKS_PER_STEP - body.x1;
@@ -1295,6 +1300,58 @@ impl<'a> Sketch<'a> {
             return Pt::default();
         }
         Pt::new(by, 0)
+    }
+
+    /// The room the spare terminals of a strip between two cards ask for when their columns step apart
+    /// ([`Sketch::card_step`], FT-2097): where the terminal wired to the pin of card `a` at column `xa` and the one
+    /// wired to the pin of card `b` at column `xb` are mates of one row (a strip), each mate between them that is wired
+    /// to nothing (a spare, which keeps its place in the strip) takes the row's pitch as it stood; none otherwise.
+    fn spares_between(
+        &self,
+        (a, xa): (&crate::model::Part, Tick),
+        (b, xb): (&crate::model::Part, Tick),
+    ) -> Tick {
+        let terminal = |card: &crate::model::Part, x: Tick| -> Option<usize> {
+            let own = self.unit_of_id(card.id)?;
+            let pin = card
+                .pins
+                .iter()
+                .find(|p| card.at.x + p.at.x == x && self.wired.contains(&p.id))?;
+            let net = self.w.nets.iter().find(|n| n.pins.contains(&pin.id))?;
+            net.pins.iter().map(|q| self.unit_of_pin(*q)).find(|v| *v != own)
+        };
+        let centre = |u: usize| self.shape(u).map(|r| (r.x0 + r.x1) / 2);
+        let (Some(ta), Some(tb)) = (terminal(a, xa), terminal(b, xb)) else {
+            return 0;
+        };
+        let (Some(ca), Some(cb)) = (centre(ta), centre(tb)) else {
+            return 0;
+        };
+        if ta == tb || !self.mates(ta, tb, true) {
+            return 0;
+        }
+        let (lo, hi) = (ca.min(cb), ca.max(cb));
+        let mut row = vec![ca, cb];
+        let mut spares = 0;
+        for m in (0..self.units.len()).filter(|m| *m != ta && *m != tb && self.mates(ta, *m, true)) {
+            let Some(c) = centre(m).filter(|c| lo < *c && *c < hi) else {
+                continue;
+            };
+            row.push(c);
+            let wired = self.units[m]
+                .parts
+                .iter()
+                .any(|i| self.w.parts[*i].pins.iter().any(|p| self.wired.contains(&p.id)));
+            spares += Tick::from(!wired);
+        }
+        row.sort_unstable();
+        let pitch = row
+            .windows(2)
+            .map(|w| w[1] - w[0])
+            .filter(|g| *g > 0)
+            .min()
+            .unwrap_or(0);
+        spares * pitch
     }
 
     /// The anchor of the tree that hangs from `root`: of its heaviest units, the one from which the tree is set with

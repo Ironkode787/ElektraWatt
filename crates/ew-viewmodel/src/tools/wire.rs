@@ -772,7 +772,8 @@ enum State {
 }
 
 /// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and its
-/// arrival direction, the end with its direction, and the ends' own representations.
+/// arrival direction, the end with its direction, the ends' own representations, and the wire's route up to the last
+/// fixed vertex.
 type RouteKey = (
     u64,
     (i64, i64),
@@ -781,6 +782,7 @@ type RouteKey = (
     (i64, i64),
     Option<Dir>,
     [Option<EntityRef>; 2],
+    Vec<(i64, i64)>,
 );
 
 /// A routed tail in the cache: its key, its points, whether it is the router's fallback, and whether it crosses a text.
@@ -998,7 +1000,8 @@ impl WireTool {
     /// The tail is [`route_wire`]'s against the page as the layout sees it (the host's draft, docs/design/06a-drafting.md
     /// §7.4): every routed connection a fixed wire, every other CP with its stub and every junction not at an end
     /// reserved, the ends' own bodies left only along a CP's escape corridor, a tag in the way priced as one that steps
-    /// aside, a wire of the same pin's run shared where that is the better way. Before it, the direct route through a
+    /// aside, a wire of the same pin's run shared where that is the better way, the wire's own route so far (`before`,
+    /// its fixed vertices up to `from`) never run along. Before it, the direct route through a
     /// free terminal in line is taken when it qualifies ([`through_route`]). Without a clear route the tail is the
     /// right-angled line an unrouted connection is drawn with ([`unrouted_line`], the page's own rule, so the ghost is
     /// what a click stores); after a fixed bend [`WireTool::full_route`] then routes the wire from its start instead.
@@ -1008,8 +1011,18 @@ impl WireTool {
         ((from, from_dir, arrive), from_end): (TailStart, ToolEnd),
         own: [Option<EntityRef>; 2],
         to: &WireTarget,
+        before: &[(i64, i64)],
     ) -> Vec<(i64, i64)> {
-        let key: RouteKey = (cx.page.rev, from, from_dir, arrive, to.at(), to.dir(), own);
+        let key: RouteKey = (
+            cx.page.rev,
+            from,
+            from_dir,
+            arrive,
+            to.at(),
+            to.dir(),
+            own,
+            before.to_vec(),
+        );
         if let Some((k, r, direct, over_text)) = &self.cache
             && *k == key
         {
@@ -1030,7 +1043,7 @@ impl WireTool {
             cx.page.tables.grid,
             (from_end, from),
             (tool_end(cx, to), t),
-            arrive,
+            before,
         );
         let (points, direct, over_text) = match routed {
             Some((points, over_text)) => (points, false, over_text),
@@ -1068,7 +1081,7 @@ impl WireTool {
         } else {
             ToolEnd::Point(last)
         };
-        let tail = self.tail(cx, ((last, from_dir, arrive), from_end), own, to);
+        let tail = self.tail(cx, ((last, from_dir, arrive), from_end), own, to, fixed);
         // No clear way on from the last free point: the wire as if drawn anew from its start, its free points
         // dropped, else unrouted (the corner of the user's L had run through a pin and along another wire).
         if self.direct && fixed.len() > 1 {
@@ -1078,6 +1091,7 @@ impl WireTool {
                 ((start_at, start.dir(), None), tool_end(cx, start)),
                 [start.rep(), to.rep()],
                 to,
+                &[],
             ));
         }
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();

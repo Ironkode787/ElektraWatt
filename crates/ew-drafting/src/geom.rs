@@ -24,6 +24,20 @@ pub fn clean(route: &[Pt]) -> Vec<Pt> {
     out
 }
 
+/// Whether a route the program lays or proposes is tidy (FT-2097): no point twice in a row, and no turn back along the
+/// line it came by.
+pub fn tidy(route: &[Pt]) -> bool {
+    let twice = route.windows(2).any(|w| w[0] == w[1]);
+    let back = route.windows(3).any(|w| {
+        let (a, b, c) = (w[0], w[1], w[2]);
+        let on_line = (a.x == b.x && b.x == c.x) || (a.y == b.y && b.y == c.y);
+        on_line
+            && (b.x - a.x).signum() == -(c.x - b.x).signum()
+            && (b.y - a.y).signum() == -(c.y - b.y).signum()
+    });
+    !twice && !back
+}
+
 /// The segments of a cleaned route; a route of one point is one segment of no length.
 pub fn segments(line: &[Pt]) -> Vec<Seg> {
     match line {

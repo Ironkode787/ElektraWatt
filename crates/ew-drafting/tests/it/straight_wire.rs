@@ -26,7 +26,7 @@ fn a_wire_drawn_one_step_over_a_row_of_pins_stays_straight_and_its_taps_drop_ont
         &b.page,
         WireEnd::Pin(b.pin_id("in", "1")),
         WireEnd::Pin(b.pin_id("out", "1")),
-        None,
+        &[],
     )
     .expect("a route");
     assert_eq!(rail.route, [p(4, 9), p(28, 9)], "the rail as drawn");
@@ -38,7 +38,7 @@ fn a_wire_drawn_one_step_over_a_row_of_pins_stays_straight_and_its_taps_drop_ont
             &b.page,
             WireEnd::Pin(b.pin_id(k, "1")),
             WireEnd::OnWire(id, on_rail),
-            None,
+            &[],
         )
         .expect("a tap");
         assert_eq!(
@@ -60,7 +60,7 @@ fn a_straight_line_that_a_part_or_a_pin_stands_on_goes_round_without_a_fault() {
             &b.page,
             WireEnd::Pin(b.pin_id("in", "1")),
             WireEnd::Pin(b.pin_id("out", "1")),
-            None,
+            &[],
         )
         .expect("a route");
         assert!(

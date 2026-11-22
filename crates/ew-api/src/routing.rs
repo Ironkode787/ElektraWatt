@@ -373,22 +373,18 @@ fn wire_end(ticks: Ticks, e: ToolEnd) -> WireEnd {
 
 /// The Wire tool's route from `from` (at the page point `a`) to `to` (at `b`) on `draft`, a page of grid `grid`
 /// (doc 06a §7.4): `ew_drafting::route_wire` back in page nm between the two points, and whether it runs across a text that
-/// cannot step aside; `arrive` the direction a free first end was arrived at with. `None` where no route keeps free
-/// of faults.
+/// cannot step aside; `before` the wire's route so far (page nm), ending at a free first end (its fixed bends), which
+/// the route goes on from and does not run back over. `None` where no route keeps free of faults.
 pub fn route_wire(
     draft: &DraftPage,
     grid: (i64, i64),
     (from, a): (ToolEnd, (i64, i64)),
     (to, b): (ToolEnd, (i64, i64)),
-    arrive: Option<Dir>,
+    before: &[(i64, i64)],
 ) -> Option<(Vec<(i64, i64)>, bool)> {
     let ticks = Ticks::new(grid);
-    let found = ew_drafting::route_wire(
-        draft,
-        wire_end(ticks, from),
-        wire_end(ticks, to),
-        arrive.map(side),
-    )?;
+    let before: Vec<Pt> = before.iter().map(|p| ticks.pt(*p)).collect();
+    let found = ew_drafting::route_wire(draft, wire_end(ticks, from), wire_end(ticks, to), &before)?;
     Some((route_nm(ticks, &found.route, a, b), found.over_text))
 }
 

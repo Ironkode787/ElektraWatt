@@ -286,7 +286,7 @@ fn the_wire_tool_shares_the_run_of_a_wire_of_the_same_pin() {
         &b.page,
         WireEnd::Pin(b.pin_id("K1", "1")),
         WireEnd::Pin(b.pin_id("K2", "1")),
-        None,
+        &[],
     )
     .expect("a route");
     let mut drawn = b.page.clone();

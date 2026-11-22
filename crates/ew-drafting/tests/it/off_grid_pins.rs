@@ -42,6 +42,6 @@ fn a_wire_between_two_pins_nearly_in_line_steps_across_square() {
         ew_drafting::End::Pin(p) => WireEnd::Pin(p),
         ew_drafting::End::Junction(j) => WireEnd::Junction(j),
     };
-    let tool = route_wire(&b.page, pin(b.pin("V1", "2")), pin(b.pin("X1", "1")), None).expect("a way");
+    let tool = route_wire(&b.page, pin(b.pin("V1", "2")), pin(b.pin("X1", "1")), &[]).expect("a way");
     assert!(square(&tool.route), "{:?}", tool.route);
 }

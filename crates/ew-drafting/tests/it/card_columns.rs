@@ -11,8 +11,9 @@ use ew_drafting::{Role, measure};
 /// A strip in one row between a card of outputs at the head and a card of inputs at the foot, both of one pitch and
 /// one place along: three inputs wired through the strip's first terminals to sensors, the output's second channel,
 /// in the column of the second input, through its last terminal to a lamp. The card of outputs, with one channel in
-/// use, steps right until that channel stands two steps right of the inputs': every terminal stands in its channel's
-/// column, the strip in its order, and no wire bends or crosses.
+/// use, steps right until that channel stands two steps right of the inputs' and a pitch of the strip more for the spare
+/// terminal X3 between them: every terminal stands in its channel's column, the strip in its order with the spare in its
+/// place (FT-2097: it stayed where it stood, away from the strip), and no wire bends or crosses.
 #[test]
 fn a_card_whose_used_column_falls_among_another_card_s_steps_aside() {
     let mut b = Page::new(100, 62);
@@ -57,6 +58,12 @@ fn a_card_whose_used_column_falls_among_another_card_s_steps_aside() {
     assert!(
         output >= at(&done, "X2").x + s(2),
         "the output's column right of the inputs'"
+    );
+    let (x2, x3, x4) = (at(&done, "X2"), at(&done, "X3"), at(&done, "X4"));
+    assert_eq!(
+        (x3.x - x2.x, x4.x - x3.x, x3.y),
+        (s(2), s(2), x2.y),
+        "the spare in its place in the strip"
     );
     for w in ["c0", "c1", "c2", "q", "e"] {
         assert_eq!(corners(&done, w), 0, "{w}");
