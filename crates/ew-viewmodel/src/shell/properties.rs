@@ -1760,8 +1760,6 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        // A new layout view gets its legend page (doc 12 §5.4).
-        let new_view = row.path.ends_with("surface") && matches!(row.value, RowValue::Absent);
         let pending = PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),
@@ -1775,11 +1773,7 @@ impl ShellModel {
             typed: text.to_owned(),
             label: crate::properties::row_label(section, row),
         };
-        let out = self.run_edit(pending, false);
-        if out == Outcome::Done && new_view {
-            self.add_view_legend();
-        }
-        out
+        self.run_edit(pending, false)
     }
 
     /// The command of an edit.
