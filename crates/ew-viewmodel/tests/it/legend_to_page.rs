@@ -9,6 +9,8 @@ use crate::common;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+use ew_viewmodel::key;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
 #[test]
@@ -54,6 +56,28 @@ fn a_legend_box_moves_to_its_own_page_in_one_undo_step() {
     assert_eq!(
         back.blocks.iter().map(|b| b.id.to_string()).collect::<Vec<_>>(),
         [legend]
+    );
+    shell.shutdown();
+}
+
+/// Fit the layout to the sheet waits for the legend box (doc 12 §5.4: "once its legend has gone"): while the box
+/// stands beside the layout, the plate would take its room, so the fit is refused in words; with the legend on its
+/// own page it is no longer refused for the box.
+#[test]
+fn fit_the_layout_waits_for_the_legend_box() {
+    let tmp = Tmp::new("legend-box-fit");
+    let (mut shell, _) = common::legend_box(&tmp);
+    assert_eq!(
+        refused(&mut shell, "layout.fit_sheet", json!({})),
+        "reason-layout-fit-legend"
+    );
+    done(&mut shell, "report_block.legend_to_page", json!({}));
+    done(&mut shell, "page.goto", json!({"folio": "980"}));
+    assert_ne!(
+        shell.dispatch("layout.fit_sheet", &json!({})),
+        Outcome::Refused {
+            reason_key: key!("reason-layout-fit-legend")
+        }
     );
     shell.shutdown();
 }

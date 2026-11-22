@@ -516,7 +516,8 @@ nothing is kept free for a legend, which is a list page of its own (§5.4). **Fi
 (`layout.fit_sheet`, a panel page's context menu and Page ▸ Order) does the same to the view a page has: one
 `page.surface_view.set` with the fitting scale and the centred datum, its labels and label mode kept, so it changes the
 datum and the scale and never a stored pose; on a page drawn so already it is refused in words ("The layout takes the
-whole sheet already").
+whole sheet already"), and so it is while a legend box still stands beside the layout, whose room the plate would take
+("The legend stands beside the layout: choose Move the legend to its own page first, …", §5.4).
 
 *As built.* The page item `surface_view`
 is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each

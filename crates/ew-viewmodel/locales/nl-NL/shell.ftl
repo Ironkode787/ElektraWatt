@@ -7038,6 +7038,7 @@ reason-legend-paged = Deze layout heeft haar legenda op een eigen pagina
 reason-legend-no-box = Deze pagina heeft geen legendakader om te verplaatsen
 action-layout-fit-sheet = Layout aan het blad aanpassen
 reason-layout-fits-sheet = De layout beslaat het hele blad al
+reason-layout-fit-legend = De legenda staat naast de layout: kies eerst Legenda naar een eigen pagina verplaatsen, dan Layout aan het blad aanpassen
 toast-legend-own-page = De legenda past niet heel naast de layout en krijgt daarom een eigen pagina: { $p0 }.
 toast-legend-moved = De legenda staat nu op een eigen pagina: { $p0 }.
 reason-label-not-moved = Het label staat waar de labelregels het zetten

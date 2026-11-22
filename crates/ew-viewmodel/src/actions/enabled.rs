@@ -369,6 +369,16 @@ pub(super) fn legend_addable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Fit the layout to the sheet: a panel page with a view and no legend box beside the layout, whose room the plate
+/// would take (doc 12 §5.4: the box goes to its own page first).
+pub(super) fn sheet_fittable(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_view(m)?;
+    match m.legend_offer() {
+        ew_api::output::LegendOffer::Exists(_) => Err(key!("reason-layout-fit-legend")),
+        _ => Ok(()),
+    }
+}
+
 /// Move the legend to its own page: a panel page that holds a legend box.
 pub(super) fn legend_movable(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;

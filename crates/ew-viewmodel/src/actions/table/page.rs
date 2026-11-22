@@ -96,14 +96,14 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Order),
         |s, _| s.act_report_block_legend_to_page(),
     ),
-    // Fit the layout to the sheet: an older layout page takes the whole sheet as a new view does (doc 12 §5.1); in
-    // Page ▸ Order and the page's context menu, no button.
+    // Fit the layout to the sheet: an older layout page takes the whole sheet as a new view does (doc 12 §5.1), once its
+    // legend box has gone to its own page; in Page ▸ Order and the page's context menu, no button.
     act(
         "layout.fit_sheet",
         Command,
         Menu::Page,
         &[],
-        panel_view,
+        sheet_fittable,
         grp(Group::Order),
         |s, _| s.act_layout_fit_sheet(),
     ),
