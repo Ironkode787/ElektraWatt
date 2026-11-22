@@ -898,9 +898,19 @@ impl ShellModel {
             }
             n.applied = Some(generation);
             let Some(table) = n.table().cloned() else { continue };
+            // Every deepest row that carries a selected record (not a row above another that carries it, as a device's
+            // above its symbol's): a wire listed under its potential and again under a pin, or in two wires' rows,
+            // marks each (the last alone left the wire's own row unmarked, FT-1912).
             let mut nodes: Vec<u32> = items
                 .iter()
-                .filter_map(|id| table.index.get(id).and_then(|v| v.last().copied()))
+                .filter_map(|id| table.index.get(id))
+                .flat_map(|carried| {
+                    let key = |i: &u32| table.nodes[*i as usize].key.as_str();
+                    carried.iter().copied().filter(move |i| {
+                        let above = format!("{}/", key(i));
+                        !carried.iter().any(|j| key(j).starts_with(&above))
+                    })
+                })
                 .collect();
             nodes.sort_unstable();
             nodes.dedup();

@@ -402,6 +402,9 @@ change here.
   reader by column and mark ("Conductor, 24V"); on some marks they had no name (FT-1910)
 - behaviour-change: a click on a selected mark's own cross-reference text follows it, as with nothing selected; it
   only selected the mark again (doc 06 §2.5, FT-1911)
+- behaviour-change: a wire selected on the page marks every row of a navigator that lists it, as Connections lists a
+  wire under its potential and again under a pin or in two wires' rows; only the last of them was marked, so a wire
+  such as the sample's 101.16 on page 104 left its own row unmarked (doc 16 §5, FT-1912)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right
