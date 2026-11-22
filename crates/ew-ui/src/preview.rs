@@ -790,22 +790,6 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         if let CardOrigin::Part(p) = &card.origin {
             inset(ui, &mut |ui| part_block(ui, p));
         }
-        // An Arrange and route card's figures and rows.
-        if let CardOrigin::Arrange(a) = &card.origin {
-            inset(ui, &mut |ui| arrange_block(ui, a, events));
-        }
-        // A route card's connections left unrouted, one row each with its reason.
-        if let CardOrigin::Route { rows, .. } = &card.origin {
-            for row in rows {
-                inset(ui, &mut |ui| {
-                    ui.label(
-                        RichText::new(row)
-                            .font(theme::font(&t.type_small))
-                            .color(t.text_secondary.color32()),
-                    );
-                });
-            }
-        }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
         // The command's notices (a re-address's old and new addresses), first and open where it gives any.
@@ -826,6 +810,26 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             .id_salt("preview-lists")
             .auto_shrink([false, false])
             .show(ui, |ui| {
+                // An Arrange and route card's figures and rows scroll with the lists (wheel and bar), so that the
+                // pane keeps its height and leaves the page in view (a persona run saw 8 of 18 rows, the last cut at
+                // the pane's edge, and no wheel moved them).
+                if let CardOrigin::Arrange(a) = &card.origin {
+                    inset(ui, &mut |ui| arrange_block(ui, a, events));
+                    ui.add_space(t.space_2);
+                }
+                // A route card's connections left unrouted, one row each with its reason.
+                if let CardOrigin::Route { rows, .. } = &card.origin {
+                    for row in rows {
+                        inset(ui, &mut |ui| {
+                            ui.label(
+                                RichText::new(row)
+                                    .font(theme::font(&t.type_small))
+                                    .color(t.text_secondary.color32()),
+                            );
+                        });
+                    }
+                    ui.add_space(t.space_2);
+                }
                 // The list that carries the change comes first and open (Tags for a renumber, the changed
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();

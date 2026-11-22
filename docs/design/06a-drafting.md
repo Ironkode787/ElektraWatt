@@ -1408,7 +1408,9 @@ keeps a drawn wire; Arrange's plan gives it a new route where that beats Route's
 card can still list them, as the sample's folio 103 lists -X1031:SH/b → -103M1:PE (FT-1892). The history names a
 `layout.apply` with symbol moves "Arrange and route" (`ARRANGE_STEP`), one
 without "Route wires". A canvas fitted when the card opened fits again at the first new size of its pane after the card
-is gone.
+is gone. The card's proposal is the whole page: a zoomed page is fitted when the card opens, and so fits into what the
+Preview pane leaves; the card's figures and rows scroll with its lists inside the pane (a persona run saw 8 of 18 rows,
+the last cut at the pane's edge, no wheel moving them, and the page behind cropped to its top half).
 
 *As built (the placer anew, 2026-11-20).* A tick plans again with the unticked rows and, of the wires the person drew,
 every one the card does not list kept as they run (`ShellModel::act_layout_arrange_tick` reads them from the page's

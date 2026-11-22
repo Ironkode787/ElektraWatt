@@ -1957,3 +1957,21 @@ fn the_canvas_fits_again_after_the_arrange_preview_closes() {
     pane(&mut s, 900.0);
     assert!(s.canvas().unwrap().is_fitted(), "the page fits the pane again");
 }
+
+/// A zoomed page fits when Arrange and route opens its card, and fits again into what the card's pane leaves: the
+/// proposal is the whole page (a persona run saw it cropped to its top half behind the card).
+#[test]
+fn a_zoomed_page_fits_when_the_arrange_preview_opens() {
+    let tmp = Tmp::new("ar6");
+    let mut s = coils_out_of_line(&tmp);
+    let pane =
+        |s: &mut ShellModel, h: f64| done(s, "view.canvas_resize", json!({"width": 1200.0, "height": h}));
+    pane(&mut s, 900.0);
+    done(&mut s, "view.zoom_in", json!({}));
+    assert!(!s.canvas().unwrap().is_fitted());
+    done(&mut s, "layout.arrange", json!({}));
+    assert!(s.canvas().unwrap().is_fitted(), "fitted as the card opens");
+    pane(&mut s, 500.0);
+    let c = s.canvas().unwrap();
+    assert_eq!(c.zoom(), c.fit_zoom(), "the whole page in what the pane leaves");
+}

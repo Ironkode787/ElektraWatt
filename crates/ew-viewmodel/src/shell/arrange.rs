@@ -40,6 +40,14 @@ impl ShellModel {
             .as_ref()
             .map(|a| a.focused)
             .filter(|_| fitted && self.arrange_card().is_some());
+        // The card's proposal is the whole page: it is fitted, and so fits again into what the Preview pane leaves (a
+        // persona run saw a zoomed page cropped to its top half behind the card).
+        if self.arrange_card().is_some()
+            && let Some(g) = self.area.as_ref().map(|a| a.focused)
+            && let Some(c) = self.canvas_mut(g)
+        {
+            c.fit_again();
+        }
         out
     }
 
