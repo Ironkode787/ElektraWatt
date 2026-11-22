@@ -54,8 +54,10 @@ fn model() -> Model {
         records.extend(relay(counter, frozen));
     }
     let cp = |counter: u128| json!({"cp": [uid(0x1000 + counter * 0x10 + 1), 0]});
-    records.push(json!({"$k": "connection", "id": uid(WIRE_FROZEN), "page": uid(PAGE), "a": cp(1), "b": cp(2),
-                        "number": {"frozen": "W5"}}));
+    records.push(
+        json!({"$k": "connection", "id": uid(WIRE_FROZEN), "page": uid(PAGE), "a": cp(1), "b": cp(2),
+                        "number": {"frozen": "W5"}}),
+    );
     records.push(json!({"$k": "connection", "id": uid(0x2001), "page": uid(PAGE), "a": cp(3), "b": cp(4)}));
     let project: Project =
         serde_json::from_value(json!({"id": uid(1), "derivation_profile": "2027.1"})).expect("a project");
@@ -101,7 +103,12 @@ fn the_numbering_report_lists_frozen_tags_then_frozen_wire_numbers() {
     }
     let wire = &rows[3];
     assert_eq!(
-        [wire[0].as_str(), wire[1].as_str(), wire[2].as_str(), wire[4].as_str()],
+        [
+            wire[0].as_str(),
+            wire[1].as_str(),
+            wire[2].as_str(),
+            wire[4].as_str()
+        ],
         ["", "wire number", "W5", "deviates"]
     );
     assert_ne!(wire[3], "W5");
