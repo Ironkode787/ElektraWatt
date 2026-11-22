@@ -517,7 +517,12 @@ impl ShellModel {
                 let terminals = (!undrawn.is_empty()).then(|| {
                     strings::format_count(crate::count_key!("toast-terminals-undrawn"), undrawn.len())
                 });
-                let text: Vec<String> = ips.into_iter().chain(others).chain(unplaced).chain(terminals).collect();
+                let text: Vec<String> = ips
+                    .into_iter()
+                    .chain(others)
+                    .chain(unplaced)
+                    .chain(terminals)
+                    .collect();
                 if text.is_empty() {
                     return;
                 }
@@ -527,6 +532,29 @@ impl ShellModel {
                 } else {
                     self.notify_remove_undrawn(text.join(" "), undrawn.iter().map(|e| e.0).collect());
                 }
+            }
+            // A cut says what it took and the wires it removed with it; the paste brings the cut items back.
+            ResultNote::Cut {
+                symbols,
+                terminals,
+                wires,
+            } => {
+                let what = if terminals {
+                    crate::count_key!("toast-cut-terminals")
+                } else {
+                    crate::count_key!("toast-cut-symbols")
+                };
+                let gone = wires
+                    .iter()
+                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+                    .count();
+                let text = std::iter::once(strings::format_count(what, symbols))
+                    .chain(
+                        (gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)),
+                    )
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                self.notify(text, true);
             }
         }
     }

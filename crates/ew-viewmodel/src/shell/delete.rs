@@ -97,6 +97,12 @@ impl ShellModel {
     /// `edit.delete_selection` (Delete): `edit.delete` with every entity of the selection the page tables
     /// resolve.
     pub(crate) fn act_delete_selection(&mut self) -> Outcome {
+        self.delete_selection(false)
+    }
+
+    /// Delete's `edit.delete` of the selection; for a cut (`cut`) its toast says what the cut took instead, without
+    /// the sentences of the devices and terminals it leaves undrawn (its paste brings them back).
+    pub(super) fn delete_selection(&mut self, cut: bool) -> Outcome {
         // In a station's view Delete takes the card under the cursor out of its slot (a valve off its position).
         if self.station_tab().is_some() {
             let empty = Map::from_iter([("op".to_owned(), Value::String("empty".to_owned()))]);
@@ -188,9 +194,22 @@ impl ShellModel {
         // The toast counts the wires the delete takes with the symbols. A device that keeps no symbol but stays in the
         // project (EW-CORE-047) is named, with where it stays; terminals left drawn nowhere are counted, with a way to
         // remove them from the project too.
-        let unplaced = self.devices_kept_unplaced(&reps, &unused);
-        let undrawn = self.terminals_left_undrawn(&reps);
-        let note = delete_note(&reps, &page.tables, wires, unplaced, undrawn);
+        let note = if cut {
+            (!reps.is_empty()).then(|| ResultNote::Cut {
+                symbols: reps.len(),
+                terminals: page
+                    .tables
+                    .reps
+                    .iter()
+                    .filter(|r| reps.contains(&EntityRef(r.id)))
+                    .all(|r| r.terminal),
+                wires,
+            })
+        } else {
+            let unplaced = self.devices_kept_unplaced(&reps, &unused);
+            let undrawn = self.terminals_left_undrawn(&reps);
+            delete_note(&reps, &page.tables, wires, unplaced, undrawn)
+        };
         let out = self.commit_from_host(cmd.as_ref());
         if out == Outcome::Done {
             self.tools.result_note = note;

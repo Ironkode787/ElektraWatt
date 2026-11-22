@@ -294,6 +294,16 @@ pub enum ResultNote {
         /// them.
         undrawn: Vec<EntityRef>,
     },
+    /// A cut (Ctrl+X): how many symbols it took, whether all are terminals, and the wires drawn to their pins that it
+    /// removes with them (a paste brings back only the wires between the cut items).
+    Cut {
+        /// The symbols cut.
+        symbols: usize,
+        /// Whether every symbol cut is a terminal.
+        terminals: bool,
+        /// The wires the cut takes with the symbols.
+        wires: Vec<EntityRef>,
+    },
 }
 
 impl ToolHost {

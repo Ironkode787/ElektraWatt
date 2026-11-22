@@ -144,8 +144,9 @@ impl ShellModel {
     }
 
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
-    /// step); the clipboard keeps the fragment, and its paste brings the devices the cut left unplaced back, a move
-    /// (`edit.paste` effect 8).
+    /// step), which takes the wires drawn to the cut symbols with them; its toast counts both. The clipboard keeps the
+    /// fragment, and its paste brings the devices the cut left unplaced back, a move (`edit.paste` effect 8), with the
+    /// wires between the cut items.
     pub(crate) fn act_cut(&mut self) -> Outcome {
         let copied = or_return!(self.copy_selection());
         if copied.incomplete_page_items > 0 {
@@ -166,7 +167,7 @@ impl ShellModel {
         {
             self.announce_selection();
         }
-        self.act_delete_selection()
+        self.delete_selection(true)
     }
 
     /// `edit.copy_tags` (Edit ▸ Copy tag list): the tags of the selected devices as text (FR-UI-040).

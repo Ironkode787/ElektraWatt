@@ -689,7 +689,9 @@ installed library's symbol by its key as well as by its address, before its firs
   symbol went; the toast counts them. A terminal it leaves drawn by no symbol stays in its strip and the lists (a
   terminal is never deleted with its symbol, below); the toast says how many, with Remove them from the project beside
   Undo, one `edit.delete` of those terminals and of a strip it leaves with no terminal and no segment. The Devices
-  tree's menu of a device or a strip has Delete (`navigator.delete`).
+  tree's menu of a device or a strip has Delete (`navigator.delete`). Cut's toast says what it took instead ("Cut 12
+  terminals. 14 wires that ended at them are removed with them; a paste keeps the wires between the cut items only."),
+  with Undo and no Remove (its paste brings the terminals back).
 
 ### 3.5 Connections, junctions, interruption points and potentials
 

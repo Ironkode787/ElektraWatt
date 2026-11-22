@@ -17,18 +17,20 @@ fn terminals_cut_and_pasted_on_another_page_keep_their_strip_and_the_toast_names
     let refs: Vec<String> = (1..=8).map(|n| format!("tag:-X1021:{n}")).collect();
     done(&mut shell, "select.set", json!({ "refs": refs }));
     done(&mut shell, "edit.cut", json!({}));
+    // The cut takes the wires to the devices it did not take and says so; none is left drawn at nothing on 102.
+    let cut = shell.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        cut.starts_with("Cut ")
+            && cut.contains(" terminals. ")
+            && cut.contains(" wires that ended at them are removed with them"),
+        "{cut}"
+    );
     done(&mut shell, "pages.open", json!({"folio": "101"}));
     done(&mut shell, "edit.paste_in_place", json!({}));
     let toast = shell.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(toast.starts_with("-X1021 is now -X101"), "{toast}");
     assert!(
         toast.contains("a tag follows the page its device is drawn on"),
-        "{toast}"
-    );
-    // And it says which wires went with the move: those left open on 102 to the devices the cut did not take.
-    assert!(
-        toast.contains("The paste: ")
-            && toast.contains(" wires on page 102 that ended at the moved devices are removed"),
         "{toast}"
     );
     assert!(shell.toast().is_some_and(|t| t.action().is_some()), "with Undo");
