@@ -116,9 +116,7 @@ use ew_derive::{
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, folios_printed, render};
-use ew_reports::{
-    BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSet, RowSetStatus,
-};
+use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSet, RowSetStatus};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{

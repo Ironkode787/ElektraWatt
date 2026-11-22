@@ -177,7 +177,10 @@ fn a_legend_box_moved_to_its_own_page_keeps_every_row() {
     let order = s.query().get::<PageOrder>(());
     assert_eq!(
         order.by_folio("902.1").map(|e| e.page),
-        Some(PageRef::Generated { block: list, index: 0 })
+        Some(PageRef::Generated {
+            block: list,
+            index: 0
+        })
     );
 }
 
@@ -204,7 +207,10 @@ fn a_legend_page_lists_the_rows_of_its_layout_and_no_other() {
     drop(q);
     let other = listed(&s, theirs);
     assert!(!other.is_empty());
-    assert!(other.is_disjoint(&mine), "902's legend lists none of 920's devices");
+    assert!(
+        other.is_disjoint(&mine),
+        "902's legend lists none of 920's devices"
+    );
 }
 
 #[test]
@@ -249,7 +255,10 @@ fn a_legend_of_sixty_devices_runs_on_over_its_pages_with_every_text_whole() {
     for i in 0..DEVICES {
         let tag = format!("K{}", 500 + i);
         assert_eq!(
-            printed.iter().filter(|t| t.ends_with(&format!("-{tag}")) || t.ends_with(&format!("?{tag}"))).count(),
+            printed
+                .iter()
+                .filter(|t| t.ends_with(&format!("-{tag}")) || t.ends_with(&format!("?{tag}")))
+                .count(),
             1,
             "{tag}"
         );

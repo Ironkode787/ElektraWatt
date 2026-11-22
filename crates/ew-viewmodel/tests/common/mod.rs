@@ -436,7 +436,11 @@ pub fn delete_legend_list(shell: &mut ShellModel, folio: &str) {
                 .map(|n| n.key.clone())
         })
         .unwrap_or_else(|| panic!("a legend list at {folio}"));
-    done(shell, "navigator.select", json!({"kind": "blocks", "keys": [key]}));
+    done(
+        shell,
+        "navigator.select",
+        json!({"kind": "blocks", "keys": [key]}),
+    );
     done(shell, "navigator.delete", json!({"kind": "blocks"}));
     // The delete's card, applied.
     done(shell, "preview.apply", json!({}));
@@ -454,7 +458,11 @@ pub fn legend_box(tmp: &Tmp) -> (ShellModel, String) {
     );
     done(&mut shell, "page.goto", json!({"folio": "980"}));
     done(&mut shell, "select.set", json!({"ids": []}));
-    done(&mut shell, "props.set", json!({"row": "page/scale", "value": "1:10"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/scale", "value": "1:10"}),
+    );
     done(
         &mut shell,
         "layout.enclosure_new",

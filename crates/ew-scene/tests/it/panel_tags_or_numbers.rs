@@ -32,9 +32,24 @@ fn id(n: u128) -> Id<Placement> {
 /// The contactor, the breaker and the terminal: (placement, tag, footprint, item number).
 fn devices() -> [(Id<Placement>, &'static str, Rect, u32); 3] {
     [
-        (id(0), "-102Q1", Rect::from_points(mm(20.0, 300.0), mm(120.0, 350.0)), 4),
-        (id(1), "-101F1", Rect::from_points(mm(150.0, 260.0), mm(168.0, 350.0)), 5),
-        (id(2), "-X1:1", Rect::from_points(mm(200.0, 305.0), mm(206.0, 350.0)), 7),
+        (
+            id(0),
+            "-102Q1",
+            Rect::from_points(mm(20.0, 300.0), mm(120.0, 350.0)),
+            4,
+        ),
+        (
+            id(1),
+            "-101F1",
+            Rect::from_points(mm(150.0, 260.0), mm(168.0, 350.0)),
+            5,
+        ),
+        (
+            id(2),
+            "-X1:1",
+            Rect::from_points(mm(200.0, 305.0), mm(206.0, 350.0)),
+            7,
+        ),
     ]
 }
 
@@ -112,7 +127,10 @@ fn a_tag_prints_where_it_fits_and_a_balloon_where_it_does_not() {
         "{printed:?}"
     );
     assert!(words.contains(&"7"), "{words:?}");
-    assert!(!words.contains(&"-X1:1"), "the terminal's tag does not fit it: {words:?}");
+    assert!(
+        !words.contains(&"-X1:1"),
+        "the terminal's tag does not fit it: {words:?}"
+    );
     // No number for a device whose tag fits, and one balloon, the terminal's.
     assert!(!words.contains(&"4") && !words.contains(&"5"), "{words:?}");
     assert_eq!(l.list.items.iter().filter(|i| circle(i)).count(), 1);

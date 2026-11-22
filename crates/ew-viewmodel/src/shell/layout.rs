@@ -727,7 +727,9 @@ impl ShellModel {
             }
             ew_api::output::LegendOffer::Exists(_) => return Outcome::refused(key!("reason-legend-exists")),
             ew_api::output::LegendOffer::Paged => return Outcome::refused(key!("reason-legend-paged")),
-            ew_api::output::LegendOffer::NoLayout => return Outcome::refused(key!("reason-legend-no-layout")),
+            ew_api::output::LegendOffer::NoLayout => {
+                return Outcome::refused(key!("reason-legend-no-layout"));
+            }
         };
         let Some(form) = crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME) else {
             return Outcome::refused(key!("reason-no-project"));
@@ -826,7 +828,8 @@ impl ShellModel {
     /// embedded legend of the focused panel page becomes its legend page (doc 12 §5.4): the page block is made, with
     /// the box's own printed columns (else the legend's five), and the box removed, in one undo step.
     pub(crate) fn act_report_block_legend_to_page(&mut self) -> Outcome {
-        let (Some(page), ew_api::output::LegendOffer::Exists(block)) = (self.focused_page_id(), self.legend_offer())
+        let (Some(page), ew_api::output::LegendOffer::Exists(block)) =
+            (self.focused_page_id(), self.legend_offer())
         else {
             return Outcome::refused(key!("reason-legend-no-box"));
         };
@@ -835,7 +838,12 @@ impl ShellModel {
             .and_then(|s| {
                 let q = s.query();
                 let (_, b) = q.report_blocks().iter().find(|(id, _)| id.as_uuid() == block)?;
-                Some(b.columns.iter().filter_map(|c| serde_json::to_value(c).ok()).collect())
+                Some(
+                    b.columns
+                        .iter()
+                        .filter_map(|c| serde_json::to_value(c).ok())
+                        .collect(),
+                )
             })
             .unwrap_or_default();
         let columns = if own.is_empty() {

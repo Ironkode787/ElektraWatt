@@ -1159,7 +1159,8 @@ fn prints_whole(q: &Q, page: Id<Page>, rect: Rect) -> bool {
     !lowered.findings.iter().any(|f| {
         matches!(
             f,
-            ew_scene::table::TableFinding::TooManyRows { .. } | ew_scene::table::TableFinding::Overflow { .. }
+            ew_scene::table::TableFinding::TooManyRows { .. }
+                | ew_scene::table::TableFinding::Overflow { .. }
         )
     })
 }

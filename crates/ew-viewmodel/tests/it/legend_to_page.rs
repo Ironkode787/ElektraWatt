@@ -33,7 +33,11 @@ fn a_legend_box_moves_to_its_own_page_in_one_undo_step() {
         .cloned()
         .expect("the legend page 980.1");
     assert_eq!(page.title, "Legend of layout 980");
-    assert!(common::toast(&shell).contains("980.1"), "{}", common::toast(&shell));
+    assert!(
+        common::toast(&shell).contains("980.1"),
+        "{}",
+        common::toast(&shell)
+    );
     // Its legend is a page now: no second legend, and nothing left to move.
     assert_eq!(
         refused(&mut shell, "page.add_legend", json!({})),

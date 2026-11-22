@@ -712,9 +712,17 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             let shown = model.panel_tables().map(|p| p.show);
             for (show, label, labels) in [
                 ("tags", key!("canvas-labels-tags"), LabelShow::Tags),
-                ("item_numbers", key!("canvas-labels-item-numbers"), LabelShow::ItemNumbers),
+                (
+                    "item_numbers",
+                    key!("canvas-labels-item-numbers"),
+                    LabelShow::ItemNumbers,
+                ),
                 ("both", key!("canvas-labels-both"), LabelShow::Both),
-                ("tags_or_numbers", key!("canvas-labels-tags-or-numbers"), LabelShow::TagsOrNumbers),
+                (
+                    "tags_or_numbers",
+                    key!("canvas-labels-tags-or-numbers"),
+                    LabelShow::TagsOrNumbers,
+                ),
             ] {
                 let checked = shown == Some(labels);
                 items.extend(model.menu_item("layout.labels").map(|mut i| {

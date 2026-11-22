@@ -35,8 +35,9 @@ use ew_schema::{
 
 use crate::output::{
     CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, LegendOfferOf, PageBindingsOf, PageCpTargetsOf,
-    PageDigest, PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf, PageSurfaceView,
-    PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
+    PageDigest, PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf,
+    PageSurfaceView, PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer,
+    WiresLayer,
 };
 use crate::{Mismatch, Session};
 

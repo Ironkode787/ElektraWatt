@@ -152,6 +152,7 @@ pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use ew_scene::page::SlotTextBox;
+pub use ew_scene::panel::LabelShow;
 pub use natures::Natures;
 pub use navigators::{
     Drawable, EARTH_CONNECTION, FIX_ALL, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail,
@@ -159,10 +160,9 @@ pub use navigators::{
     nav_natural_key, tokens as nav_tokens,
 };
 pub use panel::{
-    LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice,
-    surface_of_page,
+    LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables,
+    UnplacedDevice, surface_of_page,
 };
-pub use ew_scene::panel::LabelShow;
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;

@@ -447,7 +447,9 @@ fn ips_structure_blocks() {
         .collect();
     assert_eq!(
         paged,
-        ["2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911"]
+        [
+            "2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911"
+        ]
     );
     assert!(rows.iter().all(|n| n.cells[4] != "0"), "no embedded block");
     let wl = rows.iter().find(|n| n.cells[2] == "907").unwrap();

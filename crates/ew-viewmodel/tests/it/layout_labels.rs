@@ -406,7 +406,6 @@ fn a_new_layout_view_gets_its_legend_page_in_the_same_undo_step() {
     shell.shutdown();
 }
 
-
 /// The Labels choice is not found only far down the page's Properties. The layout page's menu offers Labels: Tags, Item
 /// numbers, Both and Tags or numbers, the current one checked, each one undo step; a legend added beside tags offers to
 /// show the item numbers it lists.
