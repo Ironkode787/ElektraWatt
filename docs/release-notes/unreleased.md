@@ -583,7 +583,9 @@ change here.
   derating; `content/profiles/current/`): behind a C16 breaker 2.5 mm² instead of the class's 1.5 or 0.75 mm², a PE
   wire by the highest rating at its ends; Properties names the device and its rating as the source, and a wire's own
   cross-section, a core's or a potential definition's still wins. Projects of 0.3.0 show the raised size where they
-  set none (doc 08 §4.2, FT-2055)
+  set none, and two findings change there: a size set by hand that equals the new proposal is EW-POT-016 (redundant
+  override, info), and a PE size set by hand below its line conductors' raised size is EW-POT-006 (PE undersized, a
+  safety error the release gate counts) (doc 08 §4.2, FT-2055)
 - behaviour-change: a symbol turned a quarter places its texts anew round its body, on a page and in the symbol
   editor's strip "Turned and mirrored" alike: lying flat, its tag stands centred above it and its technical data,
   cross-reference and other texts centred below it, line under line, its pins' numbers at its pins; they stood side by
