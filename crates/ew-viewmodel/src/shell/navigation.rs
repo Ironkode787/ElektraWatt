@@ -1389,7 +1389,8 @@ impl ShellModel {
         })
     }
 
-    /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does.
+    /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does, and
+    /// a toast says it opened the set's list (it makes none).
     /// The command ends with that page fitted in the canvas and its row selected in the page tree,
     /// and the earlier export's toast dismissed, so its effect is in view.
     pub(crate) fn act_lists_parts(&mut self) -> Outcome {
@@ -1411,6 +1412,9 @@ impl ShellModel {
                     let _ = self.act_navigator_select(&select);
                 }
                 self.dismiss_export_toasts();
+                // It opens the list the set has, never a second one, and says so (a persona re-test pressed it again
+                // and could not tell whether a second list was made).
+                self.notify(strings::format(key!("toast-parts-list-opened"), &[&folio]), false);
                 self.notify_unlisted();
                 Outcome::Done
             }

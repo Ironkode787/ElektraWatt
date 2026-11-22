@@ -822,6 +822,9 @@ set's frame from its pages, however the set was made.
 the form says so under its Report field ("This set already has Cable overview and diagrams on page 906. Create adds
 another; …"), and after Create the toast names that page with Go to page beside Undo (a persona run made a second
 cable overview beside the one the company standard generates, and nothing said so). Another list of a kind is allowed.
+Output ▸ Parts list, the one list with a button of its own, opens the set's parts list and never makes one; its toast
+says so ("Opened the set's parts list on page 901; it makes no second one. Report… on the Output tab adds another
+list.", a persona re-test pressed it twice and could not tell).
 
 **The Form row.** A page's and a report block's Form row in Properties is a choice of the project's forms (every held
 form but a title block and a label), by name: a starter form by its kind and its key in words ("Frame QET A4 landscape

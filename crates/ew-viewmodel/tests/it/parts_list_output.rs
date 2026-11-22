@@ -99,7 +99,7 @@ fn parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
         })
         .collect();
     assert_eq!(marked, ["901"]);
-    // The export's toast is gone; every device of the sample has a part, so no toast says one is unlisted
-    // (`parts_unlisted`).
-    assert_eq!(toasts(&shell), Vec::<&str>::new());
+    // The export's toast is gone, and the one toast says the set's list was opened (`parts_list_again`); every device
+    // of the sample has a part, so no toast says one is unlisted (`parts_unlisted`).
+    assert_eq!(toasts(&shell), ["edit"]);
 }

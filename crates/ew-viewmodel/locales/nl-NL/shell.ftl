@@ -6203,6 +6203,7 @@ toast-report-block-had = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }. De 
 form-report-had = Deze set heeft al { $p0 } op pagina { $p1 }. Maken voegt er nog een toe; Annuleren en Naar pagina { $p1 } opent het.
 toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een.
 toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een.
+toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
 error-command-unknown = Er is geen opdracht { $p0 }
