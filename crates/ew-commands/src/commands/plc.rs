@@ -1440,8 +1440,11 @@ pub struct StationBox {
 /// whose black-box function an electrical page draws already, none of whose pins is drawn there yet, is another
 /// drawing of that function: a card drawn one box at a time (docs/design/06a-drafting.md §7.5), its inputs and its
 /// outputs, or a row wider than the drawing area. Any other device an electrical page draws already, and one whose part
-/// has no black-box entry, is left as it is. Refused in words: a
-/// device that is no station; a box of a device the station does not hold; nothing left to draw. `copies` are library
+/// has no black-box entry, is left as it is. `replace` names drawings on the page of the devices of `boxes` that these
+/// boxes draw again (a card of the older two-row form drawn in one row, FT-1897): they are deleted first, in the same
+/// step, and the devices, their functions, channels and connections stay. Refused in words: a
+/// device that is no station; a box of a device the station does not hold; a drawing to replace that is no
+/// representation on the page of a device of `boxes`; nothing left to draw. `copies` are library
 /// documents embedded first. Outcome: the first box.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1460,6 +1463,10 @@ pub struct DrawStation {
     /// Library documents (`lib/` JSON form) embedded first.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<serde_json::Value>,
+    /// Drawings on the page of the devices of `boxes` that the boxes replace: deleted first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub replace: Vec<Id<ew_schema::Representation>>,
 }
 
 impl DrawStation {
@@ -1591,6 +1598,19 @@ impl Command for DrawStation {
             ));
         }
         let q = ew_derive::Q::new(tx.base_model());
+        // The drawings the boxes replace go first: a drawing on this page of a device the boxes draw.
+        for rep in &self.replace {
+            let device = tx
+                .get::<ew_schema::Representation>(*rep)
+                .filter(|r| r.page == self.page)
+                .and_then(|r| r.functions.first().copied())
+                .and_then(|f| tx.get::<Function>(f))
+                .and_then(|f| f.device);
+            if !device.is_some_and(|d| self.boxes.iter().any(|b| b.device == d)) {
+                return tx.reject(text!("refusal-plc-redraw-other", crate::words::symbol(tx, *rep)));
+            }
+            tx.delete((Kind::Representation, rep.cast()))?;
+        }
         let mut first = None;
         for b in &self.boxes {
             if ew_derive::station_of(&q, b.device) != Some(self.station) {

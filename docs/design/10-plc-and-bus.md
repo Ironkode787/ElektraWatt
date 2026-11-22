@@ -1106,6 +1106,15 @@ lines with the texts. Every other box keeps its pin texts as before (turned a qu
 card of the older two-row form, a box whose part lays it out with pins on several edges, a box without bound pins. Not
 done: the symbol and the process tag per channel, which the reference set prints in some cells.
 
+**A card of the older form drawn in one row** (FT-1897, 0.3.5). *Draw the card in one row* (`plc.card_redraw`, in the
+box's menu, offered for one selected box with channel pins on both its upper and its lower edge)
+draws the card again as Draw on a page lays a card out, in its place and in one undo step: one `plc.draw_station` whose
+`replace` names the old box, its inputs in a box where the old box stood and its outputs in a box a gap under that.
+The device, its functions, channels and connections stay, because a connection joins the function's connection
+points and not the box; a toast says that Arrange and route draws the wires to the new pins. Not done: a row wider than
+the drawing area is not split into boxes as Draw on a page splits it, and a terminal of a channel that now faces the
+other way keeps its wires on the pin it had (FT-2083).
+
 ### 3.7 Valve terminals
 
 The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-098):

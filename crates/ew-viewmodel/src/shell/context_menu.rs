@@ -144,6 +144,10 @@ impl ShellModel {
                     if rep.black_box.is_some() {
                         self.box_pin_entries(rep, at, &mut out);
                         out.extend(self.menu_item("box.centre_pins"));
+                        // A card of the older two-row form: Draw the card in one row (FT-1897).
+                        if self.older_card().is_ok() {
+                            out.extend(self.menu_item("plc.card_redraw"));
+                        }
                     }
                 }
             }

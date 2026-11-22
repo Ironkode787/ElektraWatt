@@ -1084,10 +1084,10 @@ The remedy is the person's: wire the terminals by the pins that face the card, o
 the side the field stands.
 
 **A card in the older form.** Until step 7 "Draw on a page" drew a card with two rows of pins, so half its
-channels face away from their circuits: such a page is the case above. There is a way to draw the card again
-without wiring it anew: delete the card's box (the device, its channels and every connection stay, because a
-connection joins connection points of the device's function, not the box), then draw the card from the station
-view again; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
+channels face away from their circuits: such a page is the case above. Draw the card in one row, in the box's menu
+(FT-1897, [10](10-plc-and-bus.md) §3.6), draws the card again in its place without wiring it anew, in one undo step:
+the device, its channels and every connection stay, because a connection joins connection points of the device's
+function, not the box; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
 each terminal of a channel that now faces the other way: the wire to the card belongs on the terminal's pin that
 faces the card. A command that swaps the two wires of such a terminal for a whole strip would take that hand work
 away; it is not built. Route lays the wires round one card together as nested rings (§3.5, Rings): they

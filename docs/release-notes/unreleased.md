@@ -602,3 +602,8 @@ change here.
   before (doc 10 §3.6, FT-1898)
 - behaviour-change: a bevel junction is drawn half a step on each leg, as the bevel where two wires of one pin part; it
   was a quarter step. An existing project draws its junctions so when this version opens it (doc 06a §3.4, FT-1898)
+- behaviour-change: Draw the card in one row (`plc.card_redraw`, in a card box's menu) draws a PLC card
+  of the older two-row form again as Draw on a page lays a card out, in its place and in one undo step, keeping its
+  device, channels and connections (doc 10 §3.6, FT-1897)
+- api-add: `plc.draw_station` has the optional member `replace`, the drawings on the page that its boxes draw again
+  (FT-1897)

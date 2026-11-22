@@ -127,6 +127,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
+    // A card of the older two-row form drawn again in one row in its place (FT-1897); the box's menu offers it.
+    hidden(act(
+        "plc.card_redraw",
+        Command,
+        Menu::Plc,
+        &[],
+        older_card,
+        None,
+        |s, _| s.act_card_redraw(),
+    )),
     hidden(act(
         "plc.module_goto",
         View,

@@ -686,6 +686,12 @@ pub(super) fn one_box(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// An editable page with one box of a PLC card in the older form selected (Draw the card in one row, FT-1897).
+pub(super) fn older_card(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    m.older_card().map(|_| ())
+}
+
 /// An editable page with exactly one unbound free text selected (Edit ▸ Edit text).
 pub(super) fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;

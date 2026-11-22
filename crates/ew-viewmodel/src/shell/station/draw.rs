@@ -19,7 +19,161 @@ use crate::shell::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::strings::Key;
 
+/// A laid-out box as `plc.draw_station` takes it, and its bounds `[x0, y0, x1, y1]` (page nm).
+fn box_json(device: &str, (pos, outline, cps): crate::tools::black_box::BoxLayout) -> (Value, [i64; 4]) {
+    let (w, h) = outline.iter().fold((0, 0), |(w, h), p| (w.max(p.0), h.max(p.1)));
+    let json = json!({
+        "device": device,
+        "pos": [pos.0, pos.1],
+        "box": {
+            "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+            "cps": cps.iter().map(|(i, p, dir)| json!({"idx": i, "pos": [p.0, p.1], "dir": dir.word()}))
+                .collect::<Vec<_>>(),
+        },
+    });
+    (json, [pos.0, pos.1, pos.0 + w, pos.1 + h])
+}
+
+/// A card's box `steps` on the page's grid `page_grid` (num, den) with its insertion point snapped from `at`.
+fn card_layout(
+    steps: &ew_api::part_box::BoxSteps,
+    page_grid: (i64, i64),
+    at: (i64, i64),
+) -> Option<crate::tools::black_box::BoxLayout> {
+    use ew_api::geometry::Dir;
+    use ew_api::part_box::Dir4;
+    let (pos, outline, cps) = steps.on_grid(page_grid, at)?;
+    let cps = cps
+        .into_iter()
+        .map(|(i, p, dir)| {
+            let dir = match dir {
+                Dir4::Up => Dir::Up,
+                Dir4::Down => Dir::Down,
+                Dir4::Left => Dir::Left,
+                _ => Dir::Right,
+            };
+            (i, p, dir)
+        })
+        .collect();
+    Some((pos, outline, cps))
+}
+
 impl ShellModel {
+    /// The one selected box when it is a PLC card drawn in the older form (FT-1897): channel pins on both its upper and
+    /// its lower edge. With it its device, its station, and its part's black-box pins by kind ([`Session::card_pins`]);
+    /// else why not.
+    ///
+    /// [`Session::card_pins`]: ew_api::Session::card_pins
+    pub(crate) fn older_card(
+        &self,
+    ) -> Result<(ew_api::output::TableRep, Uuid, Uuid, ew_api::output::CardPins), Key<'static>> {
+        use ew_api::geometry::Dir;
+        let not = key!("reason-not-older-card");
+        let c = self.canvas().ok_or(not)?;
+        let rep = match self.selection().items.as_slice() {
+            [one] => c.page().tables.reps.iter().find(|r| r.id == one.0),
+            _ => None,
+        }
+        .ok_or(not)?;
+        let b = rep.black_box.as_ref().ok_or(not)?;
+        let device = rep.device.ok_or(not)?;
+        let session = self.project_session().ok_or(not)?;
+        let station = session.plc_station_of(device).ok_or(not)?;
+        // The pins the old box draws, each with its designation as the page prints it (`-104A1:3`).
+        let cps: Vec<(u16, String)> = b
+            .cps
+            .iter()
+            .filter_map(|(i, _, _)| {
+                let cp = c
+                    .page()
+                    .tables
+                    .cps
+                    .iter()
+                    .find(|x| x.rep == rep.id && x.idx == *i)?;
+                let designation = cp.label.rsplit_once(':').map_or("", |(_, d)| d);
+                Some((*i, designation.to_owned()))
+            })
+            .collect();
+        let pins = session.card_pins(device, &cps);
+        let channel = |i: u16| pins.inputs.contains(&i) || pins.outputs.contains(&i);
+        let edge = |d: Dir| b.cps.iter().any(|(i, _, dir)| channel(*i) && *dir == d);
+        if !(edge(Dir::Up) && edge(Dir::Down)) {
+            return Err(not);
+        }
+        Ok((rep.clone(), device, station, pins))
+    }
+
+    /// `plc.card_redraw` (FT-1897, doc 10 §3.6): the selected card of the older form drawn again in one row in its
+    /// place, in one undo step: one `plc.draw_station` of the card's boxes as Draw on a page lays a card out
+    /// (`part_box::card_box`), its inputs in a box where the old box stood and its outputs in a box a gap under that,
+    /// replacing the old box. The device, its channels and every connection stay; a toast says that Arrange and route
+    /// draws the wires to the new pins.
+    pub(crate) fn act_card_redraw(&mut self) -> Outcome {
+        const GAP: i64 = 7_937_500;
+        let (rep, device, station, pins) = match self.older_card() {
+            Ok(card) => card,
+            Err(why) => return Outcome::refused(why),
+        };
+        let (Some(page_grid), Some(page)) = (
+            self.canvas().map(|c| c.page().tables.grid),
+            self.page_rows().get(self.page_index()).map(|r| r.id),
+        ) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let Some(draw) = self
+            .project_session()
+            .and_then(|s| s.station_draw_params(station, page))
+        else {
+            return Outcome::refused(key!("reason-rack-no-frame"));
+        };
+        let mut boxes = Vec::new();
+        let mut at = rep.pos;
+        let mut others = pins.others.as_slice();
+        for (row, up) in [(&pins.inputs, true), (&pins.outputs, false)] {
+            if row.is_empty() {
+                continue;
+            }
+            let steps = ew_api::part_box::card_box(row, up, others);
+            others = &[];
+            let Some(laid) = card_layout(&steps, page_grid, at) else {
+                return Outcome::refused(key!("reason-not-older-card"));
+            };
+            let (json, rect) = box_json(&device.to_string(), laid);
+            boxes.push(json);
+            at = (rep.pos.0, rect[3] + GAP);
+        }
+        let mut params = json!({
+            "station": station.to_string(), "page": page.to_string(), "symbol": draw["symbol"],
+            "boxes": boxes, "replace": [rep.id.to_string()],
+        });
+        if let Some(copies) = draw.get("copies") {
+            params["copies"] = copies.clone();
+        }
+        let out = self.run_commit(&ew_api::AnyCommand {
+            name: "plc.draw_station".into(),
+            params,
+        });
+        if out == Outcome::Done {
+            // The new box is selected in the old one's place.
+            let new: Vec<String> = self.canvas().map_or_else(Vec::new, |c| {
+                c.page()
+                    .tables
+                    .reps
+                    .iter()
+                    .filter(|r| r.device == Some(device) && r.black_box.is_some())
+                    .map(|r| format!("id:{}", r.id))
+                    .collect()
+            });
+            let _ = self.dispatch("select.set", &json!({ "refs": new }));
+            let tag = self
+                .project_session()
+                .and_then(|s| s.device_tag(device))
+                .unwrap_or_default();
+            self.notify(strings::format(key!("toast-card-redrawn"), &[&tag]), true);
+        }
+        out
+    }
+
     /// `plc.draw_station`'s parameters for `station` on `page` (`Session::station_draw_params`): each device not drawn
     /// yet, and the rest of a card drawn in part, as boxes. A card, a device whose part's pin map gives its channels
     /// pins, is drawn as docs/design/06a-drafting.md §7.5 says (`ew_api::part_box::card_box`): its inputs in one row on
@@ -138,38 +292,8 @@ impl ShellModel {
                 others = &[];
             }
         }
-        // A laid-out box as `plc.draw_station` takes it, and its bounds `[x0, y0, x1, y1]` (page nm).
-        let to_json = |device: &str, (pos, outline, cps): crate::tools::black_box::BoxLayout| {
-            let (w, h) = outline.iter().fold((0, 0), |(w, h), p| (w.max(p.0), h.max(p.1)));
-            let json = json!({
-                "device": device,
-                "pos": [pos.0, pos.1],
-                "box": {
-                    "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
-                    "cps": cps.iter().map(|(i, p, dir)| json!({"idx": i, "pos": [p.0, p.1], "dir": dir.word()}))
-                        .collect::<Vec<_>>(),
-                },
-            });
-            (json, [pos.0, pos.1, pos.0 + w, pos.1 + h])
-        };
-        let card_at = |steps: &BoxSteps, at: (i64, i64)| {
-            use ew_api::geometry::Dir;
-            use ew_api::part_box::Dir4;
-            let (pos, outline, cps) = steps.on_grid(page_grid, at)?;
-            let cps = cps
-                .into_iter()
-                .map(|(i, p, dir)| {
-                    let dir = match dir {
-                        Dir4::Up => Dir::Up,
-                        Dir4::Down => Dir::Down,
-                        Dir4::Left => Dir::Left,
-                        _ => Dir::Right,
-                    };
-                    (i, p, dir)
-                })
-                .collect();
-            Some((pos, outline, cps))
-        };
+        let to_json = box_json;
+        let card_at = |steps: &BoxSteps, at: (i64, i64)| card_layout(steps, page_grid, at);
         let mut boxes: Vec<(usize, Value)> = Vec::new();
         let mut rects: Vec<[i64; 4]> = Vec::new();
         // The boxes that are no card, in a row from the next free place: (x, y, the lowest edge so far).
