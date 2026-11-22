@@ -9,24 +9,24 @@ cables, PLC and fluid power, panel layout, reports, manufacturing outputs and ch
 that works with Git.
 
 ![The ElektraWatt window with the sample project open: the page list and the properties on the left, the 400 V supply
-page on the canvas, and the findings of a project check in the Messages panel below it: no error, no warning, six
-infos](docs/images/screenshot-schematic-checks.png)
+page on the canvas, and the findings of a project check in the Messages panel below it: no error, no warning, four
+infos that the pneumatic tubes run from the cabinet into the field without a bulkhead](docs/images/screenshot-schematic-checks.png)
 
 ## Download
 
-**[ElektraWatt 0.2.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.2.0)**, released on 2026-11-13, is
+**[ElektraWatt 0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0)**, released on 2026-11-20, is
 an early alpha for Windows 10 and 11 and for Linux on x86-64:
 
 | File | What it is |
 |---|---|
-| `ElektraWatt-0.2.0-x64-user-setup.exe` | The per-user setup for Windows: the window, the `ew` command-line tool, the starter content, the sample project and the user guide; no administrator rights needed |
-| `ElektraWatt-0.2.0-x86_64.AppImage` | The same for Linux (glibc 2.35 or newer, as on Ubuntu 22.04 and Debian 12) |
-| `ew-0.2.0-…` (`.zip`, `.tar.gz`) | The command-line tool `ew` alone |
+| `ElektraWatt-0.3.0-x64-user-setup.exe` | The per-user setup for Windows: the window, the `ew` command-line tool, the starter content, the sample project and the user guide; no administrator rights needed |
+| `ElektraWatt-0.3.0-x86_64.AppImage` | The same for Linux (glibc 2.35 or newer, as on Ubuntu 22.04 and Debian 12) |
+| `ew-0.3.0-…` (`.zip`, `.tar.gz`) | The command-line tool `ew` alone |
 | `SHA256SUMS` | The checksum of every other file |
 
 Nothing is signed yet, so Windows may warn before it runs the setup: check a download against `SHA256SUMS` first, as
 the guide's [Install ElektraWatt](docs/book/src/how-to/install.md) page shows. ElektraWatt makes no network
-connection of its own ([PRIVACY.md](PRIVACY.md)). The [release notes](docs/release-notes/0.2.0.md) list what changed
+connection of its own ([PRIVACY.md](PRIVACY.md)). The [release notes](docs/release-notes/0.3.0.md) list what changed
 and what is known not to work yet.
 
 ## Screenshots
@@ -45,12 +45,13 @@ is older and shows release 0.2.0. The application drew them itself, with its off
 
 ## Status
 
-**0.2.0 was released on 2026-11-13.** It is the fix release that followed 0.1.0 (2026-11-08): it fixes what stopped
-the work when 0.1.0 was used by hand, and the owner's hands-on test of its first candidate asked for shorter ways to
-things that were there but hard to find, so it also brings the right-click menu as the quick way to what fits the
-thing under the pointer, forms for cables and terminals, and the other flows below. It is still an early alpha: the
-[release notes](docs/release-notes/0.2.0.md), section 7, list the known limitations. The [roadmap](ROADMAP.md) lists
-the milestones and [docs/plan](docs/plan/README.md) the open work.
+**0.3.0 was released on 2026-11-20.** It brings the automation breadth of milestone M3: the PLC workspace with
+stations, racks, modules and addresses, bus networks, your own PLC and bus parts, the exchange with AutomationML, TIA
+Portal tag tables and PLCopen XML, fluid power with valve terminals and tubes, DXF, DWG and PDF imports and underlays,
+EPLAN parts and reports, and Arrange and route. It is still an early alpha: the
+[release notes](docs/release-notes/0.3.0.md), section 7, list the known limitations. 0.3.5 is in work: a hygiene
+milestone and a round of fixes ([docs/plan/m3.5.md](docs/plan/m3.5.md)). The [roadmap](ROADMAP.md) lists the
+milestones and [docs/plan](docs/plan/README.md) the open work.
 
 What works today:
 
