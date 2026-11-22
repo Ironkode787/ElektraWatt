@@ -78,3 +78,53 @@ fn a_selected_terminal_names_its_clamps_and_a_half_turn_moves_them() {
     done(&mut s, "select.set", json!({"refs": [format!("tag:{tag}")]}));
     assert_eq!(clamps(&s), ["a", "b"]);
 }
+
+/// The letters show while at most four terminals are selected (twenty-four letters hid twelve symbols), and the hint
+/// line says which clamp is the cabinet's side (doc 08 §2.1: side 1 internal, side 2 the field).
+#[test]
+fn the_letters_show_for_a_few_terminals_and_the_hint_names_the_cabinet_side() {
+    let tmp = Tmp::new("terminal-ends-many");
+    let mut s = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(
+        &mut s,
+        "file.new",
+        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    done(
+        &mut s,
+        "tool.place_terminal",
+        json!({"strip": "new", "count": "5"}),
+    );
+    let p = {
+        let sn = &s.canvas().unwrap().page().snapper;
+        sn.page_to_sheet((sn.page_of_index(30), sn.page_of_index(20)))
+    };
+    common::click(&mut s, p, json!({"alt": true}));
+    done(&mut s, "tool.select", json!({}));
+    let reps: Vec<String> = tables(&s)
+        .reps
+        .iter()
+        .filter(|r| r.terminal)
+        .map(|r| r.id.to_string())
+        .collect();
+    assert_eq!(reps.len(), 5);
+    let letters = |s: &ShellModel| {
+        s.tool_overlay()
+            .items
+            .iter()
+            .filter(|i| matches!(i, OverlayItem::Label { .. }))
+            .count()
+    };
+    done(&mut s, "select.set", json!({"ids": reps[..4]}));
+    assert_eq!(letters(&s), 8, "four terminals, two letters each");
+    done(&mut s, "select.set", json!({ "ids": reps }));
+    assert_eq!(letters(&s), 0, "five terminals: no letters");
+    let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
+    assert!(
+        prompt.ends_with("clamp a is the internal side (the cabinet's wiring), clamp b the field side"),
+        "{prompt}"
+    );
+}

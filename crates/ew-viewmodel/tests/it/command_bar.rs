@@ -395,7 +395,12 @@ fn the_hud_prompts_the_selection_and_the_pick_stack() {
     click(&mut s, p, json!({}));
     assert_eq!(s.selection().items.len(), 1);
     done(&mut s, "canvas.pointer", at(empty, json!({})));
-    assert_eq!(hud(&s).prompt, "1 selected \u{b7} Del deletes \u{b7} R rotates");
+    // The terminal it is says which of its clamps is the cabinet's side.
+    assert_eq!(
+        hud(&s).prompt,
+        "1 selected \u{b7} Del deletes \u{b7} R rotates \u{b7} clamp a is the internal side (the cabinet's wiring), \
+         clamp b the field side"
+    );
     // At an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
     done(&mut s, "view.zoom_actual", json!({}));
     let over = common::provisional_overlap_on_101(&mut s);

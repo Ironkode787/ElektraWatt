@@ -514,20 +514,33 @@ pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     ]))
 }
 
+/// The most selected terminals whose clamp letters show (a persona run: twenty-four letters hid twelve symbols).
+pub const CLAMP_LETTERS_MOST: usize = 4;
+
+/// The selected terminals drawn alone on the page, as their symbols: selected as the symbol (a click) or as the device
+/// (`select.set` by tag), in the page tables' order.
+pub fn selected_terminal_reps<'t>(cx: &'t ToolCx<'_>) -> Vec<&'t ew_api::output::TableRep> {
+    let selected = |id| cx.selection.items.contains(&EntityRef(id));
+    cx.page
+        .tables
+        .reps
+        .iter()
+        .filter(|r| r.terminal && (selected(r.id) || r.device.is_some_and(selected)))
+        .collect()
+}
+
 /// The clamps of the selected terminals drawn alone (doc 08 §6.3): beyond each end the clamp it is, `a` or `b`, as the
 /// terminal diagram's Side 1 (clamp a) and Side 2 (clamp b) name them. A terminal's symbol looks the same turned half
 /// round, so without them a person could not tell its ends apart, nor see what R did; `None` without a selected
-/// terminal.
+/// terminal, and with more than [`CLAMP_LETTERS_MOST`] selected, whose letters would hide the symbols.
 pub fn terminal_clamps(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     let t = &cx.page.tables;
-    let items: Vec<OverlayItem> = t
-        .reps
-        .iter()
-        // A terminal selected as its symbol (a click) or as its device (`select.set` by tag).
-        .filter(|r| {
-            let selected = |id| cx.selection.items.contains(&EntityRef(id));
-            r.terminal && (selected(r.id) || r.device.is_some_and(selected))
-        })
+    let selected = selected_terminal_reps(cx);
+    if selected.len() > CLAMP_LETTERS_MOST {
+        return None;
+    }
+    let items: Vec<OverlayItem> = selected
+        .into_iter()
         .flat_map(|r| t.cps.iter().filter(move |c| c.rep == r.id))
         .filter_map(|c| {
             // The clamp of `-X1:1/a` (`a#2` where a function repeats a letter), centred on the end's line 2 mm beyond

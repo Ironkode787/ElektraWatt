@@ -957,7 +957,9 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   end, and looks the same turned half round, so a person could not tell the ends apart nor see what R did. While
   terminals are selected, the window names the clamp at each of their drawn ends in a chip centred on the end's line
   2 mm beyond it (`a`, `b`, the letter of the end's label `-X1:1/a`; the overlay label's anchor `Centre`, which the
-  chip rule leaves where it is); nothing of it prints.
+  chip rule leaves where it is); nothing of it prints. The letters show while at most four terminals are selected
+  (more would hide the symbols), and the hint line says which clamp is the internal side, the cabinet's wiring, and
+  which the field side, read from the first selected terminal's sides and its strip's field side (§2.1).
 - **CP index space of a terminal**. A terminal function is template-origin when its
   device carries a part whose function template declares a function with the same FnDef (and role, if given); the
   template's CP pattern then defines the function's CP indexes and count, not the FnDef: the golden PT 2.5-TWIN

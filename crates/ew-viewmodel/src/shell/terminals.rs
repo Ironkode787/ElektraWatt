@@ -231,6 +231,28 @@ impl ShellModel {
         out
     }
 
+    /// The HUD's words on a selected terminal's two sides (doc 08 §2.1: side 1 is internal and side 2 external, the
+    /// strip's field side deciding): which clamp letter is the internal side, the cabinet's wiring, and which the field
+    /// side, read from the first selected terminal drawn alone; `None` without one, or where a side has no lettered
+    /// clamp.
+    pub fn terminal_sides_hint(&self) -> Option<String> {
+        let tables = Arc::clone(&self.canvas()?.page().tables);
+        let selected = |id| self.tools.selection.items.contains(&EntityRef(id));
+        let rep = tables
+            .reps
+            .iter()
+            .find(|r| r.terminal && (selected(r.id) || r.device.is_some_and(selected)))?;
+        let clamp = |side: &str| {
+            tables
+                .cps
+                .iter()
+                .filter(|c| c.rep == rep.id && c.side == Some(side))
+                .find_map(|c| c.label.rsplit_once('/').map(|(_, l)| l.to_owned()))
+        };
+        let (internal, field) = (clamp("internal")?, clamp("field")?);
+        Some(strings::format(key!("hud-terminal-sides"), &[&internal, &field]))
+    }
+
     /// The strip of the terminal placed last on the page on show (the representation of the greatest ID, IDs being
     /// minted in time order); `None` on a page without a terminal.
     fn page_terminal_strip(&self) -> Option<String> {

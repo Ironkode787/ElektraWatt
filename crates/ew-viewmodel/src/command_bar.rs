@@ -1144,14 +1144,19 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     )
                 }
             } else if selected > 0 {
-                strings::format(
+                let line = strings::format(
                     key!("hud-selected"),
                     &[
                         &selected.to_string(),
                         &key_name(model, "tool.rotate_cw"),
                         &key_name(model, "edit.delete_selection"),
                     ],
-                )
+                );
+                // A terminal says which of its clamps is the cabinet's side (a persona run could not tell).
+                match model.terminal_sides_hint() {
+                    Some(sides) => format!("{line} · {sides}"),
+                    None => line,
+                }
             } else if model
                 .page_rows()
                 .get(model.page_index())

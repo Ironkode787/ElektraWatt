@@ -1145,6 +1145,7 @@ key-none = (no key)
 # FT-894: the pick stack in words.
 hud-stack = { $p0 } objects overlap here · click again to select the next
 hud-selected = { $p0 } selected · { $p2 } deletes · { $p1 } rotates
+hud-terminal-sides = clamp { $p0 } is the internal side (the cabinet's wiring), clamp { $p1 } the field side
 hud-wire-selected = { $p0 } selected · { $p1 } chooses a handle for the arrow keys · { $p2 } deletes
 hud-keys-place = { $p0 } rotates · { $p1 } variant · { $p2 } done
 hud-connect-on-move-on = { $p0 } Connect on move: on
