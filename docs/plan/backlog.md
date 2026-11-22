@@ -27,6 +27,7 @@ every rebuild; the headless script; a save that rewrites only what changed.
 #### Lists and frames
 
 - FT-1995 `ew-reports`: A list or a box whose rows do not derive prints its reason in English, with a family or kind name in backquotes, also in a Dutch project ("Not derived: query cycle in `page_order`"; `NotDerived`'s `Display`, `paginate.rs`, `view.rs` `boxed_table`).
+- FT-1938 `ew-reports`: The layout's legend prints the quantity of a part sold by length as a bare number ("0.47" for a rail or a duct), because its printed columns hold no unit: print the unit with the number there ("0.47 m"), as the parts list's Unit column says it.
 - FT-1934 `content`: The starter library's parts and symbols carry their descriptions in English only (134 texts), so a Dutch project's parts list prints "Feed-through terminal" beside Dutch headings and units. Give the generic parts and symbols a Dutch description; the lists already print the project's language first.
 
 #### External points, earth and 0 V
