@@ -841,7 +841,8 @@ pasted by `edit.paste`'s engine with the pages' positions kept: no second machin
   when there is none.
 - **Rename**: pairs of an old and a new text for frozen tags and interruption-point names (6 and 7; 24V and 24V.2).
   Every occurrence is replaced, at each place the longest old text first, in one pass: 26 → 27 and 6 → 7 together
-  turn 26K6 into 27K7.
+  turn 26K6 into 27K7. Its rows are named for a screen reader by the table's own word, as its add button is: "New
+  text, text to change 2", "Remove text to change 2" (FT-1965; Save as macro…'s rows read "value set 2").
 
 The Preview card names the new pages and tags and what the copy leaves out; Apply makes the copy, one undo step, and a
 toast names the new folios. A script runs `pages.copy {pages, offset | after, node, code, rename: {old: new}}`; the

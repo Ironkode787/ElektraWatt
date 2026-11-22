@@ -421,6 +421,10 @@ change here.
 - behaviour-change: a Messages row of a finding on a cable (EW-CORE-033, a cable without its length) names the page of
   the cable's cores and Enter opens it with the core wires selected; it named no page and opened nothing (doc 16 §5,
   FT-1924)
+- text-change: a form table that adds rows names them for a screen reader by its own row word and number: Copy
+  pages…'s rename table "New text, text to change 2", "Remove text to change 2", not "value set"; Save as macro…'s
+  remove button reads "Remove value set 2", by the row's number as its cells are, not by the set's name (doc 06 §3.6,
+  FT-1965)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

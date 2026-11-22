@@ -116,7 +116,7 @@ fn the_card_and_the_table_render_their_fields() {
     );
     assert!(field(&h, "pt, value set 2", "PSU-M"), "a cell");
     assert!(field(&h, "n, value set 3", ""), "a blank cell");
-    assert!(h.query_by_label("Remove value set Large").is_some());
+    assert!(h.query_by_label("Remove value set 3").is_some());
     h.get_by_label("Add value set").click();
     settle(&mut h);
     let rows = match h.state().shell().dialog() {
@@ -124,7 +124,7 @@ fn the_card_and_the_table_render_their_fields() {
         _ => 0,
     };
     assert_eq!(rows, 4, "Add value set adds a row");
-    h.get_by_label("Remove value set Set 4").click();
+    h.get_by_label("Remove value set 4").click();
     settle(&mut h);
 
     // Save it, then insert it on folio 106.

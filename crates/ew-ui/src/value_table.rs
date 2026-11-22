@@ -11,8 +11,9 @@
 //! share the width the first column and the remove button leave, never under `size.table_column.min`; a table wider
 //! than the dialog scrolls sideways. Each edit is a view event; the shell keeps the table (no preview, no command).
 //!
-//! **Accessibility.** A cell field is named "`<column>`, value set `<i>`"; the first column's "Value set, value
-//! set `<i>`"; the remove button "Remove value set `<name>`".
+//! **Accessibility.** A row is named by the table's own row word, its `form-table-row-<name>` text ("value set 2",
+//! Copy pages…'s "text to change 2", FT-1965), as its add button is: a cell field "`<column>`, `<row>`", the first
+//! column's "`<first column>`, `<row>`", the remove button "Remove `<row>`".
 //!
 //! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, as wide as
 //! its longest row (at most half the table), no row is added or removed, a column's header is its name, and a cell field is named "`<column>`, `<first column>`".
@@ -170,8 +171,11 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             );
             // The rows.
             let top = header.bottom();
+            // A row of a table that adds rows by the table's own word and its number ("text to change 2").
+            let row_key = format!("form-table-row-{}", table.name.replace('_', "-"));
             for (i, row) in table.rows.iter().enumerate() {
                 let index = (i + 1).to_string();
+                let row_words = strings::format(strings::Key::run_time(&row_key), &[&index]);
                 let size = egui::vec2(total, t.size_row);
                 let r = ui.allocate_ui_with_layout(
                     size,
@@ -191,8 +195,8 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                         } else {
                             let mut key = row.key.clone();
                             let name = strings::format(
-                                key!("form-value-cell"),
-                                &[strings::text(table.key_label), &index],
+                                key!("form-table-cell"),
+                                &[strings::text(table.key_label), &row_words],
                             );
                             if cell(ui, &t, key_width, &mut key, &name, "") {
                                 events.push(Event::FormTableCell(i, None, key));
@@ -229,7 +233,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                                 )
                             } else {
                                 (
-                                    strings::format(key!("form-value-cell"), &[col, &index]),
+                                    strings::format(key!("form-table-cell"), &[col, &row_words]),
                                     strings::var_type_word(ty),
                                 )
                             };
@@ -239,7 +243,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                         }
                         if !table.fixed {
                             ui.add_space(t.space_2);
-                            let remove = strings::format(key!("form-value-set-remove"), &[&row.key]);
+                            let remove = strings::format(key!("form-table-row-remove"), &[&row_words]);
                             if components::icon_button(ui, IconId::x, &remove).clicked() {
                                 events.push(Event::FormTableRemove(i));
                             }
