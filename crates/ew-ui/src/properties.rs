@@ -353,7 +353,7 @@ impl PropertiesPane {
                         }
                     }
                     // The foot: "Show advanced (n)" or "Hide advanced (n)".
-                    let n = advanced_count(sheet);
+                    let n = advanced_count(sheet, shell.properties_filter());
                     if n > 0 {
                         ui.add_space(t.space_2);
                         let key = if advanced {

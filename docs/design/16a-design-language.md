@@ -1007,7 +1007,9 @@ appears under it only when the open categories hold more than twelve rows.
 (the fields of the kind marked primary in the field catalogue: tag, function text, part, location, page title,
 number) open, the others closed and remembered per kind. **Advanced** (the record's internal members: `$v`, ID, key,
 source reference, lineage, form UUIDs, counters) is hidden; a link "Show advanced (n)" in `type.small` and
-`color.accent` at the panel's foot shows it, and the choice is remembered (Settings ▸ Show advanced properties).
+`color.accent` at the panel's foot shows it, and the choice is remembered (Settings ▸ Show advanced properties). Under
+a filter, n counts the advanced rows the filter leaves and the link goes at 0 (a persona re-test pressed it and saw
+nothing come).
 
 **Rows** (`size.row`, `space.4` side padding, `space.3` gap): the label in `type.small` and `color.text.secondary` in
 the `size.property_label` column with ellipsis and tooltip; the value in a `size.control.inline` cell (`radius.sm`,

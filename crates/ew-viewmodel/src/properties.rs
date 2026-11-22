@@ -1077,13 +1077,14 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
     out
 }
 
-/// The number of Advanced rows of `sheet` (the "Show advanced (n)" link).
-pub fn advanced_count(sheet: &PropertySheet) -> usize {
+/// The number of Advanced rows of `sheet` that the Properties filter `filter` leaves (the "Show advanced (n)" link,
+/// which goes at 0: under a filter the link toggled to "Hide advanced (2)" and no row came, a persona run).
+pub fn advanced_count(sheet: &PropertySheet, filter: &str) -> usize {
     sheet
         .sections
         .iter()
-        .flat_map(|s| &s.rows)
-        .filter(|r| is_advanced(r))
+        .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
+        .filter(|(s, r)| is_advanced(r) && row_matches(s, r, filter))
         .count()
 }
 

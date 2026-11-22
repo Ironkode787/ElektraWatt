@@ -718,7 +718,7 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
         }
     }
-    let advanced = crate::properties::advanced_count(sheet);
+    let advanced = crate::properties::advanced_count(sheet, model.properties_filter());
     if advanced > 0 {
         let state = if model.properties_show_advanced() {
             "shown"
