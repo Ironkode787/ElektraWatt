@@ -1205,6 +1205,7 @@ impl ShellModel {
                     pending: Pending {
                         action,
                         params: Value::Object(p.clone()),
+                        cancelled: None,
                     },
                     symbol: false,
                 });
@@ -1716,6 +1717,7 @@ impl ShellModel {
                         pending: Pending {
                             action: "app.quit",
                             params: Value::Object(p.clone()),
+                            cancelled: None,
                         },
                         symbol: true,
                     }),

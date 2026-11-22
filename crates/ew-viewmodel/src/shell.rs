@@ -320,6 +320,9 @@ pub struct Pending {
     pub action: &'static str,
     /// Its parameters.
     pub params: Value,
+    /// The toast of Cancel, where Cancel drops something done meanwhile (a report import read while the project
+    /// changed, FT-1763); `None`: Cancel says nothing.
+    pub cancelled: Option<Key<'static>>,
 }
 
 /// A group of the import card: the kinds of findings of one severity.
@@ -2404,7 +2407,12 @@ impl ShellModel {
         }
         let mut params = pending.params.as_object().cloned().unwrap_or_default();
         match answer {
-            ConfirmAnswer::Cancel => Outcome::Done,
+            ConfirmAnswer::Cancel => {
+                if let Some(key) = pending.cancelled {
+                    self.notify(strings::text(key).to_owned(), false);
+                }
+                Outcome::Done
+            }
             ConfirmAnswer::Discard => {
                 params.insert("discard".to_owned(), Value::Bool(true));
                 self.dispatch(pending.action, &Value::Object(params))

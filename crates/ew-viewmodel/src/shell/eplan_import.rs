@@ -335,21 +335,43 @@ impl ShellModel {
         if let Some(outcome) = self.require_free_dir(&dir) {
             return outcome;
         }
-        // The spreadsheet read into the project's batch as a job (FT-1763), the project made at its end.
+        // The spreadsheet read into the project's batch as a job (FT-1763), the project made at its end. The window
+        // answers meanwhile: the revision now tells at the end whether the open project changed since it was asked about.
+        let asked = ReportAsked {
+            action,
+            params: p.clone(),
+            rev: self.revision(),
+        };
         let (input, owned, key_name) = (input.clone(), name.to_owned(), key_name.to_owned());
         self.start_read(name, move |_| {
             let batch = eplan::report_batch(&input, &map, &key_name).map_err(|e| e.to_string());
-            Ok(Box::new(move |s: &mut ShellModel| s.report_read(&owned, &dir, batch)) as Finish)
+            Ok(Box::new(move |s: &mut ShellModel| s.report_read(&owned, &dir, batch, &asked)) as Finish)
         })
     }
 
-    /// The end of a report's read: the new project made from its batch, written to `dir` and opened.
+    /// The end of a report's read: the new project made from its batch, written to `dir` and opened. When the open
+    /// project changed while the file was read (its revision moved), or has unsaved changes it was not asked about, the
+    /// unsaved-changes question is asked again first: Discard or Save runs the import again, Cancel keeps the project
+    /// and drops what was read, which a toast says.
     fn report_read(
         &mut self,
         name: &str,
         dir: &std::path::Path,
         batch: Result<ew_api::import::ImportBatch, String>,
+        asked: &ReportAsked,
     ) -> Outcome {
+        if self.has_project()
+            && (self.revision() != asked.rev || (self.is_dirty() && !flag(&asked.params, "discard")))
+        {
+            let mut again = asked.params.clone();
+            again.remove("discard");
+            if let Some(outcome) = self.guard_unsaved(asked.action, &again) {
+                if let Some(Dialog::ConfirmDiscard { pending, .. }) = &mut self.dialog {
+                    pending.cancelled = Some(key!("toast-report-read-dropped"));
+                }
+                return outcome;
+            }
+        }
         let batch = match batch {
             Ok(b) => b,
             Err(why) => return self.import_failed(name, &why),
@@ -386,6 +408,14 @@ impl ShellModel {
         }
         outcome
     }
+}
+
+/// What a report import was started with, for its end ([`ShellModel::report_read`]): the action and its parameters
+/// that run it again, and the open project's revision when the unsaved-changes question was last answered.
+struct ReportAsked {
+    action: &'static str,
+    params: Map<String, Value>,
+    rev: Option<u64>,
 }
 
 /// An EDZ's or a parts XML's read, for its end ([`ShellModel::eplan_parts_read`]).

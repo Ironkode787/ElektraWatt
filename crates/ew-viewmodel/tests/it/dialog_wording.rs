@@ -27,6 +27,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             pending: Pending {
                 action: "file.close",
                 params: Value::Null,
+                cancelled: None,
             },
             symbol: false,
         },
@@ -56,6 +57,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             pending: Pending {
                 action: "app.quit",
                 params: Value::Null,
+                cancelled: None,
             },
             symbol: true,
         },

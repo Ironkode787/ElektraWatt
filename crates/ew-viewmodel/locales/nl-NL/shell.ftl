@@ -6909,6 +6909,8 @@ eplan-report-saved = { $p0 }, met je opgeslagen koppeling
 reason-eplan-no-change = Geen artikelkopie van het project zou veranderen
 toast-eplan-parts-added = { $p0 }: { $p1 } artikelen aan je artikelbibliotheek toegevoegd, { $p2 } bijgewerkt, { $p3 } niet geïmporteerd.
 toast-eplan-report-imported = { $p0 } geïmporteerd als nieuw project met { $p1 } apparaten.
+# FT-1763: het project veranderde terwijl een rapport werd gelezen, en Annuleren hield het open.
+toast-report-read-dropped = Het rapport is niet geïmporteerd: het project veranderde terwijl het werd gelezen en blijft open; importeer het rapport opnieuw om zijn project te maken.
 eplan-report-map = De kolommen koppelen…
 eplan-report-parts = Importeren als artikeltabel
 eplan-map-intro = Kies wat elke kolom van { $p0 } in het EPLAN-rapport is. De koppeling wordt bewaard voor het volgende bestand van dit rapport.

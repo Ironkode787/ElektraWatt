@@ -1317,7 +1317,9 @@ second export while one runs is refused. Headless, the export waits for its job 
 and a report spreadsheet are read off the window's thread: what needs no session (the file read and parsed; the PLC
 file merged against the configuration project's image, taken from the session first) runs as a job, listed in the Jobs
 pane with Cancel, and its end runs the rest on the window's thread: the dialog, the preview card, or the new project.
-A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
+The window answers meanwhile, so a report's new project replaces the open one only as that project was asked about:
+where it changed while the file was read, the unsaved-changes question comes again at the end, and its Cancel keeps the
+project and drops what was read, which a toast says. A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
 imported."); a job of a project that closed meanwhile ends in nothing. A script waits for the read. Not yet: writing an
 EDZ's parts into the user's library reads the file again on the window's thread (FT-2081).
 

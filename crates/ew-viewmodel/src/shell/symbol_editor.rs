@@ -845,7 +845,11 @@ impl ShellModel {
         });
         if unsaved {
             return self.open_dialog(super::Dialog::ConfirmDiscard {
-                pending: super::Pending { action, params },
+                pending: super::Pending {
+                    action,
+                    params,
+                    cancelled: None,
+                },
                 symbol: true,
             });
         }

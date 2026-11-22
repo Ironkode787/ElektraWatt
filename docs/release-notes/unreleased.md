@@ -599,7 +599,8 @@ change here.
   of their field names (doc 04 §5.1, FT-1819)
 - behaviour-change: reading an EDZ or a parts XML for File ▸ Import…, a PLC exchange file for its preview and a report
   spreadsheet for a new project runs as a job of the Jobs pane with Cancel, off the window's thread; the dialog, the
-  preview or the project follows when the read ends, and a script waits for it as before (doc 16 §8.3, FT-1763)
+  preview or the project follows when the read ends (a project edited meanwhile is asked about again before a
+  report's project replaces it), and a script waits for it as before (doc 16 §8.3, FT-1763)
 - text-change: the help of a symbol's Anchor, Arrangement and moved texts, a junction's Position and Style, a page
   item's Layer and its kinds, a bus port's Bus, Interface, Role and Termination, a connection point's Description and
   an assembly's order codes says what the program does with the value, with an example and its unit, in English and

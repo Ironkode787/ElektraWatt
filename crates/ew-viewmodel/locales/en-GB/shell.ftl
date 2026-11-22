@@ -7181,6 +7181,8 @@ eplan-report-saved = { $p0 }, with your saved mapping
 reason-eplan-no-change = No part copy of the project would change
 toast-eplan-parts-added = { $p0 }: { $p1 } parts added to your parts library, { $p2 } updated, { $p3 } not imported.
 toast-eplan-report-imported = Imported { $p0 } as a new project with { $p1 } devices.
+# FT-1763: the project changed while a report was read, and Cancel kept it.
+toast-report-read-dropped = The report was not imported: the project changed while it was read and stays open; import the report again to make its project.
 eplan-report-map = Map the columns…
 eplan-report-parts = Import as parts table
 eplan-map-intro = Choose what each column of { $p0 } is in the EPLAN report. The mapping is saved for the next file of this report.
