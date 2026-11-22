@@ -212,24 +212,32 @@ impl ShellModel {
     /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
-        let action = if undo {
-            self.project.as_ref().and_then(|p| {
-                let h = p.session.history();
-                let cursor = h.cursor();
-                let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
-                Some((
-                    NoteAction::Undo,
-                    Validity::Undo {
-                        epoch: p.epoch,
-                        cursor,
-                        rev,
-                    },
-                ))
-            })
-        } else {
-            None
-        };
+        let action = if undo { self.undo_action() } else { None };
         self.notes.push(text, key, action);
+    }
+
+    /// Undo of the step just committed, valid while it is the next undo step.
+    fn undo_action(&self) -> Option<(NoteAction, Validity)> {
+        self.project.as_ref().and_then(|p| {
+            let h = p.session.history();
+            let cursor = h.cursor();
+            let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
+            Some((
+                NoteAction::Undo,
+                Validity::Undo {
+                    epoch: p.epoch,
+                    cursor,
+                    rev,
+                },
+            ))
+        })
+    }
+
+    /// Shows `text`, the error findings the step just committed brought, as a toast of key `edit` in the error's tone,
+    /// with Undo of that step.
+    pub(super) fn notify_error(&mut self, text: String) {
+        let action = self.undo_action();
+        self.notes.push_toned(text, "edit", action, Some(NoteTone::Error));
     }
 
     /// Shows `text` as a toast of key `edit` whose action opens the rack of `station`.

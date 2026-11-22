@@ -6821,6 +6821,7 @@ toast-route-done-one = Routed 1 wire: { $p0 }.
 toast-route-applied = Routed { $p0 } wires on { $p1 }.
 toast-route-applied-one = Routed 1 wire on { $p1 }.
 toast-route-nothing = Nothing to route: no wire would run better.
+toast-wire-error = The wire makes an error: { $p0 }.
 toast-route-done-selected = Routed { $p0 } selected wires: { $p1 }.
 toast-route-done-selected-one = Routed 1 selected wire: { $p0 }.
 toast-route-nothing-selected = Nothing to route among the { $p0 } selected items: no wire would run better.

@@ -158,6 +158,23 @@ impl ShellModel {
         self.with_online(|o| o.conflict.clone()).unwrap_or_default()
     }
 
+    /// The open error findings of the online report of the current revision, each as its fingerprint and its message
+    /// in the UI language (the check is memoised in the session's store, as [`Self::with_online`]'s is).
+    pub(super) fn open_errors(&self) -> Vec<(String, String)> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let lang = strings::rule_language();
+        project
+            .session
+            .check(project.session.online_scheme(), CheckMode::Online)
+            .findings
+            .iter()
+            .filter(|f| matches!(f.state, FindingState::Open) && f.severity == ew_api::checks::Severity::Error)
+            .map(|f| (f.fingerprint.to_string(), ew_api::checks::messages::render(f, lang)))
+            .collect()
+    }
+
     /// `f` over the online facts of the current revision: one online check per (project session, revision), read
     /// only when a getter asks (memoised in the session's store, so a revision re-checks what it touched).
     fn with_online<R>(&self, f: impl FnOnce(&OnlineFacts) -> R) -> Option<R> {

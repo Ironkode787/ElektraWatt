@@ -6549,6 +6549,7 @@ toast-route-done-one = 1 draad gerouteerd: { $p0 }.
 toast-route-applied = { $p0 } draden op { $p1 } gerouteerd.
 toast-route-applied-one = 1 draad op { $p1 } gerouteerd.
 toast-route-nothing = Niets te routeren: geen draad zou beter lopen.
+toast-wire-error = De draad geeft een fout: { $p0 }.
 toast-route-done-selected = { $p0 } geselecteerde draden gerouteerd: { $p1 }.
 toast-route-done-selected-one = 1 geselecteerde draad gerouteerd: { $p0 }.
 toast-route-nothing-selected = Niets te routeren onder de { $p0 } geselecteerde elementen: geen draad zou beter lopen.

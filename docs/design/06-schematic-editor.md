@@ -1228,6 +1228,10 @@ stateDiagram-v2
   routing, the HUD says what a click at the point does: over a wire, a tee (Alt+Click a bend); over the start,
   nothing; elsewhere "Click a connection point to end, a free point for a bend". Over a junction that already joins
   three wires it says "This junction already joins three wires: end on a wire to make a new junction."
+- *As built (0.3.5 persona re-test).* A wire whose commit brings a new open error finding of the online check (L
+  joined to N) says so in a toast in the error's tone, "The wire makes an error: " and the finding's message in the
+  UI language, with Undo; the online report is memoised per revision, so the comparison costs no second check (a
+  persona run joined L and N by two missed clicks, and only the red wire and "1 Error" in Properties showed it).
 - *As built (rc.2 persona runs).* A click inside a symbol's body or a black box's outline places no bend (a bend there
   draws the wire through the symbol, rule (c) of ADR-0033): it is refused in words, "A bend cannot sit inside a
   symbol; click one of its connection points, or a free point outside it", and the wire keeps routing. A run that

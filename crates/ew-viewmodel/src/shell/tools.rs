@@ -692,9 +692,25 @@ impl ShellModel {
                         }
                     }
                 }
+                // A drawn wire that brings an error says so at once, in the finding's words (a persona run joined L
+                // and N by two missed clicks and nothing said so). The online report is memoised per revision.
+                let wire = matches!(cmd.name(), "connection.draw" | "connection.draw_many");
+                let errors_before = if wire { self.open_errors() } else { Vec::new() };
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
+                if out == Outcome::Done && wire {
+                    let new: Vec<String> = self
+                        .open_errors()
+                        .into_iter()
+                        .filter(|(f, _)| !errors_before.iter().any(|(b, _)| b == f))
+                        .map(|(_, message)| message.trim_end_matches('.').to_owned())
+                        .collect();
+                    if !new.is_empty() {
+                        let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
+                        self.notify_error(text);
+                    }
+                }
                 if out == Outcome::Done {
                     // A paste also says what it did besides: the wires it removed with the devices it brought back.
                     let notices = match cmd.name() {
