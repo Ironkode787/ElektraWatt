@@ -52,7 +52,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### Properties and the title block's words
 
-- FT-2065 `ew-viewmodel`: The help of a device's tag, parts and technical data, a strip's Label mode, a page's Scale, Grid and Number, a section's, a report block's and a party's address rows says what the program does with the value, an example and its unit (FT-1809's hand, 2026-11-22); the rows of the other kinds still often repeat their label (a symbol's Arrangement, Anchor and text slots, a junction's Position and Style, a page item's Layer and its kinds, a bus port's Bus, Interface, Role and Termination, a connection point's Description, an assembly's configured products): do the same for them, checking each against the code that reads it.
 
 #### The layout page
 
