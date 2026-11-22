@@ -81,10 +81,7 @@ pub(crate) fn plc_import(
                         let sides =
                             strings::format(key!("plc-import-sides"), &[&side(&c.ours), &side(&c.theirs)]);
                         ui.label(small(sides, t.text_primary));
-                        let state = strings::text(ew_viewmodel::strings::Key::run_time(&format!(
-                            "plc-import-state-{}",
-                            c.state
-                        )));
+                        let state = strings::text(ew_viewmodel::strings::Key::run_time(c.state.key()));
                         ui.label(small(format!("· {state}"), t.text_tertiary));
                     });
                     if card.tab == ImportTab::Changed

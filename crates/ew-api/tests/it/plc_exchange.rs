@@ -459,6 +459,29 @@ fn a_file_that_comes_back_merges_three_ways() {
     assert_eq!(symbol(&s.query()).as_deref(), Some("CL_V_01A"));
 }
 
+/// FT-2080: an applied change's notice names its field and its state by their keys, which the window renders in its
+/// language; the command line reads their English ("symbol", "applied").
+#[test]
+fn an_exchange_notice_names_its_field_and_state_by_their_keys() {
+    let mut s = exchange();
+    let theirs = aml(&mut s).replace(FIRST, "CL_V_01A");
+    let merged = import(&s, theirs.as_bytes());
+    let receipt = bulk(&mut s, &merged.apply);
+    let notice = receipt
+        .outcome
+        .notices
+        .iter()
+        .find(|n| n.key() == "notice-plc-exchange-change" && n.to_string().contains("CL_V_01A"))
+        .expect("the renamed symbol's notice");
+    let key = |arg: &ew_api::TextArg| match arg {
+        ew_api::TextArg::Text(t) => t.key(),
+        ew_api::TextArg::Plain(p) => panic!("words written as they are: {p}"),
+    };
+    assert_eq!(key(&notice.args()[1]), "plc-field-tag-name");
+    assert_eq!(key(&notice.args()[4]), "plc-import-state-apply");
+    assert!(notice.to_string().contains(": symbol "), "{notice}");
+}
+
 /// FR-PLC-056: a file whose IDs the PLC software replaced still matches every object by its IEC designation and
 /// position; applying it keeps the foreign IDs, by which the next file matches.
 #[test]

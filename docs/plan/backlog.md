@@ -76,7 +76,6 @@ Faults met while the tests moved from the reference project to the sample (M3.5,
 
 #### A command's words
 
-- FT-2080 `ew-plc, ew-commands, ew-viewmodel`: The PLC exchange's notices (Apply's preview list: "-201U3: input start 0 → 8 (apply, taken from the file)", parked and removed objects) are keyed since FT-1819, but the object, field and state words inside them are still `ew_plc::object_words`, `field_words` and `State::word`, English in a Dutch window. The window has its own Dutch words for the same objects and fields (`plc_object_text`, `plc_field_text` over the `plc-object-*` and `plc-field-*` keys): two mappings of one thing. Make `ew-plc` name each object, field and state by its key (one place), the window and the notices render the key, and the command line its English.
 
 #### Work on the window's thread
 

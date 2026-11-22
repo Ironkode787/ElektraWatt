@@ -2124,7 +2124,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     user(&c.text),
                     user(&c.ours),
                     user(&c.theirs),
-                    c.state
+                    c.state.word()
                 ));
             }
             for r in &card.removed {

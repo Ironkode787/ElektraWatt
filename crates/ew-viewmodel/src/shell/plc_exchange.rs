@@ -16,7 +16,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::key;
-use crate::strings;
+use crate::strings::{self, Key};
 
 impl ShellModel {
     /// `plc.preview {cmd, params}` (FR-PLC-014, FR-PLC-015): the previewed PLC addressing command `cmd` (`plc.readdress`,
@@ -118,8 +118,8 @@ pub struct ImportChange {
     pub ours: String,
     /// The file's value.
     pub theirs: String,
-    /// What the merge makes of it: `apply`, `rejected`, `kept`, `pending` or `conflict`.
-    pub state: &'static str,
+    /// What the merge makes of it.
+    pub state: ew_api::plc_exchange::State,
     /// The side Apply takes without a choice: `ours` or `theirs`.
     pub default: &'static str,
     /// Why the file's value cannot be taken, in words; `None` when it can.
@@ -229,7 +229,7 @@ fn plc_import_card(
                 text: strings::format(key!("plc-import-row"), &[&c.subject, &field]),
                 ours: words(&c.ours),
                 theirs: words(&c.theirs),
-                state: c.state.word(),
+                state: c.state,
                 default: match c.default {
                     ew_api::plc_exchange::Choice::Ours => "ours",
                     ew_api::plc_exchange::Choice::Theirs => "theirs",
@@ -237,7 +237,7 @@ fn plc_import_card(
                 refused,
             }
         })
-        .partition(|c| c.state == "conflict");
+        .partition(|c| c.state == ew_api::plc_exchange::State::Conflict);
     let object = |o: &ew_api::plc_exchange::ExchangeObject, name: &str| {
         strings::format(key!("plc-import-object"), &[&plc_object_text(o), name])
     };
@@ -271,26 +271,20 @@ fn plc_import_card(
     }
 }
 
-/// The kind of an exchanged object in the window's words: its `plc-object-<kind>` text, `plc-object-other` for a kind
-/// of a newer format.
+/// The kind of an exchanged object in the window's words: the text of its key (`ew_plc::object_key`).
 pub fn plc_object_text(object: &ew_api::plc_exchange::ExchangeObject) -> String {
-    strings::lookup(&format!("plc-object-{}", object.name()))
-        .filter(|_| !object.name().is_empty())
-        .unwrap_or_else(|| strings::text(key!("plc-object-other")))
-        .to_owned()
+    strings::text(Key::run_time(ew_api::plc_exchange::object_key(object))).to_owned()
 }
 
-/// A field of an exchanged object in the window's words: the object's own `plc-field-<kind>-<field>` text (a tag's
-/// `name` is its symbol), else `plc-field-<field>`, a comment in a language with the language; a field this version
-/// does not know as it is written.
+/// A field of an exchanged object in the window's words: the text of its key (`ew_plc::field_name`), a comment in a
+/// language with the language; a field this version does not name as it is written.
 pub fn plc_field_text(object: &ew_api::plc_exchange::ExchangeObject, field: &str) -> String {
-    if let Some(lang) = field.strip_prefix("comment.") {
-        return strings::format(key!("plc-field-comment-in"), &[lang]);
+    use ew_api::plc_exchange::FieldName;
+    match ew_api::plc_exchange::field_name(object, field) {
+        FieldName::Key(key) => strings::text(Key::run_time(key)).to_owned(),
+        FieldName::Comment(lang) => strings::format(key!("plc-field-comment-in"), &[lang]),
+        FieldName::Unknown(field) => field.to_owned(),
     }
-    let key = field.replace(['.', '_'], "-");
-    strings::lookup(&format!("plc-field-{}-{key}", object.name()))
-        .or_else(|| strings::lookup(&format!("plc-field-{key}")))
-        .map_or_else(|| field.to_owned(), str::to_owned)
 }
 
 /// The PLC export formats PLC exchange… offers: (word, the format, its name); product names, the same in every

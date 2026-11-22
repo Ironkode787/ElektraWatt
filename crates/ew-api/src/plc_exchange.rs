@@ -39,8 +39,9 @@ use sha2::Digest as _;
 
 use crate::{AnyCommand, Session};
 
+pub use ew_commands::commands::{field_text, object_text};
 pub use ew_plc::ew_caex::ApcVersion;
-pub use ew_plc::{Choice, field_words, object_words};
+pub use ew_plc::{Choice, FieldName, State, field_name, object_key};
 pub use ew_schema::{Date, ExchangeDirection, ExchangeFormat, ExchangeObject};
 
 /// The largest exchange file a host reads (doc 14 §11): the input limit of the AML reader.
@@ -192,7 +193,7 @@ impl PlcImport {
                     object: c.object.name().to_owned(),
                     subject: c.subject.clone(),
                     field: c.field.clone(),
-                    label: field_words(&c.object, &c.field),
+                    label: field_text(&c.object, &c.field).to_string(),
                     base: c.base.clone(),
                     ours: c.ours.clone(),
                     theirs: c.theirs.clone(),

@@ -69,45 +69,69 @@ pub fn class(object: &ExchangeObject, field: &str) -> FieldClass {
     FieldClass::Group(group)
 }
 
-/// The kind of an exchanged object in words (`bus node`).
-pub fn object_words(object: &ExchangeObject) -> &'static str {
+/// The key of the words of an exchanged object's kind (`plc-object-node`, "bus node"): the window renders it in its
+/// language, the command line and `ew-api` print its English.
+pub fn object_key(object: &ExchangeObject) -> &'static str {
     match object {
-        ExchangeObject::Station => "station",
-        ExchangeObject::Module => "module",
-        ExchangeObject::Channel => "channel",
-        ExchangeObject::Tag => "tag",
-        ExchangeObject::Node => "bus node",
-        ExchangeObject::Instrument => "instrument",
-        ExchangeObject::Unknown(_) => "object",
+        ExchangeObject::Station => "plc-object-station",
+        ExchangeObject::Module => "plc-object-module",
+        ExchangeObject::Channel => "plc-object-channel",
+        ExchangeObject::Tag => "plc-object-tag",
+        ExchangeObject::Node => "plc-object-node",
+        ExchangeObject::Instrument => "plc-object-instrument",
+        ExchangeObject::Unknown(_) => "plc-object-other",
     }
 }
 
-/// A field of an exchanged object in words, as a preview and a refusal name it (`output start`, `comment (en-GB)`).
-pub fn field_words(object: &ExchangeObject, field: &str) -> String {
+/// The keys of the words of the exchanged fields, as `(object kind, field, key)`: an entry with an object kind names
+/// that kind's field and goes before the entry for every kind (`""`). The one mapping of a field to its words.
+pub const FIELD_KEYS: &[(&str, &str, &str)] = &[
+    ("tag", "name", "plc-field-tag-name"),
+    ("station", "type", "plc-field-station-type"),
+    ("", "name", "plc-field-name"),
+    ("", "type", "plc-field-type"),
+    ("", "location", "plc-field-location"),
+    ("", "firmware", "plc-field-firmware"),
+    ("", "data_type", "plc-field-data-type"),
+    ("", "address", "plc-field-address"),
+    ("", "comment", "plc-field-comment"),
+    ("", "start.input", "plc-field-start-input"),
+    ("", "start.output", "plc-field-start-output"),
+    ("", "bits.input", "plc-field-bits-input"),
+    ("", "bits.output", "plc-field-bits-output"),
+    ("", "position", "plc-field-position"),
+    ("", "order_number", "plc-field-order-number"),
+    ("", "type_name", "plc-field-type-name"),
+    ("", "io", "plc-field-io"),
+    ("", "number", "plc-field-number"),
+    ("", "bits", "plc-field-bits"),
+    ("", "bus", "plc-field-bus"),
+    ("", "mask", "plc-field-mask"),
+    ("", "router", "plc-field-router"),
+    ("", "device_name", "plc-field-device-name"),
+    ("", "network", "plc-field-network"),
+];
+
+/// How a field of an exchanged object is named in a preview, a notice and a refusal.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FieldName<'a> {
+    /// By the key of its words ([`FIELD_KEYS`]; `plc-field-start-output`, "output start").
+    Key(&'static str),
+    /// A comment in a language: the key `plc-field-comment-in` ("comment (en-GB)") with the language.
+    Comment(&'a str),
+    /// A field this version does not name, as it is written.
+    Unknown(&'a str),
+}
+
+/// The name of `field` of an object of kind `object` ([`FieldName`]).
+pub fn field_name<'a>(object: &ExchangeObject, field: &'a str) -> FieldName<'a> {
     if let Some(lang) = field.strip_prefix("comment.") {
-        return format!("comment ({lang})");
+        return FieldName::Comment(lang);
     }
-    let words = match (object, field) {
-        (ExchangeObject::Tag, "name") => "symbol",
-        (_, "name") => "designation",
-        (_, "data_type") => "data type",
-        (_, "start.input") => "input start",
-        (_, "start.output") => "output start",
-        (_, "bits.input") => "input length",
-        (_, "bits.output") => "output length",
-        (_, "position") => "slot",
-        (_, "order_number") => "order number",
-        (_, "type_name") => "type name",
-        (ExchangeObject::Station, "type") => "type identifier",
-        (_, "io") => "direction",
-        (_, "bits") => "length",
-        (_, "mask") => "subnet mask",
-        (_, "router") => "gateway",
-        (_, "device_name") => "device name",
-        (_, "network") => "subnet",
-        (_, other) => other,
-    };
-    words.to_owned()
+    FIELD_KEYS
+        .iter()
+        .find(|(kind, f, _)| *f == field && (kind.is_empty() || *kind == object.name()))
+        .map_or(FieldName::Unknown(field), |(_, _, key)| FieldName::Key(key))
 }
 
 /// Puts `value` under `name`, without its leading and trailing white space, which the readers of AML and tables do

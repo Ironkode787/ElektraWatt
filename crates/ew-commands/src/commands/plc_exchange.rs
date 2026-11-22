@@ -15,7 +15,7 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_plc::ew_caex::ExchangeImage;
 use ew_plc::instrument::{InstrumentRow, Signal};
-use ew_plc::{Change, Choice, MergeOptions, Parked, ParkedModule, Vocabulary};
+use ew_plc::{Change, Choice, FieldName, MergeOptions, Parked, ParkedModule, Vocabulary};
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusSystem, Channel, ChannelState, Date, Device, DeviceAspects,
     ExchangeDirection, ExchangeFormat, ExchangeObject, ExchangeRecord, ExchangeStamp, Extra, FieldGroup,
@@ -526,7 +526,7 @@ impl Command for ApplyExchange {
             };
             if choice == Choice::Theirs {
                 if !c.acceptable {
-                    let (field, subject) = (ew_plc::field_words(&c.object, &c.field), c.subject.clone());
+                    let (field, subject) = (field_text(&c.object, &c.field), c.subject.clone());
                     // an owned field the file cannot take is a comment of the other form than the project's
                     let why = if c.group.is_some() {
                         text!("refusal-plc-exchange-language", field, subject)
@@ -548,10 +548,10 @@ impl Command for ApplyExchange {
             notices.push(text!(
                 "notice-plc-exchange-change",
                 c.subject.clone(),
-                ew_plc::field_words(&c.object, &c.field),
+                field_text(&c.object, &c.field),
                 side(&c.ours),
                 side(&c.theirs),
-                c.state.word(),
+                Text::checked_by_macro(c.state.key(), Vec::new()),
                 if choice == Choice::Theirs {
                     text!("notice-plc-exchange-taken")
                 } else {
@@ -592,7 +592,7 @@ impl Command for ApplyExchange {
                     entries.extend(create_parked(tx, self.config_project, p)?);
                     notices.push(text!(
                         "notice-plc-exchange-created",
-                        ew_plc::object_words(&p.object),
+                        object_text(&p.object),
                         p.name.clone()
                     ));
                 }
@@ -613,13 +613,13 @@ impl Command for ApplyExchange {
                 None => notices.push(if p.ambiguous {
                     text!(
                         "notice-plc-exchange-parked-several",
-                        ew_plc::object_words(&p.object),
+                        object_text(&p.object),
                         p.name.clone()
                     )
                 } else {
                     text!(
                         "notice-plc-exchange-parked-none",
-                        ew_plc::object_words(&p.object),
+                        object_text(&p.object),
                         p.name.clone()
                     )
                 }),
@@ -628,7 +628,7 @@ impl Command for ApplyExchange {
         for (object, _, name) in &plan.removed {
             notices.push(text!(
                 "notice-plc-exchange-removed",
-                ew_plc::object_words(object),
+                object_text(object),
                 name.clone()
             ));
         }
@@ -666,6 +666,22 @@ impl Command for ApplyExchange {
     }
 }
 
+/// The kind of an exchanged object in words, by its key (`ew_plc::object_key`): the window renders it in its language,
+/// the command line prints its English.
+pub fn object_text(object: &ExchangeObject) -> Text {
+    Text::checked_by_macro(ew_plc::object_key(object), Vec::new())
+}
+
+/// A field of an exchanged object in words, by its key (`ew_plc::field_name`): a comment in a language with the
+/// language, a field this version does not name as it is written.
+pub fn field_text(object: &ExchangeObject, field: &str) -> TextArg {
+    match ew_plc::field_name(object, field) {
+        FieldName::Key(key) => Text::checked_by_macro(key, Vec::new()).into(),
+        FieldName::Comment(lang) => text!("plc-field-comment-in", lang).into(),
+        FieldName::Unknown(field) => field.into(),
+    }
+}
+
 /// The refusal of a file value that cannot be written.
 fn bad_value(c: &Change, why: impl std::fmt::Display) -> CmdError {
     CmdError::invalid_params(
@@ -674,7 +690,7 @@ fn bad_value(c: &Change, why: impl std::fmt::Display) -> CmdError {
         text!(
             "refusal-plc-exchange-value",
             c.theirs.clone().unwrap_or_default(),
-            ew_plc::field_words(&c.object, &c.field),
+            field_text(&c.object, &c.field),
             c.subject.clone(),
             why.to_string()
         ),

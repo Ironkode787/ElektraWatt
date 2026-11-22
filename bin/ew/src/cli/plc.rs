@@ -7,8 +7,8 @@
 use super::*;
 
 use ew_api::plc_exchange::{
-    ExchangeDirection, ExchangeFormat, PlcExchangeError, PlcFormat, PlcImport, PlcOptions, field_words,
-    object_words,
+    ExchangeDirection, ExchangeFormat, PlcExchangeError, PlcFormat, PlcImport, PlcOptions, field_text,
+    object_text,
 };
 
 /// The line of a refused exchange.
@@ -148,7 +148,7 @@ fn import_text(
             "{}: {}: {} {} → {}{default}{refused}  [{}]",
             c.state.word(),
             c.subject,
-            field_words(&c.object, &c.field),
+            field_text(&c.object, &c.field),
             side(&c.ours),
             side(&c.theirs),
             c.id
@@ -158,7 +158,7 @@ fn import_text(
         let _ = writeln!(
             out,
             "parked: {} {} ({}){}  [{}]",
-            object_words(&p.object),
+            object_text(&p.object),
             p.name,
             if p.ambiguous {
                 "several objects of the project match it"
@@ -177,7 +177,7 @@ fn import_text(
         let _ = writeln!(
             out,
             "removed: {} {name} is no longer in the file",
-            object_words(object)
+            object_text(object)
         );
     }
     let _ = writeln!(
@@ -433,11 +433,11 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
             println!("the project is as exchanged");
         }
         for (object, name, fields) in &status.drift {
-            let words = object_words(object);
+            let words = object_text(object);
             if fields.is_empty() {
                 println!("changed since: {words} {name} (added or gone)");
             } else {
-                let fields: Vec<String> = fields.iter().map(|f| field_words(object, f)).collect();
+                let fields: Vec<String> = fields.iter().map(|f| field_text(object, f).to_string()).collect();
                 println!("changed since: {words} {name}: {}", fields.join(", "));
             }
         }

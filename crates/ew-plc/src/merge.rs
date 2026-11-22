@@ -135,7 +135,19 @@ pub enum State {
 }
 
 impl State {
-    /// The state's word in a preview.
+    /// The key of the state's words (`plc-import-state-apply`, "applied"): the window renders it in its language, a
+    /// notice holds it.
+    pub fn key(self) -> &'static str {
+        match self {
+            State::Apply => "plc-import-state-apply",
+            State::Rejected => "plc-import-state-rejected",
+            State::Kept => "plc-import-state-kept",
+            State::Pending => "plc-import-state-pending",
+            State::Conflict => "plc-import-state-conflict",
+        }
+    }
+
+    /// The state's name, as the command line's preview and `--json` give it (`conflict`).
     pub fn word(self) -> &'static str {
         match self {
             State::Apply => "apply",
