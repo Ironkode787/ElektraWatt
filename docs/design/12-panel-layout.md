@@ -689,7 +689,8 @@ read (FT-2032). Its title names its layout: "Legend of layout 902", "Legenda bij
 `Legend of layout {layout}`, `{layout}` the layout page's folio, so a renumbered layout renames it); a legend page's
 Properties show the title as the page prints it, and the title row's explanation names `{layout}` (FT-2095). `ew export
 report --kind enclosure_legend` writes the legend of every plate a layout page shows, in page order, each after a
-heading row "Layout 902" (09 §2.2). Deleting the layout page deletes its legend list.
+heading row "Layout 902" (09 §2.2), and a list block of the legend's kind that names no layout page (Output ▸ Reports ▸
+Report block… makes one) lists the same on its pages. Deleting the layout page deletes its legend list.
 - **Enclosure…** makes the legend page with the view: the plate drawn on the layout page and its legend page are one
   undo step (a location, a layout page and an enclosure the act makes stay steps of their own before it). A page's
   Surface row that gives a page its first view makes the legend page the same way.
