@@ -98,7 +98,7 @@ where a real page shows it; each row says whether one is known.
 Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
 
 - FT-1775 `xtask, ew-commands, ew-viewmodel`: The test builds and a plain `cargo build` (the headless pictures, `ew`) compile every crate above `ew-commands` twice: the tests with the test-only `testkit` features of `ew-commands` and `ew-viewmodel` (`[[uniform_test_features]]`), the plain build without; `ew-commands`' `testkit` turns on `ew-model`'s, so a lower crate tested alone builds twice too. One flavour would save the second compile of the heavy crates (not measured).
-- FT-1937 `ew-scene, ew-viewmodel, ew-api, ew-commands, ew-reports, ew-drafting, ew-ui, ew-library`: **Step 15 of M3.5 (owner, 2026-11-23; it was the first step of M4): one concept, one place.** After the second candidate of 0.3.5 is cut, on the working branch only. What it holds, the spots the reviews named, the files to split and the yardstick are in [m3.5.md](m3.5.md), "Step 15". No behaviour changes; the yardstick is not a test.
+- FT-1937 `ew-scene, ew-viewmodel, ew-api, ew-commands, ew-reports, ew-drafting, ew-ui, ew-library`: **Step 15 of M3.5 (owner, 2026-11-23; it was the first step of M4): one concept, one place.** After the second candidate of 0.3.5 is cut; its work goes into the third. What it holds, the spots the reviews named, the files to split, the five guards of its part 4 and the yardstick are in [m3.5.md](m3.5.md), "Step 15". No behaviour changes; the yardstick is not a test.
 
 ## M4
 
