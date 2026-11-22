@@ -378,6 +378,8 @@ change here.
   reference), Drawing (Drawing ID), Object (Object ID), Saved (Edited) and Author (Designer; in Dutch Getekend); the
   rows' explanations say which cell prints them, that Document title prints on the cover only, and that the Checked
   cell prints who approves the current revision, not the Checker row (doc 09 §2.7, FT-1803)
+- behaviour-change: the Potential row of a wire whose potential no definition names opens Define potential… on Enter,
+  F2 or a click on its value, as the wire's menu does; only its "…" menu offered it (doc 16 §6, FT-1779)
 - format-variant: form Align baseline_centre
 - format-variant: form Align baseline_left
 - format-variant: form Align baseline_right

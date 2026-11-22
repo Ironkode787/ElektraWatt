@@ -154,7 +154,7 @@ fn marker_text(shell: &mut ShellModel, folio: &str, ends: &[(&str, &str)]) -> St
 }
 
 /// A writable copy of the sample with every potential definition deleted (one step), the Potentials table on.
-fn undefined(tmp: &Tmp) -> ShellModel {
+pub(crate) fn undefined(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     done(&mut shell, "navigator.table", json!({"kind": "potentials"}));

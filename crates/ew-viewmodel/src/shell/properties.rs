@@ -931,6 +931,11 @@ impl ShellModel {
             self.focus = Some(Focus::Properties);
         }
         let key = or_return!(self.props_row_param(p));
+        // The Potential row of a potential no definition names: Enter, F2 or a click is Define potential…, as the
+        // wire's menu offers it (FT-1779).
+        if self.row_menu(&key).contains(&RowMenuItem::DefinePotential) {
+            return self.act_potential_draw(&Map::new());
+        }
         // A derived row edits its authored partner: Enter or F2 is its Override.
         let overrides = self.props_find(&key).is_some_and(|(_, r)| {
             !r.actions.contains(&RowAction::Edit) && r.actions.contains(&RowAction::Override)

@@ -1149,6 +1149,12 @@ impl PropertiesPane {
         let link = !header && !editable && is_link(row);
         // A wire's value its cable core gives takes a click, which says where it is changed.
         let cable = !header && !editable && shell.cable_row(&row.key).is_some();
+        // The Potential row of a potential no definition names: a click opens Define potential… (FT-1779).
+        let defines = !header
+            && !editable
+            && shell
+                .row_menu(&row.key)
+                .contains(&ew_viewmodel::properties::RowMenuItem::DefinePotential);
         // A click on a read-only value moves the row cursor there (no focus stop of its own): what is typed next goes to
         // that row and is refused with its reason, never into the row before (a text must not land in the date
         // row above).
@@ -1157,7 +1163,7 @@ impl PropertiesPane {
                 value_w,
                 t.size_control_inline.max(prose.map_or(0.0, |p| p.height)),
             ),
-            if editable || link || cable {
+            if editable || link || cable || defines {
                 Sense::click()
             } else if header {
                 Sense::hover()
@@ -1182,7 +1188,7 @@ impl PropertiesPane {
         let cell_name = shown.clone();
         let role = if chooser == Some(ValueChooser::List) {
             egui::Role::ComboBox
-        } else if editable {
+        } else if editable || defines {
             egui::Role::Button
         } else if link || cable {
             // A value a click answers is a link with a name (a core's value said nothing to a screen reader).
@@ -1197,7 +1203,7 @@ impl PropertiesPane {
                 .ctx()
                 .accesskit_node_builder(response.id, |n| n.set_expanded(false));
         }
-        if editable && response.hovered() {
+        if (editable || defines) && response.hovered() {
             child.painter().rect_stroke(
                 cell,
                 crate::theme::radius(t.radius_sm),
@@ -1312,7 +1318,7 @@ impl PropertiesPane {
             events.push(Event::Action("props.row", json!({"to": row.key})));
             if link {
                 events.push(Event::Action("props.follow", json!({"row": row.key})));
-            } else if editable || cable {
+            } else if editable || cable || defines {
                 events.push(Event::Action("props.edit", json!({})));
             }
         }
