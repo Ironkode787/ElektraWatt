@@ -1469,6 +1469,7 @@ version = "0.3.5"
 dependencies = [
  "automod",
  "ew-schema",
+ "ew-units",
  "proptest",
  "serde",
  "serde_json",

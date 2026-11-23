@@ -20,6 +20,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::output::{PanelTables, Uuid};
+use ew_units::MAX_SAFE_INTEGER;
 use serde_json::{Value, json};
 
 use super::layout::{LAYOUT_SNAP_PT, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet};
@@ -170,16 +171,13 @@ pub(crate) fn point_json(p: (i128, i128)) -> Value {
     json!([clamp64(p.0), clamp64(p.1)])
 }
 
-/// The largest coordinate magnitude a carrier path takes, nm: `layout.carrier.add`'s range (2^53 - 1).
-const DRAWABLE: i128 = (1 << 53) - 1;
-
-/// Whether every point lies inside the drawable range. The draw tools refuse a point outside it in words, with
+/// Whether every point lies inside the drawable range, ±[`MAX_SAFE_INTEGER`] nm (`layout.carrier.add`'s range). The draw tools refuse a point outside it in words, with
 /// `reason-point-outside-drawing`, before they send the command; the command's own range text stays for
 /// scripts.
 pub(crate) fn drawable(points: &[(i128, i128)]) -> bool {
     points
         .iter()
-        .all(|p| p.0.abs() <= DRAWABLE && p.1.abs() <= DRAWABLE)
+        .all(|p| p.0.abs() <= i128::from(MAX_SAFE_INTEGER) && p.1.abs() <= i128::from(MAX_SAFE_INTEGER))
 }
 
 /// The midpoint of two sheet points, computed in `i128` so that two far points cannot overflow.

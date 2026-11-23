@@ -16,6 +16,8 @@ workspace = true
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
+# The safe-integer bound of a JSON number (the manifest's generation).
+ew-units = { path = "../ew-units" }
 # The `$k`-first envelope of a row serialised without cloning it into a `Record` (same bytes as `Record`'s).
 serde.workspace = true
 # Compact canonical lines and the manifest (doc 05 §3.1, §4). Never with `preserve_order`.

@@ -21,7 +21,7 @@ use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The largest coordinate magnitude a record can hold: 2⁵³ − 1 nm (ADR-0005).
-pub const MAX_COORD: i64 = (1 << 53) - 1;
+pub const MAX_COORD: i64 = ew_units::MAX_SAFE_INTEGER;
 
 /// A coordinate computation left ±[`MAX_COORD`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

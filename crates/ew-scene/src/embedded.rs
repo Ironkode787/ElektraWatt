@@ -55,7 +55,7 @@
 
 use ew_dl::{Brush, Color, Item, Link, Path, Stroke};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{MAX_SAFE_INTEGER, Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, SheetMap, lay_out, min_size};
 use crate::table::{
@@ -85,14 +85,11 @@ pub const GUTTER: Nm = Nm(4_000_000);
 /// The most flow columns a boxed table draws; a larger count is drawn as this many.
 pub const MAX_FLOW_COLUMNS: u32 = 16;
 
-/// The largest coordinate magnitude of a block's page rectangle that [`lower_embedded`] and [`boxed_capacity`] take:
-/// 2⁵³ − 1 nm, the bound a record can hold (`ew_commands::geometry::MAX_COORD`, ADR-0005). A rectangle read from a
-/// hostile file is clamped to it, so the arithmetic on it stays inside `i64`.
-const MAX_COORD: i64 = (1 << 53) - 1;
-
-/// `rect` with each coordinate clamped to ±[`MAX_COORD`].
+/// `rect` with each coordinate clamped to ±[`MAX_SAFE_INTEGER`] nm, the largest coordinate magnitude of a block's
+/// page rectangle that [`lower_embedded`] and [`boxed_capacity`] take: the bound a record can hold (ADR-0005). A
+/// rectangle read from a hostile file is clamped to it, so the arithmetic on it stays inside `i64`.
 fn bounded(rect: Rect) -> Rect {
-    let c = |n: Nm| Nm(n.0.clamp(-MAX_COORD, MAX_COORD));
+    let c = |n: Nm| Nm(n.0.clamp(-MAX_SAFE_INTEGER, MAX_SAFE_INTEGER));
     let (a, b) = (rect.min(), rect.max());
     Rect::from_points(Pt2::new(c(a.x), c(a.y)), Pt2::new(c(b.x), c(b.y)))
 }
@@ -996,8 +993,8 @@ mod tests {
         assert_eq!(
             bounded(whole),
             Rect::from_points(
-                Pt2::new(Nm(-MAX_COORD), Nm(-MAX_COORD)),
-                Pt2::new(Nm(MAX_COORD), Nm(MAX_COORD))
+                Pt2::new(Nm(-MAX_SAFE_INTEGER), Nm(-MAX_SAFE_INTEGER)),
+                Pt2::new(Nm(MAX_SAFE_INTEGER), Nm(MAX_SAFE_INTEGER))
             )
         );
     }
