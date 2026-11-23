@@ -67,28 +67,6 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<(Id<Device>, Slot)> {
         .collect()
 }
 
-/// The devices of a station's tree: the station and its descendants, a nested station ending the walk below it.
-fn station_tree(q: &Q, station: Id<Device>) -> Vec<Id<Device>> {
-    let devices = q.devices();
-    let mut out = Vec::new();
-    let mut stack = vec![station];
-    let mut seen = std::collections::BTreeSet::new();
-    while let Some(d) = stack.pop() {
-        if !seen.insert(d) {
-            continue;
-        }
-        out.push(d);
-        let mut children: Vec<Id<Device>> = q
-            .idx()
-            .device_children(d)
-            .filter(|c| devices.get(*c).is_some_and(|x| x.aspects.plc_station.is_none()))
-            .collect();
-        children.sort();
-        stack.extend(children.into_iter().rev());
-    }
-    out
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // EW-PLC-004
 
@@ -658,7 +636,8 @@ impl Rule for CardSupply {
             return Vec::new();
         };
         let mut out = Vec::new();
-        for device in station_tree(q, station) {
+        // The station's tree, children in ID order.
+        for device in ew_derive::station_tree(q, station, |_| ()) {
             let mut functions: Vec<_> = q.idx().functions_of_device(device).collect();
             functions.sort();
             let groups = module_part(q, device)

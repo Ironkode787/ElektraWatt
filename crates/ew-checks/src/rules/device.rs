@@ -577,22 +577,6 @@ pub const ORDER_CODES_COVER: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-core-048",
 };
 
-/// The descendants of `head` (children, their children, …), each once, in ID order; a cycle ends the walk.
-fn descendants(q: &Q, head: Id<Device>) -> Vec<Id<Device>> {
-    let mut out: Vec<Id<Device>> = Vec::new();
-    let mut stack: Vec<Id<Device>> = vec![head];
-    while let Some(d) = stack.pop() {
-        for c in q.idx().device_children(d) {
-            if c != head && !out.contains(&c) {
-                out.push(c);
-                stack.push(c);
-            }
-        }
-    }
-    out.sort();
-    out
-}
-
 /// EW-CORE-048: an assembly with `bom_basis = assembly` whose order codes do not cover each of its descendants with
 /// part uses exactly once (FR-DEV-020, D-36): only an order code with a configured part covers (doc 03 §7: one
 /// without prints and covers nothing); covers are not transitive, so every descendant with own
@@ -627,7 +611,7 @@ impl Rule for OrderCodesCover {
         let tag = full_tag(q, head, "assembly");
         let mut rows: Vec<(String, Id<Device>, &'static str, String, u32)> = Vec::new();
         let with_parts = |d: Id<Device>| q.devices().get(d).is_some_and(|x| !x.parts.is_empty());
-        for d in std::iter::once(head).chain(descendants(q, head)) {
+        for d in std::iter::once(head).chain(ew_derive::device_descendants(q, head)) {
             let n = covered.get(&d).copied().unwrap_or(0);
             let child = full_tag(q, d, "device");
             if n > 1 {

@@ -602,12 +602,12 @@ impl Query for ModuleOrder {
     }
 }
 
-/// The modules of one station: rack slots first, then positional modules in manifold order.
-fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
+/// The devices of a station's tree: the station, then depth first its descendants, the children of a device in the
+/// order of `key` (then ID); a device that is a station of its own ends the walk below it (a nested station owns its
+/// modules), and a parent cycle is walked once.
+pub fn station_tree<K: Ord>(q: &Q, station: Id<Device>, key: impl Fn(Id<Device>) -> K) -> Vec<Id<Device>> {
     let devices = q.devices();
     let mut walk: Vec<Id<Device>> = Vec::new();
-    // Depth-first, children in (position, ID) order; a device that is a station of its own ends the walk
-    // below it (a nested station owns its modules). `seen` bounds a hostile parent cycle.
     let mut stack = vec![station];
     let mut seen = std::collections::BTreeSet::new();
     while let Some(d) = stack.pop() {
@@ -615,7 +615,7 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
             continue;
         }
         walk.push(d);
-        let mut children: Vec<(Option<u32>, Id<Device>)> = q
+        let mut children: Vec<(K, Id<Device>)> = q
             .idx()
             .device_children(d)
             .filter(|c| {
@@ -623,11 +623,19 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
                     .get(*c)
                     .is_some_and(|dev| dev.aspects.plc_station.is_none())
             })
-            .map(|c| (devices.get(c).and_then(|dev| dev.position), c))
+            .map(|c| (key(c), c))
             .collect();
         children.sort();
         stack.extend(children.into_iter().rev().map(|(_, c)| c));
     }
+    walk
+}
+
+/// The modules of one station: rack slots first, then positional modules in manifold order.
+fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
+    let devices = q.devices();
+    // Children in (position, ID) order.
+    let walk = station_tree(q, station, |c| devices.get(c).and_then(|dev| dev.position));
     let mut racks = Vec::new();
     let mut positional = Vec::new();
     let mut unresolved = Vec::new();

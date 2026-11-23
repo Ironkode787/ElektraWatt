@@ -200,18 +200,7 @@ fn root_of(q: &Q, device: Id<Device>) -> Id<Device> {
     current
 }
 
-/// Every descendant of a device, in natural order of full tag, cycle-safe.
+/// Every descendant of a device, in natural order of full tag.
 fn descendants(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
-    let mut seen = BTreeSet::from([device]);
-    let mut found = BTreeSet::new();
-    let mut stack = vec![device];
-    while let Some(d) = stack.pop() {
-        for child in q.idx().device_children(d) {
-            if seen.insert(child) {
-                found.insert(child);
-                stack.push(child);
-            }
-        }
-    }
-    sorted(q, found)
+    sorted(q, ew_derive::device_descendants(q, device))
 }

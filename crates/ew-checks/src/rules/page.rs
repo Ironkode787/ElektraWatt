@@ -629,19 +629,9 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
         if rep.functions.is_empty() {
             continue;
         }
-        let arrangement = rep
-            .arrangement
-            .as_ref()
-            .and_then(|name| def.arrangements.iter().find(|a| a.name == *name));
         for (i, slot) in def.text_slots.iter().enumerate() {
             let idx = u16::try_from(i).unwrap_or(u16::MAX);
-            let visible = rep
-                .text_slots
-                .iter()
-                .find(|o| o.slot == idx)
-                .and_then(|o| o.visible)
-                .unwrap_or_else(|| arrangement.map_or(slot.visible, |a| a.slots.contains(&idx)));
-            if visible {
+            if ew_derive::slot_shown(rep, def, idx) {
                 mark(Some(slot_style(&table, def, slot)));
             }
         }

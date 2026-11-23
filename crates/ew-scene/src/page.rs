@@ -742,10 +742,15 @@ pub fn symbol_geometry(def: &SymbolDef, variant: Orient2) -> Arc<DisplayList> {
 /// The page rectangle in page coordinates: the frame's outer rectangle, else the form's sheet, else
 /// [`DEFAULT_SHEET`].
 pub fn page_rect(view: &PageView) -> Rect {
+    frame_rect(view.frame.as_ref().map(|f| (&*f.form, f.title_block.as_deref())))
+}
+
+/// [`page_rect`] of a page drawn in frame `form` with its title block, or without a frame (`None`).
+pub fn frame_rect(frame: Option<(&FormDef, Option<&FormDef>)>) -> Rect {
     let sheet = |w: Nm, h: Nm| Rect::from_points(Pt2::ORIGIN, Pt2::new(w, h));
-    match &view.frame {
-        Some(f) => FrameGeometry::of(&f.form, f.title_block.as_deref())
-            .map_or_else(|| sheet(f.form.sheet.width, f.form.sheet.height), |g| g.outer),
+    match frame {
+        Some((form, title_block)) => FrameGeometry::of(form, title_block)
+            .map_or_else(|| sheet(form.sheet.width, form.sheet.height), |g| g.outer),
         None => sheet(DEFAULT_SHEET.0, DEFAULT_SHEET.1),
     }
 }

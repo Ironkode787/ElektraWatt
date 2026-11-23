@@ -31,6 +31,15 @@ impl Profile {
         }
     }
 
+    /// The width of a rail of the profile, in nanometres.
+    pub fn width(self) -> i128 {
+        match self {
+            Profile::Ts35x7_5 | Profile::Ts35x15 => 35_000_000,
+            Profile::Ts32 => 32_000_000,
+            Profile::Ts15 => 15_000_000,
+        }
+    }
+
     /// The profile's stored name (the serde name of its [`MountKind`]).
     pub fn name(self) -> &'static str {
         match self {

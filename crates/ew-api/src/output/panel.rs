@@ -763,15 +763,6 @@ fn xy(p: Pt2) -> (i64, i64) {
     (p.x.0, p.y.0)
 }
 
-/// The width of a rail of a profile, nm.
-fn profile_width(p: Profile) -> i128 {
-    match p {
-        Profile::Ts35x7_5 | Profile::Ts35x15 => 35_000_000,
-        Profile::Ts32 => 32_000_000,
-        Profile::Ts15 => 15_000_000,
-    }
-}
-
 /// The carriers of a surface (D9).
 fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
     let table = q.table::<Carrier>();
@@ -786,7 +777,7 @@ fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
         let (profile, width, height) = match &c.params {
             CarrierParams::Rail(r) => (
                 Some(r.profile.clone()),
-                Profile::of(&r.profile).map(profile_width),
+                Profile::of(&r.profile).map(Profile::width),
                 None,
             ),
             CarrierParams::Duct(d) => (None, Some(i128::from(d.width.0)), Some(i128::from(d.height.0))),

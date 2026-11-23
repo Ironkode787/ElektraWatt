@@ -19,8 +19,6 @@ use ew_derive::{
     CpRef, FunctionCps, PageRef, PotentialNameOf, PotentialPartition, Q, box_caption, cp_label, cp_point,
     free_text, group_marker, live_connections,
 };
-use ew_scene::forms::FrameGeometry;
-use ew_scene::page::DEFAULT_SHEET;
 use ew_scene::route::{RouteEnd, connection_polyline};
 
 use super::catalogue::{connection_kind_word, drawn_page, ip_direction_word, line_kind_word, rep_type_word};
@@ -597,15 +595,15 @@ fn segment_point(grid: ew_derive::ew_units::Grid, rep: &Representation, i: i64, 
     Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
 }
 
-/// The page rectangle in page coordinates (the scene's `page_rect`): the frame's outer rectangle, else the form's
-/// sheet, else the default sheet.
+/// The page rectangle in page coordinates (the scene's `page_rect`).
 fn page_rect(q: &Q, page: PageRef) -> Rect {
-    let sheet = |w: Nm, h: Nm| Rect::from_points(Pt2::ORIGIN, Pt2::new(w, h));
-    match q.get::<PageFrameOf>(page).as_ref() {
-        Some(f) => FrameGeometry::of(&f.form, f.title_block.as_deref())
-            .map_or_else(|| sheet(f.form.sheet.width, f.form.sheet.height), |g| g.outer),
-        None => sheet(DEFAULT_SHEET.0, DEFAULT_SHEET.1),
-    }
+    let frame = q.get::<PageFrameOf>(page);
+    ew_scene::page::frame_rect(
+        frame
+            .as_ref()
+            .as_ref()
+            .map(|f| (&*f.form, f.title_block.as_deref())),
+    )
 }
 
 /// The page point of the tag text `rep` prints with `def`, by the scene's rules (`ew_scene::page`'s
@@ -622,12 +620,7 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyle
         .find(|(_, s)| matches!(s.kind, ew_derive::ew_schema::SlotKind::Tag))?;
     let index = u16::try_from(i).ok()?;
     let ov = rep.text_slots.iter().find(|o| o.slot == index);
-    let visible = ov.and_then(|o| o.visible).unwrap_or_else(|| {
-        rep.arrangement
-            .as_ref()
-            .and_then(|name| def.arrangements.iter().find(|a| a.name == *name))
-            .map_or(slot.visible, |a| a.slots.contains(&index))
-    });
+    let visible = ew_derive::slot_shown(rep, def, index);
     let (style, _) = ew_scene::symbol::slot_style_key(def, slot, styles);
     let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
     let frame = ew_derive::text_frame(rep, def);

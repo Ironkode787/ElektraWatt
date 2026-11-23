@@ -916,15 +916,6 @@ pub struct CarrierGeom {
     pub outline: Vec<Rect>,
 }
 
-/// The width of a rail of a profile, in nanometres.
-fn profile_width(profile: Profile) -> i128 {
-    match profile {
-        Profile::Ts35x7_5 | Profile::Ts35x15 => 35_000_000,
-        Profile::Ts32 => 32_000_000,
-        Profile::Ts15 => 15_000_000,
-    }
-}
-
 /// `carrier_geometry(carrier)`: the axis check, length, rail axis and outline of a carrier (D5, doc 12 §2.4). `None`
 /// for a missing carrier.
 #[derive(Debug)]
@@ -945,7 +936,7 @@ impl Query for CarrierGeometry {
         let valid = known && path_error.is_none();
         let width = match (&c.kind, &c.params) {
             (CarrierKind::Duct, CarrierParams::Duct(d)) => Some(i128::from(d.width.0)),
-            (CarrierKind::Rail, CarrierParams::Rail(r)) => Profile::of(&r.profile).map(profile_width),
+            (CarrierKind::Rail, CarrierParams::Rail(r)) => Profile::of(&r.profile).map(Profile::width),
             _ => None,
         };
         let outline = match width.filter(|_| valid) {

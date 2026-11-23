@@ -16,6 +16,7 @@
 //! derived, never stored, so moving a module to another page moves its marks (store intent, derive
 //! presentation).
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -24,6 +25,23 @@ use ew_schema::{Device, LibCopy, Page, Part, RepType, Representation};
 
 use crate::Q;
 use crate::query::{Policy, Query};
+
+/// Every descendant of a device (its children, their children, …), the device itself not among them; a parent cycle
+/// is walked once.
+pub fn device_descendants(q: &Q, device: Id<Device>) -> BTreeSet<Id<Device>> {
+    let mut seen = BTreeSet::from([device]);
+    let mut found = BTreeSet::new();
+    let mut stack = vec![device];
+    while let Some(d) = stack.pop() {
+        for child in q.idx().device_children(d) {
+            if seen.insert(child) {
+                found.insert(child);
+                stack.push(child);
+            }
+        }
+    }
+    found
+}
 use crate::tag::{DeviceTag, MainRep};
 
 /// Which end of an overview segment a break mark closes.

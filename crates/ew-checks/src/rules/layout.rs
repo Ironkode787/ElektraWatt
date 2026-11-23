@@ -170,34 +170,6 @@ fn xy(p: Pt2) -> (i128, i128) {
     (i128::from(p.x.0), i128::from(p.y.0))
 }
 
-/// Whether `p` lies inside the polygon `poly` or on its boundary (exact; ray casting with the boundary checked first).
-fn in_polygon(poly: &[Pt2], p: (i128, i128)) -> bool {
-    let n = poly.len();
-    let mut inside = false;
-    for i in 0..n {
-        let (a, b) = (xy(poly[i]), xy(poly[(i + 1) % n]));
-        let cross = (b.0 - a.0) * (p.1 - a.1) - (b.1 - a.1) * (p.0 - a.0);
-        if cross == 0
-            && p.0 >= a.0.min(b.0)
-            && p.0 <= a.0.max(b.0)
-            && p.1 >= a.1.min(b.1)
-            && p.1 <= a.1.max(b.1)
-        {
-            return true;
-        }
-        if (a.1 > p.1) != (b.1 > p.1) {
-            // the edge crosses the horizontal line through p: compare p.0 with the crossing's u, exactly
-            let lhs = (p.0 - a.0) * (b.1 - a.1);
-            let rhs = (b.0 - a.0) * (p.1 - a.1);
-            let left_of_crossing = if b.1 > a.1 { lhs < rhs } else { lhs > rhs };
-            if left_of_crossing {
-                inside = !inside;
-            }
-        }
-    }
-    inside
-}
-
 /// Whether the rectangle `r` lies inside the usable polygon `usable` (its boundary included): its four corners inside,
 /// no vertex of the polygon strictly inside the rectangle, and no axis-parallel edge of the polygon through its open
 /// interior. Exact for the orthogonal polygons of the MVP (the plate rectangle, D5); a polygon with a diagonal edge is
@@ -207,11 +179,12 @@ fn inside_usable(usable: &[Pt2], r: Rect) -> Option<bool> {
     if usable.len() < 3 {
         return None;
     }
-    let (lo, hi) = (xy(r.min()), xy(r.max()));
-    let corners = [(lo.0, lo.1), (hi.0, lo.1), (hi.0, hi.1), (lo.0, hi.1)];
-    if !corners.iter().all(|c| in_polygon(usable, *c)) {
+    let (min, max) = (r.min(), r.max());
+    let corners = [min, Pt2::new(max.x, min.y), max, Pt2::new(min.x, max.y)];
+    if !corners.iter().all(|c| ew_derive::outline_contains(usable, *c)) {
         return Some(false);
     }
+    let (lo, hi) = (xy(min), xy(max));
     let strictly_in = |p: (i128, i128)| p.0 > lo.0 && p.0 < hi.0 && p.1 > lo.1 && p.1 < hi.1;
     let n = usable.len();
     for i in 0..n {
@@ -1707,7 +1680,7 @@ mod tests {
             p(40, 100),
             p(0, 100),
         ];
-        let at = |x: i64, y: i64| in_polygon(&v, xy(p(x, y)));
+        let at = |x: i64, y: i64| ew_derive::outline_contains(&v, p(x, y));
         // On the edge from (40, 100) to (50, 50), at its tip, and at a corner of the plate.
         assert!(at(44, 80) && at(50, 50) && at(100, 100));
         // Inside the notch, and on either side of its left edge at y 80.
