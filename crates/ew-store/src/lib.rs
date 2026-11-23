@@ -23,6 +23,8 @@
 //!   the base generation after a crash (doc 05 §8).
 //! - **I/O seam** ([`Vfs`]): every file operation goes through it; [`mem::MemVfs`] numbers, fails and
 //!   "powers off" calls for the fault-injection harness (doc 05 §5.6).
+//! - **The file write** ([`file`]): the program's one all-or-nothing write of a file or a set of files outside a
+//!   project (the exports, the settings, a library's files).
 //! - **As-built archive** ([`archive`], [`zip`]): the release's archive as an own deterministic ZIP, its check and
 //!   its atomic write through the seam (doc 05 §14).
 //! - **`.ewz` transport** ([`ewz`]): one verified generation packed as a deterministic ZIP, its strict reader and the
