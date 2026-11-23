@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-22T23:38:43+01:00\n"
+"POT-Creation-Date: 2026-11-23T08:38:43+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1736,7 +1736,8 @@ msgid ""
 "Arrange ▸ Mirror top to bottom** (`Y`), so that its port 1 points up, and "
 "click under the left end of the terminal. Choose **Draw ▸ Select**. The "
 "supply point -2X2 stands under the terminal, joined by a tube to its supply "
-"port 1: the toast says \"Placed \\-2X2 and connected 1 tube\"."
+"port 1: the toast says \"Placed \\-2X2 … and connected 1 to …\", with the "
+"terminal's port."
 msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:93
